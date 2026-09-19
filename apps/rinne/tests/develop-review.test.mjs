@@ -50,33 +50,35 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
   assert.match(html,/motion-library-primary/);
   assert.ok(html.indexOf('motion-library-primary')<html.indexOf('motion-playback'));
   assert.ok(html.indexOf('motion-library-primary')<html.indexOf('motion-camera-block'));
-  assert.match(css,/\.motion-grid\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.doesNotMatch(css,/@media[\s\S]*?\.motion-grid\{[^}]*grid-template-columns/);
+  assert.match(css,/\.motion-grid\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(css,/@media\(max-width:620px\)[\s\S]*?\.motion-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(js,/new THREE\.AnimationMixer/);assert.match(js,/KAYKIT_MODELS/);assert.match(js,/buildMotionReviewCatalog/);
   assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='source-registry'/);
   assert.doesNotMatch(js,/status\(formatName\(record\.name\)\+' · '\+categoryLabel\(record\.category\)\)/);
 });
 
-test('equipment review follows the Visual Review Lab probe language and makes equipment selection the primary action',async()=>{
+test('equipment review follows the Visual Review Lab probe language and exposes the exact review questions',async()=>{
   const [html,css,js]=await Promise.all([read('review-assets.html'),read('src/review-asset-library.css'),read('src/review-asset-library.js')]);
   assert.match(html,/<title>装備 \| Visual Review Lab<\/title>/);
   assert.match(html,/class="eyebrow">RINNE RUNTIME PROBE<\/p>/);
-  assert.match(html,/PRIMARY ACTION/);assert.match(html,/>装備を選ぶ<\/h2>/);
-  assert.match(html,/id="asset-slot-tabs"/);assert.match(html,/id="asset-equipment-options"/);assert.match(html,/id="asset-clear-slot"/);
-  assert.ok(html.indexOf('asset-equipment-section')<html.indexOf('asset-model-section'));
-  assert.ok(html.indexOf('asset-model-section')<html.indexOf('data-review-purpose'));
-  assert.match(html,/data-review-purpose/);assert.match(html,/正しい位置・向き・尺度で付き/);
+  assert.match(html,/data-review-purpose/);
+  assert.match(html,/正しい位置・向き・尺度で付き/);
   for(const point of ['装着','干渉','輪郭','モデル差'])assert.match(html,new RegExp(point));
+  assert.match(html,/id="asset-slot-tabs"/);
+  assert.match(html,/id="asset-equipment-options"/);
   for(const preset of ['front','three-quarter','side','back'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
   for(const focus of ['full','main','off','back'])assert.match(html,new RegExp(`data-asset-focus="${focus}"`));
   assert.doesNotMatch(html,/review-slot-auto\.js|着せ替え確認|装備確認 \| 百年転生/);
-  assert.match(js,/setFocusPreset\(slot\)/);assert.match(js,/setFocusPreset\(activeAssetSlot\)/);
-  assert.match(js,/asset-clear-slot/);assert.match(js,/state\.textContent=selected\?'選択中':'タップで装着'/);
-  assert.match(js,/https:\/\/raw\.githubusercontent\.com/);assert.match(js,/reviewModelUrl\(model\)|reviewEquipmentUrl\(spec\)/);
-  assert.match(css,/\.asset-primary-selection\{[^}]*border:1px solid #4b554f/);
-  assert.match(css,/\.model-options\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
-  assert.match(css,/\.asset-equipment-options\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
-  assert.match(css,/\.asset-equipment-options button\[aria-selected="true"\]::after\{content:"✓"/);
+  assert.match(js,/activeViewDirection==='three-quarter'/);
+  assert.match(js,/MODELS \$\{REVIEW_SKELETON_MODELS\.length\}/);
+  assert.match(js,/https:\/\/raw\.githubusercontent\.com/);
+  assert.match(js,/reviewModelUrl\(model\)|reviewEquipmentUrl\(spec\)/);
+  assert.match(css,/body\{background:radial-gradient\(circle at 18% 0,#1b2723 0,transparent 30%\),#0b1110\}/);
+  assert.match(css,/\.asset-stage-shell\{[^}]*border-radius:14px/);
+  assert.match(css,/\.asset-catalog\{[^}]*border-radius:14px/);
+  assert.match(css,/\.review-lab-back\{[^}]*border-radius:999px/);
+  assert.match(css,/\.model-options\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(css,/\.asset-equipment-options\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.doesNotMatch(css,/@media[\s\S]*?(?:\.model-options|\.asset-equipment-options)\{[^}]*grid-template-columns/);
 });
 test('world-object review loads the exact RINNE runtime props independently of equipment',async()=>{

@@ -3,7 +3,6 @@ import {KAYKIT_MODELS,YEAR_MS,appearanceForCharacter,createCharacter} from '@sou
 import {GLTFLoader} from '@soul/rendering';
 import {createKaykitCharacterPools} from './rebuild/kaykit-character-pool.js';
 import {applyTidebreakPose,tidebreakFrameFromSnapshot} from './rebuild/tidebreak-pose.js';
-import {createReviewTechniquePreview} from './review-technique-preview.js';
 import {reviewBattleCameraFrame} from './review-battle-state.js';
 import {hideEmbeddedCombatProps,reviewBattleEquipmentFor} from './review-battle-equipment.js';
 
@@ -68,7 +67,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   renderer.setPixelRatio(Math.min(Number(globalThis.devicePixelRatio)||1,1.5));
 
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1110);scene.fog=new THREE.Fog(0x0b1110,10,24);
-  const camera=new THREE.PerspectiveCamera(43,1,.08,50);camera.position.set(0,5.2,10);const cinematicPosition=new THREE.Vector3(),cinematicLook=new THREE.Vector3();
+  const camera=new THREE.PerspectiveCamera(40,1,.08,50);camera.position.set(0,5.2,10);
   const cameraLook=new THREE.Vector3(0,.95,0),cameraTargetPosition=new THREE.Vector3(),cameraTargetLook=new THREE.Vector3();camera.lookAt(cameraLook);
   scene.add(new THREE.HemisphereLight(0xdde8e3,0x24302d,2.35));
   const key=new THREE.DirectionalLight(0xffedca,3.4);key.position.set(-4,7,5);scene.add(key);
@@ -93,7 +92,6 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   };
   let encounterMode='duel',extras=[];
   stageRoot.add(sides.hero.marker,sides.enemy.marker);
-  const techniquePreview=createReviewTechniquePreview({THREE,parent:stageRoot,canvas,getActor:()=>sides.hero.actor});
 
   function install(sideKey,modelId){
     const side=sides[sideKey];
@@ -139,14 +137,10 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     const frame=tidebreakFrameFromSnapshot(state,{targetId:target?.id||null,intent:'review-battle'});
     const worldX=x*1.35,worldZ=z*1.15,targetX=(Number(target?.x)||0)*1.35,targetZ=(Number(target?.z)||0)*1.15,yaw=Math.atan2(targetX-worldX,targetZ-worldZ);
     actor.root.position.set(worldX,0,worldZ);actor.root.rotation.y=yaw;
-    if(sideKey==='hero')techniquePreview.offsetRoot(actor.root,yaw,time);
     actor.sample(side.appearance,time,(bones,sampleTime)=>{
-      const cinematic=techniquePreview.cinematic(time),forcedStagger=sideKey==='enemy'&&cinematic?.stagger;
-      if(!forcedStagger)addStride(bones,sampleTime,stride);
-      if(!frame?.attack&&!forcedStagger)addGuardPose(bones,sideKey);
-      if(!forcedStagger)applyTidebreakPose(bones,frame);
-      if(sideKey==='hero')techniquePreview.applyPose(bones,time);
-      if(forcedStagger){if(bones.spine){bones.spine.rotation.x-=.22;bones.spine.rotation.z+=.11;}if(bones.head)bones.head.rotation.x+=.16;if(bones.leftUpperArm)bones.leftUpperArm.rotation.x+=.22;if(bones.rightUpperArm)bones.rightUpperArm.rotation.x+=.22;}
+      addStride(bones,sampleTime,stride);
+      if(!frame?.attack)addGuardPose(bones,sideKey);
+      applyTidebreakPose(bones,frame);
       if(time<side.hitUntil&&bones.spine)bones.spine.rotation.z+=(sideKey==='hero'?-1:1)*.13;
     });
     actor.updateAttachments();side.marker.position.set(worldX,.018,worldZ);
@@ -175,16 +169,15 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   function updateCamera(core,dt,followCamera,cameraSystem){
     const frame=reviewBattleCameraFrame(core,{follow:followCamera,system:cameraSystem,encounterMode});
     cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);
-    const cinematic=techniquePreview.cinematic(performance.now()/1000),hero=sides.hero.actor?.root,enemy=sides.enemy.actor?.root;if(cinematic&&hero){const enemyPosition=enemy?.position||hero.position,dx=enemyPosition.x-hero.position.x,dz=enemyPosition.z-hero.position.z,length=Math.max(.001,Math.hypot(dx,dz)),forwardX=dx/length,forwardZ=dz/length,rightX=forwardZ,rightZ=-forwardX;const intro=cinematic.intro,strike=cinematic.strike,sideDistance=1.55-intro*.22,backDistance=2.35-strike*.32,height=1.18+intro*.2;cinematicPosition.set(hero.position.x-forwardX*backDistance+rightX*sideDistance,height,hero.position.z-forwardZ*backDistance+rightZ*sideDistance);cinematicLook.set(hero.position.x+forwardX*(.42+strike*.32),.86+strike*.08,hero.position.z+forwardZ*(.42+strike*.32));cameraTargetPosition.lerp(cinematicPosition,.94);cameraTargetLook.lerp(cinematicLook,.96);canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');}else canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic');
-    const step=Math.max(1/120,Math.min(.05,Number(dt)||1/60)),positionBlend=1-Math.exp(-step*(cinematic?12:cameraSystem==='rinne'?5.6:8)),lookBlend=1-Math.exp(-step*(cinematic?14:cameraSystem==='rinne'?7.2:8));
-    camera.position.lerp(cameraTargetPosition,positionBlend);cameraLook.lerp(cameraTargetLook,lookBlend);camera.lookAt(cameraLook);
-    canvas.dataset.cameraFollow=followCamera?'on':'off';canvas.dataset.cameraSystem=cameraSystem;
+    const step=Math.max(1/120,Math.min(.05,Number(dt)||1/60)),blend=1-Math.exp(-step*8);
+    camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);camera.lookAt(cameraLook);
+    canvas.dataset.cameraFollow=followCamera?'on':'off';
   }
 
   function sync(core,dt=0,{followCamera=true,encounterMode:requestedMode='duel',cameraSystem='rinne'}={}){
     setEncounterMode(requestedMode);resize();const now=performance.now()/1000;
     if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);animateExtras(core,now);}
-    techniquePreview.update(now);updateCamera(core,dt,followCamera,cameraSystem);
+    updateCamera(core,dt,followCamera,cameraSystem);
     const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
     const enemyActual=sides.enemy.actor?.root?.userData?.characterModel||'';
     canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
@@ -200,11 +193,9 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     models:REVIEW_BATTLE_MODELS,
     setModel(side,modelId){install(side,modelId);},
     setEncounterMode,
-    triggerTechnique:options=>techniquePreview.trigger(options),
-    clearTechnique:()=>techniquePreview.clear(),
-    resetRound(){techniquePreview.clear();for(const side of Object.values(sides)){side.previous=null;side.hp=null;side.hitUntil=0;}},
+    resetRound(){for(const side of Object.values(sides)){side.previous=null;side.hp=null;side.hitUntil=0;}},
     sync,
     snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',encounterMode});},
-    dispose(){observer.disconnect();clearExtras();techniquePreview.dispose();for(const side of Object.values(sides))if(side.actor)pool.despawn(side.actorId);runtime.dispose();ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}for(const source of equipmentAssets.values()){source.traverse(node=>{node.geometry?.dispose?.();const mats=Array.isArray(node.material)?node.material:[node.material];for(const mat of mats.filter(Boolean)){mat.map?.dispose?.();mat.dispose?.();}});}renderer.dispose();}
+    dispose(){observer.disconnect();clearExtras();for(const side of Object.values(sides))if(side.actor)pool.despawn(side.actorId);runtime.dispose();ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}for(const source of equipmentAssets.values()){source.traverse(node=>{node.geometry?.dispose?.();const mats=Array.isArray(node.material)?node.material:[node.material];for(const mat of mats.filter(Boolean)){mat.map?.dispose?.();mat.dispose?.();}});}renderer.dispose();}
   });
 }

@@ -83,7 +83,6 @@ View.prototype.render=function optimizedVillageRender(time,dt){
     if(this.followId){const p=this.world.people.find(p=>p.id===this.followId);if(p){const t=1-Math.exp(-dt*1.8);this.target.x+=(p.x-this.target.x)*t;this.target.z+=(p.z-this.target.z)*t;}}
   }
   this.updateCamera();this.updateObservationOccluders(time);this.animateAmbient(time);
-  this.syncGrounding?.([this.objects,this.foundation].filter(Boolean),this.__stylizedQuality?.level??0);
   const level=this.__stylizedQuality?.level??0,tilt=Number(this.world.state.settings.tilt??1);
   this.miniatureFocus.setLevel(level);
   this.miniatureFocus.render(this.scene,this.camera,{focusY:.48,clear:.12,fade:.32,strength:tilt});

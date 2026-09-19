@@ -96,11 +96,21 @@ export async function loadPinnedMotionSource(sourceId,{fetcher=fetch}={}){
   const promise=(async()=>{
     const bytes=await checkedBytes(source,fetcher);
     const gltf=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
-    const rigResolver=source.rig==='kaykit-rig-medium'?kaykitHumanoidFromGLTF:source.rig==='quaternius-standard'?quaterniusHumanoidFromGLTF:null;
+    const rigResolver=source.rig==='kaykit-rig-medium'?kaykitHumanoidFromGLTF:['quaternius-standard','mesh2motion-human'].includes(source.rig)?quaterniusHumanoidFromGLTF:null;
     if(!rigResolver)throw new Error(`Unsupported motion rig: ${source.rig}`);
-    return createNormalizedMotionSource(gltf,rigResolver,{id:source.id,expectedClips:source.clips});
+    return createNormalizedMotionSource(gltf,rigResolver,{id:source.id,expectedClips:source.clips.length?source.clips:null});
   })().catch(error=>{pinnedPromises.delete(sourceId);throw error;});
   pinnedPromises.set(sourceId,promise);return promise;
+}
+export async function discoverPinnedMotionLibraryClips(){
+  const discovered={};
+  const sources=Object.values(MOTION_LIBRARY_SOURCE_BY_ID).filter(source=>source.discoverAtRuntime);
+  const results=await Promise.allSettled(sources.map(async source=>{
+    const loaded=await loadPinnedMotionSource(source.id);
+    return [source.id,loaded.animations.map((clip,index)=>Object.freeze({index,name:String(clip.name||('clip-'+index)),duration:Number(clip.duration)||0}))];
+  }));
+  for(const result of results)if(result.status==='fulfilled')discovered[result.value[0]]=Object.freeze(result.value[1]);
+  return Object.freeze(discovered);
 }
 export function disposePinnedMotionSources(){
   for(const promise of pinnedPromises.values())void promise.then(source=>source.dispose()).catch(()=>{});

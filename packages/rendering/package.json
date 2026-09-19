@@ -35,7 +35,6 @@
     "./resource-lifetime": "./src/resource-lifetime.js",
     "./context-recovery": "./src/context-recovery.js",
     "./baked-lighting": "./src/baked-lighting.js",
-    "./visual-environment": "./src/visual-environment.js",
     "./impostor-lod": "./src/impostor-lod.js",
     "./thermal-governor": "./src/thermal-governor.js",
     "./visual-quality-floor": "./src/visual-quality-floor.js",

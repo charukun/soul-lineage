@@ -36,7 +36,18 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
     assert.match(source.revision,/^[0-9a-f]{40}$/);
     assert.match(source.gitBlobSha,/^[0-9a-f]{40}$/);
     assert.ok(!source.path.includes('..')&&!source.path.startsWith('/'));
+    if(source.discoverAtRuntime)assert.equal(source.family,'mesh2motion');
   }
+  const mesh2motionIds=MOTION_LIBRARY_SOURCES.filter(source=>source.discoverAtRuntime).map(source=>source.id);
+  assert.deepEqual(mesh2motionIds,['mesh2motion-human-base','mesh2motion-human-addon','mesh2motion-human-mocap']);
+  const discovered={
+    'mesh2motion-human-base':[{index:0,name:'Angry',duration:1.2},{index:1,name:'Attack_Ground_Pound',duration:1.1}],
+    'mesh2motion-human-addon':[{index:0,name:'Fishing_Cast',duration:1.4}],
+    'mesh2motion-human-mocap':[{index:0,name:'Cheer_One_Arm',duration:1.5}]
+  };
+  const expanded=buildReviewMotionRegistry(clips,discovered);
+  for(const id of mesh2motionIds)assert.ok(expanded.motions.some(row=>row.sourceId===id));
+  assert.ok(expanded.addedSourceMotionCount>=4);
 });
 
 test('motion review recommendations stay bounded and presentation variants never increase source count',()=>{

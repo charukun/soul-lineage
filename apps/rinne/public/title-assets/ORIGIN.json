@@ -15,13 +15,10 @@
       "sha256": "542f77d3368eb547653f5b695508fac47d99a17679d4f3c25c5cd8075fad4e70"
     }
   ],
-  "processing": "Generated key visuals are reframed into one H.264 timeline: 0-8.45s cinematic flight, followed by a 5.05s Living Still tail looped inside the same video element. Title/menu remain live HTML and do not appear over the cinematic.",
+  "processing": "Generated key visuals are reframed into one H.264 timeline: 0-8.45s cinematic flight, followed by a 5.05s Living Still tail looped inside the same video element. Binary movie/poster assets live under public/title-assets; title and menu remain live HTML.",
   "fallback": "Existing title-assets/world.webp and prepared title-live canvas are used only when movie playback is unavailable or motion is disabled.",
   "media_assets": {
     "movie": "title-cinematic.mp4",
-    "poster": "title-cinematic-poster.webp",
-    "manifest": "../../src/title-cinematic-manifest.js"
-  },
-  "replacement_contract": "To replace the cinematic, overwrite the movie/poster in public/title-assets and update only src/title-cinematic-manifest.js (revision, timing, dimensions, fps). Bump revision even when filenames stay the same so clients do not reuse stale cached media. 1920x1080 at 24fps or better is recommended. The current 960x540 legacy movie is intentionally framed with reduced scaling until a HD replacement is supplied.",
-  "interaction": "First-ever viewing plays unobstructed by title controls. After 1.5s, a native tap/click anywhere may skip to the authored Living Still landing. Later sessions may skip immediately, but the movie still starts by default. Returning from gameplay does not replay the long intro."
+    "poster": "title-cinematic-poster.webp"
+  }
 }

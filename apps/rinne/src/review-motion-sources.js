@@ -1,6 +1,6 @@
 const freeze=value=>Object.freeze(value);
 const clipRows=rows=>freeze(rows.map(([index,name])=>freeze({index,name})));
-const source=(meta,clips)=>freeze({
+const source=(meta,clips=[])=>freeze({
   ...meta,
   runtimeUrl:`https://raw.githubusercontent.com/${meta.repository}/${meta.revision}/${meta.path.split('/').map(encodeURIComponent).join('/')}`,
   clips:clipRows(clips)
@@ -405,7 +405,58 @@ export const MOTION_LIBRARY_SOURCES=freeze([
     [40, "Zombie_Idle_Loop"],
     [41, "Zombie_Scratch"],
     [42, "Zombie_Walk_Fwd_Loop"]
-  ])
+  ]),
+  source({
+    "id": "mesh2motion-human-base",
+    "label": "Mesh2Motion Human Base",
+    "family": "mesh2motion",
+    "rig": "mesh2motion-human",
+    "repository": "Mesh2Motion/mesh2motion-app",
+    "revision": "3ce7f9d97d25e608b4779ce797da343775ded62b",
+    "path": "static/animations/human-base-animations.glb",
+    "gitBlobSha": "3c5b3258af3b982fb922bbc4008296ec4efa8814",
+    "byteLength": 5656648,
+    "discoverAtRuntime": true,
+    "author": "Mesh2Motion contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "licenseEvidence": "https://github.com/Mesh2Motion/mesh2motion-app/blob/3ce7f9d97d25e608b4779ce797da343775ded62b/LICENSE-CC0.MD",
+    "originalSource": "https://mesh2motion.org"
+  }),
+  source({
+    "id": "mesh2motion-human-addon",
+    "label": "Mesh2Motion Human Addon",
+    "family": "mesh2motion",
+    "rig": "mesh2motion-human",
+    "repository": "Mesh2Motion/mesh2motion-app",
+    "revision": "3ce7f9d97d25e608b4779ce797da343775ded62b",
+    "path": "static/animations/human-addon-animations.glb",
+    "gitBlobSha": "b314ab1a99c546882786b44745915d97f32b6a88",
+    "byteLength": 5292804,
+    "discoverAtRuntime": true,
+    "author": "Mesh2Motion contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "licenseEvidence": "https://github.com/Mesh2Motion/mesh2motion-app/blob/3ce7f9d97d25e608b4779ce797da343775ded62b/LICENSE-CC0.MD",
+    "originalSource": "https://mesh2motion.org"
+  }),
+  source({
+    "id": "mesh2motion-human-mocap",
+    "label": "Mesh2Motion Human Mocap",
+    "family": "mesh2motion",
+    "rig": "mesh2motion-human",
+    "repository": "Mesh2Motion/mesh2motion-app",
+    "revision": "3ce7f9d97d25e608b4779ce797da343775ded62b",
+    "path": "static/animations/human-mocap-animations.glb",
+    "gitBlobSha": "f9ab473da79eb91a479cdfaf0b514d8279073e89",
+    "byteLength": 677736,
+    "discoverAtRuntime": true,
+    "author": "Mesh2Motion contributors / CMU Graphics Lab mocap",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "licenseEvidence": "https://github.com/Mesh2Motion/mesh2motion-app/blob/3ce7f9d97d25e608b4779ce797da343775ded62b/LICENSE-CC0.MD",
+    "originalSource": "https://mesh2motion.org"
+  })
 ]);
 
 export const MOTION_LIBRARY_SOURCE_BY_ID=freeze(Object.fromEntries(MOTION_LIBRARY_SOURCES.map(row=>[row.id,row])));

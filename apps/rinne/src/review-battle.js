@@ -3,10 +3,7 @@ import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stag
 import {reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import '@soul/shared-ui/combat-sequence.css';
-import '@soul/shared-ui/review-surface.css';
 import {createCombatSfx} from '@soul/audio/combat-sfx';
-import {ACTION_SKILLS} from './rebuild/skill-system.js';
-import {sequenceHudState} from './combat-sequence-hud.js';
 
 const q=id=>document.getElementById(id);
 const heroSelect=q('battle-hero-model'),enemySelect=q('battle-enemy-model');
@@ -15,14 +12,9 @@ for(const select of [heroSelect,enemySelect])select.replaceChildren(...REVIEW_BA
 heroSelect.value='kaykit.rogue.v1';enemySelect.value='kaykit.knight.v1';
 
 const phasePanel=q('battle-phase'),phaseMeta=q('phase-meta'),phaseHistory=q('phase-history'),soundButton=q('battle-sound');
-const inspirationButton=q('battle-inspire'),inspirationBanner=q('battle-inspiration'),inspirationName=q('battle-inspiration-name'),inspirationPhase=q('battle-inspiration-phase');
 const battleSfx=createCombatSfx();
-const loopEnabled=true,followCamera=true,reviewPhases=Object.freeze(['jo','ha','kyu']),phaseLabel=phase=>({jo:'序',ha:'破',kyu:'急'})[phase]||'';
-const techniquePool=Object.freeze(ACTION_SKILLS.filter(row=>row?.id&&String(row?.name||'').trim()));
-let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationPreview=null,inspirationHideTimer=0,inspirationSoundTimer=0,inspirationMode='normal',lastObservedPhase='',sequenceToken=0;
-const loadout=Object.fromEntries(reviewPhases.map(phase=>[phase,{id:`basic.${phase}`,name:`基本技 · ${phaseLabel(phase)}`}]));
-function syncLoadout(){for(const phase of reviewPhases){const node=document.querySelector(`[data-loadout-phase="${phase}"]`);if(node)node.textContent=loadout[phase].name;}}
-function setInspirationMode(mode){inspirationMode=mode==='boost'?'boost':'normal';for(const button of document.querySelectorAll('[data-inspiration-mode]'))button.setAttribute('aria-pressed',String(button.dataset.inspirationMode===inspirationMode));}
+const loopEnabled=true,followCamera=true;
+let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null;
 let host=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''};
 
 function syncModelLabels(){
@@ -54,7 +46,7 @@ function syncSoundButton(){
 }
 
 function resetBattle(){
-  memory.clear();lastCore=null;finishedAt=0;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks={hero:'',enemy:''};phaseHistory?.replaceChildren();inspirationPreview=null;clearTimeout(inspirationHideTimer);clearTimeout(inspirationSoundTimer);if(inspirationBanner)inspirationBanner.hidden=true;battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
+  memory.clear();lastCore=null;finishedAt=0;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks={hero:'',enemy:''};phaseHistory?.replaceChildren();battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
   host=new RaidHost({villageId:'develop-visual-review',storage,now:()=>Date.now()});
   host.join('demon',{type:'join',app:'demon',role:'demon',playerId:'review-demon',name:'Demon'});
   host.join('human',{type:'join',app:'rinne',role:'human',playerId:'review-human',name:'Human'});
@@ -63,40 +55,16 @@ function resetBattle(){
   host.tick(1/60);lastCore=host.battle?.core?.state?.()||null;last=performance.now();
 }
 
-function activeInspiration(now=performance.now()){
-  if(inspirationPreview&&now>=inspirationPreview.until)inspirationPreview=null;
-  return inspirationPreview;
-}
 function renderPhase(core){
-  const state=reviewBattlePhaseState(core),preview=activeInspiration(),phase=preview?.phase||state.phase;
-  const attack=preview?.name||core?.hero?.attack||state.skill||'',sequence=sequenceHudState({phase,attack});
-  phasePanel.hidden=!phase;phasePanel.dataset.comboActive=String(sequence.comboActive);phasePanel.dataset.phase=sequence.comboActive?sequence.activePhase:'idle';
-  syncCombatSequence(phasePanel,sequence.comboActive?sequence.activePhase:'',{pulse:sequence.comboActive});
-  for(const node of phasePanel.querySelectorAll('[data-combat-phase]'))node.dataset.completed=String(Boolean(sequence.completed[node.dataset.combatPhase]));
-  const action=sequence.action||'間合いを測る';phaseMeta.textContent=action;phaseMeta.hidden=!action;
-  if(action!==lastSequenceAction||phase!==lastSequencePhase){
-    if(lastSequenceAction){const item=document.createElement('span'),badge=document.createElement('b'),label=phaseLabel(lastSequencePhase);if(label){badge.textContent=label;item.append(badge);}item.append(document.createTextNode(lastSequenceAction));phaseHistory?.prepend(item);setTimeout(()=>item.remove(),2700);}
-    lastSequenceAction=action;lastSequencePhase=phase;
+  const state=reviewBattlePhaseState(core);
+  syncCombatSequence(phasePanel,state.phase);
+  const action=core?.hero?.attack||state.skill||'間合いを測る';
+  phaseMeta.textContent=action;
+  if(action!==lastSequenceAction||state.phase!==lastSequencePhase){
+    if(lastSequenceAction){const item=document.createElement('span');item.textContent=lastSequenceAction;phaseHistory?.prepend(item);setTimeout(()=>item.remove(),2700);}
+    lastSequenceAction=action;lastSequencePhase=state.phase;
   }
 }
-function chooseTechnique(phase){const candidates=techniquePool.filter(row=>row.id!==loadout[phase]?.id);return candidates[Math.floor(Math.random()*candidates.length)]||techniquePool[0];}
-async function triggerPhaseInspiration(phase,{forced=false}={}){
-  if(!techniquePool.length||!reviewPhases.includes(phase))return false;
-  if(!forced&&inspirationMode!=='boost')return false;
-  const stage=await ensureBattleStage(),skill=chooseTechnique(phase);if(!skill)return false;
-  battleSfx.unlock();const cue=stage.triggerTechnique({id:skill.id,name:skill.name,phase});
-  inspirationPreview={id:skill.id,name:skill.name,phase,until:performance.now()+Math.max(1500,Number(cue?.durationMs)||0)};
-  inspirationName.textContent=skill.name;inspirationPhase.textContent=`${phaseLabel(phase)} · 閃き構え → オーラ → 強制怯み → 新技`;inspirationBanner.hidden=false;
-  loadout[phase]={id:skill.id,name:skill.name};syncLoadout();
-  clearTimeout(inspirationHideTimer);inspirationHideTimer=setTimeout(()=>{inspirationBanner.hidden=true;},1900);
-  clearTimeout(inspirationSoundTimer);inspirationSoundTimer=setTimeout(()=>battleSfx.slash(),Math.max(80,Number(cue?.impactDelayMs)||300));
-  return true;
-}
-async function triggerInspirationSequence(){
-  const token=++sequenceToken;inspirationButton.disabled=true;battleSfx.unlock();resetBattle();
-  try{for(const phase of reviewPhases){if(token!==sequenceToken)break;await triggerPhaseInspiration(phase,{forced:true});await new Promise(resolve=>setTimeout(resolve,1550));}}finally{if(token===sequenceToken)inspirationButton.disabled=false;}
-}
-
 function syncBattleAudio(core){
   for(const side of ['hero','enemy']){
     const next=String(core?.[side]?.attack||'');
@@ -114,7 +82,7 @@ function syncBattle(dt){
   q('enemy-meta').textContent=`${Math.ceil(Number(core.enemy.hp)||0)} / ${enemyMax} HP`;
   q('battle-time').textContent=`${(battle?.time||0).toFixed(1)}秒`;
   q('battle-result').textContent=battle?.finished?`${battle.winner==='demon'?'LEFT':'RIGHT'} 勝利`:(encounterMode==='melee'?'乱戦中':'戦闘中');
-  syncBattleAudio(core);renderPhase(core);const phase=reviewBattlePhaseState(core).phase;if(phase&&phase!==lastObservedPhase){lastObservedPhase=phase;if(inspirationMode==='boost')void triggerPhaseInspiration(phase);}else if(!phase)lastObservedPhase='';battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
+  syncBattleAudio(core);renderPhase(core);battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
 }
 
 function advanceBattle(dt){
@@ -144,10 +112,8 @@ for(const button of document.querySelectorAll('[data-battle-skin]'))button.addEv
   for(const item of document.querySelectorAll('[data-battle-skin]'))item.setAttribute('aria-pressed',String(item===button));
 });
 
-for(const button of document.querySelectorAll('[data-inspiration-mode]'))button.addEventListener('click',()=>setInspirationMode(button.dataset.inspirationMode));
-q('battle-restart').addEventListener('click',()=>{sequenceToken++;inspirationButton.disabled=false;resetBattle();});
-inspirationButton?.addEventListener('click',()=>{void triggerInspirationSequence();});
+q('battle-restart').addEventListener('click',resetBattle);
 soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});
-window.addEventListener('pagehide',()=>{clearTimeout(inspirationHideTimer);clearTimeout(inspirationSoundTimer);battleStage?.dispose();battleSfx.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{battleStage?.dispose();battleSfx.dispose();},{once:true});
 
-syncModelLabels();syncLoadout();setInspirationMode('normal');phasePanel.dataset.skin='rinne';syncSoundButton();resetBattle();void ensureBattleStage();requestAnimationFrame(frame);
+syncModelLabels();phasePanel.dataset.skin='rinne';syncSoundButton();resetBattle();void ensureBattleStage();requestAnimationFrame(frame);

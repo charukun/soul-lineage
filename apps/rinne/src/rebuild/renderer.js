@@ -6,7 +6,6 @@ import { createMuraTerrain, flattenMuraModel } from '@soul/rendering/mura/terrai
 import { createAdaptiveQualityGovernor } from '@soul/rendering/adaptive-quality';
 import { createForegroundOcclusionFader } from '@soul/rendering/occlusion';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
-import { installStylizedEnvironment, gradeStylizedMaterials } from '@soul/rendering/visual-environment';
 import { createRinneCharacterStage } from './runtime-character-stage.js';
 import { buildInteriors } from './locations.js';
 import { renderPixelRatio, targetFpsForView } from './performance.js';
@@ -51,7 +50,6 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   const applyQuality=profile=>{const ratio=renderPixelRatio(basePixelRatio,profile.renderScale);renderer.setPixelRatio(ratio);qualityLevel=profile.level;focusEffect?.setLevel(qualityLevel);canvas.dataset.renderQuality=profile.id;canvas.dataset.renderPixelRatio=String(ratio);};
   const qualityGovernor=createAdaptiveQualityGovernor({targetFps,onChange:snapshot=>applyQuality(snapshot.profile)});applyQuality(qualityGovernor.snapshot().profile);
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x7893a0);const outdoorSky=scene.background,indoorSky=new THREE.Color(0x393844);scene.fog=new THREE.FogExp2(0x91a8ad,.0105);
-  const environment=installStylizedEnvironment(scene,{intensity:.38,sky:0x8aa8bf,horizon:0xe3bd8d,ground:0x596452});
   const camera=new THREE.PerspectiveCamera(43,1,.08,650);camera.position.set(12,13,17);
 
   const root=new THREE.Group(),land=new THREE.Group(),objects=new THREE.Group(),stationsRoot=new THREE.Group(),interiorRoot=new THREE.Group(),skirmishRoot=new THREE.Group(),frontRoot=new THREE.Group();root.add(land,objects,stationsRoot);scene.add(root,interiorRoot,skirmishRoot,frontRoot);interiorRoot.visible=false;skirmishRoot.visible=false;frontRoot.visible=false;
@@ -112,7 +110,6 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   for(const x of[-2.2,0,2.2])box(frontRoot,[1.4,.25,.7],[x,.12,-6.25],0xa47768);
   const rescuePad=new THREE.Mesh(new THREE.RingGeometry(.8,1.0,32),new THREE.MeshBasicMaterial({color:0xffd470,side:THREE.DoubleSide}));rescuePad.rotation.x=-Math.PI/2;rescuePad.position.set(0,.03,5.2);frontRoot.add(rescuePad);
   applyStylizedShading(root,'environment');applyStylizedShading(interiorRoot,'environment');applyStylizedShading(frontRoot,'environment');
-  gradeStylizedMaterials(root,{roughnessBias:-.07,envMapIntensity:.68,bumpScaleFloor:.045});gradeStylizedMaterials(interiorRoot,{roughnessBias:-.04,envMapIntensity:.56,bumpScaleFloor:.04});gradeStylizedMaterials(frontRoot,{roughnessBias:-.09,envMapIntensity:.76,bumpScaleFloor:.04});
   const foregroundOcclusion=createForegroundOcclusionFader();
 
   const atmosphereFill=new THREE.HemisphereLight(0x9db7c0,0x33483f,.46);scene.add(atmosphereFill);
@@ -189,12 +186,12 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     if(titleFrame){camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else if(spaceChanged){if(inside)interiorYaw=state.yaw;camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else{const step=Math.min(.05,dt||.016),positionBlend=1-Math.exp(-(inside?13.5:combatFrame?5.6:6.9)*step),lookBlend=1-Math.exp(-(inside?15:combatFrame?7.2:9.2)*step);camera.position.lerp(desired,positionBlend);if(!cameraLookReady){cameraLook.copy(target);cameraLookReady=true;}else cameraLook.lerp(target,lookBlend);}camera.lookAt(cameraLook);
     const occlusion=foregroundOcclusion.update({camera,target,occluderRoot:objects,enabled:village&&!inside,dt});canvas.dataset.occludedObjects=String(occlusion.occluded);
     if(village&&!inside){terrain.waterMat.uniforms.time.value=elapsed;terrain.motes.position.y=Math.sin(elapsed*.35)*.15;}
-    terrain.syncGrounding?.([objects,stationsRoot],qualityLevel);lighting.update({x:state.position.x,z:state.position.z,inside,frontier:!village,level:qualityLevel});contacts.update();
+    lighting.update({x:state.position.x,z:state.position.z,inside,frontier:!village,level:qualityLevel});contacts.update();
     camera.updateMatrixWorld();focusPoint.set(state.position.x,1.15,state.position.z).project(camera);
     focusEffect.render(scene,camera,{focusY:focusPoint.y*.5+.5,inside,combat:!!state.combat});
   }
   function dispose(){
-    observer.disconnect();cameraControl.dispose();foregroundOcclusion.dispose();skirmishRenderer.dispose();characterStage.dispose();focusEffect.dispose();contacts.dispose();lighting.dispose();environment.dispose();
+    observer.disconnect();cameraControl.dispose();foregroundOcclusion.dispose();skirmishRenderer.dispose();characterStage.dispose();focusEffect.dispose();contacts.dispose();lighting.dispose();
     root.removeFromParent();interiorRoot.removeFromParent();skirmishRoot.removeFromParent();frontRoot.removeFromParent();for(const v of cache.values())disposeObject(v);renderer.dispose();
   }
   return{THREE,scene,camera,viewport,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),visualSnapshot:()=>({focus:focusEffect.snapshot(),lighting:lighting.snapshot(),contacts:contacts.snapshot()}),dispose};
