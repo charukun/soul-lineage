@@ -79,7 +79,7 @@ function start() {
   renderer.debug.onShaderError = () => { throw new Error('モデルのシェーダーをコンパイルできませんでした'); };
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(38, 1, .01, 120);
   const orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true; orbit.minDistance = .18; orbit.maxDistance = 45;
-  orbit.maxPolarAngle = Math.PI * .49; orbit.target.set(0, 1, 0);
+  orbit.maxPolarAngle = Math.PI / 2; orbit.target.set(0, 1, 0);
   scene.add(new THREE.HemisphereLight('#fff6df', '#557481', 2.4));
   const sun = new THREE.DirectionalLight('#ffdeb0', 3); sun.position.set(-5, 9, 8); scene.add(sun);
   const fill = new THREE.DirectionalLight('#8cd6ec', 2); fill.position.set(8, 5, -8); scene.add(fill);
@@ -88,7 +88,7 @@ function start() {
   const marker = new THREE.Mesh(new THREE.RingGeometry(.48, .51, 48), new THREE.MeshBasicMaterial({ color: '#dcc493', side: THREE.DoubleSide }));
   marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
-  let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, loadSequence = 0, modelRequestSequence = 0, alive = true, frameId = 0;
+  let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, loadSequence = 0, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
   let motionQA = null;
   const events = new AbortController(), on = (target, type, handler) => target.addEventListener(type, handler, { signal: events.signal });
@@ -139,6 +139,7 @@ function start() {
     if (actor) { marker.position.x = actor.root.position.x; marker.position.z = actor.root.position.z; }
   }
   function aim(preset = 'overview') {
+    cameraPreset = preset;
     if (motionQA?.active) { motionQA.aim(preset === 'side' ? 'left' : ['front','back'].includes(preset) ? preset : 'front'); return; }
     const actor = actors[settings.selected]; if (!actor) return;
     let target, distance;
@@ -179,7 +180,7 @@ function start() {
         const facingWidth = Math.max(.25, preset === 'side' ? size.z : size.x);
         const verticalDistance = measuredHeight / (2 * tangent);
         const horizontalDistance = facingWidth / (2 * tangent * Math.max(.35, camera.aspect));
-        distance = Math.max(verticalDistance, horizontalDistance) * 1.22;
+        distance = Math.max(verticalDistance, horizontalDistance) * (camera.aspect < 1 ? 1.06 : 1.18);
       }
       const sign = preset === 'back' ? -1 : 1;
       camera.position.copy(target).add(new THREE.Vector3(preset === 'side' ? distance : 0, 0, preset === 'side' ? 0 : sign * distance));
@@ -191,7 +192,7 @@ function start() {
     const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
     renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix();
     if (motionQA?.active) motionQA.aim(motionQA.camera);
-    else if (review.ready && document.body.dataset.reviewMode === 'character') aim('front');
+    else if (review.ready && document.body.dataset.reviewMode === 'character') aim(cameraPreset);
     resetMeasure();
   }
   const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
@@ -259,8 +260,8 @@ function start() {
       el('capabilities').textContent = `SHA-256 ${hash}\nLicense ${audit.license || 'unverified'}\n表情 ${capabilities.expressionNames.length}種\n揺れ ${capabilities.springChains}チェーン / ${capabilities.springJoints}関節\n${capabilities.warnings.join('\n') || 'PBR・共通Humanoid表示'}`;
       rebuild(); el('progress').value = .8; renderer.compile(scene, camera); renderer.render(scene, camera);
       review.ready = true; el('progress').value = 1; status('CC0 KayKitモデルを表示中。個体差・動き・共有状態を検査できます。');
-    } catch (error) { if (sequence === loadSequence) { review.ready = !installed && Boolean(pool); report(error); } }
-    finally { nextPool?.dispose(); disposeTemplate(nextTemplate); if (sequence === loadSequence) { loading = false; el('retry').disabled = !alive; window.dispatchEvent(new Event('character-review-change')); } }
+    } catch (error) { if (sequence === loadSequence) { review.ready = !installed && Boolean(pool); report(error); el('retry').disabled = !alive; } }
+    finally { nextPool?.dispose(); disposeTemplate(nextTemplate); if (sequence === loadSequence) { loading = false; window.dispatchEvent(new Event('character-review-change')); } }
   }
   for (const id of ['view', 'count']) on(el(id), 'change', guard(() => update({ [id]: id === 'count' ? Number(el(id).value) : el(id).value }, id === 'count' ? 'rebuild' : 'arrange')));
   function regenerate() { settings = reviewSettings({ ...settings, seed: Number(el('seed').value) }); records = createReviewCohort(settings); rebuild(); }

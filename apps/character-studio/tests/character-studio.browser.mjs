@@ -2,6 +2,83 @@ import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage(), errors = [], network = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('requestfailed', request => network.push({ url: request.url(), failure: request.failure()?.errorText }));
+  const snapshot = label => page.evaluate(label => {
+    const selectors = [
+      '.review-surface','.review-surface__header','.review-surface__workspace','.stage-shell',
+      '.review-surface__stage-column','.review-surface__stage-column--composite','.canvas-wrap',
+      '.review-surface__stage','canvas#stage','.stage-actions','.stage-status','.editor-dock',
+      '.review-controls','.character-review-camera-dock','#retry'
+    ];
+    const nodes = {};
+    for (const selector of selectors) {
+      const node = document.querySelector(selector);
+      if (!node) { nodes[selector] = null; continue; }
+      const rect = node.getBoundingClientRect(), style = getComputedStyle(node);
+      nodes[selector] = {
+        parent: node.parentElement ? (node.parentElement.id ? '#'+node.parentElement.id : node.parentElement.className || node.parentElement.tagName) : null,
+        offsetTop: node.offsetTop, offsetHeight: node.offsetHeight, clientHeight: node.clientHeight,
+        rect: { top:rect.top,bottom:rect.bottom,left:rect.left,right:rect.right,width:rect.width,height:rect.height },
+        style: {
+          display:style.display,position:style.position,height:style.height,minHeight:style.minHeight,maxHeight:style.maxHeight,
+          gridTemplateRows:style.gridTemplateRows,gridRow:style.gridRow,overflow:style.overflow,overflowX:style.overflowX,overflowY:style.overflowY
+        }
+      };
+    }
+    const canvas=document.querySelector('#stage'), gl=canvas?.getContext('webgl2');
+    return {
+      label, viewport:{width:innerWidth,height:innerHeight,devicePixelRatio},
+      nodes,
+      visibleCameraButtons:[...document.querySelectorAll('.character-review-camera-dock button')].filter(button=>{
+        const style=getComputedStyle(button); return style.display!=='none'&&!button.hidden&&button.getBoundingClientRect().height>0;
+      }).map(button=>button.dataset.camera||button.id),
+      buffer:gl?{width:gl.drawingBufferWidth,height:gl.drawingBufferHeight}:null
+    };
+  }, label);
+  try {
+    const response=await page.goto(new URL('./index.html',baseURL).href,{waitUntil:'domcontentloaded',timeout:60000});
+    assert.equal(response.status(),200);
+    const initial=await snapshot('initial-load');
+    await page.screenshot({path:resolve(output,'studio-character-initial-load-mobile.png')});
+    await page.waitForFunction(()=>window.characterStudio?.review?.ready===true&&document.body.classList.contains('character-grid-ready'),null,{timeout:120000});
+    await page.waitForTimeout(160);
+    const ready=await snapshot('ready');
+    const stage=ready.nodes['.stage-shell'].rect, canvas=ready.nodes['canvas#stage'].rect, panel=ready.nodes['.editor-dock'].rect;
+    assert.ok(stage.height>=ready.viewport.height*.40,JSON.stringify(ready));
+    assert.ok(canvas.height>=stage.height*.90,JSON.stringify(ready));
+    assert.ok(stage.top<ready.viewport.height*.15,JSON.stringify(ready));
+    assert.ok(panel.top>=stage.bottom-2,JSON.stringify(ready));
+    assert.deepEqual(ready.visibleCameraButtons,['front','side','back','face','frame-model']);
+    const rail=ready.nodes['.character-review-camera-dock'].rect;
+    assert.ok(rail.top>=stage.top&&rail.bottom<=stage.bottom,JSON.stringify(ready));
+    assert.ok(ready.buffer?.width>0&&ready.buffer?.height>0,JSON.stringify(ready));
+    await page.screenshot({path:resolve(output,'studio-character-ready-mobile.png')});
+    for(const [name,selector] of [['front','[data-camera="front"]'],['overview','#frame-model'],['face','[data-camera="face"]']]){
+      await page.locator(`.character-review-camera-dock ${selector}`).click();
+      await page.waitForTimeout(120);
+      await page.screenshot({path:resolve(output,`studio-character-${name}-mobile.png`)});
+    }
+    const select=page.locator('.character-model-list');
+    if(await select.count()&&await select.locator('option').count()>1){
+      const initialValue=await select.inputValue(),nextValue=await select.locator('option').nth(1).getAttribute('value');
+      if(nextValue!==null){await select.selectOption(nextValue);await page.waitForTimeout(160);await select.selectOption(initialValue);await page.waitForFunction(()=>window.characterStudio?.review?.ready===true,null,{timeout:120000});}
+    }
+    await page.screenshot({path:resolve(output,'studio-character-model-switch-mobile.png')});
+    const final=await snapshot('model-switch');
+    writeFileSync(resolve(output,'studio-character-portrait.json'),JSON.stringify({success:true,initial,ready,final,errors,network},null,2));
+    return {initial,ready,final,errors,network};
+  } catch(error) {
+    await page.screenshot({path:resolve(output,'studio-character-portrait-failure.png')}).catch(()=>{});
+    throw error;
+  } finally { await context.close(); }
+}
+
+
 /** Focused real-asset test called by the existing affected browser lane. */
 export async function verifyCharacterStudio(browser, baseURL, output) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
