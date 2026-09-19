@@ -60,7 +60,7 @@
     ],
     "receipt": {
       "repository": "charukun/soul-lineage",
-      "pullRequest": null,
+      "pullRequest": 1038,
       "marker": "autonomous-receipt:village:village-adult-bound-20260920"
     }
   },
