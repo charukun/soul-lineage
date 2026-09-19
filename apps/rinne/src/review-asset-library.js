@@ -144,7 +144,8 @@ function applyViewPreset() {
   const distance=activeViewFocus==='full'?Math.max(radius*1.7,height*.86):Math.max(height*.56,.72);
   const eyeY=activeViewFocus==='full'?target.y+height*.08:target.y+height*.04;
   controls.target.copy(target);
-  if(activeViewDirection==='side')camera.position.set(target.x+distance,eyeY,target.z);
+  if(activeViewDirection==='three-quarter')camera.position.set(target.x+distance*.72,eyeY,target.z+distance*.72);
+  else if(activeViewDirection==='side')camera.position.set(target.x+distance,eyeY,target.z);
   else if(activeViewDirection==='back')camera.position.set(target.x,eyeY,target.z-distance);
   else camera.position.set(target.x,eyeY,target.z+distance);
   if(activeViewFocus==='full'&&activeViewDirection==='side')camera.position.x=center.x+distance;
@@ -198,6 +199,7 @@ function renderSelection(){
   renderEquipmentInspector();
 }
 function populate() {
+  const count=q('#asset-model-count');if(count)count.textContent=`MODELS ${REVIEW_SKELETON_MODELS.length}`;
   q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.textContent=model.label;button.dataset.model=model.id;button.addEventListener('click',()=>loadModel(model.id).catch(error=>status(error.message,true)));return button;}));
   for(const slot of ['main','off','back']){
     const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>status('装備プレビューを更新しました。')).catch(error=>status(error.message,true)));
