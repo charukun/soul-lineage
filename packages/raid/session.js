@@ -34,7 +34,7 @@ export class RaidSession {
   return{weapon,loadout:{jo:pick(species.techniques.jo.id,species.techniques.jo.name),ha:pick(ha,learned[0]?`写し・${label(ha)}`:baseHa.name),kyu:pick(kyu,learned[1]?`写し・${label(kyu)}`:baseKyu.name)}};
  }
  rememberFight(f){if(!f||f.learned)return;f.learned=true;this.ports.battle?.(f.npc.role);}
- engage(npc){if(this.finished||npc.dead||npc.eaten)return;const p=this.player,ox=p.x,oz=p.z,d=PREY[npc.role];this.fight={npc,ox,oz,core:null,lastHp:p.hp,lastEnemyHp:npc.hp,events:0,retreat:0,learned:false};const c=createTidebreakRuntime({seed:hash(npc.id),onImpact:e=>this.emit('impact',{...e,x:e.x+ox,z:e.z+oz})});this.fight.core=c;
+ engage(npc){if(this.finished||npc.dead||npc.eaten)return;const p=this.player,ox=p.x,oz=p.z,d=PREY[npc.role];this.fight={npc,ox,oz,core:null,lastHp:p.hp,lastEnemyHp:npc.hp,events:0,retreat:0,learned:false};const c=createTidebreakRuntime({seed:hash(npc.id),onImpact:e=>this.emit('impact',{...e,x:e.x+ox,z:e.z+oz,point:Array.isArray(e.point)?[e.point[0]+ox,e.point[1],e.point[2]+oz]:e.point})});this.fight.core=c;
  const skill=this.skillSet(npc);c.configure({...skill,hp:p.hp,maxhp:p.maxhp,enemyHp:npc.hp,enemyWeapon:npc.echo?.weapon||d.weapon,enemyStyle:npc.role==='knight'?'counter':['traveller','bellkeeper','gravekeeper'].includes(npc.role)?'cautious':'balanced',mindset:this.profile.form==='stalker'?'elusive':this.profile.form==='brute'?'steadfast':'balanced',positions:{hero:{x:0,z:0},enemy:{x:npc.x-ox,z:npc.z-oz}},enemyLoadout:npc.echo?.loadout,colliders:[...this.village.colliders,...(!this.village.gate.broken?[-1.7,0,1.7].map(x=>({x,z:this.village.gate.z,r:.7})):[]),...(!this.has('acolyte')?[{...this.village.shelter}]:[])].filter(o=>Math.hypot(o.x-ox,o.z-oz)<11).map(o=>({...o,x:o.x-ox,z:o.z-oz}))});
  npc.state='combat';this.idleFor=0;this.player.autoRoam=false;this.emit('engage',{npc});}
  consume(n){
@@ -66,8 +66,8 @@ export class RaidSession {
    v={...v,x:Math.sin(this.roamAngle),z:Math.cos(this.roamAngle),amount:.22,dash:false,autoRoam:true};p.autoRoam=true;
   }
  }
- if(this.fight){const f=this.fight;f.core.input(v.x||0,v.z||0,v.amount,0);const s=f.core.step(dt);p.x=f.ox+s.hero.x;p.z=f.oz+s.hero.z;p.yaw=s.hero.yaw;p.hp=s.hero.hp;p.pose=s.hero.pose;p.slot=s.hero.slot;p.skill=s.hero.skill;p.progress=s.hero.progress;p.speed=s.hero.moveSpeed;f.npc.x=f.ox+s.enemy.x;f.npc.z=f.oz+s.enemy.z;f.npc.yaw=s.enemy.yaw;f.npc.hp=s.enemy.hp;f.npc.pose=s.enemy.pose;
- if(p.hp<f.lastHp){this.emit('hurt',{amount:f.lastHp-p.hp});f.lastHp=p.hp;}
+ if(this.fight){const f=this.fight;f.core.input(v.x||0,v.z||0,v.amount,0);const s=f.core.step(dt);p.x=f.ox+s.hero.x;p.z=f.oz+s.hero.z;p.yaw=s.hero.yaw;p.hp=s.hero.hp;p.pose=s.hero.pose;p.weaponSegment=s.hero.weaponSegment;p.combatFeel=s.feel;p.slot=s.hero.slot;p.skill=s.hero.skill;p.progress=s.hero.progress;p.speed=s.hero.moveSpeed;f.npc.x=f.ox+s.enemy.x;f.npc.z=f.oz+s.enemy.z;f.npc.yaw=s.enemy.yaw;f.npc.hp=s.enemy.hp;f.npc.pose=s.enemy.pose;f.npc.weaponSegment=s.enemy.weaponSegment;
+ if(p.hp<f.lastHp){const impact=[...(s.impacts||[])].reverse().find(row=>row?.targetHero)||s.impact||null;this.emit('hurt',{amount:f.lastHp-p.hp,impact,feel:s.feel});f.lastHp=p.hp;}
  if(s.hero.dead){this.rememberFight(f);this.finish('defeated');return;}
  if(s.enemy.dead){this.rememberFight(f);f.npc.dead=true;f.npc.pose=null;f.npc.state='down';this.devour={npc:f.npc,t:0};p.pose=null;p.skill=null;this.fight=null;this.emit('down',{npc:f.npc});}
  else{const d=Math.hypot(p.x-f.npc.x,p.z-f.npc.z),ix=v.x||0,iz=v.z||0,im=Math.hypot(ix,iz),ax=(p.x-f.npc.x)/(d||1),az=(p.z-f.npc.z)/(d||1),away=im>.001?(ix*ax+iz*az)/im:0;if(v.amount>.05&&away>.32&&d>3.8)f.retreat=Math.min(2,f.retreat+dt);else f.retreat=Math.max(0,f.retreat-dt*1.35);if(f.retreat>.9&&d>4.6){this.rememberFight(f);f.npc.state='pursue';f.npc.pose=null;this.fight=null;p.pose=null;p.skill=null;this.safeTime=2.1;this.emit('disengage');}}

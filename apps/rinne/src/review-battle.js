@@ -1,6 +1,7 @@
-import {RaidHost} from '@soul/network/raid-host';
+import {createTidebreakRuntime} from '@soul/tidebreak-combat';
 import {CAUSAL_ANSWERS,INSPIRATION_QUESTIONS} from '@soul/game-data';
 import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stage.js';
+import {tidebreakWeaponFor} from './rebuild/combat.js';
 import {reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
 import {REVIEW_INSPIRATION_TIMELINE,generatedReviewInspirationCandidates,pickGeneratedReviewInspiration,pickReviewInspiration} from './review-battle-inspiration.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
@@ -16,18 +17,13 @@ const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
 const phasePanel=q('battle-phase'),phaseMeta=q('phase-meta'),phaseHistory=q('phase-history'),soundButton=q('battle-sound'),historyNode=q('battle-inspiration-history'),historyList=q('battle-inspiration-history-list'),historyOpen=q('battle-history-open'),historyClose=q('battle-history-close'),historyCount=q('battle-history-count');
 const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
-let host=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''},signTimer=0;
+let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),signTimer=0;
 const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
 // Shared with Demon and Rinne gameplay: one swipe parser owns drag, deadzone and terminal flick semantics after develop reconciliation.
 const reviewSwipe=new SwipeInput();
 let insightHistoryOpen=false;
 const phaseLabel=phase=>({jo:'序',ha:'破',kyu:'急'})[phase]||'破';
-function primeSeparatedRound(){
-  const runtime=host?.battle?.core;if(!runtime)return;
-  runtime.configure?.({weapon:selectedWeapon,enemyWeapon:'sword',hp:230,maxhp:230,enemyHp:180,enemyStyle:'balanced',mindset:'balanced',positions:{hero:{x:-1.55,z:1.1,yaw:2.18},enemy:{x:1.2,z:-.8,yaw:-.97}}});
-  runtime.input?.(0,0,0,0);
-  lastCore=runtime.state?.()||null;
-}
+const runtimeWeapon=()=>tidebreakWeaponFor(selectedWeapon);
 function renderLearnedSlots(){for(const phase of ['jo','ha','kyu']){const node=document.querySelector(`[data-loadout-phase="${phase}"]`);if(node)node.textContent=learnedSlots[phase]?.name||'基本技';}}
 function hideInspirationBanner(){const banner=q('battle-inspiration');if(!banner)return;banner.hidden=true;delete banner.dataset.burst;delete banner.dataset.sequence;}
 function hideInspirationBulb(){const bulb=q('battle-lightbulb');if(bulb)bulb.hidden=true;}
@@ -58,25 +54,38 @@ async function ensureBattleStage(){
     .catch(error=>{q('battle-model-status').textContent=`モデル読込失敗 · ${error.message}`;q('battle-canvas').dataset.battleModels='failed';throw error;});
   return battleStagePromise;
 }
-const memory=new Map(),storage={getItem:key=>memory.has(key)?memory.get(key):null,setItem:(key,value)=>memory.set(key,String(value))};
 function syncSoundButton(){if(!soundButton)return;soundButton.dataset.enabled=String(battleSfx.enabled);soundButton.setAttribute('aria-pressed',String(battleSfx.enabled));soundButton.textContent=`音 ${battleSfx.enabled?'ON':'OFF'}`;}
 
+function runtimeRecipe(technique,phase,weapon){
+  if(!technique)return null;
+  const steps=(technique.steps||[]).slice(0,3).map(step=>({kind:step.kind,footwork:step.footwork||'stay',charge:step.charge||'none'}));
+  while(steps.length<3)steps.push({kind:'ready',footwork:'stay',charge:'none'});
+  return{id:`review-${phase}-${technique.id}`,name:technique.name,type:'normal',weapon,element:'none',rhythm:'flow',tempo:1,aura:'none',steps};
+}
+function runtimeLoadout(engine,weapon){
+  const current=engine.loadout(),templates=engine.templates().filter(row=>row.weapon===weapon&&row.type!=='reaction'),result={uke:current.uke};
+  for(const [index,phase] of ['jo','ha','kyu'].entries())result[phase]=runtimeRecipe(learnedSlots[phase],phase,weapon)||structuredClone(templates[index%Math.max(1,templates.length)]||current[phase]);
+  return result;
+}
 function resetBattle(){
-  memory.clear();reviewSwipe.cancel();lastCore=null;finishedAt=0;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks={hero:'',enemy:''};phaseHistory?.replaceChildren();battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
-  host=new RaidHost({villageId:'develop-visual-review',storage,now:()=>Date.now()});
-  host.join('demon',{type:'join',app:'demon',role:'demon',playerId:'review-demon',name:'Monster'});
-  host.join('human',{type:'join',app:'rinne',role:'human',playerId:'review-human',name:'Hero'});
-  // Start near the edge of RaidHost's encounter radius so draw/ready/approach motion remains readable.
-  host.input('demon',{type:'state',x:1.2,z:-.8,yaw:-.97,state:'ready',action:null});
-  host.input('human',{type:'state',x:-1.55,z:1.1,yaw:2.18,state:'ready',action:null});
-  host.tick(1/60);primeSeparatedRound();last=performance.now();
+  reviewSwipe.cancel();lastCore=null;finishedAt=0;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks.clear();phaseHistory?.replaceChildren();battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
+  const weapon=runtimeWeapon(),group=encounterMode==='one-v-three';
+  runtime=createTidebreakRuntime({seed:6197+(group?31:0),weapon,onImpact:impact=>battleStage?.presentImpact?.(impact)});
+  const loadout=runtimeLoadout(runtime,weapon),positions=group
+    ?{hero:{x:-2.65,z:0},enemy:{x:2.65,z:0},enemies:[{x:2.65,z:0},{x:2.45,z:-1.75},{x:2.45,z:1.75}]}
+    :{hero:{x:-2.65,z:0},enemy:{x:2.65,z:0}};
+  runtime.configure({weapon,loadout,opponent:group?'group':'duel',hp:230,maxhp:230,enemyHp:180,enemyWeapon:'sword',enemyStyle:'balanced',mindset:'balanced',positions,...(group?{enemies:[{weapon:'sword',hp:180},{weapon:'spear',hp:165},{weapon:'axe',hp:195}]}:{})});
+  lastCore=runtime.state();last=performance.now();battleStage?.setEncounterMode(encounterMode);
 }
 function renderPhase(core){
   const state=reviewBattlePhaseState(core);syncCombatSequence(phasePanel,state.phase);const action=core?.hero?.attack||state.skill||'間合いを測る';phaseMeta.textContent=action;
   for(const slot of document.querySelectorAll('#battle-technique-loadout span'))slot.dataset.active=String(slot.querySelector('strong')?.dataset.loadoutPhase===state.heroPhase);
   if(action!==lastSequenceAction||state.phase!==lastSequencePhase){if(lastSequenceAction){const item=document.createElement('span');item.textContent=`${phaseLabel(lastSequencePhase)} · ${lastSequenceAction}`;phaseHistory?.prepend(item);while(phaseHistory?.children.length>3)phaseHistory.lastElementChild?.remove();setTimeout(()=>item.remove(),2700);}lastSequenceAction=action;lastSequencePhase=state.phase;}
 }
-function syncBattleAudio(core){for(const side of ['hero','enemy']){const next=String(core?.[side]?.attack||'');if(next&&next!==lastAudioAttacks[side])battleSfx.slash();lastAudioAttacks[side]=next;}}
+function syncBattleAudio(core){
+  const actors=[['hero',core?.hero],...(core?.enemies||[]).map((actor,index)=>[`enemy-${index}`,actor])];
+  for(const [key,actor] of actors){const next=String(actor?.attack||'');if(next&&next!==lastAudioAttacks.get(key))battleSfx.slash();lastAudioAttacks.set(key,next);}
+}
 
 function weightedTechnique(phase){
   const key=`${selectedWeapon}:${phase}`,seen=reviewTechniqueSeen.get(key)||new Set();reviewTechniqueSeen.set(key,seen);
@@ -109,18 +118,21 @@ function maybeInspire(phase){
 }
 
 function syncBattle(dt){
-  const battle=host?.battle,currentCore=battle?.core?.state?.();if(currentCore)lastCore=currentCore;const core=currentCore||lastCore;if(!core)return;
-  q('battle-time').textContent=`${(battle?.time||0).toFixed(1)}秒`;q('battle-result').textContent=battle?.finished?`${battle.winner==='demon'?'敵':'主人公'} 勝利`:(encounterMode==='one-v-three'?'1v3 戦闘中':'戦闘中');
+  const core=lastCore||runtime?.state?.();if(!core)return;
+  const enemies=core.enemies||[core.enemy].filter(Boolean),heroWon=enemies.length>0&&enemies.every(enemy=>enemy.dead),finished=Boolean(core.done);
+  q('battle-time').textContent=`${Number(core.time||0).toFixed(1)}秒`;q('battle-result').textContent=finished?(heroWon?'主人公 勝利':'敵 勝利'):(encounterMode==='one-v-three'?'1v3 戦闘中':'戦闘中');
   syncBattleAudio(core);renderPhase(core);const phase=reviewBattlePhaseState(core).phase;if(phase)maybeInspire(phase);else lastInspirationPhase='';battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
 }
 function advanceBattle(dt){
-  const runtime=host?.battle?.core;if(!runtime)return;
-  const angle=battleStage?.cameraAngle?.()||0,input=reviewSwipe.vector(angle);
-  runtime.input?.(input.screenX,input.screenY,input.amount,angle);
-  const before=runtime.state?.();if(before)lastCore=before;host.tick(dt);const after=runtime.state?.();if(after)lastCore=after;
+  if(!runtime)return;const angle=battleStage?.cameraAngle?.()||0,input=reviewSwipe.vector(angle);
+  runtime.input(input.screenX,input.screenY,input.amount,angle);lastCore=runtime.step(dt);
 }
-function frame(now){const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;if(host?.battle&&!host.battle.finished&&!inspirationSequenceActive)advanceBattle(dt);const finished=Boolean(host?.battle?.finished);if(finished&&!finishedAt)finishedAt=now;else if(!finished)finishedAt=0;if(reviewBattleLoopDue({loopEnabled,playing:true,finished,finishedAt,now}))resetBattle();syncBattle(dt);requestAnimationFrame(frame);}
-
+function frame(now){
+  const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;const finished=Boolean(lastCore?.done);
+  if(runtime&&!finished&&!inspirationSequenceActive)advanceBattle(dt);
+  const nextFinished=Boolean(lastCore?.done);if(nextFinished&&!finishedAt)finishedAt=now;else if(!nextFinished)finishedAt=0;
+  if(reviewBattleLoopDue({loopEnabled,playing:true,finished:nextFinished,finishedAt,now}))resetBattle();syncBattle(dt);requestAnimationFrame(frame);
+}
 
 const battleCanvas=q('battle-canvas');
 battleCanvas?.addEventListener('pointerdown',event=>{if((event.pointerType==='mouse'&&event.button!==0)||!reviewSwipe.down(event.pointerId,event.clientX,event.clientY,performance.now()))return;battleCanvas.setPointerCapture?.(event.pointerId);event.preventDefault();},{passive:false});
@@ -131,10 +143,10 @@ battleCanvas?.addEventListener('pointercancel',cancelReviewSwipe,{passive:true})
 q('camera-zoom-in')?.addEventListener('click',()=>void ensureBattleStage().then(stage=>stage.zoomBy(-.14)));
 q('camera-zoom-out')?.addEventListener('click',()=>void ensureBattleStage().then(stage=>stage.zoomBy(.14)));
 
-for(const button of document.querySelectorAll('[data-battle-mode]'))button.addEventListener('click',()=>{encounterMode=button.dataset.battleMode==='one-v-three'?'one-v-three':'duel';for(const item of document.querySelectorAll('[data-battle-mode]'))item.setAttribute('aria-pressed',String(item===button));battleStage?.setEncounterMode(encounterMode);resetBattle();});
+for(const button of document.querySelectorAll('[data-battle-mode]'))button.addEventListener('click',()=>{encounterMode=button.dataset.battleMode==='one-v-three'?'one-v-three':'duel';for(const item of document.querySelectorAll('[data-battle-mode]'))item.setAttribute('aria-pressed',String(item===button));resetBattle();});
 for(const button of document.querySelectorAll('[data-battle-skin]'))button.addEventListener('click',()=>{cameraSystem=button.dataset.battleSkin==='jinku'?'demon':'rinne';phasePanel.dataset.skin=button.dataset.battleSkin;for(const item of document.querySelectorAll('[data-battle-skin]'))item.setAttribute('aria-pressed',String(item===button));});
 for(const button of document.querySelectorAll('[data-inspiration-mode]'))button.addEventListener('click',()=>{inspirationMode=button.dataset.inspirationMode==='boost'?'boost':'normal';lastInspirationPhase='';for(const item of document.querySelectorAll('[data-inspiration-mode]'))item.setAttribute('aria-pressed',String(item===button));document.body.dataset.inspirationMode=inspirationMode;});
-weaponSelect?.addEventListener('change',()=>{selectedWeapon=weaponSelect.value;lastInspirationPhase='';document.body.dataset.weapon=selectedWeapon;battleStage?.setWeapon(selectedWeapon);resetBattle();});
+weaponSelect?.addEventListener('change',()=>{selectedWeapon=weaponSelect.value;lastInspirationPhase='';document.body.dataset.weapon=selectedWeapon;resetBattle();});
 historyOpen?.addEventListener('click',()=>{insightHistoryOpen=true;renderInsightHistory();});historyClose?.addEventListener('click',()=>{insightHistoryOpen=false;renderInsightHistory();});
 soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});window.addEventListener('pagehide',()=>{battleStage?.dispose();battleSfx.dispose();},{once:true});
 syncModelLabels();phasePanel.dataset.skin='rinne';syncSoundButton();renderLearnedSlots();renderInsightHistory();resetBattle();void ensureBattleStage();requestAnimationFrame(frame);
