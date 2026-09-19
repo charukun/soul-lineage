@@ -140,29 +140,28 @@ body.simple-review.character-grid-ready .stage-actions #frame-model{display:inli
 @media(max-width:520px){.character-review-slots{grid-template-columns:repeat(4,minmax(0,1fr))}.character-review-slots .character-review-slot{min-height:34px!important;padding-inline:4px!important}.character-review-slots .character-review-slot strong{font-size:8px}.character-review-camera-dock{left:8px;right:8px;grid-template-columns:repeat(5,minmax(0,1fr))}.character-review-camera-dock button{padding-inline:3px!important;font-size:9px!important}}
 body.simple-review.character-grid-ready .load-indicator[data-state="error"]{display:none!important}
 
-/* Portrait mobile character review: preserve a real renderer viewport. */
+/* Portrait mobile character review inside the shared review shell. */
 @media (max-width:760px) and (orientation:portrait){
-  body.simple-review.character-grid-ready .review-app{
-    height:100dvh!important;
-    min-height:100dvh!important;
-    grid-template-rows:minmax(420px,58dvh) minmax(0,42dvh)!important;
+  body.simple-review.character-grid-ready .review-surface__workspace{
+    grid-template-rows:minmax(0,58%) minmax(0,42%)!important;
+  }
+  body.simple-review.character-grid-ready .stage-shell.review-surface__stage-column--composite{
+    min-height:0!important;
+    height:100%!important;
+    grid-template-rows:minmax(0,1fr)!important;
     overflow:hidden!important;
   }
-  body.simple-review.character-grid-ready .stage-shell{
+  body.simple-review.character-grid-ready .canvas-wrap.review-surface__stage{
     min-height:0!important;
-    height:auto!important;
-    grid-template-rows:44px minmax(0,1fr) auto!important;
-  }
-  body.simple-review.character-grid-ready .canvas-wrap{
-    min-height:300px!important;
     height:100%!important;
+    align-self:stretch!important;
     overflow:hidden!important;
   }
   body.simple-review.character-grid-ready #stage{
     display:block!important;
     width:100%!important;
     height:100%!important;
-    min-height:300px!important;
+    min-height:0!important;
   }
   body.simple-review.character-grid-ready .stage-status{
     position:absolute!important;
@@ -170,7 +169,7 @@ body.simple-review.character-grid-ready .load-indicator[data-state="error"]{disp
     bottom:8px!important;
     z-index:6!important;
     width:auto!important;
-    max-width:calc(100% - 16px)!important;
+    max-width:calc(100% - 78px)!important;
     min-height:0!important;
     padding:0!important;
     border:0!important;
@@ -179,8 +178,9 @@ body.simple-review.character-grid-ready .load-indicator[data-state="error"]{disp
   body.simple-review.character-grid-ready .stage-status progress{display:none!important}
   body.simple-review.character-grid-ready .stage-status #status[data-error="true"]{display:none!important}
   body.simple-review.character-grid-ready .stage-status #retry{min-height:36px!important}
-  body.simple-review.character-grid-ready .editor-dock{
+  body.simple-review.character-grid-ready .editor-dock.review-surface__panel{
     min-height:0!important;
+    height:100%!important;
     overflow:hidden!important;
   }
   body.simple-review.character-grid-ready .review-controls{
