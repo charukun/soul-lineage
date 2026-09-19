@@ -13,8 +13,8 @@ function combatState(seed=41){
 
 test('Rinne equipment maps onto Tidebreak combat weapons without importing Tidebreak UI',()=>{
   assert.equal(tidebreakWeaponFor('sword'),'sword');
-  assert.equal(tidebreakWeaponFor('dagger'),'sword');
-  assert.equal(tidebreakWeaponFor('staff'),'spear');
+  assert.equal(tidebreakWeaponFor('dagger'),'dagger');
+  assert.equal(tidebreakWeaponFor('staff'),'staff');
   assert.equal(tidebreakWeaponFor('fist'),'fist');
 });
 
