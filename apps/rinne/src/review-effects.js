@@ -7,7 +7,7 @@ import {REVIEW_EFFECT_CATALOG,REVIEW_EFFECT_CATEGORIES,REVIEW_REAL_EFFECT_COUNT}
 import {authoredEffectBase,createEffekseerBackend} from './rebuild/effekseer-loader.js';
 import {REVIEW_REFERENCE_MODEL_HEIGHT,reviewModelScale} from './review-vfx-model-scale.js';
 import './review-effects.css';
-import {createReviewChoiceVisual} from './review-choice-visual.js';
+import {createRuntimeThumbnail,captureRuntimeThumbnail} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 mountRinneReviewShell('effects');
 
@@ -88,6 +88,28 @@ const reviewModelHeight=mannequinSize.y||REVIEW_REFERENCE_MODEL_HEIGHT;
 const state={id:'visual-review-vfx',zone:'frontier',phase:'alive',interior:null,position:{x:-1.55,y:1,z:0}};
 const front={stage:1,enemies:[{id:'target',x:1.55,y:1,z:0},{id:'target-b',x:1.1,y:1,z:1.7},{id:'target-c',x:1.1,y:1,z:-1.7}]};
 const mobile=Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches);let paused=false,speed=1,tier=0,reduced=false,selected='slash',serial=0,lastTrigger=-Infinity,disposed=false,activeFilter='all';
+const thumbnailRenderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'low-power'});
+thumbnailRenderer.setPixelRatio(1);thumbnailRenderer.setSize(144,92,false);thumbnailRenderer.outputColorSpace=THREE.SRGBColorSpace;thumbnailRenderer.toneMapping=THREE.ACESFilmicToneMapping;thumbnailRenderer.toneMappingExposure=1.05;
+const thumbnailScene=new THREE.Scene();thumbnailScene.background=new THREE.Color('#101715');
+const thumbnailCamera=new THREE.PerspectiveCamera(40,144/92,.05,40);thumbnailCamera.position.set(0,1.35,5.6);thumbnailCamera.lookAt(0,1.05,0);
+const thumbnailAbort=new AbortController(),thumbnailPlayer=createAuthoredEffectPlayer({mobile:true,onError:()=>{}});
+let thumbnailBackendPromise=null;
+const thumbnailEntries=new WeakMap();
+const thumbnailObserver=new IntersectionObserver(entries=>{for(const item of entries)if(item.isIntersecting){const entry=thumbnailEntries.get(item.target);thumbnailObserver.unobserve(item.target);if(entry)void renderEffectThumbnail(entry,item.target);}}, {rootMargin:'180px'});
+function thumbnailCues(entry){
+  if(entry.cues?.length)return rawCuesFor(entry);
+  const context=REVIEW_CONTEXTS[entry.context]||REVIEW_CONTEXTS.slash;
+  return entry.effects.map((effect,index)=>({effect,position:{x:context.impact[0],y:context.impact[1],z:context.impact[2]},rotation:{x:0,y:0,z:0},scale:1,lifetime:REVIEW_AUTHORED_EFFECTS[effect]?.lifetime||1.3,color:[255,255,255,255],priority:3-index,kind:'review-thumbnail'}));
+}
+function ensureThumbnailBackend(){
+  if(!thumbnailBackendPromise)thumbnailBackendPromise=createEffekseerBackend({renderer:thumbnailRenderer,document,baseUrl:authoredEffectBase(document),signal:thumbnailAbort.signal,budget:combatEffectBudget(0,true,false),effectDefinitions:REVIEW_AUTHORED_EFFECTS,streaming:true,fallbackEffects:['slash','impact'],maxResident:10,retentionMs:20_000}).then(backend=>{thumbnailPlayer.attach(backend);return backend;});
+  return thumbnailBackendPromise;
+}
+async function renderEffectThumbnail(entry,target){
+  await ensureThumbnailBackend();thumbnailPlayer.clear();thumbnailPlayer.presentCues(thumbnailCues(entry));
+  for(let i=0;i<5;i++)thumbnailPlayer.frame(state,front,.055,{level:0,reduced:false,hidden:false});
+  thumbnailRenderer.render(thumbnailScene,thumbnailCamera);thumbnailPlayer.draw(thumbnailCamera);thumbnailRenderer.resetState();captureRuntimeThumbnail(target,thumbnailRenderer.domElement);
+}
 const abort=new AbortController();
 const player=createAuthoredEffectPlayer({mobile,onError:error=>{q('fx-status').textContent=`VFX停止: ${error}`;}});
 const warmEntry=(entry,priority=80)=>player.prefetch((entry?.cues||[]).map((cue,index)=>({effect:cue.effect,priority:priority-index})));
@@ -161,11 +183,11 @@ function trigger(preset=selected){
 }
 function cardFor(entry){
   const wrap=document.createElement('div');wrap.setAttribute('role','listitem');
-  const button=document.createElement('button');button.type='button';button.className='fx-option review-choice-card';button.dataset.preset=entry.id;button.setAttribute('aria-pressed',String(entry.id===selected));
+  const button=document.createElement('button');button.type='button';button.className='fx-option review-choice-card';button.dataset.preset=entry.id;button.setAttribute('aria-pressed',String(entry.id===selected));const thumbnail=createRuntimeThumbnail(entry.label);thumbnailEntries.set(thumbnail,entry);thumbnailObserver.observe(thumbnail);
   const category=document.createElement('span');category.className='fx-option-category';category.textContent=REVIEW_EFFECT_CATEGORIES[entry.category]||entry.category;
   const title=document.createElement('strong');title.textContent=entry.label;
   const origin=document.createElement('small');origin.className='fx-option-origin';origin.textContent=entry.realSource?'実素材':entry.kind==='original'?'原本':entry.kind==='composition'?'比較構成':'ゲーム採用';
-  button.append(createReviewChoiceVisual({type:'effect',variant:entry.id,category:entry.category,label:entry.label}),category,title,origin);button.addEventListener('pointerenter',()=>warmEntry(entry,120),{passive:true});button.addEventListener('focus',()=>warmEntry(entry,140));button.addEventListener('touchstart',()=>warmEntry(entry,180),{passive:true});button.addEventListener('click',()=>trigger(entry.id));wrap.append(button);return wrap;
+  button.append(thumbnail,category,title,origin);button.addEventListener('pointerenter',()=>warmEntry(entry,120),{passive:true});button.addEventListener('focus',()=>warmEntry(entry,140));button.addEventListener('touchstart',()=>warmEntry(entry,180),{passive:true});button.addEventListener('click',()=>trigger(entry.id));wrap.append(button);return wrap;
 }
 function renderCatalog(){
   const needle=q('fx-search').value.trim().toLocaleLowerCase('ja');
@@ -219,7 +241,7 @@ createEffekseerBackend({renderer,document,baseUrl:authoredEffectBase(document),s
   .then(backend=>{if(player.attach(backend)){q('fx-status').textContent=`実素材 ${REVIEW_REAL_EFFECT_COUNT}種 · 再生可能`;trigger('slash');}})
   .catch(error=>player.fail(error));
 window.addEventListener('pagehide',()=>{
-  disposed=true;abort.abort();observer.disconnect();controls.dispose();player.dispose();
+  disposed=true;abort.abort();thumbnailAbort.abort();thumbnailObserver.disconnect();observer.disconnect();controls.dispose();player.dispose();thumbnailPlayer.dispose();thumbnailRenderer.dispose();
   ground.geometry.dispose();ground.material.dispose();
   for(const object of reviewDisposables)object.dispose?.();
   renderer.dispose();

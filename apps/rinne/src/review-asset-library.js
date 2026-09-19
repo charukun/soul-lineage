@@ -9,7 +9,7 @@ import {
   reviewSkeletonEquipmentForSlot,
 } from '@soul/assets';
 import './review-asset-library.css';
-import {createReviewChoiceVisual} from './review-choice-visual.js';
+import {createRuntimeThumbnail,renderRuntimeThumbnail} from './review-runtime-thumbnail.js';
 mountRinneReviewShell('equipment');
 
 const q = selector => document.querySelector(selector);
@@ -188,7 +188,7 @@ function renderEquipmentInspector(){
   const candidates=[{id:'',label:'なし'},...reviewSkeletonEquipmentForSlot(activeAssetSlot)];
   list.replaceChildren(...candidates.map(item=>{
     const button=document.createElement('button');
-    button.type='button';button.classList.add('review-choice-card');button.dataset.equipmentId=item.id;const text=document.createElement('span');text.textContent=item.label;button.append(createReviewChoiceVisual({type:'equipment',variant:item.family||item.id||'none',label:item.label}),text);
+    button.type='button';button.classList.add('review-choice-card');button.dataset.equipmentId=item.id;const text=document.createElement('span');text.textContent=item.label,thumbnail=createRuntimeThumbnail(item.label);button.append(thumbnail,text);if(item.id)void loader.loadAsync(reviewEquipmentUrl(item)).then(gltf=>renderRuntimeThumbnail(thumbnail,gltf.scene));
     const selected=(selection[activeAssetSlot]||'')===item.id;
     button.setAttribute('role','option');button.setAttribute('aria-selected',String(selected));
     button.addEventListener('click',()=>{
@@ -223,7 +223,7 @@ function openModelPicker(){setModelPickerOpen(true);}
 function closeModelPicker(restoreFocus=false){setModelPickerOpen(false,{restoreFocus});}
 function populate() {
   const count=q('#asset-model-count');if(count)count.textContent=`MODELS ${REVIEW_SKELETON_MODELS.length}`;
-  q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.model=model.id;button.setAttribute('role','option');const text=document.createElement('span');text.textContent=model.label;button.append(createReviewChoiceVisual({type:'model',variant:model.id,label:model.label,seed:model.id}),text);button.addEventListener('click',()=>{closeModelPicker();loadModel(model.id).catch(error=>status(error.message,true));});return button;}));
+  q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.model=model.id;button.setAttribute('role','option');const text=document.createElement('span');text.textContent=model.label,thumbnail=createRuntimeThumbnail(model.label);button.append(thumbnail,text);void loader.loadAsync(reviewModelUrl(model)).then(gltf=>renderRuntimeThumbnail(thumbnail,gltf.scene));button.addEventListener('click',()=>{closeModelPicker();loadModel(model.id).catch(error=>status(error.message,true));});return button;}));
   for(const slot of ['main','off','back']){
     const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>status('装備プレビューを更新しました。')).catch(error=>status(error.message,true)));
   }

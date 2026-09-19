@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {KAYKIT_MODELS,KAYKIT_RIG_ID} from '@soul/characters';
 import {kaykitHumanoidFromGLTF} from '@soul/rendering/kaykit-rig';
 import {captureMotionRest,applyNormalizedMotion} from '@soul/rendering/motion-quality';
@@ -8,7 +9,7 @@ import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGOR
 import {buildReviewMotionRegistry,motionRegistryCount} from './review-motion-registry.js';
 import {loadPinnedMotionSource,loadMotionReviewModel,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import './review-motion-library.css';
-import {createReviewChoiceVisual} from './review-choice-visual.js';
+import {createRuntimeThumbnail,renderRuntimeThumbnail} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 mountRinneReviewShell('motion');
 
@@ -106,10 +107,19 @@ async function selectMotion(record){
     playing=true;status('');renderMotionGrid();syncPlaybackUI();
   }catch(error){playing=false;status('モーション読込失敗: '+String(error?.message||error));syncPlaybackUI();}
 }
+async function loadReviewModelForThumbnail(model){
+  if(model.reviewMannequin)return (await loadMotionReviewModel(model.id)).gltf;
+  return loader.loadAsync(model.runtime.url);
+}
+async function renderModelThumbnail(model,thumbnail){
+  const gltf=await loadReviewModelForThumbnail(model);
+  await renderRuntimeThumbnail(thumbnail,cloneSkeleton(gltf.scene));
+}
 function renderModelGrid(){
   const grid=el('motion-model-grid');grid.replaceChildren();
   for(const model of REVIEW_MODELS){
-    const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionModel=model.id;const label=document.createElement('span');label.textContent=model.label;button.append(createReviewChoiceVisual({type:'model',variant:model.id,label:model.label,seed:model.id}),label);
+    const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionModel=model.id;
+    const thumbnail=createRuntimeThumbnail(model.label),label=document.createElement('span');label.textContent=model.label;button.append(thumbnail,label);void renderModelThumbnail(model,thumbnail);
     button.setAttribute('aria-pressed',String(model.id===selectedModel.id));button.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(button);
   }
 }
@@ -120,17 +130,30 @@ function renderFilters(){
     button.addEventListener('click',()=>{filter=id;renderFilters();renderMotionGrid();});root.append(button);
   }
 }
+async function renderMotionThumbnail(record,thumbnail){
+  if(!selectedModel)return;
+  const gltf=await loadReviewModelForThumbnail(selectedModel),root=cloneSkeleton(gltf.scene);
+  const box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3()),height=Math.max(.4,size.y);
+  if(record.runtime.kind==='kaykit-embedded'){
+    const clip=(gltf.animations||[]).find(item=>item.name===record.upstreamClipName)||(gltf.animations||[])[record.upstreamClipIndex];
+    if(clip){const mix=new THREE.AnimationMixer(root),action=mix.clipAction(clip);action.play();action.time=Math.max(0,(Number(clip.duration)||0)*.38);mix.update(0);}
+  }else if(record.runtime.kind==='pinned-motion-source'){
+    const source=await loadPinnedMotionSource(record.sourceId),bones=kaykitHumanoidFromGLTF({scene:root}),rest=captureMotionRest(bones,height),duration=Math.max(1/60,source.duration(record.upstreamClipIndex));
+    applyNormalizedMotion(bones,source.sample(record.upstreamClipIndex,duration*.38),rest);
+  }
+  await renderRuntimeThumbnail(thumbnail,root);
+}
 function renderMotionGrid(){
   const root=el('motion-grid'),rows=filterMotionReviewCatalog(catalog,filter);root.replaceChildren();
   if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty';empty.textContent='この分類のモーションはありません。';root.append(empty);return;}
   for(const record of rows){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionIdentity=record.sourceIdentity;button.dataset.recommended=String(record.recommended);
     button.setAttribute('aria-pressed',String(selected?.sourceIdentity===record.sourceIdentity));
-    const name=document.createElement('span');name.textContent=formatName(record.name);
+    const thumbnail=createRuntimeThumbnail(formatName(record.name)),name=document.createElement('span');name.textContent=formatName(record.name);
     const meta=document.createElement('small');meta.className='motion-category';
     const duration=selected?.sourceIdentity===record.sourceIdentity?selectedDuration:Number(record.duration)||0;
     meta.textContent=categoryLabel(record.category)+(duration?' · '+duration.toFixed(2)+'s':'');
-    button.append(createReviewChoiceVisual({type:'motion',variant:record.name,category:record.category,label:formatName(record.name),seed:record.sourceIdentity}),name,meta);button.addEventListener('click',()=>void selectMotion(record));root.append(button);
+    button.append(thumbnail,name,meta);void renderMotionThumbnail(record,thumbnail);button.addEventListener('click',()=>void selectMotion(record));root.append(button);
   }
 }
 function seek(value){
