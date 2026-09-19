@@ -3,8 +3,10 @@ import { pathToFileURL } from 'node:url';
 import { DEV_APP_NAMES } from './application-catalog.mjs';
 import { distributionPublicUrl } from './distribution-targets.mjs';
 import { PERSONAL_DEV_EMAIL_REPOSITORY, findAssociatedDevelopPr, personalDevChangeLabel, recordGithubDeliveryReceipt } from './notify-delivery.mjs';
+import { refreshPulseState } from '../ops-board/refresh-client.mjs';
 
 const SHA=/^[a-f0-9]{40}$/;
+const PULSE_PUBLIC_URL='https://rinne-ops.c-okamoto.workers.dev/';
 
 export function fastDevEmailMessage({pr,repository,apps=[]}={}){
   if(!pr?.number||!apps.length)return null;
@@ -30,11 +32,23 @@ export async function notifyFastDev({token='',repository=PERSONAL_DEV_EMAIL_REPO
 
 async function main(){
   const [sha,appsJson='[]']=process.argv.slice(2),apps=JSON.parse(appsJson);
-  const receipt=await notifyFastDev({token:process.env.GITHUB_TOKEN||'',repository:process.env.GITHUB_REPOSITORY||'',sha,apps});
+  const token=process.env.GITHUB_TOKEN||'';
+  const receipt=await notifyFastDev({token,repository:process.env.GITHUB_REPOSITORY||'',sha,apps});
   console.log(`Fast DEV email receipt: ${receipt}`);
+  let pulseRefresh='skipped';
+  if(token){
+    try{
+      const state=await refreshPulseState({baseUrl:PULSE_PUBLIC_URL,refreshToken:token,githubToken:token,reason:'deployment'});
+      pulseRefresh=state?.generatedAt||'ok';
+      console.log(`PULSE_REFRESH_OK generatedAt=${pulseRefresh}`);
+    }catch(error){
+      pulseRefresh='failed';
+      console.log(`::warning::PULSE refresh after DEV publication failed: ${error.message}`);
+    }
+  }
   if(process.env.GITHUB_OUTPUT){
     const {appendFileSync}=await import('node:fs');
-    appendFileSync(process.env.GITHUB_OUTPUT,`receipt=${receipt}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT,`receipt=${receipt}\npulse_refresh=${pulseRefresh}\n`);
   }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)await main();

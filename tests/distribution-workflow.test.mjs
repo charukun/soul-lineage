@@ -4,7 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 
 const text=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
-test('Workers DEV is the only automatic develop publication path and includes both independent developer tools',()=>{
+test('Workers DEV is the only automatic develop publication path and keeps PULSE on the existing matrix lane',()=>{
   const workflow=text('.github/workflows/dev-app-publish.yml');
   assert.match(workflow,/push:\n\s+branches: \[develop\]/);
   assert.match(workflow,/options: \[rinne, village, demon, review, character-studio\]/);
@@ -18,15 +18,22 @@ test('Workers DEV is the only automatic develop publication path and includes bo
   assert.match(workflow,/notify-fast-dev\.mjs/);
   assert.doesNotMatch(workflow,/ops-board\.yml|PULSE/);
   assert.doesNotMatch(workflow,/branches: \[main\]/);
+  assert.match(text('scripts/distribution-plan.mjs'),/PULSE_APP='pulse'/);
+  assert.match(text('scripts/notify-fast-dev.mjs'),/refreshPulseState/);
 });
 
-test('all five app-scoped DEV workers serve only their own build directory',()=>{
+test('app-scoped DEV workers and PULSE keep exact isolated publication targets',()=>{
   for(const app of ['rinne','village','demon','review','character-studio']){
     const config=text('wrangler.dev.'+app+'.jsonc');
     assert.match(config,new RegExp('"name": "soul-lineage-'+app+'-dev"'));
     assert.match(config,new RegExp('"directory": "\\\./dist/'+app+'"'));
     assert.match(config,/"workers_dev": true/);
   }
+  const pulse=text('wrangler.dev.pulse.jsonc');
+  assert.match(pulse,/"name": "rinne-ops"/);
+  assert.match(pulse,/"main": "ops-board\/worker\.mjs"/);
+  assert.match(pulse,/"directory": "\.\/ops-board\/public"/);
+  assert.match(pulse,/"keep_vars": true/);
 });
 
 test('GitHub Pages no longer publishes develop while Production verification remains blocking',()=>{

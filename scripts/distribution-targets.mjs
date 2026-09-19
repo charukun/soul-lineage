@@ -1,5 +1,8 @@
 import { DEV_APPS, GAME_ENVIRONMENTS, INITIAL_ENVIRONMENT_APPS } from './application-catalog.mjs';
 
+const DEV_SYSTEM_APPS=Object.freeze(['pulse']);
+const PULSE_PUBLIC_URL='https://rinne-ops.c-okamoto.workers.dev/';
+
 const consumer = (id, label, adapter) => Object.freeze({
   id, label, kind:'consumer', status:'contract-only', branch:null, environment:null,
   artifactFormat:'native-package', publisher:'platform-toolchain', adapter,
@@ -34,7 +37,7 @@ export function webTargetForEnvironment(environment){
 
 export function targetSupportsApp(targetOrId,app){
   const target=typeof targetOrId==='string'?distributionTarget(targetOrId):targetOrId;
-  const allowed=target.id==='web-dev'?DEV_APPS:INITIAL_ENVIRONMENT_APPS;
+  const allowed=target.id==='web-dev'?[...DEV_APPS,...DEV_SYSTEM_APPS]:INITIAL_ENVIRONMENT_APPS;
   return (!target.apps||target.apps.includes(app))&&allowed.includes(app);
 }
 
@@ -48,6 +51,7 @@ export function assertBuildableTarget(targetOrId,app){
 export function distributionPublicUrl(targetOrId,app){
   const target=typeof targetOrId==='string'?distributionTarget(targetOrId):targetOrId;
   if(!targetSupportsApp(target,app)||!target.urlTemplate)return null;
+  if(target.id==='web-dev'&&app==='pulse')return PULSE_PUBLIC_URL;
   return target.urlTemplate.replace('{app}',app);
 }
 
