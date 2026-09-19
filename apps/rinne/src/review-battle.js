@@ -9,7 +9,7 @@ import {mountRinneReviewShell} from './review-lab-shell.js';
 mountRinneReviewShell('battle');
 
 const q=id=>document.getElementById(id);
-const enemyModel='kaykit.barbarian.v1',weaponSelect=q('battle-weapon');
+const enemyModel='goblin-runt',weaponSelect=q('battle-weapon');
 const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
 const phasePanel=q('battle-phase'),phaseMeta=q('phase-meta'),phaseHistory=q('phase-history'),soundButton=q('battle-sound'),historyNode=q('battle-inspiration-history');
 const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;

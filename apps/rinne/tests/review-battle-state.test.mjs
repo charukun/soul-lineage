@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {normalizeReviewBattlePhase,reviewBattleCameraFrame,reviewBattleLoopDue,reviewBattlePhaseState,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from '../src/review-battle-state.js';
 
 test('phase state follows the live Tidebreak slot and clears between attacks',()=>{
@@ -50,4 +51,15 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.ok(finisher.recoil>sweep.recoil);
   assert.equal(reviewBattleMultiHitFrame({attack:'thrust',progress:.5,slot:'kyu'},{encounterMode:'one-v-three'}).active,false);
   assert.equal(reviewBattleMultiHitFrame({attack:'slash',progress:.5,slot:'ha'},{encounterMode:'duel'}).active,false);
+  const stageSource=readFileSync(new URL('../src/review-battle-stage.js',import.meta.url),'utf8');
+  const battleSource=readFileSync(new URL('../src/review-battle.js',import.meta.url),'utf8');
+  const monsterSource=readFileSync(new URL('../src/review-battle-monster.js',import.meta.url),'utf8');
+  assert.match(battleSource,/enemyModel='goblin-runt'/);
+  assert.match(stageSource,/loadReviewMonsterModel\('goblin-runt'\)/);
+  assert.match(stageSource,/loadReviewMonsterModel\('horn-brute'\)/);
+  assert.match(stageSource,/loadReviewMonsterModel\('maw-stalker'\)/);
+  assert.match(stageSource,/battleGeometry='runtime-monster-models'/);
+  assert.doesNotMatch(stageSource,/ReviewMonsterSilhouette|installReviewEquipment\(side\.actor/);
+  assert.match(monsterSource,/gobkit-free-assets/);
+  assert.match(monsterSource,/reviewMonsterSpecies=id/);
 });
