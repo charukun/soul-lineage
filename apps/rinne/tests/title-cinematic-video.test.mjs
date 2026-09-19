@@ -22,14 +22,12 @@ test('cinematic title uses real generated movie media as the primary path',()=>{
   assert.match(css,/data-media="fallback"\]\[data-intro="cinematic"\]/);
 });
 
-test('cinematic boot is event-driven and overlaps world preparation',()=>{
+test('cinematic boot overlaps world preparation and hands off to realtime when prepared',()=>{
   const boot=main.slice(main.indexOf('async function boot'),main.indexOf('async function enterCoop'));
   assert.ok(boot.indexOf('titleCinematic.begin()')<boot.indexOf('prepareRuntime('));
-  assert.match(cinematic,/addEventListener\('loadeddata',this\.onLoaded\)/);
-  assert.match(cinematic,/addEventListener\('canplay',this\.onCanPlay\)/);
-  assert.match(cinematic,/addEventListener\('timeupdate',this\.onTimeUpdate\)/);
-  assert.match(cinematic,/requestVideoFrameCallback/);
-  assert.match(cinematic,/intro load timeout/);
+  assert.match(boot,/prepareRuntime\([\s\S]*titleCinematic\.onPrepared\(\)/);
+  assert.match(cinematic,/onPrepared\(\)[\s\S]*startRealtime\(\)/);
+  assert.match(cinematic,/startTitlePreview\?\.\(\{cinematic:true,lowResolution:true\}\)/);
 });
 
 test('cinematic uses the prepared realtime world at deliberately low resolution',()=>{

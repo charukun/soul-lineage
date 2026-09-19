@@ -38,6 +38,7 @@ test('INFO parser reads all explicitly reviewed dependency layouts and complete 
   assert.doesNotThrow(()=>verifyEffectClosure(EFFECT_ASSETS[0],bytes));
   assert.deepEqual(effectDependencies(effectFixture([],1610)),[]);
   assert.deepEqual(effectDependencies(dependentFilesFixture(['Textures/fire.png']),1710),['Textures/fire.png']);
+  assert.deepEqual(effectDependencies(effectFixture(['Textures/ring.png'],1601),1601),['Textures/ring.png']);
   assert.deepEqual(effectDependencies(effectFixture(['Textures/cutoff.png'],1603),1603),['Textures/cutoff.png']);
   assert.deepEqual(effectDependencies(effectFixture(['Textures/dissolve.png'],1606),1606),['Textures/dissolve.png']);
   assert.deepEqual(effectDependencies(dependentFilesFixture(['Gradient.efkmat'],1703),1703),['Gradient.efkmat']);
