@@ -23,18 +23,14 @@ test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(js,/const catalogById=new Map\(REVIEW_EFFECT_CATALOG\.map/);
   assert.match(js,/replaceChildren\(\.\.\.visible\.map\(cardFor\)\)/);
   assert.match(js,/button\.addEventListener\('click',\(\)=>trigger\(entry\.id\)\)/);
-  assert.match(html,/class="stage-selection-slot"/);
-  assert.match(html,/class="stage-selection-kicker">選択中/);
   assert.match(html,/class="catalog-kicker">候補一覧/);
-  assert.match(html,/id="fx-selected-label"/);
-  assert.match(html,/id="fx-selected-meta"/);
   assert.match(html,/id="fx-model-count"/);
   assert.match(html,/— EFFECTS/);
-  assert.match(html,/class="review-lab-back"[^>]*aria-label="Visual Reviewへ戻る"/);
-  assert.match(html,/class="review-subtitle">攻撃・被弾・属性・大技を実機比較/);
+  assert.match(html,/class="review-lab-back[^"]*"[^>]*aria-label="Visual Reviewへ戻る"/);
   assert.match(js,/q\('fx-model-count'\)\.textContent=`\$\{REVIEW_REAL_EFFECT_COUNT\} EFFECTS`/);
-  assert.match(js,/q\('fx-selected-label'\)\.textContent=entry\.label/);
-  assert.match(js,/q\('fx-selected-meta'\)\.textContent=effectLabel\(entry\.id\)/);
+  assert.match(js,/if\(selectedLabel\)selectedLabel\.textContent=entry\.label/);
+  assert.match(js,/if\(selectedMeta\)selectedMeta\.textContent=effectLabel\(entry\.id\)\+fit/);
+  assert.match(js,/if\(activeType\)activeType\.textContent=context\.label/);
   assert.doesNotMatch(html,/class="fx-selection-slot"/);
   assert.doesNotMatch(html,/class="catalog-head"/);
   assert.match(slotAuto,/if\(!byId\('fx-stage'\)\|\|byId\('fx-catalog'\)\)return/);
@@ -68,11 +64,11 @@ test('VFX discovery tools stay available but hide while the catalog is trivially
   assert.match(js,/haystack\.includes\(needle\)/);
   assert.match(js,/REVIEW_EFFECT_CATEGORIES\[entry\.category\]/);
   assert.doesNotMatch(html,/import|download|remote|URL/i);
-  assert.doesNotMatch(js,/fetch\(/);
+  assert.doesNotMatch(js,/\bfetch\(/);
 });
 
 test('existing playback review controls stay available as secondary tools',()=>{
-  for(const id of ['fx-speed','fx-tier','fx-loop','fx-reduced','fx-pause','fx-clear','fx-camera','fx-metrics']){
+  for(const id of ['fx-speed','fx-tier','fx-loop','fx-reduced','fx-pause','fx-clear','fx-metrics']){
     assert.match(html,new RegExp(`id="${id}"`));
   }
   assert.match(html,/<details class="controls">/);
@@ -81,8 +77,13 @@ test('existing playback review controls stay available as secondary tools',()=>{
   assert.match(js,/const ensureLoopDefaultOn=\(\)=>\{loopToggle\.checked=true;\}/);
   assert.match(js,/window\.addEventListener\('pageshow',ensureLoopDefaultOn\)/);
   assert.match(js,/if\(loopToggle\.checked&&now-lastTrigger>/);
+  assert.match(js,/q\('fx-camera'\)\?\.addEventListener/);
   assert.match(js,/createAuthoredEffectPlayer/);
   assert.match(js,/createEffekseerBackend/);
+  assert.match(js,/streaming:true/);
+  assert.match(js,/fallbackEffects:\['slash','impact'\]/);
+  assert.match(js,/warmEntry\(entry,220\)/);
+  assert.match(js,/pointerenter',\(\)=>warmEntry\(entry,120\)/);
   assert.match(js,/player\.present\(eventsFor\(preset\)/);
 });
 
