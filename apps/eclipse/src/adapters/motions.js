@@ -4,11 +4,13 @@ const hero = {
  Running_A: ['Jog_Fwd_Loop','Walk_Carry_Loop'], Running_B: ['Sprint_Loop','Walk_Carry_Loop'],
  Walking_A: ['Walk_Loop','Walk_Carry_Loop'], Cheer: ['Yes'],
  Death_A: ['Death01','Hit_Knockback'], Spawn_Ground_Skeletons: ['Jump_Land','NinjaJump_Land'],
+ Jump_Full_Short: ['NinjaJump_Start'],
  Spellcast_Raise: ['Sword_Regular_C'], Spellcast_Long: ['Sword_Regular_Combo'],
  Spellcast_Shoot: ['Sword_Regular_B'],
  '1H_Melee_Attack_Slice_Horizontal': ['Sword_Regular_A'],
  '1H_Melee_Attack_Slice_Diagonal': ['Sword_Regular_B'],
  '1H_Melee_Attack_Chop': ['Sword_Regular_C'],
+ '2H_Melee_Attack_Chop': ['Sword_Regular_C'],
  '2H_Melee_Attack_Spin': ['Sword_Regular_Combo'],
 };
 const monster = {
@@ -20,6 +22,7 @@ const monster = {
  '1H_Melee_Attack_Chop': ['Bite_InPlace','Bite_Front'],
  '1H_Melee_Attack_Slice_Diagonal': ['Bite_InPlace','Bite_Front'],
  '1H_Melee_Attack_Slice_Horizontal': ['Bite_InPlace','Bite_Front'],
+ '2H_Melee_Attack_Chop': ['Bite_Front'],
  '2H_Melee_Attack_Spin': ['Bite_InPlace','Bite_Front'],
 };
 export function resolveMotion(isHero, clips, state) {
