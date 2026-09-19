@@ -154,6 +154,12 @@ export class View{
   if(!visible||host===this.roomId&&hit.point.y>1.1)continue;if(!people&&room&&room!==this.roomId)continue;if(id)return id;
  }return null;}
  project(x,y,z){const p=new T.Vector3(x,y,z).project(this.camera);return{x:(p.x+1)*this.w/2,y:(1-p.y)*this.h/2};}
+ objectControlPoint(o,roomId=null){
+  const host=roomId&&this.world.object(roomId),p=host?localToWorld(host,o.x,o.z):o;
+  let y=defs[o.kind]?.building?3.8:1.5;
+  if(!roomId){const node=this.objectNodes.get(o.id);if(node){node.updateWorldMatrix(true,true);const bounds=new T.Box3().setFromObject(node);if(Number.isFinite(bounds.max.y))y=bounds.max.y+.45;}}
+  return this.project(p.x,y,p.z);
+ }
 
  pickPerson(x,y,radius=21){let best=null,bd=radius;for(const p of this.world.people){if(p.insideId&&p.insideId!==this.roomId)continue;const point=this.project(p.x,1.2,p.z),d=Math.hypot(point.x-x,point.y-y);if(d<bd){best=p.id;bd=d;}}return best;}
  showTerrainHints(kind){for(const o of this.hintGroup.children){o.geometry?.dispose();o.material?.dispose();}this.hintGroup.clear();const terrain=defs[kind]?.terrain;if(!terrain)return;for(const site of TERRAIN_SITES){if(site.kind!==terrain&&!(terrain==='water'&&site.kind==='wetland'))continue;const m=new T.Mesh(new T.RingGeometry(site.r-.2,site.r+.2,64),new T.MeshBasicMaterial({color:0xffe3a4,transparent:true,opacity:.25,depthWrite:false,side:T.DoubleSide}));m.rotation.x=-Math.PI/2;m.position.set(site.x,.07,site.z);this.hintGroup.add(m);}}

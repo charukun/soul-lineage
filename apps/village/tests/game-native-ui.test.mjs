@@ -46,3 +46,23 @@ test('Village chronicle, help, journal and population history are fixed pages',a
  assert.match(gameCss,/dialog\{[\s\S]*?overflow:hidden/);
  assert.match(populationCss,/\.muraPopulationHistory\{[\s\S]*?overflow:hidden/);
 });
+
+
+test('facility controls follow the selected building and placement exposes free rotation',async()=>{
+ const [html,source,view,css]=await Promise.all([
+  read('index.html'),
+  read('src/web/main.js'),
+  read('src/web/view.js'),
+  read('src/web/consumer-game-ui.css'),
+ ]);
+ assert.match(source,/focusFacility\(o,room\)/);
+ assert.match(source,/view\.focus\(o\.x,o\.z/);
+ assert.match(source,/positionFacilityContext\(\)/);
+ assert.match(source,/view\.objectControlPoint\(o\)/);
+ assert.match(view,/objectControlPoint\(o,roomId=null\)/);
+ assert.match(css,/#context\.muraWorldContext/);
+ assert.match(html,/id="muraRotation" type="range" min="0" max="360" step="1"/);
+ assert.match(html,/aria-label="回転角度を自由に調整"/);
+ assert.match(html,/id="rotate" aria-label="45度回転">45°<\/button>/);
+ assert.match(source,/ui\.pending\.rot\+Math\.PI\/4/);
+});
