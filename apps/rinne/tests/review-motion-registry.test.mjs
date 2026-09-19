@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {fileURLToPath} from 'node:url';
 import {
   buildReviewMotionRegistry,
   canonicalMotionVariationKey,
@@ -12,7 +11,7 @@ import {
 import {MOTION_LIBRARY_SOURCES,MOTION_LIBRARY_CLIP_OCCURRENCES} from '../src/review-motion-sources.js';
 import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGORY_LABELS} from '../src/review-motion-catalog.js';
 
-const knightUrl=new URL('../public/simulator/assets/kaykit/Knight.glb',import.meta.url);
+const knightSource='https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Knight.glb';
 function glbJson(buffer){
   assert.equal(buffer.readUInt32LE(0),0x46546c67,'GLB magic');
   assert.equal(buffer.readUInt32LE(4),2,'GLB version');
@@ -25,7 +24,8 @@ function glbJson(buffer){
   throw new Error('GLB JSON chunk not found');
 }
 async function actualRegistry(){
-  const document=glbJson(await readFile(fileURLToPath(knightUrl)));
+  const response=await fetch(knightSource,{signal:AbortSignal.timeout(90000)});assert.equal(response.status,200,'pinned KayKit Knight source must be downloadable');
+  const document=glbJson(Buffer.from(await response.arrayBuffer()));
   assert.ok(Array.isArray(document.animations)&&document.animations.length>0,'Knight.glb must contain animations');
   return {document,registry:buildReviewMotionRegistry(document.animations)};
 }
