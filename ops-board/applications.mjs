@@ -1,4 +1,4 @@
-import { GAME_NAMES, DEV_APP_NAMES, DEV_APPS, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/application-catalog.mjs';
+import { GAME_ENVIRONMENTS, PULSE_SURFACES } from '../scripts/application-catalog.mjs';
 import { distributionPublicUrl } from '../scripts/distribution-targets.mjs';
 
 export const OPS_PUBLIC_URL = 'https://rinne-ops.c-okamoto.workers.dev/';
@@ -36,7 +36,7 @@ function targetFor(app, definition, entries, environment, manifest) {
 
 function fastDevTarget(app,developSha,statuses=[]){
   const status=(statuses||[]).find(row=>row.context===`dev/${app}`)||null;
-  const state=status?.state==='success'?'success':status?.state==='pending'?'deploying':['failure','error'].includes(status?.state)?'failed':'waiting';
+  const state=status?.state==='success'?'success':status?.state==='pending'?'deploying':['failure','error'].includes(status?.state)?'failed':'unknown';
   return {id:`fast-dev:${app}`,label:'高速DEV',environment:'dev',state,url:distributionPublicUrl('web-dev',app),
     expectedUrl:distributionPublicUrl('web-dev',app),commit:status?.state==='success'?developSha:null,
     deployedAt:status?.updated_at||status?.created_at||null,source:'per-app DEV / exact-source status',
@@ -46,62 +46,51 @@ function fastDevTarget(app,developSha,statuses=[]){
 export function buildApplications(manifest = {}, environments = [], runs = [], { developSha = null, statuses = [] } = {}) {
   const environmentById = new Map(environments.map(env => [env.id, env]));
   const entries = (manifest.entries || []).filter(entry => validApp(entry?.app) && environmentIds.has(entry.environment));
-  const ids = new Set([...Object.keys(GAME_NAMES), ...entries.map(entry => entry.app)]);
-  const groups = new Map([...ids].map(id => [id, {
-    id, name: GAME_NAMES[id] || entries.find(entry => entry.app === id)?.version?.name || id, kind: 'game',
-    targets: [fastDevTarget(id,developSha,statuses),...GAME_ENVIRONMENTS.filter(definition=>definition.id!=='dev').map(definition => targetFor(id, definition, entries, environmentById.get(definition.id), manifest))],
-  }]));
+  const groups = new Map();
 
-  const toolAppIds = new Set(['review', 'character-studio']);
-  for (const id of DEV_APPS.filter(id => !GAME_NAMES[id] && !toolAppIds.has(id))) {
-    groups.set(id, {
-      id, name: DEV_APP_NAMES[id] || id, kind: 'reference',
-      targets: [fastDevTarget(id, developSha, statuses)],
+  for (const surface of PULSE_SURFACES) {
+    if (surface.kind === 'external') continue;
+    const dev = fastDevTarget(surface.deployApp, developSha, statuses);
+    if (surface.id === 'ops-board') {
+      groups.set(surface.id, {
+        id:surface.id, name:surface.displayName, kind:surface.kind,
+        targets:[{ ...dev, id:'ops-board', label:'この画面' }],
+      });
+      continue;
+    }
+    if (surface.kind === 'game') {
+      groups.set(surface.id, {
+        id:surface.id, name:surface.displayName, kind:surface.kind,
+        targets:[dev, ...GAME_ENVIRONMENTS.filter(definition => definition.id !== 'dev')
+          .map(definition => targetFor(surface.id, definition, entries, environmentById.get(definition.id), manifest))],
+      });
+      continue;
+    }
+    groups.set(surface.id, {
+      id:surface.id, name:surface.displayName, kind:surface.kind, targets:[dev],
     });
   }
 
-  groups.set('character-studio', {
-    id: 'character-studio', name: 'キャラクター工房', kind: 'tool',
-    targets: [fastDevTarget('character-studio', developSha, statuses)],
-  });
-  groups.set('visual-review', {
-    id: 'visual-review', name: 'Visual Review Lab', kind: 'tool',
-    targets: [fastDevTarget('review', developSha, statuses)],
-  });
+  const portalSurface = PULSE_SURFACES.find(surface => surface.id === 'portal');
+  const portalRun = runs.find(run => run.name === 'Wayfinder Public Gallery') || null;
+  groups.set('portal', { id:'portal', name:portalSurface?.displayName || 'WAYFINDER', kind:'external', targets:[{
+    id:'portal', label:'一般公開', environment:'tool', state:runState(portalRun), url:PORTAL_PUBLIC_URL,
+    commit:portalRun?.head_sha || null, deployedAt:portalRun?.updated_at || null, source:'Wayfinder Public Gallery workflow',
+  }] });
 
   for (const env of environments.filter(item => item.kind === 'preview')) {
     const id = `preview:${env.id}`;
     groups.set(id, {
-      id, name: env.name || env.workflow || env.id || 'Preview', kind: 'tool',
-      targets: [{ id: env.id, label: '専用公開', environment: 'preview', state: env.deployState || 'unknown',
-        url: env.url || null, commit: env.deployedCommit || null, deployedAt: env.deployedAt || null,
-        source: 'GitHub Actions / 公開status' }],
+      id, name:env.name || env.workflow || env.id || 'Preview', kind:'preview',
+      targets:[{ id:env.id, label:'専用公開', environment:'preview', state:env.deployState || 'unknown',
+        url:env.url || null, commit:env.deployedCommit || null, deployedAt:env.deployedAt || null,
+        source:'GitHub Actions / 公開status' }],
     });
   }
 
-  const portalRun = runs.find(run => run.name === 'Wayfinder Public Gallery') || null;
-  groups.set('portal', { id: 'portal', name: 'WAYFINDER', kind: 'tool', targets: [{
-    id: 'portal', label: '一般公開', environment: 'tool', state: runState(portalRun), url: PORTAL_PUBLIC_URL,
-    commit: portalRun?.head_sha || null, deployedAt: portalRun?.updated_at || null, source: 'Wayfinder Public Gallery workflow',
-  }] });
-  // Keep the workflow/Worker IDs stable; they are machine-facing integration keys.
-  const opsRun = runs.find(run => run.name === 'Rinne Ops Board' && run.head_branch === 'develop') || null;
-  groups.set('ops-board', { id: 'ops-board', name: BOARD_NAME, kind: 'tool', targets: [{
-    id: 'ops-board', label: 'この画面', environment: 'tool', state: runState(opsRun), url: OPS_PUBLIC_URL,
-    commit: opsRun?.head_sha || null, deployedAt: opsRun?.updated_at || null, source: 'Rinne Ops Board workflow',
-  }] });
-
-  const lanternRun = runs.find(run => /^Lanternfell (night portrait DEV|isolated preview check)$/i.test(run.name || '')) || null;
-  if (lanternRun && !groups.has('lanternfell')) groups.set('lanternfell', {
-    id: 'lanternfell', name: 'Lanternfell / Tidebreak', kind: 'preview',
-    targets: [{ id: 'lanternfell-preview', label: '専用開発版', environment: 'preview', state: runState(lanternRun),
-      url: null, commit: lanternRun.head_sha || null, deployedAt: lanternRun.updated_at || null,
-      source: 'Lanternfell dedicated workflow', note: runState(lanternRun) === 'failed'
-        ? '専用公開処理が失敗中。公開URLは確認できるまで表示しません。' : '専用公開URLの検証結果を確認中です。' }],
-  });
-  const order = ['rinne', 'village', 'demon', 'lanternfell', 'character-studio', 'visual-review', 'portal', 'ops-board'];
-  return [...groups.values()].sort((a, b) => {
-    const ai = order.indexOf(a.id); const bi = order.indexOf(b.id);
-    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi) || String(a.name || a.id).localeCompare(String(b.name || b.id), 'ja');
+  const order = PULSE_SURFACES.map(surface => surface.id);
+  return [...groups.values()].sort((a,b) => {
+    const ai=order.indexOf(a.id), bi=order.indexOf(b.id);
+    return (ai===-1?99:ai)-(bi===-1?99:bi) || String(a.name||a.id).localeCompare(String(b.name||b.id),'ja');
   });
 }

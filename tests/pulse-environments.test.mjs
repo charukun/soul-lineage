@@ -16,7 +16,7 @@ test('every current game remains visible with development, staging and productio
     const targets = releaseTargets(app);
     assert.deepEqual(targets.map(t => t.environment), ['dev', 'staging', 'prod']);
     assert.deepEqual(targets.map(t => t.label), ['高速DEV', '検証', '本番']);
-    assert.equal(targets[0].state, 'waiting');
+    assert.equal(targets[0].state, 'unknown');
     assert.match(targets[0].url, /^https:\/\/soul-lineage-[a-z0-9-]+-dev\.c-okamoto\.workers\.dev\/$/);
     assert.ok(targets.slice(1).every(t => t.state === 'missing' && t.url === null && t.commit === null));
   }
@@ -25,7 +25,7 @@ test('retired Pages DEV metadata cannot override the canonical Worker DEV target
   const app = games({ entries: [entry('demon', 'dev', 'old-sha')] }).find(app => app.id === 'demon');
   assert.equal(app.name, '喰滅廻遊');
   assert.equal(target(app, 'dev').commit, null);
-  assert.equal(target(app, 'dev').state, 'waiting');
+  assert.equal(target(app, 'dev').state, 'unknown');
   assert.equal(target(app, 'dev').url, 'https://soul-lineage-demon-dev.c-okamoto.workers.dev/');
 });
 test('staging URL and deployment date are independent from dev/prod', () => {
@@ -45,7 +45,7 @@ test('legacy Pages DEV entries never become active DEV links', () => {
     [{ ...entry('demon', 'dev'), path: 'prod/demon' }],
     [{ ...entry('demon', 'dev'), path: '//outside.invalid' }]]) {
     const dev = target(games({ entries }).find(a => a.id === 'demon'), 'dev');
-    assert.equal(dev.state, 'waiting');
+    assert.equal(dev.state, 'unknown');
     assert.equal(dev.url, 'https://soul-lineage-demon-dev.c-okamoto.workers.dev/');
   }
 });
@@ -84,6 +84,10 @@ test('tool display names do not leak explanatory parentheses or the retired boar
   assert.equal(apps.find(a => a.id === 'visual-review').name, 'Visual Review Lab');
   assert.equal(apps.find(a => a.id === 'portal').name, 'WAYFINDER');
   assert.equal(apps.find(a => a.id === 'ops-board').name, 'PULSE');
+  assert.deepEqual(
+    apps.filter(a => ['game','tool','reference','control'].includes(a.kind)).map(a => a.id),
+    ['rinne','village','demon','character-studio','visual-review','eclipse','ops-board'],
+  );
   const eclipse = apps.find(a => a.id === 'eclipse');
   assert.equal(eclipse.name, 'ECLIPSE 黎明の残響');
   assert.equal(eclipse.kind, 'reference');

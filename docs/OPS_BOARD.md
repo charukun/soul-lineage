@@ -1,96 +1,94 @@
-# PULSE
+# PULSE v2
 
-`PULSE` は、百年転生の公開状態と Integration の詰まりをスマートフォンから確認するための read-only 運用ダッシュボードです。
+PULSE は `charukun/soul-lineage` の開発状況をスマートフォンから確認する read-only control plane です。この文書を PULSE の唯一の仕様正本とします。`ops-board/README.md` は実装入口であり、状態意味を再定義しません。
 
-## 正本
+## 1. 原則
 
-表示値は GitHub API、GitHub Actions、公開済み `deployment-manifest.json`、公開用 commit status を正本とします。branch の先端と公開済み SHA は別々に扱い、branch に merge 済みでも公開 manifest が更新されていなければ deploy 済みとは表示しません。古い Production manifest で単一 SHA を確定できない場合も推測しません。
+PULSE は GitHub のコピーDBを作りません。GitHub、Cloudflare Worker、公開manifestの事実を読み取り、表示用snapshotを一時的に組み立てます。snapshotやブラウザキャッシュは正本ではありません。
 
-## 公開環境
+PULSE自身の同期障害と、ゲーム・ツールの公開状態は別レイヤーです。PULSEが最新状態を取得できなくても、管理対象アプリを0件にしたり、公開待ちへ書き換えたりしません。
 
-- DEV / Production: GitHub Pages の公開 `deployment-manifest.json` と Repository branch を照合します。
-- Visual Review Lab: 百年転生 DEV の公開manifestを正本とし、`dev/rinne/review.html` だけを表示します。専用preview Workerや別statusは持ちません。
-- Ops Board 自体: Cloudflare Worker `rinne-ops` と Static Assets で公開します。
+## 2. 正本
 
-各環境は deploy 状態、公開済み SHA、deploy 日時、反映済み PR 件数と一覧を表示します。PR 一覧は公開 SHA から到達可能な GitHub merge commit を根拠に生成します。
+| 情報 | 正本 |
+| --- | --- |
+| 管理対象アプリと分類 | `scripts/application-catalog.mjs` の `PULSE_SURFACES` |
+| DEV公開状態 | current develop SHA の GitHub commit status `dev/<deployApp>` |
+| DEV公開URL | `scripts/distribution-targets.mjs` |
+| 作業キュー | GitHub の open develop PR |
+| CI / Actions失敗 | GitHub Actions |
+| staging / Production | 公開 `deployment-manifest.json` |
+| PULSE自身の公開 | `dev/pulse` status + `https://rinne-ops.c-okamoto.workers.dev/` |
+| PULSE同期ヘルス | `/api/state.syncStatus` |
 
-## 開発ツール
+GitHub Pages の旧 `/dev/` はDEVの正本ではありません。DEVの判定に使用しません。
 
-PULSE の「開発ツール」には、ゲーム配下の検証・制作画面を登録できます。キャラクター工房は `apps/rinne/characters.html`、Visual Review Lab は `apps/rinne/review.html` を正本とし、百年転生 DEV の公開 manifest に `rinne` が存在するときだけ、それぞれ `dev/rinne/characters.html` / `dev/rinne/review.html` を公開中として表示します。公開 SHA と更新日時は同じ DEV manifest entry から取得し、別WorkerやURL推測による公開扱いはしません。
+## 3. 管理対象
 
-## 更新
+PULSEのトップに表示する管理対象は次です。
 
-PULSEはイベント同期を優先します。IntegrationやPULSE公開時はGitHub Actionsの一時`GITHUB_TOKEN`をserver-to-server refreshへ渡し、ブラウザやWorkerへ永続化しません。Cloudflare Cron Triggerは30分ごとのbounded reconciliationとして残し、閲覧や通常イベントに追従する主経路にはしません。
+- product game: `rinne`, `village`, `demon`
+- developer tool: `character-studio`, `visual-review`
+- reference app: `eclipse`
+- control plane: `ops-board` (PULSE)
 
-GitHubのrate limit / retry-afterを受けた場合は、Durable Object alarmへGitHubが示した次回許可時刻を登録し、次の30分Cronまで待たずに1回だけ再同期します。成功後はretry alarmを解除します。匿名定期同期を5分周期へ戻してprimary rate limitへ近づける運用は行いません。
+WAYFINDERや専用previewは詳細情報として保持できますが、DEV App Healthyの母数には含めません。
 
-UI は1分ごとに保存済みスナップショットを再取得します。これは GitHub API の再同期ではないため、閲覧数で GitHub API 呼び出しが増えません。
+## 4. DEV状態
 
-## Integration の状態
+DEV状態は次の5種類だけです。
 
-Open develop PR はCI経過時間だけでは判定せず、`docs/INTEGRATION_RECONCILIATION.md` の current-state planを正本として `writer / validating / train / repair / active / blocked / deferred` を表示します。CI失敗、DEV公開失敗、branch divergenceなど実際の異常は従来どおり要対応ですが、CI成功後に一定時間openであることだけを理由に赤い「Integration滞留」へ分類しません。
+- `success`: current develop SHA に `dev/<app>=success` がある
+- `deploying`: current develop SHA に `dev/<app>=pending` がある
+- `failed`: current develop SHA に `dev/<app>=failure|error` がある
+- `unknown`: current develop SHAのstatusを取得できない、またはstatusが存在しない
+- `missing`: staging / Productionなど、正式公開定義そのものが存在しない
 
-Reconciliation snapshotが未取得、developが進んだ、またはPR headがplanと一致しない場合は古い判定へ戻さず「現在状態を再確認中」とします。PULSEは監視専用であり、既存Integrationのmerge/retry、安全gateを変更しません。
+`unknown` を `waiting / queued` と解釈してはいけません。QUEUED表示は実際のpending事実がある場合だけです。
 
-## Secrets
+## 5. 同期と障害
 
-Cloudflare deploy は既存 Repository Secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` を Actions runner 内だけで利用します。Ops refresh token は API token から一方向に導出し、Worker の server-side variable として渡します。静的 UI と `/api/state` に secret は含めません。
+GitHubイベント後の認証付きrefreshを主経路とします。ブラウザの「再読込」は保存済みPULSE snapshotを読み直す操作であり、ブラウザからGitHub APIを呼びません。
 
-## 操作レビュー後の受入条件（2026-09-12）
+PULSE snapshot、GitHub APIキャッシュ、control historyはDurable Objects永続ストレージを正本にしません。Free tier上限や保存障害がPULSE全体を停止させないことを優先します。peer-world永続データは別責務です。
 
-機能を増やすより、表示の正確さと確認操作の継続性を優先します。
+同期失敗時は以下を守ります。
 
-- 同期失敗・古いスナップショット・現在のCI失敗を「要対応」に表示する。未確認を正常扱いしない。更新ボタンの近くに最終取得の経過時間を表示し、大きな全体サマリは復活させない。
-- PRの対象アプリはサーバー側で変更ファイルから判定し、head/base SHAに紐づけて保存する。状態フィルタ操作からブラウザがGitHub APIを直接呼ばない。失敗時は未取得を明示し、更新されていない結果を現headの結果として扱わない。
-- アプリ一覧は3列を維持し、アイコン・名称・環境・状態を読みやすくする。SHA・公開日時は開いて確認できるようにする。
-- 手動・自動更新とも、選択中フィルタ、開閉状態、読んでいる位置を維持する。
-- 先頭2行契約のない旧形式PRは、PR titleと本文概要へfallbackする。PR本文そのものは変更しない。
-- 現在の失敗と、キャンセル・後続成功で解消済みの履歴を分ける。キャンセル単独を障害と断定しない。
-- 名称・環境の整合性を扱うPR #89とは重複作業をしない。main / Production、ゲーム、Visual Review Lab、公開リンク集の内容は変更しない。
+1. 直近の正常snapshotがあればLast Known Goodとして表示する。
+2. Last Known Goodがなくても `PULSE_SURFACES` から管理対象アプリを表示する。
+3. 状態が取れないアプリは `unknown` とする。
+4. アプリ数、既知URL、分類を0件へ崩さない。
+5. 「再同期中」はPULSEヘルスだけに表示し、アプリの公開状態を書き換えない。
 
-## 名称と3環境
+## 6. トップ画面
 
-ゲーム名は各workspaceのdisplayNameを正本とし、古い公開manifestの名前で上書きしません。各ゲームに開発・検証・本番を常に表示し、未登録は「未公開」、情報の重複や不正なパスは「確認中」としてリンクを有効化しません。環境全体が混在SHAでも各アプリの実公開SHAを表示します。検証版は固定リリースであり、DEVの次の更新で自動上書きしません。詳しくは GAME_ENVIRONMENTS.md を参照してください。
+トップは ACTIVE / APPS / ISSUES / RECENT の4区画です。
 
-## 公開後検証と復旧
+- ACTIVE: Draft / Ready のopen develop PR
+- APPS: 全管理対象のDEV状態
+- ISSUES: 実際の失敗と人の確認が必要な項目
+- RECENT: merge、DEV公開、PULSE状態変化
 
-公開前に変更対象の単体テストとスマホ操作テストを行います。配信後は静的な `version.json` とWorkerの `/api/version` の双方を今回のcommitと照合してから、認証済みのサーバー間refreshで初期同期します。旧Workerの応答や古いスナップショットを新実装の成功として扱いません。公開APIのschema、同期状態、対象アプリ取得状況、現在の名称と3環境も検証し、公開ブラウザで同じ操作を再確認します。
+トップのApps Healthyは管理対象7件を母数とします。ゲーム3本だけを数えません。
 
-GitHub取得失敗時にも既存の公開manifest fallbackを維持します。公開アプリの名称と環境だけが更新できた場合、GitHub履歴の取得日時は変更せず警告を残します。キャンセルと意図的なIntegration保留は障害や自動統合滞留として誤分類しません。
+## 7. PULSE公開成功
 
-## Integration Rescue サマリ表示（2026-09-14）
+PULSEのstatic assetが配られただけでは正常とは扱いません。
 
-Rescueの初期表示は、スマートフォンで一目で状況を把握できる視認性を優先します。詳細なWorker/Wave/履歴は既存の折りたたみ配下に残し、正確な状態分類や観測値は削除しません。
+PULSEを変更したdevelop mergeでは、既存Per-App DEV Publish laneで `pulse` を公開し、その後の認証付きrefreshが `syncStatus=ok` を返すことを要求します。PULSE自身のrefreshが失敗した場合、そのPULSE公開runは成功扱いにしません。
 
-- サマリは状態ヘッダの下に4枚のKPIカードを2列で表示し、広い画面では4列へ展開する。
-- 4カードは「対応中」「対応待ち」「要確認」「完了」を色付き左ボーダーと大きい数値で区別する。
-- AI修復待ち、blocked、retry、stale、人判断、手動保留などの内訳は各カードの補助文として保持する。
-- 実行中PRはサマリ直下にNOWとして最大3件表示し、PR番号と現在工程を読み取れるようにする。
-- 状態ラベル、最終更新、KPI、NOW、詳細を見るの順序を維持し、320px幅でも横スクロールさせない。
-- 詳細の既存disclosure、Rescue stateの意味、Integration gate、main / Productionの挙動は変更しない。
+他アプリのDEV公開はPULSE障害によって巻き戻しません。PULSEは観測系であり、ゲーム公開の正本ではありません。
 
-## Integration Flow の平易表示（2026-09-14）
+## 8. staging / Production
 
-Integration Flow の初期表示は内部用語を避け、「何件たまっているか」「どこで時間がかかっているか」「ユーザーの操作が必要か」を日本語で先に示します。BURN_DOWN、Demand、Quarantine、p95、Virtual Train、Auto tuning などの技術情報は削除せず、詳細表示へ退避します。
+staging / Productionだけは公開manifestを使用します。DEVと混ぜません。main / Productionの品質gateはPULSE都合で変更しません。
 
-- `BURN_DOWN` は「滞留を解消中」、`BUSY` は「やや混雑」、`NORMAL` は「順調」と表示する。
-- `Draft→Ready` は「実装開始 → 統合待ち」、`Ready→Merge` は「統合待ち → develop反映」、`Merge→DEV` は「develop反映 → DEV公開」と言い換える。
-- p50 は「通常」、p95 は「遅いケース」、samples は「実績件数」として表示し、統計用語を初期画面から外す。
-- ボトルネックに応じて「主な遅れは実装側 / Integration / DEV公開」の短い説明を出す。
-- 人の判断が必要な案件が0件なら「いまはあなたの操作は不要」と明示し、必要な場合だけ件数を警告する。
-- 技術的な処理速度、Virtual Train、自動調整、failure knowledge は折りたたみの「詳しい処理情報」に残す。
-- 既存の状態計算、Rescue/Integrationの動作、品質gate、main / Productionは変更しない。
+## 9. 禁止
 
-## Reconciliation Control Planeとの整合（2026-09-15）
-
-PULSEのIntegration状態は `docs/INTEGRATION_RECONCILIATION.md` のcontrol planeを正本として説明します。旧来の「CI成功後10分openなら滞留」という単独判定は廃止し、Reconcilerが生成するcurrent-state分類と矛盾する警告を出しません。
-
-- Ready PRの主分類は `writer / validating / train / repair / active / blocked / deferred` とし、同じPRを別の旧状態機械で二重判定しない。
-- `blocked` は依存・hold・review・semantic conflictなどの理由を表示し、単なる「Integration滞留」へ潰さない。
-- `validating` はexact-head CI/browser証拠待ちとして扱い、経過時間だけで失敗扱いしない。
-- `repair / active` はRescue executorの担当として表示し、第二のIntegration queueとして扱わない。
-- `writer` はdevelop writer候補、`train` はcombined validation候補であり、いずれもmerge済みを意味しない。
-- `deferred` はbounded evaluationの次回評価待ちであり、異常とは限らない。
-- Reconciliation snapshotが未取得またはdevelop/head不一致でfreshnessを証明できない場合は、旧判定へ断定的にfallbackせず「状態未確定」として表示する。
-- 通知チャネルの未設定・送信失敗は delivery observability の問題として別表示し、`integration/develop=success` やReconciliationの成功を上書きして「Integration失敗」とは表示しない。
-- PULSE自身の公開失敗、current CI/browser gate失敗、develop publication失敗は引き続き要対応として扱う。品質gateは弱めない。
+- Pages DEVを復活させる
+- snapshotをGitHubより強い正本にする
+- 同期失敗を0 Appsとして表示する
+- status未取得をQUEUEDにする
+- 手書きの別アプリ一覧を増やす
+- PULSE障害をゲーム公開失敗として扱う
+- main / ProductionをPULSE修復のために変更する
