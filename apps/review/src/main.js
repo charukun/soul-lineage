@@ -8,7 +8,9 @@ const route=(base,path='')=>new URL(path,base).href;
 const ROUTES=Object.freeze({
   characters:route(DEV.rinne,'characters.html?review=character'),
   motion:route(DEV.rinne,'review-motion.html'),
+  equipment:route(DEV.rinne,'review-assets.html'),
   assets:route(DEV.rinne,'review-assets.html'),
+  objects:route(DEV.rinne,'review-objects.html'),
   effects:route(DEV.rinne,'review-effects.html'),
   sounds:route(DEV.rinne,'review-sound.html'),
   battle:route(DEV.rinne,'review-battle.html'),
