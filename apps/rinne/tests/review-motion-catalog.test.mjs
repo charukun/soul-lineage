@@ -9,12 +9,17 @@ const clips=[
   {name:'Hit_A',duration:.5},{name:'Death_A',duration:1.8},{name:'Spawn',duration:1.2},{name:'Look_Around',duration:2}
 ];
 
-test('motion review classifies KayKit-style clip names by review intent',()=>{
+test('motion review classifies KayKit-style and external clip names by review intent',()=>{
   assert.equal(classifyReviewMotion('Sitting_Idle'),'life');
   assert.equal(classifyReviewMotion('Dodge_Roll'),'move');
   assert.equal(classifyReviewMotion('1H_Melee_Attack_Chop'),'combat');
   assert.equal(classifyReviewMotion('Death_A'),'reaction');
-  assert.equal(classifyReviewMotion('Look_Around'),'other');
+  assert.equal(classifyReviewMotion('Look_Around'),'reaction');
+  assert.equal(classifyReviewMotion('Farm_PlantSeed'),'life');
+  assert.equal(classifyReviewMotion('Fishing_Reeling'),'life');
+  assert.equal(classifyReviewMotion('Sprint_Loop'),'move');
+  assert.equal(classifyReviewMotion('Sword_Block'),'combat');
+  assert.equal(classifyReviewMotion('Unclassified_Source'),'other');
 });
 
 test('motion review recommendation keeps a balanced bounded candidate set',()=>{

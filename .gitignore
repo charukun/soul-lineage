@@ -12,3 +12,4 @@ ops-review-results/
 apps/*/public/basis/
 apps/*/public/assets/kaykit/*
 apps/rinne/public/simulator/assets/kaykit/*
+apps/rinne/public/simulator/assets/motion-library/*

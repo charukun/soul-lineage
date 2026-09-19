@@ -1,0 +1,40 @@
+name: RINNE Motion Source Inventory
+run-name: Motion source inventory ${{ github.sha }}
+on:
+  workflow_dispatch:
+  push:
+    branches: ['feat/**', 'fix/**', 'work/**']
+    paths:
+      - 'apps/rinne/src/review-motion-*.js'
+      - 'scripts/audit-rinne-motion-sources.mjs'
+      - 'scripts/prepare-rinne-motion-library.mjs'
+      - '.github/workflows/rinne-motion-source-inventory.yml'
+permissions:
+  contents: read
+jobs:
+  inventory:
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[motion-inventory]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Inspect immutable upstream animation data (not merge validation)
+        run: node scripts/audit-rinne-motion-sources.mjs
+      - name: Sample source motions on the current target rigs (not merge validation)
+        run: node scripts/prepare-rinne-motion-library.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: motion-source-inventory-${{ github.sha }}
+          path: |
+            artifacts/motion-source-audit/
+            artifacts/motion-source-qa/
+          if-no-files-found: error

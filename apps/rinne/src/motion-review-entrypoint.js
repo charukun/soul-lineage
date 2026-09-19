@@ -1,4 +1,5 @@
 import './character-workshop-ux.js';
+import './review-motion-workshop.js';
 
 const CHARACTER_MODEL_QUERY = 'characterModel';
 const REVIEW_MODES = Object.freeze({

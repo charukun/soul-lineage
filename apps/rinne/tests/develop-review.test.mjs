@@ -35,8 +35,8 @@ test('all specialist review pages expose one Visual Review Lab back route',async
   assert.match(pages[5],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
 });
 
-test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
-  const [html,js,css]=await Promise.all([read('review-motion.html'),read('src/review-motion.js'),read('src/review-motion.css')]);
+test('motion review retains pinned KayKit playback and immutable external source selection',async()=>{
+  const [html,js,css,manifest]=await Promise.all([read('review-motion.html'),read('src/review-motion.js'),read('src/review-motion.css'),read('src/review-motion-manifest.js')]);
   assert.match(html,/id="motion-stage"/);assert.match(html,/id="motion-grid"/);assert.match(html,/id="motion-time"/);
   assert.match(html,/class="motion-current-label">選択中の動き/);
   assert.match(html,/class="motion-grid-title">候補一覧/);
@@ -45,7 +45,13 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
   assert.match(css,/\.motion-grid button\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
   assert.match(css,/\.motion-camera-strip button\{[^}]*border-radius:999px/);
   assert.match(js,/new THREE\.AnimationMixer/);assert.match(js,/KAYKIT_MODELS/);assert.match(js,/buildMotionReviewCatalog/);
-  assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='kaykit-embedded'/);
+  assert.match(js,/1\s*\/\s*60/);assert.match(js,/LoopRepeat/);
+  assert.match(js,/record\.baseline \|\| record\.legacy \? chosenTarget/);
+  assert.match(js,/motionSource: record\.sourceId \|\| 'kaykit-embedded'/);
+  assert.match(js,/source\.gltf\.animations\[record\.source\.clipIndex\]/);
+  assert.match(js,/motionCountLabel\(catalog\)/);
+  assert.match(manifest,/row\.sourceIdentity !== sourceMotionIdentity\(row\)/);
+  assert.match(manifest,/count !== manifest\.records\.length/);
 });
 
 test('equipment review is organized around equipment fit and inspection tasks',async()=>{
