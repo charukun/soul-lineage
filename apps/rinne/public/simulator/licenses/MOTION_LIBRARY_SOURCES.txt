@@ -1,0 +1,49 @@
+RINNE motion source library
+
+All imported animation files in this library are CC0-1.0. Animation authors and original sources are credited below. Character models remain the existing pinned KayKit foundation. No conditional VRM carrier, Ruth/Ruth2 mesh, Mixamo redistribution, unknown-license download, or generated character geometry is introduced.
+
+License: Creative Commons CC0 1.0 Universal
+https://creativecommons.org/publicdomain/zero/1.0/
+
+1. KayKit Adventurers embedded baseline
+Author: Kay Lousberg
+Original: https://kaylousberg.com/game-assets/characters-adventurers
+Repository: https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0
+Revision: 672074b73ba276876a19e8816ecdc5241817ab47
+The existing foundation registry pins every character file and Git blob hash.
+
+2. KayKit Character Animations 1.1, Rig_Medium
+Author: Kay Lousberg
+Original: https://kaylousberg.com/game-assets/character-animations
+Distribution repository: https://github.com/GeorgeQLe/assets-kaykit-3d-characters
+Revision: af08a62d3669370ec4636ae6314b38cdcd5dd759
+Paths: assets/kaykit/character-animations-1.1/Animations/gltf/Rig_Medium/Rig_Medium_*.glb
+Pinned license evidence: LICENSES/KayKit-CC0-License.txt
+License evidence Git blob: 0db19d25d701192a4d5dc58860ce161f75f73968
+That upstream file explicitly permits personal, educational and commercial use under CC0.
+https://github.com/GeorgeQLe/assets-kaykit-3d-characters/blob/af08a62d3669370ec4636ae6314b38cdcd5dd759/LICENSES/KayKit-CC0-License.txt
+
+3. Quaternius Universal Animation Library 1 Standard
+Author: Quaternius
+Original: https://quaternius.com/packs/universalanimationlibrary.html
+Distribution repository: https://github.com/richardanaya/metaverse-avatar
+Revision: 84fd636910bf713099010efbab7f3c84550f4bcb
+Path: anims/UAL1_Standard.glb
+Git blob: 410b30c617cc3097f7d82e36d4c28ef130f66388
+
+4. Quaternius Universal Animation Library 2 Standard
+Authors: Quaternius; Gonzalo Furnier
+Original: https://quaternius.com/packs/universalanimationlibrary2.html
+Distribution repository: https://github.com/richardanaya/metaverse-avatar
+Revision: 84fd636910bf713099010efbab7f3c84550f4bcb
+Path: anims/UAL2_Standard.glb
+Git blob: dc684c2a664927964307e8eb7b27b0000ebf6a18
+
+The original Quaternius pack pages identify the animation license as CC0. The pinned mirror's ASSET_LICENSES.md separately identifies these two animation bundles as CC0:
+https://github.com/richardanaya/metaverse-avatar/blob/84fd636910bf713099010efbab7f3c84550f4bcb/ASSET_LICENSES.md
+License evidence Git blob: 754804ca147aa0a4a78d3c8722bca199ece5f154
+The AGPL terms for that repository's Ruth meshes are not the license for its Quaternius animation bundles. No Ruth model, texture or implementation code is imported.
+
+The lightweight generated catalog records the exact upstream clip name/index, source path, revision, original file Git blob SHA, SHA256, normalized channel fingerprint, author and license for every admitted canonical motion. Generation reads real pinned files; advertised pack totals are not used as clip counts. Standard and complete-tier packs are not conflated.
+
+Modern dance, phone/driving/handgun actions, static bind poses, experimental skeleton disassembly, duplicate model embeddings, loop/partial/root-motion variants and failed target-rig samples are excluded or grouped explicitly. Unmodified legacy embedded variants remain selectable without increasing the canonical count. See the source-motion-evidence.json Actions artifact for the reproducible inventory and individual reasons.

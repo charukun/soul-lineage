@@ -14,12 +14,25 @@ test('legacy RINNE review entry bridges to the independent Visual Review Lab',as
   assert.doesNotMatch(bridge,/data-review-target=/);
   assert.doesNotMatch(bridge,/<iframe\b/);
   assert.match(lab,/data-dev-tool="visual-review"/);
-  for(const target of ['characters','motion','assets','effects','battle'])assert.match(lab,new RegExp(`data-route="${target}"`));
+  for(const target of ['characters','motion','equipment','objects','effects','battle'])assert.match(lab,new RegExp(`data-route="${target}"`));
+  assert.doesNotMatch(lab,/<b>装備・物体<\/b>/);
   assert.match(routes,/characters:route\(DEV\.rinne,'characters\.html\?review=character'\)/);
   assert.match(routes,/motion:route\(DEV\.rinne,'review-motion\.html'\)/);
-  assert.match(routes,/assets:route\(DEV\.rinne,'review-assets\.html'\)/);
+  assert.match(routes,/equipment:route\(DEV\.rinne,'review-assets\.html'\)/);
+  assert.match(routes,/objects:route\(DEV\.rinne,'review-objects\.html'\)/);
   assert.match(routes,/effects:route\(DEV\.rinne,'review-effects\.html'\)/);
   assert.match(routes,/battle:route\(DEV\.rinne,'review-battle\.html'\)/);
+});
+
+test('all specialist review pages expose one Visual Review Lab back route',async()=>{
+  const pages=await Promise.all(['characters.html','review-motion.html','review-assets.html','review-objects.html','review-effects.html','review-sound.html','review-battle.html'].map(read));
+  for(const html of pages){
+    const matches=html.match(/href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"[^>]*aria-label="Visual Reviewへ戻る"/g)||[];
+    assert.equal(matches.length,1);
+  }
+  assert.ok(pages[1].indexOf('motion-controls')<pages[1].indexOf('motion-back'));
+  assert.match(pages[4],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
+  assert.match(pages[5],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
 });
 
 test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
@@ -35,31 +48,47 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
   assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='kaykit-embedded'/);
 });
 
-test('equipment review uses the same quiet preview and compact camera hierarchy',async()=>{
+test('equipment review is organized around equipment fit and inspection tasks',async()=>{
   const [html,css,js]=await Promise.all([read('review-assets.html'),read('src/review-asset-library.css'),read('src/review-asset-library.js')]);
-  assert.match(html,/class="asset-topbar"/);
-  assert.match(html,/id="asset-camera-strip"/);
-  for(const preset of ['front','side','back','full'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
-  assert.doesNotMatch(html,/asset-badge|asset-help|asset-step/);
-  assert.match(js,/function setCameraPreset/);
-  assert.match(js,/controls\.addEventListener\('start'/);
-  assert.match(css,/grid-template-rows:42px minmax\(0,58fr\) minmax\(0,42fr\)/);
-  assert.match(css,/\.asset-camera-strip button\{min-height:26px/);
-  assert.match(css,/\.asset-camera-strip button\{[^}]*border-radius:999px/);
-  assert.match(css,/\.model-options button\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
+  assert.match(html,/<title>装備確認 \| 輪廻転焦<\/title>/);
+  assert.match(html,/data-review-back[^>]*href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"/);
+  assert.match(html,/id="asset-review-points"/);
+  for(const point of ['装着位置','干渉','尺度','裏側'])assert.match(html,new RegExp(point));
+  assert.match(html,/id="asset-slot-tabs"/);
+  assert.match(html,/id="asset-equipment-options"/);
+  for(const preset of ['front','side','back'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
+  for(const focus of ['full','main','off','back'])assert.match(html,new RegExp(`data-asset-focus="${focus}"`));
+  assert.doesNotMatch(html,/review-slot-auto\.js|着せ替え確認/);
+  assert.match(js,/function setFocusPreset/);
+  assert.match(js,/function renderEquipmentInspector/);
+  assert.match(css,/\.asset-back\{/);
+  assert.match(css,/grid-template-rows:50px minmax\(320px,55dvh\) minmax\(0,1fr\)/);
+  assert.match(css,/\.asset-slot-tabs\{display:grid;grid-template-columns:repeat\(3/);
+  assert.match(css,/\.asset-equipment-options\{display:grid;grid-template-columns:repeat\(2/);
 });
 
-test('Battle is a dedicated page using real RaidHost and runtime models',async()=>{
-  const [html,review,battle]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js')]);
+test('world-object review loads the exact RINNE runtime props independently of equipment',async()=>{
+  const [html,css,js]=await Promise.all([read('review-objects.html'),read('src/review-object-library.css'),read('src/review-object-library.js')]);
+  assert.match(html,/<title>物体確認 \| 輪廻転焦<\/title>/);
+  assert.match(html,/id="object-stage"/);
+  assert.match(html,/id="object-options"/);
+  for(const preset of ['front','side','top','full'])assert.match(html,new RegExp(`data-object-camera="${preset}"`));
+  for(const asset of ['barrel_small.gltf.glb','box_small.gltf.glb','rubble_large.gltf.glb','torch_lit.gltf.glb'])assert.match(js,new RegExp(asset.replaceAll('.','\\.')));
+  assert.match(js,/new GLTFLoader/);
+  assert.match(js,/RINNE runtime asset/);
+  assert.match(css,/\.object-options button\[aria-pressed="true"\]/);
+});
+
+test('Battle review exposes model and encounter switching and shares live combat camera contracts',async()=>{
+  const [html,review,battle,slots]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js'),read('src/review-slot-auto.js')]);
   assert.match(html,/id="battle-canvas"/);assert.match(html,/id="battle-hero-model"/);assert.match(html,/id="battle-enemy-model"/);
-  assert.match(html,/<a href="\/" aria-label="Visual Reviewへ戻る">‹ 戻る<\/a>/);
-  assert.match(html,/\.model-status,\.note,\.pickers,\.review-modes,\.actions button:last-child\{display:none!important\}/);
-  assert.match(html,/<span>Rogue<\/span>/);assert.match(html,/<span>Knight<\/span>/);
-  assert.match(review,/const loopEnabled=true,followCamera=true;/);
-  assert.doesNotMatch(review,/battle-loop'\)\.addEventListener|battle-camera'\)\.addEventListener/);
-  assert.match(review,/from '@soul\/network\/raid-host'/);assert.match(review,/new RaidHost/);assert.match(review,/createReviewBattleStage/);
-  assert.match(review,/stage\.setModel\('hero'/);assert.match(review,/stage\.setModel\('enemy'/);
-  assert.match(battle,/createKaykitCharacterPools/);assert.match(battle,/tidebreakFrameFromSnapshot/);assert.match(battle,/applyTidebreakPose/);assert.match(battle,/battleGeometry='runtime-models'/);
+  assert.match(html,/data-battle-mode="duel"/);assert.match(html,/data-battle-mode="melee"/);assert.doesNotMatch(html,/id="battle-toggle"/);
+  assert.match(html,/href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"[^>]*aria-label="Visual Reviewへ戻る"/);
+  assert.match(html,/\.model-status,\.note\{display:none!important\}/);
+  assert.match(review,/const loopEnabled=true,followCamera=true;/);assert.match(review,/encounterMode='duel'/);assert.match(review,/cameraSystem='rinne'/);
+  assert.match(review,/stage\.setModel\('hero'/);assert.match(review,/stage\.setModel\('enemy'/);assert.match(review,/setEncounterMode/);
+  assert.match(battle,/createKaykitCharacterPools/);assert.match(battle,/ReviewBattleExtra/);assert.match(battle,/encounterMode==='melee'/);assert.match(battle,/reviewBattleCameraFrame/);
+  assert.match(slots,/battle-enemy-model/);assert.match(slots,/battle-mode-switch/);
 });
 
 test('authored effect review reuses the runtime effect player and backend',async()=>{
@@ -67,10 +96,12 @@ test('authored effect review reuses the runtime effect player and backend',async
   assert.match(js,/createAuthoredEffectPlayer/);assert.match(js,/createEffekseerBackend/);assert.match(js,/authoredEffectBase/);assert.match(js,/combatEffectBudget/);
 });
 
-test('RINNE build includes launcher, VFX and battle review entries',async()=>{
+test('RINNE build includes launcher and every specialist review entry',async()=>{
   const vite=await read('vite.config.js');
   assert.match(vite,/review:fileURLToPath\(new URL\('\.\/review\.html'/);
   assert.match(vite,/reviewMotion:fileURLToPath/);
+  assert.match(vite,/reviewAssets:fileURLToPath\(new URL\('\.\/review-assets\.html'/);
+  assert.match(vite,/reviewObjects:fileURLToPath\(new URL\('\.\/review-objects\.html'/);
   assert.match(vite,/reviewEffects:fileURLToPath\(new URL\('\.\/review-effects\.html'/);
   assert.match(vite,/reviewBattle:fileURLToPath\(new URL\('\.\/review-battle\.html'/);
 });

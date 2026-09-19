@@ -57,6 +57,12 @@ jobs:
         run: npm ci
       - name: Check exact patch whitespace
         run: git diff --check origin/develop HEAD
+      - name: Detect source-motion review changes
+        id: motion
+        run: |
+          if git diff --name-only origin/develop HEAD | grep -Eq '^apps/rinne/(src/(review-motion|motion-review-entrypoint)|tests/review-motion-library)|^scripts/(prepare-rinne-motion-library|browser/rinne-motion-library)'; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          fi
       - name: Run changed focused tests
         run: |
           node --input-type=module <<'NODE'
@@ -77,6 +83,21 @@ jobs:
           NODE
       - name: Run final-head DEV checks and affected builds
         run: node scripts/validate.mjs dev origin/develop HEAD
+      - name: Install Chromium for source-motion review
+        if: steps.motion.outputs.enabled == 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Browser-check every registered source motion
+        if: steps.motion.outputs.enabled == 'true'
+        run: node scripts/browser/rinne-motion-library.mjs
+      - name: Upload source-motion validation evidence
+        if: ${{ always() && steps.motion.outputs.enabled == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rinne-motion-review-${{ github.sha }}
+          path: |
+            artifacts/motion-source-qa/
+            artifacts/motion-browser/
+          if-no-files-found: error
       - name: Record final-head validation success
         if: success()
         uses: actions/github-script@v8

@@ -4,21 +4,30 @@ RINNE のキャラクターモーション確認は、`apps/rinne/characters.htm
 
 ## 役割
 
-- 30秒演舞、モーション選択、再生速度、コマ送り、カメラ、補正前後比較、Motion QA 記録を同じ入口から行う。
-- 技単体の確認は正本ページから辿れる補助デバッグとして扱い、利用者向けに別の「演舞ページ」が存在するようには見せない。
+- 正本の「モーション一覧・30秒演舞」から、既存の `review-motion.html` を工房内のビューアとして開く。
+- 同じビューアでモーション選択、再生・一時停止、最初から、速度、反復、タイムライン、コマ送り、カメラ、KayKitモデル切替を行う。
+- 30秒演舞の主導線は正本ページ内だけに置く。既存の補助URLは維持し、正本へ戻る導線を持つ。
 - 旧 `apps/rinne/public/simulator/motion-review.html` は互換URLとして正本へ案内し、新しい確認機能を追加しない。
-
-## 受入条件
-
-- キャラクター工房のモーション確認名称を「演舞レビュー」に統一する。
-- 30秒演舞の主導線は正本ページだけに置く。
-- 旧斬撃レビューURLを直接開いても正本ページへ戻れる。
+- 工房の既存Motion QA記録・補正比較UI・JSON形式は削除しない。条件付き旧モデルの停止中QA sourceは復活させず、新しいCC0実素材の再生と区別する。
 - 本編保存、ゲーム状態、既存Motion QAデータ形式には影響しない。
 
-## 外部モーション追加の契約
+## 実ソース台帳
 
-- 実モーションの正本は、出典repository・固定revision・source path・上流clip名/index・作者・license・immutable hashを持つsource registryとする。
-- 同じ上流clipの速度、鏡像、切り出し、ループ、root motion、retarget先、形式変換の差を追加数へ算入しない。モデル別の埋め込みコピーも重複除外する。
-- 「すべて」から全登録source motionを個別に選択でき、MOTION CLIPSの表示値を同じregistryから動的に算出する。
-- manifestは軽量に保ち、animation binaryは選択時に読み込みsource単位でcacheする。既存の再生操作と30秒演舞・Motion QA導線を維持する。
-- 追加前後のunique件数、重複除外、出典・除外理由、再生検証のevidenceを記録する。再生できないclipを追加済みとして数えない。
+`src/review-motion-sources.js` が取得元を固定し、`scripts/prepare-rinne-motion-library.mjs` が実GLBを検査して `public/simulator/assets/motion-library/catalog.json` を生成する。RINNEのpredev/prebuildで実行される。バイナリは既存のKayKit準備処理と同じく、固定revisionとGit blob SHAを検証して配置する。
+
+各登録モーションは repository / revision / path / upstream clip name / index / Git blob SHA / SHA256 / clip fingerprint / author / license を持つ。source identityの生成・重複排除は `review-motion-identity.js`、分類は `review-motion-catalog.js`、画面と件数検証は `review-motion-manifest.js` に置く。
+
+速度、左右反転、部分クリップ、ループ、Root Motion、別形式、モデル別埋め込み、retargetは別モーションと数えない。同一作者の既知の改名・反復・切り出しは明示的なfamily aliasでまとめ、チャンネルfingerprintの完全一致も除外する。曖昧な派生は保守的に同一種類へまとめる。
+
+`MOTION CLIPS` は登録されたcanonical source identityのunique件数から動的に表示する。「すべて」は全登録モーションを選択できる。元の埋め込みクリップは派生・静止姿勢を含めて別の折りたたみ選択に保持し、件数に重複加算しない。30秒演舞はおすすめの実クリップを順に再生するプレイリストであり、新しいモーションとして数えない。
+
+## 再生と検査
+
+- 初期表示は軽いmanifestと選択中のモデルのみ。追加GLBは選択時にsource単位で遅延取得し、再選択・モデル切替ではキャッシュを使う。
+- KayKit Rig_Mediumは同名骨格を直接利用する。Quaterniusは既存の `normalizeHumanoidPose` / `retargetHumanoidPose` とrenderingのrest-frame処理を使い、元のZ-upルート座標や中間骨をアダプタで扱う。対象モデルの骨長・scaleは変えない。
+- 30fpsの実クリップサンプリングを全KayKitモデルで行い、非有限値、異常移動、床抜け、過大な補正を検査する。新規の不適合モーションは登録せず、理由をevidenceに残す。
+- 変更されたNodeテスト、DEV checks/buildに加え、モーション差分のfinal-head validationでは既存Playwright/Chromium経路で全件選択・再生、モデル切替、操作、工房導線、モバイル表示を検査する。
+- `artifacts/motion-source-qa/source-motion-evidence.json` に集計、全alias、除外、全モデルの骨格検査を出力する。`artifacts/motion-browser/` に選択receipt、画像、traceを出力する。最終headのActions artifactを検証証拠とする。
+- 自動検査は人のVisual Approvalを捏造しない。既存キャラクターのproduction stageやProduction gateは変更しない。
+
+出典・利用条件は `public/simulator/licenses/MOTION_LIBRARY_SOURCES.txt` を参照。

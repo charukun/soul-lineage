@@ -41,18 +41,21 @@ export function captureReviewRig(scene, family = 'kaykit') {
   const height = positions.hips[1] - floor;
   if (!(height > .1 && height < 10)) throw new Error('Invalid motion rig hip height');
   // Virtual parent chains fold source-only clavicles, spine links and neck into
-  // the next mapped joint. This is an adapter to the existing normalization
-  // contract, not a second retarget math implementation.
+  // the next mapped joint. This adapts the existing normalization contract.
   const virtual = {};
   for (const [key, node] of Object.entries(bones)) {
     const parent = PARENTS[key] ? orientation(rig, bones[PARENTS[key]]) : new Quaternion();
     virtual[key] = { parentWorld: parent.toArray(), local: parent.clone().invert().multiply(orientation(rig, node)).normalize().toArray() };
   }
   rig.rest = { height, hips: positions.hips, bones: virtual };
-  rig.floor = floor;
-  rig.positions = positions;
+  rig.floor = floor; rig.positions = positions;
   rig.reset = () => {
-    for (const row of restNodes) { row.node.position.copy(row.position); row.node.quaternion.copy(row.quaternion); row.node.scale.copy(row.scale); }
+    for (const row of restNodes) {
+      row.node.position.copy(row.position); row.node.quaternion.copy(row.quaternion); row.node.scale.copy(row.scale);
+      // Skinned bounds can belong to a previously sampled pose. Resetting the
+      // skeleton must invalidate them before a cached model is framed again.
+      if (row.node.isSkinnedMesh) row.node.boundingBox = null;
+    }
     scene.updateWorldMatrix(true, true);
   };
   return rig;
@@ -82,10 +85,9 @@ export function createReviewMotionBridge(source, target) {
   const targetRest = new Map(target.restNodes.map(row => [normalize(row.node.name), row]));
   const bridge = { mode: native ? 'rig-medium' : 'normalized-humanoid', lastLift: 0,
     apply() {
-      target.reset();
-      source.scene.updateWorldMatrix(true, true);
+      target.reset(); source.scene.updateWorldMatrix(true, true);
       if (native) {
-        // Same Rig_Medium: keep every matching wrist/toe rotation, never import
+        // Same Rig_Medium: keep matching wrist/toe rotations, never import
         // mesh/IK-control transforms or source-dependent bone translations.
         for (const [name, node] of target.nodes) {
           const origin = source.nodes.get(name), rest = sourceRest.get(name), own = targetRest.get(name);
@@ -95,8 +97,8 @@ export function createReviewMotionBridge(source, target) {
         }
       } else {
         const canonical = normalizeHumanoidPose(virtualPose(source), source.rest);
-        // Source pelvis displacement is measured in scene space, not in the
-        // source's Z-up root local frame. Horizontal travel stays in place.
+        // Pelvis displacement is scene-space, not a source Z-up root local
+        // translation. Horizontal travel stays in place in the review stage.
         canonical.hips[0] = 0; canonical.hips[2] = 0;
         const raw = retargetHumanoidPose(canonical, target.rest);
         for (const [key, node] of Object.entries(target.bones)) {
@@ -108,8 +110,8 @@ export function createReviewMotionBridge(source, target) {
         }
       }
       target.scene.updateWorldMatrix(true, true);
-      // A target proportion change may put a supporting joint slightly below
-      // its rest floor. One common vertical offset preserves all limb lengths.
+      // A common vertical support offset preserves every target limb length.
+      // Excessive correction is rejected by the materializer's rig QA.
       const minY = inspectReviewRig(target).minY;
       bridge.lastLift = native ? 0 : Math.max(0, target.floor - minY);
       if (bridge.lastLift > 0) {

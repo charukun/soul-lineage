@@ -32,10 +32,10 @@ const CORE_EFFECTS=[
 function libraryCategory(effect){
   const name=effect.sourcePath.split('/').pop()||effect.sourcePath;
   if(/Sword|Spear|Claw|Arrow|Gun|Ribbon|drill|BloodLance|Attack|Lance|Laser/i.test(name))return'attack';
-  if(/Blow|hit_eff|Impact|SonicBoom|MonsterRoar|Breakdown|Rock/i.test(name))return'impact';
-  if(/HealPotion|MagicHeal|PowerUp|Benediction|Shield|magic_circle|Cure|hozyo/i.test(name))return'support';
+  if(/Blow|hit_eff|Impact|SonicBoom|MonsterRoar|Breakdown|Rock|parts_hit|hanmado/i.test(name))return'impact';
+  if(/HealPotion|MagicHeal|PowerUp|Benediction|Shield|magic_circle|Cure|hozyo|Aura|Barrior|ForceField/i.test(name))return'support';
   if(/boss_death|FeatherBomb|GateOfCalve|Meteor|Meteo|meteo|LightningStrike|HolySandstorm|WHead/i.test(name))return'finisher';
-  if(/Fire|Flame|Dark|Light|Magic|Thunder|Wind|Soil|Cold|Water|Cosmic|Snowstorm|electric|Salamander|Sylph|Undine|Aqua|Icicle|Gohlem|Holy|Topwater/i.test(name))return'elemental';
+  if(/Fire|Flame|Dark|Light|Magic|Thunder|Wind|Soil|Cold|Water|Cosmic|Snowstorm|electric|Salamander|Sylph|Undine|Aqua|Icicle|Gohlem|Holy|Topwater|fire|ice|lightning|wind|Turbulence/i.test(name))return'elemental';
   return'combo';
 }
 function libraryLabel(effect){
@@ -50,7 +50,7 @@ function libraryEntry(effect){
   return entry({
     id:`source-${effect.id}`,label:libraryLabel(effect),category,kind:'original',mode:'raw',context,
     realSource:true,sourcePath:effect.sourcePath,author:effect.author,effects:[effect.id],
-    tags:['実素材','原本','CC0',effect.author,group,category],
+    tags:['実素材','原本',effect.license||'license-pinned',effect.author,group,category],
     cues:[cue(effect.id,anchor,{lifetime:effect.lifetime,priority:3})],
   });
 }
