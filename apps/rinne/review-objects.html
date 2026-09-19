@@ -2,21 +2,19 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111716"><title>物体確認 | 百年転生</title>
+<meta name="theme-color" content="#111716">
+<link rel="icon" href="./review-favicon.svg?v=1" type="image/svg+xml"><title>Visual Review｜物体</title>
 </head>
 <body>
-<main class="object-review">
-<header class="object-topbar"><a class="object-back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹</a><h1>物体確認</h1></header>
-<section class="object-stage" aria-label="ワールド物体のプレビュー">
+<main class="object-review review-surface">
+<header class="object-topbar review-surface__header"><div class="review-surface__title"><a class="object-back review-surface__back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a><div><span class="review-surface__eyebrow">RINNE RUNTIME PROBE</span><h1>物体</h1></div></div></header>
+<section class="review-surface__workspace">
+<div class="review-surface__stage-column">
+<section class="object-stage review-surface__stage" aria-label="ワールド物体のプレビュー">
 <div class="object-canvas-wrap"><canvas id="object-stage"></canvas></div>
-<nav id="object-camera-strip" class="object-camera-strip" aria-label="カメラの向き">
-<button type="button" data-object-camera="front">正面</button>
-<button type="button" data-object-camera="side">横</button>
-<button type="button" data-object-camera="top">俯瞰</button>
-<button type="button" data-object-camera="full">全体</button>
-</nav>
 </section>
-<aside class="object-controls">
+</div>
+<aside class="object-controls review-surface__panel">
 <header class="object-heading">
 <p>RINNEが配信するワールド物体を単体で確認します。</p>
 <small>ドラッグ: 回転　ピンチ: 拡大</small>
@@ -26,6 +24,7 @@
 <output id="object-status" class="object-status" role="status" aria-live="polite">読み込み中…</output>
 <details class="object-details"><summary>素材情報</summary><p id="object-provenance" class="object-provenance"></p></details>
 </aside>
+</section>
 </main>
 <script type="module" src="./src/review-object-library.js"></script>
 </body>
