@@ -146,3 +146,10 @@ body[data-review-mode="motion"] .workshop-qa-details>summary{min-height:34px;pad
   body.simple-review .review-app{grid-template-rows:minmax(0,56fr) minmax(0,44fr)!important}
   body.simple-review .stage-shell{grid-template-rows:38px minmax(0,1fr) 32px auto!important}
 }
+
+/* Character review: one 3-slot context row feeds one persistent five-column candidate list. */
+body.simple-review[data-review-mode="character"] #panel-parts>#character-model-title,
+body.simple-review[data-review-mode="character"] #panel-parts>.panel-heading,
+body.simple-review[data-review-mode="character"] #panel-parts>#slot-hint{display:none!important}
+body.simple-review[data-review-mode="character"] #simple-character-picker{margin:0 0 9px;padding:0 0 9px;border-bottom:1px solid color-mix(in srgb,var(--line) 68%,transparent)}
+body.simple-review[data-review-mode="character"] #panel-parts .part-actions{margin-top:8px}

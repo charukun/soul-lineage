@@ -83,6 +83,21 @@ test('simple review keeps preview chrome quiet and controls compact', () => {
 });
 
 
+test('character review uses three selection slots feeding one persistent five-column list', () => {
+  assert.match(slotAuto, /mountReviewGroupDeck/);
+  assert.match(slotAuto, /key:'character'/);
+  assert.match(slotAuto, /key:'part'/);
+  assert.match(slotAuto, /key:'candidate'/);
+  assert.match(slotAuto, /defaultKey:'candidate'/);
+  assert.doesNotMatch(slotAuto, /move\(mountReviewGroup\(byId\('character-model-options'\)/);
+  assert.match(slotPicker, /export function mountReviewGroupDeck/);
+  assert.match(slotPicker, /review-slot-deck-slots/);
+  assert.match(slotPicker, /review-slot-deck-list/);
+  assert.match(slotCss, /\.review-slot-deck-slots\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(slotCss, /\.review-slot-deck-list\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(css, /data-review-mode="character"\] #panel-parts>\.panel-heading/);
+});
+
 test('motion review exposes one selected slot and a persistent five-column motion list', () => {
   assert.match(slotAuto, /mountReviewSelectGrid\(byId\('qa-motion'\),'選択中の動き'\)/);
   assert.doesNotMatch(slotAuto, /mountReviewSelect\(byId\('qa-motion'\)/);
