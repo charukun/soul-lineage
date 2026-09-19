@@ -799,7 +799,7 @@
   animation:rinne-sequence-link-break .62s ease-out both!important;
 }
 .game-screen[data-gameplay-upgrade] .combat-phase-history span{
-  top:0!important;opacity:.9!important;animation:none!important;
+  top:0!important;opacity:.9;animation:none!important;
   transform:translate(-50%,0)!important;filter:none!important;
 }
 .game-screen[data-gameplay-upgrade] .combat-phase-history span[data-motion="incoming"]{
@@ -827,14 +827,14 @@
   100%{scale:1 1}
 }
 @keyframes rinne-phase-history-enter{
-  0%{opacity:0;transform:translate(-50%,9px) scale(.96);filter:blur(2px)}
-  64%{opacity:.96;filter:blur(0)}
-  100%{opacity:.9;transform:translate(-50%,0) scale(1);filter:blur(0)}
+  0%{opacity:0;translate:0 9px;scale:.96}
+  64%{opacity:.96}
+  100%{opacity:.9;translate:0 0;scale:1}
 }
 @keyframes rinne-phase-history-exit{
-  0%{opacity:.82;transform:translate(-50%,0) scale(1)}
+  0%{opacity:.82;translate:0 0;scale:1}
   58%{opacity:.42}
-  100%{opacity:0;transform:translate(-50%,46px) scale(.94)}
+  100%{opacity:0;translate:0 46px;scale:.94}
 }
 @media(prefers-reduced-motion:reduce){
   .game-screen[data-gameplay-upgrade] .combat-phase-indicator>span.combat-sequence__interrupted,

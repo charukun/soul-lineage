@@ -37,6 +37,7 @@ test('Rinne HUD wires soft history replacement, simple damage copy, and interrup
   assert.match(runtime,/rinne:combat-feedback/);
   assert.match(css,/rinne-phase-history-enter/);
   assert.match(css,/rinne-phase-history-exit/);
+  assert.match(css,/translate:0 46px/);
   assert.match(css,/rinne-sequence-interrupt/);
   assert.match(css,/data-combo-active="false"/);
 });
