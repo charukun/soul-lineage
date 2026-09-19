@@ -1,41 +1,42 @@
 import {RaidHost} from '@soul/network/raid-host';
 import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stage.js';
-import {REVIEW_BATTLE_PHASE_LABELS,reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
+import {reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import '@soul/shared-ui/combat-sequence.css';
 import {createCombatSfx} from '@soul/audio/combat-sfx';
 
 const q=id=>document.getElementById(id);
 const heroSelect=q('battle-hero-model'),enemySelect=q('battle-enemy-model');
+const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
 for(const select of [heroSelect,enemySelect])select.replaceChildren(...REVIEW_BATTLE_MODELS.map(row=>{const option=document.createElement('option');option.value=row.id;option.textContent=row.label;return option;}));
 heroSelect.value='kaykit.rogue.v1';enemySelect.value='kaykit.knight.v1';
 
 const phasePanel=q('battle-phase'),phaseMeta=q('phase-meta'),phaseHistory=q('phase-history'),soundButton=q('battle-sound');
 const battleSfx=createCombatSfx();
+const loopEnabled=true,followCamera=true;
+let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null;
+let host=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''};
 
-let battleStage=null,battleStagePromise=null;
+function syncModelLabels(){
+  const hero=q('hero-name'),enemy=q('enemy-name');
+  if(hero)hero.textContent=modelLabel(heroSelect.value);
+  if(enemy)enemy.textContent=modelLabel(enemySelect.value);
+}
 async function ensureBattleStage(){
   if(battleStage)return battleStage;
   if(battleStagePromise)return battleStagePromise;
   q('battle-model-status').textContent='モデル準備中';
   battleStagePromise=createReviewBattleStage({canvas:q('battle-canvas'),onStatus:text=>{q('battle-model-status').textContent=text;}})
-    .then(stage=>{battleStage=stage;stage.setModel('hero',heroSelect.value);stage.setModel('enemy',enemySelect.value);return stage;})
+    .then(stage=>{battleStage=stage;stage.setModel('hero',heroSelect.value);stage.setModel('enemy',enemySelect.value);stage.setEncounterMode(encounterMode);return stage;})
     .catch(error=>{q('battle-model-status').textContent=`モデル読込失敗 · ${error.message}`;q('battle-canvas').dataset.battleModels='failed';throw error;});
   return battleStagePromise;
 }
 
-heroSelect.addEventListener('change',()=>{void ensureBattleStage().then(stage=>stage.setModel('hero',heroSelect.value));});
-enemySelect.addEventListener('change',()=>{void ensureBattleStage().then(stage=>stage.setModel('enemy',enemySelect.value));});
+heroSelect.addEventListener('change',()=>{syncModelLabels();void ensureBattleStage().then(stage=>stage.setModel('hero',heroSelect.value));});
+enemySelect.addEventListener('change',()=>{syncModelLabels();void ensureBattleStage().then(stage=>stage.setModel('enemy',enemySelect.value));});
 
 const memory=new Map();
 const storage={getItem:key=>memory.has(key)?memory.get(key):null,setItem:(key,value)=>memory.set(key,String(value))};
-const loopEnabled=true,followCamera=true;
-let host=null,playing=true,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''};
-
-function setPressed(button,pressed,label){
-  button.setAttribute('aria-pressed',String(pressed));
-  button.textContent=`${label} ${pressed?'ON':'OFF'}`;
-}
 
 function syncSoundButton(){
   if(!soundButton)return;
@@ -44,15 +45,14 @@ function syncSoundButton(){
   soundButton.textContent=`音 ${battleSfx.enabled?'ON':'OFF'}`;
 }
 
-function resetBattle({preservePlaying=false}={}){
-  const resume=preservePlaying?playing:true;
+function resetBattle(){
   memory.clear();lastCore=null;finishedAt=0;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks={hero:'',enemy:''};phaseHistory?.replaceChildren();battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
   host=new RaidHost({villageId:'develop-visual-review',storage,now:()=>Date.now()});
   host.join('demon',{type:'join',app:'demon',role:'demon',playerId:'review-demon',name:'Demon'});
   host.join('human',{type:'join',app:'rinne',role:'human',playerId:'review-human',name:'Human'});
   host.input('demon',{type:'state',x:-1.2,z:0,yaw:Math.PI/2,state:'combat',action:null});
   host.input('human',{type:'state',x:1.2,z:0,yaw:-Math.PI/2,state:'combat',action:null});
-  host.tick(1/60);lastCore=host.battle?.core?.state?.()||null;playing=resume;q('battle-toggle').textContent=playing?'一時停止':'再開';last=performance.now();
+  host.tick(1/60);lastCore=host.battle?.core?.state?.()||null;last=performance.now();
 }
 
 function renderPhase(core){
@@ -81,8 +81,8 @@ function syncBattle(dt){
   q('hero-meta').textContent=`${Math.ceil(Number(core.hero.hp)||0)} / ${heroMax} HP`;
   q('enemy-meta').textContent=`${Math.ceil(Number(core.enemy.hp)||0)} / ${enemyMax} HP`;
   q('battle-time').textContent=`${(battle?.time||0).toFixed(1)}秒`;
-  q('battle-result').textContent=battle?.finished?`${battle.winner==='demon'?'LEFT':'RIGHT'} 勝利`:'戦闘中';
-  syncBattleAudio(core);renderPhase(core);battleStage?.sync(core,dt,{followCamera});
+  q('battle-result').textContent=battle?.finished?`${battle.winner==='demon'?'LEFT':'RIGHT'} 勝利`:(encounterMode==='melee'?'乱戦中':'戦闘中');
+  syncBattleAudio(core);renderPhase(core);battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
 }
 
 function advanceBattle(dt){
@@ -94,17 +94,26 @@ function advanceBattle(dt){
 
 function frame(now){
   const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
-  if(playing&&host?.battle&&!host.battle.finished)advanceBattle(dt);
+  if(host?.battle&&!host.battle.finished)advanceBattle(dt);
   const finished=Boolean(host?.battle?.finished);
   if(finished&&!finishedAt)finishedAt=now;else if(!finished)finishedAt=0;
-  if(reviewBattleLoopDue({loopEnabled,playing,finished,finishedAt,now})){resetBattle({preservePlaying:true});}
+  if(reviewBattleLoopDue({loopEnabled,playing:true,finished,finishedAt,now}))resetBattle();
   syncBattle(dt);requestAnimationFrame(frame);
 }
 
-q('battle-restart').addEventListener('click',()=>resetBattle());
-q('battle-toggle').addEventListener('click',()=>{playing=!playing;q('battle-toggle').textContent=playing?'一時停止':'再開';last=performance.now();});
+for(const button of document.querySelectorAll('[data-battle-mode]'))button.addEventListener('click',()=>{
+  encounterMode=button.dataset.battleMode==='melee'?'melee':'duel';
+  for(const item of document.querySelectorAll('[data-battle-mode]'))item.setAttribute('aria-pressed',String(item===button));
+  battleStage?.setEncounterMode(encounterMode);resetBattle();
+});
+for(const button of document.querySelectorAll('[data-battle-skin]'))button.addEventListener('click',()=>{
+  cameraSystem=button.dataset.battleSkin==='jinku'?'demon':'rinne';
+  phasePanel.dataset.skin=button.dataset.battleSkin;
+  for(const item of document.querySelectorAll('[data-battle-skin]'))item.setAttribute('aria-pressed',String(item===button));
+});
+
+q('battle-restart').addEventListener('click',resetBattle);
 soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});
 window.addEventListener('pagehide',()=>{battleStage?.dispose();battleSfx.dispose();},{once:true});
 
-setPressed(q('battle-loop'),loopEnabled,'ループ');setPressed(q('battle-camera'),followCamera,'追従');syncSoundButton();
-resetBattle();void ensureBattleStage();requestAnimationFrame(frame);
+syncModelLabels();phasePanel.dataset.skin='rinne';syncSoundButton();resetBattle();void ensureBattleStage();requestAnimationFrame(frame);
