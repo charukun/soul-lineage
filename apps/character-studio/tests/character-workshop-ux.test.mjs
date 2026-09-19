@@ -105,9 +105,15 @@ test('character review retains the three source selections and extends the persi
   assert.match(characterGridCss, /nth-child\(-n\+4\).*grid-column:span 5/);
   assert.match(characterGridCss, /nth-child\(n\+5\).*grid-column:span 4/);
   assert.match(characterGridCss, /CHARACTER PROBE/);
-  assert.match(characterGridCss, /minmax\(0,\s*52fr\).*minmax\(0,\s*48fr\)/);
+  assert.match(characterGridCss, /minmax\(0,\s*58fr\).*minmax\(0,\s*42fr\)/);
   assert.match(characterGrid, /function optionMark\(group, option\)/);
   assert.match(characterGrid, /button\.dataset\.reviewAction = id/);
+  assert.match(characterGrid, /subjectRow\.classList\.add\('character-review-pager'\)/);
+  assert.match(characterGrid, /frameButton\.textContent = '全身'/);
+  assert.match(characterGrid, /button\.dataset\.group = group\.id/);
+  assert.match(characterGridCss, /character-review-pager/);
+  assert.match(characterGridCss, /data-group="model"/);
+  assert.match(characterGridCss, /stage-actions #camera-cycle/);
   assert.match(characterGrid, /↶ 戻す/);
   assert.match(characterGrid, /↷ やり直す/);
   assert.doesNotMatch(slotAuto, /move\(mountReviewGroup\(byId\('character-model-options'\)/);
