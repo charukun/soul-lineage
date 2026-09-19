@@ -1,0 +1,77 @@
+name: Eclipse Fresh Material Acquisition
+on:
+  push:
+    branches: [astra/eclipse-autobattle-20260919]
+    paths: [.github/workflows/eclipse-fresh-materials.yml]
+permissions:
+  contents: read
+jobs:
+  materials:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Audit excluded games and download new artist assets
+        run: |
+          mkdir -p fresh/audit fresh/originals
+          python - <<'PY'
+          import subprocess,pathlib,json,re,urllib.request,concurrent.futures,hashlib,struct
+          out=pathlib.Path('fresh'); audit=out/'audit'; original=out/'originals'
+          refs=['develop','work/nocturne-external-assets']
+          inventories={}
+          for ref in refs:
+              subprocess.run(['git','fetch','--depth=1','origin',ref],check=True)
+              commit=subprocess.check_output(['git','rev-parse','FETCH_HEAD'],text=True).strip()
+              tree=subprocess.check_output(['git','ls-tree','-r','-l',commit],text=True)
+              (audit/(ref.replace('/','_')+'-tree.txt')).write_text(tree)
+              entries=[]
+              for line in tree.splitlines():
+                  meta,path=line.split('\t',1); bits=meta.split(); size=int(bits[3]); sha=bits[2]
+                  if re.search(r'\.(glb|gltf|fbx|obj|vrm|blend)$',path,re.I):entries.append({'path':path,'gitBlob':sha,'bytes':size})
+                  if size<1500000 and re.search(r'\.(md|json|mjs|js|ts|yml|txt)$',path,re.I) and re.search(r'asset|model|manifest|licens|credit|nocturne',path,re.I):
+                      target=audit/ref.replace('/','_')/path;target.parent.mkdir(parents=True,exist_ok=True)
+                      target.write_bytes(subprocess.check_output(['git','show',commit+':'+path]))
+              inventories[ref]={'commit':commit,'models':entries}
+          (audit/'excluded-model-inventory.json').write_text(json.dumps(inventories,ensure_ascii=False,indent=2))
+          req=lambda url:urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Eclipse-asset-acquisition'}),timeout=90).read()
+          repo='agentkaerf/FreeModels'; commit=json.loads(req('https://api.github.com/repos/'+repo+'/commits/main'))['sha']
+          tree=json.loads(req('https://api.github.com/repos/'+repo+'/git/trees/'+commit+'?recursive=1'))
+          if tree.get('truncated'):raise RuntimeError('incomplete artist mirror inventory')
+          (out/'mirror-tree.json').write_text(json.dumps({'repository':repo,'commit':commit,'tree':tree['tree']},indent=2))
+          packs=['Modular Character Outfits - Fantasy[Standard]','Medieval Village MegaKit[Standard]','Fantasy Props MegaKit[Standard]','Cute Animated Monsters - Aug 2020','Ultimate Modular Men - Feb 2022','Universal Animation Library 2[Standard]','Stylized Nature MegaKit[Standard]']
+          picked=[]
+          for entry in tree['tree']:
+              p=entry['path']
+              if entry['type']!='blob' or not any(p.startswith(pack+'/') for pack in packs):continue
+              if re.search(r'\.(glb|gltf|bin|png|jpg|jpeg|txt|md|pdf)$',p,re.I):picked.append(entry)
+          print('Mirror commit',commit,'selected files',len(picked),'bytes',sum(e['size'] for e in picked),flush=True)
+          records=[]
+          def get(entry):
+              p=entry['path']; url='https://raw.githubusercontent.com/'+repo+'/'+commit+'/'+urllib.parse.quote(p,safe='/')
+              data=req(url);target=original/p;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
+              item={'path':p,'source':url,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'gitBlob':entry['sha']}
+              if p.lower().endswith(('.gltf','.glb')):
+                  try:
+                      j=json.loads(data[20:20+struct.unpack_from('<I',data,12)[0]]) if p.lower().endswith('.glb') else json.loads(data)
+                      item.update(animations=[{'name':a.get('name'),'channels':len(a.get('channels',[]))} for a in j.get('animations',[])],meshes=[m.get('name') for m in j.get('meshes',[])],nodes=[n.get('name') for n in j.get('nodes',[])],images=j.get('images',[]),buffers=j.get('buffers',[]))
+                  except Exception as e:item['parseError']=str(e)
+              return item
+          with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
+              for item in pool.map(get,picked):records.append(item)
+          (out/'original-inventory.json').write_text(json.dumps(records,ensure_ascii=False,indent=2))
+          for slug in ['modularcharacteroutfitsfantasy','medievalvillagemegakit','fantasypropsmegakit','cuteanimatedmonsters','ultimatemodularcharacters','universalanimationlibrary2','stylizednaturemegakit','rpgcharacters','ultimatemonsters']:
+              try:(out/(slug+'.html')).write_bytes(req('https://quaternius.com/packs/'+slug+'.html'))
+              except Exception as e:print(slug,e)
+          print('Acquired',len(records),'original files; no mesh generation or conversion performed')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eclipse-fresh-models-and-exclusion-audit
+          path: fresh
+          retention-days: 7
+          compression-level: 6
