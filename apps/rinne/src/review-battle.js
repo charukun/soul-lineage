@@ -6,6 +6,7 @@ import {REVIEW_INSPIRATION_TIMELINE,generatedReviewInspirationCandidates,pickGen
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import '@soul/shared-ui/combat-sequence.css';
 import {createCombatSfx} from '@soul/audio/combat-sfx';
+import {SwipeInput} from '@soul/input';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 mountRinneReviewShell('battle');
 
@@ -17,19 +18,13 @@ const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
 let host=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''},signTimer=0;
 const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
+// Shared with Demon and Rinne gameplay: one swipe parser owns drag, deadzone and terminal flick semantics after develop reconciliation.
+const reviewSwipe=new SwipeInput();
 let insightHistoryOpen=false;
-const manualMove={x:0,y:0,amount:0,pointerId:null,startX:0,startY:0};
 const phaseLabel=phase=>({jo:'序',ha:'破',kyu:'急'})[phase]||'破';
-function setManualAxis(next){
-  let x=Number(next?.x)||0,y=Number(next?.y)||0,len=Math.hypot(x,y);
-  if(len>1){x/=len;y/=len;}
-  manualMove.x=x;manualMove.y=y;manualMove.amount=Math.min(1,Math.hypot(x,y));
-}
 function primeSeparatedRound(){
   const runtime=host?.battle?.core;if(!runtime)return;
-  runtime.configure?.({weapon:selectedWeapon,enemyWeapon:'sword',hp:230,maxhp:230,enemyHp:180,enemyStyle:'balanced',mindset:'balanced',positions:{hero:{x:-2.6,z:0},enemy:{x:2.6,z:0}}});
-  runtime.input?.(-1,0,1,0);
-  for(let i=0;i<20;i++)runtime.step?.(1/60);
+  runtime.configure?.({weapon:selectedWeapon,enemyWeapon:'sword',hp:230,maxhp:230,enemyHp:180,enemyStyle:'balanced',mindset:'balanced',positions:{hero:{x:-1.55,z:1.1,yaw:2.18},enemy:{x:1.2,z:-.8,yaw:-.97}}});
   runtime.input?.(0,0,0,0);
   lastCore=runtime.state?.()||null;
 }
@@ -64,13 +59,13 @@ const memory=new Map(),storage={getItem:key=>memory.has(key)?memory.get(key):nul
 function syncSoundButton(){if(!soundButton)return;soundButton.dataset.enabled=String(battleSfx.enabled);soundButton.setAttribute('aria-pressed',String(battleSfx.enabled));soundButton.textContent=`音 ${battleSfx.enabled?'ON':'OFF'}`;}
 
 function resetBattle(){
-  memory.clear();lastCore=null;finishedAt=0;hideReviewSign();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks={hero:'',enemy:''};phaseHistory?.replaceChildren();battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
+  memory.clear();reviewSwipe.cancel();lastCore=null;finishedAt=0;hideReviewSign();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks={hero:'',enemy:''};phaseHistory?.replaceChildren();battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
   host=new RaidHost({villageId:'develop-visual-review',storage,now:()=>Date.now()});
   host.join('demon',{type:'join',app:'demon',role:'demon',playerId:'review-demon',name:'Monster'});
   host.join('human',{type:'join',app:'rinne',role:'human',playerId:'review-human',name:'Hero'});
   // Start near the edge of RaidHost's encounter radius so draw/ready/approach motion remains readable.
-  host.input('demon',{type:'state',x:1.9,z:0,yaw:-Math.PI/2,state:'ready',action:null});
-  host.input('human',{type:'state',x:-1.9,z:0,yaw:Math.PI/2,state:'ready',action:null});
+  host.input('demon',{type:'state',x:1.2,z:-.8,yaw:-.97,state:'ready',action:null});
+  host.input('human',{type:'state',x:-1.55,z:1.1,yaw:2.18,state:'ready',action:null});
   host.tick(1/60);primeSeparatedRound();last=performance.now();
 }
 function renderPhase(core){
@@ -117,17 +112,19 @@ function syncBattle(dt){
 }
 function advanceBattle(dt){
   const runtime=host?.battle?.core;if(!runtime)return;
-  runtime.input?.(manualMove.x,manualMove.y,manualMove.amount,battleStage?.cameraAngle?.()||0);
+  const angle=battleStage?.cameraAngle?.()||0,input=reviewSwipe.vector(angle);
+  runtime.input?.(input.screenX,input.screenY,input.amount,angle);
   const before=runtime.state?.();if(before)lastCore=before;host.tick(dt);const after=runtime.state?.();if(after)lastCore=after;
 }
 function frame(now){const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;if(host?.battle&&!host.battle.finished&&!inspirationSequenceActive)advanceBattle(dt);const finished=Boolean(host?.battle?.finished);if(finished&&!finishedAt)finishedAt=now;else if(!finished)finishedAt=0;if(reviewBattleLoopDue({loopEnabled,playing:true,finished,finishedAt,now}))resetBattle();syncBattle(dt);requestAnimationFrame(frame);}
 
 
 const battleCanvas=q('battle-canvas');
-battleCanvas?.addEventListener('pointerdown',event=>{if(manualMove.pointerId!==null)return;manualMove.pointerId=event.pointerId;manualMove.startX=event.clientX;manualMove.startY=event.clientY;battleCanvas.setPointerCapture?.(event.pointerId);setManualAxis({x:0,y:0});event.preventDefault();},{passive:false});
-battleCanvas?.addEventListener('pointermove',event=>{if(event.pointerId!==manualMove.pointerId)return;const dx=event.clientX-manualMove.startX,dy=event.clientY-manualMove.startY,len=Math.hypot(dx,dy);if(len<12)setManualAxis({x:0,y:0});else setManualAxis({x:dx/Math.max(42,len),y:dy/Math.max(42,len)});event.preventDefault();},{passive:false});
-const endSwipe=event=>{if(event.pointerId!==manualMove.pointerId)return;setManualAxis({x:0,y:0});manualMove.pointerId=null;battleCanvas.releasePointerCapture?.(event.pointerId);event.preventDefault();};
-battleCanvas?.addEventListener('pointerup',endSwipe,{passive:false});battleCanvas?.addEventListener('pointercancel',endSwipe,{passive:false});
+battleCanvas?.addEventListener('pointerdown',event=>{if((event.pointerType==='mouse'&&event.button!==0)||!reviewSwipe.down(event.pointerId,event.clientX,event.clientY,performance.now()))return;battleCanvas.setPointerCapture?.(event.pointerId);event.preventDefault();},{passive:false});
+battleCanvas?.addEventListener('pointermove',event=>{if(!reviewSwipe.move(event.pointerId,event.clientX,event.clientY,performance.now()))return;event.preventDefault();},{passive:false});
+battleCanvas?.addEventListener('pointerup',event=>{if(reviewSwipe.id!==event.pointerId)return;event.preventDefault();reviewSwipe.up(event.pointerId,event.clientX,event.clientY,performance.now());if(battleCanvas.hasPointerCapture?.(event.pointerId))battleCanvas.releasePointerCapture(event.pointerId);},{passive:false});
+const cancelReviewSwipe=()=>reviewSwipe.cancel();
+battleCanvas?.addEventListener('pointercancel',cancelReviewSwipe,{passive:true});battleCanvas?.addEventListener('lostpointercapture',()=>{if(reviewSwipe.id!==null)reviewSwipe.cancel();},{passive:true});
 q('camera-zoom-in')?.addEventListener('click',()=>void ensureBattleStage().then(stage=>stage.zoomBy(-.14)));
 q('camera-zoom-out')?.addEventListener('click',()=>void ensureBattleStage().then(stage=>stage.zoomBy(.14)));
 
