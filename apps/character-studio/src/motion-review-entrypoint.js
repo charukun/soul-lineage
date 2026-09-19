@@ -74,7 +74,7 @@ function moveFrameButtonToStage() {
 
 function compactCharacterModelLabels() {
   const aliases = [
-    [/^量産|量産モデル/i, '量産'],
+    [/^量産|量産モデル|自動生成/i, '自動生成'],
     [/child\s*boy|少年/i, '少年'],
     [/child\s*girl|少女/i, '少女'],
     [/elderly\s*man|老人.*男/i, '老人 男'],
