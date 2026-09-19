@@ -9,7 +9,7 @@ test('shared combat camera frames duel and group threats for both game styles',(
   assert.equal(rinneSingle.count,1);assert.equal(rinneGroup.count,2);assert.ok(rinneGroup.spread>rinneSingle.spread);
   assert.deepEqual(combatCameraPosition(rinneSingle),{x:rinneSingle.look.x+rinneSingle.offset.x,y:rinneSingle.look.y+rinneSingle.offset.y,z:rinneSingle.look.z+rinneSingle.offset.z});
   const demon=combatCameraFrame({player,threats:group,style:'demon',wide:false});
-  assert.equal(demon.count,2);assert.ok(demon.camera.y>0);assert.deepEqual(combatCameraPosition(demon),demon.camera);
+  assert.equal(demon.count,2);assert.ok(demon.camera.y>0);assert.deepEqual(combatCameraPosition(demon),demon.camera);assert.notDeepEqual(combatCameraPosition(rinneGroup),combatCameraPosition(demon));
 });
 
 test('shared combat camera ignores unusable threats',()=>{
