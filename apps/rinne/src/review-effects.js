@@ -113,7 +113,7 @@ function applyReviewContext(preset){
   sourceGuide.position.set(...context.source);impactGuide.position.set(...context.impact);
   areaGuide.visible=context.area>0;
   if(context.area>0)areaGuide.scale.setScalar(context.area);
-  q('fx-active-type').textContent=context.label;
+  const activeType=q('fx-active-type');if(activeType)activeType.textContent=context.label;
 }
 function syncActiveCard(){
   for(const button of document.querySelectorAll('[data-preset]')){
@@ -122,9 +122,10 @@ function syncActiveCard(){
     button.setAttribute('aria-pressed',String(active));
   }
   const entry=catalogById.get(selected);if(!entry)return;
-  q('fx-selected-label').textContent=entry.label;
+  const selectedLabel=q('fx-selected-label'),selectedMeta=q('fx-selected-meta');
+  if(selectedLabel)selectedLabel.textContent=entry.label;
   const fit=entry.realSource?' · MODEL FIT ×'+reviewModelScale(entry,reviewModelHeight).toFixed(2):'';
-  q('fx-selected-meta').textContent=effectLabel(entry.id)+fit;
+  if(selectedMeta)selectedMeta.textContent=effectLabel(entry.id)+fit;
   applyReviewContext(selected);
 }
 function rawCuesFor(entry){
