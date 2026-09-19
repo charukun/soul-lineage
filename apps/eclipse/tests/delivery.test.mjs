@@ -1,9 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {additionalAssets} from '../additional-assets.mjs';
+const appRoot=fileURLToPath(new URL('../',import.meta.url));
 const root=new URL('../public/',import.meta.url);
+if(!existsSync(new URL('./models/manifest.json',root))){
+ execFileSync(process.execPath,['tools/acquire.mjs'],{cwd:appRoot,stdio:'inherit'});
+ execFileSync(process.execPath,['tools/prepare-delivery.mjs'],{cwd:appRoot,stdio:'inherit'});
+}
 const sha256=b=>createHash('sha256').update(b).digest('hex');
 test('compatible UAL1 is an independently hashed motion dependency, not a displayed mannequin',()=>{
  const manifest=JSON.parse(readFileSync(new URL('./models/manifest.json',root),'utf8'));
