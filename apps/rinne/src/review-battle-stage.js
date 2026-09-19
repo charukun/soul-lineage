@@ -90,6 +90,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     hero:{key:'hero',actorId:'review-battle-hero',requested:'kaykit.rogue.v1',actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-hero',0x51f15e)),previous:null,hp:null,hitUntil:0,marker:ring(0xd9b45b)},
     enemy:{key:'enemy',actorId:'review-battle-enemy',requested:'kaykit.knight.v1',actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-enemy',0x91cafe)),previous:null,hp:null,hitUntil:0,marker:ring(0x82aeb6)}
   };
+  let encounterMode='duel',extras=[];
   stageRoot.add(sides.hero.marker,sides.enemy.marker);
 
   function install(sideKey,modelId){
@@ -102,8 +103,29 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     installReviewEquipment(side.actor,modelId,equipmentAssets);
     stageRoot.add(side.actor.root,side.actor.attachments);side.previous=null;side.hp=null;
     canvas.dataset[`${sideKey}RequestedModel`]=modelId;
+    if(encounterMode==='melee')queueMicrotask(rebuildExtras);
   }
   install('hero',sides.hero.requested);install('enemy',sides.enemy.requested);
+
+  function clearExtras(){
+    for(const extra of extras){pool.despawn(extra.actorId);extra.actor?.root?.removeFromParent();extra.actor?.attachments?.removeFromParent();}
+    extras=[];
+  }
+  function rebuildExtras(){
+    clearExtras();
+    if(encounterMode!=='melee')return;
+    const specs=[['hero',0,-1.55,1.25,0x13579bdf],['hero',1,-1.65,-1.2,0x2468ace0],['enemy',0,1.55,1.25,0x10293847],['enemy',1,1.65,-1.2,0x56473829]];
+    for(const [sideKey,index,offsetX,offsetZ,seed] of specs){
+      const base=sides[sideKey],actorId=`review-battle-${sideKey}-extra-${index}`,actor=pool.spawn(actorId,base.requested);
+      actor.root.name=`ReviewBattleExtra:${sideKey}:${index}`;actor.attachments.name=`ReviewBattleExtraAttachments:${sideKey}:${index}`;
+      installReviewEquipment(actor,base.requested,equipmentAssets);stageRoot.add(actor.root,actor.attachments);
+      extras.push({sideKey,index,actorId,actor,offsetX,offsetZ,appearance:appearanceForCharacter(reviewerCharacter(actorId,seed))});
+    }
+  }
+  function setEncounterMode(mode){
+    const next=mode==='melee'?'melee':'duel';if(next===encounterMode&&((next==='duel'&&extras.length===0)||(next==='melee'&&extras.length===4)))return;
+    encounterMode=next;rebuildExtras();canvas.dataset.encounterMode=encounterMode;
+  }
 
   function animateSide(sideKey,state,target,time,dt){
     const side=sides[sideKey],actor=side.actor;if(!actor||!state)return;
@@ -124,6 +146,18 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     actor.updateAttachments();side.marker.position.set(worldX,.018,worldZ);
   }
 
+  function animateExtras(core,time){
+    if(encounterMode!=='melee'||!core)return;
+    for(const extra of extras){
+      const source=extra.sideKey==='hero'?core.hero:core.enemy,target=extra.sideKey==='hero'?core.enemy:core.hero,actor=extra.actor;if(!source||!actor)continue;
+      const x=(Number(source.x)||0)*1.35+extra.offsetX,z=(Number(source.z)||0)*1.15+extra.offsetZ,targetX=(Number(target?.x)||0)*1.35,targetZ=(Number(target?.z)||0)*1.15;
+      actor.root.position.set(x,0,z);actor.root.rotation.y=Math.atan2(targetX-x,targetZ-z);
+      const frame=tidebreakFrameFromSnapshot(source,{targetId:target?.id||null,intent:'review-battle-melee'});
+      actor.sample(extra.appearance,time+extra.index*.17,(bones,sampleTime)=>{addStride(bones,sampleTime,.2);if(!frame?.attack)addGuardPose(bones,extra.sideKey);applyTidebreakPose(bones,frame);});
+      actor.updateAttachments();
+    }
+  }
+
   let lastWidth=0,lastHeight=0,lastStatus='';
   function resize(){
     const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);
@@ -132,24 +166,25 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   }
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
 
-  function updateCamera(core,dt,followCamera){
-    const frame=reviewBattleCameraFrame(core,{follow:followCamera});
+  function updateCamera(core,dt,followCamera,cameraSystem){
+    const frame=reviewBattleCameraFrame(core,{follow:followCamera,system:cameraSystem,encounterMode});
     cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);
     const step=Math.max(1/120,Math.min(.05,Number(dt)||1/60)),blend=1-Math.exp(-step*8);
     camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);camera.lookAt(cameraLook);
     canvas.dataset.cameraFollow=followCamera?'on':'off';
   }
 
-  function sync(core,dt=0,{followCamera=true}={}){
-    resize();const now=performance.now()/1000;
-    if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);}
-    updateCamera(core,dt,followCamera);
+  function sync(core,dt=0,{followCamera=true,encounterMode:requestedMode='duel',cameraSystem='rinne'}={}){
+    setEncounterMode(requestedMode);resize();const now=performance.now()/1000;
+    if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);animateExtras(core,now);}
+    updateCamera(core,dt,followCamera,cameraSystem);
     const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
     const enemyActual=sides.enemy.actor?.root?.userData?.characterModel||'';
     canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
     const ready=heroActual===sides.hero.requested&&enemyActual===sides.enemy.requested;
     canvas.dataset.battleModels=ready?'ready':'loading';canvas.dataset.battleGeometry='runtime-models';
-    const status=ready?`${modelLabel(heroActual)} × ${modelLabel(enemyActual)}`:`モデル読込中 · ${modelLabel(sides.hero.requested)} × ${modelLabel(sides.enemy.requested)}`;
+    const modeLabel=encounterMode==='melee'?'乱戦 3v3':'タイマン';
+    const status=ready?`${modeLabel} · ${modelLabel(heroActual)} × ${modelLabel(enemyActual)}`:`モデル読込中 · ${modelLabel(sides.hero.requested)} × ${modelLabel(sides.enemy.requested)}`;
     if(status!==lastStatus){lastStatus=status;onStatus(status);}
     renderer.render(scene,camera);
   }
@@ -157,9 +192,10 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   return Object.freeze({
     models:REVIEW_BATTLE_MODELS,
     setModel(side,modelId){install(side,modelId);},
+    setEncounterMode,
     resetRound(){for(const side of Object.values(sides)){side.previous=null;side.hp=null;side.hitUntil=0;}},
     sync,
-    snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on'});},
-    dispose(){observer.disconnect();for(const side of Object.values(sides))if(side.actor)pool.despawn(side.actorId);runtime.dispose();ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}for(const source of equipmentAssets.values()){source.traverse(node=>{node.geometry?.dispose?.();const mats=Array.isArray(node.material)?node.material:[node.material];for(const mat of mats.filter(Boolean)){mat.map?.dispose?.();mat.dispose?.();}});}renderer.dispose();}
+    snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',encounterMode});},
+    dispose(){observer.disconnect();clearExtras();for(const side of Object.values(sides))if(side.actor)pool.despawn(side.actorId);runtime.dispose();ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}for(const source of equipmentAssets.values()){source.traverse(node=>{node.geometry?.dispose?.();const mats=Array.isArray(node.material)?node.material:[node.material];for(const mat of mats.filter(Boolean)){mat.map?.dispose?.();mat.dispose?.();}});}renderer.dispose();}
   });
 }

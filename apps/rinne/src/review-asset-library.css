@@ -150,3 +150,10 @@ button:focus-visible{outline:2px solid #e0c985;outline-offset:2px}
   .asset-section-head>small{max-width:48%;font-size:8px}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+.asset-topbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;padding:0 14px}
+.asset-back{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-width:68px;min-height:36px;padding:0 9px;border:1px solid #39443e;background:#0a100e;color:#e5e8e4;text-decoration:none;font-size:10px;font-weight:750}
+.asset-back span{font-size:20px;font-weight:400;line-height:1}.asset-back b{font:inherit}
+.asset-title{min-width:0}.asset-load-state{justify-self:end}
+@media(max-width:820px){.asset-topbar{padding:0 10px;gap:7px}.asset-back{min-width:58px;min-height:34px;padding:0 7px}.asset-title h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+@media(max-width:400px){.asset-back b{display:none}.asset-back{min-width:36px;width:36px;padding:0}}
