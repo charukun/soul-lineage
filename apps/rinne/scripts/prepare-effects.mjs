@@ -3,6 +3,7 @@ import {mkdir,readFile,rename,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {EFFECT_SOURCE,EFFECT_RUNTIME,EFFECT_ASSETS,RUNTIME_ASSETS,EFFECT_PUBLIC_PATH,REVIEW_VFX_LIBRARY_SOURCE} from '../src/rebuild/authored-effect-manifest.js';
+import {EFFECT_MATERIALS_SOURCE,RESOURCE_DATA_SOURCE,EFFEKSEER_EXAMPLES_SOURCE} from '../src/rebuild/review-vfx-library-manifest.js';
 
 const appRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1610,7],[1710,'dependent-files']]);
@@ -14,6 +15,12 @@ export const EFFECT_DOWNLOADS=Object.freeze([
     gitBlobSha:EFFECT_SOURCE.licenseBlob,byteLength:731,target:'LICENSE-SAMPLES.txt'},
   {path:REVIEW_VFX_LIBRARY_SOURCE.licensePath,sourcePath:REVIEW_VFX_LIBRARY_SOURCE.licensePath,repository:REVIEW_VFX_LIBRARY_SOURCE.repository,revision:REVIEW_VFX_LIBRARY_SOURCE.revision,
     gitBlobSha:REVIEW_VFX_LIBRARY_SOURCE.licenseBlob,byteLength:REVIEW_VFX_LIBRARY_SOURCE.licenseBytes,target:'LICENSE-REVIEW-LIBRARY-CC0.txt'},
+  {path:EFFECT_MATERIALS_SOURCE.licensePath,sourcePath:EFFECT_MATERIALS_SOURCE.licensePath,repository:EFFECT_MATERIALS_SOURCE.repository,revision:EFFECT_MATERIALS_SOURCE.revision,
+    gitBlobSha:EFFECT_MATERIALS_SOURCE.licenseBlob,byteLength:EFFECT_MATERIALS_SOURCE.licenseBytes,target:'LICENSE-EFFECT-MATERIALS-CC0.txt'},
+  {path:RESOURCE_DATA_SOURCE.licensePath,sourcePath:RESOURCE_DATA_SOURCE.licensePath,repository:RESOURCE_DATA_SOURCE.licenseRepository,revision:RESOURCE_DATA_SOURCE.licenseRevision,
+    gitBlobSha:RESOURCE_DATA_SOURCE.licenseBlob,byteLength:RESOURCE_DATA_SOURCE.licenseBytes,target:'LICENSE-RESOURCE-DATA-CC0.txt'},
+  {path:EFFEKSEER_EXAMPLES_SOURCE.licensePath,sourcePath:EFFEKSEER_EXAMPLES_SOURCE.licensePath,repository:EFFEKSEER_EXAMPLES_SOURCE.repository,revision:EFFEKSEER_EXAMPLES_SOURCE.revision,
+    gitBlobSha:EFFEKSEER_EXAMPLES_SOURCE.licenseBlob,byteLength:EFFEKSEER_EXAMPLES_SOURCE.licenseBytes,target:'LICENSE-EFFEKSEER-EXAMPLES-MIT.txt'},
 ]);
 export function gitBlobSha(bytes){return createHash('sha1').update(`blob ${bytes.byteLength}\0`).update(bytes).digest('hex');}
 export function verifyEffectBytes(row,bytes){
@@ -102,6 +109,6 @@ export async function prepareRinneEffects({outputRoot=path.join(appRoot,'public'
     }))));
   }
   await writeFile(path.join(outputRoot,'NOTICE.txt'),
-    'Effekseer for WebGL 1.70 and review Resources samples: MIT (LICENSE-MIT.txt).\\nEffekseer ResourceData Simple_Ribbon_Sword and tktk ToonHit/Light: CC0-1.0 (LICENSE-SAMPLES.txt).\\nUnmodified originals; game-side placement and intensity are adaptations.\\nSources and exact revisions: apps/rinne/src/rebuild/authored-effect-manifest.js\\n');
+    'Effekseer for WebGL 1.70: MIT (LICENSE-MIT.txt).\\nOriginal review library and ResourceData samples: CC0-1.0.\\nEffectMaterials: CC0-1.0 (LICENSE-EFFECT-MATERIALS-CC0.txt).\\nEffekseer Examples: MIT (LICENSE-EFFEKSEER-EXAMPLES-MIT.txt).\\nUnmodified originals; review-side placement and model-relative scale are adaptations.\\nSources and exact revisions: apps/rinne/src/rebuild/review-vfx-library-manifest.js\\n');
   return rows;
 }
