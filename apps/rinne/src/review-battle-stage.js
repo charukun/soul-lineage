@@ -182,7 +182,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     const enemyActual=sides.enemy.actor?.root?.userData?.reviewMonsterSpecies||'';
     canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
     const ready=heroActual===RINNE_PROTAGONIST_MODEL_ID&&enemyActual===sides.enemy.requested;
-    canvas.dataset.battleModels=ready?'ready':'loading';canvas.dataset.battleGeometry='runtime-models';
+    canvas.dataset.battleModels=ready?'ready':'loading';canvas.dataset.battleGeometry='runtime-monster-models';
     const modeLabel=encounterMode==='one-v-three'?'1v3':'1v1';
     const status=ready?`${modeLabel} · 主人公 × ${modelLabel(enemyActual)}`:`モデル読込中 · 主人公 × ${modelLabel(sides.enemy.requested)}`;
     if(status!==lastStatus){lastStatus=status;onStatus(status);}
