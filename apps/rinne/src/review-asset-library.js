@@ -29,7 +29,8 @@ ground.rotation.x = -Math.PI/2; ground.position.y = -.006; scene.add(ground);
 
 let modelRoot = null, mixer = null, frameId = 0, loadSequence = 0;
 const mounted = new Map();
-const selection = {model: REVIEW_SKELETON_MODELS[0].id, main:null, off:null, back:null};\nlet activeAssetSlot='main',activeViewDirection='front',activeViewFocus='full';
+const selection = {model: REVIEW_SKELETON_MODELS[0].id, main:null, off:null, back:null};
+let activeAssetSlot='main',activeViewDirection='front',activeViewFocus='full';
 
 const HAND_GRIPS = Object.freeze({
   '1H_Sword':{r:{position:[0,.555174,0],quaternion:[0,1,0,0],scale:.8876},l:{position:[0,.555174,0],quaternion:[0,0,0,1],scale:.8876}},
