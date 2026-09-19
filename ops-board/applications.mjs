@@ -1,4 +1,4 @@
-import { GAME_NAMES, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/application-catalog.mjs';
+import { GAME_NAMES, DEV_APP_NAMES, DEV_APPS, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/application-catalog.mjs';
 import { distributionPublicUrl } from '../scripts/distribution-targets.mjs';
 
 export const OPS_PUBLIC_URL = 'https://rinne-ops.c-okamoto.workers.dev/';
@@ -51,6 +51,14 @@ export function buildApplications(manifest = {}, environments = [], runs = [], {
     id, name: GAME_NAMES[id] || entries.find(entry => entry.app === id)?.version?.name || id, kind: 'game',
     targets: [fastDevTarget(id,developSha,statuses),...GAME_ENVIRONMENTS.filter(definition=>definition.id!=='dev').map(definition => targetFor(id, definition, entries, environmentById.get(definition.id), manifest))],
   }]));
+
+  const toolAppIds = new Set(['review', 'character-studio']);
+  for (const id of DEV_APPS.filter(id => !GAME_NAMES[id] && !toolAppIds.has(id))) {
+    groups.set(id, {
+      id, name: DEV_APP_NAMES[id] || id, kind: 'reference',
+      targets: [fastDevTarget(id, developSha, statuses)],
+    });
+  }
 
   groups.set('character-studio', {
     id: 'character-studio', name: 'キャラクター工房', kind: 'tool',
