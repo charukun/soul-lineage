@@ -34,7 +34,8 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
   const {chromium}=await import('playwright');
   const evidenceDir=resolve(root,'artifacts/browser/rinne-title-cinematic');
   await mkdir(evidenceDir,{recursive:true});
-  const server=spawn('npm',['run','dev','--workspace','@soul/rinne'],{cwd:root,env:{...process.env,NO_COLOR:'1'},stdio:['ignore','pipe','pipe'],detached:process.platform!=='win32'});
+  const viteEntry=resolve(root,'node_modules/vite/bin/vite.js');
+  const server=spawn(process.execPath,[viteEntry,'--host','127.0.0.1','--port','5173','--strictPort'],{cwd:resolve(root,'apps/rinne'),env:{...process.env,NO_COLOR:'1'},stdio:['ignore','pipe','pipe'],detached:process.platform!=='win32'});
   let serverLog='';
   server.stdout.on('data',chunk=>{serverLog=(serverLog+chunk.toString()).slice(-12000);});
   server.stderr.on('data',chunk=>{serverLog=(serverLog+chunk.toString()).slice(-12000);});
