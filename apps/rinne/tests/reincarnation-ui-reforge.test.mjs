@@ -49,7 +49,7 @@ test('persistent HUD has a readable player cluster and a dedicated top-right rad
   assert.match(navy, /\.rinne-mind-balance\{/);
   assert.match(navy, /\.game-screen\[data-gameplay-upgrade\] \.bars,[\s\S]*display:none!important/);
   assert.match(navy, /\.rinne-gameplay-upgrade \.upgrade-panel>header>\[data-close\][\s\S]*display:grid!important/);
-  assert.doesNotMatch(ui, /data-combat/);
+  assert.doesNotMatch(ui, /data-(?:attack|combat-button|combat-control)/);
   assert.doesNotMatch(ui, /data-debug/);
   assert.match(v2, /env\(safe-area-inset-top\)/);
   assert.match(v2, /env\(safe-area-inset-bottom\)/);
@@ -57,10 +57,11 @@ test('persistent HUD has a readable player cluster and a dedicated top-right rad
   assert.match(v2, /@media\(prefers-reduced-motion:reduce\)/);
 });
 
-test('heart technique body and equipment share three slots over a five-column library', () => {
+test('technique body and equipment keep three-slot editing while heart stays a learned list', () => {
   assert.match(v2, /\.loadout-slot-row\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(v2, /\.loadout-grid\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.match(loadout, /HEART_SLOT_COUNT/);
+  assert.doesNotMatch(loadout, /HEART_SLOT_COUNT|setHeartSlot|heartSlot/);
+  assert.match(loadout, /heart-learned-list/);
   assert.match(loadout, /技 · 序破急/);
   assert.match(loadout, /体 · 身法/);
   assert.match(loadout, /得意技/);
