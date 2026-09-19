@@ -119,7 +119,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   focusEffect=createMiniatureFocus(renderer);
 
   const characterStage=await createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject});
-  const {syncEquipment,setCarrierMotion,syncPeers}=characterStage;let currentFront=null;
+  const {syncEquipment,setCarrierMotion,syncPeers}=characterStage;lighting.setDynamicShadowCasters([characterStage.heroActor?.root,characterStage.motherActor?.root]);let currentFront=null;
   function syncFront(front){currentFront=front||null;characterStage.syncFront(front);}
   function updateFront(front){currentFront=front||null;characterStage.updateFront(front);}
   const skirmishRenderer=createSkirmishRenderer({characterStage,skirmishRoot,mat});
