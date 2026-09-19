@@ -8,6 +8,7 @@ export const FAST_DEV_WORKFLOW_ALLOWLIST = Object.freeze([
   '.github/workflows/astra-work-validation.yml',
   '.github/workflows/ci.yml',
   '.github/workflows/deploy.yml',
+  '.github/workflows/dev-app-publish.yml',
   '.github/workflows/distribution-artifact.yml',
 ]);
 
@@ -101,6 +102,18 @@ export function inspectAuthorizedFreshnessHardening(base, head) {
   return Object.freeze({state:violations.length?'violation':'clean',authorizedFreshnessHardening:true,violations:Object.freeze(violations)});
 }
 
+export function inspectAuthorizedFastDevRestore(base, head) {
+  const violations = [];
+  const after = workflowPathsAt(head);
+  const expected = new Set(FAST_DEV_WORKFLOW_ALLOWLIST);
+  const unexpected = after.filter(path => !expected.has(path));
+  const missing = FAST_DEV_WORKFLOW_ALLOWLIST.filter(path => !after.includes(path));
+  if (unexpected.length) violations.push({code:'RESTORE_UNEXPECTED_WORKFLOW',path:unexpected.join(', '),detail:'Emergency restore may only reinstate the canonical pre-incident workflow surface.'});
+  if (missing.length) violations.push({code:'RESTORE_REQUIRED_WORKFLOW_MISSING',path:missing.join(', '),detail:'Emergency restore must reinstate the complete canonical pre-incident workflow surface.'});
+  if (!after.includes('.github/workflows/dev-app-publish.yml')) violations.push({code:'DEV_PUBLISH_NOT_RESTORED',path:'.github/workflows/dev-app-publish.yml',detail:'Automatic DEV publication must be restored.'});
+  return Object.freeze({state:violations.length?'violation':'clean',authorizedRestore:true,afterWorkflows:Object.freeze(after),violations:Object.freeze(violations)});
+}
+
 export function inspectAuthorizedFastDevContraction(base, head) {
   const violations = [];
   const before = workflowPathsAt(base);
@@ -109,15 +122,9 @@ export function inspectAuthorizedFastDevContraction(base, head) {
   const added = after.filter(path => !before.includes(path));
   const unexpected = after.filter(path => !allowed.has(path));
   const missing = FAST_DEV_WORKFLOW_ALLOWLIST.filter(path => !after.includes(path));
-  const developPushWorkflows = after.filter(path => {
-    const source = readAt(head,path) || '';
-    return /(?:branches:\s*\[\s*develop\s*\]|-\s*develop\s*$)/m.test(source) &&
-      !path.endsWith('astra-work-validation.yml');
-  });
   if (added.length) violations.push({code:'ACTIONS_WORKFLOW_ADDED',path:added.join(', '),detail:'Authorized Fast DEV cleanup may contract the workflow surface but may not add workflows.'});
   if (unexpected.length) violations.push({code:'ACTIONS_WORKFLOW_SURFACE_NOT_PRUNED',path:unexpected.join(', '),detail:'Only the canonical Fast DEV, Production, and explicit distribution workflows may remain.'});
-  if (missing.length) violations.push({code:'REQUIRED_WORKFLOW_REMOVED',path:missing.join(', '),detail:'A required validation, Production, or explicit distribution workflow was removed.'});
-  if (developPushWorkflows.length) violations.push({code:'DEVELOP_PUSH_ACTIONS_PRESENT',path:developPushWorkflows.join(', '),detail:'Fast DEV forbids automatic GitHub Actions work after develop pushes. DEV publication must not sit on the merge-critical development loop.'});
+  if (missing.length) violations.push({code:'REQUIRED_WORKFLOW_REMOVED',path:missing.join(', '),detail:'A required Fast DEV, Production, or explicit distribution workflow was removed.'});
   if (after.length >= before.length) violations.push({code:'ACTIONS_WORKFLOW_COUNT_NOT_REDUCED',path:'.github/workflows',detail:`Workflow count must shrink for an authorized contraction (${before.length} -> ${after.length}).`});
   for (const row of changedRows(base,head)) {
     if (!row.path) continue;
@@ -127,7 +134,7 @@ export function inspectAuthorizedFastDevContraction(base, head) {
       if (afterCount>beforeCount) violations.push({code:'TEST_INVENTORY_EXPANDED',path:row.path,detail:`Actions test declarations increased ${beforeCount} -> ${afterCount}.`});
     }
   }
-  return Object.freeze({state:violations.length?'violation':'clean',authorizedContraction:true,beforeWorkflows:Object.freeze(before),afterWorkflows:Object.freeze(after),developPushWorkflows:Object.freeze(developPushWorkflows),violations:Object.freeze(violations)});
+  return Object.freeze({state:violations.length?'violation':'clean',authorizedContraction:true,beforeWorkflows:Object.freeze(before),afterWorkflows:Object.freeze(after),violations:Object.freeze(violations)});
 }
 
 function writeSummary(receipt) {
@@ -142,7 +149,9 @@ const isMain=process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.ar
 if(isMain){
   const base=process.argv[2],head=process.argv[3]||'HEAD';
   if(!base)throw new Error('Usage: node fast-dev-contract.mjs <base> <head> [--bootstrap]');
-  const receipt=process.argv.includes('--authorized-contraction')
+  const receipt=process.argv.includes('--authorized-restore')
+    ? inspectAuthorizedFastDevRestore(base,head)
+    : process.argv.includes('--authorized-contraction')
     ? inspectAuthorizedFastDevContraction(base,head)
     : process.argv.includes('--authorized-freshness-hardening')
       ? inspectAuthorizedFreshnessHardening(base,head)
