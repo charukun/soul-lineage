@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
+const script = readFileSync(new URL('../ops-board/public/rapid-board.js', import.meta.url), 'utf8');
+
+test('rapid board exposes work, app publication, issues and recent history without replacing source data', () => {
+  for (const id of ['rapid-active-list','rapid-app-list','rapid-issue-list','rapid-recent-list']) {
+    assert.match(html, new RegExp('id="' + id + '"'));
+  }
+  assert.match(script, /state\?\.pullRequests\?\.normal/);
+  assert.match(script, /state\?\.applications/);
+  assert.match(script, /eventDrivenAlerts/);
+  assert.match(script, /state\?\.history\?\.publications/);
+  assert.match(script, /state\?\.controlTower\?\.timeline/);
+  assert.doesNotMatch(script, /api\.github\.com|innerHTML/);
+});
+
+test('app cards include a DEV link and per-app PR history', () => {
+  assert.match(script, /DEVを開く/);
+  assert.match(script, /変更履歴/);
+  assert.match(script, /target\.id === appId/);
+});
+
+test('existing diagnostic surfaces remain present for drill-down', () => {
+  for (const id of ['control-tower','pulls','applications','publication-history','failures']) {
+    assert.match(html, new RegExp('id="' + id + '"'));
+  }
+});
