@@ -113,7 +113,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     if(sideKey!=='hero'){installReviewEquipment(side.actor,modelId,equipmentAssets);const monster=new THREE.Group();monster.name='ReviewMonsterSilhouette';const hornMaterial=new THREE.MeshStandardMaterial({color:0x342f35,roughness:.78,metalness:.08});for(const x of [-.17,.17]){const horn=new THREE.Mesh(new THREE.ConeGeometry(.07,.34,8),hornMaterial);horn.position.set(x,1.72,0);horn.rotation.z=x<0?.32:-.32;monster.add(horn);}const eyeMaterial=new THREE.MeshBasicMaterial({color:0xff5b45});for(const x of [-.065,.065]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.018,8,6),eyeMaterial);eye.position.set(x,1.57,.18);monster.add(eye);}side.actor.root.add(monster);side.actor.root.scale.set(1.08,1.03,1.08);side.actor.root.userData.reviewMonster=true;}
     stageRoot.add(side.actor.root,side.actor.attachments);side.previous=null;side.presentation=null;side.hp=null;
     canvas.dataset[`${sideKey}RequestedModel`]=modelId;
-    if(encounterMode==='melee')queueMicrotask(rebuildExtras);
+    if(encounterMode==='one-v-three')queueMicrotask(rebuildExtras);
   }
   install('hero',sides.hero.requested);install('enemy',sides.enemy.requested);
 
