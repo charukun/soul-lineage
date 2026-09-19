@@ -1,9 +1,10 @@
 import * as T from 'three';
 import {createCompressedGLTFLoader} from '@soul/rendering/compressed-gltf';
 import {readResponseArrayBufferWithProgress} from '@soul/rendering/progressive-manifestation';
+import {projectAssetUrl} from '@soul/assets';
 
 export const GOBKIT_SOURCE_COMMIT='0d654ab3306515b1b63621a5c6548554034482dc';
-const SOURCE_ROOT=`https://raw.githubusercontent.com/Ariescar/gobkit-free-assets/${GOBKIT_SOURCE_COMMIT}/`;
+const runtimeEnvironment=typeof __BUILD_INFO__==='undefined'?'dev':__BUILD_INFO__.environment;
 const MINION_CLIPS=Object.freeze({idle:[0,29],attack:[30,59],dead:[60,89]});
 const ANIMAL_CLIPS=Object.freeze({idle:[0,29],attack:[30,59],dead:[60,89],walk:[90,119]});
 
@@ -16,7 +17,7 @@ export const EXTERNAL_MONSTER_MODELS=Object.freeze({
 });
 
 export function externalMonsterSpec(species){return EXTERNAL_MONSTER_MODELS[species]||null;}
-export function externalMonsterUrl(species){const spec=externalMonsterSpec(species);return spec?SOURCE_ROOT+spec.path:null;}
+export function externalMonsterUrl(species){const spec=externalMonsterSpec(species);return spec?projectAssetUrl(`model/gobkit/${species}/${spec.gitBlobSha}.glb`,{environment:runtimeEnvironment}):null;}
 const hex=bytes=>[...bytes].map(value=>value.toString(16).padStart(2,'0')).join('');
 export async function gitBlobSha(bytes){
  const data=bytes instanceof ArrayBuffer?new Uint8Array(bytes):new Uint8Array(bytes.buffer,bytes.byteOffset,bytes.byteLength);
