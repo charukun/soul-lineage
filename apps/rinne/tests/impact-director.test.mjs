@@ -57,7 +57,7 @@ test('local micro slow swaps only displayed Tidebreak pose and restores the exac
 
 test('weapon-following VFX updates one existing handle without replaying it',()=>{
   const calls={played:0,locations:[]},backend={play(){calls.played++;return{exists:true,setLocation(x,y,z){calls.locations.push([x,y,z]);},setRotation(){},stop(){this.exists=false;}};},update(){},draw(){},clear(){},dispose(){}};
-  const player=createAuthoredEffectPlayer();player.attach(backend);player.presentCues([{effect:'slash',position:{x:0,y:1,z:0},rotation:{x:0,y:0,z:0},scale:1,lifetime:.5,color:[255,255,255,255],priority:1,followKey:'hero'}]);
+  const player=createAuthoredEffectPlayer();player.attach(backend);player.frame(hero(),{stage:0},0);player.presentCues([{effect:'slash',position:{x:0,y:1,z:0},rotation:{x:0,y:0,z:0},scale:1,lifetime:.5,color:[255,255,255,255],priority:1,followKey:'hero'}]);
   player.frame(hero(),{stage:0},.016,{anchors:{hero:{position:{x:1,y:2,z:3},rotation:{x:0,y:.3,z:0}}}});player.frame(hero(),{stage:0},.016,{anchors:{hero:{position:{x:2,y:2,z:3},rotation:{x:0,y:.4,z:0}}}});
   assert.equal(calls.played,1);assert.deepEqual(calls.locations,[[1,2,3],[2,2,3]]);player.dispose();
 });
