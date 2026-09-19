@@ -7,6 +7,7 @@ import {MOTION_LIBRARY_SOURCE_BY_ID} from './review-motion-sources.js';
 const MAX_SOURCE_BYTES=12_000_000;
 const encoder=new TextEncoder();
 const pinnedPromises=new Map();
+const reviewModelPromises=new Map();
 
 async function gitBlobSha(bytes){
   const body=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);
@@ -102,9 +103,21 @@ export async function loadPinnedMotionSource(sourceId,{fetcher=fetch}={}){
   })().catch(error=>{pinnedPromises.delete(sourceId);throw error;});
   pinnedPromises.set(sourceId,promise);return promise;
 }
+export async function loadMotionReviewModel(sourceId,{fetcher=fetch}={}){
+  const source=MOTION_LIBRARY_SOURCE_BY_ID[sourceId];
+  if(!source?.reviewModel)throw new Error('Unknown motion review model: '+sourceId);
+  if(reviewModelPromises.has(sourceId))return reviewModelPromises.get(sourceId);
+  const promise=(async()=>{
+    const bytes=await checkedBytes(source,fetcher);
+    const gltf=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
+    const bones=quaterniusHumanoidFromGLTF(gltf);
+    return Object.freeze({source,gltf,bones});
+  })().catch(error=>{reviewModelPromises.delete(sourceId);throw error;});
+  reviewModelPromises.set(sourceId,promise);return promise;
+}
 export async function discoverPinnedMotionLibraryClips(){
   const discovered={};
-  const sources=Object.values(MOTION_LIBRARY_SOURCE_BY_ID).filter(source=>source.discoverAtRuntime);
+  const sources=Object.values(MOTION_LIBRARY_SOURCE_BY_ID).filter(source=>source.discoverAtRuntime&&!source.reviewModel);
   const results=await Promise.allSettled(sources.map(async source=>{
     const loaded=await loadPinnedMotionSource(source.id);
     return [source.id,loaded.animations.map((clip,index)=>Object.freeze({index,name:String(clip.name||('clip-'+index)),duration:Number(clip.duration)||0}))];
@@ -115,4 +128,5 @@ export async function discoverPinnedMotionLibraryClips(){
 export function disposePinnedMotionSources(){
   for(const promise of pinnedPromises.values())void promise.then(source=>source.dispose()).catch(()=>{});
   pinnedPromises.clear();
+  reviewModelPromises.clear();
 }
