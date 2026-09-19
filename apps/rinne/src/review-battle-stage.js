@@ -6,6 +6,7 @@ import {applyTidebreakPose,tidebreakFrameFromSnapshot} from './rebuild/tidebreak
 import {reviewBattleCameraFrame,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from './review-battle-state.js';
 import {REVIEW_MONSTER_MODELS,disposeReviewMonsterModel,loadReviewMonsterModel,updateReviewMonsterAnimation} from './review-battle-monster.js';
 import {REVIEW_INSPIRATION_TIMELINE,reviewInspirationSequenceFrame} from './review-battle-inspiration.js';
+import {applyReviewCombatMotion} from './review-battle-hero-motion.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 
 export const REVIEW_BATTLE_MODELS=REVIEW_MONSTER_MODELS;
@@ -141,6 +142,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
         if(sequence?.stage==='execute'&&bones.spine)bones.spine.rotation.y+=Math.sin(sequence.executeProgress*Math.PI*2)*.22;
         if(!frame?.attack)addGuardPose(bones,sideKey);
         applyTidebreakPose(bones,frame);
+        applyReviewCombatMotion(bones,frame,sequence,sampleTime);
         if(time<side.hitUntil&&bones.spine)bones.spine.rotation.z-=.13;
       });
       actor.updateAttachments();
