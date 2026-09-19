@@ -3,232 +3,163 @@ import {YEAR_MS,appearanceForCharacter,createCharacter} from '@soul/characters';
 import {createProtagonistCharacterPool} from './rebuild/protagonist-character-pool.js';
 import {RINNE_PROTAGONIST_MODEL_ID} from './rebuild/protagonist-runtime-asset.js';
 import {applyTidebreakPose,tidebreakFrameFromSnapshot} from './rebuild/tidebreak-pose.js';
-import {reviewBattleCameraFrame,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from './review-battle-state.js';
+import {reviewBattleCameraFrame,reviewBattlePresentationFrame} from './review-battle-state.js';
 import {REVIEW_MONSTER_MODELS,disposeReviewMonsterModel,loadReviewMonsterModel,updateReviewMonsterAnimation} from './review-battle-monster.js';
 import {REVIEW_INSPIRATION_TIMELINE,reviewInspirationSequenceFrame} from './review-battle-inspiration.js';
 
 export const REVIEW_BATTLE_MODELS=REVIEW_MONSTER_MODELS;
-
 const clamp=(value,lo,hi)=>Math.min(hi,Math.max(lo,value));
 const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
-
-function reviewerCharacter(id,seed){
-  return createCharacter({id,seed,ageMs:28*YEAR_MS});
-}
+const reviewerCharacter=(id,seed)=>createCharacter({id,seed,ageMs:28*YEAR_MS});
 
 function addGuardPose(bones,side){
   if(bones.spine)bones.spine.rotation.x-=.055;
   if(bones.leftUpperArm){bones.leftUpperArm.rotation.x-=.18;bones.leftUpperArm.rotation.z+=side==='hero'?-.18:.18;}
   if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.28;bones.rightUpperArm.rotation.z+=side==='hero'?.16:-.16;}
 }
-
 function addStride(bones,time,amount){
-  if(amount<=0)return;
-  const stride=Math.sin(time*8.2)*.34*amount;
-  if(bones.leftUpperLeg)bones.leftUpperLeg.rotation.x+=stride;
-  if(bones.rightUpperLeg)bones.rightUpperLeg.rotation.x-=stride;
-  if(bones.leftUpperArm)bones.leftUpperArm.rotation.x-=stride*.4;
-  if(bones.rightUpperArm)bones.rightUpperArm.rotation.x+=stride*.4;
+  if(amount<=0)return;const stride=Math.sin(time*8.2)*.34*amount;
+  if(bones.leftUpperLeg)bones.leftUpperLeg.rotation.x+=stride;if(bones.rightUpperLeg)bones.rightUpperLeg.rotation.x-=stride;
+  if(bones.leftUpperArm)bones.leftUpperArm.rotation.x-=stride*.4;if(bones.rightUpperArm)bones.rightUpperArm.rotation.x+=stride*.4;
 }
-
 function ring(color){
-  const mesh=new THREE.Mesh(
-    new THREE.RingGeometry(.46,.54,40),
-    new THREE.MeshBasicMaterial({color,transparent:true,opacity:.66,side:THREE.DoubleSide,depthWrite:false})
-  );
+  const mesh=new THREE.Mesh(new THREE.RingGeometry(.46,.54,40),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.52,side:THREE.DoubleSide,depthWrite:false}));
   mesh.rotation.x=-Math.PI/2;mesh.position.y=.018;return mesh;
+}
+function disposeNode(root){root.traverse(node=>{node.geometry?.dispose?.();const materials=Array.isArray(node.material)?node.material:[node.material];for(const material of materials.filter(Boolean))material.dispose?.();});root.clear();}
+function addBox(group,size,position,material){const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),material);mesh.position.set(...position);group.add(mesh);return mesh;}
+function addCylinder(group,radius,height,position,material){const mesh=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,height,10),material);mesh.position.set(...position);group.add(mesh);return mesh;}
+function addCone(group,radius,height,position,material){const mesh=new THREE.Mesh(new THREE.ConeGeometry(radius,height,10),material);mesh.position.set(...position);group.add(mesh);return mesh;}
+
+function rebuildWeaponVisual(entry,weapon){
+  disposeNode(entry.group);entry.weapon=weapon;
+  const metal=new THREE.MeshStandardMaterial({color:0xc6d0d4,roughness:.26,metalness:.78}),edge=new THREE.MeshStandardMaterial({color:0xe8ece8,roughness:.18,metalness:.86}),wood=new THREE.MeshStandardMaterial({color:0x5c4632,roughness:.8,metalness:.02}),dark=new THREE.MeshStandardMaterial({color:0x26333a,roughness:.55,metalness:.38}),gold=new THREE.MeshStandardMaterial({color:0xb89454,roughness:.42,metalness:.55});
+  if(weapon==='fist'){const fist=new THREE.Mesh(new THREE.SphereGeometry(.11,12,8),dark);fist.position.y=.43;groupAdd(entry.group,fist);return;}
+  if(weapon==='spear'||weapon==='staff'){
+    addCylinder(entry.group,weapon==='staff'?.035:.027,.86,[0,-.05,0],wood);
+    if(weapon==='spear'){addCone(entry.group,.075,.18,[0,.43,0],edge);addCylinder(entry.group,.05,.055,[0,.32,0],gold);}
+    else{const cap=new THREE.Mesh(new THREE.SphereGeometry(.065,10,7),gold);cap.position.y=.43;entry.group.add(cap);}
+    return;
+  }
+  if(weapon==='axe'){
+    addCylinder(entry.group,.035,.78,[0,-.08,0],wood);addBox(entry.group,[.27,.18,.07],[.10,.32,0],metal);addBox(entry.group,[.05,.20,.075],[-.055,.31,0],gold);return;
+  }
+  const great=weapon==='great',dagger=weapon==='dagger',katana=weapon==='katana';
+  addBox(entry.group,[great?.14:dagger?.085:.095,great?.70:dagger?.57:.66,great?.045:.032],[0,.12,0],katana?edge:metal);
+  addBox(entry.group,[great?.31:dagger?.18:.24,.035,.055],[0,-.25,0],gold);
+  addCylinder(entry.group,great?.048:.038,great?.22:dagger?.18:.21,[0,-.38,0],dark);
+}
+function groupAdd(group,node){group.add(node);}
+function updateWeaponVisual(entry,state){
+  const segment=state?.weaponSegment;if(!segment||state?.dead){entry.group.visible=false;return;}
+  const start=segment.visualBase||segment.base,end=segment.visualTip||segment.tip;if(!Array.isArray(start)||!Array.isArray(end)){entry.group.visible=false;return;}
+  if(entry.weapon!==segment.weapon)rebuildWeaponVisual(entry,segment.weapon);
+  const a=new THREE.Vector3(Number(start[0])||0,Number(start[1])||0,Number(start[2])||0),b=new THREE.Vector3(Number(end[0])||0,Number(end[1])||0,Number(end[2])||0),dir=b.clone().sub(a),length=dir.length();
+  if(length<.02){entry.group.visible=false;return;}
+  entry.group.visible=true;entry.group.position.copy(a).add(b).multiplyScalar(.5);entry.group.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());entry.group.scale.set(1,length,1);
+  entry.group.userData.contactActive=Boolean(segment.active);entry.group.userData.contactBase=segment.base;entry.group.userData.contactTip=segment.tip;
 }
 
 export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirationCue=()=>{}}={}){
   if(!canvas)throw Error('Review battle canvas is required');
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
-  renderer.outputColorSpace=THREE.SRGBColorSpace;
-  renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.04;
-  renderer.setPixelRatio(Math.min(Number(globalThis.devicePixelRatio)||1,1.5));
+  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.04;renderer.setPixelRatio(Math.min(Number(globalThis.devicePixelRatio)||1,1.5));
 
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1110);scene.fog=new THREE.Fog(0x0b1110,10,24);
   const camera=new THREE.PerspectiveCamera(40,1,.08,50);camera.position.set(0,5.2,10);
   const cameraLook=new THREE.Vector3(0,.95,0),cameraTargetPosition=new THREE.Vector3(),cameraTargetLook=new THREE.Vector3();camera.lookAt(cameraLook);
-  scene.add(new THREE.HemisphereLight(0xdde8e3,0x24302d,2.35));
-  const key=new THREE.DirectionalLight(0xffedca,3.4);key.position.set(-4,7,5);scene.add(key);
-  const rim=new THREE.DirectionalLight(0x9bc7d1,1.5);rim.position.set(5,4,-4);scene.add(rim);
+  scene.add(new THREE.HemisphereLight(0xdde8e3,0x24302d,2.35));const key=new THREE.DirectionalLight(0xffedca,3.4);key.position.set(-4,7,5);scene.add(key);const rim=new THREE.DirectionalLight(0x9bc7d1,1.5);rim.position.set(5,4,-4);scene.add(rim);
 
   const stageRoot=new THREE.Group();scene.add(stageRoot);
-  const ground=new THREE.Mesh(new THREE.CircleGeometry(4.8,64),new THREE.MeshStandardMaterial({color:0x18211f,roughness:.94,metalness:.02}));
-  ground.rotation.x=-Math.PI/2;stageRoot.add(ground);
-  const contact=new THREE.Mesh(new THREE.RingGeometry(.7,.73,64),new THREE.MeshBasicMaterial({color:0x53615c,transparent:true,opacity:.38,side:THREE.DoubleSide}));
-  contact.rotation.x=-Math.PI/2;contact.position.y=.012;stageRoot.add(contact);
+  const ground=new THREE.Mesh(new THREE.CircleGeometry(4.8,64),new THREE.MeshStandardMaterial({color:0x18211f,roughness:.94,metalness:.02}));ground.rotation.x=-Math.PI/2;stageRoot.add(ground);
   const inspirationFx=new THREE.Group();inspirationFx.visible=false;stageRoot.add(inspirationFx);
   const fxGold=new THREE.MeshBasicMaterial({color:0xf4d483,transparent:true,opacity:.75,depthWrite:false,side:THREE.DoubleSide}),fxBlue=new THREE.MeshBasicMaterial({color:0x73bce5,transparent:true,opacity:.62,depthWrite:false,side:THREE.DoubleSide});
   const fxRings=[];for(const radius of [.68,.92,1.18]){const mesh=new THREE.Mesh(new THREE.RingGeometry(radius,radius+.035,48),fxGold.clone());mesh.rotation.x=-Math.PI/2;inspirationFx.add(mesh);fxRings.push(mesh);}
   const fxRays=[];for(let i=0;i<10;i++){const ray=new THREE.Mesh(new THREE.BoxGeometry(.035,.035,1.5),fxBlue.clone());ray.position.y=.85;ray.rotation.y=(Math.PI*2*i)/10;ray.rotation.x=Math.PI/2;inspirationFx.add(ray);fxRays.push(ray);}
   const fxArc=new THREE.Mesh(new THREE.TorusGeometry(.9,.035,8,48,Math.PI*1.55),fxGold.clone());fxArc.position.y=1.05;fxArc.rotation.set(Math.PI/2,.2,-.55);inspirationFx.add(fxArc);
-  const aura=new THREE.Group();aura.visible=false;const auraMaterial=new THREE.MeshBasicMaterial({color:0x73bce5,transparent:true,opacity:.46,depthWrite:false,side:THREE.DoubleSide});for(const radius of [.62,.82]){const ringMesh=new THREE.Mesh(new THREE.RingGeometry(radius,radius+.025,48),auraMaterial.clone());ringMesh.rotation.x=-Math.PI/2;aura.add(ringMesh);}const auraLight=new THREE.PointLight(0x73bce5,0,3.4);auraLight.position.y=.85;aura.add(auraLight);stageRoot.add(aura);
+  const aura=new THREE.Group();aura.visible=false;const auraMaterial=new THREE.MeshBasicMaterial({color:0x73bce5,transparent:true,opacity:.46,depthWrite:false,side:THREE.DoubleSide});for(const radius of [.62,.82]){const mesh=new THREE.Mesh(new THREE.RingGeometry(radius,radius+.025,48),auraMaterial.clone());mesh.rotation.x=-Math.PI/2;aura.add(mesh);}const auraLight=new THREE.PointLight(0x73bce5,0,3.4);auraLight.position.y=.85;aura.add(auraLight);stageRoot.add(aura);
 
-  const [protagonistRuntime,monsterEnemy,monsterFlankA,monsterFlankB]=await Promise.all([
-    createProtagonistCharacterPool(renderer),
-    loadReviewMonsterModel('skeleton-minion'),
-    loadReviewMonsterModel('skeleton-warrior'),
-    loadReviewMonsterModel('skeleton-rogue')
-  ]);
-  const heroPool=protagonistRuntime.pool;
-  const sides={
-    hero:{key:'hero',actorId:'review-battle-hero',requested:RINNE_PROTAGONIST_MODEL_ID,actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-hero',0x51f15e)),previous:null,presentation:null,hp:null,hitUntil:0,marker:ring(0xd9b45b)},
-    enemy:{key:'enemy',actorId:'review-battle-enemy',requested:'skeleton-minion',actor:monsterEnemy,appearance:null,previous:null,presentation:null,hp:null,hitUntil:0,marker:ring(0x82aeb6)}
-  };
-  let encounterMode='duel',extras=[],cinematicUntil=0,techniquePlayback=null,cameraOrbit=0,cameraZoom=.82;
-  stageRoot.add(sides.hero.marker,sides.enemy.marker);
+  const [protagonistRuntime,...monsters]=await Promise.all([createProtagonistCharacterPool(renderer),loadReviewMonsterModel('skeleton-minion'),loadReviewMonsterModel('skeleton-warrior'),loadReviewMonsterModel('skeleton-rogue')]);
+  const heroPool=protagonistRuntime.pool,hero={actorId:'review-battle-hero',actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-hero',0x51f15e)),presentation:null,hp:null,hitUntil:0,marker:ring(0xd9b45b)};
+  hero.actor=heroPool.spawn(hero.actorId);hero.actor.root.name='ReviewBattle:hero';hero.actor.attachments.name='ReviewBattleAttachments:hero';stageRoot.add(hero.actor.root,hero.actor.attachments,hero.marker);
+  const enemies=monsters.map((actor,index)=>({actor,requested:REVIEW_MONSTER_MODELS[index]?.id||'skeleton-minion',presentation:null,hp:null,hitUntil:0,marker:ring(index?0x617d86:0x82aeb6)}));
+  stageRoot.add(enemies[0].actor.root,enemies[0].marker);
+  const weaponVisuals=[hero,...enemies].map(()=>{const group=new THREE.Group();stageRoot.add(group);return{group,weapon:''};});
+  let encounterMode='duel',techniquePlayback=null,cameraOrbit=0,cameraZoom=.82,impactKick=0,impactYaw=0,lastImpactSerial=0;
+  const impactBursts=[];
 
-  function install(sideKey,modelId){
-    const side=sides[sideKey];
-    if(!side)throw Error(`Unknown review battle side: ${sideKey}`);
-    if(sideKey==='hero'){
-      if(side.actor)heroPool.despawn(side.actorId);
-      side.requested=RINNE_PROTAGONIST_MODEL_ID;
-      side.actor=heroPool.spawn(side.actorId);
-      side.actor.root.name='ReviewBattle:hero';side.actor.attachments.name='ReviewBattleAttachments:hero';
-      stageRoot.add(side.actor.root,side.actor.attachments);
-    }else{
-      if(modelId!=='skeleton-minion')throw Error(`Unknown review monster: ${modelId}`);
-      side.requested='skeleton-minion';side.actor=monsterEnemy;stageRoot.add(side.actor.root);
-    }
-    side.previous=null;side.presentation=null;side.hp=null;
-    canvas.dataset[`${sideKey}RequestedModel`]=side.requested;
-    if(encounterMode==='one-v-three')queueMicrotask(rebuildExtras);
-  }
-  install('hero',sides.hero.requested);install('enemy',sides.enemy.requested);
-
-  function clearExtras(){for(const extra of extras)extra.actor?.root?.removeFromParent();extras=[];}
-  function rebuildExtras(){
-    clearExtras();if(encounterMode!=='one-v-three')return;
-    const specs=[[monsterFlankA,0,1.35,1.35],[monsterFlankB,1,1.5,-1.25]];
-    for(const [actor,index,offsetX,offsetZ] of specs){stageRoot.add(actor.root);extras.push({sideKey:'enemy',index,actorId:`review-battle-enemy-extra-${index}`,actor,offsetX,offsetZ,hitUntil:0,recoil:0});}
-  }
   function setEncounterMode(mode){
-    const next=mode==='one-v-three'?'one-v-three':'duel';if(next===encounterMode&&((next==='duel'&&extras.length===0)||(next==='one-v-three'&&extras.length===2)))return;
-    encounterMode=next;rebuildExtras();canvas.dataset.encounterMode=encounterMode;
+    encounterMode=mode==='one-v-three'?'one-v-three':'duel';
+    for(let i=1;i<enemies.length;i++){if(encounterMode==='one-v-three'){stageRoot.add(enemies[i].actor.root,enemies[i].marker);}else{enemies[i].actor.root.removeFromParent();enemies[i].marker.removeFromParent();weaponVisuals[i+1].group.visible=false;}}
+    canvas.dataset.encounterMode=encounterMode;
   }
-
-  function setHeroWeapon(weapon='sword'){
-    const actor=sides.hero.actor;if(!actor)return;actor.detachWeapon?.('reviewWeapon');if(weapon==='fist')return;
-    const group=new THREE.Group(),metal=new THREE.MeshStandardMaterial({color:0xb7bec4,roughness:.3,metalness:.78}),wood=new THREE.MeshStandardMaterial({color:0x5b3d2b,roughness:.78});
-    const length={dagger:.48,sword:.82,spear:1.55,great:1.18,axe:.92,staff:1.45}[weapon]||.82;
-    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(weapon==='great'?.045:.025,weapon==='great'?.055:.03,length,8),weapon==='staff'?wood:metal);shaft.rotation.z=Math.PI/2;group.add(shaft);
-    if(weapon==='axe'){const head=new THREE.Mesh(new THREE.BoxGeometry(.16,.42,.08),metal);head.position.x=length*.42;group.add(head);}else if(weapon==='spear'){const tip=new THREE.Mesh(new THREE.ConeGeometry(.07,.28,8),metal);tip.rotation.z=-Math.PI/2;tip.position.x=length*.58;group.add(tip);}
-    actor.attachWeapon('reviewWeapon',group,{bone:'rightHand',position:[0,.02,0],quaternion:[0,0,0,1],scale:1});
+  function presentImpact(impact){
+    if(!impact||impact.serial===lastImpactSerial)return;lastImpactSerial=impact.serial;
+    const point=impact.point||[0,.8,0],guard=Boolean(impact.guard),power=Math.max(.4,Number(impact.power)||.7),material=new THREE.MeshBasicMaterial({color:guard?0xf0c96d:0xffe2a0,transparent:true,opacity:.92,depthWrite:false,side:THREE.DoubleSide});
+    const mesh=new THREE.Mesh(new THREE.RingGeometry(.06,.095,20),material);mesh.position.set(Number(point[0])||0,Number(point[1])||.8,Number(point[2])||0);mesh.quaternion.copy(camera.quaternion);stageRoot.add(mesh);impactBursts.push({mesh,age:0,life:.18,power});
+    impactKick=Math.max(impactKick,.035+power*.028);impactYaw=Number(impact.yaw)||0;
   }
-  function animateSide(sideKey,state,target,time,dt){
-    const side=sides[sideKey],actor=side.actor;if(!actor||!state)return;
-    const x=Number(state.x)||0,z=Number(state.z)||0;
-    const hit=Number.isFinite(state.hp)&&side.hp!==null&&state.hp<side.hp;
-    if(hit)side.hitUntil=time+.14;
-    side.hp=Number.isFinite(state.hp)?state.hp:side.hp;
-    let frame=tidebreakFrameFromSnapshot(state,{targetId:target?.id||null,intent:'review-battle'});
-    const sequence=techniquePlayback?reviewInspirationSequenceFrame(time-techniquePlayback.startedAt):null;if(sideKey==='hero'&&techniquePlayback&&sequence?.stage==='execute'){const steps=techniquePlayback.steps||[],scaled=sequence.executeProgress*Math.max(1,steps.length),index=Math.min(steps.length-1,Math.floor(scaled)),step=steps[index];if(step)frame=tidebreakFrameFromSnapshot({...state,attack:step.kind,progress:scaled%1,slot:techniquePlayback.phase},{targetId:target?.id||null,intent:'review-battle-inspiration'});}
-    const presentation=reviewBattlePresentationFrame(state,target,side.presentation,dt,{hit});
-    side.presentation=presentation;side.previous={x,z};
-    const worldX=presentation.x,worldZ=presentation.z,stride=presentation.stride;
-    actor.root.position.set(worldX,0,worldZ);actor.root.rotation.y=presentation.yaw;
-    if(sequence&&sequence.stage!=='done'&&target){const tx=(Number(target.x)||0)*1.35,tz=(Number(target.z)||0)*1.15,dx=worldX-tx,dz=worldZ-tz,len=Math.max(.001,Math.hypot(dx,dz));if(sideKey==='hero'&&sequence.spacing>0){actor.root.position.x+=dx/len*.72*sequence.spacing;actor.root.position.z+=dz/len*.72*sequence.spacing;}if(sideKey==='enemy'&&(sequence.stage==='stagger'||sequence.stage==='reveal')){actor.root.position.x-=dx/len*.18;actor.root.position.z-=dz/len*.18;actor.root.rotation.z=.12*Math.sin(sequence.progress*Math.PI);}}
-    if(sideKey==='enemy'){
-      updateReviewMonsterAnimation(actor,state,time,{hit:time<side.hitUntil});
-    }else{
-      actor.sample(side.appearance,time,(bones,sampleTime)=>{
-        addStride(bones,sampleTime,stride);
-        if(sequence?.stage==='reveal'){if(bones.spine)bones.spine.rotation.x-=.16;if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.7;bones.rightUpperArm.rotation.z+=.35;}}
-        if(sequence?.stage==='execute'&&bones.spine)bones.spine.rotation.y+=Math.sin(sequence.executeProgress*Math.PI*2)*.22;
-        if(!frame?.attack)addGuardPose(bones,sideKey);
-        applyTidebreakPose(bones,frame);
-        if(time<side.hitUntil&&bones.spine)bones.spine.rotation.z-=.13;
-      });
-      actor.updateAttachments();
-    }
-    side.marker.position.set(worldX,.018,worldZ);
+  function updateImpacts(dt){
+    const step=Math.max(1/240,Math.min(.05,Number(dt)||1/60));impactKick*=Math.exp(-step*18);
+    for(let i=impactBursts.length-1;i>=0;i--){const row=impactBursts[i];row.age+=step;const u=clamp(row.age/row.life,0,1);row.mesh.scale.setScalar(.7+u*5*row.power);row.mesh.material.opacity=(1-u)*.9;if(u>=1){row.mesh.removeFromParent();row.mesh.geometry.dispose();row.mesh.material.dispose();impactBursts.splice(i,1);}}
   }
-
-  function animateExtras(core,time,dt){
-    if(encounterMode!=='one-v-three'||!core)return;
-    const multi=reviewBattleMultiHitFrame(core.hero,{encounterMode});
-    for(const extra of extras){
-      const source=core.enemy,target=core.hero,actor=extra.actor;if(!source||!actor)continue;
-      if(multi.active&&time>=extra.hitUntil){extra.hitUntil=time+.16;extra.recoil=Math.max(extra.recoil,multi.recoil*(1-extra.index*.12));}
-      extra.recoil=Math.max(0,extra.recoil-Math.max(1/240,Number(dt)||1/60)*1.7);
-      const baseX=(Number(source.x)||0)*1.35+extra.offsetX,baseZ=(Number(source.z)||0)*1.15+extra.offsetZ,targetX=(Number(target?.x)||0)*1.35,targetZ=(Number(target?.z)||0)*1.15;
-      const awayX=baseX-targetX,awayZ=baseZ-targetZ,awayLength=Math.max(.001,Math.hypot(awayX,awayZ)),x=baseX+awayX/awayLength*extra.recoil,z=baseZ+awayZ/awayLength*extra.recoil;
-      actor.root.position.set(x,0,z);actor.root.rotation.y=Math.atan2(targetX-x,targetZ-z);
-      updateReviewMonsterAnimation(actor,source,time+extra.index*.17,{hit:time<extra.hitUntil});
-    }
-    canvas.dataset.multiHit=multi.active?String(multi.count):'1';canvas.dataset.multiHitPhase=multi.active?multi.phase:'';
+  function animateHero(state,target,time,dt){
+    if(!state)return;const hit=Number.isFinite(state.hp)&&hero.hp!==null&&state.hp<hero.hp;if(hit)hero.hitUntil=time+.15;hero.hp=Number.isFinite(state.hp)?state.hp:hero.hp;
+    const presentation=reviewBattlePresentationFrame(state,target,hero.presentation,dt,{hit});hero.presentation=presentation;hero.actor.root.position.set(presentation.x,0,presentation.z);hero.actor.root.rotation.y=presentation.yaw;
+    const frame=tidebreakFrameFromSnapshot(state,{targetId:target?.id||null,intent:'review-battle'});
+    hero.actor.sample(hero.appearance,time,(bones,sampleTime)=>{addStride(bones,sampleTime,presentation.stride);if(!frame?.attack)addGuardPose(bones,'hero');applyTidebreakPose(bones,frame);if(time<hero.hitUntil&&bones.spine)bones.spine.rotation.z-=.13;});hero.actor.updateAttachments();hero.marker.position.set(presentation.x,.018,presentation.z);updateWeaponVisual(weaponVisuals[0],state);
+  }
+  function animateEnemy(index,state,target,time,dt){
+    const side=enemies[index];if(!side||!state)return;const hit=Number.isFinite(state.hp)&&side.hp!==null&&state.hp<side.hp;if(hit)side.hitUntil=time+.16;side.hp=Number.isFinite(state.hp)?state.hp:side.hp;
+    const presentation=reviewBattlePresentationFrame(state,target,side.presentation,dt,{hit});side.presentation=presentation;side.actor.root.position.set(presentation.x,0,presentation.z);side.actor.root.rotation.y=presentation.yaw;updateReviewMonsterAnimation(side.actor,state,time,{hit:time<side.hitUntil});side.marker.position.set(presentation.x,.018,presentation.z);updateWeaponVisual(weaponVisuals[index+1],state);
   }
 
   let lastWidth=0,lastHeight=0,lastStatus='';
-  function resize(){
-    const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);
-    if(width===lastWidth&&height===lastHeight)return;lastWidth=width;lastHeight=height;
-    renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
-  }
+  function resize(){const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);if(width===lastWidth&&height===lastHeight)return;lastWidth=width;lastHeight=height;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
 
   function updateCamera(core,dt,followCamera,cameraSystem){
-    const wide=canvas.clientWidth/Math.max(1,canvas.clientHeight)>1.3;
-    let frame=reviewBattleCameraFrame(core,{follow:followCamera,system:cameraSystem,encounterMode,wide});
-    const now=performance.now()/1000,sequence=techniquePlayback?reviewInspirationSequenceFrame(now-techniquePlayback.startedAt):null;
-    const step=Math.max(1/120,Math.min(.05,Number(dt)||1/60));
+    const wide=canvas.clientWidth/Math.max(1,canvas.clientHeight)>1.3;let frame=reviewBattleCameraFrame(core,{follow:followCamera,system:cameraSystem,encounterMode,wide});
+    const now=performance.now()/1000,sequence=techniquePlayback?reviewInspirationSequenceFrame(now-techniquePlayback.startedAt):null,step=Math.max(1/120,Math.min(.05,Number(dt)||1/60));
     if(core?.hero&&core?.enemy&&followCamera)canvas.dataset.heroComposition=cameraSystem==='demon'?'kuumetsu-shared':'hyakunen-shared';
     if(sequence&&sequence.stage!=='spark'&&sequence.stage!=='done'&&core?.hero&&core?.enemy){
-      const hx=Number(core.hero.x||0)*1.35,hz=Number(core.hero.z||0)*1.15,ex=Number(core.enemy.x||0)*1.35,ez=Number(core.enemy.z||0)*1.15,dx=ex-hx,dz=ez-hz,len=Math.max(.01,Math.hypot(dx,dz)),rx=-dz/len,rz=dx/len,push=sequence.stage==='execute'?.55:.95;
-      frame={position:{x:hx-dx/len*(2.0-push*.35)+rx*(1.1+push*.25),y:.82,z:hz-dz/len*(2.0-push*.35)+rz*(1.1+push*.25)},look:{x:hx+dx*.68,y:1.28,z:hz+dz*.68},follow:true,system:'inspiration',count:encounterMode==='one-v-three'?3:1};
+      const hx=Number(core.hero.x)||0,hz=Number(core.hero.z)||0,ex=Number(core.enemy.x)||0,ez=Number(core.enemy.z)||0,dx=ex-hx,dz=ez-hz,len=Math.max(.01,Math.hypot(dx,dz)),rx=-dz/len,rz=dx/len,push=sequence.stage==='execute'?.55:.95;
+      frame={position:{x:hx-dx/len*(2.0-push*.35)+rx*(1.1+push*.25),y:.82,z:hz-dz/len*(2.0-push*.35)+rz*(1.1+push*.25)},look:{x:hx+dx*.68,y:1.28,z:hz+dz*.68},follow:true,system:'inspiration',count:(core.enemies||[]).length||1};
     }else if(frame?.follow&&core?.hero&&core?.enemy){
-      cameraOrbit=(cameraOrbit+step*.05)%(Math.PI*2);
-      const ox=frame.position.x-frame.look.x,oz=frame.position.z-frame.look.z,c=Math.cos(cameraOrbit),sn=Math.sin(cameraOrbit);
+      cameraOrbit=(cameraOrbit+step*.05)%(Math.PI*2);const ox=frame.position.x-frame.look.x,oz=frame.position.z-frame.look.z,c=Math.cos(cameraOrbit),sn=Math.sin(cameraOrbit);
       frame={...frame,position:{...frame.position,x:frame.look.x+ox*c-oz*sn,z:frame.look.z+ox*sn+oz*c}};
     }
-    if(frame?.position&&frame?.look){
-      const dx=frame.position.x-frame.look.x,dy=frame.position.y-frame.look.y,dz=frame.position.z-frame.look.z;
-      frame={...frame,position:{x:frame.look.x+dx*cameraZoom,y:frame.look.y+dy*cameraZoom,z:frame.look.z+dz*cameraZoom}};
-    }
-    cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);
-    const blend=1-Math.exp(-step*8);
-    camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);camera.lookAt(cameraLook);
-    canvas.dataset.cameraFollow=followCamera?'on':'off';canvas.dataset.cameraZoom=cameraZoom.toFixed(2);
+    if(frame?.position&&frame?.look){const dx=frame.position.x-frame.look.x,dy=frame.position.y-frame.look.y,dz=frame.position.z-frame.look.z;frame={...frame,position:{x:frame.look.x+dx*cameraZoom,y:frame.look.y+dy*cameraZoom,z:frame.look.z+dz*cameraZoom}};}
+    if(impactKick>0)frame={...frame,position:{...frame.position,x:frame.position.x-Math.sin(impactYaw)*impactKick,z:frame.position.z-Math.cos(impactYaw)*impactKick}};
+    cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);const blend=1-Math.exp(-step*8);camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);camera.lookAt(cameraLook);canvas.dataset.cameraFollow=followCamera?'on':'off';canvas.dataset.cameraZoom=cameraZoom.toFixed(2);
   }
 
   function sync(core,dt=0,{followCamera=true,encounterMode:requestedMode='duel',cameraSystem='rinne'}={}){
-    setEncounterMode(requestedMode);resize();const now=performance.now()/1000;
-    if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);animateExtras(core,now,dt);}
-    updateCamera(core,dt,followCamera,cameraSystem);
-    const sequence=techniquePlayback?reviewInspirationSequenceFrame(now-techniquePlayback.startedAt):null,cinematic=Boolean(sequence&&sequence.stage!=='done');aura.visible=cinematic;inspirationFx.visible=cinematic;
-    if(cinematic&&sides.hero.actor){aura.position.copy(sides.hero.actor.root.position);aura.position.y=.025;inspirationFx.position.copy(sides.hero.actor.root.position);const pulse=.92+Math.sin(performance.now()*.018)*.08;aura.scale.setScalar(pulse);auraLight.intensity=1.8+Math.sin(performance.now()*.022)*.7;const intensity=sequence.stage==='reveal'||sequence.stage==='execute'?1:sequence.progress*.55;for(const [index,mesh] of fxRings.entries()){mesh.scale.setScalar(.7+intensity*(.8+index*.18));mesh.material.opacity=.18+intensity*.62;mesh.rotation.z+=.008*(index+1);}for(const [index,ray] of fxRays.entries()){ray.visible=intensity>.25;ray.scale.z=.45+intensity*(1.1+(index%3)*.15);ray.material.opacity=.15+intensity*.55;}fxArc.visible=sequence.stage==='reveal'||sequence.stage==='execute';fxArc.rotation.z+=.035;fxArc.material.opacity=.35+intensity*.6;
-      for(const cue of ['camera','spacing','stagger','reveal','execute'])if(now-techniquePlayback.startedAt>=REVIEW_INSPIRATION_TIMELINE[cue]&&!techniquePlayback.emitted.has(cue)){techniquePlayback.emitted.add(cue);onInspirationCue(cue,techniquePlayback);}
-    }
+    setEncounterMode(requestedMode);resize();const realNow=performance.now()/1000,simTime=Number(core?.time)||realNow,rows=core?.enemies||[core?.enemy].filter(Boolean);
+    if(core){animateHero(core.hero,rows[0],simTime,dt);for(let i=0;i<Math.min(rows.length,enemies.length);i++)animateEnemy(i,rows[i],core.hero,simTime+i*.03,dt);for(let i=rows.length;i<enemies.length;i++)weaponVisuals[i+1].group.visible=false;for(const impact of core.impacts||[])presentImpact(impact);}
+    updateImpacts(dt);updateCamera(core,dt,followCamera,cameraSystem);
+    const sequence=techniquePlayback?reviewInspirationSequenceFrame(realNow-techniquePlayback.startedAt):null,cinematic=Boolean(sequence&&sequence.stage!=='done');aura.visible=cinematic;inspirationFx.visible=cinematic;
+    if(cinematic&&hero.actor){aura.position.copy(hero.actor.root.position);aura.position.y=.025;inspirationFx.position.copy(hero.actor.root.position);const pulse=.92+Math.sin(performance.now()*.018)*.08;aura.scale.setScalar(pulse);auraLight.intensity=1.8+Math.sin(performance.now()*.022)*.7;const intensity=sequence.stage==='reveal'||sequence.stage==='execute'?1:sequence.progress*.55;for(const [index,mesh] of fxRings.entries()){mesh.scale.setScalar(.7+intensity*(.8+index*.18));mesh.material.opacity=.18+intensity*.62;mesh.rotation.z+=.008*(index+1);}for(const [index,ray] of fxRays.entries()){ray.visible=intensity>.25;ray.scale.z=.45+intensity*(1.1+(index%3)*.15);ray.material.opacity=.15+intensity*.55;}fxArc.visible=sequence.stage==='reveal'||sequence.stage==='execute';fxArc.rotation.z+=.035;fxArc.material.opacity=.35+intensity*.6;for(const cue of ['camera','spacing','stagger','reveal','execute'])if(realNow-techniquePlayback.startedAt>=REVIEW_INSPIRATION_TIMELINE[cue]&&!techniquePlayback.emitted.has(cue)){techniquePlayback.emitted.add(cue);onInspirationCue(cue,techniquePlayback);}}
     if(techniquePlayback&&sequence?.stage==='done'){if(!techniquePlayback.emitted.has('done')){techniquePlayback.emitted.add('done');onInspirationCue('done',techniquePlayback);}techniquePlayback=null;aura.visible=false;inspirationFx.visible=false;}
-    const phaseHud=canvas.closest('.stage')?.querySelector('#battle-phase'),signHud=canvas.closest('.stage')?.querySelector('#battle-sign'),heroRoot=sides.hero.actor?.root;
-    if(phaseHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=.16;projected.project(camera);phaseHud.dataset.phaseAnchor='feet';phaseHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');phaseHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');phaseHud.style.setProperty('bottom','auto','important');}
-    if(signHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=2.18;projected.project(camera);signHud.dataset.signAnchor='head';signHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');signHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');}
-    const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
-    const enemyActual=sides.enemy.actor?.root?.userData?.reviewMonsterSpecies||'';
-    canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
-    const ready=heroActual===RINNE_PROTAGONIST_MODEL_ID&&enemyActual===sides.enemy.requested;
-    canvas.dataset.battleModels=ready?'ready':'loading';canvas.dataset.battleGeometry='runtime-monster-models';
-    const modeLabel=encounterMode==='one-v-three'?'1v3':'1v1';
-    const status=ready?`${modeLabel} · 主人公 × ${modelLabel(enemyActual)}`:`モデル読込中 · 主人公 × ${modelLabel(sides.enemy.requested)}`;
-    if(status!==lastStatus){lastStatus=status;onStatus(status);}
-    renderer.render(scene,camera);
+    const signHud=canvas.closest('.stage')?.querySelector('#battle-sign'),heroRoot=hero.actor?.root;if(signHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=2.18;projected.project(camera);signHud.dataset.signAnchor='head';signHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');signHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');}
+    const heroActual=hero.actor?.root?.userData?.characterModel||'',enemyActual=enemies[0].actor?.root?.userData?.reviewMonsterSpecies||'';canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
+    const ready=heroActual===RINNE_PROTAGONIST_MODEL_ID&&enemyActual===enemies[0].requested;canvas.dataset.battleModels=ready?'ready':'loading';canvas.dataset.battleGeometry='tidebreak-authoritative-contact';
+    const modeLabel=encounterMode==='one-v-three'?'1v3':'1v1',status=ready?`${modeLabel} · 主人公 × ${modelLabel(enemyActual)} · Tidebreak contact`:`モデル読込中 · 主人公 × ${modelLabel(enemies[0].requested)}`;if(status!==lastStatus){lastStatus=status;onStatus(status);}renderer.render(scene,camera);
   }
 
   return Object.freeze({
     models:REVIEW_BATTLE_MODELS,
-    setModel(side,modelId){if(side==='hero')return;install(side,modelId);},
+    setModel(side,modelId){if(side==='enemy'&&modelId!=='skeleton-minion')throw Error(`Unknown review monster: ${modelId}`);},
     setEncounterMode,
-    setWeapon(weapon){setHeroWeapon(weapon);},
+    setWeapon(){},
+    presentImpact,
     zoomBy(delta=0){cameraZoom=clamp(cameraZoom+Number(delta||0),.58,1.65);return cameraZoom;},
     setZoom(value=.82){cameraZoom=clamp(Number(value)||.82,.58,1.65);return cameraZoom;},
     cameraAngle(){return Math.atan2(camera.position.x-cameraLook.x,camera.position.z-cameraLook.z);},
-    triggerInspiration({id='',name='',steps=[],phase='ha',duration=REVIEW_INSPIRATION_TIMELINE.end}={}){const now=performance.now()/1000,total=Math.max(REVIEW_INSPIRATION_TIMELINE.end,Number(duration)||0);techniquePlayback={id,name,steps,phase,duration:total,startedAt:now,until:now+total,emitted:new Set(['spark'])};cinematicUntil=now+total;canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');onInspirationCue('spark',techniquePlayback);setTimeout(()=>canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic'),total*1000+120);},
-    resetRound(){cameraOrbit=0;for(const side of Object.values(sides)){side.previous=null;side.presentation=null;side.hp=null;side.hitUntil=0;}},
+    triggerInspiration({id='',name='',steps=[],phase='ha',duration=REVIEW_INSPIRATION_TIMELINE.end}={}){const now=performance.now()/1000,total=Math.max(REVIEW_INSPIRATION_TIMELINE.end,Number(duration)||0);techniquePlayback={id,name,steps,phase,duration:total,startedAt:now,until:now+total,emitted:new Set(['spark'])};canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');onInspirationCue('spark',techniquePlayback);setTimeout(()=>canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic'),total*1000+120);},
+    resetRound(){cameraOrbit=0;impactKick=0;lastImpactSerial=0;hero.presentation=null;hero.hp=null;for(const side of enemies){side.presentation=null;side.hp=null;side.hitUntil=0;}},
     sync,
-    snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',encounterMode});},
-    dispose(){observer.disconnect();clearExtras();if(sides.hero.actor)heroPool.despawn(sides.hero.actorId);protagonistRuntime.dispose();for(const monster of [monsterEnemy,monsterFlankA,monsterFlankB])disposeReviewMonsterModel(monster);ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}renderer.dispose();}
+    snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',encounterMode,geometry:canvas.dataset.battleGeometry||''});},
+    dispose(){observer.disconnect();heroPool.despawn(hero.actorId);protagonistRuntime.dispose();for(const monster of monsters)disposeReviewMonsterModel(monster);for(const entry of weaponVisuals)disposeNode(entry.group);for(const row of impactBursts){row.mesh.geometry.dispose();row.mesh.material.dispose();}ground.geometry.dispose();ground.material.dispose();for(const side of [hero,...enemies]){side.marker.geometry.dispose();side.marker.material.dispose();}for(const mesh of [...fxRings,...fxRays,fxArc]){mesh.geometry.dispose();mesh.material.dispose();}for(const node of aura.children){node.geometry?.dispose?.();node.material?.dispose?.();}renderer.dispose();}
   });
 }
