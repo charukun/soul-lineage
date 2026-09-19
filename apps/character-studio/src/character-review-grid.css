@@ -11,7 +11,7 @@ body.simple-review.character-grid-ready .stage-head .back-link {
   display: grid; place-items: center; width: auto; min-width: 44px; min-height: 40px;
   margin: 0; padding: 0 8px; font-size: 14px; flex: 0 0 auto;
 }
-body.simple-review.character-grid-ready .stage-head h1 { position: static; margin: 0; font-size: 15px; display:flex; align-items:baseline; gap:8px; }
+body.simple-review.character-grid-ready .stage-head h1 { position:static; margin:0; font-size:15px; display:flex; align-items:baseline; gap:8px; flex:1 1 auto; min-width:0; }
 body.simple-review.character-grid-ready .stage-head h1::after { content:'CHARACTER PROBE'; color:#819089; font-size:8px; font-weight:750; letter-spacing:.16em; }
 body.simple-review.character-grid-ready .stage-shell { grid-template-rows: 44px minmax(0, 1fr) 44px auto !important; }
 body.simple-review.character-grid-ready .stage-actions { min-height: 44px; justify-content: center; gap: 4px; padding-inline: 8px !important; }
@@ -31,13 +31,15 @@ body.simple-review.character-grid-ready .stage-actions > [data-camera][aria-pres
 body.simple-review.character-grid-ready .stage-actions #frame-model { position: static !important; right: auto; bottom: auto; }
 .character-review-picker {
   min-width: 0; min-height: 0; height: 100%; display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   padding: 8px 8px max(6px, env(safe-area-inset-bottom)); gap: 6px;
   background: radial-gradient(circle at 18% 0,#1b2723 0,transparent 32%),#0b1110;
 }
 .character-review-slots { display:grid; grid-template-columns:repeat(20,minmax(0,1fr)); gap:5px; }
 .character-review-slots .character-review-slot:nth-child(-n+4){grid-column:span 5}
-.character-review-slots .character-review-slot:nth-child(n+5){grid-column:span 4}
+.character-review-slots .character-review-slot:nth-child(n+5){grid-column:span 4;min-height:34px;padding:4px 5px;flex-direction:row;align-items:center;gap:5px}
+.character-review-slots .character-review-slot:nth-child(n+5) small{font-size:7px}
+.character-review-slots .character-review-slot:nth-child(n+5) strong{font-size:9px}
 .character-review-slots .character-review-slot {
   position: relative; display: flex; flex-direction: column; justify-content: center;
   min-width: 0; min-height: 50px; padding: 7px 7px; gap: 3px; border-radius: 12px;
@@ -66,14 +68,15 @@ body.simple-review.character-grid-ready .stage-actions #frame-model { position: 
 .character-review-grid .character-review-option[aria-pressed="true"] { border-color:#786b4a; background:linear-gradient(180deg,#242217,#171912); color:#fff1cb; box-shadow:inset 0 -2px #e1c796; }
 .character-review-option[aria-pressed="true"]::after { content: '✓'; position: absolute; top: 1px; right: 3px; color: #fff1cb; font-size: 11px; }
 .character-review-picker button:focus-visible { outline: 2px solid #fff1cb; outline-offset: -3px; }
-.character-review-tools { display:grid; grid-template-columns:1.1fr 1.35fr .82fr .82fr; gap:5px; padding-top:6px; border-top:1px solid #2a3531; }
+.character-review-tools { display:grid; grid-template-columns:1.05fr 1fr 1fr .72fr .72fr; gap:5px; padding-top:6px; border-top:1px solid #2a3531; }
 .character-review-tools button { min-height:44px; padding:4px 5px; border-radius:9px; font-size:10px; background:#111714; border-color:#303b37; }
-.character-review-tools [data-review-action="random-one"]{border-color:#786b4a;background:linear-gradient(180deg,#242217,#171912);color:#fff1cb;font-weight:750}
+.character-review-tools [data-review-action="random-one"]{border-color:#4b5752;background:#151d1a;color:#d9dfdc;font-weight:700}
+.character-review-tools [data-review-action="quality-mark"]{border-color:#786b4a;background:linear-gradient(180deg,#242217,#171912);color:#fff1cb;font-weight:750}
 .character-review-tools [data-review-action="undo"],
 .character-review-tools [data-review-action="redo"]{color:#aeb8b3}
 .character-review-empty { font-size: 12px; color: var(--muted); padding: 12px 4px; }
 @media (max-width: 760px) {
-  body.simple-review.character-grid-ready .review-app { grid-template-rows: minmax(0, 52fr) minmax(0, 48fr) !important; }
+  body.simple-review.character-grid-ready .review-app { grid-template-rows: minmax(0, 58fr) minmax(0, 42fr) !important; }
 }
 @media (orientation: landscape) and (max-height: 600px) {
   body.simple-review.character-grid-ready .review-app { grid-template-columns: minmax(0, 1fr) minmax(320px, 46%); grid-template-rows: minmax(0, 1fr) !important; }
@@ -92,4 +95,47 @@ body.simple-review.character-grid-ready .canvas-wrap .subject-row span{font-size
   .character-review-slots .character-review-slot{min-height:46px;padding:6px 5px}
   .character-review-slot strong{font-size:10px}
   .character-review-tools{grid-template-columns:1fr 1.2fr .72fr .72fr}
+}
+
+body.simple-review.character-grid-ready .stage-head .character-review-pager{
+  position:static!important;inset:auto!important;transform:none!important;display:flex;align-items:center;
+  flex:0 1 auto;max-width:44%;height:34px;margin-left:auto;border:1px solid #303b37;border-radius:999px;
+  background:#0b1110;color:#c8cfcb;box-shadow:none;overflow:hidden
+}
+body.simple-review.character-grid-ready .stage-head .character-review-pager button{
+  width:32px;min-width:32px;min-height:32px;height:32px;padding:0;border:0;background:transparent;font-size:16px
+}
+body.simple-review.character-grid-ready .stage-head .character-review-pager span{
+  min-width:0;padding:0 4px;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+body.simple-review.character-grid-ready .canvas-wrap>.subject-row{display:none!important}
+body.simple-review.character-grid-ready .stage-actions #camera-cycle,
+body.simple-review.character-grid-ready .stage-actions #pause,
+body.simple-review.character-grid-ready .stage-actions [data-camera="overview"]{display:none!important}
+body.simple-review.character-grid-ready .stage-actions #frame-model{display:inline-flex!important}
+.character-review-option[data-group="model"] .character-review-mark{
+  position:relative;font-size:0;border:0;background:transparent;width:28px;height:30px
+}
+.character-review-option[data-group="model"] .character-review-mark::before{
+  content:"";position:absolute;left:9px;top:2px;width:10px;height:10px;border-radius:50%;background:#d8c89d
+}
+.character-review-option[data-group="model"] .character-review-mark::after{
+  content:"";position:absolute;left:5px;bottom:2px;width:18px;height:14px;border:1px solid #8b8f78;border-radius:9px 9px 4px 4px;background:#25322e
+}
+@media(max-width:520px){
+  body.simple-review.character-grid-ready .stage-head{gap:6px;padding-inline:6px}
+  body.simple-review.character-grid-ready .stage-head .character-review-pager{max-width:46%}
+  body.simple-review.character-grid-ready .stage-head .character-review-pager span{max-width:92px}
+  .character-review-slots .character-review-slot:nth-child(-n+4){min-height:44px}
+  .character-review-slots .character-review-slot:nth-child(n+5){min-height:32px}
+}
+
+.character-review-criteria{display:flex;align-items:center;gap:5px;min-width:0;overflow-x:auto;padding:0 1px 1px;scrollbar-width:none}
+.character-review-criteria::-webkit-scrollbar{display:none}
+.character-review-criteria-label{flex:0 0 auto;color:#819089;font-size:8px;font-weight:750;letter-spacing:.12em;margin-right:2px}
+.character-review-criterion{flex:0 0 auto;padding:4px 7px;border:1px solid #303b37;border-radius:999px;background:#111714;color:#aeb8b3;font-size:8px;font-weight:650;white-space:nowrap}
+.character-review-current::before{content:'レビュー対象  ';color:#66736d}
+@media(max-width:520px){
+  .character-review-tools{grid-template-columns:1fr 1fr 1fr .64fr .64fr}
+  .character-review-tools button{font-size:9px;padding-inline:3px}
 }

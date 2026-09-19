@@ -22,4 +22,16 @@ export const RESOURCE_DATA_CURRENT_SOURCE=Object.freeze({
   licenseBytes:731,
   licenseTarget:'LICENSE-RESOURCE-DATA-CC0.txt',
 });
-export const REVIEW_VFX_ADDITIONAL_SOURCES=Object.freeze([EFFECT_MATERIALS_SOURCE,RESOURCE_DATA_CURRENT_SOURCE]);
+export const GODOT4_DEMO_SOURCE=Object.freeze({
+  namespace:'godot4-demo',
+  repository:'effekseer/EffekseerForGodot4',
+  revision:'8706d2917c2487efac3a4943c16a10dfcfc5b127',
+  license:'MIT',
+  licenseRepository:'effekseer/EffekseerForGodot4',
+  licenseRevision:'8706d2917c2487efac3a4943c16a10dfcfc5b127',
+  licensePath:'LICENSE',
+  licenseBlob:'55d2c30e7b7d10a4003e20a8550fb9a68523608d',
+  licenseBytes:1066,
+  licenseTarget:'LICENSE-GODOT4-MIT.txt',
+});
+export const REVIEW_VFX_ADDITIONAL_SOURCES=Object.freeze([EFFECT_MATERIALS_SOURCE,RESOURCE_DATA_CURRENT_SOURCE,GODOT4_DEMO_SOURCE]);
