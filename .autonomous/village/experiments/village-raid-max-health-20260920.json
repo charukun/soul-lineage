@@ -60,7 +60,7 @@
     ],
     "receipt": {
       "repository": "charukun/soul-lineage",
-      "pullRequest": null,
+      "pullRequest": 1100,
       "marker": "autonomous-receipt:village:village-raid-max-health-20260920"
     }
   },
