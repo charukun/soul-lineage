@@ -74,6 +74,8 @@ test('real consumption, extraction, save reopen, upgrade and death form one pers
   const forgedSource={[PROGRESS_KEY]:{...freshProgress(),chapter:5}}, forgedPlan=huntPlan(forgedSource), untouched={};
   assert.throws(()=>settleProgress(untouched,'escaped',5,{carried:10,plan:forgedPlan,targetEaten:true,returnVerified:true}),/戦利品の記録/);
   assert.equal(readProgress(untouched).essence,0,'forged future chapter must not select a richer canonical bonus');
+  const corrupted={ [PROGRESS_KEY]: {...freshProgress(), lastResult:{status:'defeated',extracted:false,cleared:false,gained:4,lost:0,carried:4,bonus:0,eaten:1,chapter:0}} };
+  assert.throws(()=>readProgress(corrupted),/帰還の記録/,'contradictory saved settlement must fail closed');
 });
 
 test('main boot has one HUD owner, automatic sensing, and no menu extraction exploit',()=>{
