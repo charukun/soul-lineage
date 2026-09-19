@@ -133,6 +133,70 @@
 #battle-canvas{cursor:grab}#battle-canvas:active{cursor:grabbing}
 @media(max-width:680px){.stage>.technique-loadout{left:7px!important;top:7px!important;width:min(270px,62vw)!important}.controls.review-surface__panel{grid-template-columns:minmax(0,1fr) auto auto!important}.controls .battle-history-open{padding-inline:7px!important}.controls .review-settings>summary{padding-inline:8px!important}.camera-zoom{right:7px;bottom:7px}}
 
+
+/* Device screenshot repair: beat late-injected shared-shell mobile rows and keep HUD shallow. */
+main.battle-review.review-surface > .review-surface__workspace{
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,1fr) max-content!important;
+  min-height:0!important;
+}
+main.battle-review.review-surface > .review-surface__workspace > .review-surface__stage-column{
+  min-height:0!important;
+  height:100%!important;
+}
+main.battle-review.review-surface > .review-surface__workspace > .controls.review-surface__panel{
+  min-height:0!important;
+  height:auto!important;
+  align-self:end!important;
+}
+main.battle-review.review-surface .stage > .technique-loadout{
+  left:6px!important;
+  top:6px!important;
+  width:min(250px,60vw)!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:3px!important;
+  padding:3px!important;
+  border-radius:9px!important;
+}
+main.battle-review.review-surface .stage > .technique-loadout span{
+  grid-template-columns:1fr!important;
+  grid-template-rows:10px minmax(18px,20px)!important;
+  gap:1px!important;
+  min-height:34px!important;
+  max-height:36px!important;
+  padding:2px 4px!important;
+  border-radius:6px!important;
+}
+main.battle-review.review-surface .stage > .technique-loadout b{
+  font-size:9px!important;
+  line-height:10px!important;
+}
+main.battle-review.review-surface .stage > .technique-loadout strong{
+  max-width:100%!important;
+  font-size:8px!important;
+  line-height:1.15!important;
+  -webkit-line-clamp:2!important;
+}
+main.battle-review.review-surface .camera-zoom{
+  right:7px!important;
+  bottom:7px!important;
+  grid-template-columns:32px 32px!important;
+  gap:4px!important;
+}
+main.battle-review.review-surface .camera-zoom button{
+  width:32px!important;
+  height:32px!important;
+  font-size:16px!important;
+}
+@media(max-width:520px){
+  main.battle-review.review-surface > .review-surface__workspace{
+    grid-template-rows:minmax(0,1fr) max-content!important;
+  }
+  main.battle-review.review-surface .stage > .technique-loadout{
+    width:min(238px,61vw)!important;
+  }
+}
+
 </style>
 </head>
 <body>
