@@ -193,7 +193,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);animateExtras(core,now);}
     updateCamera(core,dt,followCamera,cameraSystem);
     const phaseHud=canvas.closest('.stage')?.querySelector('#battle-phase'),heroRoot=sides.hero.actor?.root;
-    if(phaseHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=1.82;projected.project(camera);phaseHud.style.left=`${(projected.x*.5+.5)*100}%`;phaseHud.style.top=`${(-projected.y*.5+.5)*100}%`;phaseHud.style.bottom='auto';}
+    if(phaseHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=1.82;projected.project(camera);phaseHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');phaseHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');phaseHud.style.setProperty('bottom','auto','important');}
     const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
     const enemyActual=sides.enemy.actor?.root?.userData?.characterModel||'';
     canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
