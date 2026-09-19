@@ -8,6 +8,7 @@ import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGOR
 import {buildReviewMotionRegistry,motionRegistryCount} from './review-motion-registry.js';
 import {loadPinnedMotionSource,loadMotionReviewModel,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import './review-motion-library.css';
+import {createReviewChoiceVisual} from './review-choice-visual.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 mountRinneReviewShell('motion');
 
@@ -108,7 +109,7 @@ async function selectMotion(record){
 function renderModelGrid(){
   const grid=el('motion-model-grid');grid.replaceChildren();
   for(const model of REVIEW_MODELS){
-    const button=document.createElement('button');button.type='button';button.textContent=model.label;button.dataset.motionModel=model.id;
+    const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionModel=model.id;const label=document.createElement('span');label.textContent=model.label;button.append(createReviewChoiceVisual({type:'model',variant:model.id,label:model.label,seed:model.id}),label);
     button.setAttribute('aria-pressed',String(model.id===selectedModel.id));button.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(button);
   }
 }
@@ -123,13 +124,13 @@ function renderMotionGrid(){
   const root=el('motion-grid'),rows=filterMotionReviewCatalog(catalog,filter);root.replaceChildren();
   if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty';empty.textContent='この分類のモーションはありません。';root.append(empty);return;}
   for(const record of rows){
-    const button=document.createElement('button');button.type='button';button.dataset.motionIdentity=record.sourceIdentity;button.dataset.recommended=String(record.recommended);
+    const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionIdentity=record.sourceIdentity;button.dataset.recommended=String(record.recommended);
     button.setAttribute('aria-pressed',String(selected?.sourceIdentity===record.sourceIdentity));
     const name=document.createElement('span');name.textContent=formatName(record.name);
     const meta=document.createElement('small');meta.className='motion-category';
     const duration=selected?.sourceIdentity===record.sourceIdentity?selectedDuration:Number(record.duration)||0;
     meta.textContent=categoryLabel(record.category)+(duration?' · '+duration.toFixed(2)+'s':'');
-    button.append(name,meta);button.addEventListener('click',()=>void selectMotion(record));root.append(button);
+    button.append(createReviewChoiceVisual({type:'motion',variant:record.name,category:record.category,label:formatName(record.name),seed:record.sourceIdentity}),name,meta);button.addEventListener('click',()=>void selectMotion(record));root.append(button);
   }
 }
 function seek(value){

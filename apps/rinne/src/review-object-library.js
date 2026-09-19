@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import './review-object-library.css';
+import {createReviewChoiceVisual} from './review-choice-visual.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createMuraModels} from '@soul/rendering/mura';
 import {RINNE_OBJECT_REVIEW_CATALOG as OBJECTS} from './review-object-catalog.js';
@@ -81,7 +82,7 @@ function renderSelection(){
 }
 function renderObjectOptions(){
   const items=visibleObjects();
-  q('#object-options').replaceChildren(...items.map(item=>{const button=document.createElement('button');button.type='button';button.textContent=item.label;button.dataset.object=item.id;button.addEventListener('click',()=>loadObject(item.id).catch(error=>status(error.message,true)));return button;}));
+  q('#object-options').replaceChildren(...items.map(item=>{const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.object=item.id;const label=document.createElement('span');label.textContent=item.label;button.append(createReviewChoiceVisual({type:'object',variant:item.propKind||item.weapon||item.id,label:item.label}),label);button.addEventListener('click',()=>loadObject(item.id).catch(error=>status(error.message,true)));return button;}));
   renderSelection();
 }
 function selectCategory(id){
