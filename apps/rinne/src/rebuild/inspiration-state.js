@@ -107,13 +107,14 @@ function signBlockedHint(reason=''){
 }
 function signCandidate(state,question,context={}){
   const s=ensureInspiration(state),rows=CAUSAL_ANSWERS.filter(row=>row.kind!=='link'&&row.questions.includes(question)&&!own(s.records,row.id)&&(!row.requiresFamily||Object.values(s.records).some(r=>r.family===row.requiresFamily)));
+  let blocked=null;
   for(const row of rows){
     if(!materialProof(s,row))continue;
     const availability=answerAvailability(state,row.id,{context});
     if(availability.usable)return {row,ready:true,hint:'別々の経験が、ひとつの動きになりかけている。'};
-    return {row,ready:false,hint:signBlockedHint(availability.reason)};
+    blocked??={row,ready:false,hint:signBlockedHint(availability.reason)};
   }
-  return null;
+  return blocked;
 }
 export function updateInspirationSigns(state,context={}){
   const s=ensureInspiration(state),rows=[];
