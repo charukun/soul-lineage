@@ -31,7 +31,8 @@ test('all specialist review pages expose one Visual Review Lab back route',async
     const matches=html.match(/href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"[^>]*aria-label="Visual Reviewへ戻る"/g)||[];
     assert.equal(matches.length,1);
   }
-  assert.ok(pages[0].indexOf('motion-controls')<pages[0].indexOf('motion-back'));
+  assert.ok(pages[0].indexOf('motion-back-stage')<pages[0].indexOf('motion-controls'));
+  assert.equal((pages[0].match(/class="motion-back(?: motion-back-stage)?"/g)||[]).length,1);
   assert.match(pages[3],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
   assert.match(pages[4],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
 });
