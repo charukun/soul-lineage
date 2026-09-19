@@ -28,6 +28,10 @@ test('cinematic boot overlaps world preparation and hands off to realtime when p
   assert.match(boot,/prepareRuntime\([\s\S]*titleCinematic\.onPrepared\(\)/);
   assert.match(cinematic,/onPrepared\(\)[\s\S]*startRealtime\(\)/);
   assert.match(cinematic,/startTitlePreview\?\.\(\{cinematic:true,lowResolution:true\}\)/);
+  const showTitle=main.slice(main.indexOf("function showTitle"),main.indexOf("function showBootFailure"));
+  assert.match(showTitle,/game\.hidden=false/);assert.match(showTitle,/title-preview-host/);assert.doesNotMatch(showTitle,/game\.hidden=true/);
+  assert.match(main,/async function launch[\s\S]*classList\.remove\('is-loading','title-preview-host'\)/);
+  assert.match(main,/async function launch[\s\S]*removeAttribute\('aria-hidden'\)/);
 });
 
 test('cinematic uses the prepared realtime world at deliberately low resolution',()=>{
