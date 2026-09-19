@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {advanceVirtualCohorts,normalizeVirtualCohorts,planDemographicYear,recordDemographyHistory} from '../src/game/demography.js';
+import * as nativeDemography from '../src/game/demography.js';
+import {villageProbe} from '../../../.autonomous/lib/probes.mjs';
 
 test('legacy virtual cohorts keep their original total',()=>{
  const cohorts=normalizeVirtualCohorts({adult:7,elder:3},10);
@@ -14,6 +16,11 @@ test('healthy village can accumulate births but never exceeds infrastructure hea
  assert.ok(plan.births>=1,'healthy adult households should produce a birth');
  assert.ok(plan.births<=6,'births must fit free beds');
  assert.ok(plan.births<=8,'births must fit infrastructure limit');
+ const rows=villageProbe(nativeDemography,[11,30,49]);
+ assert.equal(rows.length,15);
+ assert.ok(rows.filter(r=>r.condition==='supported').every(r=>r.metrics.births>0));
+ assert.ok(rows.filter(r=>['noFood','noBeds','noAdults'].includes(r.condition)).every(r=>r.metrics.births===0));
+ assert.ok(rows.filter(r=>r.condition==='noFood').every(r=>r.metrics.departures>0));
 });
 
 test('births stop and departures begin when the village cannot support its population',()=>{

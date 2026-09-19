@@ -54,6 +54,7 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs la
 | Task | Read |
 | --- | --- |
 | Routine implementation | `docs/DEVELOPMENT.md` |
+| Code-First autonomous improvement: village / 喰滅廻遊, 1 or N iterations | `.autonomous/README.md`, `.autonomous/prompts/run-iteration.md`, then the selected game's charter/protected rules/recent history |
 | Micro Patch | `docs/MICRO_PATCH_FAST_LANE.md` |
 | develop merge / DEV publication | `docs/DEVELOP_MERGE.md` |
 | Context retrieval | `docs/CONTEXT_EFFICIENCY.md` |
@@ -64,3 +65,5 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs la
 | Dedicated dispatched worker | `docs/DISPATCHER.md` |
 
 Specialized character, motion, browser, distribution, and DCC contracts still apply when that task is requested. Do not read them preemptively.
+
+For 「村アプリを1 iteration自律改善してください」 or 「喰滅廻遊を1 iteration自律改善してください」, use the Code-First route above (`village` / `kuumetsu` respectively). Preserve the Fast DEV ceiling and existing quality gates. Normal iterations do not start a browser, access a public game URL, or wait for a human or DEV publication. Completion still requires validated exact-head merge to develop in this session, not Ready alone.
