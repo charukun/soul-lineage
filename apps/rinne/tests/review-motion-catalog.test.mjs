@@ -5,16 +5,25 @@ import {buildMotionReviewCatalog,classifyReviewMotion,filterMotionReviewCatalog}
 const clips=[
   {name:'Idle',duration:2.1},{name:'Interact',duration:1.4},{name:'PickUp',duration:1.2},{name:'Cheer',duration:1.6},{name:'Wave',duration:1.5},{name:'Sitting_Idle',duration:3},
   {name:'Walking_A',duration:1},{name:'Running_A',duration:.8},{name:'Jump_Full',duration:1.1},{name:'Crouch_Idle',duration:2},{name:'Sneaking',duration:1.2},{name:'Dodge_Roll',duration:.9},
-  {name:'1H_Melee_Attack_Chop',duration:.7},{name:'Heavy_Attack',duration:1.1},{name:'Attack_Combo',duration:1.3},{name:'Block',duration:1},{name:'Shoot_2H',duration:.8},{name:'Spellcast',duration:1.5},
+  {name:'1H_Melee_Attack_Chop',duration:.7},{name:'Heavy_Attack',duration:1.1},{name:'Attack_Combo',duration:1.3},{name:'Block',duration:1},{name:'Ranged_Bow_Release',duration:.8},{name:'Spellcast',duration:1.5},
   {name:'Hit_A',duration:.5},{name:'Death_A',duration:1.8},{name:'Spawn',duration:1.2},{name:'Look_Around',duration:2}
 ];
 
-test('motion review classifies KayKit-style clip names by review intent',()=>{
+test('motion review classifies gameplay clip names by review intent',()=>{
   assert.equal(classifyReviewMotion('Sitting_Idle'),'life');
+  assert.equal(classifyReviewMotion('Farm_Harvest'),'life');
+  assert.equal(classifyReviewMotion('Fishing_Cast'),'life');
   assert.equal(classifyReviewMotion('Dodge_Roll'),'move');
-  assert.equal(classifyReviewMotion('1H_Melee_Attack_Chop'),'combat');
+  assert.equal(classifyReviewMotion('ClimbUp_1m_RM'),'move');
+  assert.equal(classifyReviewMotion('Slide_Loop'),'move');
+  assert.equal(classifyReviewMotion('Melee_1H_Attack_Chop'),'combat');
+  assert.equal(classifyReviewMotion('Ranged_Bow_Release'),'combat');
+  assert.equal(classifyReviewMotion('Spell_Simple_Shoot'),'combat');
+  assert.equal(classifyReviewMotion('Sword_Block'),'combat');
   assert.equal(classifyReviewMotion('Death_A'),'reaction');
-  assert.equal(classifyReviewMotion('Look_Around'),'other');
+  assert.equal(classifyReviewMotion('Hit_Knockback'),'reaction');
+  assert.equal(classifyReviewMotion('Skeletons_Taunt'),'reaction');
+  assert.equal(classifyReviewMotion('Look_Around'),'reaction');
 });
 
 test('motion review recommendation keeps a balanced bounded candidate set',()=>{
