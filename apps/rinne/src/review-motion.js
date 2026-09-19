@@ -39,7 +39,7 @@ const loader=new GLTFLoader(),stage=new THREE.Group();scene.add(stage);
 let subject=null,targetScene=null,targetBones=null,targetRest=null,mixer=null,action=null,targetClips=[],registry=null,catalog=[],selected=null;
 const MOTION_REVIEW_MODEL=Object.freeze({id:'mesh2motion-review-mannequin',label:'基準素体',reviewMannequin:true});
 const REVIEW_MODELS=Object.freeze([MOTION_REVIEW_MODEL,...KAYKIT_MODELS]);
-let selectedModel=MOTION_REVIEW_MODEL,filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8;
+let selectedModel=MOTION_REVIEW_MODEL,filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8,cameraPreset='three-quarter';
 let externalSource=null,externalSourceId='',externalTime=0,selectedDuration=0,selectSerial=0;
 const categoryOrder=['all','recommended','life','move','combat','reaction','other'];
 
@@ -63,6 +63,7 @@ const isExternal=()=>selected?.runtime?.kind==='pinned-motion-source';
 const playbackTime=()=>isExternal()?externalTime:Math.max(0,action?.time||0);
 
 function setCameraPreset(id){
+  cameraPreset=id;
   const h=Math.max(.6,modelHeight),targetY=h*.52,d=Math.max(2.15,h*1.72);
   const target=id==='face'?new THREE.Vector3(0,h*.79,0):new THREE.Vector3(0,targetY,0);
   const positions={front:[0,id==='face'?h*.81:targetY,d],'three-quarter':[d*.72,targetY,d*.72],side:[d,targetY,0],back:[0,targetY,-d],face:[0,h*.81,d*.78]};
