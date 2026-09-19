@@ -14,7 +14,8 @@ button,select{font:inherit;color:inherit}
 .motion-controls{min-height:0;overflow:auto;padding:14px 16px max(22px,env(safe-area-inset-bottom));background:#101614;border-top:1px solid #2a332f}
 .motion-control-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 .motion-control-header>div{min-width:0}
-.motion-back{flex:0 0 auto;min-height:34px;display:inline-flex;align-items:center;padding:5px 10px;border:1px solid #36413c;border-radius:999px;background:#0b1210;color:#cfd7d2;text-decoration:none;font-size:10px;font-weight:700}
+.motion-back{min-height:34px;display:inline-flex;align-items:center;padding:5px 10px;border:1px solid #36413c;border-radius:999px;background:#0b1210e8;color:#cfd7d2;text-decoration:none;font-size:10px;font-weight:700;backdrop-filter:blur(8px)}
+.motion-back-stage{position:absolute;z-index:4;left:max(12px,env(safe-area-inset-left));top:max(12px,env(safe-area-inset-top))}
 .motion-eyebrow,.control-label{display:block;color:#8d997f;font-size:8px;font-weight:800;letter-spacing:.14em}
 .motion-control-header h1{margin:1px 0 0;font-size:18px;line-height:1.15}
 .motion-playback{display:grid;grid-template-columns:46px minmax(110px,1fr) auto auto;align-items:center;gap:6px;padding:8px;border:1px solid #2b3530;border-radius:12px;background:#0d1311}
