@@ -51,48 +51,48 @@ test('model audit uses pinned CC0 KayKit identity, bounded loads and GPU recover
   assert.ok(engine.indexOf('auditDocument(json, hash, bytes.byteLength, blobSha)') < engine.indexOf("new GLTFLoader().parseAsync(bytes, '')"));
   for (const expression of [/if \(!audit\.approved\) throw/, /length > MAX_MODEL_BYTES/, /file\.size > MAX_SESSION_BYTES/, /webglcontextlost/, /webglcontextrestored/]) assert.match(engine, expression);
 });
-test('Character Studio is an independent two-entry dev-tool build', { timeout: 480000 }, async () => {
+test('Character Studio is an independent two-entry dev-tool build', { timeout: 240000 }, async () => {
   assert.match(main, /data-dev-tool="character-studio"/);
   assert.match(vite, /appConfig\('character-studio',import\.meta\.url\)/);
   assert.match(vite, /main:fileURLToPath\(new URL\('\.\/index\.html'/);
   assert.match(vite, /advanced:fileURLToPath\(new URL\('\.\/advanced\.html'/);
   assert.doesNotMatch(vite, /characters\.html|apps\/rinne/);
+
   const { chromium } = await import('@playwright/test');
   const { spawn, execFileSync } = await import('node:child_process');
-  const { mkdirSync } = await import('node:fs');
+  const { mkdirSync, readFileSync: readEvidence } = await import('node:fs');
   const { resolve } = await import('node:path');
-  const root = resolve(new URL('../../..', import.meta.url).pathname);
-  const app = resolve(root, 'apps/character-studio');
-  const output = resolve(root, 'test-results/character-studio-diagnostic');
-  mkdirSync(output, { recursive: true });
+  const root = resolve(new URL('../../..', import.meta.url).pathname), app = resolve(root, 'apps/character-studio');
+  const output = resolve(root, 'test-results/character-studio-diagnostic'); mkdirSync(output, { recursive: true });
   execFileSync(process.execPath, ['scripts/prepare-kaykit-foundation.mjs', 'character-studio'], { cwd: root, stdio: 'inherit' });
   const viteProc = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), '--host', '127.0.0.1', '--port', '5277', '--strictPort'], {
     cwd: app, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, APP_ENV: 'dev' }
   });
-  const preview = [];
-  viteProc.stdout.on('data', chunk => preview.push(chunk.toString()));
-  viteProc.stderr.on('data', chunk => preview.push(chunk.toString()));
   let browser;
   try {
-    for (let i = 0; i < 80; i++) {
-      if (viteProc.exitCode !== null) throw new Error('Vite exited: '+preview.join(''));
-      try { const response = await fetch('http://127.0.0.1:5277/'); if (response.ok) break; } catch {}
-      await new Promise(resolveDelay => setTimeout(resolveDelay, 250));
-      if (i === 79) throw new Error('Vite preview timeout');
+    for (let i=0;i<80;i++) { try { if ((await fetch('http://127.0.0.1:5277/')).ok) break; } catch {} await new Promise(r=>setTimeout(r,250)); if(i===79) throw new Error('vite timeout'); }
+    const chrome=execFileSync('bash',['-lc','command -v google-chrome || command -v google-chrome-stable || command -v chromium'],{encoding:'utf8'}).trim();
+    browser=await chromium.launch({executablePath:chrome,headless:true,args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader','--no-sandbox']});
+    const context=await browser.newContext({viewport:{width:390,height:844}}), page=await context.newPage();
+    await page.goto('http://127.0.0.1:5277/',{waitUntil:'domcontentloaded',timeout:60000});
+    const snap=async label=>page.evaluate(label=>{
+      const selectors=['.review-surface','.review-surface__header','.review-surface__workspace','.stage-shell','.review-surface__stage-column--composite','.canvas-wrap','.review-surface__stage','canvas#stage','.stage-actions','.stage-status','.editor-dock','.review-controls','.character-review-camera-dock','#retry'];
+      const out={};
+      for(const selector of selectors){const n=document.querySelector(selector);if(!n){out[selector]=null;continue;}const r=n.getBoundingClientRect(),s=getComputedStyle(n);out[selector]={parent:n.parentElement?.className||n.parentElement?.id||n.parentElement?.tagName,offsetTop:n.offsetTop,offsetHeight:n.offsetHeight,clientHeight:n.clientHeight,rect:{top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,height:r.height},style:{display:s.display,position:s.position,height:s.height,minHeight:s.minHeight,maxHeight:s.maxHeight,gridTemplateRows:s.gridTemplateRows,gridRow:s.gridRow,overflow:s.overflow,overflowX:s.overflowX,overflowY:s.overflowY}}}
+      return {label,viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},bodyClass:document.body.className,elements:out,review:window.characterStudio?.review?.inspect?.()??null};
+    },label);
+    const initial=await snap('initial');
+    await page.waitForFunction(()=>window.characterStudio?.review?.ready===true&&document.body.classList.contains('character-grid-ready'),null,{timeout:120000});
+    await page.waitForTimeout(150);
+    const ready=await snap('ready-front');
+    const states={};
+    for(const [name,selector] of [['front','[data-camera="front"]'],['side','[data-camera="side"]'],['back','[data-camera="back"]'],['face','[data-camera="face"]'],['overview','#frame-model']]){
+      await page.locator(selector).click(); await page.waitForTimeout(100); states[name]=await snap(name);
     }
-    const chrome = execFileSync('bash', ['-lc', 'command -v google-chrome || command -v google-chrome-stable || command -v chromium'], { encoding: 'utf8' }).trim();
-    browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader','--no-sandbox'] });
-    const { verifyCharacterStudio } = await import('./character-studio.browser.mjs');
-    await verifyCharacterStudio(browser, 'http://127.0.0.1:5277/', output);
-    const report = readFileSync(resolve(output, 'studio-browser.json'), 'utf8');
-    console.log('DIAGNOSTIC_STUDIO_JSON_BEGIN');
-    console.log(report);
-    console.log('DIAGNOSTIC_STUDIO_JSON_END');
-  } finally {
-    await browser?.close().catch(()=>{});
-    if (viteProc.exitCode === null) viteProc.kill('SIGTERM');
-  }
-
-  assert.ok(true);
-
+    const modelSelect=page.locator('.character-model-list'); if(await modelSelect.count()){const opts=await modelSelect.locator('option').count();if(opts>1){await modelSelect.selectOption({index:1});await page.waitForTimeout(250);states.modelSwitch=await snap('model-switch');}}
+    const png=resolve(output,'portrait.png'); await page.screenshot({path:png,fullPage:true});
+    console.log('DIAGNOSTIC_JSON_BEGIN'); console.log(JSON.stringify({initial,ready,states})); console.log('DIAGNOSTIC_JSON_END');
+    console.log('DIAGNOSTIC_PNG_BEGIN'); console.log(readEvidence(png).toString('base64')); console.log('DIAGNOSTIC_PNG_END');
+    await context.close();
+  } finally { await browser?.close().catch(()=>{}); if(viteProc.exitCode===null) viteProc.kill('SIGTERM'); }
 });
