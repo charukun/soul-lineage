@@ -86,7 +86,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.execute+.01).stage,'execute');
   assert.match(battleSource,/reviewTechniqueSeen=new Map\(\)/);assert.match(battleSource,/seen\.add\(technique\.id\)/);
   assert.match(battleSource,/learnedSlots\[phase\]=technique/);
-  assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=520/);assert.match(battleSource,/bulbTimer=setTimeout\(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS\)/);assert.match(battleSource,/if\(cue==='spacing'\)\{showReviewSign\(payload\);battleSfx\.draw\(\);return;\}/);
+  assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=550/);assert.match(battleSource,/bulbTimer=setTimeout\(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS\)/);assert.match(battleSource,/if\(cue==='spacing'\)\{showReviewSign\(payload\);battleSfx\.draw\(\);return;\}/);
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
   assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);assert.match(battleHtml,/id="battle-technique-loadout" class="technique-loadout"/);
   assert.match(battleHtml,/battle-phase-wave/);assert.match(battleHtml,/battle-action-drift/);
