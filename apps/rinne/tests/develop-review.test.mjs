@@ -111,16 +111,20 @@ test('world-object review loads the exact RINNE runtime props independently of e
   assert.doesNotMatch(css,/@media[\s\S]*?\.object-options\{[^}]*grid-template-columns/);
 });
 
-test('Battle review exposes model and encounter switching and shares live combat camera contracts',async()=>{
-  const [html,review,battle,slots]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js'),read('src/review-slot-auto.js')]);
-  assert.match(html,/id="battle-canvas"/);assert.match(html,/id="battle-hero-model"/);assert.match(html,/id="battle-enemy-model"/);
-  assert.match(html,/data-battle-mode="duel"/);assert.match(html,/data-battle-mode="melee"/);assert.doesNotMatch(html,/id="battle-toggle"/);
+test('Battle review keeps fixed live models and exposes encounter plus inspiration controls',async()=>{
+  const [html,review,battle]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js')]);
+  assert.match(html,/id="battle-canvas"/);
+  assert.doesNotMatch(html,/id="battle-hero-model"|id="battle-enemy-model"/);
+  assert.match(html,/class="hero-model-lock"/);
+  assert.match(html,/data-battle-mode="duel"/);assert.match(html,/data-battle-mode="one-v-three"/);
+  assert.match(html,/data-inspiration-mode="normal"/);assert.match(html,/data-inspiration-mode="boost"/);
   assert.match(html,/href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"[^>]*aria-label="Visual Reviewへ戻る"/);
   assert.match(html,/\.model-status,\.note\{display:none!important\}/);
-  assert.match(review,/const loopEnabled=true,followCamera=true;/);assert.match(review,/encounterMode='duel'/);assert.match(review,/cameraSystem='rinne'/);
-  assert.match(review,/stage\.setModel\('hero'/);assert.match(review,/stage\.setModel\('enemy'/);assert.match(review,/setEncounterMode/);
-  assert.match(battle,/createKaykitCharacterPools/);assert.match(battle,/ReviewBattleExtra/);assert.match(battle,/encounterMode==='melee'/);assert.match(battle,/reviewBattleCameraFrame/);
-  assert.match(slots,/battle-enemy-model/);assert.match(slots,/battle-mode-switch/);
+  assert.match(review,/const battleSfx=createCombatSfx\(\),loopEnabled=true,followCamera=true;/);
+  assert.match(review,/encounterMode='duel'/);assert.match(review,/cameraSystem='rinne'/);
+  assert.match(review,/stage\.setModel\('enemy'/);assert.match(review,/stage\.setEncounterMode/);
+  assert.match(review,/learnedTechniqueIds/);assert.match(review,/learnedSlots/);
+  assert.match(battle,/REVIEW_MONSTER_MODELS/);assert.match(battle,/encounterMode==='one-v-three'/);assert.match(battle,/reviewBattleCameraFrame/);
 });
 
 test('authored effect review reuses the runtime effect player and backend',async()=>{
