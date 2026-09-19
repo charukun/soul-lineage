@@ -5,9 +5,7 @@ import {readFileSync} from 'node:fs';
 import {HuntProfileStore, HuntSession} from '../src/hunt/runtime.js';
 import {createTidebreakRuntime} from '@soul/tidebreak-combat';
 import {offerVillages} from '@soul/raid/world';
-import {readProgress, chooseHunt, freshProgress, PROGRESS_KEY} from '../src/hunt/balance.js';
-import * as nativeBalance from '../src/hunt/balance.js';
-import {kuumetsuProbe} from '../../../.autonomous/lib/probes.mjs';
+import {readProgress, chooseHunt, freshProgress, PROGRESS_KEY, huntPlan, settleProgress, bodyStats, preyValue} from '../src/hunt/balance.js';
 
 function setup() {
   const data=new Map(), storage={getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v)};
@@ -54,11 +52,24 @@ test('real consumption, extraction, save reopen, upgrade and death form one pers
   assert.equal(readProgress(store.read()).essence,kept);assert.equal(readProgress(store.read()).upgrades.fang,1);
   assert.equal(store.read().currentLife.number,oldLife+1);assert.ok(store.read().unlocked.includes('traveller'));
   assert.equal(readProgress(store.read()).lastResult.lost,game.carried);
-  const rows=kuumetsuProbe(nativeBalance,[11,30,49]);
-  assert.equal(rows.length,21);
-  assert.ok(rows.filter(r=>r.condition==='verifiedReturn').every(r=>r.metrics.gained>0&&r.metrics.chapter===1&&r.metrics.tempoAfter>r.metrics.tempoBefore));
-  assert.ok(rows.filter(r=>['unverifiedReturn','defeat'].includes(r.condition)).every(r=>r.metrics.gained===0&&r.metrics.chapter===0));
-  assert.ok(rows.filter(r=>r.condition==='forageReturn').every(r=>r.metrics.gained>0&&r.metrics.chapter===0));
+  // Keep app regression tests inside the workspace; root tooling owns version comparison.
+  for(const [species,meals] of [['night-bat',4],['night-creature',2],['grave-ogre',3]]){
+    for(const condition of ['verifiedReturn','unverifiedReturn','defeat','forageReturn']){
+      const profile={unlocked:[],monsterSpecies:species}, before=bodyStats(profile,0,species);
+      const plan=huntPlan(profile,condition==='forageReturn'?'forage':'mission');
+      const result=settleProgress(profile,condition==='defeat'?'defeated':'escaped',meals,{
+        carried:meals*preyValue('traveller'),plan,targetEaten:false,returnVerified:condition!=='unverifiedReturn'
+      });
+      if(condition==='verifiedReturn'){
+        assert.ok(result.gained>0);assert.equal(result.chapter,1);
+        assert.ok(bodyStats(profile,0,species).tempo>before.tempo);
+      }else if(condition==='forageReturn'){
+        assert.ok(result.gained>0);assert.equal(result.chapter,0);
+      }else{
+        assert.equal(result.gained,0);assert.equal(result.chapter,0);
+      }
+    }
+  }
 });
 
 test('main boot has one HUD owner, automatic sensing, and no menu extraction exploit',()=>{

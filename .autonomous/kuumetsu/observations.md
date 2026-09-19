@@ -13,3 +13,7 @@
 日時 / 原文 / 参照 / 対象版 / 影響する仮説を追記する。ユーザーの体感は外部Evidenceとして尊重するが、codeだけでそれを実測したことにはしない。
 
 調査基準: develop `c5c83902ed34ecce1ca7d3f50ac93f568dcc6945`。開始時に最新へ更新。
+
+## K-003: 基盤の初回hosted失敗と依存境界
+
+[失敗原本](../validation-attempts/1035-01.json): run 35457865372 は9ケース・15/21条件の比較に成功したが、app testからroot harnessへの相対importが既存architecture gateに違反して全体失敗。比較はroot toolingで実行し、app testはapp内native moduleのみ参照する。gateの例外化・動的importによる回避をしない。最終成功は同PRの別のexact-head receiptから確認する。
