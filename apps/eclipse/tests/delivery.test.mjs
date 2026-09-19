@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {dirname} from 'node:path';
 import {createHash} from 'node:crypto';
 import {additionalAssets} from '../additional-assets.mjs';
-const appRoot=fileURLToPath(new URL('../',import.meta.url));
+const appRoot=dirname(dirname(fileURLToPath(import.meta.url)));
 const root=new URL('../public/',import.meta.url);
 if(!existsSync(new URL('./models/manifest.json',root))){
  execFileSync(process.execPath,['tools/acquire.mjs'],{cwd:appRoot,stdio:'inherit'});
