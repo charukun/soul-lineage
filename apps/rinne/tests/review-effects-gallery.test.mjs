@@ -52,7 +52,7 @@ test('VFX stage uses readable humanoid scale and effect-intent guides',()=>{
 
 test('VFX discovery tools stay available but hide while the catalog is trivially small',()=>{
   assert.match(html,/id="fx-discovery-tools"/);
-  assert.match(js,/const discoveryNeeded=REVIEW_CATALOG\.length>10/);
+  assert.match(js,/const discoveryNeeded=REVIEW_EFFECT_CATALOG\.length>10/);
   assert.match(js,/q\('fx-discovery-tools'\)\.hidden=!discoveryNeeded/);
   assert.match(js,/fx-search/);
   assert.match(js,/activeFilter/);
