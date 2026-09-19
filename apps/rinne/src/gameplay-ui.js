@@ -242,7 +242,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   function updateMindBalance(s,training=null){
     const active=Boolean(((s.combat&&!s.combat.training)||training?.d<2.8)&&!s.down&&!s.ended);ui.mind.hidden=!active;if(!active)return;
     const vector=tidebreakMindVectorFor(s),labels={attack:'攻め',guard:'守り',spacing:'間合い',counter:'返し',mobility:'機動',survival:'生存'};let dominant='attack',best=-1;
-    for(const node of ui.mind.querySelectorAll('[data-axis]')){const key=node.dataset.axis,value=clamp(Number(vector?.[key]??.5),0,1);node.style.setProperty('--mind-value',String(value));node.dataset.strong=String(value>=.68);if(value>best){best=value;dominant=key;}}
+    for(const node of ui.mind.querySelectorAll('[data-axis]')){const key=node.dataset.axis,value=clamp(Number(vector?.[key]??.5),0,1);node.style.opacity=String(.3+value*.7);node.style.transform=`scale(${(.78+value*.26).toFixed(3)})`;node.dataset.strong=String(value>=.68);if(value>best){best=value;dominant=key;}}
     ui.mindState.textContent=labels[dominant]||'中庸';ui.mind.dataset.dominant=dominant;
   }
   function summary(s,{dashing=false,resting=false,training=null}={}){
