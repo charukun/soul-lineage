@@ -95,7 +95,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleHtml,/grid-template-columns:minmax\(0,1fr\) auto!important/);
   assert.match(battleSource,/createTidebreakRuntime/);assert.doesNotMatch(battleSource,/RaidHost/);
   assert.match(battleSource,/opponent:group\?'group':'duel'/);
-  assert.match(battleSource,/runtime\.input\(manualMove\.x,manualMove\.y,manualMove\.amount,battleStage\?\.cameraAngle\?\.\(\)\|\|0\)/);
+  assert.match(battleSource,/const angle=battleStage\?\.cameraAngle\?\.\(\)\|\|0,input=reviewSwipe\.vector\(angle\)/);assert.match(battleSource,/runtime\.input\(input\.screenX,input\.screenY,input\.amount,angle\)/);
   assert.match(stageSource,/cameraOrbit=\(cameraOrbit\+step\*\.05\)/);
   assert.match(stageSource,/function inspirationCameraFrame\(\)/);assert.match(stageSource,/sideX=-lineZ,sideZ=lineX/);
   assert.match(stageSource,/zoomBy\(delta=0\)/);
