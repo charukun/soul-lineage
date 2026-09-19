@@ -84,6 +84,24 @@ export function inspectFastDevContract(base, head, {bootstrap=false}={}) {
   return Object.freeze({state:violations.length?'violation':'clean',bootstrap:false,violations:Object.freeze(violations)});
 }
 
+export function inspectAuthorizedFreshnessHardening(base, head) {
+  const violations = [];
+  const allowed = new Set(['.github/workflows/astra-work-validation.yml','scripts/fast-dev-contract.mjs']);
+  for (const row of changedRows(base,head)) {
+    if (!row.path || allowed.has(row.path)) continue;
+    if (/^apps\/[^/]+\/package\\.json$/.test(row.path)) violations.push(...lifecycleViolations(base,head,row.path));
+    else if (/\\.test\\.mjs$/.test(row.path) && row.status !== 'D') {
+      const before=countFastDevTests(readAt(base,row.path)||''), after=countFastDevTests(readAt(head,row.path)||'');
+      if (after>before) violations.push({code:'TEST_INVENTORY_EXPANDED',path:row.path,detail:`Actions test declarations increased ${before} -> ${after}.`});
+    } else violations.push({code:'FRESHNESS_HARDENING_SCOPE_EXPANDED',path:row.path,detail:'Explicit freshness hardening may only change the Astra validation workflow and its contract checker.'});
+  }
+  const workflow=readAt(head,'.github/workflows/astra-work-validation.yml')||'';
+  for (const token of ['compareCommitsWithBasehead','ASTRA_STALE_DEVELOP','astra/merge-freshness']) {
+    if (!workflow.includes(token)) violations.push({code:'FRESHNESS_GATE_MISSING',path:'.github/workflows/astra-work-validation.yml',detail:`Required freshness guard token missing: ${token}`});
+  }
+  return Object.freeze({state:violations.length?'violation':'clean',authorizedFreshnessHardening:true,violations:Object.freeze(violations)});
+}
+
 export function inspectAuthorizedFastDevContraction(base, head) {
   const violations = [];
   const before = workflowPathsAt(base);
@@ -121,7 +139,9 @@ if(isMain){
   if(!base)throw new Error('Usage: node fast-dev-contract.mjs <base> <head> [--bootstrap]');
   const receipt=process.argv.includes('--authorized-contraction')
     ? inspectAuthorizedFastDevContraction(base,head)
-    : inspectFastDevContract(base,head,{bootstrap:process.argv.includes('--bootstrap')});
+    : process.argv.includes('--authorized-freshness-hardening')
+      ? inspectAuthorizedFreshnessHardening(base,head)
+      : inspectFastDevContract(base,head,{bootstrap:process.argv.includes('--bootstrap')});
   console.log(JSON.stringify(receipt,null,2));
   writeSummary(receipt);
   if(receipt.state!=='clean')process.exitCode=42;
