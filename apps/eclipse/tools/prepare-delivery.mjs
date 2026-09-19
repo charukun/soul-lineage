@@ -2,6 +2,7 @@ import {readFile,writeFile,mkdir,appendFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {resolve,dirname} from 'node:path';
+import {tmpdir} from 'node:os';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {additionalAssets} from '../additional-assets.mjs';
 const root=fileURLToPath(new URL('..',import.meta.url)),out=resolve(root,'public/models');
@@ -32,7 +33,8 @@ await writeFile(resolve(out,'exclusion-audit.json'),JSON.stringify(audit,null,2)
 await appendFile(resolve(out,'CREDITS.txt'),'Additional original UAL1 animation clips: Quaternius, CC0. Distribution registered at https://godotengine.org/asset-library/asset/5235\n'+additionalAssets.map(a=>a.sourceUrl).join('\n')+'\nTexture delivery uses resized WebP derivatives of the credited original artwork. No 3D geometry was generated or rewritten.\n');
 let python=process.env.PYTHON||'python3';
 if(spawnSync(python,['-c','import PIL'],{stdio:'ignore'}).status!==0){
-  const env=resolve(root,'.cache/image-python');execFileSync(python,['-m','venv',env],{stdio:'inherit'});
+  // Build tools are not game inputs. Keep venv symlinks outside the workspace hash tree.
+  const env=resolve(tmpdir(),'eclipse-image-python-11-3');execFileSync(python,['-m','venv',env],{stdio:'inherit'});
   python=resolve(env,process.platform==='win32'?'Scripts/python.exe':'bin/python');
   execFileSync(python,['-m','pip','install','--disable-pip-version-check','Pillow==11.3.0'],{stdio:'inherit'});
 }
