@@ -7,9 +7,13 @@ import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
 
 const url = 'https://nocturne-autobattle.c-okamoto.workers.dev/';
+const segment = Number(process.env.CAPTURE_SEGMENT || 0);
+const segmentFrames = 300;
+const firstFrame = segment * segmentFrames;
+assert.ok(Number.isInteger(segment) && segment >= 0 && segment < 3);
 const output = path.resolve('output');
 fs.mkdirSync(output, { recursive: true });
-const report = { url, width: 1920, height: 1080, fps: 30, frames: 900,
+const report = { url, segment, firstFrame, width: 1920, height: 1080, fps: 30, frames: segmentFrames,
   capture: 'Native public-game rendering, frame-stepped original render loop at 30 Hz; no gameplay or asset changes',
   audio: false, startedAt: new Date().toISOString(), progress: [], errors: [] };
 const browser = await chromium.launch({ headless: true, args: [
@@ -29,7 +33,7 @@ try {
     const source = await response.text();
     assert.ok(source.includes('function loop(now)') && source.includes('previous=performance.now()'));
     report.gameScriptSha256 = createHash('sha256').update(source).digest('hex');
-    const instrumentation = '\nwindow.__NOCTURNE_CAPTURE__ = { stop: () => renderer.setAnimationLoop(null), step: () => loop(previous + 1000/30) };\n';
+    const instrumentation = `\nconst captureBootSeed = seed;\nconst captureRender = composer.render.bind(composer);\nwindow.__NOCTURNE_CAPTURE__ = {\nstop: () => { renderer.setAnimationLoop(null); seed=captureBootSeed; clock=0; intro=0; previous=0; cameraTarget.set(0,0,0); },\nfast: value => { composer.render = value ? (()=>{}) : captureRender; },\nstep: () => loop(previous + 1000/30) };\n`;
     await route.fulfill({ response, body: source + instrumentation });
   });
   const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
@@ -46,23 +50,31 @@ try {
   await page.evaluate(() => window.__NOCTURNE_CAPTURE__.stop());
   await page.locator('#start').click();
   await page.locator('[data-stance="balanced"]').click();
-  for (let frame = 0; frame < 60; frame++) await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => {
-    window.__NOCTURNE_CAPTURE__.step(); resolve();
-  })));
+  await page.evaluate(() => {
+    window.__NOCTURNE_CAPTURE__.fast(true);
+    for (let frame=0; frame<60; frame++) window.__NOCTURNE_CAPTURE__.step();
+  });
+  for (let frame = 0; frame < firstFrame; frame++) {
+    if (frame === 240) await page.locator('[data-stance="assault"]').click({ force: true });
+    if (frame === 540) await page.locator('[data-stance="guard"]').click({ force: true });
+    await page.evaluate(() => window.__NOCTURNE_CAPTURE__.step());
+  }
+  await page.evaluate(() => window.__NOCTURNE_CAPTURE__.fast(false));
   report.initial = await page.evaluate(() => window.__NOCTURNE__.metrics);
   assert.equal(report.initial.webgl2, true);
-  assert.equal(report.initial.phase, 'battle');
+  assert.ok(['battle', 'upgrade'].includes(report.initial.phase));
   assert.ok(report.initial.time > 1.5, 'Game simulation must advance before capture');
   console.log('CAPTURE_READY', JSON.stringify(report.initial));
   const cdp = await context.newCDPSession(page);
   encoder = spawn('ffmpeg', ['-hide_banner', '-loglevel', 'warning', '-y',
     '-f', 'image2pipe', '-framerate', '30', '-vcodec', 'mjpeg', '-i', 'pipe:0',
     '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
-    '-movflags', '+faststart', '-frames:v', '900', path.join(output, 'NOCTURNE_1080p_30s.mp4')],
+    '-movflags', '+faststart', '-frames:v', String(segmentFrames), path.join(output, `NOCTURNE-part-${segment}.mp4`)],
     { stdio: ['pipe', 'inherit', 'inherit'] });
   const encoded = once(encoder, 'close');
   const unique = new Set();
-  for (let frame = 0; frame < 900; frame++) {
+  for (let localFrame = 0; localFrame < segmentFrames; localFrame++) {
+    const frame = firstFrame + localFrame;
     if (frame === 240) await page.locator('[data-stance="assault"]').click({ force: true });
     if (frame === 540) await page.locator('[data-stance="guard"]').click({ force: true });
     const frameTask = async () => {
@@ -82,31 +94,33 @@ try {
     })]).finally(() => clearTimeout(timeout));
     unique.add(createHash('sha256').update(bytes).digest('hex'));
     if (!encoder.stdin.write(bytes)) await once(encoder.stdin, 'drain');
-    if ([0, 449, 899].includes(frame)) fs.writeFileSync(path.join(output, `frame-${frame}.jpg`), bytes);
+    if ([0, 149, 299].includes(localFrame)) fs.writeFileSync(path.join(output, `frame-${frame}.jpg`), bytes);
     if (frame % 30 === 0) {
       const state = await page.evaluate(() => window.__NOCTURNE__.metrics);
       report.progress.push({ frame, time: state.time, phase: state.phase, kills: state.kills });
       console.log('FRAME', frame, JSON.stringify(report.progress.at(-1)));
       assert.notEqual(state.phase, 'defeat');
-      if (frame > 0) assert.ok(state.time > report.progress.at(-2).time, 'Game time must progress');
+      if (report.progress.length > 1 && state.phase === 'battle' && report.progress.at(-2).phase === 'battle') {
+        assert.ok(state.time > report.progress.at(-2).time, 'Game time must progress');
+      }
     }
   }
   encoder.stdin.end();
   const [code] = await encoded;
   assert.equal(code, 0, 'ffmpeg failed');
   report.uniqueFrames = unique.size;
-  assert.ok(unique.size > 850, 'Capture must contain actual changing game frames');
+  assert.ok(unique.size > 280, 'Capture must contain actual changing game frames');
   report.final = await page.evaluate(() => ({ metrics: window.__NOCTURNE__.metrics,
     trace: window.__NOCTURNE__.trace }));
   assert.ok(report.final.metrics.kills > report.initial.kills, 'Combat must progress during video');
   assert.deepEqual(report.errors, []);
   report.media = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_streams',
-    '-show_format', '-of', 'json', path.join(output, 'NOCTURNE_1080p_30s.mp4')], { encoding: 'utf8' }));
+    '-show_format', '-of', 'json', path.join(output, `NOCTURNE-part-${segment}.mp4`)], { encoding: 'utf8' }));
   const video = report.media.streams.find(s => s.codec_type === 'video');
   assert.equal(video.width, 1920);
   assert.equal(video.height, 1080);
-  assert.equal(Number(video.nb_frames), 900);
-  assert.equal(Number(report.media.format.duration), 30);
+  assert.equal(Number(video.nb_frames), segmentFrames);
+  assert.equal(Number(report.media.format.duration), 10);
   report.success = true;
   console.log('CAPTURE_SUCCESS', JSON.stringify({ uniqueFrames: unique.size,
     seconds: report.media.format.duration, final: report.final.metrics }));

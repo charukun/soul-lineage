@@ -9,6 +9,12 @@ jobs:
   capture:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        segment: [0, 1, 2]
+    env:
+      CAPTURE_SEGMENT: ${{ matrix.segment }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,7 +40,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: NOCTURNE-1080p-30s-${{ github.run_id }}
+          name: NOCTURNE-1080p-part-${{ matrix.segment }}-${{ github.run_id }}
           path: ${{ runner.temp }}/nocturne-video/output/
           if-no-files-found: error
           retention-days: 7
