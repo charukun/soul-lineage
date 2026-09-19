@@ -13,6 +13,7 @@ const slotCss = read('../src/review-slot-picker.css');
 const motionQA = read('../src/character-motion-qa.js');
 const characterGrid = read('../src/character-review-grid.js');
 const characterGridCss = read('../src/character-review-grid.css');
+const reviewSource = read('../src/character-review.js');
 
 test('workshop exposes only three primary mobile intentions', () => {
   for (const [key,label] of [['build','作る'],['move','動かす'],['compare','比べる']]) {
@@ -131,6 +132,11 @@ test('character model review exposes review axes and preserves the full selectab
   assert.match(characterGridCss, /load-indicator\[data-state="error"\]\{display:none!important\}/);
   assert.match(entry, /自動生成/);
   assert.match(characterGrid, /new Option\(option\.label, option\.key/);
+  assert.match(characterGridCss, /grid-template-rows:minmax\(420px,58dvh\) minmax\(0,42dvh\)/);
+  assert.match(characterGridCss, /min-height:300px!important/);
+  assert.match(characterGridCss, /grid-template-columns:1fr!important/);
+  assert.match(characterGrid, /fitAfterLayout/);
+  assert.match(reviewSource, /document\.body\.dataset\.reviewMode === 'character'\) aim\('front'\)/);
   assert.match(characterGridCss, /grid-template-rows:minmax\(0,52fr\) minmax\(0,48fr\)/);
   assert.doesNotMatch(slotAuto, /move\(mountReviewGroup\(byId\('character-model-options'\)/);
   // The shared reusable deck and its layout contracts from develop remain intact.
