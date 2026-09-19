@@ -37,7 +37,7 @@ function targetFor(app, definition, entries, environment, manifest) {
 function fastDevTarget(app,developSha,statuses=[]){
   const status=(statuses||[]).find(row=>row.context===`dev/${app}`)||null;
   const state=status?.state==='success'?'success':status?.state==='pending'?'deploying':['failure','error'].includes(status?.state)?'failed':'waiting';
-  return {id:`fast-dev:${app}`,label:'高速DEV',environment:'dev-fast',state,url:distributionPublicUrl('web-dev',app),
+  return {id:`fast-dev:${app}`,label:'高速DEV',environment:'dev',state,url:distributionPublicUrl('web-dev',app),
     expectedUrl:distributionPublicUrl('web-dev',app),commit:status?.state==='success'?developSha:null,
     deployedAt:status?.updated_at||status?.created_at||null,source:'per-app DEV / exact-source status',
     note:status?'app単位で独立公開':'公開status同期待ち'};
@@ -49,7 +49,7 @@ export function buildApplications(manifest = {}, environments = [], runs = [], {
   const ids = new Set([...Object.keys(GAME_NAMES), ...entries.map(entry => entry.app)]);
   const groups = new Map([...ids].map(id => [id, {
     id, name: GAME_NAMES[id] || entries.find(entry => entry.app === id)?.version?.name || id, kind: 'game',
-    targets: [fastDevTarget(id,developSha,statuses),...GAME_ENVIRONMENTS.map(definition => targetFor(id, definition, entries, environmentById.get(definition.id), manifest))],
+    targets: [fastDevTarget(id,developSha,statuses),...GAME_ENVIRONMENTS.filter(definition=>definition.id!=='dev').map(definition => targetFor(id, definition, entries, environmentById.get(definition.id), manifest))],
   }]));
 
   groups.set('character-studio', {

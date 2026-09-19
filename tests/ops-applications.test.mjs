@@ -14,16 +14,15 @@ test('published apps are grouped by app with exact manifest paths', () => {
   ];
   const apps = buildApplications(manifest, environments, [], {developSha:'develop-head',statuses:[{context:'dev/rinne',state:'success',updated_at:'2026-09-12T00:00:30Z'}]});
   const rinne = apps.find(app => app.id === 'rinne');
-  assert.equal(rinne.targets.length, 4);
+  assert.equal(rinne.targets.length, 3);
   assert.equal(rinne.targets[0].label, '高速DEV');
   assert.equal(rinne.targets[0].state, 'success');
   assert.equal(rinne.targets[0].url, 'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/');
   assert.equal(rinne.targets[0].commit, 'develop-head');
-  assert.equal(rinne.targets[2].state, 'missing');
-  assert.equal(rinne.targets[2].url, null);
-  assert.equal(rinne.targets[1].url, 'https://charukun.github.io/soul-lineage/dev/rinne/');
-  assert.equal(rinne.targets[1].commit, 'dev-rinne');
-  assert.equal(rinne.targets[3].url, 'https://charukun.github.io/soul-lineage/prod/');
+  assert.equal(rinne.targets[1].state, 'missing');
+  assert.equal(rinne.targets[1].url, null);
+  assert.equal(rinne.targets[2].url, 'https://charukun.github.io/soul-lineage/prod/');
+  assert.ok(rinne.targets.every(target=>target.url !== 'https://charukun.github.io/soul-lineage/dev/rinne/'));
 });
 
 test('developer tools use independent fast DEV Workers', () => {
