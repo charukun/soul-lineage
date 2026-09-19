@@ -17,11 +17,11 @@ test('movement-only input contract keeps utility actions automatic',()=>{
   assert.match(contract,/例外はポーズ \/ システムメニュー/);
   assert.match(contract,/嗅覚: 狩場へ入った時と必要な再探索時に自動/);
   assert.match(contract,/帰路: 捕食後は最寄りの帰還口を自動案内/);
-  assert.match(contract,/序・破・急の現在phaseと現在行動名/);
+  assert.match(contract,/序・破・急の現在phaseと戦闘ログ/);
 });
 
 
-test('hunt HUD keeps the old foot-level combat readout and omits enemy health chrome',()=>{
+test('hunt HUD keeps the foot-level combat readout and omits enemy identity and health chrome',()=>{
   const index=read('../index.html');
   const flow=read('../src/web/hunt-flow-ui.js');
   const css=read('../src/web/hunt-minimal-hud.css');
@@ -33,6 +33,11 @@ test('hunt HUD keeps the old foot-level combat readout and omits enemy health ch
   assert.doesNotMatch(index,/enemy-health-(?:track|fill)/);
   assert.doesNotMatch(main,/enemy-health-(?:track|fill)/);
   assert.doesNotMatch(css,/enemy-health-(?:track|fill)/);
+  assert.doesNotMatch(index,/id="enemy-name"/);
+  assert.doesNotMatch(main,/enemy-name/);
+  assert.doesNotMatch(css,/#enemy-name/);
+  assert.match(main,/combatDamageLine/);
+  assert.match(main,/demon-combat-feed/);
   assert.ok(index.includes('id="battle"><div class="phases combat-sequence combat-sequence--flat"'));
   assert.match(index,/data-combat-sequence/);
   assert.ok(css.includes('left:0!important;right:0!important;bottom:calc(165px + env(safe-area-inset-bottom))!important;'));
