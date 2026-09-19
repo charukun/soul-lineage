@@ -39,37 +39,37 @@ test('all specialist review pages expose one Visual Review Lab back route',async
 test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
   const [html,js,css]=await Promise.all([read('review-motion.html'),read('src/review-motion.js'),read('src/review-motion.css')]);
   assert.match(html,/id="motion-stage"/);assert.match(html,/id="motion-grid"/);assert.match(html,/id="motion-time"/);
-  assert.match(html,/class="motion-current-label">選択中の動き/);
+  assert.match(html,/class="motion-stage-caption"/);assert.match(html,/id="motion-selected">モーション準備中/);
   assert.match(html,/class="motion-grid-title">候補一覧/);
-  assert.match(css,/\.motion-stage-slot\{[^}]*box-shadow:inset 3px 0/);
+  assert.match(css,/\.motion-stage-caption\{[^}]*background:#0b1110b8/);
   assert.match(css,/\.motion-grid button\{[^}]*background:#101614/);
   assert.match(css,/\.motion-grid button\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
   assert.match(css,/\.motion-camera-strip button\{[^}]*border-radius:999px/);
   assert.match(js,/new THREE\.AnimationMixer/);assert.match(js,/KAYKIT_MODELS/);assert.match(js,/buildMotionReviewCatalog/);
-  assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='kaykit-embedded'/);
+  assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='source-registry'/);
 });
 
-test('equipment review is organized around equipment fit and inspection tasks',async()=>{
+test('equipment review follows the Visual Review Lab probe language and exposes the exact review questions',async()=>{
   const [html,css,js]=await Promise.all([read('review-assets.html'),read('src/review-asset-library.css'),read('src/review-asset-library.js')]);
-  assert.match(html,/装備確認 \\| 百年転生/);
-  assert.match(html,/data-review-back[^>]*href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"/);
-  assert.match(html,/id="asset-review-points"/);
-  for(const point of ['装着位置','干渉','尺度','裏側'])assert.match(html,new RegExp(point));
+  assert.match(html,/<title>装備 \| Visual Review Lab<\/title>/);
+  assert.match(html,/class="eyebrow">RINNE RUNTIME PROBE<\/p>/);
+  assert.match(html,/data-review-purpose/);
+  assert.match(html,/正しい位置・向き・尺度で付き/);
+  for(const point of ['装着','干渉','輪郭','モデル差'])assert.match(html,new RegExp(point));
   assert.match(html,/id="asset-slot-tabs"/);
   assert.match(html,/id="asset-equipment-options"/);
-  for(const preset of ['front','side','back'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
+  for(const preset of ['front','three-quarter','side','back'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
   for(const focus of ['full','main','off','back'])assert.match(html,new RegExp(`data-asset-focus="${focus}"`));
-  assert.doesNotMatch(html,/review-slot-auto\.js|着せ替え確認/);
-  assert.match(js,/function setFocusPreset/);
-  assert.match(js,/function renderEquipmentInspector/);
+  assert.doesNotMatch(html,/review-slot-auto\.js|着せ替え確認|装備確認 \| 百年転生/);
+  assert.match(js,/activeViewDirection==='three-quarter'/);
+  assert.match(js,/MODELS \$\{REVIEW_SKELETON_MODELS\.length\}/);
   assert.match(js,/https:\/\/raw\.githubusercontent\.com/);
   assert.match(js,/reviewModelUrl\(model\)|reviewEquipmentUrl\(spec\)/);
-  assert.match(css,/\.asset-back\{/);
-  assert.match(css,/grid-template-rows:50px minmax\(320px,55dvh\) minmax\(0,1fr\)/);
-  assert.match(css,/\.asset-slot-tabs\{display:grid;grid-template-columns:repeat\(3/);
-  assert.match(css,/\.asset-equipment-options\{display:grid;grid-template-columns:repeat\(2/);
+  assert.match(css,/body\{background:radial-gradient\(circle at 18% 0,#1b2723 0,transparent 30%\),#0b1110\}/);
+  assert.match(css,/\.asset-stage-shell\{[^}]*border-radius:14px/);
+  assert.match(css,/\.asset-catalog\{[^}]*border-radius:14px/);
+  assert.match(css,/\.review-lab-back\{[^}]*border-radius:999px/);
 });
-
 test('world-object review loads the exact RINNE runtime props independently of equipment',async()=>{
   const [html,css,js]=await Promise.all([read('review-objects.html'),read('src/review-object-library.css'),read('src/review-object-library.js')]);
   assert.match(html,/物体確認 \\| 百年転生/);
