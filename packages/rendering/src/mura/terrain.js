@@ -1,4 +1,4 @@
-import {riverX,naturalTrees,TERRAIN_SITES,defs} from '@soul/world/mura';
+import {riverX,naturalTrees,TERRAIN_SITES,defs,muraEntry} from '@soul/world/mura';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {partitionStaticInstances} from '../spatial-instances.js';
 const fract=x=>x-Math.floor(x),rand=n=>fract(Math.sin(n*127.13+18.3)*41758.34);
@@ -18,15 +18,37 @@ const view={scene,outside,getProp},UP=new T.Vector3(0,1,0);
  for(let i=0;i<680;i++){const x=rand(i+6101)*512,y=rand(i+7101)*512;sx.strokeStyle=rand(i+8101)>.5?'rgba(50,80,43,.26)':'rgba(212,221,157,.24)';sx.lineWidth=.45+rand(i+9101)*.85;sx.beginPath();sx.moveTo(x,y);sx.lineTo(x+(rand(i+10101)-.5)*4,y-1-rand(i+11101)*5);sx.stroke();}
  view.groundSurfaceTexture=new T.CanvasTexture(surfaceCanvas);view.groundSurfaceTexture.wrapS=view.groundSurfaceTexture.wrapT=T.RepeatWrapping;view.groundSurfaceTexture.repeat.set(28,28);view.groundSurfaceTexture.colorSpace=T.SRGBColorSpace;view.groundSurfaceTexture.anisotropy=4;
  const bumpCanvas=createCanvas();bumpCanvas.width=bumpCanvas.height=128;const bx=bumpCanvas.getContext('2d');bx.fillStyle='#888';bx.fillRect(0,0,128,128);for(let i=0;i<520;i++){const v=96+Math.floor(rand(i+12101)*74);bx.fillStyle=`rgb(${v},${v},${v})`;bx.fillRect(rand(i+13101)*128,rand(i+14101)*128,1+rand(i+15101)*3,1+rand(i+16101)*3);}view.groundBumpTexture=new T.CanvasTexture(bumpCanvas);view.groundBumpTexture.wrapS=view.groundBumpTexture.wrapT=T.RepeatWrapping;view.groundBumpTexture.repeat.set(42,42);
- const dirtGeo=new T.CircleGeometry(1,14);dirtGeo.rotateX(-Math.PI/2);const dirtMat=new T.MeshStandardMaterial({color:0xb69a6b,roughness:1,transparent:true,opacity:.88,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
- const dirtRows=[];for(let i=0;i<22;i++){const z=-31+i*3.1,x=Math.sin(i*.72)*4.2;dirtRows.push({x,z,sx:2.8+rand(i+17101)*1.6,sz:1.25+rand(i+18101)*.7,r:Math.sin(i*.72)*.22});}
- for(const o of layoutObjects.filter(o=>(!o.phase||o.phase==='built')&&defs[o.kind]?.building).slice(0,26)){const d=defs[o.kind],c=Math.cos(o.rot||0),sn=Math.sin(o.rot||0),front=(d.d||4)*.5+1.2;for(let j=0;j<3;j++){const dist=front+j*1.6;dirtRows.push({x:o.x+sn*dist,z:o.z+c*dist,sx:1.7+j*.45,sz:1.1+j*.28,r:-(o.rot||0)});}}
- const dirt=new T.InstancedMesh(dirtGeo,dirtMat,dirtRows.length),dm=new T.Matrix4(),dq=new T.Quaternion();dirtRows.forEach((p,i)=>{dq.setFromAxisAngle(UP,p.r);dm.compose(new T.Vector3(p.x,.018,p.z),dq,new T.Vector3(p.sx,1,p.sz));dirt.setMatrixAt(i,dm);});dirt.receiveShadow=true;dirt.userData.muraDirtPaths=true;groundDetail.add(dirt);
+ const dirtCanvas=createCanvas();dirtCanvas.width=dirtCanvas.height=128;const dx=dirtCanvas.getContext('2d');dx.fillStyle='#b49a70';dx.fillRect(0,0,128,128);for(let i=0;i<260;i++){const x=rand(i+17101)*128,y=rand(i+18101)*128,r=.5+rand(i+19101)*2.2;dx.fillStyle=rand(i+20101)>.5?'rgba(91,72,50,.22)':'rgba(219,193,143,.22)';dx.beginPath();dx.arc(x,y,r,0,Math.PI*2);dx.fill();}view.dirtTexture=new T.CanvasTexture(dirtCanvas);view.dirtTexture.wrapS=view.dirtTexture.wrapT=T.RepeatWrapping;view.dirtTexture.repeat.set(5,18);view.dirtTexture.colorSpace=T.SRGBColorSpace;
+ const pathPositions=[],pathUvs=[];let pathDistance=0,pathSegments=0;
+ const addRibbon=(points,width)=>{
+  if(points.length<2)return;
+  let distance=0;
+  for(let i=0;i<points.length-1;i++){
+   const a=points[i],b=points[i+1],vx=b.x-a.x,vz=b.z-a.z,len=Math.max(.001,Math.hypot(vx,vz)),nx=-vz/len,nz=vx/len;
+   const wa=(typeof width==='function'?width(i,a):width)*.5,wb=(typeof width==='function'?width(i+1,b):width)*.5;
+   const ax1=a.x+nx*wa,az1=a.z+nz*wa,ax2=a.x-nx*wa,az2=a.z-nz*wa,bx1=b.x+nx*wb,bz1=b.z+nz*wb,bx2=b.x-nx*wb,bz2=b.z-nz*wb;
+   const u0=distance*.16,u1=(distance+len)*.16;
+   pathPositions.push(ax1,.022,az1,ax2,.022,az2,bx1,.022,bz1,bx1,.022,bz1,ax2,.022,az2,bx2,.022,bz2);
+   pathUvs.push(0,u0,1,u0,0,u1,0,u1,1,u0,1,u1);distance+=len;pathSegments++;
+  }
+  pathDistance+=distance;
+ };
+ const mainPoints=[];for(let z=-34,i=0;z<=38;z+=2.15,i++)mainPoints.push({x:Math.sin(z*.105)*1.15+Math.sin(z*.037)*.55+(rand(i+21101)-.5)*.28,z});
+ addRibbon(mainPoints,(i)=>2.15+rand(i+22101)*.45);
+ const mainXAt=z=>Math.sin(z*.105)*1.15+Math.sin(z*.037)*.55;
+ for(const o of layoutObjects.filter(o=>(!o.phase||o.phase==='built')&&defs[o.kind]?.building).slice(0,30)){
+   const entry=muraEntry(o),mx=mainXAt(entry.z),distance=Math.abs(entry.x-mx);if(Math.abs(entry.z)>44||distance>34)continue;
+   const bendX=entry.x+(mx-entry.x)*.58,bendZ=entry.z+(Math.sin((o.x+o.z)*.19)*.55);
+   addRibbon([entry,{x:bendX,z:bendZ},{x:mx,z:entry.z}],(i)=>i===0?1.15:.92);
+ }
+ const pathGeo=new T.BufferGeometry();pathGeo.setAttribute('position',new T.Float32BufferAttribute(pathPositions,3));pathGeo.setAttribute('uv',new T.Float32BufferAttribute(pathUvs,2));pathGeo.computeVertexNormals();
+ const pathMat=new T.MeshStandardMaterial({color:0xb69b70,map:view.dirtTexture,roughness:1,transparent:true,opacity:.76,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
+ const dirt=new T.Mesh(pathGeo,pathMat);dirt.receiveShadow=true;dirt.userData.muraDirtPaths=true;groundDetail.add(dirt);
  const grassGeo=new T.ConeGeometry(.13,.55,3),grassMat=new T.MeshStandardMaterial({color:0x567d45,roughness:1,vertexColors:true});const grassRows=[];for(let i=0;i<420&&grassRows.length<220;i++){const a=rand(i+19101)*Math.PI*2,r=7+Math.pow(rand(i+20101),.6)*92,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x-riverX(z))<10||occupied(x,z,1.8))continue;grassRows.push({x,z,s:.65+rand(i+21101)*.9,yaw:rand(i+22101)*Math.PI});}
  const grass=new T.InstancedMesh(grassGeo,grassMat,grassRows.length),gm=new T.Matrix4(),gq=new T.Quaternion(),gc=new T.Color();grassRows.forEach((p,i)=>{gq.setFromAxisAngle(UP,p.yaw);gm.compose(new T.Vector3(p.x,.25*p.s,p.z),gq,new T.Vector3(p.s,p.s,p.s));grass.setMatrixAt(i,gm);gc.set(i%3===0?0x6f9655:i%3===1?0x527a44:0x83a861);grass.setColorAt(i,gc);});grass.receiveShadow=true;grass.userData.muraGrassTufts=true;groundDetail.add(grass);
  const pebbleGeo=new T.DodecahedronGeometry(.18,0),pebbleMat=new T.MeshStandardMaterial({color:0x9c9787,roughness:.96,vertexColors:true});const pebbleRows=[];for(let i=0;i<250&&pebbleRows.length<92;i++){const a=rand(i+23101)*Math.PI*2,r=5+Math.pow(rand(i+24101),.62)*86,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x-riverX(z))<9||occupied(x,z,.7))continue;pebbleRows.push({x,z,s:.5+rand(i+25101)*1.45,yaw:rand(i+26101)*Math.PI});}
  const pebbles=new T.InstancedMesh(pebbleGeo,pebbleMat,pebbleRows.length),pm=new T.Matrix4(),pq=new T.Quaternion(),pc=new T.Color();pebbleRows.forEach((p,i)=>{pq.setFromAxisAngle(UP,p.yaw);pm.compose(new T.Vector3(p.x,.07*p.s,p.z),pq,new T.Vector3(p.s*1.15,p.s*.55,p.s));pebbles.setMatrixAt(i,pm);pc.set(i%3===0?0xb8b09a:i%3===1?0x858b7d:0xaaa18e);pebbles.setColorAt(i,pc);});pebbles.castShadow=false;pebbles.receiveShadow=true;pebbles.userData.muraPebbles=true;groundDetail.add(pebbles);
- view.terrainDetailSnapshot=()=>Object.freeze({dirtPatches:dirtRows.length,grassTufts:grassRows.length,pebbles:pebbleRows.length,groundTexture:true});
+ view.terrainDetailSnapshot=()=>Object.freeze({dirtPatches:pathSegments,pathDistance:Math.round(pathDistance),grassTufts:grassRows.length,pebbles:pebbleRows.length,groundTexture:true});
  const groundingBytes=new Uint8Array(32*32*4);for(let y=0;y<32;y++)for(let x=0;x<32;x++){const i=(y*32+x)*4,d=Math.hypot((x-15.5)/15.5,(y-15.5)/15.5),a=Math.max(0,1-d*d);groundingBytes[i]=groundingBytes[i+1]=groundingBytes[i+2]=255;groundingBytes[i+3]=Math.round(a*a*112);}
  const groundingTexture=new T.DataTexture(groundingBytes,32,32,T.RGBAFormat);groundingTexture.needsUpdate=true;groundingTexture.magFilter=groundingTexture.minFilter=T.LinearFilter;
  const groundingGeo=new T.PlaneGeometry(1,1);groundingGeo.rotateX(-Math.PI/2);const groundingMat=new T.MeshBasicMaterial({map:groundingTexture,color:0x39453a,transparent:true,opacity:.58,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
