@@ -49,8 +49,8 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
     const dt=Math.min(.05,Math.max(0,(now-titlePreviewLast)/1000));titlePreviewLast=now;const elapsed=Math.max(0,(now-titlePreviewStart)/1000),titleTime=titlePreviewCinematic?Math.min(8.2,elapsed):8.2,titleIdleTime=titlePreviewCinematic?Math.max(0,elapsed-8.2):elapsed;
     view.renderState(preview,dt,{titlePreview:true,titleTime,titleIdleTime});titlePreviewRaf=requestAnimationFrame(titlePreviewFrame);
   };
-  host.startTitlePreview=({cinematic=true}={})=>{if(host.disposed||host.active)return;stopTitlePreview();titlePreviewCinematic=Boolean(cinematic);titlePreviewRaf=requestAnimationFrame(titlePreviewFrame);};
-  host.stopTitlePreview=stopTitlePreview;
+  host.startTitlePreview=({cinematic=true,lowResolution=false}={})=>{if(host.disposed||host.active)return;stopTitlePreview();titlePreviewCinematic=Boolean(cinematic);host.view.setTitlePreviewQuality?.(Boolean(lowResolution));titlePreviewRaf=requestAnimationFrame(titlePreviewFrame);};
+  host.stopTitlePreview=()=>{stopTitlePreview();host.view.setTitlePreviewQuality?.(false);};
   host.dispose=()=>{if(host.disposed)return;host.disposed=true;host.active=false;stopTitlePreview();canvas.dataset.runtime='disposed';view.dispose();};
   return host;
 }

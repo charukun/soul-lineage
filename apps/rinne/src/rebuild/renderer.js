@@ -48,7 +48,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.94;
   let focusEffect,qualityLevel=0;
   const applyQuality=profile=>{const ratio=renderPixelRatio(basePixelRatio,profile.renderScale);renderer.setPixelRatio(ratio);qualityLevel=profile.level;focusEffect?.setLevel(qualityLevel);canvas.dataset.renderQuality=profile.id;canvas.dataset.renderPixelRatio=String(ratio);};
-  const qualityGovernor=createAdaptiveQualityGovernor({targetFps,onChange:snapshot=>applyQuality(snapshot.profile)});applyQuality(qualityGovernor.snapshot().profile);
+  const qualityGovernor=createAdaptiveQualityGovernor({targetFps,onChange:snapshot=>applyQuality(snapshot.profile)});applyQuality(qualityGovernor.snapshot().profile);const setTitlePreviewQuality=enabled=>{if(enabled){const ratio=Math.min(.62,basePixelRatio*.58);renderer.setPixelRatio(ratio);canvas.dataset.renderQuality='title-poc-low';canvas.dataset.renderPixelRatio=String(ratio);}else applyQuality(qualityGovernor.snapshot().profile);};
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x7893a0);const outdoorSky=scene.background,indoorSky=new THREE.Color(0x393844);scene.fog=new THREE.FogExp2(0x91a8ad,.0105);
   const camera=new THREE.PerspectiveCamera(43,1,.08,650);camera.position.set(12,13,17);
 
@@ -194,5 +194,5 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     observer.disconnect();cameraControl.dispose();foregroundOcclusion.dispose();skirmishRenderer.dispose();characterStage.dispose();focusEffect.dispose();contacts.dispose();lighting.dispose();
     root.removeFromParent();interiorRoot.removeFromParent();skirmishRoot.removeFromParent();frontRoot.removeFromParent();for(const v of cache.values())disposeObject(v);renderer.dispose();
   }
-  return{THREE,scene,camera,viewport,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),visualSnapshot:()=>({focus:focusEffect.snapshot(),lighting:lighting.snapshot(),contacts:contacts.snapshot()}),dispose};
+  return{THREE,scene,camera,viewport,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,setTitlePreviewQuality,qualitySnapshot:()=>qualityGovernor.snapshot(),visualSnapshot:()=>({focus:focusEffect.snapshot(),lighting:lighting.snapshot(),contacts:contacts.snapshot()}),dispose};
 }

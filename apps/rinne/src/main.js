@@ -30,27 +30,8 @@ for(const command of titleCommands){
   command.addEventListener('click',()=>{unlockTitleAudio();confirmRinneAudio();});
 }
 title.addEventListener('pointerdown',unlockTitleAudio,{capture:true,passive:true});
-title.addEventListener('keydown',event=>{
-  const earlyPrimary=title.dataset.intro==='cinematic'&&title.dataset.primaryAction==='ready';
-  if(villageDialog.open||settingsDialog.open||(title.dataset.intro!=='idle'&&!earlyPrimary)||(title.dataset.intro==='idle'&&title.dataset.ready!=='true'))return;
-  if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;
-  unlockTitleAudio();
-  if(earlyPrimary){
-    if(event.key==='Enter'){event.preventDefault();selectTitleCommand($('new-life'));$('new-life').click();}
-    return;
-  }
-  const selected=titleCommands.findIndex(item=>item.dataset.selected==='true');
-  const index=selected<0?0:selected;
-  if(event.key==='Enter'){
-    if(!titleCommands.includes(document.activeElement)){event.preventDefault();titleCommands[index].click();}
-    return;
-  }
-  event.preventDefault();
-  const delta=event.key==='ArrowDown'?1:-1;
-  const next=(index+delta+titleCommands.length)%titleCommands.length;
-  selectTitleCommand(titleCommands[next]);
-  titleCommands[next].focus({preventScroll:true});
-});
+title.addEventListener('pointerup',event=>{if(titleCinematic.skip())event.preventDefault();},{capture:true});
+title.addEventListener('keydown',event=>{if(villageDialog.open||settingsDialog.open)return;if(title.dataset.intro==='cinematic'){if((event.key==='Enter'||event.key===' ')&&titleCinematic.skip()){event.preventDefault();unlockTitleAudio();}return;}if(title.dataset.intro!=='idle'||title.dataset.ready!=='true')return;if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;unlockTitleAudio();const selected=titleCommands.findIndex(item=>item.dataset.selected==='true'),index=selected<0?0:selected;if(event.key==='Enter'){if(!titleCommands.includes(document.activeElement)){event.preventDefault();titleCommands[index].click();}return;}event.preventDefault();const delta=event.key==='ArrowDown'?1:-1,next=(index+delta+titleCommands.length)%titleCommands.length;selectTitleCommand(titleCommands[next]);titleCommands[next].focus({preventScroll:true});});
 function resetTitleParallax(){title.style.setProperty('--title-parallax-x','0px');title.style.setProperty('--title-parallax-y','0px');title.style.setProperty('--title-parallax-x-soft','0px');title.style.setProperty('--title-parallax-y-soft','0px');}
 title.addEventListener('pointermove',event=>{
   if(title.dataset.motion!=='on'||event.pointerType==='touch')return;
@@ -71,7 +52,6 @@ const titleCinematic=createTitleCinematicController({
   motionKey,
   getPrepared:()=>prepared,
   resetParallax:resetTitleParallax,
-  onPrimaryActionReady:()=>{if(booting&&!prepared)$('new-life').disabled=false;},
 });
 function refreshContinue(){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
@@ -122,7 +102,7 @@ async function boot(){
     runtimeModule=await import('./rebuild/runtime.js');
     prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>{$('boot-status').textContent=message;}});
     installGameplay();
-    game.dataset.runtime='prepared';
+    game.dataset.runtime='prepared';titleCinematic.onPrepared();
     if(pendingLaunchMode){
       const mode=pendingLaunchMode;pendingLaunchMode=null;booting=false;await launch(mode);return;
     }

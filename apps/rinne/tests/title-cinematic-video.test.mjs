@@ -22,27 +22,18 @@ test('cinematic title uses real generated movie media as the primary path',()=>{
   assert.match(css,/data-media="fallback"\]\[data-intro="cinematic"\]/);
 });
 
-test('cinematic boot is event-driven and overlaps world preparation',()=>{
+test('cinematic boot overlaps world preparation and hands off to realtime when prepared',()=>{
   const boot=main.slice(main.indexOf('async function boot'),main.indexOf('async function enterCoop'));
   assert.ok(boot.indexOf('titleCinematic.begin()')<boot.indexOf('prepareRuntime('));
-  assert.match(cinematic,/addEventListener\('loadeddata',this\.onLoaded\)/);
-  assert.match(cinematic,/addEventListener\('canplay',this\.onCanPlay\)/);
-  assert.match(cinematic,/addEventListener\('timeupdate',this\.onTimeUpdate\)/);
-  assert.match(cinematic,/requestVideoFrameCallback/);
-  assert.match(cinematic,/intro load timeout/);
+  assert.match(boot,/prepareRuntime\([\s\S]*titleCinematic\.onPrepared\(\)/);
+  assert.match(cinematic,/onPrepared\(\)[\s\S]*startRealtime\(\)/);
+  assert.match(cinematic,/startTitlePreview\?\.\(\{cinematic:true,lowResolution:true\}\)/);
 });
 
-test('cinematic offers an early primary action while preserving the authored title handoff',()=>{
-  assert.match(media,/primaryActionAt:1\.5/);
-  assert.match(cinematic,/primaryActionAt\*1000/);assert.match(cinematic,/dataset\.primaryAction='ready'/);assert.match(cinematic,/onPrimaryActionReady/);
-  assert.match(css,/data-intro="cinematic"\]\[data-primary-action="ready"\] \.title-actions/);
-  assert.match(css,/title-command:not\(#new-life\)\{display:none\}/);
-  assert.match(cinematic,/settleUi\(\)[\s\S]*dataset\.intro='settling'[\s\S]*dataset\.intro='idle'/);
-  assert.match(css,/data-intro="settling"\] \.title-lockup\{opacity:1/);
-  assert.match(css,/data-intro="settling"\] \.title-actions\{opacity:0/);
-  assert.match(cinematic,/if\(this\.introPlayed\)\{[\s\S]*this\.seekToLivingStill\(\{play:true\}\);return;/);
-  assert.match(main,/titleCinematic\.pause\(\);title\.hidden=true/);
-  assert.match(main,/pendingLaunchMode=mode/);assert.match(main,/旅立ちを準備しています/);assert.match(main,/if\(pendingLaunchMode\)[\s\S]*await launch\(mode\)/);
+test('cinematic uses the prepared realtime world at deliberately low resolution',()=>{
+  assert.match(cinematic,/startRealtime\(\)/);assert.match(cinematic,/lowResolution:true/);assert.match(cinematic,/dataset\.media='realtime'/);assert.match(cinematic,/skip\(\)/);
+  assert.match(main,/titleCinematic\.onPrepared\(\)/);assert.match(main,/title\.addEventListener\('pointerup'[\s\S]*titleCinematic\.skip\(\)/);
+  assert.match(css,/data-media="realtime"/);assert.doesNotMatch(css,/data-primary-action/);
 });
 
 test('reduced motion, motion-off, and media failure retain an operable title fallback',()=>{
