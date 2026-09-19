@@ -2,6 +2,9 @@ import './character-review.js';
 import './character-art-qa.js';
 import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, YEAR_MS, createCharacterModelBuildRequest } from '@soul/characters';
 import { createCharacterWorkspace, downloadWorkspace } from './character-workspace.js';
+import {createReviewRoutes,mountReviewShell} from '@soul/shared-ui/review-shell';
+const reviewShell=mountReviewShell({current:'characters',routes:createReviewRoutes({rinneBase:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',charactersBase:location.href}),homeHref:'https://soul-lineage-review-dev.c-okamoto.workers.dev/'});
+if(reviewShell)window.addEventListener('pagehide',()=>reviewShell.destroy(),{once:true});
 
 const el = id => document.getElementById(id);
 const make = (tag, text, className = '') => { const n = document.createElement(tag); n.textContent = text; n.className = className; return n; };

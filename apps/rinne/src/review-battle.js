@@ -4,6 +4,8 @@ import {reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import '@soul/shared-ui/combat-sequence.css';
 import {createCombatSfx} from '@soul/audio/combat-sfx';
+import {mountRinneReviewShell} from './review-lab-shell.js';
+mountRinneReviewShell('battle');
 
 const q=id=>document.getElementById(id);
 const heroSelect=q('battle-hero-model'),enemySelect=q('battle-enemy-model');
