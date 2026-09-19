@@ -85,7 +85,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.stagger+.01).stage,'stagger');
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.reveal+.01).stage,'reveal');
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.execute+.01).stage,'execute');
-  assert.match(battleSource,/learnedTechniqueIds\.add\(technique\.id\)/);
+  assert.match(battleSource,/reviewTechniqueSeen=new Map\(\)/);assert.match(battleSource,/seen\.add\(technique\.id\)/);
   assert.match(battleSource,/learnedSlots\[phase\]=technique/);
   assert.match(stageSource,/phaseAnchor='feet'/);
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
