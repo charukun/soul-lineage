@@ -33,6 +33,26 @@ jobs:
           run-id: 35415633900
           github-token: ${{ github.token }}
           path: fresh-source
+      - name: Refresh pinned exclusion snapshots rather than trusting a stale cache
+        run: |
+          node --input-type=module <<'JS'
+          import {readFile,writeFile} from 'node:fs/promises';
+          import {execFileSync} from 'node:child_process';
+          import {excludedSnapshots} from './apps/eclipse/model-manifest.mjs';
+          const path='fresh-source/audit/excluded-model-inventory.json';
+          const inventory=JSON.parse(await readFile(path,'utf8'));
+          for(const {ref,commit} of excludedSnapshots){
+            if(inventory[ref]?.commit===commit) continue;
+            execFileSync('git',['fetch','--depth=1','origin',commit],{stdio:'inherit'});
+            const tree=execFileSync('git',['ls-tree','-r','-l',commit],{encoding:'utf8'});
+            inventory[ref]={commit,models:tree.split('\n').filter(l=>/\.(glb|gltf|fbx|obj|vrm|blend)$/i.test(l)).map(l=>{
+              const [meta,path]=l.split('\t');const b=meta.trim().split(/\s+/);
+              return {path,gitBlob:b[2],bytes:Number(b[3])};
+            })};
+          }
+          await writeFile(path,JSON.stringify(inventory,null,2));
+          console.log(Object.fromEntries(Object.entries(inventory).map(([k,v])=>[k,{commit:v.commit,models:v.models.length}])));
+          JS
       - run: npm ci
       - name: Build exact checkout and independently verify acquired-file hashes
         run: |
@@ -76,3 +96,16 @@ jobs:
             dist/eclipse/models/exclusion-audit.json
           retention-days: 14
           compression-level: 6
+      - name: Package a credential-free reproducible workspace for visual debugging
+        if: always()
+        run: |
+          printf '%s\n' "$ECLIPSE_HEAD_SHA" > ECLIPSE_HEAD.txt
+          tar -czf "$RUNNER_TEMP/eclipse-reproducer.tgz" apps/eclipse packages scripts package.json package-lock.json node_modules wrangler.dev.eclipse.jsonc ECLIPSE_HEAD.txt
+      - name: Retain reproducible workspace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eclipse-reproducer
+          path: ${{ runner.temp }}/eclipse-reproducer.tgz
+          retention-days: 3
+          compression-level: 0
