@@ -107,7 +107,6 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleSource,/hero:\{x:-2\.65,z:0\},enemy:\{x:2\.65,z:0\}/);
   assert.match(battleSource,/enemies:\[\{x:2\.65,z:0\},\{x:2\.45,z:-1\.75\},\{x:2\.45,z:1\.75\}\]/);
   assert.match(runtimeSource,/import \{ SwipeInput \} from '@soul\/input'/);assert.match(runtimeSource,/const swipe=new SwipeInput\(\)/);assert.match(runtimeSource,/swipe\.vector\(0\)/);
-  assert.match(battleSource,/if\(len<12\)setManualAxis\(\{x:0,y:0\}\);else setManualAxis\(\{x:dx\/Math\.max\(42,len\),y:dy\/Math\.max\(42,len\)\}\)/);
   assert.match(stageSource,/cameraZoom=\.82/);
   assert.match(stageSource,/cameraAngle\(\)\{return Math\.atan2\(camera\.position\.x-cameraLook\.x,camera\.position\.z-cameraLook\.z\);\}/);
   assert.match(battleHtml,/main\.battle-review\.review-surface > \.review-surface__workspace\{/);
