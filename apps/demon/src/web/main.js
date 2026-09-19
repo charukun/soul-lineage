@@ -15,6 +15,7 @@ import {renderLineage} from './lineage.js';
 import {huntPresentationSnapshot} from './presentation-snapshot.js';
 import {AngledGuide} from './angled-guide.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
+import {combatDamageLine} from './combat-readout-state.js';
 import '@soul/shared-ui/combat-sequence.css';
 
 const $ = id => document.getElementById(id);
@@ -49,8 +50,11 @@ function characters() {
 }
 function refresh() { profile = store.read(); game?.refreshProfile(profile); $('title-character').textContent = '狩る姿 · ' + activeCharacter(profile).name; flow?.refreshHub(profile); }
 function toast(text, duration = 2.2) { toastUntil = performance.now() + duration * 1000; $('toast').textContent = text; $('toast').style.opacity = '1'; }
+function combatFeed(text, kind = 'status') { document.dispatchEvent(new CustomEvent('demon-combat-feed', {detail:{text, kind}})); }
 function event(e) {
   view?.event(e); audio.event(e);
+  if (e.type === 'hurt') combatFeed(combatDamageLine(e.amount, game?.player?.hp, game?.player?.maxhp), 'hurt');
+  if (e.type === 'down') combatFeed('撃破 · 捕食可能', 'down');
   if (e.type === 'consume') {
     const gain = e.reward;
     toast(gain.memoryNew ? `${PREY[e.role].power}を獲得 · 戦利品 +${gain.lootGain}` : `生命 +${Math.ceil(gain.healed)} · 戦利品 +${gain.lootGain}`);
@@ -58,7 +62,7 @@ function event(e) {
   }
   if (e.type === 'ward') toast('結界。別の道を探そう');
   if (e.type === 'gate') toast('封鎖を砕いた');
-  if (e.type === 'disengage') toast('戦闘を離れた');
+  if (e.type === 'disengage') { combatFeed('離脱 · 間合いを切った', 'status'); toast('戦闘を離れた'); }
   if (e.type === 'finish') { mode = 'result'; pauseInput(); showResult(e); }
 }
 function newSession(v) {
@@ -125,11 +129,11 @@ function showResult(e) { flow.result(e, game); }
 function toggleReturn() { if (mode !== 'hunt' || game.eaten < 1 || game.devour) return; pauseInput(); returnMode = !returnMode; }
 function hud(now) {
   if (!game) return;
-  const p = game.player, ui = huntUiState(game, {returning: returnMode}), count = ui.fight ? game.combatantCount?.() || 1 : 0;
+  const p = game.player, ui = huntUiState(game, {returning: returnMode});
   $('life-fill').style.width = Math.max(0, p.hp) / p.maxhp * 100 + '%'; $('life-text').textContent = `${Math.ceil(Math.max(0, p.hp))} / ${p.maxhp}`;
   $('form-name').textContent = FORMS[profile.form].name; $('village-name').textContent = game.village.name;
   $('night-label').textContent = `LIFE ${profile.currentLife?.number || 1} · NIGHT ${profile.hunts + 1}`;
-  $('battle').style.opacity = ui.fight ? '1' : '0'; $('enemy-name').textContent = ui.fight ? game.fight.npc.name + (count > 1 ? ' ×' + count : '') : '';
+  $('battle').style.opacity = ui.fight ? '1' : '0';
   $('skill-name').textContent = game.fight?.retreat > 0 ? '戦闘を離れる…' : p.skill || '間合いを測る';
   syncCombatSequence(document.querySelector('[data-combat-sequence]'),p.slot);
   $('scent').disabled = ui.scentDisabled; $('memory').disabled = ui.memoryDisabled; $('return').disabled = ui.returnDisabled;
