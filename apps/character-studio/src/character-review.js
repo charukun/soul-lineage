@@ -137,7 +137,7 @@ function start() {
   const orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true; orbit.minDistance = .18; orbit.maxDistance = 45;
   orbit.maxPolarAngle = Math.PI * .49; orbit.target.set(0, 1, 0);
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
-  let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, loadSequence = 0, modelRequestSequence = 0, alive = true, frameId = 0;
+  let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, loadSequence = 0, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
   let motionQA = null;
   const diagnostics = createReviewDiagnostics({ canvas, renderer, camera, orbit, selectedActor: () => actors[settings.selected] });
@@ -190,6 +190,7 @@ function start() {
     if (actor) { marker.position.x = actor.root.position.x; marker.position.z = actor.root.position.z; }
   }
   function aim(preset = 'overview') {
+    cameraPreset = preset;
     if (motionQA?.active) { motionQA.aim(preset === 'side' ? 'left' : ['front','back'].includes(preset) ? preset : 'front'); return; }
     const actor = actors[settings.selected]; if (!actor) return;
     let target, distance;
@@ -242,7 +243,7 @@ function start() {
     const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
     renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix();
     if (motionQA?.active) motionQA.aim(motionQA.camera);
-    else if (review.ready && document.body.dataset.reviewMode === 'character') aim('front');
+    else if (review.ready && document.body.dataset.reviewMode === 'character') aim(cameraPreset);
     diagnostics.record('resize','layout');
     resetMeasure();
   }
@@ -311,8 +312,8 @@ function start() {
       el('capabilities').textContent = `SHA-256 ${hash}\nLicense ${audit.license || 'unverified'}\n表情 ${capabilities.expressionNames.length}種\n揺れ ${capabilities.springChains}チェーン / ${capabilities.springJoints}関節\n${capabilities.warnings.join('\n') || 'PBR・共通Humanoid表示'}`;
       rebuild(); el('progress').value = .8; renderer.compile(scene, camera); renderer.render(scene, camera);
       review.ready = true; el('progress').value = 1; status('CC0 KayKitモデルを表示中。個体差・動き・共有状態を検査できます。');
-    } catch (error) { if (sequence === loadSequence) { review.ready = !installed && Boolean(pool); report(error); } }
-    finally { nextPool?.dispose(); disposeTemplate(nextTemplate); if (sequence === loadSequence) { loading = false; el('retry').disabled = !alive; window.dispatchEvent(new Event('character-review-change')); } }
+    } catch (error) { if (sequence === loadSequence) { review.ready = !installed && Boolean(pool); report(error); el('retry').disabled = !alive; } }
+    finally { nextPool?.dispose(); disposeTemplate(nextTemplate); if (sequence === loadSequence) { loading = false; window.dispatchEvent(new Event('character-review-change')); } }
   }
   for (const id of ['view', 'count']) on(el(id), 'change', guard(() => update({ [id]: id === 'count' ? Number(el(id).value) : el(id).value }, id === 'count' ? 'rebuild' : 'arrange')));
   function regenerate() { settings = reviewSettings({ ...settings, seed: Number(el('seed').value) }); records = createReviewCohort(settings); rebuild(); }
