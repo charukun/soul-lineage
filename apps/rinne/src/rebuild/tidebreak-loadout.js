@@ -14,8 +14,10 @@ function phaseRecipe(state,phase,weapon,combo,target){
   let skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`;
   const causal=inspirationRecipe(state,skill,phase,target?.id);
   if(causal){
-    // Use the authored contact/footwork recipe directly; a learned move is not a cosmetic overlay.
-    return{id:`rinne-${phase}-${causal.id}`,name:causal.name,type:'normal',weapon,element:'steel',rhythm:'flow',tempo:staminaPolicyFor(state).tempoScale,aura:'none',steps:causal.steps.map(step=>({...step,kind:adaptKind(step.kind,weapon)}))};
+    const steps=causal.steps.map(step=>({...step,kind:adaptKind(step.kind,weapon)}));
+    // Tidebreak's wire recipe has three positions. Empty positions are not extra attacks.
+    while(steps.length<3)steps.push({kind:'none',footwork:'none',charge:'none'});
+    return{id:`rinne-${phase}-${causal.id}`,name:causal.name,type:'normal',weapon,element:'steel',rhythm:'flow',tempo:Math.max(.7,Math.min(1.3,staminaPolicyFor(state).tempoScale)),aura:'none',steps};
   }
   if(CAUSAL_ANSWER_BY_ID[skill]?.steps.length)skill=`basic.${state.equipment.weapon}`;
   const raw=applySkillComponents(state,skill,phase,formForSkill(skill,state.equipment.weapon)),kinds=raw.kinds.map(kind=>adaptKind(kind,weapon));

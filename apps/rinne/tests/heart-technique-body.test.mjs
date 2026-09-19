@@ -5,7 +5,7 @@ import {createFront,tickFront} from '../src/rebuild/combat.js';
 import {beginCombatState} from '../src/rebuild/combat-loadout-runtime.js';
 import {eligibleDiscoveries} from '../src/rebuild/skill-system.js';
 import {CAUSAL_ANSWERS,CAUSAL_ANSWER_BY_ID,answerSignature,validateCausalAnswers} from '@soul/game-data';
-import {ensureInspiration,recordLifeExperience,advanceInspirationTime,recordCombatQuestion,inspirationCandidates,answerAvailability,renameInspiration,archiveInspiration,INSPIRATION_LIMITS} from '../src/rebuild/inspiration-state.js';
+import {ensureInspiration,recordLifeExperience,advanceInspirationTime,recordCombatQuestion,inspirationCandidates,answerAvailability,renameInspiration,archiveInspiration,inspirationEffortScale,INSPIRATION_LIMITS} from '../src/rebuild/inspiration-state.js';
 import {ensureCombatLoadout,learnedHeartSkills,learnedTechniqueSkills,addCombo,setComboSkill,toggleFavored,setActiveCombo,setHeartActive,setHeartSlot,setOneMotion,setBodyChoice,unlockedBodyOptions,requestOneMotion,selectCombatCombo} from '../src/combat-loadout.js';
 
 function living(seed=77){const s=createLife({name:'検証',seed});s.phase='living';s.ageSeconds=20*60;s.ageYears=20;s.resting=false;return s;}
@@ -77,7 +77,14 @@ test('body choices retain their grammar and descendants inherit bounded motifs, 
 
 test('migrated manual one-motion keeps its stamina price and recovery exposure',()=>{
   const s=migrated(['action.guard-step']);const f=combatFixture(s);assert.equal(setOneMotion(s,'action.guard-step'),true);s.combat=beginCombatState(s,f.enemies[0].id);assert.equal(requestOneMotion(s),'action.guard-step');
-  const before=s.stamina;let fired=null;
-  for(let i=0;i<1800&&!s.ended&&!s.down;i++){s.moving=false;const events=tickFront(s,f,1/60);fired=events.find(e=>e.type==='one-motion')||fired;if(fired)break;tickLife(s,{realDelta:1/60,lifeDelta:0});}
-  assert.ok(fired,'the queued manual action must execute in the real combat runtime');assert.ok(before-s.stamina>=22);assert.ok(s.combat.attackCooldown>1.5);assert.ok(s.combat.zanshinSeconds>.8);
+  const expectedCost=22*inspirationEffortScale(s);let fired=null,armSpend=null;
+  for(let i=0;i<1800&&!s.ended&&!s.down;i++){
+    s.moving=false;const queued=s.combat?.oneMotionQueued,before=s.stamina,events=tickFront(s,f,1/60);
+    if(queued&&!s.combat?.oneMotionQueued)armSpend=before-s.stamina;
+    fired=events.find(e=>e.type==='one-motion')||fired;if(fired)break;
+    tickLife(s,{realDelta:1/60,lifeDelta:0});
+  }
+  assert.ok(fired,'the queued manual action must execute in the real combat runtime');
+  assert.ok(armSpend!==null&&armSpend>=expectedCost-1e-7,`payment must be observed before normal regeneration: ${armSpend} / ${expectedCost}`);
+  assert.ok(s.combat.attackCooldown>1.5);assert.ok(s.combat.zanshinSeconds>.8);
 });
