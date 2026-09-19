@@ -1,0 +1,10 @@
+{
+  "name": "@soul/nocturne",
+  "displayName": "NOCTURNE 灰の誓約",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "soulLineage": { "role": "reference" },
+  "dependencies": { "three": "0.180.0" },
+  "devDependencies": { "@playwright/test": "1.63.0" }
+}

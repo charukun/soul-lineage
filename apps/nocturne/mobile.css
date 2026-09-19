@@ -1,0 +1,97 @@
+@media(max-width:720px){
+#title{padding:8vw;background:linear-gradient(0deg,#04120ff0 0%,#04120fac 37%,transparent 79%);align-items:flex-end;padding-bottom:17vh}
+.title-copy h1{font-size:clamp(42px,11vw,72px)}
+.title-copy .eyebrow{font-size:8px;margin-bottom:21px}
+.subtitle{font-size:12px;margin:14px 0 22px}
+.hairline{margin:24px 0;width:220px}
+.story{font-size:13px;letter-spacing:.14em}
+.description{font-size:10px;margin:13px 0 23px}
+.primary{min-width:235px;padding:16px 20px;font-size:12px}
+.under-button{font-size:9px}
+.title-footer{left:8vw;right:4vw;bottom:17px;font-size:7px;letter-spacing:.05em}
+.title-footer button{font-size:9px}
+.world-label{top:17%;right:8vw;font-size:8px}
+.world-label small{font-size:8px}
+header{top:max(18px,env(safe-area-inset-top));left:16px;right:16px}
+.hero-panel{width:175px;gap:10px}
+.hero-seal{width:32px;height:32px;font-size:24px}
+.vitals{width:133px}
+.vital-heading{font-size:10px;letter-spacing:.03em;margin-bottom:8px}
+.vital-heading small{font-size:7px}
+.vital-sub{font-size:7px;margin-top:8px}
+.tools{gap:4px}
+.tools button{font-size:8px;padding:5px;min-width:32px;min-height:32px}
+#quality{display:none}
+.wave-panel{top:80px}
+.wave-panel .eyebrow{font-size:7px}
+.wave-panel>div:nth-child(2){font-size:20px}
+.wave-panel small{font-size:9px}
+#wave-pips{gap:8px;margin-top:10px}
+.run-stats{top:58px;right:16px;gap:10px;font-size:8px}
+.run-stats b{font-size:16px}
+.run-stats button{font-size:9px;min-width:28px;min-height:24px}
+.battle-footer{left:18px;right:18px;bottom:max(26px,env(safe-area-inset-bottom));height:104px;align-items:flex-start}
+.auto-label{position:absolute;bottom:81px;left:0;gap:7px}
+.auto-label>span,.burst-control>span{font-size:9px;letter-spacing:.07em}
+.auto-label small,.burst-control small{font-size:7px;margin-top:5px}
+.stance-control{bottom:0}
+.stance-control>small{display:none}
+.stance-control button{min-width:63px;height:48px;gap:6px}
+.stance-control button b{font-size:17px}
+.stance-control button span{font-size:8px}
+.burst-control{position:absolute;right:0;bottom:80px;min-width:0;gap:8px}
+.burst-icon{width:31px;height:31px;font-size:23px}
+.move-hint{bottom:148px;font-size:8px}
+#toast{bottom:172px;font-size:10px}
+#wave-banner{top:30%}
+#wave-banner span{font-size:24px}
+#wave-banner small{font-size:7px}
+#boss-hud{top:158px;width:64vw;font-size:9px}
+.modal{padding:25px 18px}
+.modal h2{font-size:23px}
+.modal-inner>p:not(.eyebrow){font-size:10px}
+.upgrade-cards{gap:9px;margin:30px 0 25px}
+.upgrade-cards button{width:31%;min-height:160px;padding:10px 5px;gap:19px}
+.upgrade-cards b{font-size:30px}
+.upgrade-cards strong{font-size:10px;letter-spacing:.02em}
+.upgrade-cards span{font-size:8px}
+.end-stats{gap:28px}
+.end-stats b{font-size:25px}
+dialog{padding:30px 23px}
+dialog h2{font-size:19px}
+dialog p{font-size:11px}
+}
+@media(max-height:520px){
+#title{padding:5vw;align-items:center;padding-bottom:5vw}
+.title-copy .eyebrow{margin-bottom:12px}
+.title-copy h1{font-size:40px}
+.subtitle{font-size:11px;margin:12px 0}
+.hairline{margin:16px 0}
+.story{font-size:12px}
+.description{display:none}
+.primary{margin-top:18px;padding:12px 20px;font-size:11px}
+.under-button{font-size:8px}
+.title-footer{bottom:8px}
+.world-label{top:38%}
+header{top:16px}
+.hero-panel{transform:scale(.8);transform-origin:top left}
+.wave-panel .eyebrow{font-size:6px}
+.wave-panel>div:nth-child(2){font-size:17px}
+#wave-pips{margin-top:8px}
+.tools button{min-height:30px;font-size:8px}
+.run-stats{top:53px}
+.battle-footer{bottom:16px}
+.stance-control button{height:40px;min-width:62px;gap:3px}
+.stance-control>small{display:none}
+.auto-label small,.burst-control small{font-size:7px}
+.burst-icon{width:35px;height:35px}
+.move-hint{bottom:79px}
+#toast{bottom:110px}
+.modal h2{margin:12px 0;font-size:23px}
+.upgrade-cards{margin:20px 0;gap:15px}
+.upgrade-cards button{min-height:130px;gap:13px}
+.upgrade-cards b{font-size:27px}
+.modal .primary{margin-top:22px}
+#boss-hud{top:85px}
+#wave-banner{top:23%}
+}
