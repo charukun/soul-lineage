@@ -4,6 +4,7 @@ import {readFileSync,readdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {resolve} from 'node:path';
 import {manifest,excludedSnapshots} from '../model-manifest.mjs';
 import {WAVES,SKILLS,BLESSINGS,freshStats,waveEnemies,seededRandom,distance,clamp,clock,chooseAutoBlessing} from '../src/domain/rules.js';
 test('five finite waves, exactly one boss, and a reachable end',()=>{assert.equal(WAVES.length,5);assert.equal(WAVES.flatMap((_,i)=>waveEnemies(i+1)).filter(t=>t==='boss').length,1);assert.equal(WAVES.reduce((n,w)=>n+w.count,0),73);assert.throws(()=>waveEnemies(0));});
@@ -33,7 +34,7 @@ test('every acquired original and dependency is pinned, licensed and independent
   assert.equal(bytes.length,file.bytes,file.sourcePath);assert.equal(sha256(bytes),file.sha256,file.sourcePath);assert.equal(gitBlob(bytes),file.gitBlob,file.sourcePath);
  }
  // Independently enumerate each exact Git tree. A guessed minimum count cannot prove completeness.
- const cwd=fileURLToPath(new URL('../../../',import.meta.url));
+ const cwd=resolve(fileURLToPath(new URL('.',import.meta.url)),'../../..');
  assert.deepEqual(Object.keys(audit.excludedSnapshots).sort(),excludedSnapshots.map(s=>s.ref).sort());
  const forbidden=new Set();
  for(const {ref,commit} of excludedSnapshots){
