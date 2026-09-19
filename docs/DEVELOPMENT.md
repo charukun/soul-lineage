@@ -10,17 +10,19 @@ Routine implementation is Astra-driven and optimized to avoid CI churn while pre
 - Prefer composing a coherent tree and moving the branch ref once when practical. Intermediate commits are allowed, but do not stop to wait for validation on superseded heads.
 - Code Mode / V8 checks are preflight only.
 
-## 2. Final reconcile, validate once, merge
+## 2. Validate once, then check impact-aware freshness
 
 When implementation is coherent:
 
-1. Re-read current `develop`.
-2. If `develop` advanced, reconcile it into the same work branch without discarding either compatible intent.
-3. Verify the PR head now includes current `develop`.
-4. Make the commit that becomes the final reconciled branch head include `[astra-validate]` in its commit message. This explicit marker arms `Astra Work Validation` for that exact pushed head.
-5. Wait only for this merge-owning run. Ignore skipped, cancelled, stale, or completed runs for earlier heads.
-6. If the exact head passes and neither the PR head nor `develop` moved, mark Ready and merge immediately in the same task/session.
-7. If the head or `develop` moved, reconcile first and make the new reconciled head another `[astra-validate]` commit. Run one new final-head validation only. Do not re-run superseded heads.
+1. Re-read current `develop`, but do not reconcile solely because its SHA advanced.
+2. Make the final work-head commit include `[astra-validate]`. This arms `Astra Work Validation` for that exact pushed head.
+3. The runner validates only the work delta from its merge-base, not unrelated develop drift.
+4. After validation, the freshness gate re-reads current `develop`.
+5. If current `develop` is already contained in the work head, proceed normally.
+6. Otherwise require a clean Git merge and compare the work delta with the new develop delta using affected apps/packages plus shared build/dependency/control-plane scope.
+7. If the deltas are independent, keep the existing exact-head validation and merge without retesting.
+8. If the merge conflicts or affected scope overlaps, reconcile into the same branch, create a new `[astra-validate]` head, and validate once more.
+9. After freshness succeeds, mark Ready and merge immediately in the same task/session.
 
 Resolve real conflicts semantically. Never choose ours/theirs blindly and never weaken a quality gate.
 
@@ -42,7 +44,7 @@ A violation publishes `astra/fast-dev-contract=error` with a machine-readable re
 
 - Intermediate branch pushes are implementation details, not waiting points.
 - Stale or cancelled validation runs must never be treated as task failure.
-- Required merge evidence is one successful validation of the final reconciled head that will actually be merged, with `astra/fast-dev-contract=success` for routine work.
+- Required merge evidence is one successful validation of the exact PR head, with `astra/fast-dev-contract=success` and `astra/merge-freshness=success`. Independent mergeable develop drift does not invalidate that evidence.
 - The `Astra Work Validation` runner is explicitly armed only when the pushed final-head commit message contains `[astra-validate]`.
 - Explicit browser playtest requests still follow `BROWSER_PLAYTEST_ROUTING.md`; do not substitute static review for browser evidence.
 - `main` / Production retains its existing strict gates.

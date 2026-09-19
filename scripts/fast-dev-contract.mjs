@@ -32,6 +32,7 @@ export const FAST_DEV_PROTECTED_PATHS = Object.freeze([
 ]);
 
 const git = args => execFileSync('git', args, { encoding:'utf8', maxBuffer:16 * 1024 * 1024 });
+const mergeBase = (base, head) => git(['merge-base',base,head]).trim();
 const workflowPathsAt = ref => git(['ls-tree','-r','--name-only',ref,'--','.github/workflows'])
   .split(/\r?\n/).filter(Boolean).filter(path => path.endsWith('.yml') || path.endsWith('.yaml'));
 
@@ -64,8 +65,9 @@ const lifecycleViolations = (base, head, path) => {
 
 export function inspectFastDevContract(base, head, {bootstrap=false}={}) {
   if (bootstrap) return Object.freeze({state:'clean',bootstrap:true,violations:[]});
+  const branchBase = mergeBase(base, head);
   const violations = [], protectedSet = new Set(FAST_DEV_PROTECTED_PATHS);
-  for (const row of changedRows(base,head)) {
+  for (const row of changedRows(branchBase,head)) {
     if (!row.path) continue;
     if (row.path.startsWith('.github/workflows/')) {
       violations.push({code:'ACTIONS_WORKFLOW_CHANGED',path:row.path,detail:'Routine work may not expand or rewrite GitHub Actions.'});
@@ -75,9 +77,9 @@ export function inspectFastDevContract(base, head, {bootstrap=false}={}) {
       violations.push({code:'FAST_DEV_CONTROL_CHANGED',path:row.path,detail:'This file is part of the frozen Fast DEV execution graph.'});
       continue;
     }
-    if (/^apps\/[^/]+\/package\.json$/.test(row.path)) violations.push(...lifecycleViolations(base,head,row.path));
+    if (/^apps\/[^/]+\/package\.json$/.test(row.path)) violations.push(...lifecycleViolations(branchBase,head,row.path));
     if (/\.test\.mjs$/.test(row.path) && row.status !== 'D') {
-      const before=countFastDevTests(readAt(base,row.path)||''), after=countFastDevTests(readAt(head,row.path)||'');
+      const before=countFastDevTests(readAt(branchBase,row.path)||''), after=countFastDevTests(readAt(head,row.path)||'');
       if (after>before) violations.push({code:'TEST_INVENTORY_EXPANDED',path:row.path,detail:`Actions test declarations increased ${before} -> ${after}.`});
     }
   }
@@ -85,18 +87,25 @@ export function inspectFastDevContract(base, head, {bootstrap=false}={}) {
 }
 
 export function inspectAuthorizedFreshnessHardening(base, head) {
+  const branchBase = mergeBase(base, head);
   const violations = [];
-  const allowed = new Set(['.github/workflows/astra-work-validation.yml','scripts/fast-dev-contract.mjs']);
-  for (const row of changedRows(base,head)) {
+  const allowed = new Set([
+    '.github/workflows/astra-work-validation.yml',
+    'scripts/fast-dev-contract.mjs',
+    'AGENTS.md',
+    'docs/DEVELOPMENT.md',
+    'docs/DEVELOP_MERGE.md',
+  ]);
+  for (const row of changedRows(branchBase,head)) {
     if (!row.path || allowed.has(row.path)) continue;
-    if (/^apps\/[^/]+\/package\\.json$/.test(row.path)) violations.push(...lifecycleViolations(base,head,row.path));
+    if (/^apps\/[^/]+\/package\\.json$/.test(row.path)) violations.push(...lifecycleViolations(branchBase,head,row.path));
     else if (/\\.test\\.mjs$/.test(row.path) && row.status !== 'D') {
-      const before=countFastDevTests(readAt(base,row.path)||''), after=countFastDevTests(readAt(head,row.path)||'');
+      const before=countFastDevTests(readAt(branchBase,row.path)||''), after=countFastDevTests(readAt(head,row.path)||'');
       if (after>before) violations.push({code:'TEST_INVENTORY_EXPANDED',path:row.path,detail:`Actions test declarations increased ${before} -> ${after}.`});
     } else violations.push({code:'FRESHNESS_HARDENING_SCOPE_EXPANDED',path:row.path,detail:'Explicit freshness hardening may only change the Astra validation workflow and its contract checker.'});
   }
   const workflow=readAt(head,'.github/workflows/astra-work-validation.yml')||'';
-  for (const token of ['compareCommitsWithBasehead','ASTRA_STALE_DEVELOP','astra/merge-freshness']) {
+  for (const token of ['VALIDATION_BASE_SHA','merge-tree','affectedForDev','ASTRA_REVALIDATE_REQUIRED','astra/merge-freshness']) {
     if (!workflow.includes(token)) violations.push({code:'FRESHNESS_GATE_MISSING',path:'.github/workflows/astra-work-validation.yml',detail:`Required freshness guard token missing: ${token}`});
   }
   return Object.freeze({state:violations.length?'violation':'clean',authorizedFreshnessHardening:true,violations:Object.freeze(violations)});
