@@ -37,14 +37,14 @@
           <h2 id="asset-equipment-title">装備</h2>
           <button id="asset-reset" class="asset-reset" type="button">全解除</button>
         </div>
-        <div id="asset-slot-tabs" class="asset-slot-tabs" role="tablist" aria-label="装備スロット">
+        <div id="asset-slot-tabs" class="asset-slot-tabs review-slot-tabs" style="--review-slot-columns:3" role="tablist" aria-label="装備スロット">
           <button type="button" data-asset-slot="main" role="tab" aria-selected="true"><small>右手</small><strong id="asset-current-main">なし</strong></button>
           <button type="button" data-asset-slot="off" role="tab" aria-selected="false"><small>左手</small><strong id="asset-current-off">なし</strong></button>
           <button type="button" data-asset-slot="back" role="tab" aria-selected="false"><small>背中</small><strong id="asset-current-back">なし</strong></button>
         </div>
 
-        <div class="asset-candidate-head"><strong id="asset-candidate-label">右手</strong></div>
-        <div id="asset-equipment-options" class="asset-equipment-options" role="listbox" aria-label="右手装備の候補"></div>
+        <div class="asset-candidate-head review-selection-current"><strong id="asset-candidate-label">右手</strong></div>
+        <div id="asset-equipment-options" class="asset-equipment-options review-choice-grid" role="listbox" aria-label="右手装備の候補"></div>
         <button id="asset-clear-slot" class="asset-clear-slot" type="button">右手の装備を外す</button>
 
         <div class="asset-native-selects" hidden>
@@ -73,7 +73,7 @@
         <h2 id="asset-model-picker-title">素体を選択</h2>
         <button type="button" class="asset-model-picker-close" data-model-picker-close aria-label="閉じる">×</button>
       </div>
-      <div id="model-options" class="model-options" role="listbox" aria-label="検証モデル"></div>
+      <div id="model-options" class="model-options review-choice-grid" role="listbox" aria-label="検証モデル"></div>
     </section>
   </div>
 </main>

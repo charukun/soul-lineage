@@ -91,7 +91,7 @@ button{touch-action:manipulation}
 .asset-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
 .asset-section-head h2{margin:3px 0 0;font-size:13px}
 .asset-section-head>small{color:#7f8c86;font-size:9px}
-.model-options{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.model-options{gap:5px}
 .model-options button{
   min-width:0;min-height:42px;padding:7px 8px;border:1px solid #35413c;border-radius:10px;
   background:#101715;color:#d6ddd9;font-size:10px;font-weight:700;
@@ -104,7 +104,7 @@ button{touch-action:manipulation}
   min-height:30px;padding:5px 9px;border:1px solid #3b4943;border-radius:9px;
   background:#151d1a;color:#cfd6d2;font-size:9px;font-weight:700;
 }
-.asset-slot-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+
 .asset-slot-tabs>button{
   min-width:0;min-height:54px;display:grid;gap:4px;text-align:left;padding:8px 9px;
   border:1px solid #35413c;border-radius:10px;background:#101715;color:#d6ddd9;
@@ -118,8 +118,7 @@ button{touch-action:manipulation}
 .asset-candidate-head{display:flex;justify-content:space-between;gap:10px;margin-top:2px}
 .asset-candidate-head span{color:#b9c3bd;font-size:9px;font-weight:750}
 .asset-candidate-head small{color:#718078;font-size:8px}
-.asset-equipment-options{
-  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding-bottom:2px;
+.asset-equipment-options{gap:5px;padding-bottom:2px;
 }
 .asset-equipment-options button{
   min-width:0;min-height:46px;padding:6px 7px;border:1px solid #35413c;border-radius:10px;
