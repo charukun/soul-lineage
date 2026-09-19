@@ -36,7 +36,7 @@ Fast DEV is intentionally bounded. Routine feature/fix work must not make GitHub
 
 Before install scripts, changed focused tests, or affected builds, `Astra Work Validation` runs the Fast DEV contract checker sourced from current `develop`. It rejects branch-authored expansion of the Actions workflow/control path, Fast DEV lifecycle commands, or the repository test inventory. `npm ci --ignore-scripts` prevents branch lifecycle hooks from running during dependency installation.
 
-A violation publishes `astra/fast-dev-contract=error` with a machine-readable receipt and skips the remaining validation work. This is deliberately recoverable and is not a GitHub branch-protection dead end: the same worker repairs the same branch / PR, makes a new final head, and re-validates. Only an explicit user request to change the Fast DEV contract itself can authorize merging a contract-changing task.
+A violation publishes `astra/fast-dev-contract=error` with a machine-readable receipt and skips the remaining validation work. This is deliberately recoverable and is not a GitHub branch-protection dead end: the same worker repairs the same branch / PR, makes a new final head, and re-validates. Only an explicit user request to change the Fast DEV contract itself can authorize merging a contract-changing task. For an explicit workflow reduction, the final commit also includes `[astra-contract-change]`; the runner then verifies that the Actions surface only contracts to the canonical allowlist and does not add workflows or tests.
 
 ## Validation boundary
 

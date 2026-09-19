@@ -64,6 +64,10 @@ test('validator uses trusted current-develop helpers for DEV while preserving re
   assert.match(astra,/git show origin\/develop:scripts\/fast-dev-contract\.mjs/);
   assert.match(astra,/npm ci --ignore-scripts/);
   assert.match(astra,/astra\/fast-dev-contract/);
+  assert.match(astra,/\[astra-contract-change\]/);
+  assert.match(contract,/FAST_DEV_WORKFLOW_ALLOWLIST/);
+  assert.match(contract,/inspectAuthorizedFastDevContraction/);
+  assert.match(contract,/ACTIONS_WORKFLOW_COUNT_NOT_REDUCED/);
 
 });
 

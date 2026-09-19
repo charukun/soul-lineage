@@ -4,6 +4,14 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 
 export const FAST_DEV_LIFECYCLE_KEYS = Object.freeze(['predev','prebuild','build','postbuild']);
+export const FAST_DEV_WORKFLOW_ALLOWLIST = Object.freeze([
+  '.github/workflows/astra-work-validation.yml',
+  '.github/workflows/ci.yml',
+  '.github/workflows/deploy.yml',
+  '.github/workflows/dev-app-publish.yml',
+  '.github/workflows/distribution-artifact.yml',
+]);
+
 export const FAST_DEV_PROTECTED_PATHS = Object.freeze([
   '.github/workflows/astra-work-validation.yml',
   'scripts/fast-dev-contract.mjs',
@@ -24,6 +32,9 @@ export const FAST_DEV_PROTECTED_PATHS = Object.freeze([
 ]);
 
 const git = args => execFileSync('git', args, { encoding:'utf8', maxBuffer:16 * 1024 * 1024 });
+const workflowPathsAt = ref => git(['ls-tree','-r','--name-only',ref,'--','.github/workflows'])
+  .split(/\r?\n/).filter(Boolean).filter(path => path.endsWith('.yml') || path.endsWith('.yaml'));
+
 const changedRows = (base, head) => git(['diff','--name-status','--no-renames',base,head])
   .split(/\r?\n/).filter(Boolean).map(line => {
     const [status, ...rest] = line.split('\t');
@@ -73,10 +84,33 @@ export function inspectFastDevContract(base, head, {bootstrap=false}={}) {
   return Object.freeze({state:violations.length?'violation':'clean',bootstrap:false,violations:Object.freeze(violations)});
 }
 
+export function inspectAuthorizedFastDevContraction(base, head) {
+  const violations = [];
+  const before = workflowPathsAt(base);
+  const after = workflowPathsAt(head);
+  const allowed = new Set(FAST_DEV_WORKFLOW_ALLOWLIST);
+  const added = after.filter(path => !before.includes(path));
+  const unexpected = after.filter(path => !allowed.has(path));
+  const missing = FAST_DEV_WORKFLOW_ALLOWLIST.filter(path => !after.includes(path));
+  if (added.length) violations.push({code:'ACTIONS_WORKFLOW_ADDED',path:added.join(', '),detail:'Authorized Fast DEV cleanup may contract the workflow surface but may not add workflows.'});
+  if (unexpected.length) violations.push({code:'ACTIONS_WORKFLOW_SURFACE_NOT_PRUNED',path:unexpected.join(', '),detail:'Only the canonical Fast DEV, Production, and explicit distribution workflows may remain.'});
+  if (missing.length) violations.push({code:'REQUIRED_WORKFLOW_REMOVED',path:missing.join(', '),detail:'A required Fast DEV, Production, or explicit distribution workflow was removed.'});
+  if (after.length >= before.length) violations.push({code:'ACTIONS_WORKFLOW_COUNT_NOT_REDUCED',path:'.github/workflows',detail:`Workflow count must shrink for an authorized contraction (${before.length} -> ${after.length}).`});
+  for (const row of changedRows(base,head)) {
+    if (!row.path) continue;
+    if (/^apps\/[^/]+\/package\.json$/.test(row.path)) violations.push(...lifecycleViolations(base,head,row.path));
+    if (/\.test\.mjs$/.test(row.path) && row.status !== 'D') {
+      const beforeCount=countFastDevTests(readAt(base,row.path)||''), afterCount=countFastDevTests(readAt(head,row.path)||'');
+      if (afterCount>beforeCount) violations.push({code:'TEST_INVENTORY_EXPANDED',path:row.path,detail:`Actions test declarations increased ${beforeCount} -> ${afterCount}.`});
+    }
+  }
+  return Object.freeze({state:violations.length?'violation':'clean',authorizedContraction:true,beforeWorkflows:Object.freeze(before),afterWorkflows:Object.freeze(after),violations:Object.freeze(violations)});
+}
+
 function writeSummary(receipt) {
   if (!process.env.GITHUB_STEP_SUMMARY) return;
   const lines=receipt.state==='clean'
-    ? ['## Fast DEV contract: clean',receipt.bootstrap?'Bootstrap run: current develop did not contain the trusted checker yet.':'No Actions execution expansion detected.']
+    ? ['## Fast DEV contract: clean',receipt.authorizedContraction?'Explicitly authorized workflow contraction passed.':receipt.bootstrap?'Bootstrap run: current develop did not contain the trusted checker yet.':'No Actions execution expansion detected.']
     : ['## Fast DEV contract: violation','The remaining focused tests/builds were intentionally skipped. Repair this same branch / PR and validate a new final head.','',...receipt.violations.map(row=>`- **${row.code}** \`${row.path}\` — ${row.detail}`)];
   appendFileSync(process.env.GITHUB_STEP_SUMMARY,lines.join('\n')+'\n');
 }
@@ -85,7 +119,9 @@ const isMain=process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.ar
 if(isMain){
   const base=process.argv[2],head=process.argv[3]||'HEAD';
   if(!base)throw new Error('Usage: node fast-dev-contract.mjs <base> <head> [--bootstrap]');
-  const receipt=inspectFastDevContract(base,head,{bootstrap:process.argv.includes('--bootstrap')});
+  const receipt=process.argv.includes('--authorized-contraction')
+    ? inspectAuthorizedFastDevContraction(base,head)
+    : inspectFastDevContract(base,head,{bootstrap:process.argv.includes('--bootstrap')});
   console.log(JSON.stringify(receipt,null,2));
   writeSummary(receipt);
   if(receipt.state!=='clean')process.exitCode=42;
