@@ -107,7 +107,7 @@ test('character model review exposes review axes and preserves the full selectab
   assert.doesNotMatch(characterGridCss, /grid-auto-flow:column/);
   assert.match(characterGrid, /make\('select', 'character-model-list'\)/);
   assert.match(characterGridCss, /CHARACTER PROBE/);
-  assert.match(characterGridCss, /minmax\(0,\s*56fr\).*minmax\(0,\s*44fr\)/);
+  assert.match(characterGridCss, /minmax\(0,\s*52fr\).*minmax\(0,\s*48fr\)/);
   assert.match(characterGrid, /function optionMark\(group, option\)/);
   assert.match(characterGrid, /const DETAIL_GROUPS = GROUPS\.filter/);
   assert.match(characterGrid, /const REVIEW_CRITERIA = Object\.freeze/);
