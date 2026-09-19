@@ -72,7 +72,7 @@ export function reviewBattleMultiHitFrame(actor,{encounterMode='duel'}={}){
   return Object.freeze({active,attack,phase,progress,count:active?3:1,recoil:active?(phase==='kyu'?.42:phase==='ha'?.3:.24):0,spread:full?1:.72});
 }
 
-export function reviewBattleCameraFrame(core,{follow=true,system='rinne',encounterMode='duel'}={}){
+export function reviewBattleCameraFrame(core,{follow=true,system='rinne',encounterMode='duel',wide=false}={}){
   if(!follow)return FIXED_CAMERA;
   const hero=core?.hero,enemy=core?.enemy;
   if(!hero||!enemy)return FIXED_CAMERA;
@@ -88,7 +88,7 @@ export function reviewBattleCameraFrame(core,{follow=true,system='rinne',encount
     );
   }
   const style=system==='demon'?'demon':'rinne';
-  const frame=combatCameraFrame({player,threats,style,wide:false});
+  const frame=combatCameraFrame({player,threats,style,wide:Boolean(wide)});
   if(!frame)return FIXED_CAMERA;
   const position=combatCameraPosition(frame);
   return Object.freeze({

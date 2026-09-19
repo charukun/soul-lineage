@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {normalizeReviewBattlePhase,reviewBattleCameraFrame,reviewBattleLoopDue,reviewBattlePhaseState,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from '../src/review-battle-state.js';
 import {REVIEW_INSPIRATION_TIMELINE,pickReviewInspiration,reviewInspirationCandidates,reviewInspirationSequenceFrame} from '../src/review-battle-inspiration.js';
+import {combatCameraFrame,combatCameraPosition} from '@soul/rendering/combat-camera-frame';
 
 test('phase state follows the live Tidebreak slot and clears between attacks',()=>{
   const active=reviewBattlePhaseState({hero:{slot:'ha',skill:'崩し'},enemy:{slot:'jo'}});
@@ -29,10 +30,14 @@ test('loop waits for the configured result hold before restarting',()=>{
 test('review camera uses the same shared Rinne and Demon combat framing contracts',()=>{
   const core={hero:{x:-2,z:1},enemy:{x:2,z:3}};
   const rinne=reviewBattleCameraFrame(core,{follow:true,system:'rinne',encounterMode:'duel'});
-  const demon=reviewBattleCameraFrame(core,{follow:true,system:'demon',encounterMode:'duel'});
+  const demon=reviewBattleCameraFrame(core,{follow:true,system:'demon',encounterMode:'duel',wide:true});
   assert.equal(rinne.follow,true);assert.equal(rinne.system,'rinne');assert.equal(rinne.count,1);
   assert.equal(demon.follow,true);assert.equal(demon.system,'demon');assert.equal(demon.count,1);
   assert.notDeepEqual(rinne.position,demon.position);
+  const directRinne=combatCameraFrame({player:{x:-2.7,z:1.15},threats:[{id:'enemy',x:2.7,z:3.45,dead:false}],style:'rinne',wide:false});
+  assert.deepEqual(rinne.position,combatCameraPosition(directRinne));assert.deepEqual(rinne.look,directRinne.look);
+  const directDemon=combatCameraFrame({player:{x:-2.7,z:1.15},threats:[{id:'enemy',x:2.7,z:3.45,dead:false}],style:'demon',wide:true});
+  assert.deepEqual(demon.position,combatCameraPosition(directDemon));assert.deepEqual(demon.look,directDemon.look);
   const melee=reviewBattleCameraFrame(core,{follow:true,system:'rinne',encounterMode:'melee'});
   assert.equal(melee.count,3);assert.ok(melee.separation>=rinne.separation);
   const fixed=reviewBattleCameraFrame(core,{follow:false});
@@ -54,6 +59,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(reviewBattleMultiHitFrame({attack:'slash',progress:.5,slot:'ha'},{encounterMode:'duel'}).active,false);
   const stageSource=readFileSync(new URL('../src/review-battle-stage.js',import.meta.url),'utf8');
   const battleSource=readFileSync(new URL('../src/review-battle.js',import.meta.url),'utf8');
+  const battleHtml=readFileSync(new URL('../review-battle.html',import.meta.url),'utf8');
   const monsterSource=readFileSync(new URL('../src/review-battle-monster.js',import.meta.url),'utf8');
   assert.match(battleSource,/enemyModel='goblin-runt'/);
   assert.match(stageSource,/loadReviewMonsterModel\('goblin-runt'\)/);
@@ -77,6 +83,9 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.execute+.01).stage,'execute');
   assert.match(battleSource,/learnedTechniqueIds\.add\(technique\.id\)/);
   assert.match(battleSource,/learnedSlots\[phase\]=technique/);
-  assert.match(stageSource,/heroComposition='lower-left'/);
+  assert.match(stageSource,/phaseAnchor='feet'/);
+  assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
+  assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);assert.match(battleHtml,/id="battle-technique-loadout" class="technique-loadout"/);
+  assert.match(battleHtml,/battle-phase-wave/);assert.match(battleHtml,/battle-action-drift/);
   assert.match(stageSource,/onInspirationCue\('spark'/);
 });
