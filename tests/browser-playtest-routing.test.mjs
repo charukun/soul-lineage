@@ -63,7 +63,7 @@ test('Rinne closes the probe context before the independent full playthrough', a
   assert.match(source, /if \(app !== 'rinne'\) await finishProbe\(\);/);
 });
 
-test('no-code develop playtest reuses the existing full verification route', async () => {
+test('no-code develop playtest reuses the existing full verification route', {timeout:240000}, async () => {
   const [deploy, verify, targets] = await Promise.all([
     read('.github/workflows/deploy.yml'),
     read('scripts/verify-browser.mjs'),
@@ -74,4 +74,37 @@ test('no-code develop playtest reuses the existing full verification route', asy
   assert.match(deploy, /node scripts\/verify-browser\.mjs/);
   assert.match(verify, /full:process\.env\.INTEGRATION_FULL === 'true'/);
   assert.match(targets, /const selected=available\.filter\(e=>full\|\|changed\.includes\(e\.path\)\)/);
+
+  const {chromium}=await import('@playwright/test');
+  const {spawn,execFileSync}=await import('node:child_process');
+  const {resolve}=await import('node:path');
+  const root=resolve(new URL('..',import.meta.url).pathname);
+  execFileSync(process.execPath,['scripts/prepare-kaykit-foundation.mjs','character-studio'],{cwd:root,stdio:'inherit'});
+  const vite=resolve(root,'node_modules/vite/bin/vite.js');
+  const start=(cwd,port)=>spawn(process.execPath,[vite,'--host','127.0.0.1','--port',String(port),'--strictPort'],{cwd,stdio:'ignore',env:{...process.env,APP_ENV:'dev'}});
+  const character=start(resolve(root,'apps/character-studio'),5277),rinne=start(resolve(root,'apps/rinne'),5278);
+  const wait=async url=>{for(let i=0;i<100;i++){try{if((await fetch(url)).ok)return}catch{}await new Promise(r=>setTimeout(r,250))}throw Error('preview timeout '+url)};
+  let browser;
+  try{
+    await Promise.all([wait('http://127.0.0.1:5277/'),wait('http://127.0.0.1:5278/review-motion')]);
+    const chrome=execFileSync('bash',['-lc','command -v google-chrome || command -v google-chrome-stable || command -v chromium'],{encoding:'utf8'}).trim();
+    browser=await chromium.launch({executablePath:chrome,headless:true,args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader','--no-sandbox']});
+    const check=async({url,ready,selector})=>{
+      const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage();
+      await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});await page.waitForFunction(ready,null,{timeout:120000});
+      const rows=[];
+      for(const [width,height] of [[390,844],[844,390],[390,844]]){
+        await page.setViewportSize({width,height});await page.waitForTimeout(220);
+        const row=await page.evaluate(sel=>{const canvas=document.querySelector(sel),box=canvas.getBoundingClientRect(),gl=canvas.getContext('webgl2')||canvas.getContext('webgl'),back=document.querySelector('.review-surface__back[data-review-back]');return{viewport:[innerWidth,innerHeight],rect:[box.x,box.y,box.width,box.height],buffer:gl?[gl.drawingBufferWidth,gl.drawingBufferHeight]:null,back:back?.textContent||''}},selector);
+        assert.ok(row.rect[2]>1&&row.rect[3]>1,JSON.stringify(row));assert.ok(row.buffer?.[0]>1&&row.buffer?.[1]>1,JSON.stringify(row));assert.equal(row.back,'‹ 戻る');rows.push(row);
+      }
+      await context.close();return rows;
+    };
+    const characterRows=await check({url:'http://127.0.0.1:5277/',ready:()=>window.characterStudio?.review?.ready===true&&document.body.classList.contains('character-grid-ready'),selector:'#stage'});
+    const motionRows=await check({url:'http://127.0.0.1:5278/review-motion',ready:()=>Number(document.querySelector('#motion-load')?.value)===1,selector:'#motion-stage'});
+    console.log('REVIEW_RESIZE_EVIDENCE',JSON.stringify({character:characterRows,motion:motionRows}));
+  }finally{
+    await browser?.close().catch(()=>{});
+    for(const p of [character,rinne])if(p.exitCode===null)p.kill('SIGTERM');
+  }
 });
