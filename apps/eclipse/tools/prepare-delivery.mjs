@@ -5,7 +5,7 @@ import {resolve,dirname} from 'node:path';
 import {tmpdir} from 'node:os';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {additionalAssets} from '../additional-assets.mjs';
-const root=fileURLToPath(new URL('..',import.meta.url)),out=resolve(root,'public/models');
+const root=dirname(dirname(fileURLToPath(import.meta.url))),out=resolve(root,'public/models');
 const sha256=b=>createHash('sha256').update(b).digest('hex');
 const gitBlob=b=>createHash('sha1').update(`blob ${b.length}\0`).update(b).digest('hex');
 const manifest=JSON.parse(await readFile(resolve(out,'manifest.json'),'utf8')).filter(m=>!additionalAssets.some(a=>a.id===m.id));
