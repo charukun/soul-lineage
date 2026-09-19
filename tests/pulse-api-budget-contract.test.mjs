@@ -10,6 +10,7 @@ test('PULSE keeps 30-minute reconciliation but never uses tokenless GitHub acces
   const dev = text('.github/workflows/dev-app-publish.yml');
   const notify = text('scripts/notify-fast-dev.mjs');
   const pulseConfig = text('wrangler.dev.pulse.jsonc');
+  const fallback = text('ops-board/fallback-state.mjs');
   assert.match(wrangler, /"crons": \["\*\/30 \* \* \* \*"\]/);
   assert.doesNotMatch(wrangler, /"\*\/5 \* \* \* \*"/);
   assert.match(worker, /x-ops-refresh-reason/);
@@ -36,6 +37,8 @@ test('PULSE keeps 30-minute reconciliation but never uses tokenless GitHub acces
   assert.match(worker, /auth===github/);
   assert.match(pulseConfig, /"keep_vars": true/);
   assert.match(pulseConfig, /"crons": \["\*\/30 \* \* \* \*"\]/);
+  assert.doesNotMatch(fallback, /deployment-manifest|PAGES_ROOT|publishedFallback/);
+  assert.match(fallback, /buildApplications/);
 });
 
 test('PULSE GitHub client requires authentication and records request-budget observability', () => {

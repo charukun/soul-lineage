@@ -44,6 +44,7 @@ async function main(){
     }catch(error){
       pulseRefresh='failed';
       console.log(`::warning::PULSE refresh after DEV publication failed: ${error.message}`);
+      if(apps.includes('pulse')) throw error;
     }
   }
   if(process.env.GITHUB_OUTPUT){

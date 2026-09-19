@@ -1,5 +1,4 @@
-import { PAGES_ROOT } from './model.mjs';
-import { publishedFallback } from './published-fallback.mjs';
+import { buildApplications } from './applications.mjs';
 
 function githubFailure(error) {
   const diagnostic = error?.githubDiagnostic;
@@ -20,21 +19,39 @@ function githubFailure(error) {
   };
 }
 
-// A partial manifest refresh must not claim that GitHub history has also been refreshed.
-export async function degradedState(previous, error, { source = 'manual', now = new Date().toISOString(), fetchImpl = fetch } = {}) {
-  let state;
-  try {
-    const url = new URL('deployment-manifest.json', PAGES_ROOT);
-    url.searchParams.set('ops-fallback', now);
-    const response = await fetchImpl(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
-    if (!response.ok) throw new Error(`公開manifest: HTTP ${response.status}`);
-    state = publishedFallback(previous, await response.json(), { now, error, source });
-    state.manifestSyncError = null;
-  } catch (manifestError) {
-    if (!previous) throw error;
-    state = { ...previous, syncStatus: 'degraded', syncError: String(error?.message || '取得失敗'),
-      manifestSyncError: String(manifestError?.message || '公開情報の取得失敗'), lastAttemptAt: now, refreshReason: source };
-  }
-  return { ...state, schemaVersion: 2, githubFailure: githubFailure(error),
-    nextRetryAt: error?.retryAt ? new Date(error.retryAt).toISOString() : null };
+export async function degradedState(previous, error, { source='manual', now=new Date().toISOString() }={}) {
+  const base = previous || {
+    repository:'charukun/soul-lineage',
+    schemaVersion:2,
+    generatedAt:null,
+    pullRequests:{ normal:[], visualReview:[], total:0, truncated:true },
+    applications:buildApplications({}, [], [], { developSha:null, statuses:[] }),
+    environments:[],
+    environmentDiff:{ count:null, label:'最新状態を未確認', pulls:[] },
+    integration:{ phase:'reconcile-wait', tone:'info', queue:[] },
+    recentActionFailures:[],
+    actionHistory:[],
+    alerts:[],
+    history:{ schema:1, snapshots:[], publications:[] },
+  };
+  return {
+    ...base,
+    schemaVersion:2,
+    repository:'charukun/soul-lineage',
+    syncStatus:'degraded',
+    syncError:String(error?.message || error || 'GitHub状態を取得できません'),
+    syncSource:'PULSE last-known-good / catalog fallback',
+    lastAttemptAt:now,
+    refreshReason:source,
+    githubFailure:githubFailure(error),
+    nextRetryAt:error?.retryAt ? new Date(error.retryAt).toISOString() : null,
+    applications:Array.isArray(base.applications) && base.applications.length
+      ? base.applications
+      : buildApplications({}, [], [], { developSha:null, statuses:[] }),
+    alerts:[
+      { type:'github-sync-degraded', tone:'warning', title:'最新状態を未確認',
+        detail:String(error?.message || error || 'GitHub状態を取得できません') },
+      ...(base.alerts || []).filter(alert => alert.type !== 'github-sync-degraded'),
+    ],
+  };
 }
