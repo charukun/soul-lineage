@@ -88,9 +88,21 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     frameButton.title = 'モデル全体を表示';
   }
   const cameraButtons = [...doc.querySelectorAll('.stage-actions [data-camera="front"],.stage-actions [data-camera="side"],.stage-actions [data-camera="back"],.stage-actions [data-camera="face"]')];
-  for (const button of cameraButtons) cameraDock.append(button);
-  if (frameButton) cameraDock.append(frameButton);
+  for (const button of cameraButtons) {
+    button.hidden = false;
+    button.removeAttribute('aria-hidden');
+    button.classList.remove('simple-review-technical');
+    cameraDock.append(button);
+  }
+  if (frameButton) {
+    frameButton.hidden = false;
+    frameButton.removeAttribute('aria-hidden');
+    frameButton.classList.remove('simple-review-technical');
+    cameraDock.append(frameButton);
+  }
   if (canvasWrap && cameraDock.children.length) canvasWrap.append(cameraDock);
+  const stageStatus = doc.querySelector('.stage-status');
+  if (canvasWrap && stageStatus && !canvasWrap.contains(stageStatus)) canvasWrap.append(stageStatus);
   if (actions) actions.hidden = true;
   if (subjectRow && stageHead && !stageHead.contains(subjectRow)) {
     subjectRow.classList.add('character-review-pager');

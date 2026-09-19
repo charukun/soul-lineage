@@ -9,7 +9,7 @@ import {
   reviewSkeletonEquipmentForSlot,
 } from '@soul/assets';
 import './review-asset-library.css';
-import {createRuntimeThumbnail,renderRuntimeThumbnail} from './review-runtime-thumbnail.js';
+import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
 mountRinneReviewShell('equipment');
 
 const q = selector => document.querySelector(selector);
@@ -188,7 +188,7 @@ function renderEquipmentInspector(){
   const candidates=[{id:'',label:'なし'},...reviewSkeletonEquipmentForSlot(activeAssetSlot)];
   list.replaceChildren(...candidates.map(item=>{
     const button=document.createElement('button');
-    button.type='button';button.classList.add('review-choice-card');button.dataset.equipmentId=item.id;const text=document.createElement('span');text.textContent=item.label,thumbnail=createRuntimeThumbnail(item.label);button.append(thumbnail,text);if(item.id)void loader.loadAsync(reviewEquipmentUrl(item)).then(gltf=>renderRuntimeThumbnail(thumbnail,gltf.scene));
+    button.type='button';button.classList.add('review-choice-card');button.dataset.equipmentId=item.id;const text=document.createElement('span');text.textContent=item.label,thumbnail=createRuntimeThumbnail(item.label);button.append(thumbnail,text);if(item.id)scheduleRuntimeThumbnail(thumbnail,`equipment:${item.id}`,async()=> (await loader.loadAsync(reviewEquipmentUrl(item))).scene);
     const selected=(selection[activeAssetSlot]||'')===item.id;
     button.setAttribute('role','option');button.setAttribute('aria-selected',String(selected));
     button.addEventListener('click',()=>{
@@ -223,7 +223,7 @@ function openModelPicker(){setModelPickerOpen(true);}
 function closeModelPicker(restoreFocus=false){setModelPickerOpen(false,{restoreFocus});}
 function populate() {
   const count=q('#asset-model-count');if(count)count.textContent=`MODELS ${REVIEW_SKELETON_MODELS.length}`;
-  q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.model=model.id;button.setAttribute('role','option');const text=document.createElement('span');text.textContent=model.label,thumbnail=createRuntimeThumbnail(model.label);button.append(thumbnail,text);void loader.loadAsync(reviewModelUrl(model)).then(gltf=>renderRuntimeThumbnail(thumbnail,gltf.scene));button.addEventListener('click',()=>{closeModelPicker();loadModel(model.id).catch(error=>status(error.message,true));});return button;}));
+  q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.model=model.id;button.setAttribute('role','option');const text=document.createElement('span');text.textContent=model.label,thumbnail=createRuntimeThumbnail(model.label);button.append(thumbnail,text);scheduleRuntimeThumbnail(thumbnail,`asset-model:${model.id}`,async()=> (await loader.loadAsync(reviewModelUrl(model))).scene);button.addEventListener('click',()=>{closeModelPicker();loadModel(model.id).catch(error=>status(error.message,true));});return button;}));
   for(const slot of ['main','off','back']){
     const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>status('装備プレビューを更新しました。')).catch(error=>status(error.message,true)));
   }
@@ -245,4 +245,4 @@ function populate() {
 const observer=new ResizeObserver(()=>{const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();});observer.observe(canvas);
 let last=performance.now();function frame(now){const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;controls.update();mixer?.update(dt);renderer.render(scene,camera);frameId=requestAnimationFrame(frame);}frameId=requestAnimationFrame(frame);
 populate();loadModel(selection.model).catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);observer.disconnect();controls.dispose();for(const root of mounted.values())disposeRoot(root);disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{clearRuntimeThumbnailQueue();cancelAnimationFrame(frameId);observer.disconnect();controls.dispose();for(const root of mounted.values())disposeRoot(root);disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});

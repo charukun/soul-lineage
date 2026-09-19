@@ -100,7 +100,7 @@ function render() {
     }));
   }
   for (const b of document.querySelectorAll('[data-individual]')) b.setAttribute('aria-pressed', String(Number(b.dataset.individual) === settings.selected));
-  if (review.ready && !wasReady) { wasReady = true; if (currentTab === 'parts') aimForSlot(); }
+  if (review.ready && !wasReady) wasReady = true;
 }
 function renderQuality() {
   const {review, workspace:w}=studio,q=w.quality,record=w.selected,identity=w.getIdentity();
