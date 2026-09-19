@@ -8,54 +8,42 @@ const css = readFileSync(new URL('../ops-board/public/rapid-ui.css', import.meta
 const polish = readFileSync(new URL('../ops-board/public/review-polish.css', import.meta.url), 'utf8');
 const browserCheck = readFileSync(new URL('../ops-board/browser-check.mjs', import.meta.url), 'utf8');
 
-test('PULSE exposes the contract-defined three operator roles first on mobile', () => {
+test('PULSE first glance follows ACTIVE, APPS, ISSUES, RECENT', () => {
   assert.deepEqual(PULSE_FIRST_GLANCE, [
-    PULSE_ROLE.HUMAN_ACTION,
     PULSE_ROLE.DEVELOPMENT,
     PULSE_ROLE.DEV_PUBLICATION,
+    PULSE_ROLE.HUMAN_ACTION,
+    PULSE_ROLE.RECENT,
   ]);
-  const positions = PULSE_FIRST_GLANCE.map(role => html.indexOf(`data-pulse-role="${role}"`));
+  const positions = PULSE_FIRST_GLANCE.map(role => html.indexOf('data-pulse-role="' + role + '"'));
   assert.ok(positions.every(position => position >= 0));
-  assert.ok(positions[0] < positions[1] && positions[1] < positions[2]);
+  assert.ok(positions.every((position, index) => index === 0 || positions[index - 1] < position));
+  for (const label of ['ACTIVE', 'APPS', 'ISSUES', 'RECENT']) assert.match(html, new RegExp('>' + label + '<'));
 });
 
-test('operator overview is three equal glance cards and expands DEV details only when needed', () => {
-  assert.match(css, /\.pulse-overview\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/s);
-  assert.match(css, /\.overview-publication-card\.is-expanded\s*\{[^}]*grid-column:1\/-1/s);
-  assert.match(css, /\.overview-publication-card\.is-expanded \.overview-publication-grid\s*\{[^}]*display:grid/s);
+test('rapid control tower keeps the four sections compact on phone widths', () => {
+  assert.match(css, /\.rapid-board\s*\{[^}]*display:grid/s);
+  assert.match(css, /\.rapid-app-grid\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/s);
+  assert.match(css, /\.rapid-lower-grid\s*\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/s);
+  assert.match(browserCheck, /first viewport exposes ACTIVE, APPS, ISSUES and RECENT/);
 });
 
-test('overview values stay readable without ellipsis in the compact cards', () => {
-  const strongRule = css.match(/\.overview-card strong,[\s\S]*?\{([^}]*)\}/s)?.[1] || '';
-  const detailRule = css.match(/\.overview-detail,[\s\S]*?\{([^}]*)\}/s)?.[1] || '';
-  assert.doesNotMatch(strongRule, /text-overflow:\s*ellipsis/);
-  assert.doesNotMatch(detailRule, /text-overflow:\s*ellipsis/);
+test('legacy operational diagnostics remain behind a collapsed detail disclosure', () => {
+  const status = html.indexOf('id="status-section"');
+  const tower = html.indexOf('id="control-tower"');
+  const tasks = html.indexOf('id="tasks-section"');
+  assert.ok(status >= 0 && status < tower && tower < tasks);
+  assert.doesNotMatch(html, /<details id="status-section"[^>]*open/);
+  assert.match(browserCheck, /#status-section > summary/);
 });
 
-test('app cards use two columns on narrow screens and return to three on wider screens', () => {
+test('app cards use two columns on narrow detailed view and return to three on wider screens', () => {
   assert.match(polish, /\.app-grid\s*\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/s);
   assert.match(polish, /@media\(min-width:520px\)[^{]*\{[^}]*\.app-grid\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/s);
 });
 
-test('focused browser verification uses the same 520px app-grid contract', () => {
+test('focused browser verification uses the same 520px detailed app-grid contract', () => {
   assert.match(browserCheck, /for \(const width of \[320,390,519,520,673\]\)/);
   assert.match(browserCheck, /const expectedColumns = width < 520 \? 2 : 3;/);
   assert.match(browserCheck, /metrics\.grids\.every\(n => n === expectedColumns\)/);
-  assert.doesNotMatch(browserCheck, /metrics\.grids\.every\(n => n === 3\)/);
-});
-
-
-test('operational control detail is collapsed behind the primary action decision', () => {
-  const action = html.indexOf('id="control-headline"');
-  const next = html.indexOf('id="control-next"');
-  const disclosure = html.indexOf('class="control-details nested-disclosure"');
-  const flow = html.indexOf('id="control-flow"');
-  assert.ok(action >= 0 && action < next && next < disclosure && disclosure < flow);
-  assert.doesNotMatch(html, /<details class="control-details nested-disclosure"[^>]*open/);
-});
-
-test('clarity pass keeps the operator surface compact on phone widths', () => {
-  assert.match(css, /@media\(max-width:519px\)[\s\S]*\.pulse-overview\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(css, /\.overview-publication-row\s*\{[^}]*grid-template-columns:48px minmax\(0,1fr\)/s);
-  assert.match(css, /\.control-details\s*\{[^}]*margin-top:5px/s);
 });
