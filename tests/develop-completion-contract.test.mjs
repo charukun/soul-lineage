@@ -16,7 +16,7 @@ import { validateActiveExperiments } from '../.autonomous/lib/validation.mjs';
 // Update these IDs for each requested iteration. This is meaningful test data,
 // selecting the exact experiment whose evidence and merge contract must hold.
 const activeExperiments = [
-  { game: 'village', id: 'village-host-clock-invalid-start-20260920' },
+  { game: 'kuumetsu', id: 'kuumetsu-route-fail-closed-20260920' },
 ];
 const root = fileURLToPath(new URL('../', import.meta.url));
 
