@@ -83,7 +83,7 @@ function activateInsight(technique,replay=false,phase='ha'){
   if(!technique||inspirationSequenceActive)return;
   inspirationSequenceActive=true;showReviewSign(technique);
   if(!replay){learnedTechniqueIds.add(technique.id);learnedSlots[phase]=technique;renderLearnedSlots();}
-  setTimeout(()=>{void ensureBattleStage().then(stage=>stage.triggerInspiration({id:technique.id,name:technique.name,steps:technique.steps,phase,duration:REVIEW_INSPIRATION_TIMELINE.end}));},760);
+  setTimeout(()=>{void ensureBattleStage().then(stage=>stage.triggerInspiration({id:technique.id,name:technique.name,steps:technique.steps,phase,duration:REVIEW_INSPIRATION_TIMELINE.end})).catch(()=>{inspirationSequenceActive=false;});},760);
   if(!replay){insightHistory.unshift({technique,name:technique.name,phase,weapon:selectedWeapon,weaponLabel:weaponSelect.selectedOptions[0]?.textContent||selectedWeapon});if(insightHistory.length>8)insightHistory.length=8;renderInsightHistory();}
 }
 function maybeInspire(phase){
