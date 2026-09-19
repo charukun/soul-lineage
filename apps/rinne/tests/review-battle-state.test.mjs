@@ -24,17 +24,15 @@ test('loop waits for the configured result hold before restarting',()=>{
   assert.equal(reviewBattleLoopDue({loopEnabled:false,playing:true,finished:true,finishedAt:1000,now:2500}),false);
 });
 
-test('follow camera keeps the hero as the visual anchor and pulls farther back',()=>{
+test('review combat camera composes the same Rinne and Demon framing contracts',()=>{
   const core={hero:{x:-2,z:1},enemy:{x:2,z:3}};
-  const follow=reviewBattleCameraFrame(core,{follow:true});
+  const rinneFrame=()=>({look:{x:-1,y:1.08,z:2},offset:{x:8,y:8,z:12},count:1,spread:2});
+  const demonFrame=()=>({camera:{x:7,y:10,z:15},look:{x:0,y:.75,z:2},count:1,spread:3});
+  const follow=reviewBattleCameraFrame(core,{follow:true,rinneFrame,demonFrame});
   const heroWorld={x:-2*1.35,z:1*1.15},enemyWorld={x:2*1.35,z:3*1.15};
   assert.equal(follow.follow,true);
-  assert.ok(follow.look.x<0);
-  assert.ok(Math.abs(follow.look.x-heroWorld.x)<Math.abs(follow.look.x-enemyWorld.x));
-  assert.ok(Math.abs(follow.look.z-heroWorld.z)<Math.abs(follow.look.z-enemyWorld.z));
-  assert.ok(follow.separation>5);
-  assert.ok(follow.position.z-follow.look.z>=10);
-  assert.ok(follow.position.y>=5.2);
+  assert.equal(follow.shared,true);assert.equal(follow.look.x,-.5);assert.equal(follow.position.x,7);assert.equal(follow.position.y,9.54);assert.equal(follow.separation,3);
+  const melee=reviewBattleCameraFrame(core,{follow:true,encounterMode:'melee',rinneFrame:({enemies})=>({look:{x:0,y:1,z:0},offset:{x:8,y:8,z:12},count:enemies.length,spread:4}),demonFrame:game=>({camera:{x:8,y:10,z:14},look:{x:0,y:1,z:0},count:game.combatants.length+1,spread:4})});assert.equal(melee.count,3);
   const fixed=reviewBattleCameraFrame(core,{follow:false});
   assert.deepEqual(fixed.position,{x:0,y:5.2,z:10});
   assert.deepEqual(fixed.look,{x:0,y:.95,z:0});
