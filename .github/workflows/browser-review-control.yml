@@ -1,0 +1,44 @@
+name: Browser Review Control
+run-name: Browser review ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - browser-review/control
+    paths:
+      - .browser-review/command.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-review-control
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install repository dependencies without lifecycle hooks
+        run: npm ci --ignore-scripts
+      - name: Install isolated Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Execute generic browser review command
+        run: node scripts/browser/review-control.mjs .browser-review/command.json
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: browser-review-${{ github.sha }}
+          path: test-results/browser-review/
+          if-no-files-found: error
+          retention-days: 7

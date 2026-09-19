@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "url": "https://soul-lineage-rinne-dev.c-okamoto.workers.dev/",
+  "viewport": {
+    "width": 673,
+    "height": 841
+  },
+  "deviceScaleFactor": 1,
+  "video": false,
+  "actions": [
+    {
+      "op": "wait",
+      "ms": 3000,
+      "label": "settled"
+    },
+    {
+      "op": "screenshot",
+      "label": "rinne-home"
+    }
+  ]
+}
