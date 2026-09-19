@@ -40,6 +40,12 @@ test('cinematic uses the prepared realtime world at deliberately low resolution'
   assert.match(css,/data-media="realtime"/);assert.match(css,/data-cinematic-beat="rebirth"/);assert.doesNotMatch(css,/data-primary-action/);
 });
 
+test('realtime title uses the actual WebGL canvas instead of framebuffer copying',async()=>{
+  const live=await readFile(new URL('../src/title-live-world.js',import.meta.url),'utf8');
+  assert.doesNotMatch(live,/getContext\('2d'/);assert.doesNotMatch(live,/drawImage\(/);assert.match(live,/liveWorldMode='direct-webgl'/);
+  assert.match(css,/data-media="realtime"\]\{background:transparent/);assert.match(css,/title-live-canvas\{display:none!important\}/);
+});
+
 test('reduced motion, motion-off, and media failure retain an operable title fallback',()=>{
   assert.match(cinematic,/prefersReducedMotion/);assert.match(cinematic,/title\.dataset\.motion==='on'/);
   assert.match(cinematic,/activateFallback/);assert.match(cinematic,/getPrepared\(\)\?\.startTitlePreview\?\.\(\{cinematic:false\}\)/);
