@@ -26,6 +26,8 @@ test('impact presentation never mutates simulation state or enemy health',()=>{
   const state=hero({weapon:'great',attack:'heavy'}),front={stage:5,enemies:[foe()]},before=structuredClone({state,front}),director=createImpactDirector();
   const result=director.present([{type:'player-hit',targetId:'e1',damage:25,phase:'kyu'}],{state,front});
   assert.ok(result.strongest);assert.ok(director.snapshot().timeScale<1);assert.deepEqual({state,front},before);
+  const shared=createImpactDirector();shared.present([{type:'player-hit',targetId:'e1',damage:25,phase:'kyu',feel:{hitstopRemaining:.02,slowRemaining:.09,slowScale:.38},impact:{yaw:Math.PI/2}}],{state,front});
+  const sharedSnapshot=shared.snapshot();assert.equal(sharedSnapshot.timeScale,1);assert.ok(sharedSnapshot.camera.strength>0);assert.ok(sharedSnapshot.camera.x>.9);
 });
 
 test('enemy hits always target the local hero presentation reaction',()=>{
