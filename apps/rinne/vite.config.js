@@ -3,20 +3,21 @@ import {fileURLToPath} from 'node:url';
 
 const config=appConfig('rinne',import.meta.url);
 const reviewNavigationEntries=new Set([
-  '/review-motion.html',
-  '/review-assets.html',
-  '/review-objects.html',
-  '/review-effects.html',
-  '/review-sound.html',
-  '/review-battle.html',
+  '/review-motion',
+  '/review-assets',
+  '/review-objects',
+  '/review-effects',
+  '/review-sound',
+  '/review-battle',
 ]);
+const canonicalReviewPath=path=>path.endsWith('.html')?path.slice(0,-5):path;
 
 config.plugins=[...(config.plugins||[]),{
   name:'rinne-review-navigation',
   transformIndexHtml:{
     order:'pre',
     handler(html,ctx){
-      const path=ctx.path?.split('?')[0];
+      const path=canonicalReviewPath(ctx.path?.split('?')[0]||'');
       if(!reviewNavigationEntries.has(path))return html;
       return {html,tags:[{tag:'script',attrs:{type:'module',src:'./src/review-navigation.js'},injectTo:'body'}]};
     },
