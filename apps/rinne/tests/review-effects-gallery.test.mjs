@@ -26,7 +26,7 @@ test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(html,/class="catalog-kicker">候補一覧/);
   assert.match(html,/id="fx-model-count"/);
   assert.match(html,/— EFFECTS/);
-  assert.match(html,/class="review-lab-back"[^>]*aria-label="Visual Reviewへ戻る"/);
+  assert.match(html,/class="review-lab-back[^"]*"[^>]*aria-label="Visual Reviewへ戻る"/);
   assert.match(js,/q\('fx-model-count'\)\.textContent=`\$\{REVIEW_REAL_EFFECT_COUNT\} EFFECTS`/);
   assert.match(js,/if\(selectedLabel\)selectedLabel\.textContent=entry\.label/);
   assert.match(js,/if\(selectedMeta\)selectedMeta\.textContent=effectLabel\(entry\.id\)\+fit/);
