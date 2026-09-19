@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
-const script = readFileSync(new URL('../ops-board/public/rapid-board.js', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../apps/pulse/public/index.html', import.meta.url), 'utf8');
+const script = readFileSync(new URL('../apps/pulse/public/rapid-board.js', import.meta.url), 'utf8');
 
 test('rapid board exposes work, app publication, issues and recent history without replacing source data', () => {
   for (const id of ['rapid-active-list','rapid-app-list','rapid-issue-list','rapid-recent-list']) {

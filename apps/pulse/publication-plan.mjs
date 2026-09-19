@@ -13,7 +13,7 @@ const exactPaths = new Set([
 ]);
 
 export function pulsePublicationPath(path) {
-  return path.startsWith('ops-board/') ||
+  return path.startsWith('apps/pulse/') ||
     exactPaths.has(path) ||
     /^scripts\/integration-rescue-.*\.mjs$/.test(path) ||
     /^apps\/[^/]+\/package\.json$/.test(path) ||

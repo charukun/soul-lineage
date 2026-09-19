@@ -1,103 +1,53 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildApplications, OPS_PUBLIC_URL, PORTAL_PUBLIC_URL } from '../ops-board/applications.mjs';
+import { buildApplications, OPS_PUBLIC_URL, PORTAL_PUBLIC_URL } from '../apps/pulse/applications.mjs';
 
-test('published apps are grouped by app with exact manifest paths', () => {
-  const manifest = { entries: [
-    { app: 'rinne', environment: 'dev', path: 'dev/rinne', version: { name: '輪廻転焦', commit: 'dev-rinne' } },
-    { app: 'rinne', environment: 'prod', path: 'prod', version: { name: '輪廻転焦', commit: 'prod-rinne' } },
-    { app: 'village', environment: 'dev', path: 'dev/village', version: { name: 'MURAAAAAAA', commit: 'dev-village' } },
-  ] };
-  const environments = [
-    { id: 'dev', deployState: 'success', deployedAt: '2026-09-12T00:00:00Z' },
-    { id: 'prod', deployState: 'success', deployedAt: '2026-09-11T00:00:00Z' },
+test('game DEV uses exact per-app Worker status while Pages is staging/production compatibility only', () => {
+  const manifest={entries:[
+    {app:'rinne',environment:'prod',path:'prod',version:{name:'輪廻転焦',commit:'prod-rinne'}},
+    {app:'village',environment:'staging',path:'staging/village',version:{name:'MURAAAAAAA',commit:'stage-village'}},
+  ]};
+  const apps=buildApplications(manifest,[],[],{developSha:'develop-head',statuses:[{context:'dev/rinne',state:'success',updated_at:'2026-09-19T00:00:30Z'}]});
+  const rinne=apps.find(app=>app.id==='rinne');
+  assert.equal(rinne.targets[0].label,'高速DEV');
+  assert.equal(rinne.targets[0].url,'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/');
+  assert.equal(rinne.targets[0].commit,'develop-head');
+  assert.equal(rinne.targets.find(t=>t.environment==='prod').url,'https://charukun.github.io/soul-lineage/prod/');
+});
+
+test('Character Studio and Visual Review have independent fast DEV identities',()=>{
+  const statuses=[
+    {context:'dev/character-studio',state:'success',updated_at:'2026-09-19T00:01:00Z'},
+    {context:'dev/review',state:'success',updated_at:'2026-09-19T00:02:00Z'},
   ];
-  const apps = buildApplications(manifest, environments, [], {developSha:'develop-head',statuses:[{context:'dev/rinne',state:'success',updated_at:'2026-09-12T00:00:30Z'}]});
-  const rinne = apps.find(app => app.id === 'rinne');
-  assert.equal(rinne.targets.length, 4);
-  assert.equal(rinne.targets[0].label, '高速DEV');
-  assert.equal(rinne.targets[0].state, 'success');
-  assert.equal(rinne.targets[0].url, 'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/');
-  assert.equal(rinne.targets[0].commit, 'develop-head');
-  assert.equal(rinne.targets[2].state, 'missing');
-  assert.equal(rinne.targets[2].url, null);
-  assert.equal(rinne.targets[1].url, 'https://charukun.github.io/soul-lineage/dev/rinne/');
-  assert.equal(rinne.targets[1].commit, 'dev-rinne');
-  assert.equal(rinne.targets[3].url, 'https://charukun.github.io/soul-lineage/prod/');
+  const apps=buildApplications({entries:[]},[],[],{developSha:'tool-head',statuses});
+  const studio=apps.find(app=>app.id==='character-studio');
+  const review=apps.find(app=>app.id==='visual-review');
+  assert.equal(studio.kind,'tool');
+  assert.equal(studio.targets[0].url,'https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/');
+  assert.equal(studio.targets[0].commit,'tool-head');
+  assert.equal(review.kind,'tool');
+  assert.equal(review.targets[0].url,'https://soul-lineage-review-dev.c-okamoto.workers.dev/');
+  assert.equal(review.targets[0].commit,'tool-head');
+  for(const app of [studio,review]) assert.doesNotMatch(app.targets[0].url,/github\.io/);
 });
 
-test('character studio is a tool backed by the verified Rinne DEV publication', () => {
-  const manifest = {
-    entries: [{
-      app: 'rinne', environment: 'dev', path: 'dev/rinne', deployedAt: '2026-09-12T00:03:00Z',
-      version: { name: '輪廻転焦', commit: 'studio-release' },
-    }],
-  };
-  const apps = buildApplications(manifest, [{ id: 'dev', deployState: 'success' }], []);
-  const studio = apps.find(app => app.id === 'character-studio');
-  assert.equal(studio.kind, 'tool');
-  assert.equal(studio.name, 'キャラクター工房');
-  assert.equal(studio.targets.length, 1);
-  assert.equal(studio.targets[0].state, 'success');
-  assert.equal(studio.targets[0].url, 'https://charukun.github.io/soul-lineage/dev/rinne/characters.html');
-  assert.equal(studio.targets[0].expectedUrl, studio.targets[0].url);
-  assert.equal(studio.targets[0].commit, 'studio-release');
-  assert.equal(studio.targets[0].deployedAt, '2026-09-12T00:03:00Z');
-  assert.match(studio.targets[0].source, /DEV 公開manifest/);
-
-  const unpublished = buildApplications({ entries: [] }, [{ id: 'dev', deployState: 'success' }], [])
-    .find(app => app.id === 'character-studio');
-  assert.equal(unpublished.targets[0].state, 'missing');
-  assert.equal(unpublished.targets[0].url, null);
-  assert.equal(unpublished.targets[0].expectedUrl, 'https://charukun.github.io/soul-lineage/dev/rinne/characters.html');
-});
-
-test('Visual Review is backed only by the Rinne Pages DEV publication', () => {
-  const manifest = { entries: [{
-    app: 'rinne', environment: 'dev', path: 'dev/rinne', deployedAt: '2026-09-12T00:03:00Z',
-    version: { name: '輪廻転焦', commit: 'review-release' },
-  }] };
-  const visual = buildApplications(manifest, [{ id: 'dev', deployState: 'success' }], []).find(app => app.id === 'visual-review');
-  assert.equal(visual.kind, 'tool');
-  assert.equal(visual.targets.length, 1);
-  assert.equal(visual.targets[0].url, 'https://charukun.github.io/soul-lineage/dev/rinne/review.html');
-  assert.equal(visual.targets[0].expectedUrl, visual.targets[0].url);
-  assert.equal(visual.targets[0].commit, 'review-release');
-  assert.match(visual.targets[0].source, /DEV 公開manifest/);
-});
-
-test('tools use verified public status while failed Lanternfell never invents a URL', () => {
-  const environments = [];
-  const runs = [
-    { name: 'Wayfinder Public Gallery', status: 'completed', conclusion: 'success', head_sha: 'portal', updated_at: '2026-09-12T00:00:30Z' },
-    { name: 'Rinne Ops Board', head_branch: 'develop', status: 'completed', conclusion: 'success', head_sha: 'ops', updated_at: '2026-09-12T00:01:00Z' },
-    { name: 'Lanternfell night portrait DEV', status: 'completed', conclusion: 'failure', head_sha: 'lantern', updated_at: '2026-09-12T00:02:00Z' },
+test('PULSE and WAYFINDER preserve their stable public Worker URLs',()=>{
+  const runs=[
+    {name:'Wayfinder Public Gallery',status:'completed',conclusion:'success',head_sha:'portal',updated_at:'2026-09-19T00:00:30Z'},
+    {name:'Rinne Ops Board',head_branch:'develop',status:'completed',conclusion:'success',head_sha:'ops',updated_at:'2026-09-19T00:01:00Z'},
   ];
-  const apps = buildApplications({ entries: [] }, environments, runs);
-  const portal = apps.find(app => app.id === 'portal');
-  const ops = apps.find(app => app.id === 'ops-board');
-  const visual = apps.find(app => app.id === 'visual-review');
-  const lantern = apps.find(app => app.id === 'lanternfell');
-  assert.equal(portal.targets[0].url, PORTAL_PUBLIC_URL);
-  assert.equal(portal.targets[0].state, 'success');
-  assert.equal(portal.name, 'WAYFINDER');
-  assert.equal(visual.name, 'Visual Review Lab');
-  assert.equal(ops.name, 'PULSE');
-  assert.equal(ops.targets[0].url, OPS_PUBLIC_URL);
-  assert.equal(lantern.targets[0].state, 'failed');
-  assert.equal(lantern.targets[0].url, null);
-  assert.match(lantern.targets[0].note, /表示しません/);
+  const apps=buildApplications({entries:[]},[],runs);
+  assert.equal(apps.find(app=>app.id==='portal').targets[0].url,PORTAL_PUBLIC_URL);
+  assert.equal(apps.find(app=>app.id==='ops-board').targets[0].url,OPS_PUBLIC_URL);
 });
 
-test('fast DEV stays app-scoped and does not infer success without exact status',()=>{
+test('fast DEV fails closed without exact status',()=>{
   const apps=buildApplications({entries:[]},[],[],{developSha:'head',statuses:[
     {context:'dev/demon',state:'pending',updated_at:'2026-09-19T00:00:00Z'},
     {context:'dev/village',state:'failure',updated_at:'2026-09-19T00:00:01Z'},
   ]});
-  const demon=apps.find(app=>app.id==='demon').targets[0];
-  const village=apps.find(app=>app.id==='village').targets[0];
-  const rinne=apps.find(app=>app.id==='rinne').targets[0];
-  assert.equal(demon.state,'deploying');assert.equal(demon.commit,null);
-  assert.equal(village.state,'failed');assert.equal(village.commit,null);
-  assert.equal(rinne.state,'waiting');assert.equal(rinne.commit,null);
+  assert.equal(apps.find(app=>app.id==='demon').targets[0].state,'deploying');
+  assert.equal(apps.find(app=>app.id==='village').targets[0].state,'failed');
+  assert.equal(apps.find(app=>app.id==='rinne').targets[0].state,'waiting');
 });

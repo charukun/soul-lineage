@@ -5,25 +5,25 @@ import {readFile} from 'node:fs/promises';
 const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
 
-test('Visual Review uses only the Rinne Pages DEV route',async()=>{
-  const [opsBoard,collector,applications,pulls,pullBoard,pulseHtml,review,vite]=await Promise.all([
-    read('.github/workflows/ops-board.yml'),read('ops-board/collector.mjs'),read('ops-board/applications.mjs'),read('ops-board/pulls.mjs'),read('ops-board/public/pull-board.js'),read('ops-board/public/index.html'),read('apps/rinne/review.html'),read('apps/rinne/vite.config.js')
+test('Visual Review and Character Studio are independent DEV applications',async()=>{
+  const [applications,reviewMain,reviewPkg,studioPkg,studioVite,rinneVite]=await Promise.all([
+    read('apps/pulse/applications.mjs'),read('apps/review/src/main.js'),read('apps/review/package.json'),
+    read('apps/character-studio/package.json'),read('apps/character-studio/vite.config.js'),read('apps/rinne/vite.config.js')
   ]);
-  assert.doesNotMatch(opsBoard,/review-preview\.yml|Publish Visual Review on explicit Ops Board dispatch/);
-  assert.doesNotMatch(collector,/visual-review\/public|VISUAL_REVIEW_PUBLIC_URL|visualReviewEnvironment/);
-  assert.match(applications,/rinneDevToolTarget\('visual-review','DEV公開','review\.html'/);
-  assert.doesNotMatch(pulls,/isVisualReviewPull|work\/visual-review-lab-v2|visualReview/);
-  assert.doesNotMatch(pullBoard,/visual-review-pulls|visual-review-section|pr\.visualReview/);
-  assert.doesNotMatch(pulseHtml,/visual-review-section|長期運用の確認用PR/);
-  assert.match(applications,/dev\/rinne\/\$\{path\}/);
-  assert.match(applications,/rinneDevToolTarget\('visual-review','DEV公開','review\.html'/);
-  assert.equal((review.match(/data-review-target=/g)||[]).length,5);
-  assert.doesNotMatch(review,/<iframe\b/);
-  assert.match(vite,/review:fileURLToPath\(new URL\('\.\/review\.html'/);
-  assert.match(vite,/reviewEffects:fileURLToPath\(new URL\('\.\/review-effects\.html'/);
-  assert.match(vite,/reviewBattle:fileURLToPath\(new URL\('\.\/review-battle\.html'/);
+  assert.match(reviewPkg,/"name": "@soul\/review"/);
+  assert.match(studioPkg,/"name": "@soul\/character-studio"/);
+  assert.match(reviewMain,/soul-lineage-character-studio-dev\.c-okamoto\.workers\.dev/);
+  assert.match(applications,/fastDevTarget\(id, developSha, statuses\)/);
+  assert.doesNotMatch(applications,/rinneDevToolTarget|dev\/rinne\/\$\{path\}/);
+  assert.doesNotMatch(rinneVite,/characters(?:Advanced)?:fileURLToPath/);
+  assert.match(studioVite,/\.\/index\.html/);
+  assert.match(studioVite,/\.\/advanced\.html/);
 });
 
-test('Review launcher contains no embedded specialist runtime',async()=>{
-  const review=await read('apps/rinne/review.html');assert.doesNotMatch(review,/<iframe\b/);assert.doesNotMatch(review,/<script\b/);assert.match(review,/href="\.\/review-battle\.html"/);
+test('RINNE specialist runtime probes remain RINNE-scoped and are not independent app identities',async()=>{
+  const [reviewMain,rinneVite]=await Promise.all([read('apps/review/src/main.js'),read('apps/rinne/vite.config.js')]);
+  for(const path of ['review-motion.html','review-assets.html','review-effects.html','review-battle.html']) assert.match(reviewMain,new RegExp(path.replace('.','\\.')));
+  assert.match(rinneVite,/reviewMotion:fileURLToPath/);
+  assert.match(rinneVite,/reviewEffects:fileURLToPath/);
+  assert.match(rinneVite,/reviewBattle:fileURLToPath/);
 });

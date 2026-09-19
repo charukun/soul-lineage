@@ -39,7 +39,7 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             scripts
-            ops-board
+            apps/pulse
             packages/world
             packages/assets
       - uses: actions/checkout@v6
