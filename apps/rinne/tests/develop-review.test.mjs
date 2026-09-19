@@ -48,18 +48,23 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
   assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='kaykit-embedded'/);
 });
 
-test('equipment review uses the same quiet preview and compact camera hierarchy',async()=>{
+test('equipment review is organized around equipment fit and inspection tasks',async()=>{
   const [html,css,js]=await Promise.all([read('review-assets.html'),read('src/review-asset-library.css'),read('src/review-asset-library.js')]);
-  assert.match(html,/class="asset-topbar"/);
-  assert.match(html,/id="asset-camera-strip"/);
-  for(const preset of ['front','side','back','full'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
-  assert.doesNotMatch(html,/asset-badge|asset-help|asset-step/);
-  assert.match(js,/function setCameraPreset/);
-  assert.match(js,/controls\.addEventListener\('start'/);
-  assert.match(css,/grid-template-rows:42px minmax\(0,58fr\) minmax\(0,42fr\)/);
-  assert.match(css,/\.asset-camera-strip button\{min-height:26px/);
-  assert.match(css,/\.asset-camera-strip button\{[^}]*border-radius:999px/);
-  assert.match(css,/\.model-options button\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
+  assert.match(html,/<title>装備確認 \| 輪廻転焦<\/title>/);
+  assert.match(html,/data-review-back[^>]*href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"/);
+  assert.match(html,/id="asset-review-points"/);
+  for(const point of ['装着位置','干渉','尺度','裏側'])assert.match(html,new RegExp(point));
+  assert.match(html,/id="asset-slot-tabs"/);
+  assert.match(html,/id="asset-equipment-options"/);
+  for(const preset of ['front','side','back'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
+  for(const focus of ['full','main','off','back'])assert.match(html,new RegExp(`data-asset-focus="${focus}"`));
+  assert.doesNotMatch(html,/review-slot-auto\.js|着せ替え確認/);
+  assert.match(js,/function setFocusPreset/);
+  assert.match(js,/function renderEquipmentInspector/);
+  assert.match(css,/\.asset-back\{/);
+  assert.match(css,/grid-template-rows:50px minmax\(320px,55dvh\) minmax\(0,1fr\)/);
+  assert.match(css,/\.asset-slot-tabs\{display:grid;grid-template-columns:repeat\(3/);
+  assert.match(css,/\.asset-equipment-options\{display:grid;grid-template-columns:repeat\(2/);
 });
 
 test('world-object review loads the exact RINNE runtime props independently of equipment',async()=>{
