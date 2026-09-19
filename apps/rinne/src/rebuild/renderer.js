@@ -189,7 +189,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     if(titleFrame){camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else if(spaceChanged){if(inside)interiorYaw=state.yaw;camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else{const step=Math.min(.05,dt||.016),positionBlend=1-Math.exp(-(inside?13.5:combatFrame?5.6:6.9)*step),lookBlend=1-Math.exp(-(inside?15:combatFrame?7.2:9.2)*step);camera.position.lerp(desired,positionBlend);if(!cameraLookReady){cameraLook.copy(target);cameraLookReady=true;}else cameraLook.lerp(target,lookBlend);}camera.lookAt(cameraLook);
     const occlusion=foregroundOcclusion.update({camera,target,occluderRoot:objects,enabled:village&&!inside,dt});canvas.dataset.occludedObjects=String(occlusion.occluded);
     if(village&&!inside){terrain.waterMat.uniforms.time.value=elapsed;terrain.motes.position.y=Math.sin(elapsed*.35)*.15;}
-    lighting.update({x:state.position.x,z:state.position.z,inside,frontier:!village,level:qualityLevel});contacts.update();
+    terrain.syncGrounding?.([objects,stationsRoot],qualityLevel);lighting.update({x:state.position.x,z:state.position.z,inside,frontier:!village,level:qualityLevel});contacts.update();
     camera.updateMatrixWorld();focusPoint.set(state.position.x,1.15,state.position.z).project(camera);
     focusEffect.render(scene,camera,{focusY:focusPoint.y*.5+.5,inside,combat:!!state.combat});
   }
