@@ -73,6 +73,14 @@ async function kaykitReviewRig(gltf) {
   });
 }
 
+function createCharacterStageLifecycle({canvas,renderer,camera,scene,onResize}) {
+  return createReviewStageLifecycle({
+    canvas, stage: canvas.closest('.review-surface__stage') || canvas.parentElement,
+    onResize: ({width,height,aspect}) => { renderer.setSize(width,height,false); camera.aspect=aspect; camera.updateProjectionMatrix(); onResize(); },
+    render: () => renderer.render(scene,camera)
+  });
+}
+
 function start() {
   const canvas = el('stage'), renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5)); renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -189,17 +197,9 @@ function start() {
     }
     camera.lookAt(orbit.target); orbit.update(); resetMeasure();
   }
-  const stageLifecycle = createReviewStageLifecycle({
-    canvas,
-    stage: canvas.closest('.review-surface__stage') || canvas.parentElement,
-    onResize: ({width,height,aspect}) => {
-      renderer.setSize(width,height,false); camera.aspect=aspect; camera.updateProjectionMatrix();
-      if (motionQA?.active) motionQA.aim(motionQA.camera);
-      else if (review.ready && document.body.dataset.reviewMode === 'character') aim(cameraPreset);
-      resetMeasure();
-    },
-    render: () => renderer.render(scene,camera)
-  });
+  const stageLifecycle = createCharacterStageLifecycle({canvas,renderer,camera,scene,onResize:()=>{
+    if (motionQA?.active) motionQA.aim(motionQA.camera); else if (review.ready && document.body.dataset.reviewMode === 'character') aim(cameraPreset); resetMeasure();
+  }});
   const axis = new THREE.Vector3(0, 0, 1), pitch = new THREE.Vector3(1, 0, 0), quaternion = new THREE.Quaternion();
   function pose(bones, t) {
     bones.leftUpperArm.quaternion.multiply(quaternion.setFromAxisAngle(axis, -1.25));
