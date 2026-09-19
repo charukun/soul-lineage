@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "kuumetsu-route-fail-closed-20260920",
+  "game": "kuumetsu",
+  "kind": "gameplay",
+  "problemKey": "invalid-hunt-route-silent-fallback",
+  "observation": {
+    "summary": "huntPlan treats every route other than forage as mission, so corrupted or unknown route state silently selects a different hunt.",
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "b0f21377c57f6fe80763d31deb153f0f70d317ef",
+        "path": "apps/demon/src/hunt/balance.js",
+        "symbol": "huntPlan",
+        "statement": "Only route === 'forage' branches; all other values return a mission plan without validation."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "Route validation is implicit instead of fail-closed at the canonical plan boundary.",
+    "prediction": "Explicit mission/forage validation rejects unknown routes while preserving all valid mission and forage outcomes.",
+    "falsifier": "Valid route behavior changes or an unknown route still produces a plan."
+  },
+  "candidates": [
+    {
+      "id": "validate-canonical-route",
+      "selected": true,
+      "reason": "Small pure boundary guard before plan selection."
+    },
+    {
+      "id": "sanitize-callers",
+      "selected": false,
+      "reason": "Would leave the canonical planner permissive and duplicate validation."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/demon/src/hunt/balance.js",
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "summary": "Reject unknown hunt routes at the canonical plan boundary and assert within an existing native-loop test case."
+  },
+  "comparison": {
+    "objective": "reproducible-causality",
+    "verdict": "pending",
+    "before": {
+      "revision": "b0f21377c57f6fe80763d31deb153f0f70d317ef",
+      "summary": "unknown route silently returns mission plan."
+    },
+    "after": null,
+    "limitations": [
+      "No browser or full combat-duration claim."
+    ]
+  },
+  "validation": {
+    "state": "awaiting-exact-head-receipt",
+    "focusedTests": [
+      "tests/develop-completion-contract.test.mjs",
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "receipt": {
+      "repository": "charukun/soul-lineage",
+      "pullRequest": null,
+      "marker": "autonomous-receipt:kuumetsu:kuumetsu-route-fail-closed-20260920"
+    }
+  },
+  "learning": {
+    "summary": "Pending hosted evidence.",
+    "failedApproaches": [],
+    "doNotRetry": [],
+    "unresolved": [],
+    "next": [
+      "Inspect a separate native hunt invariant after merge."
+    ]
+  }
+}
