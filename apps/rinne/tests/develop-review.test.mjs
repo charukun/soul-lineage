@@ -22,6 +22,11 @@ test('legacy RINNE review entry bridges to the independent Visual Review Lab',as
   assert.match(routes,/battle:route\(DEV\.rinne,'review-battle\.html'\)/);
 });
 
+test('all RINNE Visual Review probes return to the independent lab instead of the game',async()=>{
+  const pages=await Promise.all(['characters.html','review-motion.html','review-assets.html','review-effects.html','review-battle.html'].map(read));
+  for(const html of pages)assert.match(html,/href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"[^>]*aria-label="Visual Reviewへ戻る"/);
+});
+
 test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
   const [html,js,css]=await Promise.all([read('review-motion.html'),read('src/review-motion.js'),read('src/review-motion.css')]);
   assert.match(html,/id="motion-stage"/);assert.match(html,/id="motion-grid"/);assert.match(html,/id="motion-time"/);
@@ -55,7 +60,7 @@ test('Battle is a dedicated page using real RaidHost and runtime models',async()
   assert.match(html,/<a href="\/" aria-label="Visual Reviewへ戻る">‹ 戻る<\/a>/);
   assert.match(html,/\.model-status,\.note,\.pickers,\.review-modes,\.actions button:last-child\{display:none!important\}/);
   assert.match(html,/<span>Rogue<\/span>/);assert.match(html,/<span>Knight<\/span>/);
-  assert.match(review,/const loopEnabled=true,followCamera=true;/);
+  assert.match(review,/const loopEnabled=true,followCamera=true;/);assert.doesNotMatch(html,/id="battle-toggle"/);assert.match(html,/data-battle-mode="duel"/);assert.match(html,/data-battle-mode="melee"/);
   assert.doesNotMatch(review,/battle-loop'\)\.addEventListener|battle-camera'\)\.addEventListener/);
   assert.match(review,/from '@soul\/network\/raid-host'/);assert.match(review,/new RaidHost/);assert.match(review,/createReviewBattleStage/);
   assert.match(review,/stage\.setModel\('hero'/);assert.match(review,/stage\.setModel\('enemy'/);
