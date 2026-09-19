@@ -1,0 +1,45 @@
+name: Eclipse Asset Preparation
+on:
+  push:
+    branches: [astra/eclipse-autobattle-20260919]
+    paths: [.github/workflows/eclipse-asset-preparation.yml]
+permissions:
+  contents: read
+jobs:
+  acquire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Acquire original CC0 models without generating geometry
+        run: |
+          mkdir -p acquired
+          for spec in KayKit-Character-Pack-Adventures-1.0 KayKit-Character-Pack-Skeletons-1.0 KayKit-Dungeon-Remastered-1.0; do
+            git clone --depth 1 "https://github.com/KayKit-Game-Assets/$spec.git" "acquired/$spec"
+            git -C "acquired/$spec" rev-parse HEAD > "acquired/$spec/SOURCE_COMMIT.txt"
+            rm -rf "acquired/$spec/.git"
+          done
+          cd acquired
+          npm pack three@0.180.0 --silent
+      - name: Record model inventory
+        run: |
+          python - <<'PY'
+          import pathlib,json,struct
+          root=pathlib.Path('acquired'); report={}
+          for f in root.rglob('*'):
+            if f.suffix.lower() not in ('.glb','.gltf'):continue
+            try:
+              if f.suffix=='.glb':
+                b=f.read_bytes(); size=struct.unpack_from('<I',b,12)[0]; j=json.loads(b[20:20+size])
+              else:j=json.loads(f.read_text())
+              report[str(f.relative_to(root))]={'bytes':f.stat().st_size,'animations':[a.get('name') for a in j.get('animations',[])],'meshes':[m.get('name') for m in j.get('meshes',[])],'nodes':[n.get('name') for n in j.get('nodes',[])]}
+            except Exception as e:report[str(f)]={'error':str(e)}
+          (root/'asset-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+          for name,data in report.items():
+            print(name,data['bytes'],len(data.get('animations',[])))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eclipse-original-cc0-assets
+          path: acquired
+          retention-days: 7
+          compression-level: 6

@@ -1,0 +1,111 @@
+name: Eclipse Exact Head Validation
+on:
+  push:
+    branches: [astra/eclipse-autobattle-20260919]
+    paths: ['apps/eclipse/**', '.github/workflows/eclipse-validation.yml', 'wrangler.dev.eclipse.jsonc']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: eclipse-development-publication
+  cancel-in-progress: true
+jobs:
+  eclipse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      APP_ENV: dev
+      ECLIPSE_HEAD_SHA: ${{ github.sha }}
+      ECLIPSE_SOURCE_CACHE: ${{ github.workspace }}/fresh-source/originals
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Recover acquired originals and exclusion inventory
+        uses: actions/download-artifact@v4
+        with:
+          name: eclipse-fresh-models-and-exclusion-audit
+          run-id: 35415633900
+          github-token: ${{ github.token }}
+          path: fresh-source
+      - name: Refresh pinned exclusion snapshots rather than trusting a stale cache
+        run: |
+          node --input-type=module <<'JS'
+          import {readFile,writeFile} from 'node:fs/promises';
+          import {execFileSync} from 'node:child_process';
+          import {excludedSnapshots} from './apps/eclipse/model-manifest.mjs';
+          const path='fresh-source/audit/excluded-model-inventory.json';
+          const inventory=JSON.parse(await readFile(path,'utf8'));
+          for(const {ref,commit} of excludedSnapshots){
+            if(inventory[ref]?.commit===commit) continue;
+            execFileSync('git',['fetch','--depth=1','origin',commit],{stdio:'inherit'});
+            const tree=execFileSync('git',['ls-tree','-r','-l',commit],{encoding:'utf8'});
+            inventory[ref]={commit,models:tree.split('\n').filter(l=>/\.(glb|gltf|fbx|obj|vrm|blend)$/i.test(l)).map(l=>{
+              const [meta,path]=l.split('\t');const b=meta.trim().split(/\s+/);
+              return {path,gitBlob:b[2],bytes:Number(b[3])};
+            })};
+          }
+          await writeFile(path,JSON.stringify(inventory,null,2));
+          console.log(Object.fromEntries(Object.entries(inventory).map(([k,v])=>[k,{commit:v.commit,models:v.models.length}])));
+          JS
+      - run: npm ci
+      - name: Build exact checkout and independently verify acquired-file hashes
+        run: |
+          test "$(git rev-parse HEAD)" = "$ECLIPSE_HEAD_SHA"
+          find apps/eclipse/src -name '*.js' -print0 | xargs -0 -n 1 node --check
+          npm run build --workspace @soul/eclipse
+          node --test apps/eclipse/tests/*.test.mjs
+      - run: npx playwright install --with-deps chromium > /tmp/eclipse-browser-install.log 2>&1 || { tail -60 /tmp/eclipse-browser-install.log; exit 1; }
+      - name: Install Japanese system font
+        run: sudo apt-get install -y fonts-noto-cjk > /tmp/eclipse-fonts.log 2>&1 || { tail -40 /tmp/eclipse-fonts.log; exit 1; }
+      - name: WebGL2 desktop and touch gameplay, animation and provenance tests
+        run: node apps/eclipse/tools/verify-browser.mjs
+      - name: Include inspectable screenshots and test evidence
+        run: |
+          mkdir -p dist/eclipse/evidence
+          cp test-results/eclipse/*.png test-results/eclipse/results.json dist/eclipse/evidence/
+      - name: Publish independent Eclipse application only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4 deploy --config wrangler.dev.eclipse.jsonc
+      - name: Verify unauthenticated public URL in real browsers
+        env:
+          ECLIPSE_PUBLIC_URL: https://soul-lineage-eclipse-dev.c-okamoto.workers.dev/
+        run: |
+          node --input-type=module -e "const r=await fetch(process.env.ECLIPSE_PUBLIC_URL+'version.json');if(!r.ok)throw Error('Public version unavailable');const v=await r.json();if(v.commit!==process.env.ECLIPSE_HEAD_SHA)throw Error('Public exact-head mismatch');console.log(v);"
+          node apps/eclipse/tools/verify-browser.mjs
+      - name: Preserve screenshots, public verification and provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eclipse-verification-evidence
+          path: |
+            test-results/eclipse
+            test-results/eclipse-public
+            dist/eclipse/version.json
+            dist/eclipse/models/manifest.json
+            dist/eclipse/models/exclusion-audit.json
+          retention-days: 14
+          compression-level: 6
+      - name: Package a credential-free reproducible workspace for visual debugging
+        if: always()
+        run: |
+          printf '%s\n' "$ECLIPSE_HEAD_SHA" > ECLIPSE_HEAD.txt
+          tar -czf "$RUNNER_TEMP/eclipse-reproducer.tgz" apps/eclipse packages scripts package.json package-lock.json node_modules wrangler.dev.eclipse.jsonc ECLIPSE_HEAD.txt
+      - name: Retain reproducible workspace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eclipse-reproducer
+          path: ${{ runner.temp }}/eclipse-reproducer.tgz
+          retention-days: 3
+          compression-level: 0
