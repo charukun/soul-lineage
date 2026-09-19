@@ -88,27 +88,53 @@ const reviewModelHeight=mannequinSize.y||REVIEW_REFERENCE_MODEL_HEIGHT;
 const state={id:'visual-review-vfx',zone:'frontier',phase:'alive',interior:null,position:{x:-1.55,y:1,z:0}};
 const front={stage:1,enemies:[{id:'target',x:1.55,y:1,z:0},{id:'target-b',x:1.1,y:1,z:1.7},{id:'target-c',x:1.1,y:1,z:-1.7}]};
 const mobile=Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches);let paused=false,speed=1,tier=0,reduced=false,selected='slash',serial=0,lastTrigger=-Infinity,disposed=false,activeFilter='all';
-const thumbnailRenderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'low-power'});
-thumbnailRenderer.setPixelRatio(1);thumbnailRenderer.setSize(144,92,false);thumbnailRenderer.outputColorSpace=THREE.SRGBColorSpace;thumbnailRenderer.toneMapping=THREE.ACESFilmicToneMapping;thumbnailRenderer.toneMappingExposure=1.05;
-const thumbnailScene=new THREE.Scene();thumbnailScene.background=new THREE.Color('#101715');
-const thumbnailCamera=new THREE.PerspectiveCamera(40,144/92,.05,40);thumbnailCamera.position.set(0,1.35,5.6);thumbnailCamera.lookAt(0,1.05,0);
-const thumbnailAbort=new AbortController(),thumbnailPlayer=createAuthoredEffectPlayer({mobile:true,onError:()=>{}});
-let thumbnailBackendPromise=null;
-const thumbnailEntries=new WeakMap();
-const thumbnailObserver=new IntersectionObserver(entries=>{for(const item of entries)if(item.isIntersecting){const entry=thumbnailEntries.get(item.target);thumbnailObserver.unobserve(item.target);if(entry)void renderEffectThumbnail(entry,item.target);}}, {rootMargin:'180px'});
+let thumbnailRenderer=null,thumbnailScene=null,thumbnailCamera=null,thumbnailPlayer=null,thumbnailBackendPromise=null,thumbnailActive=false;
+const thumbnailAbort=new AbortController(),thumbnailEntries=new WeakMap(),thumbnailJobs=[],thumbnailQueued=new Set(),thumbnailCache=new Map();
+const thumbnailIdle=callback=>globalThis.requestIdleCallback?requestIdleCallback(callback,{timeout:420}):setTimeout(()=>callback({timeRemaining:()=>8,didTimeout:true}),28);
+function ensureThumbnailRuntime(){
+  if(thumbnailRenderer)return;
+  thumbnailRenderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true,powerPreference:'low-power'});
+  thumbnailRenderer.setPixelRatio(1);thumbnailRenderer.setSize(144,92,false);thumbnailRenderer.outputColorSpace=THREE.SRGBColorSpace;thumbnailRenderer.toneMapping=THREE.ACESFilmicToneMapping;thumbnailRenderer.toneMappingExposure=1.05;
+  thumbnailScene=new THREE.Scene();thumbnailScene.background=new THREE.Color('#101715');
+  thumbnailCamera=new THREE.PerspectiveCamera(40,144/92,.05,40);thumbnailCamera.position.set(0,1.35,5.6);thumbnailCamera.lookAt(0,1.05,0);
+  thumbnailPlayer=createAuthoredEffectPlayer({mobile:true,onError:()=>{}});
+}
+function drawCachedEffectThumbnail(target,source){if(!target?.isConnected||!source)return;const ctx=target.getContext('2d');ctx.clearRect(0,0,target.width,target.height);ctx.drawImage(source,0,0,target.width,target.height);target.dataset.thumbnailState='ready';}
+function cacheEffectThumbnail(entry,target){const copy=document.createElement('canvas');copy.width=target.width;copy.height=target.height;copy.getContext('2d').drawImage(target,0,0);thumbnailCache.set(entry.id,copy);}
+const thumbnailObserver=new IntersectionObserver(entries=>{for(const item of entries)if(item.isIntersecting){const entry=thumbnailEntries.get(item.target);thumbnailObserver.unobserve(item.target);if(entry)enqueueEffectThumbnail(entry,item.target);}}, {rootMargin:'100px 0px'});
 function thumbnailCues(entry){
   if(entry.cues?.length)return rawCuesFor(entry);
   const context=REVIEW_CONTEXTS[entry.context]||REVIEW_CONTEXTS.slash;
   return entry.effects.map((effect,index)=>({effect,position:{x:context.impact[0],y:context.impact[1],z:context.impact[2]},rotation:{x:0,y:0,z:0},scale:1,lifetime:REVIEW_AUTHORED_EFFECTS[effect]?.lifetime||1.3,color:[255,255,255,255],priority:3-index,kind:'review-thumbnail'}));
 }
 function ensureThumbnailBackend(){
-  if(!thumbnailBackendPromise)thumbnailBackendPromise=createEffekseerBackend({renderer:thumbnailRenderer,document,baseUrl:authoredEffectBase(document),signal:thumbnailAbort.signal,budget:combatEffectBudget(0,true,false),effectDefinitions:REVIEW_AUTHORED_EFFECTS,streaming:true,fallbackEffects:['slash','impact'],maxResident:10,retentionMs:20_000}).then(backend=>{thumbnailPlayer.attach(backend);return backend;});
+  ensureThumbnailRuntime();
+  if(!thumbnailBackendPromise)thumbnailBackendPromise=createEffekseerBackend({renderer:thumbnailRenderer,document,baseUrl:authoredEffectBase(document),signal:thumbnailAbort.signal,budget:combatEffectBudget(0,true,false),effectDefinitions:REVIEW_AUTHORED_EFFECTS,streaming:true,fallbackEffects:['slash','impact'],maxResident:8,retentionMs:15_000}).then(backend=>{thumbnailPlayer.attach(backend);return backend;});
   return thumbnailBackendPromise;
 }
 async function renderEffectThumbnail(entry,target){
+  if(!target.isConnected)return;
   await ensureThumbnailBackend();thumbnailPlayer.clear();thumbnailPlayer.presentCues(thumbnailCues(entry));
-  for(let i=0;i<5;i++)thumbnailPlayer.frame(state,front,.055,{level:0,reduced:false,hidden:false});
-  thumbnailRenderer.render(thumbnailScene,thumbnailCamera);thumbnailPlayer.draw(thumbnailCamera);thumbnailRenderer.resetState();captureRuntimeThumbnail(target,thumbnailRenderer.domElement);
+  for(let i=0;i<3;i++)thumbnailPlayer.frame(state,front,.06,{level:0,reduced:false,hidden:false});
+  thumbnailRenderer.render(thumbnailScene,thumbnailCamera);thumbnailPlayer.draw(thumbnailCamera);thumbnailRenderer.resetState();captureRuntimeThumbnail(target,thumbnailRenderer.domElement);cacheEffectThumbnail(entry,target);
+}
+function pumpEffectThumbnails(){
+  if(thumbnailActive||!thumbnailJobs.length)return;
+  thumbnailActive=true;
+  thumbnailIdle(async()=>{
+    const job=thumbnailJobs.shift();thumbnailQueued.delete(job.entry.id);
+    try{
+      if(!job.target.isConnected)return;
+      const cached=thumbnailCache.get(job.entry.id);if(cached){drawCachedEffectThumbnail(job.target,cached);return;}
+      job.target.dataset.thumbnailState='loading';await renderEffectThumbnail(job.entry,job.target);
+    }catch{if(job.target?.isConnected)job.target.dataset.thumbnailState='error';}
+    finally{thumbnailActive=false;pumpEffectThumbnails();}
+  });
+}
+function enqueueEffectThumbnail(entry,target){
+  const cached=thumbnailCache.get(entry.id);if(cached){drawCachedEffectThumbnail(target,cached);return;}
+  if(thumbnailQueued.has(entry.id))return;
+  thumbnailQueued.add(entry.id);thumbnailJobs.push({entry,target});pumpEffectThumbnails();
 }
 const abort=new AbortController();
 const player=createAuthoredEffectPlayer({mobile,onError:error=>{q('fx-status').textContent=`VFX停止: ${error}`;}});
@@ -241,7 +267,7 @@ createEffekseerBackend({renderer,document,baseUrl:authoredEffectBase(document),s
   .then(backend=>{if(player.attach(backend)){q('fx-status').textContent=`実素材 ${REVIEW_REAL_EFFECT_COUNT}種 · 再生可能`;trigger('slash');}})
   .catch(error=>player.fail(error));
 window.addEventListener('pagehide',()=>{
-  disposed=true;abort.abort();thumbnailAbort.abort();thumbnailObserver.disconnect();observer.disconnect();controls.dispose();player.dispose();thumbnailPlayer.dispose();thumbnailRenderer.dispose();
+  disposed=true;abort.abort();thumbnailAbort.abort();thumbnailObserver.disconnect();thumbnailJobs.length=0;thumbnailQueued.clear();observer.disconnect();controls.dispose();player.dispose();thumbnailPlayer?.dispose();thumbnailRenderer?.dispose();
   ground.geometry.dispose();ground.material.dispose();
   for(const object of reviewDisposables)object.dispose?.();
   renderer.dispose();

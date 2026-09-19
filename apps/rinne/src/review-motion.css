@@ -85,3 +85,10 @@ button,select{font:inherit;color:inherit}
   .loop-toggle{grid-column:1/-1;justify-self:end}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* Thumbnail lists render progressively; isolate paint and avoid sticky overlap on narrow screens. */
+.motion-model-grid,.motion-grid{contain:layout paint}
+@media(max-width:620px){
+  .motion-filters{position:static;margin:7px 0 0;padding:5px 0;background:transparent;backdrop-filter:none}
+  .motion-grid{max-height:44dvh}
+}

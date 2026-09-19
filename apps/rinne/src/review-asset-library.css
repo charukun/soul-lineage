@@ -208,3 +208,13 @@ body.asset-model-picker-open{overflow:hidden}
   .model-options{gap:5px}
   .model-options button{min-height:56px;padding:5px 3px;font-size:8px}
 }
+
+/* Runtime-thumbnail picker guard: keep five-column model cards inside one scrollable sheet. */
+.asset-model-picker-sheet{overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.asset-model-picker .model-options{min-height:0;overflow-y:auto;overscroll-behavior:contain;align-content:start;grid-auto-rows:82px;contain:layout paint}
+.asset-model-picker .model-options .review-choice-card{height:82px!important;min-height:82px!important;max-height:82px!important}
+@media(max-width:520px){
+  .asset-model-picker-sheet{max-height:min(64dvh,520px);padding:10px 9px max(12px,env(safe-area-inset-bottom))}
+  .asset-model-picker .model-options{grid-auto-rows:68px;gap:4px}
+  .asset-model-picker .model-options .review-choice-card{height:68px!important;min-height:68px!important;max-height:68px!important}
+}

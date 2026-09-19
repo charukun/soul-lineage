@@ -26,10 +26,14 @@ test('all Visual Review specialist pages receive the shared navigation module',a
   const [visual,motion,assets,objects,effects,motionCss]=await Promise.all([
     read('src/review-runtime-thumbnail.js'),read('src/review-motion.js'),read('src/review-asset-library.js'),read('src/review-object-library.js'),read('src/review-effects.js'),read('src/review-motion.css')
   ]);
-  assert.match(visual,/renderRuntimeThumbnail/);
+  assert.match(visual,/scheduleRuntimeThumbnail/);
+  assert.match(visual,/requestIdleCallback/);
+  assert.match(visual,/IntersectionObserver/);
   assert.match(visual,/WebGLRenderer/);
-  for(const source of [motion,assets,objects])assert.match(source,/renderRuntimeThumbnail/);
+  for(const source of [motion,assets,objects])assert.match(source,/scheduleRuntimeThumbnail/);
   assert.match(effects,/renderEffectThumbnail/);
+  assert.match(effects,/thumbnailIdle/);
+  assert.match(effects,/thumbnailJobs/);
   assert.doesNotMatch([motion,assets,objects,effects].join('\n'),/createReviewChoiceVisual/);
   assert.match(motionCss,/\.motion-model-grid\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   const [objectsHtml,objectsJs,objectsCatalog]=await Promise.all([read('review-objects.html'),read('src/review-object-library.js'),read('src/review-object-catalog.js')]);
