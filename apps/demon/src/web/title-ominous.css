@@ -1,9 +1,9 @@
-/* 尽喰廻遊 title treatment: intentionally isolated from gameplay HUD styles. */
+/* 喰滅廻遊 title treatment: intentionally isolated from gameplay HUD styles. */
 #title{overflow:hidden;background:radial-gradient(circle at 50% 35%,#35100f44 0,transparent 28%),linear-gradient(180deg,#030405aa 0,#08070888 46%,#020202f2 100%)}
 #title::before{content:"";position:absolute;inset:-15%;pointer-events:none;background:repeating-radial-gradient(ellipse at 50% 43%,transparent 0 34px,#6b18120b 35px 36px,transparent 37px 63px);mix-blend-mode:screen;animation:curse-drift 14s linear infinite}
 #title::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 0 46%,#9c21120b 49%,transparent 52%),radial-gradient(ellipse at center,transparent 35%,#000b 92%);animation:title-pulse 5.5s ease-in-out infinite}
 .brand{top:10%;isolation:isolate;text-shadow:0 4px 22px #000,0 0 35px #4c0909aa}
-.brand::before,.brand::after{content:"尽喰廻遊";position:absolute;left:50%;top:44px;transform:translateX(-50%);width:100%;font-size:clamp(44px,12vw,68px);line-height:1.06;letter-spacing:.14em;color:#7c171328;filter:blur(.6px);z-index:-1;writing-mode:horizontal-tb;pointer-events:none}
+.brand::before,.brand::after{content:"喰滅廻遊";position:absolute;left:50%;top:44px;transform:translateX(-50%);width:100%;font-size:clamp(44px,12vw,68px);line-height:1.06;letter-spacing:.14em;color:#7c171328;filter:blur(.6px);z-index:-1;writing-mode:horizontal-tb;pointer-events:none}
 .brand::before{transform:translateX(calc(-50% - 3px)) skewX(-5deg);animation:ghost-left 4.7s steps(1,end) infinite}
 .brand::after{transform:translateX(calc(-50% + 3px)) skewX(4deg);color:#d6b78b16;animation:ghost-right 5.9s steps(1,end) infinite}
 .brand>small{color:#9b756b;letter-spacing:.42em;text-shadow:0 0 12px #6c1818}

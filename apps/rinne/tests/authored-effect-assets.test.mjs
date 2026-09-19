@@ -9,15 +9,23 @@ import {REVIEW_VFX_LIBRARY_COUNT} from '../src/rebuild/review-vfx-library-manife
 
 function effectFixture(dependencies,version=1500){
   const word=n=>{const b=Buffer.alloc(4);b.writeUInt32LE(n);return b;};
-  const trailingGroups=version===1610?6:5;
+  const trailingGroups=version>=1610?6:5;
   const info=Buffer.concat([word(version),word(dependencies.length),...dependencies.flatMap(s=>[word(s.length+1),Buffer.from(`${s}\0`,'utf16le')]),...Array.from({length:trailingGroups},()=>word(0))]);
   return Buffer.concat([Buffer.from('EFKE'),word(0),Buffer.from('INFO'),word(info.length),info]);
 }
-test('authored originals, runtime and both CC0 license notices are immutable pins',()=>{
+function effect1710Fixture(dependencies){
+  const word=n=>{const b=Buffer.alloc(4);b.writeUInt32LE(n);return b;};
+  const records=dependencies.flatMap(s=>[word(1),word(1),word(s.length+1),Buffer.from(`${s}\0`,'utf16le')]);
+  const info=Buffer.concat([word(1710),word(dependencies.length),...records]);
+  return Buffer.concat([Buffer.from('EFKE'),word(0),Buffer.from('INFO'),word(info.length),info]);
+}
+test('authored originals, runtime and pinned license notices are immutable pins',()=>{
   assert.equal(new Set(EFFECT_DOWNLOADS.map(r=>r.target)).size,EFFECT_DOWNLOADS.length);
   for(const row of EFFECT_DOWNLOADS){assert.match(row.revision,/^[a-f0-9]{40}$/);assert.match(row.gitBlobSha,/^[a-f0-9]{40}$/);assert.ok(row.byteLength>0);}
   assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-SAMPLES.txt'),true);
   assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-REVIEW-LIBRARY-CC0.txt'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-EFFECT-MATERIALS-CC0.txt'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-RESOURCE-DATA-CC0.txt'),true);
   assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-MIT.txt'),true);
   assert.equal(Object.keys(AUTHORED_EFFECTS).length,3);
   assert.equal(AUTHORED_EFFECTS.finisher.path,'samples/02_Tktk03/Light.efkefc');
@@ -25,19 +33,23 @@ test('authored originals, runtime and both CC0 license notices are immutable pin
   assert.deepEqual(production.map(r=>r.infoVersion),[1500,1500,1610]);
   assert.equal(EFFECT_ASSETS.filter(r=>r.reviewLibrary).length,REVIEW_VFX_LIBRARY_COUNT);
 });
-test('INFO parser reads reviewed v1500/v1610 layouts and complete dependency closure',()=>{
+test('INFO parser reads reviewed v1500/v1610/v1710 layouts and complete dependency closure',()=>{
   const bytes=effectFixture(['Texture/SwordLine01.png']);assert.deepEqual(effectDependencies(bytes),['Texture/SwordLine01.png']);
   assert.doesNotThrow(()=>verifyEffectClosure(EFFECT_ASSETS[0],bytes));
   assert.deepEqual(effectDependencies(effectFixture([],1610)),[]);
+  assert.deepEqual(effectDependencies(effect1710Fixture(['Textures/fire.png']),1710),['Textures/fire.png']);
   const light=EFFECT_ASSETS.find(row=>row.path.endsWith('/Light.efkefc')&&!row.reviewLibrary);
   assert.throws(()=>verifyEffectClosure(light,effectFixture([],1500)),/version mismatch/);
   assert.throws(()=>verifyEffectClosure(EFFECT_ASSETS[0],effectFixture(['Texture/missing.png'])),/Unpinned/);
   const reviewLibrary=EFFECT_ASSETS.find(row=>row.reviewLibrary);
   assert.doesNotThrow(()=>verifyEffectClosure(reviewLibrary,effectFixture([],1500)));
+  const hanmado=EFFECT_ASSETS.find(row=>row.path.endsWith('/hit_hanmado_0409.efkefc'));
+  assert.doesNotThrow(()=>verifyEffectClosure(hanmado,effectFixture(['../Texture/hit.png'],1610)));
+  assert.throws(()=>verifyEffectClosure(hanmado,effectFixture(['../../outside.png'],1610)),/escapes reviewed root/);
 });
-test('unsafe paths, unknown versions and truncation cannot pass as authored data',()=>{
-  for(const value of ['../escape.png','/tmp/x.png','https:asset.png','Texture\\bad.png'])assert.throws(()=>effectDependencies(effectFixture([value])));
-  assert.throws(()=>effectDependencies(effectFixture([],1600)),/Unreviewed/);
+test('unsafe paths, unknown versions and truncation cannot pass after 1710 support',()=>{
+  for(const value of ['../escape.png','/tmp/x.png','https:asset.png',String.raw`Texture\\bad.png`])assert.throws(()=>effectDependencies(effectFixture([value])));
+  assert.throws(()=>effectDependencies(effectFixture([],1800)),/Unreviewed/);
   const bytes=effectFixture(['Texture/SwordLine01.png']);assert.throws(()=>effectDependencies(bytes.subarray(0,-1)),/Truncated/);
   assert.throws(()=>effectDependencies(Buffer.from('not an effect')),/Not an EFKE/);
 });

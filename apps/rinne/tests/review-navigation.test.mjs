@@ -18,7 +18,8 @@ test('review back uses same-origin history only when it is safe',()=>{
 test('all Visual Review specialist pages receive the shared navigation module',async()=>{
   const vite=await read('vite.config.js');
   const entries=vite.match(/const reviewNavigationEntries=new Set\(\[([\s\S]*?)\]\);/)?.[1]||'';
-  for(const page of ['/characters.html','/characters-advanced.html','/review-motion.html','/review-assets.html','/review-effects.html','/review-sound.html','/review-battle.html'])assert.match(entries,new RegExp(`'${page.replaceAll('.','\\.')}'`));
+  for(const page of ['/review-motion.html','/review-assets.html','/review-objects.html','/review-effects.html','/review-sound.html','/review-battle.html'])assert.match(entries,new RegExp(`'${page.replaceAll('.','\\.')}'`));
+  assert.doesNotMatch(entries,/characters(?:-advanced)?\.html/);
   assert.doesNotMatch(entries,/'\/review\.html'/);
   assert.match(vite,/order:'pre'/);
   assert.match(vite,/src:'\.\/src\/review-navigation\.js'/);

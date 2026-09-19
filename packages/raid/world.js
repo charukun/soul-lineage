@@ -8,7 +8,7 @@ export const PREY={
  gravekeeper:{name:'墓守',power:'墓道の記憶',glyph:'径',desc:'礼拝所の裏に帰還口を開く。奥で喰らって裏から帰る。',hp:62,weapon:'fist',color:0x797287},
  acolyte:{name:'祈祷師',power:'祈りの残滓',glyph:'祈',desc:'聖域の結界を弱め、そこに逃げた獲物へ踏み込める。',hp:76,weapon:'sword',color:0xb0a785},
  arcanist:{name:'術師',power:'影渡り',glyph:'影',desc:'素早いスワイプで影を跳ぶ。壁の向こうへは移動しない。',hp:110,weapon:'sword',color:0x757a9c},
- knight:{name:'守護騎士',power:'刃骨',glyph:'骨',desc:'爪を骨刃へ変える。輪廻転焦の刀の技で戦う。',hp:145,weapon:'katana',color:0xabbcc4}
+ knight:{name:'守護騎士',power:'刃骨',glyph:'骨',desc:'爪を骨刃へ変える。百年転生の刀の技で戦う。',hp:145,weapon:'katana',color:0xabbcc4}
 };
 export function villagerBehavior(role){return PREY[role]?.weapon==='fist'?'flee':'fight';}
 export const FORMS={hollow:{name:'虚ろ仔',desc:'狩りを覚えたばかりの異形。',need:0},stalker:{name:'夜這い',desc:'足が伸び、移動と追跡に優れる。',need:2},brute:{name:'骸喰い',desc:'骨の鎧をまとう。生命と重い爪に優れる。',need:4},wraith:{name:'喪の翼',desc:'裂けた翼を持つ、影を渡る異形。',need:6}};

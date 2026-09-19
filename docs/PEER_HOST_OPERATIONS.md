@@ -24,7 +24,7 @@ The owner creates the signaling room only after deliberately issuing an invitati
 
 ## Host capability policy
 
-MURAAAAAAA peers remain the only host-eligible devices. Candidate ranking uses a deterministic capability score based on the browser information that is actually available:
+叡智豊満 peers remain the only host-eligible devices. Candidate ranking uses a deterministic capability score based on the browser information that is actually available:
 
 - foreground/background state;
 - charging and battery level when `navigator.getBattery()` is available;

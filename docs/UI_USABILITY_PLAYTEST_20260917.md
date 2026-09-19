@@ -1,6 +1,6 @@
 # 3アプリ UI操作性 再playtest 2026-09-17
 
-輪廻転焦 (`rinne`)、MURAAAAAAA (`village`)、尽喰廻遊 (`demon`) を、最新 `develop` を正本としてスマートフォン相当の実Chromium入力で再確認する。
+百年転生 (`rinne`)、叡智豊満 (`village`)、喰滅廻遊 (`demon`) を、最新 `develop` を正本としてスマートフォン相当の実Chromium入力で再確認する。
 
 ## 受入条件
 
@@ -14,7 +14,7 @@
 
 ## 修正前 browser evidence
 
-### 輪廻転焦
+### 百年転生
 
 - 独立診断PR #634で 390x844 Chromium / WebGL2 のタイトル → `新しい人生` → 出生期本編まで実起動した。
 - 出生期では `母と村巡り`、`スワイプで母を動かせる`、抱っこ状態を確認した。
@@ -22,13 +22,13 @@
 - 診断後にmerged #625がプレイHUDの素材感、下部操作、意識/所持品/地図、DEBUGの視覚階層を刷新している。今回それを重複実装せず、最新developを採用する。
 - 現行guidanceは4歳直後に住居・かかし・暮らしへ導くため、旧固定値 `武具 7歳` をbrowser contractにしない。出生解除、次の短い目的表示、後続の8歳武具選択を別々に検証する。
 
-### MURAAAAAAA
+### 叡智豊満
 
 - 独立診断PR #631で 390x844 Chromium / WebGL2 を起動し、first-run guideの開始、つくる、空きテント選択、ドラッグ、配置、完了まで実タッチ入力した。
 - richer first-run guide完了直後に旧legacy tutorial CTA `1 / 5 空きテントをひとつ` が再表示され、同じ導入を続けて要求する重複を確認した。
 - 改善はfirst-run guideを完了または明示skipした時点でlegacy tutorialをdismissedとして保存し、同じ案内を二度出さないこと。
 
-### 尽喰廻遊
+### 喰滅廻遊
 
 - 独立診断PR #633で 390x844 Chromium / WebGL2 のタイトルから `狩夜へ` を実クリックし、生成済み狩場へ直接入り、移動可能なHUDと自動戦闘が進行するところまで確認した。
 - 現行productには旧 `[data-village]` 選択画面がなく、browser scenarioだけがそれを30秒待って停止していた。

@@ -30,11 +30,19 @@ Ready is not a handoff or success state. Normal success is `MERGED_TO_DEVELOP`.
 
 The resulting `develop` push starts asynchronous DEV publication. Do not wait or poll for completion.
 
+## Fast DEV execution contract
+
+Fast DEV is intentionally bounded. Routine feature/fix work must not make GitHub Actions do more work than the current `develop` contract.
+
+Before install scripts, changed focused tests, or affected builds, `Astra Work Validation` runs the Fast DEV contract checker sourced from current `develop`. It rejects branch-authored expansion of the Actions workflow/control path, Fast DEV lifecycle commands, or the repository test inventory. `npm ci --ignore-scripts` prevents branch lifecycle hooks from running during dependency installation.
+
+A violation publishes `astra/fast-dev-contract=error` with a machine-readable receipt and skips the remaining validation work. This is deliberately recoverable and is not a GitHub branch-protection dead end: the same worker repairs the same branch / PR, makes a new final head, and re-validates. Only an explicit user request to change the Fast DEV contract itself can authorize merging a contract-changing task.
+
 ## Validation boundary
 
 - Intermediate branch pushes are implementation details, not waiting points.
 - Stale or cancelled validation runs must never be treated as task failure.
-- Required merge evidence is one successful validation of the final reconciled head that will actually be merged.
+- Required merge evidence is one successful validation of the final reconciled head that will actually be merged, with `astra/fast-dev-contract=success` for routine work.
 - The `Astra Work Validation` runner is explicitly armed only when the pushed final-head commit message contains `[astra-validate]`.
 - Explicit browser playtest requests still follow `BROWSER_PLAYTEST_ROUTING.md`; do not substitute static review for browser evidence.
 - `main` / Production retains its existing strict gates.

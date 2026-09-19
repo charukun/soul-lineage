@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   REVIEW_SKELETON_DOWNLOADS,
   REVIEW_SKELETON_EQUIPMENT,
@@ -122,4 +123,34 @@ export async function prepareReviewAssets() {
     await rm(root, { recursive: true, force: true });
     throw error;
   }
+}
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+export async function materializeReviewAssets(targetRoot = resolve(repoRoot, 'apps/rinne/public/asset-review')) {
+  const prepared = await prepareReviewAssets();
+  const target = resolve(targetRoot);
+  const staging = `${target}.next-${process.pid}`;
+  try {
+    await rm(staging, { recursive: true, force: true });
+    await mkdir(dirname(staging), { recursive: true });
+    await cp(prepared.root, staging, { recursive: true });
+    await rm(target, { recursive: true, force: true });
+    await rename(staging, target);
+    return Object.freeze({ target, manifest: prepared.manifest });
+  } finally {
+    await rm(prepared.root, { recursive: true, force: true });
+    await rm(staging, { recursive: true, force: true });
+  }
+}
+
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+if (isMain) {
+  const target = process.argv[2] ? resolve(process.argv[2]) : resolve(repoRoot, 'apps/rinne/public/asset-review');
+  materializeReviewAssets(target)
+    .then(({ manifest }) => console.log(`Review assets materialized: ${manifest.files.length} pinned files`))
+    .catch(error => {
+      console.error(`Review asset preparation failed: ${error.message}`);
+      process.exitCode = 1;
+    });
 }

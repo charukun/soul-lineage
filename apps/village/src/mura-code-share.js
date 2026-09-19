@@ -13,7 +13,7 @@ if(village){
   };
   const showCode=()=>{
     let code='';try{code=channel.accessCode()||'';}catch(error){village.toast(`村コードを用意できません：${error.message}`);return;}
-    content.innerHTML=`<section class="muraCodeShare"><h2>村コード</h2><p>輪廻転焦でこの村を選ぶためのコードです。</p><input id="muraVillageCodeValue" readonly value="${escape(code)}" aria-label="村コード"><button id="muraVillageCodeCopy" class="wide">コードをコピー</button><small>現在は同じブラウザ環境の村連携に使います。輪廻転焦側で明示入力した時だけ、この村の配置と内装を読み込みます。</small></section>`;
+    content.innerHTML=`<section class="muraCodeShare"><h2>村コード</h2><p>百年転生でこの村を選ぶためのコードです。</p><input id="muraVillageCodeValue" readonly value="${escape(code)}" aria-label="村コード"><button id="muraVillageCodeCopy" class="wide">コードをコピー</button><small>現在は同じブラウザ環境の村連携に使います。百年転生側で明示入力した時だけ、この村の配置と内装を読み込みます。</small></section>`;
     dialog.dataset.page='village-code';back.hidden=false;back.onclick=()=>village.more();
     document.getElementById('muraVillageCodeCopy').onclick=()=>copy(code);
   };

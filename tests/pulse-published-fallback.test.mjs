@@ -13,9 +13,10 @@ test('GitHub 403 cannot retain retired names or the old two-environment matrix',
   const old = { generatedAt: '2026-09-12T09:00:00Z', applications: [{ id: 'demon', name: '暗い喰らいCry', kind: 'game', targets: [] }] };
   const state = publishedFallback(old, { schemaVersion: 1, entries: [published('dev', 'actual')] }, options);
   const game = state.applications.find(app => app.id === 'demon');
-  assert.equal(game.name, '尽喰廻遊');
+  assert.equal(game.name, '喰滅廻遊');
   assert.deepEqual(['dev', 'staging', 'prod'].map(environment => target(game, environment)?.environment), ['dev', 'staging', 'prod']);
-  assert.equal(target(game, 'dev').commit, 'actual');
+  assert.equal(target(game, 'dev').commit, null);
+  assert.equal(target(game, 'dev').url, 'https://soul-lineage-demon-dev.c-okamoto.workers.dev/');
   assert.equal(target(game, 'staging').state, 'missing');
   assert.equal(target(game, 'staging').url, null);
   assert.equal(state.generatedAt, old.generatedAt);
@@ -39,7 +40,7 @@ test('fresh public staging metadata invalidates stale reflected-PR history and l
   assert.equal(Array.isArray(repeated.reflectedPrs), false, 'normal refresh must not reuse an unfetched history');
 });
 
-test('character studio keeps fresh manifest publication data during GitHub sync failure', () => {
+test('character studio ignores legacy Pages state and keeps only canonical Worker identity during GitHub sync failure', () => {
   const old = {
     applications: [{
       id: 'character-studio', name: 'キャラクター工房', kind: 'tool',
@@ -50,14 +51,13 @@ test('character studio keeps fresh manifest publication data during GitHub sync 
   const state = publishedFallback(old, manifest, options);
   const studio = state.applications.find(app => app.id === 'character-studio');
   assert.equal(studio.kind, 'tool');
-  assert.equal(studio.targets[0].state, 'success');
-  assert.equal(studio.targets[0].commit, 'new');
-  assert.equal(studio.targets[0].deployedAt, '2026-09-12T09:30:00Z');
-  assert.equal(studio.targets[0].url, 'https://charukun.github.io/soul-lineage/dev/rinne/characters.html');
-  assert.match(studio.targets[0].source, /DEV 公開manifest/);
+  assert.equal(studio.targets[0].state, 'waiting');
+  assert.equal(studio.targets[0].commit, null);
+  assert.equal(studio.targets[0].url, 'https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/');
+  assert.doesNotMatch(JSON.stringify(studio), /charukun\.github\.io\/soul-lineage\/dev/);
 });
 
-test('cached tool URLs survive but their old names and freshness claims do not', () => {
+test('legacy review URLs are not retained while unrelated tool freshness still degrades', () => {
   const old = {
     environments: [{ id: 'visual-review', kind: 'preview', url: 'https://rinne-visual-review.c-okamoto.workers.dev/' }],
     applications: [
@@ -68,8 +68,8 @@ test('cached tool URLs survive but their old names and freshness claims do not',
   const state = publishedFallback(old, { schemaVersion: 1, entries: [] }, options);
   const visual = state.applications.find(app => app.id === 'visual-review');
   assert.equal(visual.name, 'Visual Review Lab');
-  assert.equal(visual.targets[0].url, old.applications[0].targets[0].url);
-  assert.equal(visual.targets[0].state, 'unknown');
+  assert.equal(visual.targets[0].url, 'https://soul-lineage-review-dev.c-okamoto.workers.dev/');
+  assert.equal(visual.targets[0].state, 'waiting');
   assert.equal(state.applications.find(app => app.id === 'portal').name, 'WAYFINDER');
   assert.equal(state.applications.find(app => app.id === 'ops-board').name, 'PULSE');
 });

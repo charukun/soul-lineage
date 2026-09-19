@@ -1,6 +1,4 @@
 import {mountReviewGroup,mountReviewSelect,mountReviewSelectGrid} from './review-slot-picker.js';
-import {installCharacterReviewGrid} from './character-review-grid.js';
-
 const byId=id=>document.getElementById(id);
 const qs=selector=>document.querySelector(selector);
 
@@ -43,7 +41,7 @@ function installStageCameraSlot(){
 function installCharacterSlots(){
   if(!document.body.classList.contains('simple-review'))return;
   const mode=document.body.dataset.reviewMode;
-  if(mode==='character'){installCharacterReviewGrid();return;}
+  if(mode==='character')return;
   installStageCameraSlot();
   if(mode==='motion'){
     const basics=byId('simple-motion-controls');
@@ -95,10 +93,12 @@ function installBattleSlots(){
   const pickers=qs('.pickers');
   if(!pickers)return;
   pickers.classList.add('review-slot-row');
-  move(mountReviewSelect(byId('battle-hero-model'),'自プレイヤー'),pickers);
-  move(mountReviewGroup(qs('.skin-switch'),'UI'),pickers);
+  move(mountReviewSelect(byId('battle-hero-model'),'左モデル'),pickers);
+  move(mountReviewSelect(byId('battle-enemy-model'),'右モデル'),pickers);
+  move(mountReviewGroup(qs('.battle-mode-switch'),'戦闘人数'),pickers);
+  move(mountReviewGroup(qs('.skin-switch'),'カメラ / UI'),pickers);
   const modes=qs('.review-modes');
-  if(modes&&!modes.querySelector('.review-slot-picker'))modes.hidden=true;
+  if(modes)modes.hidden=false;
 }
 
 function install(){

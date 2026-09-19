@@ -34,6 +34,14 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs la
 - Never weaken tests, review requirements, browser assertions, the single final-head merge gate, or Production gates.
 - User-facing completion reports are concise by default: say what changed and that it was merged to `develop`, plus the PR link when useful. Do not print validation SHA, validation run URL, merge SHA, or CI internals unless the user asks for them or they are needed to explain a blocker.
 
+### Fast DEV execution contract
+
+- The existing Fast DEV Actions workload is a ceiling, not a template to extend. Without an explicit user request to change the Fast DEV contract itself, never add an Actions job/step, increase the number of test cases executed by Actions, change a Fast DEV lifecycle command (`predev`, `prebuild`, `build`, `postbuild`), or add network/materialization work to the validation path.
+- `Astra Work Validation` must run the contract check from current `develop` before dependency scripts, focused tests, or builds. Branch-authored changes cannot authorize themselves. Dependency installation uses `npm ci --ignore-scripts`.
+- `astra/fast-dev-contract=error` is a recoverable self-inflicted violation, not `FAILED`. Keep the same branch / PR, identify the attempted expansion from the receipt, remove it or move it outside Fast DEV, then create a new final head and validate again. Do not ask the user how to recover from your own violation.
+- A contract violation intentionally does not make the GitHub merge button mechanically impossible. Astra must nevertheless not mark Ready or merge while the violation remains, unless the user explicitly requested a Fast DEV contract change in the current task.
+- If the task hit this violation and self-repaired it, say so in the completion report. Never hide or relabel the attempted expansion as ordinary CI noise.
+
 ## Architecture
 
 - Apps stay under `apps/<id>`; shared code stays under `packages/<id>`. Apps do not import apps; packages do not import apps.

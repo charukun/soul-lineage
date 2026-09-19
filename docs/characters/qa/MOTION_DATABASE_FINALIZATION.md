@@ -42,7 +42,7 @@ Shino slash remains 0.66 seconds with the existing gameplay contact phase/timing
 
 The Interaction Schema library still requires an explicit partner and explicit anchors.
 
-The first real game adoption is 尽喰廻遊 devour presentation. `packages/raid/devour.js` already owns the authoritative capture lifetime through `npc.capturedBy`. `apps/demon/src/motion-interactions.js` consumes that existing explicit state as `eat-target` presentation metadata and applies a bounded MasterCharacter root pull/facing correction only while capture is active.
+The first real game adoption is 喰滅廻遊 devour presentation. `packages/raid/devour.js` already owns the authoritative capture lifetime through `npc.capturedBy`. `apps/demon/src/motion-interactions.js` consumes that existing explicit state as `eat-target` presentation metadata and applies a bounded MasterCharacter root pull/facing correction only while capture is active.
 
 It does not mutate NPC/player world coordinates, devour progress, reward, `eaten`, combat or save state.
 

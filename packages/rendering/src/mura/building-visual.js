@@ -38,7 +38,7 @@ function fitHouseToMuraFootprint(T,group,kind){
 
 /**
  * Permanent residential MURA buildings reuse the authored house silhouettes from
- * 尽喰廻遊, fitted to the canonical metre footprint. Residential tents remain
+ * 喰滅廻遊, fitted to the canonical metre footprint. Residential tents remain
  * shared MURA ger-style homes so every app renders the same compact round shelter.
  */
 export function createMuraBuildingVisual(T,models,kind,material='base',level=1){

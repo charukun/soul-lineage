@@ -7,7 +7,7 @@
     "commit": "84fa4e91af6a88989be7c99e0891cede11f2ca38"
   },
   "verification": "Every upstream file is verified with git hash-object against the Git blob ID at the pinned commit before commit.",
-  "policy": "Curated shared visual candidates for Rinne, MURAAAAAAA and 尽喰廻遊. Import does not imply RUNTIME_READY, gameplay collision suitability, Production approval or human Visual Approval.",
+  "policy": "Curated shared visual candidates for Rinne, 叡智豊満 and 喰滅廻遊. Import does not imply RUNTIME_READY, gameplay collision suitability, Production approval or human Visual Approval.",
   "assets": [
     {"id":"arrow-bucket","category":"prop","source":"bucket_arrows","apps":["rinne","village","demon"],"tags":["camp","archery","training"]},
     {"id":"ladder","category":"prop","source":"ladder","apps":["rinne","village","demon"],"tags":["settlement","work","ruin"]},

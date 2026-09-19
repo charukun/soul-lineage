@@ -130,7 +130,7 @@ test('changed file paths map to target applications deterministically', () => {
     'apps/rinne/src/main.js',
     'apps/village/src/main.js',
     'packages/network/src/index.js',
-  ]).map(x => x.label), ['輪廻転焦', '村づくり', '共通基盤']);
+  ]).map(x => x.label), ['百年転生', '村づくり', '共通基盤']);
   assert.deepEqual(targetAppsFromFiles(['README.md']).map(x => x.label), ['Repository共通']);
 });
 
