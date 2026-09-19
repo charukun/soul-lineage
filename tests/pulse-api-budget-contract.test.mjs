@@ -20,7 +20,11 @@ test('PULSE keeps 30-minute reconciliation but never uses tokenless GitHub acces
   assert.match(worker, /createMemoryStorage/);
   assert.match(worker, /this\.refreshStorage = createMemoryStorage\(\)/);
   assert.match(worker, /buildState\(previous, \{ storage: this\.refreshStorage/);
+  assert.match(worker, /previous = this\.memoryState/);
+  assert.match(worker, /async getState\(\) \{\s*return this\.memoryState;/);
+  assert.match(worker, /peer persistence must not poison PULSE state/);
   assert.doesNotMatch(worker, /writeStored\(this\.ctx\.storage, STATE_KEY, state\)/);
+  assert.doesNotMatch(worker, /readStored\(this\.ctx\.storage, STATE_KEY\)/);
   assert.match(worker, /namespace\.idFromName\('global'\)/);
   assert.match(worker, /namespace\.get\(namespace\.idFromName\('global'\)\)/);
   assert.match(worker, /if \(!token && !env\.OPS_GITHUB_TOKEN\) return json\(\{ error: 'github_auth_required' \}, 503\)/);

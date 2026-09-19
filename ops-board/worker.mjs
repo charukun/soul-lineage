@@ -11,8 +11,6 @@ import {
   deletePeerWorldRoom,publicPeerWorldSnapshot,
 } from './peer-world-registry.mjs';
 export { buildState } from './collector.mjs';
-const STATE_KEY = 'ops-state-v2';
-const HISTORY_KEY = 'ops-history-v1';
 const PEER_CORS={
   'access-control-allow-origin':'*',
   'access-control-allow-methods':'GET,POST,DELETE,OPTIONS',
@@ -101,31 +99,22 @@ export class OpsState extends DurableObject {
     this.env = env;
     this.inflight = null;
     this.memoryState = null;
-    this.memoryHistory = null;
+    this.memoryHistory = { schema:1, snapshots:[], publications:[] };
     this.memoryRescue = null;
     this.refreshStorage = createMemoryStorage();
   }
   async getState() {
-    if (this.memoryState) return this.memoryState;
-    const current = await readStored(this.ctx.storage, STATE_KEY);
-    const legacy = await this.ctx.storage.get('ops-state-v1');
-    if (!current) return legacy || null;
-    const state = !legacy ? current : (Date.parse(legacy.generatedAt || '') || 0) > (Date.parse(current.generatedAt || '') || 0) ? legacy : current;
-    const rescue = this.memoryRescue || await readStored(this.ctx.storage, 'rescue-observation-v1');
-    if (rescue && Date.parse(rescue.generatedAt) > Date.parse(state.integrationRescue?.generatedAt || 0)) return { ...state, integrationRescue: rescue };
-    return state;
+    return this.memoryState;
   }
   async getHistory() {
-    if (!this.memoryHistory) this.memoryHistory = await readStored(this.ctx.storage, HISTORY_KEY);
     return publicControlHistory(this.memoryHistory);
   }
   async recordHistory(state) {
-    if (!this.memoryHistory) this.memoryHistory = await readStored(this.ctx.storage, HISTORY_KEY);
     this.memoryHistory = appendControlHistory(this.memoryHistory, state);
     return publicControlHistory(this.memoryHistory);
   }
   async observeRescue(snapshot) {
-    const previous = this.memoryRescue || await readStored(this.ctx.storage, 'rescue-observation-v1');
+    const previous = this.memoryRescue;
     if (!previous || Date.parse(snapshot.generatedAt) > Date.parse(previous.generatedAt)) {
       this.memoryRescue = snapshot;
       const current = await this.getState();
@@ -157,7 +146,7 @@ export class OpsState extends DurableObject {
     this.inflight = (async () => {
       let previous = null;
       try {
-        previous = await this.getState();
+        previous = this.memoryState;
         const state = await buildState(previous, { storage: this.refreshStorage, token, reason: source });
         state.refreshReason = source;
         state.nextRetryAt = null;
@@ -221,7 +210,10 @@ export default {
           let state = await stub.getState();
           if (!state && env.OPS_GITHUB_TOKEN) state = await stub.refresh('cold-start');
           if (!state) return json(await resilientPublicState(githubAuthError('state-read'), env, 'state-read'));
-          return json({ ...publicState(state, env), history: await stub.getHistory(), sharedWorld: await stub.peerSnapshot() });
+          const history = await stub.getHistory();
+          let sharedWorld = null;
+          try { sharedWorld = await stub.peerSnapshot(); } catch { /* peer persistence must not poison PULSE state */ }
+          return json({ ...publicState(state, env), history, sharedWorld });
         } catch (error) {
           return json({ ...(await resilientPublicState(error, env, 'state-read')), history: { schema:1, snapshots:[], publications:[] }, sharedWorld: null, runtimeFallback: true });
         }
