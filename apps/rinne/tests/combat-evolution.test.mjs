@@ -7,6 +7,7 @@ import {evolveTechniqueForm,recordCombatLesson,techniqueMutationFor} from '../sr
 import {applyMultiTargetContact,enemySweepTargets,ensureCombatTerrain,lineBlocked,tickRangedProjectiles} from '../src/rebuild/combat-world-contact.js';
 import {assignSquadRoles,enemyLearningResponse,recordEnemyPattern} from '../src/rebuild/combat-squad-ai.js';
 import {combatReplayDigest,recordCombatReplay} from '../src/rebuild/combat-replay.js';
+import {recordLifeExperience,advanceInspirationTime,prepareCombatInspiration,inspirationRecipe,recordCombatAnswers} from '../src/rebuild/inspiration-state.js';
 
 function state(seed=91){const s=createLife({seed});s.id=`p-${seed}`;s.phase='living';s.zone='frontier';s.ageSeconds=20*60;s.ageYears=20;s.position={x:0,z:0};s.yaw=0;s.equipment.weapon='sword';return s;}
 function enemy(id,x,z,hp=100){return{id,x,z,hp,maxHp:hp,dead:false,cooldown:0,flash:0,yaw:Math.PI,attackWindow:0,moving:false};}
@@ -32,11 +33,18 @@ test('injuries persist, affect body capabilities, and heal without becoming perm
   const restored=deserializeLife(serializeLife(s));assert.ok(Object.values(restored.injuries).some(row=>row.severity>0));restored.ageSeconds+=240;const after=injuryEffects(restored);assert.ok(after.severity<before.severity);
 });
 
-test('combat history never mutates techniques, unlocks skills, creates XP, or creates inherited power',()=>{
+test('numeric combat history and unperformed or blocked moves cannot create learned or inherited power',()=>{
   const s=state(),form={kinds:['parry','counter','thrust'],feet:['stay','stay','chase'],charges:['none','none','none'],rhythm:'sharp',tempo:1};
   s.experiences.combat={count:99,score:99,last:1};s.combatLessons={backHit:9};s.combatLessonRecent={backHit:10};s.techniqueEvolution={'action.counter':{uses:99,hits:99,ha:99}};s.combatLegacy={forms:{'action.counter':{tier:3,uses:99}},lessons:{backHit:9}};s.lineage=[{experiences:{combat:{count:9,score:9,last:1}},combatLegacy:{forms:{x:{tier:3}}}}];
   stripCombatProgressionState(s);assert.equal('combatLessons'in s,false);assert.equal('techniqueEvolution'in s,false);assert.equal('combatLegacy'in s,false);assert.equal('combat'in s.experiences,false);assert.equal('combatLegacy'in s.lineage[0],false);assert.equal('combat'in s.lineage[0].experiences,false);
   assert.deepEqual(recordCombatLesson(s,'backHit'),{recorded:false,unlocked:[],names:[]});assert.equal(techniqueMutationFor(s,'action.counter').tier,0);assert.deepEqual(evolveTechniqueForm(s,'action.counter',form),form);
+  const learner=state();learner.equipment.weapon='spear';recordLifeExperience(learner,'play');recordLifeExperience(learner,'practice');for(let i=0;i<364;i++)advanceInspirationTime(learner,.25);
+  const context={targetId:'probe',questions:['close'],window:'combat',zone:'frontier',terrain:'open',mind:{counter:1,survival:1}};
+  const pending=prepareCombatInspiration(learner,context);assert.ok(pending);inspirationRecipe(learner,'basic.spear','jo','probe');assert.ok(pending.armed);
+  const hit={type:'player-hit',targetId:'probe',phase:pending.phase,techniqueId:pending.id,skill:pending.runtimeName,damage:5,engine:'tidebreak'};
+  assert.deepEqual(recordCombatAnswers(learner,context,[hit]),[]);assert.equal(learner.inspiration.records[pending.id],undefined);
+  learner.inspiration.execution={targetId:'probe',slot:pending.phase,techniqueId:pending.id,skill:pending.runtimeName,attack:'pommel',progress:1,paid:false};
+  assert.deepEqual(recordCombatAnswers(learner,context,[{...hit,blockedByTerrain:true}]),[]);assert.equal(learner.inspiration.records[pending.id],undefined);assert.equal(learner.inspiration.pending.failed,true);
 });
 
 test('enemy squad roles coordinate without capping attackers and repeated patterns trigger only short-term enemy learning',()=>{
@@ -53,7 +61,8 @@ test('compact combat replay digest is deterministic for the same inputs',()=>{
   const a=state(123),b=state(123),fa=front([enemy('e',0,1)]),fb=front([enemy('e',0,1)]);for(let i=0;i<8;i++){recordCombatReplay(a,fa,.1,[{type:'player-hit',targetId:'e',skill:'basic.sword',phase:'jo',damage:3}]);recordCombatReplay(b,fb,.1,[{type:'player-hit',targetId:'e',skill:'basic.sword',phase:'jo',damage:3}]);}assert.equal(combatReplayDigest(a.combatReplay),combatReplayDigest(b.combatReplay));
 });
 
-test('combat evolution deliberately contains neither anti-stunlock rescue nor player progression hooks',async()=>{
+test('causal learning uses explicit execution hooks, never anti-stunlock rescue or legacy progression counters',async()=>{
   const source=await readFile(new URL('../src/rebuild/combat-evolution-runtime.js',import.meta.url),'utf8');assert.doesNotMatch(source,/attackerCap|stunImmunity|recoveryIFrames|postHitInvulnerability|recordCombatLesson|noteTechniqueUse|combatLegacy/);
+  assert.match(source,/prepareInspirationCombat/);assert.match(source,/settleInspirationCombat/);
   const growth=await readFile(new URL('../src/rebuild/combat-growth.js',import.meta.url),'utf8');assert.doesNotMatch(growth,/eligibleDiscoveries|techniqueEvolution\[|combatLessons\[/);
 });

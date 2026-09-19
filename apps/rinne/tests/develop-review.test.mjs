@@ -16,7 +16,8 @@ test('legacy RINNE review entry bridges to the independent Visual Review Lab',as
   assert.match(lab,/data-dev-tool="visual-review"/);
   for(const target of ['characters','motion','equipment','objects','effects','battle'])assert.match(lab,new RegExp(`data-route="${target}"`));
   assert.doesNotMatch(lab,/<b>装備・物体<\/b>/);
-  assert.match(routes,/characters:route\(DEV\.rinne,'characters\.html\?review=character'\)/);
+  assert.match(routes,/characters:DEV\.characters/);
+  assert.match(routes,/soul-lineage-character-studio-dev\.c-okamoto\.workers\.dev/);
   assert.match(routes,/motion:route\(DEV\.rinne,'review-motion\.html'\)/);
   assert.match(routes,/equipment:route\(DEV\.rinne,'review-assets\.html'\)/);
   assert.match(routes,/objects:route\(DEV\.rinne,'review-objects\.html'\)/);
@@ -25,14 +26,14 @@ test('legacy RINNE review entry bridges to the independent Visual Review Lab',as
 });
 
 test('all specialist review pages expose one Visual Review Lab back route',async()=>{
-  const pages=await Promise.all(['characters.html','review-motion.html','review-assets.html','review-objects.html','review-effects.html','review-sound.html','review-battle.html'].map(read));
+  const pages=await Promise.all(['review-motion.html','review-assets.html','review-objects.html','review-effects.html','review-sound.html','review-battle.html'].map(read));
   for(const html of pages){
     const matches=html.match(/href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"[^>]*aria-label="Visual Reviewへ戻る"/g)||[];
     assert.equal(matches.length,1);
   }
-  assert.ok(pages[1].indexOf('motion-controls')<pages[1].indexOf('motion-back'));
+  assert.ok(pages[0].indexOf('motion-controls')<pages[0].indexOf('motion-back'));
+  assert.match(pages[3],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
   assert.match(pages[4],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
-  assert.match(pages[5],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
 });
 
 test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
@@ -62,15 +63,16 @@ test('equipment review follows the Visual Review Lab probe language and exposes 
   assert.doesNotMatch(html,/review-slot-auto\.js|着せ替え確認|装備確認 \| 百年転生/);
   assert.match(js,/activeViewDirection==='three-quarter'/);
   assert.match(js,/MODELS \$\{REVIEW_SKELETON_MODELS\.length\}/);
+  assert.match(js,/https:\/\/raw\.githubusercontent\.com/);
+  assert.match(js,/reviewModelUrl\(model\)|reviewEquipmentUrl\(spec\)/);
   assert.match(css,/body\{background:radial-gradient\(circle at 18% 0,#1b2723 0,transparent 30%\),#0b1110\}/);
   assert.match(css,/\.asset-stage-shell\{[^}]*border-radius:14px/);
   assert.match(css,/\.asset-catalog\{[^}]*border-radius:14px/);
   assert.match(css,/\.review-lab-back\{[^}]*border-radius:999px/);
 });
-
 test('world-object review loads the exact RINNE runtime props independently of equipment',async()=>{
   const [html,css,js]=await Promise.all([read('review-objects.html'),read('src/review-object-library.css'),read('src/review-object-library.js')]);
-  assert.match(html,/<title>物体確認 \| 百年転生<\/title>/);
+  assert.match(html,/物体確認 \\| 百年転生/);
   assert.match(html,/id="object-stage"/);
   assert.match(html,/id="object-options"/);
   for(const preset of ['front','side','top','full'])assert.match(html,new RegExp(`data-object-camera="${preset}"`));

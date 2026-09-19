@@ -7,6 +7,7 @@ import { KAYKIT_MODELS, KAYKIT_MODEL_BY_KEY, KAYKIT_REVIEW_EQUIPMENT_FILES, KAYK
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TARGETS = Object.freeze({
   rinne: Object.freeze({root:path.join(repoRoot, 'apps/rinne/public/simulator/assets/kaykit'),models:Object.freeze([...KAYKIT_MODELS,...KAYKIT_REVIEW_EQUIPMENT_FILES])}),
+  'character-studio': Object.freeze({root:path.join(repoRoot, 'apps/character-studio/public/simulator/assets/kaykit'),models:Object.freeze([...KAYKIT_MODELS,...KAYKIT_REVIEW_EQUIPMENT_FILES])}),
   village: Object.freeze({root:path.join(repoRoot, 'apps/village/public/assets/kaykit'),models:Object.freeze([KAYKIT_MODEL_BY_KEY.rogue,KAYKIT_MODEL_BY_KEY.knight])}),
   demon: Object.freeze({root:path.join(repoRoot, 'apps/demon/public/assets/kaykit'),models:Object.freeze([KAYKIT_MODEL_BY_KEY.knight])})
 });

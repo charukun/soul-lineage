@@ -1,6 +1,4 @@
 import {mountReviewGroup,mountReviewSelect,mountReviewSelectGrid} from './review-slot-picker.js';
-import {installCharacterReviewGrid} from './character-review-grid.js';
-
 const byId=id=>document.getElementById(id);
 const qs=selector=>document.querySelector(selector);
 
@@ -43,7 +41,7 @@ function installStageCameraSlot(){
 function installCharacterSlots(){
   if(!document.body.classList.contains('simple-review'))return;
   const mode=document.body.dataset.reviewMode;
-  if(mode==='character'){installCharacterReviewGrid();return;}
+  if(mode==='character')return;
   installStageCameraSlot();
   if(mode==='motion'){
     const basics=byId('simple-motion-controls');

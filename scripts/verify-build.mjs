@@ -19,17 +19,5 @@ for (const asset of assets) {
   assert.ok((await stat(path)).size > 0, `Empty asset: ${asset}`);
 }
 if ((info.kind || 'game') === 'game') assert.ok((await readdir(resolve(root, 'assets'))).some(f => /^emblem-.*\.svg$/.test(f)), 'Shared asset was not emitted');
-if (app === 'rinne') {
-  const reviewRoot = resolve(root, 'asset-review');
-  const manifest = JSON.parse(await readFile(resolve(reviewRoot, 'manifest.json'), 'utf8'));
-  assert.equal(manifest.scope, 'visual-review-only', 'RINNE review asset manifest scope mismatch');
-  assert.ok(Array.isArray(manifest.models) && manifest.models.length >= 4, 'RINNE review models are missing');
-  assert.ok(Array.isArray(manifest.files) && manifest.files.length > 0, 'RINNE review asset manifest is empty');
-  for (const file of manifest.files) {
-    const path = resolve(reviewRoot, file.output);
-    assert.ok(path.startsWith(reviewRoot + sep), `Unsafe review asset path: ${file.output}`);
-    assert.equal((await stat(path)).size, file.size, `Review asset size mismatch: ${file.output}`);
-  }
-}
 assert.ok(!html.includes('/src/main.js'), 'Source entry was not bundled');
 console.log(`Build verified: ${app} / ${info.environment} / ${info.commit} / ${info.inputHash}`);

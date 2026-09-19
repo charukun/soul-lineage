@@ -12,6 +12,9 @@ import './review-asset-library.css';
 const q = selector => document.querySelector(selector);
 const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const loader = new GLTFLoader();
+const reviewRawRoot = `https://raw.githubusercontent.com/${REVIEW_SKELETON_SOURCE.repository}/${REVIEW_SKELETON_SOURCE.commit}/`;
+const reviewModelUrl = model => new URL(model.source.path, reviewRawRoot).href;
+const reviewEquipmentUrl = spec => new URL(`${REVIEW_SKELETON_SOURCE.equipmentRoot}${spec.file}.gltf`, reviewRawRoot).href;
 const canvas = q('#asset-stage');
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
@@ -115,7 +118,7 @@ async function setEquipment(slot,id) {
   if(!id)return;
   const spec=REVIEW_SKELETON_EQUIPMENT.find(row=>row.id===id); if(!spec||!spec.slots.includes(slot))throw new Error(`装備できない組み合わせ: ${slot}/${id}`);
   const anchor=slotAnchor(slot); if(!anchor)throw new Error(`${slot} 装備用の骨/slotが見つかりません`);
-  const gltf=await loader.loadAsync(new URL(spec.runtime.url,location.href).href),payload=flattenScene(gltf.scene); payload.name=`ReviewEquipment:${spec.id}`;
+  const gltf=await loader.loadAsync(reviewEquipmentUrl(spec)),payload=flattenScene(gltf.scene); payload.name=`ReviewEquipment:${spec.id}`;
   payload.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}}); anchor.add(payload); applyTransform(payload,spec,slot); mounted.set(slot,payload);
 }
 async function reapplyEquipment() {
@@ -156,7 +159,7 @@ function frameModel(){activeViewFocus='full';applyViewPreset();}
 async function loadModel(id) {
   const model=REVIEW_SKELETON_MODELS.find(row=>row.id===id); if(!model)throw new Error(`Unknown review model: ${id}`); const sequence=++loadSequence; selection.model=id; status(`${model.label} を読み込み中…`);
   for(const root of mounted.values())disposeRoot(root);mounted.clear(); if(modelRoot)disposeRoot(modelRoot); modelRoot=null; mixer?.stopAllAction();mixer=null;
-  const gltf=await loader.loadAsync(new URL(model.runtime.url,location.href).href); if(sequence!==loadSequence){disposeRoot(gltf.scene);return;}
+  const gltf=await loader.loadAsync(reviewModelUrl(model)); if(sequence!==loadSequence){disposeRoot(gltf.scene);return;}
   modelRoot=gltf.scene; modelRoot.name=`ReviewModel:${model.id}`; modelRoot.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}}); scene.add(modelRoot); hideNativeAccessories(modelRoot);
   modelRoot.updateMatrixWorld(true); const box=new THREE.Box3().setFromObject(modelRoot),center=box.getCenter(new THREE.Vector3()); modelRoot.position.x-=center.x;modelRoot.position.z-=center.z;modelRoot.position.y-=box.min.y;modelRoot.updateMatrixWorld(true);
   if(gltf.animations?.length){mixer=new THREE.AnimationMixer(modelRoot);mixer.clipAction(gltf.animations[0]).play();}

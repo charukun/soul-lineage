@@ -15,15 +15,18 @@ test('every current game remains visible with development, staging and productio
   for (const app of apps) {
     const targets = releaseTargets(app);
     assert.deepEqual(targets.map(t => t.environment), ['dev', 'staging', 'prod']);
-    assert.deepEqual(targets.map(t => t.label), ['開発', '検証', '本番']);
-    assert.ok(targets.every(t => t.state === 'missing' && t.url === null && t.commit === null));
+    assert.deepEqual(targets.map(t => t.label), ['高速DEV', '検証', '本番']);
+    assert.equal(targets[0].state, 'waiting');
+    assert.match(targets[0].url, /^https:\/\/soul-lineage-[a-z0-9-]+-dev\.c-okamoto\.workers\.dev\/$/);
+    assert.ok(targets.slice(1).every(t => t.state === 'missing' && t.url === null && t.commit === null));
   }
 });
-test('the current metadata wins over an old deployed title, without changing its deployed SHA', () => {
+test('retired Pages DEV metadata cannot override the canonical Worker DEV target', () => {
   const app = games({ entries: [entry('demon', 'dev', 'old-sha')] }).find(app => app.id === 'demon');
   assert.equal(app.name, '喰滅廻遊');
-  assert.equal(target(app, 'dev').commit, 'old-sha');
-  assert.equal(target(app, 'dev').publishedName, 'old title');
+  assert.equal(target(app, 'dev').commit, null);
+  assert.equal(target(app, 'dev').state, 'waiting');
+  assert.equal(target(app, 'dev').url, 'https://soul-lineage-demon-dev.c-okamoto.workers.dev/');
 });
 test('staging URL and deployment date are independent from dev/prod', () => {
   const staging = { ...entry('demon', 'staging', 'staged'), deployedAt: '2026-09-12T09:00:00Z' };
@@ -37,14 +40,13 @@ test('legacy production path remains the exact published route', () => {
   const app = games({ entries: [{ ...entry('rinne', 'prod'), path: 'prod', legacy: true }] }).find(a => a.id === 'rinne');
   assert.equal(target(app, 'prod').url, 'https://charukun.github.io/soul-lineage/prod/');
 });
-test('ambiguous, cross-environment and external paths never become active links', () => {
+test('legacy Pages DEV entries never become active DEV links', () => {
   for (const entries of [[entry('demon', 'dev'), entry('demon', 'dev')],
     [{ ...entry('demon', 'dev'), path: 'prod/demon' }],
-    [{ ...entry('demon', 'dev'), path: '//outside.invalid' }],
-    [{ ...entry('demon', 'dev'), version: {} }]]) {
+    [{ ...entry('demon', 'dev'), path: '//outside.invalid' }]]) {
     const dev = target(games({ entries }).find(a => a.id === 'demon'), 'dev');
-    assert.equal(dev.state, 'unknown');
-    assert.equal(dev.url, null);
+    assert.equal(dev.state, 'waiting');
+    assert.equal(dev.url, 'https://soul-lineage-demon-dev.c-okamoto.workers.dev/');
   }
 });
 test('new manifest games also receive the same three-environment matrix', () => {

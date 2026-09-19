@@ -35,10 +35,16 @@ export function publishedFallback(previous, manifest, { now, error, source }) {
   const oldApps = new Map((previous?.applications || []).map(app => [app.id, app]));
   const applications = buildApplications(manifest, environments, []).map(app => {
     const old = oldApps.get(app.id);
-    // Character Studio is a tool, but its publication authority is the same public
-    // DEV manifest as Rinne. Keep that fresh manifest metadata even when GitHub API
-    // history is temporarily unavailable.
-    if (app.kind === 'game' || app.id === 'character-studio' || !old) return app;
+    if (app.kind === 'game' || !old) return app;
+    if (app.id === 'character-studio' || app.id === 'visual-review') {
+      const canonical = app.targets[0]?.url;
+      const cached = (old.targets || []).find(target => target.url === canonical);
+      if (!cached) return app;
+      return { ...app, targets: [{ ...cached,
+        source: '直近の独立Worker公開情報（GitHub更新失敗）',
+        note: '最新statusは再取得中です。直近の確認済み公開先を保持しています。',
+      }] };
+    }
     return { ...app, targets: (old.targets || app.targets).map(target => ({ ...target,
       state: 'unknown', source: '過去の公開情報（GitHub更新失敗）', note: '公開処理の最新状態は未確認です。' })) };
   });

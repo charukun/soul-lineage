@@ -2,11 +2,12 @@ const DEV=Object.freeze({
   rinne:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',
   village:'https://soul-lineage-village-dev.c-okamoto.workers.dev/',
   demon:'https://soul-lineage-demon-dev.c-okamoto.workers.dev/',
-  pulse:'https://rinne-ops.c-okamoto.workers.dev/'
+  pulse:'https://rinne-ops.c-okamoto.workers.dev/',
+  characters:'https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/'
 });
 const route=(base,path='')=>new URL(path,base).href;
 const ROUTES=Object.freeze({
-  characters:route(DEV.rinne,'characters.html?review=character'),
+  characters:DEV.characters,
   motion:route(DEV.rinne,'review-motion.html'),
   equipment:route(DEV.rinne,'review-assets.html'),
   assets:route(DEV.rinne,'review-assets.html'),
