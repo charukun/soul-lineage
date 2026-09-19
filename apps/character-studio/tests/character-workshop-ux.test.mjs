@@ -61,6 +61,7 @@ test('mobile stage remains dominant and edit footer leaves review modes', () => 
 test('Visual Review gets dedicated simple character and motion modes', () => {
   assert.match(entry, /const REVIEW_MODES = Object\.freeze/);
   assert.match(entry, /character: \{/);
+  assert.match(entry, /キャラクターモデル確認/);
   assert.match(entry, /motion: \{/);
   assert.match(entry, /dataset\.reviewMode = mode/);
   assert.match(entry, /simple-review-summary/);
@@ -84,13 +85,13 @@ test('simple review keeps preview chrome quiet and controls compact', () => {
   assert.match(css, /body\.simple-review \.workshop-secondary-tabs/);
 });
 
-test('character review retains the three source selections and extends the persistent five-column list to all review elements', () => {
+test('character model review exposes review axes and preserves the full selectable catalogue', () => {
   // Reconcile PR #970's three-slot prototype with the complete character-review catalogue.
   assert.match(slotAuto, /if\(mode==='character'\)\{installCharacterReviewGrid\(\);return;\}/);
   for (const selector of ['#character-model-options [data-character-model]', '#slot-tabs [data-slot]', '#part-options [data-modular-value]']) {
     assert.ok(characterGrid.includes(selector));
   }
-  for (const id of ['model','part','variant','individual','hair','eyes','skin','dye','age']) {
+  for (const id of ['model','individual','part','variant','age','hair','eyes','skin','dye']) {
     assert.ok(characterGrid.includes(`['${id}',`));
   }
   assert.doesNotMatch(characterGrid, /\['camera',/);
@@ -107,6 +108,10 @@ test('character review retains the three source selections and extends the persi
   assert.match(characterGridCss, /CHARACTER PROBE/);
   assert.match(characterGridCss, /minmax\(0,\s*58fr\).*minmax\(0,\s*42fr\)/);
   assert.match(characterGrid, /function optionMark\(group, option\)/);
+  assert.match(characterGrid, /const REVIEW_CRITERIA = Object\.freeze/);
+  for (const label of ['シルエット','干渉','顔','年齢差','個体差','ゲーム距離']) assert.ok(characterGrid.includes(label));
+  assert.match(characterGrid, /'quality-mark'/);
+  assert.match(characterGrid, /'別候補'/);
   assert.match(characterGrid, /button\.dataset\.reviewAction = id/);
   assert.match(characterGrid, /subjectRow\.classList\.add\('character-review-pager'\)/);
   assert.match(characterGrid, /frameButton\.textContent = '全身'/);
