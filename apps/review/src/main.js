@@ -10,6 +10,7 @@ const ROUTES=Object.freeze({
   motion:route(DEV.rinne,'review-motion.html'),
   assets:route(DEV.rinne,'review-assets.html'),
   effects:route(DEV.rinne,'review-effects.html'),
+  sounds:route(DEV.rinne,'review-sound.html'),
   battle:route(DEV.rinne,'review-battle.html'),
   rinne:DEV.rinne,
   village:DEV.village,
