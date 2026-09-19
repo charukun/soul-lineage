@@ -51,16 +51,13 @@ test('model audit uses pinned CC0 KayKit identity, bounded loads and GPU recover
   assert.ok(engine.indexOf('auditDocument(json, hash, bytes.byteLength, blobSha)') < engine.indexOf("new GLTFLoader().parseAsync(bytes, '')"));
   for (const expression of [/if \(!audit\.approved\) throw/, /length > MAX_MODEL_BYTES/, /file\.size > MAX_SESSION_BYTES/, /webglcontextlost/, /webglcontextrestored/]) assert.match(engine, expression);
 });
-test('Character Studio is an independent two-entry dev-tool build', () => {
+test('Character Studio is an independent two-entry dev-tool build', { timeout: 480000 }, async () => {
   assert.match(main, /data-dev-tool="character-studio"/);
   assert.match(vite, /appConfig\('character-studio',import\.meta\.url\)/);
   assert.match(vite, /main:fileURLToPath\(new URL\('\.\/index\.html'/);
   assert.match(vite, /advanced:fileURLToPath\(new URL\('\.\/advanced\.html'/);
   assert.doesNotMatch(vite, /characters\.html|apps\/rinne/);
-});
 
-
-test('diagnostic exact-head Pixel Fold browser evidence', { timeout: 480000 }, async () => {
   const { chromium } = await import('@playwright/test');
   const { spawn, execFileSync } = await import('node:child_process');
   const { mkdirSync, readFileSync: readEvidence } = await import('node:fs');
@@ -70,16 +67,16 @@ test('diagnostic exact-head Pixel Fold browser evidence', { timeout: 480000 }, a
   const output = resolve(root, 'test-results/character-studio-diagnostic');
   mkdirSync(output, { recursive: true });
   execFileSync(process.execPath, ['scripts/prepare-kaykit-foundation.mjs', 'character-studio'], { cwd: root, stdio: 'inherit' });
-  const vite = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), '--host', '127.0.0.1', '--port', '5277', '--strictPort'], {
+  const server = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), '--host', '127.0.0.1', '--port', '5277', '--strictPort'], {
     cwd: app, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, APP_ENV: 'dev' }
   });
   const preview = [];
-  vite.stdout.on('data', chunk => preview.push(chunk.toString()));
-  vite.stderr.on('data', chunk => preview.push(chunk.toString()));
+  server.stdout.on('data', chunk => preview.push(chunk.toString()));
+  server.stderr.on('data', chunk => preview.push(chunk.toString()));
   let browser;
   try {
     for (let i = 0; i < 80; i++) {
-      if (vite.exitCode !== null) throw new Error('Vite exited: '+preview.join(''));
+      if (server.exitCode !== null) throw new Error('Vite exited: '+preview.join(''));
       try { const response = await fetch('http://127.0.0.1:5277/'); if (response.ok) break; } catch {}
       await new Promise(resolveDelay => setTimeout(resolveDelay, 250));
       if (i === 79) throw new Error('Vite preview timeout');
@@ -88,18 +85,16 @@ test('diagnostic exact-head Pixel Fold browser evidence', { timeout: 480000 }, a
     browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader','--no-sandbox'] });
     const { verifyCharacterStudio } = await import('./character-studio.browser.mjs');
     await verifyCharacterStudio(browser, 'http://127.0.0.1:5277/', output);
-    const report = readEvidence(resolve(output, 'studio-browser.json'), 'utf8');
     console.log('DIAGNOSTIC_STUDIO_JSON_BEGIN');
-    console.log(report);
+    console.log(readEvidence(resolve(output, 'studio-browser.json'), 'utf8'));
     console.log('DIAGNOSTIC_STUDIO_JSON_END');
     for (const name of ['studio-character-initial-load-mobile.png','studio-character-ready-mobile.png','studio-character-front-mobile.png','studio-character-face-mobile.png','studio-character-overview-mobile.png']) {
-      const png = readEvidence(resolve(output, name)).toString('base64');
       console.log('DIAGNOSTIC_PNG_BEGIN '+name);
-      console.log(png);
+      console.log(readEvidence(resolve(output, name)).toString('base64'));
       console.log('DIAGNOSTIC_PNG_END '+name);
     }
   } finally {
     await browser?.close().catch(()=>{});
-    if (vite.exitCode === null) vite.kill('SIGTERM');
+    if (server.exitCode === null) server.kill('SIGTERM');
   }
 });
