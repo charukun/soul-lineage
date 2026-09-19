@@ -30,7 +30,7 @@ export function createTitleCinematic({root,title}) {
   const ensureMediaSources = async () => {
     if (intro.src && living.src) return true;
     if (!mediaReadyPromise) mediaReadyPromise = (async () => {
-      const response = await fetch('./assets/title/jinkai-cinematic-carrier.png',{cache:'force-cache'});
+      const response = await fetch('./assets/title/kuumetsu-cinematic-carrier.png',{cache:'force-cache'});
       if (!response.ok) throw new Error(`cinematic carrier ${response.status}`);
       const bytes = new Uint8Array(await response.arrayBuffer());
       const view = new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
