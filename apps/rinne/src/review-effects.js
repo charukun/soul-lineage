@@ -8,6 +8,7 @@ import {REVIEW_EFFECT_CATALOG,REVIEW_EFFECT_CATEGORIES,REVIEW_REAL_EFFECT_COUNT}
 import {authoredEffectBase,createEffekseerBackend} from './rebuild/effekseer-loader.js';
 import {REVIEW_REFERENCE_MODEL_HEIGHT,reviewModelScale} from './review-vfx-model-scale.js';
 import './review-effects.css';
+import '@soul/shared-ui/review-surface.css';
 
 const q=id=>document.getElementById(id);
 const effectName=key=>REVIEW_AUTHORED_EFFECTS[key]?.path?.split('/').pop()?.replace(/\.efkefc$/,'')||key;

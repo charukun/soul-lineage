@@ -3,6 +3,7 @@ import './character-art-qa.js';
 import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, YEAR_MS, createCharacterModelBuildRequest } from '@soul/characters';
 import { createCharacterWorkspace, downloadWorkspace } from './character-workspace.js';
 import { createReviewCameraMenu } from '@soul/shared-ui/review-camera-menu';
+import '@soul/shared-ui/review-surface.css';
 
 const el = id => document.getElementById(id);
 const make = (tag, text, className = '') => { const n = document.createElement(tag); n.textContent = text; n.className = className; return n; };

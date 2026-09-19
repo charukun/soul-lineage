@@ -8,8 +8,18 @@
 <link rel="stylesheet" href="./src/review-motion.css">
 </head>
 <body>
-<main class="motion-review">
-  <section class="motion-stage" aria-label="モーション表示">
+<main class="motion-review review-surface">
+  <header class="review-surface__header">
+    <div class="review-surface__title">
+      <a class="motion-back review-surface__back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a>
+      <div><span class="motion-eyebrow review-surface__eyebrow">RINNE RUNTIME PROBE</span><h1>モーション</h1></div>
+    </div>
+    <div class="review-surface__stats">
+      </div>
+  </header>
+  <section class="review-surface__workspace">
+  <div class="review-surface__stage-column">
+  <section class="motion-stage review-surface__stage" aria-label="モーション表示">
     <canvas id="motion-stage" aria-label="KayKitキャラクターのモーション。ドラッグで回転、ピンチで拡大"></canvas>
     <output id="motion-count" class="motion-clip-count" aria-label="異なるソースモーション数"><span>MOTION CLIPS</span><strong id="motion-count-value">…</strong></output>
     <div class="motion-stage-caption" aria-live="polite">
@@ -21,15 +31,9 @@
       <progress id="motion-load" max="1" value="0" aria-label="モデル読込状況"></progress>
     </div>
   </section>
+  </div>
 
-  <section class="motion-controls" aria-label="モーション選択と再生">
-    <header class="motion-control-header">
-      <a class="motion-back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">← Visual Review</a>
-      <div>
-        <span class="motion-eyebrow">MOTION REVIEW</span>
-        <h1>モーション確認</h1>
-      </div>
-    </header>
+  <section class="motion-controls review-surface__panel" aria-label="モーション選択と再生">
 
     <section class="motion-library motion-library-primary" aria-label="モーションを選ぶ">
       <div class="motion-library-head">
@@ -80,6 +84,7 @@
       ·
       <a id="motion-origin" href="./simulator/licenses/REVIEW_MOTION_SOURCES.txt" target="_blank" rel="noopener">作者の配布元</a>
     </details>
+  </section>
   </section>
 </main>
 <script type="module" src="./src/review-motion.js"></script>
