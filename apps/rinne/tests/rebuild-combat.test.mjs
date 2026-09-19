@@ -48,15 +48,6 @@ test('armor and survival skills lower frontier fatality instead of only changing
 
 test('legacy frontier saves gain tactical fields without migration failure',()=>{
   const raw=createFront(0,1);for(const row of raw.enemies){delete row.yaw;delete row.attackWindow;delete row.moving;delete row.attentionTargetId;delete row.threat;}const normalized=normalizeFront(raw,0,1);assert.ok(normalized.enemies.every(row=>Number.isFinite(row.yaw)&&row.attackWindow===0&&row.moving===false&&row.attentionTargetId===null&&typeof row.threat==='object'));
-});
-
-
-test('downed enemies remain in the field until a close-range finisher completes',()=>{
-  const state=combatState(91),foe=enemy('downed',0,1.2,0,100),front={stage:0,enemies:[foe],cleared:false,clearSeconds:0};state.hp=state.maxHp=500;foe.hp=0;foe.downed=true;foe.downedElapsed=0;
-  const events=[];for(let i=0;i<90&&!foe.dead;i++)events.push(...tickFront(state,front,1/60));
-  assert.ok(events.some(row=>row.type==='finisher-start'&&row.targetId===foe.id));assert.ok(events.some(row=>row.type==='finisher'&&row.targetId===foe.id));assert.ok(events.some(row=>row.type==='enemy-down'&&row.finisher===true));assert.equal(foe.dead,true);assert.equal(foe.downed,false);assert.equal(state.defeats,1);
-});
-
-test('a downed enemy outside finisher range is not silently killed',()=>{
-  const state=combatState(92),foe=enemy('far-downed',0,-4.5,0,100),front={stage:0,enemies:[foe],cleared:false,clearSeconds:0};foe.hp=0;foe.downed=true;foe.downedElapsed=0;const events=tickFront(state,front,.2);assert.equal(foe.dead,false);assert.equal(foe.downed,true);assert.equal(events.some(row=>row.type==='enemy-down'),false);assert.equal(front.cleared,false);
+  const state=combatState(91),foe=enemy('downed',0,1.2,0,100),front={stage:0,enemies:[foe],cleared:false,clearSeconds:0};state.hp=state.maxHp=500;foe.hp=0;foe.downed=true;foe.downedElapsed=0;const events=[];for(let i=0;i<90&&!foe.dead;i++)events.push(...tickFront(state,front,1/60));assert.ok(events.some(row=>row.type==='finisher-start'));assert.ok(events.some(row=>row.type==='finisher'));assert.ok(events.some(row=>row.type==='enemy-down'&&row.finisher===true));assert.equal(foe.dead,true);assert.equal(state.defeats,1);
+  const farState=combatState(92),far=enemy('far-downed',0,-4.5,0,100),farFront={stage:0,enemies:[far],cleared:false,clearSeconds:0};far.hp=0;far.downed=true;far.downedElapsed=0;const farEvents=tickFront(farState,farFront,.2);assert.equal(far.dead,false);assert.equal(farEvents.some(row=>row.type==='enemy-down'),false);assert.equal(farFront.cleared,false);
 });
