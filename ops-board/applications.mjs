@@ -1,4 +1,4 @@
-import { GAME_NAMES, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/application-catalog.mjs';
+import { GAME_NAMES, DEV_APP_NAMES, DEV_APPS, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/application-catalog.mjs';
 import { distributionPublicUrl } from '../scripts/distribution-targets.mjs';
 
 export const OPS_PUBLIC_URL = 'https://rinne-ops.c-okamoto.workers.dev/';
@@ -52,6 +52,14 @@ export function buildApplications(manifest = {}, environments = [], runs = [], {
     targets: [fastDevTarget(id,developSha,statuses),...GAME_ENVIRONMENTS.filter(definition=>definition.id!=='dev').map(definition => targetFor(id, definition, entries, environmentById.get(definition.id), manifest))],
   }]));
 
+  const toolAppIds = new Set(['review', 'character-studio']);
+  for (const id of DEV_APPS.filter(id => !GAME_NAMES[id] && !toolAppIds.has(id))) {
+    groups.set(id, {
+      id, name: DEV_APP_NAMES[id] || id, kind: 'reference',
+      targets: [fastDevTarget(id, developSha, statuses)],
+    });
+  }
+
   groups.set('character-studio', {
     id: 'character-studio', name: 'キャラクター工房', kind: 'tool',
     targets: [fastDevTarget('character-studio', developSha, statuses)],
@@ -64,7 +72,7 @@ export function buildApplications(manifest = {}, environments = [], runs = [], {
   for (const env of environments.filter(item => item.kind === 'preview')) {
     const id = `preview:${env.id}`;
     groups.set(id, {
-      id, name: env.name, kind: 'tool',
+      id, name: env.name || env.workflow || env.id || 'Preview', kind: 'tool',
       targets: [{ id: env.id, label: '専用公開', environment: 'preview', state: env.deployState || 'unknown',
         url: env.url || null, commit: env.deployedCommit || null, deployedAt: env.deployedAt || null,
         source: 'GitHub Actions / 公開status' }],
@@ -94,6 +102,6 @@ export function buildApplications(manifest = {}, environments = [], runs = [], {
   const order = ['rinne', 'village', 'demon', 'lanternfell', 'character-studio', 'visual-review', 'portal', 'ops-board'];
   return [...groups.values()].sort((a, b) => {
     const ai = order.indexOf(a.id); const bi = order.indexOf(b.id);
-    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi) || a.name.localeCompare(b.name, 'ja');
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi) || String(a.name || a.id).localeCompare(String(b.name || b.id), 'ja');
   });
 }
