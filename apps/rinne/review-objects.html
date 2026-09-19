@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111716"><title>物体確認 | 輪廻転焦</title>
+</head>
+<body>
+<main class="object-review">
+<header class="object-topbar"><h1>物体確認</h1></header>
+<section class="object-stage" aria-label="ワールド物体のプレビュー">
+<div class="object-canvas-wrap"><canvas id="object-stage"></canvas></div>
+<nav id="object-camera-strip" class="object-camera-strip" aria-label="カメラの向き">
+<button type="button" data-object-camera="front">正面</button>
+<button type="button" data-object-camera="side">横</button>
+<button type="button" data-object-camera="top">俯瞰</button>
+<button type="button" data-object-camera="full">全体</button>
+</nav>
+</section>
+<aside class="object-controls">
+<header class="object-heading">
+<p>RINNEが配信するワールド物体を単体で確認します。</p>
+<small>ドラッグ: 回転　ピンチ: 拡大</small>
+</header>
+<h2>物体</h2>
+<div id="object-options" class="object-options" role="group" aria-label="ワールド物体"></div>
+<output id="object-status" class="object-status" role="status" aria-live="polite">読み込み中…</output>
+<details class="object-details"><summary>素材情報</summary><p id="object-provenance" class="object-provenance"></p></details>
+</aside>
+</main>
+<script type="module" src="./src/review-object-library.js"></script>
+</body>
+</html>
