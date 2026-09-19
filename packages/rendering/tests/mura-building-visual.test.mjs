@@ -6,7 +6,7 @@ import {defs,initialMuraObjects} from '@soul/world/mura';
 
 const sizeOf=group=>{group.updateMatrixWorld(true);const size=new THREE.Vector3();new THREE.Box3().setFromObject(group).getSize(size);return size;};
 
-test('MURA residential kinds resolve to 喰滅廻遊 house silhouettes',()=>{
+test('MURA residential kinds resolve to 尽喰廻遊 house silhouettes',()=>{
   assert.deepEqual(resolveMuraHouseVisual('mayor','base',1),{type:'cottage',palette:2,floors:1});
   assert.deepEqual(resolveMuraHouseVisual('guardhome','base',1),{type:'tallhouse',palette:2,floors:1});
   assert.deepEqual(resolveMuraHouseVisual('tent','base',1),{type:'cottage',palette:2,floors:1});
