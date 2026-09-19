@@ -32,3 +32,5 @@ export function assetById(id) {
   if (!asset) throw new Error(`Unknown shared asset: ${id}`);
   return asset;
 }
+
+export {DEV_ASSET_ORIGIN,PROJECT_ASSET_MAX_BYTES,projectAssetOrigin,projectAssetUrl,isThirdPartyRuntimeAssetUrl} from './runtime-origin.js';
