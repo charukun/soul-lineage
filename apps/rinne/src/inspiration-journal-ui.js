@@ -13,7 +13,7 @@ const BODY_LABELS={reach:['間合い','長い間合いに馴染む','懐で動�
 export function installInspirationUI(ui,{gameScreen,audio}){
   const doc=gameScreen.ownerDocument,win=doc.defaultView||globalThis.window;
   const original={open:ui.open,refresh:ui.refresh,bindState:ui.bindState,dispose:ui.dispose};
-  let state=null,lifeId=null,known=new Set(),section='signs',page=0,heartSlot=0,phase='jo',focusId=null,renderKey='',noticeTimer=0,disposed=false;
+  let state=null,lifeId=null,known=new Set(),stableKnown=new Map(),section='signs',page=0,heartSlot=0,phase='jo',focusId=null,renderKey='',noticeTimer=0,disposed=false;
   const listeners=[];
   const on=(node,type,fn,options)=>{node.addEventListener(type,fn,options);listeners.push(()=>node.removeEventListener(type,fn,options));};
   const el=(tag,text,cls)=>{const n=doc.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n;};
@@ -54,7 +54,7 @@ export function installInspirationUI(ui,{gameScreen,audio}){
   function recordCard(item,{manage=false}={}){
     const card=el('article',null,'inspiration-technique-card');card.dataset.inspirationId=item.id;card.dataset.focus=String(item.id===focusId);card.dataset.archived=String(item.archived);
     const top=el('header'),stateLabel=item.archived?'古技':item.stable?'定着':'会得';top.append(el('span',`${item.kindLabel} · ${stateLabel}`),el('small',`${Math.floor(item.age)}歳`));
-    card.append(top,el('h3',item.name),el('p',item.purpose,'inspiration-purpose'),el('p',item.tradeoff,'inspiration-tradeoff'));
+    card.append(top,el('h3',item.name),el('p',item.story,'inspiration-causal-story'),el('p',item.purpose,'inspiration-purpose'),el('p',item.tradeoff,'inspiration-tradeoff'));
     const row=CAUSAL_ANSWER_BY_ID[item.id];if(row.steps.length)card.append(el('small',`役割適性: ${item.phases.map(p=>({jo:'序',ha:'破',kyu:'急'})[p]).join('・')}。適性は技の格ではありません。`));
     if(!item.availability.usable&&!state.ended)card.append(el('p',item.availability.reason,'inspiration-unavailable'));
     const detail=el('details');detail.append(el('summary','この答えが生まれた理由'));provenance(detail,item.provenance);card.append(detail);
@@ -130,6 +130,9 @@ export function installInspirationUI(ui,{gameScreen,audio}){
   function announce(record){
     const row=CAUSAL_ANSWER_BY_ID[record.answerId];noticeKind.textContent=`閃き · ${INSPIRATION_KINDS[record.kind]}`;noticeName.textContent=record.name;noticeOrigin.textContent=record.provenance.find(p=>p.type==='question')?.text||row?.mechanic||'経験がひとつの答えになった。';notice.hidden=false;notice.dataset.kind=record.kind;audio?.item?.();clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice.hidden=true;},6500);
   }
+  function announceStabilized(record){
+    noticeKind.textContent='定着';noticeName.textContent=record.name;noticeOrigin.textContent=`${record.name}が、身体に馴染んだ。`;notice.hidden=false;notice.dataset.kind='stable';audio?.item?.();clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice.hidden=true;},5200);
+  }
   function enhanceInheritance(){
     const dialog=doc.querySelector('.life-end-dialog'),keep=dialog?.querySelector('[data-keep]'),reset=dialog?.querySelector('[data-reset]');if(!state||!dialog||!keep||dialog.dataset.inspirationLife===state.id)return;
     dialog.dataset.inspirationLife=state.id;keep.replaceChildren(...['一族の記録と帰還した故郷','身体の傾向と、この人生が刻んだ技脈','実際に見聞きした経験は、本人の技譜に残る'].map(text=>el('li',text)));
@@ -139,8 +142,8 @@ export function installInspirationUI(ui,{gameScreen,audio}){
   ui.refresh=()=>{original.refresh();render();};
   ui.bindState=next=>{
     original.bindState(next);state=next;if(!state)return;const s=ensureInspiration(state),ids=Object.keys(s.records);
-    if(lifeId!==state.id){lifeId=state.id;known=new Set(ids);page=0;section='signs';notice.hidden=true;renderKey='';}
-    else{for(const id of ids)if(!known.has(id)){known.add(id);announce(s.records[id]);}}
+    if(lifeId!==state.id){lifeId=state.id;known=new Set(ids);stableKnown=new Map(ids.map(id=>[id,Boolean(s.records[id].stable)]));page=0;section='signs';notice.hidden=true;renderKey='';}
+    else{for(const id of ids){if(!known.has(id)){known.add(id);stableKnown.set(id,Boolean(s.records[id].stable));announce(s.records[id]);continue;}if(s.records[id].stable&&!stableKnown.get(id)){stableKnown.set(id,true);announceStabilized(s.records[id]);}}}
     ui.record.dataset.hasSign=String(Object.keys(s.questions).length>0);ui.record.setAttribute('aria-label','兆し・技譜・人生・系譜を開く');
     const key=[lifeId,s.revision,Math.floor(state.ageYears),state.equipment.weapon,Boolean(state.combat),Boolean(state.down),state.ended].join(':');
     if(renderKey!==key){renderKey=key;if(!ui.body.contains(doc.activeElement)||!doc.activeElement?.matches('input,textarea'))render();}
