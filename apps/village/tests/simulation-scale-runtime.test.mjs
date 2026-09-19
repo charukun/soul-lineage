@@ -5,7 +5,7 @@ import {World} from '../src/game/core.js';
 import {Simulation} from '../src/game/simulation.js';
 
 test('village fixed-step simulation advances only after a complete 30 Hz step',()=>{
- const world=new World(),sim=new Simulation(world),before=world.state.clock;sim.update(1/60);assert.equal(world.state.clock,before);sim.update(1/60);assert.ok(world.state.clock>before);const diag=globalThis.window?.__VILLAGE_SIMULATION_SCALE__?.snapshot?.();if(diag)assert.equal(diag.fixed.step,1/30);
+ const world=new World(),sim=new Simulation(world),before=world.state.clock;sim.update(1/60);assert.equal(world.state.clock,before);sim.update(1/60);assert.ok(world.state.clock>before);const diag=globalThis.window?.__VILLAGE_SIMULATION_SCALE__?.snapshot?.();if(diag)assert.equal(diag.fixed.step,1/30);const arrivals=world.state.stats.arrivals;sim.nav.free=()=>null;assert.equal(sim.arrive(),false);assert.equal(world.state.stats.arrivals,arrivals,'failed spawn must not increment arrival history');
 });
 
 test('distant resident keeps smooth path following while expensive AI cadence is reduced',()=>{
