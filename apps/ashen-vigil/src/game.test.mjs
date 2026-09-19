@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync,readdirSync} from 'node:fs';
+import {Battle,BOONS} from './game.js';
+const advance=(g,seconds)=>{for(let i=0;i<seconds*60;i++)g.step(1/60);};
+test('three distinct heroes and authored enemies spawn',()=>{const g=new Battle();g.start();assert.equal(g.heroes.length,3);assert.equal(g.wave,1);assert.equal(g.enemies().length,3);assert.equal(new Set(g.heroes.map(h=>h.model)).size,3);});
+test('autonomous movement and combat need no user input',()=>{const g=new Battle();g.start();advance(g,18);assert.ok(g.damage>0);assert.ok(g.kills>0);assert.ok(g.heroes.some(h=>h.hp<h.maxHp));assert.ok(g.heroes.some(h=>Math.abs(h.z-.7)>1));});
+test('pause freezes simulation and bell cooldown',()=>{const g=new Battle();g.start();g.bell();g.togglePause();const before=g.snapshot();advance(g,3);assert.deepEqual(g.snapshot(),before);g.togglePause();advance(g,1);assert.ok(g.time>0);assert.ok(g.bellCooldown<g.bellMax);});
+test('bell is gated by state and cooldown',()=>{const g=new Battle();assert.equal(g.bell(),false);g.start();assert.equal(g.bell(),true);assert.equal(g.bell(),false);advance(g,15);if(g.state==='combat')assert.equal(g.bell(),true);});
+test('boons cannot be applied outside intermission',()=>{const g=new Battle();g.start();assert.equal(g.choose(0),false);g.state='choice';g.choices=BOONS.slice(0,3);const n=g.heroes[0].attack;assert.equal(g.choose(0),true);assert.equal(g.heroes[0].attack,n*1.25);assert.equal(g.wave,2);});
+test('automatic intermission selection and entire seeded run terminate',()=>{const g=new Battle(7331);g.start();for(let i=0;i<60*600&&!['win','lose'].includes(g.state);i++)g.step(1/60);assert.ok(['win','lose'].includes(g.state));assert.ok(g.wave>=3,'Should survive introductory waves');assert.ok(g.kills>=15);console.log('UNATTENDED_RUN',g.snapshot());});
+test('determinism and clean restart',()=>{const a=new Battle(27),b=new Battle(27);a.start();b.start();advance(a,20);advance(b,20);assert.deepEqual(a.snapshot(),b.snapshot());a.start();assert.equal(a.wave,1);assert.equal(a.kills,0);assert.equal(a.time,0);assert.equal(a.boons.length,0);assert.equal(a.heroes.length,3);});
+test('no manufactured geometry primitives in game source',()=>{for(const p of readdirSync(new URL('.',import.meta.url)).filter(p=>p.endsWith('.js'))){const t=readFileSync(new URL(p,import.meta.url),'utf8');assert.doesNotMatch(t,/new\s+(?:THREE\.)?(?:Box|Sphere|Cylinder|Cone|Torus|Plane|Circle|Ring|Extrude|Lathe|Tube|Buffer)Geometry\b/,p);}});
