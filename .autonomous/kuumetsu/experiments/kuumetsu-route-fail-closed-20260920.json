@@ -60,7 +60,7 @@
     ],
     "receipt": {
       "repository": "charukun/soul-lineage",
-      "pullRequest": null,
+      "pullRequest": 1120,
       "marker": "autonomous-receipt:kuumetsu:kuumetsu-route-fail-closed-20260920"
     }
   },
