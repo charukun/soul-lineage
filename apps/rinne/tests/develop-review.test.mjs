@@ -46,7 +46,7 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
   assert.match(css,/\.motion-grid button\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
   assert.match(css,/\.motion-camera-strip button\{[^}]*border-radius:999px/);
   assert.match(js,/new THREE\.AnimationMixer/);assert.match(js,/KAYKIT_MODELS/);assert.match(js,/buildMotionReviewCatalog/);
-  assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='kaykit-embedded'/);
+  assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='source-registry'/);
 });
 
 test('equipment review follows the Visual Review Lab probe language and exposes the exact review questions',async()=>{
