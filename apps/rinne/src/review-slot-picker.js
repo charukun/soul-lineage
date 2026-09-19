@@ -96,11 +96,14 @@ export function mountReviewSelectGrid(select,label='選択中'){
   value.textContent='選択';
   current.append(caption,value);
 
+  const candidateLabel=document.createElement('div');
+  candidateLabel.className='review-candidate-label';
+  candidateLabel.textContent='候補一覧';
   const grid=document.createElement('div');
   grid.className='review-select-grid-list';
   grid.setAttribute('role','listbox');
   grid.setAttribute('aria-label',`${label}の候補`);
-  shell.append(current,grid);
+  shell.append(current,candidateLabel,grid);
 
   const selectedOption=()=>select.selectedOptions?.[0]||select.options[0]||null;
   const syncSelection=()=>{
@@ -152,10 +155,13 @@ export function mountReviewGroupDeck(entries,{defaultKey}={}) {
   slotRow.className='review-slot-deck-slots';
   slotRow.setAttribute('role','tablist');
   slotRow.setAttribute('aria-label','確認する項目');
+  const listLabel=document.createElement('div');
+  listLabel.className='review-slot-deck-list-label';
+  listLabel.textContent='候補一覧';
   const list=document.createElement('div');
   list.className='review-slot-deck-list';
   list.setAttribute('role','listbox');
-  shell.append(slotRow,list);
+  shell.append(slotRow,listLabel,list);
 
   let activeKey=sources.some(entry=>entry.key===defaultKey)?defaultKey:sources[0].key;
   const slots=new Map();

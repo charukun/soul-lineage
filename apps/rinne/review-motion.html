@@ -12,6 +12,7 @@
   <section class="motion-stage" aria-label="モーション表示">
     <canvas id="motion-stage" aria-label="KayKitキャラクターのモーション。ドラッグで回転、ピンチで拡大"></canvas>
     <div class="motion-stage-slot">
+      <span class="motion-current-label">選択中の動き</span>
       <strong id="motion-selected">モーション準備中</strong>
       <small id="motion-source">KayKit · pinned CC0</small>
     </div>
@@ -52,6 +53,7 @@
       <output id="motion-time-label">0.00 / 0.00秒</output>
     </div>
     <div id="motion-filters" class="motion-filters" role="group" aria-label="モーション分類"></div>
+    <div class="motion-grid-title">候補一覧</div>
     <div id="motion-grid" class="motion-grid" role="group" aria-label="モーション候補"></div>
     <details class="motion-meta">
       <summary>出典</summary>
