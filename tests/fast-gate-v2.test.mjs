@@ -67,11 +67,11 @@ test('validator uses trusted current-develop helpers for DEV while preserving re
 
 });
 
-test('DEV PR and normal DEV publication both record zero tests', () => {
+test('DEV PR and normal DEV publication stay test-free outside the PULSE preflight exception', () => {
   const validate = source('scripts/validate.mjs');
   assert.match(validate, /const dev = mode === 'dev'/);
   assert.match(validate, /const deploy = mode === 'deploy'/);
-  assert.match(validate, /if \(dev \|\| deploy\) \{[\s\S]*tests: 0[\s\S]*\} else \{/);
+  assert.match(validate, /if \(dev \|\| deploy\) \{[\s\S]*tests: pulseRelevant \? 'pulse-preflight' : 0[\s\S]*\} else \{/);
   assert.match(validate, /else \{[\s\S]*splitFastTests\(uniqueTests[\s\S]*\['--test', \.\.\.split\.light\]/);
 });
 
