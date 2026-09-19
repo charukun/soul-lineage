@@ -379,7 +379,8 @@ export const REVIEW_VFX_LIBRARY_ASSETS=Object.freeze([
   asset("Tktk03/Tktk03_ToonHit.efkefc",10131,"6f676ce9103841abb854f46e01033f97c6627c6d",true),
   asset("Tktk03/Tktk03_ToonWater.efkefc",23373,"e88b5fdb551180a4a275fa7895f9561a474f0774",true),
 ]);
-const effect=(id,sourcePath,author)=>Object.freeze({id,path:`${REVIEW_VFX_LIBRARY_SOURCE.basePath}/${sourcePath}`,sourcePath,author,scale:.08,lifetime:2,reviewOnly:true});
+const scaleFor=sourcePath=>sourcePath.endsWith('/Tktk03_Light.efkefc')?.05:sourcePath.startsWith('Tktk03/')?.065:1;
+const effect=(id,sourcePath,author)=>Object.freeze({id,path:`${REVIEW_VFX_LIBRARY_SOURCE.basePath}/${sourcePath}`,sourcePath,author,scale:scaleFor(sourcePath),lifetime:2,reviewOnly:true});
 export const REVIEW_VFX_LIBRARY_EFFECTS=Object.freeze([
   effect("lib-andrewfm01-blue-laser","AndrewFM01/AndrewFM01_blue_laser.efkefc","AndrewFM"),
   effect("lib-andrewfm01-boss-death","AndrewFM01/AndrewFM01_boss_death.efkefc","AndrewFM"),
