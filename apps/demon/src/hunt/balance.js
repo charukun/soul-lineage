@@ -47,6 +47,7 @@ export function automaticGrowth(profile) {
   };
 }
 export function huntPlan(profile, route = 'mission') {
+  if (!['mission', 'forage'].includes(route)) throw Error('狩りの経路が不正です。');
   const progress = readProgress(profile), chapter = progress.chapter;
   if (route === 'forage') return {chapter, route, name: '近場で立て直す', target: 'traveller', prey: '旅人', quota: 2, marked: false, bonus: 2, scale: 'small'};
   return {...MISSIONS[Math.min(chapter, MISSIONS.length - 1)], chapter, route: 'mission'};
