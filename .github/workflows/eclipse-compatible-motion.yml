@@ -1,0 +1,36 @@
+name: Eclipse Compatible Motion Inspection
+on:
+  push:
+    branches: [astra/eclipse-autobattle-20260919]
+    paths: [.github/workflows/eclipse-compatible-motion.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Acquire the exact CC0 source release registered in the Godot asset library
+        run: |
+          python - <<'PY'
+          import urllib.request,pathlib,zipfile,hashlib,json,struct
+          root=pathlib.Path('compatible-motion');root.mkdir()
+          url='https://codeberg.org/jamesonBradfield/Quaternius_IK_Rigged_with_animations/archive/5c4dae72e49ad4e5959571e00a25d3d872cacba5.zip'
+          data=urllib.request.urlopen(url,timeout=120).read()
+          archive=root/'source.zip';archive.write_bytes(data)
+          with zipfile.ZipFile(archive) as z:
+            names=[n for n in z.namelist() if n.endswith(('UAL1_Standard.glb','LICENSE','LICENSE.txt','ATTRIBUTIONS.md','README.md'))]
+            for name in names:
+              target=root/pathlib.PurePosixPath(name).name;target.write_bytes(z.read(name))
+          report={'registeredSource':'https://godotengine.org/asset-library/asset/5235','source':url,'archiveSHA256':hashlib.sha256(data).hexdigest(),'files':[]}
+          for f in root.glob('*.glb'):
+            b=f.read_bytes();j=json.loads(b[20:20+struct.unpack_from('<I',b,12)[0]])
+            report['files'].append({'path':f.name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest(),'nodes':[n.get('name') for n in j.get('nodes',[])],'animations':[a.get('name') for a in j.get('animations',[])]})
+          (root/'metadata.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eclipse-compatible-motion
+          path: compatible-motion
+          retention-days: 7
