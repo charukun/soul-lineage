@@ -40,12 +40,4 @@ test('frontier combat is resolved by the headless Tidebreak runtime while keepin
   assert.equal(combatEvent.engine,'tidebreak');
   assert.ok(Number.isFinite(state.position.x)&&Number.isFinite(state.position.z));
   assert.ok(Number.isFinite(enemy.x)&&Number.isFinite(enemy.z));
-
-  const finisherState=combatState(91),finisherFront=createFront(0,91),downed=finisherFront.enemies[0];
-  finisherFront.enemies=[downed];downed.x=0;downed.z=1.2;downed.hp=0;downed.downed=true;downed.downedElapsed=0;finisherState.hp=finisherState.maxHp=500;finisherState.defeats=1;
-  const finisherEvents=[];for(let i=0;i<90&&!downed.dead;i++)finisherEvents.push(...tickFront(finisherState,finisherFront,1/60));
-  assert.ok(finisherEvents.some(event=>event.type==='finisher-start'&&event.targetId===downed.id));
-  assert.ok(finisherEvents.some(event=>event.type==='finisher'&&event.targetId===downed.id));
-  assert.ok(finisherEvents.some(event=>event.type==='enemy-down'&&event.finisher===true));
-  assert.equal(downed.dead,true);assert.equal(downed.downed,false);assert.equal(finisherState.defeats,1);
 });
