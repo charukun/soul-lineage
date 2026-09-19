@@ -11,6 +11,7 @@ import {loadPinnedMotionSource,loadMotionReviewModel,discoverPinnedMotionLibrary
 import './review-motion-library.css';
 import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
+import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 mountRinneReviewShell('motion');
 
 const el=id=>document.getElementById(id);
@@ -38,7 +39,7 @@ const loader=new GLTFLoader(),stage=new THREE.Group();scene.add(stage);
 let subject=null,targetScene=null,targetBones=null,targetRest=null,mixer=null,action=null,targetClips=[],registry=null,catalog=[],selected=null;
 const MOTION_REVIEW_MODEL=Object.freeze({id:'mesh2motion-review-mannequin',label:'基準素体',reviewMannequin:true});
 const REVIEW_MODELS=Object.freeze([MOTION_REVIEW_MODEL,...KAYKIT_MODELS]);
-let selectedModel=MOTION_REVIEW_MODEL,filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8;
+let selectedModel=MOTION_REVIEW_MODEL,filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8,cameraPreset='three-quarter';
 let externalSource=null,externalSourceId='',externalTime=0,selectedDuration=0,selectSerial=0;
 const categoryOrder=['all','recommended','life','move','combat','reaction','other'];
 
@@ -62,6 +63,7 @@ const isExternal=()=>selected?.runtime?.kind==='pinned-motion-source';
 const playbackTime=()=>isExternal()?externalTime:Math.max(0,action?.time||0);
 
 function setCameraPreset(id){
+  cameraPreset=id;
   const h=Math.max(.6,modelHeight),targetY=h*.52,d=Math.max(2.15,h*1.72);
   const target=id==='face'?new THREE.Vector3(0,h*.79,0):new THREE.Vector3(0,targetY,0);
   const positions={front:[0,id==='face'?h*.81:targetY,d],'three-quarter':[d*.72,targetY,d*.72],side:[d,targetY,0],back:[0,targetY,-d],face:[0,h*.81,d*.78]};
@@ -215,9 +217,7 @@ el('motion-legacy')?.addEventListener('change',event=>{
   canvas.dataset.motionName=clip.name;canvas.dataset.motionCategory='other';canvas.dataset.motionIdentity='legacy:'+index+':'+clip.name;status('原版: '+formatName(clip.name));syncPlaybackUI();
 });
 
-let width=0,height=0;
-function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);if(w===width&&h===height)return;width=w;height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
-const observer=new ResizeObserver(resize);observer.observe(canvas);
+const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();setCameraPreset(cameraPreset);},render:()=>renderer.render(scene,camera)});
 function frame(now){
   resize();const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
   if(selected&&playing){
@@ -230,4 +230,4 @@ function frame(now){
   controls.update();renderer.render(scene,camera);syncPlaybackUI();requestAnimationFrame(frame);
 }
 renderFilters();renderModelGrid();setCameraPreset('three-quarter');requestAnimationFrame(frame);void loadModel(selectedModel);
-window.addEventListener('pagehide',event=>{if(event.persisted)return;clearRuntimeThumbnailQueue();observer.disconnect();disposeSubject();disposePinnedMotionSources();thumbnailModelPromises.clear();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',event=>{if(event.persisted)return;clearRuntimeThumbnailQueue();stageLifecycle.destroy();disposeSubject();disposePinnedMotionSources();thumbnailModelPromises.clear();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});

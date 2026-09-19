@@ -1,5 +1,7 @@
 import { createCharacterWorkspace, downloadWorkspace } from './character-workspace.js';
 import { MAX_WORKSPACE_BYTES } from './character-workspace-state.js';
+import {normalizeReviewBackButton} from '@soul/shared-ui/review-shell';
+normalizeReviewBackButton({header:document.querySelector('.page-head'),href:'./',ariaLabel:'確認画面へ戻る'});
 const review = window.masterCharacterReview;
 if (review?.session) {
   const workspace = createCharacterWorkspace(review); window.characterStudio = { review, workspace };
