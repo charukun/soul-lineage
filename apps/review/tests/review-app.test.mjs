@@ -16,5 +16,6 @@ test('Visual Review Lab is an independent developer app, not Rinne branding',()=
 test('Lab routes probes to delivered runtimes and keeps PULSE independent',()=>{
   const source=read('src/main.js');
   for(const host of ['soul-lineage-rinne-dev','soul-lineage-village-dev','soul-lineage-demon-dev','rinne-ops'])assert.match(source,new RegExp(host));
-  for(const page of ['characters.html','review-motion.html','review-assets.html','review-effects.html','review-battle.html'])assert.match(source,new RegExp(page.replace('.','\\.')));
+  for(const page of ['characters.html','review-motion.html','review-assets.html','review-effects.html','review-sound.html','review-battle.html'])assert.match(source,new RegExp(page.replace('.','\\.')));
+  assert.match(read('index.html'),/data-route="sounds"/);
 });
