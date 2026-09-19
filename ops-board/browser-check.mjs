@@ -46,7 +46,7 @@ const reload = async () => {
 try {
   await page.goto(base, { waitUntil:'domcontentloaded', timeout:45000 });
   await page.waitForSelector('#rapid-board');
-  await page.waitForSelector('#overview-task-card');
+  await page.waitForSelector('#overview-task-card', { state:'attached' });
   await page.waitForFunction(() => document.querySelector('#overview-task-value')?.textContent !== '確認中');
   await page.waitForFunction(() => document.querySelector('#control-headline')?.textContent !== '状態を確認中');
   assert.ok([PULSE_CONTROL_STATE.SYNCED, PULSE_CONTROL_STATE.PROCESSING, PULSE_CONTROL_STATE.RECOVERING, PULSE_CONTROL_STATE.NEEDS_USER]
