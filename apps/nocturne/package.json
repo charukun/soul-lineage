@@ -1,0 +1,14 @@
+{
+  "name": "@soul/nocturne",
+  "displayName": "NOCTURNE 灰の誓約",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "soulLineage": { "role": "reference" },
+  "scripts": {
+    "build": "python3 prepare.py && node build.mjs",
+    "test": "node smoke.mjs http://127.0.0.1:4173"
+  },
+  "dependencies": { "three": "0.180.0" },
+  "devDependencies": { "@playwright/test": "1.63.0" }
+}
