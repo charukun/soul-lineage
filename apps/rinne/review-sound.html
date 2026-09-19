@@ -4,17 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#090d0d">
-<title>サウンド確認 | 百年転生 Visual Review</title>
+<link rel="icon" href="./review-favicon.svg?v=1" type="image/svg+xml">
+<title>Visual Review｜サウンド</title>
 <link rel="stylesheet" href="./src/review-sound.css">
 </head>
 <body>
-<main class="sound-review">
-<header class="review-header">
-  <div class="review-title"><a class="review-lab-back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a><div><p class="eyebrow">RINNE AUDIO · ISOLATED LISTENING</p><h1>サウンド確認</h1><p class="lede">ゲーム内で使う音を、モーションやエフェクトから切り離して単独で確認します。</p></div></div>
-  <div class="review-header-stats"><output id="sound-count">SOUNDS —</output><output id="sound-status" role="status" aria-live="polite">音源を準備中</output></div>
+<main class="sound-review review-surface">
+<header class="review-header review-surface__header">
+  <div class="review-title review-surface__title"><a class="review-lab-back review-surface__back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a><div><span class="review-surface__eyebrow">RINNE AUDIO PROBE</span><h1>サウンド</h1></div></div>
+  <div class="review-header-stats review-surface__stats"><output id="sound-count">SOUNDS —</output><output id="sound-status" role="status" aria-live="polite">音源を準備中</output></div>
 </header>
-<section class="sound-workspace">
-  <section class="listen-pane" aria-label="選択中サウンド">
+<section class="sound-workspace review-surface__workspace">
+  <div class="review-surface__stage-column">
+  <section class="listen-pane review-surface__stage review-surface__stage--scroll" aria-label="選択中サウンド">
     <div class="sound-focus">
       <div class="sound-focus-head"><div><small id="sound-kind">SFX</small><strong id="sound-title">選択してください</strong><span id="sound-category">—</span></div><code id="sound-id">—</code></div>
       <div class="sound-pulse" id="sound-pulse" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -31,15 +33,16 @@
       <p id="sound-description" class="sound-description">既存のRINNE音源を直接試聴します。</p>
     </div>
   </section>
-  <aside class="catalog-shell" aria-label="サウンド一覧">
+  </div>
+  <aside class="catalog-shell review-surface__panel" aria-label="サウンド一覧">
     <div class="catalog-tools">
       <label class="search-box"><span>検索</span><input id="sound-search" type="search" placeholder="名前・用途で検索" autocomplete="off"></label>
       <div class="filter-row" role="group" aria-label="サウンド種別"><button type="button" data-sound-filter="all" aria-pressed="true">すべて</button><button type="button" data-sound-filter="sfx" aria-pressed="false">効果音</button><button type="button" data-sound-filter="bgm" aria-pressed="false">BGM</button></div>
     </div>
     <div class="catalog-kicker">候補一覧</div><div id="sound-catalog" class="sound-catalog" role="list"></div><p id="sound-empty" class="catalog-empty" hidden>一致するサウンドはありません</p>
+    <details class="provenance review-surface__meta"><summary>確認境界</summary><p>この画面は @soul/audio のRINNE BGMカタログと、実ファイルの戦闘SEを直接再生します。モーション・VFX・ゲームロジックとの同期はここでは行いません。</p></details>
   </aside>
 </section>
-<details class="provenance"><summary>確認境界</summary><p>この画面は @soul/audio のRINNE BGMカタログと、実ファイルの戦闘SEを直接再生します。モーション・VFX・ゲームロジックとの同期はここでは行いません。</p></details>
 </main>
 <script type="module" src="./src/review-sound.js"></script>
 </body>
