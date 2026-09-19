@@ -157,7 +157,7 @@ export class Simulation{
  startRaid({immediate=false}={}){if(this.raid)return false;const w=this.world,s=w.state,seq=++s.defense.sequence,pop=w.people.length,budget=this.raidBudget(pop),fire=w.objects.find(o=>o.kind==='campfire');
   const angle=2.3+this.random()*1.5,anchor={x:fire.x+Math.cos(angle)*60,z:fire.z+Math.sin(angle)*60};
   this.raid={id:'village-raid-'+seq,phase:immediate?'active':'warning',startDay:s.clock+(immediate?0:.75),age:0,popSnapshot:pop,budget,monsters:[]};
-  for(let i=0;i<budget.count;i++){const pos=this.nav.free(cell(anchor.x+i*3),cell(anchor.z+i%3*3));if(!pos)continue;this.raid.monsters.push({id:`raid-${seq}-${i}`,name:i%6===5?'魔王軍の精鋭':'魔王軍の斥候',x:pos.x*STEP,z:pos.z*STEP,health:budget.health*(i%6===5?1.4:1),maxHealth:budget.health,damage:budget.damage,speed:budget.speed,seed:i,angle:0,moving:false,path:[],repath:0,hostile:true,species:'monster'});}
+  for(let i=0;i<budget.count;i++){const pos=this.nav.free(cell(anchor.x+i*3),cell(anchor.z+i%3*3));if(!pos)continue;const elite=i%6===5,maxHealth=budget.health*(elite?1.4:1);this.raid.monsters.push({id:`raid-${seq}-${i}`,name:elite?'魔王軍の精鋭':'魔王軍の斥候',x:pos.x*STEP,z:pos.z*STEP,health:maxHealth,maxHealth,damage:budget.damage,speed:budget.speed,seed:i,angle:0,moving:false,path:[],repath:0,hostile:true,species:'monster'});}
   if(immediate)s.stats.raids++;
   this.emit(immediate?'魔王軍の斥候が村へ近づいています。警備職が迎撃します。':'遠くに魔王軍の気配。住人たちは帰宅の支度を始めます。','threat');return true;
  }
