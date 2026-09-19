@@ -14,7 +14,6 @@
     <h1>Visual Review Lab</h1>
     <p>ゲーム本体とは独立した確認ハブ。レビュー対象は装飾用コピーではなく、各アプリが実際に使うランタイムへ接続します。</p>
   </header>
-
   <section class="lab-section">
     <div class="section-head"><span>PROBES</span><h2>専門レビュー</h2></div>
     <nav class="probe-grid" aria-label="専門レビュー">
@@ -24,10 +23,10 @@
       <a data-route="objects"><b>物体</b><span>小物・ワールド資産</span><i>RINNE runtime probe</i></a>
       <a data-route="effects"><b>エフェクト</b><span>VFX・同期・視認性</span><i>RINNE runtime probe</i></a>
       <a data-route="sounds"><b>サウンド</b><span>効果音・BGM・単独試聴</span><i>RINNE audio probe</i></a>
-      <a class="primary" data-route="battle"><b>実戦</b><span>自動戦闘・序破急・接触</span><i>RINNE runtime probe</i></a>
+      <a class="primary" data-route="battle"><b>技演出レビュー</b><span>モーション・VFX・SFX・接触</span><i>RINNE runtime probe</i></a>
     </nav>
+    <p>技演出レビューは、実戦の動きと音・光を確認する画面です。本編の閃き判定や保存データは変更しません。</p>
   </section>
-
   <section class="lab-section">
     <div class="section-head"><span>LIVE APPS</span><h2>高速DEV</h2></div>
     <nav class="app-grid" aria-label="高速DEVアプリ">
@@ -36,14 +35,12 @@
       <a data-route="demon"><b>喰滅廻遊</b><span>DEMON</span></a>
     </nav>
   </section>
-
   <section class="lab-section">
     <div class="section-head"><span>CONTROL</span><h2>開発管制</h2></div>
     <nav class="tool-grid" aria-label="開発管制">
       <a data-route="pulse"><b>PULSE</b><span>開発・公開状況</span></a>
     </nav>
   </section>
-
   <footer><span>Workers DEV</span><code data-build></code></footer>
 </main>
 <script type="module" src="./src/main.js"></script>
