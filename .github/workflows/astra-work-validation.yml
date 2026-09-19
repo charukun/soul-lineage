@@ -62,6 +62,8 @@ jobs:
           trusted="$RUNNER_TEMP/fast-dev-contract.mjs"
           if [[ "$COMMIT_MESSAGE" == *"[astra-freshness-hardening]"* ]]; then
             node scripts/fast-dev-contract.mjs origin/develop HEAD --authorized-freshness-hardening
+          elif [[ "$COMMIT_MESSAGE" == *"[astra-contract-restore]"* ]]; then
+            node scripts/fast-dev-contract.mjs origin/develop HEAD --authorized-restore
           elif [[ "$COMMIT_MESSAGE" == *"[astra-contract-change]"* ]]; then
             node scripts/fast-dev-contract.mjs origin/develop HEAD --authorized-contraction
           elif git cat-file -e origin/develop:scripts/fast-dev-contract.mjs 2>/dev/null; then
