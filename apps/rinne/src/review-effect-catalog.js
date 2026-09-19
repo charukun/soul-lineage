@@ -49,7 +49,7 @@ function libraryEntry(effect){
   const group=effect.sourcePath.split('/')[0];
   return entry({
     id:`source-${effect.id}`,label:libraryLabel(effect),category,kind:'original',mode:'raw',context,
-    realSource:true,sourcePath:effect.sourcePath,effects:[effect.id],
+    realSource:true,sourcePath:effect.sourcePath,author:effect.author,effects:[effect.id],
     tags:['実素材','原本','CC0',effect.author,group,category],
     cues:[cue(effect.id,anchor,{lifetime:effect.lifetime,priority:3})],
   });

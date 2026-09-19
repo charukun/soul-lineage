@@ -17,7 +17,7 @@ test('each real library card maps one-to-one to one source effect, never a gener
   const real=REVIEW_EFFECT_CATALOG.filter(row=>row.realSource);
   assert.equal(real.length,REVIEW_REAL_EFFECT_COUNT);
   assert.equal(new Set(real.map(row=>row.sourcePath)).size,REVIEW_REAL_EFFECT_COUNT);
-  assert.ok(real.every(row=>row.kind==='original'&&row.mode==='raw'&&row.effects.length===1&&row.cues.length===1));
+  assert.ok(real.every(row=>row.kind==='original'&&row.mode==='raw'&&row.effects.length===1&&row.cues.length===1&&row.author));
   assert.equal(REVIEW_EFFECT_CATALOG.some(row=>row.id.startsWith('spectacle-')),false);
   assert.equal(new Set(REVIEW_EFFECT_CATALOG.map(row=>row.id)).size,REVIEW_EFFECT_CATALOG.length);
 });
