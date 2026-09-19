@@ -16,6 +16,36 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
   async function ready() {
     await page.waitForFunction(() => window.characterStudio?.review?.ready === true && window.characterStudio?.workspace, null, { timeout: 120000 });
   }
+  async function layoutSnapshot(label) {
+    const snapshot = await page.evaluate(label => {
+      const selectors = [
+        '.review-surface','.review-surface__header','.review-surface__workspace',
+        '.stage-shell','.review-surface__stage-column','.review-surface__stage-column--composite',
+        '.canvas-wrap','.review-surface__stage','canvas#stage','.stage-actions','.stage-status',
+        '.editor-dock','.review-controls','.character-review-camera-dock'
+      ];
+      const styleKeys = ['display','position','height','minHeight','maxHeight','gridTemplateRows','gridRow','overflow','overflowX','overflowY'];
+      const elements = {};
+      for (const selector of selectors) {
+        const node = document.querySelector(selector);
+        if (!node) { elements[selector] = null; continue; }
+        const rect = node.getBoundingClientRect(), style = getComputedStyle(node);
+        elements[selector] = {
+          parent: node.parentElement ? (node.parentElement.id ? '#'+node.parentElement.id : node.parentElement.className || node.parentElement.tagName) : null,
+          offsetTop: node.offsetTop, offsetHeight: node.offsetHeight, clientHeight: node.clientHeight,
+          rect: {x:rect.x,y:rect.y,top:rect.top,bottom:rect.bottom,width:rect.width,height:rect.height},
+          style: Object.fromEntries(styleKeys.map(key => [key, style[key]]))
+        };
+      }
+      return {
+        label, viewport: {width:innerWidth,height:innerHeight,devicePixelRatio},
+        elements, review: window.characterStudio?.review?.inspect?.() ?? null,
+        bodyClass: document.body.className
+      };
+    }, label);
+    checks.push({name:'character portrait layout evidence',snapshot});
+    return snapshot;
+  }
   async function bounds() {
     return page.evaluate(() => {
       const r = document.querySelector('#stage').getBoundingClientRect();
@@ -44,7 +74,14 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
   }
   try {
     const response = await page.goto(new URL('./index.html', baseURL).href, {waitUntil:'domcontentloaded',timeout:60000});
-    assert.equal(response.status(),200); await ready();
+    assert.equal(response.status(),200);
+    await page.screenshot({path:resolve(output,'studio-character-initial-load-mobile.png')});
+    await layoutSnapshot('initial-load');
+    await ready();
+    await page.waitForFunction(()=>document.body.classList.contains('character-grid-ready'));
+    await page.waitForTimeout(120);
+    await page.screenshot({path:resolve(output,'studio-character-ready-mobile.png')});
+    await layoutSnapshot('ready-front');
     await page.waitForFunction(()=>document.body.classList.contains('workshop-ux-ready'));
     assert.equal(await page.locator('.mode-tabs [data-workshop-intent]').count(),3);
     assert.equal((await state()).view,'single');
@@ -74,6 +111,11 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     assert.deepEqual(repeatedScale.first,repeatedScale.last);
     checks.push({name:'paused part switching, visible replacement hair, undo/redo and non-cumulative original preview'});
     await page.screenshot({path:resolve(output,'studio-main-mobile.png')});
+    for (const [name,selector] of [['front','[data-camera="front"]'],['side','[data-camera="side"]'],['back','[data-camera="back"]'],['face','[data-camera="face"]'],['overview','#frame-model']]) {
+      await page.locator(selector).click(); await page.waitForTimeout(80);
+      await page.screenshot({path:resolve(output,`studio-character-${name}-mobile.png`)});
+      await layoutSnapshot(`camera-${name}`);
+    }
     const before = await state();
     await page.locator('[data-workshop-intent="compare"]').click();
     await page.locator('#workshop-compare-details').evaluate(node=>node.open=true);

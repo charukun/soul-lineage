@@ -91,6 +91,23 @@ function start() {
   let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, loadSequence = 0, modelRequestSequence = 0, alive = true, frameId = 0;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
   let motionQA = null;
+  const cameraTrace = [];
+  function traceCamera(origin, preset = '') {
+    const actor = actors[settings.selected];
+    const rootBounds = actor ? new THREE.Box3().setFromObject(actor.root) : null;
+    const attachmentBounds = actor?.attachments ? new THREE.Box3().setFromObject(actor.attachments) : null;
+    const box = value => value && !value.isEmpty() ? {
+      min: value.min.toArray(), max: value.max.toArray(),
+      size: value.getSize(new THREE.Vector3()).toArray(), center: value.getCenter(new THREE.Vector3()).toArray()
+    } : null;
+    cameraTrace.push({
+      at: performance.now(), origin, preset,
+      camera: { position: camera.position.toArray(), aspect: camera.aspect, fov: camera.fov },
+      target: orbit.target.toArray(), rootBounds: box(rootBounds), attachmentBounds: box(attachmentBounds),
+      stack: new Error().stack?.split('\n').slice(2, 6) ?? []
+    });
+    if (cameraTrace.length > 40) cameraTrace.shift();
+  }
   const events = new AbortController(), on = (target, type, handler) => target.addEventListener(type, handler, { signal: events.signal });
   const guard = handler => event => { try { handler(event); } catch (error) { report(error); syncUI(); } };
   function resetMeasure() { warmup = 60; frames = []; lastMetrics = 0; }
@@ -102,6 +119,30 @@ function start() {
       pool: pool?.stats() ?? null, drawnActors, physicsActors, physicsMode: settings.springs, hardwareAcceptance: 'not-measured' };
   }
   review.measure = measure;
+  review.inspect = () => {
+    const actor = actors[settings.selected];
+    const rootBounds = actor ? new THREE.Box3().setFromObject(actor.root) : null;
+    const attachmentBounds = actor?.attachments ? new THREE.Box3().setFromObject(actor.attachments) : null;
+    const combined = rootBounds ? rootBounds.clone() : new THREE.Box3();
+    if (attachmentBounds && !attachmentBounds.isEmpty()) combined.union(attachmentBounds);
+    const box = value => value && !value.isEmpty() ? {
+      min: value.min.toArray(), max: value.max.toArray(),
+      size: value.getSize(new THREE.Vector3()).toArray(), center: value.getCenter(new THREE.Vector3()).toArray()
+    } : null;
+    const rendererSize = renderer.getSize(new THREE.Vector2());
+    return {
+      ready: review.ready,
+      canvas: {
+        clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight,
+        width: canvas.width, height: canvas.height,
+        rendererWidth: rendererSize.x, rendererHeight: rendererSize.y,
+        pixelRatio: renderer.getPixelRatio()
+      },
+      camera: { position: camera.position.toArray(), aspect: camera.aspect, fov: camera.fov, target: orbit.target.toArray() },
+      bounds: { root: box(rootBounds), attachments: box(attachmentBounds), combined: box(combined) },
+      trace: cameraTrace.slice()
+    };
+  };
   function syncUI() {
     const mapping = { seed: 'seed', count: 'count', age: 'age', ages: 'ages', outfit: 'outfit', ancestry: 'ancestry', view: 'view',
       motion: 'motion', expression: 'expression', expressionMode: 'expression-mode', expressionWeight: 'expression-weight', springs: 'springs', background: 'background' };
@@ -149,12 +190,12 @@ function start() {
       // Match MURAAAAAAA's normal 46m vertical span in perspective, without changing the game camera.
       distance = 46 / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
       camera.position.set(distance * .28, distance * .62, distance * .74);
-      orbit.target.set(0,.85,0); camera.lookAt(orbit.target); orbit.update(); resetMeasure(); return;
+      orbit.target.set(0,.85,0); camera.lookAt(orbit.target); orbit.update(); traceCamera('aim','village'); resetMeasure(); return;
     }
     if (preset === 'demon') {
       const zoom = canvas.clientWidth / canvas.clientHeight > 1.3 ? 15 : 19;
       camera.position.set(Math.sin(.33)*zoom*.88, zoom, Math.cos(.33)*zoom*.88);
-      orbit.target.set(0,.1,-2.6); camera.lookAt(orbit.target); orbit.update(); resetMeasure(); return;
+      orbit.target.set(0,.1,-2.6); camera.lookAt(orbit.target); orbit.update(); traceCamera('aim','demon'); resetMeasure(); return;
     }
     if (preset === 'overview' && settings.view === 'crowd' && settings.count > 1) {
       const columns = Math.ceil(Math.sqrt(settings.count)), rows = Math.ceil(settings.count / columns);
@@ -185,13 +226,14 @@ function start() {
       camera.position.copy(target).add(new THREE.Vector3(preset === 'side' ? distance : 0, 0, preset === 'side' ? 0 : sign * distance));
       orbit.target.copy(target);
     }
-    camera.lookAt(orbit.target); orbit.update(); resetMeasure();
+    camera.lookAt(orbit.target); orbit.update(); traceCamera('aim', preset); resetMeasure();
   }
   function resize() {
     const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
     renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix();
     if (motionQA?.active) motionQA.aim(motionQA.camera);
     else if (review.ready && document.body.dataset.reviewMode === 'character') aim('front');
+    traceCamera('resize','layout');
     resetMeasure();
   }
   const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
