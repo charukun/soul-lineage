@@ -23,8 +23,8 @@ function title(){
  for(const a of actors)removeActor(a);actors=[];particles=[];projectiles=[];arcs=[];rings=[];numbers=[];
  hero=actor('hero',new V(1,0,1));hero.object.rotation.y=-.5;
  for(const id of ['hud','ending','paused','upgrade','boss-hud'])show(id,false);show('title');game.phase='title';intro=0;
- const dummy=actor('warrior',new V(-4,0,-4));dummy.object.rotation.y=.7;
- const dummy2=actor('mage',new V(4,0,-5.5));dummy2.object.rotation.y=-.5;
+ const dummy=actor('warrior',new V(-4,0,-4));dummy.object.rotation.y=.7;dummy.spawn=0;play(dummy,'Idle');
+ const dummy2=actor('mage',new V(4,0,-5.5));dummy2.object.rotation.y=-.5;dummy2.spawn=0;play(dummy2,'Idle');
 }
 function chooseUpgrade(choice){
  if(game.phase!=='upgrade')return;
