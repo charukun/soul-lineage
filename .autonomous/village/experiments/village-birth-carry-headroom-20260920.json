@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "village-birth-carry-headroom-20260920",
+  "game": "village",
+  "kind": "gameplay",
+  "problemKey": "demography-blocked-birth-carry",
+  "observation": {
+    "summary": "When housing/infrastructure headroom is zero, the birth accumulator keeps fractional pressure, so reopening one bed can immediately realize a birth that was accumulated while births were structurally impossible.",
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "ed4786718f09941a010a2d8f912e2b7b18c75973",
+        "path": "apps/village/src/game/demography.js",
+        "symbol": "planDemographicYear",
+        "statement": "birthCarry is retained after births are clamped by headroom, including headroom=0."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "Birth accumulation is independent of whether the village has any demographic headroom.",
+    "prediction": "Resetting birth carry while headroom is zero prevents blocked years from preloading an immediate birth, while healthy headroom still accumulates fractional births.",
+    "falsifier": "Healthy-headroom accumulation stops or zero-headroom snapshots still retain carry."
+  },
+  "candidates": [
+    {
+      "id": "reset-carry-with-zero-headroom",
+      "selected": true,
+      "reason": "Keeps existing rates and only closes accumulation during structurally impossible birth years."
+    },
+    {
+      "id": "change-birth-rate",
+      "selected": false,
+      "reason": "Would rebalance healthy villages without evidence that the rate itself is wrong."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/village/src/game/demography.js",
+      "apps/village/tests/demography.test.mjs"
+    ],
+    "summary": "Clear fractional birth carry only while demographic headroom is zero."
+  },
+  "comparison": {
+    "objective": "reproducible-causality",
+    "verdict": "pending",
+    "before": {
+      "revision": "ed4786718f09941a010a2d8f912e2b7b18c75973",
+      "summary": "zero headroom can retain birthCarry near 1."
+    },
+    "after": null,
+    "limitations": [
+      "Pure yearly demographic rule only."
+    ]
+  },
+  "validation": {
+    "state": "awaiting-exact-head-receipt",
+    "focusedTests": [
+      "tests/develop-completion-contract.test.mjs",
+      "apps/village/tests/demography.test.mjs"
+    ],
+    "receipt": {
+      "repository": "charukun/soul-lineage",
+      "pullRequest": 1039,
+      "marker": "autonomous-receipt:village:village-birth-carry-headroom-20260920"
+    }
+  },
+  "learning": {
+    "summary": "Pending hosted evidence.",
+    "failedApproaches": [],
+    "doNotRetry": [],
+    "unresolved": [],
+    "next": [
+      "Inspect cohort/history invariants independently."
+    ]
+  }
+}
