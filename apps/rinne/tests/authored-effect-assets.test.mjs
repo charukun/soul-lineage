@@ -43,6 +43,9 @@ test('INFO parser reads reviewed v1500/v1610/v1710 layouts and complete dependen
   assert.throws(()=>verifyEffectClosure(EFFECT_ASSETS[0],effectFixture(['Texture/missing.png'])),/Unpinned/);
   const reviewLibrary=EFFECT_ASSETS.find(row=>row.reviewLibrary);
   assert.doesNotThrow(()=>verifyEffectClosure(reviewLibrary,effectFixture([],1500)));
+  const hanmado=EFFECT_ASSETS.find(row=>row.path.endsWith('/hit_hanmado_0409.efkefc'));
+  assert.doesNotThrow(()=>verifyEffectClosure(hanmado,effectFixture(['../Texture/hit.png'],1610)));
+  assert.throws(()=>verifyEffectClosure(hanmado,effectFixture(['../../outside.png'],1610)),/escapes reviewed root/);
 });
 test('unsafe paths, unknown versions and truncation cannot pass after 1710 support',()=>{
   for(const value of ['../escape.png','/tmp/x.png','https:asset.png',String.raw`Texture\\bad.png`])assert.throws(()=>effectDependencies(effectFixture([value])));
