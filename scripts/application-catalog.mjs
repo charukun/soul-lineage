@@ -4,7 +4,7 @@ import demon from '../apps/demon/package.json' with { type: 'json' };
 import review from '../apps/review/package.json' with { type: 'json' };
 import characterStudio from '../apps/character-studio/package.json' with { type: 'json' };
 import eclipse from '../apps/eclipse/package.json' with { type: 'json' };
-import nocturne from '../apps/nocturne/package.json' with { type: 'json' };
+import nocturne from '../apps/nocturne/reference-package.json' with { type: 'json' };
 
 // Package metadata is the current display-name authority, not an old build manifest.
 export const GAME_NAMES = Object.freeze({ rinne: rinne.displayName, village: village.displayName, demon: demon.displayName });
