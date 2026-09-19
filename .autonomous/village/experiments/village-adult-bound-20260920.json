@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "village-adult-bound-20260920",
+  "game": "village",
+  "kind": "gameplay",
+  "problemKey": "demography-impossible-adult-count",
+  "observation": {
+    "summary": "planDemographicYear accepts eligibleAdults greater than population, allowing impossible household pairs and births from contradictory state.",
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "0990656970b3fbbf576ff7aa5abf343e8c830ad8",
+        "path": "apps/village/src/game/demography.js",
+        "symbol": "planDemographicYear",
+        "statement": "eligibleAdults is normalized independently of population and pairs is derived directly from it."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "The demographic boundary normalizes adult count without constraining it to the population represented by the same snapshot.",
+    "prediction": "Clamping eligibleAdults to population makes impossible zero-population snapshots produce zero pairs/births while preserving valid snapshots.",
+    "falsifier": "A valid snapshot changes outcome unexpectedly or an impossible snapshot can still create a pair."
+  },
+  "candidates": [
+    {
+      "id": "clamp-at-demography-boundary",
+      "selected": true,
+      "reason": "Small pure-rule invariant at the point that consumes both values."
+    },
+    {
+      "id": "repair-all-callers",
+      "selected": false,
+      "reason": "Would duplicate an invariant across callers and leave the pure boundary unsafe."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/village/src/game/demography.js",
+      "apps/village/tests/demography.test.mjs"
+    ],
+    "summary": "Bound eligible adults by total population and add native regression assertions."
+  },
+  "comparison": {
+    "objective": "reproducible-causality",
+    "verdict": "pending",
+    "before": {
+      "revision": "0990656970b3fbbf576ff7aa5abf343e8c830ad8",
+      "summary": "population=0, eligibleAdults=2 can produce pairs=1 and may accumulate a birth."
+    },
+    "after": null,
+    "limitations": [
+      "Covers demographic planning only; no browser/player-experience claim."
+    ]
+  },
+  "validation": {
+    "state": "awaiting-exact-head-receipt",
+    "focusedTests": [
+      "tests/develop-completion-contract.test.mjs",
+      "apps/village/tests/demography.test.mjs"
+    ],
+    "receipt": {
+      "repository": "charukun/soul-lineage",
+      "pullRequest": null,
+      "marker": "autonomous-receipt:village:village-adult-bound-20260920"
+    }
+  },
+  "learning": {
+    "summary": "Pending hosted evidence.",
+    "failedApproaches": [],
+    "doNotRetry": [],
+    "unresolved": [],
+    "next": [
+      "Inspect the next independent village state connection after merge."
+    ]
+  }
+}

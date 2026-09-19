@@ -51,3 +51,12 @@ test('demography history updates the current year and remains bounded',()=>{
  assert.equal(history.at(-1).population,77);
  assert.equal(history.at(-1).departures,3);
 });
+
+
+test('demography rejects impossible adult counts before creating households',()=>{
+ const impossible=planDemographicYear({population:0,limit:8,openBeds:8,eligibleAdults:2,comfort:8,foodStock:20,birthCarry:.9});
+ assert.equal(impossible.pairs,0);
+ assert.equal(impossible.births,0);
+ const bounded=planDemographicYear({population:3,limit:8,openBeds:8,eligibleAdults:20,comfort:8,foodStock:20,birthCarry:.9});
+ assert.equal(bounded.pairs,1);
+});
