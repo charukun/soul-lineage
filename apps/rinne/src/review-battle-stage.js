@@ -118,20 +118,31 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   function resize(){const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);if(width===lastWidth&&height===lastHeight)return;lastWidth=width;lastHeight=height;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
 
+  function inspirationCameraFrame(){
+    const heroPoint=hero.actor?.root?.position;if(!heroPoint)return null;
+    const activeEnemies=enemies.filter(side=>side.actor?.root?.parent===stageRoot).map(side=>side.actor.root.position);
+    if(!activeEnemies.length)return null;
+    const enemyPoint=activeEnemies[0],points=[heroPoint,...activeEnemies],hx=heroPoint.x,hz=heroPoint.z,ex=enemyPoint.x,ez=enemyPoint.z,dx=ex-hx,dz=ez-hz,len=Math.max(.01,Math.hypot(dx,dz));
+    const lineX=dx/len,lineZ=dz/len,sideX=-lineZ,sideZ=lineX;let minLine=Infinity,maxLine=-Infinity,minSide=Infinity,maxSide=-Infinity;
+    for(const point of points){const along=point.x*lineX+point.z*lineZ,across=point.x*sideX+point.z*sideZ;minLine=Math.min(minLine,along);maxLine=Math.max(maxLine,along);minSide=Math.min(minSide,across);maxSide=Math.max(maxSide,across);}
+    const centerLine=(minLine+maxLine)*.5,centerSide=(minSide+maxSide)*.5,centerX=lineX*centerLine+sideX*centerSide,centerZ=lineZ*centerLine+sideZ*centerSide;
+    const aspect=Math.max(.46,Math.min(2.1,camera.aspect||1)),vFov=THREE.MathUtils.degToRad(camera.fov),hFov=2*Math.atan(Math.tan(vFov*.5)*aspect),halfWidth=(maxLine-minLine)*.5+1.05,halfHeight=1.55;
+    const horizontalDistance=halfWidth/Math.max(.12,Math.tan(hFov*.5)),verticalDistance=halfHeight/Math.tan(vFov*.5),distance=clamp(Math.max(horizontalDistance,verticalDistance)+.55,5.8,12.5);
+    return{position:{x:centerX+sideX*distance,y:3.25,z:centerZ+sideZ*distance},look:{x:centerX,y:1.05,z:centerZ},follow:true,system:'inspiration',count:points.length};
+  }
+
   function updateCamera(core,dt,followCamera,cameraSystem){
     const wide=canvas.clientWidth/Math.max(1,canvas.clientHeight)>1.3;let frame=reviewBattleCameraFrame(core,{follow:followCamera,system:cameraSystem,encounterMode,wide});
     const now=performance.now()/1000,sequence=techniquePlayback?reviewInspirationSequenceFrame(now-techniquePlayback.startedAt):null,step=Math.max(1/120,Math.min(.05,Number(dt)||1/60));
     if(core?.hero&&core?.enemy&&followCamera)canvas.dataset.heroComposition=cameraSystem==='demon'?'kuumetsu-shared':'hyakunen-shared';
-    if(sequence&&sequence.stage!=='spark'&&sequence.stage!=='done'&&core?.hero&&core?.enemy){
-      const hx=Number(core.hero.x)||0,hz=Number(core.hero.z)||0,ex=Number(core.enemy.x)||0,ez=Number(core.enemy.z)||0,dx=ex-hx,dz=ez-hz,len=Math.max(.01,Math.hypot(dx,dz)),rx=-dz/len,rz=dx/len,push=sequence.stage==='execute'?.55:.95;
-      frame={position:{x:hx-dx/len*(2.0-push*.35)+rx*(1.1+push*.25),y:.82,z:hz-dz/len*(2.0-push*.35)+rz*(1.1+push*.25)},look:{x:hx+dx*.68,y:1.28,z:hz+dz*.68},follow:true,system:'inspiration',count:(core.enemies||[]).length||1};
-    }else if(frame?.follow&&core?.hero&&core?.enemy){
+    if(sequence&&sequence.stage!=='done'&&core?.hero&&core?.enemy)frame=inspirationCameraFrame()||frame;
+    else if(frame?.follow&&core?.hero&&core?.enemy){
       cameraOrbit=(cameraOrbit+step*.05)%(Math.PI*2);const ox=frame.position.x-frame.look.x,oz=frame.position.z-frame.look.z,c=Math.cos(cameraOrbit),sn=Math.sin(cameraOrbit);
       frame={...frame,position:{...frame.position,x:frame.look.x+ox*c-oz*sn,z:frame.look.z+ox*sn+oz*c}};
     }
-    if(frame?.position&&frame?.look){const dx=frame.position.x-frame.look.x,dy=frame.position.y-frame.look.y,dz=frame.position.z-frame.look.z;frame={...frame,position:{x:frame.look.x+dx*cameraZoom,y:frame.look.y+dy*cameraZoom,z:frame.look.z+dz*cameraZoom}};}
+    if(frame?.position&&frame?.look&&frame.system!=='inspiration'){const dx=frame.position.x-frame.look.x,dy=frame.position.y-frame.look.y,dz=frame.position.z-frame.look.z;frame={...frame,position:{x:frame.look.x+dx*cameraZoom,y:frame.look.y+dy*cameraZoom,z:frame.look.z+dz*cameraZoom}};}
     if(impactKick>0)frame={...frame,position:{...frame.position,x:frame.position.x-Math.sin(impactYaw)*impactKick,z:frame.position.z-Math.cos(impactYaw)*impactKick}};
-    cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);const blend=1-Math.exp(-step*8);camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);camera.lookAt(cameraLook);canvas.dataset.cameraFollow=followCamera?'on':'off';canvas.dataset.cameraZoom=cameraZoom.toFixed(2);
+    cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);const blend=1-Math.exp(-step*(frame.system==='inspiration'?13:8));camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);camera.lookAt(cameraLook);canvas.dataset.cameraFollow=followCamera?'on':'off';canvas.dataset.cameraZoom=cameraZoom.toFixed(2);
   }
 
   function sync(core,dt=0,{followCamera=true,encounterMode:requestedMode='duel',cameraSystem='rinne'}={}){
