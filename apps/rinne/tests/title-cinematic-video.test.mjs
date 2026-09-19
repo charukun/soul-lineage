@@ -32,12 +32,17 @@ test('cinematic boot is event-driven and overlaps world preparation',()=>{
   assert.match(cinematic,/intro load timeout/);
 });
 
-test('cinematic handoff reveals title before menu and return skips the long intro',()=>{
+test('cinematic offers an early primary action while preserving the authored title handoff',()=>{
+  assert.match(media,/primaryActionAt:1\.5/);
+  assert.match(cinematic,/primaryActionAt\*1000/);assert.match(cinematic,/dataset\.primaryAction='ready'/);assert.match(cinematic,/onPrimaryActionReady/);
+  assert.match(css,/data-intro="cinematic"\]\[data-primary-action="ready"\] \.title-actions/);
+  assert.match(css,/title-command:not\(#new-life\)\{display:none\}/);
   assert.match(cinematic,/settleUi\(\)[\s\S]*dataset\.intro='settling'[\s\S]*dataset\.intro='idle'/);
   assert.match(css,/data-intro="settling"\] \.title-lockup\{opacity:1/);
   assert.match(css,/data-intro="settling"\] \.title-actions\{opacity:0/);
   assert.match(cinematic,/if\(this\.introPlayed\)\{[\s\S]*this\.seekToLivingStill\(\{play:true\}\);return;/);
   assert.match(main,/titleCinematic\.pause\(\);title\.hidden=true/);
+  assert.match(main,/pendingLaunchMode=mode/);assert.match(main,/旅立ちを準備しています/);assert.match(main,/if\(pendingLaunchMode\)[\s\S]*await launch\(mode\)/);
 });
 
 test('reduced motion, motion-off, and media failure retain an operable title fallback',()=>{
