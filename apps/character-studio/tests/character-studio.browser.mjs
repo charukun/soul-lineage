@@ -57,6 +57,19 @@ export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
     const rail=ready.nodes['.character-review-camera-dock'].rect;
     assert.ok(rail.top>=stage.top&&rail.bottom<=stage.bottom,JSON.stringify(ready));
     assert.ok(ready.buffer?.width>0&&ready.buffer?.height>0,JSON.stringify(ready));
+    const back=page.locator('.review-surface__back[data-review-back]');
+    assert.equal(await back.textContent(),'‹ 戻る');
+    const resizeEvidence=[];
+    for(const [width,height] of [[844,390],[412,892],[390,844]]){
+      await page.setViewportSize({width,height});await page.waitForTimeout(180);
+      const resized=await snapshot(`resize-${width}x${height}`);
+      const resizedStage=resized.nodes['.stage-shell'].rect,resizedCanvas=resized.nodes['canvas#stage'].rect;
+      assert.ok(resizedStage.width>0&&resizedStage.height>0,JSON.stringify(resized));
+      assert.ok(resizedCanvas.width>0&&resizedCanvas.height>0,JSON.stringify(resized));
+      assert.ok(resized.buffer?.width>1&&resized.buffer?.height>1,JSON.stringify(resized));
+      assert.deepEqual(resized.visibleCameraButtons,['front','side','back','face','frame-model']);
+      resizeEvidence.push(resized);
+    }
     await page.screenshot({path:resolve(output,'studio-character-ready-mobile.png')});
     for(const [name,selector] of [['front','[data-camera="front"]'],['overview','#frame-model'],['face','[data-camera="face"]']]){
       await page.locator(`.character-review-camera-dock ${selector}`).click();
@@ -70,8 +83,8 @@ export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
     }
     await page.screenshot({path:resolve(output,'studio-character-model-switch-mobile.png')});
     const final=await snapshot('model-switch');
-    writeFileSync(resolve(output,'studio-character-portrait.json'),JSON.stringify({success:true,initial,ready,final,errors,network},null,2));
-    return {initial,ready,final,errors,network};
+    writeFileSync(resolve(output,'studio-character-portrait.json'),JSON.stringify({success:true,initial,ready,resizeEvidence,final,errors,network},null,2));
+    return {initial,ready,resizeEvidence,final,errors,network};
   } catch(error) {
     await page.screenshot({path:resolve(output,'studio-character-portrait-failure.png')}).catch(()=>{});
     throw error;

@@ -23,8 +23,8 @@ test('all Visual Review specialist pages receive the shared navigation module',a
   assert.doesNotMatch(entries,/'\/review\.html'/);
   assert.match(vite,/order:'pre'/);
   assert.match(vite,/src:'\.\/src\/review-navigation\.js'/);
-  const [visual,motion,assets,objects,effects,motionCss]=await Promise.all([
-    read('src/review-runtime-thumbnail.js'),read('src/review-motion.js'),read('src/review-asset-library.js'),read('src/review-object-library.js'),read('src/review-effects.js'),read('src/review-motion.css')
+  const [visual,motion,assets,objects,effects,battleStage,motionCss,sharedShell]=await Promise.all([
+    read('src/review-runtime-thumbnail.js'),read('src/review-motion.js'),read('src/review-asset-library.js'),read('src/review-object-library.js'),read('src/review-effects.js'),read('src/review-battle-stage.js'),read('src/review-motion.css'),read('../../packages/shared-ui/src/review-shell.js')
   ]);
   assert.match(visual,/scheduleRuntimeThumbnail/);
   assert.match(visual,/requestIdleCallback/);
@@ -35,6 +35,9 @@ test('all Visual Review specialist pages receive the shared navigation module',a
   assert.match(effects,/thumbnailIdle/);
   assert.match(effects,/thumbnailJobs/);
   assert.doesNotMatch([motion,assets,objects,effects].join('\n'),/createReviewChoiceVisual/);
+  for(const source of [motion,assets,objects,effects,battleStage]){assert.match(source,/createReviewStageLifecycle/);assert.doesNotMatch(source,/new ResizeObserver/);}
+  assert.match(sharedShell,/visualViewport\?\.addEventListener\('resize'/);
+  assert.match(sharedShell,/width<2\|\|height<2/);
   assert.match(motionCss,/\.motion-model-grid\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   const [objectsHtml,objectsJs,objectsCatalog]=await Promise.all([read('review-objects.html'),read('src/review-object-library.js'),read('src/review-object-catalog.js')]);
   assert.match(objectsHtml,/id="object-categories"/);
