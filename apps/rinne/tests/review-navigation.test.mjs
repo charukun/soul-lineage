@@ -51,7 +51,10 @@ test('all Visual Review specialist pages receive the shared navigation module',a
   const [characterGridCss,assetCss,objectCss,effectCss]=await Promise.all([
     read('../../apps/character-studio/src/character-review-grid.css'),read('src/review-asset-library.css'),read('src/review-object-library.css'),read('src/review-effects.css')
   ]);
-  for(const css of [characterGridCss,assetCss,objectCss,effectCss])assert.doesNotMatch(css,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(characterGridCss,/\.character-review-grid\{[^}]*grid-template-columns/);
+  assert.doesNotMatch(assetCss,/\.(?:model-options|asset-equipment-options)\{[^}]*grid-template-columns/);
+  assert.doesNotMatch(objectCss,/\.object-options\{[^}]*grid-template-columns/);
+  assert.doesNotMatch(effectCss,/\.fx-catalog\{[^}]*grid-template-columns/);
   const [objectsJs,objectsCatalog]=await Promise.all([read('src/review-object-library.js'),read('src/review-object-catalog.js')]);
   assert.match(objectsHtml,/id="object-categories"/);
   assert.match(objectsJs,/CATEGORY_OPTIONS/);
