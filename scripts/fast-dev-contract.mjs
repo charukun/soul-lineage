@@ -102,6 +102,18 @@ export function inspectAuthorizedFreshnessHardening(base, head) {
   return Object.freeze({state:violations.length?'violation':'clean',authorizedFreshnessHardening:true,violations:Object.freeze(violations)});
 }
 
+export function inspectAuthorizedFastDevRestore(base, head) {
+  const violations = [];
+  const after = workflowPathsAt(head);
+  const expected = new Set(FAST_DEV_WORKFLOW_ALLOWLIST);
+  const unexpected = after.filter(path => !expected.has(path));
+  const missing = FAST_DEV_WORKFLOW_ALLOWLIST.filter(path => !after.includes(path));
+  if (unexpected.length) violations.push({code:'RESTORE_UNEXPECTED_WORKFLOW',path:unexpected.join(', '),detail:'Emergency restore may only reinstate the canonical pre-incident workflow surface.'});
+  if (missing.length) violations.push({code:'RESTORE_REQUIRED_WORKFLOW_MISSING',path:missing.join(', '),detail:'Emergency restore must reinstate the complete canonical pre-incident workflow surface.'});
+  if (!after.includes('.github/workflows/dev-app-publish.yml')) violations.push({code:'DEV_PUBLISH_NOT_RESTORED',path:'.github/workflows/dev-app-publish.yml',detail:'Automatic DEV publication must be restored.'});
+  return Object.freeze({state:violations.length?'violation':'clean',authorizedRestore:true,afterWorkflows:Object.freeze(after),violations:Object.freeze(violations)});
+}
+
 export function inspectAuthorizedFastDevContraction(base, head) {
   const violations = [];
   const before = workflowPathsAt(base);
@@ -137,7 +149,9 @@ const isMain=process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.ar
 if(isMain){
   const base=process.argv[2],head=process.argv[3]||'HEAD';
   if(!base)throw new Error('Usage: node fast-dev-contract.mjs <base> <head> [--bootstrap]');
-  const receipt=process.argv.includes('--authorized-contraction')
+  const receipt=process.argv.includes('--authorized-restore')
+    ? inspectAuthorizedFastDevRestore(base,head)
+    : process.argv.includes('--authorized-contraction')
     ? inspectAuthorizedFastDevContraction(base,head)
     : process.argv.includes('--authorized-freshness-hardening')
       ? inspectAuthorizedFreshnessHardening(base,head)
