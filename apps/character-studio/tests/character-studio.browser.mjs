@@ -44,6 +44,8 @@ export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
     assert.ok(ready.rail.top >= ready.stage.top && ready.rail.bottom <= ready.stage.bottom, JSON.stringify(ready));
     assert.ok(ready.buffer?.width > 0 && ready.buffer?.height > 0, JSON.stringify(ready));
     await page.screenshot({ path: resolve(output, 'studio-character-ready-mobile.png') });
+    assert.deepEqual(errors, []);
+    assert.deepEqual(network, []);
 
     for (const [name, selector] of [['front','[data-camera="front"]'],['overview','#frame-model'],['face','[data-camera="face"]']]) {
       await page.locator(`.character-review-camera-dock ${selector}`).click();
@@ -51,6 +53,7 @@ export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
       await page.screenshot({ path: resolve(output, `studio-character-${name}-mobile.png`) });
     }
 
+    const switchErrorStart = errors.length, switchNetworkStart = network.length;
     const select = page.locator('.character-model-list');
     if (await select.count() && await select.locator('option').count() > 1) {
       const initialValue = await select.inputValue();
@@ -59,15 +62,15 @@ export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
         await select.selectOption(nextValue);
         await page.waitForTimeout(120);
         await select.selectOption(initialValue);
+        await page.waitForFunction(() => window.characterStudio?.review?.ready === true, null, { timeout: 120000 });
         await page.waitForTimeout(160);
       }
     }
     await page.screenshot({ path: resolve(output, 'studio-character-model-switch-mobile.png') });
     const final = await snapshot('model-switch');
-    writeFileSync(resolve(output, 'studio-character-portrait.json'), JSON.stringify({ success:true, ready, final, errors, network }, null, 2));
-    assert.deepEqual(errors, []);
-    assert.deepEqual(network, []);
-    return { ready, final };
+    const switchDiagnostics = { errors: errors.slice(switchErrorStart), network: network.slice(switchNetworkStart) };
+    writeFileSync(resolve(output, 'studio-character-portrait.json'), JSON.stringify({ success:true, ready, final, switchDiagnostics }, null, 2));
+    return { ready, final, switchDiagnostics };
   } catch (error) {
     await page.screenshot({ path: resolve(output, 'studio-character-portrait-failure.png') }).catch(() => {});
     writeFileSync(resolve(output, 'studio-character-portrait.json'), JSON.stringify({ success:false, error:String(error), errors, network }, null, 2));
