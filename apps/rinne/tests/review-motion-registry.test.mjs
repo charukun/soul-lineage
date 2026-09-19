@@ -123,7 +123,7 @@ test('catalog all-view exposes every unique source motion and UI count comes onl
   assert.match(workshop,/id="qa-motion-count"/);
   for(const source of [standalone,workshop,standaloneJs,qaJs])assert.doesNotMatch(source,/MOTION CLIPS\s+\d+/);
   assert.match(standaloneJs,/motionRegistryCount\(registry\)/);
-  assert.match(qaJs,/motionRegistryCount\(registry\)/);
+  assert.match(qaJs,/createMotionLibraryControls/);
   assert.match(qaJs,/data-motion-filter/);
 });
 
