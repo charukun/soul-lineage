@@ -10,7 +10,7 @@ const CASES=Object.freeze([
   ['Effects/ef_wind03.efkefc','Textures/tx_wind_placeholder_never_used.png'],
 ]);
 
-test('reviewed Effekseer 1710 parser reads official dependent-file records',async()=>{
+test('reviewed Effekseer 1710 parser reads official dependent-file records after reconcile',async()=>{
   for(const [path,expected] of CASES){
     const encoded=path.split('/').map(encodeURIComponent).join('/');
     const response=await fetch(`https://raw.githubusercontent.com/${SOURCE.repository}/${SOURCE.revision}/${encoded}`,{signal:AbortSignal.timeout(30000)});
