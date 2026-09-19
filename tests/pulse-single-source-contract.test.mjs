@@ -11,9 +11,10 @@ const text = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'
 
 test('PULSE semantic contract is the single source for first-glance roles and recovery copy', () => {
   assert.deepEqual(PULSE_FIRST_GLANCE, [
-    PULSE_ROLE.HUMAN_ACTION,
     PULSE_ROLE.DEVELOPMENT,
     PULSE_ROLE.DEV_PUBLICATION,
+    PULSE_ROLE.HUMAN_ACTION,
+    PULSE_ROLE.RECENT,
   ]);
   assert.equal(PULSE_COPY.recovery.headline, '自動復旧中');
   assert.equal(PULSE_COPY.recovery.syncTitle, '再同期中');
