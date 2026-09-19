@@ -5,10 +5,11 @@ import { resolve } from 'node:path';
 
 export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  const page = await context.newPage(), errors = [], network = [];
+  const page = await context.newPage(), errors = [], network = [], httpErrors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('requestfailed', request => network.push({ url: request.url(), failure: request.failure()?.errorText }));
+  page.on('response', response => { if (response.status() >= 400) httpErrors.push({ url: response.url(), status: response.status() }); });
   const snapshot = label => page.evaluate(label => {
     const rect = selector => {
       const node = document.querySelector(selector);
@@ -44,8 +45,8 @@ export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
     assert.ok(ready.rail.top >= ready.stage.top && ready.rail.bottom <= ready.stage.bottom, JSON.stringify(ready));
     assert.ok(ready.buffer?.width > 0 && ready.buffer?.height > 0, JSON.stringify(ready));
     await page.screenshot({ path: resolve(output, 'studio-character-ready-mobile.png') });
-    assert.deepEqual(errors, []);
     assert.deepEqual(network, []);
+    assert.deepEqual(httpErrors, []);
 
     for (const [name, selector] of [['front','[data-camera="front"]'],['overview','#frame-model'],['face','[data-camera="face"]']]) {
       await page.locator(`.character-review-camera-dock ${selector}`).click();
@@ -69,11 +70,11 @@ export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
     await page.screenshot({ path: resolve(output, 'studio-character-model-switch-mobile.png') });
     const final = await snapshot('model-switch');
     const switchDiagnostics = { errors: errors.slice(switchErrorStart), network: network.slice(switchNetworkStart) };
-    writeFileSync(resolve(output, 'studio-character-portrait.json'), JSON.stringify({ success:true, ready, final, switchDiagnostics }, null, 2));
+    writeFileSync(resolve(output, 'studio-character-portrait.json'), JSON.stringify({ success:true, ready, final, switchDiagnostics, httpErrors }, null, 2));
     return { ready, final, switchDiagnostics };
   } catch (error) {
     await page.screenshot({ path: resolve(output, 'studio-character-portrait-failure.png') }).catch(() => {});
-    writeFileSync(resolve(output, 'studio-character-portrait.json'), JSON.stringify({ success:false, error:String(error), errors, network }, null, 2));
+    writeFileSync(resolve(output, 'studio-character-portrait.json'), JSON.stringify({ success:false, error:String(error), errors, network, httpErrors }, null, 2));
     throw error;
   } finally { await context.close(); }
 }
