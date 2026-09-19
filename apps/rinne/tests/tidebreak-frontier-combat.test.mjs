@@ -6,7 +6,7 @@ import {createFront,tickFront,tidebreakLoadoutFor,tidebreakMindsetFor,tidebreakW
 function combatState(seed=41){
   const state=createLife({seed});
   state.phase='living';state.ageSeconds=20*60;state.ageYears=20;state.zone='frontier';state.position={x:0,z:0};state.yaw=0;state.resting=false;state.stamina=100;state.staminaCap=100;
-  state.equipment.weapon='sword';state.knownSkills.push('basic.sword','skill.read','skill.patience','action.counter','action.finish');state.combatCatalog=['skill.read','skill.patience','action.counter','action.finish'];
+  state.equipment.weapon='sword';state.inspiration.legacySkills.push('skill.read','skill.patience','action.counter','action.finish');state.knownSkills.push('basic.sword','skill.read','skill.patience','action.counter','action.finish');state.combatCatalog=['skill.read','skill.patience','action.counter','action.finish'];
   state.combatLoadout={heart:{active:['skill.read','skill.patience']},technique:{activeComboId:'combo-1',combos:[{id:'combo-1',name:'試験連技',slots:{jo:'action.counter',ha:'basic.sword',kyu:'action.finish'},favored:{}}],oneMotion:null},body:{stance:'seigan',style:'counter',zanshin:'still'}};
   return state;
 }
