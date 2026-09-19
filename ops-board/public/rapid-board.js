@@ -47,10 +47,8 @@ function primaryTarget(app) {
     || targets[0]
     || null;
 }
-function games(state) {
-  const all = state?.applications || [];
-  const gameRows = all.filter(app => app.kind === 'game');
-  return gameRows.length ? gameRows : all.slice(0, 3);
+function managedApps(state) {
+  return (state?.applications || []).filter(app => ['game','tool','reference','control'].includes(app.kind));
 }
 function activePulls(state) {
   return (state?.pullRequests?.normal || []).filter(pr => pr.state === 'Draft' || pr.state === 'Ready');
@@ -130,7 +128,7 @@ function renderApps(state) {
   const root = $('#rapid-app-list');
   const count = $('#rapid-app-count');
   if (!root || !count) return;
-  const appRows = games(state).slice(0, 3);
+  const appRows = managedApps(state);
   count.textContent = appRows.length ? String(appRows.length) + ' Apps' : '0 Apps';
   root.replaceChildren();
   if (!appRows.length) {
@@ -161,7 +159,7 @@ function renderApps(state) {
 
 function collectIssues(state, error) {
   const items = eventDrivenAlerts(state, Date.now(), error).map(item => ({ ...item }));
-  for (const app of games(state)) {
+  for (const app of managedApps(state)) {
     const target = primaryTarget(app);
     if (!target || target.state !== 'failed') continue;
     items.push({
@@ -289,7 +287,7 @@ function renderHealth(state, issues) {
   const title = $('#rapid-health-title');
   const meta = $('#rapid-health-meta');
   if (!root || !title || !meta) return;
-  const appRows = games(state).slice(0, 3);
+  const appRows = managedApps(state);
   const healthy = appRows.filter(app => primaryTarget(app)?.state === 'success').length;
   const active = activePulls(state).length;
   const issueCount = issues.length;

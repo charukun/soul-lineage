@@ -4,6 +4,7 @@ import { buildState } from './collector.mjs';
 import { readStored, writeStored } from './github-client.mjs';
 import { degradedState } from './fallback-state.mjs';
 import { boardAlerts } from './public/health.mjs';
+import { buildApplications } from './applications.mjs';
 import { appendControlHistory, deriveControlTower, publicControlHistory } from './control-tower.mjs';
 import {
   PEER_WORLD_REGISTRY_KEY,emptyPeerWorldRegistry,createPeerWorldRoom,listPeerWorldRooms,joinPeerWorldRoom,
@@ -58,7 +59,7 @@ function emergencyState(error, source = 'state-read') {
     nextRetryAt: null,
     githubFailure: { kind: 'runtime', status: null, scope: 'none' },
     pullRequests: { normal: [], visualReview: [] },
-    applications: [],
+    applications: buildApplications({}, [], [], { developSha:null, statuses:[] }),
     environments: [],
     environmentDiff: { count: null, label: '状態を再取得中', pulls: [] },
     integration: { phase: 'reconcile-wait', tone: 'info', queue: [] },

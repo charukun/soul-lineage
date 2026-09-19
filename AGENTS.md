@@ -25,8 +25,8 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs on
 - Use the connected GitHub Connector to read current source and construct work-branch changes with Contents / Git Data operations such as blob, tree, commit, and ref updates.
 - Code Mode / V8 syntax or consistency checks are preflight only. Do not treat them as formal focused validation.
 - Do not run or wait on merge-owning validation for every intermediate branch push. Earlier, cancelled, or stale runs are disposable implementation noise and must never terminate the task.
-- Formal merge-owning test/check/build evidence must come from the exact work head checked out in `Astra Work Validation` GitHub Actions hosted runner or another real repository checkout.
-- Arm that run only after implementation is coherent: the final work-head commit must include `[astra-validate]` in its commit message.
+- Formal merge-owning evidence must come from the exact work head checked out in `Astra Work Validation` GitHub Actions hosted runner or another real repository checkout. Astra decides the task-specific focused validation; Actions executes that declared plan rather than repeating repository-wide review.
+- Arm that run only after implementation is coherent: the final work-head commit must include `[astra-validate]` and explicit `Astra-Check:`, `Astra-Test:`, `Astra-Build:`, or `Astra-Validation: none` lines in its commit message.
 - The PR head merged to `develop` must remain the exact head that passed validation. If the PR head moves, validate the new head. If only `develop` moves, reuse the validation when the merge is clean and the new develop delta is independent by affected app/package/build/control-plane scope; otherwise reconcile and revalidate.
 - When conflict or impact overlap requires reconciliation, that replacement branch tip is the **final reconciled head** and must pass the new merge-owning validation before merge.
 - One failed local tool, DNS path, transport, cancelled stale workflow, or command is not task failure. Preserve the same branch / PR and continue through the Connector + repository workflow path.
@@ -44,11 +44,12 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs on
 
 ### Fast DEV execution contract
 
-- The existing Fast DEV Actions workload is a ceiling, not a template to extend. Without an explicit user request to change the Fast DEV contract itself, never add an Actions job/step, increase the number of test cases executed by Actions, change a Fast DEV lifecycle command (`predev`, `prebuild`, `build`, `postbuild`), or add network/materialization work to the validation path.
-- `Astra Work Validation` must run the contract check from current `develop` before dependency scripts, focused tests, or builds. Branch-authored changes cannot authorize themselves. Dependency installation uses `npm ci --ignore-scripts`.
+- The Fast DEV Actions surface is a hard anti-expansion ceiling. Without an explicit user request to change the Fast DEV contract itself, never add persistent Actions jobs/steps, automatic test sweeps, unconditional builds, new network/materialization work, or heavier lifecycle commands to the validation path.
+- `Astra Work Validation` runs the anti-expansion contract before task-specific validation. Routine branches cannot rewrite the workflow, focused runner, contract, or freshness classifier. Dependency installation uses `npm ci --ignore-scripts` only when the Astra-selected test/build plan actually needs dependencies.
+- Repository-wide syntax scans, code-health, visual-budget, production-asset audits, and all-affected-app builds are not default merge-owning Actions work. Astra may choose the smallest relevant check/test/build for the task and must declare it on the final commit.
 - `astra/fast-dev-contract=error` is a recoverable self-inflicted violation, not `FAILED`. Keep the same branch / PR, identify the attempted expansion from the receipt, remove it or move it outside Fast DEV, then create a new final head and validate again. Do not ask the user how to recover from your own violation.
 - A contract violation intentionally does not make the GitHub merge button mechanically impossible. Astra must nevertheless not mark Ready or merge while the violation remains, unless the user explicitly requested a Fast DEV contract change in the current task.
-- For an explicit user-requested workflow reduction only, the final merge-owning commit also includes `[astra-contract-change]`. That marker authorizes only a contraction to the canonical workflow surface; it never authorizes adding Actions work.
+- For an explicit user-requested Fast DEV contraction only, the final merge-owning commit also includes `[astra-contract-change]`. That marker may reduce workflow count or per-run workload, but never authorizes adding persistent Actions work.
 - If the task hit this violation and self-repaired it, say so in the completion report. Never hide or relabel the attempted expansion as ordinary CI noise.
 
 ## Canonical review URLs

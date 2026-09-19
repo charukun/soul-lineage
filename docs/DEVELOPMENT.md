@@ -15,8 +15,8 @@ Routine implementation is Astra-driven and optimized to avoid CI churn while pre
 When implementation is coherent:
 
 1. Re-read current `develop`, but do not reconcile solely because its SHA advanced.
-2. Make the final work-head commit include `[astra-validate]`. This arms `Astra Work Validation` for that exact pushed head.
-3. The runner validates only the work delta from its merge-base, not unrelated develop drift.
+2. Astra chooses the smallest task-specific hosted validation and records it on the final commit with `[astra-validate]` plus one or more `Astra-Check: <file>`, `Astra-Test: <file>`, `Astra-Build: <app>`, or the explicit `Astra-Validation: none` directive.
+3. The runner checks out that exact head, enforces the Fast DEV anti-expansion contract, and executes only the declared focused plan. It does not repeat repository-wide review.
 4. After validation, the freshness gate re-reads current `develop`.
 5. If current `develop` is already contained in the work head, proceed normally.
 6. Otherwise require a clean Git merge and compare the work delta with the new develop delta using affected apps/packages plus shared build/dependency/control-plane scope.
@@ -36,15 +36,16 @@ The resulting `develop` push starts asynchronous DEV publication. Do not wait or
 
 Fast DEV is intentionally bounded. Routine feature/fix work must not make GitHub Actions do more work than the current `develop` contract.
 
-Before install scripts, changed focused tests, or affected builds, `Astra Work Validation` runs the Fast DEV contract checker sourced from current `develop`. It rejects branch-authored expansion of the Actions workflow/control path, Fast DEV lifecycle commands, or the repository test inventory. `npm ci --ignore-scripts` prevents branch lifecycle hooks from running during dependency installation.
+Before task-specific validation, `Astra Work Validation` runs the Fast DEV anti-expansion contract. Routine work cannot rewrite the workflow, focused runner, contract, or freshness classifier, and cannot make build lifecycle commands heavier. Adding ordinary repository tests does not expand Actions by itself because tests only run when Astra explicitly selects them. `npm ci --ignore-scripts` runs only when the declared test/build plan requires dependencies.
 
-A violation publishes `astra/fast-dev-contract=error` with a machine-readable receipt and skips the remaining validation work. This is deliberately recoverable and is not a GitHub branch-protection dead end: the same worker repairs the same branch / PR, makes a new final head, and re-validates. Only an explicit user request to change the Fast DEV contract itself can authorize merging a contract-changing task. For an explicit workflow reduction, the final commit also includes `[astra-contract-change]`; the runner then verifies that the Actions surface only contracts to the canonical allowlist and does not add workflows or tests.
+A violation publishes `astra/fast-dev-contract=error` with a machine-readable receipt and skips the remaining validation work. This is deliberately recoverable and is not a GitHub branch-protection dead end: the same worker repairs the same branch / PR, makes a new final head, and re-validates. Only an explicit user request to change the Fast DEV contract itself can authorize merging a contract-changing task. For an explicit Fast DEV contraction, the final commit also includes `[astra-contract-change]`; the runner then verifies that the persistent Actions surface does not expand and that the minimal exact-head/focused/freshness path remains intact.
 
 ## Validation boundary
 
 - Intermediate branch pushes are implementation details, not waiting points.
 - Stale or cancelled validation runs must never be treated as task failure.
-- Required merge evidence is one successful validation of the exact PR head, with `astra/fast-dev-contract=success` and `astra/merge-freshness=success`. Independent mergeable develop drift does not invalidate that evidence.
+- Required merge evidence is one successful hosted execution of the Astra-declared plan for the exact PR head, with `astra/fast-dev-contract=success` and `astra/merge-freshness=success`. Independent mergeable develop drift does not invalidate that evidence.
+- The default DEV gate does not run repository-wide syntax, code-health, visual-budget, production-asset, or all-consumer build sweeps. Those are Astra-selected only when materially relevant.
 - The `Astra Work Validation` runner is explicitly armed only when the pushed final-head commit message contains `[astra-validate]`.
 - Explicit browser playtest requests still follow `BROWSER_PLAYTEST_ROUTING.md`; do not substitute static review for browser evidence.
 - `main` / Production retains its existing strict gates.

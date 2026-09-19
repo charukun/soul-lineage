@@ -90,6 +90,10 @@ test('final gameplay skin is tactile, non-flat, and keeps phone sheets reachable
   assert.match(navy, /repeating-linear-gradient/);
   assert.match(navy, /clip-path:polygon/);
   assert.match(navy, /box-shadow:inset/);
+  assert.match(navy, /border-bottom:10px solid/);
+  assert.match(navy, /upgrade-panel>\[data-body\]::before/);
+  assert.match(navy, /loadout-slot::after/);
+  assert.match(navy, /upgrade-control::after/);
   assert.match(navy, /\.life-chip::before,[\s\S]*content:none!important/);
   assert.match(navy, /\.upgrade-panel>\[data-body\][\s\S]*overflow-y:auto!important/);
   assert.match(navy, /max-height:calc\(100dvh/);

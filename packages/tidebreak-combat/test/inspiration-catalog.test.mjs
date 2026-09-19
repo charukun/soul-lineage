@@ -15,6 +15,21 @@ test('Tidebreak exposes the exact shared inspiration catalog it executes against
   const runtime = createTidebreakRuntime({weapon: 'sword'});
   assert.deepEqual(runtime.inspirationCatalog(), canonical);
   assert.match(runtime.sourceVersion, /shared-inspiration catalog/);
+  assert.match(runtime.sourceVersion, /shared-contact-impact/);
+  assert.equal(runtime.weaponSpec('sword').tip, 1.62);
+  assert.equal(runtime.weaponSpec('dagger').ideal, 1.02);
+  assert.equal(runtime.weaponSpec('staff').ideal, 1.62);
+  runtime.configure({weapon:'sword',hp:100,maxhp:100,enemyHp:100,positions:{hero:{x:-1,z:0},enemy:{x:1,z:0}}});
+  const before=runtime.state();
+  assert.equal(before.hero.weaponSegment.weapon,'sword');
+  assert.ok(before.hero.weaponSegment.visualTip.length===3&&before.hero.weaponSegment.visualBase.length===3);
+  const impacted=runtime._test.hit('enemy',12);
+  assert.ok(impacted.impacts.length>=1);
+  assert.equal(impacted.impacts.at(-1).sourceHero,true);
+  assert.ok(impacted.feel.slowRemaining>0);
+  assert.ok(Math.hypot(impacted.enemy.knockback.x,impacted.enemy.knockback.z)>0);
+  runtime.configure({weapon:'sword',opponent:'group',enemyHp:80,positions:{hero:{x:-2,z:0},enemies:[{x:2,z:0},{x:2,z:-1.5},{x:2,z:1.5}]}});
+  assert.equal(runtime.state().enemies.length,3);
 });
 
 test('actual inspiration generation only emits motions from the shared weapon catalog', () => {
