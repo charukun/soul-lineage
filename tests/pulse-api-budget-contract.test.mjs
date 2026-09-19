@@ -6,7 +6,7 @@ const text = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'
 
 test('PULSE keeps 30-minute reconciliation but never uses tokenless GitHub access', () => {
   const wrangler = text('wrangler.ops.jsonc');
-  const worker = text('ops-board/worker.mjs');
+  const worker = text('apps/pulse/worker.mjs');
   const dev = text('.github/workflows/dev-app-publish.yml');
   const ops = text('.github/workflows/ops-board.yml');
   assert.match(wrangler, /"crons": \["\*\/30 \* \* \* \*"\]/);
@@ -30,10 +30,10 @@ test('PULSE keeps 30-minute reconciliation but never uses tokenless GitHub acces
 });
 
 test('PULSE GitHub client requires authentication and records request-budget observability', () => {
-  const client = text('ops-board/github-client.mjs');
-  const collector = text('ops-board/collector.mjs');
-  const snapshot = text('ops-board/pull-snapshot.mjs');
-  const review = text('ops-board/review-model.mjs');
+  const client = text('apps/pulse/github-client.mjs');
+  const collector = text('apps/pulse/collector.mjs');
+  const snapshot = text('apps/pulse/pull-snapshot.mjs');
+  const review = text('apps/pulse/review-model.mjs');
   assert.match(client, /const REQUEST_CAP = 32/);
   assert.doesNotMatch(client, /public:\s*\d+/);
   assert.match(client, /kind: 'auth-required'/);
@@ -55,7 +55,7 @@ test('PULSE GitHub client requires authentication and records request-budget obs
 });
 
 test('deployment prime performs one authenticated refresh and leaves remaining attribution to later events', () => {
-  const prime = text('ops-board/prime.mjs');
+  const prime = text('apps/pulse/prime.mjs');
   assert.equal((prime.match(/refreshPulseState\s*\(\{/g) || []).length, 1);
   assert.doesNotMatch(prime, /for \(let batch/);
   assert.match(prime, /later authenticated event\/reconcile refreshes will continue it/);
