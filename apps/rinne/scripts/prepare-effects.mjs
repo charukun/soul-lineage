@@ -2,16 +2,18 @@ import {createHash,randomUUID} from 'node:crypto';
 import {mkdir,readFile,rename,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {EFFECT_SOURCE,EFFECT_RUNTIME,EFFECT_ASSETS,RUNTIME_ASSETS,EFFECT_PUBLIC_PATH} from '../src/rebuild/authored-effect-manifest.js';
+import {EFFECT_SOURCE,EFFECT_RUNTIME,EFFECT_ASSETS,RUNTIME_ASSETS,EFFECT_PUBLIC_PATH,REVIEW_VFX_LIBRARY_SOURCE} from '../src/rebuild/authored-effect-manifest.js';
 
 const appRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1610,7]]);
-const REVIEWED_EFFECT_VERSIONS=new Set(EFFECT_ASSETS.filter(row=>row.path.endsWith('.efkefc')).map(row=>row.infoVersion));
+const REVIEWED_EFFECT_VERSIONS=new Set(REVIEWED_EFFECT_LAYOUTS.keys());
 export const EFFECT_DOWNLOADS=Object.freeze([
-  ...EFFECT_ASSETS.map(row=>({...row,...{repository:row.repository||EFFECT_SOURCE.repository,revision:row.revision||EFFECT_SOURCE.revision,target:row.path}})),
+  ...EFFECT_ASSETS.map(row=>({...row,...{repository:row.repository||EFFECT_SOURCE.repository,revision:row.revision||EFFECT_SOURCE.revision,sourcePath:row.sourcePath||row.path,target:row.path}})),
   ...RUNTIME_ASSETS.map(row=>({...row,...{repository:EFFECT_RUNTIME.repository,revision:EFFECT_RUNTIME.revision,target:row.path==='LICENSE'?'LICENSE-MIT.txt':path.posix.basename(row.path)}})),
   {path:EFFECT_SOURCE.licensePath,repository:EFFECT_SOURCE.licenseRepository,revision:EFFECT_SOURCE.licenseRevision,
     gitBlobSha:EFFECT_SOURCE.licenseBlob,byteLength:731,target:'LICENSE-SAMPLES.txt'},
+  {path:REVIEW_VFX_LIBRARY_SOURCE.licensePath,sourcePath:REVIEW_VFX_LIBRARY_SOURCE.licensePath,repository:REVIEW_VFX_LIBRARY_SOURCE.repository,revision:REVIEW_VFX_LIBRARY_SOURCE.revision,
+    gitBlobSha:REVIEW_VFX_LIBRARY_SOURCE.licenseBlob,byteLength:REVIEW_VFX_LIBRARY_SOURCE.licenseBytes,target:'LICENSE-REVIEW-LIBRARY-CC0.txt'},
 ]);
 export function gitBlobSha(bytes){return createHash('sha1').update(`blob ${bytes.byteLength}\0`).update(bytes).digest('hex');}
 export function verifyEffectBytes(row,bytes){
@@ -49,9 +51,10 @@ export function effectDependencies(bytes,expectedVersion=null){
 }
 
 export function verifyEffectClosure(row,bytes){
-  if(!Number.isInteger(row.infoVersion))throw Error(`Missing reviewed effect version: ${row.path}`);
+  if(!Number.isInteger(row.infoVersion)&&!row.reviewLibrary)throw Error(`Missing reviewed effect version: ${row.path}`);
   const declared=new Set(EFFECT_ASSETS.map(item=>item.path));
-  for(const dependency of effectDependencies(bytes,row.infoVersion)){
+  const expectedVersion=Number.isInteger(row.infoVersion)?row.infoVersion:null;
+  for(const dependency of effectDependencies(bytes,expectedVersion)){
     const target=path.posix.join(path.posix.dirname(row.path),dependency);
     if(!declared.has(target))throw Error(`Unpinned effect dependency: ${target}`);
   }
@@ -70,7 +73,8 @@ export async function acquireEffect(row,{outputRoot,fetchImpl=globalThis.fetch}=
   if(!/^[a-f\d]{40}$/.test(row.revision)||!row.target||row.target.includes('..')||path.isAbsolute(row.target))throw Error('Unsafe effect manifest');
   const target=path.join(outputRoot,row.target);
   try{const bytes=await readFile(target);verifyEffectBytes(row,bytes);return {target,source:'verified-cache',bytes};}catch(error){if(error.code&&error.code!=='ENOENT')throw error;}
-  const encoded=row.path.split('/').map(encodeURIComponent).join('/');
+  const sourcePath=row.sourcePath||row.path;
+  const encoded=sourcePath.split('/').map(encodeURIComponent).join('/');
   const urls=[`https://raw.githubusercontent.com/${row.repository}/${row.revision}/${encoded}`,
     `https://cdn.jsdelivr.net/gh/${row.repository}@${row.revision}/${encoded}`];
   let bytes,lastError;
