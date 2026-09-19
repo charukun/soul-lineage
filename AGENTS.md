@@ -43,6 +43,11 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs la
 - For an explicit user-requested workflow reduction only, the final merge-owning commit also includes `[astra-contract-change]`. That marker authorizes only a contraction to the canonical workflow surface; it never authorizes adding Actions work.
 - If the task hit this violation and self-repaired it, say so in the completion report. Never hide or relabel the attempted expansion as ordinary CI noise.
 
+## Review UI invariant
+
+- Review/catalog choice grids use exactly five equal-width columns by default, including phone layouts. Do not add responsive overrides that reduce these lists to 1–4 columns. If a particular surface genuinely cannot use five columns, that exception requires an explicit user request and a repository test documenting it.
+- This five-column rule applies to selectable review lists such as motion, model, equipment, and object candidates; it does not force unrelated transport controls such as camera buttons or playback controls into five columns.
+
 ## Architecture
 
 - Apps stay under `apps/<id>`; shared code stays under `packages/<id>`. Apps do not import apps; packages do not import apps.

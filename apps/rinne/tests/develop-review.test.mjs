@@ -50,11 +50,25 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
   assert.match(html,/motion-library-primary/);
   assert.ok(html.indexOf('motion-library-primary')<html.indexOf('motion-playback'));
   assert.ok(html.indexOf('motion-library-primary')<html.indexOf('motion-camera-block'));
-  assert.match(css,/\.motion-grid\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
-  assert.match(css,/@media\(max-width:620px\)[\s\S]*?\.motion-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(css,/\.motion-grid\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(css,/@media\(max-width:620px\)[\s\S]*?\.motion-grid\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.match(js,/new THREE\.AnimationMixer/);assert.match(js,/KAYKIT_MODELS/);assert.match(js,/buildMotionReviewCatalog/);
   assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='source-registry'/);
   assert.doesNotMatch(js,/status\(formatName\(record\.name\)\+' · '\+categoryLabel\(record\.category\)\)/);
+});
+
+test('review choice grids keep the five-column invariant across desktop and responsive CSS',async()=>{
+  const [motion,equipment,objects]=await Promise.all([read('src/review-motion.css'),read('src/review-asset-library.css'),read('src/review-object-library.css')]);
+  for(const [name,css,selectors] of [
+    ['motion',motion,['motion-grid']],
+    ['equipment',equipment,['model-options','asset-equipment-options']],
+    ['objects',objects,['object-options']]
+  ]){
+    for(const selector of selectors){
+      assert.match(css,new RegExp('\\.'+selector.replaceAll('-','\\-')+'\\{[^}]*grid-template-columns:repeat\\(5,minmax\\(0,1fr\\)\\)'),'missing five-column '+name+' '+selector);
+      assert.doesNotMatch(css,new RegExp('@media[\\s\\S]*?\\.'+selector.replaceAll('-','\\-')+'\\{[^}]*grid-template-columns:repeat\\([1-4],'),'responsive override reduced '+name+' '+selector);
+    }
+  }
 });
 
 test('equipment review follows the Visual Review Lab probe language and exposes the exact review questions',async()=>{
