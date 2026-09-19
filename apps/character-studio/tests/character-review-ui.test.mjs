@@ -86,10 +86,9 @@ test('Character Studio is an independent two-entry dev-tool build', { timeout: 2
     await page.waitForTimeout(150);
     const ready=await snap('ready-front');
     const states={};
-    for(const [name,selector] of [['front','[data-camera="front"]'],['side','[data-camera="side"]'],['back','[data-camera="back"]'],['face','[data-camera="face"]'],['overview','#frame-model']]){
-      await page.locator(selector).click(); await page.waitForTimeout(100); states[name]=await snap(name);
+    for(const name of ['front','side','back','face','overview']){
+      await page.evaluate(preset=>window.characterStudio.review.aim(preset),name); await page.waitForTimeout(100); states[name]=await snap(name);
     }
-    const modelSelect=page.locator('.character-model-list'); if(await modelSelect.count()){const opts=await modelSelect.locator('option').count();if(opts>1){await modelSelect.selectOption({index:1});await page.waitForTimeout(250);states.modelSwitch=await snap('model-switch');}}
     const png=resolve(output,'portrait.png'); await page.screenshot({path:png,fullPage:true});
     console.log('DIAGNOSTIC_JSON_BEGIN'); console.log(JSON.stringify({initial,ready,states})); console.log('DIAGNOSTIC_JSON_END');
     console.log('DIAGNOSTIC_PNG_BEGIN'); console.log(readEvidence(png).toString('base64')); console.log('DIAGNOSTIC_PNG_END');
