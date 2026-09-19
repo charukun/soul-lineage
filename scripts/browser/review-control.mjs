@@ -1,6 +1,6 @@
 import { chromium } from '@playwright/test';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 
 const commandPath=resolve(process.argv[2]||'.browser-review/command.json');
 const command=JSON.parse(readFileSync(commandPath,'utf8'));
@@ -9,12 +9,12 @@ const out=resolve('test-results/browser-review');mkdirSync(out,{recursive:true})
 const viewport={width:Math.max(320,Math.min(2560,Number(command.viewport?.width)||673)),height:Math.max(480,Math.min(2560,Number(command.viewport?.height)||841))};
 const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
 const context=await browser.newContext({viewport,deviceScaleFactor:Math.max(1,Math.min(3,Number(command.deviceScaleFactor)||1)),recordVideo:command.video?{dir:out,size:viewport}:undefined});
-const page=await context.newPage(),consoleRows=[],pageErrors=[],requestFailures=[];
+const page=await context.newPage(),cdp=await context.newCDPSession(page),consoleRows=[],pageErrors=[],requestFailures=[];
 page.on('console',m=>consoleRows.push({type:m.type(),text:m.text().slice(0,2000)}));
 page.on('pageerror',e=>pageErrors.push(String(e).slice(0,2000)));
 page.on('requestfailed',r=>requestFailures.push({url:r.url().slice(0,1000),error:r.failure()?.errorText||''}));
 await page.addInitScript(()=>{window.__ASTRA_REVIEW__={frames:[],longTasks:[],inputs:[]};let last=performance.now();const tick=now=>{window.__ASTRA_REVIEW__.frames.push(now-last);if(window.__ASTRA_REVIEW__.frames.length>3600)window.__ASTRA_REVIEW__.frames.shift();last=now;requestAnimationFrame(tick)};requestAnimationFrame(tick);try{new PerformanceObserver(list=>{for(const e of list.getEntries())window.__ASTRA_REVIEW__.longTasks.push({start:e.startTime,duration:e.duration})}).observe({type:'longtask',buffered:true})}catch{};for(const type of ['pointerdown','pointerup','click','keydown'])addEventListener(type,e=>window.__ASTRA_REVIEW__.inputs.push({type,t:performance.now(),target:e.target?.id||e.target?.getAttribute?.('aria-label')||e.target?.tagName||''}),true)});
-const steps=[],snap=async(label)=>{const file=`${String(steps.length).padStart(2,'0')}-${String(label||'shot').replace(/[^a-z0-9_-]+/gi,'-').slice(0,50)}.png`;await page.screenshot({path:resolve(out,file),fullPage:false});return file;};
+const steps=[],snap=async(label)=>{const file=`${String(steps.length).padStart(2,'0')}-${String(label||'shot').replace(/[^a-z0-9_-]+/gi,'-').slice(0,50)}.png`;const shot=await cdp.send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});writeFileSync(resolve(out,file),Buffer.from(shot.data,'base64'));return file;};
 try{
   const started=Date.now();await page.goto(command.url,{waitUntil:'domcontentloaded',timeout:45000});
   if(command.waitForNetworkIdle!==false)await page.waitForLoadState('networkidle',{timeout:15000}).catch(()=>{});
