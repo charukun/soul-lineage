@@ -5,11 +5,11 @@ import { applyCombatInjury,ensureCombatInjuryState,injuryEffects,recoverPersiste
 import { applyMultiTargetContact,enemySweepTargets,ensureCombatTerrain,lineBlocked,terrainMovementScale,tickRangedProjectiles } from './combat-world-contact.js';
 import { applySquadTactics,assignSquadRoles,recordEnemyPattern,squadSnapshot } from './combat-squad-ai.js';
 import { finalizeCombatReplay,recordCombatReplay,replaySummary } from './combat-replay.js';
+import { prepareInspirationCombat, settleInspirationCombat, observePeerInspiration } from './inspiration-combat.js';
 
 const TAU=Math.PI*2;
 function wrap(a){while(a>Math.PI)a-=TAU;while(a<-Math.PI)a+=TAU;return a;}
 function hash01(value){const text=String(value);let hash=2166136261;for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}return(hash>>>0)/4294967295;}
-
 function prepareState(state){ensureCombatInjuryState(state);recoverPersistentInjuries(state);const effects=injuryEffects(state);state.combatInjuryEffects=effects;state.staminaCap=Math.max(22,Math.min(state.staminaCap||100,100*effects.staminaScale));state.stamina=Math.min(state.stamina,state.staminaCap);return effects;}
 function constrainEntryMovement(state,front,effects){const current={x:state.position.x,z:state.position.z},previous=state.combatWorldPosition;if(!previous||previous.stage!==front.stage){state.combatWorldPosition={stage:front.stage,...current};return current;}const from={x:previous.x,z:previous.z},terrain=terrainMovementScale(front,from,current,.3),scale=terrain*effects.movementScale;state.position.x=from.x+(current.x-from.x)*scale;state.position.z=from.z+(current.z-from.z)*scale;return{x:state.position.x,z:state.position.z};}
 function rememberWorldPosition(state,front){if(state.zone==='frontier')state.combatWorldPosition={stage:front.stage,x:state.position.x,z:state.position.z};else delete state.combatWorldPosition;}
@@ -22,10 +22,8 @@ function attackSector(state,target){const fromTarget=Math.atan2(state.position.x
 function positionalScale(sector){return sector==='back'?1.25:sector==='flank'?1.1:1;}
 function markExtraDown(state,target,events){if(target.dead||target.hp>.001)return;target.hp=0;target.dead=true;target.moving=false;target.attacking=false;state.defeats=(Number(state.defeats)||0)+1;events.push({type:'enemy-down',targetId:target.id,engine:'combat-position'});}
 function undoCoreDown(state,target,events){if(!target?.dead||!(target.hp>0))return;target.dead=false;target.moving=false;target.attacking=false;state.defeats=Math.max(0,(Number(state.defeats)||0)-1);for(let i=events.length-1;i>=0;i--)if(events[i].type==='enemy-down'&&events[i].targetId===target.id&&events[i].engine==='tidebreak')events.splice(i,1);}
-
 function resolveCollateralLethal(state,attacker,front,events){if(state.hp>0||state.down||state.ended)return;const fatalChance=frontierFatalityChance(state),fatalRoll=hash01(`${state.seed}:${attacker.id}:sweep-fatal:${front.stage}:${Math.floor(state.ageSeconds)}:${state.defeats}`);if(fatalRoll<fatalChance){endLifeEarly(state,`第${front.stage+1}前線の巻き込み`);events.push({type:'life-end',cause:'combat',fatalChance,sourceId:attacker.id,multiTarget:true,engine:'world-contact'});}else{state.down={elapsed:0,rescueSeconds:40,frontier:true};state.combat=null;events.push({type:'downed',fatalChance,sourceId:attacker.id,multiTarget:true,engine:'world-contact'});}}
 function applyEnemyCollateral(states,front,result){const seen=new Set();for(const [primaryId,rows]of result){for(const event of [...rows]){if(event.type!=='enemy-hit'||event.multiTarget||!(event.damage>0))continue;const attacker=sourceEnemy(front,event.sourceId),key=`${primaryId}:${event.sourceId}`;if(!attacker||seen.has(key))continue;seen.add(key);for(const victim of enemySweepTargets(attacker,states,primaryId,front)){const defense=directionalDefenseFor(victim,attacker),damage=Math.min(victim.hp,event.damage*.72*defense.damageScale);if(!(damage>0))continue;victim.hp=Math.max(0,victim.hp-damage);const targetRows=result.get(victim.id)||[];targetRows.push({type:'enemy-hit',sourceId:attacker.id,damage,sector:defense.sector,awareness:defense.awareness,multiTarget:true,engine:'world-contact'});result.set(victim.id,targetRows);resolveCollateralLethal(victim,attacker,front,targetRows);}}}return result;}
-
 function processCombatEvents(state,front,events){
   const effects=injuryEffects(state),original=[...events];
   for(const event of original){
@@ -38,13 +36,23 @@ function processCombatEvents(state,front,events){
     if(event.type==='enemy-hit'&&event.damage>0){const injury=applyCombatInjury(state,{damage:event.damage,sector:event.sector||'front',sourceId:event.sourceId});event.part=injury.part;event.injuryGain=injury.gain;events.push({type:'injury',part:injury.part,severity:injury.severity,sourceId:event.sourceId,engine:'combat-injury'});}
   }return events;
 }
-
 function settleFront(state,front){if(front.enemies.every(enemy=>enemy.dead)){front.cleared=true;state.combat=null;state.attacking=false;}}
 function recordAndFinalize(state,front,dt,events){const terminal=front.cleared||state.ended||state.down||state.zone!=='frontier',terminalEvent=events.some(event=>['life-end','downed','front-cleared'].includes(event.type));if(!terminal||state.combatReplay||terminalEvent)recordCombatReplay(state,front,dt,events,{force:events.length>0});if(terminal&&state.combatReplay)finalizeCombatReplay(state);}
 function finishTickState(state,front){ensureCombatInjuryState(state);rememberWorldPosition(state,front);}
-
-export function tickEvolvedFront(state,front,dt,options={}){ensureCombatTerrain(front);const effects=prepareState(state),before=constrainEntryMovement(state,front,effects),enemyBefore=positions(front),events=[];assignSquadRoles(front,[state]);applySquadTactics(front,[state],dt*.35);tickRangedProjectiles(state,front,dt,events);events.push(...tickCoreFront(state,front,dt,options));processCombatEvents(state,front,events);applyMovementConsequences(state,front,before,effects);applySquadTactics(front,[state],dt*.25);applyEnemyTerrain(front,enemyBefore);settleFront(state,front);recordAndFinalize(state,front,dt,events);finishTickState(state,front);return events;}
-
-export function tickEvolvedSharedFront(states,front,dt){ensureCombatTerrain(front);const ordered=[...states].sort((a,b)=>a.id.localeCompare(b.id)),before=new Map(),effects=new Map(),extra=new Map();for(const state of ordered){const effect=prepareState(state);effects.set(state.id,effect);before.set(state.id,constrainEntryMovement(state,front,effect));const rows=[];tickRangedProjectiles(state,front,dt,rows);extra.set(state.id,rows);}const enemyBefore=positions(front);assignSquadRoles(front,ordered);applySquadTactics(front,ordered,dt*.35);const result=tickCoreSharedFront(ordered,front,dt);for(const state of ordered)result.set(state.id,[...(extra.get(state.id)||[]),...(result.get(state.id)||[])]);applyEnemyCollateral(ordered,front,result);for(const state of ordered){const rows=result.get(state.id)||[];processCombatEvents(state,front,rows);applyMovementConsequences(state,front,before.get(state.id),effects.get(state.id));}applySquadTactics(front,ordered,dt*.25);applyEnemyTerrain(front,enemyBefore);for(const state of ordered){settleFront(state,front);recordAndFinalize(state,front,dt,result.get(state.id)||[]);finishTickState(state,front);}return result;}
-
-export function combatEvolutionSnapshot(state,front){return{injuries:structuredClone(ensureCombatInjuryState(state).injuries),injuryEffects:injuryEffects(state),ammo:structuredClone(state.ammo),squad:squadSnapshot(front),replay:replaySummary(state),terrain:structuredClone(ensureCombatTerrain(front))};}
+export function tickEvolvedFront(state,front,dt,options={}){
+  ensureCombatTerrain(front);const effects=prepareState(state),before=constrainEntryMovement(state,front,effects),enemyBefore=positions(front),events=[];
+  const context=prepareInspirationCombat(state,front,dt);
+  assignSquadRoles(front,[state]);applySquadTactics(front,[state],dt*.35);tickRangedProjectiles(state,front,dt,events);events.push(...tickCoreFront(state,front,dt,options));
+  processCombatEvents(state,front,events);applyMovementConsequences(state,front,before,effects);applySquadTactics(front,[state],dt*.25);applyEnemyTerrain(front,enemyBefore);
+  settleInspirationCombat(state,front,events,context);settleFront(state,front);recordAndFinalize(state,front,dt,events);finishTickState(state,front);return events;
+}
+export function tickEvolvedSharedFront(states,front,dt){
+  ensureCombatTerrain(front);const ordered=[...states].sort((a,b)=>a.id.localeCompare(b.id)),before=new Map(),effects=new Map(),extra=new Map(),contexts=new Map();
+  for(const state of ordered){const effect=prepareState(state);effects.set(state.id,effect);before.set(state.id,constrainEntryMovement(state,front,effect));contexts.set(state.id,prepareInspirationCombat(state,front,dt));const rows=[];tickRangedProjectiles(state,front,dt,rows);extra.set(state.id,rows);}
+  const enemyBefore=positions(front);assignSquadRoles(front,ordered);applySquadTactics(front,ordered,dt*.35);const result=tickCoreSharedFront(ordered,front,dt);
+  for(const state of ordered)result.set(state.id,[...(extra.get(state.id)||[]),...(result.get(state.id)||[])]);applyEnemyCollateral(ordered,front,result);
+  for(const state of ordered){const rows=result.get(state.id)||[];processCombatEvents(state,front,rows);applyMovementConsequences(state,front,before.get(state.id),effects.get(state.id));settleInspirationCombat(state,front,rows,contexts.get(state.id));}
+  observePeerInspiration(ordered,front,result);applySquadTactics(front,ordered,dt*.25);applyEnemyTerrain(front,enemyBefore);
+  for(const state of ordered){settleFront(state,front);recordAndFinalize(state,front,dt,result.get(state.id)||[]);finishTickState(state,front);}return result;
+}
+export function combatEvolutionSnapshot(state,front){return{injuries:structuredClone(ensureCombatInjuryState(state).injuries),injuryEffects:injuryEffects(state),ammo:structuredClone(state.ammo),squad:squadSnapshot(front),replay:replaySummary(state),terrain:structuredClone(ensureCombatTerrain(front)),inspiration:state.inspiration?{revision:state.inspiration.revision,records:Object.keys(state.inspiration.records),questions:Object.keys(state.inspiration.questions)}:null};}
