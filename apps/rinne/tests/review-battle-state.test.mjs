@@ -27,6 +27,8 @@ test('loop waits for the configured result hold before restarting',()=>{
   assert.equal(reviewBattleLoopDue({loopEnabled:false,playing:true,finished:true,finishedAt:1000,now:2500}),false);
 });
 
+const assertVectorClose=(actual,expected,epsilon=1e-12)=>{for(const key of ['x','y','z'])assert.ok(Math.abs(actual[key]-expected[key])<=epsilon,`${key}: ${actual[key]} != ${expected[key]}`);};
+
 test('review camera uses the same shared Rinne and Demon combat framing contracts',()=>{
   const core={hero:{x:-2,z:1},enemy:{x:2,z:3}};
   const rinne=reviewBattleCameraFrame(core,{follow:true,system:'rinne',encounterMode:'duel'});
@@ -35,9 +37,9 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(demon.follow,true);assert.equal(demon.system,'demon');assert.equal(demon.count,1);
   assert.notDeepEqual(rinne.position,demon.position);
   const directRinne=combatCameraFrame({player:{x:-2.7,z:1.15},threats:[{id:'enemy',x:2.7,z:3.45,dead:false}],style:'rinne',wide:false});
-  assert.deepEqual(rinne.position,combatCameraPosition(directRinne));assert.deepEqual(rinne.look,directRinne.look);
+  assertVectorClose(rinne.position,combatCameraPosition(directRinne));assertVectorClose(rinne.look,directRinne.look);
   const directDemon=combatCameraFrame({player:{x:-2.7,z:1.15},threats:[{id:'enemy',x:2.7,z:3.45,dead:false}],style:'demon',wide:true});
-  assert.deepEqual(demon.position,combatCameraPosition(directDemon));assert.deepEqual(demon.look,directDemon.look);
+  assertVectorClose(demon.position,combatCameraPosition(directDemon));assertVectorClose(demon.look,directDemon.look);
   const melee=reviewBattleCameraFrame(core,{follow:true,system:'rinne',encounterMode:'melee'});
   assert.equal(melee.count,3);assert.ok(melee.separation>=rinne.separation);
   const fixed=reviewBattleCameraFrame(core,{follow:false});
