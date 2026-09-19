@@ -196,7 +196,7 @@ for(const button of document.querySelectorAll('[data-filter]'))button.addEventLi
 });
 for(const id of ['fx-speed','fx-tier','fx-reduced'])q(id).addEventListener('change',syncControls);
 q('fx-pause').addEventListener('click',()=>{paused=!paused;q('fx-pause').textContent=paused?'再開':'一時停止';});
-q('fx-clear').addEventListener('click',()=>player.clear());q('fx-camera').addEventListener('click',resetCamera);
+q('fx-clear').addEventListener('click',()=>player.clear());q('fx-camera')?.addEventListener('click',resetCamera);
 q('fx-model-count').textContent=`${REVIEW_REAL_EFFECT_COUNT} EFFECTS`;
 q('fx-provenance').textContent=`実素材 ${REVIEW_REAL_EFFECT_COUNT}種 · ${REVIEW_VFX_LIBRARY_SOURCE.repository}@${REVIEW_VFX_LIBRARY_SOURCE.revision} / ${REVIEW_VFX_LIBRARY_SOURCE.license} · core ${EFFECT_SOURCE.repository}@${EFFECT_SOURCE.revision} / ${EFFECT_SOURCE.license} · review ${REVIEW_EFFECT_SOURCE.repository}@${REVIEW_EFFECT_SOURCE.revision} / ${REVIEW_EFFECT_SOURCE.license} · Effekseer WebGL ${EFFECT_RUNTIME.version}`;
 renderCatalog();
