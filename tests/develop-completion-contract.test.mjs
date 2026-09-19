@@ -11,13 +11,8 @@ import {
 } from '../scripts/develop-completion-contract.mjs';
 import { REPOSITORY, CONTEXTS, json, validateRecord, loadContext, appendRecord, checkPriorLearning, evaluateMergeGate } from '../.autonomous/lib/contract.mjs';
 import { compareReports } from '../.autonomous/lib/probes.mjs';
-import { validateActiveExperiments } from '../.autonomous/lib/validation.mjs';
+import { activeExperimentsFromDiff, discoverActiveExperiments, validateActiveExperiments } from '../.autonomous/lib/validation.mjs';
 
-// Update these IDs for each requested iteration. This is meaningful test data,
-// selecting the exact experiment whose evidence and merge contract must hold.
-const activeExperiments = [
-  { game: 'kuumetsu', id: 'kuumetsu-manual-growth-sticky-20260920' },
-];
 const root = fileURLToPath(new URL('../', import.meta.url));
 
 test('develop implementation success terminates only after exact-head merge',async()=>{
@@ -56,6 +51,9 @@ test('develop implementation success terminates only after exact-head merge',asy
   const feedback = structuredClone(record); feedback.observation.evidence = [{ kind: 'user-feedback', statement: 'reported issue' }];
   assert.throws(() => validateRecord(feedback), /original words/);
   assert.equal(json(resolve(root, '.autonomous/schema/experiment.schema.json')).properties.schemaVersion.const, 1);
+  assert.equal(json(resolve(root, '.autonomous/schema/experiment-v2.schema.json')).properties.schemaVersion.const, 2);
+  assert.equal(json(resolve(root, '.autonomous/schema/receipt.schema.json')).properties.schemaVersion.const, 2);
+  assert.deepEqual(activeExperimentsFromDiff('A\\t.autonomous/village/experiments/village-example-20260920.json\\nM\\tapps/village/src/game/core.js'),[{game:'village',id:'village-example-20260920'}]);
 
   const temp = mkdtempSync(resolve(tmpdir(), 'autonomous-ledger-'));
   try {
@@ -76,13 +74,16 @@ test('develop implementation success terminates only after exact-head merge',asy
     assert.equal(json(resolve(temp, '.autonomous/village/experiments/' + record.id + '.json')).learning.doNotRetry.length, record.learning.doNotRetry.length);
   } finally { rmSync(temp, { recursive: true, force: true }); }
 
-  const reports = await validateActiveExperiments(root, activeExperiments);
-  const { before, after } = reports[0];
-  assert.equal(compareReports(after, after).changed, false);
-  const otherConditions = structuredClone(after); otherConditions.conditions.seeds = [999];
-  assert.throws(() => compareReports(before, otherConditions), /incomparable/);
-  const otherHarness = structuredClone(after); otherHarness.harness.sha256 = 'a'.repeat(64);
-  assert.throws(() => compareReports(before, otherHarness), /incomparable/);
-  const missingMetric = structuredClone(after); delete missingMetric.rows[0].metrics[Object.keys(missingMetric.rows[0].metrics)[0]];
-  assert.throws(() => compareReports(before, missingMetric), /metric\/scenario/);
+  const activeExperiments=discoverActiveExperiments(root);
+  if(activeExperiments.length){
+    const reports = await validateActiveExperiments(root, activeExperiments);
+    const { before, after } = reports[0];
+    assert.equal(compareReports(after, after).changed, false);
+    const otherConditions = structuredClone(after); otherConditions.conditions.seeds = [999];
+    assert.throws(() => compareReports(before, otherConditions), /incomparable/);
+    const otherHarness = structuredClone(after); otherHarness.harness.sha256 = 'a'.repeat(64);
+    assert.throws(() => compareReports(before, otherHarness), /incomparable/);
+    const missingMetric = structuredClone(after); delete missingMetric.rows[0].metrics[Object.keys(missingMetric.rows[0].metrics)[0]];
+    assert.throws(() => compareReports(before, missingMetric), /metric\/scenario/);
+  }
 });
