@@ -1,36 +1,14 @@
 import * as THREE from 'three';
-import {KAYKIT_MODELS,YEAR_MS,appearanceForCharacter,createCharacter} from '@soul/characters';
-import {GLTFLoader} from '@soul/rendering';
-import {createKaykitCharacterPools} from './rebuild/kaykit-character-pool.js';
+import {YEAR_MS,appearanceForCharacter,createCharacter} from '@soul/characters';
 import {createProtagonistCharacterPool} from './rebuild/protagonist-character-pool.js';
 import {RINNE_PROTAGONIST_MODEL_ID} from './rebuild/protagonist-runtime-asset.js';
 import {applyTidebreakPose,tidebreakFrameFromSnapshot} from './rebuild/tidebreak-pose.js';
 import {reviewBattleCameraFrame,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from './review-battle-state.js';
-import {hideEmbeddedCombatProps,reviewBattleEquipmentFor} from './review-battle-equipment.js';
+import {REVIEW_MONSTER_MODELS,disposeReviewMonsterModel,loadReviewMonsterModel,updateReviewMonsterAnimation} from './review-battle-monster.js';
 
-export const REVIEW_BATTLE_MODELS=Object.freeze(KAYKIT_MODELS.map(model=>Object.freeze({id:model.id,label:model.label})));
+export const REVIEW_BATTLE_MODELS=REVIEW_MONSTER_MODELS;
 
 const clamp=(value,lo,hi)=>Math.min(hi,Math.max(lo,value));
-const REVIEW_EQUIPMENT_ASSETS=Object.freeze(['dagger','sword_1handed','shield_badge']);
-
-async function loadReviewEquipment(){
-  const loader=new GLTFLoader(),assets=new Map();
-  await Promise.all(REVIEW_EQUIPMENT_ASSETS.map(async name=>{
-    const gltf=await loader.loadAsync(`./simulator/assets/kaykit/${name}.gltf`);
-    assets.set(name,gltf.scene);
-  }));
-  return assets;
-}
-function installReviewEquipment(actor,modelId,assets){
-  const hidden=hideEmbeddedCombatProps(actor.visual);
-  for(const row of reviewBattleEquipmentFor(modelId)){
-    const source=assets.get(row.asset);if(!source)continue;
-    const object=source.clone(true);object.rotation.set(...row.rotation);
-    actor.attachWeapon(row.key,object,{bone:row.bone,position:[0,.02,0],quaternion:[0,0,0,1],scale:row.scale});
-  }
-  actor.root.userData.reviewHiddenCombatProps=hidden;
-  actor.root.userData.reviewEquipment=reviewBattleEquipmentFor(modelId).map(row=>row.asset).join(',');
-}
 const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
 
 function reviewerCharacter(id,seed){
@@ -82,17 +60,16 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   contact.rotation.x=-Math.PI/2;contact.position.y=.012;stageRoot.add(contact);
   const aura=new THREE.Group();aura.visible=false;const auraMaterial=new THREE.MeshBasicMaterial({color:0x73bce5,transparent:true,opacity:.46,depthWrite:false,side:THREE.DoubleSide});for(const radius of [.62,.82]){const ringMesh=new THREE.Mesh(new THREE.RingGeometry(radius,radius+.025,48),auraMaterial.clone());ringMesh.rotation.x=-Math.PI/2;aura.add(ringMesh);}const auraLight=new THREE.PointLight(0x73bce5,0,3.4);auraLight.position.y=.85;aura.add(auraLight);stageRoot.add(aura);
 
-  const [runtime,protagonistRuntime,equipmentAssets]=await Promise.all([
-    createKaykitCharacterPools(renderer,{onProgress:snapshot=>{
-      if(snapshot?.state==='loading')onStatus(`モデル準備中 · ${modelLabel(snapshot.modelId)}`);
-    }}),
+  const [protagonistRuntime,monsterEnemy,monsterFlankA,monsterFlankB]=await Promise.all([
     createProtagonistCharacterPool(renderer),
-    loadReviewEquipment()
+    loadReviewMonsterModel('goblin-runt'),
+    loadReviewMonsterModel('horn-brute'),
+    loadReviewMonsterModel('maw-stalker')
   ]);
-  const pool=runtime.pool,heroPool=protagonistRuntime.pool;
+  const heroPool=protagonistRuntime.pool;
   const sides={
     hero:{key:'hero',actorId:'review-battle-hero',requested:RINNE_PROTAGONIST_MODEL_ID,actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-hero',0x51f15e)),previous:null,presentation:null,hp:null,hitUntil:0,marker:ring(0xd9b45b)},
-    enemy:{key:'enemy',actorId:'review-battle-enemy',requested:'kaykit.knight.v1',actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-enemy',0x91cafe)),previous:null,presentation:null,hp:null,hitUntil:0,marker:ring(0x82aeb6)}
+    enemy:{key:'enemy',actorId:'review-battle-enemy',requested:'goblin-runt',actor:monsterEnemy,appearance:null,previous:null,presentation:null,hp:null,hitUntil:0,marker:ring(0x82aeb6)}
   };
   let encounterMode='duel',extras=[],cinematicUntil=0,techniquePlayback=null;
   stageRoot.add(sides.hero.marker,sides.enemy.marker);
@@ -104,34 +81,23 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
       if(side.actor)heroPool.despawn(side.actorId);
       side.requested=RINNE_PROTAGONIST_MODEL_ID;
       side.actor=heroPool.spawn(side.actorId);
+      side.actor.root.name='ReviewBattle:hero';side.actor.attachments.name='ReviewBattleAttachments:hero';
+      stageRoot.add(side.actor.root,side.actor.attachments);
     }else{
-      if(!REVIEW_BATTLE_MODELS.some(row=>row.id===modelId))throw Error(`Unknown review battle model: ${modelId}`);
-      if(side.actor)pool.despawn(side.actorId);
-      side.requested=modelId;runtime.manifestation.focusModel(modelId,320);
-      side.actor=pool.spawn(side.actorId,modelId);
+      if(modelId!=='goblin-runt')throw Error(`Unknown review monster: ${modelId}`);
+      side.requested='goblin-runt';side.actor=monsterEnemy;stageRoot.add(side.actor.root);
     }
-    side.actor.root.name=`ReviewBattle:${sideKey}`;side.actor.attachments.name=`ReviewBattleAttachments:${sideKey}`;
-    if(sideKey!=='hero'){installReviewEquipment(side.actor,modelId,equipmentAssets);const monster=new THREE.Group();monster.name='ReviewMonsterSilhouette';const hornMaterial=new THREE.MeshStandardMaterial({color:0x342f35,roughness:.78,metalness:.08});for(const x of [-.17,.17]){const horn=new THREE.Mesh(new THREE.ConeGeometry(.07,.34,8),hornMaterial);horn.position.set(x,1.72,0);horn.rotation.z=x<0?.32:-.32;monster.add(horn);}const eyeMaterial=new THREE.MeshBasicMaterial({color:0xff5b45});for(const x of [-.065,.065]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.018,8,6),eyeMaterial);eye.position.set(x,1.57,.18);monster.add(eye);}side.actor.root.add(monster);side.actor.root.scale.set(1.08,1.03,1.08);side.actor.root.userData.reviewMonster=true;}
-    stageRoot.add(side.actor.root,side.actor.attachments);side.previous=null;side.presentation=null;side.hp=null;
-    canvas.dataset[`${sideKey}RequestedModel`]=modelId;
+    side.previous=null;side.presentation=null;side.hp=null;
+    canvas.dataset[`${sideKey}RequestedModel`]=side.requested;
     if(encounterMode==='one-v-three')queueMicrotask(rebuildExtras);
   }
   install('hero',sides.hero.requested);install('enemy',sides.enemy.requested);
 
-  function clearExtras(){
-    for(const extra of extras){pool.despawn(extra.actorId);extra.actor?.root?.removeFromParent();extra.actor?.attachments?.removeFromParent();}
-    extras=[];
-  }
+  function clearExtras(){for(const extra of extras)extra.actor?.root?.removeFromParent();extras=[];}
   function rebuildExtras(){
-    clearExtras();
-    if(encounterMode!=='one-v-three')return;
-    const specs=[['enemy',0,1.35,1.35,0x10293847],['enemy',1,1.5,-1.25,0x56473829]];
-    for(const [sideKey,index,offsetX,offsetZ,seed] of specs){
-      const base=sides[sideKey],actorId=`review-battle-${sideKey}-extra-${index}`,extraModel=sideKey==='hero'?'kaykit.rogue.v1':base.requested,actor=pool.spawn(actorId,extraModel);
-      actor.root.name=`ReviewBattleExtra:${sideKey}:${index}`;actor.attachments.name=`ReviewBattleExtraAttachments:${sideKey}:${index}`;
-      installReviewEquipment(actor,extraModel,equipmentAssets);stageRoot.add(actor.root,actor.attachments);
-      extras.push({sideKey,index,actorId,actor,offsetX,offsetZ,appearance:appearanceForCharacter(reviewerCharacter(actorId,seed)),hitUntil:0,recoil:0});
-    }
+    clearExtras();if(encounterMode!=='one-v-three')return;
+    const specs=[[monsterFlankA,0,1.35,1.35],[monsterFlankB,1,1.5,-1.25]];
+    for(const [actor,index,offsetX,offsetZ] of specs){stageRoot.add(actor.root);extras.push({sideKey:'enemy',index,actorId:`review-battle-enemy-extra-${index}`,actor,offsetX,offsetZ,hitUntil:0,recoil:0});}
   }
   function setEncounterMode(mode){
     const next=mode==='one-v-three'?'one-v-three':'duel';if(next===encounterMode&&((next==='duel'&&extras.length===0)||(next==='one-v-three'&&extras.length===2)))return;
@@ -158,13 +124,18 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     side.presentation=presentation;side.previous={x,z};
     const worldX=presentation.x,worldZ=presentation.z,stride=presentation.stride;
     actor.root.position.set(worldX,0,worldZ);actor.root.rotation.y=presentation.yaw;
-    actor.sample(side.appearance,time,(bones,sampleTime)=>{
-      addStride(bones,sampleTime,stride);
-      if(!frame?.attack)addGuardPose(bones,sideKey);
-      applyTidebreakPose(bones,frame);
-      if(time<side.hitUntil&&bones.spine)bones.spine.rotation.z+=(sideKey==='hero'?-1:1)*.13;
-    });
-    actor.updateAttachments();side.marker.position.set(worldX,.018,worldZ);
+    if(sideKey==='enemy'){
+      updateReviewMonsterAnimation(actor,state,time,{hit:time<side.hitUntil});
+    }else{
+      actor.sample(side.appearance,time,(bones,sampleTime)=>{
+        addStride(bones,sampleTime,stride);
+        if(!frame?.attack)addGuardPose(bones,sideKey);
+        applyTidebreakPose(bones,frame);
+        if(time<side.hitUntil&&bones.spine)bones.spine.rotation.z-=.13;
+      });
+      actor.updateAttachments();
+    }
+    side.marker.position.set(worldX,.018,worldZ);
   }
 
   function animateExtras(core,time,dt){
@@ -177,9 +148,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
       const baseX=(Number(source.x)||0)*1.35+extra.offsetX,baseZ=(Number(source.z)||0)*1.15+extra.offsetZ,targetX=(Number(target?.x)||0)*1.35,targetZ=(Number(target?.z)||0)*1.15;
       const awayX=baseX-targetX,awayZ=baseZ-targetZ,awayLength=Math.max(.001,Math.hypot(awayX,awayZ)),x=baseX+awayX/awayLength*extra.recoil,z=baseZ+awayZ/awayLength*extra.recoil;
       actor.root.position.set(x,0,z);actor.root.rotation.y=Math.atan2(targetX-x,targetZ-z);
-      const frame=tidebreakFrameFromSnapshot(source,{targetId:target?.id||null,intent:'review-battle-melee'});
-      actor.sample(extra.appearance,time+extra.index*.17,(bones,sampleTime)=>{addStride(bones,sampleTime,.2);if(!frame?.attack)addGuardPose(bones,extra.sideKey);applyTidebreakPose(bones,frame);if(time<extra.hitUntil&&bones.spine){bones.spine.rotation.z+=(extra.index?-.18:.18)*(multi.phase==='kyu'?1.45:1);bones.spine.rotation.x-=.1;}});
-      actor.updateAttachments();
+      updateReviewMonsterAnimation(actor,source,time+extra.index*.17,{hit:time<extra.hitUntil});
     }
     canvas.dataset.multiHit=multi.active?String(multi.count):'1';canvas.dataset.multiHitPhase=multi.active?multi.phase:'';
   }
@@ -210,7 +179,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     const phaseHud=canvas.closest('.stage')?.querySelector('#battle-phase'),heroRoot=sides.hero.actor?.root;
     if(phaseHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=1.82;projected.project(camera);phaseHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');phaseHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');phaseHud.style.setProperty('bottom','auto','important');}
     const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
-    const enemyActual=sides.enemy.actor?.root?.userData?.characterModel||'';
+    const enemyActual=sides.enemy.actor?.root?.userData?.reviewMonsterSpecies||'';
     canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
     const ready=heroActual===RINNE_PROTAGONIST_MODEL_ID&&enemyActual===sides.enemy.requested;
     canvas.dataset.battleModels=ready?'ready':'loading';canvas.dataset.battleGeometry='runtime-models';
@@ -229,6 +198,6 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     resetRound(){for(const side of Object.values(sides)){side.previous=null;side.presentation=null;side.hp=null;side.hitUntil=0;}},
     sync,
     snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',encounterMode});},
-    dispose(){observer.disconnect();clearExtras();if(sides.hero.actor)heroPool.despawn(sides.hero.actorId);if(sides.enemy.actor)pool.despawn(sides.enemy.actorId);protagonistRuntime.dispose();runtime.dispose();ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}for(const source of equipmentAssets.values()){source.traverse(node=>{node.geometry?.dispose?.();const mats=Array.isArray(node.material)?node.material:[node.material];for(const mat of mats.filter(Boolean)){mat.map?.dispose?.();mat.dispose?.();}});}renderer.dispose();}
+    dispose(){observer.disconnect();clearExtras();if(sides.hero.actor)heroPool.despawn(sides.hero.actorId);protagonistRuntime.dispose();for(const monster of [monsterEnemy,monsterFlankA,monsterFlankB])disposeReviewMonsterModel(monster);ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}renderer.dispose();}
   });
 }
