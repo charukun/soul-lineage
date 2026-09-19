@@ -9,10 +9,11 @@ const villageDialog=$('village-dialog'),settingsDialog=$('title-settings-dialog'
 $('build-label').textContent=info.commit==='UNBUILT'?'LOCAL':`${String(info.environment).toUpperCase()} · ${String(info.commit).slice(0,7)}`;
 const storageKey=`soul:v1:${info.environment}:rinne:local:life-v2`;
 const motionKey=`soul:v1:${info.environment}:rinne:title-motion-v1`;
+const introSeenKey=`soul:v1:${info.environment}:rinne:title-intro-seen-v1`;
 const rrpCaptureRequested=new URLSearchParams(location.search).has('rrpCapture');
 if(rrpCaptureRequested)document.documentElement.dataset.rrpCapture='true';
 const afterVisiblePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,pendingLaunchMode=null,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0;
+let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0;
 
 const titleCommands=[...title.querySelectorAll('.title-command')];
 function unlockTitleAudio(){void Promise.resolve(unlockRinneAudio()).then(ok=>{titleAudioReady=Boolean(ok)||titleAudioReady;}).catch(()=>{});titleAudioReady=true;}
@@ -30,15 +31,16 @@ for(const command of titleCommands){
   command.addEventListener('click',()=>{unlockTitleAudio();confirmRinneAudio();});
 }
 title.addEventListener('pointerdown',unlockTitleAudio,{capture:true,passive:true});
+title.addEventListener('pointerup',event=>{if(titleCinematic.skip())event.preventDefault();},{capture:true});
 title.addEventListener('keydown',event=>{
-  const earlyPrimary=title.dataset.intro==='cinematic'&&title.dataset.primaryAction==='ready';
-  if(villageDialog.open||settingsDialog.open||(title.dataset.intro!=='idle'&&!earlyPrimary)||(title.dataset.intro==='idle'&&title.dataset.ready!=='true'))return;
-  if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;
-  unlockTitleAudio();
-  if(earlyPrimary){
-    if(event.key==='Enter'){event.preventDefault();selectTitleCommand($('new-life'));$('new-life').click();}
+  if(villageDialog.open||settingsDialog.open)return;
+  if(title.dataset.intro==='cinematic'){
+    if((event.key==='Enter'||event.key===' ')&&titleCinematic.skip()){event.preventDefault();unlockTitleAudio();}
     return;
   }
+  if(title.dataset.intro!=='idle'||title.dataset.ready!=='true')return;
+  if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;
+  unlockTitleAudio();
   const selected=titleCommands.findIndex(item=>item.dataset.selected==='true');
   const index=selected<0?0:selected;
   if(event.key==='Enter'){
@@ -69,9 +71,9 @@ const titleCinematic=createTitleCinematicController({
   video:$('title-cinematic-video'),
   motionToggle,
   motionKey,
+  seenKey:introSeenKey,
   getPrepared:()=>prepared,
   resetParallax:resetTitleParallax,
-  onPrimaryActionReady:()=>{if(booting&&!prepared)$('new-life').disabled=false;},
 });
 function refreshContinue(){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
@@ -91,7 +93,7 @@ function showTitle(status=''){
   titleCinematic.begin();
 }
 function showBootFailure(error){
-  console.error(error);app.dataset.screen='error';booting=false;launching=false;pendingLaunchMode=null;title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.removeAttribute('aria-busy');
+  console.error(error);app.dataset.screen='error';booting=false;launching=false;title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.removeAttribute('aria-busy');
   $('loading-title').textContent='世界を開けませんでした';$('loading-message').textContent=error?.message||String(error);retry.hidden=false;loading.hidden=false;
 }
 function installGameplay(){gameplayUpgrade?.dispose?.();gameplayUpgrade=prepared?installRinneGameplayUpgrade({prepared,buildInfo:info}):null;titleAudioReady=false;}
@@ -122,11 +124,7 @@ async function boot(){
     runtimeModule=await import('./rebuild/runtime.js');
     prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>{$('boot-status').textContent=message;}});
     installGameplay();
-    game.dataset.runtime='prepared';
-    if(pendingLaunchMode){
-      const mode=pendingLaunchMode;pendingLaunchMode=null;booting=false;await launch(mode);return;
-    }
-    showTitle();if(rrpCaptureRequested||new URLSearchParams(location.hash.slice(1)).has('rinne-coop'))void openCoopDialog();
+    game.dataset.runtime='prepared';showTitle();if(rrpCaptureRequested||new URLSearchParams(location.hash.slice(1)).has('rinne-coop'))void openCoopDialog();
   }catch(error){showBootFailure(error);}
 }
 
@@ -144,12 +142,6 @@ async function exitGame(coop){
   catch(error){showBootFailure(error);}
 }
 
-function requestLaunch(mode){
-  if(prepared&&runtimeModule){void launch(mode);return;}
-  if(mode!=='new'||!booting||pendingLaunchMode)return;
-  pendingLaunchMode=mode;app.dataset.screen='loading';titleCinematic.pause();title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.setAttribute('aria-busy','true');
-  setLoading('世界の準備が整いしだい、すぐに始まります','旅立ちを準備しています');
-}
 async function launch(mode,coop=null){
   if(runtime)throw Error('いったんタイトルへ戻ってから参加してください。');
   if(!coop&&coopMenu?.session)await coopMenu.leave();
@@ -164,7 +156,7 @@ async function launch(mode,coop=null){
 
 refreshContinue();
 retry.addEventListener('click',()=>location.reload());
-$('new-life').addEventListener('click',()=>requestLaunch('new'));
+$('new-life').addEventListener('click',()=>{void launch('new');});
 $('continue-life').addEventListener('click',()=>{if(!hasSave){$('boot-status').textContent='続きから遊べる保存データがありません';return;}void launch('continue');});
 $('open-settings').addEventListener('click',()=>settingsDialog.showModal());
 motionToggle.addEventListener('click',()=>titleCinematic.setMotion(motionToggle.getAttribute('aria-checked')!=='true',true));
