@@ -8,11 +8,12 @@ function makeMaterial(THREE,color){
 }
 function createEffect(THREE,parent){
   const root=new THREE.Group();root.name='ReviewTechniquePreview';root.visible=false;parent.add(root);
-  const materials={ring:makeMaterial(THREE,0xc7a15d),arc:makeMaterial(THREE,0xe3c77f),burst:makeMaterial(THREE,0x73bce5)};
+  const materials={ring:makeMaterial(THREE,0xc7a15d),arc:makeMaterial(THREE,0xe3c77f),burst:makeMaterial(THREE,0x73bce5),aura:makeMaterial(THREE,0x9bd7f1)};
   const ring=new THREE.Mesh(new THREE.RingGeometry(.48,.64,48),materials.ring);ring.rotation.x=-Math.PI/2;ring.position.y=.035;
   const arc=new THREE.Mesh(new THREE.TorusGeometry(.86,.052,7,40,Math.PI*1.42),materials.arc);arc.position.y=1.02;arc.rotation.z=-.75;
   const burst=new THREE.Mesh(new THREE.RingGeometry(.12,.34,40),materials.burst);burst.position.y=.98;
-  root.add(ring,arc,burst);return{root,ring,arc,burst,materials};
+  const aura=new THREE.Mesh(new THREE.CylinderGeometry(.18,.72,1.9,28,1,true),materials.aura);aura.position.y=.95;
+  root.add(ring,arc,burst,aura);return{root,ring,arc,burst,aura,materials};
 }
 function progress(preview,time){
   if(!preview)return null;
@@ -33,10 +34,11 @@ function updateEffect(effect,preview,t,actor){
   effect.ring.scale.setScalar(.72+t*1.35);effect.materials.ring.opacity=.58*fade;
   effect.arc.rotation.z=-.9+t*2.2+preview.variant*.24;effect.arc.scale.setScalar(.78+pulse*.52);effect.materials.arc.opacity=.88*pulse;
   effect.burst.scale.setScalar(.7+t*1.7);effect.materials.burst.opacity=.78*pulse*fade;
+  const reveal=clamp(t/.28,0,1),release=1-clamp((t-.48)/.52,0,1);effect.aura.scale.set(1+reveal*.55,1+reveal*.12,1+reveal*.55);effect.materials.aura.opacity=.18*reveal*release;
 }
 function disposeEffect(effect){
   effect.root.removeFromParent();
-  for(const node of [effect.ring,effect.arc,effect.burst])node.geometry.dispose();
+  for(const node of [effect.ring,effect.arc,effect.burst,effect.aura])node.geometry.dispose();
   for(const material of Object.values(effect.materials))material.dispose();
 }
 
@@ -58,5 +60,6 @@ export function createReviewTechniquePreview({THREE,parent,canvas,getActor}){
   function update(time){
     const t=progress(preview,time),actor=getActor?.();if(t==null){if(preview)clear();else effect.root.visible=false;return;}if(!actor){effect.root.visible=false;return;}updateEffect(effect,preview,t,actor);
   }
-  return Object.freeze({trigger,clear,offsetRoot,applyPose,update,dispose(){clear();disposeEffect(effect);}});
+  function cinematic(time){const t=progress(preview,time);if(t==null||!preview)return null;const intro=clamp(t/.32,0,1),strike=clamp((t-.32)/.68,0,1);return Object.freeze({phase:preview.phase,t,intro,strike,stagger:t<.58});}
+  return Object.freeze({trigger,clear,offsetRoot,applyPose,update,cinematic,dispose(){clear();disposeEffect(effect);}});
 }

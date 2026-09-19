@@ -28,6 +28,9 @@
 .actions{display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(0,.85fr)!important;gap:7px!important;width:min(390px,100%);justify-self:center}.actions button{width:100%!important;min-width:0!important}
 #battle-inspire{border-color:var(--rinne-gold)!important;background:linear-gradient(180deg,#173c59,#0b2338)!important;color:var(--rinne-gold-hi)!important;font-weight:800;letter-spacing:.08em;box-shadow:inset 0 1px rgba(255,255,255,.07),0 0 0 1px rgba(199,161,93,.08)}
 #battle-inspire:active{transform:translateY(1px);filter:brightness(1.08)}#battle-inspire:disabled{opacity:.5}
+.technique-loadout{grid-column:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.technique-loadout span{display:grid;grid-template-columns:auto 1fr;gap:7px;align-items:center;padding:7px 9px;border:1px solid var(--rinne-line-soft);border-radius:8px;background:#081523;color:var(--rinne-muted);font-size:9px}.technique-loadout b{color:var(--rinne-gold-hi);font-family:ui-serif,"Yu Mincho","Hiragino Mincho ProN",serif;font-size:14px}.technique-loadout strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--rinne-ink);font-size:10px}
+.inspiration-mode{grid-column:1;display:grid;grid-template-columns:1fr 1fr;gap:5px}.inspiration-mode button{border:1px solid #39413e;border-radius:9px;background:#171d1b;color:#9ba59e;padding:7px 9px;font:inherit;font-size:10px}.inspiration-mode button[aria-pressed="true"]{border-color:var(--rinne-gold);background:#173c59;color:var(--rinne-gold-hi)}
+.stage[data-inspiration-cinematic="true"]::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 46% 52%,transparent 0 18%,rgba(3,10,18,.08) 45%,rgba(3,10,18,.38) 100%);z-index:2}
 @media(max-width:680px){.phase-panel[data-skin="rinne"]{top:18%;width:auto;padding-bottom:7px}.battle-inspiration{top:34%}.battle-inspiration strong{font-size:19px}.actions{width:100%}}
 
 </style>
@@ -70,7 +73,9 @@
         <button type="button" data-battle-skin="jinku" aria-pressed="false">喰滅廻遊</button>
       </div>
     </div>
-    <div class="actions"><button id="battle-inspire" type="button">閃く · ランダム技</button><button id="battle-restart" type="button">組み直す</button></div>
+    <div id="battle-technique-loadout" class="technique-loadout" aria-label="現在の序破急セット技"><span><b>序</b><strong data-loadout-phase="jo">基本技</strong></span><span><b>破</b><strong data-loadout-phase="ha">基本技</strong></span><span><b>急</b><strong data-loadout-phase="kyu">基本技</strong></span></div>
+    <div class="inspiration-mode" role="group" aria-label="閃き確認モード"><button type="button" data-inspiration-mode="normal" aria-pressed="true">通常モード</button><button type="button" data-inspiration-mode="boost" aria-pressed="false">閃きモード · 高確率</button></div>
+    <div class="actions"><button id="battle-inspire" type="button">閃きシーケンス確認</button><button id="battle-restart" type="button">組み直す</button></div>
   </section>
   </section>
 </main>

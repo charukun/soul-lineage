@@ -19,7 +19,10 @@ const inspirationButton=q('battle-inspire'),inspirationBanner=q('battle-inspirat
 const battleSfx=createCombatSfx();
 const loopEnabled=true,followCamera=true,reviewPhases=Object.freeze(['jo','ha','kyu']),phaseLabel=phase=>({jo:'序',ha:'破',kyu:'急'})[phase]||'';
 const techniquePool=Object.freeze(ACTION_SKILLS.filter(row=>row?.id&&String(row?.name||'').trim()));
-let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationPreview=null,inspirationHideTimer=0,inspirationSoundTimer=0;
+let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationPreview=null,inspirationHideTimer=0,inspirationSoundTimer=0,inspirationMode='normal',lastObservedPhase='',sequenceToken=0;
+const loadout=Object.fromEntries(reviewPhases.map(phase=>[phase,{id:`basic.${phase}`,name:`基本技 · ${phaseLabel(phase)}`}]));
+function syncLoadout(){for(const phase of reviewPhases){const node=document.querySelector(`[data-loadout-phase="${phase}"]`);if(node)node.textContent=loadout[phase].name;}}
+function setInspirationMode(mode){inspirationMode=mode==='boost'?'boost':'normal';for(const button of document.querySelectorAll('[data-inspiration-mode]'))button.setAttribute('aria-pressed',String(button.dataset.inspirationMode===inspirationMode));}
 let host=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''};
 
 function syncModelLabels(){
@@ -76,18 +79,22 @@ function renderPhase(core){
     lastSequenceAction=action;lastSequencePhase=phase;
   }
 }
-async function triggerInspiration(){
-  if(!techniquePool.length)return;
-  inspirationButton.disabled=true;battleSfx.unlock();
-  try{
-    const stage=await ensureBattleStage(),skill=techniquePool[Math.floor(Math.random()*techniquePool.length)],phase=reviewPhases[Math.floor(Math.random()*reviewPhases.length)];
-    resetBattle();
-    const cue=stage.triggerTechnique({id:skill.id,name:skill.name,phase});
-    inspirationPreview={id:skill.id,name:skill.name,phase,until:performance.now()+Math.max(1400,Number(cue?.durationMs)||0)};
-    inspirationName.textContent=skill.name;inspirationPhase.textContent=`${phaseLabel(phase)} · モーション / VFX / SFX`;inspirationBanner.hidden=false;
-    clearTimeout(inspirationHideTimer);inspirationHideTimer=setTimeout(()=>{inspirationBanner.hidden=true;},1850);
-    clearTimeout(inspirationSoundTimer);inspirationSoundTimer=setTimeout(()=>battleSfx.slash(),Math.max(80,Number(cue?.impactDelayMs)||300));
-  }finally{inspirationButton.disabled=false;}
+function chooseTechnique(phase){const candidates=techniquePool.filter(row=>row.id!==loadout[phase]?.id);return candidates[Math.floor(Math.random()*candidates.length)]||techniquePool[0];}
+async function triggerPhaseInspiration(phase,{forced=false}={}){
+  if(!techniquePool.length||!reviewPhases.includes(phase))return false;
+  if(!forced&&inspirationMode!=='boost')return false;
+  const stage=await ensureBattleStage(),skill=chooseTechnique(phase);if(!skill)return false;
+  battleSfx.unlock();const cue=stage.triggerTechnique({id:skill.id,name:skill.name,phase});
+  inspirationPreview={id:skill.id,name:skill.name,phase,until:performance.now()+Math.max(1500,Number(cue?.durationMs)||0)};
+  inspirationName.textContent=skill.name;inspirationPhase.textContent=`${phaseLabel(phase)} · 閃き構え → オーラ → 強制怯み → 新技`;inspirationBanner.hidden=false;
+  loadout[phase]={id:skill.id,name:skill.name};syncLoadout();
+  clearTimeout(inspirationHideTimer);inspirationHideTimer=setTimeout(()=>{inspirationBanner.hidden=true;},1900);
+  clearTimeout(inspirationSoundTimer);inspirationSoundTimer=setTimeout(()=>battleSfx.slash(),Math.max(80,Number(cue?.impactDelayMs)||300));
+  return true;
+}
+async function triggerInspirationSequence(){
+  const token=++sequenceToken;inspirationButton.disabled=true;battleSfx.unlock();resetBattle();
+  try{for(const phase of reviewPhases){if(token!==sequenceToken)break;await triggerPhaseInspiration(phase,{forced:true});await new Promise(resolve=>setTimeout(resolve,1550));}}finally{if(token===sequenceToken)inspirationButton.disabled=false;}
 }
 
 function syncBattleAudio(core){
@@ -107,7 +114,7 @@ function syncBattle(dt){
   q('enemy-meta').textContent=`${Math.ceil(Number(core.enemy.hp)||0)} / ${enemyMax} HP`;
   q('battle-time').textContent=`${(battle?.time||0).toFixed(1)}秒`;
   q('battle-result').textContent=battle?.finished?`${battle.winner==='demon'?'LEFT':'RIGHT'} 勝利`:(encounterMode==='melee'?'乱戦中':'戦闘中');
-  syncBattleAudio(core);renderPhase(core);battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
+  syncBattleAudio(core);renderPhase(core);const phase=reviewBattlePhaseState(core).phase;if(phase&&phase!==lastObservedPhase){lastObservedPhase=phase;if(inspirationMode==='boost')void triggerPhaseInspiration(phase);}else if(!phase)lastObservedPhase='';battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
 }
 
 function advanceBattle(dt){
@@ -137,9 +144,10 @@ for(const button of document.querySelectorAll('[data-battle-skin]'))button.addEv
   for(const item of document.querySelectorAll('[data-battle-skin]'))item.setAttribute('aria-pressed',String(item===button));
 });
 
-q('battle-restart').addEventListener('click',resetBattle);
-inspirationButton?.addEventListener('click',()=>{void triggerInspiration();});
+for(const button of document.querySelectorAll('[data-inspiration-mode]'))button.addEventListener('click',()=>setInspirationMode(button.dataset.inspirationMode));
+q('battle-restart').addEventListener('click',()=>{sequenceToken++;inspirationButton.disabled=false;resetBattle();});
+inspirationButton?.addEventListener('click',()=>{void triggerInspirationSequence();});
 soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});
 window.addEventListener('pagehide',()=>{clearTimeout(inspirationHideTimer);clearTimeout(inspirationSoundTimer);battleStage?.dispose();battleSfx.dispose();},{once:true});
 
-syncModelLabels();phasePanel.dataset.skin='rinne';syncSoundButton();resetBattle();void ensureBattleStage();requestAnimationFrame(frame);
+syncModelLabels();syncLoadout();setInspirationMode('normal');phasePanel.dataset.skin='rinne';syncSoundButton();resetBattle();void ensureBattleStage();requestAnimationFrame(frame);
