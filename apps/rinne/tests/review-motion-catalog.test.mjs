@@ -62,19 +62,18 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
   assert.ok(expanded.addedSourceMotionCount>=4);
 });
 
-test('motion review BVH runtime keeps CMU scale and root-motion normalization explicit',async()=>{
-  const js=await readFile(new URL('../src/review-motion-source-runtime.js',import.meta.url),'utf8');
-  assert.match(js,/BVHLoader/);assert.match(js,/CMU_BVH_METERS_PER_UNIT=\.01/);
-  assert.match(js,/cmuHumanoidFromBVH/);assert.match(js,/restBase,hips:bones\.hips\.position\.toArray\(\)/);
-  assert.match(js,/source\.format==='bvh'/);
-});
-
 test('motion review has a pinned unequipped mannequin as its dedicated default review body',async()=>{
   const source=MOTION_LIBRARY_SOURCES.find(row=>row.id==='mesh2motion-review-mannequin');
   assert.ok(source?.reviewModel);assert.equal(source.path,'static/models/model-human.glb');assert.equal(source.license,'CC0-1.0');
-  const js=await readFile(new URL('../src/review-motion.js',import.meta.url),'utf8');
+  const [js,runtimeJs]=await Promise.all([
+    readFile(new URL('../src/review-motion.js',import.meta.url),'utf8'),
+    readFile(new URL('../src/review-motion-source-runtime.js',import.meta.url),'utf8')
+  ]);
   assert.match(js,/let selectedModel=MOTION_REVIEW_MODEL/);
   assert.match(js,/loadMotionReviewModel\(model\.id\)/);
+  assert.match(runtimeJs,/BVHLoader/);assert.match(runtimeJs,/CMU_BVH_METERS_PER_UNIT=\.01/);
+  assert.match(runtimeJs,/cmuHumanoidFromBVH/);assert.match(runtimeJs,/restBase,hips:bones\.hips\.position\.toArray\(\)/);
+  assert.match(runtimeJs,/source\.format==='bvh'/);
 });
 
 test('motion review recommendations stay bounded and presentation variants never increase source count',()=>{
