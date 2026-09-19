@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
-const [html, typography, hud, surfaces, v2, ui, loadout] = await Promise.all([
+const [html, typography, hud, surfaces, v2, navy, ui, loadout] = await Promise.all([
   read('../index.html'),
   read('../src/typography.css'),
   read('../src/reincarnation-hud.css'),
   read('../src/reincarnation-surfaces.css'),
   read('../src/reincarnation-interface-v2.css'),
+  read('../src/dark-navy-hud.css'),
   read('../src/gameplay-ui.js'),
   read('../src/heart-technique-body-ui.js'),
 ]);
@@ -41,6 +42,13 @@ test('persistent HUD has a readable player cluster and a dedicated top-right rad
   assert.match(ui, /data-items/);
   assert.match(ui, /class="rinne-map-radar"/);
   assert.match(ui, /data-record/);
+  assert.match(ui, /data-vitals/);
+  assert.match(ui, /data-mind/);
+  assert.match(ui, /setContextAnchor/);
+  assert.match(navy, /\.rinne-context-vitals\{/);
+  assert.match(navy, /\.rinne-mind-balance\{/);
+  assert.match(navy, /\.game-screen\[data-gameplay-upgrade\] \.bars,[\s\S]*display:none!important/);
+  assert.match(navy, /\.rinne-gameplay-upgrade \.upgrade-panel>header>\[data-close\][\s\S]*display:grid!important/);
   assert.doesNotMatch(ui, /data-combat/);
   assert.doesNotMatch(ui, /data-debug/);
   assert.match(v2, /env\(safe-area-inset-top\)/);
