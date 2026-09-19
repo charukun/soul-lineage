@@ -1,7 +1,7 @@
 import './gameplay-upgrade.css';
 import { createTidebreakRuntime } from '@soul/tidebreak-combat';
 import { createRinneAudio } from './gameplay-audio.js';
-import { createGameplayUI } from './gameplay-ui.js';
+import { createGameplayUI } from './inspiration-gameplay-ui.js';
 import { createCombatPoseRuntime } from './combat-pose.js';
 import { ARMOR_LABELS, WEAPON_LABELS, createGameplayWorld, distance, ensureProgression } from './gameplay-world.js';
 import { guidanceFor } from './rebuild/guidance.js';

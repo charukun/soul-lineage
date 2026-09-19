@@ -5,11 +5,12 @@ import {fileURLToPath} from 'node:url';
 import {dirname,join} from 'node:path';
 const here=dirname(fileURLToPath(import.meta.url));
 const source=path=>readFileSync(join(here,'../src',path),'utf8');
-const gameplay=source('gameplay-ui-base.js'),entry=source('gameplay-ui.js'),journal=source('inspiration-journal-ui.js'),controls=source('inspiration-combat-controls.js'),css=source('inspiration-journal.css');
+const gameplay=source('gameplay-ui.js'),entry=source('inspiration-gameplay-ui.js'),journal=source('inspiration-journal-ui.js'),controls=source('inspiration-combat-controls.js'),css=source('inspiration-journal.css');
 
 test('bottom rail retains independent heart technique body pages through the causal journal adapter',()=>{
   assert.match(gameplay,/data-heart/);assert.match(gameplay,/data-techniques/);assert.match(gameplay,/data-body/);assert.match(gameplay,/>心</);assert.match(gameplay,/>技</);assert.match(gameplay,/>体</);
   assert.match(entry,/installInspirationUI/);assert.match(entry,/installInspirationCombatControls/);assert.match(journal,/renderHeart/);assert.match(journal,/renderTechnique/);assert.match(journal,/renderBody/);
+  assert.match(source('gameplay-upgrade.js'),/import \{ createGameplayUI \} from '\.\/inspiration-gameplay-ui\.js'/);
   // This app owns the presentation probe; the independent Lab tests only its routes.
   const battle=readFileSync(join(here,'../review-battle.html'),'utf8');
   assert.match(battle,/<title>技演出レビュー \| Visual Review<\/title>/);assert.match(battle,/id="battle-sound"/);assert.match(battle,/id="battle-canvas"/);assert.match(battle,/data-battle-mode="melee"/);assert.match(battle,/src="\.\/src\/review-battle.js"/);
