@@ -6,6 +6,7 @@ import { createSkillSetter } from './skill-setter.js';
 import { createHeartTechniqueBodyUI } from './heart-technique-body-ui.js';
 import { decorateSelectionDetail, installSelectionDetail } from './selection-detail.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
+import {sequenceHudState} from './combat-sequence-hud.js';
 import './rebuild/conversation-input.css';
 import './skill-setter.css';
 import './heart-technique-body.css';
@@ -36,7 +37,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
       <span class="radar-caption"><strong data-radar-distance>--</strong><small data-radar-label>地図</small></span>
     </button>
     <div data-phase class="combat-phase-indicator combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" hidden aria-label="現在の序破急">
-      <span class="combat-sequence__step" data-phase-id="jo" data-combat-phase="jo">序</span><i class="phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="ha" data-combat-phase="ha">破</span><i class="phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="kyu" data-combat-phase="kyu">急</span><strong data-phase-action class="combat-phase-action combat-sequence__action"></strong><div data-phase-history class="combat-phase-history combat-sequence__history" aria-label="直近のアクション"></div>
+      <span class="combat-sequence__step" data-phase-id="jo" data-combat-phase="jo">序</span><i class="phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="ha" data-combat-phase="ha">破</span><i class="phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="kyu" data-combat-phase="kyu">急</span><strong data-phase-action class="combat-phase-action combat-sequence__action"></strong><div data-phase-history class="combat-phase-history combat-sequence__history" aria-label="直近のアクション" aria-live="polite"></div>
     </div>
     <nav class="rinne-bottom-controls" aria-label="戦闘と装備">
       <button data-heart class="upgrade-control is-heart"><span>心</span><small>心得</small></button>
@@ -67,13 +68,52 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]')
   };
-  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',lastAction='',phaseHistory=[];
+  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,interruptTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',lastAction='',phaseHistory=[],blockedComboKey='',currentComboKey='';
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
   const tracker=createSkillSetter({ui,audio,getState:()=>state});
   const loadoutUI=createHeartTechniqueBodyUI({ui,audio,getState:()=>state,tracker});
   const selectionDetail=installSelectionDetail({root,panel,audio});
   const moveHint=gameScreen.querySelector('#move-hint');
   const notify=text=>{const node=document.getElementById('toast');if(!node||!text)return;node.textContent=text;node.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{node.hidden=true;},2200);};
+  const phaseLabel=phase=>({jo:'序',ha:'破',kyu:'急'})[phase]||'';
+  function renderPhaseHistory(){
+    if(!ui.phaseHistory)return;
+    ui.phaseHistory.replaceChildren();
+    phaseHistory.slice(0,2).forEach((row,index)=>{
+      const item=document.createElement('span');item.dataset.age=String(index);item.dataset.motion=index===0?'incoming':'outgoing';item.dataset.kind=row.kind||'action';
+      const label=phaseLabel(row.phase);if(label){const badge=document.createElement('b');badge.textContent=label;item.append(badge);}
+      item.append(document.createTextNode(row.action));ui.phaseHistory.append(item);
+    });
+  }
+  function pushPhaseHistory(row){
+    const action=String(row?.action||'').trim();if(!action)return;
+    const next={phase:row?.phase||'',action,kind:row?.kind||'action'},previous=phaseHistory[0];
+    if(previous&&previous.phase===next.phase&&previous.action===next.action&&previous.kind===next.kind)return;
+    phaseHistory=[next,...phaseHistory].slice(0,2);renderPhaseHistory();
+  }
+  function setCompletedPhases(completed={}){
+    for(const node of ui.phase.querySelectorAll('[data-combat-phase]'))node.dataset.completed=String(Boolean(completed[node.dataset.combatPhase]));
+  }
+  function endInterruptionVisual(){
+    if(!ui.phase)return;
+    delete ui.phase.dataset.comboInterrupted;
+    for(const node of ui.phase.querySelectorAll('.combat-sequence__interrupted'))node.classList.remove('combat-sequence__interrupted');
+  }
+  function interruptSequence(){
+    if(!ui.phase)return;
+    clearTimeout(interruptTimer);
+    const highlighted=[...ui.phase.querySelectorAll('[data-combat-phase]')].filter(node=>node.dataset.active==='true'||node.dataset.completed==='true');
+    for(const node of highlighted)node.classList.add('combat-sequence__interrupted');
+    ui.phase.dataset.comboInterrupted='true';ui.phase.dataset.comboActive='false';ui.phase.dataset.phase='idle';
+    syncCombatSequence(ui.phase,'',{pulse:false});setCompletedPhases();
+    interruptTimer=setTimeout(()=>{interruptTimer=0;endInterruptionVisual();},680);
+  }
+  const onCombatFeedback=event=>{
+    if(event.detail?.type!=='enemy-hit')return;
+    pushPhaseHistory({action:'攻撃を受けた',kind:'damage'});
+    if(currentComboKey){blockedComboKey=currentComboKey;interruptSequence();lastPhase='';haptic([18,28,12]);}
+  };
+  gameScreen.addEventListener('rinne:combat-feedback',onCombatFeedback);
   const showMovementHelp=event=>{
     event.stopImmediatePropagation();
     notify(moveHint?.textContent?.includes('母')?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'スワイプで移動。素早くフリックするとダッシュ、画面長押しで休憩して息を回復します。');
@@ -169,7 +209,17 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   function summary(s,{dashing=false,resting=false,training=null}={}){
     state=s;speech.sync();loadoutUI.syncCombat(s);ui.name.textContent=s.name||'旅人';ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;updateRadar();
     ui.state.textContent=s.down?'救助待ち':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;if(engaged)ui.trainingName.textContent=training.label;
-    const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';ui.phase.hidden=!phase;ui.phase.dataset.phase=phase;syncCombatSequence(ui.phase,phase);const rawAction=phase?(gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';const action=rawAction||({jo:'間合いを測る',ha:'攻めを組み立てる',kyu:'決めに入る'})[phase]||'';if(ui.phaseAction){ui.phaseAction.textContent=action;ui.phaseAction.hidden=!action;}if(phase&&phase!==lastPhase){lastPhase=phase;haptic(8);audio.ui();}if(action&&action!==lastAction){lastAction=action;phaseHistory=[{phase,action},...phaseHistory].slice(0,4);if(ui.phaseHistory)ui.phaseHistory.innerHTML=phaseHistory.map((row,index)=>`<span data-age="${index}"><b>${({jo:'序',ha:'破',kyu:'急'})[row.phase]||row.phase}</b>${esc(row.action)}</span>`).join('');}if(!phase){lastPhase='';lastAction='';phaseHistory=[];if(ui.phaseHistory)ui.phaseHistory.innerHTML='';}
+    const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
+    ui.phase.hidden=!phase;
+    const rawAction=phase?(gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';
+    let sequence=sequenceHudState({phase,attack:rawAction,blockedKey:blockedComboKey});
+    if(blockedComboKey&&(!sequence.key||sequence.key!==blockedComboKey)){blockedComboKey='';if(sequence.comboActive)endInterruptionVisual();sequence=sequenceHudState({phase,attack:rawAction});}
+    currentComboKey=sequence.key;ui.phase.dataset.comboActive=String(sequence.comboActive);ui.phase.dataset.phase=sequence.comboActive?sequence.activePhase:'idle';
+    syncCombatSequence(ui.phase,sequence.comboActive?sequence.activePhase:'',{pulse:sequence.comboActive});setCompletedPhases(sequence.completed);
+    const action=sequence.action;if(ui.phaseAction){ui.phaseAction.textContent=action;ui.phaseAction.hidden=!action;}
+    if(sequence.comboActive&&sequence.activePhase!==lastPhase){lastPhase=sequence.activePhase;haptic(8);audio.ui();}else if(!sequence.comboActive)lastPhase='';
+    if(action&&action!==lastAction){lastAction=action;pushPhaseHistory({phase,action});}
+    if(!phase){lastPhase='';lastAction='';blockedComboKey='';currentComboKey='';phaseHistory=[];renderPhaseHistory();endInterruptionVisual();}
   }
   function bindSheetGesture(){
     const header=ui.panel.querySelector('header');header.addEventListener('pointerdown',event=>{if(!['heart','technique','body','items'].includes(ui.panel.dataset.type)||event.target.closest('button'))return;sheetDrag={id:event.pointerId,startY:event.clientY,dy:0};header.setPointerCapture?.(event.pointerId);ui.panel.dataset.dragging='true';});
@@ -185,5 +235,5 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
 
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
   ui.heart.onclick=()=>toggle('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>toggle('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>toggle('body');ui.items.onclick=()=>toggle('items');ui.map.onclick=()=>toggle('map');ui.record.onclick=()=>toggle('record');ui.close.onclick=close;
-  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);observer.disconnect();moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
+  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);clearTimeout(interruptTimer);observer.disconnect();gameScreen.removeEventListener('rinne:combat-feedback',onCombatFeedback);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
 }

@@ -774,3 +774,70 @@
 
 /* Enemy durability is intentionally unreadable in combat: outcome is learned from posture/contact, not a target HP meter. */
 .game-screen[data-frontier-combat="true"] :is(.enemy-hp,.enemy-health,.enemy-health-bar,.enemy-hp-bar,.target-hp,.target-health,.target-health-bar,[data-enemy-hp],[data-enemy-health],[data-target-hp],[data-target-health]){display:none!important}
+
+
+/* Sequence HUD v4: spacing is quiet, committed attacks build the sequence, and hits visibly break it. */
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-active="false"]>span[data-phase-id]{
+  color:#756f66!important;opacity:.42!important;text-shadow:none!important;transform:none!important;filter:saturate(.45)!important;
+  transition:color .22s ease,opacity .22s ease,text-shadow .22s ease,transform .22s ease,filter .22s ease!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-active="false"]>.phase-pulse{
+  color:#655d52!important;opacity:.24!important;animation:none!important;filter:none!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-active="true"]>span[data-completed="true"]{
+  color:#d9b66f!important;opacity:.78!important;text-shadow:0 0 7px #d29b4f55!important;transform:translateY(-1px) scale(1.02)!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-active="true"]>span[data-active="true"]{
+  color:#ffe3a4!important;opacity:1!important;text-shadow:0 0 8px #efb25acc,0 0 18px #d6733f88!important;
+  transform:translateY(-2px) scale(1.09)!important;animation:rinne-sequence-activate .28s cubic-bezier(.18,.82,.28,1) both!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator>span.combat-sequence__interrupted{
+  animation:rinne-sequence-interrupt .62s cubic-bezier(.25,.72,.28,1) both!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-interrupted="true"]>.phase-pulse{
+  animation:rinne-sequence-link-break .62s ease-out both!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-history span{
+  top:0!important;opacity:.9!important;animation:none!important;
+  transform:translate(-50%,0)!important;filter:none!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-history span[data-motion="incoming"]{
+  animation:rinne-phase-history-enter .36s cubic-bezier(.18,.8,.3,1) both!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-history span[data-motion="outgoing"]{
+  pointer-events:none!important;animation:rinne-phase-history-exit .68s cubic-bezier(.2,.68,.28,1) both!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-history span[data-kind="damage"]{
+  color:#e4c4bc!important;letter-spacing:.08em!important;
+}
+@keyframes rinne-sequence-activate{
+  0%{opacity:.45;transform:translateY(1px) scale(.94);text-shadow:none}
+  58%{opacity:1;transform:translateY(-3px) scale(1.13)}
+  100%{opacity:1;transform:translateY(-2px) scale(1.09)}
+}
+@keyframes rinne-sequence-interrupt{
+  0%{opacity:1;color:#ffe3a4;text-shadow:0 0 10px #efb25add,0 0 20px #d65f4388;transform:translateY(-2px) scale(1.09)}
+  28%{opacity:.92;color:#d77861;text-shadow:0 0 13px #d05d4dcc;transform:translateY(1px) scale(1.04)}
+  100%{opacity:.42;color:#756f66;text-shadow:none;transform:translateY(0) scale(1)}
+}
+@keyframes rinne-sequence-link-break{
+  0%{opacity:1;color:#efb25a;filter:drop-shadow(0 0 6px #e9a64fbb)}
+  34%{opacity:.82;color:#c96856;filter:drop-shadow(0 0 7px #c85d4c99)}
+  100%{opacity:.24;color:#655d52;filter:none}
+}
+@keyframes rinne-phase-history-enter{
+  0%{opacity:0;transform:translate(-50%,9px) scale(.96);filter:blur(2px)}
+  64%{opacity:.96;filter:blur(0)}
+  100%{opacity:.9;transform:translate(-50%,0) scale(1);filter:blur(0)}
+}
+@keyframes rinne-phase-history-exit{
+  0%{opacity:.82;transform:translate(-50%,0) scale(1)}
+  58%{opacity:.42}
+  100%{opacity:0;transform:translate(-50%,46px) scale(.94)}
+}
+@media(prefers-reduced-motion:reduce){
+  .game-screen[data-gameplay-upgrade] .combat-phase-indicator>span.combat-sequence__interrupted,
+  .game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-interrupted="true"]>.phase-pulse,
+  .game-screen[data-gameplay-upgrade] .combat-phase-history span[data-motion]{animation:none!important}
+  .game-screen[data-gameplay-upgrade] .combat-phase-history span[data-motion="outgoing"]{opacity:0!important}
+}
