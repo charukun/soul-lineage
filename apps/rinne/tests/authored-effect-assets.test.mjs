@@ -18,6 +18,9 @@ test('authored originals, runtime and both CC0 license notices are immutable pin
   for(const row of EFFECT_DOWNLOADS){assert.match(row.revision,/^[a-f0-9]{40}$/);assert.match(row.gitBlobSha,/^[a-f0-9]{40}$/);assert.ok(row.byteLength>0);}
   assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-SAMPLES.txt'),true);
   assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-REVIEW-LIBRARY-CC0.txt'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-EFFECT-MATERIALS-CC0.txt'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-RESOURCE-DATA-CC0.txt'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-EFFEKSEER-EXAMPLES-MIT.txt'),true);
   assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-MIT.txt'),true);
   assert.equal(Object.keys(AUTHORED_EFFECTS).length,3);
   assert.equal(AUTHORED_EFFECTS.finisher.path,'samples/02_Tktk03/Light.efkefc');
