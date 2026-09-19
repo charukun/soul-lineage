@@ -79,7 +79,7 @@ function scheduleWarmup(view, state, reason) {
   state.warmupPending = true;
   schedule(() => {
     state.warmupPending = false;
-    warmupDemon(view, state, reason).catch(error => console.warn('[尽喰廻遊 shader warmup]', error));
+    warmupDemon(view, state, reason).catch(error => console.warn('[喰滅廻遊 shader warmup]', error));
   });
 }
 

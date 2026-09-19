@@ -60,7 +60,7 @@ function scheduleWarmup(view, state, reason) {
   state.warmupPending = true;
   schedule(() => {
     state.warmupPending = false;
-    state.warmup.warmup(reason).catch(error => console.warn('[MURAAAAAAA shader warmup]', error));
+    state.warmup.warmup(reason).catch(error => console.warn('[叡智豊満 shader warmup]', error));
   });
 }
 

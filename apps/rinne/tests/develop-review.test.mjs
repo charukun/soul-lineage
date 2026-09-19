@@ -35,8 +35,8 @@ test('all specialist review pages expose one Visual Review Lab back route',async
   assert.match(pages[5],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
 });
 
-test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
-  const [html,js,css]=await Promise.all([read('review-motion.html'),read('src/review-motion.js'),read('src/review-motion.css')]);
+test('motion review retains pinned KayKit playback and immutable external source selection',async()=>{
+  const [html,js,css,manifest]=await Promise.all([read('review-motion.html'),read('src/review-motion.js'),read('src/review-motion.css'),read('src/review-motion-manifest.js')]);
   assert.match(html,/id="motion-stage"/);assert.match(html,/id="motion-grid"/);assert.match(html,/id="motion-time"/);
   assert.match(html,/class="motion-current-label">選択中の動き/);
   assert.match(html,/class="motion-grid-title">候補一覧/);
@@ -45,12 +45,18 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
   assert.match(css,/\.motion-grid button\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
   assert.match(css,/\.motion-camera-strip button\{[^}]*border-radius:999px/);
   assert.match(js,/new THREE\.AnimationMixer/);assert.match(js,/KAYKIT_MODELS/);assert.match(js,/buildMotionReviewCatalog/);
-  assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='kaykit-embedded'/);
+  assert.match(js,/1\s*\/\s*60/);assert.match(js,/LoopRepeat/);
+  assert.match(js,/record\.baseline \|\| record\.legacy \? chosenTarget/);
+  assert.match(js,/motionSource: record\.sourceId \|\| 'kaykit-embedded'/);
+  assert.match(js,/source\.gltf\.animations\[record\.source\.clipIndex\]/);
+  assert.match(js,/motionCountLabel\(catalog\)/);
+  assert.match(manifest,/row\.sourceIdentity !== sourceMotionIdentity\(row\)/);
+  assert.match(manifest,/count !== manifest\.records\.length/);
 });
 
 test('equipment review is organized around equipment fit and inspection tasks',async()=>{
   const [html,css,js]=await Promise.all([read('review-assets.html'),read('src/review-asset-library.css'),read('src/review-asset-library.js')]);
-  assert.match(html,/<title>装備確認 \| 輪廻転焦<\/title>/);
+  assert.match(html,/<title>装備確認 \| 百年転生<\/title>/);
   assert.match(html,/data-review-back[^>]*href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"/);
   assert.match(html,/id="asset-review-points"/);
   for(const point of ['装着位置','干渉','尺度','裏側'])assert.match(html,new RegExp(point));
@@ -69,7 +75,7 @@ test('equipment review is organized around equipment fit and inspection tasks',a
 
 test('world-object review loads the exact RINNE runtime props independently of equipment',async()=>{
   const [html,css,js]=await Promise.all([read('review-objects.html'),read('src/review-object-library.css'),read('src/review-object-library.js')]);
-  assert.match(html,/<title>物体確認 \| 輪廻転焦<\/title>/);
+  assert.match(html,/<title>物体確認 \| 百年転生<\/title>/);
   assert.match(html,/id="object-stage"/);
   assert.match(html,/id="object-options"/);
   for(const preset of ['front','side','top','full'])assert.match(html,new RegExp(`data-object-camera="${preset}"`));

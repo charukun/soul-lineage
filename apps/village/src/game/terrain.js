@@ -1,2 +1,2 @@
-// Canonical MURAAAAAAA data is shared by all three games.
+// Canonical 叡智豊満 data is shared by all three games.
 export * from '@soul/world/mura/terrain';

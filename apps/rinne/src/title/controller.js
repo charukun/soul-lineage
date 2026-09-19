@@ -23,7 +23,7 @@ export function mountTitle(buildInfo, options={}){
  const assetRequests=new Set();
  const particles=new SoulParticles($('soul-particles')),audio=new TitleAudio();
  const version=buildInfo.commit==='UNBUILT'?'LOCAL · FIX 2':`${environment.toUpperCase()} · ${String(buildInfo.commit).slice(0,7)}`;
- $('version').textContent=version;$('simulator-version').textContent=version;document.title=`輪廻転焦${environment==='prod'?'':` | ${environment.toUpperCase()}`}`;
+ $('version').textContent=version;$('simulator-version').textContent=version;document.title=`百年転生${environment==='prod'?'':` | ${environment.toUpperCase()}`}`;
  canvas.dataset.app='rinne';canvas.dataset.environment=String(buildInfo.environment);canvas.dataset.platform='web';canvas.dataset.commit=String(buildInfo.commit);screen.dataset.experience='rinne-title';
  $('emblem').src=options.emblemURL||new URL('./title-assets/crest.svg',base).href;
  screen.style.setProperty('--world-small',`url("${options.worldSmallURL||new URL('./title-assets/world-small.webp',base).href}")`);
@@ -53,10 +53,10 @@ export function mountTitle(buildInfo, options={}){
   screen.hidden=true;shell.hidden=false;pause();document.body.classList.add('paused');audio.setActive(false);
   shell.dataset.experience=experience;delete shell.dataset.playing;
   $('game-loading').hidden=false;$('game-loading').setAttribute('aria-busy','true');
-  launchAbort=new AbortController();const launchSignal=launchAbort.signal;loading.start();$('loading-heading').textContent=experience==='story'?'物語の中へ':'稽古場へ';$('experience-title').textContent=experience==='story'?'輪廻転焦 本編':'スキルシミュレーター';shell.setAttribute('aria-label',$('experience-title').textContent);
+  launchAbort=new AbortController();const launchSignal=launchAbort.signal;loading.start();$('loading-heading').textContent=experience==='story'?'物語の中へ':'稽古場へ';$('experience-title').textContent=experience==='story'?'百年転生 本編':'スキルシミュレーター';shell.setAttribute('aria-label',$('experience-title').textContent);
   requestToken=globalThis.crypto?.randomUUID?.()||(globalThis.crypto?.getRandomValues?Array.from(crypto.getRandomValues(new Uint32Array(4)),n=>n.toString(16).padStart(8,'0')).join(''):`title-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`);
   const token=requestToken,iframe=document.createElement('iframe');frame=iframe;
-  iframe.id='simulator-frame';iframe.title=experience==='story'?'輪廻転焦 本編':'Tidebreak Expanded スキルシミュレーター';iframe.allow='autoplay; fullscreen';
+  iframe.id='simulator-frame';iframe.title=experience==='story'?'百年転生 本編':'Tidebreak Expanded スキルシミュレーター';iframe.allow='autoplay; fullscreen';
   try {
    if(options.simulatorHTML){
     const html=await options.simulatorHTML({signal:launchSignal,onProgress:data=>{if(token===requestToken)loading.update(data);}});

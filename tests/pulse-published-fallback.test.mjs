@@ -6,14 +6,14 @@ const published = (environment, commit) => ({ app: 'demon', environment, path: `
 const target = (app, environment) => app.targets.find(item => item.environment === environment);
 const rinnePublished = (commit, deployedAt = null) => ({
   app: 'rinne', environment: 'dev', path: 'dev/rinne', deployedAt,
-  version: { commit, name: '輪廻転焦' },
+  version: { commit, name: '百年転生' },
 });
 
 test('GitHub 403 cannot retain retired names or the old two-environment matrix', () => {
   const old = { generatedAt: '2026-09-12T09:00:00Z', applications: [{ id: 'demon', name: '暗い喰らいCry', kind: 'game', targets: [] }] };
   const state = publishedFallback(old, { schemaVersion: 1, entries: [published('dev', 'actual')] }, options);
   const game = state.applications.find(app => app.id === 'demon');
-  assert.equal(game.name, '尽喰廻遊');
+  assert.equal(game.name, '喰滅廻遊');
   assert.deepEqual(['dev', 'staging', 'prod'].map(environment => target(game, environment)?.environment), ['dev', 'staging', 'prod']);
   assert.equal(target(game, 'dev').commit, 'actual');
   assert.equal(target(game, 'staging').state, 'missing');

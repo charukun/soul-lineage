@@ -1,6 +1,6 @@
 # RINNE 3D Production Standard
 
-This directory is the repository-level production standard for 3D art work in 輪廻転焦. It defines how an implementation worker should choose references, edit real assets, preserve compatibility, and prove visual quality. It is not an Astra-only prompt library and it does not replace model-specific contracts.
+This directory is the repository-level production standard for 3D art work in 百年転生. It defines how an implementation worker should choose references, edit real assets, preserve compatibility, and prove visual quality. It is not an Astra-only prompt library and it does not replace model-specific contracts.
 
 ## Authority order
 

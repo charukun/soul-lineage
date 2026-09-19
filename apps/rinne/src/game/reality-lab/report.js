@@ -23,7 +23,7 @@ export function readReport(text) {
 export function discussionText(report) {
   const rows = report.results.map(r => `${MODES[r.mode]}: payload ${(r.payloadBytes / 1000).toFixed(1)} kB / Primary平均 ${r.primaryKbps.toFixed(2)} kB/s / 最大端末平均 ${r.maxPeerKbps.toFixed(2)} kB/s / 停止 ${r.darkMs}ms / 巻戻し ${r.rollbackMs}ms / 不一致 ${r.invalid} / 再同期 ${r.repairs} / 最終 ${r.phase}`);
   return [
-    '輪廻転焦 RRP Labの結果を元に、次の仮説を一つ決めてください。まだ本編へ適用しないでください。',
+    '百年転生 RRP Labの結果を元に、次の仮説を一つ決めてください。まだ本編へ適用しないでください。',
     `Repository: ${report.repository}`, `計測元commit: ${report.build?.commit || '不明'} / model: ${report.format}`,
     '計測元SHAはこの実験の出典です。実装変更時の正本はその時点の最新developです。',
     `仮説: ${report.hypothesis || '未記入'}`, `観察: ${report.observation || '未記入'}`,

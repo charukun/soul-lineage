@@ -1,10 +1,10 @@
 # WAYFINDER / Public Gallery
 
-`WAYFINDER` は、輪廻転焦とは切り離した一般公開向けのリンクギャラリーです。公開プロジェクトを普通のリンク一覧として並べず、スクロールで展示室を移動していくような体験として見せます。
+`WAYFINDER` は、百年転生とは切り離した一般公開向けのリンクギャラリーです。公開プロジェクトを普通のリンク一覧として並べず、スクロールで展示室を移動していくような体験として見せます。
 
 ## 掲載方針
 
-- 輪廻転焦、soul-lineage、Bloodline Legacy、Rinne Ops Board、Visual Review Labなど、輪廻転焦に関係する公開先は掲載しません。
+- 百年転生、soul-lineage、Bloodline Legacy、Rinne Ops Board、Visual Review Labなど、百年転生に関係する公開先は掲載しません。
 - 別プロジェクトの公開サイトまたは公開Repositoryだけを掲載します。
 - 公開アプリURLをRepositoryから確定できない場合は推測で作らず、公開Repositoryを入口にします。
 - 認証情報やSecretsはブラウザへ出しません。

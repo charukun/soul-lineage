@@ -21,7 +21,7 @@ test('every current game remains visible with development, staging and productio
 });
 test('the current metadata wins over an old deployed title, without changing its deployed SHA', () => {
   const app = games({ entries: [entry('demon', 'dev', 'old-sha')] }).find(app => app.id === 'demon');
-  assert.equal(app.name, '尽喰廻遊');
+  assert.equal(app.name, '喰滅廻遊');
   assert.equal(target(app, 'dev').commit, 'old-sha');
   assert.equal(target(app, 'dev').publishedName, 'old title');
 });

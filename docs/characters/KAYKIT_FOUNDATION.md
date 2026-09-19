@@ -2,7 +2,7 @@
 
 ## Purpose
 
-輪廻転焦のゲーム構築・キャラクター実装・Visual Reviewは、KayKit Adventurers系を既定の外部キャラクターファミリーとして進める。商用利用にモデル固有の条件が残る第三者キャラクターモデルはactive runtime / review candidate / Production配布から退役させる。詳細は `docs/characters/CHARACTER_LICENSE_POLICY.md` を正本とする。
+百年転生のゲーム構築・キャラクター実装・Visual Reviewは、KayKit Adventurers系を既定の外部キャラクターファミリーとして進める。商用利用にモデル固有の条件が残る第三者キャラクターモデルはactive runtime / review candidate / Production配布から退役させる。詳細は `docs/characters/CHARACTER_LICENSE_POLICY.md` を正本とする。
 
 この変更はキャラクター資産の採用基準を変更するもので、既存の寿命、遺伝、戦闘、保存、通信契約をKayKit固有データへ結合しない。
 
@@ -29,7 +29,7 @@
 
 ## Asset and quality rules
 
-KayKitが既製の高品質アセットであることと、輪廻転焦で `RUNTIME_READY` であることは別。導入時も既存Character Production gateを維持する。
+KayKitが既製の高品質アセットであることと、百年転生で `RUNTIME_READY` であることは別。導入時も既存Character Production gateを維持する。
 
 - provenanceとCC0 licenseを記録する。
 - upstream revisionとGit blob identityを固定する。

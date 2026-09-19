@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   REVIEW_SKELETON_SOURCE,
   REVIEW_SKELETON_MODELS,
@@ -50,4 +51,16 @@ test('review skeleton assets are complete and output paths are unique', () => {
     assert.equal(row.output.startsWith('/'), false);
     assert.equal(row.output.includes('..'), false);
   }
+});
+
+
+test('RINNE dev and build materialize the pinned review asset bundle', async () => {
+  const pkg = JSON.parse(await readFile(new URL('../apps/rinne/package.json', import.meta.url), 'utf8'));
+  assert.match(pkg.scripts.predev, /prepare-review-assets\.mjs/);
+  assert.match(pkg.scripts.prebuild, /prepare-review-assets\.mjs/);
+  const prepare = await readFile(new URL('../scripts/prepare-review-assets.mjs', import.meta.url), 'utf8');
+  const verify = await readFile(new URL('../scripts/verify-build.mjs', import.meta.url), 'utf8');
+  assert.match(prepare, /materializeReviewAssets/);
+  assert.match(prepare, /apps\/rinne\/public\/asset-review/);
+  assert.match(verify, /RINNE review models are missing/);
 });

@@ -10,7 +10,7 @@
 
 ## 友達に渡す手順
 
-Integrationでこの変更がDEVへ公開された後、全員が [輪廻転焦DEV](https://charukun.github.io/soul-lineage/dev/rinne/) を再読み込みし、タイトル右下の版が同じことを確認する。
+Integrationでこの変更がDEVへ公開された後、全員が [百年転生DEV](https://charukun.github.io/soul-lineage/dev/rinne/) を再読み込みし、タイトル右下の版が同じことを確認する。
 
 1. 開く人は「友達と遊ぶ」→「村を開く」。本編に入ったら「友達」→「友達を招く」。招待リンクをコピーまたは共有する。
 2. 友達はリンクを開き、「この招待で参加」→「返事をコピー」。返事を村を開いた人へ渡す。

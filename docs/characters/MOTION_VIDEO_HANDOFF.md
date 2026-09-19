@@ -6,7 +6,7 @@
 
 ## 契約
 
-- 輪廻転焦のcharacter motionに影響するPR browser smokeは、既存Motion QAの実WebGL経路を使って30秒レビューを1倍速で録画する。
+- 百年転生のcharacter motionに影響するPR browser smokeは、既存Motion QAの実WebGL経路を使って30秒レビューを1倍速で録画する。
 - 録画対象はRepositoryの実モデル・実rig・実motion runtimeであり、代替スケルトン、簡易図、別キャラクターを動画証拠として扱わない。
 - 動画は `test-results/pr-browser/motion-preview/` 配下へ保存し、既存 `pr-browser-<pr>-<head>` artifactに同梱する。
 - exact head SHA、model ID、motion revision、再生速度、録画範囲をreceipt JSONへ記録する。

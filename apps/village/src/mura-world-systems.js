@@ -5,7 +5,7 @@ import {ensureResidentAge,residentAgeYears,residentLifeStage} from './resident-a
 import {t,exposeI18n} from './mura-i18n.js';
 
 const village=window.village;
-if(!village)throw new Error('MURAAAAAAA world systems require a booted village');
+if(!village)throw new Error('叡智豊満 world systems require a booted village');
 const {world,sim,save}=village;
 exposeI18n();
 
