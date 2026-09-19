@@ -165,12 +165,24 @@ function start() {
       distance = Math.max(6,distance)*1.12; orbit.maxDistance = Math.max(45,distance*1.2);
       camera.position.copy(target).add(new THREE.Vector3(0, Math.sin(elevation)*distance, Math.cos(elevation)*distance)); orbit.target.copy(target);
     } else {
-      const look = appearances[settings.selected], height = look.adultHeightMetres * look.scale * look.height;
       actor.root.updateWorldMatrix(true, true);
-      target = preset === 'face' ? actor.bones.head.getWorldPosition(new THREE.Vector3()) : actor.root.position.clone().add(new THREE.Vector3(0, height * .52, 0));
-      distance = preset === 'face' ? Math.max(.36, height * .5) : height * 1.65 / Math.min(1, camera.aspect);
+      const bounds = new THREE.Box3().setFromObject(actor.root);
+      const size = bounds.getSize(new THREE.Vector3());
+      const center = bounds.getCenter(new THREE.Vector3());
+      const fallbackHeight = appearances[settings.selected].adultHeightMetres * appearances[settings.selected].scale * appearances[settings.selected].height;
+      const measuredHeight = Number.isFinite(size.y) && size.y > .05 ? size.y : fallbackHeight;
+      target = preset === 'face' ? actor.bones.head.getWorldPosition(new THREE.Vector3()) : center;
+      if (preset === 'face') {
+        distance = Math.max(.36, measuredHeight * .48);
+      } else {
+        const tangent = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+        const facingWidth = Math.max(.25, preset === 'side' ? size.z : size.x);
+        const verticalDistance = measuredHeight / (2 * tangent);
+        const horizontalDistance = facingWidth / (2 * tangent * Math.max(.35, camera.aspect));
+        distance = Math.max(verticalDistance, horizontalDistance) * 1.22;
+      }
       const sign = preset === 'back' ? -1 : 1;
-      camera.position.copy(target).add(new THREE.Vector3(preset === 'side' ? distance : 0, preset === 'face' ? 0 : height * .08, preset === 'side' ? 0 : sign * distance));
+      camera.position.copy(target).add(new THREE.Vector3(preset === 'side' ? distance : 0, 0, preset === 'side' ? 0 : sign * distance));
       orbit.target.copy(target);
     }
     camera.lookAt(orbit.target); orbit.update(); resetMeasure();

@@ -76,19 +76,22 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const subjectRow = doc.querySelector('.subject-row');
   const stageHead = doc.querySelector('.stage-head');
   const canvasWrap = doc.querySelector('.canvas-wrap');
+  const cameraDock = doc.createElement('div');
+  cameraDock.className = 'character-review-camera-dock';
+  cameraDock.setAttribute('aria-label', 'モデルの向き');
   for (const node of [doc.getElementById('camera-cycle'), doc.getElementById('pause'), actions?.querySelector('[data-camera="overview"]')].filter(Boolean)) {
     node.hidden = true;
     node.setAttribute('aria-hidden', 'true');
   }
-  if (frameButton && actions && !actions.contains(frameButton)) {
+  if (frameButton) {
     frameButton.textContent = '全身';
     frameButton.title = 'モデル全体を表示';
-    actions.append(frameButton);
   }
-  if (actions && canvasWrap && !canvasWrap.contains(actions)) {
-    actions.classList.add('character-review-camera-dock');
-    canvasWrap.append(actions);
-  }
+  const cameraButtons = [...doc.querySelectorAll('.stage-actions [data-camera="front"],.stage-actions [data-camera="side"],.stage-actions [data-camera="back"],.stage-actions [data-camera="face"]')];
+  for (const button of cameraButtons) cameraDock.append(button);
+  if (frameButton) cameraDock.append(frameButton);
+  if (canvasWrap && cameraDock.children.length) canvasWrap.append(cameraDock);
+  if (actions) actions.hidden = true;
   if (subjectRow && stageHead && !stageHead.contains(subjectRow)) {
     subjectRow.classList.add('character-review-pager');
     stageHead.append(subjectRow);
@@ -103,7 +106,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const modelPicker = make('section', 'character-model-picker'); modelPicker.setAttribute('aria-label', 'モデルを選ぶ');
   const modelHeading = make('div', 'character-model-picker-heading');
   modelHeading.append(make('strong', '', 'モデルを選ぶ'), make('span', 'character-model-picker-current', '読込中'));
-  const modelList = make('div', 'character-model-list'); modelList.setAttribute('role', 'group'); modelList.setAttribute('aria-label', 'キャラクターモデル候補');
+  const modelList = make('select', 'character-model-list'); modelList.setAttribute('aria-label', 'キャラクターモデル候補');
   modelPicker.append(modelHeading, modelList);
   const slots = make('nav', 'character-review-slots'); slots.setAttribute('role', 'tablist'); slots.setAttribute('aria-label', '詳細レビュー項目');
   const criteria = make('div', 'character-review-criteria');
@@ -119,7 +122,6 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const state = { active: 'individual', camera: 'front', framed: false, autoFit: true, queued: false, signature: '', modelSignature: '', groups: [] };
   const slotNodes = new Map();
   const review = () => win.characterStudio?.review;
-  const cameraButtons = [...doc.querySelectorAll('.stage-actions [data-camera="front"],.stage-actions [data-camera="side"],.stage-actions [data-camera="back"],.stage-actions [data-camera="face"]')];
   const fit = () => { if (review()?.ready && state.autoFit) review().aim(state.camera === 'free' ? 'front' : state.camera); };
   const schedule = () => {
     if (state.queued) return;
@@ -158,17 +160,18 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     schedule();
   }
   function renderModelOptions(group) {
-    const focused = modelList.contains(doc.activeElement) ? doc.activeElement?.dataset.modelKey : null;
+    const hadFocus = doc.activeElement === modelList;
     modelList.replaceChildren(...group.options.map(option => {
-      const button = make('button', 'character-model-option'); button.type = 'button'; button.dataset.modelKey = option.key;
-      button.disabled = option.disabled; button.title = option.fullLabel; button.setAttribute('aria-label', option.fullLabel);
-      button.setAttribute('aria-pressed', String(option.selected));
-      const mark = make('span', 'character-model-mark', ''); mark.setAttribute('aria-hidden', 'true');
-      const name = make('span', 'character-model-option-label', option.label);
-      button.append(mark, name); button.addEventListener('click', () => choose(group, option)); return button;
+      const item = new Option(option.label, option.key, option.selected, option.selected);
+      item.disabled = option.disabled; item.title = option.fullLabel; return item;
     }));
-    if (focused !== null) modelList.querySelector(`[data-model-key="${focused}"]:not(:disabled)`)?.focus({ preventScroll: true });
+    if (hadFocus) modelList.focus({ preventScroll: true });
   }
+  modelList.addEventListener('change', () => {
+    const group = state.groups.find(item => item.id === 'model');
+    const option = group?.options.find(item => item.key === modelList.value);
+    if (group && option) choose(group, option);
+  });
 
   function renderOptions(group) {
     const focused = grid.contains(doc.activeElement) ? doc.activeElement?.dataset.optionKey : null;
