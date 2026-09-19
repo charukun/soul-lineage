@@ -1,9 +1,12 @@
 import rinne from '../apps/rinne/package.json' with { type: 'json' };
 import village from '../apps/village/package.json' with { type: 'json' };
 import demon from '../apps/demon/package.json' with { type: 'json' };
+import review from '../apps/review/package.json' with { type: 'json' };
 
 // Package metadata is the current display-name authority, not an old build manifest.
 export const GAME_NAMES = Object.freeze({ rinne: rinne.displayName, village: village.displayName, demon: demon.displayName });
+export const DEV_APP_NAMES = Object.freeze({ ...GAME_NAMES, review: review.displayName });
+export const DEV_APPS = Object.freeze(Object.keys(DEV_APP_NAMES));
 export const GAME_ENVIRONMENTS = Object.freeze([
   { id: 'dev', label: '開発', branch: 'develop' },
   { id: 'staging', label: '検証', branch: 'develop' },

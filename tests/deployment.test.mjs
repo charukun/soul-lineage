@@ -4,7 +4,7 @@ import { mkdtemp, rm, readFile, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { digest, safeFile, inventory, fetchBytes, restoreEntry } from '../scripts/deployment-files.mjs';
-import { needsBuild } from '../scripts/deploy.mjs';
+import { buildEnvironmentSnapshots, needsBuild, preservePagesRelease } from '../scripts/deploy.mjs';
 test('unchanged app retains its original version even when repository head advances', () => {
   const previous = { inputHash: 'same', legacy: false, version: { commit: 'previous' } };
   assert.equal(needsBuild({ inputHash: 'same', legacy: false }, previous), false);
@@ -85,4 +85,26 @@ test('inventory and legacy restore omit hidden files but keep visible integrity 
       async () => new Response(null, { status: 404 }),
     ), /HTTP 404/);
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('retiring Pages DEV preserves non-DEV releases byte-for-byte and drops the DEV snapshot marker',()=>{
+  const previous={
+    entries:[
+      {path:'dev/rinne',environment:'dev',version:{commit:'d'.repeat(40)}},
+      {path:'staging/rinne',environment:'staging',version:{commit:'s'.repeat(40)}},
+      {path:'prod/rinne',environment:'prod',version:{commit:'p'.repeat(40)}},
+    ],
+    environmentSnapshots:{
+      dev:{branch:'develop',commit:'d'.repeat(40)},
+      staging:{branch:'develop',commit:'s'.repeat(40)},
+      prod:{branch:'main',commit:'p'.repeat(40)},
+    },
+  };
+  assert.deepEqual(preservePagesRelease(previous).map(entry=>entry.path),['staging/rinne','prod/rinne']);
+  const snapshots=buildEnvironmentSnapshots(previous,preservePagesRelease(previous),{
+    developSha:'x'.repeat(40),productionSha:'y'.repeat(40),devOnly:false,pagesDevRetired:true,deployedAt:'now',workflowRunId:'1'
+  });
+  assert.equal(snapshots.dev,undefined);
+  assert.deepEqual(snapshots.prod,previous.environmentSnapshots.prod);
+  assert.deepEqual(snapshots.staging,previous.environmentSnapshots.staging);
 });

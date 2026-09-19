@@ -25,7 +25,7 @@ export function desiredEntries(sources) {
     const branch = definition.branch;
     if (pkg.workspaces) {
       const nodes = graph(root);
-      for (const node of apps(nodes)) entries.push({ root, app: node.id, environment, branch, path: `${environment}/${node.id}`, inputHash: inputHash(root, nodes, node.id, environment), legacy: false });
+      for (const node of apps(nodes).filter(node=>INITIAL_ENVIRONMENT_APPS.includes(node.id))) entries.push({ root, app: node.id, environment, branch, path: `${environment}/${node.id}`, inputHash: inputHash(root, nodes, node.id, environment), legacy: false });
     } else {
       // Transitional compatibility: main keeps its existing implementation until promotion.
       const hash = createHash('sha256').update(`legacy-v1:${environment}`);
@@ -42,6 +42,9 @@ export function preserveProduction(desired, previous, devOnly) {
   // Staging and bootstrapped production stay pinned during ordinary DEV delivery.
   return [...desired.filter(entry => entry.environment === 'dev'), ...previous.entries.filter(entry => entry.environment !== 'dev')];
 }
+export function preservePagesRelease(previous) {
+  return previous.entries.filter(entry=>entry.environment!=='dev');
+}
 export function needsBuild(entry, previous) {
   return !previous || previous.inputHash !== entry.inputHash || previous.legacy !== entry.legacy;
 }
@@ -49,7 +52,12 @@ export function uniqueEnvironmentCommit(entries, environment) {
   const commits = [...new Set(entries.filter(entry => entry.environment === environment).map(entry => entry?.version?.commit).filter(Boolean))];
   return commits.length === 1 ? commits[0] : null;
 }
-export function buildEnvironmentSnapshots(previous, entries, { developSha, productionSha, devOnly, deployedAt, workflowRunId }) {
+export function buildEnvironmentSnapshots(previous, entries, { developSha, productionSha, devOnly, pagesDevRetired=false, deployedAt, workflowRunId }) {
+  if (pagesDevRetired) {
+    const snapshots={...(previous?.environmentSnapshots||{})};
+    delete snapshots.dev;
+    return snapshots;
+  }
   const snapshots = { dev: { branch: 'develop', commit: developSha, deployedAt, workflowRunId } };
   if (!devOnly) snapshots.prod = { branch: 'main', commit: productionSha, deployedAt, workflowRunId };
   else if (previous?.environmentSnapshots?.prod?.commit) snapshots.prod = previous.environmentSnapshots.prod;
@@ -88,22 +96,26 @@ async function main() {
   else assert.equal(response.status, 404, 'Cannot establish current deployment; refusing a blind replacement');
   const full = process.env.INTEGRATION_FULL === 'true';
   const devOnly = process.env.DEPLOY_DEV_ONLY === 'true';
+  const pagesDevRetired = process.env.PAGES_DEV_RETIRED === 'true';
+  assert.ok(!(devOnly&&pagesDevRetired),'Pages DEV cannot be both published and retired');
   const initialize = initializeEnvironments(devOnly);
   const developSha = git(sources.dev, ['rev-parse', 'HEAD']);
   const productionSha = git(sources.prod, ['rev-parse', 'HEAD']);
-  let retained = preserveProduction(desiredEntries(devOnly ? { dev: sources.dev } : sources), previous, devOnly);
+  let retained = pagesDevRetired
+    ? preservePagesRelease(previous)
+    : preserveProduction(desiredEntries(devOnly ? { dev: sources.dev } : sources), previous, devOnly);
   if (devOnly && process.env.REFRESH_STAGING === 'true') {
     assert.ok(initialize, 'Staging refresh requires environment initialization; refusing to remove a pinned release');
     retained = retained.filter(entry => entry.environment !== 'staging' || !INITIAL_ENVIRONMENT_APPS.includes(entry.app));
   }
-  const initial = initialize
+  const initial = !pagesDevRetired && initialize
     ? missingEnvironmentEntries(desiredEntries({ staging: sources.dev, prod: sources.dev }), retained, INITIAL_ENVIRONMENT_APPS) : [];
   const desired = [...retained, ...initial];
   const old = new Map(previous.entries.map(entry => [entry.path, entry]));
   const changed = desired.filter(entry => needsBuild(entry, old.get(entry.path)));
   const changedDevApps = [...new Set(changed.filter(entry => entry.environment === 'dev').map(entry => entry.app))];
   const removed = previous.entries.some(entry => !desired.some(next => next.path === entry.path));
-  const publish = changed.length > 0 || removed || full || devOnly;
+  const publish = changed.length > 0 || removed || full || devOnly || pagesDevRetired;
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `changed=${publish}\n`);
   console.log(`Changed apps: ${changed.map(e => e.path).join(', ') || 'none'}`);
   console.log(`Initialize missing environments (existing releases retained): ${initial.map(e => e.path).join(', ') || 'none'}`);
@@ -175,7 +187,7 @@ async function main() {
   await writeFile(resolve(output, '.nojekyll'), '');
   const deployedAt = new Date().toISOString();
   const workflowRunId = process.env.GITHUB_RUN_ID || null;
-  const environmentSnapshots = buildEnvironmentSnapshots(previous, entries, { developSha, productionSha, devOnly, deployedAt, workflowRunId });
+  const environmentSnapshots = buildEnvironmentSnapshots(previous, entries, { developSha, productionSha, devOnly, pagesDevRetired, deployedAt, workflowRunId });
   await writeFile(resolve(output, 'deployment-manifest.json'), JSON.stringify({ schemaVersion: 1, ...((full || devOnly) ? { validatedDevelop: developSha } : {}), environmentSnapshots, entries }, null, 2));
   await mkdir('.deploy-state', { recursive: true });
   await writeFile('.deploy-state/changed.json', JSON.stringify(changed.map(entry => entry.path)));

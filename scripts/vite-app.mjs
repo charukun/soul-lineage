@@ -13,7 +13,7 @@ export function appConfig(app, configUrl) {
   if (environment !== 'local' && !GAME_ENVIRONMENTS.some(item => item.id === environment)) throw new Error('Invalid APP_ENV');
   const git = args => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
   const info = {
-    name: node.pkg.displayName, app, environment,
+    name: node.pkg.displayName, app, kind: node.pkg.appKind || 'game', environment,
     commit: git(['rev-parse', 'HEAD']),
     branch: process.env.APP_BRANCH || git(['branch', '--show-current']),
     builtAt: new Date().toISOString(), runId: process.env.GITHUB_RUN_ID || null,

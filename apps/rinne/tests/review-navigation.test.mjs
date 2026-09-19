@@ -6,7 +6,7 @@ import { REVIEW_NAVIGATION_FALLBACK, canReturnToPreviousReview } from '../src/re
 const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
 test('review back uses same-origin history only when it is safe',()=>{
-  assert.equal(REVIEW_NAVIGATION_FALLBACK,'/');
+  assert.equal(REVIEW_NAVIGATION_FALLBACK,'https://soul-lineage-review-dev.c-okamoto.workers.dev/');
   assert.equal(canReturnToPreviousReview({referrer:'https://review.test/',currentHref:'https://review.test/review-battle.html',historyLength:2}),true);
   assert.equal(canReturnToPreviousReview({referrer:'https://review.test/characters.html',currentHref:'https://review.test/characters-advanced.html',historyLength:4}),true);
   assert.equal(canReturnToPreviousReview({referrer:'https://outside.test/',currentHref:'https://review.test/review-effects.html',historyLength:3}),false);
@@ -34,4 +34,11 @@ test('shared navigation replaces legacy controls and is mobile-safe',async()=>{
   assert.match(css,/min-height:44px/);
   assert.match(css,/safe-area-inset-top/);
   assert.match(css,/safe-area-inset-left/);
+});
+
+test('Rinne review launcher is only a compatibility bridge to the independent Lab',async()=>{
+  const html=await read('review.html');
+  assert.match(html,/soul-lineage-review-dev\.c-okamoto\.workers\.dev/);
+  assert.match(html,/data-review-bridge/);
+  assert.doesNotMatch(html,/data-review-target=/);
 });
