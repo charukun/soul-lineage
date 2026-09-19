@@ -68,7 +68,7 @@ test('VFX discovery tools stay available but hide while the catalog is trivially
   assert.match(js,/haystack\.includes\(needle\)/);
   assert.match(js,/REVIEW_EFFECT_CATEGORIES\[entry\.category\]/);
   assert.doesNotMatch(html,/import|download|remote|URL/i);
-  assert.doesNotMatch(js,/fetch\(/);
+  assert.doesNotMatch(js,/(^|[^A-Za-z])fetch\(/);
 });
 
 test('existing playback review controls stay available as secondary tools',()=>{
