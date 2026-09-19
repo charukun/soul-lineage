@@ -12,10 +12,10 @@ export function flattenMuraModel(T,g){g.updateMatrixWorld(true);const bins=new M
 export function createMuraTerrain({THREE:T,scene,outside,getProp,mat,createCanvas}){
 const view={scene,outside,getProp},UP=new T.Vector3(0,1,0);
  const groundDetail=new T.Group();groundDetail.name='MuraGroundDetail';view.outside.add(groundDetail);
- const detailMat=new T.MeshStandardMaterial({color:0x7f9867,roughness:1,transparent:true,opacity:.72,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
+ const detailMat=new T.MeshStandardMaterial({color:0x6f8758,roughness:1,transparent:true,opacity:.82,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
  const detailGeo=new T.CircleGeometry(1,10);detailGeo.rotateX(-Math.PI/2);
- const detailCount=180,detailMesh=new T.InstancedMesh(detailGeo,detailMat,detailCount),detailMatrix=new T.Matrix4();
- for(let i=0;i<detailCount;i++){const a=rand(i+201)*Math.PI*2,r=7+Math.pow(rand(i+501),.68)*92,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x-riverX(z))<10){detailMatrix.makeScale(0,0,0);}else{const sx=.45+rand(i+701)*1.35,sz=.35+rand(i+901)*1.1;detailMatrix.makeScale(sx,1,sz);detailMatrix.setPosition(x,.012,z);}detailMesh.setMatrixAt(i,detailMatrix);}
+ const detailCount=260,detailMesh=new T.InstancedMesh(detailGeo,detailMat,detailCount),detailMatrix=new T.Matrix4();
+ for(let i=0;i<detailCount;i++){const a=rand(i+201)*Math.PI*2,r=5+Math.pow(rand(i+501),.68)*96,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x-riverX(z))<10){detailMatrix.makeScale(0,0,0);}else{const sx=.65+rand(i+701)*1.65,sz=.48+rand(i+901)*1.35;detailMatrix.makeScale(sx,1,sz);detailMatrix.setPosition(x,.012,z);}detailMesh.setMatrixAt(i,detailMatrix);}
  detailMesh.receiveShadow=true;detailMesh.userData.muraGroundDetail=true;groundDetail.add(detailMesh);
  const groundingBytes=new Uint8Array(32*32*4);for(let y=0;y<32;y++)for(let x=0;x<32;x++){const i=(y*32+x)*4,d=Math.hypot((x-15.5)/15.5,(y-15.5)/15.5),a=Math.max(0,1-d*d);groundingBytes[i]=groundingBytes[i+1]=groundingBytes[i+2]=255;groundingBytes[i+3]=Math.round(a*a*112);}
  const groundingTexture=new T.DataTexture(groundingBytes,32,32,T.RGBAFormat);groundingTexture.needsUpdate=true;groundingTexture.magFilter=groundingTexture.minFilter=T.LinearFilter;
