@@ -60,7 +60,7 @@
     ],
     "receipt": {
       "repository": "charukun/soul-lineage",
-      "pullRequest": null,
+      "pullRequest": 1118,
       "marker": "autonomous-receipt:village:village-host-clock-invalid-start-20260920"
     }
   },
