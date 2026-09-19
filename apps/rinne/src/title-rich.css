@@ -104,15 +104,7 @@
 }
 .title-screen[data-intro="cinematic"] .title-lockup{transform:translateX(-50%) translateY(14px);filter:blur(5px)}
 .title-screen[data-intro="cinematic"] .title-actions{transform:translateX(-50%) translateY(12px);filter:blur(4px)}
-.title-screen[data-intro="cinematic"][data-primary-action="ready"] .title-actions{
-  opacity:1;transform:translateX(-50%) translateY(0);filter:none;pointer-events:auto;
-}
-.title-screen[data-intro="cinematic"][data-primary-action="ready"] .title-actions .title-command:not(#new-life){display:none}
-.title-screen[data-primary-action="ready"] .title-actions #new-life{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto}
-.title-screen[data-intro="settling"][data-primary-action="ready"] .title-actions{
-  opacity:1;transform:translateX(-50%) translateY(0);filter:none;pointer-events:auto;
-}
-.title-screen[data-intro="settling"][data-primary-action="ready"] .title-actions .title-command:not(#new-life){display:none}
+.title-screen[data-intro="cinematic"][data-skip="ready"]{cursor:pointer;touch-action:manipulation}
 .title-screen[data-intro="settling"] .title-copy,
 .title-screen[data-intro="settling"] .title-controller-hints,
 .title-screen[data-intro="settling"] .boot-status,
@@ -243,3 +235,5 @@
 @media(max-aspect-ratio:3/4){.title-cinematic-video{object-position:36% 50%}.title-copy{display:none}}
 .title-screen[data-motion="off"] .title-cinematic-video{transition:none!important}
 @media(prefers-reduced-motion:reduce){.title-cinematic-video{transition:none!important}}
+
+.title-screen[data-media="realtime"] .title-cinematic-media{display:none}.title-screen[data-media="realtime"] .title-world-base{opacity:0!important}.title-screen[data-media="realtime"] .title-live-canvas{opacity:1!important;visibility:visible!important;filter:saturate(1.05) contrast(1.02)}
