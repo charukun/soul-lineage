@@ -110,7 +110,6 @@ export function settleProgress(profile, status, eaten, report) {
   const gained = extracted ? report.carried + bonus : 0;
   if (!integer(p.essence + gained) || !integer(p.returns + Number(extracted))) throw Error('帰還の記録が上限に達しました。');
   p.essence += gained; p.returns += Number(extracted);
-  if (extracted) p.autoGrowth = true;
   if (cleared) p.chapter = Math.min(MISSIONS.length, p.chapter + 1);
   p.bestHaul = Math.max(p.bestHaul, gained);
   p.lastResult = {status, extracted, cleared, gained, bonus, carried: report.carried, lost: extracted ? 0 : report.carried, eaten, chapter: p.chapter};
