@@ -5,13 +5,18 @@ on:
     paths: ['apps/eclipse/**', '.github/workflows/eclipse-validation.yml', 'wrangler.dev.eclipse.jsonc']
 permissions:
   contents: read
+  actions: read
+concurrency:
+  group: eclipse-development-publication
+  cancel-in-progress: true
 jobs:
   eclipse:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       APP_ENV: dev
       ECLIPSE_HEAD_SHA: ${{ github.sha }}
+      ECLIPSE_SOURCE_CACHE: ${{ github.workspace }}/fresh-source/originals
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,19 +26,30 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Recover previously acquired original files and exclusion inventory
+        uses: actions/download-artifact@v4
+        with:
+          name: eclipse-fresh-models-and-exclusion-audit
+          run-id: 35415633900
+          github-token: ${{ github.token }}
+          path: fresh-source
       - run: npm ci
-      - name: Validate exact checkout source
+      - name: Validate and build exact checkout with original asset integrity checks
         run: |
           test "$(git rev-parse HEAD)" = "$ECLIPSE_HEAD_SHA"
           node --test apps/eclipse/tests/*.test.mjs
           find apps/eclipse/src -name '*.js' -print0 | xargs -0 -n 1 node --check
           npm run build --workspace @soul/eclipse
       - run: npx playwright install --with-deps chromium
-      - name: Install Japanese system font for faithful screenshots
+      - name: Install Japanese system font
         run: sudo apt-get install -y fonts-noto-cjk
-      - name: Real WebGL2 desktop and mobile browser playtest
+      - name: WebGL2 desktop and touch gameplay plus animation and model provenance tests
         run: node apps/eclipse/tools/verify-browser.mjs
-      - name: Publish only the independent Eclipse application
+      - name: Include inspectable screenshots and test evidence in public build
+        run: |
+          mkdir -p dist/eclipse/evidence
+          cp test-results/eclipse/*.png test-results/eclipse/results.json dist/eclipse/evidence/
+      - name: Publish independent Eclipse application only
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -41,21 +57,22 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           npx --yes wrangler@4 deploy --config wrangler.dev.eclipse.jsonc
-      - name: Verify unauthenticated public game in real browsers
+      - name: Verify unauthenticated public URL in real browsers
         env:
           ECLIPSE_PUBLIC_URL: https://soul-lineage-eclipse-dev.c-okamoto.workers.dev/
         run: |
           node --input-type=module -e "const r=await fetch(process.env.ECLIPSE_PUBLIC_URL+'version.json');if(!r.ok)throw Error('Public version unavailable');const v=await r.json();if(v.commit!==process.env.ECLIPSE_HEAD_SHA)throw Error('Public exact-head mismatch');console.log(v);"
           node apps/eclipse/tools/verify-browser.mjs
-      - name: Preserve exact-head evidence and playable build
+      - name: Preserve screenshots, public verification and provenance
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: eclipse-validation-and-build
+          name: eclipse-verification-evidence
           path: |
             test-results/eclipse
             test-results/eclipse-public
-            dist/eclipse
-            apps/eclipse
-          retention-days: 7
+            dist/eclipse/version.json
+            dist/eclipse/models/manifest.json
+            dist/eclipse/models/exclusion-audit.json
+          retention-days: 14
           compression-level: 6

@@ -1,40 +1,7 @@
-/** Original GLB integrity inventory. Each source repository is pinned to a full commit SHA. */
-const packs=[
- ['KayKit-Character-Pack-Adventures-1.0','672074b73ba276876a19e8816ecdc5241817ab47','addons/kaykit_character_pack_adventures/Characters/gltf/'],
- ['KayKit-Character-Pack-Skeletons-1.0','15b62b9bad122f72926c10fb14d622c73819fa54','addons/kaykit_character_pack_skeletons/Characters/gltf/'],
- ['KayKit-Dungeon-Remastered-1.0','b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07','addons/kaykit_dungeon_remastered/Assets/gltf/']
-];
-const inventory=`Knight|3659532|60428e3abc09ba83e595d256e3af8c5c976b46cdae599f0802fc82b4a3445168|Knight.glb
-Skeleton_Warrior|4863620|178b6fda810b814c250d8a2010c24dfd9b458b9006dd323353e620b7ff118bbe|Skeleton_Warrior.glb
-Skeleton_Minion|4814296|6ffc003f895bed0b074791e0e490846210a2e2f8fc7da300aba53cc185f95968|Skeleton_Minion.glb
-Skeleton_Mage|4761048|e05b0f5cfa395271c9f75fd07c0a0613c56f401ece4ab644e080001a79971075|Skeleton_Mage.glb
-floor_tile_large|28100|5b6bbbc683f6729d094732056f157a928435de97ec3cf94c341c7465907fe17b|floor_tile_large.gltf.glb
-floor_tile_small|20740|645f02c82d1fa15e3e1daa7892b70c8a9d44f44d0e520d76ae6afd08633c5b34|floor_tile_small.gltf.glb
-floor_tile_small_decorated|40812|4dd8a74dc00c2272957938f1612c730e06bfddca7a9d9cdc6f316594d4a0f3cf|floor_tile_small_decorated.gltf.glb
-floor_tile_small_broken_A|22132|d1acc3407f941623b3b01ec9a1751c36a5ca82bb14721fc8f28e5559317edad4|floor_tile_small_broken_A.gltf.glb
-floor_tile_small_weeds_A|44020|95fcb7701819428da04318aafbd9410b994217424d1453844ba3e6f1f91a28f3|floor_tile_small_weeds_A.gltf.glb
-floor_tile_large_rocks|38384|fb06b1e9ca7a5d14f6757119490c4b3c077a30e31ef580da6925b6657f14c14d|floor_tile_large_rocks.gltf.glb
-floor_dirt_large|24620|48cc8018237fbdca3f7fccef95c93ef32e877d8fc59f481b9369fed71fec895b|floor_dirt_large.gltf.glb
-floor_dirt_large_rocky|30216|f83d503c0ab16aaaa48b4e1680a2aaf7f975a63e376b6dc8e48032c702521d8f|floor_dirt_large_rocky.gltf.glb
-floor_foundation_allsides|44944|5b167b3f5fbc0d8a61c5681d028590e78f27f15ff3da3e171ba9c898ed051408|floor_foundation_allsides.gltf.glb
-wall_arched|69124|916a7d81b8d6ebddb069440a0f9ecb14c9c2a1e5cd7769acf2218d630bd56cb8|wall_arched.gltf.glb
-wall_archedwindow_open|58028|8c75cb77edc51c94b91c5625828391fb56c70bf31e2235cf5abf718eae0d842a|wall_archedwindow_open.gltf.glb
-wall_broken|69276|ee7598ef2b88aaeb7b61e46d5f1da1a059de3860b080b38b7a507ca2f461302c|wall_broken.gltf.glb
-wall_half|36840|9e65c438f55d96cbcd554489bf2dec236feb575a8192c709d3bf6886599339a8|wall_half.gltf.glb
-wall_corner|49212|3c8cbcbf3abf78c9dc49f440b152340ef681fee9cccf9ca6ed27b6670a34eb81|wall_corner.gltf.glb
-pillar|25552|e31da496461921475384c62ce761cd23924892bd6f32aeea68bd913545caee33|pillar.gltf.glb
-pillar_decorated|62460|eecf7d454a1b6767a113e2490cb1536134abea0b57329a50cf2250d3ed8e2f65|pillar_decorated.gltf.glb
-rubble_large|60196|0292da1b5788a5a52b616d5d27d3270c676a5fbf9e921b6dd3dc30364d355b54|rubble_large.gltf.glb
-rubble_half|38836|7514ccbda643c13d5a782579e4f01ee6402eec5519590d3f048d396cdaedec24|rubble_half.gltf.glb
-stairs|43368|5ba16e5d919aaa8958435c4b73c1f8a94c98febeacf716faa1359f24e6b27d70|stairs.gltf.glb
-banner_patternA_red|25164|64243b0a8110bbc6e5a02f5c0acbe447dc7ea65319123319c402dd26486dad25|banner_patternA_red.gltf.glb
-banner_triple_red|36232|39a41d11c12ec80629d322107de803a6bc21a4da94b7d4ba5183ee863a877f7e|banner_triple_red.gltf.glb
-torch_lit|31244|45fcfeb3b129722019d42aef0acae8f6c5f8f6dbdf5d3346ceea1f084b69b396|torch_lit.gltf.glb
-torch_mounted|33220|a617c159e02932db48ca81ec46f1f100acc8904fb6ece43e919d2f93c13950e9|torch_mounted.gltf.glb
-candle_triple|28240|3536f0a55df50c728ec9c369c4a6a81c913b33a507ac4a192d418d28fd6677c2|candle_triple.gltf.glb
-candle_lit|22648|a884f27540b8b91e3d47914453cbf2c4d48f4ca8504ace9960a8d9b4e79a6c48|candle_lit.gltf.glb
-chest_gold|140140|04708d5f88ed59d361c8a6cec1efe8b7028dbc641dfae0a1467f272e14a94b6e|chest_gold.glb
-sword_shield_gold|47768|7b7dd709bd6a24e9e2913da2ebc1fd64ca318e22fbef66f0e8cf14b79adae9aa|sword_shield_gold.gltf.glb
-barrel_large|44292|9fae6a79056241baf253fe9272dc7a7ddb174e1caf153eb5013c58a596722148|barrel_large.gltf.glb
-crates_stacked|103704|43182b077ead9b033804300ef453b7402bdc979f00cfce2d7f0c91dcf6bb5d3c|crates_stacked.gltf.glb`;
-export const manifest=inventory.split('\n').map(line=>{const[id,bytes,sha256,file]=line.split('|');const p=packs[id==='Knight'?0:id.startsWith('Skeleton_')?1:2];return{id,file:`models/${id}.glb`,author:'Kay Lousberg / KayKit',license:'CC0-1.0',repository:`https://github.com/KayKit-Game-Assets/${p[0]}`,revision:p[1],sourcePath:p[2]+file,sha256,bytes:Number(bytes)};});
+/** Original artist-authored downloads only; no generated or re-used game models. */
+export const repository='agentkaerf/FreeModels';
+export const revision='db3df04d1e4714298a09510b26fb6de6645138a2';
+const packs={hero:['Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/','https://quaternius.com/packs/modularcharacteroutfitsfantasy.html'],animation:['Universal Animation Library 2[Standard]/','https://quaternius.com/packs/universalanimationlibrary2.html'],monsters:['Cute Animated Monsters - Aug 2020/glTF/','https://quaternius.com/packs/cuteanimatedmonsters.html'],props:['Fantasy Props MegaKit[Standard]/glTF/','https://quaternius.itch.io/fantasy-props-megakit'],village:['Medieval Village MegaKit[Standard]/glTF/','https://quaternius.com/packs/medievalvillagemegakit.html'],nature:['Stylized Nature MegaKit[Standard]/glTF/','https://quaternius.itch.io/stylized-nature-megakit']};
+const entries=[['Ranger','hero','Female_Ranger.gltf','character'],['RangerAnimations','animation','UAL2_Standard.glb','animation-only'],['Ninja','monsters','Ninja.gltf','character'],['Demon','monsters','Demon.gltf','character'],['Wizard','monsters','Wizard.gltf','character'],['Dragon','monsters','Dragon.gltf','character'],['Sword','props','Sword_Ornate.gltf','equipment'],['Candles','props','Candle_C.gltf','environment'],['Crate','props','Crate.gltf','environment'],['Ground','nature','GroundPieces/Ground_Gravel.gltf','environment'],['Rock','nature','Rocks/Rock_Medium_1.gltf','environment'],['Pine','nature','Trees/Pine_1.gltf','environment'],['Fern','nature','Plants/Fern_1.gltf','environment'],['Paving','village','Sidewalk_Square.gltf','environment'],['Pillar','village','Pillar_Large.gltf','environment'],['BrokenPillar','village','Pillar_Small_Damaged.gltf','environment'],['Wall','village','Wall_Stone.gltf','environment'],['Arch','village','Arch_Door.gltf','environment'],['Steps','village','Stairs_Small.gltf','environment'],['Lantern','village','Lampost_Long_Tall.gltf','environment'],['Banner','village','Flag_C.gltf','environment'],['Well','village','Well.gltf','environment']];
+export const manifest=entries.map(([id,pack,name,role])=>({id,role,author:'Quaternius',license:'CC0-1.0',repository,revision,sourcePath:packs[pack][0]+name,authorPage:packs[pack][1]}));
+export const excludedSnapshots=[{ref:'develop',commit:'1ba1336a59ffc1818b77c9ecc279e7088a5bbc71'},{ref:'work/nocturne-external-assets',commit:'3e2f17a58b4809f718aa3a974b4253f3e34be3fad'}];

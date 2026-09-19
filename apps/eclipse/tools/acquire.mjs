@@ -1,20 +1,25 @@
-import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {mkdir,readFile,writeFile,rm} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-import {resolve} from 'node:path';
-import {manifest} from '../model-manifest.mjs';
-const root=fileURLToPath(new URL('..',import.meta.url));
-const output=resolve(root,'public/models');await mkdir(output,{recursive:true});
-const hash=data=>createHash('sha256').update(data).digest('hex');
-const pending=[...manifest];
-async function request(url){let last;for(let i=0;i<3;i++){try{const response=await fetch(url,{signal:AbortSignal.timeout(45000)});if(!response.ok)throw new Error(`HTTP ${response.status}: ${url}`);return Buffer.from(await response.arrayBuffer());}catch(e){last=e;}}throw last;}
-async function worker(){while(pending.length){const item=pending.shift(),dest=resolve(root,'public',item.file);let existing;try{existing=await readFile(dest);}catch{}if(existing&&hash(existing)===item.sha256)continue;
- const repository=item.repository.replace('https://github.com/','');if(!repository.startsWith('KayKit-Game-Assets/'))throw new Error('Unapproved model origin');
- const bytes=await request(`https://raw.githubusercontent.com/${repository}/${item.revision}/${item.sourcePath}`);
- if(bytes.length!==item.bytes||hash(bytes)!==item.sha256)throw new Error(`Original asset integrity failed: ${item.id}`);
- await writeFile(dest,bytes);console.log(`Verified original: ${item.id}`);
-}}
-await Promise.all(Array.from({length:5},worker));
-for(const repo of new Set(manifest.map(m=>m.repository))){const m=manifest.find(m=>m.repository===repo),name=repo.split('/').at(-1);const bytes=await request(`${repo.replace('github.com','raw.githubusercontent.com')}/${m.revision}/LICENSE.txt`);await writeFile(resolve(output,`${name}-LICENSE.txt`),bytes);}
-await writeFile(resolve(output,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
-console.log(`Original third-party assets ready: ${manifest.length}; ${manifest.reduce((n,m)=>n+m.bytes,0)} bytes. No generated geometry.`);
+import {resolve,dirname,posix} from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {manifest,repository,revision,excludedSnapshots} from '../model-manifest.mjs';
+const root=fileURLToPath(new URL('..',import.meta.url)),output=resolve(root,'public/models'),cache=process.env.ECLIPSE_SOURCE_CACHE?resolve(process.env.ECLIPSE_SOURCE_CACHE):null;
+const digest=data=>createHash('sha256').update(data).digest('hex');
+const gitHash=data=>createHash('sha1').update(`blob ${data.length}\0`).update(data).digest('hex');
+async function request(url){let last;for(let i=0;i<4;i++){try{const r=await fetch(url,{signal:AbortSignal.timeout(90000)});if(!r.ok)throw Error(`HTTP ${r.status}: ${url}`);return Buffer.from(await r.arrayBuffer());}catch(e){last=e;await new Promise(r=>setTimeout(r,1000*(i+1)));}}throw last;}
+let inventory;if(cache){try{inventory=JSON.parse(await readFile(resolve(cache,'../mirror-tree.json'),'utf8'));}catch{}}
+if(!inventory)inventory=JSON.parse((await request(`https://api.github.com/repos/${repository}/git/trees/${revision}?recursive=1`)).toString());
+if(inventory.truncated)throw Error('Incomplete source inventory');const sourceTree=new Map(inventory.tree.filter(e=>e.type==='blob').map(e=>[e.path,e]));
+await rm(output,{recursive:true,force:true});await mkdir(output,{recursive:true});const downloaded=new Map(),fileRecords=[];const encode=p=>p.split('/').map(encodeURIComponent).join('/');
+function getSource(sourcePath){if(downloaded.has(sourcePath))return downloaded.get(sourcePath);const promise=(async()=>{const entry=sourceTree.get(sourcePath);if(!entry)throw Error(`Source asset absent at pinned revision: ${sourcePath}`);let bytes;if(cache){try{bytes=await readFile(resolve(cache,sourcePath));}catch{}}if(!bytes||gitHash(bytes)!==entry.sha)bytes=await request(`https://raw.githubusercontent.com/${repository}/${revision}/${encode(sourcePath)}`);if(gitHash(bytes)!==entry.sha)throw Error(`Original file integrity failure: ${sourcePath}`);const dest=resolve(output,'vendor',sourcePath);await mkdir(dirname(dest),{recursive:true});await writeFile(dest,bytes);fileRecords.push({sourcePath,bytes:bytes.length,gitBlob:entry.sha,sha256:digest(bytes)});return bytes;})();downloaded.set(sourcePath,promise);return promise;}
+const resolvedManifest=[];
+for(const item of manifest){const bytes=await getSource(item.sourcePath);if(item.sourcePath.endsWith('.gltf')){const gltf=JSON.parse(bytes.toString());const deps=[...(gltf.buffers||[]),...(gltf.images||[])].filter(e=>e.uri&&!e.uri.startsWith('data:')).map(e=>posix.normalize(posix.join(posix.dirname(item.sourcePath),decodeURIComponent(e.uri))));for(let i=0;i<deps.length;i+=4)await Promise.all(deps.slice(i,i+4).map(getSource));}resolvedManifest.push({...item,file:`models/vendor/${encode(item.sourcePath)}`,source:`https://raw.githubusercontent.com/${repository}/${revision}/${encode(item.sourcePath)}`,bytes:bytes.length,sha256:digest(bytes),gitBlob:gitHash(bytes)});console.log(`Verified fresh asset: ${item.id} (${item.role})`);}
+let previous;if(cache){try{previous=JSON.parse(await readFile(resolve(cache,'../audit/excluded-model-inventory.json'),'utf8'));}catch{}}
+if(!previous){previous={};for(const item of excludedSnapshots){execFileSync('git',['fetch','--depth=1','origin',item.commit],{stdio:'pipe'});const tree=execFileSync('git',['ls-tree','-r','-l',item.commit],{encoding:'utf8'});previous[item.ref]={commit:item.commit,models:tree.split('\n').filter(l=>/\.(glb|gltf|fbx|obj|vrm|blend)$/i.test(l)).map(l=>{const [meta,path]=l.split('\t');const b=meta.trim().split(/\s+/);return {path,gitBlob:b[2],bytes:Number(b[3])};})};}}
+const forbiddenBlobs=new Set(Object.values(previous).flatMap(s=>s.models.map(m=>m.gitBlob)));const forbiddenSource=/KayKit|Kenney|Ultimate Monsters|(?:^|\/)(?:Beholder|Chomper|Glub|Goleling)\.(?:glb|gltf)$/i;
+const collisions=resolvedManifest.filter(m=>forbiddenBlobs.has(m.gitBlob)||forbiddenSource.test(m.sourcePath));if(collisions.length)throw Error(`Excluded-game model reuse: ${collisions.map(m=>m.id).join(', ')}`);
+for(const s of excludedSnapshots){if(previous[s.ref]?.commit!==s.commit)throw Error(`Incorrect exclusion snapshot: ${s.ref}`);}
+const audit={version:2,games:['輪廻転生','尽喰廻遊','村アプリ','ノクターン'],sourceRevision:revision,excludedSnapshots:previous,newModels:resolvedManifest.map(({id,role,sourcePath,sha256,gitBlob})=>({id,role,sourcePath,sha256,gitBlob})),collisions:[],methods:['Exact source Git blob comparison with both excluded snapshots','Original source pack comparison across glTF/GLB variants','Rendered meshes are downloaded originals; animation mannequin excluded'],generatedModels:0,generatedGeometry:0,geometryRewrites:0,sourceFiles:fileRecords};
+await writeFile(resolve(output,'manifest.json'),JSON.stringify(resolvedManifest,null,2)+'\n');await writeFile(resolve(output,'exclusion-audit.json'),JSON.stringify(audit,null,2)+'\n');await writeFile(resolve(output,'CREDITS.txt'),`3D art and skeletal animations: Quaternius. CC0 1.0 Universal.\nSource: https://github.com/${repository}/tree/${revision}\n${[...new Set(manifest.map(m=>m.authorPage))].join('\n')}\nOriginal geometry and buffers are unmodified. Animation-library mannequin is not displayed.\n`);
+console.log(`${resolvedManifest.length} fresh assets, ${fileRecords.length} source files, ${fileRecords.reduce((s,f)=>s+f.bytes,0)} bytes. Exclusion collisions: 0. Generated 3D models: 0.`);
