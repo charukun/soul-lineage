@@ -3,6 +3,8 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import './review-object-library.css';
 import {mountRinneReviewShell} from './review-lab-shell.js';
+import {createMuraModels} from '@soul/rendering/mura/models';
+import {RINNE_OBJECT_REVIEW_CATALOG as OBJECTS} from './review-object-catalog.js';
 mountRinneReviewShell('objects');
 
 const OBJECT_SOURCE=Object.freeze({
@@ -11,13 +13,6 @@ const OBJECT_SOURCE=Object.freeze({
   commit:'b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07',
   license:'CC0-1.0',
 });
-const OBJECTS=Object.freeze([
-  {id:'barrel',label:'樽',url:'/assets/vendor/kaykit-dungeon/barrel_small.gltf.glb'},
-  {id:'box',label:'木箱',url:'/assets/vendor/kaykit-dungeon/box_small.gltf.glb'},
-  {id:'rubble',label:'瓦礫',url:'/assets/vendor/kaykit-dungeon/rubble_large.gltf.glb'},
-  {id:'torch',label:'松明',url:'/assets/vendor/kaykit-dungeon/torch_lit.gltf.glb'},
-]);
-
 const q=selector=>document.querySelector(selector);
 const canvas=q('#object-stage');
 const loader=new GLTFLoader();
@@ -40,6 +35,7 @@ const fill=new THREE.DirectionalLight('#8dcbe1',1.7);fill.position.set(5,4,-5);s
 const ground=new THREE.Mesh(new THREE.CircleGeometry(3.8,64),new THREE.MeshStandardMaterial({color:'#263431',roughness:1}));
 ground.rotation.x=-Math.PI/2;ground.position.y=-.006;scene.add(ground);
 
+const models=createMuraModels(THREE,{createCanvas:()=>document.createElement('canvas'),textileFibers:1800,textileBlotches:40});
 let objectRoot=null,frameId=0,loadSequence=0,selected=OBJECTS[0].id;
 
 function status(message,error=false){q('#object-status').textContent=message;q('#object-status').dataset.error=String(error);}
@@ -80,16 +76,25 @@ function setCameraPreset(preset='full'){
 function renderSelection(){
   for(const button of q('#object-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.object===selected));
 }
+function runtimeObject(item){
+  if(item.kind==='prop')return models.prop(item.propKind,7);
+  const g=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x735238,roughness:.9}),metal=new THREE.MeshStandardMaterial({color:0xc8cfcb,roughness:.28,metalness:.7}),cloth=new THREE.MeshStandardMaterial({color:0x9e7e68,roughness:.8});
+  const mesh=(geo,mat,x=0,y=0,z=0)=>{const n=new THREE.Mesh(geo,mat);n.position.set(x,y,z);n.castShadow=n.receiveShadow=true;g.add(n);return n;};
+  if(item.runtimeKind==='training-dummy'){mesh(new THREE.CylinderGeometry(.11,.14,2.4,8),wood,0,1.2);const arms=mesh(new THREE.CylinderGeometry(.08,.1,1.65,8),wood,0,1.65);arms.rotation.z=Math.PI/2;mesh(new THREE.BoxGeometry(.76,.82,.28),cloth,0,1.35);mesh(new THREE.SphereGeometry(.28,10,8),cloth,0,2.25);}
+  else if(item.runtimeKind==='armor-stand'){mesh(new THREE.CylinderGeometry(.08,.1,2.15,8),wood,0,1.08);mesh(new THREE.CapsuleGeometry(.34,.55,5,9),metal,0,1.34);mesh(new THREE.BoxGeometry(.95,.2,.42),metal,0,1.72);}
+  else {const long=item.weapon==='spear',shaft=mesh(new THREE.CylinderGeometry(.035,.045,long?1.45:.82,7),wood,0,long?.72:.44);const blade=mesh(item.weapon==='axe'?new THREE.BoxGeometry(.42,.34,.07):new THREE.ConeGeometry(item.weapon==='great'?.12:.08,item.weapon==='great'?.68:.38,5),metal,item.weapon==='axe'?.17:0,long?1.55:item.weapon==='great'?.98:.84);}
+  return g;
+}
 async function loadObject(id){
   const item=OBJECTS.find(row=>row.id===id);if(!item)throw new Error(`Unknown review object: ${id}`);
   const sequence=++loadSequence;selected=id;status(`${item.label} を読み込み中…`);
   if(objectRoot)disposeRoot(objectRoot);objectRoot=null;
-  const gltf=await loader.loadAsync(new URL(item.url,location.href).href);
-  if(sequence!==loadSequence){disposeRoot(gltf.scene);return;}
-  objectRoot=gltf.scene;objectRoot.name=`ReviewObject:${item.id}`;
+  const root=item.kind==='gltf'?(await loader.loadAsync(new URL(item.url,location.href).href)).scene:runtimeObject(item);
+  if(sequence!==loadSequence){disposeRoot(root);return;}
+  objectRoot=root;objectRoot.name=`ReviewObject:${item.id}`;
   objectRoot.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}});
   scene.add(objectRoot);fitObject(objectRoot);setCameraPreset('full');renderSelection();
-  status(`${item.label} · RINNE runtime asset`);
+  status(`${item.label} · ${item.source}`);
 }
 function populate(){
   q('#object-options').replaceChildren(...OBJECTS.map(item=>{const button=document.createElement('button');button.type='button';button.textContent=item.label;button.dataset.object=item.id;button.addEventListener('click',()=>loadObject(item.id).catch(error=>status(error.message,true)));return button;}));
