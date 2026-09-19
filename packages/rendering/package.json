@@ -48,7 +48,8 @@
     "./mura/kaykit-detail": "./src/mura/kaykit-detail.js",
     "./mura/building-visual": "./src/mura/building-visual.js",
     "./motion-quality": "./src/motion-quality.js",
-    "./motion-runtime": "./src/motion-runtime.js"
+    "./motion-runtime": "./src/motion-runtime.js",
+    "./combat-camera-frame": "./src/combat-camera-frame.js"
   },
   "dependencies": {
     "three": "0.186.0",

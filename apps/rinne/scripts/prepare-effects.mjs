@@ -3,9 +3,10 @@ import {mkdir,readFile,rename,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {EFFECT_SOURCE,EFFECT_RUNTIME,EFFECT_ASSETS,RUNTIME_ASSETS,EFFECT_PUBLIC_PATH,REVIEW_VFX_LIBRARY_SOURCE} from '../src/rebuild/authored-effect-manifest.js';
+import {REVIEW_VFX_ADDITIONAL_SOURCES} from '../src/rebuild/review-vfx-additional-sources.js';
 
 const appRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1610,7]]);
+const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1610,7],[1710,'dependent-files']]);
 const REVIEWED_EFFECT_VERSIONS=new Set(REVIEWED_EFFECT_LAYOUTS.keys());
 export const EFFECT_DOWNLOADS=Object.freeze([
   ...EFFECT_ASSETS.map(row=>({...row,...{repository:row.repository||EFFECT_SOURCE.repository,revision:row.revision||EFFECT_SOURCE.revision,sourcePath:row.sourcePath||row.path,target:row.path}})),
@@ -14,6 +15,7 @@ export const EFFECT_DOWNLOADS=Object.freeze([
     gitBlobSha:EFFECT_SOURCE.licenseBlob,byteLength:731,target:'LICENSE-SAMPLES.txt'},
   {path:REVIEW_VFX_LIBRARY_SOURCE.licensePath,sourcePath:REVIEW_VFX_LIBRARY_SOURCE.licensePath,repository:REVIEW_VFX_LIBRARY_SOURCE.repository,revision:REVIEW_VFX_LIBRARY_SOURCE.revision,
     gitBlobSha:REVIEW_VFX_LIBRARY_SOURCE.licenseBlob,byteLength:REVIEW_VFX_LIBRARY_SOURCE.licenseBytes,target:'LICENSE-REVIEW-LIBRARY-CC0.txt'},
+  ...REVIEW_VFX_ADDITIONAL_SOURCES.map(source=>({path:source.licensePath,sourcePath:source.licensePath,repository:source.licenseRepository||source.repository,revision:source.licenseRevision||source.revision,gitBlobSha:source.licenseBlob,byteLength:source.licenseBytes,target:source.licenseTarget})),
 ]);
 export function gitBlobSha(bytes){return createHash('sha1').update(`blob ${bytes.byteLength}\0`).update(bytes).digest('hex');}
 export function verifyEffectBytes(row,bytes){
@@ -33,13 +35,15 @@ export function effectDependencies(bytes,expectedVersion=null){
       if(!REVIEWED_EFFECT_VERSIONS.has(version)||!groupCount)throw Error(`Unreviewed effect version: ${version}`);
       if(expectedVersion!=null&&version!==expectedVersion)throw Error(`Effect INFO version mismatch: expected ${expectedVersion}, got ${version}`);
       const result=[];
-      for(let group=0;group<groupCount;group++){
-        const count=read();if(count>128)throw Error('Too many effect dependencies');
-        for(let i=0;i<count;i++){
-          const length=read()*2;if(length<2||length>4096||cursor+length>end)throw Error('Invalid effect dependency');
-          const value=b.toString('utf16le',cursor,cursor+length).replace(/\0$/,'');cursor+=length;
-          if(!value||value.includes('\\')||value.startsWith('/')||value.split('/').includes('..')||value.includes(':'))throw Error('Unsafe effect dependency');
-          result.push(value);
+      const readString=()=>{const length=read()*2;if(length<2||length>4096||cursor+length>end)throw Error('Invalid effect dependency');const value=b.toString('utf16le',cursor,cursor+length).replace(/\0$/,'');cursor+=length;return value;};
+      const accept=value=>{if(!value||value.includes('\\')||value.startsWith('/')||value.split('/').includes('..')||value.includes(':'))throw Error('Unsafe effect dependency');result.push(value);};
+      if(groupCount==='dependent-files'){
+        const count=read();if(count>512)throw Error('Too many effect dependencies');
+        for(let i=0;i<count;i++){read();read();accept(readString());}
+      }else{
+        for(let group=0;group<groupCount;group++){
+          const count=read();if(count>128)throw Error('Too many effect dependencies');
+          for(let i=0;i<count;i++)accept(readString());
         }
       }
       if(cursor!==end)throw Error('Unexpected INFO data');
@@ -100,6 +104,6 @@ export async function prepareRinneEffects({outputRoot=path.join(appRoot,'public'
     }))));
   }
   await writeFile(path.join(outputRoot,'NOTICE.txt'),
-    'Effekseer for WebGL 1.70 and review Resources samples: MIT (LICENSE-MIT.txt).\\nEffekseer ResourceData Simple_Ribbon_Sword and tktk ToonHit/Light: CC0-1.0 (LICENSE-SAMPLES.txt).\\nUnmodified originals; game-side placement and intensity are adaptations.\\nSources and exact revisions: apps/rinne/src/rebuild/authored-effect-manifest.js\\n');
+    'Effekseer for WebGL 1.70: MIT (LICENSE-MIT.txt).\\nOriginal review library and curated ResourceData samples: CC0-1.0.\\nEffectMaterials: CC0-1.0 (LICENSE-EFFECT-MATERIALS-CC0.txt).\\nUnmodified originals; review-side placement and model-relative scale are adaptations.\\nSources and exact revisions: apps/rinne/src/rebuild/review-vfx-library-manifest.js\\n');
   return rows;
 }

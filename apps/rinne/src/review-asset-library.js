@@ -30,6 +30,7 @@ ground.rotation.x = -Math.PI/2; ground.position.y = -.006; scene.add(ground);
 let modelRoot = null, mixer = null, frameId = 0, loadSequence = 0;
 const mounted = new Map();
 const selection = {model: REVIEW_SKELETON_MODELS[0].id, main:null, off:null, back:null};
+let activeAssetSlot='main',activeViewDirection='front',activeViewFocus='full';
 
 const HAND_GRIPS = Object.freeze({
   '1H_Sword':{r:{position:[0,.555174,0],quaternion:[0,1,0,0],scale:.8876},l:{position:[0,.555174,0],quaternion:[0,0,0,1],scale:.8876}},
@@ -54,7 +55,17 @@ const ACCESSORY_NODES = Object.freeze({
   Round_Shield:{l:'Round_Shield'}, Rectangle_Shield:{l:'Rectangle_Shield'},
 });
 
-function status(message, error=false) { q('#asset-status').textContent = message; q('#asset-status').dataset.error = String(error); }
+function status(message,error=false) {
+  q('#asset-status').textContent=message;
+  q('#asset-status').dataset.error=String(error);
+  const indicator=q('#asset-load-state');
+  if(indicator){
+    const loading=!error&&/読み込み中|モデルを読み込んで/.test(message);
+    indicator.dataset.state=error?'error':loading?'loading':'ready';
+    const label=indicator.querySelector('strong');
+    if(label)label.textContent=error?'要確認':loading?'準備中':'表示中';
+  }
+}
 function findNode(root, wanted) {
   const target = normalize(wanted); let exact = null, suffix = null;
   root?.traverse(node => { const name=normalize(node.name); if(!exact && name===target) exact=node; else if(!suffix && name.endsWith(target)) suffix=node; });
@@ -118,18 +129,29 @@ function cameraFrame() {
   const height=Math.max(size.y,.5),radius=Math.max(size.x,size.y,size.z,.5);
   return {box,center,height,radius,target:new THREE.Vector3(center.x,box.min.y+height*.5,center.z)};
 }
-function setCameraPreset(preset='full') {
-  const frame=cameraFrame(); if(!frame)return;
-  const {box,center,height,radius,target}=frame,eyeY=box.min.y+height*.58,distance=radius*1.7;
-  controls.target.copy(target);
-  if(preset==='front')camera.position.set(center.x,eyeY,center.z+distance);
-  else if(preset==='side')camera.position.set(center.x+distance,eyeY,center.z);
-  else if(preset==='back')camera.position.set(center.x,eyeY,center.z-distance);
-  else camera.position.set(center.x+radius*.8,eyeY,center.z+radius*1.7);
-  controls.update();
-  for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed',String(button.dataset.assetCamera===preset));
+function focusTarget(frame,focus) {
+  if(focus==='full')return frame.target.clone();
+  const anchor=slotAnchor(focus);
+  if(!anchor)return frame.target.clone();
+  return anchor.getWorldPosition(new THREE.Vector3());
 }
-function frameModel() { setCameraPreset('full'); }
+function applyViewPreset() {
+  const frame=cameraFrame(); if(!frame)return;
+  const {center,height,radius}=frame,target=focusTarget(frame,activeViewFocus);
+  const distance=activeViewFocus==='full'?Math.max(radius*1.7,height*.86):Math.max(height*.56,.72);
+  const eyeY=activeViewFocus==='full'?target.y+height*.08:target.y+height*.04;
+  controls.target.copy(target);
+  if(activeViewDirection==='side')camera.position.set(target.x+distance,eyeY,target.z);
+  else if(activeViewDirection==='back')camera.position.set(target.x,eyeY,target.z-distance);
+  else camera.position.set(target.x,eyeY,target.z+distance);
+  if(activeViewFocus==='full'&&activeViewDirection==='side')camera.position.x=center.x+distance;
+  controls.update();
+  for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed',String(button.dataset.assetCamera===activeViewDirection));
+  for(const button of document.querySelectorAll('[data-asset-focus]'))button.setAttribute('aria-pressed',String(button.dataset.assetFocus===activeViewFocus));
+}
+function setCameraPreset(preset='front'){activeViewDirection=preset;applyViewPreset();}
+function setFocusPreset(focus='full'){activeViewFocus=focus;applyViewPreset();}
+function frameModel(){activeViewFocus='full';applyViewPreset();}
 async function loadModel(id) {
   const model=REVIEW_SKELETON_MODELS.find(row=>row.id===id); if(!model)throw new Error(`Unknown review model: ${id}`); const sequence=++loadSequence; selection.model=id; status(`${model.label} を読み込み中…`);
   for(const root of mounted.values())disposeRoot(root);mounted.clear(); if(modelRoot)disposeRoot(modelRoot); modelRoot=null; mixer?.stopAllAction();mixer=null;
@@ -139,17 +161,59 @@ async function loadModel(id) {
   if(gltf.animations?.length){mixer=new THREE.AnimationMixer(modelRoot);mixer.clipAction(gltf.animations[0]).play();}
   await reapplyEquipment(); frameModel(); status(`${model.label} · KayKit Skeletons CC0 · review-only`); renderSelection();
 }
-function renderSelection(){for(const button of q('#model-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.model===selection.model));}
+function equipmentLabel(id){return REVIEW_SKELETON_EQUIPMENT.find(row=>row.id===id)?.label||'なし';}
+function modelLabel(){return REVIEW_SKELETON_MODELS.find(row=>row.id===selection.model)?.label||selection.model;}
+function renderEquipmentInspector(){
+  const labels={main:'右手',off:'左手',back:'背中'};
+  for(const slot of ['main','off','back']){
+    const tab=document.querySelector(`[data-asset-slot="${slot}"]`);
+    if(tab){tab.setAttribute('aria-selected',String(slot===activeAssetSlot));tab.tabIndex=slot===activeAssetSlot?0:-1;}
+    const current=q(`#asset-current-${slot}`);if(current)current.textContent=equipmentLabel(selection[slot]);
+  }
+  const summary=q('#asset-combination');
+  if(summary)summary.textContent=`${modelLabel()} · 右 ${equipmentLabel(selection.main)} · 左 ${equipmentLabel(selection.off)} · 背 ${equipmentLabel(selection.back)}`;
+  const label=q('#asset-candidate-label');if(label)label.textContent=`${labels[activeAssetSlot]}の候補`;
+  const list=q('#asset-equipment-options');
+  if(!list)return;
+  list.setAttribute('aria-label',`${labels[activeAssetSlot]}装備の候補`);
+  const candidates=[{id:'',label:'なし'},...reviewSkeletonEquipmentForSlot(activeAssetSlot)];
+  list.replaceChildren(...candidates.map(item=>{
+    const button=document.createElement('button');
+    button.type='button';button.textContent=item.label;button.dataset.equipmentId=item.id;
+    const selected=(selection[activeAssetSlot]||'')===item.id;
+    button.setAttribute('role','option');button.setAttribute('aria-selected',String(selected));
+    button.addEventListener('click',()=>{
+      const select=q(`#slot-${activeAssetSlot}`);if(!select)return;
+      select.value=item.id;
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+    });
+    return button;
+  }));
+}
+function renderSelection(){
+  for(const button of q('#model-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.model===selection.model));
+  renderEquipmentInspector();
+}
 function populate() {
   q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.textContent=model.label;button.dataset.model=model.id;button.addEventListener('click',()=>loadModel(model.id).catch(error=>status(error.message,true)));return button;}));
   for(const slot of ['main','off','back']){
     const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>status('装備プレビューを更新しました。')).catch(error=>status(error.message,true)));
   }
   for(const button of document.querySelectorAll('[data-asset-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.assetCamera));
-  controls.addEventListener('start',()=>{for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed','false');});
+  for(const button of document.querySelectorAll('[data-asset-focus]'))button.addEventListener('click',()=>setFocusPreset(button.dataset.assetFocus));
+  for(const button of document.querySelectorAll('[data-asset-slot]'))button.addEventListener('click',()=>{activeAssetSlot=button.dataset.assetSlot;renderEquipmentInspector();});
+  for(const slot of ['main','off','back'])q(`#slot-${slot}`)?.addEventListener('change',renderEquipmentInspector);
+  controls.addEventListener('start',()=>{
+    for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed','false');
+    const hint=q('#asset-stage-hint');if(hint)hint.textContent='自由回転中 · 視点ボタンで固定位置へ戻れます';
+  });
+  controls.addEventListener('end',()=>{const hint=q('#asset-stage-hint');if(hint)hint.textContent='ドラッグ: 自由回転 · ピンチ: 拡大';});
   q('#asset-provenance').textContent=`${REVIEW_SKELETON_SOURCE.repository}@${REVIEW_SKELETON_SOURCE.commit} · ${REVIEW_SKELETON_SOURCE.license}`;
-  q('#asset-reset').addEventListener('click',()=>{for(const slot of ['main','off','back']){q(`#slot-${slot}`).value='';void setEquipment(slot,null);}frameModel();});
-  renderSelection();
+  q('#asset-reset').addEventListener('click',()=>{
+    for(const slot of ['main','off','back']){q(`#slot-${slot}`).value='';void setEquipment(slot,null);}
+    activeAssetSlot='main';frameModel();queueMicrotask(renderEquipmentInspector);
+  });
+  renderSelection();applyViewPreset();
 }
 const observer=new ResizeObserver(()=>{const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();});observer.observe(canvas);
 let last=performance.now();function frame(now){const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;controls.update();mixer?.update(dt);renderer.render(scene,camera);frameId=requestAnimationFrame(frame);}frameId=requestAnimationFrame(frame);
