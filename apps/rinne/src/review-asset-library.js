@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import {
 import {mountRinneReviewShell} from './review-lab-shell.js';
-mountRinneReviewShell('equipment');
+import {
   REVIEW_SKELETON_SOURCE,
   REVIEW_SKELETON_MODELS,
   REVIEW_SKELETON_EQUIPMENT,
   reviewSkeletonEquipmentForSlot,
 } from '@soul/assets';
 import './review-asset-library.css';
+mountRinneReviewShell('equipment');
 
 const q = selector => document.querySelector(selector);
 const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
