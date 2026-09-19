@@ -8,6 +8,8 @@ import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGOR
 import {buildReviewMotionRegistry,motionRegistryCount} from './review-motion-registry.js';
 import {loadPinnedMotionSource,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import './review-motion-library.css';
+import {mountRinneReviewShell} from './review-lab-shell.js';
+mountRinneReviewShell('motion');
 
 const el=id=>document.getElementById(id);
 const canvas=el('motion-stage');
