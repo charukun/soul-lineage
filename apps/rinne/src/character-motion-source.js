@@ -1,54 +1,107 @@
-import { QA_FPS, qaSequenceAt, blendHumanoidPose, stabilizeMotionBoundaries } from '@soul/animations';
-import { captureMotionRest, captureNormalizedMotion } from '@soul/rendering/motion-quality';
-import { thirtySecondEnbuState } from './character-motion-performance.js';
+import { QA_FPS, QA_SEQUENCE, qaSequenceAt } from '@soul/animations';
+import { buildReviewMotionRegistry } from './review-motion-registry.js';
+import { parseKaykitMotionSource, loadPinnedMotionSource, disposePinnedMotionSources } from './review-motion-source-runtime.js';
 
-export const WORKSHOP_MOTION_SOURCE_STATE='retired-conditional-model';
+export const WORKSHOP_MOTION_SOURCE_STATE='cc0-source-registry-v2';
+const TARGET_REFERENCE_HEIGHT=2.02;
+const MAX_CACHED_BANKS=8;
 
-/** Bake the existing runtime once, then release its model/controllers. A crowd shares
- * immutable canonical poses, never a mixer, VRM bridge, spring history or model clone.
- * The source resolver is injected so Node rig tests use the exact same bake path.
- */
-export async function loadWorkshopMotionSource({resolveModule,readAsset,progress=()=>{}}) {
-  void resolveModule;void readAsset;void progress;
-  throw new Error('Motion QA source retired: the conditional Shino runtime asset is not distributable; use the license-clean Workshop model review until a KayKit/RINNE-owned motion source is integrated.');
-  /* c8 ignore start -- retained migration baker, unreachable until a clean source adapter replaces the retired source */
-  const [{HumanoidRuntime},{SLASH_SECONDS,SLASH_TIMING,SLASH_REVISION},{createReviewSword}]=await Promise.all([
-    resolveModule('humanoid.js'),resolveModule('authored-slash.js'),resolveModule('review-sword.js')]);
-  const runtime=new HumanoidRuntime({readAsset,weapons:{sword:{base:.21,tip:1.62,width:.065}},strikes:{slash:{}},clips:{slash:SLASH_TIMING},windows:{},
-    progress:(a,t)=>Math.min(1,Math.max(0,(t??a.attack?.t??0)/SLASH_SECONDS)),window:(_kind,p)=>p>=SLASH_TIMING.active[0]&&p<=SLASH_TIMING.active[1]?0:-1});
-  try {await runtime.load('SHINO');return {...await bakeWorkshopMotionSource(runtime,{slashSeconds:SLASH_SECONDS,revision:SLASH_REVISION,progress}),createSword:createReviewSword};}
-  finally {if(runtime.current)runtime.dispose(runtime.current);}
-  /* c8 ignore stop */
+const yieldFrame=()=>new Promise(resolve=>setTimeout(resolve,0));
+const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+
+function cachePut(cache,key,value){
+  if(cache.has(key))cache.delete(key);
+  cache.set(key,value);
+  while(cache.size>MAX_CACHED_BANKS)cache.delete(cache.keys().next().value);
 }
-export async function bakeWorkshopMotionSource(runtime,{slashSeconds,revision,progress=()=>{}}) {
-  const c=runtime.current;
-  for(const id of ['idle-01','walk','run-slow'])if(!c.shared[id])throw new Error(`Missing QA source motion: ${id}`);
-  runtime.resetRoot(c);runtime.resetBones(c);c.vrm.update(0);c.root.updateMatrixWorld(true);
-  const rest=captureMotionRest(c.raw,c.sourceHeight),socket={position:c.sockets.right.rawOffset.toArray(),quaternion:c.sockets.right.rawRotation.toArray(),supportPosition:c.sockets.left.rawOffset.toArray(),supportQuaternion:c.sockets.left.rawRotation.toArray()};
-  const actor={id:'workshop-motion-source',hero:true,weapon:'sword',weaponDraw:0,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,vx:0,vz:0,_humanoidClock:0};
-  c.lastActorId=null;const frames=[],attachments=[];
-  for(let frame=0;frame<=30*QA_FPS;frame++) {
-    const time=frame/QA_FPS,row=qaSequenceAt(time),phase=row.localTime;
-    actor._humanoidClock=time;actor._humanoidPhase=time;actor.vx=0;actor.vz=row.id==='walk'?1:row.id==='run'?3:0;
-    actor.attack=null;actor.parryMotion=null;actor.zanshin=null;actor.combatReady=['draw','guard','slash','sheathe'].includes(row.id);actor.weaponTransition=['draw','sheathe'].includes(row.id);
-    actor.weaponDraw=['guard','slash'].includes(row.id)?1:row.id==='draw'?row.progress:row.id==='sheathe'?1-row.progress:0;
-    if(row.id==='slash'){
-      const enbu=thirtySecondEnbuState(phase,slashSeconds);
-      if(enbu?.mode==='slash')actor.attack={id:`qa-enbu-slash-${enbu.index}`,kind:'slash',t:enbu.time,duration:slashSeconds};
-      else if(enbu?.mode==='parry')actor.parryMotion={sourceId:'qa-enbu-parry',t:enbu.time,duration:enbu.duration};
-      else if(enbu?.mode==='zanshin')actor.zanshin={id:'quiet',t:enbu.time,duration:enbu.duration};
-      else if(enbu?.mode==='move'){actor.vx=enbu.vx;actor.vz=enbu.vz;actor._humanoidPhase=phase*1.35;}
-    }
-    // Bake primary animation, not elapsed spring simulation. Secondary motion is
-    // deliberately reset for reproducible screenshots and remains a separate review.
-    c.resetSpring=true;
-    const result=runtime.render(actor);frames.push(captureNormalizedMotion(c.raw,rest));
-    attachments.push({attachment:result.attachment,draw:actor.weaponDraw});
-    if(frame%120===0){progress(frame/(30*QA_FPS));await new Promise(resolve=>setTimeout(resolve,0));}
+async function bakeClip(source,record,{progress=()=>{}}={}){
+  const fps=QA_FPS,index=record.upstreamClipIndex,duration=source.duration(index),frameCount=Math.max(2,Math.ceil(duration*fps)+1),frames=[];
+  for(let frame=0;frame<frameCount;frame++){
+    const seconds=Math.min(duration,frame/fps);
+    frames.push(source.sample(index,seconds));
+    if(frame&&frame%120===0){progress(frame/(frameCount-1));await yieldFrame();}
   }
-  // Close only the final idle seam; skill keys and their .66s timing are untouched.
-  for(let i=frames.length-31;i<frames.length;i++)frames[i]=blendHumanoidPose(frames[i],frames[0],(i-(frames.length-31))/30);
-  const transitionRanges=[[2.9,3.15],[6.9,7.15],[10.98,11.5],[13.9,14.15],[23,23.3],[26.5,27.2]];
-  const qualityFrames=stabilizeMotionBoundaries({frames,fps:QA_FPS,duration:30},transitionRanges);
-  return {version:1,fps:QA_FPS,duration:30,revision,sourceHeight:c.sourceHeight,frames,qualityFrames,transitionRanges,attachments,socket,sourceRest:rest,sources:['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','runtime.naturalWeaponStance','runtime.parry','runtime.zanshin','authored-slash']};
+  progress(1);
+  return Object.freeze({
+    version:2,fps,duration,revision:record.sourceIdentity,sourceHeight:TARGET_REFERENCE_HEIGHT,
+    frames:Object.freeze(frames),qualityFrames:Object.freeze(frames),transitionRanges:Object.freeze([]),
+    attachments:Object.freeze([]),socket:null,createSword:null,sources:Object.freeze([record.sourceIdentity]),record
+  });
+}
+function pick(registry,patterns,fallback){
+  const rows=registry.motions.filter(row=>row.runtime.kind==='kaykit-embedded');
+  for(const pattern of patterns){const found=rows.find(row=>pattern.test(row.upstreamClipName));if(found)return found;}
+  return fallback||rows[0];
+}
+function enbuSelection(registry){
+  const idle=pick(registry,[/(^|[_\s-])idle([_\s-]|$)/i,/idle/i]);
+  const walk=pick(registry,[/walk/i],idle);
+  const run=pick(registry,[/run/i,/jog/i,/sprint/i],walk);
+  const guard=pick(registry,[/guard|block/i,/sword.*idle|melee.*idle|1h.*idle/i],idle);
+  const attack=pick(registry,[/sword.*attack|1h.*attack|attack.*1h/i,/melee.*attack/i,/attack|slash|chop/i],guard);
+  const draw=pick(registry,[/draw|equip|unsheat/i],guard);
+  const sheathe=pick(registry,[/sheath|holster/i],guard);
+  return Object.freeze({idle,walk,run,draw,guard,slash:attack,sheathe,'idle-end':idle});
+}
+async function bakeEnbu(source,registry,{progress=()=>{}}={}){
+  const selection=enbuSelection(registry),frames=[],sources=new Set(),duration=30;
+  for(let frame=0;frame<=duration*QA_FPS;frame++){
+    const seconds=frame/QA_FPS,row=qaSequenceAt(seconds),record=selection[row.id]||selection.idle;
+    if(!record)throw new Error('KayKit source has no motion clip for the 30 second review');
+    sources.add(record.sourceIdentity);
+    const clipDuration=source.duration(record.upstreamClipIndex);
+    const local=Math.max(0,row.localTime);
+    const sampleTime=clipDuration>1/QA_FPS?Math.min(clipDuration,local%clipDuration):0;
+    frames.push(source.sample(record.upstreamClipIndex,sampleTime));
+    if(frame&&frame%120===0){progress(frame/(duration*QA_FPS));await yieldFrame();}
+  }
+  progress(1);
+  return Object.freeze({
+    version:2,fps:QA_FPS,duration,revision:`rinne-enbu-v2:${[...sources].map(value=>value.split('#')[1]).join('|')}`,
+    sourceHeight:TARGET_REFERENCE_HEIGHT,frames:Object.freeze(frames),qualityFrames:Object.freeze(frames),
+    transitionRanges:Object.freeze([]),attachments:Object.freeze([]),socket:null,createSword:null,
+    sources:Object.freeze([...sources]),sequence:QA_SEQUENCE
+  });
+}
+
+/**
+ * License-clean motion library for the canonical character Workshop.
+ * Catalog construction reads only the already-audited KayKit GLB JSON plus the
+ * pinned external manifest. Animation frames are baked lazily per selected clip.
+ */
+export async function loadWorkshopMotionSource({sourceBytes,sourceDocument,progress=()=>{}}={}){
+  if(!(sourceBytes instanceof ArrayBuffer))throw new Error('Audited KayKit motion source bytes are unavailable');
+  if(!Array.isArray(sourceDocument?.animations)||!sourceDocument.animations.length)throw new Error('KayKit motion source has no animations');
+  const registry=buildReviewMotionRegistry(sourceDocument.animations);
+  progress(.05);
+  const kaykit=await parseKaykitMotionSource(sourceBytes);
+  progress(.18);
+  const cache=new Map();
+  let enbu=null;
+  async function sourceFor(record){
+    if(record.runtime.kind==='kaykit-embedded')return kaykit;
+    if(record.runtime.kind==='pinned-motion-source')return loadPinnedMotionSource(record.sourceId);
+    throw new Error(`Unknown motion runtime source: ${record.runtime.kind}`);
+  }
+  async function loadClip(identity,{onProgress=()=>{}}={}){
+    const record=registry.byId[identity];
+    if(!record)throw new Error('Unknown source motion identity');
+    if(cache.has(identity)){
+      const bank=cache.get(identity);cache.delete(identity);cache.set(identity,bank);return bank;
+    }
+    const source=await sourceFor(record);
+    const bank=await bakeClip(source,record,{progress:onProgress});
+    cachePut(cache,identity,bank);
+    return bank;
+  }
+  async function loadEnbu({onProgress=()=>{}}={}){
+    if(!enbu)enbu=await bakeEnbu(kaykit,registry,{progress:onProgress});
+    return enbu;
+  }
+  progress(1);
+  return Object.freeze({
+    version:2,registry,loadClip,loadEnbu,
+    get cacheSize(){return cache.size;},
+    dispose(){kaykit.dispose();disposePinnedMotionSources();cache.clear();enbu=null;}
+  });
 }

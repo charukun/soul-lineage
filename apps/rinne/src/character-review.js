@@ -238,7 +238,7 @@ function start() {
       // Check every required actor before replacing a working pool.
       const preflight = records.slice(0, settings.count).map(record => nextPool.spawn(record.id)); preflight.forEach(a => nextPool.despawn(a.id));
       pool?.dispose(); disposeTemplate(template); actors = []; pool = nextPool; template = nextTemplate; nextPool = null; nextTemplate = null;
-      installed = true; review.pool = pool; review.audit = audit; const capabilities = pool.diagnostics(); review.capabilities = capabilities;
+      installed = true; review.pool = pool; review.audit = audit; review.motionSourceBytes = bytes; review.motionSourceDocument = json; review.motionSourceAudit = audit; const capabilities = pool.diagnostics(); review.capabilities = capabilities;
       el('expression').replaceChildren(new Option('ニュートラル', ''), ...capabilities.expressionNames.map(name => new Option(name, name)));
       if (!capabilities.expressionNames.includes(settings.expression)) settings.expression = '';
       el('capabilities').textContent = `SHA-256 ${hash}\nLicense ${audit.license || 'unverified'}\n表情 ${capabilities.expressionNames.length}種\n揺れ ${capabilities.springChains}チェーン / ${capabilities.springJoints}関節\n${capabilities.warnings.join('\n') || 'PBR・共通Humanoid表示'}`;

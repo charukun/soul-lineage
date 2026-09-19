@@ -4,6 +4,8 @@ import { QA_CAMERAS, QA_CATEGORIES, QA_SEQUENCE, qaCamera, qaSequenceAt, sampleM
   REVIEW_SWORD_CALIBRATION, createQAReport, serializeQAReport, deserializeQAReport, createCorrectionSampler } from '@soul/animations';
 import { createMotionQualityAdapter, hierarchyQuaternion, captureNormalizedMotion } from '@soul/rendering/motion-quality';
 import { loadWorkshopMotionSource } from './character-motion-source.js';
+import { buildReviewMotionRegistry, motionRegistryCount } from './review-motion-registry.js';
+import { buildMotionReviewCatalog, filterMotionReviewCatalog, REVIEW_MOTION_CATEGORY_LABELS } from './review-motion-catalog.js';
 const el=id=>document.getElementById(id),storeKey='rinne.motion-qa.v1';
 const revision=typeof __BUILD_INFO__==='object'?__BUILD_INFO__.commit:'local';
 const download=(data,name)=>{const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
@@ -12,14 +14,59 @@ const maxPenetration=issues=>issues.filter(i=>i.category==='self intersection').
 
 export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh,draw}) {
   if(!el('motion-qa'))return null;
-  let bank=null,loading=false,active=false,playing=false,time=0,corrected=true,cameraId='front',tour=false,pose=null,lastUI=-1;
+  let library=null,registry=null,catalog=[],filter='recommended',mode='enbu',selectedIdentity=null,bank=null,loading=false,active=false,playing=false,time=0,corrected=true,cameraId='front',tour=false,pose=null,lastUI=-1;
   let speed=1,loopRange=null;
   let report=null,diagnostics=[],observed=[],snapshotPair={before:null,after:null},lastFrame=null,weaponSnapshot=null,comparison=null,compareBusy=false;
   let liveCompare=true,liveBusy=false,liveLast=0,liveFrameId=0;
   const adapters=new WeakMap(),correctionTracks=new WeakMap(),swords=new Map();let swordTemplate;
   const sample=t=>sampleMotionFrames(corrected?{...bank,frames:bank.qualityFrames}:bank,t);
   const notify=text=>{el('qa-status').textContent=text;};
-  const conditions=()=>({sequence:'workshop-motion-sequence.v1',fps:60,viewport:[canvas.clientWidth,canvas.clientHeight],dpr:Math.min(devicePixelRatio||1,1.5),lighting:'workshop-pbr.v1',motionRevision:bank?.revision??'unloaded',characters:review.records.slice(0,review.settings.count).map(r=>({record:r,parts:review.actors.find(a=>a.id===r.id)?.appearanceController?.profile??null,identity:review.actors.find(a=>a.id===r.id)?.appearanceController?.identity??null})),secondaryMotion:'off-for-deterministic-QA',correctionRevision:'continuous-clearance.v2',expressionClock:'qa-time',playback:{speed,loopRange},presentation:{view:review.settings.view,count:review.settings.count,selected:review.settings.selected,blink:review.settings.blink,expression:review.settings.expression,expressionMode:review.settings.expressionMode,expressionWeight:review.settings.expressionWeight}});
+  const currentDuration=()=>mode==='enbu'?30:Math.max(1/60,Number(bank?.duration)||1/60);
+  const currentRow=()=>{
+    if(mode==='enbu')return qaSequenceAt(time);
+    const record=registry?.byId?.[selectedIdentity],duration=currentDuration();
+    return {id:selectedIdentity||'motion',label:record?.upstreamClipName||'Motion',source:record?.sourceIdentity||selectedIdentity||'motion',start:0,end:duration,localTime:time,frame:Math.round(time*60),progress:duration?time/duration:0};
+  };
+  function applyFilter(next=filter){
+    if(!catalog.length)return;
+    filter=next;
+    const rows=filterMotionReviewCatalog(catalog,filter),motion=el('qa-motion');
+    const retained=rows.some(row=>row.sourceIdentity===selectedIdentity)?selectedIdentity:rows[0]?.sourceIdentity??null;
+    selectedIdentity=retained;
+    motion.replaceChildren(...rows.map(row=>new Option(`${row.name} · ${REVIEW_MOTION_CATEGORY_LABELS[row.category]}`,row.sourceIdentity)));
+    motion.value=selectedIdentity??'';
+    for(const button of document.querySelectorAll('[data-motion-filter]'))button.setAttribute('aria-pressed',String(button.dataset.motionFilter===filter));
+  }
+  function installRegistry(){
+    const animations=review.motionSourceDocument?.animations;
+    if(!Array.isArray(animations)||!animations.length)return false;
+    registry=buildReviewMotionRegistry(animations);
+    catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
+    const count=el('qa-motion-count');if(count)count.textContent=`MOTION CLIPS ${motionRegistryCount(registry)}`;
+    const filters=el('qa-motion-filters');
+    if(filters&&!filters.childElementCount){
+      for(const key of ['recommended','life','move','combat','reaction','other','all']){
+        const button=document.createElement('button');button.type='button';button.dataset.motionFilter=key;button.textContent=REVIEW_MOTION_CATEGORY_LABELS[key];
+        button.addEventListener('click',()=>{const before=selectedIdentity;applyFilter(key);if(active&&selectedIdentity&&selectedIdentity!==before)void selectClip(selectedIdentity);});filters.append(button);
+      }
+    }
+    applyFilter(filter);
+    return true;
+  }
+  async function ensureLibrary(){
+    if(library)return library;
+    if(!installRegistry())throw new Error('KayKitモーション正本の読み込み完了を待っています');
+    library=await loadWorkshopMotionSource({
+      sourceBytes:review.motionSourceBytes,
+      sourceDocument:review.motionSourceDocument,
+      progress:value=>notify(`モーション基盤の準備 ${Math.round(value*100)}%`)
+    });
+    registry=library.registry;
+    catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
+    applyFilter(filter);
+    return library;
+  }
+  const conditions=()=>({sequence:mode==='enbu'?'workshop-motion-sequence.v2':(selectedIdentity||'workshop-motion-clip.v2'),fps:60,viewport:[canvas.clientWidth,canvas.clientHeight],dpr:Math.min(devicePixelRatio||1,1.5),lighting:'workshop-pbr.v1',motionRevision:bank?.revision??'unloaded',characters:review.records.slice(0,review.settings.count).map(r=>({record:r,parts:review.actors.find(a=>a.id===r.id)?.appearanceController?.profile??null,identity:review.actors.find(a=>a.id===r.id)?.appearanceController?.identity??null})),secondaryMotion:'off-for-deterministic-QA',correctionRevision:'continuous-clearance.v2',expressionClock:'qa-time',playback:{speed,loopRange},presentation:{view:review.settings.view,count:review.settings.count,selected:review.settings.selected,blink:review.settings.blink,expression:review.settings.expression,expressionMode:review.settings.expressionMode,expressionWeight:review.settings.expressionWeight}});
   function save(){try{localStorage.setItem(storeKey,serializeQAReport(report));}catch{notify('記録の保存に失敗しました。JSONを保存してください。');}}
   function freshReport(){report=createQAReport({build:revision,reviewer:'human',review:conditions()});}
   function adapter(actor){if(!adapters.has(actor))adapters.set(actor,createMotionQualityAdapter(actor,{height:bank.sourceHeight}));return adapters.get(actor);}
@@ -41,7 +88,7 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
     orbit.enableDamping=false;orbit.enabled=false;orbit.update();camera.fov=preset.fov;camera.position.fromArray(preset.position);orbit.target.fromArray(preset.target);camera.lookAt(orbit.target);camera.updateProjectionMatrix();
     for(const b of document.querySelectorAll('[data-qa-camera]'))b.setAttribute('aria-pressed',String(b.dataset.qaCamera===id));draw();
   }
-  function sync(){const row=qaSequenceAt(time),motion=el('qa-motion'),motionChanged=motion.value!==row.id;el('qa-time').value=String(time);motion.value=row.id;if(motionChanged)motion.dispatchEvent(new Event('input',{bubbles:true}));el('qa-frame').textContent=`${row.label} · ${time.toFixed(2)}秒 · frame ${row.frame}`;
+  function sync(){const row=currentRow(),duration=currentDuration();el('qa-time').max=String(duration);el('qa-time').value=String(Math.min(time,duration));el('qa-frame').textContent=`${row.label} · ${time.toFixed(2)}秒 · frame ${row.frame}`;
     el('qa-play').textContent=playing?'Ⅱ 一時停止':'▶ 再生';el('qa-before').textContent=corrected?'単画面: 基盤 ON':'単画面: 基盤 OFF';el('qa-before').setAttribute('aria-pressed',String(corrected));el('qa-before').dataset.mode=corrected?'on':'off';
     const live=el('qa-live-toggle');if(live){live.textContent=liveCompare?'左右比較 ON':'左右比較 OFF';live.setAttribute('aria-pressed',String(liveCompare));}
     el('qa-diagnostics').textContent=diagnostics.length?diagnostics.slice(0,7).map(i=>`${i.severity}: ${i.code??i.category} ${i.affectedBones?.join(' / ')}`).join('\n'):'数値警告なし。見た目の承認は別途必要です。';
@@ -51,47 +98,56 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
   function cleanupWeapons(){for(const [actor,sword]of swords)if(!active||!review.actors.includes(actor)){sword.removeFromParent();swords.delete(actor);}}
   function redrawCurrent(){if(!bank||!active)return;lastFrame=null;pose=sample(time);observed=[];cleanupWeapons();refresh();aim();sync();draw();}
   function setCorrected(next){if(!bank||!active)return;const wasPlaying=playing;corrected=next;redrawCurrent();playing=wasPlaying;sync();}
-  async function start(){if(loading)return;loading=true;el('qa-start').disabled=true;notify('既存モーションを準備中…');
-    try{if(!bank){bank=await loadWorkshopMotionSource({
-      resolveModule:file=>import(/* @vite-ignore */ new URL(`./simulator/src/${file}`,location.href).href),
-      readAsset:async(id)=>{const path=id.startsWith('motion:')?`motions/${id.slice(7)}.vrma`:`${id}_review.vrm`;const r=await fetch(new URL(`./simulator/assets/${path}`,location.href),{signal:AbortSignal.timeout(60000)});if(!r.ok)throw new Error(`Motion asset HTTP ${r.status}`);return r.arrayBuffer();},
-      progress:x=>notify(`既存モーションの準備 ${Math.round(x*100)}%`)});const sourceSword=bank.createSword();swordTemplate=new T.ObjectLoader().parse(sourceSword.toJSON());sourceSword.traverse(o=>{o.geometry?.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m?.dispose();});}
-      active=true;playing=true;time=0;speed=1;loopRange=null;el('qa-speed').value='1';el('qa-loop').checked=false;pose=sample(0);lastFrame=null;snapshotPair={before:null,after:null};review.configure({view:'single',rotate:false,paused:false});
-      if(!report)freshReport();pose=sample(time);refresh();aim('front');sync();notify('左が基盤OFF、右が基盤ON。同じモーションを同期再生します。');
+  async function activateBank(nextBank,nextMode,nextIdentity,{resetSpeed=false}={}){
+    bank=nextBank;mode=nextMode;selectedIdentity=nextIdentity??selectedIdentity;active=true;playing=true;time=0;loopRange=null;
+    if(resetSpeed){speed=1;el('qa-speed').value='1';}el('qa-loop').checked=false;pose=sample(0);lastFrame=null;snapshotPair={before:null,after:null};
+    review.configure({view:'single',rotate:false,paused:false});if(!report)freshReport();pose=sample(time);refresh();aim('front');sync();
+  }
+  async function start(){if(loading)return;loading=true;el('qa-start').disabled=true;notify('CC0演舞を準備中…');
+    try{const source=await ensureLibrary(),next=await source.loadEnbu({onProgress:value=>notify(`30秒演舞の準備 ${Math.round(value*100)}%`)});
+      await activateBank(next,'enbu',selectedIdentity,{resetSpeed:true});notify('30秒演舞を再生中。個別モーションは「動き」から選べます。');
     }catch(error){active=false;playing=false;notify(`準備できませんでした: ${error.message}`);}finally{loading=false;el('qa-start').disabled=false;}
   }
-  function seek(value){if(!bank||!active)return;if(!Number.isFinite(value))throw new Error('Invalid QA seek');time=Math.max(0,Math.min(30,value));if(el('qa-loop').checked){const row=qaSequenceAt(time);loopRange=[row.start,row.end];}playing=false;redrawCurrent();}
+  async function selectClip(identity){
+    if(!identity||loading)return;loading=true;notify('選択モーションを準備中…');
+    try{const source=await ensureLibrary(),next=await source.loadClip(identity,{onProgress:value=>notify(`選択モーションの準備 ${Math.round(value*100)}%`)});
+      await activateBank(next,'clip',identity);el('qa-motion').value=identity;notify(`${registry.byId[identity].upstreamClipName} を再生中`);
+    }catch(error){notify(`モーションを再生できませんでした: ${error.message}`);}finally{loading=false;}
+  }
+  function seek(value){if(!bank||!active)return;if(!Number.isFinite(value))throw new Error('Invalid QA seek');const duration=currentDuration();time=Math.max(0,Math.min(duration,value));if(el('qa-loop').checked){const row=currentRow();loopRange=mode==='enbu'?[row.start,row.end]:[0,duration];}playing=false;redrawCurrent();}
   function stop(){active=false;playing=false;cleanupWeapons();orbit.enabled=true;orbit.enableDamping=true;refresh();notify('Motion QAを終了しました。');sync();}
-  function capture(){if(!active)return;playing=false;const state=corrected?'after':'before',row=qaSequenceAt(time),record=review.records[review.settings.selected];
+  function capture(){if(!active)return;playing=false;const state=corrected?'after':'before',row=currentRow(),record=review.records[review.settings.selected];
     const name=`${record.id}-${row.frame}-${cameraId}-${state}.png`;draw();
     snapshotPair[state]={revision:corrected?revision:`${revision}:quality-off`,evidence:name,timestamp:time,frame:row.frame,camera:cameraId,character:record.id};
     canvas.toBlob(blob=>{if(blob)download(blob,name);},'image/png');sync();notify(`${state==='before'?'補正前':'補正後'}の画像を保存しました。`);
   }
-  function recordIssue(){if(!active)return;const row=qaSequenceAt(time),character=review.records[review.settings.selected].id;
+  function recordIssue(){if(!active)return;const row=currentRow(),character=review.records[review.settings.selected].id;
     report.issues.push({id:`qa-${report.issues.length+1}`,character,motion:row.source,timestamp:time,frame:row.frame,camera:cameraId,affectedBones:(el('qa-bones').value||'').split(/[ ,]+/).filter(Boolean),severity:el('qa-severity').value,category:el('qa-category').value,note:el('qa-note').value,status:el('qa-issue-status').value,...Object.fromEntries(Object.entries(snapshotPair).map(([k,v])=>[k,v?.frame===row.frame&&v?.camera===cameraId&&v?.character===character?v:null])),conditions:conditions(),diagnostics:diagnostics.slice(0,40)});
     try{serializeQAReport(report);}catch(error){report.issues.pop();notify(error.message);return;}save();sync();notify('このフレームの問題を記録しました。');}
   function finishActor(actor,index,{ui=true}={}){if(!active)return;const qa=adapter(actor);let quality;if(corrected)quality=continuousCorrection(actor,index,qa);else{qa.reset();quality=qa.inspect();}
-      let sword=swords.get(actor);if(!sword){sword=swordTemplate.clone(true);swords.set(actor,sword);scene.add(sword);}
-      sword.visible=actor.root.visible&&review.records[index].ageMs>=7*60000&&review.records[index].lifeState!=='dead';
-      const sample=bank.attachments[Math.min(bank.attachments.length-1,Math.round(time*60))];
-      const ageScale=appearanceForCharacter(review.records[index]).scale;
-      const frame=time*bank.fps,from=Math.floor(frame),to=Math.min(from+1,bank.attachments.length-1);
-      const drawAmount=T.MathUtils.lerp(bank.attachments[from].draw,bank.attachments[to].draw,frame-from);
-      const transfer=corrected?qa.matchWeaponTransfer(REVIEW_SWORD_CALIBRATION,bank.socket,drawAmount):{weight:0,error:0};
-      let weapon=null;
-      if(sample.attachment==='hips'){
-        if(corrected)weapon=qa.calibrateCarriedWeapon(sword,REVIEW_SWORD_CALIBRATION,{appearanceScale:ageScale});
-        else{
-        const hp=actor.root.localToWorld(qa.point('hips').add(new T.Vector3(-.24,.05,-.08).multiplyScalar(bank.sourceHeight/2.02))),q=hierarchyQuaternion(actor.root);
-        sword.matrixAutoUpdate=false;sword.matrix.compose(hp,q.multiply(new T.Quaternion().setFromEuler(new T.Euler(-2.10,.08,-.18))),new T.Vector3().setScalar(ageScale*.5)).multiply(new T.Matrix4().makeTranslation(0,.065,0));sword.matrixWorldNeedsUpdate=true;
-        }
-      }else{
-        weapon=qa.calibrateWeapon(sword,corrected?REVIEW_SWORD_CALIBRATION:{...REVIEW_SWORD_CALIBRATION,grip:[0,-.13,0]},bank.socket,{appearanceScale:ageScale});
+      let weapon=null,attachmentState=null;
+      if(swordTemplate&&bank.attachments?.length&&bank.socket){
+        let sword=swords.get(actor);if(!sword){sword=swordTemplate.clone(true);swords.set(actor,sword);scene.add(sword);}
+        sword.visible=actor.root.visible&&review.records[index].ageMs>=7*60000&&review.records[index].lifeState!=='dead';
+        const attachment=bank.attachments[Math.min(bank.attachments.length-1,Math.round(time*60))];
+        const ageScale=appearanceForCharacter(review.records[index]).scale;
+        const frame=time*bank.fps,from=Math.floor(frame),to=Math.min(from+1,bank.attachments.length-1);
+        const drawAmount=T.MathUtils.lerp(bank.attachments[from].draw,bank.attachments[to].draw,frame-from);
+        const transfer=corrected?qa.matchWeaponTransfer(REVIEW_SWORD_CALIBRATION,bank.socket,drawAmount):{weight:0,error:0};
+        if(attachment.attachment==='hips'){
+          if(corrected)weapon=qa.calibrateCarriedWeapon(sword,REVIEW_SWORD_CALIBRATION,{appearanceScale:ageScale});
+          else{
+            const hp=actor.root.localToWorld(qa.point('hips').add(new T.Vector3(-.24,.05,-.08).multiplyScalar(bank.sourceHeight/2.02))),q=hierarchyQuaternion(actor.root);
+            sword.matrixAutoUpdate=false;sword.matrix.compose(hp,q.multiply(new T.Quaternion().setFromEuler(new T.Euler(-2.10,.08,-.18))),new T.Vector3().setScalar(ageScale*.5)).multiply(new T.Matrix4().makeTranslation(0,.065,0));sword.matrixWorldNeedsUpdate=true;
+          }
+        }else weapon=qa.calibrateWeapon(sword,corrected?REVIEW_SWORD_CALIBRATION:{...REVIEW_SWORD_CALIBRATION,grip:[0,-.13,0]},bank.socket,{appearanceScale:ageScale});
+        attachmentState={sword,attachment,drawAmount,transfer};
       }
       quality=qa.inspect(weapon);
       if(ui&&index===review.settings.selected){
-        sword.updateWorldMatrix(true,true);weaponSnapshot={attachment:sample.attachment,draw:drawAmount,transferWeight:transfer.weight,transferError:transfer.error,
-          grip:actor.root.worldToLocal(new T.Vector3(...REVIEW_SWORD_CALIBRATION.grip).applyMatrix4(sword.matrixWorld)).toArray()};
+        if(attachmentState){attachmentState.sword.updateWorldMatrix(true,true);weaponSnapshot={attachment:attachmentState.attachment.attachment,draw:attachmentState.drawAmount,transferWeight:attachmentState.transfer.weight,transferError:attachmentState.transfer.error,
+          grip:actor.root.worldToLocal(new T.Vector3(...REVIEW_SWORD_CALIBRATION.grip).applyMatrix4(attachmentState.sword.matrixWorld)).toArray()};}
+        else weaponSnapshot=null;
         const evaluated=captureNormalizedMotion(actor.bones,qa.rest);
         const sanity=inspectPose(evaluated,{mode:'warn',style:'expressive'}).issues;
         const transition=lastFrame&&time>lastFrame.time?inspectTransition(lastFrame.pose,evaluated,time-lastFrame.time):[];
@@ -99,10 +155,10 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
       }
     }
   function comparisonImage(){const width=canvas.width||1,height=canvas.height||1,scale=Math.min(1,720/width),preview=document.createElement('canvas');preview.width=Math.max(1,Math.round(width*scale));preview.height=Math.max(1,Math.round(height*scale));const context=preview.getContext('2d',{alpha:false});if(!context)return canvas.toDataURL('image/jpeg',.88);context.drawImage(canvas,0,0,preview.width,preview.height);return preview.toDataURL('image/jpeg',.88);}
-  function comparisonState(state){const row=qaSequenceAt(time),record=review.records[review.settings.selected];return {state,character:record.id,time,frame:row.frame,camera:cameraId,diagnostics:clone(diagnostics.slice(0,40)),corrections:clone(observed.slice(0,40))};}
+  function comparisonState(state){const row=currentRow(),record=review.records[review.settings.selected];return {state,character:record.id,time,frame:row.frame,camera:cameraId,diagnostics:clone(diagnostics.slice(0,40)),corrections:clone(observed.slice(0,40))};}
   function renderComparison(){if(!active||!bank||compareBusy)return comparison;const restorePlaying=playing,restoreTour=tour;compareBusy=true;playing=false;tour=false;el('qa-tour').checked=false;el('qa-ab-refresh').disabled=true;el('qa-ab-known').disabled=true;
     const restore=corrected,take=flag=>{corrected=flag;pose=sample(time);lastFrame=null;observed=[];cleanupWeapons();refresh();draw();return {image:comparisonImage(),meta:comparisonState(flag?'after':'before')};};
-    try{const before=take(false),after=take(true),row=qaSequenceAt(time);comparison={character:before.meta.character,time,frame:row.frame,camera:cameraId,before:before.meta,after:after.meta};
+    try{const before=take(false),after=take(true),row=currentRow();comparison={character:before.meta.character,time,frame:row.frame,camera:cameraId,before:before.meta,after:after.meta};
       el('qa-ab-before').src=before.image;el('qa-ab-after').src=after.image;el('qa-ab-before').alt=`基盤OFF ${before.meta.character} frame ${row.frame} ${cameraId}`;el('qa-ab-after').alt=`基盤ON ${after.meta.character} frame ${row.frame} ${cameraId}`;
       el('qa-ab-before-link').href=before.image;el('qa-ab-after-link').href=after.image;el('qa-ab-before-link').download=`motion-qa-${row.frame}-${cameraId}-basis-off.jpg`;el('qa-ab-after-link').download=`motion-qa-${row.frame}-${cameraId}-basis-on.jpg`;
       const beforePen=maxPenetration(before.meta.diagnostics),afterPen=maxPenetration(after.meta.diagnostics),corrections=after.meta.corrections.map(c=>c.method).filter(Boolean);
@@ -112,7 +168,7 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
     }finally{corrected=restore;pose=sample(time);lastFrame=null;observed=[];cleanupWeapons();refresh();draw();playing=restorePlaying;tour=restoreTour;el('qa-tour').checked=tour;sync();compareBusy=false;el('qa-ab-refresh').disabled=false;el('qa-ab-known').disabled=false;}
   }
   async function compareCurrent(){if(!active)await start();if(active)renderComparison();}
-  async function compareKnown(){if(!active)await start();if(!active)return;seek(17.475);aim('front-left');renderComparison();}
+  async function compareKnown(){if(!active||mode!=='enbu')await start();if(!active)return;seek(17.475);aim('front-left');renderComparison();}
   function streamlineUI(){const root=el('motion-qa'),heading=root.querySelector('h2'),quick=el('qa-start').parentElement,step=el('qa-prev').parentElement,diagnostic=root.querySelector('details'),tourLabel=el('qa-tour').closest('label'),countRow=root.querySelector('[data-qa-count]')?.parentElement,motionLabel=el('qa-motion').parentElement;
     if(heading)heading.textContent='モーション比較';if(el('tab-qa'))el('tab-qa').textContent='動き比較';el('qa-start').textContent='▶ 30秒を開始';el('qa-stop').textContent='終了';quick.classList.add('qa-quickbar');step.classList.add('qa-stepbar');if(motionLabel?.firstChild)motionLabel.firstChild.textContent='区間へ移動';
     const live=document.createElement('button');live.id='qa-live-toggle';live.type='button';live.textContent='左右比較 ON';live.setAttribute('aria-pressed','true');quick.append(live);
@@ -129,18 +185,18 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
   const liveLayer=document.createElement('div');liveLayer.id='motion-live-compare';liveLayer.hidden=true;const panes=['OFF','ON'].map(label=>{const pane=document.createElement('div');pane.className='live-pane';const c=document.createElement('canvas');c.setAttribute('aria-label',`基盤${label}の同期映像`);const tag=document.createElement('span');tag.className='live-label';tag.textContent=`基盤 ${label}`;pane.append(c,tag);liveLayer.append(pane);return c;});const liveTime=document.createElement('output');liveTime.className='live-time';liveLayer.append(liveTime);canvas.parentElement.append(liveLayer);
   function copyLive(target){const sw=canvas.width||1,sh=canvas.height||1,tw=Math.max(1,Math.floor(sw/2));if(target.width!==tw)target.width=tw;if(target.height!==sh)target.height=sh;const ctx=target.getContext('2d',{alpha:false});const crop=Math.min(sw,tw),sx=Math.max(0,(sw-crop)/2);ctx.drawImage(canvas,sx,0,crop,sh,0,0,tw,sh);}
   function renderLiveState(flag){corrected=flag;pose=sample(time);lastFrame=null;cleanupWeapons();for(let i=0;i<review.actors.length;i++){const actor=review.actors[i],record=review.records[i];if(!record)continue;actor.sample(appearanceForCharacter(record),time+i*.19,()=>adapter(actor).apply(pose));finishActor(actor,i,{ui:false});}draw();}
-  function renderLivePair(now=performance.now(),force=false){const qaVisible=el('tab-qa')?.getAttribute('aria-selected')==='true';if(!active||!bank||!liveCompare||!qaVisible){liveLayer.hidden=true;return;}const interval=playing?1000/30:100;if(!force&&now-liveLast<interval)return;if(liveBusy)return;liveBusy=true;liveLast=now;const restore=corrected;try{liveLayer.hidden=false;renderLiveState(false);copyLive(panes[0]);renderLiveState(true);copyLive(panes[1]);const row=qaSequenceAt(time);liveTime.value=`${row.label} · ${time.toFixed(2)}秒 · frame ${row.frame}`;}finally{corrected=restore;pose=sample(time);liveBusy=false;}}
+  function renderLivePair(now=performance.now(),force=false){const qaVisible=el('tab-qa')?.getAttribute('aria-selected')==='true';if(!active||!bank||!liveCompare||!qaVisible){liveLayer.hidden=true;return;}const interval=playing?1000/30:100;if(!force&&now-liveLast<interval)return;if(liveBusy)return;liveBusy=true;liveLast=now;const restore=corrected;try{liveLayer.hidden=false;renderLiveState(false);copyLive(panes[0]);renderLiveState(true);copyLive(panes[1]);const row=currentRow();liveTime.value=`${row.label} · ${time.toFixed(2)}秒 · frame ${row.frame}`;}finally{corrected=restore;pose=sample(time);liveBusy=false;}}
   function liveLoop(now){renderLivePair(now);liveFrameId=requestAnimationFrame(liveLoop);}liveFrameId=requestAnimationFrame(liveLoop);
   for(const id of Object.keys(QA_CAMERAS)){const b=document.createElement('button');b.type='button';b.dataset.qaCamera=id;b.textContent={front:'正面',left:'左',right:'右',back:'背面','front-left':'左前','front-right':'右前','back-left':'左後','back-right':'右後'}[id];b.onclick=()=>{if(active){tour=false;el('qa-tour').checked=false;aim(id);renderLivePair(performance.now(),true);sync();}};el('qa-cameras').append(b);}
   for(const category of QA_CATEGORIES)el('qa-category').add(new Option(category,category));
-  for(const row of QA_SEQUENCE)el('qa-motion').add(new Option(`${row.label} · ${row.source}`,row.id));
+  installRegistry();window.addEventListener('character-review-change',()=>{if(!library)installRegistry();});
   el('qa-start').onclick=()=>void start();el('qa-stop').onclick=stop;
-  el('qa-play').onclick=()=>{if(!active)return;if(time>=30)seek(loopRange?.[0]??0);playing=!playing;review.configure({paused:false});sync();};
+  el('qa-play').onclick=()=>{if(!active)return;if(time>=currentDuration())seek(loopRange?.[0]??0);playing=!playing;review.configure({paused:false});sync();};
   el('qa-before').onclick=()=>setCorrected(!corrected);el('qa-time').oninput=e=>seek(Number(e.target.value));
   el('qa-prev').onclick=()=>seek(time-1/60);el('qa-next').onclick=()=>seek(time+1/60);
-  el('qa-motion').onchange=e=>seek(QA_SEQUENCE.find(r=>r.id===e.target.value).start);
+  el('qa-motion').onchange=e=>void selectClip(e.target.value);
   el('qa-speed').onchange=e=>speed=Number(e.target.value);
-  el('qa-loop').onchange=e=>{const row=qaSequenceAt(time);loopRange=e.target.checked?[row.start,row.end]:null;};
+  el('qa-loop').onchange=e=>{const row=currentRow();loopRange=e.target.checked?(mode==='enbu'?[row.start,row.end]:[0,currentDuration()]):null;};
   el('qa-tour').onchange=e=>tour=e.target.checked;el('qa-capture').onclick=capture;el('qa-record').onclick=recordIssue;
   el('qa-export').onclick=()=>{if(!report)freshReport();download(new Blob([serializeQAReport(report)],{type:'application/json'}),'character-motion-qa.json');};
   el('qa-import').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>1_000_000)throw new Error('QA report too large');const next=deserializeQAReport(await file.text());report=next;save();sync();notify('QAレポートを読み込みました。');}catch(error){notify(`読込失敗: ${error.message}`);}finally{e.target.value='';}};
@@ -148,16 +204,16 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
   try{const saved=localStorage.getItem(storeKey);if(saved)report=deserializeQAReport(saved);}catch{notify('保存済みQAレポートを読み込めませんでした。');}
   sync();
   const api={
-    get active(){return active;},get playing(){return playing;},get time(){return time;},get ready(){return !!bank;},get corrected(){return corrected;},get liveCompare(){return liveCompare;},get camera(){return cameraId;},get diagnostics(){return diagnostics;},get sources(){return bank?.sources??[];},
+    get active(){return active;},get playing(){return playing;},get time(){return time;},get ready(){return !!registry;},get corrected(){return corrected;},get liveCompare(){return liveCompare;},get camera(){return cameraId;},get diagnostics(){return diagnostics;},get sources(){return bank?.sources??[];},get motionRegistry(){return registry;},get selectedMotion(){return selectedIdentity;},
     get comparison(){return comparison?clone(comparison):null;},get report(){return report?JSON.parse(serializeQAReport(report)):null;},start,stop,seek,aim,renderComparison,
-    tick(dt){if(!active)return;cleanupWeapons();if(playing&&!review.settings.paused){time+=dt*speed;if(loopRange&&time>=loopRange[1])time=loopRange[0]+(time-loopRange[1])%(loopRange[1]-loopRange[0]);else if(time>=30){time=30;playing=false;}}
-      pose=sample(time);if(tour){const id=Object.keys(QA_CAMERAS)[Math.min(7,Math.floor(time/3.75))];if(id!==cameraId)aim(id);}
+    tick(dt){if(!active)return;cleanupWeapons();const duration=currentDuration();if(playing&&!review.settings.paused){time+=dt*speed;if(loopRange&&time>=loopRange[1])time=loopRange[0]+(time-loopRange[1])%(loopRange[1]-loopRange[0]);else if(time>=duration){time=duration;playing=false;}}
+      pose=sample(time);if(tour){const id=Object.keys(QA_CAMERAS)[Math.min(7,Math.floor((time/Math.max(duration,1/60))*8))];if(id!==cameraId)aim(id);}
       observed=[];if(lastUI<0||Math.abs(time-lastUI)>.1){sync();lastUI=time;}
     },
     pose(actor){return active?()=>adapter(actor).apply(pose??sample(time)):null;},
     finish(actor,index){finishActor(actor,index);},
-    snapshot(){return {time,playing,frame:qaSequenceAt(time).frame,camera:cameraId,cameraPosition:camera.position.toArray(),cameraTarget:orbit.target.toArray(),corrected,liveCompare,diagnostics,corrections:observed,weapon:weaponSnapshot,playback:{speed,loopRange},comparison:comparison?clone(comparison):null,visualRequired:['skinning / weight','clothing','hair','silhouette'],conditions:conditions()};},
-    dispose(){active=false;cancelAnimationFrame(liveFrameId);liveLayer.remove();cleanupWeapons();style.remove();swordTemplate?.traverse(o=>{o.geometry?.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m?.dispose();});}
+    snapshot(){const motion=currentRow();return {time,playing,frame:motion.frame,motion,camera:cameraId,cameraPosition:camera.position.toArray(),cameraTarget:orbit.target.toArray(),corrected,liveCompare,diagnostics,corrections:observed,weapon:weaponSnapshot,playback:{speed,loopRange},comparison:comparison?clone(comparison):null,visualRequired:['skinning / weight','clothing','hair','silhouette'],conditions:conditions()};},
+    dispose(){active=false;cancelAnimationFrame(liveFrameId);liveLayer.remove();cleanupWeapons();style.remove();library?.dispose();swordTemplate?.traverse(o=>{o.geometry?.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m?.dispose();});}
   };
   return api;
 }
