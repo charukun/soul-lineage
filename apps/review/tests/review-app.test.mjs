@@ -18,5 +18,6 @@ test('Lab separates equipment and world-object probes and routes them to deliver
   assert.match(source,/equipment:route\(DEV\.rinne,'review-assets\.html'\)/);assert.match(source,/objects:route\(DEV\.rinne,'review-objects\.html'\)/);assert.match(source,/renderReviewProbeLinks/);assert.doesNotMatch(html,/<b>装備・物体<\/b>/);
   assert.match(source,/WARM_ORDER=Object\.freeze\(\['effects','battle','motion','characters','equipment','objects','sounds'\]\)/);
   assert.match(source,/prefetch\.rel='prefetch'/);assert.match(source,/prefetch\.as='document'/);assert.match(source,/startPriorityWarmup\(\)/);
+  assert.match(source,/VFX_WARM_ASSETS/);assert.match(source,/effekseer\.wasm/);assert.match(source,/Simple_Ribbon_Sword\.efkefc/);assert.match(source,/ToonHit\.efkefc/);assert.match(source,/warmVfxAssets\(\)/);
   assert.match(source,/pointerenter'.*warmRoute/);assert.match(source,/touchstart'.*warmRoute/);
 });
