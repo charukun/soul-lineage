@@ -7,7 +7,7 @@ export const REVIEW_VFX_GODOT4_ASSETS=Object.freeze([
   asset("Demo/effects/samples/Plane.efkefc",1563,"441bca8f4aaebc2324d2b19b9a99f40b0daf3868",true,{infoVersion:1710}),
   asset("Demo/effects/samples/Simple_Turbulence_Particles.efkefc",2822,"e326f7a64472ffeb4a81f2b763bfd0fdbe62278c",true,{infoVersion:1500}),
   asset("Demo/effects/samples/Texture/Particle04_bokashi_hard.png",14132,"ab451be99afb41821fc3eb3f8688925b74b70986"),
-  asset("Demo/effects/samples/Emissive.efkmat",1218,"97ff9f7e720e3821f906c7225189b6fe498837f5"),
+  asset("Demo/effects/samples/Emissive.efkmat",1218,"97ff9f7e720e3821f906c7225189b6fe498837f5",false,{targetPath:"Demo/effects/samples/Material/Emissive.efkmat"}),
   asset("Demo/effects/sample-material1/PolarCoords.efkefc",1279,"f65f30fdea12fdcfbeddeaed9656b75f7d4856ab",true,{infoVersion:1500}),
   asset("Demo/effects/sample-material1/Textures/Check01.png",2352,"93420f24fd699efde289a8e55df916c5ac31d2d5"),
   asset("Demo/effects/sample-material1/Materials/PolarCoords.efkmat",5145,"132aa98417dfa9ae34972e776a60bc5d7d6e65d1"),
