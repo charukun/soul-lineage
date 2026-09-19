@@ -9,7 +9,7 @@ import {REVIEW_VFX_LIBRARY_COUNT} from '../src/rebuild/review-vfx-library-manife
 
 function effectFixture(dependencies,version=1500){
   const word=n=>{const b=Buffer.alloc(4);b.writeUInt32LE(n);return b;};
-  const trailingGroups=version===1610?6:5;
+  const trailingGroups=version>=1610?6:5;
   const info=Buffer.concat([word(version),word(dependencies.length),...dependencies.flatMap(s=>[word(s.length+1),Buffer.from(`${s}\0`,'utf16le')]),...Array.from({length:trailingGroups},()=>word(0))]);
   return Buffer.concat([Buffer.from('EFKE'),word(0),Buffer.from('INFO'),word(info.length),info]);
 }
@@ -40,7 +40,7 @@ test('INFO parser reads reviewed v1500/v1610 layouts and complete dependency clo
 });
 test('unsafe paths, unknown versions and truncation cannot pass as authored data',()=>{
   for(const value of ['../escape.png','/tmp/x.png','https:asset.png','Texture\\bad.png'])assert.throws(()=>effectDependencies(effectFixture([value])));
-  assert.throws(()=>effectDependencies(effectFixture([],1700)),/Unreviewed/);
+  assert.throws(()=>effectDependencies(effectFixture([],1800)),/Unreviewed/);
   const bytes=effectFixture(['Texture/SwordLine01.png']);assert.throws(()=>effectDependencies(bytes.subarray(0,-1)),/Truncated/);
   assert.throws(()=>effectDependencies(Buffer.from('not an effect')),/Not an EFKE/);
 });
