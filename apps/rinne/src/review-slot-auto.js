@@ -1,4 +1,5 @@
-import {mountReviewGroup,mountReviewSelect} from './review-slot-picker.js';
+import {mountReviewGroup,mountReviewSelect,mountReviewSelectGrid} from './review-slot-picker.js';
+import {installCharacterReviewGrid} from './character-review-grid.js';
 
 const byId=id=>document.getElementById(id);
 const qs=selector=>document.querySelector(selector);
@@ -16,7 +17,7 @@ function row(id,className,parent,before=null){
 function move(shell,target){if(shell&&target&&!target.contains(shell))target.append(shell);}
 
 function installStageCameraSlot(){
-  if(!document.body.classList.contains('simple-review')||byId('review-stage-camera-options'))return;
+  if(!document.body.classList.contains('simple-review')||document.body.dataset.reviewMode==='motion'||byId('review-stage-camera-options'))return;
   const actions=qs('.stage-actions');
   if(!actions)return;
   const cameraButtons=[...actions.querySelectorAll('[data-camera="front"],[data-camera="side"],[data-camera="back"],[data-camera="face"]')];
@@ -41,23 +42,19 @@ function installStageCameraSlot(){
 
 function installCharacterSlots(){
   if(!document.body.classList.contains('simple-review'))return;
-  installStageCameraSlot();
   const mode=document.body.dataset.reviewMode;
-  if(mode==='character'){
-    const panel=byId('panel-parts');
-    if(!panel)return;
-    const slotRow=row('simple-character-slots','review-slot-row',panel,panel.firstElementChild);
-    move(mountReviewGroup(byId('character-model-options'),'キャラクター'),slotRow);
-    move(mountReviewGroup(byId('slot-tabs'),'部位'),slotRow);
-    move(mountReviewGroup(byId('part-options'),'候補'),slotRow);
-  }
+  if(mode==='character'){installCharacterReviewGrid();return;}
+  installStageCameraSlot();
   if(mode==='motion'){
     const basics=byId('simple-motion-controls');
     if(!basics)return;
-    const slotRow=row('simple-motion-slots','simple-motion-slot-row',basics,basics.firstElementChild);
-    move(mountReviewSelect(byId('qa-motion'),'動き'),slotRow);
+    const motionPicker=mountReviewSelectGrid(byId('qa-motion'),'選択中の動き');
+    if(motionPicker&&!basics.contains(motionPicker))basics.prepend(motionPicker);
+    const slotRow=row('simple-motion-slots','simple-motion-slot-row',basics);
     move(mountReviewSelect(byId('qa-speed'),'速度'),slotRow);
-    move(mountReviewGroup(byId('qa-cameras'),'角度'),slotRow);
+    const loop=byId('qa-loop')?.closest('label');
+    if(loop){loop.classList.add('simple-motion-loop');move(loop,slotRow);}
+    byId('qa-speed')?.closest('.qa-playback')?.classList.add('simple-motion-source-playback');
   }
 }
 

@@ -152,9 +152,10 @@ test('top overview keeps DEV understandable inside the contract-defined operator
   const css = readFileSync(new URL('../ops-board/public/rapid-ui.css', import.meta.url), 'utf8');
 
   assert.deepEqual(PULSE_FIRST_GLANCE, [
-    PULSE_ROLE.HUMAN_ACTION,
     PULSE_ROLE.DEVELOPMENT,
     PULSE_ROLE.DEV_PUBLICATION,
+    PULSE_ROLE.HUMAN_ACTION,
+    PULSE_ROLE.RECENT,
   ]);
   const positions = PULSE_FIRST_GLANCE.map(role => html.indexOf(`data-pulse-role="${role}"`));
   assert.ok(positions[0] < positions[1] && positions[1] < positions[2]);

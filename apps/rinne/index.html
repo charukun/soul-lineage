@@ -30,8 +30,11 @@
 </head>
 <body>
 <main id="app" data-screen="loading">
-  <section id="title-screen" class="title-screen" data-motion="on" data-intro="pending" aria-labelledby="title-mark" hidden>
+  <section id="title-screen" class="title-screen" data-motion="on" data-intro="pending" data-media="pending" aria-labelledby="title-mark" hidden>
     <div class="title-world" aria-hidden="true">
+      <div class="title-cinematic-media">
+        <video id="title-cinematic-video" class="title-cinematic-video" preload="auto" muted playsinline disablepictureinpicture></video>
+      </div>
       <img class="title-world-base" src="./title-assets/world.webp" alt="" fetchpriority="high">
       <div class="title-world-rays"></div>
       <div class="title-world-clouds title-world-clouds-back"></div>
