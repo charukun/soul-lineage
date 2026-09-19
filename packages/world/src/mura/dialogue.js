@@ -8,14 +8,14 @@ const topic=(id,{label=null,form='place',kinds,line=null})=>Object.freeze({id,la
  * a small authored line here.
  */
 export const MURA_DIALOGUE_TOPICS=Object.freeze({
-  'village-square':topic('village-square',{kinds:['campfire']}),
-  'home-life':topic('home-life',{label:'家',kinds:['mayor','tent','home','lodge','clanManor']}),
-  'school-learning':topic('school-learning',{kinds:['school']}),
+  'village-square':topic('village-square',{kinds:['campfire'],line:'ここは村の広場。ごはんを食べたり、みんなで話したりする場所だよ。'}),
+  'home-life':topic('home-life',{label:'家',kinds:['mayor','tent','home','lodge','clanManor'],line:'ここはわたしたちの家。ごはんを食べたり、休んだりして、毎日を過ごす場所だよ。'}),
+  'school-learning':topic('school-learning',{kinds:['school'],line:'ここは学校。文字を覚えたり、村の仕事を学んだりする場所だよ。'}),
   books:topic('books',{label:'本',form:'thing',kinds:['school'],line:'本には、会ったことのない人の知恵まで残っている。'}),
-  prayer:topic('prayer',{kinds:['chapel']}),
-  training:topic('training',{kinds:['dojo']}),
-  smithing:topic('smithing',{kinds:['smith','weapons']}),
-  healing:topic('healing',{kinds:['clinic']}),
+  prayer:topic('prayer',{kinds:['chapel'],line:'ここは教会。静かに祈ったり、心を落ち着けたりする場所だよ。'}),
+  training:topic('training',{kinds:['dojo'],line:'ここは道場。体を鍛えたり、身を守る術を学んだりする場所だよ。'}),
+  smithing:topic('smithing',{kinds:['smith','weapons'],line:'ここは鍛冶場。鉄を打って、道具や武具をこしらえる場所だよ。'}),
+  healing:topic('healing',{kinds:['clinic'],line:'ここは治療所。けがや病気の人を診てもらう場所だよ。'}),
 });
 
 /** Shared village utterances. Apps own speaker, timing and styling. */
