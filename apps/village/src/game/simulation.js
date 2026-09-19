@@ -37,8 +37,8 @@ export class Simulation{
  availableHomes({player=false}={}){return this.world.objects.filter(o=>ready(o)&&capacityOf(o)&&!defs[o.kind].reserved&&!!defs[o.kind].clanOnly===player&&this.world.people.filter(p=>p.homeId===o.id).length<capacityOf(o));}
  arrive(){const w=this.world,pop=w.population();if(w.people.length>=pop.limit||this.raid)return false;
   const h=this.availableHomes().filter(o=>w.safetyAt(o)).sort((a,b)=>w.people.filter(p=>p.homeId===a.id).length-w.people.filter(p=>p.homeId===b.id).length)[0];if(!h)return false;
-  const i=w.state.stats.arrivals++,e=entry(h),spawn=this.nav.free(cell(e.x-12),cell(e.z+12));if(!spawn)return false;
-  const p={id:'npc'+w.state.nextId++,name:names[i%names.length]+(i>=names.length?' '+(1+Math.floor(i/names.length)):''),source:'local-npc',role:'resident',homeId:h.id,jobId:null,x:spawn.x*STEP,z:spawn.z*STEP,task:'idle',timer:0,path:[],hunger:83,purse:0,health:100,happiness:78,skill:0,seed:i*.63,angle:0,hidden:false,favorite:FAVORITES[i%FAVORITES.length],memories:[]};
+  const e=entry(h),spawn=this.nav.free(cell(e.x-12),cell(e.z+12));if(!spawn)return false;
+  const i=w.state.stats.arrivals++,p={id:'npc'+w.state.nextId++,name:names[i%names.length]+(i>=names.length?' '+(1+Math.floor(i/names.length)):''),source:'local-npc',role:'resident',homeId:h.id,jobId:null,x:spawn.x*STEP,z:spawn.z*STEP,task:'idle',timer:0,path:[],hunger:83,purse:0,health:100,happiness:78,skill:0,seed:i*.63,angle:0,hidden:false,favorite:FAVORITES[i%FAVORITES.length],memories:[]};
   w.people.push(p);w.changed();this.go(p,h,'home');this.remember(p,'この村で暮らし始めた','ここに暮らそう');this.emit(`${p.name}が${defs[h.kind].label}に住み着きました`,'arrival');return p;
  }
  assignJobs(){const w=this.world,jobs=w.objects.filter(o=>ready(o)&&jobsOf(o));
