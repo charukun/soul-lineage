@@ -23,6 +23,11 @@ test('all Visual Review specialist pages receive the shared navigation module',a
   assert.doesNotMatch(entries,/'\/review\.html'/);
   assert.match(vite,/order:'pre'/);
   assert.match(vite,/src:'\.\/src\/review-navigation\.js'/);
+  const [catalog,review]=await Promise.all([read('src/review-object-catalog.js'),read('src/review-object-library.js')]);
+  assert.match(catalog,/REVIEW_PROP_IDS/);
+  for(const id of ['training-dummy','armor-stand','weapon-spear','weapon-axe','weapon-great'])assert.match(catalog,new RegExp(`id:'${id}'`));
+  assert.match(review,/RINNE_OBJECT_REVIEW_CATALOG as OBJECTS/);
+  assert.ok(review.includes('models.prop(item.propKind'));
 });
 
 test('shared navigation replaces legacy controls and is mobile-safe',async()=>{
