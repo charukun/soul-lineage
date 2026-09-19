@@ -10,4 +10,12 @@ export const REVIEW_VFX_GODOT4_EFFECTS=Object.freeze([
   effect("lib-godot4-unlit","Demo/effects/sample-material1/Unlit.efkefc"),
   effect("lib-godot4-fire-projectile","Demo/effects/sample-material3/ef_fire01_projectile.efkefc"),
   effect("lib-godot4-barrior01","Demo/effects/effect-materials/ef_barrior01.efkefc"),
+  effect("lib-godot4-trigger-laser","Demo/effects/samples/TriggerLaser.efkefc"),
+  effect("lib-godot4-laser-soft-particle","Demo/effects/samples/Laser01_SoftParticle.efkefc"),
+  effect("lib-godot4-laser-sound","Demo/effects/samples/Laser01_Sound.efkefc"),
+  effect("lib-godot4-alpha-cutoff","Demo/effects/sample-material1/AlphaCutoff.efkefc"),
+  effect("lib-godot4-dissolve","Demo/effects/sample-material1/Dissolve.efkefc"),
+  effect("lib-godot4-falloff","Demo/effects/sample-material1/Falloff.efkefc"),
+  effect("lib-godot4-image-distortion","Demo/effects/sample-material1/ImageDistortion.efkefc"),
+  effect("lib-godot4-gradient","Demo/effects/tests/17/Gradient.efkefc"),
 ]);

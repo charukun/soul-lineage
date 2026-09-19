@@ -45,6 +45,10 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     browser=await chromium.launch({headless:true,executablePath,args:['--no-sandbox','--disable-dev-shm-usage']});
     const context=await browser.newContext({viewport:{width:412,height:915},deviceScaleFactor:1,reducedMotion:'no-preference'});
     const page=await context.newPage();
+    await page.route('**/src/rebuild/runtime.js*',route=>route.fulfill({
+      contentType:'application/javascript',
+      body:"export async function prepareRuntime(){return await new Promise(()=>{});} export async function startRuntime(){throw new Error('title cinematic test must not enter the real runtime');}",
+    }));
     const navigationStarted=Date.now();
     await page.goto('http://127.0.0.1:5173/',{waitUntil:'domcontentloaded'});
     const title=page.locator('#title-screen');
