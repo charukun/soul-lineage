@@ -16,7 +16,7 @@ app source
   -> target-specific publisher / packager
 ```
 
-The game apps are `rinne`, `village`, and `demon`. `review` is a separate developer-facing Visual Review Lab and is not a game or a child of `rinne`. A change in one app must not force unrelated app builds. A shared-package change fans out only to apps whose workspace dependency closure includes that package.
+The game apps are `rinne`, `village`, and `demon`. `review` and `character-studio` are separate developer-facing DEV tools and are not children of `rinne`. A change in one app must not force unrelated app builds. A shared-package change fans out only to apps whose workspace dependency closure includes that package.
 
 ## Target classes
 
@@ -69,6 +69,7 @@ Primary Web DEV publication is app-scoped Cloudflare Workers static assets:
 - `village`: `https://soul-lineage-village-dev.c-okamoto.workers.dev/`
 - `demon`: `https://soul-lineage-demon-dev.c-okamoto.workers.dev/`
 - `review`: `https://soul-lineage-review-dev.c-okamoto.workers.dev/`
+- `character-studio`: `https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/`
 
 GitHub Pages is not a DEV publisher. The legacy `/dev/` mirror is retired and Pages remains the Production/staging compatibility surface. Each Workers app job has its own concurrency key, so a newer app change may supersede an older publication of the same app without cancelling unrelated app publication. PULSE remains an independent control-plane Worker at `https://rinne-ops.c-okamoto.workers.dev/`.
 

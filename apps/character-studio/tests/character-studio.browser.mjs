@@ -43,7 +43,7 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     return current;
   }
   try {
-    const response = await page.goto(new URL('./characters.html', baseURL).href, {waitUntil:'domcontentloaded',timeout:60000});
+    const response = await page.goto(new URL('./index.html', baseURL).href, {waitUntil:'domcontentloaded',timeout:60000});
     assert.equal(response.status(),200); await ready();
     await page.waitForFunction(()=>document.body.classList.contains('workshop-ux-ready'));
     assert.equal(await page.locator('.mode-tabs [data-workshop-intent]').count(),3);
@@ -88,7 +88,7 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     await page.locator('#quality-context').selectOption('demon');
     await page.locator('#quality-camera').click(); await page.waitForTimeout(120);
     await page.screenshot({path:resolve(output,'studio-demon-distance-mobile.png')});
-    checks.push({name:'叡智豊満 and demon normal-distance preview rendered'});
+    checks.push({name:'MURAAAAAAA and demon normal-distance preview rendered'});
     await page.locator('#quality-context').selectOption('village');
     await page.locator('[data-individual="5"]').click();
     await page.locator('#edit-one').click();

@@ -19,7 +19,9 @@ test('distribution catalog separates buildable web targets from contract-only co
   assert.equal(webTargetForEnvironment('dev').id,'web-dev');
   assert.equal(webTargetForEnvironment('prod').id,'web-prod');
   assert.equal(targetSupportsApp('web-dev','review'),true);
+  assert.equal(targetSupportsApp('web-dev','character-studio'),true);
   assert.equal(targetSupportsApp('web-staging','review'),false);
+  assert.equal(targetSupportsApp('web-staging','character-studio'),false);
   assert.ok(DISTRIBUTION_TARGETS.length>=9);
 });
 
@@ -28,10 +30,11 @@ test('DEV distribution plan is app-scoped and fans shared dependencies out throu
   assert.deepEqual(distributionPlanForDev(nodes,['apps/demon/src/main.js']),{apps:['demon'],include:[{app:'demon',target:'web-dev'}]});
   assert.deepEqual(distributionPlanForDev(nodes,['apps/rinne/src/main.js']),{apps:['rinne'],include:[{app:'rinne',target:'web-dev'}]});
   assert.deepEqual(distributionPlanForDev(nodes,['apps/review/src/main.js']),{apps:['review'],include:[{app:'review',target:'web-dev'}]});
+  assert.deepEqual(distributionPlanForDev(nodes,['apps/character-studio/src/character-review.js']),{apps:['character-studio'],include:[{app:'character-studio',target:'web-dev'}]});
   const shared=distributionPlanForDev(nodes,['packages/assets/src/index.js']);
-  assert.deepEqual(shared.apps,['demon','rinne','village']);
+  assert.deepEqual(shared.apps,['character-studio','demon','rinne','village']);
   assert.deepEqual(shared.include,[
-    {app:'demon',target:'web-dev'},{app:'rinne',target:'web-dev'},{app:'village',target:'web-dev'}
+    {app:'character-studio',target:'web-dev'},{app:'demon',target:'web-dev'},{app:'rinne',target:'web-dev'},{app:'village',target:'web-dev'}
   ]);
   assert.deepEqual(distributionPlanForDev(nodes,['docs/PLATFORMS.md']),{apps:[],include:[]});
 });
@@ -68,11 +71,13 @@ test('fast DEV notification lists only affected per-app live targets',()=>{
   assert.match(message,/DEV反映完了/);
   assert.match(message,/喰滅廻遊/);
   assert.match(message,/soul-lineage-demon-dev\.c-okamoto\.workers\.dev/);
-  assert.doesNotMatch(message,/叡智豊満/);
+  assert.doesNotMatch(message,/MURAAAAAAA/);
 });
 
-test('independent Visual Review DEV target is named separately from the games',()=>{
+test('independent developer-tool DEV targets are separate from Production game targets',()=>{
   assert.equal(distributionTarget('web-dev').compatibilityPublisher,undefined);
-  assert.equal(targetSupportsApp('web-dev','review'),true);
-  assert.equal(targetSupportsApp('web-prod','review'),false);
+  for(const app of ['review','character-studio']){
+    assert.equal(targetSupportsApp('web-dev',app),true);
+    assert.equal(targetSupportsApp('web-prod',app),false);
+  }
 });
