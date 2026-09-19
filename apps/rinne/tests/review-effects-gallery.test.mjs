@@ -27,6 +27,9 @@ test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(html,/class="catalog-kicker">候補一覧/);
   assert.match(html,/id="fx-selected-label"/);
   assert.match(html,/id="fx-selected-meta"/);
+  assert.match(html,/id="fx-model-count"/);
+  assert.match(html,/EFFECT MODELS —/);
+  assert.match(js,/q\('fx-model-count'\)\.textContent=`EFFECT MODELS \$\{REVIEW_REAL_EFFECT_COUNT\}`/);
   assert.match(js,/q\('fx-selected-label'\)\.textContent=entry\.label/);
   assert.match(js,/q\('fx-selected-meta'\)\.textContent=effectLabel\(entry\.id\)/);
   assert.doesNotMatch(html,/class="fx-selection-slot"/);
@@ -42,6 +45,8 @@ test('VFX stage uses readable humanoid scale and effect-intent guides',()=>{
   assert.match(js,/function createImpactGuide/);
   assert.match(js,/function createAreaGuide/);
   assert.match(js,/const REVIEW_CONTEXTS=Object\.freeze/);
+  assert.match(js,/new THREE\.Box3\(\)\.setFromObject\(attacker\)/);
+  assert.match(js,/reviewModelScale\(entry,reviewModelHeight\)/);
   assert.match(js,/secondaryB\.visible=context\.secondary/);
   assert.match(js,/areaGuide\.visible=context\.area>0/);
   assert.doesNotMatch(js,/function marker\(/);
@@ -89,4 +94,5 @@ test('effect list stays visible as a five-column grid on all review widths',()=>
   assert.match(css,/@media\(max-width:640px\)/);
   assert.match(css,/@media\(max-width:420px\)/);
   assert.match(css,/\.catalog-shell\{[^}]*overflow:hidden/);
+  assert.match(css,/\.review-header-stats #fx-model-count\{/);
 });

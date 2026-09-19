@@ -14,10 +14,12 @@ test('legacy RINNE review entry bridges to the independent Visual Review Lab',as
   assert.doesNotMatch(bridge,/data-review-target=/);
   assert.doesNotMatch(bridge,/<iframe\b/);
   assert.match(lab,/data-dev-tool="visual-review"/);
-  for(const target of ['characters','motion','assets','effects','battle'])assert.match(lab,new RegExp(`data-route="${target}"`));
+  for(const target of ['characters','motion','equipment','objects','effects','battle'])assert.match(lab,new RegExp(`data-route="${target}"`));
+  assert.doesNotMatch(lab,/<b>装備・物体<\/b>/);
   assert.match(routes,/characters:route\(DEV\.rinne,'characters\.html\?review=character'\)/);
   assert.match(routes,/motion:route\(DEV\.rinne,'review-motion\.html'\)/);
-  assert.match(routes,/assets:route\(DEV\.rinne,'review-assets\.html'\)/);
+  assert.match(routes,/equipment:route\(DEV\.rinne,'review-assets\.html'\)/);
+  assert.match(routes,/objects:route\(DEV\.rinne,'review-objects\.html'\)/);
   assert.match(routes,/effects:route\(DEV\.rinne,'review-effects\.html'\)/);
   assert.match(routes,/battle:route\(DEV\.rinne,'review-battle\.html'\)/);
 });
@@ -49,6 +51,18 @@ test('equipment review uses the same quiet preview and compact camera hierarchy'
   assert.match(css,/\.model-options button\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
 });
 
+test('world-object review loads the exact RINNE runtime props independently of equipment',async()=>{
+  const [html,css,js]=await Promise.all([read('review-objects.html'),read('src/review-object-library.css'),read('src/review-object-library.js')]);
+  assert.match(html,/<title>物体確認 \| 輪廻転焦<\/title>/);
+  assert.match(html,/id="object-stage"/);
+  assert.match(html,/id="object-options"/);
+  for(const preset of ['front','side','top','full'])assert.match(html,new RegExp(`data-object-camera="${preset}"`));
+  for(const asset of ['barrel_small.gltf.glb','box_small.gltf.glb','rubble_large.gltf.glb','torch_lit.gltf.glb'])assert.match(js,new RegExp(asset.replaceAll('.','\\.')));
+  assert.match(js,/new GLTFLoader/);
+  assert.match(js,/RINNE runtime asset/);
+  assert.match(css,/\.object-options button\[aria-pressed="true"\]/);
+});
+
 test('Battle is a dedicated page using real RaidHost and runtime models',async()=>{
   const [html,review,battle]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js')]);
   assert.match(html,/id="battle-canvas"/);assert.match(html,/id="battle-hero-model"/);assert.match(html,/id="battle-enemy-model"/);
@@ -67,10 +81,12 @@ test('authored effect review reuses the runtime effect player and backend',async
   assert.match(js,/createAuthoredEffectPlayer/);assert.match(js,/createEffekseerBackend/);assert.match(js,/authoredEffectBase/);assert.match(js,/combatEffectBudget/);
 });
 
-test('RINNE build includes launcher, VFX and battle review entries',async()=>{
+test('RINNE build includes launcher and every specialist review entry',async()=>{
   const vite=await read('vite.config.js');
   assert.match(vite,/review:fileURLToPath\(new URL\('\.\/review\.html'/);
   assert.match(vite,/reviewMotion:fileURLToPath/);
+  assert.match(vite,/reviewAssets:fileURLToPath\(new URL\('\.\/review-assets\.html'/);
+  assert.match(vite,/reviewObjects:fileURLToPath\(new URL\('\.\/review-objects\.html'/);
   assert.match(vite,/reviewEffects:fileURLToPath\(new URL\('\.\/review-effects\.html'/);
   assert.match(vite,/reviewBattle:fileURLToPath\(new URL\('\.\/review-battle\.html'/);
 });
