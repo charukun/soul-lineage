@@ -11,9 +11,11 @@ test('shared MURA topics resolve facility meaning from the canonical catalog',()
   assert.equal(square.compatible,true);
   assert.equal(square.facility.label,defs.campfire.label);
   assert.equal(square.facility.trait,defs.campfire.trait);
-  assert.ok(line.includes(defs.campfire.label));
-  assert.ok(line.includes(defs.campfire.trait));
+  assert.match(line,/村の広場/);
+  assert.doesNotMatch(line,/プレイヤー|NPC|ゲーム|UI|操作|専用/);
   assert.equal(muraTopicLine('village-square',{kind:'school'}),null);
+  const motherTour=[['village-square','campfire'],['home-life','clanManor'],['school-learning','school'],['books','school'],['prayer','chapel'],['training','dojo'],['smithing','smith'],['healing','clinic']];
+  for(const [id,kind] of motherTour){const spoken=muraTopicLine(id,{kind});assert.ok(spoken);assert.doesNotMatch(spoken,/プレイヤー|NPC|ゲーム|UI|操作|専用/);}
 });
 
 test('shared dialogue owns the Rinne birth framing and Village resident reactions',()=>{
