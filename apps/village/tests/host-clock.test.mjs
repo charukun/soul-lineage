@@ -10,7 +10,7 @@ test('throttled host callbacks advance the same simulation time',()=>{
 test('suspension and invalid clock readings cannot produce an unbounded catchup',()=>{
  let ticks=0;const advance=createHostClock(()=>++ticks,0);
  advance(NaN);advance(-1);assert.equal(ticks,0);
- advance(60000);assert.equal(ticks,60);advance(60000);assert.equal(ticks,60);
+ advance(60000);assert.equal(ticks,60);advance(60000);assert.equal(ticks,60);const recovered=createHostClock(()=>++ticks,NaN);recovered(1000);recovered(1000+1000/30);assert.equal(ticks,61,'invalid start sample must recover on the first valid timestamp');
 });
 
 test('accelerated frames preserve requested world time with bounded work',()=>{

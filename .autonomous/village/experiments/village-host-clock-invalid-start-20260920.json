@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "village-host-clock-invalid-start-20260920",
+  "game": "village",
+  "kind": "gameplay",
+  "problemKey": "host-clock-invalid-start-lockup",
+  "observation": {
+    "summary": "createHostClock accepts an invalid startMs and then poisons remainder with NaN, preventing all later fixed-step ticks.",
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "f0722e1db05dda17656860c4edb52041a752618b",
+        "path": "apps/village/src/game/host-clock.js",
+        "symbol": "createHostClock",
+        "statement": "previous is initialized directly from startMs and nowMs - previous feeds remainder without validating the initial value."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "The clock validates subsequent samples but not its initial timestamp.",
+    "prediction": "Treating an invalid initial timestamp as uninitialized allows the first valid sample to establish the baseline and the next step to tick normally.",
+    "falsifier": "A valid start changes existing timing counts or an invalid start still prevents recovery."
+  },
+  "candidates": [
+    {
+      "id": "lazy-baseline-on-first-valid-sample",
+      "selected": true,
+      "reason": "Small boundary fix with no wall-clock or simulation-rate change."
+    },
+    {
+      "id": "coerce-invalid-start-to-zero",
+      "selected": false,
+      "reason": "Could invent a large elapsed interval instead of establishing a real baseline."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/village/src/game/host-clock.js",
+      "apps/village/tests/host-clock.test.mjs"
+    ],
+    "summary": "Recover from invalid initial timestamps by lazily establishing the first valid baseline."
+  },
+  "comparison": {
+    "objective": "reproducible-causality",
+    "verdict": "pending",
+    "before": {
+      "revision": "f0722e1db05dda17656860c4edb52041a752618b",
+      "summary": "NaN start keeps remainder NaN and produces no future ticks."
+    },
+    "after": null,
+    "limitations": [
+      "Host clock boundary only; no browser/player-experience claim."
+    ]
+  },
+  "validation": {
+    "state": "awaiting-exact-head-receipt",
+    "focusedTests": [
+      "tests/develop-completion-contract.test.mjs",
+      "apps/village/tests/host-clock.test.mjs"
+    ],
+    "receipt": {
+      "repository": "charukun/soul-lineage",
+      "pullRequest": null,
+      "marker": "autonomous-receipt:village:village-host-clock-invalid-start-20260920"
+    }
+  },
+  "learning": {
+    "summary": "Pending hosted evidence.",
+    "failedApproaches": [],
+    "doNotRetry": [],
+    "unresolved": [],
+    "next": [
+      "Switch to kuumetsu after merge."
+    ]
+  }
+}
