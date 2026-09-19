@@ -23,6 +23,12 @@ test('all Visual Review specialist pages receive the shared navigation module',a
   assert.doesNotMatch(entries,/'\/review\.html'/);
   assert.match(vite,/order:'pre'/);
   assert.match(vite,/src:'\.\/src\/review-navigation\.js'/);
+  const [visual,motion,assets,objects,effects,motionCss]=await Promise.all([
+    read('src/review-choice-visual.js'),read('src/review-motion.js'),read('src/review-asset-library.js'),read('src/review-object-library.js'),read('src/review-effects.js'),read('src/review-motion.css')
+  ]);
+  assert.match(visual,/createReviewChoiceVisual/);
+  for(const source of [motion,assets,objects,effects])assert.match(source,/createReviewChoiceVisual/);
+  assert.match(motionCss,/\.motion-model-grid\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   const [objectsHtml,objectsJs,objectsCatalog]=await Promise.all([read('review-objects.html'),read('src/review-object-library.js'),read('src/review-object-catalog.js')]);
   assert.match(objectsHtml,/id="object-categories"/);
   assert.match(objectsJs,/CATEGORY_OPTIONS/);
