@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 test('development task board exposes compact state filters', async () => {
-  const pullBoard = await readFile(new URL('../apps/pulse/public/pull-board.js', import.meta.url), 'utf8');
-  const css = await readFile(new URL('../apps/pulse/public/pr-board.css', import.meta.url), 'utf8');
+  const pullBoard = await readFile(new URL('../ops-board/public/pull-board.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../ops-board/public/pr-board.css', import.meta.url), 'utf8');
   assert.match(pullBoard, /\['all', 'すべて'/);
   assert.match(pullBoard, /\['Draft', '作業中'/);
   assert.match(pullBoard, /\['Ready', '統合待ち'/);

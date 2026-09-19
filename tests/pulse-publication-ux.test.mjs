@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { PULSE_FIRST_GLANCE, PULSE_ROLE } from '../apps/pulse/public/pulse-contract.mjs';
+import { PULSE_FIRST_GLANCE, PULSE_ROLE } from '../ops-board/public/pulse-contract.mjs';
 import {
   PUBLICATION_GUIDE_MS,
   boardAlerts,
   devPublicationProgress,
   devPublicationSummary,
   estimatePublicationDuration,
-} from '../apps/pulse/public/health.mjs';
+} from '../ops-board/public/health.mjs';
 
 const now = Date.parse('2026-09-15T12:10:00Z');
 const baseState = ({ run, integration = {}, dev = {}, alerts = [] } = {}) => ({
@@ -137,7 +137,7 @@ test('publication estimate falls back to the operational ten-minute guide with t
 });
 
 test('application UI uses concrete progress language instead of the ambiguous next-update label', () => {
-  const source = readFileSync(new URL('../apps/pulse/public/app-board.js', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../ops-board/public/app-board.js', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /次の更新/);
   assert.match(source, /確認できる目安/);
   assert.match(source, /現在見えている版/);
@@ -147,9 +147,9 @@ test('application UI uses concrete progress language instead of the ambiguous ne
 });
 
 test('top overview keeps DEV understandable inside the contract-defined operator surface', () => {
-  const html = readFileSync(new URL('../apps/pulse/public/index.html', import.meta.url), 'utf8');
-  const overview = readFileSync(new URL('../apps/pulse/public/overview.js', import.meta.url), 'utf8');
-  const css = readFileSync(new URL('../apps/pulse/public/rapid-ui.css', import.meta.url), 'utf8');
+  const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
+  const overview = readFileSync(new URL('../ops-board/public/overview.js', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../ops-board/public/rapid-ui.css', import.meta.url), 'utf8');
 
   assert.deepEqual(PULSE_FIRST_GLANCE, [
     PULSE_ROLE.DEVELOPMENT,

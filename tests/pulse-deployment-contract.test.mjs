@@ -39,14 +39,14 @@ test('unchanged pinned snapshots keep their real original deployment timestamp',
 });
 
 test('PULSE title, canonical names and deployment metadata are wired together', () => {
-  const html = text('apps/pulse/public/index.html');
+  const html = text('ops-board/public/index.html');
   assert.match(html, /<title>PULSE<\/title>/);
   assert.match(html, /<h1[^>]*>PULSE<\/h1>/);
   assert.doesNotMatch(html, /開発状況ボード|Rinne Ops Board/);
   assert.equal(GAME_NAMES.demon, '尽喰廻遊');
   assert.match(text('scripts/vite-app.mjs'), /GAME_ENVIRONMENTS\.some/);
-  assert.match(text('apps/pulse/worker.mjs'), /buildState.*collector\.mjs/);
-  assert.match(text('apps/pulse/collector.mjs'), /environments: \[dev, staging, prod, \.\.\.previews\]/);
+  assert.match(text('ops-board/worker.mjs'), /buildState.*collector\.mjs/);
+  assert.match(text('ops-board/collector.mjs'), /environments: \[dev, staging, prod, \.\.\.previews\]/);
   assert.equal(existsSync(new URL('../.task-tools/pulse-apply.mjs', import.meta.url)), false);
   assert.equal(existsSync(new URL('../.github/workflows/pulse-task-worker.yml', import.meta.url)), false);
 });
@@ -73,6 +73,6 @@ test('delivery wiring keeps Workers DEV and PULSE independent while Pages remain
   assert.match(triggers, /workflow_call:/);
   assert.match(triggers, /workflow_dispatch:/);
   assert.match(boardWorkflow, /node ops-board\/publication-check\.mjs/);
-  assert.match(text('apps/pulse/publication-check.mjs'), /PULSE_PUBLIC_VERIFIED/);
+  assert.match(text('ops-board/publication-check.mjs'), /PULSE_PUBLIC_VERIFIED/);
   assert.doesNotMatch(boardWorkflow, /grep -q '開発状況ボード'/);
 });

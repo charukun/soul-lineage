@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { refreshPulseState } from '../apps/pulse/refresh-client.mjs';
+import { refreshPulseState } from '../ops-board/refresh-client.mjs';
 
 const NOW = Date.parse('2026-09-17T13:10:00Z');
 const BUILD = 'a'.repeat(40);

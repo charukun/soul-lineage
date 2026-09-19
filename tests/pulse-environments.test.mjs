@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildApplications } from '../apps/pulse/applications.mjs';
+import { buildApplications } from '../ops-board/applications.mjs';
 import { GAME_ENVIRONMENTS, INITIAL_ENVIRONMENT_APPS } from '../scripts/application-catalog.mjs';
 import { missingEnvironmentEntries, retainPinnedEntries } from '../scripts/environment-plan.mjs';
 

@@ -57,7 +57,7 @@ jobs:
           if ! git cat-file -e "$deployed^{commit}" 2>/dev/null; then
             git fetch --no-tags --depth=1 origin "$deployed" || true
           fi
-          node apps/pulse/publication-plan.mjs "$deployed" "$OPS_SOURCE_SHA"
+          node ops-board/publication-plan.mjs "$deployed" "$OPS_SOURCE_SHA"
 
   verify:
     name: PULSE verification
@@ -120,7 +120,7 @@ jobs:
           echo "OPS_REFRESH_TOKEN=$refresh_token" >> "$GITHUB_ENV"
       - name: Stamp the actual publication source
         run: |
-          node --input-type=module -e "import fs from 'node:fs';fs.writeFileSync('apps/pulse/public/version.json',JSON.stringify({app:'ops-board',commit:process.env.OPS_SOURCE_SHA,builtAt:new Date().toISOString()}))"
+          node --input-type=module -e "import fs from 'node:fs';fs.writeFileSync('ops-board/public/version.json',JSON.stringify({app:'ops-board',commit:process.env.OPS_SOURCE_SHA,builtAt:new Date().toISOString()}))"
       - name: Deploy PULSE to Cloudflare Workers
         id: deploy
         env:
@@ -137,13 +137,13 @@ jobs:
         if: steps.public.outputs.url != ''
         env:
           OPS_URL: ${{ steps.public.outputs.url }}
-        run: node apps/pulse/publication-check.mjs version
+        run: node ops-board/publication-check.mjs version
       - name: Prime GitHub state and cached target attribution
         if: steps.public.outputs.url != ''
         env:
           OPS_URL: ${{ steps.public.outputs.url }}
           GH_TOKEN: ${{ github.token }}
-        run: node apps/pulse/prime.mjs
+        run: node ops-board/prime.mjs
       - name: Verify public board and API
         if: steps.public.outputs.url != ''
         env:
@@ -168,13 +168,13 @@ jobs:
           ! printf '%s' "$page" | grep -q 'rel="manifest"'
           curl -fsS --retry 4 --retry-delay 2 "${OPS_URL}favicon.svg" | grep -q '<svg'
           curl -fsS --retry 4 --retry-delay 2 "${OPS_URL}icons/rinne.svg" | grep -q '<svg'
-          node apps/pulse/publication-check.mjs
+          node ops-board/publication-check.mjs
       - name: Operate the deployed board with a mobile browser
         if: steps.public.outputs.url != ''
         env:
           OPS_URL: ${{ steps.public.outputs.url }}
           OPS_REPORT_DIR: ops-review-results/public
-        run: node apps/pulse/browser-check.mjs
+        run: node ops-board/browser-check.mjs
       - name: Record public Ops Board status
         if: ${{ !cancelled() && github.ref == 'refs/heads/develop' && steps.deploy.outcome != 'skipped' }}
         env:
@@ -191,7 +191,7 @@ jobs:
             target_url="$PUBLIC_URL"
           fi
           gh api "repos/$GITHUB_REPOSITORY/statuses/$OPS_SOURCE_SHA" \
-            -f state="$state" -f context=apps/pulse/public \
+            -f state="$state" -f context=ops-board/public \
             -f description="$description" -f target_url="$target_url"
       - uses: actions/upload-artifact@v4
         if: always()

@@ -3,9 +3,9 @@ import { createServer } from 'node:http';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
 import { chromium } from '@playwright/test';
-import { rescueFixture } from '../../tests/fixtures/integration-rescue-state.mjs';
+import { rescueFixture } from '../tests/fixtures/integration-rescue-state.mjs';
 import { rescueView } from './rescue.mjs';
-import { event } from '../../scripts/integration-rescue-policy.mjs';
+import { event } from '../scripts/integration-rescue-policy.mjs';
 
 const out=resolve(process.env.OPS_RESCUE_REPORT_DIR || 'ops-review-results/rescue');await mkdir(out,{recursive:true});
 let fixture=rescueFixture(), errors=[];

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 
-const source=readFileSync(new URL('../apps/pulse/public/flow-board.js',import.meta.url),'utf8').replace(/^import .*;\n/,'');
+const source=readFileSync(new URL('../ops-board/public/flow-board.js',import.meta.url),'utf8').replace(/^import .*;\n/,'');
 class Element {
   children=[]; value=''; className='';
   append(...children){this.children.push(...children);}

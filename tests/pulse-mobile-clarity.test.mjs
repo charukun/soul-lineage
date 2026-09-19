@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { PULSE_FIRST_GLANCE, PULSE_ROLE } from '../apps/pulse/public/pulse-contract.mjs';
+import { PULSE_FIRST_GLANCE, PULSE_ROLE } from '../ops-board/public/pulse-contract.mjs';
 
-const html = readFileSync(new URL('../apps/pulse/public/index.html', import.meta.url), 'utf8');
-const css = readFileSync(new URL('../apps/pulse/public/rapid-ui.css', import.meta.url), 'utf8');
-const polish = readFileSync(new URL('../apps/pulse/public/review-polish.css', import.meta.url), 'utf8');
-const browserCheck = readFileSync(new URL('../apps/pulse/browser-check.mjs', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../ops-board/public/rapid-ui.css', import.meta.url), 'utf8');
+const polish = readFileSync(new URL('../ops-board/public/review-polish.css', import.meta.url), 'utf8');
+const browserCheck = readFileSync(new URL('../ops-board/browser-check.mjs', import.meta.url), 'utf8');
 
 test('PULSE first glance follows ACTIVE, APPS, ISSUES, RECENT', () => {
   assert.deepEqual(PULSE_FIRST_GLANCE, [

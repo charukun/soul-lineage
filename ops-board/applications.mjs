@@ -1,5 +1,5 @@
-import { GAME_NAMES, GAME_ENVIRONMENTS, BOARD_NAME } from '../../scripts/application-catalog.mjs';
-import { distributionPublicUrl } from '../../scripts/distribution-targets.mjs';
+import { GAME_NAMES, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/application-catalog.mjs';
+import { distributionPublicUrl } from '../scripts/distribution-targets.mjs';
 
 export const OPS_PUBLIC_URL = 'https://rinne-ops.c-okamoto.workers.dev/';
 export const PORTAL_PUBLIC_URL = 'https://wayfinder-gallery.c-okamoto.workers.dev/';
@@ -43,6 +43,19 @@ function fastDevTarget(app,developSha,statuses=[]){
     note:status?'app単位で独立公開':'公開status同期待ち'};
 }
 
+function rinneDevToolTarget(id,label,path,entries,environmentById,manifest) {
+  const definition = GAME_ENVIRONMENTS.find(item => item.id === 'dev');
+  const rinneDev = targetFor('rinne', definition, entries, environmentById.get('dev'), manifest);
+  return {
+    ...rinneDev,
+    id,
+    label,
+    expectedUrl: `${PAGES_ROOT}dev/rinne/${path}`,
+    url: rinneDev.url ? new URL(path, rinneDev.url).toString() : null,
+    source: '輪廻転焦 DEV 公開manifest',
+  };
+}
+
 export function buildApplications(manifest = {}, environments = [], runs = [], { developSha = null, statuses = [] } = {}) {
   const environmentById = new Map(environments.map(env => [env.id, env]));
   const entries = (manifest.entries || []).filter(entry => validApp(entry?.app) && environmentIds.has(entry.environment));
@@ -52,12 +65,14 @@ export function buildApplications(manifest = {}, environments = [], runs = [], {
     targets: [fastDevTarget(id,developSha,statuses),...GAME_ENVIRONMENTS.map(definition => targetFor(id, definition, entries, environmentById.get(definition.id), manifest))],
   }]));
 
-  for (const [id, name] of [['character-studio','キャラクター工房'],['review','Visual Review Lab']]) {
-    groups.set(id === 'review' ? 'visual-review' : id, {
-      id: id === 'review' ? 'visual-review' : id, name, kind: 'tool',
-      targets: [fastDevTarget(id, developSha, statuses)],
-    });
-  }
+  groups.set('character-studio', {
+    id: 'character-studio', name: 'キャラクター工房', kind: 'tool',
+    targets: [rinneDevToolTarget('character-studio','DEV公開','characters.html',entries,environmentById,manifest)],
+  });
+  groups.set('visual-review', {
+    id: 'visual-review', name: 'Visual Review Lab', kind: 'tool',
+    targets: [rinneDevToolTarget('visual-review','DEV公開','review.html',entries,environmentById,manifest)],
+  });
 
   for (const env of environments.filter(item => item.kind === 'preview')) {
     const id = `preview:${env.id}`;

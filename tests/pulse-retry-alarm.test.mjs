@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reconcileRetryAlarm, retryAlarmAt } from '../apps/pulse/retry-alarm.mjs';
+import { reconcileRetryAlarm, retryAlarmAt } from '../ops-board/retry-alarm.mjs';
 
 const now = Date.parse('2026-09-16T00:00:00Z');
 

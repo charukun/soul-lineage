@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { pullCopy, bodyLines, compactPull, targetAppsFromFiles } from '../apps/pulse/pulls.mjs';
-import { appSummary, appHealth, boardAlerts, ageLabel } from '../apps/pulse/public/health.mjs';
-import { enrichTargets, targetRevision, actionProblems } from '../apps/pulse/review-model.mjs';
-import { createGithubClient, readStored, writeStored } from '../apps/pulse/github-client.mjs';
-import { classifyPull, workflowFailure, publishedCommit, environmentDiff } from '../apps/pulse/model.mjs';
+import { pullCopy, bodyLines, compactPull, targetAppsFromFiles } from '../ops-board/pulls.mjs';
+import { appSummary, appHealth, boardAlerts, ageLabel } from '../ops-board/public/health.mjs';
+import { enrichTargets, targetRevision, actionProblems } from '../ops-board/review-model.mjs';
+import { createGithubClient, readStored, writeStored } from '../ops-board/github-client.mjs';
+import { classifyPull, workflowFailure, publishedCommit, environmentDiff } from '../ops-board/model.mjs';
 class Storage {
   values = new Map();
   async get(key) { return structuredClone(this.values.get(key)); }
@@ -33,7 +33,7 @@ test('leading comments and blank lines never become PR titles', () => {
 test('Visual Review uses normal PR lifecycle and target attribution instead of a dedicated branch mode', () => {
   const lab = pr({ draft: true, head: { ref: 'work/visual-review-lab-v2', sha: 'head' } });
   assert.equal(compactPull(lab, Date.parse('2026-09-13T00:00:00Z')).state, 'Draft');
-  assert.deepEqual(targetAppsFromFiles(['apps/pulse/public/visual-review-panel.js']).map(item => item.id), ['visual-review']);
+  assert.deepEqual(targetAppsFromFiles(['ops-board/public/visual-review-panel.js']).map(item => item.id), ['visual-review']);
 });
 test('unknown target results do not claim complete coverage', () => { assert.equal(compactPull(pr()).targetsComplete, false); });
 test('degraded snapshot and CI failure are both raised in action items', () => {
@@ -107,7 +107,7 @@ test('renames attribute both sides and paginated files are checked for completen
   const item=pr({changed_files:101});const storage=new Storage();let pages=0;
   const client={available:40,get:async path=>{
     if(!path.includes('/files?'))return{data:item,response:{headers:new Headers()}};
-    pages++;return{data:pages===1?Array.from({length:100},()=>({filename:'apps/rinne/a',previous_filename:'apps/village/a'})):[{filename:'apps/wayfinder/a'}],response:{headers:new Headers(pages===1?{link:'<x>; rel="next"'}:{})}};
+    pages++;return{data:pages===1?Array.from({length:100},()=>({filename:'apps/rinne/a',previous_filename:'apps/village/a'})):[{filename:'portal/a'}],response:{headers:new Headers(pages===1?{link:'<x>; rel="next"'}:{})}};
   }};
   const r=await enrichTargets([item],client,storage,2);assert.equal(r.ready,1);assert.deepEqual(r.pulls[0].targetApps.map(x=>x.id),['rinne','village','portal']);
 });
@@ -126,7 +126,7 @@ test('published SHA and exact public history remain the source of deployment com
 });
 test('UI has a single snapshot fetch and no direct GitHub target calls',async()=>{
   const read=path=>readFile(new URL('../'+path,import.meta.url),'utf8');
-  const [pulls,view,html,css]=await Promise.all([read('apps/pulse/public/pull-board.js'),read('apps/pulse/public/view-state.js'),read('apps/pulse/public/index.html'),read('apps/pulse/public/review-polish.css')]);
+  const [pulls,view,html,css]=await Promise.all([read('ops-board/public/pull-board.js'),read('ops-board/public/view-state.js'),read('ops-board/public/index.html'),read('ops-board/public/review-polish.css')]);
   assert.doesNotMatch(pulls,/api\.github\.com|changedFiles\(|resolveTargets\(/);assert.match(pulls,/subscribe/);assert.match(pulls,/対象確認中/);
   assert.match(view,/\/api\/state/);assert.match(view,/if \(inflight\) return inflight/);assert.match(view,/data-disclosure/);
   assert.match(html,/sync-freshness/);assert.doesNotMatch(html,/summary-grid|いまの状態/);assert.match(css,/repeat\(3,minmax\(0,1fr\)\)/);

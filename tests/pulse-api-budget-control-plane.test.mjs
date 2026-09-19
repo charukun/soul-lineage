@@ -50,7 +50,7 @@ test('missed-wake watchdog is hourly and dispatches only after a Ready scan', ()
 });
 
 test('PULSE retries rate limits exactly and rejects anonymous event refreshes', () => {
-  const worker = text('apps/pulse/worker.mjs');
+  const worker = text('ops-board/worker.mjs');
   assert.match(worker, /reconcileRetryAlarm/);
   assert.match(worker, /async alarm\(\)/);
   assert.match(worker, /refresh\('rate-limit-retry'\)/);
@@ -62,7 +62,7 @@ test('PULSE retries rate limits exactly and rejects anonymous event refreshes', 
 });
 
 test('PULSE exposes the API budget used by the current snapshot', () => {
-  const app = text('apps/pulse/public/app.js');
+  const app = text('ops-board/public/app.js');
   assert.match(app, /api\.requests/);
   assert.match(app, /api\.maxRequests/);
   assert.match(app, /api\.cacheHits/);
@@ -74,7 +74,7 @@ test('normal develop delivery uses one authenticated refresh contract without re
   const opsWorkflow = text('.github/workflows/ops-board.yml');
   const refreshWorkflow = text('.github/workflows/pulse-refresh.yml');
   const devWorkflow = text('.github/workflows/dev-app-publish.yml');
-  const prime = text('apps/pulse/prime.mjs');
+  const prime = text('ops-board/prime.mjs');
 
   assert.doesNotMatch(opsWorkflow, /^  push:/m);
   assert.match(opsWorkflow, /name: Plan PULSE publication/);

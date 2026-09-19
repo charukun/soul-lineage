@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { eventDrivenAlerts, syncPresentation } from '../apps/pulse/public/freshness.mjs';
-import { PULSE_COPY } from '../apps/pulse/public/pulse-contract.mjs';
+import { eventDrivenAlerts, syncPresentation } from '../ops-board/public/freshness.mjs';
+import { PULSE_COPY } from '../ops-board/public/pulse-contract.mjs';
 
 const now = Date.parse('2026-09-18T03:00:00Z');
 const healthyState = generatedAt => ({
@@ -64,9 +64,9 @@ test('missing snapshot identity remains a visible confirmation state', () => {
 });
 
 test('PULSE UI explains event-driven sync and browser reload without implying a GitHub refresh', () => {
-  const html = readFileSync(new URL('../apps/pulse/public/index.html', import.meta.url), 'utf8');
-  const app = readFileSync(new URL('../apps/pulse/public/app.js', import.meta.url), 'utf8');
-  const css = readFileSync(new URL('../apps/pulse/public/review-polish.css', import.meta.url), 'utf8');
+  const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
+  const app = readFileSync(new URL('../ops-board/public/app.js', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../ops-board/public/review-polish.css', import.meta.url), 'utf8');
 
   assert.match(html, /data-sync-title/);
   assert.match(html, /data-sync-meta/);

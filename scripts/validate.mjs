@@ -25,7 +25,7 @@ const closureSelected = full ? [...nodes.keys()] : [...new Set([
 ])];
 const profile = full || deploy ? '' : gateCostPlan(plan.paths || []).profile;
 const pulseRelevant = dev && (plan.paths || []).some(path =>
-  path.startsWith('apps/pulse/') ||
+  path.startsWith('ops-board/') ||
   /^tests\/(?:ops|pulse)-.*\.test\.mjs$/.test(path) ||
   path === 'wrangler.ops.jsonc' ||
   [

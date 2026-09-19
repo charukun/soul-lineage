@@ -51,7 +51,7 @@
     "pre-ready:verify": "node scripts/pre-ready-reconcile.mjs verify",
     "distribution:plan": "node scripts/distribution-plan.mjs",
     "distribution:build": "node scripts/build-target.mjs",
-    "pulse:preflight": "node apps/pulse/preflight.mjs"
+    "pulse:preflight": "node ops-board/preflight.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

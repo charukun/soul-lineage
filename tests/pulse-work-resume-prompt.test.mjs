@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { buildWorkResumePrompt, draftWorkItems } from '../apps/pulse/public/work-resume-prompt.js';
+import { buildWorkResumePrompt, draftWorkItems } from '../ops-board/public/work-resume-prompt.js';
 
 const fixture = {
   truncated: true,
@@ -54,8 +54,8 @@ test('Draft recovery prompt requires a current GitHub-wide audit before acting',
 
 test('PULSE exposes a mobile-safe button, dialog and copy action for the resume prompt', async () => {
   const [board, css] = await Promise.all([
-    readFile(new URL('../apps/pulse/public/pull-board.js', import.meta.url), 'utf8'),
-    readFile(new URL('../apps/pulse/public/pr-board.css', import.meta.url), 'utf8'),
+    readFile(new URL('../ops-board/public/pull-board.js', import.meta.url), 'utf8'),
+    readFile(new URL('../ops-board/public/pr-board.css', import.meta.url), 'utf8'),
   ]);
   assert.match(board, /buildWorkResumePrompt/);
   assert.match(board, /作業中が本当に動いているかAIで全件確認/);

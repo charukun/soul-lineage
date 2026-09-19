@@ -8,7 +8,7 @@ on:
       - 'fix/**'
       - 'work/**'
     paths:
-      - 'apps/wayfinder/**'
+      - 'portal/**'
       - 'wrangler.portal.jsonc'
       - 'wrangler.portal-legacy.jsonc'
       - '.github/workflows/portal.yml'
@@ -35,22 +35,22 @@ jobs:
 
       - name: Fast gallery verification
         run: |
-          node --check apps/wayfinder/public/app.js
-          node --check apps/wayfinder/worker.mjs
-          node --check apps/wayfinder/legacy-redirect.mjs
+          node --check portal/public/app.js
+          node --check portal/worker.mjs
+          node --check portal/legacy-redirect.mjs
           node --test tests/portal.test.mjs
-          grep -q 'WAYFINDER' apps/wayfinder/public/index.html
-          grep -q 'PULSE SYNC' apps/wayfinder/public/index.html
-          grep -q 'share-page' apps/wayfinder/public/index.html
-          grep -q 'copy-page' apps/wayfinder/public/index.html
-          grep -q 'favicon.svg' apps/wayfinder/public/index.html
-          ! grep -q 'rel="manifest"' apps/wayfinder/public/index.html
+          grep -q 'WAYFINDER' portal/public/index.html
+          grep -q 'PULSE SYNC' portal/public/index.html
+          grep -q 'share-page' portal/public/index.html
+          grep -q 'copy-page' portal/public/index.html
+          grep -q 'favicon.svg' portal/public/index.html
+          ! grep -q 'rel="manifest"' portal/public/index.html
 
       - name: Verify fallback catalog boundary
         run: |
           node --input-type=module <<'JS'
           import fs from 'node:fs';
-          const catalog = JSON.parse(fs.readFileSync('apps/wayfinder/catalog.json', 'utf8'));
+          const catalog = JSON.parse(fs.readFileSync('portal/catalog.json', 'utf8'));
           const text = JSON.stringify(catalog).toLowerCase();
           if (catalog.repository !== 'charukun/soul-lineage') process.exit(1);
           if (catalog.source !== 'fallback') process.exit(2);
@@ -59,7 +59,7 @@ jobs:
           JS
 
       - name: Prepare static catalog
-        run: cp apps/wayfinder/catalog.json apps/wayfinder/public/catalog.json
+        run: cp portal/catalog.json portal/public/catalog.json
 
       - name: Deploy Wayfinder to Cloudflare Workers
         id: deploy
@@ -160,6 +160,6 @@ jobs:
           fi
           gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
             -f state="$state" \
-            -f context=apps/wayfinder/public \
+            -f context=portal/public \
             -f description="$description" \
             -f target_url="$target_url"

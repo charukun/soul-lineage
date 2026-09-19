@@ -5,7 +5,7 @@ import {
   PULSE_COPY,
   PULSE_FIRST_GLANCE,
   PULSE_ROLE,
-} from '../apps/pulse/public/pulse-contract.mjs';
+} from '../ops-board/public/pulse-contract.mjs';
 
 const text = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -19,9 +19,9 @@ test('PULSE semantic contract is the single source for first-glance roles and re
   assert.equal(PULSE_COPY.recovery.headline, '自動復旧中');
   assert.equal(PULSE_COPY.recovery.syncTitle, '再同期中');
 
-  const browser = text('apps/pulse/browser-check.mjs');
-  const tower = text('apps/pulse/public/control-tower.js');
-  const freshness = text('apps/pulse/public/freshness.mjs');
+  const browser = text('ops-board/browser-check.mjs');
+  const tower = text('ops-board/public/control-tower.js');
+  const freshness = text('ops-board/public/freshness.mjs');
 
   assert.match(browser, /pulse-contract\.mjs/);
   assert.match(tower, /pulse-contract\.mjs/);

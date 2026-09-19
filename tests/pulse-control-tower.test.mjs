@@ -5,7 +5,7 @@ import {
   appendControlHistory,
   deriveControlTower,
   publicationHistoryEntry,
-} from '../apps/pulse/control-tower.mjs';
+} from '../ops-board/control-tower.mjs';
 
 const base = () => ({
   schemaVersion: 2,
@@ -100,9 +100,9 @@ test('PULSE developer attention remains UI-only with no external push transport'
 });
 
 test('public UI exposes action-first control tower, previous-view delta, flow and publication history', () => {
-  const html = readFileSync(new URL('../apps/pulse/public/index.html', import.meta.url), 'utf8');
-  const ui = readFileSync(new URL('../apps/pulse/public/control-tower.js', import.meta.url), 'utf8');
-  const worker = readFileSync(new URL('../apps/pulse/worker.mjs', import.meta.url), 'utf8');
+  const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
+  const ui = readFileSync(new URL('../ops-board/public/control-tower.js', import.meta.url), 'utf8');
+  const worker = readFileSync(new URL('../ops-board/worker.mjs', import.meta.url), 'utf8');
   assert.match(html, /id="control-tower"/);
   assert.match(html, /id="control-delta"/);
   assert.match(html, /id="control-flow"/);

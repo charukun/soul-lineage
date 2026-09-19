@@ -1,11 +1,11 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "rinne-ops",
-  "main": "apps/pulse/worker.mjs",
+  "main": "ops-board/worker.mjs",
   "compatibility_date": "2026-09-11",
   "workers_dev": true,
   "assets": {
-    "directory": "./apps/pulse/public",
+    "directory": "./ops-board/public",
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"]
   },
