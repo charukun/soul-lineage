@@ -28,7 +28,7 @@ export class View{
   }
   this.outside.add(this.foundation);this.renderer.shadowMap.needsUpdate=true;
  }
- makeTerrain(){Object.assign(this,createMuraTerrain({THREE:T,scene:this.scene,outside:this.outside,getProp:kind=>this.getProp(kind),mat,createCanvas:()=>document.createElement('canvas')}));}
+ makeTerrain(){Object.assign(this,createMuraTerrain({THREE:T,scene:this.scene,outside:this.outside,getProp:kind=>this.getProp(kind),mat,createCanvas:()=>document.createElement('canvas'),layoutObjects:this.world.objects}));}
 
  getProp(kind){if(!this.propCache.has(kind))this.propCache.set(kind,flatten(prop(kind,14)));return this.propCache.get(kind);}
  getBuilding(kind,material='base',level=1){const key=kind+':'+material+':'+level;if(!this.buildingCache.has(key))this.buildingCache.set(key,flatten(building(kind,material,level)));return this.buildingCache.get(key);}
