@@ -1,4 +1,5 @@
-import {mountReviewGroup,mountReviewGroupDeck,mountReviewSelect,mountReviewSelectGrid} from './review-slot-picker.js';
+import {mountReviewGroup,mountReviewSelect,mountReviewSelectGrid} from './review-slot-picker.js';
+import {installCharacterReviewGrid} from './character-review-grid.js';
 
 const byId=id=>document.getElementById(id);
 const qs=selector=>document.querySelector(selector);
@@ -41,21 +42,9 @@ function installStageCameraSlot(){
 
 function installCharacterSlots(){
   if(!document.body.classList.contains('simple-review'))return;
-  installStageCameraSlot();
   const mode=document.body.dataset.reviewMode;
-  if(mode==='character'){
-    const panel=byId('panel-parts');
-    if(!panel||byId('simple-character-picker'))return;
-    const deck=mountReviewGroupDeck([
-      {key:'character',label:'キャラクター',group:byId('character-model-options')},
-      {key:'part',label:'部位',group:byId('slot-tabs')},
-      {key:'candidate',label:'候補',group:byId('part-options')}
-    ],{defaultKey:'candidate'});
-    if(deck){
-      deck.id='simple-character-picker';
-      panel.insertBefore(deck,panel.firstElementChild);
-    }
-  }
+  if(mode==='character'){installCharacterReviewGrid();return;}
+  installStageCameraSlot();
   if(mode==='motion'){
     const basics=byId('simple-motion-controls');
     if(!basics)return;

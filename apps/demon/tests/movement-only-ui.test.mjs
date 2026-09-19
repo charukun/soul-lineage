@@ -7,7 +7,7 @@ const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 test('hunt shell exposes movement combat readout and the system pause escape hatch',()=>{
   const index=read('../index.html');
   for(const id of ['game','hud','pause','skill-name'])assert.match(index,new RegExp(`id="${id}"`),id);
-  assert.match(index,/class="phases"/);
+  assert.match(index,/class="phases combat-sequence combat-sequence--flat"/);
   for(const phase of ['jo','ha','kyu'])assert.match(index,new RegExp(`data-phase="${phase}"`),phase);
 });
 
@@ -21,20 +21,24 @@ test('movement-only input contract keeps utility actions automatic',()=>{
 });
 
 
-test('hunt HUD keeps only decision-critical persistent information and transient combat detail',()=>{
+test('hunt HUD keeps the old foot-level combat readout and omits enemy health chrome',()=>{
   const index=read('../index.html');
   const flow=read('../src/web/hunt-flow-ui.js');
   const css=read('../src/web/hunt-minimal-hud.css');
-  assert.match(flow,/hunt-minimal-hud\.css/);
   const main=read('../src/web/main.js');
+  assert.match(flow,/hunt-minimal-hud\.css/);
   assert.match(flow,/人影 \$\{eaten\}\/\$\{plan\.quota\}/);
   assert.match(flow,/戦利 \$\{haul\}/);
   assert.match(flow,/帰還 \$\{game\.carried/);
-  assert.match(index,/id="enemy-health-track"/);
-  assert.match(index,/id="enemy-health-fill"/);
-  assert.match(main,/enemy-health-fill/);
+  assert.doesNotMatch(index,/enemy-health-(?:track|fill)/);
+  assert.doesNotMatch(main,/enemy-health-(?:track|fill)/);
+  assert.doesNotMatch(css,/enemy-health-(?:track|fill)/);
+  assert.ok(index.includes('id="battle"><div class="phases combat-sequence combat-sequence--flat"'));
+  assert.match(index,/data-combat-sequence/);
+  assert.ok(css.includes('left:0!important;right:0!important;bottom:calc(165px + env(safe-area-inset-bottom))!important;'));
+  assert.ok(css.includes('background:none!important;clip-path:none!important;filter:none!important;'));
+  assert.ok(css.includes('body.hunt-loop #hud .phases{justify-content:center!important'));
   assert.match(css,/\.controls\{display:none!important\}/);
   assert.match(css,/#objective>small/);
   assert.match(css,/#return-hint/);
-  assert.match(css,/#battle/);
 });

@@ -1,0 +1,12 @@
+/* 尽喰廻遊 title commands: preserve the authored sumi-e glyphs while making every command readable and touchable. */
+#title .title-menu{width:min(350px,88vw);gap:6px}
+#title .title-menu-item{box-sizing:border-box;width:100%;min-width:0;min-height:56px;display:grid;grid-template-columns:minmax(0,1fr) 54px;align-items:center;padding:5px 10px 5px 14px;border:1px solid rgba(41,33,25,.16);background:linear-gradient(90deg,rgba(247,244,234,.94),rgba(232,226,212,.78));clip-path:polygon(0 8%,97% 0,100% 78%,92% 100%,4% 93%);box-shadow:0 6px 20px rgba(39,31,24,.13),inset 0 0 0 1px rgba(255,255,255,.22);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#title .title-menu-item.is-primary{border-color:rgba(126,31,25,.34);background:linear-gradient(90deg,rgba(249,245,233,.98),rgba(239,229,211,.9));box-shadow:inset 4px 0 rgba(126,31,25,.78),0 7px 23px rgba(39,31,24,.16)}
+#title .title-menu-item:hover,#title .title-menu-item:focus-visible{background:linear-gradient(90deg,rgba(255,252,242,.98),rgba(236,226,210,.94));box-shadow:inset 4px 0 rgba(126,31,25,.72),0 8px 25px rgba(39,31,24,.18)}
+#title .title-menu-item::after{display:grid;place-items:center;align-self:stretch;border-left:1px solid rgba(64,49,36,.15);color:#241d17;font-size:11px;font-weight:650;line-height:1;letter-spacing:.12em;text-shadow:0 1px rgba(255,255,255,.45)}
+#title #begin::after{content:"開始";color:#781d18}
+#title #title-memory::after{content:"転生"}
+#title #title-settings::after{content:"設定"}
+#title .title-menu-glyph{justify-self:center;filter:contrast(1.28) saturate(.76) drop-shadow(0 1px 0 rgba(255,255,255,.45))}
+#title .hunt-hub-status{margin:7px 0 0;min-height:0;color:#403a33;font-size:10px;line-height:1.5;letter-spacing:.08em;text-align:center;text-shadow:0 1px rgba(255,255,255,.55)}
+@media(max-height:700px){#title .title-menu{gap:3px}#title .title-menu-item{min-height:48px;padding-block:3px}#title .hunt-hub-status{margin-top:4px;font-size:9px}}

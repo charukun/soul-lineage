@@ -130,8 +130,6 @@ function hud(now) {
   $('form-name').textContent = FORMS[profile.form].name; $('village-name').textContent = game.village.name;
   $('night-label').textContent = `LIFE ${profile.currentLife?.number || 1} · NIGHT ${profile.hunts + 1}`;
   $('battle').style.opacity = ui.fight ? '1' : '0'; $('enemy-name').textContent = ui.fight ? game.fight.npc.name + (count > 1 ? ' ×' + count : '') : '';
-  const enemy = ui.fight ? game.fight.npc : null, enemyRatio = enemy ? Math.max(0, Math.min(1, Number(enemy.hp || 0) / Math.max(1, Number(enemy.maxhp || enemy.hp || 1)))) : 0;
-  $('enemy-health-fill').style.width = `${enemyRatio * 100}%`; $('enemy-health-track').setAttribute('aria-valuenow', String(Math.round(enemyRatio * 100)));
   $('skill-name').textContent = game.fight?.retreat > 0 ? '戦闘を離れる…' : p.skill || '間合いを測る';
   syncCombatSequence(document.querySelector('[data-combat-sequence]'),p.slot);
   $('scent').disabled = ui.scentDisabled; $('memory').disabled = ui.memoryDisabled; $('return').disabled = ui.returnDisabled;
