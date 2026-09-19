@@ -63,13 +63,13 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   const battleSource=readFileSync(new URL('../src/review-battle.js',import.meta.url),'utf8');
   const battleHtml=readFileSync(new URL('../review-battle.html',import.meta.url),'utf8');
   const monsterSource=readFileSync(new URL('../src/review-battle-monster.js',import.meta.url),'utf8');
-  assert.match(battleSource,/enemyModel='goblin-runt'/);
+  assert.match(battleSource,/enemyModel='skeleton-minion'/);
   assert.match(stageSource,/loadReviewMonsterModel\('goblin-runt'\)/);
   assert.match(stageSource,/loadReviewMonsterModel\('horn-brute'\)/);
   assert.match(stageSource,/loadReviewMonsterModel\('maw-stalker'\)/);
   assert.match(stageSource,/battleGeometry='runtime-monster-models'/);
   assert.doesNotMatch(stageSource,/ReviewMonsterSilhouette|installReviewEquipment\(side\.actor/);
-  assert.match(monsterSource,/gobkit-free-assets/);
+  assert.match(monsterSource,/KayKit-Character-Pack-Skeletons-1\.0/);
   assert.match(monsterSource,/reviewMonsterSpecies=id/);
   const answers=[
     {id:'a',kind:'technique',weapons:['sword'],phases:['ha'],steps:[{kind:'slash'},{kind:'crosscut'}]},
