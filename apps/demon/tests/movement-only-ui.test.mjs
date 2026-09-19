@@ -17,7 +17,7 @@ test('movement-only input contract keeps utility actions automatic',()=>{
   assert.match(contract,/例外はポーズ \/ システムメニュー/);
   assert.match(contract,/嗅覚: 狩場へ入った時と必要な再探索時に自動/);
   assert.match(contract,/帰路: 捕食後は最寄りの帰還口を自動案内/);
-  assert.match(contract,/序・破・急の現在phaseと現在行動名/);
+  assert.match(contract,/序・破・急の現在phaseと戦闘ログ/);
 });
 
 
