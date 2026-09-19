@@ -19,6 +19,15 @@ const SIGN_TEXT=Object.freeze({
 });
 export const REVIEW_INSPIRATION_TIMELINE=Object.freeze({camera:.55,spacing:1.35,stagger:2.35,reveal:3.15,execute:3.65,end:5.35});
 
+const reviewArts=(open,middle,finish,tag)=>Object.freeze({
+  open:Object.freeze(open),middle:Object.freeze(middle),finish:Object.freeze(finish),tag
+});
+const REVIEW_WEAPON_ARTS=Object.freeze({
+  ...INSPIRATION_WEAPON_ARTS,
+  dagger:reviewArts(['slash','thrust','back'],['back','crosscut','uppercut'],['crosscut','round','dash'],'短刃'),
+  staff:reviewArts(['thrust','sweep','pommel'],['sweep','back','bash'],['round','sweep','bullrush'],'杖')
+});
+
 const uniqueRows=rows=>{
   const seen=new Set();
   return rows.filter(row=>{const key=row.join('>');if(seen.has(key))return false;seen.add(key);return true;});
@@ -68,7 +77,7 @@ const weightedPick=(rows,random=Math.random)=>{
 };
 
 export function generatedReviewInspirationCandidates({weapon='fist',phase='ha',seenIds=[],encounterMode='duel'}={}){
-  const arts=INSPIRATION_WEAPON_ARTS[weapon],slot=PHASES.has(phase)?phase:'ha',seen=new Set(seenIds);
+  const arts=REVIEW_WEAPON_ARTS[weapon],slot=PHASES.has(phase)?phase:'ha',seen=new Set(seenIds);
   if(!arts)return [];
   return generatedSequences(arts,slot).map(kinds=>{
     const row=Object.freeze({
