@@ -95,10 +95,12 @@ function installBattleSlots(){
   const pickers=qs('.pickers');
   if(!pickers)return;
   pickers.classList.add('review-slot-row');
-  move(mountReviewSelect(byId('battle-hero-model'),'自プレイヤー'),pickers);
-  move(mountReviewGroup(qs('.skin-switch'),'UI'),pickers);
+  move(mountReviewSelect(byId('battle-hero-model'),'左モデル'),pickers);
+  move(mountReviewSelect(byId('battle-enemy-model'),'右モデル'),pickers);
+  move(mountReviewGroup(qs('.battle-mode-switch'),'戦闘人数'),pickers);
+  move(mountReviewGroup(qs('.skin-switch'),'カメラ / UI'),pickers);
   const modes=qs('.review-modes');
-  if(modes&&!modes.querySelector('.review-slot-picker'))modes.hidden=true;
+  if(modes)modes.hidden=false;
 }
 
 function install(){

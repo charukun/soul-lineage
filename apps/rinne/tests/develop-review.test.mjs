@@ -24,6 +24,17 @@ test('legacy RINNE review entry bridges to the independent Visual Review Lab',as
   assert.match(routes,/battle:route\(DEV\.rinne,'review-battle\.html'\)/);
 });
 
+test('all specialist review pages expose one Visual Review Lab back route',async()=>{
+  const pages=await Promise.all(['characters.html','review-motion.html','review-assets.html','review-objects.html','review-effects.html','review-sound.html','review-battle.html'].map(read));
+  for(const html of pages){
+    const matches=html.match(/href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"[^>]*aria-label="Visual Reviewへ戻る"/g)||[];
+    assert.equal(matches.length,1);
+  }
+  assert.ok(pages[1].indexOf('motion-controls')<pages[1].indexOf('motion-back'));
+  assert.match(pages[4],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
+  assert.match(pages[5],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
+});
+
 test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
   const [html,js,css]=await Promise.all([read('review-motion.html'),read('src/review-motion.js'),read('src/review-motion.css')]);
   assert.match(html,/id="motion-stage"/);assert.match(html,/id="motion-grid"/);assert.match(html,/id="motion-time"/);
@@ -63,17 +74,16 @@ test('world-object review loads the exact RINNE runtime props independently of e
   assert.match(css,/\.object-options button\[aria-pressed="true"\]/);
 });
 
-test('Battle is a dedicated page using real RaidHost and runtime models',async()=>{
-  const [html,review,battle]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js')]);
+test('Battle review exposes model and encounter switching and shares live combat camera contracts',async()=>{
+  const [html,review,battle,slots]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js'),read('src/review-slot-auto.js')]);
   assert.match(html,/id="battle-canvas"/);assert.match(html,/id="battle-hero-model"/);assert.match(html,/id="battle-enemy-model"/);
-  assert.match(html,/<a href="\/" aria-label="Visual Reviewへ戻る">‹ 戻る<\/a>/);
-  assert.match(html,/\.model-status,\.note,\.pickers,\.review-modes,\.actions button:last-child\{display:none!important\}/);
-  assert.match(html,/<span>Rogue<\/span>/);assert.match(html,/<span>Knight<\/span>/);
-  assert.match(review,/const loopEnabled=true,followCamera=true;/);
-  assert.doesNotMatch(review,/battle-loop'\)\.addEventListener|battle-camera'\)\.addEventListener/);
-  assert.match(review,/from '@soul\/network\/raid-host'/);assert.match(review,/new RaidHost/);assert.match(review,/createReviewBattleStage/);
-  assert.match(review,/stage\.setModel\('hero'/);assert.match(review,/stage\.setModel\('enemy'/);
-  assert.match(battle,/createKaykitCharacterPools/);assert.match(battle,/tidebreakFrameFromSnapshot/);assert.match(battle,/applyTidebreakPose/);assert.match(battle,/battleGeometry='runtime-models'/);
+  assert.match(html,/data-battle-mode="duel"/);assert.match(html,/data-battle-mode="melee"/);assert.doesNotMatch(html,/id="battle-toggle"/);
+  assert.match(html,/href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"[^>]*aria-label="Visual Reviewへ戻る"/);
+  assert.match(html,/\.model-status,\.note\{display:none!important\}/);
+  assert.match(review,/const loopEnabled=true,followCamera=true;/);assert.match(review,/encounterMode='duel'/);assert.match(review,/cameraSystem='rinne'/);
+  assert.match(review,/stage\.setModel\('hero'/);assert.match(review,/stage\.setModel\('enemy'/);assert.match(review,/setEncounterMode/);
+  assert.match(battle,/createKaykitCharacterPools/);assert.match(battle,/ReviewBattleExtra/);assert.match(battle,/encounterMode==='melee'/);assert.match(battle,/reviewBattleCameraFrame/);
+  assert.match(slots,/battle-enemy-model/);assert.match(slots,/battle-mode-switch/);
 });
 
 test('authored effect review reuses the runtime effect player and backend',async()=>{
