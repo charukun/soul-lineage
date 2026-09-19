@@ -16,7 +16,7 @@ button,select{font:inherit;color:inherit}
 .motion-stage-status output{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .motion-stage-status progress{margin-left:auto;width:88px;height:5px}
 .motion-controls{min-height:0;overflow:auto;padding:12px 14px max(18px,env(safe-area-inset-bottom));background:#111715;border-top:1px solid #2a332f}
-.motion-models{display:flex;align-items:center;gap:12px}
+.motion-models{display:flex;align-items:center;gap:12px}.motion-back{flex:0 0 auto;min-height:32px;display:inline-flex;align-items:center;padding:4px 9px;border:1px solid #39433f;border-radius:999px;background:#0c1411;color:#d8ded9;text-decoration:none;font-size:10px;font-weight:700}
 .motion-models h1{margin:0;flex:0 0 auto;font-size:15px}
 .motion-model-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;flex:1;min-width:0}
 .motion-model-grid button{min-height:30px;padding:4px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
