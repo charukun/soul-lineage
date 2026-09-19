@@ -32,9 +32,9 @@ ground.rotation.x=-Math.PI/2;ground.position.y=-.005;scene.add(ground);
 
 const loader=new GLTFLoader(),stage=new THREE.Group();scene.add(stage);
 let subject=null,targetScene=null,targetBones=null,targetRest=null,mixer=null,action=null,targetClips=[],registry=null,catalog=[],selected=null;
-let selectedModel=KAYKIT_MODELS[0],filter='recommended',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8;
+let selectedModel=KAYKIT_MODELS[0],filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8;
 let externalSource=null,externalSourceId='',externalTime=0,selectedDuration=0,selectSerial=0;
-const categoryOrder=['recommended','life','move','combat','reaction','other','all'];
+const categoryOrder=['all','recommended','life','move','combat','reaction','other'];
 
 function disposeSubject(){
   if(mixer&&targetScene){mixer.stopAllAction();mixer.uncacheRoot(targetScene);mixer=null;}
