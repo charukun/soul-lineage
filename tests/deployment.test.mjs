@@ -102,7 +102,7 @@ test('retiring Pages DEV preserves non-DEV releases byte-for-byte and drops the 
   };
   assert.deepEqual(preservePagesRelease(previous).map(entry=>entry.path),['staging/rinne','prod/rinne']);
   const snapshots=buildEnvironmentSnapshots(previous,preservePagesRelease(previous),{
-    developSha:'x'.repeat(40),productionSha:'y'.repeat(40),devOnly:false,pagesDevRetired:true,deployedAt:'now',workflowRunId:'1'
+    developSha:'x'.repeat(40),productionSha:'y'.repeat(40),devOnly:false,retirePagesDevOnly:true,deployedAt:'now',workflowRunId:'1'
   });
   assert.equal(snapshots.dev,undefined);
   assert.deepEqual(snapshots.prod,previous.environmentSnapshots.prod);

@@ -34,12 +34,13 @@ test('GitHub Pages no longer publishes develop while Production verification rem
   assert.doesNotMatch(workflow,/branches: \[develop/);
   assert.doesNotMatch(workflow,/dev\/delivery/);
   assert.match(workflow,/PAGES_DEV_RETIRED: 'true'/);
+  assert.match(workflow,/uses: \.\/\.github\/workflows\/integration-rescue\.yml/);
   assert.match(workflow,/Preserve blocking Production browser verification/);
   assert.match(workflow,/verify-browser\.mjs/);
 
   const retire=text('.github/workflows/retire-pages-dev.yml');
   assert.match(retire,/branches: \[develop\]/);
-  assert.match(retire,/PAGES_DEV_RETIRED: 'true'/);
+  assert.match(retire,/RETIRE_PAGES_DEV_ONLY: 'true'/);
   assert.match(retire,/test ! -e _site\/dev/);
   assert.match(retire,/existing non-DEV bytes/);
 });

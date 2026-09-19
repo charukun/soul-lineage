@@ -40,7 +40,7 @@ jobs:
       - name: Reassemble Pages from existing non-DEV bytes
         env:
           SITE_URL: https://charukun.github.io/soul-lineage/
-          PAGES_DEV_RETIRED: 'true'
+          RETIRE_PAGES_DEV_ONLY: 'true'
         run: node sources/dev/scripts/deploy.mjs sources/dev sources/prod _site "$SITE_URL"
       - name: Prove the artifact contains no DEV mirror and still contains Production
         run: |
