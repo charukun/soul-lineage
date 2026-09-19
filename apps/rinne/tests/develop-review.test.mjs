@@ -62,6 +62,8 @@ test('equipment review is organized around equipment fit and inspection tasks',a
   assert.doesNotMatch(html,/review-slot-auto\.js|着せ替え確認/);
   assert.match(js,/function setFocusPreset/);
   assert.match(js,/function renderEquipmentInspector/);
+  assert.match(js,/https:\/\/raw\.githubusercontent\.com/);
+  assert.match(js,/reviewModelUrl\(model\)|reviewEquipmentUrl\(spec\)/);
   assert.match(css,/\.asset-back\{/);
   assert.match(css,/grid-template-rows:50px minmax\(320px,55dvh\) minmax\(0,1fr\)/);
   assert.match(css,/\.asset-slot-tabs\{display:grid;grid-template-columns:repeat\(3/);
