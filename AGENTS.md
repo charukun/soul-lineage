@@ -12,12 +12,12 @@
 ## Astra fast flow
 
 1. **Implement** — start from latest `develop`, use a dedicated work branch / Draft PR, and construct the implementation through the connected GitHub Connector. Prefer composing a coherent final tree and updating the branch once instead of pushing every tiny intermediate edit. Intermediate pushes never justify waiting for CI.
-2. **Sync, validate once, merge** — when implementation is coherent, re-read current `develop`; if it advanced, reconcile it into the same branch. Then arm exactly one merge-owning validation for that final reconciled head by making the final/refreshed commit message contain `[astra-validate]`. Ignore stale/cancelled runs for earlier heads. When that exact final head passes, verify freshness, mark Ready, and merge it to `develop` in the same task/session.
+2. **Validate once, merge safely** — when implementation is coherent, re-read current `develop`, but do not reconcile solely because its SHA advanced. Arm one merge-owning validation by making the final work-head commit contain `[astra-validate]`. After it passes, the freshness gate checks whether current `develop` still merges cleanly and whether its new affected app/package/build/control-plane scope overlaps the validated work. Independent mergeable drift reuses the validation; conflict or impact overlap requires reconciliation and one new validation. Then mark Ready and merge to `develop` in the same task/session.
 3. **Deploy** — the `develop` push starts asynchronous DEV publication. Do not wait or poll for it.
 
 Ready for review is transient, not a success terminal. Normal success is `MERGED_TO_DEVELOP`. Report `FAILED` only when a real blocker remains.
 
-A qualifying Micro Patch may use a lighter authoring path, but still performs latest-develop reconciliation, one final merge-owning validation, freshness verification, and same-task merge. See `docs/MICRO_PATCH_FAST_LANE.md`.
+A qualifying Micro Patch may use a lighter authoring path, but still performs one final merge-owning validation, impact-aware freshness verification, and same-task merge. Reconcile only when the freshness gate finds conflict or impact overlap. See `docs/MICRO_PATCH_FAST_LANE.md`.
 
 ## Connector and Actions execution
 
@@ -25,9 +25,10 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs la
 - Use the connected GitHub Connector to read current source and construct work-branch changes with Contents / Git Data operations such as blob, tree, commit, and ref updates.
 - Code Mode / V8 syntax or consistency checks are preflight only. Do not treat them as formal focused validation.
 - Do not run or wait on merge-owning validation for every intermediate branch push. Earlier, cancelled, or stale runs are disposable implementation noise and must never terminate the task.
-- Formal merge-owning test/check/build evidence must come from the final reconciled work head checked out in `Astra Work Validation` GitHub Actions hosted runner or another real repository checkout.
-- Arm that run explicitly only after implementation and latest-`develop` reconciliation are complete: the commit that becomes the final branch head must include `[astra-validate]` in its commit message.
-- The head merged to `develop` must be that same final reconciled head. If either PR head or `develop` moves afterward, reconcile first and make the new reconciled head the next `[astra-validate]` commit; do not chase superseded runs.
+- Formal merge-owning test/check/build evidence must come from the exact work head checked out in `Astra Work Validation` GitHub Actions hosted runner or another real repository checkout.
+- Arm that run only after implementation is coherent: the final work-head commit must include `[astra-validate]` in its commit message.
+- The PR head merged to `develop` must remain the exact head that passed validation. If the PR head moves, validate the new head. If only `develop` moves, reuse the validation when the merge is clean and the new develop delta is independent by affected app/package/build/control-plane scope; otherwise reconcile and revalidate.
+- When conflict or impact overlap requires reconciliation, that replacement branch tip is the **final reconciled head** and must pass the new merge-owning validation before merge.
 - One failed local tool, DNS path, transport, cancelled stale workflow, or command is not task failure. Preserve the same branch / PR and continue through the Connector + repository workflow path.
 - Do not use watch/sleep loops for unrelated CI, browser checks, or DEV publication. Only the single merge-owning final-head validation is a waiting stage before Ready / merge.
 - Never change `main` / Production without explicit user permission.

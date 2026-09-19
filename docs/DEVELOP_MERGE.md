@@ -4,10 +4,9 @@ The normal develop lane is:
 
 ```text
 implementation on Draft PR
-  -> current develop reconciliation
-  -> final reconciled commit message contains [astra-validate]
-  -> final reconciled head passes
-  -> freshness verification
+  -> final work-head commit contains [astra-validate]
+  -> exact work head passes
+  -> mergeability + dependency-impact freshness verification
   -> Ready
   -> same-task merge to develop
   -> asynchronous DEV publication
@@ -19,18 +18,18 @@ Immediately before merge, confirm:
 
 - PR is open, same repository, base=`develop`
 - no explicit hold / manual-merge marker / unresolved blocking dependency
-- current `develop` is included in the work head
-- the final reconciled PR head has one successful merge-owning validation from a real repository checkout
+- the exact PR head has one successful merge-owning validation from a real repository checkout
 - PR head still equals the `[astra-validate]` commit that passed merge-owning validation
-- `develop` did not advance after freshness verification
+- `astra/merge-freshness=success` for that head against the latest observed `develop`
+- if `develop` advanced, the validated head and current develop merge cleanly and their affected app/package/build/control-plane scopes are independent
 
-If head or `develop` moved, reconcile first, make the new reconciled head a new `[astra-validate]` commit, and validate that head once. Never wait on, retry, or report superseded runs unless they expose a real defect that still exists in the current head.
+If the PR head moved, validate the new head. If only `develop` moved, do not revalidate solely because the SHA changed. Independent mergeable drift keeps the existing validation; conflict or impact overlap requires reconciliation and one new `[astra-validate]` head.
 
 ## Explicit validation arming
 
 `Astra Work Validation` creates no runner job for ordinary intermediate branch pushes.
 
-Keep the PR Draft while implementing and reconciling. The commit that becomes the final reconciled branch head must contain:
+Keep the PR Draft while implementing. The commit that becomes the final validated branch head must contain:
 
 ```text
 [astra-validate]
