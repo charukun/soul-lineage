@@ -23,7 +23,8 @@
     "@soul/characters": "*",
     "@soul/tidebreak-combat": "*",
     "three": "0.186.0",
-    "@soul/animations": "*"
+    "@soul/animations": "*",
+    "@soul/input": "*"
   },
   "devDependencies": {
     "playwright": "1.63.0",
