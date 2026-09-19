@@ -141,6 +141,98 @@ export function mountReviewSelectGrid(select,label='選択中'){
   return shell;
 }
 
+export function mountReviewGroupDeck(entries,{defaultKey}={}) {
+  const sources=(entries||[]).filter(entry=>entry?.group&&entry?.key);
+  if(!sources.length)return null;
+  const shell=document.createElement('section');
+  shell.className='review-slot-deck';
+  shell.setAttribute('aria-label','選択項目と候補一覧');
+
+  const slotRow=document.createElement('div');
+  slotRow.className='review-slot-deck-slots';
+  slotRow.setAttribute('role','tablist');
+  slotRow.setAttribute('aria-label','確認する項目');
+  const list=document.createElement('div');
+  list.className='review-slot-deck-list';
+  list.setAttribute('role','listbox');
+  shell.append(slotRow,list);
+
+  let activeKey=sources.some(entry=>entry.key===defaultKey)?defaultKey:sources[0].key;
+  const slots=new Map();
+
+  const sync=()=>{
+    for(const entry of sources){
+      const chosen=selectedButton(entry.group);
+      const trigger=slots.get(entry.key);
+      if(!trigger)continue;
+      trigger.querySelector('.review-slot-deck-value').textContent=chosen?labelOf(chosen):'選択';
+      trigger.setAttribute('aria-selected',String(entry.key===activeKey));
+      trigger.tabIndex=entry.key===activeKey?0:-1;
+    }
+    const entry=sources.find(item=>item.key===activeKey)||sources[0];
+    const options=sourceButtons(entry.group);
+    const chosen=selectedButton(entry.group);
+    list.setAttribute('aria-label',`${entry.label||'選択'}の候補`);
+    list.replaceChildren(...options.map(source=>{
+      const option=document.createElement('button');
+      option.type='button';
+      option.className='review-slot-deck-option';
+      option.textContent=labelOf(source);
+      option.disabled=source.disabled;
+      option.setAttribute('role','option');
+      option.setAttribute('aria-selected',String(source===chosen));
+      option.addEventListener('click',()=>{
+        source.click();
+        queueMicrotask(sync);
+      });
+      return option;
+    }));
+  };
+
+  const activate=(key,focus=false)=>{
+    if(!sources.some(entry=>entry.key===key))return;
+    activeKey=key;
+    sync();
+    if(focus)slots.get(key)?.focus();
+  };
+
+  for(const entry of sources){
+    entry.group.classList.add('review-slot-source-group');
+    entry.group.setAttribute('aria-hidden','true');
+    const trigger=document.createElement('button');
+    trigger.type='button';
+    trigger.className='review-slot-deck-slot';
+    trigger.dataset.reviewDeckKey=entry.key;
+    trigger.setAttribute('role','tab');
+    const caption=document.createElement('small');
+    caption.textContent=entry.label||'選択';
+    const value=document.createElement('strong');
+    value.className='review-slot-deck-value';
+    value.textContent='選択';
+    trigger.append(caption,value);
+    trigger.addEventListener('click',()=>activate(entry.key));
+    trigger.addEventListener('keydown',event=>{
+      const keys=sources.map(item=>item.key);
+      let index=keys.indexOf(activeKey);
+      if(event.key==='ArrowRight')index=(index+1)%keys.length;
+      else if(event.key==='ArrowLeft')index=(index+keys.length-1)%keys.length;
+      else if(event.key==='Home')index=0;
+      else if(event.key==='End')index=keys.length-1;
+      else return;
+      event.preventDefault();
+      activate(keys[index],true);
+    });
+    slots.set(entry.key,trigger);
+    slotRow.append(trigger);
+  }
+
+  const observer=new MutationObserver(sync);
+  for(const entry of sources)observer.observe(entry.group,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-pressed','disabled','aria-label']});
+  shell._reviewSlotDeckObserver=observer;
+  sync();
+  return shell;
+}
+
 document.addEventListener('pointerdown',event=>{if(opened&&!opened.contains(event.target))close(opened);},true);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&opened)close(opened,true);});
 window.addEventListener('resize',()=>{if(opened)position(opened);});
