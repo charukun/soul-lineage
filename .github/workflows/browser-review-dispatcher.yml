@@ -1,0 +1,52 @@
+name: Browser Review Dispatcher
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-review
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/browser-review ') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout isolated browser control plane
+        uses: actions/checkout@v6
+        with:
+          ref: browser-review/control
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Parse command from trusted PR comment
+        env:
+          COMMENT: ${{ github.event.comment.body }}
+        run: |
+          mkdir -p .browser-review
+          printf '%s' "$COMMENT" | sed '1s#^/browser-review ##' > .browser-review/command.json
+          node -e "const c=require('./.browser-review/command.json'); if(!/^https:\/\//.test(c.url||'')) process.exit(2)"
+      - name: Install repository dependencies without lifecycle hooks
+        run: npm ci --ignore-scripts
+      - name: Install isolated Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Execute generic browser review
+        run: node scripts/browser/review-control.mjs .browser-review/command.json
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: browser-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-results/browser-review/
+          if-no-files-found: error
+          retention-days: 7
