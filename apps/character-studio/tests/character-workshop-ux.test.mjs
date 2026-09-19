@@ -104,8 +104,8 @@ test('character model review exposes review axes and preserves the full selectab
   assert.match(characterGridCss, /border-radius:\s*999px/);
   assert.match(characterGridCss, /character-model-picker/);
   assert.match(characterGridCss, /character-model-list/);
-  assert.match(characterGridCss, /grid-auto-flow:column/);
-  assert.match(characterGridCss, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(characterGridCss, /grid-auto-flow:column/);
+  assert.match(characterGridCss, /character-model-list\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.match(characterGridCss, /CHARACTER PROBE/);
   assert.match(characterGridCss, /minmax\(0,\s*56fr\).*minmax\(0,\s*44fr\)/);
   assert.match(characterGrid, /function optionMark\(group, option\)/);
@@ -115,8 +115,8 @@ test('character model review exposes review axes and preserves the full selectab
   assert.match(characterGrid, /function renderModelOptions\(group\)/);
   assert.match(characterGrid, /state = \{ active: 'individual'/);
   for (const label of ['シルエット','干渉','顔','年齢差','個体差','ゲーム距離']) assert.ok(characterGrid.includes(label));
-  assert.match(characterGrid, /'quality-mark'/);
-  assert.match(characterGrid, /'別候補'/);
+  assert.match(characterGrid, /const actionNodes = \['quality-mark'\]/);
+  assert.doesNotMatch(characterGrid, /'別候補'/);
   assert.match(characterGrid, /button\.dataset\.reviewAction = id/);
   assert.match(characterGrid, /subjectRow\.classList\.add\('character-review-pager'\)/);
   assert.match(characterGrid, /frameButton\.textContent = '全身'/);
@@ -125,8 +125,11 @@ test('character model review exposes review axes and preserves the full selectab
   assert.match(characterGridCss, /data-group="model"/);
   assert.match(characterGridCss, /stage-actions #camera-cycle/);
   assert.match(characterGridCss, /#retry:disabled\{display:none!important\}/);
-  assert.match(characterGrid, /↶ 戻す/);
-  assert.match(characterGrid, /↷ やり直す/);
+  assert.doesNotMatch(characterGrid, /↶ 戻す/);
+  assert.doesNotMatch(characterGrid, /↷ やり直す/);
+  assert.match(characterGrid, /canvasWrap\.append\(actions\)/);
+  assert.match(characterGridCss, /load-indicator\[data-state="error"\]\{display:none!important\}/);
+  assert.match(entry, /自動生成/);
   assert.doesNotMatch(slotAuto, /move\(mountReviewGroup\(byId\('character-model-options'\)/);
   // The shared reusable deck and its layout contracts from develop remain intact.
   assert.match(slotPicker, /export function mountReviewGroupDeck/);
