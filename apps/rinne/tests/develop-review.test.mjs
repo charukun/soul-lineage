@@ -71,21 +71,19 @@ test('review choice grids keep the five-column invariant across desktop and resp
   }
 });
 
-test('equipment review keeps the stage primary and opens model choice as a five-column slot picker',async()=>{
+test('equipment review follows the Visual Review Lab probe language and exposes the exact review questions',async()=>{
   const [html,css,js]=await Promise.all([read('review-assets.html'),read('src/review-asset-library.css'),read('src/review-asset-library.js')]);
-  assert.match(html,/<title>Visual Review｜装備<\/title>/);
+  assert.match(html,/<title>装備 \| Visual Review Lab<\/title>/);
+  assert.match(html,/class="eyebrow">RINNE RUNTIME PROBE<\/p>/);
+  assert.match(html,/data-review-purpose/);
+  assert.match(html,/正しい位置・向き・尺度で付き/);
+  for(const point of ['装着','干渉','輪郭','モデル差'])assert.match(html,new RegExp(point));
   assert.match(html,/id="asset-slot-tabs"/);
   assert.match(html,/id="asset-equipment-options"/);
-  assert.match(html,/id="asset-model-trigger"/);
-  assert.match(html,/id="asset-model-picker"[^>]*role="dialog"/);
-  assert.doesNotMatch(html,/data-review-purpose|確認ポイント|正しい位置・向き・尺度|SECONDARY CHECK|PRIMARY ACTION/);
-  for(const preset of ['front','left','right','back'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
-  assert.doesNotMatch(html,/data-asset-focus=/);
+  for(const preset of ['front','three-quarter','side','back'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
+  for(const focus of ['full','main','off','back'])assert.match(html,new RegExp(`data-asset-focus="${focus}"`));
   assert.doesNotMatch(html,/review-slot-auto\.js|着せ替え確認|装備確認 \| 百年転生/);
-  assert.match(js,/activeViewDirection==='left'/);
-  assert.match(js,/activeViewDirection==='right'/);
-  assert.match(js,/openModelPicker/);
-  assert.match(js,/closeModelPicker/);
+  assert.match(js,/activeViewDirection==='three-quarter'/);
   assert.match(js,/MODELS \$\{REVIEW_SKELETON_MODELS\.length\}/);
   assert.match(js,/https:\/\/raw\.githubusercontent\.com/);
   assert.match(js,/reviewModelUrl\(model\)|reviewEquipmentUrl\(spec\)/);
@@ -111,20 +109,16 @@ test('world-object review loads the exact RINNE runtime props independently of e
   assert.doesNotMatch(css,/@media[\s\S]*?\.object-options\{[^}]*grid-template-columns/);
 });
 
-test('Battle review keeps fixed live models and exposes encounter plus inspiration controls',async()=>{
-  const [html,review,battle]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js')]);
-  assert.match(html,/id="battle-canvas"/);
-  assert.doesNotMatch(html,/id="battle-hero-model"|id="battle-enemy-model"/);
-  assert.match(html,/class="hero-model-lock"/);
-  assert.match(html,/data-battle-mode="duel"/);assert.match(html,/data-battle-mode="one-v-three"/);
-  assert.match(html,/data-inspiration-mode="normal"/);assert.match(html,/data-inspiration-mode="boost"/);
+test('Battle review exposes model and encounter switching and shares live combat camera contracts',async()=>{
+  const [html,review,battle,slots]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js'),read('src/review-slot-auto.js')]);
+  assert.match(html,/id="battle-canvas"/);assert.match(html,/id="battle-hero-model"/);assert.match(html,/id="battle-enemy-model"/);
+  assert.match(html,/data-battle-mode="duel"/);assert.match(html,/data-battle-mode="melee"/);assert.doesNotMatch(html,/id="battle-toggle"/);
   assert.match(html,/href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"[^>]*aria-label="Visual Reviewへ戻る"/);
   assert.match(html,/\.model-status,\.note\{display:none!important\}/);
-  assert.match(review,/const battleSfx=createCombatSfx\(\),loopEnabled=true,followCamera=true;/);
-  assert.match(review,/encounterMode='duel'/);assert.match(review,/cameraSystem='rinne'/);
-  assert.match(review,/stage\.setModel\('enemy'/);assert.match(review,/stage\.setEncounterMode/);
-  assert.match(review,/learnedTechniqueIds/);assert.match(review,/learnedSlots/);
-  assert.match(battle,/REVIEW_MONSTER_MODELS/);assert.match(battle,/encounterMode==='one-v-three'/);assert.match(battle,/reviewBattleCameraFrame/);
+  assert.match(review,/const loopEnabled=true,followCamera=true;/);assert.match(review,/encounterMode='duel'/);assert.match(review,/cameraSystem='rinne'/);
+  assert.match(review,/stage\.setModel\('hero'/);assert.match(review,/stage\.setModel\('enemy'/);assert.match(review,/setEncounterMode/);
+  assert.match(battle,/createKaykitCharacterPools/);assert.match(battle,/ReviewBattleExtra/);assert.match(battle,/encounterMode==='melee'/);assert.match(battle,/reviewBattleCameraFrame/);
+  assert.match(slots,/battle-enemy-model/);assert.match(slots,/battle-mode-switch/);
 });
 
 test('authored effect review reuses the runtime effect player and backend',async()=>{
