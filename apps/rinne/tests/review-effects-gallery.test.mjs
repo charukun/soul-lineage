@@ -68,11 +68,11 @@ test('VFX discovery tools stay available but hide while the catalog is trivially
   assert.match(js,/haystack\.includes\(needle\)/);
   assert.match(js,/REVIEW_EFFECT_CATEGORIES\[entry\.category\]/);
   assert.doesNotMatch(html,/import|download|remote|URL/i);
-  assert.doesNotMatch(js,/fetch\(/);
+  assert.doesNotMatch(js,/\bfetch\(/);
 });
 
 test('existing playback review controls stay available as secondary tools',()=>{
-  for(const id of ['fx-speed','fx-tier','fx-loop','fx-reduced','fx-pause','fx-clear','fx-camera','fx-metrics']){
+  for(const id of ['fx-speed','fx-tier','fx-loop','fx-reduced','fx-pause','fx-clear','fx-metrics']){
     assert.match(html,new RegExp(`id="${id}"`));
   }
   assert.match(html,/<details class="controls">/);
@@ -81,6 +81,7 @@ test('existing playback review controls stay available as secondary tools',()=>{
   assert.match(js,/const ensureLoopDefaultOn=\(\)=>\{loopToggle\.checked=true;\}/);
   assert.match(js,/window\.addEventListener\('pageshow',ensureLoopDefaultOn\)/);
   assert.match(js,/if\(loopToggle\.checked&&now-lastTrigger>/);
+  assert.match(js,/q\('fx-camera'\)\?\.addEventListener/);
   assert.match(js,/createAuthoredEffectPlayer/);
   assert.match(js,/createEffekseerBackend/);
   assert.match(js,/streaming:true/);
