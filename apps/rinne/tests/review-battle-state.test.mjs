@@ -63,6 +63,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   const battleSource=readFileSync(new URL('../src/review-battle.js',import.meta.url),'utf8');
   const battleHtml=readFileSync(new URL('../review-battle.html',import.meta.url),'utf8');
   const monsterSource=readFileSync(new URL('../src/review-battle-monster.js',import.meta.url),'utf8');
+  const runtimeSource=readFileSync(new URL('../src/rebuild/runtime.js',import.meta.url),'utf8');
   assert.match(battleSource,/enemyModel='skeleton-minion'/);
   assert.match(stageSource,/loadReviewMonsterModel\('skeleton-minion'\)/);
   assert.match(stageSource,/loadReviewMonsterModel\('skeleton-warrior'\)/);
@@ -95,7 +96,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleHtml,/\.controls\.review-surface__panel\{min-height:0!important;height:auto!important/);
   assert.match(battleHtml,/grid-template-columns:minmax\(0,1fr\) auto!important/);
   assert.match(battleSource,/x:1\.9,z:0/);assert.match(battleSource,/x:-1\.9,z:0/);
-  assert.match(battleSource,/runtime\.input\?\.\(manualMove\.x,manualMove\.y,manualMove\.amount,0\)/);
+  assert.match(battleSource,/runtime\.input\?\.\(manualMove\.x,manualMove\.y,manualMove\.amount,battleStage\?\.cameraAngle\?\.\(\)\|\|0\)/);
   assert.match(stageSource,/cameraOrbit=\(cameraOrbit\+step\*\.05\)/);
   assert.match(stageSource,/rx=-dz\/len,rz=dx\/len/);
   assert.match(stageSource,/zoomBy\(delta=0\)/);
@@ -104,5 +105,14 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleHtml,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
   assert.match(battleHtml,/-webkit-line-clamp:2!important/);
   assert.match(battleHtml,/敵モデル<\/span><strong>スケルトン<\/strong>/);
+  assert.match(battleSource,/positions:\{hero:\{x:-2\.6,z:0\},enemy:\{x:2\.6,z:0\}\}/);
+  assert.match(battleSource,/for\(let i=0;i<20;i\+\+\)runtime\.step\?\.\(1\/60\)/);
+  assert.match(runtimeSource,/if\(len<12\)setAxis\(\{x:0,y:0\}\);else setAxis\(\{x:dx\/Math\.max\(42,len\),y:dy\/Math\.max\(42,len\)\}\)/);
+  assert.match(battleSource,/if\(len<12\)setManualAxis\(\{x:0,y:0\}\);else setManualAxis\(\{x:dx\/Math\.max\(42,len\),y:dy\/Math\.max\(42,len\)\}\)/);
+  assert.match(stageSource,/cameraZoom=\.82/);
+  assert.match(stageSource,/cameraAngle\(\)\{return Math\.atan2\(camera\.position\.x-cameraLook\.x,camera\.position\.z-cameraLook\.z\);\}/);
+  assert.match(battleHtml,/main\.battle-review\.review-surface > \.review-surface__workspace\{/);
+  assert.match(battleHtml,/grid-template-rows:minmax\(0,1fr\) max-content!important/);
+  assert.match(battleHtml,/min-height:34px!important;\s*max-height:36px!important/);
   assert.match(stageSource,/onInspirationCue\('spark'/);
 });
