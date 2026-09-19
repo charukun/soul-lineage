@@ -42,6 +42,8 @@ test('VFX stage uses readable humanoid scale and effect-intent guides',()=>{
   assert.match(js,/function createImpactGuide/);
   assert.match(js,/function createAreaGuide/);
   assert.match(js,/const REVIEW_CONTEXTS=Object\.freeze/);
+  assert.match(js,/new THREE\.Box3\(\)\.setFromObject\(attacker\)/);
+  assert.match(js,/reviewModelScale\(entry,reviewModelHeight\)/);
   assert.match(js,/secondaryB\.visible=context\.secondary/);
   assert.match(js,/areaGuide\.visible=context\.area>0/);
   assert.doesNotMatch(js,/function marker\(/);
