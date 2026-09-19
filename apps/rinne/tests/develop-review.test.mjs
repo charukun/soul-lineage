@@ -30,6 +30,9 @@ test('all specialist review pages expose one Visual Review Lab back route',async
     const matches=html.match(/href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"[^>]*aria-label="Visual Reviewへ戻る"/g)||[];
     assert.equal(matches.length,1);
   }
+  assert.ok(pages[1].indexOf('motion-controls')<pages[1].indexOf('motion-back'));
+  assert.match(pages[4],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
+  assert.match(pages[5],/class="review-title"[^>]*>\s*<a class="review-lab-back"/);
 });
 
 test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
