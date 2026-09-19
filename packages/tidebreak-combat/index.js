@@ -2190,11 +2190,11 @@ incapacitate=function(a,src=null){a.endlag=null;a.flow=null;a.plan=null;if(a.her
 const guard4=guardMode;
 guardMode=function(a){return a.endlag?null:guard4(a);};
 const mind4=mindProfile;
-mindProfile=function(a){return a.hero?mind4(a):(ENEMY_STYLES[enemyStyle]||ENEMY_STYLES.balanced);};
+mindProfile=function(a){return a.hero?mind4(a):((ENEMY_STYLES[enemyStyle]||ENEMY_STYLES.balanced)||ENEMY_STYLES.balanced);};
 const intent4=setIntent;
-setIntent=function(a,state,duration){intent4(a,state,duration);if(!a.hero){a.tactics.duration*=ENEMY_STYLES[enemyStyle].pace;stats.enemyDecisions||={};stats.enemyDecisions[state]=(stats.enemyDecisions[state]||0)+1;}};
+setIntent=function(a,state,duration){intent4(a,state,duration);if(!a.hero){a.tactics.duration*=(ENEMY_STYLES[enemyStyle]||ENEMY_STYLES.balanced).pace;stats.enemyDecisions||={};stats.enemyDecisions[state]=(stats.enemyDecisions[state]||0)+1;}};
 function weightedChoice(items,weights){let n=rng()*weights.reduce((s,v)=>s+v,0);for(let i=0;i<items.length;i++){n-=weights[i];if(n<0)return items[i];}return items.at(-1);}
-chooseEnemyRecipe=function(a){const profile=ENEMY_STYLES[enemyStyle],t=nearest(a),threat=!!t?.attack,weights=profile.weights.slice();if(threat)weights[3]*=1.45;if(t?.endlag||t?.reaction)weights[0]*=1.35;
+chooseEnemyRecipe=function(a){const profile=(ENEMY_STYLES[enemyStyle]||ENEMY_STYLES.balanced),t=nearest(a),threat=!!t?.attack,weights=profile.weights.slice();if(threat)weights[3]*=1.45;if(t?.endlag||t?.reaction)weights[0]*=1.35;
  const type=weightedChoice(['press','power','feint','counter'],weights),spear=a.weapon==='spear',axe=a.weapon==='axe';
  const catalogs={press:spear?[['thrust','pierce'],['thrust','sky']]:[['slash','back'],['diagonal','crosscut']],power:axe?[['heavy','sweep'],['leap']]:[['heavy'],['dash','heavy'],['bullrush']],feint:[['thrust'],['slash','guard'],['retreat','thrust']],counter:[['parry','thrust'],['counter','back'],['guard','bash']]};
  const ks=catalogs[type][Math.floor(rng()*catalogs[type].length)].slice();if(enemyStyle==='pressure'&&type==='press'&&rng()<.35)ks.push('thrust');
@@ -2286,7 +2286,7 @@ const deck4=syncDeck;
 syncDeck=function(){deck4();if(!poolReady)return;flushPools();for(const k of ATTACK_KEYS){const n=attackPools[k].filter(hasRecipe).length,b=$('slot-'+k);if(b)b.querySelector('span').textContent=n?'設定 '+n+'/3':'未設定';}};
 const mode4=setBattleMode;
 setBattleMode=function(value){mode4(value);syncGroundOptions();};
-function syncGroundOptions(){if($('enemyStyle')){$('enemyStyle').value=enemyStyle;$('enemyStyleDescription').textContent=ENEMY_STYLES[enemyStyle].desc;}if($('defenseMode')){$('defenseMode').value=defenseMode;$('defenseModeDescription').textContent=defenseMode==='fixed'?'受と心はセットした内容を使います。':'受は被弾時ごとに生成。心は入場時に抽選し、交代まで維持します。固定用の設定は残ります。';}
+function syncGroundOptions(){if($('enemyStyle')){$('enemyStyle').value=enemyStyle;$('enemyStyleDescription').textContent=(ENEMY_STYLES[enemyStyle]||ENEMY_STYLES.balanced).desc;}if($('defenseMode')){$('defenseMode').value=defenseMode;$('defenseModeDescription').textContent=defenseMode==='fixed'?'受と心はセットした内容を使います。':'受は被弾時ごとに生成。心は入場時に抽選し、交代まで維持します。固定用の設定は残ります。';}
  if($('modeDescription'))$('modeDescription').textContent=battleMode==='fixed'?'各枠の設定済み候補から1技ずつ抽選し、序 → 破 → 急をつなぎます。空の候補は飛ばします。':'序 → 破 → 急ごとに技を新しく生成し、連続でつなぎます。保存済みの3候補は変わりません。';}
 syncRarityInfo=function(){if(!$('rarityProfile'))return;$('rarityProfile').value=rarityProfile;const p=RARITY_PROFILES[rarityProfile];$('rarityOdds').textContent=RARITY_NAMES.map((n,i)=>n+' '+p.weights[i]+'%').join(' · ');$('rarityExplanation').textContent='1段 55% · 2段 35% · 3段 10%';};
 updateDraftInfo=function(){const changed=dirty();$('draftState').textContent=changed?'未セットの構成':'セット済み';$('draftState').classList.toggle('dirty',changed);const t=techniqueTiming(current),rank=recipeRank(current);$('rating').textContent=(hasRecipe(current)?RARITY_NAMES[rank]:'未設定')+' · '+recipeDuration(current).toFixed(2)+'s';$('rating').dataset.rarity=rank;$('tempoOut').textContent=current.tempo.toFixed(2)+' ×';
