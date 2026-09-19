@@ -45,7 +45,7 @@ export function planDemographicYear(input={}){
  const infrastructureVacancy=Math.max(0,limit-population),housingVacancy=Math.max(0,openBeds-population),headroom=Math.min(infrastructureVacancy,housingVacancy),pairs=Math.floor(eligibleAdults/2);
  const foodPerPerson=foodStock/Math.max(1,population),foodFactor=foodStock<=0?0:Math.min(1.08,.72+Math.min(1,foodPerPerson/2)*.36),comfortFactor=Math.min(1.22,.9+comfort*.025);
  const expectedBirths=pairs*.34*foodFactor*comfortFactor,birthPool=fraction(input.birthCarry)+expectedBirths,birthCap=Math.max(1,Math.ceil(Math.max(1,population)*.06)),births=Math.min(headroom,birthCap,Math.floor(birthPool));
- const birthCarry=Math.min(.999999,Math.max(0,birthPool-births));
+ const birthCarry=headroom>0?Math.min(.999999,Math.max(0,birthPool-births)):0;
  const overLimit=Math.max(0,population-limit),starvation=foodStock<=0?Math.ceil(population*.05):foodStock<Math.max(2,population*.15)?Math.ceil(population*.02):0,departures=Math.min(Math.max(0,population-protectedResidents),Math.max(overLimit,starvation));
  return{births,departures,birthCarry,headroom,pairs};
 }

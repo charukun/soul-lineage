@@ -25,6 +25,7 @@ test('healthy village can accumulate births but never exceeds infrastructure hea
    assert.equal(planDemographicYear({...supported,...patch}).births,0);
   }
   assert.ok(planDemographicYear({...supported,foodStock:0}).departures>0);
+  assert.equal(planDemographicYear({...supported,openBeds:12,birthCarry:.95}).birthCarry,0,'blocked housing cannot bank a nearly-complete birth for later');
  }
 });
 
