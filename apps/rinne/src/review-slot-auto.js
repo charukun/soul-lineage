@@ -90,15 +90,17 @@ function installEffectSlots(){
 
 function installBattleSlots(){
   if(!byId('battle-canvas'))return;
-  const pickers=qs('.pickers');
-  if(!pickers)return;
+  const settings=qs('.review-settings'),pickers=settings?.querySelector('.pickers');
+  if(!settings||!pickers)return;
   pickers.classList.add('review-slot-row');
   move(mountReviewSelect(byId('battle-hero-model'),'左モデル'),pickers);
   move(mountReviewSelect(byId('battle-enemy-model'),'右モデル'),pickers);
-  move(mountReviewGroup(qs('.battle-mode-switch'),'戦闘人数'),pickers);
-  move(mountReviewGroup(qs('.skin-switch'),'カメラ / UI'),pickers);
-  const modes=qs('.review-modes');
-  if(modes)modes.hidden=false;
+  const modes=settings.querySelector('.review-modes');
+  if(modes){
+    modes.hidden=false;
+    move(mountReviewGroup(modes.querySelector('.battle-mode-switch'),'戦闘人数'),modes);
+    move(mountReviewGroup(modes.querySelector('.skin-switch'),'カメラ / UI'),modes);
+  }
 }
 
 function install(){
