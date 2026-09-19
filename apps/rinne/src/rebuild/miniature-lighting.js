@@ -50,8 +50,8 @@ export function createActorContactShadows(scene,groups,{capacity=128}={}){
   function update(){
     let count=0;
     for(const group of groups){if(!group.visible)continue;for(const actor of group.children){
-      if(count>=capacity||!actor.visible||actor.position.y>.4||!(actor.userData.characterModel||actor.name.startsWith('VillageThreat:')))continue;
-      const radius=Math.max(.3,Math.min(1.2,actor.scale.x*.9));matrix.makeScale(radius,1,radius*.7);matrix.setPosition(actor.position.x,.045,actor.position.z);mesh.setMatrixAt(count++,matrix);
+      if(count>=capacity||!actor.visible||actor.position.y>.4||!(actor.userData.characterModel||actor.name==='Player'||actor.name==='Mother'||actor.name.startsWith('Guard:')||actor.name.startsWith('Enemy:')||actor.name.startsWith('VillageThreat:')))continue;
+      const radius=Math.max(.42,Math.min(1.35,(Number(actor.scale.x)||1)*.96));matrix.makeScale(radius,1,radius*.72);matrix.setPosition(actor.position.x,.045,actor.position.z);mesh.setMatrixAt(count++,matrix);
     }}
     mesh.count=count;if(count)mesh.instanceMatrix.needsUpdate=true;
   }
