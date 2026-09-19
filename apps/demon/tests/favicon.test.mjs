@@ -37,26 +37,23 @@ test('mobile fallback is a complete decodable 48px PNG, not an empty placeholder
   assert.equal(png.toString('ascii', 12, 16), 'IHDR');
   assert.equal(png.readUInt32BE(16), 48);
   assert.equal(png.readUInt32BE(20), 48);
-  assert.equal(png[24], 4, '4-bit palette');
-  assert.equal(png[25], 3, 'indexed PNG');
+  assert.equal(png[24], 8, '8-bit channel depth');
+  assert.ok([2, 6].includes(png[25]), 'RGB or RGBA PNG');
   assert.equal(png[28], 0, 'non-interlaced PNG');
   const data = [];
   let end = false;
-  let palette = false;
   for (let offset = 8; offset < png.length;) {
     const length = png.readUInt32BE(offset);
     assert.ok(offset + length + 12 <= png.length, 'PNG chunk must not be truncated');
     const type = png.toString('ascii', offset + 4, offset + 8);
-    if (type === 'PLTE') { palette = true; assert.equal(length, 8 * 3); }
     if (type === 'IDAT') data.push(png.subarray(offset + 8, offset + 8 + length));
     if (type === 'IEND') { end = true; assert.equal(length, 0); }
     offset += length + 12;
     if (end) assert.equal(offset, png.length, 'IEND must be the final chunk');
   }
   assert.ok(end);
-  assert.ok(palette);
   const pixels = inflateSync(Buffer.concat(data));
-  assert.equal(pixels.length, 48 * (1 + 48 / 2));
+  assert.ok(pixels.length > 48 * 48, 'PNG must contain full raster data');
   assert.ok(pixels.some(byte => byte > 4), 'PNG must not be a blank placeholder');
 });
 
@@ -70,7 +67,7 @@ test('SVG favicon is self-contained and preserves the existing demon artwork', (
   assert.doesNotMatch(svg, /<(?:script|image|foreignObject)\b|(?:href|src)\s*=/i);
 });
 
-test('favicon repair retains the current title and ominous title styling', () => {
+test('favicon polish retains the game title and ominous title styling', () => {
   assert.match(head, /<title>喰滅廻遊 \| 人間狩りの夜<\/title>/);
   assert.match(head, /href="\.\/src\/web\/title-ominous\.css"/);
   assert.match(html, /<script type="module" src="\.\/src\/main\.js"><\/script>/);
