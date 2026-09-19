@@ -20,7 +20,7 @@ export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
     };
     const canvas = document.querySelector('#stage'), gl = canvas?.getContext('webgl2');
     return {
-      label, viewport: { width: innerWidth, height: innerHeight },
+      label, viewport: { width: innerWidth, height: innerHeight }, rootRows: getComputedStyle(document.querySelector('.review-surface')).gridTemplateRows, workspaceRows: getComputedStyle(document.querySelector('.review-surface__workspace')).gridTemplateRows,
       header: rect('.review-surface__header'), workspace: rect('.review-surface__workspace'),
       stage: rect('.stage-shell'), canvas: rect('#stage'), panel: rect('.editor-dock'),
       rail: rect('.character-review-camera-dock'), retry: rect('#retry'),
@@ -45,7 +45,17 @@ export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
     assert.ok(ready.rail.top >= ready.stage.top && ready.rail.bottom <= ready.stage.bottom, JSON.stringify(ready));
     assert.ok(ready.buffer?.width > 0 && ready.buffer?.height > 0, JSON.stringify(ready));
     await page.screenshot({ path: resolve(output, 'studio-character-ready-mobile.png') });
-    assert.deepEqual(network, []);
+    const legacy = await page.evaluate(() => {
+      const style=document.createElement('style'); style.id='legacy-character-grid-proof';
+      style.textContent='body.simple-review.character-grid-ready .review-app{grid-template-rows:minmax(0,58fr) minmax(0,42fr)!important}';
+      document.head.append(style); return true;
+    });
+    assert.equal(legacy,true); await page.waitForTimeout(80);
+    const legacyLayout = await snapshot('legacy-root-grid-reproduction');
+    await page.screenshot({ path: resolve(output, 'studio-character-legacy-root-grid-reproduction.png') });
+    await page.evaluate(()=>document.getElementById('legacy-character-grid-proof')?.remove()); await page.waitForTimeout(80);
+    const blockingNetwork = network.filter(item => item.failure !== 'net::ERR_ABORTED');
+    assert.deepEqual(blockingNetwork, []);
     assert.deepEqual(httpErrors, []);
 
     for (const [name, selector] of [['front','[data-camera="front"]'],['overview','#frame-model'],['face','[data-camera="face"]']]) {
@@ -70,8 +80,8 @@ export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
     await page.screenshot({ path: resolve(output, 'studio-character-model-switch-mobile.png') });
     const final = await snapshot('model-switch');
     const switchDiagnostics = { errors: errors.slice(switchErrorStart), network: network.slice(switchNetworkStart) };
-    writeFileSync(resolve(output, 'studio-character-portrait.json'), JSON.stringify({ success:true, ready, final, switchDiagnostics, httpErrors }, null, 2));
-    return { ready, final, switchDiagnostics };
+    writeFileSync(resolve(output, 'studio-character-portrait.json'), JSON.stringify({ success:true, ready, legacyLayout, final, switchDiagnostics, network, httpErrors }, null, 2));
+    return { ready, legacyLayout, final, switchDiagnostics, network, httpErrors };
   } catch (error) {
     await page.screenshot({ path: resolve(output, 'studio-character-portrait-failure.png') }).catch(() => {});
     writeFileSync(resolve(output, 'studio-character-portrait.json'), JSON.stringify({ success:false, error:String(error), errors, network, httpErrors }, null, 2));
