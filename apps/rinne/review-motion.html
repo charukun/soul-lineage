@@ -10,7 +10,6 @@
 <body>
 <main class="motion-review">
   <section class="motion-stage" aria-label="モーション表示">
-    <a class="motion-back motion-back-stage" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">← Visual Review</a>
     <canvas id="motion-stage" aria-label="KayKitキャラクターのモーション。ドラッグで回転、ピンチで拡大"></canvas>
     <output id="motion-count" class="motion-clip-count" aria-label="異なるソースモーション数"><span>MOTION CLIPS</span><strong id="motion-count-value">…</strong></output>
     <div class="motion-stage-caption" aria-live="polite">
@@ -25,11 +24,27 @@
 
   <section class="motion-controls" aria-label="モーション選択と再生">
     <header class="motion-control-header">
+      <a class="motion-back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">← Visual Review</a>
       <div>
         <span class="motion-eyebrow">MOTION REVIEW</span>
         <h1>モーション確認</h1>
       </div>
     </header>
+
+    <section class="motion-library motion-library-primary" aria-label="モーションを選ぶ">
+      <div class="motion-library-head">
+        <div><span class="control-label">MOTION LIBRARY</span><strong>モーションを選ぶ</strong></div>
+        <small>カテゴリ → 動き</small>
+      </div>
+      <div id="motion-filters" class="motion-filters" role="group" aria-label="モーション分類"></div>
+      <div id="motion-grid-summary" class="motion-grid-title">候補一覧</div>
+      <div id="motion-grid" class="motion-grid" role="group" aria-label="モーション候補"></div>
+    </section>
+
+    <div class="motion-models">
+      <span class="control-label">CHARACTER</span>
+      <div id="motion-model-grid" class="motion-model-grid" role="group" aria-label="キャラクターモデル"></div>
+    </div>
 
     <div class="motion-playback" aria-label="再生コントロール">
       <button id="motion-restart" type="button" aria-label="最初から">↺</button>
@@ -61,18 +76,6 @@
         <button type="button" data-motion-camera="back">背面</button>
         <button class="camera-focus" type="button" data-motion-camera="face">顔を見る</button>
       </div>
-    </div>
-
-    <div class="motion-models">
-      <span class="control-label">CHARACTER</span>
-      <div id="motion-model-grid" class="motion-model-grid" role="group" aria-label="キャラクターモデル"></div>
-    </div>
-
-    <div class="motion-library">
-      <span class="control-label">MOTION LIBRARY</span>
-      <div id="motion-filters" class="motion-filters" role="group" aria-label="モーション分類"></div>
-      <div id="motion-grid-summary" class="motion-grid-title">候補一覧</div>
-      <div id="motion-grid" class="motion-grid" role="group" aria-label="モーション候補"></div>
     </div>
 
     <details class="motion-legacy">

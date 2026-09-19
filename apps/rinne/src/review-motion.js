@@ -98,7 +98,7 @@ async function selectMotion(record){
       selectedDuration=externalSource.duration(record.upstreamClipIndex);
       applyNormalizedMotion(targetBones,externalSource.sample(record.upstreamClipIndex,0),targetRest);
     }else throw new Error('Unknown motion runtime source');
-    playing=true;status(formatName(record.name)+' · '+categoryLabel(record.category));renderMotionGrid();syncPlaybackUI();
+    playing=true;status('');renderMotionGrid();syncPlaybackUI();
   }catch(error){playing=false;status('モーション読込失敗: '+String(error?.message||error));syncPlaybackUI();}
 }
 function renderModelGrid(){
@@ -152,13 +152,13 @@ async function loadModel(model){
     const same=catalog.find(row=>row.sourceIdentity===previousIdentity),firstRecommended=catalog.find(row=>row.recommended),first=same||firstRecommended||catalog[0];
     const count=motionRegistryCount(registry);canvas.dataset.motionSource='source-registry';canvas.dataset.motionCount=String(count);canvas.dataset.motionModel=model.id;
     el('motion-count-value').textContent=String(count);
-    el('motion-load').value=1;status(model.label+' · '+count+' source motions');setCameraPreset('three-quarter');await selectMotion(first);
+    el('motion-load').value=1;status('');setCameraPreset('three-quarter');await selectMotion(first);
     status('Mesh2Motion CC0ライブラリを取得しています。');
     const discovered=await discoverPinnedMotionLibraryClips();
     if(serial!==loadSerial)return;
     registry=buildReviewMotionRegistry(targetClips,discovered);catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
     const expandedCount=motionRegistryCount(registry);canvas.dataset.motionCount=String(expandedCount);el('motion-count-value').textContent=String(expandedCount);
-    renderMotionGrid();status(model.label+' · '+expandedCount+' source motions');
+    renderMotionGrid();status('');
   }catch(error){el('motion-load').value=0;status('読込失敗: '+String(error?.message||error));canvas.dataset.motionSource='error';}
 }
 
