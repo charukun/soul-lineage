@@ -170,6 +170,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   }
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
 
+  // Keep the complete inspiration exchange readable, especially on portrait phone viewports.
   function inspirationCameraFrame(core){
     const hero=sides.hero.actor?.root?.position,enemy=sides.enemy.actor?.root?.position;
     if(!hero||!enemy)return null;
