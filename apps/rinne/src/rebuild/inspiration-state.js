@@ -87,18 +87,42 @@ function commitAnswer(state,candidate,context={}){
 export function recordLifeExperience(state,kind,context={}){
   if(state.ended||state.down||Number(state.ageYears)<4||!own(ACTIVITY_MOTIFS,kind))return [];
   const s=ensureInspiration(state);recordTrace(state,{kind:sourceKind(kind),motifs:ACTIVITY_MOTIFS[kind],text:context.description||LABELS[kind],context:{...context,activity:kind},question:ACTIVITY_QUESTIONS[kind]});
-  const candidates=inspirationCandidates(state,{...context,window:kind});updateInspirationSigns(state);
+  const candidates=inspirationCandidates(state,{...context,window:kind});updateInspirationSigns(state,context);
   // Dedupe evidence, not a later opportunity to realize an already prepared answer.
   if(s.clock-s.lastNamed<INSPIRATION_LIMITS.namedGap)return [];
   const event=candidates[0]?commitAnswer(state,candidates[0],{...context,description:LABELS[kind]}):null;return event?[event]:[];
 }
 export function observeTechnique(state,{actorId,actorName,techniqueId,visible=false,relation='observer',context={}}={}){
   const row=answer(techniqueId);if(!visible||!actorId||!row||state.ended||state.down)return null;
-  const trace=recordTrace(state,{kind:'observation',motifs:unique(['observation',...row.motifs]),text:`${safe(actorName)||'目の前の人物'}の${row.name}を見た`,context:{...context,activity:`observe:${row.family}`},question:'opening',sourceId:actorId,sourceName:actorName,relation});updateInspirationSigns(state);return trace;
+  const trace=recordTrace(state,{kind:'observation',motifs:unique(['observation',...row.motifs]),text:`${safe(actorName)||'目の前の人物'}の${row.name}を見た`,context:{...context,activity:`observe:${row.family}`},question:'opening',sourceId:actorId,sourceName:actorName,relation});updateInspirationSigns(state,context);return trace;
 }
-export function updateInspirationSigns(state){
+function signBlockedHint(reason=''){
+  if(reason.includes('実行器'))return '感覚は近い。ただ、今の得物ではまだ形にできない。';
+  if(reason.includes('得物'))return '今の得物では、答えの輪郭だけが残っている。';
+  if(reason.includes('7歳'))return '意味は見えかけている。身体が育てば、違う答えになるかもしれない。';
+  if(reason.includes('負傷'))return '形は見えているが、傷がその続きを止めている。';
+  if(reason.includes('息'))return '答えは見えかけている。まず息を戻したい。';
+  if(reason.includes('余地'))return '答えは見えている。今は、その動きを通す場所がない。';
+  return '別々の経験が、つながりかけている。';
+}
+function signCandidate(state,question,context={}){
+  const s=ensureInspiration(state),rows=CAUSAL_ANSWERS.filter(row=>row.kind!=='link'&&row.questions.includes(question)&&!own(s.records,row.id)&&(!row.requiresFamily||Object.values(s.records).some(r=>r.family===row.requiresFamily)));
+  let blocked=null;
+  for(const row of rows){
+    if(!materialProof(s,row))continue;
+    const availability=answerAvailability(state,row.id,{context});
+    if(availability.usable)return {row,ready:true,hint:'別々の経験が、ひとつの動きになりかけている。'};
+    blocked??={row,ready:false,hint:signBlockedHint(availability.reason)};
+  }
+  return blocked;
+}
+export function updateInspirationSigns(state,context={}){
   const s=ensureInspiration(state),rows=[];
-  for(const [id,q]of Object.entries(s.questions)){const ready=CAUSAL_ANSWERS.some(row=>row.questions.includes(id)&&!own(s.records,row.id)&&materialProof(s,row)&&(!row.weapons.length||row.weapons.includes(state.equipment?.weapon)));if(!CAUSAL_ANSWERS.some(row=>row.questions.includes(id)&&!own(s.records,row.id)))continue;rows.push({question:id,text:INSPIRATION_QUESTIONS[id],hint:ready?'別々の経験が、つながりかけている。':'稽古や暮らしの中で、別の手掛かりを探している。',age:q.age,ready});}
+  for(const [id,q]of Object.entries(s.questions)){
+    const remaining=CAUSAL_ANSWERS.some(row=>row.kind!=='link'&&row.questions.includes(id)&&!own(s.records,row.id));if(!remaining)continue;
+    const candidate=signCandidate(state,id,context);
+    rows.push({question:id,text:INSPIRATION_QUESTIONS[id],hint:candidate?.hint||'稽古や暮らしの中で、別の手掛かりを探している。',age:q.age,ready:Boolean(candidate?.ready)});
+  }
   s.signs=rows.sort((a,b)=>Number(b.ready)-Number(a.ready)||b.age-a.age).slice(0,3);return s.signs;
 }
 export function advanceInspirationTime(state,dt){if(state.ended||!Number.isFinite(dt)||dt<0)return;const s=ensureInspiration(state);s.clock=Math.min(1e9,s.clock+Math.min(dt,.25));}
@@ -110,7 +134,7 @@ export function prepareCombatInspiration(state,context={},dt=0){
   const s=ensureInspiration(state);
   if(s.pending){const p=s.pending;p.elapsed+=Math.max(0,Number(dt)||0);p.context={...p.context,...context};const pose=state.combat?.tidebreakPose,finished=p.committed&&pose&&pose.skill!==p.runtimeName;if(state.ended||state.down||p.failed||p.elapsed>INSPIRATION_LIMITS.attemptSeconds||p.targetId!==context.targetId||finished)s.pending=null;else return p;}
   if(state.ended||state.down||state.attacking||Number(state.ageYears)<7||!context.targetId)return null;
-  for(const q of context.questions||[])recordCombatQuestion(state,q,context);updateInspirationSigns(state);if(s.clock-s.lastNamed<INSPIRATION_LIMITS.namedGap)return null;
+  for(const q of context.questions||[])recordCombatQuestion(state,q,context);updateInspirationSigns(state,context);if(s.clock-s.lastNamed<INSPIRATION_LIMITS.namedGap)return null;
   const candidate=inspirationCandidates(state,{...context,window:'combat'})[0];if(!candidate)return null;s.pending={...candidate,targetId:context.targetId,elapsed:0,committed:false,armed:false,started:false,cursor:0,contact:false,failed:false,runtimeName:answer(candidate.id).name,context:{...context}};return s.pending;
 }
 export function inspirationRecipe(state,id,phase,targetId=null,context=null){
@@ -120,7 +144,7 @@ export function inspirationRecipe(state,id,phase,targetId=null,context=null){
   if(usingPending){const preferred=row.phases.includes('jo')?'jo':row.phases[0];if(phase!==preferred)return null;p.armed=true;p.phase=phase;}
   return {id:chosen,name:usingPending?p.runtimeName:(s.records[chosen]?.name||row.name),steps:row.steps.map(step=>({...step})),effort:row.effort,family:row.family,phaseAffinity:row.phases.includes(phase)};
 }
-function rememberUse(state,id,context){const s=ensureInspiration(state),r=s.records[id];if(!r)return;const key=useContextKey(state,context);if(r.contexts.includes(key))return;if(r.contexts.length<INSPIRATION_LIMITS.contexts)r.contexts.push(key);r.stable=r.contexts.length>=3;s.revision++;}
+function rememberUse(state,id,context){const s=ensureInspiration(state),r=s.records[id];if(!r)return null;const key=useContextKey(state,context);if(r.contexts.includes(key))return null;const wasStable=Boolean(r.stable);if(r.contexts.length<INSPIRATION_LIMITS.contexts)r.contexts.push(key);r.stable=r.contexts.length>=3;s.revision++;if(wasStable||!r.stable)return null;const event={type:'inspiration-stabilized',id:r.answerId,name:r.name,kind:r.kind,family:r.family,age:clamp(state.ageYears,0,100)};state.events??=[];state.events.unshift({type:'inspiration-stabilized',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${r.name}が身体に馴染んだ。`,inspirationId:r.answerId});state.events.length=Math.min(state.events.length,80);return event;}
 function matchesAttempt(event,p){return event.targetId===p.targetId&&event.phase===p.phase&&(event.techniqueId?event.techniqueId===p.id:event.skill===p.runtimeName);}
 function observePerformedAnswer(state,context,events){
   const s=ensureInspiration(state),p=s.pending;if(!p||!p.armed||p.committed||state.ended||state.down)return null;
@@ -142,13 +166,13 @@ export function recordCombatAnswers(state,context={},events=[]){
   const learned=observePerformedAnswer(state,context,events);if(learned)result.push(learned);
   for(const event of events){
     if(event.type!=='player-hit'||!(event.damage>0)||event.blockedByTerrain||event.engine!=='tidebreak')continue;
-    const used=event.techniqueId?s.records[event.techniqueId]:Object.values(s.records).find(r=>r.name===event.skill||answer(r.answerId)?.name===event.skill);if(used)rememberUse(state,used.answerId,context);
+    const used=event.techniqueId?s.records[event.techniqueId]:Object.values(s.records).find(r=>r.name===event.skill||answer(r.answerId)?.name===event.skill);if(used){const stabilized=rememberUse(state,used.answerId,context);if(stabilized)result.push(stabilized);}
     if(['jo','ha','kyu'].includes(event.phase)){
       const last=s.sequence.at(-1);if(last?.phase!==event.phase)s.sequence.push({phase:event.phase,skillId:used?.answerId||`basic.${state.equipment?.weapon||'fist'}`});s.sequence=s.sequence.slice(-3);
       if(s.sequence.length===3&&s.sequence.map(r=>r.phase).join(',')==='jo,ha,kyu'&&unique(s.sequence.map(r=>r.skillId)).length>=2){recordCombatQuestion(state,'rhythm',context);const combo=Object.fromEntries(s.sequence.map(r=>[r.phase,r.skillId])),c=inspirationCandidates(state,{...context,window:'sequence',questions:['rhythm'],combo})[0];if(c&&s.clock-s.lastNamed>=INSPIRATION_LIMITS.namedGap){const e=commitAnswer(state,c,{...context,combo,description:'序・破・急の実行が、ひとつの連としてつながった。'});if(e)result.push(e);}}
     }
   }
-  if(state.ended||state.down)s.pending=null;s.execution=null;updateInspirationSigns(state);return result;
+  if(state.ended||state.down)s.pending=null;s.execution=null;updateInspirationSigns(state,context);return result;
 }
 export function inspirationName(state,id,fallback=id){return state?.inspiration?.records?.[id]?.name||answer(id)?.name||fallback;}
 export function renameInspiration(state,id,name){const s=ensureInspiration(state),r=s.records[id],clean=safe(name).slice(0,24);if(!r||!clean)return false;if(Object.values(s.records).some(other=>other.answerId!==id&&(other.name===clean||answer(other.answerId)?.name===clean)))return false;r.name=clean;s.revision++;return true;}

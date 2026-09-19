@@ -9,7 +9,7 @@ import {
   reviewSkeletonEquipmentForSlot,
 } from '@soul/assets';
 import './review-asset-library.css';
-import {createReviewChoiceVisual} from './review-choice-visual.js';
+import {createRuntimeThumbnail,renderRuntimeThumbnail} from './review-runtime-thumbnail.js';
 mountRinneReviewShell('equipment');
 
 const q = selector => document.querySelector(selector);
@@ -147,11 +147,13 @@ function applyViewPreset() {
   const distance=activeViewFocus==='full'?Math.max(radius*1.7,height*.86):Math.max(height*.56,.72);
   const eyeY=activeViewFocus==='full'?target.y+height*.08:target.y+height*.04;
   controls.target.copy(target);
-  if(activeViewDirection==='three-quarter')camera.position.set(target.x+distance*.72,eyeY,target.z+distance*.72);
-  else if(activeViewDirection==='side')camera.position.set(target.x+distance,eyeY,target.z);
+  if(activeViewDirection==='left')camera.position.set(target.x-distance,eyeY,target.z);
+  else if(activeViewDirection==='right'||activeViewDirection==='side')camera.position.set(target.x+distance,eyeY,target.z);
+  else if(activeViewDirection==='three-quarter')camera.position.set(target.x+distance*.72,eyeY,target.z+distance*.72);
   else if(activeViewDirection==='back')camera.position.set(target.x,eyeY,target.z-distance);
   else camera.position.set(target.x,eyeY,target.z+distance);
-  if(activeViewFocus==='full'&&activeViewDirection==='side')camera.position.x=center.x+distance;
+  if(activeViewFocus==='full'&&activeViewDirection==='left')camera.position.x=center.x-distance;
+  if(activeViewFocus==='full'&&(activeViewDirection==='right'||activeViewDirection==='side'))camera.position.x=center.x+distance;
   controls.update();
   for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed',String(button.dataset.assetCamera===activeViewDirection));
   for(const button of document.querySelectorAll('[data-asset-focus]'))button.setAttribute('aria-pressed',String(button.dataset.assetFocus===activeViewFocus));
@@ -186,7 +188,7 @@ function renderEquipmentInspector(){
   const candidates=[{id:'',label:'なし'},...reviewSkeletonEquipmentForSlot(activeAssetSlot)];
   list.replaceChildren(...candidates.map(item=>{
     const button=document.createElement('button');
-    button.type='button';button.classList.add('review-choice-card');button.dataset.equipmentId=item.id;const text=document.createElement('span');text.textContent=item.label;button.append(createReviewChoiceVisual({type:'equipment',variant:item.family||item.id||'none',label:item.label}),text);
+    button.type='button';button.classList.add('review-choice-card');button.dataset.equipmentId=item.id;const text=document.createElement('span');text.textContent=item.label,thumbnail=createRuntimeThumbnail(item.label);button.append(thumbnail,text);if(item.id)void loader.loadAsync(reviewEquipmentUrl(item)).then(gltf=>renderRuntimeThumbnail(thumbnail,gltf.scene));
     const selected=(selection[activeAssetSlot]||'')===item.id;
     button.setAttribute('role','option');button.setAttribute('aria-selected',String(selected));
     button.addEventListener('click',()=>{
@@ -198,12 +200,30 @@ function renderEquipmentInspector(){
   }));
 }
 function renderSelection(){
-  for(const button of q('#model-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.model===selection.model));
+  const options=q('#model-options');
+  for(const button of options?.querySelectorAll('button')||[]){
+    const selected=button.dataset.model===selection.model;
+    button.setAttribute('aria-pressed',String(selected));
+    button.setAttribute('aria-selected',String(selected));
+  }
+  const current=q('#asset-model-current');if(current)current.textContent=modelLabel();
   renderEquipmentInspector();
 }
+function setModelPickerOpen(open,{restoreFocus=false}={}){
+  const picker=q('#asset-model-picker'),trigger=q('#asset-model-trigger');
+  if(!picker||!trigger)return;
+  picker.hidden=!open;trigger.setAttribute('aria-expanded',String(open));
+  document.body.classList.toggle('asset-model-picker-open',open);
+  if(open){
+    const selected=picker.querySelector('.model-options button[aria-selected="true"]')||picker.querySelector('.model-options button');
+    queueMicrotask(()=>selected?.focus());
+  }else if(restoreFocus)queueMicrotask(()=>trigger.focus());
+}
+function openModelPicker(){setModelPickerOpen(true);}
+function closeModelPicker(restoreFocus=false){setModelPickerOpen(false,{restoreFocus});}
 function populate() {
   const count=q('#asset-model-count');if(count)count.textContent=`MODELS ${REVIEW_SKELETON_MODELS.length}`;
-  q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.model=model.id;const text=document.createElement('span');text.textContent=model.label;button.append(createReviewChoiceVisual({type:'model',variant:model.id,label:model.label,seed:model.id}),text);button.addEventListener('click',()=>loadModel(model.id).catch(error=>status(error.message,true)));return button;}));
+  q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.model=model.id;button.setAttribute('role','option');const text=document.createElement('span');text.textContent=model.label,thumbnail=createRuntimeThumbnail(model.label);button.append(thumbnail,text);void loader.loadAsync(reviewModelUrl(model)).then(gltf=>renderRuntimeThumbnail(thumbnail,gltf.scene));button.addEventListener('click',()=>{closeModelPicker();loadModel(model.id).catch(error=>status(error.message,true));});return button;}));
   for(const slot of ['main','off','back']){
     const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>status('装備プレビューを更新しました。')).catch(error=>status(error.message,true)));
   }
@@ -211,12 +231,11 @@ function populate() {
   for(const button of document.querySelectorAll('[data-asset-focus]'))button.addEventListener('click',()=>setFocusPreset(button.dataset.assetFocus));
   for(const button of document.querySelectorAll('[data-asset-slot]'))button.addEventListener('click',()=>{activeAssetSlot=button.dataset.assetSlot;renderEquipmentInspector();});
   for(const slot of ['main','off','back'])q(`#slot-${slot}`)?.addEventListener('change',renderEquipmentInspector);
-  controls.addEventListener('start',()=>{
-    for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed','false');
-    const hint=q('#asset-stage-hint');if(hint)hint.textContent='自由回転中 · 視点ボタンで固定位置へ戻れます';
-  });
-  controls.addEventListener('end',()=>{const hint=q('#asset-stage-hint');if(hint)hint.textContent='ドラッグ: 自由回転 · ピンチ: 拡大';});
-  q('#asset-provenance').textContent=`${REVIEW_SKELETON_SOURCE.repository}@${REVIEW_SKELETON_SOURCE.commit} · ${REVIEW_SKELETON_SOURCE.license}`;
+  controls.addEventListener('start',()=>{for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed','false');});
+  q('#asset-model-trigger')?.addEventListener('click',openModelPicker);
+  for(const button of document.querySelectorAll('[data-model-picker-close]'))button.addEventListener('click',()=>closeModelPicker(true));
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!q('#asset-model-picker')?.hidden)closeModelPicker(true);});
+  q('#asset-clear-slot')?.addEventListener('click',()=>{const select=q(`#slot-${activeAssetSlot}`);if(!select)return;select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));});
   q('#asset-reset').addEventListener('click',()=>{
     for(const slot of ['main','off','back']){q(`#slot-${slot}`).value='';void setEquipment(slot,null);}
     activeAssetSlot='main';frameModel();queueMicrotask(renderEquipmentInspector);

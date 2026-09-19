@@ -90,6 +90,27 @@
 
 @media(max-width:680px){.review-surface__workspace{grid-template-rows:minmax(0,1fr) auto!important}.controls{max-height:none!important}.battle-stage-switch{right:8px;top:8px}.stage>.technique-loadout{bottom:6px!important}.phase-panel[data-skin="rinne"]{transform:translate(-50%,-14%) scale(.92)!important}.phase-panel[data-skin="rinne"]::before,.phase-panel[data-skin="rinne"]::after{left:-27px;right:-27px}.inspiration-history{inset:8px!important}}
 
+/* Compact battle HUD pass: keep the render surface dominant on phone screens. */
+.battle-bar .review-surface__title>div{display:none!important}
+.review-surface__workspace{grid-template-rows:minmax(0,1fr) max-content!important}
+.controls.review-surface__panel{min-height:0!important;height:auto!important;align-self:end!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto!important;gap:5px!important;padding:4px max(7px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) max(7px,env(safe-area-inset-left))!important;overflow:visible!important}
+.controls .inspiration-mode{grid-column:1!important;grid-row:1!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:3px!important;align-self:center!important}
+.controls .inspiration-mode button{min-height:28px!important;height:28px!important;padding:3px 7px!important;border-radius:999px!important;font-size:8px!important;line-height:1!important}
+.controls .battle-shortcuts{grid-column:2!important;grid-row:1!important;display:flex!important;gap:4px!important;align-items:center!important}
+.controls .battle-history-open,.controls .review-settings>summary{min-height:28px!important;height:28px!important;width:auto!important;padding:0 8px!important;border-radius:999px!important;white-space:nowrap!important}
+.controls .review-settings>summary small{display:none!important}
+.controls .battle-history-open{font-size:8px!important}.controls .battle-history-open span{min-width:16px!important;height:16px!important;font-size:7px!important}
+.controls .review-settings{position:relative!important;min-width:0!important}.controls .review-settings[open]{left:auto!important;right:0!important;bottom:calc(100% + 5px)!important;width:min(360px,calc(100vw - 16px))!important}
+.stage>.technique-loadout{left:8px!important;right:auto!important;top:8px!important;bottom:auto!important;transform:none!important;width:min(132px,34vw)!important;grid-template-columns:1fr!important;gap:1px!important;padding:4px!important;border-radius:10px!important;background:rgba(6,16,29,.72)!important;box-shadow:0 5px 16px rgba(0,0,0,.26)!important}
+.stage>.technique-loadout span{justify-content:flex-start!important;min-height:21px!important;padding:0 4px!important;gap:5px!important}.stage>.technique-loadout b{display:grid!important;place-items:center!important;width:18px!important;height:18px!important;flex:0 0 18px!important;border:1px solid rgba(199,161,93,.42)!important;border-radius:50%!important;background:rgba(8,31,48,.88)!important;font-size:9px!important}.stage>.technique-loadout strong{max-width:88px!important;font-size:7px!important;text-align:left!important}
+.battle-stage-switch{padding:4px!important;gap:4px!important}.battle-stage-switch>span{display:none!important}.battle-stage-switch button{min-width:48px!important;min-height:28px!important;font-size:9px!important}
+@media(max-width:680px){.controls.review-surface__panel{grid-template-columns:minmax(0,1fr) auto!important}.stage>.technique-loadout{left:7px!important;top:7px!important}.battle-stage-switch{right:7px!important;top:7px!important}.phase-panel[data-skin="rinne"]{transform:translate(-50%,-10%) scale(.96)!important}}
+
+
+.battle-sign{position:absolute;z-index:9;left:50%;top:34%;transform:translate(-50%,-50%);max-width:min(290px,76vw);padding:7px 12px 8px;border:1px solid rgba(155,215,241,.34);border-radius:12px;background:linear-gradient(180deg,rgba(8,25,43,.94),rgba(6,16,29,.82));color:#e8f5fa;font:600 11px/1.55 var(--font-rinne-display,ui-serif);letter-spacing:.04em;text-align:center;pointer-events:none;filter:drop-shadow(0 5px 8px rgba(0,0,0,.44));animation:battle-sign-drift 2.35s ease-out both}
+.battle-sign[hidden]{display:none}.battle-sign::after{content:"";position:absolute;left:50%;bottom:-7px;width:12px;height:12px;border-right:1px solid rgba(155,215,241,.3);border-bottom:1px solid rgba(155,215,241,.3);background:rgba(6,16,29,.82);transform:translateX(-50%) rotate(45deg)}
+@keyframes battle-sign-drift{0%{opacity:0;translate:0 8px}14%{opacity:1;translate:0 0}72%{opacity:1;translate:0 -5px}100%{opacity:0;translate:0 -16px}}
+@media(prefers-reduced-motion:reduce){.battle-sign{animation:none}}
 </style>
 </head>
 <body>
@@ -107,13 +128,14 @@
     <canvas id="battle-canvas" aria-label="実モデルで動くTidebreak自動戦闘"></canvas>
     <output id="battle-model-status" class="model-status" role="status">モデル準備中</output>
     <span class="note">モデル切替は表示のみ</span>
+    <output id="battle-sign" class="battle-sign" role="status" aria-live="polite" hidden></output>
     <aside id="battle-inspiration" class="battle-inspiration" role="status" aria-live="assertive" hidden><span>閃き</span><strong id="battle-inspiration-name"></strong><small id="battle-inspiration-phase"></small></aside>
     <aside id="battle-phase" class="phase-panel combat-phase-indicator combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" data-combo-active="false" data-phase="idle" aria-label="序破急の現在状態" aria-live="polite">
       <span class="phase-step combat-sequence__step" data-phase-id="jo" data-phase-step="jo" data-combat-phase="jo" data-active="false">序</span><i class="phase-link phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="ha" data-phase-step="ha" data-combat-phase="ha" data-active="false">破</span><i class="phase-link phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="kyu" data-phase-step="kyu" data-combat-phase="kyu" data-active="false">急</span>
       <strong id="phase-meta" class="phase-meta combat-phase-action combat-sequence__action">間合いを測る</strong><div id="phase-history" class="phase-history combat-phase-history combat-sequence__history" aria-hidden="true"></div>
     </aside>
     <div class="battle-stage-switch" aria-label="戦闘人数の切替">
-      <span>人数</span><div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="one-v-three" aria-pressed="false">1v3</button></div>
+      <span>対戦</span><div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="one-v-three" aria-pressed="false">1v3</button></div>
     </div>
     <div id="battle-technique-loadout" class="technique-loadout" aria-label="現在の序破急セット技"><span><b>序</b><strong data-loadout-phase="jo">基本技</strong></span><span><b>破</b><strong data-loadout-phase="ha">基本技</strong></span><span><b>急</b><strong data-loadout-phase="kyu">基本技</strong></span></div>
     <section id="battle-inspiration-history" class="inspiration-history" aria-label="閃いた技の履歴" hidden>
@@ -129,7 +151,7 @@
     </div>
 
 
-    <div class="inspiration-mode" role="group" aria-label="閃き確認モード"><button type="button" data-inspiration-mode="normal" aria-pressed="true">通常モード</button><button type="button" data-inspiration-mode="boost" aria-pressed="false">閃きモード · 高確率</button></div>
+    <div class="inspiration-mode" role="group" aria-label="閃き確認モード"><button type="button" data-inspiration-mode="normal" aria-pressed="true">通常</button><button type="button" data-inspiration-mode="boost" aria-pressed="false">閃き 高確率</button></div>
     <div class="battle-shortcuts">
       <button id="battle-history-open" class="battle-history-open" type="button">閃き履歴 <span id="battle-history-count">0</span></button>
     <details class="review-settings">
