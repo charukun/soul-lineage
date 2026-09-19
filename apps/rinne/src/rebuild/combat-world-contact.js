@@ -39,7 +39,7 @@ export function enemySweepTargets(attacker,states,primaryId,front){
 }
 
 function markDown(state,enemy,events,source='world-contact'){
-  if(enemy.dead||enemy.downed)return;enemy.hp=0;enemy.downed=true;enemy.downedElapsed=0;enemy.moving=false;enemy.attacking=false;events.push({type:'enemy-downed',targetId:enemy.id,engine:source});
+  if(enemy.dead||enemy.downed)return;enemy.hp=0;enemy.downed=true;enemy.downedElapsed=0;enemy.moving=false;enemy.attacking=false;state.defeats=(Number(state.defeats)||0)+1;events.push({type:'enemy-downed',targetId:enemy.id,engine:source});
 }
 
 export function applyMultiTargetContact(state,front,event,events){
