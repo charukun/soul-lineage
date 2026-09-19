@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {RaidSession} from '../group-session.js';
 import {RaidSession as SingleRaidSession} from '../session.js';
 import {freshProfile} from '../profile.js';
@@ -85,6 +86,9 @@ test('group simulation delegates the same gated input to primary and secondary c
  const retreat={x:0,z:-1,amount:.8,active:true,dash:false};
  session.tick(1/60,retreat);
  assert.deepEqual(primary.at(-1).value,retreat);assert.deepEqual(secondary.at(-1).value,retreat);
+ const source=readFileSync(new URL('../group-session.js',import.meta.url),'utf8');
+ assert.match(source,/createTidebreakRuntime/);assert.match(source,/heroPassive:true/);assert.match(source,/core\.syncActors/);
+ assert.doesNotMatch(source,/p\.hp=Math\.max\(0,p\.hp-damage\)/);
 });
 
 test('attacking villagers rally from outside join range while fleeing villagers keep running',()=>{
