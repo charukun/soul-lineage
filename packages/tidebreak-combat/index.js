@@ -1953,7 +1953,7 @@ knockReaction=function(a,src,atk,guarded=false){if(a.objective){a.flash=.15;retu
 };
 const attackV3=advanceAttack;
 advanceAttack=function(a,dt){const atk=a.attack;attackV3(a,dt);if(a.attack===atk&&atk&&atk.footwork==='skybound'){const p=attackProgress(a);a.air=Math.sin(clamp((p-.27)/.62,0,1)*PI)*1.25;a.airV=0;}if(a.attack===atk&&atk?.rareTravel&&atk.swung&&showFX){atk.rareFX=(atk.rareFX||0)+dt;if(atk.rareFX>.11){atk.rareFX=0;addEcho(a);splash(a.x,a.z,.65);}}};
-function mindProfile(a){const m=MINDS[a.hero?mindset:'none'];if(a.hero&&mindset==='survival'&&a.hp<a.maxhp*.38)return{...m,attack:.13,opening:.48,guard:.95,home:.66,pace:1.32};return m;}
+function mindProfile(a){const m=MINDS[a.hero?mindset:'none']||MINDS.none;if(a.hero&&mindset==='survival'&&a.hp<a.maxhp*.38)return{...m,attack:.13,opening:.48,guard:.95,home:.66,pace:1.32};return m;}
 function createEscort(){const p={id:++idCounter,objective:true,hero:true,index:0,x:-4.6,z:.65,yaw:PI/2,r:.46,hp:220,maxhp:220,dead:false,deadTime:0,attack:null,reaction:null,recovery:null,stun:0,invuln:0,weapon:'sword',air:0,airV:0,kx:0,kz:0,poise:0,ward:0,burn:0,slow:0,flash:0,generation:1};return p;}
 function ensureEscort(){if(mindset==='escort'&&!escort)escort=createEscort();if(mindset!=='escort')escort=null;}
 const nearestV3=nearest;

@@ -2,6 +2,9 @@ import {makeModel} from '@soul/housing-assets';
 import {defs} from '@soul/world/mura/catalog';
 
 const HOUSE_TYPES=Object.freeze({
+  mayor:Object.freeze({base:'cottage'}),
+  guardhome:Object.freeze({base:'tallhouse'}),
+  tent:Object.freeze({base:'cottage'}),
   home:Object.freeze({base:'cottage',timber:'roundhouse',stone:'tallhouse',earth:'cottage'}),
   lodge:Object.freeze({base:'tallhouse',timber:'roundhouse',stone:'manor',earth:'tallhouse'}),
   clanManor:Object.freeze({base:'manor',timber:'manor',stone:'manor',earth:'manor'})
