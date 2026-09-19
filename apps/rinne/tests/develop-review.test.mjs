@@ -71,19 +71,21 @@ test('review choice grids keep the five-column invariant across desktop and resp
   }
 });
 
-test('equipment review follows the Visual Review Lab probe language and exposes the exact review questions',async()=>{
+test('equipment review keeps the stage primary and opens model choice as a five-column slot picker',async()=>{
   const [html,css,js]=await Promise.all([read('review-assets.html'),read('src/review-asset-library.css'),read('src/review-asset-library.js')]);
-  assert.match(html,/<title>装備 \| Visual Review Lab<\/title>/);
-  assert.match(html,/class="eyebrow">RINNE RUNTIME PROBE<\/p>/);
-  assert.match(html,/data-review-purpose/);
-  assert.match(html,/正しい位置・向き・尺度で付き/);
-  for(const point of ['装着','干渉','輪郭','モデル差'])assert.match(html,new RegExp(point));
+  assert.match(html,/<title>Visual Review｜装備<\/title>/);
   assert.match(html,/id="asset-slot-tabs"/);
   assert.match(html,/id="asset-equipment-options"/);
-  for(const preset of ['front','three-quarter','side','back'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
-  for(const focus of ['full','main','off','back'])assert.match(html,new RegExp(`data-asset-focus="${focus}"`));
+  assert.match(html,/id="asset-model-trigger"/);
+  assert.match(html,/id="asset-model-picker"[^>]*role="dialog"/);
+  assert.doesNotMatch(html,/data-review-purpose|確認ポイント|正しい位置・向き・尺度|SECONDARY CHECK|PRIMARY ACTION/);
+  for(const preset of ['front','left','right','back'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
+  assert.doesNotMatch(html,/data-asset-focus=/);
   assert.doesNotMatch(html,/review-slot-auto\.js|着せ替え確認|装備確認 \| 百年転生/);
-  assert.match(js,/activeViewDirection==='three-quarter'/);
+  assert.match(js,/activeViewDirection==='left'/);
+  assert.match(js,/activeViewDirection==='right'/);
+  assert.match(js,/openModelPicker/);
+  assert.match(js,/closeModelPicker/);
   assert.match(js,/MODELS \$\{REVIEW_SKELETON_MODELS\.length\}/);
   assert.match(js,/https:\/\/raw\.githubusercontent\.com/);
   assert.match(js,/reviewModelUrl\(model\)|reviewEquipmentUrl\(spec\)/);
