@@ -62,6 +62,7 @@ function resetBattle(){
 }
 function renderPhase(core){
   const state=reviewBattlePhaseState(core);syncCombatSequence(phasePanel,state.phase);const action=core?.hero?.attack||state.skill||'間合いを測る';phaseMeta.textContent=action;
+  for(const slot of document.querySelectorAll('#battle-technique-loadout span'))slot.dataset.active=String(slot.querySelector('strong')?.dataset.loadoutPhase===state.heroPhase);
   if(action!==lastSequenceAction||state.phase!==lastSequencePhase){if(lastSequenceAction){const item=document.createElement('span');item.textContent=`${phaseLabel(lastSequencePhase)} · ${lastSequenceAction}`;phaseHistory?.prepend(item);while(phaseHistory?.children.length>3)phaseHistory.lastElementChild?.remove();setTimeout(()=>item.remove(),2700);}lastSequenceAction=action;lastSequencePhase=state.phase;}
 }
 function syncBattleAudio(core){for(const side of ['hero','enemy']){const next=String(core?.[side]?.attack||'');if(next&&next!==lastAudioAttacks[side])battleSfx.slash();lastAudioAttacks[side]=next;}}
