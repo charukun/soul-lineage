@@ -11,9 +11,9 @@ export class Actor {
     this.scale=this.isBoss?1.8:this.isHero?1.08:kind==='minion'?.92:1;
     this.model.scale.setScalar(this.scale);
     this.radius=this.isBoss?1.1:this.isHero?.58:.52;
-    this.hp=100;this.maxHp=100;this.alive=true;this.deadTime=0;this.cooldown=Math.random()*.8;
+    this.hp=100;this.maxHp=100;this.alive=true;this.deadTime=0;this.cooldown=.4;
     this.busy=0;this.hitAt=0;this.pending=null;this.spawnTime=0;this.slow=0;this.flash=0;
-    this.velocity=new THREE.Vector3();this.materials=[];this.heading=0;this.targetHeading=0;this.animation='';
+    this.velocity=new THREE.Vector3();this.materials=[];this.heading=0;this.targetHeading=0;this.animation='';this.extraMaterials=[];
     const hidden = new Set(['1H_Sword_Offhand','Rectangle_Shield','Round_Shield','Spike_Shield','2H_Sword']);
     this.model.traverse(o=>{
       if(hidden.has(o.name)&&this.isHero)o.visible=false;
@@ -29,15 +29,16 @@ export class Actor {
     });
     if(!this.isHero&&!this.isMage){
       const hand=findNode(this.model,'handslot.r');
-      if(hand){const sword=assets.weapon(this.isBoss);sword.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.color.multiply(new THREE.Color('#9cabaa'));}});hand.add(sword);}
+      if(hand){const sword=assets.weapon(this.isBoss);sword.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.color.multiply(new THREE.Color('#9cabaa'));this.extraMaterials.push(o.material);}});hand.add(sword);}
     }
     this.mixer=new THREE.AnimationMixer(this.model);this.actions=new Map();
-    for(const clip of assets.model(this.assetId).animations)this.actions.set(clip.name,this.mixer.clipAction(clip));
+    this.clips=new Map(assets.model(this.assetId).animations.map(clip=>[clip.name,clip]));
     this.play(this.isHero?'Idle':'Idle_Combat');
   }
   play(name,{once=false,duration=null,fade=.12}={}) {
-    const next=this.actions.get(name)||this.actions.get('Idle'); if(!next)return;
+    const clip=this.clips.get(name)||this.clips.get('Idle');if(!clip)return;
     if(this.animation===name&&!once)return;
+    let next=this.actions.get(clip.name);if(!next){next=this.mixer.clipAction(clip);this.actions.set(clip.name,next);}
     const previous=this.current;this.animation=name;this.current=next;
     next.reset().setEffectiveWeight(1).setEffectiveTimeScale(duration?next.getClip().duration/duration:1);
     next.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);next.clampWhenFinished=once;
@@ -69,5 +70,5 @@ export class Actor {
     if(this.busy>0){this.busy=Math.max(0,this.busy-dt);if(this.pending&&this.busy<=this.hitAt){const event=this.pending;this.pending=null;event();}if(this.busy===0)this.idle();}
   }
   die() {if(!this.alive)return;this.alive=false;this.pending=null;this.busy=0;this.velocity.multiplyScalar(.3);this.play(this.isHero?'Death_A':'Death_C_Skeletons',{once:true,duration:this.isHero?1.6:1.4,fade:.06});}
-  dispose(){this.root.removeFromParent();this.mixer.stopAllAction();this.mixer.uncacheRoot(this.model);for(const {m}of this.materials)m.dispose();}
+  dispose(){this.root.removeFromParent();this.mixer.stopAllAction();this.mixer.uncacheRoot(this.model);for(const {m}of this.materials)m.dispose();for(const m of this.extraMaterials)m.dispose();}
 }

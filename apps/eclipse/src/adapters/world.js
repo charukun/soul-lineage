@@ -11,7 +11,7 @@ export class World {
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
     const gl=this.renderer.getContext(),debug=gl.getExtension('WEBGL_debug_renderer_info');
     this.software=debug?/swiftshader|llvmpipe|software/i.test(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)):false;
-    this.renderer.info.autoReset=false;this.lastRender=0;
+    this.renderer.info.autoReset=false;this.lastRender=0;this.renderCount=0;
     this.renderer.setClearColor('#101f24');this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.12;
     this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -37,8 +37,9 @@ export class World {
       add(outside?'floor_dirt_large_rocky':'floor_tile_large',x*4,z*4,Math.floor(rng()*4)*Math.PI/2,1,-.13);
       if(!outside&&rng()<.28)add('floor_tile_small_weeds_A',x*4+(rng()-.5)*2,z*4+(rng()-.5)*2,rng()*6.28,.95,-.08);
     }
-    for(let z=-5;z<=5;z++) {add('floor_tile_small_decorated',-2,z*2,0,1,-.07);add('floor_tile_small_decorated',0,z*2,0,1,-.065);add('floor_tile_small_decorated',2,z*2,0,1,-.07);}
-    for(let x=-4;x<=4;x++){add(x===0?'wall_arched':Math.abs(x)%2?'wall_archedwindow_open':'wall_broken',x*4,-15,0,1);}
+    for(const [x,z]of [[-5,-7],[4,-5],[-7,4],[6,7],[1,4]])add('floor_tile_small_broken_A',x,z,rng()*6.28,1,-.09);
+    for(const [x,z]of [[-7,-11],[7,-11]])add('floor_tile_small_decorated',x,z,0,1,-.08);
+    for(let x=-4;x<=4;x++)add(x===0?'wall_arched':Math.abs(x)%2?'wall_archedwindow_open':'wall_broken',x*4,-15,0,1);
     for(let z=-3;z<=2;z++){add(z%2?'wall_broken':'wall_half',-16,z*4,Math.PI/2,1);add(z%2?'wall_half':'wall_broken',16,z*4,-Math.PI/2,1);}
     for(const x of [-12,-6,6,12]) {
       add('pillar_decorated',x,-11.5,0,1);
@@ -77,7 +78,7 @@ export class World {
     this.low=this.settings.quality==='low'||(this.settings.quality==='auto'&&(this.mobile||this.software));
     const dpr=Math.min(devicePixelRatio||1,this.software?.75:this.low?1.15:1.5);
     this.renderer.setPixelRatio(dpr);this.renderer.setSize(w,h,false);this.composer.setPixelRatio(dpr);this.composer.setSize(w,h);
-    const viewH=w/h<.8?34:w/h<1.2?29:23;
+    const viewH=w/h<.8?28:w/h<1.2?27:23;
     this.camera.left=-viewH*w/h/2;this.camera.right=viewH*w/h/2;this.camera.top=viewH/2;this.camera.bottom=-viewH/2;this.camera.updateProjectionMatrix();
     this.sun.shadow.mapSize.set(this.software?512:this.low?1024:2048,this.software?512:this.low?1024:2048);
     if(this.sun.shadow.map){this.sun.shadow.map.dispose();this.sun.shadow.map=null;}
@@ -86,10 +87,10 @@ export class World {
   impact(pos,power=1,color='#ffd289') {this.flashLight.position.copy(pos);this.flashLight.position.y=2;this.flashLight.color.set(color);this.flashLight.intensity=Math.max(this.flashLight.intensity,35*power);if(this.settings.shake){this.shake=Math.max(this.shake,power*.17);this.shakeTime=.23;}}
   update(dt,hero){
     this.elapsed+=dt;
-    const title=this.mode==='title',follow=hero?.position||new THREE.Vector3();
-    const desired=new THREE.Vector3(follow.x*.16,0,follow.z*.16+(this.mobile?1.5:0));
+    const title=this.mode==='title',follow=hero?.position||new THREE.Vector3(),weight=this.mobile?.9:.16;
+    const desired=new THREE.Vector3(follow.x*weight,0,follow.z*weight+(this.mobile?1.5:0));
     if(title&&!this.mobile)desired.x=-4.3;
-    this.focus.lerp(desired,1-Math.exp(-dt*2));
+    this.focus.lerp(desired,1-Math.exp(-dt*3));
     const sway=title?Math.sin(this.elapsed*.11)*1.3:0;
     this.camera.position.set(this.focus.x+13+sway,this.focus.y+25,this.focus.z+22);
     if(this.shakeTime>0){this.shakeTime-=dt;this.camera.position.x+=(Math.random()-.5)*this.shake;this.camera.position.y+=(Math.random()-.5)*this.shake;this.shake*=Math.exp(-dt*9);}
@@ -98,5 +99,5 @@ export class World {
     this.flashLight.intensity*=Math.exp(-dt*12);
     for(let i=0;i<this.lamps.length;i++)this.lamps[i].intensity=19+Math.sin(this.elapsed*5+i*7)*2+Math.sin(this.elapsed*8.1+i)*1.3;
   }
-  render(){const now=performance.now();if(this.software&&now-this.lastRender<80)return;this.lastRender=now;this.renderer.info.reset();if(this.low)this.renderer.render(this.scene,this.camera);else this.composer.render();}
+  render(){const now=performance.now();if(this.software&&now-this.lastRender<100)return;this.lastRender=now;this.renderCount++;this.renderer.info.reset();if(this.low)this.renderer.render(this.scene,this.camera);else this.composer.render();}
 }
