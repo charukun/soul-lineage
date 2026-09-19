@@ -18,4 +18,12 @@ export const REVIEW_VFX_GODOT4_EFFECTS=Object.freeze([
   effect("lib-godot4-falloff","Demo/effects/sample-material1/Falloff.efkefc"),
   effect("lib-godot4-image-distortion","Demo/effects/sample-material1/ImageDistortion.efkefc"),
   effect("lib-godot4-gradient","Demo/effects/tests/17/Gradient.efkefc"),
+  effect("lib-godot4-homing-laser","Demo/effects/samples/Homing_Laser01.efkefc"),
+  effect("lib-godot4-laser01","Demo/effects/samples/Laser01.efkefc"),
+  effect("lib-godot4-laser02","Demo/effects/samples/Laser02.efkefc"),
+  effect("lib-godot4-laser03","Demo/effects/samples/Laser03.efkefc"),
+  effect("lib-godot4-ring-shape1","Demo/effects/samples/Simple_Ring_Shape1.efkefc"),
+  effect("lib-godot4-ring-shape2","Demo/effects/samples/Simple_Ring_Shape2.efkefc"),
+  effect("lib-godot4-model-instanced","Demo/effects/tests/model_instanced.efkefc"),
+  effect("lib-godot4-texture-clamped","Demo/effects/tests/texture_clamped.efkefc"),
 ]);

@@ -53,6 +53,7 @@ Effects review is a browsing surface before it is a tuning surface. It must stay
 - The real-source effect count represents distinct authored source effects only. Playback speed, scale, position, mirroring, loop mode, lifetime, color-only variants, or other presentation-only variants must never increase the count.
 - Additional upstream demo sources are admissible only when the exact revision, license, distinct effect blob, and complete pinned runtime dependency closure are recorded; technical-only duplicates remain excluded.
 - Additional historical Effekseer INFO versions may be admitted only after an exact upstream sample proves the dependency layout consumes the full INFO chunk without ambiguity; unverified versions remain rejected.
+- Version 1601 is reviewed as the six-group INFO layout only for pinned upstream samples whose INFO chunk is consumed exactly; this does not authorize adjacent versions.
 - The same authored effect player / Effekseer backend remains the preview truth; selecting catalog entries changes presentation input only.
 - The neutral VFX stage must communicate gameplay scale and effect intent. Do not use anonymous capsule/cylinder position markers as the primary review subjects; use readable humanoid review mannequins plus explicit source, impact and area/trajectory guides.
 - VFX presets may change review-only staging (single target, multi-target, area/finisher context) while preserving the same authored effect event/runtime path. The staging must clarify where an effect originates and lands without inventing damage rules.
