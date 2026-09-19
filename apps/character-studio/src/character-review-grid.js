@@ -58,6 +58,25 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const controls = doc.querySelector('.review-controls');
   const fields = doc.getElementById('editor-fields');
   if (!controls || !fields || !doc.getElementById('character-model-options')) return false;
+
+  // Character review owns its own compact review chrome even when opened at the app root.
+  const actions = doc.querySelector('.stage-actions');
+  const frameButton = doc.getElementById('frame-model');
+  const subjectRow = doc.querySelector('.subject-row');
+  const stageHead = doc.querySelector('.stage-head');
+  for (const node of [doc.getElementById('camera-cycle'), doc.getElementById('pause'), actions?.querySelector('[data-camera="overview"]')].filter(Boolean)) {
+    node.hidden = true;
+    node.setAttribute('aria-hidden', 'true');
+  }
+  if (frameButton && actions && !actions.contains(frameButton)) {
+    frameButton.textContent = '全身';
+    frameButton.title = 'モデル全体を表示';
+    actions.append(frameButton);
+  }
+  if (subjectRow && stageHead && !stageHead.contains(subjectRow)) {
+    subjectRow.classList.add('character-review-pager');
+    stageHead.append(subjectRow);
+  }
   const make = (tag, className, text = '') => {
     const node = doc.createElement(tag); node.className = className; node.textContent = text; return node;
   };
@@ -116,7 +135,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   function renderOptions(group) {
     const focused = grid.contains(doc.activeElement) ? doc.activeElement?.dataset.optionKey : null;
     grid.replaceChildren(...group.options.map(option => {
-      const button = make('button', 'character-review-option'); button.type = 'button'; button.dataset.optionKey = option.key;
+      const button = make('button', 'character-review-option'); button.type = 'button'; button.dataset.optionKey = option.key; button.dataset.group = group.id;
       button.disabled = option.disabled; button.title = option.fullLabel; button.setAttribute('aria-label', option.fullLabel);
       button.setAttribute('aria-pressed', String(option.selected));
       const mark = make('span', 'character-review-mark', optionMark(group, option)); mark.setAttribute('aria-hidden', 'true');
@@ -143,7 +162,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
       attr(button, 'aria-label', `${group.label}：${group.value}。候補を表示`); button.title = `${group.label}：${group.value}`;
     }
     const group = state.groups.find(item => item.id === state.active);
-    text(heading, `候補一覧 · ${group.label} · ${group.value} · ${group.options.length}件`);
+    text(heading, `${group.label} / ${group.value}　候補 ${group.options.length}件`);
     attr(panel, 'aria-labelledby', `character-slot-${group.id}`); attr(panel, 'aria-busy', !ready);
     const signature = JSON.stringify([group.id, group.options.map(({ key, label, fullLabel, selected, disabled, swatch }) => [key,label,fullLabel,selected,disabled,swatch])]);
     const sourceChanged = group.options.some((option, index) => option.source !== state.sources?.[index]);
