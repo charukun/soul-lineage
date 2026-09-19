@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
-const [html, typography, hud, surfaces, v2, ui, loadout] = await Promise.all([
+const [html, typography, hud, surfaces, v2, navy, ui, loadout] = await Promise.all([
   read('../index.html'),
   read('../src/typography.css'),
   read('../src/reincarnation-hud.css'),
   read('../src/reincarnation-surfaces.css'),
   read('../src/reincarnation-interface-v2.css'),
+  read('../src/dark-navy-hud.css'),
   read('../src/gameplay-ui.js'),
   read('../src/heart-technique-body-ui.js'),
 ]);
@@ -41,7 +42,14 @@ test('persistent HUD has a readable player cluster and a dedicated top-right rad
   assert.match(ui, /data-items/);
   assert.match(ui, /class="rinne-map-radar"/);
   assert.match(ui, /data-record/);
-  assert.doesNotMatch(ui, /data-combat/);
+  assert.match(ui, /data-vitals/);
+  assert.match(ui, /data-mind/);
+  assert.match(ui, /setContextAnchor/);
+  assert.match(navy, /\.rinne-context-vitals\{/);
+  assert.match(navy, /\.rinne-mind-balance\{/);
+  assert.match(navy, /\.game-screen\[data-gameplay-upgrade\] \.bars,[\s\S]*display:none!important/);
+  assert.match(navy, /\.rinne-gameplay-upgrade \.upgrade-panel>header>\[data-close\][\s\S]*display:grid!important/);
+  assert.doesNotMatch(ui, /data-(?:attack|combat-button|combat-control)/);
   assert.doesNotMatch(ui, /data-debug/);
   assert.match(v2, /env\(safe-area-inset-top\)/);
   assert.match(v2, /env\(safe-area-inset-bottom\)/);
@@ -49,10 +57,11 @@ test('persistent HUD has a readable player cluster and a dedicated top-right rad
   assert.match(v2, /@media\(prefers-reduced-motion:reduce\)/);
 });
 
-test('heart technique body and equipment share three slots over a five-column library', () => {
+test('technique body and equipment keep three-slot editing while heart stays a learned list', () => {
   assert.match(v2, /\.loadout-slot-row\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(v2, /\.loadout-grid\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.match(loadout, /HEART_SLOT_COUNT/);
+  assert.doesNotMatch(loadout, /HEART_SLOT_COUNT|setHeartSlot|heartSlot/);
+  assert.match(loadout, /heart-learned-list/);
   assert.match(loadout, /技 · 序破急/);
   assert.match(loadout, /体 · 身法/);
   assert.match(loadout, /得意技/);
