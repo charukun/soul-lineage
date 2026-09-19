@@ -88,7 +88,7 @@ test('tent semantics are residential-only and render the imported traditional yu
  assert.ok(resolveMuraHouseVisual('home'),'permanent homes still use the shared authored house visual');
 });
 
-test('尽喰廻遊 raid villages and housing visuals use metre-scale dimensions',()=>{
+test('喰滅廻遊 raid villages and housing visuals use metre-scale dimensions',()=>{
  assert.equal(HOUSING_WORLD_UNITS,'metres');
  assert.equal(RAID_WORLD_UNITS,'metres');
  const village=makeVillage({id:'world-scale-test',seed:7,name:'scale',target:'traveller',source:'generated',raidScale:'small'});

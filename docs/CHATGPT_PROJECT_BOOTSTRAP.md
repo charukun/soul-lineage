@@ -19,4 +19,4 @@ main/Productionは明示許可時のみ変更。品質gateを弱めません。
 
 ChatGPT製品が自動付与するsystem / tool definitions / memoryやProject内会話参照そのものはRepositoryから変更できない。Project設定の変更が必要な場合はChatGPT側のProject UIで行う。
 
-Projectの整理はこの本文へのinstructions置換を先に行い、Project-only memoryは現在UIに変更項目がある場合だけ設定する。認証前・変更項目未確認の状態で「設定済み」「作成時固定」と断定しない。`輪廻転焦 ARCHIVE`への移動は、GitHub成果が確認できる完了済みチャットに限定し、進行中・Integration/Rescue参照中・現行仕様の意思決定・判断不明のチャットを残す。削除しない。
+Projectの整理はこの本文へのinstructions置換を先に行い、Project-only memoryは現在UIに変更項目がある場合だけ設定する。認証前・変更項目未確認の状態で「設定済み」「作成時固定」と断定しない。`百年転生 ARCHIVE`への移動は、GitHub成果が確認できる完了済みチャットに限定し、進行中・Integration/Rescue参照中・現行仕様の意思決定・判断不明のチャットを残す。削除しない。

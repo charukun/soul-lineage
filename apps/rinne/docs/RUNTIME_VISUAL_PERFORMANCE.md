@@ -1,4 +1,4 @@
-# 輪廻転焦 Runtime Visual / Performance Acceptance
+# 百年転生 Runtime Visual / Performance Acceptance
 
 `apps/rinne/src/rebuild/` の100年人生runtimeは、ゲーム進行を軽くするために画質を無条件で落とす経路ではありません。Repository共通の `docs/STYLIZED_PERFORMANCE_PIPELINE.md` に従い、見えない・価値の低い負荷を削って、輪郭・動き・ライティングへ予算を戻します。
 

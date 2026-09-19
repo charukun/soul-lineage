@@ -1,7 +1,7 @@
 const TAU=Math.PI*2;
 function seeded(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
 export class SoulParticles {
- constructor(canvas){this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:true});const r=seeded(90210);this.dust=Array.from({length:68},()=>({x:r(),y:r(),z:.3+r()*.7,size:.5+r()*1.2,phase:r()*TAU,speed:.003+r()*.018}));this.glyphs=Array.from({length:95},()=>({x:r(),y:r(),phase:r()*TAU,speed:.05+r()*.07,char:'輪廻転焦心技体命縁魂風星夢'.at(Math.floor(r()*13))}));this.ripples=[];this.resize();}
+ constructor(canvas){this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:true});const r=seeded(90210);this.dust=Array.from({length:68},()=>({x:r(),y:r(),z:.3+r()*.7,size:.5+r()*1.2,phase:r()*TAU,speed:.003+r()*.018}));this.glyphs=Array.from({length:95},()=>({x:r(),y:r(),phase:r()*TAU,speed:.05+r()*.07,char:'百年転生心技体命縁魂風星夢'.at(Math.floor(r()*13))}));this.ripples=[];this.resize();}
  resize(){const r=this.canvas.getBoundingClientRect();this.w=r.width;this.h=r.height;const d=Math.min(devicePixelRatio||1,1.5);this.canvas.width=Math.round(this.w*d);this.canvas.height=Math.round(this.h*d);this.ctx?.setTransform(d,0,0,d,0,0);}
  touch(x,y,t){this.ripples.push({x,y,t});if(this.ripples.length>5)this.ripples.shift();}
  draw(t,reveal,reduced){const c=this.ctx;if(!c)return;const w=this.w,h=this.h;c.clearRect(0,0,w,h);if(reduced)return;c.globalCompositeOperation='lighter';

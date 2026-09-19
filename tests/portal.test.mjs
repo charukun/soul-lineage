@@ -25,7 +25,7 @@ test('WAYFINDER derives its public routes from PULSE and omits itself or unpubli
     applicationsUpdatedAt: '2026-09-12T10:00:00.000Z',
     applications: [
       {
-        id: 'rinne', name: '輪廻転焦', kind: 'game', targets: [
+        id: 'rinne', name: '百年転生', kind: 'game', targets: [
           { label: '開発', environment: 'dev', state: 'success', url: 'https://charukun.github.io/soul-lineage/dev/rinne/' },
           { label: '検証', environment: 'staging', state: 'success', url: 'https://charukun.github.io/soul-lineage/staging/rinne/' },
           { label: '本番', environment: 'prod', state: 'missing', url: null },

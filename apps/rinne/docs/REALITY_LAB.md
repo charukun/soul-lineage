@@ -16,7 +16,7 @@
 
 ## Canon Nucleus 証明ループ
 
-今回の検討では、既存方式を広く否定するのではなく、輪廻転焦の30人協力試遊に必要な条件を固定して比較する。対象条件は、専用ゲームサーバーなし、Host 1台故障後も継続可能、確定済みの出生・死亡・転生履歴を巻き戻さない、高頻度presenceでモバイル帯域を使い切らないこと。理論・証明条件・既知方式との比較境界は [Canon Nucleus architecture proof](CANON_NUCLEUS.md) を参照する。
+今回の検討では、既存方式を広く否定するのではなく、百年転生の30人協力試遊に必要な条件を固定して比較する。対象条件は、専用ゲームサーバーなし、Host 1台故障後も継続可能、確定済みの出生・死亡・転生履歴を巻き戻さない、高頻度presenceでモバイル帯域を使い切らないこと。理論・証明条件・既知方式との比較境界は [Canon Nucleus architecture proof](CANON_NUCLEUS.md) を参照する。
 
 追加する候補方式は `Canon Nucleus` と呼ぶ。高頻度で置換可能なpresence、復元可能なworld state、不可逆なcanon、authority controlを別の意味論として扱い、canonの確定は3台のauthority nucleusのうち2台以上が同じrevision/rootと復元材料を保持した時だけ進める。Host選出だけ成功して復元材料が欠ける状態を成功と数えない。
 

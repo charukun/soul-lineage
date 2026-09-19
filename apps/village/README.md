@@ -1,4 +1,4 @@
-# 星継ぎの庭 — 輪廻転焦 Village
+# 星継ぎの庭 — 百年転生 Village
 
 `Hoshitsugi_Village_LifeAndGuard_Package.zip` の生活・建築・守りを、既存の `apps/village` に統合したローカル村づくりゲームです。独自の配信基盤や別エンジンは追加しません。
 

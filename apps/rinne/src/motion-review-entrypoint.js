@@ -121,7 +121,7 @@ function prepareShell(mode) {
   if (!spec) return;
   document.body.classList.add('simple-review');
   document.body.dataset.reviewMode = mode;
-  document.title = `${spec.title} | 輪廻転焦`;
+  document.title = `${spec.title} | 百年転生`;
 
   const heading = qs('.stage-head h1');
   if (heading) heading.textContent = spec.title;

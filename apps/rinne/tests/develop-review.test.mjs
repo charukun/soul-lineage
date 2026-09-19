@@ -50,7 +50,7 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
 
 test('equipment review is organized around equipment fit and inspection tasks',async()=>{
   const [html,css,js]=await Promise.all([read('review-assets.html'),read('src/review-asset-library.css'),read('src/review-asset-library.js')]);
-  assert.match(html,/<title>装備確認 \| 輪廻転焦<\/title>/);
+  assert.match(html,/<title>装備確認 \| 百年転生<\/title>/);
   assert.match(html,/data-review-back[^>]*href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"/);
   assert.match(html,/id="asset-review-points"/);
   for(const point of ['装着位置','干渉','尺度','裏側'])assert.match(html,new RegExp(point));
@@ -69,7 +69,7 @@ test('equipment review is organized around equipment fit and inspection tasks',a
 
 test('world-object review loads the exact RINNE runtime props independently of equipment',async()=>{
   const [html,css,js]=await Promise.all([read('review-objects.html'),read('src/review-object-library.css'),read('src/review-object-library.js')]);
-  assert.match(html,/<title>物体確認 \| 輪廻転焦<\/title>/);
+  assert.match(html,/<title>物体確認 \| 百年転生<\/title>/);
   assert.match(html,/id="object-stage"/);
   assert.match(html,/id="object-options"/);
   for(const preset of ['front','side','top','full'])assert.match(html,new RegExp(`data-object-camera="${preset}"`));

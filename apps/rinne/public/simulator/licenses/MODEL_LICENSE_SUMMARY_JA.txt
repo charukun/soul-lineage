@@ -15,7 +15,7 @@ License: CC0-1.0
 - Sendagaya_Shino review model
 - つくよみちゃん Type A review model
 
-上記は商用利用自体が可能なものを含みますが、モデル固有の利用条件が残るため、輪廻転焦のactive runtime / review candidate / Production配布から除外しました。
+上記は商用利用自体が可能なものを含みますが、モデル固有の利用条件が残るため、百年転生のactive runtime / review candidate / Production配布から除外しました。
 
 また、RINNE自作の表面形状であっても Sendagaya_Shino carrier rig を保持するDCC出力はProduction対象外です。CC0またはRINNE所有rigへ再リグし、provenanceを更新するまでRUNTIME_READYへ昇格できません。
 

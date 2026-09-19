@@ -190,7 +190,7 @@ async function main() {
     await writeFile(resolve(output, environment, 'index.html'), `<!doctype html><html lang="ja"><head><meta charset="utf-8">${redirect}<title>ゲーム開発</title></head><body>${envEntries.map(e => `<p><a href="${e.app}/">${e.version.name}</a></p>`).join('')}</body></html>`);
     if (rinne) await writeFile(resolve(output, environment, 'version.json'), JSON.stringify(rinne.version, null, 2));
   }
-  await writeFile(resolve(output, 'index.html'), '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=prod/"><title>輪廻転焦</title></head><body><a href="prod/">輪廻転焦</a></body></html>');
+  await writeFile(resolve(output, 'index.html'), '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=prod/"><title>百年転生</title></head><body><a href="prod/">百年転生</a></body></html>');
   await writeFile(resolve(output, '.nojekyll'), '');
   const deployedAt = new Date().toISOString();
   const workflowRunId = process.env.GITHUB_RUN_ID || null;

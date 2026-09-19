@@ -41,7 +41,7 @@ export function buildWorkResumePrompt(data = {}, generatedAt = new Date().toISOS
     drafts,
   };
 
-  return `輪廻転焦（${REPOSITORY}）の「作業中」Draft全件を監査し、止まっている作業を安全に前進させてください。
+  return `百年転生（${REPOSITORY}）の「作業中」Draft全件を監査し、止まっている作業を安全に前進させてください。
 
 目的:
 PULSEの「作業中」はGitHubのDraft状態を表示しているだけで、実際にWorkerが動いている保証ではありません。現在のGitHub状態を正本として通常のDraft PRを全件確認し、稼働中・停止/中断・待機/hold・Ready化可能・obsolete/重複を判定してください。そのうえで、安全に進められる停止/中断タスクは既存PR/branchを復旧起点にして進めてください。

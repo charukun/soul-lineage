@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Make night a five-minute shared danger window in which 尽喰廻遊 players may invade a Village world, without making life simulation depend on render frame rate or device wall-clock time.
+Make night a five-minute shared danger window in which 喰滅廻遊 players may invade a Village world, without making life simulation depend on render frame rate or device wall-clock time.
 
 ## Canonical time model
 
@@ -13,16 +13,16 @@ Make night a five-minute shared danger window in which 尽喰廻遊 players may 
 
 ## Raid window
 
-- 尽喰廻遊 invasion admission is open only while the authoritative Village clock is in the night interval.
+- 喰滅廻遊 invasion admission is open only while the authoritative Village clock is in the night interval.
 - Existing one-visit-per-monster-per-village protection remains. Night does not reset that ledger.
 - A demon admitted before dawn may finish the already-started encounter, but no new demon admission occurs after 05:00.
 - Village NPCs begin shelter behavior at night. Guards, watch facilities, ward lamps, and player defenders remain meaningful.
-- Existing simulated 魔王軍 raids remain a separate PvE system. They must not be renamed or silently treated as 尽喰廻遊 players.
+- Existing simulated 魔王軍 raids remain a separate PvE system. They must not be renamed or silently treated as 喰滅廻遊 players.
 
 ## Cross-app consistency
 
 - Apps do not import one another. Shared time/window rules live in a shared package and are consumed by Village, Rinne presentation, and raid/network admission as needed.
-- The Village host is authoritative for whether invasion is open. 尽喰廻遊 clients may display eligibility but do not decide it.
+- The Village host is authoritative for whether invasion is open. 喰滅廻遊 clients may display eligibility but do not decide it.
 - Rinne life aging is independent of the Village day/night cycle. Connecting to a Village does not accelerate or rewind a character's age.
 
 ## UX states

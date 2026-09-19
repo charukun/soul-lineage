@@ -1,6 +1,6 @@
 # KayKit-first game axis
 
-輪廻転焦のゲーム構築は、モデル固有の商用利用条件を抱えた第三者キャラクターを中心にせず、出典固定済みのCC0 KayKit系資産と完全なRINNE-owned資産を主要な実プレイ候補として進める。ライセンス採用基準の正本は `docs/characters/CHARACTER_LICENSE_POLICY.md`。
+百年転生のゲーム構築は、モデル固有の商用利用条件を抱えた第三者キャラクターを中心にせず、出典固定済みのCC0 KayKit系資産と完全なRINNE-owned資産を主要な実プレイ候補として進める。ライセンス採用基準の正本は `docs/characters/CHARACTER_LICENSE_POLICY.md`。
 
 ## 方針
 

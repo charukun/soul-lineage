@@ -10,7 +10,7 @@ Rendering may degrade gracefully; gameplay authority may not. Simulation, collis
 
 Actual scene material variants are compiled during idle/boot work with `WebGLRenderer.compileAsync()` when available. Hidden registered roots are exposed only while compiling and restored immediately. A bounded shader-variant budget prevents uncontrolled material permutation growth.
 
-尽喰廻遊 additionally primes its existing `spark` / `slash` visual paths off-screen so first combat does not pay their initial shader compilation cost.
+喰滅廻遊 additionally primes its existing `spark` / `slash` visual paths off-screen so first combat does not pay their initial shader compilation cost.
 
 ## Resource lifetime and leak gate
 
@@ -32,7 +32,7 @@ A restrained spherical-harmonic LightProbe supplements the existing Cool Ambient
 
 Eligible static groups can generate an eight-direction silhouette atlas from their own mesh vertices without GPU framebuffer readback. Far presentation swaps source meshes for a camera-facing card and restores their previous visibility when returning near.
 
-Hero, enemy, interaction-critical and explicitly protected objects are never eligible. MURAAAAAAA remains conservative and only opts explicit/set-dressing roots into this path; 尽喰廻遊 can use it for non-critical environment chunks.
+Hero, enemy, interaction-critical and explicitly protected objects are never eligible. 叡智豊満 remains conservative and only opts explicit/set-dressing roots into this path; 喰滅廻遊 can use it for non-critical environment chunks.
 
 ## Thermal trend governor
 

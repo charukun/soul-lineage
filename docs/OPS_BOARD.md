@@ -1,6 +1,6 @@
 # PULSE
 
-`PULSE` は、輪廻転焦の公開状態と Integration の詰まりをスマートフォンから確認するための read-only 運用ダッシュボードです。
+`PULSE` は、百年転生の公開状態と Integration の詰まりをスマートフォンから確認するための read-only 運用ダッシュボードです。
 
 ## 正本
 
@@ -9,14 +9,14 @@
 ## 公開環境
 
 - DEV / Production: GitHub Pages の公開 `deployment-manifest.json` と Repository branch を照合します。
-- Visual Review Lab: 輪廻転焦 DEV の公開manifestを正本とし、`dev/rinne/review.html` だけを表示します。専用preview Workerや別statusは持ちません。
+- Visual Review Lab: 百年転生 DEV の公開manifestを正本とし、`dev/rinne/review.html` だけを表示します。専用preview Workerや別statusは持ちません。
 - Ops Board 自体: Cloudflare Worker `rinne-ops` と Static Assets で公開します。
 
 各環境は deploy 状態、公開済み SHA、deploy 日時、反映済み PR 件数と一覧を表示します。PR 一覧は公開 SHA から到達可能な GitHub merge commit を根拠に生成します。
 
 ## 開発ツール
 
-PULSE の「開発ツール」には、ゲーム配下の検証・制作画面を登録できます。キャラクター工房は `apps/rinne/characters.html`、Visual Review Lab は `apps/rinne/review.html` を正本とし、輪廻転焦 DEV の公開 manifest に `rinne` が存在するときだけ、それぞれ `dev/rinne/characters.html` / `dev/rinne/review.html` を公開中として表示します。公開 SHA と更新日時は同じ DEV manifest entry から取得し、別WorkerやURL推測による公開扱いはしません。
+PULSE の「開発ツール」には、ゲーム配下の検証・制作画面を登録できます。キャラクター工房は `apps/rinne/characters.html`、Visual Review Lab は `apps/rinne/review.html` を正本とし、百年転生 DEV の公開 manifest に `rinne` が存在するときだけ、それぞれ `dev/rinne/characters.html` / `dev/rinne/review.html` を公開中として表示します。公開 SHA と更新日時は同じ DEV manifest entry から取得し、別WorkerやURL推測による公開扱いはしません。
 
 ## 更新
 
