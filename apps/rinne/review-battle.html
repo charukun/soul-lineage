@@ -110,6 +110,8 @@
 .battle-sign[hidden]{display:none}.battle-sign::after{content:"";position:absolute;left:50%;bottom:-7px;width:12px;height:12px;border-right:1px solid rgba(155,215,241,.3);border-bottom:1px solid rgba(155,215,241,.3);background:rgba(6,16,29,.82);transform:translateX(-50%) rotate(45deg)}
 @keyframes battle-sign-drift{0%{opacity:0;translate:0 8px}14%{opacity:1;translate:0 0}72%{opacity:1;translate:0 -5px}100%{opacity:0;translate:0 -16px}}
 @media(prefers-reduced-motion:reduce){.battle-sign{animation:none}}
+.battle-lightbulb{position:absolute;z-index:13;transform:translate(-50%,-50%);width:54px;height:54px;display:grid;place-items:center;border:1px solid rgba(255,230,139,.58);border-radius:50%;background:radial-gradient(circle,rgba(255,244,183,.96) 0 28%,rgba(240,191,74,.32) 29% 58%,rgba(6,16,29,.12) 70%);font-size:31px;line-height:1;pointer-events:none;filter:drop-shadow(0 0 9px rgba(255,221,109,.92)) drop-shadow(0 5px 9px rgba(0,0,0,.35));animation:battle-lightbulb-pop .42s cubic-bezier(.18,.92,.25,1) both}
+.battle-lightbulb[hidden]{display:none!important}@keyframes battle-lightbulb-pop{0%{opacity:0;scale:.35;rotate:-12deg}48%{opacity:1;scale:1.22;rotate:7deg}72%{scale:.96;rotate:-3deg}100%{opacity:1;scale:1;rotate:0deg}}@media(prefers-reduced-motion:reduce){.battle-lightbulb{animation:none}}
 
 /* 2026-09-20 battle review usability reset: clear center, readable loadout, edge controls. */
 .phase-panel{display:none!important}
@@ -214,6 +216,7 @@ main.battle-review.review-surface .camera-zoom button{
     <output id="battle-model-status" class="model-status" role="status">モデル準備中</output>
     <span class="note">モデル切替は表示のみ</span>
     <output id="battle-sign" class="battle-sign" role="status" aria-live="polite" hidden></output>
+    <output id="battle-lightbulb" class="battle-lightbulb" role="status" aria-label="閃いた" hidden>💡</output>
     <aside id="battle-inspiration" class="battle-inspiration" role="status" aria-live="assertive" hidden><span>閃き</span><strong id="battle-inspiration-name"></strong><small id="battle-inspiration-phase"></small></aside>
     <aside id="battle-phase" class="phase-panel combat-phase-indicator combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" data-combo-active="false" data-phase="idle" aria-label="序破急の現在状態" aria-live="polite">
       <span class="phase-step combat-sequence__step" data-phase-id="jo" data-phase-step="jo" data-combat-phase="jo" data-active="false">序</span><i class="phase-link phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="ha" data-phase-step="ha" data-combat-phase="ha" data-active="false">破</span><i class="phase-link phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="kyu" data-phase-step="kyu" data-combat-phase="kyu" data-active="false">急</span>
