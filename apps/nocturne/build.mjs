@@ -6,6 +6,9 @@ const files=['engine','forest','actors','combat','rules','simulation','effects',
 const source=files.map(name=>fs.readFileSync(`src/${name}.js`,'utf8')).join('\n');
 if(/new\s+(?:THREE\.)?(?:Box|Sphere|Plane|Cylinder|Cone|Torus|Buffer|Shape|Extrude)Geometry\s*\(/.test(source))throw Error('Generated model geometry is prohibited');
 fs.mkdirSync('public/qa',{recursive:true});
+fs.rmSync('public/vendor',{recursive:true,force:true});
+fs.cpSync('node_modules/three/build','public/vendor/three/build',{recursive:true});
+fs.cpSync('node_modules/three/examples/jsm','public/vendor/three/examples/jsm',{recursive:true});
 fs.writeFileSync('public/main.js',source);
 fs.copyFileSync('index.html','public/index.html');
 fs.writeFileSync('public/style.css',['style.css','hud.css','mobile.css'].map(file=>fs.readFileSync(file,'utf8')).join('\n'));
