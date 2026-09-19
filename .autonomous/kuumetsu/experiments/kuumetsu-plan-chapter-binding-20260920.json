@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "kuumetsu-plan-chapter-binding-20260920",
+  "game": "kuumetsu",
+  "kind": "gameplay",
+  "problemKey": "settlement-plan-chapter-forgery",
+  "observation": {
+    "summary": "settleProgress rebuilds canonical mission rewards from report.plan.chapter without binding that chapter to the profile's current progression, allowing a caller to select a later mission bonus.",
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "bc75b09210832543269cf349bfe7ca9155bd657d",
+        "path": "apps/demon/src/hunt/balance.js",
+        "symbol": "settleProgress",
+        "statement": "report.plan.chapter is range-checked, then used to rebuild huntPlan; equality with p.chapter is only checked for chapter clearing, not bonus selection."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "The extraction receipt's chapter is treated as a canonical-plan selector instead of an integrity field bound to current progression.",
+    "prediction": "Rejecting receipts whose plan.chapter differs from p.chapter prevents future-chapter bonus selection while preserving valid mission/forage settlement.",
+    "falsifier": "A mismatched chapter can still settle, or valid current-chapter mission/forage extraction regresses."
+  },
+  "candidates": [
+    {
+      "id": "bind-receipt-chapter-to-profile",
+      "selected": true,
+      "reason": "Preserves existing canonical reward logic and makes the receipt prove the hunt started from the current chapter."
+    },
+    {
+      "id": "ignore-receipt-chapter",
+      "selected": false,
+      "reason": "Would hide receipt tampering instead of validating the persisted hunt identity."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/demon/src/hunt/balance.js",
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "summary": "Require receipt chapter to equal current progress before canonical reward settlement and assert forged future chapters fail closed."
+  },
+  "comparison": {
+    "objective": "reproducible-causality",
+    "verdict": "pending",
+    "before": {
+      "revision": "bc75b09210832543269cf349bfe7ca9155bd657d",
+      "summary": "A later in-range report.plan.chapter can select a later mission bonus even when current chapter is lower."
+    },
+    "after": null,
+    "limitations": [
+      "Settlement integrity only; no claim about combat timing, visuals, or enemy win rates."
+    ]
+  },
+  "validation": {
+    "state": "awaiting-exact-head-receipt",
+    "focusedTests": [
+      "tests/develop-completion-contract.test.mjs",
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "receipt": {
+      "repository": "charukun/soul-lineage",
+      "pullRequest": null,
+      "marker": "autonomous-receipt:kuumetsu:kuumetsu-plan-chapter-binding-20260920"
+    }
+  },
+  "learning": {
+    "summary": "Pending hosted evidence.",
+    "failedApproaches": [],
+    "doNotRetry": [],
+    "unresolved": [],
+    "next": [
+      "After merge, inspect one independent hunt selection/combat connection."
+    ]
+  }
+}

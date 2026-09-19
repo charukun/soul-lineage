@@ -99,7 +99,7 @@ export function buyUpgrade(profile, key) {
 export function settleProgress(profile, status, eaten, report) {
   const p = structuredClone(readProgress(profile));
   if (!['escaped', 'completed', 'defeated', 'abandoned'].includes(status) || !integer(eaten, 10000)) throw Error('狩りの結果が不正です。');
-  if (!report || !integer(report.carried) || report.carried > eaten * 12 || !integer(report.plan?.chapter, MISSIONS.length) || !['mission', 'forage'].includes(report.plan?.route)) throw Error('戦利品の記録が不正です。');
+  if (!report || !integer(report.carried) || report.carried > eaten * 12 || !integer(report.plan?.chapter, MISSIONS.length) || report.plan.chapter !== p.chapter || !['mission', 'forage'].includes(report.plan?.route)) throw Error('戦利品の記録が不正です。');
   // Resolve rewards from canonical balance, never from caller-supplied bonus/quota.
   const plan = huntPlan({[PROGRESS_KEY]: {...p, chapter: report.plan.chapter}}, report.plan.route);
   const extracted = ['escaped', 'completed'].includes(status) && report.returnVerified === true && eaten > 0;
