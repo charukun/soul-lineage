@@ -1,0 +1,31 @@
+import {GODOT4_DEMO_SOURCE as SOURCE} from './review-vfx-additional-sources.js';
+import {reviewVfxAssetFrom as assetFrom} from './review-vfx-multisource.js';
+const asset=(sourcePath,byteLength,gitBlobSha,reviewLibrary=false,metadata={})=>assetFrom(SOURCE,{sourcePath,byteLength,gitBlobSha,reviewLibrary,...metadata});
+export const REVIEW_VFX_GODOT4_ASSETS=Object.freeze([
+  asset("Demo/effects/samples/Particles.efkefc",2352,"5e609315c4c690f3eff69a4b1cc7d529e839c7f3",true,{infoVersion:1610}),
+  asset("Demo/effects/samples/Texture/Particle02.png",7230,"88b7fb3396201caacc73312e1241c8edd8f92881"),
+  asset("Demo/effects/samples/Plane.efkefc",1563,"441bca8f4aaebc2324d2b19b9a99f40b0daf3868",true,{infoVersion:1710}),
+  asset("Demo/effects/samples/Simple_Turbulence_Particles.efkefc",2822,"e326f7a64472ffeb4a81f2b763bfd0fdbe62278c",true,{infoVersion:1500}),
+  asset("Demo/effects/samples/Texture/Particle04_bokashi_hard.png",14132,"ab451be99afb41821fc3eb3f8688925b74b70986"),
+  asset("Demo/effects/samples/Emissive.efkmat",1218,"97ff9f7e720e3821f906c7225189b6fe498837f5",false,{targetPath:"Demo/effects/samples/Material/Emissive.efkmat"}),
+  asset("Demo/effects/sample-material1/PolarCoords.efkefc",1279,"f65f30fdea12fdcfbeddeaed9656b75f7d4856ab",true,{infoVersion:1500}),
+  asset("Demo/effects/sample-material1/Textures/Check01.png",2352,"93420f24fd699efde289a8e55df916c5ac31d2d5"),
+  asset("Demo/effects/sample-material1/Materials/PolarCoords.efkmat",5145,"132aa98417dfa9ae34972e776a60bc5d7d6e65d1"),
+  asset("Demo/effects/sample-material1/RampMap.efkefc",2615,"3ff3d0d261411ce90c464823e5d0300857d33d49",true,{infoVersion:1500}),
+  asset("Demo/effects/sample-material1/Textures/Flash01.png",24652,"3c08b3fbcec5a6423e2a2a1cb4f8b844c0b05363"),
+  asset("Demo/effects/sample-material1/Textures/RampColor_Purple.png",4752,"dccf167be75193ada33f76291c4d7ad6db4fc9a4"),
+  asset("Demo/effects/sample-material1/Textures/RampAlpha1.png",2547,"f8859bd1b2327ef228aafeaca1f3fc756562ca14"),
+  asset("Demo/effects/sample-material1/Textures/RampColor_Orange.png",4980,"dcba8256562feeba613b6777b0e133d2212873ab"),
+  asset("Demo/effects/sample-material1/Textures/RampColor_Green.png",3782,"4f9fc745bbb3461c416a970cff08eb823c72f9a4"),
+  asset("Demo/effects/sample-material1/Materials/RampColor.efkmat",4790,"faa66d1ab43a96f3d20997b3fad9a13f02363860"),
+  asset("Demo/effects/sample-material1/Unlit.efkefc",1112,"00013de1099693dd29d5d73db3e205468f760e03",true,{infoVersion:1500}),
+  asset("Demo/effects/sample-material1/Materials/Unlit.efkmat",2840,"e8e7dfd5a5fdd187d643928bee65ad5d0b1ab895"),
+  asset("Demo/effects/sample-material3/ef_fire01_projectile.efkefc",8528,"534e84dd6b3378d7a6f6cf7d5b75542a66e4023a",true,{infoVersion:1710}),
+  asset("Demo/effects/sample-material3/Textures/tx_glow02_128.png",7225,"249365885c9a0956d866de9176584282b8fa9b23"),
+  asset("Demo/effects/sample-material3/Textures/tx_fire_flipbook01_1024.png",251883,"c46547d53b5af16cde0c47caf157c03524d95bc9"),
+  asset("Demo/effects/sample-material3/Textures/tx_noise01_256.png",213616,"2b431ee5a7a4468a6cf4a43cac309ffa9eb44f30"),
+  asset("Demo/effects/sample-material3/Materials/mt_dissolve02.efkmat",9813,"d1f21519685b35929e56c2bfe85301c9ee246f3a"),
+  asset("Demo/effects/effect-materials/ef_barrior01.efkefc",1549,"cd4a11d6dbfb95fc33e65847d4177014b5451b04",true,{infoVersion:1710}),
+  asset("Demo/effects/effect-materials/Meshes/ms_barrior02.efkmodel",101784,"594423cd25af1e2b6112af3b75858a94bdf66962"),
+  asset("Demo/effects/effect-materials/Materials/mt_barrior01.efkmat",12935,"48b9512998c14e96a23d9a8ec220d315981d6a6d"),
+]);

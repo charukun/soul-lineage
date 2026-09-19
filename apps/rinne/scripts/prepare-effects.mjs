@@ -106,6 +106,6 @@ export async function prepareRinneEffects({outputRoot=path.join(appRoot,'public'
     }))));
   }
   await writeFile(path.join(outputRoot,'NOTICE.txt'),
-    'Effekseer for WebGL 1.70: MIT (LICENSE-MIT.txt).\\nOriginal review library and curated ResourceData samples: CC0-1.0.\\nEffectMaterials: CC0-1.0 (LICENSE-EFFECT-MATERIALS-CC0.txt).\\nUnmodified originals; review-side placement and model-relative scale are adaptations.\\nSources and exact revisions: apps/rinne/src/rebuild/review-vfx-library-manifest.js\\n');
+    'Effekseer for WebGL 1.70: MIT (LICENSE-MIT.txt).\\nOriginal review library and curated ResourceData samples: CC0-1.0.\\nEffectMaterials: CC0-1.0 (LICENSE-EFFECT-MATERIALS-CC0.txt).\\nEffekseerForGodot4 selected demo effects: MIT (LICENSE-GODOT4-MIT.txt).\\nUnmodified originals; review-side placement and model-relative scale are adaptations.\\nSources and exact revisions: apps/rinne/src/rebuild/review-vfx-library-manifest.js\\n');
   return rows;
 }
