@@ -35,6 +35,34 @@ export function reviewBattleLoopDue({loopEnabled=false,playing=false,finished=fa
   return Boolean(loopEnabled&&playing&&finished&&finishedAt>0&&now-finishedAt>=Math.max(0,delayMs));
 }
 
+const presentationClamp=(value,lo,hi)=>Math.min(hi,Math.max(lo,value));
+const presentationFinite=value=>Number.isFinite(Number(value))?Number(value):0;
+const wrapAngle=value=>Math.atan2(Math.sin(value),Math.cos(value));
+
+/**
+ * Review-only locomotion inspired by Nocturne/Eclipse: simulation remains
+ * authoritative, while the rendered actor eases into contact, commits through
+ * the strike, recoils on damage, and settles back into guard.
+ */
+export function reviewBattlePresentationFrame(actor,target,previous=null,dt=1/60,{hit=false}={}){
+  const step=presentationClamp(presentationFinite(dt)||1/60,1/240,.05);
+  const rawX=presentationFinite(actor?.x)*1.35,rawZ=presentationFinite(actor?.z)*1.15;
+  const targetX=presentationFinite(target?.x)*1.35,targetZ=presentationFinite(target?.z)*1.15;
+  const start=previous||{x:rawX,z:rawZ,yaw:Math.atan2(targetX-rawX,targetZ-rawZ)};
+  const attack=String(actor?.attack||''),progress=presentationClamp(presentationFinite(actor?.progress),0,1);
+  const dx=targetX-rawX,dz=targetZ-rawZ,distance=Math.max(.001,Math.hypot(dx,dz)),nx=dx/distance,nz=dz/distance;
+  const attackPulse=attack?Math.sin(progress*Math.PI):0;
+  const lunge=attackPulse*(actor?.slot==='kyu'?.34:actor?.slot==='ha'?.27:.22);
+  const recoil=hit?.16:0;
+  const desiredX=rawX+nx*(lunge-recoil),desiredZ=rawZ+nz*(lunge-recoil);
+  const positionBlend=1-Math.exp(-step*(attack?18:11));
+  const x=start.x+(desiredX-start.x)*positionBlend,z=start.z+(desiredZ-start.z)*positionBlend;
+  const desiredYaw=Math.atan2(targetX-x,targetZ-z),yawDelta=wrapAngle(desiredYaw-presentationFinite(start.yaw));
+  const yaw=wrapAngle(presentationFinite(start.yaw)+yawDelta*(1-Math.exp(-step*(attack?20:13))));
+  const speed=Math.hypot(x-start.x,z-start.z)/step;
+  return Object.freeze({x,z,yaw,stride:presentationClamp(speed*.22,0,1),attackPulse,lunge,recoil});
+}
+
 export function reviewBattleCameraFrame(core,{follow=true,system='rinne',encounterMode='duel'}={}){
   if(!follow)return FIXED_CAMERA;
   const hero=core?.hero,enemy=core?.enemy;
