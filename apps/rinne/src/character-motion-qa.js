@@ -150,7 +150,7 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
   function liveLoop(now){renderLivePair(now);liveFrameId=requestAnimationFrame(liveLoop);}liveFrameId=requestAnimationFrame(liveLoop);
   for(const id of Object.keys(QA_CAMERAS)){const b=document.createElement('button');b.type='button';b.dataset.qaCamera=id;b.textContent={front:'正面',left:'左',right:'右',back:'背面','front-left':'左前','front-right':'右前','back-left':'左後','back-right':'右後'}[id];b.onclick=()=>{if(active){tour=false;el('qa-tour').checked=false;aim(id);renderLivePair(performance.now(),true);sync();}};el('qa-cameras').append(b);}
   for(const category of QA_CATEGORIES)el('qa-category').add(new Option(category,category));
-  installRegistry();window.addEventListener('character-review-change',()=>{if(!library)installRegistry();});
+  motionLibrary.install();window.addEventListener('character-review-change',()=>{if(!library)motionLibrary.install();});
   el('qa-start').onclick=()=>void start();el('qa-stop').onclick=stop;
   el('qa-play').onclick=()=>{if(!active)return;if(time>=currentDuration())seek(loopRange?.[0]??0);playing=!playing;review.configure({paused:false});sync();};
   el('qa-before').onclick=()=>setCorrected(!corrected);el('qa-time').oninput=e=>seek(Number(e.target.value));
@@ -165,7 +165,7 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
   try{const saved=localStorage.getItem(storeKey);if(saved)report=deserializeQAReport(saved);}catch{notify('保存済みQAレポートを読み込めませんでした。');}
   sync();
   const api={
-    get active(){return active;},get playing(){return playing;},get time(){return time;},get ready(){return !!registry;},get corrected(){return corrected;},get liveCompare(){return liveCompare;},get camera(){return cameraId;},get diagnostics(){return diagnostics;},get sources(){return bank?.sources??[];},get motionRegistry(){return registry;},get selectedMotion(){return selectedIdentity;},
+    get active(){return active;},get playing(){return playing;},get time(){return time;},get ready(){return !!motionLibrary.registry;},get corrected(){return corrected;},get liveCompare(){return liveCompare;},get camera(){return cameraId;},get diagnostics(){return diagnostics;},get sources(){return bank?.sources??[];},get motionRegistry(){return motionLibrary.registry;},get selectedMotion(){return selectedIdentity;},
     get comparison(){return comparison?clone(comparison):null;},get report(){return report?JSON.parse(serializeQAReport(report)):null;},start,stop,seek,aim,renderComparison,
     tick(dt){if(!active)return;cleanupWeapons();const duration=currentDuration();if(playing&&!review.settings.paused){time+=dt*speed;if(loopRange&&time>=loopRange[1])time=loopRange[0]+(time-loopRange[1])%(loopRange[1]-loopRange[0]);else if(time>=duration){time=duration;playing=false;}}
       pose=sample(time);if(tour){const id=Object.keys(QA_CAMERAS)[Math.min(7,Math.floor((time/Math.max(duration,1/60))*8))];if(id!==cameraId)aim(id);}
