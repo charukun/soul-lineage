@@ -68,16 +68,16 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
 
   const [protagonistRuntime,monsterEnemy,monsterFlankA,monsterFlankB]=await Promise.all([
     createProtagonistCharacterPool(renderer),
-    loadReviewMonsterModel('goblin-runt'),
-    loadReviewMonsterModel('horn-brute'),
-    loadReviewMonsterModel('maw-stalker')
+    loadReviewMonsterModel('skeleton-minion'),
+    loadReviewMonsterModel('skeleton-warrior'),
+    loadReviewMonsterModel('skeleton-rogue')
   ]);
   const heroPool=protagonistRuntime.pool;
   const sides={
     hero:{key:'hero',actorId:'review-battle-hero',requested:RINNE_PROTAGONIST_MODEL_ID,actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-hero',0x51f15e)),previous:null,presentation:null,hp:null,hitUntil:0,marker:ring(0xd9b45b)},
-    enemy:{key:'enemy',actorId:'review-battle-enemy',requested:'goblin-runt',actor:monsterEnemy,appearance:null,previous:null,presentation:null,hp:null,hitUntil:0,marker:ring(0x82aeb6)}
+    enemy:{key:'enemy',actorId:'review-battle-enemy',requested:'skeleton-minion',actor:monsterEnemy,appearance:null,previous:null,presentation:null,hp:null,hitUntil:0,marker:ring(0x82aeb6)}
   };
-  let encounterMode='duel',extras=[],cinematicUntil=0,techniquePlayback=null;
+  let encounterMode='duel',extras=[],cinematicUntil=0,techniquePlayback=null,cameraOrbit=0,cameraZoom=1;
   stageRoot.add(sides.hero.marker,sides.enemy.marker);
 
   function install(sideKey,modelId){
@@ -90,8 +90,8 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
       side.actor.root.name='ReviewBattle:hero';side.actor.attachments.name='ReviewBattleAttachments:hero';
       stageRoot.add(side.actor.root,side.actor.attachments);
     }else{
-      if(modelId!=='goblin-runt')throw Error(`Unknown review monster: ${modelId}`);
-      side.requested='goblin-runt';side.actor=monsterEnemy;stageRoot.add(side.actor.root);
+      if(modelId!=='skeleton-minion')throw Error(`Unknown review monster: ${modelId}`);
+      side.requested='skeleton-minion';side.actor=monsterEnemy;stageRoot.add(side.actor.root);
     }
     side.previous=null;side.presentation=null;side.hp=null;
     canvas.dataset[`${sideKey}RequestedModel`]=side.requested;
