@@ -63,23 +63,44 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
       introTime:document.getElementById('title-cinematic-video')?.currentTime||0,
       introReady:document.getElementById('title-cinematic-video')?.readyState||0,
     }));
-    assert.ok(opening.phase==='pending'||opening.phase==='cinematic');
-    assert.ok(opening.media==='fallback'||opening.media==='realtime');
+    assert.equal(opening.phase,'cinematic');
+    assert.equal(opening.media,'video');
     assert.ok(opening.lockup<0.08,'title text must stay hidden during the opening movie');
     assert.ok(opening.actions<0.08,'primary action must not cover the first cinematic beat');
-    assert.ok(opening.phase==='pending'||opening.introTime>=0,'realtime world may still be preparing during the opening beat');
+    assert.ok(opening.introTime>0||opening.introReady>=2,'real intro video must be decoding or playing');
     await page.screenshot({path:resolve(evidenceDir,'01-opening-mobile.png'),fullPage:true});
 
-    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.media==='realtime'&&document.getElementById('title-screen')?.dataset.skip==='ready',{timeout:12000});
-    const realtime=await page.evaluate(()=>({phase:document.getElementById('title-screen')?.dataset.intro,actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),lockup:Number(getComputedStyle(document.querySelector('.title-lockup')).opacity),cameraMode:document.getElementById('game')?.dataset.cameraMode,renderQuality:document.getElementById('game')?.dataset.renderQuality}));
-    assert.equal(realtime.phase,'cinematic');assert.ok(realtime.actions<.08&&realtime.lockup<.12,'realtime cinematic must stay free of title UI');assert.equal(realtime.cameraMode,'title-cinematic');assert.equal(realtime.renderQuality,'title-poc-low');
-    await page.screenshot({path:resolve(evidenceDir,'02-realtime-poc-mobile.png'),fullPage:true});
-    await page.mouse.click(206,457);
-    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro!=='cinematic'&&document.getElementById('game')?.dataset.cameraMode==='title-living-still',{timeout:3000});
-    const skipped=await page.evaluate(()=>({phase:document.getElementById('title-screen')?.dataset.intro,cameraMode:document.getElementById('game')?.dataset.cameraMode,titleHidden:document.getElementById('title-screen')?.hidden}));
-    assert.equal(skipped.titleHidden,false);assert.equal(skipped.cameraMode,'title-living-still');
-    await page.screenshot({path:resolve(evidenceDir,'03-realtime-skip-mobile.png'),fullPage:true});
-    console.log('RINNE_BROWSER_EVIDENCE',JSON.stringify({opening,realtime,skipped,evidenceDir}));
+    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.primaryAction==='ready'&&!document.getElementById('new-life')?.disabled,{timeout:6000});
+    await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.title-actions')).opacity)>.9,{timeout:5000});
+    const early=await page.evaluate(()=>({
+      phase:document.getElementById('title-screen')?.dataset.intro,
+      actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),
+      lockup:Number(getComputedStyle(document.querySelector('.title-lockup')).opacity),
+      videoTime:document.getElementById('title-cinematic-video')?.currentTime||0,
+      continueDisplay:getComputedStyle(document.getElementById('continue-life')).display,
+      settingsDisplay:getComputedStyle(document.getElementById('open-settings')).display,
+    }));
+    assert.equal(early.phase,'cinematic');
+    assert.ok(early.actions>.9,'start must become visible while the cinematic is still playing');
+    assert.ok(early.lockup<.12,'the title mark may keep its authored entrance while start is already available');
+    assert.ok(early.videoTime<8.3,'early start must precede the authored cinematic landing');
+    assert.equal(early.continueDisplay,'none');assert.equal(early.settingsDisplay,'none');
+    await page.screenshot({path:resolve(evidenceDir,'02-early-start-mobile.png'),fullPage:true});
+
+    await page.locator('#new-life').click();
+    await page.waitForFunction(()=>document.getElementById('title-screen')?.hidden===true,{timeout:2500});
+    const accepted=await page.evaluate(()=>({
+      screen:document.getElementById('app')?.dataset.screen,
+      titleHidden:document.getElementById('title-screen')?.hidden,
+      loadingHidden:document.getElementById('loading-card')?.hidden,
+      loadingTitle:document.getElementById('loading-title')?.textContent,
+      runtime:document.getElementById('game-screen')?.dataset.runtime||'',
+    }));
+    assert.equal(accepted.titleHidden,true);
+    assert.ok(accepted.runtime==='active'||accepted.loadingHidden===false,'early start must either enter gameplay or visibly queue the launch');
+    if(accepted.runtime!=='active')assert.equal(accepted.loadingTitle,'旅立ちを準備しています');
+    await page.screenshot({path:resolve(evidenceDir,'03-accepted-mobile.png'),fullPage:true});
+    console.log('RINNE_BROWSER_EVIDENCE',JSON.stringify({opening,early,accepted,evidenceDir}));
     await context.close();
   }catch(error){
     console.error('RINNE browser server log tail:\n'+serverLog);
