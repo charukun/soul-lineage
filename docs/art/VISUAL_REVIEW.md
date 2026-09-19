@@ -46,7 +46,7 @@ Report which file/revision was reviewed. For material/animation/export-sensitive
 
 Character Studio (`apps/rinne/characters.html`, as documented in `docs/characters/CHARACTER_STUDIO.md`) is the production inspection surface for MasterCharacter identities, modular parts, deterministic comparison and workspace continuity. Use it when the task affects that pipeline.
 
-Visual Review Lab is the current develop-backed fast human-review lane. Use it when a reviewable visual preview materially helps the task, but do not rewrite normal implementation/Integration flow around it and do not treat Lab publication itself as proof of visual acceptance.
+Visual Review Lab (`apps/review`) is an independent develop-backed developer app published at `https://soul-lineage-review-dev.c-okamoto.workers.dev/`. It is not a Rinne feature or child application. Use it when a reviewable visual preview materially helps the task, but do not rewrite normal implementation/Integration flow around it and do not treat Lab publication itself as proof of visual acceptance. App-specific probes may open the actual delivered runtime surface of `rinne`, `village`, or `demon`; that routing preserves the real renderer without making the Lab part of that game.
 
 A good review surface should make the real asset easy to inspect rather than decorate it: stable viewport, predictable camera controls, explicit selected actor/variant, deterministic comparison, clear pose/expression controls and no hidden randomization of the subject under review.
 

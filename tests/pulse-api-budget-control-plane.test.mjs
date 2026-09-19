@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 
 const text = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -33,11 +33,11 @@ test('normal develop has no browser repair dispatch or legacy recorder workflow 
   assert.doesNotMatch(deploy, /repair-ticket:|repair_scope|repair_conclusion|repair_head_sha|repair_pr_number|repair_run_url|repair_artifact|browser-repair-ticket\.mjs/);
 });
 
-test('publisher coalescing reads one bounded workflow snapshot', () => {
-  const workflow = text('.github/workflows/dev-publisher-coalescer.yml');
-  assert.equal((workflow.match(/listWorkflowRuns/g) || []).length, 1);
-  assert.match(workflow, /activeStates = new Set/);
-  assert.doesNotMatch(workflow, /for \(const status of/);
+test('legacy shared DEV publisher coalescer is retired in favor of app-scoped Workers publication', () => {
+  assert.equal(existsSync(new URL('../.github/workflows/dev-publisher-coalescer.yml', import.meta.url)), false);
+  const workflow = text('.github/workflows/dev-app-publish.yml');
+  assert.match(workflow, /group: per-app-dev-\$\{\{ matrix\.app \}\}/);
+  assert.match(workflow, /cancel-in-progress: true/);
 });
 
 test('missed-wake watchdog is hourly and dispatches only after a Ready scan', () => {
@@ -73,7 +73,7 @@ test('PULSE exposes the API budget used by the current snapshot', () => {
 test('normal develop delivery uses one authenticated refresh contract without redeploying unchanged PULSE', () => {
   const opsWorkflow = text('.github/workflows/ops-board.yml');
   const refreshWorkflow = text('.github/workflows/pulse-refresh.yml');
-  const deployWorkflow = text('.github/workflows/deploy.yml');
+  const devWorkflow = text('.github/workflows/dev-app-publish.yml');
   const prime = text('ops-board/prime.mjs');
 
   assert.doesNotMatch(opsWorkflow, /^  push:/m);
@@ -91,9 +91,9 @@ test('normal develop delivery uses one authenticated refresh contract without re
   assert.match(prime, /refreshPulseState/);
   assert.doesNotMatch(prime, /fetch\(new URL\('api\/refresh'/);
 
-  assert.match(deployWorkflow, /pulse-result-refresh:/);
-  assert.match(deployWorkflow, /uses: \.\/\.github\/workflows\/pulse-refresh\.yml/);
-  assert.match(deployWorkflow, /fail_on_error: false/);
+  assert.match(devWorkflow, /name: Refresh PULSE/);
+  assert.match(devWorkflow, /uses: \.\/\.github\/workflows\/ops-board\.yml/);
+  assert.doesNotMatch(devWorkflow, /api\/refresh/);
 });
 
 test('Actions workflows cannot hand-roll the PULSE refresh HTTP protocol again', () => {
