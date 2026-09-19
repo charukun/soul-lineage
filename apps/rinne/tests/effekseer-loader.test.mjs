@@ -49,7 +49,7 @@ function harness({mode='normal',deferResource=false}={}){
   };
   const renderer={getContext:()=>({}),resetState(){calls.reset++;}};
   const controller=new AbortController();
-  const start=()=>createEffekseerBackend({renderer,document:doc,baseUrl,signal:controller.signal,budget,fetchImpl,sdkLoader:async()=>sdk});
+  const start=(options={})=>createEffekseerBackend({renderer,document:doc,baseUrl,signal:controller.signal,budget,fetchImpl,sdkLoader:async()=>sdk,...options});
   return {start,calls,controller,doc,urls,renderer,context,sdk};
 }
 test('asset URL respects app mount path and rejects cross-origin base',()=>{
@@ -95,4 +95,15 @@ test('failed script is cached once and timers are cleaned up',async()=>{
 test('script loader rejects an existing foreign runtime without replacing it',async()=>{
   const existing={},doc={defaultView:{effekseer:existing},createElement:()=>({remove(){}}),head:{append(){throw Error('must not append');}}};
   await assert.rejects(loadEffekseer(doc,baseUrl),/already owns/);assert.equal(doc.defaultView.effekseer,existing);
+});
+
+
+test('streaming backend starts with a lightweight fallback and upgrades after background load',async()=>{
+  const h=harness(),b=await h.start({streaming:true,fallbackEffects:['slash'],maxResident:2,retentionMs:0});
+  assert.equal(h.calls.requests.length,2,'only fallback source and dependency load at boot');
+  const cue={effect:'impact',kind:'contact',position:{x:2,y:1,z:4},rotation:{x:0,y:1,z:0},scale:1,color:[255,255,255,255]};
+  b.play(cue);assert.equal(h.calls.played[0].effect.scale,AUTHORED_EFFECTS.slash.scale,'first use falls back while impact streams');
+  await flush();await flush();
+  b.play(cue);assert.equal(h.calls.played[1].effect.scale,AUTHORED_EFFECTS.impact.scale,'next use upgrades without swapping a live handle');
+  const snap=b.snapshot();assert.ok(snap.residentEffects.includes('impact'));assert.equal(snap.fallbackPlays,1);b.dispose();await flush();
 });

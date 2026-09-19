@@ -90,63 +90,127 @@ function dispatcherFor(sdk){
  * before releasing native memory; an SDK callback cannot revive a torn-down view.
  */
 export async function createEffekseerBackend({renderer,document,baseUrl,signal,
-  fetchImpl=globalThis.fetch,sdkLoader=loadEffekseer,budget,effectDefinitions=AUTHORED_EFFECTS}){
+  fetchImpl=globalThis.fetch,sdkLoader=loadEffekseer,budget,effectDefinitions=AUTHORED_EFFECTS,
+  streaming=false,fallbackEffects=['slash','impact'],maxResident=24,retentionMs=60_000}){
   const sdk=await sdkLoader(document,baseUrl,{fetchImpl});
   if(signal?.aborted)throw Error('VFX view disposed');
   const abort=new AbortController(),cancel=()=>abort.abort();signal?.addEventListener('abort',cancel,{once:true});
-  let context,initialized=false,disposed=false,released=false,pending=0,failed;
-  const effects=new Map(),cache=new Map(),id=String(++nextOwner),dispatcher=dispatcherFor(sdk);
+  let context,initialized=false,disposed=false,released=false,pending=0,failed,pumping=false,lastSweep=0,fallbackPlays=0;
+  const effects=new Map(),loads=new Map(),cache=new Map(),queue=new Map(),lastUsed=new Map(),demanded=new Set();
+  const id=String(++nextOwner),dispatcher=dispatcherFor(sdk);
   const allowed=new Map(EFFECT_ASSETS.map(row=>[new URL(row.path,baseUrl).href,row]));
+  const keys=Object.keys(effectDefinitions||{});
+  const fallbacks=[...new Set(fallbackEffects)].filter(key=>Object.hasOwn(effectDefinitions,key));
+  if(!fallbacks.length&&keys.length)fallbacks.push(keys[0]);
+  const residentLimit=Math.max(fallbacks.length,Number.isFinite(maxResident)?Math.max(1,Math.floor(maxResident)):24);
+  const retention=Number.isFinite(retentionMs)?Math.max(0,retentionMs):60_000;
+  const nowMs=()=>globalThis.performance?.now?.()??Date.now();
   let rejectReady;
   const owner={document,fetchImpl,abort,allowed,cache,get disposed(){return disposed;},
     get pending(){return pending;},set pending(value){pending=value;},
     fail(error){if(disposed)return;failed=error;close();rejectReady?.(error);},reap};
-  const loaded=[];
+  function releaseEffect(key){
+    const effect=effects.get(key);if(!effect)return false;
+    if(effect?.isLoaded){try{context.releaseEffect(effect);}catch{}}
+    effects.delete(key);lastUsed.delete(key);return true;
+  }
+  function evict(){
+    if(!streaming||effects.size<=residentLimit||disposed)return;
+    const protectedKeys=new Set([...fallbacks,...demanded]),now=nowMs();
+    const candidates=[...effects.keys()].filter(key=>!protectedKeys.has(key)&&!loads.has(key)&&now-(lastUsed.get(key)||0)>=retention)
+      .sort((a,b)=>(lastUsed.get(a)||0)-(lastUsed.get(b)||0));
+    let evicted=false;
+    for(const key of candidates){if(effects.size<=residentLimit)break;evicted=releaseEffect(key)||evicted;}
+    if(evicted&&pending===0&&loads.size===0)cache.clear();
+  }
   function reap(){
     if(!disposed||pending!==0||released||!context)return;
     released=true;dispatcher.owners.delete(id);
-    // SDK initialization can fail after allocating partial context resources.
-    if(initialized)for(const effect of effects.values())if(effect?.isLoaded){try{context.releaseEffect(effect);}catch{}}
-    try{sdk.releaseContext(context);}catch{/* Partial initialization may have no native context. */}
+    if(initialized)for(const key of [...effects.keys()])releaseEffect(key);
+    try{sdk.releaseContext(context);}catch{}
     cache.clear();signal?.removeEventListener('abort',cancel);renderer.resetState();
   }
-  function close(){if(disposed)return;disposed=true;abort.abort();if(initialized){try{context.stopAll();}catch{}}queueMicrotask(reap);}
+  function close(){if(disposed)return;disposed=true;abort.abort();queue.clear();if(initialized){try{context.stopAll();}catch{}}queueMicrotask(reap);}
   const timeout=setTimeout(()=>owner.fail(Error('VFX resource loading timed out')),15_000);
-  const onAbort=()=>{owner.fail(Error('VFX view disposed'));};signal?.addEventListener('abort',onAbort,{once:true});
+  const onAbort=()=>owner.fail(Error('VFX view disposed'));signal?.addEventListener('abort',onAbort,{once:true});
   try{
-    const originals=await Promise.all(Object.entries(effectDefinitions).map(async([key,asset])=>{
-      const url=new URL(asset.path,baseUrl),row=allowed.get(url.href);
-      if(!row)throw Error(`Unpinned authored VFX: ${asset.path}`);
-      return [key,asset,await fetchBytes(url,abort.signal,fetchImpl,row.byteLength)];
-    }));
-    if(disposed||abort.signal.aborted)throw failed||Error('VFX view disposed');
     context=sdk.createContext();context.init(renderer.getContext(),{instanceMaxCount:budget.instanceMaxCount,squareMaxCount:budget.squareMaxCount});
     initialized=true;context.setRestorationOfStatesFlag(true);context.setResourceLoader(dispatcher.load);dispatcher.owners.set(id,owner);
     let failLoading;
-    const loadingFailure=new Promise((_,reject)=>{failLoading=reject;});rejectReady=failLoading;
-    for(const [key,asset,bytes] of originals){
-      loaded.push(new Promise((resolve,reject)=>{
-        const effect=context.loadEffect(bytes,asset.scale,resolve,reason=>reject(Error(String(reason))),relative=>{
-          const url=new URL(relative,new URL(asset.path,baseUrl));url.searchParams.set(OWNER,id);return url.href;
+    const loadingFailure=new Promise((_,reject)=>{failLoading=reject;});loadingFailure.catch(()=>{});rejectReady=failLoading;
+    const loadOne=key=>{
+      if(effects.has(key))return Promise.resolve(effects.get(key));
+      if(loads.has(key))return loads.get(key);
+      const asset=effectDefinitions[key];
+      if(!asset)return Promise.reject(Error('Unknown authored VFX: '+key));
+      const promise=(async()=>{
+        const url=new URL(asset.path,baseUrl),row=allowed.get(url.href);
+        if(!row)throw Error('Unpinned authored VFX: '+asset.path);
+        const bytes=await fetchBytes(url,abort.signal,fetchImpl,row.byteLength);
+        if(disposed||abort.signal.aborted)throw failed||Error('VFX view disposed');
+        let effect;
+        const nativeReady=new Promise((resolve,reject)=>{
+          effect=context.loadEffect(bytes,asset.scale,()=>resolve(effect),reason=>reject(Error(String(reason))),relative=>{
+            const dependency=new URL(relative,new URL(asset.path,baseUrl));dependency.searchParams.set(OWNER,id);return dependency.href;
+          });
         });
-        effects.set(key,effect);
-      }));
+        await Promise.race([nativeReady,loadingFailure]);
+        if(disposed)throw failed||Error('VFX view disposed');
+        effects.set(key,effect);lastUsed.set(key,nowMs());return effect;
+      })().finally(()=>loads.delete(key));
+      loads.set(key,promise);return promise;
+    };
+    async function pump(){
+      if(pumping||disposed)return;pumping=true;
+      try{
+        while(queue.size&&!disposed){
+          const next=[...queue].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0];
+          queue.delete(next[0]);await loadOne(next[0]);evict();
+        }
+      }catch(error){owner.fail(error);}
+      finally{pumping=false;}
     }
-    await Promise.race([Promise.all(loaded),loadingFailure]);
+    const requestEffect=(key,priority=0)=>{
+      if(disposed||!streaming||effects.has(key)||loads.has(key)||!Object.hasOwn(effectDefinitions,key))return false;
+      queue.set(key,Math.max(queue.get(key)||-Infinity,Number(priority)||0));void pump();return true;
+    };
+    const initial=streaming?fallbacks:keys;
+    await Promise.race([Promise.all(initial.map(loadOne)),loadingFailure]);
     if(disposed)throw failed||Error('VFX view disposed');
     clearTimeout(timeout);renderer.resetState();
     return {
+      setDemand(rows=[]){
+        demanded.clear();
+        for(const row of Array.isArray(rows)?rows:[]){
+          const key=typeof row==='string'?row:row?.effect,priority=typeof row==='string'?0:row?.priority;
+          if(typeof key!=='string'||!Object.hasOwn(effectDefinitions,key))continue;
+          demanded.add(key);requestEffect(key,priority);
+        }
+        evict();
+      },
       play(cue){
-        if(disposed)return null;const handle=context.play(effects.get(cue.effect),cue.position.x,cue.position.y,cue.position.z);
+        if(disposed)return null;
+        let key=cue.effect,effect=effects.get(key);
+        if(!effect&&streaming)requestEffect(key,120);
+        if(!effect&&streaming){
+          key=(String(cue.kind||'').includes('trail')&&effects.has('slash'))?'slash':effects.has('impact')?'impact':fallbacks.find(candidate=>effects.has(candidate));
+          effect=key?effects.get(key):null;if(effect)fallbackPlays++;
+        }
+        if(!effect)return null;
+        lastUsed.set(key,nowMs());
+        const handle=context.play(effect,cue.position.x,cue.position.y,cue.position.z);
         if(!handle)return null;
         handle.setRotation(cue.rotation.x,cue.rotation.y,cue.rotation.z);handle.setScale(cue.scale,cue.scale,cue.scale);
         handle.setAllColor(...cue.color);return handle;
       },
-      update(dt){if(!disposed&&Number.isFinite(dt)&&dt>0)context.update(Math.min(dt,.05)*60);},
+      update(dt){
+        if(!disposed&&Number.isFinite(dt)&&dt>0)context.update(Math.min(dt,.05)*60);
+        if(streaming){const now=nowMs();if(now-lastSweep>=5000){lastSweep=now;evict();}}
+      },
       draw(camera){if(disposed)return;context.setProjectionMatrix(camera.projectionMatrix.elements);context.setCameraMatrix(camera.matrixWorldInverse.elements);context.draw();},
       clear(){if(!disposed)context.stopAll();},
       dispose(){signal?.removeEventListener('abort',onAbort);close();},
-      snapshot:()=>({disposed,pendingResources:pending}),
+      snapshot:()=>({disposed,pendingResources:pending,streaming,residentEffects:[...effects.keys()],loadingEffects:[...loads.keys()],queuedEffects:[...queue.keys()],fallbackPlays}),
     };
   }catch(error){close();throw error;}
   finally{clearTimeout(timeout);if(disposed){signal?.removeEventListener('abort',onAbort);signal?.removeEventListener('abort',cancel);}}
