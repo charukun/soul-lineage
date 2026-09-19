@@ -80,6 +80,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   ground.rotation.x=-Math.PI/2;stageRoot.add(ground);
   const contact=new THREE.Mesh(new THREE.RingGeometry(.7,.73,64),new THREE.MeshBasicMaterial({color:0x53615c,transparent:true,opacity:.38,side:THREE.DoubleSide}));
   contact.rotation.x=-Math.PI/2;contact.position.y=.012;stageRoot.add(contact);
+  const aura=new THREE.Group();aura.visible=false;const auraMaterial=new THREE.MeshBasicMaterial({color:0x73bce5,transparent:true,opacity:.46,depthWrite:false,side:THREE.DoubleSide});for(const radius of [.62,.82]){const ringMesh=new THREE.Mesh(new THREE.RingGeometry(radius,radius+.025,48),auraMaterial.clone());ringMesh.rotation.x=-Math.PI/2;aura.add(ringMesh);}const auraLight=new THREE.PointLight(0x73bce5,0,3.4);auraLight.position.y=.85;aura.add(auraLight);stageRoot.add(aura);
 
   const [runtime,protagonistRuntime,equipmentAssets]=await Promise.all([
     createKaykitCharacterPools(renderer,{onProgress:snapshot=>{
@@ -137,6 +138,14 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     encounterMode=next;rebuildExtras();canvas.dataset.encounterMode=encounterMode;
   }
 
+  function setHeroWeapon(weapon='sword'){
+    const actor=sides.hero.actor;if(!actor)return;actor.detachWeapon?.('reviewWeapon');if(weapon==='fist')return;
+    const group=new THREE.Group(),metal=new THREE.MeshStandardMaterial({color:0xb7bec4,roughness:.3,metalness:.78}),wood=new THREE.MeshStandardMaterial({color:0x5b3d2b,roughness:.78});
+    const length={dagger:.48,sword:.82,spear:1.55,great:1.18,axe:.92,staff:1.45}[weapon]||.82;
+    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(weapon==='great'?.045:.025,weapon==='great'?.055:.03,length,8),weapon==='staff'?wood:metal);shaft.rotation.z=Math.PI/2;group.add(shaft);
+    if(weapon==='axe'){const head=new THREE.Mesh(new THREE.BoxGeometry(.16,.42,.08),metal);head.position.x=length*.42;group.add(head);}else if(weapon==='spear'){const tip=new THREE.Mesh(new THREE.ConeGeometry(.07,.28,8),metal);tip.rotation.z=-Math.PI/2;tip.position.x=length*.58;group.add(tip);}
+    actor.attachWeapon('reviewWeapon',group,{bone:'rightHand',position:[0,.02,0],quaternion:[0,0,0,1],scale:1});
+  }
   function animateSide(sideKey,state,target,time,dt){
     const side=sides[sideKey],actor=side.actor;if(!actor||!state)return;
     const x=Number(state.x)||0,z=Number(state.z)||0;
@@ -192,6 +201,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     setEncounterMode(requestedMode);resize();const now=performance.now()/1000;
     if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);animateExtras(core,now);}
     updateCamera(core,dt,followCamera,cameraSystem);
+    const cinematic=performance.now()/1000<cinematicUntil;aura.visible=cinematic;if(cinematic&&sides.hero.actor){aura.position.copy(sides.hero.actor.root.position);aura.position.y=.025;const pulse=.92+Math.sin(performance.now()*.018)*.08;aura.scale.setScalar(pulse);auraLight.intensity=1.5+Math.sin(performance.now()*.022)*.55;}
     const phaseHud=canvas.closest('.stage')?.querySelector('#battle-phase'),heroRoot=sides.hero.actor?.root;
     if(phaseHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=1.82;projected.project(camera);phaseHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');phaseHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');phaseHud.style.setProperty('bottom','auto','important');}
     const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
@@ -209,6 +219,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     models:REVIEW_BATTLE_MODELS,
     setModel(side,modelId){if(side==='hero')return;install(side,modelId);},
     setEncounterMode,
+    setWeapon(weapon){setHeroWeapon(weapon);},
     triggerInspiration({steps=[],phase='ha',duration=1.35}={}){const now=performance.now()/1000;cinematicUntil=now+Math.max(.8,duration);techniquePlayback={steps,phase,duration:Math.max(.8,duration),until:now+Math.max(.8,duration)};canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');setTimeout(()=>canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic'),Math.max(800,duration*1000));},
     resetRound(){for(const side of Object.values(sides)){side.previous=null;side.presentation=null;side.hp=null;side.hitUntil=0;}},
     sync,
