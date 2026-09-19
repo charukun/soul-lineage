@@ -5,7 +5,6 @@ const GROUPS = Object.freeze([
   ['part', '部位', '#slot-tabs [data-slot]', '部'],
   ['variant', 'パーツ', '#part-options [data-modular-value]', '形'],
   ['individual', '個体', '#individuals [data-individual]', '個'],
-  ['camera', '向き', '.stage-actions [data-camera="front"],.stage-actions [data-camera="side"],.stage-actions [data-camera="back"],.stage-actions [data-camera="face"],.stage-actions #frame-model', '視'],
   ['hair', '髪色', '#color-options [data-gene="hair"]', '髪'],
   ['eyes', '瞳', '#color-options [data-gene="eyes"]', '瞳'],
   ['skin', '肌', '#color-options [data-gene="skin"]', '肌'],
@@ -20,18 +19,18 @@ function sourceLabel(source) {
 }
 
 // The original controls remain the only writers of workshop state.
-export function readCharacterReviewGroups(doc, ready, camera = 'front') {
+export function readCharacterReviewGroups(doc, ready) {
   return GROUPS.map(([id, label, selector, glyph]) => {
     const options = [...doc.querySelectorAll(selector)].map((source, index) => {
-      const key = id === 'camera' ? source.dataset.camera || 'overview' : String(index);
+      const key = String(index);
       return { source, key, label: sourceLabel(source),
         fullLabel: source.getAttribute('aria-label') || sourceLabel(source),
-        selected: id === 'camera' ? key === camera : source.getAttribute('aria-pressed') === 'true',
+        selected: source.getAttribute('aria-pressed') === 'true',
         disabled: !ready || source.matches(':disabled'),
         swatch: source.querySelector('i')?.style.backgroundColor || '' };
     });
     return { id, label, glyph, options,
-      value: options.find(option => option.selected)?.label || (id === 'camera' && camera === 'free' ? '自由' : ready ? 'カスタム' : '読込中') };
+      value: options.find(option => option.selected)?.label || (ready ? 'カスタム' : '読込中') };
   });
 }
 
@@ -66,6 +65,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const state = { active: 'model', camera: 'front', framed: false, autoFit: true, queued: false, signature: '', groups: [] };
   const slotNodes = new Map();
   const review = () => win.characterStudio?.review;
+  const cameraButtons = [...doc.querySelectorAll('.stage-actions [data-camera="front"],.stage-actions [data-camera="side"],.stage-actions [data-camera="back"],.stage-actions [data-camera="face"]')];
   const fit = () => { if (review()?.ready && state.autoFit) review().aim(state.camera === 'free' ? 'front' : state.camera); };
   const schedule = () => {
     if (state.queued) return;
@@ -97,11 +97,10 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     // Re-check the live source; a load/rebuild may have started since the last paint.
     if (!review()?.ready || !option.source.isConnected || option.source.matches(':disabled')) return;
     option.source.click();
-    if (group.id === 'camera') { state.camera = option.key; state.autoFit = true; }
     if (['model','individual','age'].includes(group.id)) { state.camera = 'front'; state.autoFit = true; }
     if (group.id === 'part' && state.camera === 'free') { state.camera = 'front'; state.autoFit = true; }
     // The legacy hair/face category handler zooms in. Keep the explicitly chosen camera instead.
-    if (['camera','model','individual','age','part'].includes(group.id)) win.requestAnimationFrame(fit);
+    if (['model','individual','age','part'].includes(group.id)) win.requestAnimationFrame(fit);
     schedule();
   }
   function renderOptions(group) {
@@ -127,14 +126,14 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     buttons.forEach((button, index) => { button.tabIndex = index === next ? 0 : -1; }); buttons[next]?.focus();
   });
   function sync() {
-    const ready = Boolean(review()?.ready); state.groups = readCharacterReviewGroups(doc, ready, state.camera);
+    const ready = Boolean(review()?.ready); state.groups = readCharacterReviewGroups(doc, ready);
     for (const group of state.groups) {
       const { button, value } = slotNodes.get(group.id); text(value, group.value);
       attr(button, 'aria-selected', group.id === state.active); button.tabIndex = group.id === state.active ? 0 : -1;
       attr(button, 'aria-label', `${group.label}：${group.value}。候補を表示`); button.title = `${group.label}：${group.value}`;
     }
     const group = state.groups.find(item => item.id === state.active);
-    text(heading, `${group.label} · ${group.value}　${group.options.length}候補`);
+    text(heading, `候補一覧 · ${group.label} · ${group.value} · ${group.options.length}件`);
     attr(panel, 'aria-labelledby', `character-slot-${group.id}`); attr(panel, 'aria-busy', !ready);
     const signature = JSON.stringify([group.id, group.options.map(({ key, label, fullLabel, selected, disabled, swatch }) => [key,label,fullLabel,selected,disabled,swatch])]);
     const sourceChanged = group.options.some((option, index) => option.source !== state.sources?.[index]);
@@ -146,6 +145,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
       text(button, id === 'original-preview' ? comparing ? '編集に戻す' : '元と比較' : id === 'random-one' ? '組み替え' : source.textContent);
       if (id === 'original-preview') attr(button, 'aria-pressed', comparing);
     }
+    for (const button of cameraButtons) attr(button, 'aria-pressed', button.dataset.camera === state.camera);
     if (!ready) state.framed = false;
     if (ready && !state.framed) { state.framed = true; win.requestAnimationFrame(fit); }
   }
@@ -157,6 +157,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const canvas = doc.getElementById('stage');
   const freeCamera = () => { state.autoFit = false; state.camera = 'free'; schedule(); };
   canvas?.addEventListener('pointerdown', freeCamera); canvas?.addEventListener('wheel', freeCamera, { passive: true });
+  for (const button of cameraButtons) button.addEventListener('click', () => { state.camera = button.dataset.camera; state.autoFit = true; schedule(); });
   doc.getElementById('frame-model')?.addEventListener('click', () => { state.camera = 'overview'; state.autoFit = true; schedule(); });
   let resizeObserver;
   if (canvas && win.ResizeObserver) { resizeObserver = new win.ResizeObserver(() => win.requestAnimationFrame(fit)); resizeObserver.observe(canvas); }

@@ -19,8 +19,14 @@ test('Visual Review launcher is only five direct destinations',async()=>{
 });
 
 test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
-  const [html,js]=await Promise.all([read('review-motion.html'),read('src/review-motion.js')]);
+  const [html,js,css]=await Promise.all([read('review-motion.html'),read('src/review-motion.js'),read('src/review-motion.css')]);
   assert.match(html,/id="motion-stage"/);assert.match(html,/id="motion-grid"/);assert.match(html,/id="motion-time"/);
+  assert.match(html,/class="motion-current-label">選択中の動き/);
+  assert.match(html,/class="motion-grid-title">候補一覧/);
+  assert.match(css,/\.motion-stage-slot\{[^}]*box-shadow:inset 3px 0/);
+  assert.match(css,/\.motion-grid button\{[^}]*background:#101614/);
+  assert.match(css,/\.motion-grid button\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
+  assert.match(css,/\.motion-camera-strip button\{[^}]*border-radius:999px/);
   assert.match(js,/new THREE\.AnimationMixer/);assert.match(js,/KAYKIT_MODELS/);assert.match(js,/buildMotionReviewCatalog/);
   assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='kaykit-embedded'/);
 });
@@ -35,6 +41,8 @@ test('equipment review uses the same quiet preview and compact camera hierarchy'
   assert.match(js,/controls\.addEventListener\('start'/);
   assert.match(css,/grid-template-rows:42px minmax\(0,58fr\) minmax\(0,42fr\)/);
   assert.match(css,/\.asset-camera-strip button\{min-height:26px/);
+  assert.match(css,/\.asset-camera-strip button\{[^}]*border-radius:999px/);
+  assert.match(css,/\.model-options button\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
 });
 
 test('Battle is a dedicated page using real RaidHost and runtime models',async()=>{
