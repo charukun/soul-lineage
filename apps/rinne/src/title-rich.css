@@ -249,3 +249,14 @@
 .title-screen[data-media="realtime"][data-cinematic-beat="rebirth"]::after{opacity:.78;background:radial-gradient(circle at 50% 52%,rgba(255,249,220,.88),rgba(255,218,143,.22) 24%,rgba(10,18,31,.35) 62%,transparent 82%);animation:title-rebirth-pulse 2.2s ease-in-out both}
 .title-screen[data-media="realtime"][data-cinematic-beat="legacy"]::after{opacity:.18}
 @keyframes title-rebirth-pulse{0%{filter:brightness(.65);transform:scale(.94)}45%{filter:brightness(1.7);transform:scale(1.04)}100%{filter:brightness(1);transform:scale(1)}}
+
+/* Direct WebGL title path: do not copy the WebGL framebuffer into a 2D canvas.
+   The live game canvas remains full-size behind the fixed title overlay. */
+.title-screen[data-media="realtime"]{background:transparent!important}
+.title-screen[data-media="realtime"] .title-world{background:transparent!important}
+.title-screen[data-media="realtime"] .title-live-canvas{display:none!important}
+.title-screen[data-media="realtime"] .title-world-base{opacity:0!important}
+.title-screen[data-media="realtime"] .title-cinematic-media{display:none!important}
+.title-screen[data-media="realtime"]::before{background:
+  linear-gradient(180deg,rgba(5,16,26,.05),transparent 46%,rgba(7,17,22,.10)),
+  radial-gradient(ellipse at 50% 70%,transparent 38%,rgba(5,14,20,.10) 100%)}
