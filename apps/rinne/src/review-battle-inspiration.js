@@ -27,7 +27,8 @@ const step=kind=>Object.freeze({kind,footwork:'stay',charge:'none'});
 const techniqueId=(weapon,phase,kinds)=>`review.${weapon}.${phase}.${kinds.join('-')}`;
 const techniqueName=(arts,phase,kinds)=>`${arts.tag}・${PHASE_LABELS[phase]} ${kinds.map(kind=>MOTION_LABELS[kind]||kind).join('・')}`;
 
-// Review-only combinations expand canonical weapon arts without changing gameplay learning or saves.\nfunction generatedSequences(arts,phase){
+// Review-only combinations expand canonical weapon arts without changing gameplay learning or saves.
+function generatedSequences(arts,phase){
   if(phase==='jo'){
     const open=[...new Set(arts.open)];
     return uniqueRows([
