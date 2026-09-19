@@ -17,7 +17,8 @@ const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
 const phasePanel=q('battle-phase'),phaseMeta=q('phase-meta'),phaseHistory=q('phase-history'),soundButton=q('battle-sound'),historyNode=q('battle-inspiration-history'),historyList=q('battle-inspiration-history-list'),historyOpen=q('battle-history-open'),historyClose=q('battle-history-close'),historyCount=q('battle-history-count');
 const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
-let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),signTimer=0;
+let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),signTimer=0,bulbTimer=0;
+const INSPIRATION_BULB_HOLD_MS=550;
 const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
 // Shared with Demon and Rinne gameplay: one swipe parser owns drag, deadzone and terminal flick semantics after develop reconciliation.
 const reviewSwipe=new SwipeInput();
@@ -26,8 +27,8 @@ const phaseLabel=phase=>({jo:'序',ha:'破',kyu:'急'})[phase]||'破';
 const runtimeWeapon=()=>tidebreakWeaponFor(selectedWeapon);
 function renderLearnedSlots(){for(const phase of ['jo','ha','kyu']){const node=document.querySelector(`[data-loadout-phase="${phase}"]`);if(node)node.textContent=learnedSlots[phase]?.name||'基本技';}}
 function hideInspirationBanner(){const banner=q('battle-inspiration');if(!banner)return;banner.hidden=true;delete banner.dataset.burst;delete banner.dataset.sequence;}
-function hideInspirationBulb(){const bulb=q('battle-lightbulb');if(bulb)bulb.hidden=true;}
-function showInspirationBulb(){const bulb=q('battle-lightbulb');if(!bulb)return;bulb.hidden=true;void bulb.offsetWidth;bulb.hidden=false;}
+function hideInspirationBulb(){clearTimeout(bulbTimer);bulbTimer=0;const bulb=q('battle-lightbulb');if(bulb)bulb.hidden=true;}
+function showInspirationBulb(){const bulb=q('battle-lightbulb');if(!bulb)return;clearTimeout(bulbTimer);bulb.hidden=true;void bulb.offsetWidth;bulb.hidden=false;bulbTimer=setTimeout(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS);}
 function hideReviewSign(){const sign=q('battle-sign');if(sign)sign.hidden=true;clearTimeout(signTimer);}
 function showReviewSign(technique){
   const sign=q('battle-sign'),row=CAUSAL_ANSWERS.find(item=>item.id===technique?.id);if(!sign)return;
@@ -38,7 +39,7 @@ function handleInspirationCue(cue,payload={}){
   const banner=q('battle-inspiration');
   if(cue==='spark'){inspirationSequenceActive=true;hideInspirationBanner();hideReviewSign();showInspirationBulb();battleSfx.draw();return;}
   if(cue==='camera'){battleSfx.draw();return;}
-  if(cue==='spacing'){hideInspirationBulb();showReviewSign(payload);battleSfx.draw();return;}
+  if(cue==='spacing'){showReviewSign(payload);battleSfx.draw();return;}
   if(cue==='stagger'){battleSfx.slash();return;}
   if(cue==='reveal'&&banner){q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent=`${phaseLabel(payload.phase)} · ${selectedWeapon}の型から閃いた`;banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.draw();setTimeout(()=>battleSfx.slash(),90);return;}
   if(cue==='execute'){battleSfx.slash();setTimeout(()=>battleSfx.slash(),130);setTimeout(()=>battleSfx.slash(),300);return;}
