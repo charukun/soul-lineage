@@ -2,7 +2,7 @@ import {RaidHost} from '@soul/network/raid-host';
 import {CAUSAL_ANSWERS,INSPIRATION_QUESTIONS} from '@soul/game-data';
 import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stage.js';
 import {reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
-import {REVIEW_INSPIRATION_TIMELINE,pickReviewInspiration} from './review-battle-inspiration.js';
+import {REVIEW_INSPIRATION_TIMELINE,generatedReviewInspirationCandidates,pickGeneratedReviewInspiration,pickReviewInspiration} from './review-battle-inspiration.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import '@soul/shared-ui/combat-sequence.css';
 import {createCombatSfx} from '@soul/audio/combat-sfx';
@@ -16,7 +16,7 @@ const phasePanel=q('battle-phase'),phaseMeta=q('phase-meta'),phaseHistory=q('pha
 const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
 let host=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''},signTimer=0;
-const insightHistory=[],learnedTechniqueIds=new Set(),learnedSlots={jo:null,ha:null,kyu:null};
+const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
 let insightHistoryOpen=false;
 const manualMove={x:0,y:0,amount:0,pointerId:null,startX:0,startY:0};
 const phaseLabel=phase=>({jo:'序',ha:'破',kyu:'急'})[phase]||'破';
@@ -37,8 +37,8 @@ function renderLearnedSlots(){for(const phase of ['jo','ha','kyu']){const node=d
 function hideInspirationBanner(){const banner=q('battle-inspiration');if(!banner)return;banner.hidden=true;delete banner.dataset.burst;delete banner.dataset.sequence;}
 function hideReviewSign(){const sign=q('battle-sign');if(sign)sign.hidden=true;clearTimeout(signTimer);}
 function showReviewSign(technique){
-  const sign=q('battle-sign'),row=CAUSAL_ANSWERS.find(item=>item.id===technique?.id);if(!sign||!row)return;
-  const question=row.questions.map(id=>INSPIRATION_QUESTIONS[id]).find(Boolean)||row.mechanic||'この間なら、届くかもしれない。';
+  const sign=q('battle-sign'),row=CAUSAL_ANSWERS.find(item=>item.id===technique?.id);if(!sign)return;
+  const question=technique?.sign||row?.questions?.map(id=>INSPIRATION_QUESTIONS[id]).find(Boolean)||row?.mechanic||'この間なら、届くかもしれない。';
   clearTimeout(signTimer);sign.hidden=true;sign.textContent=question;void sign.offsetWidth;sign.hidden=false;sign.dataset.signState='兆し';signTimer=setTimeout(()=>{sign.hidden=true;},2350);
 }
 function handleInspirationCue(cue,payload={}){
@@ -81,7 +81,11 @@ function renderPhase(core){
 function syncBattleAudio(core){for(const side of ['hero','enemy']){const next=String(core?.[side]?.attack||'');if(next&&next!==lastAudioAttacks[side])battleSfx.slash();lastAudioAttacks[side]=next;}}
 
 function weightedTechnique(phase){
-  return pickReviewInspiration(CAUSAL_ANSWERS,{weapon:selectedWeapon,phase,learnedIds:[...learnedTechniqueIds],encounterMode},Math.random);
+  const key=`${selectedWeapon}:${phase}`,seen=reviewTechniqueSeen.get(key)||new Set();reviewTechniqueSeen.set(key,seen);
+  let technique=pickGeneratedReviewInspiration({weapon:selectedWeapon,phase,seenIds:[...seen],encounterMode},Math.random);
+  if(!technique&&generatedReviewInspirationCandidates({weapon:selectedWeapon,phase,encounterMode}).length){seen.clear();technique=pickGeneratedReviewInspiration({weapon:selectedWeapon,phase,encounterMode},Math.random);}
+  if(!technique){technique=pickReviewInspiration(CAUSAL_ANSWERS,{weapon:selectedWeapon,phase,learnedIds:[...seen],encounterMode},Math.random);if(!technique){seen.clear();technique=pickReviewInspiration(CAUSAL_ANSWERS,{weapon:selectedWeapon,phase,encounterMode},Math.random);}}
+  if(technique)seen.add(technique.id);return technique;
 }
 function copyRepairRequest(row){
   const text=`閃き技「${row.name}」の修整依頼です。武器: ${selectedWeapon} / 技ID: ${row.id} / モーション: ${row.steps.map(step=>step.kind).join(' → ')} / 序破急: ${row.phases.join(', ')}。モーション・VFX・SFX・接触・カメラをこの技について確認して修整してください。`;
@@ -97,7 +101,7 @@ function renderInsightHistory(){
 function activateInsight(technique,replay=false,phase='ha'){
   if(!technique||inspirationSequenceActive)return;
   inspirationSequenceActive=true;showReviewSign(technique);
-  if(!replay){learnedTechniqueIds.add(technique.id);learnedSlots[phase]=technique;renderLearnedSlots();}
+  if(!replay){learnedSlots[phase]=technique;renderLearnedSlots();}
   setTimeout(()=>{void ensureBattleStage().then(stage=>stage.triggerInspiration({id:technique.id,name:technique.name,steps:technique.steps,phase,duration:REVIEW_INSPIRATION_TIMELINE.end})).catch(()=>{inspirationSequenceActive=false;});},760);
   if(!replay){insightHistory.unshift({technique,name:technique.name,phase,weapon:selectedWeapon,weaponLabel:weaponSelect.selectedOptions[0]?.textContent||selectedWeapon});if(insightHistory.length>8)insightHistory.length=8;renderInsightHistory();}
 }
