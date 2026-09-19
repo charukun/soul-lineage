@@ -8,13 +8,15 @@ permissions:
 jobs:
   capture:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        segment: [0, 1, 2]
+        firstFrame: [300, 330, 360, 390, 420, 450, 480, 510, 540, 570]
     env:
-      CAPTURE_SEGMENT: ${{ matrix.segment }}
+      CAPTURE_SEGMENT: 1
+      CAPTURE_FRAMES: 30
+      CAPTURE_FIRST_FRAME: ${{ matrix.firstFrame }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,7 +42,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: NOCTURNE-1080p-part-${{ matrix.segment }}-${{ github.run_id }}
+          name: NOCTURNE-1080p-chunk-${{ matrix.firstFrame }}-${{ github.run_id }}
           path: ${{ runner.temp }}/nocturne-video/output/
           if-no-files-found: error
           retention-days: 7

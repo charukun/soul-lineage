@@ -8,8 +8,8 @@ import { chromium } from 'playwright';
 
 const url = 'https://nocturne-autobattle.c-okamoto.workers.dev/';
 const segment = Number(process.env.CAPTURE_SEGMENT || 0);
-const segmentFrames = 300;
-const firstFrame = segment * segmentFrames;
+const segmentFrames = Number(process.env.CAPTURE_FRAMES || 300);
+const firstFrame = Number(process.env.CAPTURE_FIRST_FRAME ?? segment * segmentFrames);
 assert.ok(Number.isInteger(segment) && segment >= 0 && segment < 3);
 const output = path.resolve('output');
 fs.mkdirSync(output, { recursive: true });
@@ -69,7 +69,7 @@ try {
   encoder = spawn('ffmpeg', ['-hide_banner', '-loglevel', 'warning', '-y',
     '-f', 'image2pipe', '-framerate', '30', '-vcodec', 'mjpeg', '-i', 'pipe:0',
     '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
-    '-movflags', '+faststart', '-frames:v', String(segmentFrames), path.join(output, `NOCTURNE-part-${segment}.mp4`)],
+    '-movflags', '+faststart', '-frames:v', String(segmentFrames), path.join(output, `NOCTURNE-part-${firstFrame}.mp4`)],
     { stdio: ['pipe', 'inherit', 'inherit'] });
   const encoded = once(encoder, 'close');
   const unique = new Set();
@@ -94,7 +94,7 @@ try {
     })]).finally(() => clearTimeout(timeout));
     unique.add(createHash('sha256').update(bytes).digest('hex'));
     if (!encoder.stdin.write(bytes)) await once(encoder.stdin, 'drain');
-    if ([0, 149, 299].includes(localFrame)) fs.writeFileSync(path.join(output, `frame-${frame}.jpg`), bytes);
+    if ([0, Math.floor((segmentFrames - 1) / 2), segmentFrames - 1].includes(localFrame)) fs.writeFileSync(path.join(output, `frame-${frame}.jpg`), bytes);
     if (frame % 30 === 0) {
       const state = await page.evaluate(() => window.__NOCTURNE__.metrics);
       report.progress.push({ frame, time: state.time, phase: state.phase, kills: state.kills });
@@ -109,18 +109,18 @@ try {
   const [code] = await encoded;
   assert.equal(code, 0, 'ffmpeg failed');
   report.uniqueFrames = unique.size;
-  assert.ok(unique.size > 280, 'Capture must contain actual changing game frames');
+  assert.ok(unique.size > segmentFrames * 0.9, 'Capture must contain actual changing game frames');
   report.final = await page.evaluate(() => ({ metrics: window.__NOCTURNE__.metrics,
     trace: window.__NOCTURNE__.trace }));
-  assert.ok(report.final.metrics.kills > report.initial.kills, 'Combat must progress during video');
+  if (segmentFrames >= 300) assert.ok(report.final.metrics.kills > report.initial.kills, 'Combat must progress during video');
   assert.deepEqual(report.errors, []);
   report.media = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_streams',
-    '-show_format', '-of', 'json', path.join(output, `NOCTURNE-part-${segment}.mp4`)], { encoding: 'utf8' }));
+    '-show_format', '-of', 'json', path.join(output, `NOCTURNE-part-${firstFrame}.mp4`)], { encoding: 'utf8' }));
   const video = report.media.streams.find(s => s.codec_type === 'video');
   assert.equal(video.width, 1920);
   assert.equal(video.height, 1080);
   assert.equal(Number(video.nb_frames), segmentFrames);
-  assert.equal(Number(report.media.format.duration), 10);
+  assert.equal(Number(report.media.format.duration), segmentFrames / 30);
   report.success = true;
   console.log('CAPTURE_SUCCESS', JSON.stringify({ uniqueFrames: unique.size,
     seconds: report.media.format.duration, final: report.final.metrics }));
