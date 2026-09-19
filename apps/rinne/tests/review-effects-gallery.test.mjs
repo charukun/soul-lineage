@@ -7,6 +7,7 @@ const html=read('../review-effects.html');
 const js=read('../src/review-effects.js');
 const css=read('../src/review-effects.css');
 const slotAuto=read('../src/review-slot-auto.js');
+const slotCss=read('../src/review-slot-picker.css');
 
 test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(html,/id="fx-catalog"/);
@@ -29,7 +30,7 @@ test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(html,/id="fx-selected-meta"/);
   assert.match(html,/id="fx-model-count"/);
   assert.match(html,/— EFFECTS/);
-  assert.doesNotMatch(html,/class="review-lab-back"/);
+  assert.match(html,/class="review-lab-back"[^>]*aria-label="Visual Reviewへ戻る"/);
   assert.match(html,/class="review-subtitle">攻撃・被弾・属性・大技を実機比較/);
   assert.match(js,/q\('fx-model-count'\)\.textContent=`\$\{REVIEW_REAL_EFFECT_COUNT\} EFFECTS`/);
   assert.match(js,/q\('fx-selected-label'\)\.textContent=entry\.label/);
@@ -85,10 +86,9 @@ test('existing playback review controls stay available as secondary tools',()=>{
   assert.match(js,/player\.present\(eventsFor\(preset\)/);
 });
 
-test('effect list uses a dense desktop grid and a readable mobile grid',()=>{
+test('effect candidate list keeps the five-column Visual Review invariant',()=>{
   assert.match(css,/\.fx-catalog\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.match(css,/@media\(max-width:900px\)[\s\S]*?\.fx-catalog\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(css,/@media\(max-width:640px\)[\s\S]*?\.fx-catalog\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(css,/@media[\s\S]*?\.fx-catalog\{[^}]*grid-template-columns/);
   assert.match(css,/mask-image:linear-gradient\(to right/);
   assert.match(css,/\.stage-selection-slot\{[^}]*box-shadow:inset 3px 0/);
   assert.match(css,/\.catalog-kicker\{/);
@@ -98,4 +98,9 @@ test('effect list uses a dense desktop grid and a readable mobile grid',()=>{
   assert.match(css,/@media\(max-width:420px\)/);
   assert.match(css,/\.catalog-shell\{[^}]*overflow:hidden/);
   assert.match(css,/\.review-header-stats #fx-model-count\{/);
+  for(const selector of ['review-slot-grid','review-select-grid-list','review-slot-deck-list']){
+    const rules=[...slotCss.matchAll(new RegExp('\\.'+selector+'\\{([^}]*)\\}','g'))]
+      .map(match=>match[1]).filter(body=>body.includes('grid-template-columns'));
+    assert.deepEqual(rules,['display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px']);
+  }
 });
