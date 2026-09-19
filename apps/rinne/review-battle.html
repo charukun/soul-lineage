@@ -62,6 +62,34 @@
 /* Long-form inspiration sequence: reveal only after camera, spacing and stagger beats. */
 .battle-inspiration[data-sequence="reveal"]{animation:insight-reveal 1.05s cubic-bezier(.12,.82,.16,1)!important}
 .stage[data-inspiration-cinematic="true"] canvas{filter:saturate(1.12) contrast(1.06)}
+
+/* Stage-first battle review: the rendered fight owns the screen, controls stay secondary. */
+.review-surface__workspace{grid-template-rows:minmax(0,1fr) auto!important}
+.controls{gap:5px!important;padding:5px max(8px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important;max-height:none!important;overflow:visible!important}
+.inspiration-mode{display:grid!important;grid-template-columns:1fr 1fr!important;gap:5px!important}
+.inspiration-mode button{min-height:32px!important;padding:5px 8px!important;font-size:9px!important}
+.battle-shortcuts{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:5px;align-items:start}
+.battle-history-open,.review-settings>summary{min-height:28px;border:1px solid var(--rinne-line-soft);border-radius:8px;background:rgba(8,21,35,.92);color:var(--rinne-muted);font:700 9px/1 var(--font-rinne-display);letter-spacing:.05em}
+.battle-history-open{display:flex;align-items:center;justify-content:center;gap:6px}.battle-history-open span{display:grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:rgba(115,188,229,.12);color:var(--rinne-blue-soft);font-size:8px}
+.review-settings{order:initial!important;border:0!important}.review-settings>summary{display:flex!important;align-items:center;justify-content:center!important;padding:0 8px!important}.review-settings>summary small{font-size:8px}.review-settings[open]{position:absolute;left:8px;right:8px;bottom:calc(100% + 6px);z-index:30;padding:8px;border:1px solid var(--rinne-line);border-radius:12px;background:rgba(6,16,29,.985);box-shadow:0 14px 32px rgba(0,0,0,.55)}.review-settings[open]>summary{margin-bottom:6px}.review-settings-body{max-height:38dvh;overflow:auto}
+.review-settings .review-modes{grid-template-columns:1fr!important}.skin-switch{grid-column:auto!important}
+
+.battle-stage-switch{position:absolute;z-index:12;right:10px;top:10px;display:grid;grid-template-columns:auto auto;align-items:center;gap:6px;padding:5px 6px 5px 8px;border:1px solid rgba(227,199,127,.32);border-radius:999px;background:rgba(6,16,29,.84);backdrop-filter:blur(8px);box-shadow:0 5px 16px rgba(0,0,0,.34)}.battle-stage-switch>span{color:var(--rinne-muted);font:700 8px/1 var(--font-rinne-display);letter-spacing:.08em}.battle-stage-switch .battle-mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:3px}.battle-stage-switch button{min-width:43px;min-height:27px;padding:3px 7px;border:1px solid var(--rinne-line-soft);border-radius:999px;background:#081523;color:var(--rinne-muted);font:800 9px/1 var(--font-rinne-display)}.battle-stage-switch button[aria-pressed="true"]{border-color:var(--rinne-gold);background:linear-gradient(180deg,#244f72,#0b2338);color:var(--rinne-gold-hi);box-shadow:0 0 11px rgba(115,188,229,.13)}
+
+.stage>.technique-loadout{position:absolute!important;z-index:11!important;left:50%!important;bottom:8px!important;transform:translateX(-50%)!important;width:min(270px,72vw)!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:2px!important;padding:3px 6px!important;border:1px solid rgba(199,161,93,.16)!important;border-radius:999px!important;background:rgba(6,16,29,.76)!important;backdrop-filter:blur(7px);pointer-events:none}.stage>.technique-loadout::before{display:none!important}.stage>.technique-loadout span{display:flex!important;align-items:center!important;justify-content:center!important;gap:4px!important;min-height:22px!important;padding:0 3px!important;background:transparent!important}.stage>.technique-loadout b{width:auto!important;height:auto!important;border:0!important;background:none!important;font-size:10px!important}.stage>.technique-loadout strong{max-width:58px!important;font-size:7px!important}
+
+.phase-panel[data-skin="rinne"]{z-index:13!important;grid-template-columns:36px 22px 36px 22px 36px!important;padding:7px 12px 8px!important;border:0!important;background:radial-gradient(ellipse at center,rgba(8,31,48,.9),rgba(6,19,33,.58) 58%,transparent 76%)!important;transform:translate(-50%,-18%) scale(.98)!important;filter:drop-shadow(0 7px 9px rgba(0,0,0,.44))!important;overflow:visible!important}
+.phase-panel[data-skin="rinne"]::before,.phase-panel[data-skin="rinne"]::after{content:"";display:block!important;position:absolute;z-index:-1;left:-38px;right:-38px;top:50%;height:38px;transform:translateY(-50%);pointer-events:none}
+.phase-panel[data-skin="rinne"]::before{background:linear-gradient(90deg,transparent,rgba(115,188,229,.18) 9%,rgba(115,188,229,.92) 47%,rgba(227,199,127,.92) 53%,rgba(115,188,229,.18) 91%,transparent);clip-path:polygon(0 52%,7% 48%,12% 59%,18% 31%,24% 68%,31% 43%,37% 55%,44% 18%,49% 76%,54% 34%,61% 62%,68% 40%,76% 58%,84% 35%,91% 54%,100% 49%);opacity:.78;filter:drop-shadow(0 0 7px rgba(115,188,229,.7));animation:battle-phase-wave 1.35s ease-in-out infinite alternate}
+.phase-panel[data-skin="rinne"]::after{height:22px;background:linear-gradient(90deg,transparent,rgba(227,199,127,.72),transparent);clip-path:polygon(0 51%,10% 52%,17% 39%,24% 63%,33% 45%,41% 57%,50% 28%,58% 66%,66% 46%,75% 56%,84% 42%,92% 53%,100% 50%);opacity:.55;animation:battle-phase-wave .92s ease-in-out infinite alternate-reverse}
+@keyframes battle-phase-wave{to{opacity:.96;transform:translateY(-50%) scaleY(1.14) scaleX(1.02)}}
+.phase-panel[data-skin="rinne"] .phase-step{width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;font-size:16px!important;background:radial-gradient(circle,rgba(8,21,35,.96) 42%,rgba(8,21,35,.4) 70%,transparent)!important;text-shadow:0 0 8px currentColor!important}.phase-panel[data-skin="rinne"] .phase-step[data-active="true"]{transform:scale(1.24)!important;box-shadow:0 0 22px rgba(115,188,229,.16)!important}.phase-panel[data-skin="rinne"] .phase-link{width:22px!important;flex-basis:22px!important;opacity:.9!important}.phase-panel[data-skin="rinne"] .phase-meta{display:none!important}
+.phase-panel[data-skin="rinne"] .phase-history{display:flex!important;position:absolute!important;left:50%!important;top:calc(100% + 2px)!important;transform:translateX(-50%)!important;width:min(270px,72vw)!important;height:62px!important;overflow:visible!important;flex-direction:column!important;align-items:center!important;pointer-events:none!important}.phase-panel[data-skin="rinne"] .phase-history span{display:block!important;max-width:100%!important;padding:2px 9px!important;border:0!important;background:linear-gradient(90deg,transparent,rgba(6,16,29,.82) 18%,rgba(6,16,29,.82) 82%,transparent)!important;color:var(--rinne-ink)!important;font:600 9px/1.5 var(--font-rinne-display)!important;letter-spacing:.04em!important;text-align:center!important;white-space:nowrap!important;animation:battle-action-drift 2.7s ease-out forwards!important}@keyframes battle-action-drift{0%{opacity:0;transform:translateY(-5px)}14%{opacity:.94}72%{opacity:.72}100%{opacity:0;transform:translateY(24px)}}
+
+.inspiration-history{position:absolute!important;z-index:40!important;inset:10px!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;gap:8px!important;max-height:none!important;overflow:hidden!important;padding:10px!important;border:1px solid var(--rinne-line)!important;border-radius:14px!important;background:linear-gradient(180deg,rgba(8,21,35,.985),rgba(6,16,29,.985))!important;box-shadow:0 18px 46px rgba(0,0,0,.68)!important;backdrop-filter:blur(12px)}.inspiration-history[hidden]{display:none!important}.inspiration-history>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 2px 8px;border-bottom:1px solid var(--rinne-line-soft)}.inspiration-history>header div{display:grid;gap:2px}.inspiration-history>header span{color:var(--rinne-blue-soft);font:800 8px/1 var(--font-rinne-display);letter-spacing:.16em}.inspiration-history>header strong{color:var(--rinne-gold-hi);font:800 14px/1.2 var(--font-rinne-display)}.inspiration-history>header button{min-height:30px;padding:4px 9px;border:1px solid var(--rinne-line-soft);border-radius:8px;background:#0b1b2e;color:var(--rinne-ink);font-size:9px}.inspiration-history__list{min-height:0;overflow:auto;display:grid;align-content:start;gap:6px}.inspiration-history__empty{padding:28px 8px;text-align:center;color:var(--rinne-muted);font-size:10px}.inspiration-history__row{grid-template-columns:minmax(0,1fr) auto auto!important;padding:8px;border:1px solid rgba(199,161,93,.12);border-radius:9px;background:rgba(11,27,46,.58)}.inspiration-history__row strong{font-size:11px!important}
+
+@media(max-width:680px){.review-surface__workspace{grid-template-rows:minmax(0,1fr) auto!important}.controls{max-height:none!important}.battle-stage-switch{right:8px;top:8px}.stage>.technique-loadout{bottom:6px!important}.phase-panel[data-skin="rinne"]{transform:translate(-50%,-14%) scale(.92)!important}.phase-panel[data-skin="rinne"]::before,.phase-panel[data-skin="rinne"]::after{left:-27px;right:-27px}.inspiration-history{inset:8px!important}}
+
 </style>
 </head>
 <body>
@@ -84,6 +112,14 @@
       <span class="phase-step combat-sequence__step" data-phase-id="jo" data-phase-step="jo" data-combat-phase="jo" data-active="false">序</span><i class="phase-link phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="ha" data-phase-step="ha" data-combat-phase="ha" data-active="false">破</span><i class="phase-link phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="kyu" data-phase-step="kyu" data-combat-phase="kyu" data-active="false">急</span>
       <strong id="phase-meta" class="phase-meta combat-phase-action combat-sequence__action">間合いを測る</strong><div id="phase-history" class="phase-history combat-phase-history combat-sequence__history" aria-hidden="true"></div>
     </aside>
+    <div class="battle-stage-switch" aria-label="戦闘人数の切替">
+      <span>人数</span><div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="one-v-three" aria-pressed="false">1v3</button></div>
+    </div>
+    <div id="battle-technique-loadout" class="technique-loadout" aria-label="現在の序破急セット技"><span><b>序</b><strong data-loadout-phase="jo">基本技</strong></span><span><b>破</b><strong data-loadout-phase="ha">基本技</strong></span><span><b>急</b><strong data-loadout-phase="kyu">基本技</strong></span></div>
+    <section id="battle-inspiration-history" class="inspiration-history" aria-label="閃いた技の履歴" hidden>
+      <header><div><span>閃き履歴</span><strong>この戦闘で閃いた技</strong></div><button id="battle-history-close" type="button" aria-label="閃き履歴を閉じる">閉じる</button></header>
+      <div id="battle-inspiration-history-list" class="inspiration-history__list"></div>
+    </section>
   </section>
   </div>
   <section class="controls review-surface__panel">
@@ -91,6 +127,11 @@
       <article><span id="hero-name">Rogue</span><strong id="hero-action">-</strong><progress id="hero-hp" max="1" value="1"></progress><small id="hero-meta">-</small></article>
       <article><span id="enemy-name">Knight</span><strong id="enemy-action">-</strong><progress id="enemy-hp" max="1" value="1"></progress><small id="enemy-meta">-</small></article>
     </div>
+
+
+    <div class="inspiration-mode" role="group" aria-label="閃き確認モード"><button type="button" data-inspiration-mode="normal" aria-pressed="true">通常モード</button><button type="button" data-inspiration-mode="boost" aria-pressed="false">閃きモード · 高確率</button></div>
+    <div class="battle-shortcuts">
+      <button id="battle-history-open" class="battle-history-open" type="button">閃き履歴 <span id="battle-history-count">0</span></button>
     <details class="review-settings">
       <summary>設定 <small>モデル・人数・カメラ</small></summary>
       <div class="review-settings-body">
@@ -99,7 +140,7 @@
           <div class="hero-model-lock"><span>敵モデル</span><strong>異形兵</strong></div><label class="weapon-picker">所持武器<select id="battle-weapon"><option value="sword">剣</option><option value="dagger">短剣</option><option value="spear">槍</option><option value="great">大剣</option><option value="axe">戦斧</option><option value="staff">杖</option><option value="fist">徒手</option></select></label>
         </div>
         <div class="review-modes">
-          <div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="one-v-three" aria-pressed="false">1v3</button></div>
+
           <div class="skin-switch" role="group" aria-label="序破急UIスキン">
             <button type="button" data-battle-skin="rinne" aria-pressed="true">百年転生</button>
             <button type="button" data-battle-skin="jinku" aria-pressed="false">喰滅廻遊</button>
@@ -107,8 +148,7 @@
         </div>
       </div>
     </details>
-    <div id="battle-technique-loadout" class="technique-loadout" aria-label="現在の序破急セット技"><span><b>序</b><strong data-loadout-phase="jo">基本技</strong></span><span><b>破</b><strong data-loadout-phase="ha">基本技</strong></span><span><b>急</b><strong data-loadout-phase="kyu">基本技</strong></span></div>
-    <div class="inspiration-mode" role="group" aria-label="閃き確認モード"><button type="button" data-inspiration-mode="normal" aria-pressed="true">通常モード</button><button type="button" data-inspiration-mode="boost" aria-pressed="false">閃きモード · 高確率</button></div><section id="battle-inspiration-history" class="inspiration-history" aria-label="閃いた技の履歴" hidden></section>
+    </div>
 
   </section>
   </section>

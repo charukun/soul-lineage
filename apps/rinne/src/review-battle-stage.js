@@ -171,9 +171,10 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
 
   function updateCamera(core,dt,followCamera,cameraSystem){
-    let frame=reviewBattleCameraFrame(core,{follow:followCamera,system:cameraSystem,encounterMode});
+    const wide=canvas.clientWidth/Math.max(1,canvas.clientHeight)>1.3;
+    let frame=reviewBattleCameraFrame(core,{follow:followCamera,system:cameraSystem,encounterMode,wide});
     const now=performance.now()/1000,sequence=techniquePlayback?reviewInspirationSequenceFrame(now-techniquePlayback.startedAt):null;
-    if(core?.hero&&core?.enemy&&followCamera){const hx=Number(core.hero.x||0)*1.35,hz=Number(core.hero.z||0)*1.15,ex=Number(core.enemy.x||0)*1.35,ez=Number(core.enemy.z||0)*1.15,dx=ex-hx,dz=ez-hz;frame={...frame,look:{x:frame.look.x+dx*.18,y:frame.look.y+.28,z:frame.look.z+dz*.18}};canvas.dataset.heroComposition='lower-left';}
+    if(core?.hero&&core?.enemy&&followCamera)canvas.dataset.heroComposition=cameraSystem==='demon'?'kuumetsu-shared':'hyakunen-shared';
     if(sequence&&sequence.stage!=='spark'&&sequence.stage!=='done'&&core?.hero&&core?.enemy){const hx=Number(core.hero.x||0)*1.35,hz=Number(core.hero.z||0)*1.15,ex=Number(core.enemy.x||0)*1.35,ez=Number(core.enemy.z||0)*1.15,dx=ex-hx,dz=ez-hz,len=Math.max(.01,Math.hypot(dx,dz)),rx=dz/len,rz=-dx/len,push=sequence.stage==='execute'?.55:.95;frame={position:{x:hx-dx/len*(2.0-push*.35)+rx*(1.1+push*.25),y:.82,z:hz-dz/len*(2.0-push*.35)+rz*(1.1+push*.25)},look:{x:hx+dx*.68,y:1.28,z:hz+dz*.68},follow:true,system:'inspiration',count:encounterMode==='one-v-three'?3:1};}
     cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);
     const step=Math.max(1/120,Math.min(.05,Number(dt)||1/60)),blend=1-Math.exp(-step*8);
@@ -191,7 +192,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     }
     if(techniquePlayback&&sequence?.stage==='done'){if(!techniquePlayback.emitted.has('done')){techniquePlayback.emitted.add('done');onInspirationCue('done',techniquePlayback);}techniquePlayback=null;aura.visible=false;inspirationFx.visible=false;}
     const phaseHud=canvas.closest('.stage')?.querySelector('#battle-phase'),heroRoot=sides.hero.actor?.root;
-    if(phaseHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=1.82;projected.project(camera);phaseHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');phaseHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');phaseHud.style.setProperty('bottom','auto','important');}
+    if(phaseHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=.16;projected.project(camera);phaseHud.dataset.phaseAnchor='feet';phaseHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');phaseHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');phaseHud.style.setProperty('bottom','auto','important');}
     const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
     const enemyActual=sides.enemy.actor?.root?.userData?.reviewMonsterSpecies||'';
     canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
