@@ -2,12 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
-const [html,main,css,media,manifest,cinematic,movie,poster]=await Promise.all([
+const [html,main,css,media,cinematic,movie,poster]=await Promise.all([
   readFile(new URL('../index.html',import.meta.url),'utf8'),
   readFile(new URL('../src/main.js',import.meta.url),'utf8'),
   readFile(new URL('../src/title-rich.css',import.meta.url),'utf8'),
   readFile(new URL('../src/title-cinematic-media.js',import.meta.url),'utf8'),
-  readFile(new URL('../src/title-cinematic-manifest.js',import.meta.url),'utf8'),
   readFile(new URL('../src/title-cinematic.js',import.meta.url),'utf8'),
   readFile(new URL('../public/title-assets/title-cinematic.mp4',import.meta.url)),
   readFile(new URL('../public/title-assets/title-cinematic-poster.webp',import.meta.url)),
@@ -15,9 +14,8 @@ const [html,main,css,media,manifest,cinematic,movie,poster]=await Promise.all([
 
 test('cinematic title uses real generated movie media as the primary path',()=>{
   assert.match(html,/id="title-cinematic-video"[^>]*preload="auto"[^>]*muted[^>]*playsinline/);
-  assert.match(manifest,/title-cinematic\.mp4/);assert.match(manifest,/title-cinematic-poster\.webp/);
-  assert.match(manifest,/recommendedWidth:1920/);assert.match(manifest,/recommendedHeight:1080/);assert.match(manifest,/recommendedFps:24/);
-  assert.match(media,/revision/);assert.doesNotMatch(media,/base64/);assert.ok(manifest.length<2048,'cinematic manifest stays source-light');
+  assert.match(media,/title-cinematic\.mp4/);assert.match(media,/title-cinematic-poster\.webp/);
+  assert.doesNotMatch(media,/base64/);assert.ok(media.length<2048,'media manifest stays source-light');
   assert.equal(movie.subarray(4,8).toString(),'ftyp');assert.ok(movie.length>400000);
   assert.ok(poster.length>50000);
   assert.match(css,/data-media="video"/);
@@ -34,15 +32,17 @@ test('cinematic boot is event-driven and overlaps world preparation',()=>{
   assert.match(cinematic,/intro load timeout/);
 });
 
-test('cinematic stays UI-free until the authored landing and supports whole-screen tap skip',()=>{
-  assert.match(manifest,/firstViewSkipAfter:1\.5/);assert.match(manifest,/repeatViewSkipAfter:0/);
-  assert.match(cinematic,/dataset\.skip='ready'/);assert.match(cinematic,/skip\(\)/);assert.match(cinematic,/markIntroSeen/);
-  assert.match(main,/title\.addEventListener\('pointerup'[\s\S]*titleCinematic\.skip\(\)/);
-  assert.doesNotMatch(main,/pendingLaunchMode|requestLaunch|onPrimaryActionReady/);
-  assert.doesNotMatch(css,/data-primary-action/);
-  assert.match(css,/data-intro="cinematic"\]\[data-skip="ready"\]/);
-  assert.match(cinematic,/settleUi\(\{skipped:true\}\)/);
+test('cinematic offers an early primary action while preserving the authored title handoff',()=>{
+  assert.match(media,/primaryActionAt:1\.5/);
+  assert.match(cinematic,/primaryActionAt\*1000/);assert.match(cinematic,/dataset\.primaryAction='ready'/);assert.match(cinematic,/onPrimaryActionReady/);
+  assert.match(css,/data-intro="cinematic"\]\[data-primary-action="ready"\] \.title-actions/);
+  assert.match(css,/title-command:not\(#new-life\)\{display:none\}/);
+  assert.match(cinematic,/settleUi\(\)[\s\S]*dataset\.intro='settling'[\s\S]*dataset\.intro='idle'/);
+  assert.match(css,/data-intro="settling"\] \.title-lockup\{opacity:1/);
+  assert.match(css,/data-intro="settling"\] \.title-actions\{opacity:0/);
   assert.match(cinematic,/if\(this\.introPlayed\)\{[\s\S]*this\.seekToLivingStill\(\{play:true\}\);return;/);
+  assert.match(main,/titleCinematic\.pause\(\);title\.hidden=true/);
+  assert.match(main,/pendingLaunchMode=mode/);assert.match(main,/旅立ちを準備しています/);assert.match(main,/if\(pendingLaunchMode\)[\s\S]*await launch\(mode\)/);
 });
 
 test('reduced motion, motion-off, and media failure retain an operable title fallback',()=>{

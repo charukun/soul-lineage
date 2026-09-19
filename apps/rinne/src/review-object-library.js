@@ -1,9 +1,7 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {createReviewCameraMenu} from '@soul/shared-ui/review-camera-menu';
 import './review-object-library.css';
-import '@soul/shared-ui/review-surface.css';
 
 const OBJECT_SOURCE=Object.freeze({
   label:'KayKit Dungeon Remastered',
@@ -40,7 +38,7 @@ const fill=new THREE.DirectionalLight('#8dcbe1',1.7);fill.position.set(5,4,-5);s
 const ground=new THREE.Mesh(new THREE.CircleGeometry(3.8,64),new THREE.MeshStandardMaterial({color:'#263431',roughness:1}));
 ground.rotation.x=-Math.PI/2;ground.position.y=-.006;scene.add(ground);
 
-let objectRoot=null,frameId=0,loadSequence=0,selected=OBJECTS[0].id,cameraMenu=null;
+let objectRoot=null,frameId=0,loadSequence=0,selected=OBJECTS[0].id;
 
 function status(message,error=false){q('#object-status').textContent=message;q('#object-status').dataset.error=String(error);}
 function disposeRoot(root){
@@ -75,7 +73,7 @@ function setCameraPreset(preset='full'){
   else if(preset==='top')camera.position.set(center.x,box.max.y+distance*.8,center.z+.01);
   else camera.position.set(center.x+radius*.85,eyeY+radius*.22,center.z+distance);
   controls.update();
-  cameraMenu?.setSelected('view',preset);
+  for(const button of document.querySelectorAll('[data-object-camera]'))button.setAttribute('aria-pressed',String(button.dataset.objectCamera===preset));
 }
 function renderSelection(){
   for(const button of q('#object-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.object===selected));
@@ -93,12 +91,8 @@ async function loadObject(id){
 }
 function populate(){
   q('#object-options').replaceChildren(...OBJECTS.map(item=>{const button=document.createElement('button');button.type='button';button.textContent=item.label;button.dataset.object=item.id;button.addEventListener('click',()=>loadObject(item.id).catch(error=>status(error.message,true)));return button;}));
-  cameraMenu=createReviewCameraMenu({
-    host:q('.object-stage'),
-    groups:[{id:'view',label:'向き',options:[{id:'front',label:'正面'},{id:'side',label:'横'},{id:'top',label:'俯瞰'},{id:'full',label:'全体'}]}],
-    onSelect:(_group,id)=>setCameraPreset(id),
-  });
-  controls.addEventListener('start',()=>cameraMenu?.clearSelected('view'));
+  for(const button of document.querySelectorAll('[data-object-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.objectCamera));
+  controls.addEventListener('start',()=>{for(const button of document.querySelectorAll('[data-object-camera]'))button.setAttribute('aria-pressed','false');});
   q('#object-provenance').textContent=`${OBJECT_SOURCE.label} · ${OBJECT_SOURCE.repository}@${OBJECT_SOURCE.commit} · ${OBJECT_SOURCE.license}`;
   renderSelection();
 }
@@ -108,4 +102,4 @@ observer.observe(canvas);
 function frame(){controls.update();renderer.render(scene,camera);frameId=requestAnimationFrame(frame);}
 frameId=requestAnimationFrame(frame);
 populate();loadObject(selected).catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);observer.disconnect();cameraMenu?.destroy();controls.dispose();disposeRoot(objectRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);observer.disconnect();controls.dispose();disposeRoot(objectRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});

@@ -45,7 +45,6 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs la
 ## Architecture
 
 - Apps stay under `apps/<id>`; shared code stays under `packages/<id>`. Apps do not import apps; packages do not import apps.
-- Nocturne and Eclipse are reference apps, not product games. Keep them under `apps/` for repository consistency, but classify them as `reference` in control-plane/catalog surfaces and do not promote them into staging/Production product distribution without an explicit request.
 - Game/domain logic uses platform ports; browser/SDK/storage/render bootstrap belongs in adapters/bootstrap.
 - Tidebreak integration belongs to `apps/rinne`.
 - Validate affected apps/packages and any touched control-plane contract.
