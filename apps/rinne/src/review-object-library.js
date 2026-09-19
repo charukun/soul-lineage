@@ -36,7 +36,8 @@ const ground=new THREE.Mesh(new THREE.CircleGeometry(3.8,64),new THREE.MeshStand
 ground.rotation.x=-Math.PI/2;ground.position.y=-.006;scene.add(ground);
 
 const models=createMuraModels(THREE,{createCanvas:()=>document.createElement('canvas'),textileFibers:1800,textileBlotches:40});
-let objectRoot=null,frameId=0,loadSequence=0,selected=OBJECTS[0].id;
+const CATEGORY_OPTIONS=Object.freeze([{id:'all',label:'すべて'},{id:'props',label:'小物'},{id:'outdoor',label:'屋外'},{id:'furniture',label:'家具'},{id:'training',label:'訓練'},{id:'weapons',label:'武器'}]);
+let objectRoot=null,frameId=0,loadSequence=0,selected=OBJECTS[0].id,selectedCategory='all';
 
 function status(message,error=false){q('#object-status').textContent=message;q('#object-status').dataset.error=String(error);}
 function disposeRoot(root){
@@ -73,8 +74,22 @@ function setCameraPreset(preset='full'){
   controls.update();
   for(const button of document.querySelectorAll('[data-object-camera]'))button.setAttribute('aria-pressed',String(button.dataset.objectCamera===preset));
 }
+function visibleObjects(){return selectedCategory==='all'?OBJECTS:OBJECTS.filter(item=>item.category===selectedCategory);}
 function renderSelection(){
   for(const button of q('#object-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.object===selected));
+  for(const button of q('#object-categories').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.category===selectedCategory));
+}
+function renderObjectOptions(){
+  const items=visibleObjects();
+  q('#object-options').replaceChildren(...items.map(item=>{const button=document.createElement('button');button.type='button';button.textContent=item.label;button.dataset.object=item.id;button.addEventListener('click',()=>loadObject(item.id).catch(error=>status(error.message,true)));return button;}));
+  renderSelection();
+}
+function selectCategory(id){
+  if(!CATEGORY_OPTIONS.some(item=>item.id===id))return;
+  selectedCategory=id;
+  const items=visibleObjects();
+  renderObjectOptions();
+  if(!items.some(item=>item.id===selected)&&items[0])loadObject(items[0].id).catch(error=>status(error.message,true));
 }
 function runtimeObject(item){
   if(item.kind==='prop')return models.prop(item.propKind,7);
@@ -111,7 +126,8 @@ async function loadObject(id){
   status(`${item.label} · ${item.source}`);
 }
 function populate(){
-  q('#object-options').replaceChildren(...OBJECTS.map(item=>{const button=document.createElement('button');button.type='button';button.textContent=item.label;button.dataset.object=item.id;button.addEventListener('click',()=>loadObject(item.id).catch(error=>status(error.message,true)));return button;}));
+  q('#object-categories').replaceChildren(...CATEGORY_OPTIONS.map(item=>{const button=document.createElement('button');button.type='button';button.textContent=item.label;button.dataset.category=item.id;button.addEventListener('click',()=>selectCategory(item.id));return button;}));
+  renderObjectOptions();
   for(const button of document.querySelectorAll('[data-object-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.objectCamera));
   controls.addEventListener('start',()=>{for(const button of document.querySelectorAll('[data-object-camera]'))button.setAttribute('aria-pressed','false');});
   q('#object-provenance').textContent=`${OBJECT_SOURCE.label} · ${OBJECT_SOURCE.repository}@${OBJECT_SOURCE.commit} · ${OBJECT_SOURCE.license}`;
