@@ -774,3 +774,71 @@
 
 /* Enemy durability is intentionally unreadable in combat: outcome is learned from posture/contact, not a target HP meter. */
 .game-screen[data-frontier-combat="true"] :is(.enemy-hp,.enemy-health,.enemy-health-bar,.enemy-hp-bar,.target-hp,.target-health,.target-health-bar,[data-enemy-hp],[data-enemy-health],[data-target-hp],[data-target-health]){display:none!important}
+
+
+/* Sequence HUD v4: spacing is quiet, committed attacks build the sequence, and hits visibly break it. */
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-active="false"]>span[data-phase-id]{
+  color:#756f66!important;opacity:.42;text-shadow:none!important;transform:none!important;filter:saturate(.45)!important;
+  transition:color .22s ease,opacity .22s ease,text-shadow .22s ease,transform .22s ease,filter .22s ease!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-active="false"]>.phase-pulse{
+  color:#655d52!important;opacity:.24!important;animation:none!important;filter:none!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-active="true"]>span[data-completed="true"]{
+  color:#d9b66f!important;opacity:.78;text-shadow:0 0 7px #d29b4f55!important;transform:translateY(-1px)!important;scale:1.02;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-active="true"]>span[data-active="true"]{
+  color:#ffe3a4!important;opacity:1;text-shadow:0 0 8px #efb25acc,0 0 18px #d6733f88!important;
+  transform:translateY(-2px)!important;scale:1.09;animation:rinne-sequence-activate .28s cubic-bezier(.18,.82,.28,1) both!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator>span.combat-sequence__interrupted{
+  transition-duration:.62s!important;transition-timing-function:cubic-bezier(.25,.72,.28,1)!important;
+  animation:rinne-sequence-interrupt .62s cubic-bezier(.25,.72,.28,1) both!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-interrupted="true"]>.phase-pulse{
+  animation:rinne-sequence-link-break .62s ease-out both!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-history span{
+  top:0!important;opacity:.9;animation:none!important;
+  transform:translate(-50%,0)!important;filter:none!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-history span[data-motion="incoming"]{
+  animation:rinne-phase-history-enter .36s cubic-bezier(.18,.8,.3,1) both!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-history span[data-motion="outgoing"]{
+  pointer-events:none!important;animation:rinne-phase-history-exit .68s cubic-bezier(.2,.68,.28,1) both!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-history span[data-kind="damage"]{
+  color:#e4c4bc!important;letter-spacing:.08em!important;
+}
+@keyframes rinne-sequence-activate{
+  0%{opacity:.45;scale:.94}
+  58%{opacity:1;scale:1.13}
+  100%{opacity:1;scale:1.09}
+}
+@keyframes rinne-sequence-interrupt{
+  0%{opacity:1;scale:1.09}
+  30%{opacity:.92;scale:1.14}
+  100%{opacity:.42;scale:1}
+}
+@keyframes rinne-sequence-link-break{
+  0%{scale:1 1}
+  38%{scale:1 .34}
+  100%{scale:1 1}
+}
+@keyframes rinne-phase-history-enter{
+  0%{opacity:0;translate:0 9px;scale:.96}
+  64%{opacity:.96}
+  100%{opacity:.9;translate:0 0;scale:1}
+}
+@keyframes rinne-phase-history-exit{
+  0%{opacity:.82;translate:0 0;scale:1}
+  58%{opacity:.42}
+  100%{opacity:0;translate:0 46px;scale:.94}
+}
+@media(prefers-reduced-motion:reduce){
+  .game-screen[data-gameplay-upgrade] .combat-phase-indicator>span.combat-sequence__interrupted,
+  .game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-combo-interrupted="true"]>.phase-pulse,
+  .game-screen[data-gameplay-upgrade] .combat-phase-history span[data-motion]{animation:none!important}
+  .game-screen[data-gameplay-upgrade] .combat-phase-history span[data-motion="outgoing"]{opacity:0!important}
+}
