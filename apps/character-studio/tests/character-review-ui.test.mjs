@@ -51,10 +51,28 @@ test('model audit uses pinned CC0 KayKit identity, bounded loads and GPU recover
   assert.ok(engine.indexOf('auditDocument(json, hash, bytes.byteLength, blobSha)') < engine.indexOf("new GLTFLoader().parseAsync(bytes, '')"));
   for (const expression of [/if \(!audit\.approved\) throw/, /length > MAX_MODEL_BYTES/, /file\.size > MAX_SESSION_BYTES/, /webglcontextlost/, /webglcontextrestored/]) assert.match(engine, expression);
 });
-test('Character Studio is an independent two-entry dev-tool build', () => {
+test('Character Studio is an independent two-entry dev-tool build', { timeout: 240000 }, async () => {
   assert.match(main, /data-dev-tool="character-studio"/);
   assert.match(vite, /appConfig\('character-studio',import\.meta\.url\)/);
   assert.match(vite, /main:fileURLToPath\(new URL\('\.\/index\.html'/);
   assert.match(vite, /advanced:fileURLToPath\(new URL\('\.\/advanced\.html'/);
   assert.doesNotMatch(vite, /characters\.html|apps\/rinne/);
+  const { chromium } = await import('@playwright/test');
+  const { spawn, execFileSync } = await import('node:child_process');
+  const { mkdirSync, readFileSync: readEvidence } = await import('node:fs');
+  const { resolve } = await import('node:path');
+  const root = resolve(new URL('../../..', import.meta.url).pathname), app = resolve(root, 'apps/character-studio');
+  const output = resolve(root, 'test-results/character-studio-portrait'); mkdirSync(output, { recursive: true });
+  execFileSync(process.execPath, ['scripts/prepare-kaykit-foundation.mjs', 'character-studio'], { cwd: root, stdio: 'inherit' });
+  const viteProc = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), '--host', '127.0.0.1', '--port', '5277', '--strictPort'], { cwd: app, stdio: 'ignore', env: { ...process.env, APP_ENV:'dev' } });
+  let browser;
+  try {
+    for (let i=0;i<80;i++) { try { if ((await fetch('http://127.0.0.1:5277/')).ok) break; } catch {} await new Promise(r=>setTimeout(r,250)); if(i===79) throw new Error('vite timeout'); }
+    const chrome=execFileSync('bash',['-lc','command -v google-chrome || command -v google-chrome-stable || command -v chromium'],{encoding:'utf8'}).trim();
+    browser=await chromium.launch({executablePath:chrome,headless:true,args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader','--no-sandbox']});
+    const { verifyCharacterStudioPortrait } = await import('./character-studio.browser.mjs');
+    const result=await verifyCharacterStudioPortrait(browser,'http://127.0.0.1:5277/',output);
+    console.log('PORTRAIT_EVIDENCE_JSON_BEGIN'); console.log(JSON.stringify(result)); console.log('PORTRAIT_EVIDENCE_JSON_END');
+    console.log('PORTRAIT_EVIDENCE_PNG_BEGIN'); console.log(readEvidence(resolve(output,'studio-character-ready-mobile.png')).toString('base64')); console.log('PORTRAIT_EVIDENCE_PNG_END');
+  } finally { await browser?.close().catch(()=>{}); if(viteProc.exitCode===null) viteProc.kill('SIGTERM'); }
 });
