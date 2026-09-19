@@ -48,23 +48,24 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
   assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='kaykit-embedded'/);
 });
 
-test('equipment review is organized around equipment fit and inspection tasks',async()=>{
+test('equipment review follows the Visual Review Lab probe language and exposes the exact review questions',async()=>{
   const [html,css,js]=await Promise.all([read('review-assets.html'),read('src/review-asset-library.css'),read('src/review-asset-library.js')]);
-  assert.match(html,/<title>装備確認 \| 百年転生<\/title>/);
-  assert.match(html,/data-review-back[^>]*href="https:\/\/soul-lineage-review-dev\.c-okamoto\.workers\.dev\/"/);
-  assert.match(html,/id="asset-review-points"/);
-  for(const point of ['装着位置','干渉','尺度','裏側'])assert.match(html,new RegExp(point));
+  assert.match(html,/<title>装備 \| Visual Review Lab<\/title>/);
+  assert.match(html,/class="eyebrow">RINNE RUNTIME PROBE<\/p>/);
+  assert.match(html,/data-review-purpose/);
+  assert.match(html,/正しい位置・向き・尺度で付き/);
+  for(const point of ['装着','干渉','輪郭','モデル差'])assert.match(html,new RegExp(point));
   assert.match(html,/id="asset-slot-tabs"/);
   assert.match(html,/id="asset-equipment-options"/);
-  for(const preset of ['front','side','back'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
+  for(const preset of ['front','three-quarter','side','back'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
   for(const focus of ['full','main','off','back'])assert.match(html,new RegExp(`data-asset-focus="${focus}"`));
-  assert.doesNotMatch(html,/review-slot-auto\.js|着せ替え確認/);
-  assert.match(js,/function setFocusPreset/);
-  assert.match(js,/function renderEquipmentInspector/);
-  assert.match(css,/\.asset-back\{/);
-  assert.match(css,/grid-template-rows:50px minmax\(320px,55dvh\) minmax\(0,1fr\)/);
-  assert.match(css,/\.asset-slot-tabs\{display:grid;grid-template-columns:repeat\(3/);
-  assert.match(css,/\.asset-equipment-options\{display:grid;grid-template-columns:repeat\(2/);
+  assert.doesNotMatch(html,/review-slot-auto\.js|着せ替え確認|装備確認 \| 百年転生/);
+  assert.match(js,/activeViewDirection==='three-quarter'/);
+  assert.match(js,/MODELS \$\{REVIEW_SKELETON_MODELS\.length\}/);
+  assert.match(css,/body\{background:radial-gradient\(circle at 18% 0,#1b2723 0,transparent 30%\),#0b1110\}/);
+  assert.match(css,/\.asset-stage-shell\{[^}]*border-radius:14px/);
+  assert.match(css,/\.asset-catalog\{[^}]*border-radius:14px/);
+  assert.match(css,/\.review-lab-back\{[^}]*border-radius:999px/);
 });
 
 test('world-object review loads the exact RINNE runtime props independently of equipment',async()=>{

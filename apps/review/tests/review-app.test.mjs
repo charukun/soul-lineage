@@ -21,6 +21,7 @@ test('Lab separates equipment and world-object probes and routes them to deliver
   assert.match(source,/equipment:route\(DEV\.rinne,'review-assets\.html'\)/);
   assert.match(source,/objects:route\(DEV\.rinne,'review-objects\.html'\)/);
   assert.match(html,/<b>装備<\/b>/);
+  assert.match(html,/装着・干渉・輪郭・モデル差/);
   assert.match(html,/<b>物体<\/b>/);
   assert.doesNotMatch(html,/<b>装備・物体<\/b>/);
 });
