@@ -83,6 +83,9 @@ test('existing playback review controls stay available as secondary tools',()=>{
   assert.match(js,/if\(loopToggle\.checked&&now-lastTrigger>/);
   assert.match(js,/createAuthoredEffectPlayer/);
   assert.match(js,/createEffekseerBackend/);
+  assert.match(js,/streaming:true/);
+  assert.match(js,/fallbackEffects:\['slash','impact'\]/);
+  assert.match(js,/player\.prefetch\(entry\.effects\.map/);
   assert.match(js,/player\.present\(eventsFor\(preset\)/);
 });
 

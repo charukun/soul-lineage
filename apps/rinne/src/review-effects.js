@@ -149,6 +149,7 @@ function trigger(preset=selected){
   const entry=catalogById.get(preset);if(!entry)return;
   if(selected!==preset)player.clear();
   selected=preset;serial++;lastTrigger=performance.now();
+  player.prefetch(entry.effects.map((effect,index)=>({effect,priority:160-index})));
   applyReviewContext(preset);
   if(entry.mode==='combat')player.present(eventsFor(preset),{state,front,eventKey:`review:${preset}:${serial}`});
   else player.presentCues(rawCuesFor(entry));
@@ -210,7 +211,7 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 
-createEffekseerBackend({renderer,document,baseUrl:authoredEffectBase(document),signal:abort.signal,budget:combatEffectBudget(0,mobile,false),effectDefinitions:REVIEW_AUTHORED_EFFECTS})
+createEffekseerBackend({renderer,document,baseUrl:authoredEffectBase(document),signal:abort.signal,budget:combatEffectBudget(0,mobile,false),effectDefinitions:REVIEW_AUTHORED_EFFECTS,streaming:true,fallbackEffects:['slash','impact'],maxResident:18})
   .then(backend=>{if(player.attach(backend)){q('fx-status').textContent=`実素材 ${REVIEW_REAL_EFFECT_COUNT}種 · 再生可能`;trigger('slash');}})
   .catch(error=>player.fail(error));
 window.addEventListener('pagehide',()=>{
