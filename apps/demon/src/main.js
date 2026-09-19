@@ -10,7 +10,7 @@ if (!document.querySelector('link[rel="manifest"]')) {
 // Catch module download/initialization errors before the game owns its loading UI.
 const boot = document.querySelector('#boot');
 const progress = document.querySelector('#boot-progress');
-let disposeCombatCamera=()=>{};
+let disposeCombatCamera=()=>{},titleIntroDeadline=0;
 try {
   progress.value = 1;
   await import('./runtime-scale-stack.js');
@@ -25,7 +25,10 @@ try {
   progress.value = 2;
   await game.boot();
   const {installTitleCinematic}=await import('./web/title-cinematic.js');
-  installTitleCinematic();
+  const titleCinematic=installTitleCinematic();
+  titleIntroDeadline=setTimeout(()=>{
+    if(titleCinematic?.snapshot?.().stage==='intro')void titleCinematic.enter({allowIntro:false});
+  },4800);
   // HuntFlowUi is the single owner of progression and next-action guidance.
   progress.value = 3;
 } catch (error) {
@@ -47,4 +50,4 @@ const disposeMusic=installMusicLibrary({
   trigger:'hidden',
   contextNote:'この画面では単独狩りを止めています。閉じると設定画面に戻ります。'
 });
-if(import.meta.hot)import.meta.hot.dispose(()=>{disposeCombatCamera?.();disposeMusic();});
+if(import.meta.hot)import.meta.hot.dispose(()=>{clearTimeout(titleIntroDeadline);disposeCombatCamera?.();disposeMusic();});

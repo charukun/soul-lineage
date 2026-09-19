@@ -5,6 +5,7 @@ export const UPGRADES = Object.freeze({
   heart: {name: '骨を鍛える', costs: [8, 16, 28, 44], effect: '基礎生命 +18'},
   stride: {name: '足を鍛える', costs: [8, 18, 32], effect: '移動速度 +7%'}
 });
+export const AUTO_GROWTH_THRESHOLDS = Object.freeze([8, 24, 48, 80, 120, 168]);
 export const MISSIONS = Object.freeze([
   {name: '最初の帰還', target: 'traveller', prey: '旅人', quota: 2, marked: false, bonus: 6, scale: 'small'},
   {name: '鐘を黙らせる', target: 'bellkeeper', prey: '鐘番', quota: 3, marked: true, bonus: 8, scale: 'small'},
@@ -23,12 +24,27 @@ export function readProgress(profile) {
   if (p === undefined) return freshProgress();
   const fail = () => {throw Error('帰還の記録を確認できません。保存データは上書きしていません。');};
   if (!p || p.version !== 1 || !integer(p.essence) || !integer(p.returns) || !integer(p.chapter, MISSIONS.length) || !integer(p.bestHaul) || !p.upgrades) fail();
+  if (p.autoGrowth !== undefined && typeof p.autoGrowth !== 'boolean') fail();
   for (const [key, value] of Object.entries(UPGRADES)) if (!integer(p.upgrades[key], value.costs.length)) fail();
   if (p.lastResult != null) {
     const r = p.lastResult;
     if (!r || !['escaped', 'completed', 'defeated', 'abandoned'].includes(r.status) || typeof r.extracted !== 'boolean' || typeof r.cleared !== 'boolean' || !integer(r.gained) || !integer(r.lost) || !integer(r.carried) || !integer(r.bonus) || !integer(r.eaten) || !integer(r.chapter, MISSIONS.length)) fail();
   }
   return p;
+}
+function legacyInvestment(progress) {
+  return Object.entries(UPGRADES).reduce((sum, [key, upgrade]) =>
+    sum + upgrade.costs.slice(0, progress.upgrades[key]).reduce((total, cost) => total + cost, 0), 0);
+}
+export function automaticGrowth(profile) {
+  const p = readProgress(profile), power = p.essence + legacyInvestment(p);
+  const active = p.autoGrowth !== false && p.returns > 0;
+  const stage = active ? AUTO_GROWTH_THRESHOLDS.filter(threshold => power >= threshold).length : 0;
+  const nextAt = active ? AUTO_GROWTH_THRESHOLDS[stage] ?? null : AUTO_GROWTH_THRESHOLDS[0];
+  return {
+    active, power, stage, nextAt, remaining: nextAt === null ? 0 : Math.max(0, nextAt - power),
+    hpBonus: stage * 12, tempoBonus: stage * .05, moveBonus: stage * 3.5
+  };
 }
 export function huntPlan(profile, route = 'mission') {
   const progress = readProgress(profile), chapter = progress.chapter;
@@ -51,17 +67,21 @@ export function growthFor(meals = 0, species = 'night-creature', profile = {}) {
   const n = Math.max(0, Math.min(24, Number(meals) || 0)), progress = n / 24;
   const large = ['horn-brute', 'grave-ogre'].includes(species), small = ['night-bat', 'goblin-runt'].includes(species);
   const start = large ? .74 : small ? .58 : .65, end = large ? 1.65 : small ? 1.18 : 1.45;
-  const rank = readProgress(profile).upgrades.stride;
+  const p = readProgress(profile), auto = automaticGrowth(profile);
+  const moveBonus = auto.active ? auto.moveBonus : p.upgrades.stride * 7;
   return {progress, scale: start + (end - start) * progress, hpScale: 1 + Math.min(n, 8) * .035,
-    powerScale: 1, moveScale: 1 + rank * .07 + Math.min(n, 6) * .012, clearance: .26 + progress * .24};
+    powerScale: 1, moveScale: 1 + moveBonus / 100 + Math.min(n, 6) * .012, clearance: .26 + progress * .24};
 }
 export function bodyStats(profile, meals = 0, species = 'night-creature') {
-  const u = readProgress(profile).upgrades, known = profile?.unlocked || [];
+  const p = readProgress(profile), u = p.upgrades, auto = automaticGrowth(profile), known = profile?.unlocked || [];
   const speciesHP = species === 'grave-ogre' ? 24 : species === 'horn-brute' ? 14 : species === 'night-bat' ? -12 : 0;
-  const baseHP = 120 + speciesHP + u.heart * 18 + (known.includes('smith') ? 35 : 0) + (profile?.form === 'brute' ? 20 : 0);
-  const tempo = Math.min(1.3, .88 + u.fang * .08 + Math.min(6, Math.max(0, meals)) * .025);
+  const permanentHp = auto.active ? auto.hpBonus : u.heart * 18;
+  const permanentTempo = auto.active ? auto.tempoBonus : u.fang * .08;
+  const moveBonus = auto.active ? auto.moveBonus : u.stride * 7;
+  const baseHP = 120 + speciesHP + permanentHp + (known.includes('smith') ? 35 : 0) + (profile?.form === 'brute' ? 20 : 0);
+  const tempo = Math.min(1.3, .88 + permanentTempo + Math.min(6, Math.max(0, meals)) * .025);
   return {baseHP, maxHP: Math.round(baseHP * growthFor(meals, species, profile).hpScale), tempo,
-    techniqueSpeed: Math.round(tempo / .88 * 100), moveBonus: u.stride * 7};
+    techniqueSpeed: Math.round(tempo / .88 * 100), moveBonus: Number(moveBonus.toFixed(1))};
 }
 export function upgradeQuote(profile, key) {
   if (!Object.hasOwn(UPGRADES, key)) throw Error('その強化はありません。');
@@ -72,7 +92,7 @@ export function buyUpgrade(profile, key) {
   const quote = upgradeQuote(profile, key);
   if (!quote.affordable) return false;
   const p = structuredClone(readProgress(profile));
-  p.essence -= quote.cost; p.upgrades[key]++;
+  p.essence -= quote.cost; p.upgrades[key]++; p.autoGrowth = false;
   profile[PROGRESS_KEY] = p;
   return true;
 }
@@ -89,6 +109,7 @@ export function settleProgress(profile, status, eaten, report) {
   const gained = extracted ? report.carried + bonus : 0;
   if (!integer(p.essence + gained) || !integer(p.returns + Number(extracted))) throw Error('帰還の記録が上限に達しました。');
   p.essence += gained; p.returns += Number(extracted);
+  if (extracted) p.autoGrowth = true;
   if (cleared) p.chapter = Math.min(MISSIONS.length, p.chapter + 1);
   p.bestHaul = Math.max(p.bestHaul, gained);
   p.lastResult = {status, extracted, cleared, gained, bonus, carried: report.carried, lost: extracted ? 0 : report.carried, eaten, chapter: p.chapter};
