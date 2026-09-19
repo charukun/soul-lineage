@@ -64,9 +64,9 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   const battleHtml=readFileSync(new URL('../review-battle.html',import.meta.url),'utf8');
   const monsterSource=readFileSync(new URL('../src/review-battle-monster.js',import.meta.url),'utf8');
   assert.match(battleSource,/enemyModel='skeleton-minion'/);
-  assert.match(stageSource,/loadReviewMonsterModel\('goblin-runt'\)/);
-  assert.match(stageSource,/loadReviewMonsterModel\('horn-brute'\)/);
-  assert.match(stageSource,/loadReviewMonsterModel\('maw-stalker'\)/);
+  assert.match(stageSource,/loadReviewMonsterModel\('skeleton-minion'\)/);
+  assert.match(stageSource,/loadReviewMonsterModel\('skeleton-warrior'\)/);
+  assert.match(stageSource,/loadReviewMonsterModel\('skeleton-rogue'\)/);
   assert.match(stageSource,/battleGeometry='runtime-monster-models'/);
   assert.doesNotMatch(stageSource,/ReviewMonsterSilhouette|installReviewEquipment\(side\.actor/);
   assert.match(monsterSource,/KayKit-Character-Pack-Skeletons-1\.0/);
@@ -93,5 +93,15 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleHtml,/\.stage>\.technique-loadout\{left:8px!important;right:auto!important;top:8px!important;bottom:auto!important/);
   assert.match(battleHtml,/\.controls\.review-surface__panel\{min-height:0!important;height:auto!important/);
   assert.match(battleHtml,/grid-template-columns:minmax\(0,1fr\) auto!important/);
+  assert.match(battleSource,/x:1\.9,z:0/);assert.match(battleSource,/x:-1\.9,z:0/);
+  assert.match(battleSource,/runtime\.input\?\.\(manualMove\.x,manualMove\.y,manualMove\.amount,0\)/);
+  assert.match(stageSource,/cameraOrbit=\(cameraOrbit\+step\*\.05\)/);
+  assert.match(stageSource,/rx=-dz\/len,rz=dx\/len/);
+  assert.match(stageSource,/zoomBy\(delta=0\)/);
+  assert.match(battleHtml,/id="camera-zoom-out"/);assert.match(battleHtml,/id="camera-zoom-in"/);
+  assert.doesNotMatch(battleHtml,/class="hud battle-vitals"/);
+  assert.match(battleHtml,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
+  assert.match(battleHtml,/-webkit-line-clamp:2!important/);
+  assert.match(battleHtml,/敵モデル<\/span><strong>スケルトン<\/strong>/);
   assert.match(stageSource,/onInspirationCue\('spark'/);
 });
