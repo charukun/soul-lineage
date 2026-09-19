@@ -189,10 +189,7 @@ function start() {
   }
   function resize() {
     const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
-    renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix();
-    if (motionQA?.active) motionQA.aim(motionQA.camera);
-    else if (review.ready && document.body.dataset.reviewMode === 'character') aim('front');
-    resetMeasure();
+    renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix(); if (motionQA?.active) motionQA.aim(motionQA.camera); resetMeasure();
   }
   const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
   const axis = new THREE.Vector3(0, 0, 1), pitch = new THREE.Vector3(1, 0, 0), quaternion = new THREE.Quaternion();
