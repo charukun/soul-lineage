@@ -2,7 +2,9 @@ function updateUI(){
  if(!hero)return;const hp=clamp(hero.hp/hero.maxHp,0,1);$('health-fill').style.width=(hp*100)+'%';$('hp-label').textContent=`${Math.ceil(hero.hp)} / ${Math.round(hero.maxHp)}`;$('kills').textContent=game.kills;$('timer').textContent=formatTime(game.time);$('burst-icon').style.setProperty('--energy',game.energy+'%');$('burst-text').textContent=`${Math.floor(game.energy)}% · 自動発動`;if(game.boss)$('boss-fill').style.width=(game.boss.hp/game.boss.maxHp*100)+'%';
 }
 function renderCamera(dt){
- if(!hero)return;intro+=dt;const isTitle=game.phase==='title';const desired=isTitle?new V(-2,.6,0):hero.pos.clone().multiplyScalar(.28).add(new V(0,.65,-.4));cameraTarget.lerp(desired,1-Math.exp(-dt*2.2));
+ if(!hero)return;intro+=dt;const isTitle=game.phase==='title';
+ const follow=W/H<.8?.9:.4;
+ const desired=isTitle?new V(-2,.6,0):hero.pos.clone().multiplyScalar(follow).add(new V(0,.65,-.4));cameraTarget.lerp(desired,1-Math.exp(-dt*3.4));
  const baseAngle=isTitle?.62+Math.sin(intro*.045)*.08:.65,approach=isTitle?1+Math.max(0,1-intro/7)*.32:1;
  camera.position.set(cameraTarget.x+Math.sin(baseAngle)*23*approach,cameraTarget.y+22*approach,cameraTarget.z+Math.cos(baseAngle)*23*approach);
  if(game.shake>0){camera.position.x+=Math.sin(clock*93)*game.shake;camera.position.y+=Math.cos(clock*84)*game.shake*.6;}
