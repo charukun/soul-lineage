@@ -102,7 +102,7 @@ body[data-review-mode="motion"] .workshop-qa-details{margin-top:6px}
 body[data-review-mode="motion"] .workshop-qa-details>summary{min-height:34px;padding:7px 2px;font-size:10px}
 
 @media(max-width:760px){
-  .review-app{grid-template-rows:minmax(0,64fr) minmax(0,36fr)!important}
+  .review-surface__workspace{grid-template-rows:minmax(0,64fr) minmax(0,36fr)!important}
   .stage-shell{grid-template-rows:42px minmax(0,1fr) 44px auto!important}
   .stage-actions{padding:2px 7px 3px}
   .stage-actions button{min-height:40px}
@@ -118,7 +118,7 @@ body[data-review-mode="motion"] .workshop-qa-details>summary{min-height:34px;pad
   .save-line{min-height:16px}
   .footer-actions button{min-height:40px}
   .load-indicator{top:54px;width:calc(100% - 24px);padding:9px 10px 8px}
-  body.simple-review .review-app{grid-template-rows:minmax(0,58fr) minmax(0,42fr)!important}
+  body.simple-review .review-surface__workspace{grid-template-rows:minmax(0,58fr) minmax(0,42fr)!important}
   body.simple-review .stage-shell{grid-template-rows:42px minmax(0,1fr) 32px auto!important}
   body.simple-review .editor-dock{grid-template-rows:minmax(0,1fr)!important}
   body.simple-review .review-controls{padding:0 9px calc(10px + env(safe-area-inset-bottom))}
@@ -140,10 +140,10 @@ body[data-review-mode="motion"] .workshop-qa-details>summary{min-height:34px;pad
 }
 
 @media(max-height:620px) and (orientation:portrait){
-  .review-app{grid-template-rows:minmax(0,61fr) minmax(0,39fr)!important}
+  .review-surface__workspace{grid-template-rows:minmax(0,61fr) minmax(0,39fr)!important}
   .stage-shell{grid-template-rows:38px minmax(0,1fr) 42px auto!important}
   .load-indicator{top:46px}
-  body.simple-review .review-app{grid-template-rows:minmax(0,56fr) minmax(0,44fr)!important}
+  body.simple-review .review-surface__workspace{grid-template-rows:minmax(0,56fr) minmax(0,44fr)!important}
   body.simple-review .stage-shell{grid-template-rows:38px minmax(0,1fr) 32px auto!important}
 }
 

@@ -66,10 +66,10 @@ body.simple-review.character-grid-ready .stage-actions { display:none!important;
 .character-review-tools [data-review-action="redo"]{color:#aeb8b3}
 .character-review-empty { font-size: 12px; color: var(--muted); padding: 12px 4px; }
 @media (max-width: 760px) {
-  body.simple-review.character-grid-ready .review-app { grid-template-rows:minmax(0,52fr) minmax(0,48fr)!important; }
+  body.simple-review.character-grid-ready .review-surface__workspace { grid-template-rows:minmax(0,52fr) minmax(0,48fr)!important; }
 }
 @media (orientation: landscape) and (max-height: 600px) {
-  body.simple-review.character-grid-ready .review-app { grid-template-columns: minmax(0, 1fr) minmax(320px, 46%); grid-template-rows: minmax(0, 1fr) !important; }
+  body.simple-review.character-grid-ready .review-surface__workspace { grid-template-columns: minmax(0, 1fr) minmax(320px, 46%); grid-template-rows: minmax(0, 1fr) !important; }
 }
 @media (max-height: 500px) {
   .character-review-picker { gap: 4px; padding-top: 4px; }
