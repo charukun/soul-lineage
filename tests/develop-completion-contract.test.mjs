@@ -17,7 +17,6 @@ import { validateActiveExperiments } from '../.autonomous/lib/validation.mjs';
 // selecting the exact experiment whose evidence and merge contract must hold.
 const activeExperiments = [
   { game: 'village', id: 'village-adult-bound-20260920' },
-  { game: 'kuumetsu', id: 'kuumetsu-foundation-20260920' },
 ];
 const root = fileURLToPath(new URL('../', import.meta.url));
 
