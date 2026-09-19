@@ -1,0 +1,53 @@
+name: Eclipse Exact Head Validation
+on:
+  push:
+    branches: [astra/eclipse-autobattle-20260919]
+    paths: ['apps/eclipse/**', '.github/workflows/eclipse-validation.yml']
+permissions:
+  contents: write
+jobs:
+  eclipse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_ENV: dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: astra/eclipse-autobattle-20260919
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Register independent workspace lockfile
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          if ! git diff --quiet -- package-lock.json; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add package-lock.json
+            git commit -m 'chore(eclipse): lock standalone workspace dependency'
+            git push origin HEAD:astra/eclipse-autobattle-20260919
+          fi
+          echo "ECLIPSE_HEAD_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - run: npm ci
+      - name: Validate exact checkout source
+        run: |
+          test "$(git rev-parse HEAD)" = "$ECLIPSE_HEAD_SHA"
+          node --test apps/eclipse/tests/*.test.mjs
+          find apps/eclipse/src -name '*.js' -print0 | xargs -0 -n 1 node --check
+          npm run build --workspace @soul/eclipse
+      - run: npx playwright install --with-deps chromium
+      - name: Real WebGL2 desktop and mobile browser playtest
+        run: node apps/eclipse/tools/verify-browser.mjs
+      - name: Preserve exact-head evidence and playable build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eclipse-validation-and-build
+          path: |
+            test-results/eclipse
+            dist/eclipse
+            apps/eclipse
+          retention-days: 7
+          compression-level: 6
