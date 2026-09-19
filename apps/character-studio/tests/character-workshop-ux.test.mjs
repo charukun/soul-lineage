@@ -101,6 +101,15 @@ test('character review retains the three source selections and extends the persi
   assert.match(characterGridCss, /\.character-review-grid\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
   assert.match(characterGridCss, /stage-actions > \[data-camera\]/);
   assert.match(characterGridCss, /border-radius:\s*999px/);
+  assert.match(characterGridCss, /grid-template-columns:repeat\(20,minmax\(0,1fr\)\)/);
+  assert.match(characterGridCss, /nth-child\(-n\+4\).*grid-column:span 5/);
+  assert.match(characterGridCss, /nth-child\(n\+5\).*grid-column:span 4/);
+  assert.match(characterGridCss, /CHARACTER PROBE/);
+  assert.match(characterGridCss, /minmax\(0,52fr\).*minmax\(0,48fr\)/);
+  assert.match(characterGrid, /function optionMark\(group, option\)/);
+  assert.match(characterGrid, /button\.dataset\.reviewAction = id/);
+  assert.match(characterGrid, /↶ 戻す/);
+  assert.match(characterGrid, /↷ やり直す/);
   assert.doesNotMatch(slotAuto, /move\(mountReviewGroup\(byId\('character-model-options'\)/);
   // The shared reusable deck and its layout contracts from develop remain intact.
   assert.match(slotPicker, /export function mountReviewGroupDeck/);
