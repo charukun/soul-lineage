@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { prepareRinneMotionLibrary } from '../../../scripts/prepare-rinne-motion-library.mjs';
-import { acquireMotionSource, verifySourceBytes } from '../../../scripts/audit-rinne-motion-sources.mjs';
-import { buildMotionReviewCatalog, classifyReviewMotion, filterMotionReviewCatalog } from '../src/review-motion-catalog.js';
-import { countSourceMotions, sourceMotionIdentity, safeMotionPath, motionFamilyKey } from '../src/review-motion-identity.js';
-import { motionCountLabel, validateMotionManifest } from '../src/review-motion-manifest.js';
+import { prepareRinneMotionLibrary } from '../prepare-rinne-motion-library.mjs';
+import { acquireMotionSource, verifySourceBytes } from '../audit-rinne-motion-sources.mjs';
+import { buildMotionReviewCatalog, classifyReviewMotion, filterMotionReviewCatalog } from '../../apps/rinne/src/review-motion-catalog.js';
+import { countSourceMotions, sourceMotionIdentity, safeMotionPath, motionFamilyKey } from '../../apps/rinne/src/review-motion-identity.js';
+import { motionCountLabel, validateMotionManifest } from '../../apps/rinne/src/review-motion-manifest.js';
 
-// This is an actual glTF/mixer/rig integration test, not a static catalog mock.
-// The final-head hosted runner acquires hash-pinned bytes and samples all rigs.
+// Cross-workspace acquisition/build integration belongs to the root harness.
+// The final-head hosted runner verifies real pinned glTF bytes and all rigs.
 const prepared = await prepareRinneMotionLibrary();
 const { manifest, registry, quality, baselineWarnings } = prepared;
 const catalog = buildMotionReviewCatalog(manifest.records);
@@ -107,10 +107,10 @@ test('every original embedded clip, including non-counted variants, remains sele
 
 test('viewer and workshop do not hardcode motion counts or remove the playback controls', async () => {
   const [viewer, workshop, html, entrypoint] = await Promise.all([
-    readFile(new URL('../src/review-motion.js', import.meta.url), 'utf8'),
-    readFile(new URL('../src/review-motion-workshop.js', import.meta.url), 'utf8'),
-    readFile(new URL('../review-motion.html', import.meta.url), 'utf8'),
-    readFile(new URL('../src/motion-review-entrypoint.js', import.meta.url), 'utf8')
+    readFile(new URL('../../apps/rinne/src/review-motion.js', import.meta.url), 'utf8'),
+    readFile(new URL('../../apps/rinne/src/review-motion-workshop.js', import.meta.url), 'utf8'),
+    readFile(new URL('../../apps/rinne/review-motion.html', import.meta.url), 'utf8'),
+    readFile(new URL('../../apps/rinne/src/motion-review-entrypoint.js', import.meta.url), 'utf8')
   ]);
   for (const text of [viewer, workshop, html]) assert.doesNotMatch(text, /MOTION CLIPS\s+\d+/);
   assert.match(viewer, /motionCountLabel\(catalog\)/); assert.match(workshop, /motionCountLabel\(manifest.records\)/);
