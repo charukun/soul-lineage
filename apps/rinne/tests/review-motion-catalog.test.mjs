@@ -37,6 +37,7 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
     assert.match(source.gitBlobSha,/^[0-9a-f]{40}$/);
     assert.ok(!source.path.includes('..')&&!source.path.startsWith('/'));
     if(source.discoverAtRuntime)assert.equal(source.family,'mesh2motion');
+    if(source.reviewModel){assert.equal(source.id,'mesh2motion-review-mannequin');assert.equal(source.family,'mesh2motion');}
   }
   const mesh2motionIds=MOTION_LIBRARY_SOURCES.filter(source=>source.discoverAtRuntime).map(source=>source.id);
   assert.deepEqual(mesh2motionIds,['mesh2motion-human-base','mesh2motion-human-addon','mesh2motion-human-mocap']);
@@ -48,6 +49,14 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
   const expanded=buildReviewMotionRegistry(clips,discovered);
   for(const id of mesh2motionIds)assert.ok(expanded.motions.some(row=>row.sourceId===id));
   assert.ok(expanded.addedSourceMotionCount>=4);
+});
+
+test('motion review has a pinned unequipped mannequin as its dedicated default review body',async()=>{
+  const source=MOTION_LIBRARY_SOURCES.find(row=>row.id==='mesh2motion-review-mannequin');
+  assert.ok(source?.reviewModel);assert.equal(source.path,'static/models/model-human.glb');assert.equal(source.license,'CC0-1.0');
+  const js=await readFile(new URL('../src/review-motion.js',import.meta.url),'utf8');
+  assert.match(js,/let selectedModel=MOTION_REVIEW_MODEL/);
+  assert.match(js,/loadMotionReviewModel\(model\.id\)/);
 });
 
 test('motion review recommendations stay bounded and presentation variants never increase source count',()=>{

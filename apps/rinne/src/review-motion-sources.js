@@ -456,6 +456,23 @@ export const MOTION_LIBRARY_SOURCES=freeze([
     "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
     "licenseEvidence": "https://github.com/Mesh2Motion/mesh2motion-app/blob/3ce7f9d97d25e608b4779ce797da343775ded62b/LICENSE-CC0.MD",
     "originalSource": "https://mesh2motion.org"
+  }),
+  source({
+    "id": "mesh2motion-review-mannequin",
+    "label": "Motion Review Mannequin",
+    "family": "mesh2motion",
+    "rig": "mesh2motion-human",
+    "repository": "Mesh2Motion/mesh2motion-app",
+    "revision": "3ce7f9d97d25e608b4779ce797da343775ded62b",
+    "path": "static/models/model-human.glb",
+    "gitBlobSha": "3a317288be44f7bfa1cdd978214ba8541b2af0c5",
+    "byteLength": 364868,
+    "reviewModel": true,
+    "author": "Mesh2Motion contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "licenseEvidence": "https://github.com/Mesh2Motion/mesh2motion-app/blob/3ce7f9d97d25e608b4779ce797da343775ded62b/LICENSE-CC0.MD",
+    "originalSource": "https://mesh2motion.org"
   })
 ]);
 

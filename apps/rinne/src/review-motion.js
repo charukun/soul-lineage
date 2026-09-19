@@ -6,7 +6,7 @@ import {kaykitHumanoidFromGLTF} from '@soul/rendering/kaykit-rig';
 import {captureMotionRest,applyNormalizedMotion} from '@soul/rendering/motion-quality';
 import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGORY_LABELS} from './review-motion-catalog.js';
 import {buildReviewMotionRegistry,motionRegistryCount} from './review-motion-registry.js';
-import {loadPinnedMotionSource,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
+import {loadPinnedMotionSource,loadMotionReviewModel,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import './review-motion-library.css';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 mountRinneReviewShell('motion');
@@ -34,7 +34,9 @@ ground.rotation.x=-Math.PI/2;ground.position.y=-.005;scene.add(ground);
 
 const loader=new GLTFLoader(),stage=new THREE.Group();scene.add(stage);
 let subject=null,targetScene=null,targetBones=null,targetRest=null,mixer=null,action=null,targetClips=[],registry=null,catalog=[],selected=null;
-let selectedModel=KAYKIT_MODELS[0],filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8;
+const MOTION_REVIEW_MODEL=Object.freeze({id:'mesh2motion-review-mannequin',label:'基準素体',reviewMannequin:true});
+const REVIEW_MODELS=Object.freeze([MOTION_REVIEW_MODEL,...KAYKIT_MODELS]);
+let selectedModel=MOTION_REVIEW_MODEL,filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8;
 let externalSource=null,externalSourceId='',externalTime=0,selectedDuration=0,selectSerial=0;
 const categoryOrder=['all','recommended','life','move','combat','reaction','other'];
 
@@ -105,7 +107,7 @@ async function selectMotion(record){
 }
 function renderModelGrid(){
   const grid=el('motion-model-grid');grid.replaceChildren();
-  for(const model of KAYKIT_MODELS){
+  for(const model of REVIEW_MODELS){
     const button=document.createElement('button');button.type='button';button.textContent=model.label;button.dataset.motionModel=model.id;
     button.setAttribute('aria-pressed',String(model.id===selectedModel.id));button.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(button);
   }
@@ -141,16 +143,22 @@ async function loadModel(model){
   const serial=++loadSerial,previousIdentity=selected?.sourceIdentity||'';selectedModel=model;renderModelGrid();status(model.label+' を読み込んでいます。');el('motion-load').removeAttribute('value');
   disposeSubject();selected=null;registry=null;catalog=[];selectedDuration=0;renderMotionGrid();
   try{
-    const gltf=await loader.loadAsync(model.runtime.url,onProgress=>{if(serial!==loadSerial)return;const total=Number(onProgress.total)||0,loaded=Number(onProgress.loaded)||0;if(total>0)el('motion-load').value=Math.min(1,loaded/total);});
+    let gltf,reviewBones=null;
+    if(model.reviewMannequin){
+      const loaded=await loadMotionReviewModel(model.id);gltf=loaded.gltf;reviewBones=loaded.bones;
+    }else{
+      gltf=await loader.loadAsync(model.runtime.url,onProgress=>{if(serial!==loadSerial)return;const total=Number(onProgress.total)||0,loaded=Number(onProgress.loaded)||0;if(total>0)el('motion-load').value=Math.min(1,loaded/total);});
+    }
     if(serial!==loadSerial){gltf.scene.traverse(node=>node.geometry?.dispose?.());return;}
-    if(!Array.isArray(gltf.animations)||!gltf.animations.length)throw new Error(model.label+' に埋め込みモーションがありません');
+    if(!model.reviewMannequin&&(!Array.isArray(gltf.animations)||!gltf.animations.length))throw new Error(model.label+' に埋め込みモーションがありません');
     const wrapper=new THREE.Group();wrapper.name='MotionReview:'+model.id;wrapper.add(gltf.scene);
     const box=new THREE.Box3().setFromObject(gltf.scene),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
     modelHeight=Math.max(.4,size.y);wrapper.position.set(-center.x,-box.min.y,-center.z);subject=wrapper;targetScene=gltf.scene;stage.add(subject);
-    targetClips=gltf.animations;targetBones=kaykitHumanoidFromGLTF(gltf);targetRest=captureMotionRest(targetBones,modelHeight);mixer=new THREE.AnimationMixer(gltf.scene);
+    targetClips=gltf.animations||[];targetBones=reviewBones||kaykitHumanoidFromGLTF(gltf);targetRest=captureMotionRest(targetBones,modelHeight);mixer=new THREE.AnimationMixer(gltf.scene);
     const legacy=el('motion-legacy');if(legacy){legacy.replaceChildren(new Option('原版クリップを選択',''));targetClips.forEach((clip,index)=>legacy.add(new Option(clip.name,String(index))));}
     mixer.addEventListener('finished',()=>{playing=false;syncPlaybackUI();});
-    registry=buildReviewMotionRegistry(targetClips);catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
+    const baselineClips=targetClips.length?targetClips:[{name:'Idle_A',duration:1}];
+    registry=buildReviewMotionRegistry(baselineClips);catalog=buildMotionReviewCatalog(registry.motions.filter(row=>!model.reviewMannequin||!row.baseline),{perCategory:8});
     const same=catalog.find(row=>row.sourceIdentity===previousIdentity),firstRecommended=catalog.find(row=>row.recommended),first=same||firstRecommended||catalog[0];
     const count=motionRegistryCount(registry);canvas.dataset.motionSource='source-registry';canvas.dataset.motionCount=String(count);canvas.dataset.motionModel=model.id;
     el('motion-count-value').textContent=String(count);
@@ -158,9 +166,10 @@ async function loadModel(model){
     status('Mesh2Motion CC0ライブラリを取得しています。');
     const discovered=await discoverPinnedMotionLibraryClips();
     if(serial!==loadSerial)return;
-    registry=buildReviewMotionRegistry(targetClips,discovered);catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
+    registry=buildReviewMotionRegistry(baselineClips,discovered);catalog=buildMotionReviewCatalog(registry.motions.filter(row=>!model.reviewMannequin||!row.baseline),{perCategory:8});
     const expandedCount=motionRegistryCount(registry);canvas.dataset.motionCount=String(expandedCount);el('motion-count-value').textContent=String(expandedCount);
     renderMotionGrid();status('');
+    if(model.reviewMannequin&&!selected){const firstExternal=catalog.find(row=>row.runtime.kind==='pinned-motion-source');if(firstExternal)await selectMotion(firstExternal);}
   }catch(error){el('motion-load').value=0;status('読込失敗: '+String(error?.message||error));canvas.dataset.motionSource='error';}
 }
 
