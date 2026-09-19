@@ -6,6 +6,7 @@ import {applyTidebreakPose,tidebreakFrameFromSnapshot} from './rebuild/tidebreak
 import {reviewBattleCameraFrame,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from './review-battle-state.js';
 import {REVIEW_MONSTER_MODELS,disposeReviewMonsterModel,loadReviewMonsterModel,updateReviewMonsterAnimation} from './review-battle-monster.js';
 import {REVIEW_INSPIRATION_TIMELINE,reviewInspirationSequenceFrame} from './review-battle-inspiration.js';
+import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 
 export const REVIEW_BATTLE_MODELS=REVIEW_MONSTER_MODELS;
 
@@ -162,13 +163,13 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     canvas.dataset.multiHit=multi.active?String(multi.count):'1';canvas.dataset.multiHitPhase=multi.active?multi.phase:'';
   }
 
-  let lastWidth=0,lastHeight=0,lastStatus='';
-  function resize(){
-    const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);
-    if(width===lastWidth&&height===lastHeight)return;lastWidth=width;lastHeight=height;
-    renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
-  }
-  const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
+  let lastStatus='';
+  const stageLifecycle=createReviewStageLifecycle({
+    canvas,
+    stage:canvas.closest('.review-surface__stage'),
+    onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();},
+    render:()=>renderer.render(scene,camera)
+  });
 
   // Keep the complete inspiration exchange readable on portrait phones after develop reconciliation.
   function inspirationCameraFrame(core){
@@ -219,7 +220,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   }
 
   function sync(core,dt=0,{followCamera=true,encounterMode:requestedMode='duel',cameraSystem='rinne'}={}){
-    setEncounterMode(requestedMode);resize();const now=performance.now()/1000;
+    setEncounterMode(requestedMode);stageLifecycle.refresh();const now=performance.now()/1000;
     if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);animateExtras(core,now,dt);}
     updateCamera(core,dt,followCamera,cameraSystem);
     const sequence=techniquePlayback?reviewInspirationSequenceFrame(now-techniquePlayback.startedAt):null,cinematic=Boolean(sequence&&sequence.stage!=='done');aura.visible=cinematic;inspirationFx.visible=cinematic;
@@ -253,6 +254,6 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     resetRound(){cameraOrbit=0;for(const side of Object.values(sides)){side.previous=null;side.presentation=null;side.hp=null;side.hitUntil=0;}},
     sync,
     snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',encounterMode});},
-    dispose(){observer.disconnect();clearExtras();if(sides.hero.actor)heroPool.despawn(sides.hero.actorId);protagonistRuntime.dispose();for(const monster of [monsterEnemy,monsterFlankA,monsterFlankB])disposeReviewMonsterModel(monster);ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}renderer.dispose();}
+    dispose(){stageLifecycle.destroy();clearExtras();if(sides.hero.actor)heroPool.despawn(sides.hero.actorId);protagonistRuntime.dispose();for(const monster of [monsterEnemy,monsterFlankA,monsterFlankB])disposeReviewMonsterModel(monster);ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}renderer.dispose();}
   });
 }

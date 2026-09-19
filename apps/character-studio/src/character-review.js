@@ -7,6 +7,7 @@ import { createShinoProductionPool as createCharacterProductionPool } from '@sou
 import { kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
 import { reviewSettings, createReviewCohort, editReviewCharacter, serializeReviewSession, deserializeReviewSession,
   reviewGlbDocument, MAX_MODEL_BYTES, MAX_SESSION_BYTES } from './character-review-state.js';
+import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 
 const el = id => document.getElementById(id);
 const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null };
@@ -69,6 +70,14 @@ async function kaykitReviewRig(gltf) {
     expressions: [],
     springs: [],
     warnings: ['KayKit Rig_Medium / CC0-1.0 foundation']
+  });
+}
+
+function createCharacterStageLifecycle({canvas,renderer,camera,scene,onResize}) {
+  return createReviewStageLifecycle({
+    canvas, stage: canvas.closest('.review-surface__stage') || canvas.parentElement,
+    onResize: ({width,height,aspect}) => { renderer.setSize(width,height,false); camera.aspect=aspect; camera.updateProjectionMatrix(); onResize(); },
+    render: () => renderer.render(scene,camera)
   });
 }
 
@@ -188,14 +197,9 @@ function start() {
     }
     camera.lookAt(orbit.target); orbit.update(); resetMeasure();
   }
-  function resize() {
-    const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
-    renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix();
-    if (motionQA?.active) motionQA.aim(motionQA.camera);
-    else if (review.ready && document.body.dataset.reviewMode === 'character') aim(cameraPreset);
-    resetMeasure();
-  }
-  const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
+  const stageLifecycle = createCharacterStageLifecycle({canvas,renderer,camera,scene,onResize:()=>{
+    if (motionQA?.active) motionQA.aim(motionQA.camera); else if (review.ready && document.body.dataset.reviewMode === 'character') aim(cameraPreset); resetMeasure();
+  }});
   const axis = new THREE.Vector3(0, 0, 1), pitch = new THREE.Vector3(1, 0, 0), quaternion = new THREE.Quaternion();
   function pose(bones, t) {
     bones.leftUpperArm.quaternion.multiply(quaternion.setFromAxisAngle(axis, -1.25));
@@ -365,7 +369,7 @@ function start() {
   motionQA = createWorkshopMotionQA({ review, scene, camera, orbit, canvas, refresh: refreshLooks, draw: () => renderer.render(scene, camera) });
   review.motionQA = motionQA;
   function dispose() {
-    if (!alive) return; alive = false; review.ready = false; cancelAnimationFrame(frameId); events.abort(); observer.disconnect(); orbit.dispose();
+    if (!alive) return; alive = false; review.ready = false; cancelAnimationFrame(frameId); events.abort(); stageLifecycle.destroy(); orbit.dispose();
     motionQA?.dispose(); pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
   }
   on(window, 'pagehide', event => { if (!event.persisted) dispose(); else suspend(); });
