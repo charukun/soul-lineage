@@ -3,13 +3,13 @@
 The normal develop lane is:
 
 ```text
-implemented work-branch head
-  -> exact-head focused validation
+implementation on Draft PR
   -> current develop reconciliation
-  -> focused revalidation on reconciled exact head
+  -> arm one final-head validation with Astra-Validate: <head SHA>
+  -> final reconciled head passes
   -> freshness verification
   -> Ready
-  -> same-task exact-head merge to develop
+  -> same-task merge to develop
   -> asynchronous DEV publication
 ```
 
@@ -17,19 +17,29 @@ implemented work-branch head
 
 Immediately before merge, confirm:
 
-- PR is open, non-Draft, same repository, base=`develop`
+- PR is open, same repository, base=`develop`
 - no explicit hold / manual-merge marker / unresolved blocking dependency
-- current `develop` is included in the validated work head
-- affected focused validation passed on that reconciled exact head in a real repository checkout
-- PR head still equals the validated exact head
+- current `develop` is included in the work head
+- the final reconciled PR head has one successful merge-owning validation from a real repository checkout
+- PR head still equals the head named by the `Astra-Validate: <head SHA>` marker
 - `develop` did not advance after freshness verification
 
-If head or `develop` moved, reconcile and revalidate instead of merging stale work.
+If head or `develop` moved, reconcile first, update the marker to the new final head, and validate that head once. Never wait on, retry, or report superseded runs unless they expose a real defect that still exists in the current head.
 
-For Chat execution, GitHub Connector may construct the work-branch commit, while the `Astra Work Validation` GitHub Actions hosted runner provides the normal exact-head checkout used for focused validation. Connector / Code Mode inspection alone is not merge evidence.
+## Explicit validation arming
 
-Ready is a transient state. The same-task worker merges the exact validated PR head to `develop`; normal success is `MERGED_TO_DEVELOP`.
+`Astra Work Validation` is not started for every branch push.
 
-Ordinary CI, browser verification, and DEV publication are not waiting stages after Ready. DEV publication starts from the merged `develop` push and is asynchronous.
+Keep the PR Draft while implementing and reconciling. When the branch is ready for its merge-owning check, edit the PR body to include:
+
+```text
+Astra-Validate: <current PR head SHA>
+```
+
+The PR-body edit is the trigger. This prevents small implementation commits from repeatedly cancelling and restarting the merge gate.
+
+After the exact final head succeeds, mark Ready and merge immediately. Ready is transient, not a stopping point.
+
+Ordinary CI, browser verification not explicitly requested, and DEV publication are not waiting stages after merge. The `develop` push starts DEV publication asynchronously.
 
 `main` / Production keeps its existing blocking quality gates and requires explicit permission.
