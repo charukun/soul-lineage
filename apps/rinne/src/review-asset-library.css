@@ -91,7 +91,7 @@ button{touch-action:manipulation}
 .asset-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
 .asset-section-head h2{margin:3px 0 0;font-size:13px}
 .asset-section-head>small{color:#7f8c86;font-size:9px}
-.model-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.model-options{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
 .model-options button{
   min-width:0;min-height:42px;padding:7px 8px;border:1px solid #35413c;border-radius:10px;
   background:#101715;color:#d6ddd9;font-size:10px;font-weight:700;
@@ -119,7 +119,7 @@ button{touch-action:manipulation}
 .asset-candidate-head span{color:#b9c3bd;font-size:9px;font-weight:750}
 .asset-candidate-head small{color:#718078;font-size:8px}
 .asset-equipment-options{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding-bottom:2px;
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding-bottom:2px;
 }
 .asset-equipment-options button{
   min-width:0;min-height:46px;padding:6px 7px;border:1px solid #35413c;border-radius:10px;
@@ -160,6 +160,5 @@ button:focus-visible,.review-lab-back:focus-visible{outline:2px solid #e2cd95;ou
   .asset-view-group{grid-template-columns:32px minmax(0,1fr);gap:4px}
   .asset-camera-strip button,.asset-focus-strip button{min-height:29px;padding:3px 2px;font-size:8px}
   .asset-check-grid{grid-template-columns:1fr 1fr}
-  .model-options,.asset-equipment-options{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}

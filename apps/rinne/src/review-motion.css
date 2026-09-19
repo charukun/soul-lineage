@@ -64,12 +64,11 @@ button,select{font:inherit;color:inherit}
   .motion-timeline output{grid-column:2/3;grid-row:2;text-align:center}
   .motion-camera-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
   .motion-camera-strip .camera-focus{grid-column:1/-1;justify-self:end;width:92px}
-  .motion-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+  .motion-grid{gap:4px}
   .motion-grid button{min-height:50px;padding:5px 3px;font-size:8px}
 }
 @media(max-width:380px){
   .motion-playback{grid-template-columns:40px 1fr auto}
   .loop-toggle{grid-column:1/-1;justify-self:end}
-  .motion-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}

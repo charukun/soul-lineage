@@ -45,6 +45,8 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
   assert.match(css,/\.motion-grid button\{[^}]*background:#101614/);
   assert.match(css,/\.motion-grid button\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
   assert.match(css,/\.motion-camera-strip button\{[^}]*border-radius:999px/);
+  assert.match(css,/\.motion-grid\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(css,/@media[\s\S]*?\.motion-grid\{[^}]*grid-template-columns/);
   assert.match(js,/new THREE\.AnimationMixer/);assert.match(js,/KAYKIT_MODELS/);assert.match(js,/buildMotionReviewCatalog/);
   assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='source-registry'/);
 });
@@ -69,6 +71,9 @@ test('equipment review follows the Visual Review Lab probe language and exposes 
   assert.match(css,/\.asset-stage-shell\{[^}]*border-radius:14px/);
   assert.match(css,/\.asset-catalog\{[^}]*border-radius:14px/);
   assert.match(css,/\.review-lab-back\{[^}]*border-radius:999px/);
+  assert.match(css,/\.model-options\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(css,/\.asset-equipment-options\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(css,/@media[\s\S]*?(?:\.model-options|\.asset-equipment-options)\{[^}]*grid-template-columns/);
 });
 test('world-object review loads the exact RINNE runtime props independently of equipment',async()=>{
   const [html,css,js]=await Promise.all([read('review-objects.html'),read('src/review-object-library.css'),read('src/review-object-library.js')]);
@@ -80,6 +85,8 @@ test('world-object review loads the exact RINNE runtime props independently of e
   assert.match(js,/new GLTFLoader/);
   assert.match(js,/RINNE runtime asset/);
   assert.match(css,/\.object-options button\[aria-pressed="true"\]/);
+  assert.match(css,/\.object-options\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(css,/@media[\s\S]*?\.object-options\{[^}]*grid-template-columns/);
 });
 
 test('Battle review exposes model and encounter switching and shares live combat camera contracts',async()=>{
