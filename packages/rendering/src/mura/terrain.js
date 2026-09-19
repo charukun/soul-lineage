@@ -74,8 +74,10 @@ const view={scene,outside,getProp},UP=new T.Vector3(0,1,0);
  view.flowerMeshes=[];for(const part of view.getProp('flowers').children){const ins=new T.InstancedMesh(part.geometry,part.material,patches.length),m=new T.Matrix4();patches.forEach((o,i)=>{m.makeScale(o.s,o.s,o.s);m.setPosition(o.x,0,o.z);ins.setMatrixAt(i,m);});ins.receiveShadow=true;ins.userData.forestItems=patches.map(o=>({...o,yaw:0}));view.flowerMeshes.push(ins);view.outside.add(ins);}
 
  view.landmarks=new T.Group();view.outside.add(view.landmarks);
- for(const site of TERRAIN_SITES){if(!['wetland','rock','fertile'].includes(site.kind))continue;
-  const patch=new T.Mesh(new T.CircleGeometry(site.r,48),new T.MeshStandardMaterial({color:site.kind==='wetland'?0x8d8b6b:site.kind==='rock'?0x9b9f88:0xb6bd84,roughness:1,transparent:true,opacity:site.kind==='fertile'?.32:.44,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}));patch.rotation.x=-Math.PI/2;patch.position.set(site.x,.018,site.z);view.landmarks.add(patch);
+ // Terrain suitability is communicated through natural scenery. The filled
+ // debug-like site circles stay hidden during normal play; placement mode
+ // uses showTerrainHints() rings instead.
+ for(const site of TERRAIN_SITES){
   if(site.kind==='rock')for(let i=0;i<7;i++){const n=view.getProp('terrainRock').clone(),a=i*2.4,r=site.r*(.15+rand(i+site.x)*.55);n.position.set(site.x+Math.cos(a)*r,0,site.z+Math.sin(a)*r);n.scale.setScalar(.9+rand(i+site.z));view.landmarks.add(n);}
  }
  view.hintGroup=new T.Group();view.scene.add(view.hintGroup);
