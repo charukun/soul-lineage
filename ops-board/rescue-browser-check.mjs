@@ -31,9 +31,10 @@ const openDisclosure=async key=>{
 };
 try{
   await page.goto(base);
-  await page.waitForSelector('#overview-task-card');
+  await page.waitForSelector('#rapid-active');
   assert.equal(await page.locator('#tasks-section').getAttribute('open'),null);
-  await page.locator('#overview-task-card').click();
+  await page.locator('#rapid-active .rapid-detail-link').click();
+  assert.equal(await page.locator('#tasks-section').getAttribute('open'),'');
   await openDisclosure('section:rescue');
   await page.waitForSelector('.rs-summary');
   assert.match(await page.locator('#rescue-section > summary').innerText(),/自動統合と修復/);
