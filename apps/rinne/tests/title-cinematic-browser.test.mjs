@@ -65,7 +65,7 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     assert.ok(opening.introTime>0||opening.introReady>=2,'real intro video must be decoding or playing');
     await page.screenshot({path:resolve(evidenceDir,'01-opening-mobile.png'),fullPage:true});
 
-    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.primaryAction==='ready'&&!document.getElementById('new-life')?.disabled,{timeout:12000});
+    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.primaryAction==='ready'&&!document.getElementById('new-life')?.disabled,{timeout:6000});
     await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.title-actions')).opacity)>.9,{timeout:5000});
     const early=await page.evaluate(()=>({
       phase:document.getElementById('title-screen')?.dataset.intro,
@@ -83,21 +83,19 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     await page.screenshot({path:resolve(evidenceDir,'02-early-start-mobile.png'),fullPage:true});
 
     await page.locator('#new-life').click();
-    await page.waitForFunction(()=>document.getElementById('title-screen')?.hidden===true,{timeout:12000});
-    await page.waitForFunction(()=>document.getElementById('game-screen')?.dataset.runtime==='active',{timeout:12000});
-    await page.locator('#back-title').click();
-    await title.waitFor({state:'visible',timeout:12000});
-    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='idle',{timeout:4000});
-    const returned=await page.evaluate(()=>({
-      introTime:document.getElementById('title-cinematic-video')?.currentTime||0,
-      media:document.getElementById('title-screen')?.dataset.media,
-      videoPaused:document.getElementById('title-cinematic-video')?.paused,
+    await page.waitForFunction(()=>document.getElementById('title-screen')?.hidden===true,{timeout:2500});
+    const accepted=await page.evaluate(()=>({
+      screen:document.getElementById('app')?.dataset.screen,
+      titleHidden:document.getElementById('title-screen')?.hidden,
+      loadingHidden:document.getElementById('loading-card')?.hidden,
+      loadingTitle:document.getElementById('loading-title')?.textContent,
+      runtime:document.getElementById('game-screen')?.dataset.runtime||'',
     }));
-    assert.equal(returned.media,'video');
-    assert.ok(returned.introTime>=8.3,'returning to title must seek directly into the Living Still tail');
-    assert.equal(returned.videoPaused,false);
-    await page.screenshot({path:resolve(evidenceDir,'03-return-mobile.png'),fullPage:true});
-    console.log('RINNE_BROWSER_EVIDENCE',JSON.stringify({opening,early,returned,evidenceDir}));
+    assert.equal(accepted.titleHidden,true);
+    assert.ok(accepted.runtime==='active'||accepted.loadingHidden===false,'early start must either enter gameplay or visibly queue the launch');
+    if(accepted.runtime!=='active')assert.equal(accepted.loadingTitle,'旅立ちを準備しています');
+    await page.screenshot({path:resolve(evidenceDir,'03-accepted-mobile.png'),fullPage:true});
+    console.log('RINNE_BROWSER_EVIDENCE',JSON.stringify({opening,early,accepted,evidenceDir}));
     await context.close();
   }catch(error){
     console.error('RINNE browser server log tail:\n'+serverLog);

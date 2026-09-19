@@ -5,9 +5,9 @@ export function createTitleCinematicController(options){
 }
 
 class TitleCinematicController{
-  constructor({title,video,motionToggle,motionKey,getPrepared=()=>null,resetParallax=()=>{}}){
+  constructor({title,video,motionToggle,motionKey,getPrepared=()=>null,resetParallax=()=>{},onPrimaryActionReady=()=>{}}){
     this.title=title;this.video=video;this.motionToggle=motionToggle;this.motionKey=motionKey;
-    this.getPrepared=getPrepared;this.resetParallax=resetParallax;
+    this.getPrepared=getPrepared;this.resetParallax=resetParallax;this.onPrimaryActionReady=onPrimaryActionReady;
     this.reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)');
     this.introPlayed=false;this.introSettled=false;this.mediaFailed=false;this.disposed=false;
     this.timers=[];this.frameRequest=0;this.pendingSeek=null;this.transitionHandler=null;
@@ -48,7 +48,8 @@ class TitleCinematicController{
     else this.video.pause();
   }
   unlockPrimaryAction(){
-    if(!this.title.hidden)this.title.dataset.primaryAction='ready';
+    if(this.title.hidden)return;
+    this.title.dataset.primaryAction='ready';this.onPrimaryActionReady();
   }
   settleUi(){
     if(this.title.hidden||this.title.dataset.intro==='settling'||this.title.dataset.intro==='idle')return;
