@@ -68,7 +68,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   renderer.setPixelRatio(Math.min(Number(globalThis.devicePixelRatio)||1,1.5));
 
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1110);scene.fog=new THREE.Fog(0x0b1110,10,24);
-  const camera=new THREE.PerspectiveCamera(43,1,.08,50);camera.position.set(0,5.2,10);
+  const camera=new THREE.PerspectiveCamera(43,1,.08,50);camera.position.set(0,5.2,10);const cinematicPosition=new THREE.Vector3(),cinematicLook=new THREE.Vector3();
   const cameraLook=new THREE.Vector3(0,.95,0),cameraTargetPosition=new THREE.Vector3(),cameraTargetLook=new THREE.Vector3();camera.lookAt(cameraLook);
   scene.add(new THREE.HemisphereLight(0xdde8e3,0x24302d,2.35));
   const key=new THREE.DirectionalLight(0xffedca,3.4);key.position.set(-4,7,5);scene.add(key);
@@ -141,10 +141,12 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     actor.root.position.set(worldX,0,worldZ);actor.root.rotation.y=yaw;
     if(sideKey==='hero')techniquePreview.offsetRoot(actor.root,yaw,time);
     actor.sample(side.appearance,time,(bones,sampleTime)=>{
-      addStride(bones,sampleTime,stride);
-      if(!frame?.attack)addGuardPose(bones,sideKey);
-      applyTidebreakPose(bones,frame);
+      const cinematic=techniquePreview.cinematic(time),forcedStagger=sideKey==='enemy'&&cinematic?.stagger;
+      if(!forcedStagger)addStride(bones,sampleTime,stride);
+      if(!frame?.attack&&!forcedStagger)addGuardPose(bones,sideKey);
+      if(!forcedStagger)applyTidebreakPose(bones,frame);
       if(sideKey==='hero')techniquePreview.applyPose(bones,time);
+      if(forcedStagger){if(bones.spine){bones.spine.rotation.x-=.22;bones.spine.rotation.z+=.11;}if(bones.head)bones.head.rotation.x+=.16;if(bones.leftUpperArm)bones.leftUpperArm.rotation.x+=.22;if(bones.rightUpperArm)bones.rightUpperArm.rotation.x+=.22;}
       if(time<side.hitUntil&&bones.spine)bones.spine.rotation.z+=(sideKey==='hero'?-1:1)*.13;
     });
     actor.updateAttachments();side.marker.position.set(worldX,.018,worldZ);
@@ -173,7 +175,8 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   function updateCamera(core,dt,followCamera,cameraSystem){
     const frame=reviewBattleCameraFrame(core,{follow:followCamera,system:cameraSystem,encounterMode});
     cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);
-    const step=Math.max(1/120,Math.min(.05,Number(dt)||1/60)),positionBlend=1-Math.exp(-step*(cameraSystem==='rinne'?5.6:8)),lookBlend=1-Math.exp(-step*(cameraSystem==='rinne'?7.2:8));
+    const cinematic=techniquePreview.cinematic(performance.now()/1000),hero=sides.hero.actor?.root;if(cinematic&&hero){const side=cinematic.phase==='kyu'?1.9:2.25,height=cinematic.phase==='kyu'?1.55:1.8,depth=cinematic.phase==='jo'?3.4:2.9;cinematicPosition.set(hero.position.x+side,height,hero.position.z+depth);cinematicLook.set(hero.position.x,.95,hero.position.z-.15);cameraTargetPosition.lerp(cinematicPosition,.82);cameraTargetLook.lerp(cinematicLook,.88);canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');}else canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic');
+    const step=Math.max(1/120,Math.min(.05,Number(dt)||1/60)),positionBlend=1-Math.exp(-step*(cinematic?12:cameraSystem==='rinne'?5.6:8)),lookBlend=1-Math.exp(-step*(cinematic?14:cameraSystem==='rinne'?7.2:8));
     camera.position.lerp(cameraTargetPosition,positionBlend);cameraLook.lerp(cameraTargetLook,lookBlend);camera.lookAt(cameraLook);
     canvas.dataset.cameraFollow=followCamera?'on':'off';canvas.dataset.cameraSystem=cameraSystem;
   }
