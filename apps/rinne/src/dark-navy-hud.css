@@ -55,13 +55,18 @@
   position:absolute!important;left:52px!important;top:1px!important;
   width:116px!important;height:45px!important;margin:0!important;padding:5px 11px!important;
   display:grid!important;grid-template-columns:auto auto!important;align-items:center!important;column-gap:8px!important;
-  border:1px solid #927347!important;border-bottom:3px solid #4d3b28!important;
+  border:2px solid #a0804f!important;border-bottom:6px solid #3e3021!important;
   border-radius:0!important;
-  clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px)!important;
+  clip-path:polygon(10px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 10px),calc(100% - 10px) 100%,7px 100%,0 calc(100% - 7px),0 9px)!important;
   background:
-    repeating-linear-gradient(104deg,rgba(255,255,255,.018) 0 1px,transparent 1px 7px),
-    linear-gradient(160deg,#5a4935,#2d2a24 65%,#181918)!important;
-  box-shadow:inset 0 1px rgba(255,239,202,.11),inset 0 -5px rgba(0,0,0,.2),0 3px 8px rgba(0,0,0,.28)!important;
+    linear-gradient(90deg,rgba(255,255,255,.08),transparent 18% 82%,rgba(0,0,0,.14)),
+    repeating-linear-gradient(102deg,rgba(255,255,255,.025) 0 1px,transparent 1px 7px),
+    linear-gradient(165deg,#715c40 0 9%,#433629 10% 68%,#211f1b 69% 100%)!important;
+  box-shadow:
+    inset 0 2px rgba(255,238,192,.18),
+    inset 0 -8px 12px rgba(0,0,0,.32),
+    0 2px 0 #b08b52,
+    0 7px 10px rgba(0,0,0,.38)!important;
 }
 .game-screen[data-gameplay-upgrade] .life-chip span{
   color:#d9b873!important;font-size:10px!important;letter-spacing:.04em!important;white-space:nowrap;
@@ -169,12 +174,17 @@
   left:50%!important;right:auto!important;bottom:max(8px,calc(env(safe-area-inset-bottom) + 5px))!important;
   transform:translateX(-50%)!important;width:min(282px,calc(100vw - 24px))!important;min-height:0!important;
   display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important;padding:6px 9px!important;
-  border:1px solid #745a3b!important;border-bottom:3px solid #392f24!important;border-radius:0!important;
-  clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px)!important;
+  border:2px solid #846741!important;border-bottom:7px solid #30271e!important;border-radius:0!important;
+  clip-path:polygon(14px 0,calc(100% - 14px) 0,100% 12px,calc(100% - 5px) 50%,100% calc(100% - 12px),calc(100% - 14px) 100%,14px 100%,0 calc(100% - 12px),5px 50%,0 12px)!important;
   background:
-    repeating-linear-gradient(104deg,rgba(255,255,255,.014) 0 1px,transparent 1px 8px),
-    linear-gradient(180deg,rgba(72,61,46,.92),rgba(29,29,25,.95))!important;
-  box-shadow:inset 0 1px rgba(255,240,207,.08),inset 0 -6px rgba(0,0,0,.2),0 5px 13px rgba(0,0,0,.3)!important;
+    linear-gradient(90deg,rgba(255,240,196,.07),transparent 14% 86%,rgba(0,0,0,.18)),
+    repeating-linear-gradient(102deg,rgba(255,255,255,.018) 0 1px,transparent 1px 8px),
+    linear-gradient(180deg,#66523d 0,#3d3429 34%,#24251f 76%,#171916 100%)!important;
+  box-shadow:
+    inset 0 2px rgba(255,238,198,.12),
+    inset 0 -9px rgba(0,0,0,.26),
+    0 2px 0 #a17d48,
+    0 9px 14px rgba(0,0,0,.4)!important;
   filter:none!important;
 }
 .rinne-bottom-controls::before,.rinne-bottom-controls::after{display:none!important;content:none!important}
@@ -183,14 +193,19 @@
 .rinne-bottom-controls .upgrade-control.is-technique,
 .rinne-bottom-controls .upgrade-control.is-body,
 .rinne-bottom-controls .upgrade-control.is-equipment{
-  width:56px!important;height:56px!important;min-width:56px!important;min-height:56px!important;margin:auto!important;padding:5px 2px 4px!important;
+  width:58px!important;height:58px!important;min-width:58px!important;min-height:58px!important;margin:auto!important;padding:5px 2px 5px!important;
   display:grid!important;place-content:center!important;gap:2px!important;
-  border:1px solid #8a754f!important;border-bottom:3px solid #4a3c2a!important;border-radius:50%!important;clip-path:none!important;
+  border:2px solid #a08452!important;border-bottom:6px solid #403425!important;border-radius:50%!important;clip-path:none!important;
   background:
-    radial-gradient(circle at 36% 28%,rgba(255,239,203,.13),transparent 28%),
-    linear-gradient(160deg,#625442,#2e302c 67%,#171a19)!important;
+    radial-gradient(circle at 38% 24%,rgba(255,245,214,.23) 0 8%,transparent 28%),
+    radial-gradient(circle at 50% 62%,rgba(0,0,0,.18),transparent 56%),
+    linear-gradient(160deg,#746149 0,#454139 48%,#252824 74%,#151715 100%)!important;
   color:#f5e6c5!important;
-  box-shadow:inset 0 1px rgba(255,245,215,.11),inset 0 -5px rgba(0,0,0,.25),0 3px 7px rgba(0,0,0,.28)!important;
+  box-shadow:
+    inset 0 2px rgba(255,247,219,.14),
+    inset 0 -8px 10px rgba(0,0,0,.3),
+    0 2px 0 #b18e58,
+    0 7px 9px rgba(0,0,0,.38)!important;
   filter:none!important;
 }
 .rinne-bottom-controls .upgrade-control::before{
@@ -266,13 +281,19 @@
   width:auto!important;max-width:540px!important;margin-inline:auto!important;
   height:auto!important;max-height:calc(100dvh - max(98px,calc(env(safe-area-inset-top) + 90px)) - max(82px,calc(env(safe-area-inset-bottom) + 78px)))!important;
   display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;
-  border:1px solid #9b7747!important;border-bottom:4px solid #4d3827!important;border-radius:0!important;
-  clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px)!important;
+  border:2px solid #a9834e!important;border-bottom:10px solid #3c2c20!important;border-radius:0!important;
+  clip-path:polygon(15px 0,calc(100% - 18px) 0,100% 14px,calc(100% - 5px) 50%,100% calc(100% - 14px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 14px),5px 50%,0 14px)!important;
   background:
-    repeating-linear-gradient(104deg,rgba(255,255,255,.014) 0 1px,transparent 1px 8px),
-    linear-gradient(160deg,#5b4b37,#282823 62%,#171918)!important;
+    linear-gradient(90deg,rgba(255,238,191,.06),transparent 11% 89%,rgba(0,0,0,.2)),
+    repeating-linear-gradient(102deg,rgba(255,255,255,.018) 0 1px,transparent 1px 8px),
+    linear-gradient(165deg,#715940 0 7%,#4e3e30 8% 24%,#2d2b25 56%,#171916 100%)!important;
   color:#f0dfbd!important;
-  box-shadow:inset 0 1px rgba(255,241,207,.11),inset 0 -10px 22px rgba(0,0,0,.24),0 18px 38px rgba(0,0,0,.46)!important;
+  box-shadow:
+    inset 0 2px rgba(255,239,199,.13),
+    inset 0 -16px 24px rgba(0,0,0,.3),
+    0 3px 0 #b08c55,
+    0 10px 0 #241c16,
+    0 22px 40px rgba(0,0,0,.52)!important;
   filter:none!important;overflow:hidden!important;
 }
 .rinne-gameplay-upgrade .upgrade-panel::before{
@@ -283,11 +304,14 @@
 .rinne-gameplay-upgrade .upgrade-panel>header{
   position:relative;z-index:2;min-height:52px!important;padding:11px 60px 9px 18px!important;
   display:flex!important;align-items:center!important;
-  border:0!important;border-bottom:1px solid #8c6a42!important;
+  border:0!important;border-bottom:5px solid #392c21!important;
   background:
-    radial-gradient(circle at 16% 0,rgba(255,226,162,.11),transparent 33%),
-    linear-gradient(180deg,#5a4936,#302b24)!important;
-  box-shadow:inset 0 1px rgba(255,242,210,.1),inset 0 -4px rgba(0,0,0,.16)!important;
+    radial-gradient(circle at 16% 0,rgba(255,226,162,.16),transparent 34%),
+    linear-gradient(180deg,#765c3e 0,#55402e 44%,#302a23 100%)!important;
+  box-shadow:
+    inset 0 2px rgba(255,244,208,.14),
+    inset 0 -6px rgba(0,0,0,.24),
+    0 2px 0 #a27b46!important;
 }
 .rinne-gameplay-upgrade .upgrade-panel>header::after{
   content:"";position:absolute;left:18px;right:62px;bottom:5px;height:1px;background:linear-gradient(90deg,#c39a57,transparent);opacity:.58;
@@ -302,13 +326,21 @@
 }
 .rinne-gameplay-upgrade .upgrade-panel>[data-body]{
   position:relative;z-index:1;min-height:0!important;
-  padding:10px 12px 12px!important;
+  margin:8px 9px 10px!important;padding:11px 12px 14px!important;
   overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;
   scrollbar-width:thin;scrollbar-color:#8f7047 rgba(41,36,29,.25);
+  border:2px solid #7e5a33!important;border-bottom:8px solid #3f2d20!important;
+  clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 8px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px)!important;
   background:
-    linear-gradient(rgba(255,250,232,.72),rgba(255,250,232,.72)),
-    repeating-linear-gradient(8deg,rgba(81,55,30,.05) 0 1px,transparent 1px 6px),
-    linear-gradient(180deg,#dbc394,#b99662)!important;
+    radial-gradient(circle at 22px 18px,rgba(111,70,31,.12) 0 3px,transparent 4px),
+    radial-gradient(circle at calc(100% - 22px) 18px,rgba(111,70,31,.12) 0 3px,transparent 4px),
+    repeating-linear-gradient(8deg,rgba(81,55,30,.045) 0 1px,transparent 1px 6px),
+    linear-gradient(180deg,#f1ddb0 0,#d7bb82 52%,#b7905c 100%)!important;
+  box-shadow:
+    inset 0 3px rgba(255,253,233,.65),
+    inset 0 -10px 18px rgba(88,54,27,.15),
+    0 3px 0 #a67d48,
+    0 8px 12px rgba(0,0,0,.28)!important;
   color:#392b20!important;
 }
 .upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]){transform:translateY(var(--loadout-sheet-drag,0px))!important}
@@ -319,17 +351,25 @@
 .game-screen[data-gameplay-upgrade] .rinne-gameplay-upgrade .upgrade-panel:is([data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot-row{
   display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
   gap:5px!important;margin:4px 0 7px!important;padding:5px!important;
-  border:1px solid rgba(94,63,34,.34)!important;
-  background:rgba(96,64,34,.08)!important;box-shadow:inset 0 1px rgba(255,252,229,.28)!important;
+  border:2px solid #87653e!important;border-bottom:5px solid #4b3827!important;
+  clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 6px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px)!important;
+  background:linear-gradient(180deg,#b38f5d,#7d6040)!important;
+  box-shadow:inset 0 2px rgba(255,232,188,.2),inset 0 -5px rgba(0,0,0,.16),0 3px 5px rgba(0,0,0,.18)!important;
 }
 .game-screen[data-gameplay-upgrade] .rinne-gameplay-upgrade .upgrade-panel .loadout-slot{
   min-width:0!important;min-height:58px!important;padding:6px!important;
-  border:1px solid #795b37!important;border-bottom:3px solid #4c3926!important;border-radius:0!important;
-  clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px)!important;
+  border:2px solid #8c6338!important;border-bottom:7px solid #493323!important;border-radius:0!important;
+  clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 7px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 7px)!important;
   background:
-    repeating-linear-gradient(8deg,rgba(76,52,29,.025) 0 1px,transparent 1px 5px),
-    linear-gradient(180deg,#ead8ad,#c6a771)!important;
-  color:#38291d!important;box-shadow:inset 0 2px rgba(255,250,224,.55),inset 0 -4px rgba(74,46,21,.12),0 2px 0 #5a4228!important;
+    radial-gradient(circle at 20% 16%,rgba(255,251,226,.42),transparent 24%),
+    repeating-linear-gradient(7deg,rgba(76,52,29,.035) 0 1px,transparent 1px 5px),
+    linear-gradient(180deg,#f2dfae 0,#d2ad6f 66%,#a77e4b 100%)!important;
+  color:#38291d!important;
+  box-shadow:
+    inset 0 3px rgba(255,251,226,.68),
+    inset 0 -8px 10px rgba(83,49,22,.16),
+    0 2px 0 #c09a61,
+    0 6px 8px rgba(0,0,0,.23)!important;
 }
 .game-screen[data-gameplay-upgrade] .rinne-gameplay-upgrade .upgrade-panel .loadout-slot>span{color:#76532e!important;font-size:8px!important}
 .game-screen[data-gameplay-upgrade] .rinne-gameplay-upgrade .upgrade-panel .loadout-slot>strong{color:#332319!important;font-size:12px!important}
@@ -458,4 +498,29 @@
 }
 @media(prefers-reduced-motion:reduce){
   .rinne-context-vitals,.rinne-bottom-controls .upgrade-control,.rinne-mind-balance,.rinne-gameplay-upgrade .upgrade-panel{transition:none!important;animation:none!important}
+}
+
+/* v6 physical-depth details: hardware, recessed wells, and lifted controls. */
+.rinne-gameplay-upgrade .upgrade-panel>header::before{
+  content:"";position:absolute;left:9px;top:50%;width:7px;height:7px;transform:translateY(-50%) rotate(45deg);
+  border:1px solid #cfaa65;background:linear-gradient(145deg,#e3c17c,#6f4f2c);box-shadow:inset 0 1px rgba(255,244,209,.4),0 1px 2px #0008;
+}
+.rinne-gameplay-upgrade .upgrade-panel>[data-body]::before{
+  content:"";position:sticky;display:block;top:0;z-index:3;height:5px;margin:-11px -12px 8px;
+  background:linear-gradient(180deg,rgba(70,43,23,.42),transparent);pointer-events:none;
+}
+.game-screen[data-gameplay-upgrade] .rinne-gameplay-upgrade .upgrade-panel .loadout-slot::after{
+  content:"";position:absolute;left:8px;right:8px;bottom:4px;height:2px;border-radius:50%;
+  background:rgba(75,45,22,.18);box-shadow:0 1px rgba(255,247,220,.25);pointer-events:none;
+}
+.game-screen[data-gameplay-upgrade] .rinne-gameplay-upgrade .upgrade-panel .loadout-grid-item>.skill-sigil{
+  filter:drop-shadow(0 4px 2px rgba(58,38,22,.28))!important;
+}
+.rinne-bottom-controls .upgrade-control::after{
+  content:"";position:absolute;left:12px;right:12px;bottom:7px;height:3px;border-radius:50%;
+  background:rgba(0,0,0,.28);filter:blur(1px);pointer-events:none;
+}
+.game-screen[data-gameplay-upgrade] .life-chip span::before{
+  content:"";display:inline-block;width:5px;height:5px;margin-right:5px;vertical-align:1px;
+  transform:rotate(45deg);border:1px solid #d4aa60;background:#705331;box-shadow:0 1px #0008;
 }
