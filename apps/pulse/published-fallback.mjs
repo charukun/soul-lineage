@@ -1,6 +1,6 @@
 import { buildApplications } from './applications.mjs';
 import { deploymentQueue, environmentDiff } from './model.mjs';
-import { GAME_ENVIRONMENTS } from '../scripts/application-catalog.mjs';
+import { GAME_ENVIRONMENTS } from '../../scripts/application-catalog.mjs';
 
 // GitHub history is optional for displaying independently published game releases.
 // Never turn a GitHub refresh error into a fake successful history refresh.

@@ -1,9 +1,9 @@
 export const STALE_DRAFT_MS = 12 * 60 * 60 * 1000;
 
 const TARGET_RULES = [
-  { id: 'portal', label: '公開リンク集', test: path => path.startsWith('portal/') || path === 'wrangler.portal.jsonc' || path === 'docs/PUBLIC_PORTAL.md' || path === '.github/workflows/portal.yml' || /^tests\/portal/.test(path) },
+  { id: 'portal', label: '公開リンク集', test: path => path.startsWith('apps/wayfinder/') || path === 'wrangler.portal.jsonc' || path === 'docs/PUBLIC_PORTAL.md' || path === '.github/workflows/portal.yml' || /^tests\/portal/.test(path) },
   { id: 'master-character', label: 'MasterCharacter', test: path => /apps\/rinne\/public\/simulator\//.test(path) || /MASTER_CHARACTER/i.test(path) || path.startsWith('packages/characters/') || /master-character/i.test(path) },
-  { id: 'character-review', label: 'キャラレビュー', test: path => /apps\/rinne\/(characters(?:-advanced)?\.html|src\/character-review)/.test(path) },
+  { id: 'character-review', label: 'キャラレビュー', test: path => /apps\/character-studio\//.test(path) },
   { id: 'village-rehearsal', label: '村連携リハーサル', test: path => /apps\/rinne\/village-rehearsal\.html/.test(path) || /apps\/rinne\/src\/village-/.test(path) },
   { id: 'audio', label: '音楽 / BGM', test: path => path.startsWith('packages/audio/') || path === 'packages/shared-ui/src/music.js' || /\b(bgm|music|audio)\b/i.test(path) },
   { id: 'tidebreak', label: 'Tidebreak / Lanternfell', test: path => path.startsWith('packages/tidebreak-combat/') || path.startsWith('packages/night-assets/') || /tidebreak|lanternfell/i.test(path) },
@@ -11,7 +11,7 @@ const TARGET_RULES = [
   { id: 'village', label: '村づくり', test: path => path.startsWith('apps/village/') },
   { id: 'demon', label: '魔物側', test: path => path.startsWith('apps/demon/') },
   { id: 'visual-review', label: 'Visual Review Lab', test: path => /visual[-_]review/i.test(path) },
-  { id: 'ops-board', label: '開発状況ボード', test: path => path.startsWith('ops-board/') || path === 'wrangler.ops.jsonc' || path === 'docs/OPS_BOARD.md' || /^tests\/ops-/.test(path) || path === '.github/workflows/ops-board.yml' },
+  { id: 'ops-board', label: '開発状況ボード', test: path => path.startsWith('apps/pulse/') || path === 'wrangler.ops.jsonc' || path === 'docs/OPS_BOARD.md' || /^tests\/ops-/.test(path) || path === '.github/workflows/ops-board.yml' },
   { id: 'shared', label: '共通基盤', test: path => /^(packages|assets|templates)\//.test(path) },
   { id: 'devops', label: '開発基盤', test: path => /^(\.github|scripts|tests|docs)\//.test(path) },
 ];
