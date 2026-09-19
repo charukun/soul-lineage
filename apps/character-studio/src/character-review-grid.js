@@ -75,6 +75,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const frameButton = doc.getElementById('frame-model');
   const subjectRow = doc.querySelector('.subject-row');
   const stageHead = doc.querySelector('.stage-head');
+  const canvasWrap = doc.querySelector('.canvas-wrap');
   for (const node of [doc.getElementById('camera-cycle'), doc.getElementById('pause'), actions?.querySelector('[data-camera="overview"]')].filter(Boolean)) {
     node.hidden = true;
     node.setAttribute('aria-hidden', 'true');
@@ -83,6 +84,10 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     frameButton.textContent = '全身';
     frameButton.title = 'モデル全体を表示';
     actions.append(frameButton);
+  }
+  if (actions && canvasWrap && !canvasWrap.contains(actions)) {
+    actions.classList.add('character-review-camera-dock');
+    canvasWrap.append(actions);
   }
   if (subjectRow && stageHead && !stageHead.contains(subjectRow)) {
     subjectRow.classList.add('character-review-pager');
@@ -109,7 +114,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const panel = make('section', 'character-review-candidates'); panel.id = 'character-review-candidates'; panel.setAttribute('role', 'tabpanel');
   const grid = make('div', 'character-review-grid'); grid.setAttribute('role', 'group'); grid.setAttribute('aria-labelledby', heading.id);
   const empty = make('p', 'character-review-empty', 'モデルを読み込んでいます。'); panel.append(grid, empty);
-  const tools = make('div', 'character-review-tools'); tools.setAttribute('aria-label', '比較と編集履歴');
+  const tools = make('div', 'character-review-tools'); tools.setAttribute('aria-label', 'レビュー操作');
   root.append(modelPicker, criteria, slots, heading, panel, tools); controls.prepend(root);
   const state = { active: 'individual', camera: 'front', framed: false, autoFit: true, queued: false, signature: '', modelSignature: '', groups: [] };
   const slotNodes = new Map();
@@ -136,7 +141,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     if (current < 0 || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
     event.preventDefault(); const next = gridFocusIndex(entries, current, event.key); activate(DETAIL_GROUPS[next][0], true);
   });
-  const actionNodes = ['original-preview', 'random-one', 'quality-mark', 'undo', 'redo'].map(id => {
+  const actionNodes = ['quality-mark'].map(id => {
     const source = doc.getElementById(id); if (!source) return null;
     const button = make('button', 'character-review-action'); button.type = 'button'; button.dataset.reviewAction = id;
     button.addEventListener('click', () => { if (!source.matches(':disabled')) source.click(); schedule(); });
@@ -208,13 +213,9 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     for (const { source, button, id } of actionNodes) {
       button.disabled = !ready || source.matches(':disabled');
       const comparing = source.getAttribute('aria-pressed') === 'true';
-      text(button, id === 'original-preview' ? comparing ? '編集に戻す' : '元と比較'
-        : id === 'random-one' ? '別候補'
-          : id === 'quality-mark' ? (source.getAttribute('aria-pressed') === 'true' ? '要修正を解除' : '要修正')
-          : id === 'undo' ? '↶ 戻す'
-            : id === 'redo' ? '↷ やり直す'
-              : source.textContent);
-      if (id === 'original-preview') attr(button, 'aria-pressed', comparing);
+      text(button, id === 'quality-mark'
+        ? (source.getAttribute('aria-pressed') === 'true' ? '要修正を解除' : '要修正')
+        : source.textContent);
     }
     for (const button of cameraButtons) attr(button, 'aria-pressed', button.dataset.camera === state.camera);
     if (!ready) state.framed = false;
