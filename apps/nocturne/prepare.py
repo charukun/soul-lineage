@@ -1,12 +1,12 @@
 """Download original third-party assets. No geometry is generated or modified."""
 from pathlib import Path
-import urllib.request, zipfile, io, json, struct, hashlib, re, time
+import urllib.request, zipfile, io, json, struct, hashlib, time
 ROOT = Path(__file__).parent
 OUT = ROOT / 'public'
 OUT.mkdir(parents=True, exist_ok=True)
 PACKS = [
  ('adventurers','Kay Lousberg','https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0','https://codeload.github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/zip/672074b73ba276876a19e8816ecdc5241817ab47'),
- ('skeletons','Kay Lousberg','https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0','https://codeload.github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0/zip/refs/heads/main'),
+ ('skeletons','Kay Lousberg','https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0','https://codeload.github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0/zip/15b62b9bad122f72926c10fb14d622c73819fa54'),
  ('nature','Kenney','https://kenney.nl/assets/nature-kit','https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip')
 ]
 manifest = {'license':'CC0-1.0','generatedModels':0,'packs':[],'models':{}}
@@ -43,7 +43,6 @@ for pack, creator, source, url in PACKS:
     ipath = str(Path(path).parent / img['uri'])
     target = dest.parent / img['uri']; target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(z.read(ipath))
   if pack != 'nature': print('CHARACTER',name,json.dumps(info),flush=True)
- # Keep upstream license text, never infer or replace it.
  licenses = [p for p in z.namelist() if 'license' in Path(p).name.lower() and not p.endswith('/')]
  if not licenses: raise RuntimeError('Missing upstream license: '+pack)
  text = z.read(licenses[0]).decode('utf-8-sig')
