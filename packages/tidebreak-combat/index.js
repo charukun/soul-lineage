@@ -3492,9 +3492,9 @@ for (const k of Object.keys(audio)) if(typeof audio[k]==='function') audio[k]=()
 prefs.sound=false;prefs.quality=0;showFX=false;world={colliders:[]};
 renderLog=()=>{};updateLiveUI=()=>{};syncPause=()=>{};floating=()=>{};
 
-let facadeImpactSerial=0,facadeLastImpact=null,facadeSlowRemaining=0,facadeSlowScale=1,facadeImpactContext=null,facadeHeroPassive=false;
+let facadeImpactSerial=0,facadeLastImpact=null,facadeStepImpacts=[],facadeSlowRemaining=0,facadeSlowScale=1,facadeImpactContext=null,facadeHeroPassive=false;
 const facadeOpponentModes=new Set(['duel','guard','evade','group','dummy']);
-function resetFacadeFeel(){facadeImpactSerial=0;facadeLastImpact=null;facadeSlowRemaining=0;facadeSlowScale=1;facadeImpactContext=null;}
+function resetFacadeFeel(){facadeImpactSerial=0;facadeLastImpact=null;facadeStepImpacts=[];facadeSlowRemaining=0;facadeSlowScale=1;facadeImpactContext=null;}
 function weaponSpecSnapshot(id){
  const w=WEAPONS[id];if(!w)return null;
  return Object.freeze({id,label:w.label,tip:w.tip,base:w.base,width:w.width,ideal:w.ideal,power:w.power,speed:w.speed,two:Boolean(w.two),fist:Boolean(w.fist)});
@@ -3502,8 +3502,9 @@ function weaponSpecSnapshot(id){
 function weaponSegmentSnapshot(a){
  const w=WEAPONS[a?.weapon]||WEAPONS.sword;
  try{
-  const sample=sampleWeapon(a,a?.attack?.t??null,a.x,a.z);
-  return Object.freeze({weapon:a.weapon,base:Object.freeze([...sample.a]),tip:Object.freeze([...sample.b]),radius:Number(sample.radius??w.width)||w.width,ideal:w.ideal,active:Boolean(sample.active)});
+  const sample=sampleWeapon(a,a?.attack?.t??null,a.x,a.z),pose=actorPose(a,a?.attack?.t??null,a.x,a.z),back={sword:-.26,great:-.45,axe:-.43,spear:-.69,katana:-.35}[a.weapon]??0;
+  const visualBase=a.weapon==='fist'?sample.a:tp(pose.sm,[0,back,0]),visualTip=sample.b;
+  return Object.freeze({weapon:a.weapon,base:Object.freeze([...sample.a]),tip:Object.freeze([...sample.b]),visualBase:Object.freeze([...visualBase]),visualTip:Object.freeze([...visualTip]),radius:Number(sample.radius??w.width)||w.width,ideal:w.ideal,active:Boolean(sample.active)});
  }catch{
   return Object.freeze({weapon:a?.weapon||'sword',base:Object.freeze([Number(a?.x)||0,.8,Number(a?.z)||0]),tip:Object.freeze([Number(a?.x)||0,1.6,Number(a?.z)||0]),radius:w.width,ideal:w.ideal,active:false});
  }
@@ -3521,9 +3522,10 @@ impactAt=function(x,y,z,yaw,power,guard){
  facadeLastImpact=Object.freeze({
   serial:++facadeImpactSerial,point:Object.freeze([x,y,z]),yaw,power:Number(power)||0,guard:Boolean(guard),heavy,
   sourceId:source?.id??null,targetId:target?.id??null,sourceHero:Boolean(source?.hero),targetHero:Boolean(target?.hero),
-  attack:attack?.kind??null,knockback:Object.freeze({x:Number(target?.kx)||0,z:Number(target?.kz)||0}),
+  attack:attack?.kind??null,knockback:Object.freeze({x:Number(target?.kx)||0,z:Number(target?.kz)||0}),sourceKick:Number(source?.contactKick)||0,
   freezeSeconds:freeze,slowSeconds,slowScale
  });
+ facadeStepImpacts.push(facadeLastImpact);if(facadeStepImpacts.length>8)facadeStepImpacts.shift();
  ports.onImpact?.(copy(facadeLastImpact));
 };
 const updateFacade=update;
@@ -3604,14 +3606,14 @@ function state(){
  const rows=enemies.map(snapshotActor);
  return {
   hero:snapshotActor(hero),enemy:rows[0]||null,enemies:rows,time,stats:copy(stats),contacts:copy(lastContacts),
-  impact:facadeLastImpact?copy(facadeLastImpact):null,
+  impact:facadeLastImpact?copy(facadeLastImpact):null,impacts:copy(facadeStepImpacts),
   feel:Object.freeze({hitstopRemaining:Number(hitstop)||0,slowRemaining:facadeSlowRemaining,slowScale:facadeSlowRemaining>0?facadeSlowScale:1}),
   done:hero.dead||rows.every(row=>row.dead)
  };
 }
 return {
  configure,
- step(dt=1/60){if(!hero.dead&&!enemies.every(e=>e.dead))update(dt);return state();},
+ step(dt=1/60){facadeStepImpacts=[];if(!hero.dead&&!enemies.every(e=>e.dead))update(dt);return state();},
  input(x,y,amount,cameraAngle=0){manual.dx=x;manual.dy=y;manual.amount=clamp(amount,0,1);camAngle=cameraAngle;},
  syncActors,
  state,
