@@ -100,12 +100,12 @@ test('character model review exposes review axes and preserves the full selectab
   assert.match(characterGrid, /option\.source\.click\(\)/);
   assert.match(characterGrid, /const grid = make\('div', 'character-review-grid'\)/);
   assert.match(characterGridCss, /\.character-review-grid\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
-  assert.match(characterGridCss, /stage-actions > \[data-camera\]/);
+  assert.match(characterGridCss, /character-review-camera-dock/);
   assert.match(characterGridCss, /border-radius:\s*999px/);
   assert.match(characterGridCss, /character-model-picker/);
   assert.match(characterGridCss, /character-model-list/);
   assert.doesNotMatch(characterGridCss, /grid-auto-flow:column/);
-  assert.match(characterGridCss, /character-model-list\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(characterGrid, /make\('select', 'character-model-list'\)/);
   assert.match(characterGridCss, /CHARACTER PROBE/);
   assert.match(characterGridCss, /minmax\(0,\s*56fr\).*minmax\(0,\s*44fr\)/);
   assert.match(characterGrid, /function optionMark\(group, option\)/);
@@ -127,9 +127,11 @@ test('character model review exposes review axes and preserves the full selectab
   assert.match(characterGridCss, /#retry:disabled\{display:none!important\}/);
   assert.doesNotMatch(characterGrid, /↶ 戻す/);
   assert.doesNotMatch(characterGrid, /↷ やり直す/);
-  assert.match(characterGrid, /canvasWrap\.append\(actions\)/);
+  assert.match(characterGrid, /canvasWrap\.append\(cameraDock\)/);
   assert.match(characterGridCss, /load-indicator\[data-state="error"\]\{display:none!important\}/);
   assert.match(entry, /自動生成/);
+  assert.match(characterGrid, /new Option\(option\.label, option\.key/);
+  assert.match(characterGridCss, /grid-template-rows:minmax\(0,52fr\) minmax\(0,48fr\)/);
   assert.doesNotMatch(slotAuto, /move\(mountReviewGroup\(byId\('character-model-options'\)/);
   // The shared reusable deck and its layout contracts from develop remain intact.
   assert.match(slotPicker, /export function mountReviewGroupDeck/);
