@@ -22,7 +22,7 @@ test('Lab separates review probes and keeps delivered runtime routes canonical',
   assert.match(source,/pointerenter'.*warmRoute/);assert.match(source,/touchstart'.*warmRoute/);
 });
 
-test('battle presentation 2 is a bare Nocturne autoplay render surface',()=>{
+test('battle presentation 2 runs the native Nocturne combat runtime with no review controls',()=>{
   const source=read('src/main.js'),page=read('battle2.html'),vite=read('vite.config.js');
   assert.match(source,/battle2:new URL\('\.\/battle2\.html',location\.href\)\.href/);
   assert.match(page,/data-review-surface="battle2"/);
