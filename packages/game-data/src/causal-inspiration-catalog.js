@@ -2,6 +2,13 @@ import { INSPIRATION_MOTION_IDS } from './inspiration-catalog.js';
 
 export const causalInspirationRevision = 'causal-inspiration-1';
 export const INSPIRATION_KINDS = Object.freeze({heart:'心',body:'体',technique:'技',link:'連',variant:'変'});
+export const INSPIRATION_NAME_GRADES = Object.freeze({normal:'',secret:'秘技',ultimate:'奥義'});
+export function inspirationTechniqueName(row){
+  if(!row)return '';
+  const base=String(row.name||'').replace(/[・･]{2,}/g,'・').replace(/^・|・$/g,'');
+  const grade=INSPIRATION_NAME_GRADES[row.nameGrade||'normal'];
+  return grade?`${grade}・${base}`:base;
+}
 export const INSPIRATION_QUESTIONS = Object.freeze({
   balance:'崩れた姿勢を戻したい', fatigue:'息を残して動きたい', opening:'相手の隙を見つけたい',
   close:'懐へ入られた時に応じたい', reach:'届かない間合いを解きたい', crowd:'囲まれても出口を作りたい',
@@ -12,11 +19,11 @@ export const INSPIRATION_QUESTIONS = Object.freeze({
 const step=(kind,footwork='stay',charge='none')=>Object.freeze({kind,footwork,charge});
 const define=row=>Object.freeze({
   weapons:[], windows:[], materials:[], phases:['jo','ha','kyu'], motifs:[], intent:{}, bodyAffinity:{},
-  effort:1, effects:{}, ...row,
+  effort:1, effects:{}, nameGrade:'normal', specialEffects:[], ...row,
   steps:Object.freeze(row.steps||[]),
   questions:Object.freeze(row.questions||[]), materials:Object.freeze((row.materials||[]).map(group=>Object.freeze(group))),
   windows:Object.freeze(row.windows||[]), weapons:Object.freeze(row.weapons||[]),
-  motifs:Object.freeze(row.motifs||[]), phases:Object.freeze(row.phases||['jo','ha','kyu']),
+  motifs:Object.freeze(row.motifs||[]), phases:Object.freeze(row.phases||['jo','ha','kyu']), specialEffects:Object.freeze(row.specialEffects||[]),
 });
 
 // Authored answers, not animation assets or loot. Acquisition belongs to the life domain.
@@ -78,11 +85,11 @@ export const CAUSAL_ANSWERS = Object.freeze([
     materials:[['handling'],['space','balance']],motifs:['space','return'],intent:{survival:.7,mobility:.3},space:'retreat',limbs:'twoArms',
     mechanic:'杖で進路を払い、構えへ戻りながら離れる。',tradeoff:'追撃を捨てて距離を優先する。',
     steps:[step('sweep','orbitR'),step('ready','retreat')],phases:['jo','ha']}),
-  define({id:'spark.spear.wedge',name:'潮返し・楔',kind:'variant',family:'spear.return',requiresFamily:'spear.return',weapons:['spear'],questions:['guard'],
+  define({id:'spark.spear.wedge',name:'楔返し',kind:'variant',family:'spear.return',requiresFamily:'spear.return',weapons:['spear'],questions:['guard'],
     materials:[['handling'],['precision','observation']],motifs:['return','precision'],intent:{counter:.5,spacing:.4},space:'side',limbs:'twoArms',
     mechanic:'引いて正面へ戻す代わりに外側へ踏み、突きの線を変える。',tradeoff:'正面から押し込む力は弱い。鎧の自動貫通ではない。',
     steps:[step('pommel','sideL'),step('pierce','orbitR')],phases:['ha','kyu']}),
-  define({id:'spark.great.wait',name:'支え落とし・待受',kind:'variant',family:'great.anchor',requiresFamily:'great.anchor',weapons:['great'],questions:['fatigue','opening'],
+  define({id:'spark.great.wait',name:'待受落とし',kind:'variant',family:'great.anchor',requiresFamily:'great.anchor',weapons:['great'],questions:['fatigue','opening'],
     materials:[['handling'],['patience','observation']],motifs:['wait','precision'],intent:{counter:.6,survival:.4},effort:.94,limbs:'twoArms',
     mechanic:'大きな踏み込みを止め、受けの後、その場へ刃を落とす。',tradeoff:'こちらから距離を詰めない。若い身体でも選べる。',
     steps:[step('guard'),step('heavy','stay')],phases:['jo','ha']}),
@@ -108,6 +115,8 @@ export function validateCausalAnswers(){
     if(ids.has(row.id)||!INSPIRATION_KINDS[row.kind]||!row.family||!row.mechanic||!row.tradeoff)throw Error(`Invalid causal answer: ${row.id}`);
     ids.add(row.id);const signature=answerSignature(row);if(signatures.has(signature))throw Error(`Cosmetic duplicate: ${row.id}`);signatures.add(signature);
     if(row.questions.some(q=>!INSPIRATION_QUESTIONS[q]))throw Error(`Unknown question: ${row.id}`);
+    if(!Object.hasOwn(INSPIRATION_NAME_GRADES,row.nameGrade)||/[・･].*[・･]/.test(row.name))throw Error(`Invalid technique name: ${row.id}`);
+    if(row.specialEffects.length&&!['secret','ultimate'].includes(row.nameGrade))throw Error(`Special technique requires title grade: ${row.id}`);
     if(row.steps.some(s=>!motions.has(s.kind)))throw Error(`Unregistered motion: ${row.id}`);
     if(row.steps.length>3||(!row.executor&&['technique','variant'].includes(row.kind)&&!row.steps.length))throw Error(`Missing execution: ${row.id}`);
   }

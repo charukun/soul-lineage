@@ -1,4 +1,4 @@
-import { CAUSAL_ANSWER_BY_ID, INSPIRATION_QUESTIONS } from '@soul/game-data';
+import { CAUSAL_ANSWER_BY_ID, INSPIRATION_QUESTIONS, inspirationTechniqueName } from '@soul/game-data';
 
 /** Persistence, migration and lineage compression are separate from live learning decisions. */
 export const INSPIRATION_VERSION=1;
@@ -54,7 +54,7 @@ export function validateInspiration(state){
   for(const trace of s.traces){if(!trace||typeof trace.id!=='string'||traceIds.has(trace.id)||!Array.isArray(trace.motifs)||trace.motifs.length>6||trace.motifs.some(m=>!MOTIFS.includes(m)))throw Error('経験の由来が不正です。');traceIds.add(trace.id);for(const key of ['id','kind','text','place','key','semanticKey','sourceId','sourceName','relation'])trace[key]=safe(trace[key]);finiteField(trace.age,0,100,'経験年齢');}
   for(const [id,row] of Object.entries(s.records)){
     const definition=answer(id);if(!definition||row?.answerId!==id||!Array.isArray(row.provenance)||row.provenance.length>6)throw Error('技の由来が不正です。');
-    boundedArray(row.contexts,INSPIRATION_LIMITS.contexts,'定着');row.contexts=unique(row.contexts.map(safe));row.name=safe(row.name).slice(0,24)||definition.name;
+    boundedArray(row.contexts,INSPIRATION_LIMITS.contexts,'定着');row.contexts=unique(row.contexts.map(safe));row.name=inspirationTechniqueName(definition);
     row.family=definition.family;row.kind=definition.kind;row.motifs=[...definition.motifs];row.archived=Boolean(row.archived);row.stable=Boolean(row.stable);finiteField(row.age,0,100,'会得年齢');
     row.provenance=row.provenance.map(p=>({type:safe(p.type),text:safe(p.text),traceId:safe(p.traceId),sourceLifeId:safe(p.sourceLifeId)}));
     if(row.combo)row.combo=Object.fromEntries(['jo','ha','kyu'].map(p=>[p,typeof row.combo[p]==='string'&&(BASIC.test(row.combo[p])||answer(row.combo[p]))?row.combo[p]:'basic.fist']));
@@ -68,5 +68,5 @@ export function validateInspiration(state){
 export function inspirationImprint(state){
   const s=ensureInspiration(state),weights=new Map();for(const r of Object.values(s.records)){const row=answer(r.answerId);if(!row)continue;for(const m of row.motifs)weights.set(m,Math.min(1,(weights.get(m)||0)+(r.stable?.4:.25)));}
   for(const motif of MOTIFS){const categories=unique(s.traces.filter(t=>t.motifs.includes(motif)).map(t=>t.kind));if(categories.length>1)weights.set(motif,Math.max(weights.get(motif)||0,Math.min(.45,categories.length*.15)));}
-  return {version:1,body:{...s.body},motifs:[...weights].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,5).map(([id,strength])=>({id,strength})),heritage:s.heritage.map(row=>({...row})),techniques:Object.values(s.records).map(r=>({id:r.answerId,name:r.name,family:r.family,kind:r.kind,age:r.age,stable:r.stable,origin:r.provenance.slice(0,2).map(p=>p.text)}))};
+  return {version:1,body:{...s.body},motifs:[...weights].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,5).map(([id,strength])=>({id,strength})),heritage:s.heritage.map(row=>({...row})),techniques:Object.values(s.records).map(r=>({id:r.answerId,name:inspirationTechniqueName(answer(r.answerId)),family:r.family,kind:r.kind,age:r.age,stable:r.stable,origin:r.provenance.slice(0,2).map(p=>p.text)}))};
 }
