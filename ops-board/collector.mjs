@@ -1,6 +1,6 @@
 import { API_HISTORY_PAGE_LIMIT, PAGES_ROOT, REPOSITORY, classifyPull, deploymentQueue, environmentDiff, overallIntegration, parseMergePulls, publishedCommit, reconcileIntegrationQueue, workflowFailure } from './model.mjs';
 import { splitPulls } from './pulls.mjs';
-import { buildApplications } from './applications.mjs';
+import { buildApplications, probeFastDevVersions } from './applications.mjs';
 import { createGithubClient } from './github-client.mjs';
 import { syncPullSnapshot } from './pull-snapshot.mjs';
 import { enrichTargets, actionProblems } from './review-model.mjs';
@@ -108,9 +108,10 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     if (developSha && client.scope !== 'public' && client.deepAllowed) {
       developStatusPayload = (await client.get(`/commits/${developSha}/status`, { maxAgeMs: 30_000 })).data;
     }
+    const liveDevVersions = await probeFastDevVersions({ fetchImpl });
     const previews = [];
     for (const candidate of previewCandidates(runs)) { const env = await previewEnvironment(candidate, branches, previous, client); if (env) previews.push(env); }
-    const applications = buildApplications(manifest, [dev, staging, prod, ...previews], runs, { developSha, statuses: developStatusPayload?.statuses || [] });
+    const applications = buildApplications(manifest, [dev, staging, prod, ...previews], runs, { developSha, statuses: developStatusPayload?.statuses || [], liveVersions: liveDevVersions });
 
     const integrationRescue = await collectRescue(client, previous?.integrationRescue);
     const plan = integrationRescue?.flowControl?.reconciliation || null;
@@ -149,7 +150,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
       githubFailure: null,
       pullSync: { mode: pullSync.mode, pages: pullSync.pages, complete: pullSync.complete, watermark: pullSync.watermark, fullAt: pullSync.fullAt },
       pullRequests: { ...pullRequests, total: allPulls.length, truncated: !pullSync.complete, targetLookup: { ready: targets.ready, pending: targets.pending, unavailable: targets.unavailable, attempted: targets.attempted } },
-      applications, applicationsUpdatedAt: now, applicationsSource: 'public-manifest', environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
+      applications, applicationsUpdatedAt: now, applicationsSource: 'per-app DEV status + live version probe + public manifest', environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
       integration: { ...integration, queue: integrationQueue, latestRun: runView(latestDevelopRun), deployWaiting: dev.deployQueue?.pulls || [],
         recovering: Boolean(recoveryFrom), recoveryFrom: runView(recoveryFrom), deliveryEstimate,
         watchdog: { reconciliationFresh: reconciled.fresh, reconciliationReason: reconciled.reason, actionableIdle: reconciled.actionableIdle,

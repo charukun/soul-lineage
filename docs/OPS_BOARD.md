@@ -13,7 +13,7 @@ PULSE自身の同期障害と、ゲーム・ツールの公開状態は別レイ
 | 情報 | 正本 |
 | --- | --- |
 | 管理対象アプリと分類 | `scripts/application-catalog.mjs` の `PULSE_SURFACES` |
-| DEV公開状態 | current develop SHA の GitHub commit status `dev/<deployApp>` |
+| DEV公開状態 | 各DEV Workerの `version.json` 実体確認 + current develop SHA の GitHub commit status `dev/<deployApp>` |
 | DEV公開URL | `scripts/distribution-targets.mjs` |
 | 作業キュー | GitHub の open develop PR |
 | CI / Actions失敗 | GitHub Actions |
@@ -38,11 +38,13 @@ WAYFINDERや専用previewは詳細情報として保持できますが、DEV App
 
 DEV状態は次の5種類だけです。
 
-- `success`: current develop SHA に `dev/<app>=success` がある
+- `success`: DEV Worker の `version.json` が正常で、app / environment / exact commit を確認できる
 - `deploying`: current develop SHA に `dev/<app>=pending` がある
 - `failed`: current develop SHA に `dev/<app>=failure|error` がある
-- `unknown`: current develop SHAのstatusを取得できない、またはstatusが存在しない
+- `unknown`: DEV実体を確認できず、進行中・失敗を示すcommit statusもない
 - `missing`: staging / Productionなど、正式公開定義そのものが存在しない
+
+Per-App DEV Publish は変更対象だけを公開するため、current develop SHA に未変更アプリの `dev/<app>` status が存在しないことは正常です。その場合は既に配信中の `version.json` を直接確認して `success` を維持します。逆に current develop の `pending / failure / error` は更新中・失敗の優先情報として扱います。
 
 `unknown` を `waiting / queued` と解釈してはいけません。QUEUED表示は実際のpending事実がある場合だけです。
 
@@ -69,7 +71,7 @@ PULSE snapshot、GitHub APIキャッシュ、control historyはDurable Objects�
 - ISSUES: 実際の失敗と人の確認が必要な項目
 - RECENT: merge、DEV公開、PULSE状態変化
 
-トップのApps Healthyは管理対象7件を母数とします。ゲーム3本だけを数えません。
+トップのApps Healthyは管理対象7件を母数とし、各DEV実体の `version.json` を確認できたアプリをHealthyとして数えます。ゲーム3本だけを数えません。
 
 ## 7. PULSE公開成功
 

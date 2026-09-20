@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildApplications } from '../ops-board/applications.mjs';
+import { buildApplications, probeFastDevVersions } from '../ops-board/applications.mjs';
 import { GAME_ENVIRONMENTS, INITIAL_ENVIRONMENT_APPS } from '../scripts/application-catalog.mjs';
 import { missingEnvironmentEntries, retainPinnedEntries } from '../scripts/environment-plan.mjs';
 
@@ -49,6 +49,57 @@ test('legacy Pages DEV entries never become active DEV links', () => {
     assert.equal(dev.url, 'https://soul-lineage-demon-dev.c-okamoto.workers.dev/');
   }
 });
+
+test('unaffected DEV apps stay healthy from their live version when current develop has no app status', () => {
+  const deployed = 'a'.repeat(40);
+  const current = 'b'.repeat(40);
+  const apps = buildApplications({}, [], [], {
+    developSha: current,
+    statuses: [],
+    liveVersions: [{ app:'demon', state:'success', commit:deployed, deployedAt:'2026-09-21T00:00:00Z' }],
+  });
+  const dev = target(apps.find(app => app.id === 'demon'), 'dev');
+  assert.equal(dev.state, 'success');
+  assert.equal(dev.commit, deployed);
+  assert.equal(dev.updateState, null);
+  assert.match(dev.note, /DEV実体を直接確認済み/);
+});
+
+test('current per-app pending or failure status overrides an older healthy live baseline', () => {
+  const live = [{ app:'demon', state:'success', commit:'a'.repeat(40), deployedAt:'2026-09-21T00:00:00Z' }];
+  for (const [statusState, expected] of [['pending','deploying'],['failure','failed']]) {
+    const apps = buildApplications({}, [], [], {
+      developSha:'b'.repeat(40),
+      statuses:[{ context:'dev/demon', state:statusState, updated_at:'2026-09-21T00:01:00Z' }],
+      liveVersions:live,
+    });
+    assert.equal(target(apps.find(app => app.id === 'demon'), 'dev').state, expected);
+  }
+});
+
+test('live DEV probe validates each version independently so one broken app cannot zero the board', async () => {
+  const sha = 'c'.repeat(40);
+  const rows = await probeFastDevVersions({
+    timeoutMs: 1000,
+    fetchImpl: async input => {
+      const url = new URL(input);
+      const host = url.hostname;
+      const app = host === 'rinne-ops.c-okamoto.workers.dev'
+        ? 'pulse'
+        : host.replace(/^soul-lineage-/, '').replace(/-dev\.c-okamoto\.workers\.dev$/, '');
+      if (app === 'review') return { ok:false, status:503, async json(){ return {}; } };
+      return {
+        ok:true, status:200,
+        async json(){ return { app, environment:'dev', commit:sha, builtAt:'2026-09-21T00:02:00Z' }; },
+      };
+    },
+  });
+  assert.equal(rows.length, 7);
+  assert.equal(rows.find(row => row.app === 'review').state, 'unknown');
+  assert.equal(rows.filter(row => row.state === 'success').length, 6);
+  assert.equal(rows.find(row => row.app === 'pulse').commit, sha);
+});
+
 test('unregistered manifest entries never silently become managed PULSE apps', () => {
   const apps = buildApplications({ entries: [entry('future-game', 'dev')] });
   assert.equal(apps.some(app => app.id === 'future-game'), false);

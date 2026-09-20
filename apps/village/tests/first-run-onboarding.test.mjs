@@ -64,8 +64,12 @@ test('title entry is a lifecycle boundary before post-entry enhancement loading'
  const {readFile}=await import('node:fs/promises');
  const main=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
  const entry=await readFile(new URL('../src/mura-entry-polish.js',import.meta.url),'utf8');
+ const enhancements=await readFile(new URL('../src/mura-enhancements.js',import.meta.url),'utf8');
  assert.ok(main.indexOf("./web/interface.js")<main.indexOf("./mura-entry-polish.js"));
  assert.ok(main.indexOf("./mura-entry-polish.js")<main.indexOf("./mura-enhancements.js"));
  assert.match(main,/addEventListener\('village:entered',[\s\S]*loadPostEntryEnhancements/);
+ assert.match(main,/yieldEntryPaint\(\)[\s\S]*loadMuraEnhancements\(\)[\s\S]*yieldBrowserTurn\(\)[\s\S]*character-runtime-integration/);
+ assert.doesNotMatch(enhancements,/^import\s+['"]\.\/mura-world-systems\.js['"]/m);
+ assert.match(enhancements,/for\(const modulePath of ORDERED_ENHANCEMENTS\)[\s\S]*await import\(modulePath\)[\s\S]*await yieldToBrowser\(\)/);
  assert.match(entry,/dispatchEvent\(new CustomEvent\('village:entered'\)\)/);
 });

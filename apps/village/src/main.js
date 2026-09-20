@@ -67,11 +67,20 @@ try {
   installInterface(window.village);
   await import('./mura-entry-polish.js');
   let postEntryEnhancements=null;
+  const yieldEntryPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  const yieldBrowserTurn=()=>new Promise(resolve=>setTimeout(resolve,0));
   const loadPostEntryEnhancements=()=>postEntryEnhancements??=(async()=>{
-    await import('./mura-enhancements.js');
+    // Let the entry click paint and become interactive before starting optional
+    // post-entry work. Heavy modules then cooperate with the browser between
+    // ordered stages instead of monopolizing the first playable task.
+    await yieldEntryPaint();
+    const {loadMuraEnhancements}=await import('./mura-enhancements.js');
+    await loadMuraEnhancements();
     // Character runtime metadata wraps the final syncActor chain so later
     // presentation enhancers cannot replace the shared semantic state adapter.
+    await yieldBrowserTurn();
     await import('./character-runtime-integration.js');
+    await yieldBrowserTurn();
     await import('./mura-village-visual-language.js');
   })();
   window.addEventListener('village:entered',()=>{void loadPostEntryEnhancements();},{once:true});

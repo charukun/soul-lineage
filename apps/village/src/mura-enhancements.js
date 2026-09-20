@@ -1,22 +1,35 @@
-// Load post-boot Village enhancements as one ordered module graph.
-// Keep only modules that still own runtime side effects; retired compatibility shims are not graph nodes.
-import './mura-world-systems.js';
-import './mura-performance.js';
-import './mura-experience.js';
-import './mura-v2-ui.js';
-import './mura-entry-polish.js';
-import './mura-background-bgm.js';
-import './mura-first-build.js';
-import './mura-first-run-autoplay.js';
-import './mura-onboarding-coherence.js';
-import './mura-director-polish.js';
-import './mura-director-touch-fix.js';
-import './mura-playability-polish.js';
-import './mura-code-share.js';
-import './village-kaykit-detail-unity.js';
-// The legacy Shino MasterCharacter enhancement is intentionally not loaded.
-// Conditional character-model assets are retired; the authoritative procedural
-// resident presentation remains active until the CC0/RINNE replacement is ready.
-import './mura-motion-crowd.js';
+// Load post-entry Village enhancements in the established semantic order, while
+// yielding between side-effect modules so the first playable village frame and
+// user input are not trapped behind one monolithic evaluation task.
+const ORDERED_ENHANCEMENTS=Object.freeze([
+  './mura-world-systems.js',
+  './mura-performance.js',
+  './mura-experience.js',
+  './mura-v2-ui.js',
+  './mura-background-bgm.js',
+  './mura-first-build.js',
+  './mura-first-run-autoplay.js',
+  './mura-onboarding-coherence.js',
+  './mura-director-polish.js',
+  './mura-director-touch-fix.js',
+  './mura-playability-polish.js',
+  './mura-code-share.js',
+  './village-kaykit-detail-unity.js',
+  // The legacy Shino MasterCharacter enhancement stays retired. The current
+  // shared resident presentation remains authoritative until replacement.
+  './mura-motion-crowd.js',
+]);
+const yieldToBrowser=()=>new Promise(resolve=>setTimeout(resolve,0));
+let pending=null;
+export let MURA_ENHANCEMENTS_READY=false;
 
-export const MURA_ENHANCEMENTS_READY = true;
+export function loadMuraEnhancements(){
+  return pending??=(async()=>{
+    for(const modulePath of ORDERED_ENHANCEMENTS){
+      await import(modulePath);
+      await yieldToBrowser();
+    }
+    MURA_ENHANCEMENTS_READY=true;
+    return true;
+  })();
+}

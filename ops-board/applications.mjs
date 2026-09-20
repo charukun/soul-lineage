@@ -6,6 +6,39 @@ export const PORTAL_PUBLIC_URL = 'https://wayfinder-gallery.c-okamoto.workers.de
 const PAGES_ROOT = 'https://charukun.github.io/soul-lineage/';
 const environmentIds = new Set(GAME_ENVIRONMENTS.map(env => env.id));
 const validApp = id => typeof id === 'string' && /^[a-z][a-z0-9-]*$/.test(id);
+const SHA = /^[a-f0-9]{40}$/;
+
+export async function probeFastDevVersions({ fetchImpl = fetch, timeoutMs = 8000 } = {}) {
+  const surfaces = PULSE_SURFACES.filter(surface => surface.kind !== 'external' && surface.deployApp);
+  return Promise.all(surfaces.map(async surface => {
+    const app = surface.deployApp;
+    const url = distributionPublicUrl('web-dev', app);
+    if (!url) return { app, state:'unknown', url:null, commit:null, deployedAt:null, note:'DEV URL未定義' };
+    try {
+      const versionUrl = new URL('version.json', url);
+      versionUrl.searchParams.set('pulse-probe', String(Date.now()));
+      const response = await fetchImpl(versionUrl, {
+        cache:'no-store',
+        headers:{ accept:'application/json', 'cache-control':'no-cache' },
+        signal:AbortSignal.timeout(timeoutMs),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const version = await response.json();
+      if (version?.app !== app) throw new Error('app mismatch');
+      if (version?.environment !== 'dev') throw new Error('environment mismatch');
+      if (!SHA.test(String(version?.commit || ''))) throw new Error('commit missing');
+      return {
+        app, state:'success', url, commit:version.commit,
+        deployedAt:version.builtAt || null, name:version.name || surface.displayName || app,
+      };
+    } catch (error) {
+      return {
+        app, state:'unknown', url, commit:null, deployedAt:null,
+        note:`DEV実体確認失敗: ${String(error?.message || error).slice(0, 120)}`,
+      };
+    }
+  }));
+}
 
 const runState = run => {
   if (!run) return 'unknown';
@@ -34,23 +67,38 @@ function targetFor(app, definition, entries, environment, manifest) {
   };
 }
 
-function fastDevTarget(app,developSha,statuses=[]){
-  const status=(statuses||[]).find(row=>row.context===`dev/${app}`)||null;
-  const state=status?.state==='success'?'success':status?.state==='pending'?'deploying':['failure','error'].includes(status?.state)?'failed':'unknown';
-  return {id:`fast-dev:${app}`,label:'高速DEV',environment:'dev',state,url:distributionPublicUrl('web-dev',app),
-    expectedUrl:distributionPublicUrl('web-dev',app),commit:status?.state==='success'?developSha:null,
-    deployedAt:status?.updated_at||status?.created_at||null,source:'per-app DEV / exact-source status',
-    note:status?'app単位で独立公開':'公開status同期待ち'};
+function fastDevTarget(app, developSha, statuses = [], liveVersions = []) {
+  const status = (statuses || []).find(row => row.context === `dev/${app}`) || null;
+  const live = (liveVersions || []).find(row => row.app === app) || null;
+  const liveSuccess = live?.state === 'success' && SHA.test(String(live?.commit || ''));
+  const statusState = status?.state === 'pending' ? 'deploying'
+    : ['failure','error'].includes(status?.state) ? 'failed'
+      : status?.state === 'success' ? (liveSuccess ? 'success' : 'unknown')
+        : null;
+  const state = statusState || (liveSuccess ? 'success' : 'unknown');
+  const deployedAt = liveSuccess ? live.deployedAt : (status?.updated_at || status?.created_at || null);
+  const note = status?.state === 'pending' ? 'app単位のDEV更新中'
+    : ['failure','error'].includes(status?.state) ? 'app単位のDEV公開に失敗'
+      : status?.state === 'success' && !liveSuccess ? '公開statusはsuccessですがDEV実体を確認できません'
+        : liveSuccess && !status ? 'current developにstatusがなくてもDEV実体を直接確認済み'
+          : live?.note || (status ? 'app単位で独立公開' : '公開status・DEV実体を確認中');
+  return {
+    id:`fast-dev:${app}`, label:'高速DEV', environment:'dev', state,
+    url:distributionPublicUrl('web-dev',app), expectedUrl:distributionPublicUrl('web-dev',app),
+    commit:liveSuccess ? live.commit : (status?.state === 'success' ? developSha : null),
+    deployedAt, source:'per-app DEV status + live version.json', note,
+    updateState:status?.state || null,
+  };
 }
 
-export function buildApplications(manifest = {}, environments = [], runs = [], { developSha = null, statuses = [] } = {}) {
+export function buildApplications(manifest = {}, environments = [], runs = [], { developSha = null, statuses = [], liveVersions = [] } = {}) {
   const environmentById = new Map(environments.map(env => [env.id, env]));
   const entries = (manifest.entries || []).filter(entry => validApp(entry?.app) && environmentIds.has(entry.environment));
   const groups = new Map();
 
   for (const surface of PULSE_SURFACES) {
     if (surface.kind === 'external') continue;
-    const dev = fastDevTarget(surface.deployApp, developSha, statuses);
+    const dev = fastDevTarget(surface.deployApp, developSha, statuses, liveVersions);
     if (surface.id === 'ops-board') {
       groups.set(surface.id, {
         id:surface.id, name:surface.displayName, kind:surface.kind,
