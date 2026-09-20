@@ -1,4 +1,5 @@
 import { INSPIRATION_MOTION_IDS } from './inspiration-catalog.js';
+import { generatedTechniqueById, generatedTechniqueCandidates } from './technique-grammar.js';
 
 export const causalInspirationRevision = 'causal-inspiration-1';
 export const INSPIRATION_KINDS = Object.freeze({heart:'心',body:'体',technique:'技',link:'連',variant:'変'});
@@ -143,6 +144,13 @@ export const CAUSAL_ANSWERS = Object.freeze([
     mechanic:'通る射線を待って一本を放つ。',tradeoff:'射線・実矢・弓用モーションの実行器が必要。',phases:['ha','kyu']}),
 ]);
 export const CAUSAL_ANSWER_BY_ID = Object.freeze(Object.fromEntries(CAUSAL_ANSWERS.map(row=>[row.id,row])));
+export function resolveInspirationAnswer(id){return CAUSAL_ANSWER_BY_ID[id]||generatedTechniqueById(id)||null;}
+export function inspirationCombatAnswerPool(weapon){
+  const authored=CAUSAL_ANSWERS.filter(row=>['technique','variant'].includes(row.kind)&&row.weapons?.includes(weapon));
+  const keys=new Set(authored.map(inspirationTechniqueStructureKey));
+  const generated=generatedTechniqueCandidates({weapon}).filter(row=>!keys.has(inspirationTechniqueStructureKey(row)));
+  return Object.freeze([...authored,...generated]);
+}
 export function answerSignature(row){
   if(!row)throw Error('Unknown causal answer');
   return JSON.stringify([row.kind==='variant'?'technique':row.kind,row.weapons,row.questions,row.steps.map(s=>[s.kind,s.footwork]),row.bodyChoice||null,row.executor||null,row.kind==='heart'?row.mechanic:null,row.kind==='body'?row.family:null,row.kind==='link'?row.family:null]);

@@ -1,4 +1,4 @@
-import { CAUSAL_ANSWER_BY_ID, INSPIRATION_KINDS } from '@soul/game-data';
+import { INSPIRATION_KINDS, resolveInspirationAnswer } from '@soul/game-data';
 import { ensureCombatLoadout, activeCombo, addCombo, removeCombo, setActiveCombo, setComboSkill, setHeartSlot, setBodyChoice, unlockedBodyOptions, learnedHeartSkills, learnedTechniqueSkills, techniqueName, PHASES, MAX_COMBOS } from './combat-loadout.js';
 import { ensureInspiration, updateInspirationSigns, archiveInspiration, answerAvailability, inspirationName } from './rebuild/inspiration-state.js';
 import { tidebreakMindVectorFor } from './rebuild/combat-tactics.js';
@@ -40,7 +40,7 @@ export function installInspirationUI(ui,{gameScreen,audio}){
   function provenance(details,rows){const list=el('ol',null,'inspiration-provenance');for(const p of rows){const li=el('li',p.text);li.dataset.origin=p.type;list.append(li);}details.append(list);}
   function selectAction(id){
     if(readonly()){message('戦闘を離れてから編成できます。共有世界の記録は閲覧専用です。');return;}
-    const row=CAUSAL_ANSWER_BY_ID[id];
+    const row=resolveInspirationAnswer(id);
     if(row?.kind==='link')return useLink(id);
     if(ui.panel.dataset.type==='heart'){if(!setHeartSlot(state,heartSlot,id)){message('この枠には置けません。');return;}}
     else if(ui.panel.dataset.type==='technique'){const combo=activeCombo(state);if(!setComboSkill(state,combo.id,phase,id)){message('今の得物ではこの型を使えません。');return;}}
@@ -49,7 +49,7 @@ export function installInspirationUI(ui,{gameScreen,audio}){
   }
   function useLink(id){
     if(readonly())return;const r=state.inspiration.records[id],slots=r?.combo;if(!slots)return;
-    for(const [p,skill]of Object.entries(slots)){const row=CAUSAL_ANSWER_BY_ID[skill];if(!PHASES.some(([id])=>id===p)||!state.knownSkills.includes(skill)||(row?.weapons.length&&!row.weapons.includes(state.equipment.weapon))){message('この連は、記録された得物と技が揃うと組めます。');return;}}
+    for(const [p,skill]of Object.entries(slots)){const row=resolveInspirationAnswer(skill);if(!PHASES.some(([id])=>id===p)||!state.knownSkills.includes(skill)||(row?.weapons.length&&!row.weapons.includes(state.equipment.weapon))){message('この連は、記録された得物と技が揃うと組めます。');return;}}
     const combo=addCombo(state);if(!combo){message('連の枠が一杯です。不要な編成を整理してください。');return;}
     combo.name=r.name;for(const [p,skill]of Object.entries(slots))setComboSkill(state,combo.id,p,skill);setActiveCombo(state,combo.id);ui.open('technique');audio?.item?.();
   }
@@ -57,7 +57,7 @@ export function installInspirationUI(ui,{gameScreen,audio}){
     const card=el('article',null,'inspiration-technique-card');card.dataset.inspirationId=item.id;card.dataset.focus=String(item.id===focusId);card.dataset.archived=String(item.archived);
     const top=el('header'),stateLabel=item.archived?'古技':item.stable?'定着':'会得';top.append(el('span',`${item.kindLabel} · ${stateLabel}`),el('small',`${Math.floor(item.age)}歳`));
     card.append(top,el('h3',item.name));if(item.attributes.length)card.append(el('small','属性: '+item.attributes.join('・')));if(item.traits.length)card.append(el('small','特性: '+item.traits.join('・')));card.append(el('p',item.story,'inspiration-causal-story'),el('p',item.purpose,'inspiration-purpose'),el('p',item.tradeoff,'inspiration-tradeoff'));
-    const row=CAUSAL_ANSWER_BY_ID[item.id];if(row.steps.length)card.append(el('small',`役割適性: ${item.phases.map(p=>({jo:'序',ha:'破',kyu:'急'})[p]).join('・')}。適性は技の格ではありません。`));
+    const row=resolveInspirationAnswer(item.id);if(row.steps.length)card.append(el('small',`役割適性: ${item.phases.map(p=>({jo:'序',ha:'破',kyu:'急'})[p]).join('・')}。適性は技の格ではありません。`));
     if(!item.availability.usable&&!state.ended)card.append(el('p',item.availability.reason,'inspiration-unavailable'));
     const detail=el('details');detail.append(el('summary','この答えが生まれた理由'));provenance(detail,item.provenance);card.append(detail);
     const actions=el('div',null,'inspiration-actions');
@@ -128,7 +128,7 @@ export function installInspirationUI(ui,{gameScreen,audio}){
   }
   function onInputKey(root){root.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select'))e.stopPropagation();});}
   function announce(record){
-    const row=CAUSAL_ANSWER_BY_ID[record.answerId];noticeKind.textContent=`閃き · ${INSPIRATION_KINDS[record.kind]}`;noticeName.textContent=record.name;noticeOrigin.textContent=record.provenance.find(p=>p.type==='question')?.text||row?.mechanic||'経験がひとつの答えになった。';notice.hidden=false;notice.dataset.kind=record.kind;audio?.item?.();clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice.hidden=true;},6500);
+    const row=resolveInspirationAnswer(record.answerId);noticeKind.textContent=`閃き · ${INSPIRATION_KINDS[record.kind]}`;noticeName.textContent=record.name;noticeOrigin.textContent=record.provenance.find(p=>p.type==='question')?.text||row?.mechanic||'経験がひとつの答えになった。';notice.hidden=false;notice.dataset.kind=record.kind;audio?.item?.();clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice.hidden=true;},6500);
   }
   function announceStabilized(record){
     noticeKind.textContent='定着';noticeName.textContent=record.name;noticeOrigin.textContent=`${record.name}が、身体に馴染んだ。`;notice.hidden=false;notice.dataset.kind='stable';audio?.item?.();clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice.hidden=true;},5200);

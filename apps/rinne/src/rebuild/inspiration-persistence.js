@@ -1,4 +1,4 @@
-import { CAUSAL_ANSWER_BY_ID, INSPIRATION_QUESTIONS, inspirationTechniqueName, isInspirationAttribute } from '@soul/game-data';
+import { INSPIRATION_QUESTIONS, inspirationTechniqueName, isInspirationAttribute, resolveInspirationAnswer } from '@soul/game-data';
 
 /** Persistence, migration and lineage compression are separate from live learning decisions. */
 export const INSPIRATION_VERSION=1;
@@ -10,7 +10,7 @@ const safe=value=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,'').trim().
 const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,Number.isFinite(Number(v))?Number(v):a));
 const unique=values=>[...new Set(values)];
 const own=(o,k)=>Object.prototype.hasOwnProperty.call(o||{},k);
-const answer=id=>own(CAUSAL_ANSWER_BY_ID,id)?CAUSAL_ANSWER_BY_ID[id]:null;
+const answer=id=>resolveInspirationAnswer(id);
 function hash(text){let h=2166136261;for(const c of String(text)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 function unit(seed,key){return hash(`${seed}:${key}`)/4294967295;}
 function selectedLegacy(state){
