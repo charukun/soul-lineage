@@ -30,8 +30,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
       <div class="player-equipment"><span>装</span><strong data-equip>素手 · 旅装</strong></div>
       <button data-record class="player-record-button" type="button" aria-label="人生と系譜を開く"><b>記</b><small>人生</small></button>
     </section>
-    <section data-vitals class="rinne-context-vitals" hidden aria-label="命と息">
-      <div data-vital-life class="context-vital is-life"><span>命</span><i><b data-context-hp></b></i></div>
+    <section data-vitals class="rinne-context-vitals" hidden aria-label="息">
       <div data-vital-breath class="context-vital is-breath"><span>息</span><i><b data-context-stamina></b></i></div>
     </section>
     <aside data-mind class="rinne-mind-balance" hidden aria-label="現在の意識バランス">
@@ -82,11 +81,11 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     radarPlaces:q('[data-radar-places]'),radarTarget:q('[data-radar-target]'),radarPlayer:q('[data-radar-player]'),radarDistance:q('[data-radar-distance]'),radarLabel:q('[data-radar-label]'),
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]'),
-    vitals:q('[data-vitals]'),vitalLife:q('[data-vital-life]'),vitalBreath:q('[data-vital-breath]'),contextHp:q('[data-context-hp]'),contextStamina:q('[data-context-stamina]'),
+    vitals:q('[data-vitals]'),vitalBreath:q('[data-vital-breath]'),contextStamina:q('[data-context-stamina]'),
     mind:q('[data-mind]'),mindState:q('[data-mind-state]')
   };
   let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,interruptTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',lastAction='',phaseHistory=[],comboInterrupted=false,currentComboKey='';
-  let lastHp=null,lastStamina=null,lifeVisibleUntil=0,breathVisibleUntil=0,contextAnchorVisible=false,contextVitalsWanted=false;
+  let lastStamina=null,breathVisibleUntil=0,contextAnchorVisible=false,contextVitalsWanted=false;
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
   const tracker=createSkillSetter({ui,audio,getState:()=>state});
   const loadoutUI=createHeartTechniqueBodyUI({ui,audio,getState:()=>state,tracker});
@@ -231,15 +230,14 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     syncContextVitalsVisibility();
   }
   function updateContextVitals(s,{dashing=false,resting=false,training=null}={}){
-    const now=performance.now(),hp=Math.max(0,Number(s.hp)||0),maxHp=Math.max(1,Number(s.maxHp)||1),stamina=Math.max(0,Number(s.stamina)||0),cap=Math.max(1,Number(s.staminaCap)||100);
-    const hpRatio=clamp(hp/maxHp,0,1),staminaRatio=clamp(stamina/cap,0,1),hpChanged=lastHp!==null&&Math.abs(hp-lastHp)>.01,staminaChanged=lastStamina!==null&&Math.abs(stamina-lastStamina)>.01,combat=Boolean((s.combat&&!s.combat.training)||training?.d<2.8);
-    if(hpChanged)lifeVisibleUntil=now+1700;if(staminaChanged)breathVisibleUntil=now+1250;
-    const showLife=Boolean(s.down||combat||hpRatio<.72||now<lifeVisibleUntil),showBreath=Boolean(resting||dashing||combat||staminaRatio<.55||now<breathVisibleUntil);
-    contextVitalsWanted=showLife||showBreath;ui.vitalLife.hidden=!showLife;ui.vitalBreath.hidden=!showBreath;
-    ui.contextHp.style.width=`${Math.round(hpRatio*100)}%`;ui.contextStamina.style.width=`${Math.round(staminaRatio*100)}%`;
-    ui.vitalLife.dataset.low=String(hpRatio<.3);ui.vitalBreath.dataset.low=String(staminaRatio<.22);
-    ui.vitals.setAttribute('aria-label',`命 ${Math.round(hp)}/${Math.round(maxHp)}、息 ${Math.round(stamina)}/${Math.round(cap)}`);
-    lastHp=hp;lastStamina=stamina;syncContextVitalsVisibility();
+    const now=performance.now(),stamina=Math.max(0,Number(s.stamina)||0),cap=Math.max(1,Number(s.staminaCap)||100);
+    const staminaRatio=clamp(stamina/cap,0,1),staminaChanged=lastStamina!==null&&Math.abs(stamina-lastStamina)>.01,combat=Boolean((s.combat&&!s.combat.training)||training?.d<2.8);
+    if(staminaChanged)breathVisibleUntil=now+1250;
+    const showBreath=Boolean(resting||dashing||combat||staminaRatio<.55||now<breathVisibleUntil);
+    contextVitalsWanted=showBreath;ui.vitalBreath.hidden=!showBreath;
+    ui.contextStamina.style.width=`${Math.round(staminaRatio*100)}%`;ui.vitalBreath.dataset.low=String(staminaRatio<.22);
+    ui.vitals.setAttribute('aria-label',`息 ${Math.round(stamina)}/${Math.round(cap)}`);
+    lastStamina=stamina;syncContextVitalsVisibility();
   }
   function updateMindBalance(s,training=null){
     const active=Boolean(((s.combat&&!s.combat.training)||training?.d<2.8)&&!s.down&&!s.ended);ui.mind.hidden=!active;if(!active)return;
