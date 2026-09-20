@@ -105,9 +105,12 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleHtml,/id="battle-sequence-hud"/);assert.match(battleHtml,/id="battle-sequence-current"[^>]*>間合いを測っている…<\/strong>/);
   assert.match(battleHtml,/battle-sequence-hud__wave combat-sequence__link/);
   assert.match(battleHtml,/clip-path:polygon\(0 48%,18% 48%,27% 30%,36% 72%,46% 10%,57% 86%/);
-  assert.match(battleHtml,/@keyframes battle-sequence-slot/);assert.match(battleHtml,/67%\{opacity:1;transform:translateY\(0\)\}/);
+  assert.match(battleHtml,/@keyframes battle-sequence-slot/);assert.match(battleHtml,/58%\{opacity:1;transform:translateY\(0\)\}/);assert.match(battleHtml,/100%\{opacity:0;transform:translateY\(28px\)\}/);
   assert.doesNotMatch(battleHtml,/id="battle-sequence-rest"/);assert.doesNotMatch(battleHtml,/id="battle-sequence-events"/);
   assert.match(battleSource,/q\('battle-sequence-current'\)/);assert.match(battleSource,/INTERNAL_ACTION_LABELS/);
+  assert.doesNotMatch(battleHtml,/id="battle-foot-phase"/);assert.doesNotMatch(battleSource,/battle-foot-phase/);
+  assert.match(battleHtml,/opacity:\.62!important/);assert.match(battleHtml,/scale\(1\.08\)/);assert.match(battleHtml,/scale\(1\.10\)/);
+  assert.match(battleSource,/},1800\);/);
   assert.match(battleSource,/spin:'旋回攻撃'/);assert.match(battleSource,/state\.skill\|\|battleActionLabel/);
   assert.match(battleSource,/pushBattleReadout\(action,'action'\)/);assert.match(battleSource,/pushBattleReadout\(.*'hurt'\)/);
   assert.match(battleSource,/被弾 −\$\{Math\.ceil\(heroLoss\)\}/);assert.doesNotMatch(battleSource,/生命 \$\{Math\.ceil\(Math\.max/);
