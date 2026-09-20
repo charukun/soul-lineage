@@ -1,5 +1,5 @@
 import {COMBAT_BODY_PARTS,combatBodyOutcome,combatBodySnapshot} from './rebuild/combat-choreography.js';
-import './combat-body-hud.css';
+if(typeof document!=='undefined')void import('./combat-body-hud.css');
 
 const PART_META=Object.freeze({
   head:Object.freeze({hint:'判断・視界',reaction:'頭部の被弾で判断と持久が落ちる'}),
