@@ -22,12 +22,21 @@ test('Lab separates review probes and keeps delivered runtime routes canonical',
   assert.match(source,/pointerenter'.*warmRoute/);assert.match(source,/touchstart'.*warmRoute/);
 });
 
-test('battle presentation 2 runs the native Nocturne combat runtime with no review controls',()=>{
-  const source=read('src/main.js'),page=read('battle2.html'),vite=read('vite.config.js');
+test('battle presentation 2 runs the native Nocturne combat runtime with no visible review controls',()=>{
+  const source=read('src/main.js'),page=read('battle2.html'),runtime=read('src/nocturne-stage.js'),vite=read('vite.config.js');
   assert.match(source,/battle2:new URL\('\.\/battle2\.html',location\.href\)\.href/);
   assert.match(page,/data-review-surface="battle2"/);
-  assert.match(page,/https:\/\/nocturne-autobattle\.c-okamoto\.workers\.dev\//);
-  assert.match(page,/allow="autoplay; fullscreen"/);
-  assert.doesNotMatch(page,/<button\b|<nav\b|<progress\b|class="[^"]*hud/i);
+  assert.match(page,/data-runtime="nocturne-native"/);
+  assert.match(page,/<canvas id="world"/);
+  assert.match(page,/<canvas id="effects"/);
+  assert.match(page,/src="\.\/src\/nocturne-stage\.js"/);
+  assert.match(page,/data-runtime-support aria-hidden="true"/);
+  assert.doesNotMatch(page,/<iframe\b/i);
+  assert.match(runtime,/NOCTURNE_ASSET_ORIGIN/);
+  assert.match(runtime,/function startAttack/);
+  assert.match(runtime,/Death_C_Skeletons/);
+  assert.match(runtime,/function castBurst/);
+  assert.match(runtime,/game\.ready=true;start\(\)/);
+  assert.match(runtime,/setTimeout\(\(\)=>\{if\(game\.ready\)start\(\);\},1000\)/);
   assert.match(vite,/battle2:fileURLToPath\(new URL\('\.\/battle2\.html'/);
 });
