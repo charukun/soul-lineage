@@ -69,13 +69,18 @@ export function reviewBattleCameraFrame(core,{follow=true,system='rinne',encount
   const threats=enemies.map((enemy,index)=>({id:`enemy-${index}`,x:Number(enemy.x),z:Number(enemy.z),dead:Boolean(enemy.dead)}));
   const style=system==='demon'?'demon':'rinne',frame=combatCameraFrame({player,threats,style,wide:Boolean(wide)});
   if(!frame)return FIXED_CAMERA;
-  const position=combatCameraPosition(frame);
-  return Object.freeze({position:Object.freeze(position),look:Object.freeze({...frame.look}),separation:frame.spread,follow:true,system:style,count:frame.count});
+  const sharedPosition=combatCameraPosition(frame),sharedLook=frame.look;
+  const look={x:player.x,y:Number(sharedLook.y)||.95,z:player.z};
+  const offset={x:sharedPosition.x-Number(sharedLook.x||0),y:sharedPosition.y-Number(sharedLook.y||0),z:sharedPosition.z-Number(sharedLook.z||0)};
+  const finisher=core?.hero?.skill==='止め';
+  const distanceScale=finisher?.72:1;
+  const position={x:look.x+offset.x*distanceScale,y:look.y+offset.y*(finisher?.82:1),z:look.z+offset.z*distanceScale};
+  return Object.freeze({position:Object.freeze(position),look:Object.freeze(look),separation:frame.spread,follow:true,system:style,count:frame.count,lock:'hero',finisher});
 }
 
 
-export const REVIEW_FINISHER_DURATION=.92;
-export const REVIEW_FINISHER_IMPACT=.58;
+export const REVIEW_FINISHER_DURATION=1.28;
+export const REVIEW_FINISHER_IMPACT=.52;
 
 export function createReviewFinisher(core){
   const enemies=(core?.enemies||[core?.enemy]).filter(Boolean);

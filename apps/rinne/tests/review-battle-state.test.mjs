@@ -28,8 +28,8 @@ test('loop waits for the configured result hold before restarting',()=>{
   const ending={done:true,hero:{x:0,z:0,yaw:0,dead:false},enemy:{x:2,z:0,hp:0,dead:true},enemies:[{x:2,z:0,hp:0,dead:true}]};
   let finisher=createReviewFinisher(ending);assert.ok(finisher);
   const opening=advanceReviewFinisher(finisher,0);assert.equal(opening.core.done,false);assert.equal(opening.core.enemies[0].downed,true);assert.equal(opening.core.hero.skill,'止め');
-  finisher=opening.run;const impact=advanceReviewFinisher(finisher,.6);assert.equal(impact.impact,true);assert.equal(impact.core.enemies[0].dead,false);
-  const finished=advanceReviewFinisher(impact.run,.5);assert.equal(finished.finished,true);assert.equal(finished.core.done,true);assert.equal(finished.core.enemies[0].dead,true);
+  finisher=opening.run;const impact=advanceReviewFinisher(finisher,.72);assert.equal(impact.impact,true);assert.equal(impact.core.enemies[0].dead,false);
+  const finished=advanceReviewFinisher(impact.run,.8);assert.equal(finished.finished,true);assert.equal(finished.core.done,true);assert.equal(finished.core.enemies[0].dead,true);
 });
 
 const assertVectorClose=(actual,expected,epsilon=1e-12)=>{for(const key of ['x','y','z'])assert.ok(Math.abs(actual[key]-expected[key])<=epsilon,`${key}: ${actual[key]} != ${expected[key]}`);};
@@ -42,11 +42,18 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(demon.follow,true);assert.equal(demon.system,'demon');assert.equal(demon.count,1);
   assert.notDeepEqual(rinne.position,demon.position);
   const directRinne=combatCameraFrame({player:{x:-2,z:1},threats:[{id:'enemy-0',x:2,z:3,dead:false}],style:'rinne',wide:false});
-  assertVectorClose(rinne.position,combatCameraPosition(directRinne));assertVectorClose(rinne.look,directRinne.look);
+  const directRinnePosition=combatCameraPosition(directRinne);
+  assert.equal(rinne.lock,'hero');assert.equal(rinne.look.x,core.hero.x);assert.equal(rinne.look.z,core.hero.z);
+  assertVectorClose({x:rinne.position.x-rinne.look.x,y:rinne.position.y-rinne.look.y,z:rinne.position.z-rinne.look.z},{x:directRinnePosition.x-directRinne.look.x,y:directRinnePosition.y-directRinne.look.y,z:directRinnePosition.z-directRinne.look.z});
   const directDemon=combatCameraFrame({player:{x:-2,z:1},threats:[{id:'enemy-0',x:2,z:3,dead:false}],style:'demon',wide:true});
-  assertVectorClose(demon.position,combatCameraPosition(directDemon));assertVectorClose(demon.look,directDemon.look);
+  const directDemonPosition=combatCameraPosition(directDemon);
+  assert.equal(demon.lock,'hero');assert.equal(demon.look.x,core.hero.x);assert.equal(demon.look.z,core.hero.z);
+  assertVectorClose({x:demon.position.x-demon.look.x,y:demon.position.y-demon.look.y,z:demon.position.z-demon.look.z},{x:directDemonPosition.x-directDemon.look.x,y:directDemonPosition.y-directDemon.look.y,z:directDemonPosition.z-directDemon.look.z});
   const melee=reviewBattleCameraFrame({...core,enemies:[core.enemy,{x:2,z:1,dead:false},{x:2,z:5,dead:false}]},{follow:true,system:'rinne',encounterMode:'one-v-three'});
   assert.equal(melee.count,3);assert.ok(melee.separation>=rinne.separation);
+  const finisherCamera=reviewBattleCameraFrame({hero:{...core.hero,skill:'止め'},enemy:core.enemy},{follow:true,system:'rinne'});
+  assert.equal(finisherCamera.finisher,true);assert.equal(finisherCamera.lock,'hero');
+  assert.ok(Math.hypot(finisherCamera.position.x-finisherCamera.look.x,finisherCamera.position.z-finisherCamera.look.z)<Math.hypot(rinne.position.x-rinne.look.x,rinne.position.z-rinne.look.z));
   const fixed=reviewBattleCameraFrame(core,{follow:false});
   assert.deepEqual(fixed.position,{x:0,y:5.2,z:10});
   assert.deepEqual(fixed.look,{x:0,y:.95,z:0});
@@ -91,7 +98,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.execute+.01).stage,'execute');
   assert.match(battleSource,/reviewTechniqueSeen=new Map\(\)/);assert.match(battleSource,/seen\.add\(technique\.id\)/);
   assert.match(battleSource,/learnedSlots\[phase\]=technique/);
-  assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=550/);assert.match(battleSource,/bulbTimer=setTimeout\(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS\)/);assert.match(battleSource,/if\(cue==='spacing'\)\{showReviewSign\(payload\);battleSfx\.draw\(\);return;\}/);
+  assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=550/);assert.match(battleSource,/bulbTimer=setTimeout\(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS\)/);assert.match(battleSource,/if\(cue==='spacing'\)\{showReviewSign\(payload\);battleSfx\.inspiration\('anticipation'\);return;\}/);
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
   assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);assert.match(battleHtml,/id="battle-technique-loadout" class="technique-loadout"/);
   assert.match(battleHtml,/battle-phase-wave/);assert.match(battleHtml,/battle-action-drift/);
@@ -102,7 +109,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleSource,/createTidebreakRuntime/);assert.doesNotMatch(battleSource,/RaidHost/);
   assert.match(battleSource,/opponent:group\?'group':'duel'/);
   assert.match(battleSource,/const angle=battleStage\?\.cameraAngle\?\.\(\)\|\|0,input=reviewSwipe\.vector\(angle\)/);assert.match(battleSource,/runtime\.input\(input\.screenX,input\.screenY,input\.amount,angle\)/);
-  assert.match(stageSource,/cameraOrbit=\(cameraOrbit\+step\*\.05\)/);
+  assert.match(stageSource,/cameraOrbit=\(cameraOrbit\+step\*\.05\)/);assert.match(stageSource,/!frame\.finisher/);assert.match(stageSource,/cameraLock=frame\.lock\|\|'scene'/);
   assert.match(stageSource,/function inspirationCameraFrame\(\)/);assert.match(stageSource,/sideX=-lineZ,sideZ=lineX/);
   assert.match(stageSource,/zoomBy\(delta=0\)/);
   assert.match(battleHtml,/id="camera-zoom-out"/);assert.match(battleHtml,/id="camera-zoom-in"/);
@@ -118,8 +125,8 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleHtml,/main\.battle-review\.review-surface > \.review-surface__workspace\{/);
   assert.match(battleHtml,/grid-template-rows:minmax\(0,1fr\) max-content!important/);
   assert.match(battleHtml,/min-height:34px!important;\s*max-height:36px!important/);
-  assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/visualBase/);assert.match(stageSource,/presentImpact/);
-  assert.doesNotMatch(stageSource,/attachWeapon\('reviewWeapon'/);assert.doesNotMatch(stageSource,/const length=\{dagger:/);
+  assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/rightHand/);assert.match(stageSource,/binding='right-hand-bone'/);assert.match(stageSource,/userData\.weaponBinding=binding/);assert.match(stageSource,/presentImpact/);
+  assert.match(battleSource,/battleSfx\.impact\(\{guard:Boolean\(impact\?\.guard\),power:Number\(impact\?\.power\)\|\|\.7\}\)/);assert.match(battleSource,/battleSfx\.swing\(/);
   assert.doesNotMatch(stageSource,/reviewBattleMultiHitFrame/);assert.match(stageSource,/core\?\.enemies/);
   assert.match(stageSource,/onInspirationCue\('spark'/);
 });

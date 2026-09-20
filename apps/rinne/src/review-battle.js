@@ -37,12 +37,12 @@ function showReviewSign(technique){
 }
 function handleInspirationCue(cue,payload={}){
   const banner=q('battle-inspiration');
-  if(cue==='spark'){inspirationSequenceActive=true;hideInspirationBanner();hideReviewSign();showInspirationBulb();battleSfx.draw();return;}
-  if(cue==='camera'){battleSfx.draw();return;}
-  if(cue==='spacing'){showReviewSign(payload);battleSfx.draw();return;}
-  if(cue==='stagger'){battleSfx.slash();return;}
-  if(cue==='reveal'&&banner){q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent=`${phaseLabel(payload.phase)} · ${selectedWeapon}の型から閃いた`;banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.draw();setTimeout(()=>battleSfx.slash(),90);return;}
-  if(cue==='execute'){battleSfx.slash();setTimeout(()=>battleSfx.slash(),130);setTimeout(()=>battleSfx.slash(),300);return;}
+  if(cue==='spark'){inspirationSequenceActive=true;hideInspirationBanner();hideReviewSign();showInspirationBulb();battleSfx.inspiration('spark');return;}
+  if(cue==='camera'){battleSfx.inspiration('camera');return;}
+  if(cue==='spacing'){showReviewSign(payload);battleSfx.inspiration('anticipation');return;}
+  if(cue==='stagger'){battleSfx.inspiration('stagger');return;}
+  if(cue==='reveal'&&banner){q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent=`${phaseLabel(payload.phase)} · ${selectedWeapon}の型から閃いた`;banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}
+  if(cue==='execute'){battleSfx.inspiration('execute');return;}
   if(cue==='done'){inspirationSequenceActive=false;hideInspirationBulb();setTimeout(hideInspirationBanner,280);}
 }
 
@@ -55,7 +55,7 @@ async function ensureBattleStage(){
     .catch(error=>{q('battle-model-status').textContent=`モデル読込失敗 · ${error.message}`;q('battle-canvas').dataset.battleModels='failed';throw error;});
   return battleStagePromise;
 }
-function syncSoundButton(){if(!soundButton)return;soundButton.dataset.enabled=String(battleSfx.enabled);soundButton.setAttribute('aria-pressed',String(battleSfx.enabled));soundButton.textContent=`音 ${battleSfx.enabled?'ON':'OFF'}`;}
+function syncSoundButton(){if(!soundButton)return;soundButton.dataset.enabled=String(battleSfx.enabled);soundButton.dataset.unlocked=String(battleSfx.unlocked);soundButton.setAttribute('aria-pressed',String(battleSfx.enabled));soundButton.textContent=`音 ${battleSfx.enabled?(battleSfx.unlocked?'ON':'TAP'):'OFF'}`;}
 
 function runtimeRecipe(technique,phase,weapon){
   if(!technique)return null;
@@ -71,7 +71,7 @@ function runtimeLoadout(engine,weapon){
 function resetBattle(){
   reviewSwipe.cancel();lastCore=null;finishedAt=0;finisher=null;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks.clear();phaseHistory?.replaceChildren();battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
   const weapon=runtimeWeapon(),group=encounterMode==='one-v-three';
-  runtime=createTidebreakRuntime({seed:6197+(group?31:0),weapon,onImpact:impact=>battleStage?.presentImpact?.(impact)});
+  runtime=createTidebreakRuntime({seed:6197+(group?31:0),weapon,onImpact:impact=>{battleStage?.presentImpact?.(impact);battleSfx.impact({guard:Boolean(impact?.guard),power:Number(impact?.power)||.7});}});
   const loadout=runtimeLoadout(runtime,weapon),positions=group
     ?{hero:{x:-2.65,z:0},enemy:{x:2.65,z:0},enemies:[{x:2.65,z:0},{x:2.45,z:-1.75},{x:2.45,z:1.75}]}
     :{hero:{x:-2.65,z:0},enemy:{x:2.65,z:0}};
@@ -85,7 +85,7 @@ function renderPhase(core){
 }
 function syncBattleAudio(core){
   const actors=[['hero',core?.hero],...(core?.enemies||[]).map((actor,index)=>[`enemy-${index}`,actor])];
-  for(const [key,actor] of actors){const next=String(actor?.attack||'');if(next&&next!==lastAudioAttacks.get(key))battleSfx.slash();lastAudioAttacks.set(key,next);}
+  for(const [key,actor] of actors){const segment=actor?.weaponSegment,active=Boolean(segment?.active),attack=`${actor?.slot||''}:${actor?.attack||''}`,previous=lastAudioAttacks.get(key)||{active:false,attack:''};if(active&&(!previous.active||previous.attack!==attack))battleSfx.swing({weapon:segment?.weapon||selectedWeapon,power:.55+Math.min(.4,Number(actor?.progress)||0)});lastAudioAttacks.set(key,{active,attack});}
 }
 
 function weightedTechnique(phase){
@@ -157,5 +157,6 @@ for(const button of document.querySelectorAll('[data-battle-skin]'))button.addEv
 for(const button of document.querySelectorAll('[data-inspiration-mode]'))button.addEventListener('click',()=>{inspirationMode=button.dataset.inspirationMode==='boost'?'boost':'normal';lastInspirationPhase='';for(const item of document.querySelectorAll('[data-inspiration-mode]'))item.setAttribute('aria-pressed',String(item===button));document.body.dataset.inspirationMode=inspirationMode;});
 weaponSelect?.addEventListener('change',()=>{selectedWeapon=weaponSelect.value;lastInspirationPhase='';document.body.dataset.weapon=selectedWeapon;resetBattle();});
 historyOpen?.addEventListener('click',()=>{insightHistoryOpen=true;renderInsightHistory();});historyClose?.addEventListener('click',()=>{insightHistoryOpen=false;renderInsightHistory();});
+document.addEventListener('pointerdown',()=>{battleSfx.unlock();syncSoundButton();},{passive:true});
 soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});window.addEventListener('pagehide',()=>{battleStage?.dispose();battleSfx.dispose();},{once:true});
 syncModelLabels();phasePanel.dataset.skin='rinne';syncSoundButton();renderLearnedSlots();renderInsightHistory();resetBattle();void ensureBattleStage();requestAnimationFrame(frame);
