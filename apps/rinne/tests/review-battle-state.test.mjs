@@ -102,6 +102,8 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
   assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);
   assert.match(battleHtml,/battle-phase-wave/);assert.match(battleHtml,/battle-action-drift/);
+  assert.match(battleHtml,/間合いを測っている…/);assert.match(battleHtml,/38%\{opacity:1;transform:translateY\(0\)\}/);
+  assert.match(battleJs,/pushBattleReadout\(action,'action'\)/);assert.match(battleJs,/pushBattleReadout\(.*'hurt'\)/);
   assert.match(battleHtml,/Compact battle HUD pass/);assert.match(battleHtml,/#battle-technique-composition,/);assert.match(battleHtml,/position:fixed!important/);
   assert.match(battleHtml,/\.stage>\.technique-loadout\{left:8px!important;right:auto!important;top:8px!important;bottom:auto!important/);
   assert.match(battleHtml,/\.controls\.review-surface__panel\{min-height:0!important;height:auto!important/);
