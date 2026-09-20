@@ -1,4 +1,5 @@
 import { definePlatform, platformContractVersion, storageScope } from '@soul/platform';
+import { webAudioActivation } from './audio-activation.js';
 export function createWebPlatform(scope) {
   const prefix = storageScope(scope);
   return definePlatform({
@@ -27,6 +28,7 @@ export function createWebPlatform(scope) {
       window.addEventListener('keydown', handler); window.addEventListener('keyup', handler);
       return () => { window.removeEventListener('keydown', handler); window.removeEventListener('keyup', handler); };
     } },
+    audio: webAudioActivation,
     locale: { language: navigator.language || 'ja', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' },
   });
 }
