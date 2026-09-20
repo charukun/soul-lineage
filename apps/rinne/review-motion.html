@@ -46,11 +46,6 @@
       <div id="motion-grid" class="motion-grid review-choice-grid" role="group" aria-label="モーション候補"></div>
     </section>
 
-    <div class="motion-models">
-      <span class="control-label">REVIEW BODY</span>
-      <div id="motion-model-grid" class="motion-model-grid review-choice-grid" role="group" aria-label="キャラクターモデル"></div>
-    </div>
-
     <div class="motion-playback" aria-label="再生コントロール">
       <button id="motion-restart" type="button" aria-label="最初から">↺</button>
       <button id="motion-play" class="primary" type="button">▶ 再生</button>
@@ -72,6 +67,10 @@
       <output id="motion-time-label">0.00 / 0.00秒</output>
     </div>
 
+    <details class="motion-models">
+      <summary><span class="control-label">表示モデル</span><strong>素体を変更</strong></summary>
+      <div id="motion-model-grid" class="motion-model-grid review-choice-grid" role="group" aria-label="キャラクターモデル"></div>
+    </details>
 
     <details class="motion-legacy">
       <summary>既存の原版・ポーズ・部分クリップ</summary>

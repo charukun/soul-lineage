@@ -38,3 +38,22 @@ test('motion review is image-first in the required five-column phone grid',async
   assert.match(runtime,/requestIdleCallback\?requestIdleCallback\(callback,\{timeout:90\}\)/);
   assert.match(runtime,/paintPlaceholder\(canvas\)/);
 });
+
+test('motion review recovers incompatible motion sources and keeps mobile controls in flow',async()=>{
+  const [js,css,html,runtime]=await Promise.all([
+    read('apps/rinne/src/review-motion.js'),
+    read('apps/rinne/src/review-motion.css'),
+    read('apps/rinne/review-motion.html'),
+    read('apps/rinne/src/review-motion-source-runtime.js'),
+  ]);
+  assert.match(js,/const invalidMotionIds=new Set\(\)/);
+  assert.match(js,/nextPlayableMotion/);
+  assert.match(js,/button\.dataset\.invalid=String\(invalid\);button\.disabled=invalid/);
+  assert.match(js,/互換のあるモーションへ切り替えています/);
+  assert.match(css,/@media\(max-width:620px\)[\s\S]*?\.motion-playback\{order:2;position:static!important/);
+  assert.match(css,/\.motion-grid \.review-choice-card\[data-invalid="true"\]/);
+  assert.match(html,/<details class="motion-models">/);
+  assert.match(html,/<summary><span class="control-label">表示モデル<\/span><strong>素体を変更<\/strong><\/summary>/);
+  assert.match(runtime,/hips:\['pelvis','Hips','hips','mixamorig:Hips'\]/);
+  assert.match(runtime,/normalizeBoneName/);
+});

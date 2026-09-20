@@ -105,3 +105,28 @@ button,select{font:inherit;color:inherit}
 .motion-grid .review-choice-card>.review-runtime-thumbnail[data-thumbnail-state="placeholder"],.motion-grid .review-choice-card>.review-runtime-thumbnail[data-thumbnail-state="loading"]{filter:saturate(.72) contrast(.94);opacity:.82}
 .motion-grid .review-choice-card[aria-pressed="true"]>.review-runtime-thumbnail{filter:saturate(1.05) contrast(1.03);opacity:1}
 @media(max-width:620px){.motion-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important}.motion-grid .review-choice-card{min-height:0!important;padding:2px!important}}
+
+/* Mobile review controls: keep playback in flow and collapse secondary model selection. */
+.motion-models{margin-top:10px;border-top:1px solid #28312d}
+.motion-models>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 2px;cursor:pointer;list-style:none}
+.motion-models>summary::-webkit-details-marker{display:none}
+.motion-models>summary strong{font-size:10px;color:#c9d1cc}
+.motion-models[open]>summary{color:#fff1c8}
+.motion-grid .review-choice-card[data-invalid="true"]{opacity:.34;filter:grayscale(.9);pointer-events:none}
+@media(max-width:620px){
+  .motion-controls{display:flex;flex-direction:column;gap:8px}
+  .motion-library-primary{order:1;margin-bottom:0}
+  .motion-playback{order:2;position:static!important;bottom:auto!important;grid-template-columns:40px minmax(0,1fr) 66px auto!important;box-shadow:none!important;border-color:#3a433f;background:#0d1311}
+  .motion-playback .primary{min-width:0;font-size:13px}
+  .motion-timeline{order:3;margin-top:0;grid-template-columns:40px minmax(0,1fr) 40px!important}
+  .motion-timeline output{grid-column:1/-1!important;grid-row:auto!important;min-width:0!important;text-align:center!important}
+  .motion-models{order:4;margin-top:0}
+  .motion-models .motion-model-grid{margin-top:0;padding:0 0 8px}
+  .motion-legacy{order:5}
+  .motion-meta{order:6}
+  .motion-library-head small,.motion-grid-title{display:none}
+  .motion-filters{margin-top:6px!important}
+  .motion-grid{max-height:34dvh!important}
+  .motion-stage-caption{bottom:30px;padding:6px 8px;background:#0b1110d8}
+  .motion-stage-status{bottom:6px}
+}
