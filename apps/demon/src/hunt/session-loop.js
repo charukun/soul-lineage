@@ -1,4 +1,4 @@
-import {bodyStats, growthFor, huntPlan, goalReady, preyValue} from './balance.js';
+import {bodyStats, growthFor, huntPlan, goalReady, preyValue, huntPressure} from './balance.js';
 
 export function withHuntSession(BaseSession, chooseSpecies) {
   return class HuntSession extends BaseSession {
@@ -8,12 +8,14 @@ export function withHuntSession(BaseSession, chooseSpecies) {
       super(village, {...profile, monsterSpecies: species}, {
         ...ports,
         consume(role, options = {}) {
+          // The named prey always leaves its ability; random extra learning remains unchanged.
           return ports.consume?.(role, {...options, learnTrait: options.learnTrait || role === plan.target}) ?? false;
         }
       });
       this.huntPlan = plan;
       this.carried = 0;
       this.huntReceipt = null;
+      // A short, readable opening on generated maps; keep deep threats and named targets.
       if (village.source === 'generated' && (plan.chapter === 0 || plan.route === 'forage')) {
         for (const npc of this.village.npcs) if (!npc.marked && npc.z > this.village.entry.z - 14 && ['smith', 'hunter'].includes(npc.role)) {
           Object.assign(npc, {role: 'traveller', name: '旅人', hp: 38, maxhp: 38, behavior: 'flee'});
@@ -26,20 +28,16 @@ export function withHuntSession(BaseSession, chooseSpecies) {
     growth() { return growthFor(this.eaten, this.monsterSpecies, this.profile); }
     huntStats() { return bodyStats(this.profile, this.eaten, this.monsterSpecies); }
     goalReady() { return goalReady(this.huntPlan, this.eaten, this.targetEaten); }
-    huntPressure() {
-      if (this.huntPlan?.route === 'forage') return {level:0, label:'低', cap:2};
-      const points = this.eaten + Number(this.targetEaten) + Number(this.carried >= 8);
-      const level = points >= 4 ? 2 : points >= 2 ? 1 : 0;
-      return {level, label:['低','中','高'][level], cap:2 + level};
-    }
+    pressure() { return huntPressure(this.huntPlan, {eaten:this.eaten, carried:this.carried, hp:this.player.hp, maxHp:this.player.maxhp, targetEaten:this.targetEaten}); }
     skillSet(npc) {
       const skills = super.skillSet(npc), tempo = this.huntStats().tempo;
+      // Native Tidebreak normalizes and actually uses tempo. No decorative powerScale / fake hits.
       return {...skills, loadout: Object.fromEntries(Object.entries(skills.loadout).map(([slot, recipe]) =>
         [slot, {...structuredClone(recipe), tempo}]))};
     }
     engage(npc) {
-      const chapterCap = (this.huntPlan?.chapter || 0) < 2 ? 3 : 4;
-      const cap = this.huntPlan?.route === 'forage' ? 2 : Math.min(chapterCap, this.huntPressure().cap);
+      const pressure = this.pressure(), chapter = this.huntPlan?.chapter || 0;
+      const cap = this.huntPlan?.route === 'forage' ? 2 : Math.min(4, (chapter < 2 ? 2 : 3) + Number(pressure.level >= 3));
       if (this.fight && (this.combatantCount?.() || 1) >= cap) return;
       return super.engage(npc);
     }
@@ -55,9 +53,16 @@ export function withHuntSession(BaseSession, chooseSpecies) {
         const heal = 12 + Math.ceil(this.player.maxhp * .075) + (this.has('traveller') ? 8 : 0);
         this.player.hp = Math.min(this.player.maxhp, before.hp + maxGain + heal);
         const value = preyValue(data.role); this.carried += value;
+        const pressure = this.pressure();
+        let responder = null;
+        if (pressure.level >= 3) {
+          responder = this.village.npcs.filter(n => !n.dead && !n.eaten && n.behavior === 'fight' && !this.isCombatant?.(n))
+            .sort((a, b) => Math.hypot(a.x - this.player.x, a.z - this.player.z) - Math.hypot(b.x - this.player.x, b.z - this.player.z))[0] || null;
+          if (responder) { responder.fear = 0; responder.state = 'pursue'; }
+        }
         data = {...data, reward: {...data.reward, healed: Math.max(0, this.player.hp - before.hp),
           maxHpGain: maxGain, carried: this.carried, lootGain: value, techniqueSpeed: this.huntStats().techniqueSpeed,
-          pressure: this.huntPressure()}};
+          pressure, response: responder ? {role: responder.role, id: responder.id, level: pressure.level} : null}};
       }
       return super.emit(type, data);
     }

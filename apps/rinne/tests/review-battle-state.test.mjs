@@ -102,10 +102,15 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
   assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);
   assert.match(battleHtml,/battle-phase-wave/);assert.match(battleHtml,/battle-action-drift/);
-  assert.match(battleHtml,/間合いを測っている…/);assert.match(battleHtml,/38%\{opacity:1;transform:translateY\(0\)\}/);
-  assert.match(battleHtml,/visibility:visible!important;opacity:1!important;z-index:3!important/);
-  assert.match(battleHtml,/top:calc\(100% \+ 27px\)!important;z-index:2!important/);
+  assert.match(battleHtml,/id="battle-sequence-hud"/);assert.match(battleHtml,/id="battle-sequence-current"[^>]*>間合いを測っている…<\/strong>/);
+  assert.match(battleHtml,/battle-sequence-hud__wave combat-sequence__link/);
+  assert.match(battleHtml,/clip-path:polygon\(0 48%,18% 48%,27% 30%,36% 72%,46% 10%,57% 86%/);
+  assert.match(battleHtml,/@keyframes battle-sequence-slot/);assert.match(battleHtml,/67%\{opacity:1;transform:translateY\(0\)\}/);
+  assert.doesNotMatch(battleHtml,/id="battle-sequence-rest"/);assert.doesNotMatch(battleHtml,/id="battle-sequence-events"/);
+  assert.match(battleSource,/q\('battle-sequence-current'\)/);assert.match(battleSource,/INTERNAL_ACTION_LABELS/);
+  assert.match(battleSource,/spin:'旋回攻撃'/);assert.match(battleSource,/state\.skill\|\|battleActionLabel/);
   assert.match(battleSource,/pushBattleReadout\(action,'action'\)/);assert.match(battleSource,/pushBattleReadout\(.*'hurt'\)/);
+  assert.match(battleSource,/被弾 −\$\{Math\.ceil\(heroLoss\)\}/);assert.doesNotMatch(battleSource,/生命 \$\{Math\.ceil\(Math\.max/);
   assert.match(battleHtml,/Compact battle HUD pass/);assert.match(battleHtml,/#battle-technique-composition,/);assert.match(battleHtml,/position:fixed!important/);
   assert.match(battleHtml,/\.stage>\.technique-loadout\{left:8px!important;right:auto!important;top:8px!important;bottom:auto!important/);
   assert.match(battleHtml,/\.controls\.review-surface__panel\{min-height:0!important;height:auto!important/);

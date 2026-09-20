@@ -2,12 +2,12 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
-import {KAYKIT_MODELS,KAYKIT_RIG_ID} from '@soul/characters';
+import {KAYKIT_MODELS} from '@soul/characters';
 import {kaykitHumanoidFromGLTF} from '@soul/rendering/kaykit-rig';
 import {captureMotionRest,applyNormalizedMotion} from '@soul/rendering/motion-quality';
 import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGORY_LABELS} from './review-motion-catalog.js';
 import {buildReviewMotionRegistry,motionRegistryCount} from './review-motion-registry.js';
-import {loadPinnedMotionSource,loadMotionReviewModel,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
+import {loadPinnedMotionSource,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import './review-motion-library.css';
 import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
@@ -37,11 +37,11 @@ ground.rotation.x=-Math.PI/2;ground.position.y=-.005;scene.add(ground);
 
 const loader=new GLTFLoader(),stage=new THREE.Group();scene.add(stage);
 let subject=null,targetScene=null,targetBones=null,targetRest=null,mixer=null,action=null,targetClips=[],registry=null,catalog=[],selected=null;
-const MOTION_REVIEW_MODEL=Object.freeze({id:'mesh2motion-review-mannequin',label:'基準素体',reviewMannequin:true,thumbnailUrl:'./review/catalog-thumbnails.svg#mesh2motion-review-mannequin'});
-const REVIEW_MODELS=Object.freeze([MOTION_REVIEW_MODEL,...KAYKIT_MODELS]);
+const REVIEW_MODELS=KAYKIT_MODELS;
 function createStaticThumbnail(url,label=''){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('review-static-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-label',label);svg.setAttribute('role','img');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href',url);svg.append(use);return svg;}
-let selectedModel=MOTION_REVIEW_MODEL,filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8,cameraPreset='three-quarter';
+let selectedModel=REVIEW_MODELS[0],filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8,cameraPreset='three-quarter';
 let externalSource=null,externalSourceId='',externalTime=0,selectedDuration=0,selectSerial=0;
+const invalidMotionIds=new Set();
 const categoryOrder=['all','recommended','life','move','parkour','combat','reaction','other'];
 
 function disposeSubject(){
@@ -90,7 +90,13 @@ function syncSelectedMeta(){
   if(el('motion-origin'))el('motion-origin').href=row.originalSource||'./simulator/licenses/REVIEW_MOTION_SOURCES.txt';
   canvas.dataset.motionName=row.name;canvas.dataset.motionCategory=row.category;canvas.dataset.motionIdentity=row.sourceIdentity;
 }
-async function selectMotion(record){
+function nextPlayableMotion(excludedIdentity=''){
+  const rows=filterMotionReviewCatalog(catalog,filter);
+  return rows.find(row=>row.sourceIdentity!==excludedIdentity&&!invalidMotionIds.has(row.sourceIdentity))
+    ||catalog.find(row=>row.sourceIdentity!==excludedIdentity&&!invalidMotionIds.has(row.sourceIdentity))
+    ||null;
+}
+async function selectMotion(record,{allowFallback=true}={}){
   if(!record||!mixer||!targetBones||!targetRest)return;
   const serial=++selectSerial;playing=false;selected=record;syncSelectedMeta();renderMotionGrid();
   try{
@@ -107,13 +113,18 @@ async function selectMotion(record){
       selectedDuration=externalSource.duration(record.upstreamClipIndex);
       applyNormalizedMotion(targetBones,externalSource.sample(record.upstreamClipIndex,0),targetRest);
     }else throw new Error('Unknown motion runtime source');
-    playing=true;status('');renderMotionGrid();syncPlaybackUI();
-  }catch(error){playing=false;status('モーション読込失敗: '+String(error?.message||error));syncPlaybackUI();}
+    invalidMotionIds.delete(record.sourceIdentity);playing=true;status('');renderMotionGrid();syncPlaybackUI();
+  }catch(error){
+    invalidMotionIds.add(record.sourceIdentity);playing=false;renderMotionGrid();
+    const fallback=allowFallback?nextPlayableMotion(record.sourceIdentity):null;
+    if(fallback){status('互換のあるモーションへ切り替えています。');return selectMotion(fallback,{allowFallback:false});}
+    status('このモーションは現在の素体と互換性がありません。');syncPlaybackUI();
+  }
 }
 const thumbnailModelPromises=new Map();
 async function loadReviewModelForThumbnail(model){
   if(!thumbnailModelPromises.has(model.id)){
-    const promise=model.reviewMannequin?loadMotionReviewModel(model.id).then(value=>value.gltf):loader.loadAsync(model.runtime.url);
+    const promise=loader.loadAsync(model.runtime.url);
     thumbnailModelPromises.set(model.id,promise.catch(error=>{thumbnailModelPromises.delete(model.id);throw error;}));
   }
   return thumbnailModelPromises.get(model.id);
@@ -138,6 +149,7 @@ function renderMotionGrid(){
   if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty';empty.textContent='この分類のモーションはありません。';root.append(empty);return;}
   for(const record of rows){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionIdentity=record.sourceIdentity;button.dataset.recommended=String(record.recommended);
+    const invalid=invalidMotionIds.has(record.sourceIdentity);button.dataset.invalid=String(invalid);button.disabled=invalid;
     button.setAttribute('aria-pressed',String(selected?.sourceIdentity===record.sourceIdentity));
     const label=formatName(record.name),thumbnail=createRuntimeThumbnail(label);button.setAttribute('aria-label',label);button.title=label;button.append(thumbnail);
     scheduleRuntimeThumbnail(thumbnail,`motion-pose:${selectedModel.id}:${record.sourceIdentity}`,async()=>{
@@ -166,22 +178,17 @@ async function loadModel(model){
   const serial=++loadSerial,previousIdentity=selected?.sourceIdentity||'';selectedModel=model;renderModelGrid();status(model.label+' を読み込んでいます。');el('motion-load').removeAttribute('value');
   disposeSubject();selected=null;registry=null;catalog=[];selectedDuration=0;renderMotionGrid();
   try{
-    let gltf,reviewBones=null;
-    if(model.reviewMannequin){
-      const loaded=await loadMotionReviewModel(model.id);gltf=loaded.gltf;reviewBones=loaded.bones;
-    }else{
-      gltf=await loader.loadAsync(model.runtime.url,onProgress=>{if(serial!==loadSerial)return;const total=Number(onProgress.total)||0,loaded=Number(onProgress.loaded)||0;if(total>0)el('motion-load').value=Math.min(1,loaded/total);});
-    }
+    const gltf=await loader.loadAsync(model.runtime.url,onProgress=>{if(serial!==loadSerial)return;const total=Number(onProgress.total)||0,loaded=Number(onProgress.loaded)||0;if(total>0)el('motion-load').value=Math.min(1,loaded/total);});
     if(serial!==loadSerial){gltf.scene.traverse(node=>node.geometry?.dispose?.());return;}
-    if(!model.reviewMannequin&&(!Array.isArray(gltf.animations)||!gltf.animations.length))throw new Error(model.label+' に埋め込みモーションがありません');
+    if(!Array.isArray(gltf.animations)||!gltf.animations.length)throw new Error(model.label+' に埋め込みモーションがありません');
     const wrapper=new THREE.Group();wrapper.name='MotionReview:'+model.id;wrapper.add(gltf.scene);
     const box=new THREE.Box3().setFromObject(gltf.scene),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
     modelHeight=Math.max(.4,size.y);wrapper.position.set(-center.x,-box.min.y,-center.z);subject=wrapper;targetScene=gltf.scene;stage.add(subject);
-    targetClips=gltf.animations||[];targetBones=reviewBones||kaykitHumanoidFromGLTF(gltf);targetRest=captureMotionRest(targetBones,modelHeight);mixer=new THREE.AnimationMixer(gltf.scene);
+    targetClips=gltf.animations||[];targetBones=kaykitHumanoidFromGLTF(gltf);targetRest=captureMotionRest(targetBones,modelHeight);mixer=new THREE.AnimationMixer(gltf.scene);
     const legacy=el('motion-legacy');if(legacy){legacy.replaceChildren(new Option('原版クリップを選択',''));targetClips.forEach((clip,index)=>legacy.add(new Option(clip.name,String(index))));}
     mixer.addEventListener('finished',()=>{playing=false;syncPlaybackUI();});
     const baselineClips=targetClips.length?targetClips:[{name:'Idle_A',duration:1}];
-    registry=buildReviewMotionRegistry(baselineClips);catalog=buildMotionReviewCatalog(registry.motions.filter(row=>!model.reviewMannequin||!row.baseline),{perCategory:8});
+    registry=buildReviewMotionRegistry(baselineClips);catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
     const same=catalog.find(row=>row.sourceIdentity===previousIdentity),firstRecommended=catalog.find(row=>row.recommended),first=same||firstRecommended||catalog[0];
     const count=motionRegistryCount(registry);canvas.dataset.motionSource='source-registry';canvas.dataset.motionCount=String(count);canvas.dataset.motionModel=model.id;
     el('motion-count-value').textContent=String(count);
@@ -189,10 +196,9 @@ async function loadModel(model){
     status('自己ホスト済みモーションライブラリを確認しています。');
     const discovered=await discoverPinnedMotionLibraryClips();
     if(serial!==loadSerial)return;
-    registry=buildReviewMotionRegistry(baselineClips,discovered);catalog=buildMotionReviewCatalog(registry.motions.filter(row=>!model.reviewMannequin||!row.baseline),{perCategory:8});
+    registry=buildReviewMotionRegistry(baselineClips,discovered);catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
     const expandedCount=motionRegistryCount(registry);canvas.dataset.motionCount=String(expandedCount);el('motion-count-value').textContent=String(expandedCount);
     renderMotionGrid();status('');
-    if(model.reviewMannequin&&!selected){const firstExternal=catalog.find(row=>row.runtime.kind==='pinned-motion-source');if(firstExternal)await selectMotion(firstExternal);}
   }catch(error){el('motion-load').value=0;status('読込失敗: '+String(error?.message||error));canvas.dataset.motionSource='error';}
 }
 

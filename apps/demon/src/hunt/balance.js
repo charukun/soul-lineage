@@ -64,6 +64,18 @@ export function goalReady(plan, eaten, targetEaten) {
   return eaten >= plan.quota && (!plan.marked || targetEaten);
 }
 export function goalText(plan) { return plan.marked ? `${plan.prey}を含む${plan.quota}体を喰らって帰る` : `${plan.quota}体を喰らって帰る`; }
+export function huntPressure(plan, {eaten = 0, carried = 0, hp = 1, maxHp = 1, targetEaten = false} = {}) {
+  const meals = Math.max(0, Math.floor(Number(eaten) || 0)), haul = Math.max(0, Math.floor(Number(carried) || 0));
+  const quota = Math.max(1, Math.floor(Number(plan?.quota) || 1)), hpRatio = Math.max(0, Math.min(1, (Number(hp) || 0) / Math.max(1, Number(maxHp) || 1)));
+  const ready = goalReady(plan, meals, targetEaten === true), overQuota = Math.max(0, meals - quota);
+  let level = meals > 0 ? 1 : 0;
+  if (ready || haul >= 8) level = Math.max(level, 2);
+  if (overQuota > 0 || haul >= 14) level = 3;
+  if (plan?.route === 'forage') level = Math.min(level, 1);
+  const label = ['静穏', '気配', '捜索', '包囲'][level];
+  const returnSuggested = meals > 0 && (ready || hpRatio < .35 || (level >= 2 && haul >= 6));
+  return {level, label, ready, returnSuggested, stake: haul, hpRatio: Number(hpRatio.toFixed(3)), overQuota};
+}
 export function growthFor(meals = 0, species = 'night-creature', profile = {}) {
   const n = Math.max(0, Math.min(24, Number(meals) || 0)), progress = n / 24;
   const large = ['horn-brute', 'grave-ogre'].includes(species), small = ['night-bat', 'goblin-runt'].includes(species);
