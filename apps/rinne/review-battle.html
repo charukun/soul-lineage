@@ -244,6 +244,67 @@ main.battle-review.review-surface .camera-zoom button{
   .stage canvas{min-height:0!important}
 }
 
+/* Foot-level phase HUD: keep 序破急 in the fight space without occupying the face/torso read zone. */
+.battle-foot-phase{
+  position:absolute;
+  z-index:7;
+  left:50%;
+  bottom:13%;
+  transform:translateX(-50%) perspective(240px) rotateX(58deg);
+  display:grid;
+  grid-template-columns:30px 22px 30px 22px 30px;
+  align-items:center;
+  pointer-events:none;
+  filter:drop-shadow(0 5px 7px rgba(0,0,0,.42));
+}
+.battle-foot-phase::before{
+  content:"";
+  position:absolute;
+  left:-18px;right:-18px;top:50%;
+  height:44px;
+  transform:translateY(-50%);
+  border:1px solid rgba(115,188,229,.18);
+  border-radius:50%;
+  background:radial-gradient(ellipse at center,rgba(115,188,229,.08),rgba(6,16,29,.02) 58%,transparent 72%);
+}
+.battle-foot-phase__step{
+  position:relative;
+  z-index:1;
+  display:grid;
+  place-items:center;
+  width:30px;height:30px;
+  border:1px solid rgba(199,161,93,.28);
+  border-radius:50%;
+  background:rgba(6,16,29,.76);
+  color:rgba(244,234,208,.42);
+  font:800 13px/1 var(--font-rinne-display,ui-serif);
+  transition:transform .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease,background .16s ease;
+}
+.battle-foot-phase__link{
+  position:relative;
+  z-index:1;
+  height:1px;
+  background:linear-gradient(90deg,rgba(199,161,93,.18),rgba(199,161,93,.48),rgba(199,161,93,.18));
+}
+.battle-foot-phase[data-phase="jo"] [data-foot-phase="jo"],
+.battle-foot-phase[data-phase="ha"] [data-foot-phase="ha"],
+.battle-foot-phase[data-phase="kyu"] [data-foot-phase="kyu"]{
+  color:var(--rinne-gold-hi);
+  border-color:rgba(227,199,127,.86);
+  background:radial-gradient(circle,rgba(27,61,91,.96),rgba(6,16,29,.84));
+  transform:translateY(-2px) scale(1.18);
+  box-shadow:0 0 16px rgba(115,188,229,.22),0 0 9px rgba(227,199,127,.28) inset;
+}
+.battle-foot-phase[data-phase="ha"] [data-foot-phase="jo"],
+.battle-foot-phase[data-phase="kyu"] [data-foot-phase="jo"],
+.battle-foot-phase[data-phase="kyu"] [data-foot-phase="ha"]{
+  color:rgba(227,199,127,.72);
+  border-color:rgba(199,161,93,.48);
+}
+@media(max-width:680px){
+  .battle-foot-phase{bottom:12%;transform:translateX(-50%) perspective(220px) rotateX(60deg) scale(.92)}
+}
+
 </style>
 </head>
 <body>
@@ -263,6 +324,9 @@ main.battle-review.review-surface .camera-zoom button{
     <span class="note">Tidebreak接触同期</span>
     <output id="battle-sign" class="battle-sign" role="status" aria-live="polite" hidden></output>
     <output id="battle-lightbulb" class="battle-lightbulb" role="status" aria-label="閃いた" hidden>💡</output>
+    <div id="battle-foot-phase" class="battle-foot-phase" data-phase="idle" aria-label="足元の序破急HUD">
+      <span class="battle-foot-phase__step" data-foot-phase="jo">序</span><i class="battle-foot-phase__link" aria-hidden="true"></i><span class="battle-foot-phase__step" data-foot-phase="ha">破</span><i class="battle-foot-phase__link" aria-hidden="true"></i><span class="battle-foot-phase__step" data-foot-phase="kyu">急</span>
+    </div>
     <aside id="battle-inspiration" class="battle-inspiration" role="status" aria-live="assertive" hidden><span>閃き</span><strong id="battle-inspiration-name"></strong><small id="battle-inspiration-phase"></small></aside>
     <aside id="battle-phase" class="phase-panel combat-phase-indicator combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" data-combo-active="false" data-phase="idle" aria-label="序破急の現在状態" aria-live="polite">
       <span class="phase-step combat-sequence__step" data-phase-id="jo" data-phase-step="jo" data-combat-phase="jo" data-active="false">序</span><i class="phase-link phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="ha" data-phase-step="ha" data-combat-phase="ha" data-active="false">破</span><i class="phase-link phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="kyu" data-phase-step="kyu" data-combat-phase="kyu" data-active="false">急</span>
