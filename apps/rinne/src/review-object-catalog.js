@@ -1,5 +1,6 @@
 import {defs} from '@soul/world/mura';
 import {projectAssetUrl} from '@soul/assets';
+import {RINNE_KENNEY_EXPANSION_OBJECTS} from './review-kenney-library.js';
 
 const runtimeEnvironment=typeof __BUILD_INFO__==='undefined'?'dev':__BUILD_INFO__.environment;
 const libraryUrl=path=>projectAssetUrl(path,{environment:runtimeEnvironment});
@@ -63,6 +64,12 @@ export const RINNE_OBJECT_REVIEW_CATALOG=Object.freeze([
   kenneyMedieval('grave-crypt','石造納骨堂','outdoor','rubble',"kenney/3D assets/Graveyard Kit/Models/GLB format/crypt-large.glb",'92fd30a7905215b57875dc313e6536db31a8642b',54852),
   kenneyMedieval('grave-cross','十字墓石','outdoor','rubble',"kenney/3D assets/Graveyard Kit/Models/GLB format/gravestone-cross.glb",'fac50d452f147808f5535a71e3dfbdae886c6810',20584),
   kenneyMedieval('grave-candles','墓所の燭台','props','torch',"kenney/3D assets/Graveyard Kit/Models/GLB format/candle-multiple.glb",'5c88d9450c86ceb61d4ecdbd2d11f2f5427fbf6c',17304),
+  ...RINNE_KENNEY_EXPANSION_OBJECTS.map(item=>Object.freeze({
+    id:item.id,label:item.label,category:item.category,kind:'gltf',
+    url:libraryUrl(item.runtimeAssetPath),thumbnailUrl:thumb(item.thumbnail),
+    source:'Kenney · CC0-1.0 · '+item.pack,
+    provenance:Object.freeze({repository:'eturner58/game-assets',revision:'fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa',gitBlobSha:item.gitBlobSha,author:'Kenney',license:'CC0-1.0'}),
+  })),
   ...PROP_IDS.map(id=>({id:`prop-${id}`,label:defs[id]?.label||id,category:['bed','sofa','table','chair','shelf','counter','workbench','hearth','rug','plant'].includes(id)?'furniture':'outdoor',kind:'prop',propKind:id,thumbnailUrl:thumb(`prop-${id}`),source:'RINNE shared world runtime'})),
   {id:'training-dummy',label:'訓練かかし',category:'training',kind:'runtime',runtimeKind:'training-dummy',thumbnailUrl:thumb('training-dummy'),source:'RINNE gameplay runtime'},
   {id:'armor-stand',label:'防具立て',category:'training',kind:'runtime',runtimeKind:'armor-stand',thumbnailUrl:thumb('armor-stand'),source:'RINNE gameplay runtime'},

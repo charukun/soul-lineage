@@ -2,6 +2,7 @@ import {selectTracks} from '@soul/audio';
 import {audioURLs} from '@soul/audio/urls';
 import {combatSfxURLs} from '@soul/audio/sfx-urls';
 import {projectAssetUrl} from '@soul/assets';
+import {RINNE_KENNEY_EXPANSION_SOUNDS} from './review-kenney-library.js';
 
 const runtimeEnvironment=typeof __BUILD_INFO__==='undefined'?'dev':__BUILD_INFO__.environment;
 const libraryUrl=path=>projectAssetUrl(path,{environment:runtimeEnvironment});
@@ -35,13 +36,19 @@ const kenneySfx=Object.freeze([
   Object.freeze({id:'kenney-ui-hover',kind:'sfx',title:'UI 選択',category:'UI',scene:'選択',url:libraryUrl('audio/kenney/ui-hover/a7bf141399aaa5a6c32afeeb58e553f15b27307a.ogg'),source:'Kenney · CC0-1.0',description:'Kenney CC0の実音源。',provenance:Object.freeze({repository:'eturner58/game-assets',revision:'fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa',path:"kenney/Audio/UI Audio/Audio/rollover1.ogg",gitBlobSha:'a7bf141399aaa5a6c32afeeb58e553f15b27307a',byteLength:11242,author:'Kenney',license:'CC0-1.0',originalSource:'https://kenney.nl'})}),
   Object.freeze({id:'kenney-ui-switch',kind:'sfx',title:'UI 切替',category:'UI',scene:'切替',url:libraryUrl('audio/kenney/ui-switch/927aaa52b2a9236fc0507ea7190ae2358ab9d64e.ogg'),source:'Kenney · CC0-1.0',description:'Kenney CC0の実音源。',provenance:Object.freeze({repository:'eturner58/game-assets',revision:'fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa',path:"kenney/Audio/UI Audio/Audio/switch1.ogg",gitBlobSha:'927aaa52b2a9236fc0507ea7190ae2358ab9d64e',byteLength:13285,author:'Kenney',license:'CC0-1.0',originalSource:'https://kenney.nl'})}),
 ]);
+const kenneyExpansionSfx=Object.freeze(RINNE_KENNEY_EXPANSION_SOUNDS.map(item=>Object.freeze({
+  id:item.id,kind:'sfx',title:item.title,category:item.category,scene:item.scene,
+  url:libraryUrl(item.runtimeAssetPath),source:'Kenney · CC0-1.0 · '+item.pack,
+  description:'Kenney CC0の実音源。自前Asset Originから配信。',
+  provenance:Object.freeze({repository:'eturner58/game-assets',revision:'fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa',gitBlobSha:item.gitBlobSha,author:'Kenney',license:'CC0-1.0'}),
+})));
 const bgm=selectTracks({game:'rinne'}).map(track=>Object.freeze({
   id:track.id,kind:'bgm',title:track.title,category:track.scene,scene:track.scene,bpm:track.bpm,
   duration:track.duration,loop:Boolean(track.loop),url:audioURLs[track.id],source:`audioURLs.${track.id}`,
   description:track.description,productionStatus:track.productionStatus,
   commercialClearance:track.commercialClearance,licenseStatus:track.licenseStatus
 }));
-export const RINNE_SOUND_REVIEW_LIBRARY=Object.freeze([...sfx,...kenneySfx,...bgm]);
+export const RINNE_SOUND_REVIEW_LIBRARY=Object.freeze([...sfx,...kenneySfx,...kenneyExpansionSfx,...bgm]);
 const searchable=item=>[item.id,item.kind,item.title,item.category,item.scene,item.description,item.source].filter(Boolean).join(' ').toLocaleLowerCase('ja');
 export function filterSoundReviewLibrary({kind='all',query=''}={}){
   const normalized=String(query).trim().toLocaleLowerCase('ja');
