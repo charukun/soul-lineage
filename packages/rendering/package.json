@@ -49,7 +49,8 @@
     "./mura/building-visual": "./src/mura/building-visual.js",
     "./motion-quality": "./src/motion-quality.js",
     "./motion-runtime": "./src/motion-runtime.js",
-    "./combat-camera-frame": "./src/combat-camera-frame.js"
+    "./combat-camera-frame": "./src/combat-camera-frame.js",
+    "./humanoid-preview": "./src/humanoid-preview.js"
   },
   "dependencies": {
     "three": "0.186.0",

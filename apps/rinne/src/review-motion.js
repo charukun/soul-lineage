@@ -1,236 +1,232 @@
 import * as THREE from 'three';
-import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {KAYKIT_MODELS} from '@soul/characters';
-import {kaykitHumanoidFromGLTF} from '@soul/rendering/kaykit-rig';
-import {captureMotionRest,applyNormalizedMotion} from '@soul/rendering/motion-quality';
+import {createHumanoidPreview} from '@soul/rendering/humanoid-preview';
 import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGORY_LABELS} from './review-motion-catalog.js';
-import {buildReviewMotionRegistry,motionRegistryCount} from './review-motion-registry.js';
-import {loadPinnedMotionSource,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
+import {buildReviewMotionRegistry,motionRegistryCount,externalMotionRecords,dedupeSourceMotions} from './review-motion-registry.js';
+import {loadPinnedMotionSource,loadPinnedReviewTarget,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import './review-motion-library.css';
+import './review-motion-preview.css';
 import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 mountRinneReviewShell('motion');
 
-const el=id=>document.getElementById(id);
-const canvas=el('motion-stage');
-const status=message=>{el('motion-status').textContent=message;};
+const el=id=>document.getElementById(id),canvas=el('motion-stage');
+const status=message=>{if(el('motion-status').textContent!==message)el('motion-status').textContent=message;};
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
-renderer.outputColorSpace=THREE.SRGBColorSpace;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.05;
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
 renderer.setPixelRatio(Math.min(Number(globalThis.devicePixelRatio)||1,1.5));
-
-const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x0b1110);
-scene.fog=new THREE.Fog(0x0b1110,9,22);
-const camera=new THREE.PerspectiveCamera(38,1,.04,60);
-const controls=new OrbitControls(camera,canvas);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1110);scene.fog=new THREE.Fog(0x0b1110,9,22);
+const camera=new THREE.PerspectiveCamera(38,1,.04,60),controls=new OrbitControls(camera,canvas);
 controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=.7;controls.maxDistance=12;
 scene.add(new THREE.HemisphereLight(0xe3ece8,0x27312d,2.4));
 const key=new THREE.DirectionalLight(0xffe7bc,3.1);key.position.set(-4,7,5);scene.add(key);
 const rim=new THREE.DirectionalLight(0x9ac8d5,1.35);rim.position.set(5,4,-4);scene.add(rim);
 const ground=new THREE.Mesh(new THREE.CircleGeometry(3.5,64),new THREE.MeshStandardMaterial({color:0x1a2420,roughness:.96,metalness:.01}));
 ground.rotation.x=-Math.PI/2;ground.position.y=-.005;scene.add(ground);
-
-const loader=new GLTFLoader(),stage=new THREE.Group();scene.add(stage);
-let subject=null,targetScene=null,targetBones=null,targetRest=null,mixer=null,action=null,targetClips=[],registry=null,catalog=[],selected=null;
+const stage=new THREE.Group();scene.add(stage);
 const REVIEW_MODELS=KAYKIT_MODELS;
-function createStaticThumbnail(url,label=''){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('review-static-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-label',label);svg.setAttribute('role','img');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href',url);svg.append(use);return svg;}
-let selectedModel=REVIEW_MODELS[0],filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8,cameraPreset='three-quarter';
-let externalSource=null,externalSourceId='',externalTime=0,selectedDuration=0,selectSerial=0;
-const invalidMotionIds=new Set();
-const categoryOrder=['all','recommended','life','move','parkour','combat','reaction','other'];
-
-function disposeSubject(){
-  if(mixer&&targetScene){mixer.stopAllAction();mixer.uncacheRoot(targetScene);mixer=null;}
-  if(!subject)return;
-  stage.remove(subject);
-  const geometries=new Set(),materials=new Set(),textures=new Set(),skeletons=new Set();
-  subject.traverse(node=>{
-    if(node.geometry)geometries.add(node.geometry);if(node.skeleton)skeletons.add(node.skeleton);
-    for(const material of Array.isArray(node.material)?node.material:[node.material]){
-      if(!material)continue;materials.add(material);for(const value of Object.values(material))if(value?.isTexture)textures.add(value);
-    }
-  });
-  geometries.forEach(value=>value.dispose());materials.forEach(value=>value.dispose());textures.forEach(value=>value.dispose());skeletons.forEach(value=>value.dispose());
-  subject=null;targetScene=null;targetBones=null;targetRest=null;targetClips=[];action=null;
-}
+let selectedModel=REVIEW_MODELS[0],subject=null,targetScene=null,targetAdapter=null,mixer=null,action=null,targetClips=[],catalog=[],selected=null;
+let filter='all',playing=false,speed=1,loop=true,last=performance.now(),loadSerial=0,selectSerial=0,modelHeight=1.8,cameraPreset='three-quarter';
+let externalSource=null,externalTime=0,selectedDuration=0,ready=false,rootMotion='in-place',stopped=false;
+const motionFailures=new Map(),thumbnailModelPromises=new Map(),categoryOrder=['all','recommended','life','move','parkour','combat','reaction','other'];
 const formatName=name=>String(name).replaceAll('_',' ').replace(/\s+/g,' ').trim();
 const categoryLabel=category=>REVIEW_MOTION_CATEGORY_LABELS[category]||category;
 const isExternal=()=>selected?.runtime?.kind==='pinned-motion-source';
 const playbackTime=()=>isExternal()?externalTime:Math.max(0,action?.time||0);
 
-function setCameraPreset(id){
-  cameraPreset=id;
-  const h=Math.max(.6,modelHeight),targetY=h*.52,d=Math.max(2.15,h*1.72);
-  const target=id==='face'?new THREE.Vector3(0,h*.79,0):new THREE.Vector3(0,targetY,0);
-  const positions={front:[0,id==='face'?h*.81:targetY,d],'three-quarter':[d*.72,targetY,d*.72],side:[d,targetY,0],back:[0,targetY,-d],face:[0,h*.81,d*.78]};
-  camera.position.set(...(positions[id]||positions.front));controls.target.copy(target);controls.update();
-  for(const button of document.querySelectorAll('[data-motion-camera]'))button.setAttribute('aria-pressed',String(button.dataset.motionCamera===id));
+// One selected-item explanation; no extra microcopy on every thumbnail.
+const quality=document.createElement('output');quality.id='motion-quality';quality.className='motion-quality';quality.setAttribute('aria-live','polite');
+canvas.closest('.motion-stage').append(quality);
+const compatibility=document.createElement('details');compatibility.className='motion-compatibility';
+compatibility.innerHTML='<summary>互換性・体格</summary><p>近似再生は素材比較用です。製品品質の承認ではありません。</p><label>腰の移動 <select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場で再生</option><option value="free">移動も適用</option><option value="locked">腰を固定</option></select></label><pre id="motion-binding-report"></pre>';
+el('motion-meta').closest('details').before(compatibility);
+let lastReport='';
+function showCompatibility(result,source=externalSource){
+  const labels={PLAYABLE:'再生可能',DEGRADED:'近似再生',RIG_REQUIRED:'骨・ウェイトの準備が必要',UNSUPPORTED:'データを確認してください',LOADING:'読み込み中',NATIVE:'原版再生'};
+  const code=result?.status||targetAdapter?.descriptor.status||'LOADING';
+  if(quality.dataset.state!==code){quality.value=labels[code]||code;quality.dataset.state=code;canvas.dataset.motionCompatibility=code;}
+  const summary={status:code,applied:result?.applied,reasons:result?.reasons,rootMotion:result?.rootMotion};
+  const signature=(targetAdapter?.descriptor.assetHash||'')+(source?.id||'')+JSON.stringify(summary);
+  if(signature!==lastReport){el('motion-binding-report').textContent=JSON.stringify({target:targetAdapter?.descriptor,source:source?.compatibility||null,result:summary},null,2);lastReport=signature;}
 }
-function syncStageSubtitle(category=selected?.category||'other'){
-  const duration=Math.max(0,selectedDuration),suffix=duration?' · '+duration.toFixed(2)+'s':'';
-  el('motion-source').textContent=categoryLabel(category)+' · '+selectedModel.label+suffix;
+function disposeScene(root){
+  const geometries=new Set(),materials=new Set(),textures=new Set(),skeletons=new Set();
+  root?.traverse(node=>{
+    if(node.geometry)geometries.add(node.geometry);if(node.skeleton)skeletons.add(node.skeleton);
+    for(const material of Array.isArray(node.material)?node.material:[node.material]){if(!material)continue;materials.add(material);for(const value of Object.values(material))if(value?.isTexture)textures.add(value);}
+  });
+  geometries.forEach(v=>v.dispose());materials.forEach(v=>v.dispose());textures.forEach(v=>v.dispose());skeletons.forEach(v=>v.dispose());
+}
+function disposeSubject(){
+  if(mixer&&targetScene){mixer.stopAllAction();mixer.uncacheRoot(targetScene);}
+  if(subject){stage.remove(subject);disposeScene(subject);}
+  subject=null;targetScene=null;targetAdapter=null;mixer=null;action=null;targetClips=[];
+}
+function setCameraPreset(id){
+  cameraPreset=id;const h=Math.max(.6,modelHeight),targetY=h*.52,d=Math.max(2.15,h*1.72);
+  const target=id==='face'?new THREE.Vector3(0,h*.79,0):new THREE.Vector3(0,targetY,0);
+  const positions={front:[0,targetY,d],'three-quarter':[d*.72,targetY,d*.72],side:[d,targetY,0],back:[0,targetY,-d],face:[0,h*.81,d*.78]};
+  camera.position.set(...(positions[id]||positions.front));controls.target.copy(target);controls.update();
+  for(const b of document.querySelectorAll('[data-motion-camera]'))b.setAttribute('aria-pressed',String(b.dataset.motionCamera===id));
 }
 function syncPlaybackUI(){
-  const duration=Math.max(0,selectedDuration),time=Math.min(duration,playbackTime());
-  el('motion-play').textContent=playing?'一時停止':'▶ 再生';el('motion-play').setAttribute('aria-pressed',String(playing));el('motion-loop').checked=loop;
-  el('motion-time').max=String(Math.max(duration,.0001));if(document.activeElement!==el('motion-time'))el('motion-time').value=String(time);
-  el('motion-time-label').value=time.toFixed(2)+' / '+duration.toFixed(2)+'秒';syncStageSubtitle();
+  const time=Math.min(selectedDuration,playbackTime());
+  const playLabel=playing?'一時停止':'▶ 再生';if(el('motion-play').textContent!==playLabel)el('motion-play').textContent=playLabel;
+  el('motion-play').setAttribute('aria-pressed',String(playing));el('motion-loop').checked=loop;
+  for(const id of ['motion-play','motion-restart','motion-time','motion-prev-frame','motion-next-frame'])el(id).disabled=!ready;
+  el('motion-time').max=String(Math.max(selectedDuration,.0001));if(document.activeElement!==el('motion-time'))el('motion-time').value=String(time);
+  el('motion-time-label').value=time.toFixed(2)+' / '+selectedDuration.toFixed(2)+'秒';
+  const subtitle=categoryLabel(selected?.category||'other')+' · '+selectedModel.label+(selectedDuration?' · '+selectedDuration.toFixed(2)+'s':'');
+  if(el('motion-source').textContent!==subtitle)el('motion-source').textContent=subtitle;
+}
+function syncMotionCards(){
+  for(const b of el('motion-grid').querySelectorAll('[data-motion-identity]')){
+    const identity=b.dataset.motionIdentity;b.setAttribute('aria-pressed',String(selected?.sourceIdentity===identity));b.dataset.previewState=motionFailures.has(identity)?'error':'available';
+  }
 }
 function syncSelectedMeta(){
-  if(!selected)return;
-  const row=selected;
+  if(!selected)return;const row=selected;
   el('motion-selected').textContent=formatName(row.name);
-  el('motion-meta').textContent=`source ${row.sourceRepository} @ ${row.sourceRevision} / ${row.sourcePath} / clip ${row.upstreamClipIndex} “${row.upstreamClipName}” / ${row.immutableHash} / ${row.author} / ${row.license}. モデル切替や速度・ループはsource motion数へ加算しません。`;
-  if(el('motion-license'))el('motion-license').href=row.licenseEvidence||row.licenseUrl||'./simulator/licenses/REVIEW_MOTION_SOURCES.txt';
-  if(el('motion-origin'))el('motion-origin').href=row.originalSource||'./simulator/licenses/REVIEW_MOTION_SOURCES.txt';
+  el('motion-meta').textContent=`source ${row.sourceRepository} @ ${row.sourceRevision} / ${row.sourcePath} / clip ${row.upstreamClipIndex} “${row.upstreamClipName}” / ${row.immutableHash} / ${row.author} / ${row.license}`;
+  el('motion-license').href=row.licenseEvidence||row.licenseUrl||'./simulator/licenses/REVIEW_MOTION_SOURCES.txt';
+  el('motion-origin').href=row.originalSource||'./simulator/licenses/REVIEW_MOTION_SOURCES.txt';
   canvas.dataset.motionName=row.name;canvas.dataset.motionCategory=row.category;canvas.dataset.motionIdentity=row.sourceIdentity;
 }
-function nextPlayableMotion(excludedIdentity=''){
-  const rows=filterMotionReviewCatalog(catalog,filter);
-  return rows.find(row=>row.sourceIdentity!==excludedIdentity&&!invalidMotionIds.has(row.sourceIdentity))
-    ||catalog.find(row=>row.sourceIdentity!==excludedIdentity&&!invalidMotionIds.has(row.sourceIdentity))
-    ||null;
+function applyExternal(time){
+  const result=targetAdapter.apply(externalSource.sample(selected.upstreamClipIndex,time),{rootMotion,mode:'preview'});
+  showCompatibility(result);if(!result.applied)throw new Error(result.reasons.join(', '));
 }
 async function selectMotion(record){
-  if(!record||!mixer||!targetBones||!targetRest)return;
-  const serial=++selectSerial;playing=false;selected=record;syncSelectedMeta();renderMotionGrid();
+  if(!record||!mixer||!targetAdapter)return;
+  const serial=++selectSerial,modelSerial=loadSerial;playing=false;ready=false;selected=record;selectedDuration=0;externalTime=0;externalSource=null;
+  mixer.stopAllAction();action=null;targetAdapter.reset();syncSelectedMeta();syncMotionCards();syncPlaybackUI();showCompatibility({status:'LOADING'});
   try{
-    mixer.stopAllAction();action=null;externalTime=0;
     if(record.runtime.kind==='kaykit-embedded'){
-      const clip=targetClips.find(item=>item.name===record.upstreamClipName)||targetClips[record.upstreamClipIndex];
-      if(!clip)throw new Error('KayKit source clip is unavailable on this model');
-      selectedDuration=Math.max(1/60,Number(clip.duration)||1/60);action=mixer.clipAction(clip);action.reset();
-      action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);action.clampWhenFinished=!loop;action.enabled=true;action.play();
+      const clip=targetClips.find(item=>item.name===record.upstreamClipName);if(!clip)throw new Error('Source clip not present on this target');
+      selectedDuration=clip.duration;action=mixer.clipAction(clip);action.reset().setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);action.clampWhenFinished=!loop;action.play();
+      showCompatibility({status:'NATIVE',applied:true});
     }else if(record.runtime.kind==='pinned-motion-source'){
-      status('自己ホスト済み固定hashモーションを検証しています。');
-      externalSource=await loadPinnedMotionSource(record.sourceId);externalSourceId=record.sourceId;
-      if(serial!==selectSerial)return;
-      selectedDuration=externalSource.duration(record.upstreamClipIndex);
-      applyNormalizedMotion(targetBones,externalSource.sample(record.upstreamClipIndex,0),targetRest);
-    }else throw new Error('Unknown motion runtime source');
-    invalidMotionIds.delete(record.sourceIdentity);playing=true;status('');renderMotionGrid();syncPlaybackUI();
+      status('モーションを読み込んでいます。');
+      const source=await loadPinnedMotionSource(record.sourceId,{preview:true});
+      if(serial!==selectSerial||modelSerial!==loadSerial||stopped)return;
+      externalSource=source;selectedDuration=source.duration(record.upstreamClipIndex);applyExternal(0);
+    }else throw new Error('Unknown motion source');
+    if(!(selectedDuration>0)||!Number.isFinite(selectedDuration))throw new Error('Invalid clip duration');
+    motionFailures.delete(record.sourceIdentity);ready=true;playing=true;status('');
   }catch(error){
-    invalidMotionIds.add(record.sourceIdentity);playing=false;renderMotionGrid();
-    const fallback=nextPlayableMotion(record.sourceIdentity);
-    if(fallback){status('互換のあるモーションへ切り替えています。');return selectMotion(fallback);}
-    status('このモーションは現在の素体と互換性がありません。');syncPlaybackUI();
+    if(serial!==selectSerial||modelSerial!==loadSerial||stopped)return;
+    const message=String(error?.message||error);motionFailures.set(record.sourceIdentity,message);ready=false;playing=false;
+    status('この動きは読み込めません。別の動きを選択するか、同じ候補を押して再試行できます。');
+    showCompatibility({status:targetAdapter.descriptor.status==='RIG_REQUIRED'?'RIG_REQUIRED':'UNSUPPORTED',applied:false,reasons:[message]});
   }
+  syncMotionCards();syncPlaybackUI();
 }
-const thumbnailModelPromises=new Map();
-async function loadReviewModelForThumbnail(model){
-  if(!thumbnailModelPromises.has(model.id)){
-    const promise=loader.loadAsync(model.runtime.url);
-    thumbnailModelPromises.set(model.id,promise.catch(error=>{thumbnailModelPromises.delete(model.id);throw error;}));
-  }
-  return thumbnailModelPromises.get(model.id);
+function createStaticThumbnail(url,label=''){
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('review-static-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-label',label);svg.setAttribute('role','img');
+  const use=document.createElementNS(svg.namespaceURI,'use');use.setAttribute('href',url);svg.append(use);return svg;
 }
 function renderModelGrid(){
   const grid=el('motion-model-grid');grid.replaceChildren();
-  for(const model of REVIEW_MODELS){
-    const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionModel=model.id;
-    const thumbnail=createStaticThumbnail(model.thumbnailUrl,model.label);button.append(thumbnail);button.setAttribute('aria-label',model.label);button.title=model.label;
-    button.setAttribute('aria-pressed',String(model.id===selectedModel.id));button.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(button);
-  }
+  for(const model of REVIEW_MODELS){const b=document.createElement('button');b.type='button';b.className='review-choice-card';b.dataset.motionModel=model.id;b.append(createStaticThumbnail(model.thumbnailUrl,model.label));b.setAttribute('aria-label',model.label);b.title=model.label;b.setAttribute('aria-pressed',String(model.id===selectedModel.id));b.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(b);}
 }
 function renderFilters(){
   const root=el('motion-filters');root.replaceChildren();
-  for(const id of categoryOrder){
-    const button=document.createElement('button');button.type='button';button.textContent=categoryLabel(id);button.dataset.motionFilter=id;button.setAttribute('aria-pressed',String(id===filter));
-    button.addEventListener('click',()=>{filter=id;renderFilters();renderMotionGrid();});root.append(button);
-  }
+  for(const id of categoryOrder){const b=document.createElement('button');b.type='button';b.textContent=categoryLabel(id);b.dataset.motionFilter=id;b.setAttribute('aria-pressed',String(id===filter));b.addEventListener('click',()=>{filter=id;renderFilters();renderMotionGrid();});root.append(b);}
+}
+async function loadReviewModelForThumbnail(model){
+  if(!thumbnailModelPromises.has(model.id))thumbnailModelPromises.set(model.id,loadPinnedReviewTarget(model).catch(error=>{thumbnailModelPromises.delete(model.id);throw error;}));
+  return thumbnailModelPromises.get(model.id);
 }
 function renderMotionGrid(){
-  const root=el('motion-grid'),rows=filterMotionReviewCatalog(catalog,filter);root.replaceChildren();
-  if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty';empty.textContent='この分類のモーションはありません。';root.append(empty);return;}
+  const root=el('motion-grid'),model=selectedModel,rows=filterMotionReviewCatalog(catalog,filter);root.replaceChildren();
+  if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty';empty.textContent=targetAdapter?'この分類のモーションはありません。':'モデルを準備しています。';root.append(empty);return;}
   for(const record of rows){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionIdentity=record.sourceIdentity;button.dataset.recommended=String(record.recommended);
-    const invalid=invalidMotionIds.has(record.sourceIdentity);button.dataset.invalid=String(invalid);button.disabled=invalid;
-    button.setAttribute('aria-pressed',String(selected?.sourceIdentity===record.sourceIdentity));
     const label=formatName(record.name),thumbnail=createRuntimeThumbnail(label);button.setAttribute('aria-label',label);button.title=label;button.append(thumbnail);
-    scheduleRuntimeThumbnail(thumbnail,`motion-pose:${selectedModel.id}:${record.sourceIdentity}`,async()=>{
-      const gltf=await loadReviewModelForThumbnail(selectedModel),poseRoot=cloneSkeleton(gltf.scene);
-      const box=new THREE.Box3().setFromObject(poseRoot),size=box.getSize(new THREE.Vector3()),height=Math.max(.4,size.y);
+    scheduleRuntimeThumbnail(thumbnail,`motion-pose:v1:${model.id}:${record.sourceIdentity}`,async()=>{
+      const gltf=await loadReviewModelForThumbnail(model),poseRoot=cloneSkeleton(gltf.scene);
       if(record.runtime.kind==='kaykit-embedded'){
-        const clip=(gltf.animations||[]).find(item=>item.name===record.upstreamClipName)||(gltf.animations||[])[record.upstreamClipIndex];
-        if(clip){const mix=new THREE.AnimationMixer(poseRoot),poseAction=mix.clipAction(clip);poseAction.play();mix.setTime(Math.max(0,(Number(clip.duration)||0)*.38));mix.stopAllAction();mix.uncacheRoot(poseRoot);}
-      }else if(record.runtime.kind==='pinned-motion-source'){
-        const source=await loadPinnedMotionSource(record.sourceId),bones=kaykitHumanoidFromGLTF({scene:poseRoot}),rest=captureMotionRest(bones,height),duration=Math.max(1/60,source.duration(record.upstreamClipIndex));
-        applyNormalizedMotion(bones,source.sample(record.upstreamClipIndex,duration*.38),rest);
+        const clip=gltf.animations.find(c=>c.name===record.upstreamClipName);if(!clip)throw new Error('Source pose unavailable');
+        const mix=new THREE.AnimationMixer(poseRoot);mix.clipAction(clip).play();mix.setTime(clip.duration*.38);
+        // Do not stopAllAction here: Three restores the rest pose before the screenshot.
+      }else{
+        const source=await loadPinnedMotionSource(record.sourceId,{preview:true}),wrapper=createHumanoidPreview(poseRoot,{role:'target',assetHash:model.source?.gitBlobSha});
+        const result=wrapper.apply(source.sample(record.upstreamClipIndex,source.duration(record.upstreamClipIndex)*.38));
+        thumbnail.dataset.poseStatus=result.status;if(!result.applied)throw new Error(result.status);
       }
       return poseRoot;
     },{disposeAfter:false});
     button.addEventListener('click',()=>void selectMotion(record));root.append(button);
   }
+  syncMotionCards();
 }
 function seek(value){
-  if(!selected)return;const time=Math.min(selectedDuration,Math.max(0,Number(value)||0));
-  if(isExternal()){
-    if(!externalSource||externalSourceId!==selected.sourceId)return;externalTime=time;applyNormalizedMotion(targetBones,externalSource.sample(selected.upstreamClipIndex,time),targetRest);
-  }else if(action){action.time=time;mixer.update(0);}
+  if(!ready)return;const time=Math.min(selectedDuration,Math.max(0,Number(value)||0));
+  try{if(isExternal()){externalTime=time;applyExternal(time);}else if(action){action.paused=false;action.time=time;mixer.update(0);}}
+  catch(error){playing=false;ready=false;status(String(error?.message||error));}
   syncPlaybackUI();
 }
+function rebuildCatalog(discovered={}){
+  // A valid target need not contain any animation. Do not invent an Idle clip/count.
+  const registry=targetClips.length?buildReviewMotionRegistry(targetClips,discovered):dedupeSourceMotions(externalMotionRecords(discovered).records);
+  catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});const count=motionRegistryCount(registry);canvas.dataset.motionCount=String(count);el('motion-count-value').textContent=String(count);renderMotionGrid();
+}
 async function loadModel(model){
-  const serial=++loadSerial,previousIdentity=selected?.sourceIdentity||'';selectedModel=model;invalidMotionIds.clear();renderModelGrid();status(model.label+' を読み込んでいます。');el('motion-load').removeAttribute('value');
-  disposeSubject();selected=null;registry=null;catalog=[];selectedDuration=0;renderMotionGrid();
+  const serial=++loadSerial; ++selectSerial;
+  const previousIdentity=selected?.sourceIdentity;selectedModel=model;motionFailures.clear();playing=false;ready=false;selected=null;externalSource=null;selectedDuration=0;
+  clearRuntimeThumbnailQueue();disposeSubject();renderModelGrid();catalog=[];renderMotionGrid();syncPlaybackUI();status(model.label+' を読み込んでいます。');el('motion-load').hidden=false;el('motion-load').removeAttribute('value');
   try{
-    const gltf=await loader.loadAsync(model.runtime.url,onProgress=>{if(serial!==loadSerial)return;const total=Number(onProgress.total)||0,loaded=Number(onProgress.loaded)||0;if(total>0)el('motion-load').value=Math.min(1,loaded/total);});
-    if(serial!==loadSerial){gltf.scene.traverse(node=>node.geometry?.dispose?.());return;}
-    if(!Array.isArray(gltf.animations)||!gltf.animations.length)throw new Error(model.label+' に埋め込みモーションがありません');
+    const gltf=await loadPinnedReviewTarget(model);
+    if(serial!==loadSerial||stopped){disposeScene(gltf.scene);return;}
     const wrapper=new THREE.Group();wrapper.name='MotionReview:'+model.id;wrapper.add(gltf.scene);
     const box=new THREE.Box3().setFromObject(gltf.scene),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
     modelHeight=Math.max(.4,size.y);wrapper.position.set(-center.x,-box.min.y,-center.z);subject=wrapper;targetScene=gltf.scene;stage.add(subject);
-    targetClips=gltf.animations||[];targetBones=kaykitHumanoidFromGLTF(gltf);targetRest=captureMotionRest(targetBones,modelHeight);mixer=new THREE.AnimationMixer(gltf.scene);
-    const legacy=el('motion-legacy');if(legacy){legacy.replaceChildren(new Option('原版クリップを選択',''));targetClips.forEach((clip,index)=>legacy.add(new Option(clip.name,String(index))));}
-    mixer.addEventListener('finished',()=>{playing=false;syncPlaybackUI();});
-    const baselineClips=targetClips.length?targetClips:[{name:'Idle_A',duration:1}];
-    registry=buildReviewMotionRegistry(baselineClips);catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
-    const same=catalog.find(row=>row.sourceIdentity===previousIdentity),firstRecommended=catalog.find(row=>row.recommended),first=same||firstRecommended||catalog[0];
-    const count=motionRegistryCount(registry);canvas.dataset.motionSource='source-registry';canvas.dataset.motionCount=String(count);canvas.dataset.motionModel=model.id;
-    el('motion-count-value').textContent=String(count);
-    el('motion-load').value=1;status('');setCameraPreset('three-quarter');await selectMotion(first);
-    status('自己ホスト済みモーションライブラリを確認しています。');
-    const discovered=await discoverPinnedMotionLibraryClips();
-    if(serial!==loadSerial)return;
-    registry=buildReviewMotionRegistry(baselineClips,discovered);catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
-    const expandedCount=motionRegistryCount(registry);canvas.dataset.motionCount=String(expandedCount);el('motion-count-value').textContent=String(expandedCount);
-    renderMotionGrid();status('');
-  }catch(error){el('motion-load').value=0;status('読込失敗: '+String(error?.message||error));canvas.dataset.motionSource='error';}
+    targetAdapter=createHumanoidPreview(gltf.scene,{role:'target',assetHash:model.source?.gitBlobSha});
+    targetClips=gltf.animations||[];mixer=new THREE.AnimationMixer(gltf.scene);mixer.addEventListener('finished',()=>{playing=false;syncPlaybackUI();});
+    const legacy=el('motion-legacy');legacy.replaceChildren(new Option('原版クリップを選択',''));targetClips.forEach((c,i)=>legacy.add(new Option(c.name,String(i))));legacy.disabled=!targetClips.length;
+    rebuildCatalog();canvas.dataset.motionSource='source-registry';canvas.dataset.motionModel=model.id;el('motion-load').value=1;el('motion-load').hidden=true;setCameraPreset('three-quarter');showCompatibility({status:targetAdapter.descriptor.status});
+    const first=catalog.find(r=>r.sourceIdentity===previousIdentity)||catalog.find(r=>r.runtime.kind==='kaykit-embedded'&&/idle/i.test(r.name))||catalog[0];
+    if(['PLAYABLE','DEGRADED'].includes(targetAdapter.descriptor.status))await selectMotion(first);
+    else status('モデルは表示できますが、骨・ウェイトの準備が必要です。');
+    const discovered=await discoverPinnedMotionLibraryClips({preview:true,onFailure:(id,message)=>{if(serial===loadSerial)motionFailures.set(id,message);}});
+    if(serial!==loadSerial||stopped)return;rebuildCatalog(discovered);
+  }catch(error){
+    if(serial!==loadSerial||stopped)return;playing=false;ready=false;el('motion-load').value=0;status('読込失敗: '+String(error?.message||error));canvas.dataset.motionSource='error';showCompatibility({status:'UNSUPPORTED',reasons:[String(error?.message||error)]});syncPlaybackUI();
+  }
 }
-
-for(const button of document.querySelectorAll('[data-motion-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.motionCamera));
-el('motion-play').addEventListener('click',()=>{if(!selected)return;playing=!playing;syncPlaybackUI();});
-el('motion-restart').addEventListener('click',()=>{seek(0);playing=true;syncPlaybackUI();});
-el('motion-speed').addEventListener('change',event=>{speed=Number(event.target.value)||1;});
-el('motion-loop').addEventListener('change',event=>{loop=event.target.checked;if(action){action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);action.clampWhenFinished=!loop;}syncPlaybackUI();});
-el('motion-time').addEventListener('input',event=>{playing=false;seek(Number(event.target.value));});
+for(const b of document.querySelectorAll('[data-motion-camera]'))b.addEventListener('click',()=>setCameraPreset(b.dataset.motionCamera));
+el('motion-play').addEventListener('click',()=>{if(ready){playing=!playing;syncPlaybackUI();}});
+el('motion-restart').addEventListener('click',()=>{if(ready){seek(0);playing=ready;syncPlaybackUI();}});
+el('motion-speed').addEventListener('change',e=>{speed=Number(e.target.value)||1;});
+el('motion-loop').addEventListener('change',e=>{loop=e.target.checked;if(action){action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);action.clampWhenFinished=!loop;}syncPlaybackUI();});
+el('motion-time').addEventListener('input',e=>{playing=false;seek(Number(e.target.value));});
 el('motion-prev-frame').addEventListener('click',()=>{playing=false;seek(playbackTime()-1/60);});
 el('motion-next-frame').addEventListener('click',()=>{playing=false;seek(playbackTime()+1/60);});
-el('motion-legacy')?.addEventListener('change',event=>{
-  const index=Number(event.target.value);if(event.target.value===''||!targetClips[index]||!mixer)return;
-  ++selectSerial;selected=null;mixer.stopAllAction();externalTime=0;const clip=targetClips[index];selectedDuration=Math.max(1/60,Number(clip.duration)||1/60);
-  action=mixer.clipAction(clip);action.reset();action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);action.clampWhenFinished=!loop;action.play();playing=true;
-  el('motion-selected').textContent=formatName(clip.name);
-  const source=selectedModel.source;el('motion-meta').textContent=`source ${source.repository} @ ${source.revision} / ${source.path} / clip ${index} “${clip.name}” / git-sha1:${source.gitBlobSha} / Kay Lousberg / ${selectedModel.license}`;
-  if(el('motion-license'))el('motion-license').href='https://creativecommons.org/publicdomain/zero/1.0/';if(el('motion-origin'))el('motion-origin').href='https://kaylousberg.com/game-assets/characters-adventurers';
-  canvas.dataset.motionName=clip.name;canvas.dataset.motionCategory='other';canvas.dataset.motionIdentity='legacy:'+index+':'+clip.name;status('原版: '+formatName(clip.name));syncPlaybackUI();
+el('motion-root-policy').addEventListener('change',e=>{rootMotion=e.target.value;if(ready&&isExternal())seek(playbackTime());});
+el('motion-legacy').addEventListener('change',e=>{
+  const index=Number(e.target.value);if(e.target.value===''||!targetClips[index]||!mixer)return;
+  ++selectSerial;selected=null;externalSource=null;mixer.stopAllAction();targetAdapter.reset();externalTime=0;const clip=targetClips[index];selectedDuration=clip.duration;
+  action=mixer.clipAction(clip);action.reset().setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);action.clampWhenFinished=!loop;action.play();ready=true;playing=true;
+  el('motion-selected').textContent=formatName(clip.name);const source=selectedModel.source;
+  el('motion-meta').textContent=`source ${source.repository} @ ${source.revision} / ${source.path} / clip ${index} “${clip.name}” / git-sha1:${source.gitBlobSha} / ${selectedModel.license}`;
+  el('motion-license').href='https://creativecommons.org/publicdomain/zero/1.0/';el('motion-origin').href='https://kaylousberg.com/game-assets/characters-adventurers';
+  canvas.dataset.motionName=clip.name;canvas.dataset.motionIdentity='legacy:'+index+':'+clip.name;status('');showCompatibility({status:'NATIVE',applied:true});syncMotionCards();syncPlaybackUI();
 });
-
 const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();setCameraPreset(cameraPreset);},render:()=>renderer.render(scene,camera)});
+let frameId=0;
 function frame(now){
-  resize();const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
-  if(selected&&playing){
-    if(isExternal()&&externalSource&&externalSourceId===selected.sourceId){
-      externalTime+=dt*speed;
-      if(externalTime>=selectedDuration){if(loop)externalTime%=selectedDuration;else{externalTime=selectedDuration;playing=false;}}
-      applyNormalizedMotion(targetBones,externalSource.sample(selected.upstreamClipIndex,externalTime),targetRest);
-    }else if(mixer&&action)mixer.update(dt*speed);
-  }
-  controls.update();renderer.render(scene,camera);syncPlaybackUI();requestAnimationFrame(frame);
+  if(stopped)return;frameId=requestAnimationFrame(frame);
+  const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;if(document.hidden)return;
+  try{
+    if(ready&&playing){
+      if(isExternal()&&externalSource){externalTime+=dt*speed;if(externalTime>=selectedDuration){if(loop)externalTime%=selectedDuration;else{externalTime=selectedDuration;playing=false;}}applyExternal(externalTime);}
+      else if(mixer&&action)mixer.update(dt*speed);
+    }
+    controls.update();renderer.render(scene,camera);syncPlaybackUI();
+  }catch(error){playing=false;ready=false;status('再生を停止しました: '+String(error?.message||error));syncPlaybackUI();}
 }
-renderFilters();renderModelGrid();setCameraPreset('three-quarter');requestAnimationFrame(frame);void loadModel(selectedModel);
-window.addEventListener('pagehide',event=>{if(event.persisted)return;clearRuntimeThumbnailQueue();stageLifecycle.destroy();disposeSubject();disposePinnedMotionSources();thumbnailModelPromises.clear();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});
+renderFilters();renderModelGrid();setCameraPreset('three-quarter');frameId=requestAnimationFrame(frame);void loadModel(selectedModel);
+window.addEventListener('pagehide',event=>{if(event.persisted)return;stopped=true;++loadSerial;++selectSerial;cancelAnimationFrame(frameId);clearRuntimeThumbnailQueue();stageLifecycle.destroy();disposeSubject();disposePinnedMotionSources();for(const promise of thumbnailModelPromises.values())void promise.then(g=>disposeScene(g.scene)).catch(()=>{});thumbnailModelPromises.clear();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});

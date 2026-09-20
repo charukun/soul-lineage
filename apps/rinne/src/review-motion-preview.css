@@ -1,0 +1,10 @@
+.motion-quality{position:absolute;top:10px;left:10px;z-index:3;padding:5px 9px;border:1px solid #52665a;border-radius:6px;background:#101915dc;color:#d6eadb;font-size:12px;pointer-events:none}
+.motion-quality[data-state="DEGRADED"],.motion-quality[data-state="RIG_REQUIRED"]{border-color:#ac8c50;color:#f2d59b}
+.motion-quality[data-state="UNSUPPORTED"]{border-color:#9a635c;color:#f1b8ae}
+.motion-compatibility{margin-top:10px;border-top:1px solid #28312d;font-size:12px;order:5}
+.motion-compatibility>summary{padding:12px 2px;cursor:pointer}
+.motion-compatibility p{line-height:1.5;color:#a8b6ae}
+.motion-compatibility select{padding:7px;background:#121b16;border:1px solid #56645b;border-radius:6px}
+.motion-compatibility pre{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;color:#b5c5ba}
+.motion-grid .review-choice-card[data-preview-state="error"]{border-color:#9a635c!important;opacity:.7}
+.motion-playback button:disabled,.motion-timeline button:disabled{opacity:.45;cursor:wait}
