@@ -215,6 +215,35 @@ main.battle-review.review-surface .camera-zoom button{
 @media(max-width:680px){.stage>.technique-composition{left:6px;top:6px;width:min(430px,78vw);gap:3px;padding:4px}.technique-chain{padding:3px 4px}.technique-card{max-width:104px;padding:2px 4px}.technique-card>strong{font-size:8px}.technique-card__stages small{min-width:23px;font-size:6px}.technique-chain>header b{font-size:9px}.technique-chain>header button{height:18px;min-width:34px;font-size:7px}}
 
  .choreography-review-settings{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:end}.choreography-review-settings label{display:grid;gap:3px;color:var(--rinne-muted);font-size:9px}.choreography-review-settings select,.choreography-review-settings input,.choreography-review-settings button{min-height:34px;border:1px solid var(--rinne-line-soft);border-radius:8px;background:#081523;color:var(--rinne-ink);padding:5px 7px}.battle-body-readout{grid-column:1/-1;padding:7px 8px;border:1px solid rgba(115,188,229,.18);border-radius:8px;color:var(--rinne-blue-soft);font:700 10px/1.5 var(--font-rinne-display);text-align:center}@media(max-width:680px){.choreography-review-settings{grid-template-columns:1fr 1fr auto}.battle-body-readout{font-size:9px}}
+
+/* Mobile battle review repair: keep the fight visible and controls touchable. */
+#battle-technique-composition,
+.stage > .technique-composition,
+.stage > .technique-loadout{display:none!important}
+.review-settings[open],
+.controls .review-settings[open]{
+  position:fixed!important;
+  left:max(8px,env(safe-area-inset-left))!important;
+  right:max(8px,env(safe-area-inset-right))!important;
+  bottom:calc(12px + env(safe-area-inset-bottom))!important;
+  width:auto!important;
+  max-width:none!important;
+  max-height:min(68dvh,520px)!important;
+  overflow:auto!important;
+  overscroll-behavior:contain!important;
+  z-index:1000!important;
+  pointer-events:auto!important;
+  touch-action:pan-y!important
+}
+.review-settings[open] *,
+.controls .review-settings[open] *{pointer-events:auto!important}
+.review-settings[open] .review-settings-body{max-height:none!important;overflow:visible!important}
+@media(max-width:680px){
+  main.battle-review.review-surface > .review-surface__workspace{grid-template-rows:minmax(0,1fr) max-content!important}
+  .review-surface__stage-column,.stage{min-height:0!important}
+  .stage canvas{min-height:0!important}
+}
+
 </style>
 </head>
 <body>
