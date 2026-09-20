@@ -58,7 +58,7 @@ test('runtime selection is deterministic and preserves an explicit Rogue hero de
 
 test('review battle equipment is pinned beside the canonical KayKit character family',()=>{
   const preparation=readFileSync(new URL('../../../scripts/prepare-kaykit-foundation.mjs',import.meta.url),'utf8');
-  assert.match(preparation,/soul-lineage-rinne-dev\\.c-okamoto\\.workers\\.dev\\/simulator\\/assets\\/kaykit/);assert.doesNotMatch(preparation,/raw\\.githubusercontent\\.com|cdn\\.jsdelivr\\.net/);
+  assert.ok(preparation.includes('https://soul-lineage-rinne-dev.c-okamoto.workers.dev/simulator/assets/kaykit/'));assert.equal(preparation.includes('raw.githubusercontent.com'),false);assert.equal(preparation.includes('cdn.jsdelivr.net'),false);
   const files=KAYKIT_REVIEW_EQUIPMENT_FILES.map(row=>row.runtime.url.split('/').at(-1));
   assert.deepEqual(files,['dagger.gltf','dagger.bin','sword_1handed.gltf','sword_1handed.bin','shield_badge.gltf','shield_badge.bin','rogue_texture.png','knight_texture.png']);
   for(const row of KAYKIT_REVIEW_EQUIPMENT_FILES){assert.equal(row.license,'CC0-1.0');assert.equal(row.source.revision,KAYKIT_SOURCE_REVISION);assert.match(row.source.gitBlobSha,/^[0-9a-f]{40}$/);assert.ok(row.source.byteLength>0);}
