@@ -65,7 +65,7 @@ export function createLife({name='旅人',seed=1,generation=1,lineage=[],homelan
     schemaVersion:SAVE_SCHEMA,id:nowId(seed),name:cleanName(name),seed,generation,
     phase:'birth',zone:'village',front:0,lastDepartureCycle:2,ended:false,birthVillageId:village,homelands:unlocked,
     ageSeconds:0,ageYears:0,clockRate:1,position:{x:-7,z:-1},yaw:Math.PI,moving:false,resting:true,idleSeconds:0,interior:null,
-    hp:100,maxHp:100,stamina:100,staminaCap:100,lastSpendSeconds:999,equipment:{weapon:'fist',armor:'cloth',shield:false},
+    hp:100,maxHp:100,stamina:100,staminaCap:100,lastSpendSeconds:999,combatStrategy:'balanced',equipment:{weapon:'fist',armor:'cloth',shield:false},
     knownSkills:['basic.fist'],skillWeights:{jo:{'basic.fist':100},ha:{},kyu:{}},experiences:{},experienceRecent:{},pendingDiscoveries:[],activity:null,
     combat:null,defeats:0,returns:0,history:[],lineage:Array.isArray(lineage)?clone(lineage).slice(-INSPIRATION_LIMITS.lineage):[],
     events:[{type:'born',worldSecond:0,text:`${cleanName(name)}が${village}に生まれた。`}],
@@ -79,7 +79,7 @@ export function validateLife(raw){
   if(!raw.position||!Number.isFinite(raw.position.x)||!Number.isFinite(raw.position.z))throw Error('位置データが不正です。');
   if(!WEAPONS[raw.equipment?.weapon]||!ARMORS[raw.equipment?.armor]||typeof raw.equipment.shield!=='boolean')throw Error('装備データが不正です。');
   if(!Array.isArray(raw.knownSkills)||raw.knownSkills.length>256||!raw.experiences||typeof raw.experiences!=='object')throw Error('人生データが不正です。');
-  const state=clone(raw);state.birthVillageId??=DEFAULT_VILLAGE_ID;state.homelands??=[];state.interior??=null;
+  const state=clone(raw);state.birthVillageId??=DEFAULT_VILLAGE_ID;state.homelands??=[];state.interior??=null;state.combatStrategy??='balanced';
   if(!validVillageId(state.birthVillageId))throw Error('出生村IDが不正です。');
   if(!Array.isArray(state.homelands)||state.homelands.length>64||new Set(state.homelands).size!==state.homelands.length||state.homelands.some(id=>!validVillageId(id)))throw Error('故郷の記録が不正です。');
   if(state.interior!==null){const row=state.interior,p=row?.returnPosition;if(!row||typeof row.buildingId!=='string'||!row.buildingId||row.buildingId.length>100||!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))throw Error('建物内の位置データが不正です。');state.interior={buildingId:row.buildingId,returnPosition:{x:p.x,z:p.z}};}
