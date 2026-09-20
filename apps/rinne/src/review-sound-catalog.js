@@ -1,11 +1,13 @@
 import {selectTracks} from '@soul/audio';
 import {audioURLs} from '@soul/audio/urls';
 import {combatSfxURLs} from '@soul/audio/sfx-urls';
+import {RINNE_CURATED_SOUND_ASSETS} from './review-curated-assets.generated.js';
 
 const sfx=Object.freeze([
   Object.freeze({id:'sfx-draw-blade',kind:'sfx',title:'抜刀',category:'武器',scene:'抜刀・構え',url:combatSfxURLs.drawBlade,source:'combatSfxURLs.drawBlade',description:'刀身を抜く動作に使う実ファイルの戦闘SE。'}),
   Object.freeze({id:'sfx-slash-a',kind:'sfx',title:'斬撃 A',category:'攻撃',scene:'斬撃・風切り',url:combatSfxURLs.slashA,source:'combatSfxURLs.slashA',description:'斬撃時に交互再生される実ファイルの戦闘SE。'}),
-  Object.freeze({id:'sfx-slash-b',kind:'sfx',title:'斬撃 B',category:'攻撃',scene:'斬撃・風切り',url:combatSfxURLs.slashB,source:'combatSfxURLs.slashB',description:'斬撃時に交互再生される実ファイルの戦闘SE。'})
+  Object.freeze({id:'sfx-slash-b',kind:'sfx',title:'斬撃 B',category:'攻撃',scene:'斬撃・風切り',url:combatSfxURLs.slashB,source:'combatSfxURLs.slashB',description:'斬撃時に交互再生される実ファイルの戦闘SE。'}),
+  ...RINNE_CURATED_SOUND_ASSETS
 ]);
 const bgm=selectTracks({game:'rinne'}).map(track=>Object.freeze({
   id:track.id,kind:'bgm',title:track.title,category:track.scene,scene:track.scene,bpm:track.bpm,

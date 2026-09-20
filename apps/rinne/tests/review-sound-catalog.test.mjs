@@ -2,14 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {RINNE_SOUND_REVIEW_LIBRARY,filterSoundReviewLibrary,soundReviewCounts} from '../src/review-sound-catalog.js';
+import {RINNE_CURATED_SOUND_ASSETS} from '../src/review-curated-assets.generated.js';
 
 const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
 test('sound review exposes distinct real RINNE audio assets',()=>{
   const counts=soundReviewCounts();
-  assert.deepEqual(counts,{total:51,bgm:48,sfx:3});
-  assert.equal(new Set(RINNE_SOUND_REVIEW_LIBRARY.map(item=>item.id)).size,51);
-  assert.equal(RINNE_SOUND_REVIEW_LIBRARY.filter(item=>item.kind==='sfx').length,3);
+  assert.deepEqual(counts,{total:51+RINNE_CURATED_SOUND_ASSETS.length,bgm:48,sfx:3+RINNE_CURATED_SOUND_ASSETS.length});
+  assert.equal(new Set(RINNE_SOUND_REVIEW_LIBRARY.map(item=>item.id)).size,counts.total);
+  assert.equal(RINNE_SOUND_REVIEW_LIBRARY.filter(item=>item.kind==='sfx').length,3+RINNE_CURATED_SOUND_ASSETS.length);
   assert.equal(RINNE_SOUND_REVIEW_LIBRARY.filter(item=>item.kind==='bgm').length,48);
   for(const item of RINNE_SOUND_REVIEW_LIBRARY){
     assert.ok(item.url);
@@ -18,7 +19,7 @@ test('sound review exposes distinct real RINNE audio assets',()=>{
 });
 
 test('sound review filtering supports kind and Japanese metadata search',()=>{
-  assert.equal(filterSoundReviewLibrary({kind:'sfx'}).length,3);
+  assert.equal(filterSoundReviewLibrary({kind:'sfx'}).length,3+RINNE_CURATED_SOUND_ASSETS.length);
   assert.equal(filterSoundReviewLibrary({kind:'bgm'}).length,48);
   assert.ok(filterSoundReviewLibrary({query:'斬撃'}).some(item=>item.id==='sfx-slash-a'));
   assert.ok(filterSoundReviewLibrary({query:'通常戦闘'}).some(item=>item.id==='r05'));

@@ -1,4 +1,5 @@
 import {defs} from '@soul/world/mura';
+import {RINNE_CURATED_OBJECT_ASSETS} from './review-curated-assets.generated.js';
 
 const PROP_IDS=Object.freeze([
   'fence','wall','tree','pine','flowers','hedge','lamp','bench',
@@ -16,5 +17,5 @@ export const RINNE_OBJECT_REVIEW_CATALOG=Object.freeze([
   {id:'armor-stand',label:'防具立て',category:'training',kind:'runtime',runtimeKind:'armor-stand',thumbnailUrl:thumb('armor-stand'),source:'RINNE gameplay runtime'},
   {id:'weapon-spear',label:'槍',category:'weapons',kind:'runtime',runtimeKind:'weapon',weapon:'spear',thumbnailUrl:thumb('weapon-spear'),source:'RINNE gameplay runtime'},
   {id:'weapon-axe',label:'戦斧',category:'weapons',kind:'runtime',runtimeKind:'weapon',weapon:'axe',thumbnailUrl:thumb('weapon-axe'),source:'RINNE gameplay runtime'},
-  {id:'weapon-great',label:'大剣',category:'weapons',kind:'runtime',runtimeKind:'weapon',weapon:'great',thumbnailUrl:thumb('weapon-great'),source:'RINNE gameplay runtime'},
+  {id:'weapon-great',label:'大剣',category:'weapons',kind:'runtime',runtimeKind:'weapon',weapon:'great',thumbnailUrl:thumb('weapon-great'),source:'RINNE gameplay runtime'},  ...RINNE_CURATED_OBJECT_ASSETS,
 ]);

@@ -6,6 +6,8 @@ import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {createMuraModels} from '@soul/rendering/mura';
 import {RINNE_OBJECT_REVIEW_CATALOG as OBJECTS} from './review-object-catalog.js';
+import {createRuntimeThumbnail,scheduleRuntimeThumbnail} from './review-runtime-thumbnail.js';
+import './review-runtime-thumbnail.css';
 mountRinneReviewShell('objects');
 
 const OBJECT_SOURCE=Object.freeze({
@@ -37,7 +39,7 @@ const ground=new THREE.Mesh(new THREE.CircleGeometry(3.8,64),new THREE.MeshStand
 ground.rotation.x=-Math.PI/2;ground.position.y=-.006;scene.add(ground);
 
 const models=createMuraModels(THREE,{createCanvas:()=>document.createElement('canvas'),textileFibers:1800,textileBlotches:40});
-const CATEGORY_OPTIONS=Object.freeze([{id:'all',label:'すべて'},{id:'props',label:'小物'},{id:'outdoor',label:'屋外'},{id:'furniture',label:'家具'},{id:'training',label:'訓練'},{id:'weapons',label:'武器'}]);
+const CATEGORY_OPTIONS=Object.freeze([{id:'all',label:'すべて'},{id:'village',label:'村・街'},{id:'dungeon',label:'地下'},{id:'nature',label:'自然'},{id:'graveyard',label:'墓地'},{id:'props',label:'小物'},{id:'outdoor',label:'屋外'},{id:'furniture',label:'家具'},{id:'training',label:'訓練'},{id:'weapons',label:'武器'}]);
 let objectRoot=null,frameId=0,loadSequence=0,selected=OBJECTS[0].id,selectedCategory='all';
 
 function status(message,error=false){q('#object-status').textContent=message;q('#object-status').dataset.error=String(error);}
@@ -81,10 +83,8 @@ function renderSelection(){
   for(const button of q('#object-categories').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.category===selectedCategory));
 }
 function createObjectThumbnail(item){
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.classList.add('object-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
-  const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href',item.thumbnailUrl);svg.append(use);
-  return svg;
+  if(item.thumbnailUrl){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('object-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href',item.thumbnailUrl);svg.append(use);return svg;}
+  const canvas=createRuntimeThumbnail(item.label);scheduleRuntimeThumbnail(canvas,'object:'+item.id,async()=>(await loader.loadAsync(new URL(item.url,location.href).href)).scene);return canvas;
 }
 function renderObjectOptions(){
   const items=visibleObjects();

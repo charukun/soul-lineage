@@ -13,6 +13,6 @@ DEV runtime assets that are not app-core bytes are served from the existing Visu
 Current materialized groups:
 
 - RINNE motion review: eight KayKit motion packs, two Quaternius UAL packs, fourteen CMU parkour BVH motions, three Mesh2Motion motion packs and the Mesh2Motion review mannequin.
-- Demon: five pinned Gobkit model surfaces.
+- Demon: five pinned Gobkit model surfaces.\n- RINNE curated Kenney CC0 library: 74 object models and 167 sounds, pinned to eturner58/game-assets@fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa with source/runtime hashes and byte lengths.
 
 The shared `@soul/assets` runtime-origin helper owns URL construction and the third-party runtime host deny-list.
