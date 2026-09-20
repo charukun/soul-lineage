@@ -23,6 +23,11 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs on
 
 - The canonical Chat execution path does not require a local clone, direct `github.com` DNS, `git push`, or Codespaces.
 - Use the connected GitHub Connector to read current source and construct work-branch changes with Contents / Git Data operations such as blob, tree, commit, and ref updates.
+- Treat the GitHub Connector as the control plane, not as a bulk data transport. Prefer small source/config/workflow/manifest changes through Connector operations.
+- Treat GitHub Actions hosted runners as the repository-scale data/compute plane when work requires many files, large binaries, generated assets, dependency acquisition, archive expansion, conversion, optimization, or other heavy processing.
+- Do not bypass Connector payload limits by splitting large files into many chunks when a runner can fetch, generate, unpack, transform, or optimize the same data from a stable source. Commit the small control inputs (source URL, manifest, script, or workflow) and let the runner materialize the bulk data.
+- For bulk/heavy work, prefer in order: an existing repository Actions path; a task-scoped runner path that preserves the Fast DEV contract; ordinary Connector commits; Connector chunking only when no runner-side or source-side materialization path is available.
+- A Connector transfer-size or transport limitation is recoverable execution-path pressure, not a task blocker. Preserve the same branch / PR and switch the heavy operation to the repository Actions path when possible.
 - Code Mode / V8 syntax or consistency checks are preflight only. Do not treat them as formal focused validation.
 - Do not run or wait on merge-owning validation for every intermediate branch push. Earlier, cancelled, or stale runs are disposable implementation noise and must never terminate the task.
 - Formal merge-owning evidence must come from the exact work head checked out in `Astra Work Validation` GitHub Actions hosted runner or another real repository checkout. Astra decides the task-specific focused validation; Actions executes that declared plan rather than repeating repository-wide review.
