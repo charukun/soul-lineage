@@ -25,7 +25,11 @@ if(!AudioCtx||!audioURLs?.[TRACK]){
   async function play(){
     if(disposed||manualOverride)return false;
     try{
-      // Create and resume while the trusted gesture is still active. Waiting for\n      // fetch/decode first can consume transient browser user activation.\n      const ctx=ensureContext();\n      if(ctx.state==='suspended')await ctx.resume();\n      const decoded=await load();if(disposed||manualOverride)return false;
+      // Create and resume while the trusted gesture is still active. Waiting for
+      // fetch/decode first can consume transient browser user activation.
+      const ctx=ensureContext();
+      if(ctx.state==='suspended')await ctx.resume();
+      const decoded=await load();if(disposed||manualOverride)return false;
       if(source){if(ctx.state==='suspended')await ctx.resume();started=true;return true;}
       const next=ctx.createBufferSource();next.buffer=decoded;next.loop=true;next.connect(gain);source=next;next.start(0);await ctx.resume();started=true;return true;
     }catch(error){console.warn('[叡智豊満 BGM] Web Audio playback failed',error);return false;}
