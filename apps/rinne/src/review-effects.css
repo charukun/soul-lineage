@@ -8,3 +8,11 @@
 @media(max-width:640px){.review-header{gap:8px}.review-header-stats{min-width:96px}.review-header-stats #fx-status{max-width:112px;font-size:9px}.review-subtitle{font-size:9px}.catalog-shell{min-height:320px;max-height:50dvh}.fx-option{min-height:58px;padding:5px 3px}.fx-option strong{font-size:9px}.stage-selection-slot{max-width:62%}.control-row{gap:7px}.control-row label{font-size:11px}.actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}.actions button{min-width:0;padding:8px 3px;font-size:11px}}
 @media(max-width:420px){.review-header h1{font-size:22px}.preview-pane{grid-template-rows:minmax(285px,43dvh) auto}.stage-shell,#fx-stage{min-height:285px}.catalog-shell{max-height:52dvh;padding:9px}.fx-option{min-height:64px}.fx-option-category{font-size:8px}.fx-option strong{font-size:10px}.stage-selection-slot{left:10px;top:10px;max-width:72%;padding:7px 24px 8px 18px}.stage-label{left:10px;right:10px;font-size:8px}}
 @media(prefers-reduced-motion:reduce){.fx-option{transition:none}}
+
+/* Five-column effect cards keep the authored VFX preview visible instead of clipping its canvas. */
+.fx-catalog{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+.fx-option{min-height:108px!important;display:grid!important;grid-template-rows:auto auto auto auto!important;align-content:start!important;gap:3px!important;padding:4px!important;overflow:hidden!important}
+.fx-option>.review-runtime-thumbnail{width:100%!important;aspect-ratio:36/23!important;min-height:0!important}
+.fx-option-category,.fx-option-origin{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fx-option strong{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px}
+@media(max-width:640px){.fx-catalog{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important}.fx-option{min-height:96px!important;padding:3px!important}.fx-option-category,.fx-option-origin{font-size:6px!important}.fx-option strong{font-size:7px!important}}
