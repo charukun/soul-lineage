@@ -42,6 +42,7 @@ const REVIEW_MODELS=Object.freeze([MOTION_REVIEW_MODEL,...KAYKIT_MODELS]);
 function createStaticThumbnail(url,label=''){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('review-static-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-label',label);svg.setAttribute('role','img');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href',url);svg.append(use);return svg;}
 let selectedModel=MOTION_REVIEW_MODEL,filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8,cameraPreset='three-quarter';
 let externalSource=null,externalSourceId='',externalTime=0,selectedDuration=0,selectSerial=0;
+const invalidMotionIds=new Set();
 const categoryOrder=['all','recommended','life','move','parkour','combat','reaction','other'];
 
 function disposeSubject(){
@@ -90,7 +91,13 @@ function syncSelectedMeta(){
   if(el('motion-origin'))el('motion-origin').href=row.originalSource||'./simulator/licenses/REVIEW_MOTION_SOURCES.txt';
   canvas.dataset.motionName=row.name;canvas.dataset.motionCategory=row.category;canvas.dataset.motionIdentity=row.sourceIdentity;
 }
-async function selectMotion(record){
+function nextPlayableMotion(excludedIdentity=''){
+  const rows=filterMotionReviewCatalog(catalog,filter);
+  return rows.find(row=>row.sourceIdentity!==excludedIdentity&&!invalidMotionIds.has(row.sourceIdentity))
+    ||catalog.find(row=>row.sourceIdentity!==excludedIdentity&&!invalidMotionIds.has(row.sourceIdentity))
+    ||null;
+}
+async function selectMotion(record,{allowFallback=true}={}){
   if(!record||!mixer||!targetBones||!targetRest)return;
   const serial=++selectSerial;playing=false;selected=record;syncSelectedMeta();renderMotionGrid();
   try{
@@ -107,8 +114,13 @@ async function selectMotion(record){
       selectedDuration=externalSource.duration(record.upstreamClipIndex);
       applyNormalizedMotion(targetBones,externalSource.sample(record.upstreamClipIndex,0),targetRest);
     }else throw new Error('Unknown motion runtime source');
-    playing=true;status('');renderMotionGrid();syncPlaybackUI();
-  }catch(error){playing=false;status('モーション読込失敗: '+String(error?.message||error));syncPlaybackUI();}
+    invalidMotionIds.delete(record.sourceIdentity);playing=true;status('');renderMotionGrid();syncPlaybackUI();
+  }catch(error){
+    invalidMotionIds.add(record.sourceIdentity);playing=false;renderMotionGrid();
+    const fallback=allowFallback?nextPlayableMotion(record.sourceIdentity):null;
+    if(fallback){status('互換のあるモーションへ切り替えています。');return selectMotion(fallback,{allowFallback:false});}
+    status('このモーションは現在の素体と互換性がありません。');syncPlaybackUI();
+  }
 }
 const thumbnailModelPromises=new Map();
 async function loadReviewModelForThumbnail(model){
@@ -138,6 +150,7 @@ function renderMotionGrid(){
   if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty';empty.textContent='この分類のモーションはありません。';root.append(empty);return;}
   for(const record of rows){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionIdentity=record.sourceIdentity;button.dataset.recommended=String(record.recommended);
+    const invalid=invalidMotionIds.has(record.sourceIdentity);button.dataset.invalid=String(invalid);button.disabled=invalid;
     button.setAttribute('aria-pressed',String(selected?.sourceIdentity===record.sourceIdentity));
     const label=formatName(record.name),thumbnail=createRuntimeThumbnail(label);button.setAttribute('aria-label',label);button.title=label;button.append(thumbnail);
     scheduleRuntimeThumbnail(thumbnail,`motion-pose:${selectedModel.id}:${record.sourceIdentity}`,async()=>{
