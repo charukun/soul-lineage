@@ -22,7 +22,7 @@ test('a generated technique resolves as a real learned combat technique', () => 
   assert.equal(techniqueName(row.id,state),row.name);
   const combo=state.combatLoadout.technique.combos[0];
   assert.equal(setComboSkill(state,combo.id,'ha',row.id),true);
-  assert.equal(combo.slots.ha,row.id);
+  assert.equal(state.combatLoadout.technique.combos.find(item=>item.id===combo.id).slots.ha,row.id);
 });
 
 test('generated technique identity survives canonical resolver reconstruction', () => {
