@@ -1,0 +1,68 @@
+name: Battle2 one-shot asset materializer and browser evidence
+on:
+  push:
+    branches: [fix/battle2-library-runtime-20260921]
+    paths:
+      - '.github/workflows/battle2-materialize-once.yml'
+      - 'apps/review/scripts/materialize-nocturne.py'
+      - 'apps/review/scripts/extract-nocturne.mjs'
+      - 'apps/review/scripts/nocturne-browser.mjs'
+permissions:
+  contents: write
+concurrency:
+  group: battle2-one-shot-library
+  cancel-in-progress: false
+jobs:
+  materialize:
+    if: contains(github.event.head_commit.message, '[battle2-materialize]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/battle2-library-runtime-20260921
+          fetch-depth: 1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Record public source and asset headers
+        run: |
+          mkdir -p .battle2-evidence
+          curl -sS -L --max-time 30 -H 'Origin: https://soul-lineage-review-dev.c-okamoto.workers.dev' -D .battle2-evidence/original-asset-headers.txt 'https://nocturne-autobattle.c-okamoto.workers.dev/assets-manifest.json' -o .battle2-evidence/original-asset-manifest.json
+          curl -sS -L --max-time 30 'https://soul-lineage-review-dev.c-okamoto.workers.dev/version.json' -o .battle2-evidence/before-version.json
+      - name: Materialize pinned original assets into shared library
+        run: python3 apps/review/scripts/materialize-nocturne.py
+      - name: Materialize native runtime from pinned source when requested
+        run: |
+          if test -f apps/review/scripts/extract-nocturne.mjs; then
+            git fetch --no-tags --depth=1 origin a923fcc02dfef9a57aad00001bd3daab8786fc07
+            node apps/review/scripts/extract-nocturne.mjs
+          fi
+      - name: Commit generated content to the same branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/review
+          if ! git diff --cached --quiet; then
+            git commit -m 'Materialize pinned NOCTURNE library and native stage'
+            git push origin HEAD:fix/battle2-library-runtime-20260921
+          fi
+          git rev-parse HEAD > .battle2-evidence/source-sha.txt
+      - name: Focused browser evidence when the native probe exists
+        env:
+          APP_ENV: dev
+        run: |
+          if test -f apps/review/scripts/nocturne-browser.mjs; then
+            npm ci --ignore-scripts --no-audit --no-fund
+            npm run build --workspace @soul/review
+            npx playwright install --with-deps chromium
+            node apps/review/scripts/nocturne-browser.mjs
+          fi
+      - name: Preserve source-bound evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle2-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .battle2-evidence/
+          retention-days: 14
+          if-no-files-found: error
