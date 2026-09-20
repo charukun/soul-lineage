@@ -3,6 +3,7 @@ export const saveSchemaVersion = 1;
 export const protocolVersion = 1;
 export const availableLanguages = Object.freeze(['ja', 'en']);
 export const deploymentRegions = Object.freeze(['auto', 'asia', 'europe', 'americas']);
+export { EFFECT_AFFINITIES, EFFECT_AFFINITY_LABELS, isEffectAffinity, normalizeEffectAffinities } from './affinity-catalog.js';
 export { inspirationCatalogRevision, INSPIRATION_WEAPON_ARTS, INSPIRATION_WEAPONS, INSPIRATION_MOTION_IDS, getInspirationWeaponArts, cloneInspirationWeaponArts } from './inspiration-catalog.js';
 export { causalInspirationRevision, INSPIRATION_KINDS, INSPIRATION_NAME_GRADES, INSPIRATION_QUESTIONS, CAUSAL_ANSWERS, CAUSAL_ANSWER_BY_ID, inspirationTechniqueName, answerSignature, validateCausalAnswers } from './causal-inspiration-catalog.js';
 export function createSaveEnvelope({ gameId, playerId, revision = 0, payload, updatedAt }) {

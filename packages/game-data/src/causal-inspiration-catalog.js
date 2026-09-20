@@ -1,4 +1,5 @@
 import { INSPIRATION_MOTION_IDS } from './inspiration-catalog.js';
+import { isEffectAffinity } from './affinity-catalog.js';
 
 export const causalInspirationRevision = 'causal-inspiration-1';
 export const INSPIRATION_KINDS = Object.freeze({heart:'心',body:'体',technique:'技',link:'連',variant:'変'});
@@ -19,11 +20,12 @@ export const INSPIRATION_QUESTIONS = Object.freeze({
 const step=(kind,footwork='stay',charge='none')=>Object.freeze({kind,footwork,charge});
 const define=row=>Object.freeze({
   weapons:[], windows:[], materials:[], phases:['jo','ha','kyu'], motifs:[], intent:{}, bodyAffinity:{},
-  effort:1, effects:{}, nameGrade:'normal', specialEffects:[], ...row,
+  effort:1, effects:{}, faith:{}, nameGrade:'normal', specialEffects:[], ...row,
   steps:Object.freeze(row.steps||[]),
   questions:Object.freeze(row.questions||[]), materials:Object.freeze((row.materials||[]).map(group=>Object.freeze(group))),
   windows:Object.freeze(row.windows||[]), weapons:Object.freeze(row.weapons||[]),
   motifs:Object.freeze(row.motifs||[]), phases:Object.freeze(row.phases||['jo','ha','kyu']), specialEffects:Object.freeze(row.specialEffects||[]),
+  faith:Object.freeze({...row.faith}),
 });
 
 // Authored answers, not animation assets or loot. Acquisition belongs to the life domain.
@@ -53,6 +55,12 @@ export const CAUSAL_ANSWERS = Object.freeze([
   define({id:'skill.edge',name:'刃筋',kind:'heart',family:'life.edge',questions:['tool','guard'],
     materials:[['tool'],['observation','force']],windows:['forge','maintain','practice'],motifs:['tool','precision'],
     mechanic:'刃を向ける方向に注意し、得物の接触を活かす。',tradeoff:'遮蔽物や盾を無視する効果はない。',effects:{damage:.09},intent:{attack:.1}}),
+  define({id:'skill.fire-vigil',name:'火守り',kind:'heart',family:'faith.fire.vigil',questions:['fatigue','tool'],
+    materials:[['patience'],['tool']],windows:['pray','forge','rest','maintain'],motifs:['patience','tool'],
+    mechanic:'炎を恐れるだけでなく、絶やさず扱うものとして心に置く。',tradeoff:'炎を生み出したり、炎害への耐性を直接与える心得ではない。',faith:{fire:.38},intent:{survival:.08}}),
+  define({id:'skill.fire-hearth',name:'炉守り',kind:'heart',family:'faith.fire.hearth',questions:['care','tool'],
+    materials:[['care'],['tool','observation']],windows:['care','forge'],motifs:['care','tool'],
+    mechanic:'火を暮らしと命をつなぐものとして扱い、その意味を自分の型へ持ち込む。',tradeoff:'信仰は威力倍率や炎属性ダメージそのものではない。',faith:{fire:.34},intent:{survival:.05,attack:.05}}),
   define({id:'spark.spear.tide',name:'潮返し',kind:'technique',family:'spear.return',weapons:['spear'],questions:['close'],
     materials:[['handling'],['balance','observation']],motifs:['return','balance'],intent:{counter:.7,survival:.3},bodyAffinity:{balance:.6,reach:.2},
     mechanic:'石突で間を作り、引いた足から穂先を戻す。',tradeoff:'背後に余地がない時は引けない。',space:'retreat',limbs:'twoArms',
@@ -117,6 +125,8 @@ export function validateCausalAnswers(){
     if(row.questions.some(q=>!INSPIRATION_QUESTIONS[q]))throw Error(`Unknown question: ${row.id}`);
     if(!Object.hasOwn(INSPIRATION_NAME_GRADES,row.nameGrade)||/[・･].*[・･]/.test(row.name))throw Error(`Invalid technique name: ${row.id}`);
     if(row.specialEffects.length&&!['secret','ultimate'].includes(row.nameGrade))throw Error(`Special technique requires title grade: ${row.id}`);
+    if(Object.keys(row.faith).length&&row.kind!=='heart')throw Error(`Faith metadata belongs to heart: ${row.id}`);
+    for(const [affinity,value] of Object.entries(row.faith))if(!isEffectAffinity(affinity)||!Number.isFinite(value)||value<=0||value>1)throw Error(`Invalid faith affinity: ${row.id}`);
     if(row.steps.some(s=>!motions.has(s.kind)))throw Error(`Unregistered motion: ${row.id}`);
     if(row.steps.length>3||(!row.executor&&['technique','variant'].includes(row.kind)&&!row.steps.length))throw Error(`Missing execution: ${row.id}`);
   }

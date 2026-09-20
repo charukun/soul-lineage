@@ -1,5 +1,6 @@
 import { CAUSAL_ANSWERS, CAUSAL_ANSWER_BY_ID, INSPIRATION_QUESTIONS, inspirationTechniqueName } from '@soul/game-data';
 import { INSPIRATION_LIMITS, MOTIFS, ensureInspiration, synchronizeKnownSkills } from './inspiration-persistence.js';
+import { faithProfile } from './skill-system.js';
 export { INSPIRATION_VERSION, INSPIRATION_LIMITS, ensureInspiration, synchronizeKnownSkills, validateInspiration, inspirationImprint } from './inspiration-persistence.js';
 
 const ACTIVITY_MOTIFS=Object.freeze({play:['balance','space','timing'],pray:['patience','breath'],forge:['tool','observation'],train:['observation','timing'],study:['observation','precision'],read:['patience','observation'],care:['care','patience'],observe:['observation','patience'],track:['space','observation'],maintain:['tool','handling'],voyage:['balance','patience'],rest:['breath','patience'],breathe:['breath'],balance:['balance'],fall:['balance','space'],focus:['precision','patience'],sense:['observation','space'],repeat:['handling','timing'],distance:['space','observation'],adapt:['balance','space'],practice:['handling','timing']});
@@ -12,6 +13,19 @@ const own=(o,k)=>Object.prototype.hasOwnProperty.call(o||{},k);
 const answer=id=>own(CAUSAL_ANSWER_BY_ID,id)?CAUSAL_ANSWER_BY_ID[id]:null;
 function hash(text){let h=2166136261;for(const c of String(text)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 function unit(seed,key){return hash(`${seed}:${key}`)/4294967295;}
+export function inspirationAffinityChance(state,affinity){
+  const score=Math.max(0,Number(faithProfile(state)?.[affinity])||0);
+  return clamp(1-Math.exp(-score),0,.82);
+}
+export function chooseInspirationEffectAffinity(state,answerId){
+  const entries=Object.entries(faithProfile(state)).filter(([,score])=>Number(score)>0),total=entries.reduce((sum,[,score])=>sum+Number(score),0);
+  if(!(total>0))return null;
+  const chance=clamp(1-Math.exp(-total),0,.82);
+  if(unit(state?.seed??0,`faith-effect:${answerId}:gate`)>=chance)return null;
+  let roll=unit(state?.seed??0,`faith-effect:${answerId}:pick`)*total;
+  for(const [affinity,score] of entries){roll-=Number(score);if(roll<=0)return affinity;}
+  return entries.at(-1)?.[0]||null;
+}
 function sourceKind(kind){return ['practice','repeat','balance','breathe','focus','fall','distance'].includes(kind)?'practice':['observe','train','study','read','forge'].includes(kind)?'observation':'life';}
 
 export function inspirationEffortScale(state){const s=ensureInspiration(state),age=Number(state.ageYears)||0,ageEffort=age<7?1.18:age>65?1+Math.min(.22,(age-65)*.006):1;return clamp(ageEffort/(.6+s.body.endurance*.25+s.body.drive*.15),.86,1.3);}
@@ -80,9 +94,11 @@ function enforceActiveLimit(state){
 }
 function commitAnswer(state,candidate,context={}){
   const s=ensureInspiration(state),row=answer(candidate.id);if(!row||own(s.records,row.id)||state.ended||state.down||Object.keys(s.records).length>=INSPIRATION_LIMITS.records)return null;
-  const record={answerId:row.id,family:row.family,name:inspirationTechniqueName(row),age:clamp(state.ageYears,0,100),kind:row.kind,stable:false,archived:false,contexts:[useContextKey(state,context)],provenance:provenanceFor(state,candidate,context),motifs:[...row.motifs]};if(row.kind==='link'&&context.combo)record.combo={...context.combo};
+  const record={answerId:row.id,family:row.family,name:inspirationTechniqueName(row),age:clamp(state.ageYears,0,100),kind:row.kind,stable:false,archived:false,contexts:[useContextKey(state,context)],provenance:provenanceFor(state,candidate,context),motifs:[...row.motifs]};
+  if(['technique','variant'].includes(row.kind)){const effectAffinity=chooseInspirationEffectAffinity(state,row.id);if(effectAffinity)record.effectAffinity=effectAffinity;}
+  if(row.kind==='link'&&context.combo)record.combo={...context.combo};
   s.records[row.id]=record;s.lastNamed=s.clock;s.revision++;enforceActiveLimit(state);synchronizeKnownSkills(state);
-  const event={type:'inspiration',id:row.id,name:record.name,kind:row.kind,family:row.family,age:record.age,provenance:record.provenance};state.events??=[];state.events.unshift({type:'inspiration',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${record.name}を閃いた。`,inspirationId:row.id});state.events.length=Math.min(state.events.length,80);return event;
+  const event={type:'inspiration',id:row.id,name:record.name,kind:row.kind,family:row.family,age:record.age,provenance:record.provenance,effectAffinity:record.effectAffinity||null};state.events??=[];state.events.unshift({type:'inspiration',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${record.name}を閃いた。`,inspirationId:row.id});state.events.length=Math.min(state.events.length,80);return event;
 }
 export function recordLifeExperience(state,kind,context={}){
   if(state.ended||state.down||Number(state.ageYears)<4||!own(ACTIVITY_MOTIFS,kind))return [];
@@ -142,7 +158,7 @@ export function inspirationRecipe(state,id,phase,targetId=null,context=null){
   if(!row||!row.steps.length||!['technique','variant'].includes(row.kind))return null;if(!usingPending&&!own(s.records,chosen))return null;
   if(!answerAvailability(state,chosen,{context:context||p?.context,ignoreResources:!usingPending||p.started}).usable)return null;
   if(usingPending){const preferred=row.phases.includes('jo')?'jo':row.phases[0];if(phase!==preferred)return null;p.armed=true;p.phase=phase;}
-  return {id:chosen,name:usingPending?p.runtimeName:(s.records[chosen]?.name||row.name),steps:row.steps.map(step=>({...step})),effort:row.effort,family:row.family,phaseAffinity:row.phases.includes(phase)};
+  return {id:chosen,name:usingPending?p.runtimeName:inspirationTechniqueName(row),steps:row.steps.map(step=>({...step})),effort:row.effort,family:row.family,phaseAffinity:row.phases.includes(phase)};
 }
 function rememberUse(state,id,context){const s=ensureInspiration(state),r=s.records[id];if(!r)return null;const key=useContextKey(state,context);if(r.contexts.includes(key))return null;const wasStable=Boolean(r.stable);if(r.contexts.length<INSPIRATION_LIMITS.contexts)r.contexts.push(key);r.stable=r.contexts.length>=3;s.revision++;if(wasStable||!r.stable)return null;const event={type:'inspiration-stabilized',id:r.answerId,name:r.name,kind:r.kind,family:r.family,age:clamp(state.ageYears,0,100)};state.events??=[];state.events.unshift({type:'inspiration-stabilized',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${r.name}が身体に馴染んだ。`,inspirationId:r.answerId});state.events.length=Math.min(state.events.length,80);return event;}
 function matchesAttempt(event,p){return event.targetId===p.targetId&&event.phase===p.phase&&(event.techniqueId?event.techniqueId===p.id:event.skill===p.runtimeName);}
@@ -176,4 +192,4 @@ export function recordCombatAnswers(state,context={},events=[]){
 }
 export function inspirationName(state,id,fallback=id){const row=answer(id);return row?inspirationTechniqueName(row):fallback;}
 export function archiveInspiration(state,id,archived=true){const s=ensureInspiration(state),r=s.records[id];if(!r||(archived&&equippedIds(state).has(id)))return false;r.archived=Boolean(archived);s.revision++;if(!archived)enforceActiveLimit(state);return r.archived===Boolean(archived);}
-export function inspirationSummary(state){const s=ensureInspiration(state),families=unique(Object.values(s.records).map(r=>r.family));return {families:families.length,records:Object.keys(s.records).length,signs:updateInspirationSigns(state),heritage:s.heritage,body:s.body,legacy:s.legacySkills.length};}
+export function inspirationSummary(state){const s=ensureInspiration(state),families=unique(Object.values(s.records).map(r=>r.family));return {families:families.length,records:Object.keys(s.records).length,signs:updateInspirationSigns(state),heritage:s.heritage,body:s.body,faith:faithProfile(state),legacy:s.legacySkills.length};}
