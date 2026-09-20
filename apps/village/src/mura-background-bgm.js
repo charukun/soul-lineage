@@ -1,4 +1,5 @@
 import {audioURLs} from '@soul/audio/urls';
+import {webAudioActivation} from '@soul/platform-web/audio-activation';
 
 const TRACK='v01';
 const AudioCtx=window.AudioContext||window.webkitAudioContext;
@@ -24,7 +25,7 @@ if(!AudioCtx||!audioURLs?.[TRACK]){
   async function play(){
     if(disposed||manualOverride)return false;
     try{
-      const ctx=ensureContext(),decoded=await load();if(disposed||manualOverride)return false;
+      // Create and resume while the trusted gesture is still active. Waiting for\n      // fetch/decode first can consume transient browser user activation.\n      const ctx=ensureContext();\n      if(ctx.state==='suspended')await ctx.resume();\n      const decoded=await load();if(disposed||manualOverride)return false;
       if(source){if(ctx.state==='suspended')await ctx.resume();started=true;return true;}
       const next=ctx.createBufferSource();next.buffer=decoded;next.loop=true;next.connect(gain);source=next;next.start(0);await ctx.resume();started=true;return true;
     }catch(error){console.warn('[叡智豊満 BGM] Web Audio playback failed',error);return false;}
@@ -32,9 +33,7 @@ if(!AudioCtx||!audioURLs?.[TRACK]){
   async function pause(){if(!context)return;try{await context.suspend();}catch{}started=false;}
   async function resume(){if(disposed||manualOverride||!context||!source)return false;try{await context.resume();started=true;return true;}catch{return false;}}
   function setVolume(value){ensureContext();gain.gain.value=Math.max(0,Math.min(1,Number(value)||0));}
-  const start=()=>{if(!manualOverride)void play();};
-  document.addEventListener('pointerdown',start,{capture:true,once:true});
-  document.addEventListener('keydown',start,{capture:true,once:true});
+  const unsubscribeAudioUnlock=webAudioActivation.subscribeUnlock(()=>play());
   document.addEventListener('visibilitychange',()=>{if(document.hidden){if(started)void pause();}else if(source&&!manualOverride){void resume();}});
   const music=window.__SOUL_MUSIC__;
   if(music?.player){
@@ -46,6 +45,6 @@ if(!AudioCtx||!audioURLs?.[TRACK]){
     state:'ready',track:TRACK,play,pause,resume,setVolume,
     stop(){manualOverride=true;stopSource();void context?.suspend?.();},
     get playing(){return started&&!manualOverride;},
-    dispose(){disposed=true;stopSource();void context?.close?.();}
+    dispose(){disposed=true;unsubscribeAudioUnlock();stopSource();void context?.close?.();}
   };
 }
