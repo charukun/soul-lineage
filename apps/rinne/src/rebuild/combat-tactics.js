@@ -21,7 +21,7 @@ export function staminaPolicyFor(state){
 
 export function tidebreakMindVectorFor(state){
   ensureCombatLoadout(state);const body=bodyRuntime(state),heart=activeHeartIds(state),stamina=staminaPolicyFor(state),injury=injuryEffects(state),bodyOutcome=combatBodyOutcome(state),strategy=strategyForState(state);
-  const v={...strategy};
+  const baseline={attack:.5,guard:.46,spacing:.5,counter:.28,mobility:.42,survival:.28},v={};for(const key of Object.keys(baseline))v[key]=baseline[key]*.42+strategy[key]*.58;
   const add=(key,value)=>{v[key]=clamp(v[key]+value);};
   const style=body.style?.id,stance=body.stance?.id,zanshin=body.zanshin?.id;
   if(style==='pressure'){add('attack',.28);add('spacing',-.22);add('guard',-.1);}if(style==='distance'){add('spacing',.3);add('guard',.08);add('attack',-.06);}if(style==='counter'){add('counter',.42);add('guard',.2);add('attack',-.1);}if(style==='flow'){add('mobility',.36);add('counter',.12);}if(stance==='kosei')add('attack',.16);if(stance==='chinshin'){add('guard',.19);add('mobility',-.08);}if(stance==='ryu')add('mobility',.18);
