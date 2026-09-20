@@ -29,7 +29,8 @@ for(const command of titleCommands){
   command.addEventListener('pointerdown',()=>{unlockTitleAudio();selectTitleCommand(command);},{passive:true});
   command.addEventListener('click',()=>{unlockTitleAudio();confirmRinneAudio();});
 }
-title.addEventListener('pointerup',event=>{unlockTitleAudio();if(titleCinematic.skip())event.preventDefault();},{capture:true});
+title.addEventListener('pointerdown',unlockTitleAudio,{capture:true,passive:true});
+title.addEventListener('pointerup',event=>{if(titleCinematic.skip())event.preventDefault();},{capture:true});
 title.addEventListener('keydown',event=>{if(villageDialog.open||settingsDialog.open)return;if(title.dataset.intro==='cinematic'){if((event.key==='Enter'||event.key===' ')&&titleCinematic.skip()){event.preventDefault();unlockTitleAudio();}return;}if(title.dataset.intro!=='idle'||title.dataset.ready!=='true')return;if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;unlockTitleAudio();const selected=titleCommands.findIndex(item=>item.dataset.selected==='true'),index=selected<0?0:selected;if(event.key==='Enter'){if(!titleCommands.includes(document.activeElement)){event.preventDefault();titleCommands[index].click();}return;}event.preventDefault();const delta=event.key==='ArrowDown'?1:-1,next=(index+delta+titleCommands.length)%titleCommands.length;selectTitleCommand(titleCommands[next]);titleCommands[next].focus({preventScroll:true});});
 function setTitleReady(ready,status=''){
   title.dataset.ready=ready?'true':'false';
