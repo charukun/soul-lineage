@@ -98,11 +98,13 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.execute+.01).stage,'execute');
   assert.match(battleSource,/reviewTechniqueSeen=new Map\(\)/);assert.match(battleSource,/seen\.add\(technique\.id\)/);
   assert.match(battleSource,/learnedSlots\[phase\]=technique/);
-  assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=550/);assert.match(battleSource,/bulbTimer=setTimeout\(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS\)/);assert.match(battleSource,/if\(cue==='spacing'\)\{showReviewSign\(payload\);battleSfx\.inspiration\('anticipation'\);return;\}/);
+  assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=550/);assert.match(battleSource,/bulbTimer=setTimeout\(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS\)/);assert.match(battleSource,/if\(cue==='spacing'\)\{battleSfx\.inspiration\('anticipation'\);return;\}/);
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
   assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);
   assert.match(battleHtml,/battle-phase-wave/);assert.match(battleHtml,/battle-action-drift/);
-  assert.match(battleHtml,/Compact battle HUD pass/);
+  assert.match(battleHtml,/間合いを測っている…/);assert.match(battleHtml,/38%\{opacity:1;transform:translateY\(0\)\}/);
+  assert.match(battleSource,/pushBattleReadout\(action,'action'\)/);assert.match(battleSource,/pushBattleReadout\(.*'hurt'\)/);
+  assert.match(battleHtml,/Compact battle HUD pass/);assert.match(battleHtml,/#battle-technique-composition,/);assert.match(battleHtml,/position:fixed!important/);
   assert.match(battleHtml,/\.stage>\.technique-loadout\{left:8px!important;right:auto!important;top:8px!important;bottom:auto!important/);
   assert.match(battleHtml,/\.controls\.review-surface__panel\{min-height:0!important;height:auto!important/);
   assert.match(battleHtml,/grid-template-columns:minmax\(0,1fr\) auto!important/);
@@ -125,8 +127,8 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleHtml,/main\.battle-review\.review-surface > \.review-surface__workspace\{/);
   assert.match(battleHtml,/grid-template-rows:minmax\(0,1fr\) max-content!important/);
   assert.match(battleHtml,/min-height:34px!important;\s*max-height:36px!important/);
-  assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/rightHand/);assert.match(stageSource,/binding='right-hand-bone'/);assert.match(stageSource,/userData\.weaponBinding=binding/);assert.match(stageSource,/presentImpact/);
+assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/rightHand/);assert.match(stageSource,/binding='right-hand-bone'/);assert.match(stageSource,/userData\.weaponBinding=binding/);assert.match(stageSource,/presentImpact/);
   assert.match(battleSource,/battleSfx\.impact\(\{guard:Boolean\(impact\?\.guard\),power:Number\(impact\?\.power\)\|\|\.7\}\)/);assert.match(battleSource,/battleSfx\.swing\(/);
-  assert.doesNotMatch(stageSource,/reviewBattleMultiHitFrame/);assert.match(stageSource,/core\?\.enemies/);
+  assert.doesNotMatch(stageSource,/reviewBattleMultiHitFrame/);assert.doesNotMatch(stageSource,/function ring\(|\.marker\b/);assert.match(stageSource,/core\?\.enemies/);
   assert.match(stageSource,/onInspirationCue\('spark'/);
 });

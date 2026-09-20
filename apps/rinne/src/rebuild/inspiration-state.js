@@ -1,4 +1,4 @@
-import { CAUSAL_ANSWERS, CAUSAL_ANSWER_BY_ID, INSPIRATION_QUESTIONS } from '@soul/game-data';
+import { CAUSAL_ANSWERS, CAUSAL_ANSWER_BY_ID, INSPIRATION_QUESTIONS, inspirationTechniqueName } from '@soul/game-data';
 import { INSPIRATION_LIMITS, MOTIFS, ensureInspiration, synchronizeKnownSkills } from './inspiration-persistence.js';
 export { INSPIRATION_VERSION, INSPIRATION_LIMITS, ensureInspiration, synchronizeKnownSkills, validateInspiration, inspirationImprint } from './inspiration-persistence.js';
 
@@ -80,7 +80,7 @@ function enforceActiveLimit(state){
 }
 function commitAnswer(state,candidate,context={}){
   const s=ensureInspiration(state),row=answer(candidate.id);if(!row||own(s.records,row.id)||state.ended||state.down||Object.keys(s.records).length>=INSPIRATION_LIMITS.records)return null;
-  const record={answerId:row.id,family:row.family,name:row.name,age:clamp(state.ageYears,0,100),kind:row.kind,stable:false,archived:false,contexts:[useContextKey(state,context)],provenance:provenanceFor(state,candidate,context),motifs:[...row.motifs]};if(row.kind==='link'&&context.combo)record.combo={...context.combo};
+  const record={answerId:row.id,family:row.family,name:inspirationTechniqueName(row),age:clamp(state.ageYears,0,100),kind:row.kind,stable:false,archived:false,contexts:[useContextKey(state,context)],provenance:provenanceFor(state,candidate,context),motifs:[...row.motifs]};if(row.kind==='link'&&context.combo)record.combo={...context.combo};
   s.records[row.id]=record;s.lastNamed=s.clock;s.revision++;enforceActiveLimit(state);synchronizeKnownSkills(state);
   const event={type:'inspiration',id:row.id,name:record.name,kind:row.kind,family:row.family,age:record.age,provenance:record.provenance};state.events??=[];state.events.unshift({type:'inspiration',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${record.name}を閃いた。`,inspirationId:row.id});state.events.length=Math.min(state.events.length,80);return event;
 }
@@ -94,7 +94,7 @@ export function recordLifeExperience(state,kind,context={}){
 }
 export function observeTechnique(state,{actorId,actorName,techniqueId,visible=false,relation='observer',context={}}={}){
   const row=answer(techniqueId);if(!visible||!actorId||!row||state.ended||state.down)return null;
-  const trace=recordTrace(state,{kind:'observation',motifs:unique(['observation',...row.motifs]),text:`${safe(actorName)||'目の前の人物'}の${row.name}を見た`,context:{...context,activity:`observe:${row.family}`},question:'opening',sourceId:actorId,sourceName:actorName,relation});updateInspirationSigns(state,context);return trace;
+  const trace=recordTrace(state,{kind:'observation',motifs:unique(['observation',...row.motifs]),text:`${safe(actorName)||'目の前の人物'}の${inspirationTechniqueName(row)}を見た`,context:{...context,activity:`observe:${row.family}`},question:'opening',sourceId:actorId,sourceName:actorName,relation});updateInspirationSigns(state,context);return trace;
 }
 function signBlockedHint(reason=''){
   if(reason.includes('実行器'))return '感覚は近い。ただ、今の得物ではまだ形にできない。';
@@ -135,7 +135,7 @@ export function prepareCombatInspiration(state,context={},dt=0){
   if(s.pending){const p=s.pending;p.elapsed+=Math.max(0,Number(dt)||0);p.context={...p.context,...context};const pose=state.combat?.tidebreakPose,finished=p.committed&&pose&&pose.skill!==p.runtimeName;if(state.ended||state.down||p.failed||p.elapsed>INSPIRATION_LIMITS.attemptSeconds||p.targetId!==context.targetId||finished)s.pending=null;else return p;}
   if(state.ended||state.down||state.attacking||Number(state.ageYears)<7||!context.targetId)return null;
   for(const q of context.questions||[])recordCombatQuestion(state,q,context);updateInspirationSigns(state,context);if(s.clock-s.lastNamed<INSPIRATION_LIMITS.namedGap)return null;
-  const candidate=inspirationCandidates(state,{...context,window:'combat'})[0];if(!candidate)return null;s.pending={...candidate,targetId:context.targetId,elapsed:0,committed:false,armed:false,started:false,cursor:0,contact:false,failed:false,runtimeName:answer(candidate.id).name,context:{...context}};return s.pending;
+  const candidate=inspirationCandidates(state,{...context,window:'combat'})[0];if(!candidate)return null;s.pending={...candidate,targetId:context.targetId,elapsed:0,committed:false,armed:false,started:false,cursor:0,contact:false,failed:false,runtimeName:inspirationTechniqueName(answer(candidate.id)),context:{...context}};return s.pending;
 }
 export function inspirationRecipe(state,id,phase,targetId=null,context=null){
   const s=ensureInspiration(state),p=s.pending,usingPending=p&&p.targetId===targetId,chosen=usingPending?p.id:id,row=answer(chosen);
@@ -174,7 +174,6 @@ export function recordCombatAnswers(state,context={},events=[]){
   }
   if(state.ended||state.down)s.pending=null;s.execution=null;updateInspirationSigns(state,context);return result;
 }
-export function inspirationName(state,id,fallback=id){return state?.inspiration?.records?.[id]?.name||answer(id)?.name||fallback;}
-export function renameInspiration(state,id,name){const s=ensureInspiration(state),r=s.records[id],clean=safe(name).slice(0,24);if(!r||!clean)return false;if(Object.values(s.records).some(other=>other.answerId!==id&&(other.name===clean||answer(other.answerId)?.name===clean)))return false;r.name=clean;s.revision++;return true;}
+export function inspirationName(state,id,fallback=id){const row=answer(id);return row?inspirationTechniqueName(row):fallback;}
 export function archiveInspiration(state,id,archived=true){const s=ensureInspiration(state),r=s.records[id];if(!r||(archived&&equippedIds(state).has(id)))return false;r.archived=Boolean(archived);s.revision++;if(!archived)enforceActiveLimit(state);return r.archived===Boolean(archived);}
 export function inspirationSummary(state){const s=ensureInspiration(state),families=unique(Object.values(s.records).map(r=>r.family));return {families:families.length,records:Object.keys(s.records).length,signs:updateInspirationSigns(state),heritage:s.heritage,body:s.body,legacy:s.legacySkills.length};}

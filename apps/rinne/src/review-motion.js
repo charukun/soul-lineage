@@ -122,7 +122,7 @@ function renderModelGrid(){
   const grid=el('motion-model-grid');grid.replaceChildren();
   for(const model of REVIEW_MODELS){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionModel=model.id;
-    const thumbnail=createStaticThumbnail(model.thumbnailUrl,model.label),label=document.createElement('span');label.textContent=model.label;button.append(thumbnail,label);
+    const thumbnail=createStaticThumbnail(model.thumbnailUrl,model.label);button.append(thumbnail);button.setAttribute('aria-label',model.label);button.title=model.label;
     button.setAttribute('aria-pressed',String(model.id===selectedModel.id));button.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(button);
   }
 }
@@ -139,11 +139,7 @@ function renderMotionGrid(){
   for(const record of rows){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionIdentity=record.sourceIdentity;button.dataset.recommended=String(record.recommended);
     button.setAttribute('aria-pressed',String(selected?.sourceIdentity===record.sourceIdentity));
-    const thumbnail=createRuntimeThumbnail(formatName(record.name)),name=document.createElement('span');name.textContent=formatName(record.name);
-    const meta=document.createElement('small');meta.className='motion-category';
-    const duration=selected?.sourceIdentity===record.sourceIdentity?selectedDuration:Number(record.duration)||0;
-    meta.textContent=categoryLabel(record.category)+(duration?' · '+duration.toFixed(2)+'s':'');
-    button.append(thumbnail,name,meta);
+    const label=formatName(record.name),thumbnail=createRuntimeThumbnail(label);button.setAttribute('aria-label',label);button.title=label;button.append(thumbnail);
     scheduleRuntimeThumbnail(thumbnail,`motion-pose:${selectedModel.id}:${record.sourceIdentity}`,async()=>{
       const gltf=await loadReviewModelForThumbnail(selectedModel),poseRoot=cloneSkeleton(gltf.scene);
       const box=new THREE.Box3().setFromObject(poseRoot),size=box.getSize(new THREE.Vector3()),height=Math.max(.4,size.y);

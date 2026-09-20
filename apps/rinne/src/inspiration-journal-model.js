@@ -24,7 +24,3 @@ export function inspirationJournalModel(state){
   }
   return{person:state.name,generation:state.generation,age:Math.floor(state.ageYears||0),signs:summary.signs.map(({text,hint,age})=>({text,hint,age})),families:[...families].map(([id,variants])=>({id,variants:variants.sort((a,b)=>a.age-b.age)})).reverse(),heritage:s.heritage.map(h=>({...h,label:motifName(h.motif)})),body:{...s.body},traces:[...s.traces].reverse(),legacySkills:[...s.legacySkills],earlierGenerations:state.lineageArchive?.earlierGenerations||Math.max(0,state.generation-1-(state.lineage?.length||0))};
 }
-export function canRenameInspiration(state,id,name){
-  const clean=String(name||'').trim();if(!clean||clean.length>24||/[\u0000-\u001f]/.test(clean))return false;
-  return !Object.values(state.inspiration?.records||{}).some(r=>r.answerId!==id&&(r.name===clean||CAUSAL_ANSWER_BY_ID[r.answerId]?.name===clean));
-}

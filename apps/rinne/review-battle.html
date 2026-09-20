@@ -82,8 +82,8 @@
 .phase-panel[data-skin="rinne"]::before{background:linear-gradient(90deg,transparent,rgba(115,188,229,.18) 9%,rgba(115,188,229,.92) 47%,rgba(227,199,127,.92) 53%,rgba(115,188,229,.18) 91%,transparent);clip-path:polygon(0 52%,7% 48%,12% 59%,18% 31%,24% 68%,31% 43%,37% 55%,44% 18%,49% 76%,54% 34%,61% 62%,68% 40%,76% 58%,84% 35%,91% 54%,100% 49%);opacity:.78;filter:drop-shadow(0 0 7px rgba(115,188,229,.7));animation:battle-phase-wave 1.35s ease-in-out infinite alternate}
 .phase-panel[data-skin="rinne"]::after{height:22px;background:linear-gradient(90deg,transparent,rgba(227,199,127,.72),transparent);clip-path:polygon(0 51%,10% 52%,17% 39%,24% 63%,33% 45%,41% 57%,50% 28%,58% 66%,66% 46%,75% 56%,84% 42%,92% 53%,100% 50%);opacity:.55;animation:battle-phase-wave .92s ease-in-out infinite alternate-reverse}
 @keyframes battle-phase-wave{to{opacity:.96;transform:translateY(-50%) scaleY(1.14) scaleX(1.02)}}
-.phase-panel[data-skin="rinne"] .phase-step{width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;font-size:16px!important;background:radial-gradient(circle,rgba(8,21,35,.96) 42%,rgba(8,21,35,.4) 70%,transparent)!important;text-shadow:0 0 8px currentColor!important}.phase-panel[data-skin="rinne"] .phase-step[data-active="true"]{transform:scale(1.24)!important;box-shadow:0 0 22px rgba(115,188,229,.16)!important}.phase-panel[data-skin="rinne"] .phase-link{width:22px!important;flex-basis:22px!important;opacity:.9!important}.phase-panel[data-skin="rinne"] .phase-meta{display:none!important}
-.phase-panel[data-skin="rinne"] .phase-history{display:flex!important;position:absolute!important;left:50%!important;top:calc(100% + 2px)!important;transform:translateX(-50%)!important;width:min(270px,72vw)!important;height:62px!important;overflow:visible!important;flex-direction:column!important;align-items:center!important;pointer-events:none!important}.phase-panel[data-skin="rinne"] .phase-history span{display:block!important;max-width:100%!important;padding:2px 9px!important;border:0!important;background:linear-gradient(90deg,transparent,rgba(6,16,29,.82) 18%,rgba(6,16,29,.82) 82%,transparent)!important;color:var(--rinne-ink)!important;font:600 9px/1.5 var(--font-rinne-display)!important;letter-spacing:.04em!important;text-align:center!important;white-space:nowrap!important;animation:battle-action-drift 2.7s ease-out forwards!important}@keyframes battle-action-drift{0%{opacity:0;transform:translateY(-5px)}14%{opacity:.94}72%{opacity:.72}100%{opacity:0;transform:translateY(24px)}}
+.phase-panel[data-skin="rinne"] .phase-step{width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;font-size:16px!important;background:radial-gradient(circle,rgba(8,21,35,.96) 42%,rgba(8,21,35,.4) 70%,transparent)!important;text-shadow:0 0 8px currentColor!important}.phase-panel[data-skin="rinne"] .phase-step[data-active="true"]{transform:scale(1.24)!important;box-shadow:0 0 22px rgba(115,188,229,.16)!important}.phase-panel[data-skin="rinne"] .phase-link{width:22px!important;flex-basis:22px!important;opacity:.9!important}.phase-panel[data-skin="rinne"] .phase-meta{display:block!important;position:absolute!important;left:50%!important;top:calc(100% + 1px)!important;transform:translateX(-50%)!important;margin:0!important;padding:2px 9px!important;min-width:max-content!important;background:linear-gradient(90deg,transparent,rgba(6,16,29,.72) 18%,rgba(6,16,29,.72) 82%,transparent)!important;color:var(--rinne-muted)!important;font:500 9px/1.5 var(--font-rinne-display)!important;letter-spacing:.05em!important}
+.phase-panel[data-skin="rinne"] .phase-history{display:flex!important;position:absolute!important;left:50%!important;top:calc(100% + 2px)!important;transform:translateX(-50%)!important;width:min(270px,72vw)!important;height:62px!important;overflow:visible!important;flex-direction:column!important;align-items:center!important;pointer-events:none!important}.phase-panel[data-skin="rinne"] .phase-history span{display:block!important;max-width:100%!important;padding:2px 9px!important;border:0!important;background:linear-gradient(90deg,transparent,rgba(6,16,29,.9) 18%,rgba(6,16,29,.9) 82%,transparent)!important;color:var(--rinne-ink)!important;font:600 10px/1.5 var(--font-rinne-display)!important;letter-spacing:.04em!important;text-align:center!important;white-space:nowrap!important;animation:battle-action-drift 2.6s cubic-bezier(.18,.72,.25,1) forwards!important}.phase-panel[data-skin="rinne"] .phase-history span[data-kind="hurt"]{color:#e7a09a!important;text-shadow:0 0 9px rgba(127,36,31,.6)!important}@keyframes battle-action-drift{0%{opacity:0;transform:translateY(-5px)}8%{opacity:1;transform:translateY(0)}38%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(34px)}}
 
 .inspiration-history{position:absolute!important;z-index:40!important;inset:10px!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;gap:8px!important;max-height:none!important;overflow:hidden!important;padding:10px!important;border:1px solid var(--rinne-line)!important;border-radius:14px!important;background:linear-gradient(180deg,rgba(8,21,35,.985),rgba(6,16,29,.985))!important;box-shadow:0 18px 46px rgba(0,0,0,.68)!important;backdrop-filter:blur(12px)}.inspiration-history[hidden]{display:none!important}.inspiration-history>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 2px 8px;border-bottom:1px solid var(--rinne-line-soft)}.inspiration-history>header div{display:grid;gap:2px}.inspiration-history>header span{color:var(--rinne-blue-soft);font:800 8px/1 var(--font-rinne-display);letter-spacing:.16em}.inspiration-history>header strong{color:var(--rinne-gold-hi);font:800 14px/1.2 var(--font-rinne-display)}.inspiration-history>header button{min-height:30px;padding:4px 9px;border:1px solid var(--rinne-line-soft);border-radius:8px;background:#0b1b2e;color:var(--rinne-ink);font-size:9px}.inspiration-history__list{min-height:0;overflow:auto;display:grid;align-content:start;gap:6px}.inspiration-history__empty{padding:28px 8px;text-align:center;color:var(--rinne-muted);font-size:10px}.inspiration-history__row{grid-template-columns:minmax(0,1fr) auto auto!important;padding:8px;border:1px solid rgba(199,161,93,.12);border-radius:9px;background:rgba(11,27,46,.58)}.inspiration-history__row strong{font-size:11px!important}
 
@@ -214,6 +214,98 @@ main.battle-review.review-surface .camera-zoom button{
 .technique-card__stages small{display:inline-flex;align-items:center;justify-content:center;min-width:27px;padding:1px 3px;border:1px solid rgba(115,188,229,.2);border-radius:3px;color:var(--rinne-muted);font-size:7px;line-height:1.35}
 @media(max-width:680px){.stage>.technique-composition{left:6px;top:6px;width:min(430px,78vw);gap:3px;padding:4px}.technique-chain{padding:3px 4px}.technique-card{max-width:104px;padding:2px 4px}.technique-card>strong{font-size:8px}.technique-card__stages small{min-width:23px;font-size:6px}.technique-chain>header b{font-size:9px}.technique-chain>header button{height:18px;min-width:34px;font-size:7px}}
 
+ .choreography-review-settings{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:end}.choreography-review-settings label{display:grid;gap:3px;color:var(--rinne-muted);font-size:9px}.choreography-review-settings select,.choreography-review-settings input,.choreography-review-settings button{min-height:34px;border:1px solid var(--rinne-line-soft);border-radius:8px;background:#081523;color:var(--rinne-ink);padding:5px 7px}.battle-body-readout{grid-column:1/-1;padding:7px 8px;border:1px solid rgba(115,188,229,.18);border-radius:8px;color:var(--rinne-blue-soft);font:700 10px/1.5 var(--font-rinne-display);text-align:center}@media(max-width:680px){.choreography-review-settings{grid-template-columns:1fr 1fr auto}.battle-body-readout{font-size:9px}}
+
+/* Mobile battle review repair: keep the fight visible and controls touchable. */
+#battle-technique-composition,
+.stage > .technique-composition,
+.stage > .technique-loadout{display:none!important}
+.review-settings[open],
+.controls .review-settings[open]{
+  position:fixed!important;
+  left:max(8px,env(safe-area-inset-left))!important;
+  right:max(8px,env(safe-area-inset-right))!important;
+  bottom:calc(12px + env(safe-area-inset-bottom))!important;
+  width:auto!important;
+  max-width:none!important;
+  max-height:min(68dvh,520px)!important;
+  overflow:auto!important;
+  overscroll-behavior:contain!important;
+  z-index:1000!important;
+  pointer-events:auto!important;
+  touch-action:pan-y!important
+}
+.review-settings[open] *,
+.controls .review-settings[open] *{pointer-events:auto!important}
+.review-settings[open] .review-settings-body{max-height:none!important;overflow:visible!important}
+@media(max-width:680px){
+  main.battle-review.review-surface > .review-surface__workspace{grid-template-rows:minmax(0,1fr) max-content!important}
+  .review-surface__stage-column,.stage{min-height:0!important}
+  .stage canvas{min-height:0!important}
+}
+
+/* Foot-level phase HUD: keep 序破急 in the fight space without occupying the face/torso read zone. */
+.battle-foot-phase{
+  position:absolute;
+  z-index:7;
+  left:50%;
+  bottom:13%;
+  transform:translateX(-50%) perspective(240px) rotateX(58deg);
+  display:grid;
+  grid-template-columns:30px 22px 30px 22px 30px;
+  align-items:center;
+  pointer-events:none;
+  filter:drop-shadow(0 5px 7px rgba(0,0,0,.42));
+}
+.battle-foot-phase[data-phase="idle"]{opacity:.46}
+.battle-foot-phase::before{
+  content:"";
+  position:absolute;
+  left:-18px;right:-18px;top:50%;
+  height:44px;
+  transform:translateY(-50%);
+  border:1px solid rgba(115,188,229,.18);
+  border-radius:50%;
+  background:radial-gradient(ellipse at center,rgba(115,188,229,.08),rgba(6,16,29,.02) 58%,transparent 72%);
+}
+.battle-foot-phase__step{
+  position:relative;
+  z-index:1;
+  display:grid;
+  place-items:center;
+  width:30px;height:30px;
+  border:1px solid rgba(199,161,93,.28);
+  border-radius:50%;
+  background:rgba(6,16,29,.76);
+  color:rgba(244,234,208,.42);
+  font:800 13px/1 var(--font-rinne-display,ui-serif);
+  transition:transform .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease,background .16s ease;
+}
+.battle-foot-phase__link{
+  position:relative;
+  z-index:1;
+  height:1px;
+  background:linear-gradient(90deg,rgba(199,161,93,.18),rgba(199,161,93,.48),rgba(199,161,93,.18));
+}
+.battle-foot-phase[data-phase="jo"] [data-foot-phase="jo"],
+.battle-foot-phase[data-phase="ha"] [data-foot-phase="ha"],
+.battle-foot-phase[data-phase="kyu"] [data-foot-phase="kyu"]{
+  color:var(--rinne-gold-hi);
+  border-color:rgba(227,199,127,.86);
+  background:radial-gradient(circle,rgba(27,61,91,.96),rgba(6,16,29,.84));
+  transform:translateY(-2px) scale(1.18);
+  box-shadow:0 0 16px rgba(115,188,229,.22),0 0 9px rgba(227,199,127,.28) inset;
+}
+.battle-foot-phase[data-phase="ha"] [data-foot-phase="jo"],
+.battle-foot-phase[data-phase="kyu"] [data-foot-phase="jo"],
+.battle-foot-phase[data-phase="kyu"] [data-foot-phase="ha"]{
+  color:rgba(227,199,127,.72);
+  border-color:rgba(199,161,93,.48);
+}
+@media(max-width:680px){
+  .battle-foot-phase{bottom:12%;transform:translateX(-50%) perspective(220px) rotateX(60deg) scale(.92)}
+}
+
 </style>
 </head>
 <body>
@@ -233,10 +325,13 @@ main.battle-review.review-surface .camera-zoom button{
     <span class="note">Tidebreak接触同期</span>
     <output id="battle-sign" class="battle-sign" role="status" aria-live="polite" hidden></output>
     <output id="battle-lightbulb" class="battle-lightbulb" role="status" aria-label="閃いた" hidden>💡</output>
+    <div id="battle-foot-phase" class="battle-foot-phase" data-phase="idle" aria-label="足元の序破急HUD">
+      <span class="battle-foot-phase__step" data-foot-phase="jo">序</span><i class="battle-foot-phase__link" aria-hidden="true"></i><span class="battle-foot-phase__step" data-foot-phase="ha">破</span><i class="battle-foot-phase__link" aria-hidden="true"></i><span class="battle-foot-phase__step" data-foot-phase="kyu">急</span>
+    </div>
     <aside id="battle-inspiration" class="battle-inspiration" role="status" aria-live="assertive" hidden><span>閃き</span><strong id="battle-inspiration-name"></strong><small id="battle-inspiration-phase"></small></aside>
     <aside id="battle-phase" class="phase-panel combat-phase-indicator combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" data-combo-active="false" data-phase="idle" aria-label="序破急の現在状態" aria-live="polite">
       <span class="phase-step combat-sequence__step" data-phase-id="jo" data-phase-step="jo" data-combat-phase="jo" data-active="false">序</span><i class="phase-link phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="ha" data-phase-step="ha" data-combat-phase="ha" data-active="false">破</span><i class="phase-link phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="kyu" data-phase-step="kyu" data-combat-phase="kyu" data-active="false">急</span>
-      <strong id="phase-meta" class="phase-meta combat-phase-action combat-sequence__action">間合いを測る</strong><div id="phase-history" class="phase-history combat-phase-history combat-sequence__history" aria-hidden="true"></div>
+      <strong id="phase-meta" class="phase-meta combat-phase-action combat-sequence__action">間合いを測っている…</strong><div id="phase-history" class="phase-history combat-phase-history combat-sequence__history" aria-hidden="true"></div>
     </aside>
     <div class="camera-zoom" role="group" aria-label="カメラズーム"><button id="camera-zoom-out" type="button" aria-label="カメラをズームアウト">−</button><button id="camera-zoom-in" type="button" aria-label="カメラをズームイン">＋</button></div>
     <div id="battle-technique-composition" class="technique-composition" aria-label="段・技・連・序破急の構成"></div>
@@ -257,6 +352,14 @@ main.battle-review.review-surface .camera-zoom button{
         <div class="pickers">
           <div class="hero-model-lock" aria-label="左モデルは主人公固定"><span>左モデル</span><strong>主人公</strong></div>
           <div class="hero-model-lock"><span>敵モデル</span><strong>スケルトン</strong></div><label class="weapon-picker">所持武器<select id="battle-weapon"><option value="sword">剣</option><option value="dagger">短剣</option><option value="spear">槍</option><option value="great">大剣</option><option value="axe">戦斧</option><option value="staff">杖</option><option value="fist">徒手</option></select></label>
+        </div>
+        <div class="choreography-review-settings" aria-label="殺陣検証設定">
+          <label>戦略A<select id="battle-strategy-a"><option value="balanced">均衡</option><option value="aggressive">攻勢</option><option value="patient">慎重</option><option value="counter">返し</option><option value="evasive">回避</option></select></label>
+          <label>戦略B<select id="battle-strategy-b"><option value="patient">慎重</option><option value="balanced">均衡</option><option value="aggressive">攻勢</option><option value="counter">返し</option><option value="evasive">回避</option></select></label>
+          <button id="battle-ab-toggle" type="button" aria-label="戦略A/B切替">A</button>
+          <label>固定Seed<input id="battle-review-seed" type="number" min="1" value="6197"></label>
+          <label>初期負傷<select id="battle-injury-preset"><option value="none">なし</option><option value="rightArm">右腕重傷</option><option value="leftArm">左腕重傷</option><option value="rightLeg">右脚重傷</option><option value="leftLeg">左脚重傷</option><option value="torso">胴重傷</option></select></label>
+          <output id="battle-body-readout" class="battle-body-readout">頭 100 · 胴 100 · 左腕 100 · 右腕 100 · 左脚 100 · 右脚 100</output>
         </div>
         <div class="review-modes">
 

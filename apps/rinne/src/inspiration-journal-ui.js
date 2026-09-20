@@ -1,8 +1,8 @@
 import { CAUSAL_ANSWER_BY_ID, INSPIRATION_KINDS } from '@soul/game-data';
 import { ensureCombatLoadout, activeCombo, addCombo, removeCombo, setActiveCombo, setComboSkill, setHeartSlot, setBodyChoice, unlockedBodyOptions, learnedHeartSkills, learnedTechniqueSkills, techniqueName, PHASES, MAX_COMBOS } from './combat-loadout.js';
-import { ensureInspiration, updateInspirationSigns, renameInspiration, archiveInspiration, answerAvailability, inspirationName } from './rebuild/inspiration-state.js';
+import { ensureInspiration, updateInspirationSigns, archiveInspiration, answerAvailability, inspirationName } from './rebuild/inspiration-state.js';
 import { tidebreakMindVectorFor } from './rebuild/combat-tactics.js';
-import { inspirationJournalModel, equippedInspirationIds, canRenameInspiration, motifName } from './inspiration-journal-model.js';
+import { inspirationJournalModel, equippedInspirationIds, motifName } from './inspiration-journal-model.js';
 import './inspiration-journal.css';
 
 const PAGE=5;
@@ -66,9 +66,7 @@ export function installInspirationUI(ui,{gameScreen,audio}){
     else actions.append(button(ui.panel.dataset.type==='heart'?`心の${heartSlot+1}枠へ`:ui.panel.dataset.type==='technique'?`${({jo:'序',ha:'破',kyu:'急'})[phase]}へ組む`:'編成へ',()=>selectAction(item.id),{disabled:readonly()||item.archived||(row.weapons.length&&!row.weapons.includes(state.equipment.weapon))}));
     card.append(actions);
     if(manage){
-      const edit=el('details');edit.append(el('summary','名前と保管'));const form=el('form',null,'inspiration-rename'),label=el('label','技の呼び名'),input=el('input');input.value=item.name;input.maxLength=24;input.disabled=readonly();input.setAttribute('aria-label',`${item.name}の呼び名`);label.append(input);const submit=el('button','名を記す');submit.type='submit';submit.disabled=readonly();form.append(label,submit);
-      form.onsubmit=e=>{e.preventDefault();if(readonly())return;if(!canRenameInspiration(state,item.id,input.value)){message('ほかの技と重ならない、24文字以内の名前を付けてください。');return;}renameInspiration(state,item.id,input.value);changed();};edit.append(form);
-      const equipped=equippedInspirationIds(state).has(item.id);edit.append(button(item.archived?'現役へ戻す':'古技として収める',()=>{if(readonly()||equipped)return;archiveInspiration(state,item.id,!item.archived);changed();},{disabled:readonly()||equipped}));if(equipped)edit.append(el('small','編成中の技は、その枠から外してから保管できます。'));card.append(edit);
+      const edit=el('details');edit.append(el('summary','保管'));const equipped=equippedInspirationIds(state).has(item.id);edit.append(button(item.archived?'現役へ戻す':'古技として収める',()=>{if(readonly()||equipped)return;archiveInspiration(state,item.id,!item.archived);changed();},{disabled:readonly()||equipped}));if(equipped)edit.append(el('small','編成中の技は、その枠から外してから保管できます。'));card.append(edit);
     }
     return card;
   }

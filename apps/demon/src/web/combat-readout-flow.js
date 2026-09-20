@@ -18,32 +18,28 @@ export function installCombatReadoutFlow(doc=document){
 
   const flow=doc.createElement('div');
   flow.id='combat-action-flow';
-  flow.innerHTML='<div class="combat-feed" role="log" aria-live="polite" aria-relevant="additions"></div>';
+  flow.innerHTML='<div class="combat-feed"><span class="combat-feed-baseline">間合いを測っている…</span><div class="combat-feed-events" role="log" aria-live="polite" aria-relevant="additions"></div></div>';
   source.insertAdjacentElement('afterend',flow);
 
-  const feed=flow.querySelector('.combat-feed');
-  let state={action:'',phase:''},entries=[];
+  const feed=flow.querySelector('.combat-feed-events');
+  let state={action:'',phase:''};
 
   const pushEntry=(text,kind='action')=>{
     const value=String(text||'').trim();
     if(!value)return;
-    const existing=[...entries];
     const item=doc.createElement('span');
     item.className='combat-feed-entry';
     item.dataset.kind=kind;
     item.textContent=value;
     feed.prepend(item);
-    entries.unshift(item);
-    for(const row of existing)replay(row,'combat-feed-shift');
-    replay(item,'combat-feed-enter');
-    while(entries.length>6)entries.pop()?.remove();
+    replay(item,'combat-feed-event');
+    setTimeout(()=>item.remove(),2700);
     flow.hidden=false;
   };
 
   const reset=()=>{
     state={action:'',phase:''};
     feed.replaceChildren();
-    entries=[];
     flow.hidden=true;
   };
 
@@ -54,7 +50,8 @@ export function installCombatReadoutFlow(doc=document){
     const active=phaseNodes.find(el=>el.classList.contains('active'));
     const next=nextCombatReadoutState(state,source.textContent,active?.dataset.phase||'');
 
-    if(next.actionChanged&&next.action)pushEntry(next.action,'action');
+    flow.hidden=false;
+    if(next.actionChanged&&next.action&&next.action!=='間合いを測る')pushEntry(next.action,'action');
 
     if(next.phaseChanged&&next.phase){
       battle.dataset.phase=next.phase;
