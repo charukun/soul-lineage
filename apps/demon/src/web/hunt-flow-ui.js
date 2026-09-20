@@ -11,7 +11,7 @@ export class HuntFlowUi {
     document.body.classList.add('hunt-loop');
     this.objective = byId('objective');
     this.bag = document.createElement('div'); this.bag.className = 'hunt-bag';
-    this.bag.innerHTML = '<span class="hunt-goal" data-goal></span><span class="hunt-haul" data-haul></span><progress max="1" value="0" aria-label="捕食目標"></progress>';
+    this.bag.innerHTML = '<span class="hunt-goal" data-goal></span><span class="hunt-haul" data-haul></span><span class="hunt-pressure" data-pressure></span><progress max="1" value="0" aria-label="捕食目標"></progress>';
     this.objective.append(this.bag);
     this.bearing = document.createElement('b'); this.bearing.textContent = '↓'; this.bearing.setAttribute('aria-hidden', 'true');
     this.exitText = document.createElement('span'); this.exitText.className = 'hunt-return-copy';
@@ -31,17 +31,21 @@ export class HuntFlowUi {
     this.hubStatus.textContent = `戦利品 ${growth.power} · 成長 ${growth.stage}段 · 生還 ${p.returns}回`;
     this.hubStatus.setAttribute('aria-label', `戦利品 ${growth.power}。成長 ${growth.stage}段。強さは戦利品に応じて自動で成長します。`);
   }
-  shouldReturn(game) { return game.goalReady() || game.eaten > 0 && game.player.hp < game.player.maxhp * .35; }
+  shouldReturn(game) { return game.pressure().returnSuggested; }
   target(game, returning) { return game.fight || game.devour || returning || this.shouldReturn(game) ? null : game.nextHuntPrey(); }
   update(game, {returning = false, overlay = false} = {}) {
     returning = returning || this.shouldReturn(game);
-    const plan = game.huntPlan, ready = game.goalReady(), target = this.target(game, returning), exit = game.nearestEscape();
+    const plan = game.huntPlan, risk = game.pressure(), ready = game.goalReady(), target = this.target(game, returning), exit = game.nearestEscape();
     const heading = this.objective.querySelector(':scope > small'), text = this.objective.querySelector(':scope > span');
     const guide = byId('first-hunt-guide');
     heading.textContent = plan.name;
     text.textContent = returning ? `${exit.label}へ · ${Math.ceil(exit.distance)}m` : ready ? '目標達成。持ち帰ろう' : goalText(plan);
     // Action tips are short-lived. The old persistent tutorial remains hidden.
     const token = game.devour ? 'eat' : game.fight ? 'fight' : returning ? 'return' : target?.npc.dead ? 'fallen' : 'move';
+    if (!overlay && risk.level >= 3 && !this.guideSeen.has('greed-pressure')) {
+      this.guideSeen.add('greed-pressure');
+      this.guide?.show({side:'right', kicker:'人間側の反応', title:'欲張るほど、追手が増える', body:[{label:'現在', text:`警戒 ${risk.label} · 未確保 ${risk.stake}`},{label:'帰還', text:'確保して警戒を切る'}], variant:'compact', duration:4200});
+    }
     if (!overlay && game.eaten > 0 && !game.fight && !game.devour && !this.guideSeen.has('return-ready')) {
       this.guideSeen.add('return-ready');
       this.guide?.show({side:'right', kicker:'帰りかた', title:'もう、帰れる', body:[{label:'帰還口', text:'輪の中で止まる'},{label:'帰れば', text:'戦利品を確保'}], variant:'compact', duration:4200});
@@ -63,9 +67,10 @@ export class HuntFlowUi {
     this.actionLine.hidden = true;
     const haul = game.carried + (ready ? plan.bonus : 0), eaten = Math.min(game.eaten, plan.quota);
     this.bag.querySelector('[data-goal]').textContent = plan.marked ? `${plan.prey}${game.targetEaten ? '済' : '未'} ${eaten}/${plan.quota}` : `人影 ${eaten}/${plan.quota}`;
-    this.bag.querySelector('[data-haul]').textContent = `戦利 ${haul}`;
+    this.bag.querySelector('[data-haul]').textContent = `戦利 ${haul} · 未確保 ${game.carried}`;
+    this.bag.querySelector('[data-pressure]').textContent = `警戒 ${risk.label}`;
     this.bag.querySelector('progress').value = Math.min(1, game.eaten / plan.quota);
-    this.objective.setAttribute('aria-label', `${goalText(plan)}。現在 ${eaten} / ${plan.quota}。持ち帰れば戦利品 ${haul}`);
+    this.objective.setAttribute('aria-label', `${goalText(plan)}。現在 ${eaten} / ${plan.quota}。持ち帰れば戦利品 ${haul}。未確保 ${game.carried}。警戒 ${risk.label}`);
     byId('hud').dataset.huntState = game.fight ? 'combat' : returning ? 'return' : 'hunt';
     byId('return-hint').hidden = overlay || game.eaten < 1 || game.finished;
     this.bearing.style.transform = `rotate(${(.33 - Math.atan2(exit.x - game.player.x, exit.z - game.player.z)) * 180 / Math.PI}deg)`;
