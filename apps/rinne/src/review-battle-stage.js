@@ -52,14 +52,27 @@ function rebuildWeaponVisual(entry,weapon){
   addCylinder(entry.group,great?.048:.038,great?.22:dagger?.18:.21,[0,-.38,0],dark);
 }
 function groupAdd(group,node){group.add(node);}
-function updateWeaponVisual(entry,state){
+const WEAPON_VISUAL_REACH=Object.freeze({fist:.22,dagger:.56,sword:.92,great:1.22,spear:1.46,axe:.88,staff:1.28,katana:.98});
+const normalizeBoneName=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function weaponRigFor(root){
+  let rightHand=null,rightLowerArm=null;
+  root?.traverse?.(node=>{if(!node?.isBone)return;const name=normalizeBoneName(node.name);if(!rightHand&&['righthand','handr'].some(key=>name===key||name.endsWith(key)))rightHand=node;if(!rightLowerArm&&['rightlowerarm','lowerarmr','rightforearm','forearmr'].some(key=>name===key||name.endsWith(key)))rightLowerArm=node;});
+  return{rightHand,rightLowerArm};
+}
+function updateWeaponVisual(entry,state,rig){
   const segment=state?.weaponSegment;if(!segment||state?.dead){entry.group.visible=false;return;}
-  const start=segment.visualBase||segment.base,end=segment.visualTip||segment.tip;if(!Array.isArray(start)||!Array.isArray(end)){entry.group.visible=false;return;}
-  if(entry.weapon!==segment.weapon)rebuildWeaponVisual(entry,segment.weapon);
-  const a=new THREE.Vector3(Number(start[0])||0,Number(start[1])||0,Number(start[2])||0),b=new THREE.Vector3(Number(end[0])||0,Number(end[1])||0,Number(end[2])||0),dir=b.clone().sub(a),length=dir.length();
-  if(length<.02){entry.group.visible=false;return;}
+  const weapon=segment.weapon||'sword';if(entry.weapon!==weapon)rebuildWeaponVisual(entry,weapon);
+  let a=null,b=null,binding='segment-fallback';
+  if(rig?.rightHand&&rig?.rightLowerArm){
+    const hand=new THREE.Vector3(),forearm=new THREE.Vector3();rig.rightHand.getWorldPosition(hand);rig.rightLowerArm.getWorldPosition(forearm);
+    const dir=hand.clone().sub(forearm),armLength=dir.length();
+    if(armLength>.025){dir.multiplyScalar(1/armLength);const reach=WEAPON_VISUAL_REACH[weapon]||.9,back=weapon==='fist'?.06:Math.min(.2,reach*.2);a=hand.clone().addScaledVector(dir,-back);b=hand.clone().addScaledVector(dir,reach-back);binding='right-hand-bone';}
+  }
+  if(!a||!b){const start=segment.visualBase||segment.base,end=segment.visualTip||segment.tip;if(Array.isArray(start)&&Array.isArray(end)){a=new THREE.Vector3(Number(start[0])||0,Number(start[1])||0,Number(start[2])||0);b=new THREE.Vector3(Number(end[0])||0,Number(end[1])||0,Number(end[2])||0);}}
+  if(!a||!b){entry.group.visible=false;return;}
+  const dir=b.clone().sub(a),length=dir.length();if(length<.02){entry.group.visible=false;return;}
   entry.group.visible=true;entry.group.position.copy(a).add(b).multiplyScalar(.5);entry.group.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());entry.group.scale.set(1,length,1);
-  entry.group.userData.contactActive=Boolean(segment.active);entry.group.userData.contactBase=segment.base;entry.group.userData.contactTip=segment.tip;
+  entry.group.userData.weaponBinding=binding;entry.group.userData.contactActive=Boolean(segment.active);entry.group.userData.contactBase=segment.base;entry.group.userData.contactTip=segment.tip;
 }
 
 export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirationCue=()=>{}}={}){
@@ -86,6 +99,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   hero.actor=heroPool.spawn(hero.actorId);hero.actor.root.name='ReviewBattle:hero';hero.actor.attachments.name='ReviewBattleAttachments:hero';stageRoot.add(hero.actor.root,hero.actor.attachments,hero.marker);
   const enemies=monsters.map((actor,index)=>({actor,requested:REVIEW_MONSTER_MODELS[index]?.id||'skeleton-minion',presentation:null,hp:null,hitUntil:0,marker:ring(index?0x617d86:0x82aeb6)}));
   stageRoot.add(enemies[0].actor.root,enemies[0].marker);
+  const heroWeaponRig={rightHand:hero.actor.bones?.rightHand||null,rightLowerArm:hero.actor.bones?.rightLowerArm||null},enemyWeaponRigs=enemies.map(side=>weaponRigFor(side.actor.root));
   const weaponVisuals=[hero,...enemies].map(()=>{const group=new THREE.Group();stageRoot.add(group);return{group,weapon:''};});
   let encounterMode='duel',techniquePlayback=null,cameraOrbit=0,cameraZoom=.82,impactKick=0,impactYaw=0,lastImpactSerial=0;
   const impactBursts=[];
@@ -114,11 +128,11 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     if(techniquePlayback&&sequence?.stage==='execute'){const steps=techniquePlayback.steps||[],scaled=sequence.executeProgress*Math.max(1,steps.length),index=Math.min(steps.length-1,Math.floor(scaled)),step=steps[index];if(step)frame=tidebreakFrameFromSnapshot({...state,attack:step.kind,progress:scaled%1,slot:techniquePlayback.phase},{targetId:target?.id||null,intent:'review-battle-inspiration'});}
     if(sequence&&sequence.stage!=='done'&&target&&sequence.spacing>0){const dx=hero.actor.root.position.x-(Number(target.x)||0),dz=hero.actor.root.position.z-(Number(target.z)||0),len=Math.max(.001,Math.hypot(dx,dz));hero.actor.root.position.x+=dx/len*1.72*sequence.spacing;hero.actor.root.position.z+=dz/len*1.72*sequence.spacing;hero.actor.root.position.y+=Math.sin(Math.min(1,sequence.backstepProgress||0)*Math.PI)*.07;}
     hero.actor.sample(hero.appearance,time,(bones,sampleTime)=>{addStride(bones,sampleTime,presentation.stride);if(sequence?.stage==='reveal'){if(bones.spine)bones.spine.rotation.x-=.16;if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.7;bones.rightUpperArm.rotation.z+=.35;}}if(sequence?.stage==='execute'&&bones.spine)bones.spine.rotation.y+=Math.sin(sequence.executeProgress*Math.PI*2)*.22;if(!frame?.attack)addGuardPose(bones,'hero');applyTidebreakPose(bones,frame);applyReviewCombatMotion(bones,frame,sequence,sampleTime);if(time<hero.hitUntil&&bones.spine)bones.spine.rotation.z-=.13;});
-    hero.actor.updateAttachments();hero.marker.position.set(hero.actor.root.position.x,.018,hero.actor.root.position.z);updateWeaponVisual(weaponVisuals[0],state);
+    hero.actor.updateAttachments();hero.actor.root.updateMatrixWorld(true);hero.marker.position.set(hero.actor.root.position.x,.018,hero.actor.root.position.z);updateWeaponVisual(weaponVisuals[0],state,heroWeaponRig);
   }
   function animateEnemy(index,state,target,time,dt){
     const side=enemies[index];if(!side||!state)return;const hit=Number.isFinite(state.hp)&&side.hp!==null&&state.hp<side.hp;if(hit)side.hitUntil=time+.16;side.hp=Number.isFinite(state.hp)?state.hp:side.hp;
-    const presentation=reviewBattlePresentationFrame(state,target,side.presentation,dt,{hit});side.presentation=presentation;side.actor.root.position.set(presentation.x,state.downed?.24:0,presentation.z);side.actor.root.rotation.y=presentation.yaw;side.actor.root.rotation.z=state.downed?-Math.PI*.46:0;updateReviewMonsterAnimation(side.actor,state,time,{hit:time<side.hitUntil,downed:Boolean(state.downed)});side.marker.position.set(presentation.x,.018,presentation.z);updateWeaponVisual(weaponVisuals[index+1],state);
+    const presentation=reviewBattlePresentationFrame(state,target,side.presentation,dt,{hit});side.presentation=presentation;side.actor.root.position.set(presentation.x,state.downed?.24:0,presentation.z);side.actor.root.rotation.y=presentation.yaw;side.actor.root.rotation.z=state.downed?-Math.PI*.46:0;updateReviewMonsterAnimation(side.actor,state,time,{hit:time<side.hitUntil,downed:Boolean(state.downed)});side.actor.root.updateMatrixWorld(true);side.marker.position.set(presentation.x,.018,presentation.z);updateWeaponVisual(weaponVisuals[index+1],state,enemyWeaponRigs[index]);
   }
 
   let lastStatus='';

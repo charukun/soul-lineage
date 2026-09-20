@@ -91,7 +91,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.execute+.01).stage,'execute');
   assert.match(battleSource,/reviewTechniqueSeen=new Map\(\)/);assert.match(battleSource,/seen\.add\(technique\.id\)/);
   assert.match(battleSource,/learnedSlots\[phase\]=technique/);
-  assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=550/);assert.match(battleSource,/bulbTimer=setTimeout\(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS\)/);assert.match(battleSource,/if\(cue==='spacing'\)\{showReviewSign\(payload\);battleSfx\.draw\(\);return;\}/);
+  assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=550/);assert.match(battleSource,/bulbTimer=setTimeout\(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS\)/);assert.match(battleSource,/if\(cue==='spacing'\)\{showReviewSign\(payload\);battleSfx\.inspiration\('anticipation'\);return;\}/);
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
   assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);assert.match(battleHtml,/id="battle-technique-loadout" class="technique-loadout"/);
   assert.match(battleHtml,/battle-phase-wave/);assert.match(battleHtml,/battle-action-drift/);
@@ -118,8 +118,8 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleHtml,/main\.battle-review\.review-surface > \.review-surface__workspace\{/);
   assert.match(battleHtml,/grid-template-rows:minmax\(0,1fr\) max-content!important/);
   assert.match(battleHtml,/min-height:34px!important;\s*max-height:36px!important/);
-  assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/visualBase/);assert.match(stageSource,/presentImpact/);
-  assert.doesNotMatch(stageSource,/attachWeapon\('reviewWeapon'/);assert.doesNotMatch(stageSource,/const length=\{dagger:/);
+  assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/rightHand/);assert.match(stageSource,/binding='right-hand-bone'/);assert.match(stageSource,/userData\.weaponBinding=binding/);assert.match(stageSource,/presentImpact/);
+  assert.match(battleSource,/battleSfx\.impact\(\{guard:Boolean\(impact\?\.guard\),power:Number\(impact\?\.power\)\|\|\.7\}\)/);assert.match(battleSource,/battleSfx\.swing\(/);
   assert.doesNotMatch(stageSource,/reviewBattleMultiHitFrame/);assert.match(stageSource,/core\?\.enemies/);
   assert.match(stageSource,/onInspirationCue\('spark'/);
 });
