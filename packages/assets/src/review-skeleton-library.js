@@ -2,6 +2,7 @@ const repository = 'KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0';
 const commit = '15b62b9bad122f72926c10fb14d622c73819fa54';
 const characterRoot = 'addons/kaykit_character_pack_skeletons/Characters/gltf/';
 const equipmentRoot = 'addons/kaykit_character_pack_skeletons/Assets/gltf/';
+const reviewThumbnailUrl=id=>`./review/catalog-thumbnails.svg#${id}`;
 
 export const REVIEW_SKELETON_SOURCE = Object.freeze({
   repository,
@@ -22,6 +23,7 @@ const model = (id, label, file, byteLength, gitBlobSha) => Object.freeze({
   license: REVIEW_SKELETON_SOURCE.license,
   source: Object.freeze({repository, commit, path: `${characterRoot}${file}`, byteLength, gitBlobSha}),
   runtime: Object.freeze({url: `./asset-review/models/kaykit-skeletons/${file}`}),
+  thumbnailUrl: reviewThumbnailUrl(id),
 });
 
 export const REVIEW_SKELETON_MODELS = Object.freeze([
@@ -41,6 +43,7 @@ const equipment = (id, label, file, family, slots, targetFraction) => Object.fre
   slots: Object.freeze(slots),
   targetFraction,
   runtime: Object.freeze({url: `./asset-review/equipment/${file}.gltf`}),
+  thumbnailUrl: reviewThumbnailUrl(id),
 });
 
 export const REVIEW_SKELETON_EQUIPMENT = Object.freeze([
