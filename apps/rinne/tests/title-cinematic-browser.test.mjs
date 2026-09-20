@@ -6,7 +6,6 @@ import {resolve} from 'node:path';
 const root=process.cwd(),app=resolve(root,'apps/rinne');
 const manifest=JSON.parse(await readFile(resolve(app,'public/title-assets/cinematic/manifest.json')));
 const ready={...manifest,status:'ready',movie:'./title-assets/cinematic/opening.mp4',webm:null};
-const fixture=await readFile(resolve(app,'tests/fixtures/title-decoder-test.mp4'));
 const browserPath=()=>{for(const name of ['google-chrome','google-chrome-stable','chromium','chromium-browser'])try{return execFileSync('which',[name],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim();}catch{}throw Error('Chromium is required for the selected browser test');};
 const waitForServer=async url=>{for(let i=0;i<100;i++){try{if((await fetch(url)).ok)return;}catch{}await new Promise(r=>setTimeout(r,200));}throw Error('Vite server did not start');};
 
@@ -33,7 +32,7 @@ test('RINNE title: decoded movie, skips, matching landing, return, failure and F
     await page.route('**/src/rebuild/runtime.js*',r=>r.fulfill({contentType:'application/javascript',body:`export async function prepareRuntime(){return {stopTitlePreview(){},dispose(){}}} export async function startRuntime({onExit}){document.getElementById('back-title').onclick=onExit;return {dispose(){}}}`}));
     let mediaMode='shipping';
     await page.route('**/title-assets/cinematic/manifest.json',r=>r.fulfill({json:mediaMode==='shipping'?manifest:ready}));
-    await page.route('**/title-assets/cinematic/opening.mp4',r=>mediaMode==='broken'?r.abort():r.fulfill({contentType:'video/mp4',body:fixture}));
+    await page.route('**/title-assets/cinematic/opening.mp4',r=>mediaMode==='broken'?r.abort():r.continue({url:'http://127.0.0.1:5173/tests/fixtures/title-decoder-test.mp4'}));
     const goto=async()=>{await page.goto('http://127.0.0.1:5173/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>document.getElementById('title-screen').dataset.ready==='true');};
     const idle=()=>page.waitForFunction(()=>document.getElementById('title-screen').dataset.intro==='idle');
     await goto();await idle();await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.title-actions')).opacity)>.99);
@@ -51,7 +50,9 @@ test('RINNE title: decoded movie, skips, matching landing, return, failure and F
     await page.mouse.click(20,400);assert.equal(await page.locator('#title-screen').getAttribute('data-intro'),'cinematic');
     await page.waitForFunction(()=>document.getElementById('title-screen').dataset.skip==='ready');
     await page.mouse.click(20,400);await idle();
+    await page.waitForFunction(()=>document.getElementById('title-screen').dataset.media==='video'&&!document.querySelector('video').seeking);
     const landed=await page.locator('video').evaluate(v=>({time:v.currentTime,error:v.error?.code??null,ready:v.readyState}));
+    console.log('RINNE_TITLE_LANDING '+JSON.stringify(landed));
     assert.ok(landed.time>=6&&landed.time<8);assert.equal(landed.error,null);assert.ok(landed.ready>=2);
     evidence.checks.push('real H264 decode; no opening menu; early tap locked; skip at 1.8s; seek to living tail');
     await page.locator('#new-life').click();await page.waitForFunction(()=>document.getElementById('game-screen').dataset.runtime==='active');

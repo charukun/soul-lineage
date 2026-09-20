@@ -11,7 +11,7 @@
 #title-screen .title-lockup{left:50%;top:5.5%;width:min(520px,45vw);filter:drop-shadow(0 2px 12px #152b35)}
 #title-screen .title-lockup .crest{width:84px;margin:0 auto 8px;animation:none;filter:none}
 #title-screen .title-lockup .eyebrow{display:none}
-#title-screen .title-lockup h1{font-size:clamp(58px,6.8vw,108px);line-height:1.1;letter-spacing:.02em;background:linear-gradient(#fff9e5 30%,#ead39b);filter:drop-shadow(0 2px 2px #263831)}
+#title-screen .title-lockup h1{font-size:clamp(58px,6.8vw,108px);line-height:1.1;letter-spacing:.02em;background:none;-webkit-text-fill-color:currentColor;color:#fff1c9;filter:drop-shadow(0 2px 2px #263831)}
 #title-screen .title-lockup .subtitle{font:400 12px/1.5 Georgia,serif!important;letter-spacing:.65em;text-indent:.65em;color:#fff3d6;margin-top:12px}
 #title-screen .title-lockup .subtitle::before,#title-screen .title-lockup .subtitle::after{width:35px}
 #title-screen .title-copy{top:8%;right:5%;width:21em;font-size:11px;line-height:2;letter-spacing:.16em}
@@ -29,9 +29,9 @@
 #title-screen footer{left:24px;bottom:18px;font-size:8px;color:#d0d7cf}
 #title-retry{position:absolute;z-index:9;left:24px;bottom:68px;border:1px solid #d4c69f;background:#173137;color:#fff4dc;padding:8px 16px}
 @media(max-aspect-ratio:1/1){
-  #title-screen .title-world{top:29%;height:42%;overflow:visible}
-  #title-screen .title-world-base,#title-screen .title-cinematic-video{object-fit:contain}
-  #title-screen::before{background:linear-gradient(180deg,rgba(13,36,44,.18),transparent 42%,rgba(9,25,31,.72) 76%,#101f25)}
+  #title-screen .title-world{top:0;height:100%;overflow:hidden}
+  #title-screen .title-world-base,#title-screen .title-cinematic-video{object-fit:cover;object-position:56% 50%}
+  #title-screen::before{background:linear-gradient(180deg,rgba(13,36,44,.48),transparent 42%,rgba(9,25,31,.3) 58%,rgba(9,25,31,.88))}
   #title-screen .title-lockup{top:max(5%,calc(env(safe-area-inset-top) + 20px));width:92vw}
   #title-screen .title-lockup .crest{width:75px;margin-bottom:12px}
   #title-screen .title-lockup h1{font-size:clamp(50px,15vw,76px)}

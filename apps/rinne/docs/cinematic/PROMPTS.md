@@ -51,7 +51,7 @@ Use the final prompt above with an explicit output length of8 seconds. The first
 
 ## Editorial and technical handoff
 
-- Generate without baked-in title. Video-safe action stays within the middle70% of the wide frame. Portrait playback preserves the entire16:9 composition rather than cutting off the mother.
+- Generate without baked-in title. Essential hand/face action stays in the central26% of the wide frame. Portrait uses a fixed56% horizontal crop for full-bleed playback; preview both aspects before approval. The final village remains readable under this crop. If the mother must remain visible at landing, generate a dedicated portrait master and extend the manifest deliberately instead of shifting the crop during playback.
 - Review all frames at normal speed and quarter speed; check especially parry contact, fingers, eyelids, age cut, baby's eye, final-frame jump, and loop boundary.
 - Export an approved master with no black head/tail. H.264 web transcode is separate.
 - If model output is8 seconds but camera still moves after6, trim/re-edit/regenerate. Do not simply set landingTime=6 and cover the motion with a menu.
