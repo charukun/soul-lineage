@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 2,
+  "id": "kuumetsu-brand-gate-prewarm-20260921",
+  "game": "kuumetsu",
+  "mode": "polish",
+  "kind": "gameplay",
+  "themeKey": "touch-to-hunt-entry-readiness",
+  "rootCauses": [
+    {
+      "key": "brand-gate-serializes-demon-boot",
+      "summary": "Demon waits for the brand TOUCH gate to finish before importing the application bootstrap, making the full game boot strictly post-gesture.",
+      "prediction": "The existing demon bootstrap begins while the brand gate is still visible, without changing its internal motion/render ordering.",
+      "falsifier": "Source still imports demon main only after the gate resolves or changes the protected hunt/combat startup ordering.",
+      "paths": [
+        "apps/demon/src/brand-start.js"
+      ]
+    },
+    {
+      "key": "gate-dismisses-before-app-ready",
+      "summary": "The shared gate removes itself after a fixed fade without knowing whether the app behind it is ready, exposing the loading screen after TOUCH.",
+      "prediction": "For demon, the gate remains until both the fade and the already-started app bootstrap settle.",
+      "falsifier": "After TOUCH the gate can disappear while demon boot is still pending.",
+      "paths": [
+        "packages/shared-ui/src/boot-gate.js",
+        "apps/demon/src/brand-start.js"
+      ]
+    },
+    {
+      "key": "post-touch-heavy-boot-blocks-start-command",
+      "summary": "Immutable staging records a 1.762s task followed by a 7.099s task after TOUCH, and the aria-labelled 狩夜へ button exists but is not yet visible/clickable.",
+      "prediction": "Overlapping unchanged boot work with gate dwell removes the serial gate-then-boot critical path so the hunt title is ready at gate handoff.",
+      "falsifier": "Same-condition After still reveals the loading screen after TOUCH or 狩夜へ remains unavailable until an equivalent post-touch stall.",
+      "paths": [
+        "apps/demon/src/main.js",
+        "apps/demon/src/web/main.js"
+      ]
+    }
+  ],
+  "observation": {
+    "summary": "On immutable demon staging, the shared TOUCH gate is responsive, but after activation the app shows 夜をひらいています while the full demon bootstrap runs. Browser evidence records 1.762s and 7.099s long tasks, and attempting the accessible 狩夜へ command times out because the title control is not yet visible.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "1dc49eaa47f9b7c9eca9fa3166e0db46ed891ac6",
+      "reference": "https://7ab5eac0-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "observedAt": "2026-09-20T22:49:28Z",
+      "conditions": {
+        "scenario": "brand TOUCH -> wait 1.2s -> attempt 狩夜へ",
+        "device": "GitHub hosted Chromium / SwiftShader",
+        "viewport": "673x841",
+        "developHead": "58bf65db139a64f456f3923fe4988d741285418c",
+        "targetTreeIdentity": "1dc49e..58bf changes no demon files; shared-ui change is review-shell only"
+      },
+      "notVerified": [
+        "physical Pixel Fold latency",
+        "which individual demon boot stage dominates the 7.099s task"
+      ]
+    },
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "58bf65db139a64f456f3923fe4988d741285418c",
+        "path": "apps/demon/src/brand-start.js",
+        "symbol": "top-level startup",
+        "statement": "brand-start awaits openBrandBootGate before importing ./main.js, serializing game boot behind TOUCH."
+      },
+      {
+        "kind": "source",
+        "revision": "58bf65db139a64f456f3923fe4988d741285418c",
+        "path": "packages/shared-ui/src/boot-gate.js",
+        "symbol": "openBrandBootGate enter",
+        "statement": "The gate removes itself after a fixed 500ms fade and has no app-readiness dependency."
+      },
+      {
+        "kind": "source",
+        "revision": "58bf65db139a64f456f3923fe4988d741285418c",
+        "path": "apps/demon/src/main.js",
+        "symbol": "bootstrap import sequence",
+        "statement": "Demon installs runtime scale, motion, crowd, combat camera, view boot and title cinematic after brand-start imports main."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "The brand gate and demon boot are composed serially, so an intentional user activation becomes the start signal for the heaviest bootstrap and the gate disappears before that bootstrap is ready.",
+    "prediction": "Start the unchanged demon bootstrap under the already-rendered gate and make gate dismissal readiness-aware; this overlaps wait time without weakening motion/render contracts and hands TOUCH directly to a ready title.",
+    "falsifier": "Focused assertions cannot prove concurrent startup/readiness gating, the boot order changes, or same-condition staging still exposes the loader and inaccessible 狩夜へ after TOUCH."
+  },
+  "candidates": [
+    {
+      "id": "overlap-boot-under-ready-aware-gate",
+      "selected": true,
+      "reason": "Preserves the established demon boot graph and audio gesture while converting serial wait into overlap and keeping the branded cover until the app is ready."
+    },
+    {
+      "id": "move-motion-and-render-adapters-after-title",
+      "selected": false,
+      "reason": "Those adapters are intentionally installed before NightView creation; moving them changes presentation initialization semantics rather than only startup scheduling."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/demon/src/brand-start.js",
+      "packages/shared-ui/src/boot-gate.js",
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "summary": "Begin demon main import while the brand gate is displayed, extend the shared gate with an optional readiness promise used only by demon, and keep the gate until fade plus app readiness complete."
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": [
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "stagingAfter": "required",
+    "limitations": [
+      "Hosted Chromium timing is not a physical-device benchmark.",
+      "This iteration improves startup scheduling only; it does not claim combat or progression changes."
+    ]
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": null,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-brand-gate-prewarm-20260921"
+  }
+}
