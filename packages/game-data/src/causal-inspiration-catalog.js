@@ -148,9 +148,11 @@ export function validateInspirationNamePolicy(rows=CAUSAL_ANSWERS){
         if(!Object.hasOwn(INSPIRATION_ATTRIBUTE_LABELS,attribute))throw Error('Unknown technique attribute: '+row.id);
         if(base.includes(INSPIRATION_ATTRIBUTE_LABELS[attribute]))throw Error('Attribute leaked into technique name: '+row.id);
       }
-      const key=inspirationTechniqueStructureKey(row),known=structures.get(key);
-      if(known&&known!==base)throw Error('Same technique structure has multiple names: '+row.id);
-      structures.set(key,base);
+      if(['technique','variant'].includes(row.kind)){
+        const key=inspirationTechniqueStructureKey(row),known=structures.get(key);
+        if(known&&known!==base)throw Error('Same technique structure has multiple names: '+row.id);
+        structures.set(key,base);
+      }
     }
     for(const effect of row.specialEffects||[]){
       if(!effect?.id||!effect?.label||!Object.hasOwn(INSPIRATION_TRAIT_IMPACTS,effect.impact)||!Object.hasOwn(INSPIRATION_TRAIT_RARITIES,effect.rarity))throw Error('Invalid special effect: '+row.id);
