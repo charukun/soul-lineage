@@ -74,11 +74,17 @@ test('static artifacts are immutable, idempotent and verified before installatio
   }finally{await rm(root,{recursive:true,force:true});}
 });
 
-test('fast DEV notification lists only affected per-app live targets',()=>{
-  const message=fastDevEmailMessage({repository:'charukun/soul-lineage',apps:['demon'],pr:{number:925,title:'distribution',body:'配信基盤改善\n詳細'}});
-  assert.match(message,/DEV反映完了/);
-  assert.match(message,/喰滅廻遊/);
-  assert.match(message,/soul-lineage-demon-dev\.c-okamoto\.workers\.dev/);
+test('fast DEV notification puts the app, review surface and plain-language summary first',()=>{
+  const message=fastDevEmailMessage({
+    repository:'charukun/soul-lineage',
+    apps:['rinne'],
+    pr:{number:925,title:'motion review fix',body:'モーション確認の代替再生を修正\n互換性のない候補を飛ばし、再生できる候補まで自動で進むようにした。\n\nDEV review: verify /review-motion'},
+  });
+  assert.match(message,/^DEV反映完了【百年転生 \/ モーション確認】$/m);
+  assert.match(message,/^反映内容: モーション確認の代替再生を修正$/m);
+  assert.match(message,/^概要: 互換性のない候補を飛ばし、再生できる候補まで自動で進むようにした。$/m);
+  assert.match(message,/^PR: #925$/m);
+  assert.match(message,/^確認先: 百年転生: https:\/\/soul-lineage-rinne-dev\.c-okamoto\.workers\.dev\/$/m);
   assert.doesNotMatch(message,/MURAAAAAAA/);
 });
 

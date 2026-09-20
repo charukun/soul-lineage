@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   choosePreviousPublishedDevelopSha,
   findPublishedDevelopPrs,
+  recordGithubDeliveryReceipt,
   recordGithubDeliveryReceipts,
   developmentEmailStatus,
 } from '../scripts/notify-delivery.mjs';
@@ -133,6 +134,31 @@ test('an existing merge-SHA receipt keeps retry and recovery runs idempotent', a
   assert.equal(posts, 0);
 });
 
+test('fallback DEV email thread title identifies the deployed change before the comment is posted', async () => {
+  const target = pr(925, merge874, '2026-09-18T03:12:32Z');
+  target.body = 'モーション確認の代替再生を修正\n互換性のない候補を飛ばして再生を継続する。';
+  const patched = [], posted = [];
+  const request = async (url, init = {}) => {
+    const method = init.method || 'GET';
+    if (method === 'GET' && url.includes('/comments?')) return response([]);
+    if (method === 'POST' && url.endsWith('/issues/925/comments')) return response({ message: 'forbidden' }, 403);
+    if (method === 'PATCH' && url.endsWith('/issues/1009')) {
+      patched.push(JSON.parse(init.body));
+      return response({ number: 1009 }, 200);
+    }
+    if (method === 'POST' && url.endsWith('/issues/1009/comments')) {
+      posted.push(JSON.parse(init.body));
+      return response({ id: 1 }, 201);
+    }
+    throw new Error(`Unexpected request: ${method} ${url}`);
+  };
+  const message = 'DEV反映完了【百年転生 / モーション確認】\n反映内容: モーション確認の代替再生を修正';
+  const receipt = await recordGithubDeliveryReceipt({ token: 'token', repository: repo, sha: current, message, pr: target, request });
+  assert.equal(receipt, 'github-dev-email-thread-comment');
+  assert.equal(patched.length, 1);
+  assert.match(patched[0].title, /^DEV反映完了【百年転生 \/ モーション確認】 \| PR #925 モーション確認の代替再生を修正$/);
+  assert.equal(posted.length, 1);
+});
 
 test('DEV email health is observable without claiming SMTP delivery', () => {
   assert.deepEqual(developmentEmailStatus('success'), { state: 'success', description: 'GitHub PR DEV receipt created or already present' });
