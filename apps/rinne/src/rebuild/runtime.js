@@ -2,6 +2,7 @@ import { createWebPlatform } from '@soul/platform-web';
 import { createSharedWorldChannel } from '@soul/platform-web/shared-world';
 import { defaultMuraLayout, validateMuraLayout, safeMuraPosition } from '@soul/world/mura';
 import { createLife, deserializeLife, serializeLife, setClockRate, setMoving, tickLife, rebirth, LIFE_YEARS, canDepart, depart, advanceFront, returnHome, enterBuilding, leaveBuilding } from './domain.js';
+import {combatBodyOutcome} from './combat-choreography.js';
 import { buildStations, nearestStation, normalizeLayout } from './locations.js';
 import { createWorldRenderer } from './combat-effects-renderer.js';
 import { createBirthExperience } from './birth-experience.js';
@@ -108,9 +109,9 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   }
   function syncUI(){
     $('generation').textContent=`${state.generation}代目`;$('age').textContent=`${Math.min(LIFE_YEARS,Math.floor(state.ageYears))}歳`;
-    $('hp-bar').style.width=`${clamp(state.hp/state.maxHp*100,0,100)}%`;$('stamina-bar').style.width=`${clamp(state.stamina/100*100,0,100)}%`;
-    const guide=guidanceFor({state,stations,front});$('life-stage').textContent=guide.stage;$('objective').textContent=guide.objective;$('objective-badge').textContent=guide.badge||'';
-    gameScreen.dataset.worldTone=worldTone(guide);gameScreen.dataset.frontierCombat=String(Boolean(state.zone==='frontier'&&state.combat));gameScreen.dataset.birthTour=String(birth.active());gameScreen.dataset.interior=state.interior?.buildingId||'';gameScreen.style.setProperty('--wound',String(clamp(1-state.hp/state.maxHp,0,.85)));showChapter(guide.stage);
+    $('stamina-bar').style.width=`${clamp(state.stamina/100*100,0,100)}%`;
+    const guide=guidanceFor({state,stations,front}),body=combatBodyOutcome(state);$('life-stage').textContent=guide.stage;$('objective').textContent=guide.objective;$('objective-badge').textContent=guide.badge||'';
+    gameScreen.dataset.worldTone=worldTone(guide);gameScreen.dataset.frontierCombat=String(Boolean(state.zone==='frontier'&&state.combat));gameScreen.dataset.birthTour=String(birth.active());gameScreen.dataset.interior=state.interior?.buildingId||'';gameScreen.style.setProperty('--wound',String(clamp(body.severity,0,.85)));showChapter(guide.stage);
     $('clock-rate').value=String(state.clockRate);syncMovementHint();
   }
   function dialogue(speaker,text){$('speaker').textContent=speaker;$('dialogue-text').textContent=text;$('dialogue').hidden=false;clearTimeout(dialogue.timer);dialogue.timer=setTimeout(()=>$('dialogue').hidden=true,4200);}

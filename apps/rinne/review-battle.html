@@ -214,6 +214,7 @@ main.battle-review.review-surface .camera-zoom button{
 .technique-card__stages small{display:inline-flex;align-items:center;justify-content:center;min-width:27px;padding:1px 3px;border:1px solid rgba(115,188,229,.2);border-radius:3px;color:var(--rinne-muted);font-size:7px;line-height:1.35}
 @media(max-width:680px){.stage>.technique-composition{left:6px;top:6px;width:min(430px,78vw);gap:3px;padding:4px}.technique-chain{padding:3px 4px}.technique-card{max-width:104px;padding:2px 4px}.technique-card>strong{font-size:8px}.technique-card__stages small{min-width:23px;font-size:6px}.technique-chain>header b{font-size:9px}.technique-chain>header button{height:18px;min-width:34px;font-size:7px}}
 
+ .choreography-review-settings{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:end}.choreography-review-settings label{display:grid;gap:3px;color:var(--rinne-muted);font-size:9px}.choreography-review-settings select,.choreography-review-settings input,.choreography-review-settings button{min-height:34px;border:1px solid var(--rinne-line-soft);border-radius:8px;background:#081523;color:var(--rinne-ink);padding:5px 7px}.battle-body-readout{grid-column:1/-1;padding:7px 8px;border:1px solid rgba(115,188,229,.18);border-radius:8px;color:var(--rinne-blue-soft);font:700 10px/1.5 var(--font-rinne-display);text-align:center}@media(max-width:680px){.choreography-review-settings{grid-template-columns:1fr 1fr auto}.battle-body-readout{font-size:9px}}
 </style>
 </head>
 <body>
@@ -257,6 +258,14 @@ main.battle-review.review-surface .camera-zoom button{
         <div class="pickers">
           <div class="hero-model-lock" aria-label="左モデルは主人公固定"><span>左モデル</span><strong>主人公</strong></div>
           <div class="hero-model-lock"><span>敵モデル</span><strong>スケルトン</strong></div><label class="weapon-picker">所持武器<select id="battle-weapon"><option value="sword">剣</option><option value="dagger">短剣</option><option value="spear">槍</option><option value="great">大剣</option><option value="axe">戦斧</option><option value="staff">杖</option><option value="fist">徒手</option></select></label>
+        </div>
+        <div class="choreography-review-settings" aria-label="殺陣検証設定">
+          <label>戦略A<select id="battle-strategy-a"><option value="balanced">均衡</option><option value="aggressive">攻勢</option><option value="patient">慎重</option><option value="counter">返し</option><option value="evasive">回避</option></select></label>
+          <label>戦略B<select id="battle-strategy-b"><option value="patient">慎重</option><option value="balanced">均衡</option><option value="aggressive">攻勢</option><option value="counter">返し</option><option value="evasive">回避</option></select></label>
+          <button id="battle-ab-toggle" type="button" aria-label="戦略A/B切替">A</button>
+          <label>固定Seed<input id="battle-review-seed" type="number" min="1" value="6197"></label>
+          <label>初期負傷<select id="battle-injury-preset"><option value="none">なし</option><option value="rightArm">右腕重傷</option><option value="leftArm">左腕重傷</option><option value="rightLeg">右脚重傷</option><option value="leftLeg">左脚重傷</option><option value="torso">胴重傷</option></select></label>
+          <output id="battle-body-readout" class="battle-body-readout">頭 100 · 胴 100 · 左腕 100 · 右腕 100 · 左脚 100 · 右脚 100</output>
         </div>
         <div class="review-modes">
 
