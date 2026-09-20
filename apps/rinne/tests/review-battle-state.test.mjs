@@ -25,9 +25,9 @@ test('loop waits for the configured result hold before restarting',()=>{
   assert.equal(reviewBattleLoopDue({loopEnabled:true,playing:true,finished:true,finishedAt:1000,now:1899}),false);
   assert.equal(reviewBattleLoopDue({loopEnabled:true,playing:true,finished:true,finishedAt:1000,now:1900}),true);
   assert.equal(reviewBattleLoopDue({loopEnabled:false,playing:true,finished:true,finishedAt:1000,now:2500}),false);
-  const ending={done:true,hero:{x:0,z:0,yaw:0,dead:false},enemy:{x:2,z:0,hp:0,dead:true},enemies:[{x:2,z:0,hp:0,dead:true}]};
-  let finisher=createReviewFinisher(ending);assert.ok(finisher);
-  const opening=advanceReviewFinisher(finisher,0);assert.equal(opening.core.done,false);assert.equal(opening.core.enemies[0].downed,true);assert.equal(opening.core.hero.skill,'止め');
+  const ending={done:true,hero:{x:0,z:0,yaw:0,dead:false},enemy:{x:20,z:20,hp:0,dead:true},enemies:[{x:20,z:20,hp:0,dead:true}]},previous={done:false,hero:{x:0,z:0,yaw:0,dead:false},enemy:{x:2,z:0,hp:1,dead:false},enemies:[{x:2,z:0,hp:1,dead:false}]};
+  let finisher=createReviewFinisher(ending,previous);assert.ok(finisher);assert.deepEqual(finisher.target,{x:2,z:0});
+  const opening=advanceReviewFinisher(finisher,0);assert.equal(opening.core.done,false);assert.equal(opening.core.enemies[0].downed,true);assert.equal(opening.core.hero.skill,'止め');assert.equal(opening.core.enemies[0].x,2);assert.equal(opening.core.enemies[0].z,0);
   finisher=opening.run;const impact=advanceReviewFinisher(finisher,.72);assert.equal(impact.impact,true);assert.equal(impact.core.enemies[0].dead,false);
   const finished=advanceReviewFinisher(impact.run,.8);assert.equal(finished.finished,true);assert.equal(finished.core.done,true);assert.equal(finished.core.enemies[0].dead,true);
 });
@@ -108,9 +108,9 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleHtml,/grid-template-columns:minmax\(0,1fr\) auto!important/);
   assert.match(battleSource,/createTidebreakRuntime/);assert.doesNotMatch(battleSource,/RaidHost/);
   assert.match(battleSource,/opponent:group\?'group':'duel'/);
-  assert.match(battleSource,/const angle=battleStage\?\.cameraAngle\?\.\(\)\|\|0,input=reviewSwipe\.vector\(angle\)/);assert.match(battleSource,/runtime\.input\(input\.screenX,input\.screenY,input\.amount,angle\)/);
+  assert.match(battleSource,/const angle=battleStage\?\.cameraAngle\?\.\(\)\|\|0,input=reviewSwipe\.vector\(angle\)/);assert.match(battleSource,/runtime\.input\(input\.screenX,input\.screenY,input\.amount,angle\)/);assert.match(battleSource,/createReviewFinisher\(next,previous\)/);
   assert.match(stageSource,/cameraOrbit=\(cameraOrbit\+step\*\.05\)/);assert.match(stageSource,/!frame\.finisher/);assert.match(stageSource,/cameraLock=frame\.lock\|\|'scene'/);
-  assert.match(stageSource,/function inspirationCameraFrame\(\)/);assert.match(stageSource,/sideX=-lineZ,sideZ=lineX/);
+  assert.match(stageSource,/function inspirationCameraFrame\(\)/);assert.match(stageSource,/heroPoint\.x-forwardX\*distance\+sideX\*shoulder/);assert.match(stageSource,/lock:'hero-rear'/);
   assert.match(stageSource,/zoomBy\(delta=0\)/);
   assert.match(battleHtml,/id="camera-zoom-out"/);assert.match(battleHtml,/id="camera-zoom-in"/);
   assert.doesNotMatch(battleHtml,/class="hud battle-vitals"/);

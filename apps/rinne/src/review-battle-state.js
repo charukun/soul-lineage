@@ -82,18 +82,22 @@ export function reviewBattleCameraFrame(core,{follow=true,system='rinne',encount
 export const REVIEW_FINISHER_DURATION=1.28;
 export const REVIEW_FINISHER_IMPACT=.52;
 
-export function createReviewFinisher(core){
+export function createReviewFinisher(core,previousCore=null){
   const enemies=(core?.enemies||[core?.enemy]).filter(Boolean);
   if(!core?.done||!core?.hero||core.hero.dead||!enemies.length||!enemies.every(enemy=>enemy.dead))return null;
-  const targetIndex=Math.max(0,enemies.length-1),target=enemies[targetIndex];
-  return Object.freeze({elapsed:0,targetIndex,impactPlayed:false,origin:structuredClone(core),target:{x:Number(target.x)||0,z:Number(target.z)||0}});
+  const targetIndex=Math.max(0,enemies.length-1),target=enemies[targetIndex],previousEnemies=(previousCore?.enemies||[previousCore?.enemy]).filter(Boolean),previousTarget=previousEnemies[targetIndex]||previousEnemies.at(-1),stableTarget=previousTarget&&Number.isFinite(Number(previousTarget.x))&&Number.isFinite(Number(previousTarget.z))?previousTarget:target,origin=structuredClone(core);
+  const originEnemies=origin.enemies||[origin.enemy].filter(Boolean),originTarget=originEnemies[targetIndex]||originEnemies.at(-1);
+  if(originTarget){originTarget.x=Number(stableTarget.x)||0;originTarget.z=Number(stableTarget.z)||0;}
+  if(origin.enemy&&origin.enemies)origin.enemy=origin.enemies[0];
+  return Object.freeze({elapsed:0,targetIndex,impactPlayed:false,origin,target:{x:Number(stableTarget.x)||0,z:Number(stableTarget.z)||0}});
 }
 
 export function advanceReviewFinisher(run,dt=0){
   if(!run)return Object.freeze({run:null,core:null,impact:false,finished:false});
   const elapsed=Math.min(REVIEW_FINISHER_DURATION,run.elapsed+Math.max(0,Number(dt)||0)),progress=Math.min(1,elapsed/REVIEW_FINISHER_DURATION),core=structuredClone(run.origin);
   const enemies=core.enemies||[core.enemy].filter(Boolean),target=enemies[run.targetIndex]||enemies.at(-1),hero=core.hero;
-  const dx=(Number(target?.x)||0)-(Number(hero?.x)||0),dz=(Number(target?.z)||0)-(Number(hero?.z)||0),distance=Math.max(.001,Math.hypot(dx,dz)),desired=1.05,close=Math.max(0,distance-desired),approach=Math.min(1,progress/.34);
+  if(target){target.x=run.target.x;target.z=run.target.z;}
+  const dx=run.target.x-(Number(hero?.x)||0),dz=run.target.z-(Number(hero?.z)||0),distance=Math.max(.001,Math.hypot(dx,dz)),desired=1.05,close=Math.max(0,distance-desired),approach=Math.min(1,progress/.34);
   hero.x=(Number(hero.x)||0)+dx/distance*close*approach;hero.z=(Number(hero.z)||0)+dz/distance*close*approach;hero.yaw=Math.atan2(dx,dz);hero.attack='heavy';hero.progress=progress;hero.slot='kyu';hero.skill='止め';hero.dead=false;
   if(target){target.hp=0;target.attack=null;target.progress=0;target.downed=progress<1;target.dead=progress>=1;}
   core.done=progress>=1;core.winner=progress>=1?'hero':null;
