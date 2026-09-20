@@ -33,3 +33,6 @@
 .review-filter-tabs>button[aria-pressed="true"],.review-filter-tabs>button[aria-selected="true"]{border-color:var(--vrl-accent)!important;background:#29271f!important;color:#fff1c8!important}
 .review-action-row{display:grid!important;grid-template-columns:repeat(var(--review-action-columns,1),minmax(0,1fr))!important;gap:5px!important}
 @media(max-width:520px){.review-choice-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important}.review-slot-tabs>button{padding-inline:4px!important}}
+
+.review-runtime-thumbnail{display:block!important;width:100%!important;height:auto!important;max-width:100%!important;aspect-ratio:36/23!important;object-fit:cover!important;border-radius:5px!important;background:#101715!important;pointer-events:none!important}
+.review-choice-card>.review-runtime-thumbnail{min-width:0!important;align-self:start!important}
