@@ -3,11 +3,39 @@ import { INSPIRATION_MOTION_IDS } from './inspiration-catalog.js';
 export const causalInspirationRevision = 'causal-inspiration-1';
 export const INSPIRATION_KINDS = Object.freeze({heart:'心',body:'体',technique:'技',link:'連',variant:'変'});
 export const INSPIRATION_NAME_GRADES = Object.freeze({normal:'',secret:'秘技',ultimate:'奥義'});
+export const INSPIRATION_ATTRIBUTE_LABELS = Object.freeze({fire:'炎',water:'水',ice:'氷',wind:'風',earth:'土',lightning:'雷',light:'光',dark:'闇'});
+export const INSPIRATION_TRAIT_IMPACTS = Object.freeze({cosmetic:'演出',status:'特性',rule:'固有'});
+export const INSPIRATION_TRAIT_RARITIES = Object.freeze({common:'通常',rare:'希少',singular:'唯一'});
+
+export function inspirationTechniqueStructureKey(row){
+  if(!row)return '';
+  return JSON.stringify([
+    row.kind==='variant'?'technique':row.kind,
+    [...(row.weapons||[])].sort(),
+    (row.steps||[]).map(step=>[step.kind,step.footwork||'stay',step.charge||'none']),
+    row.space||'',
+    row.limbs||'',
+    row.executor||'',
+  ]);
+}
+export function inspirationTechniqueGrade(row){
+  const rules=(row?.specialEffects||[]).filter(effect=>effect?.impact==='rule');
+  if(!rules.length)return 'normal';
+  return rules.some(effect=>effect.rarity==='singular'&&String(effect.unlockCondition||'').trim())?'ultimate':'secret';
+}
 export function inspirationTechniqueName(row){
   if(!row)return '';
-  const base=String(row.name||'').replace(/[・･]{2,}/g,'・').replace(/^・|・$/g,'');
-  const grade=INSPIRATION_NAME_GRADES[row.nameGrade||'normal'];
-  return grade?`${grade}・${base}`:base;
+  const base=String(row.name||'').replace(/[・･]/g,'').trim();
+  const grade=INSPIRATION_NAME_GRADES[inspirationTechniqueGrade(row)];
+  return grade?grade+'・'+base:base;
+}
+export function inspirationTechniquePresentation(row){
+  return Object.freeze({
+    name:inspirationTechniqueName(row),
+    grade:inspirationTechniqueGrade(row),
+    attributes:Object.freeze((row?.attributes||[]).map(id=>INSPIRATION_ATTRIBUTE_LABELS[id]||id)),
+    traits:Object.freeze((row?.specialEffects||[]).map(effect=>effect.label||effect.id).filter(Boolean)),
+  });
 }
 export const INSPIRATION_QUESTIONS = Object.freeze({
   balance:'崩れた姿勢を戻したい', fatigue:'息を残して動きたい', opening:'相手の隙を見つけたい',
@@ -19,11 +47,11 @@ export const INSPIRATION_QUESTIONS = Object.freeze({
 const step=(kind,footwork='stay',charge='none')=>Object.freeze({kind,footwork,charge});
 const define=row=>Object.freeze({
   weapons:[], windows:[], materials:[], phases:['jo','ha','kyu'], motifs:[], intent:{}, bodyAffinity:{},
-  effort:1, effects:{}, nameGrade:'normal', specialEffects:[], ...row,
+  effort:1, effects:{}, attributes:[], specialEffects:[], ...row,
   steps:Object.freeze(row.steps||[]),
   questions:Object.freeze(row.questions||[]), materials:Object.freeze((row.materials||[]).map(group=>Object.freeze(group))),
   windows:Object.freeze(row.windows||[]), weapons:Object.freeze(row.weapons||[]),
-  motifs:Object.freeze(row.motifs||[]), phases:Object.freeze(row.phases||['jo','ha','kyu']), specialEffects:Object.freeze(row.specialEffects||[]),
+  motifs:Object.freeze(row.motifs||[]), phases:Object.freeze(row.phases||['jo','ha','kyu']), attributes:Object.freeze(row.attributes||[]), specialEffects:Object.freeze((row.specialEffects||[]).map(effect=>Object.freeze({...effect}))),
 });
 
 // Authored answers, not animation assets or loot. Acquisition belongs to the life domain.
@@ -109,16 +137,36 @@ export function answerSignature(row){
   if(!row)throw Error('Unknown causal answer');
   return JSON.stringify([row.kind==='variant'?'technique':row.kind,row.weapons,row.questions,row.steps.map(s=>[s.kind,s.footwork]),row.bodyChoice||null,row.executor||null,row.kind==='heart'?row.mechanic:null,row.kind==='body'?row.family:null,row.kind==='link'?row.family:null]);
 }
+export function validateInspirationNamePolicy(rows=CAUSAL_ANSWERS){
+  const structures=new Map();
+  for(const row of rows){
+    if(Object.hasOwn(row,'nameGrade'))throw Error('Manual technique grade is forbidden: '+(row.id||row.name));
+    if(['technique','variant','link'].includes(row.kind)){
+      const base=String(row.name||'').trim();
+      if(base.length<2||base.length>7||/[・･]/.test(base)||/^(秘技|奥義)[・･]?/.test(base))throw Error('Invalid technique base name: '+row.id);
+      for(const attribute of row.attributes||[]){
+        if(!Object.hasOwn(INSPIRATION_ATTRIBUTE_LABELS,attribute))throw Error('Unknown technique attribute: '+row.id);
+        if(base.includes(INSPIRATION_ATTRIBUTE_LABELS[attribute]))throw Error('Attribute leaked into technique name: '+row.id);
+      }
+      const key=inspirationTechniqueStructureKey(row),known=structures.get(key);
+      if(known&&known!==base)throw Error('Same technique structure has multiple names: '+row.id);
+      structures.set(key,base);
+    }
+    for(const effect of row.specialEffects||[]){
+      if(!effect?.id||!effect?.label||!Object.hasOwn(INSPIRATION_TRAIT_IMPACTS,effect.impact)||!Object.hasOwn(INSPIRATION_TRAIT_RARITIES,effect.rarity))throw Error('Invalid special effect: '+row.id);
+      if(effect.impact==='rule'&&effect.rarity==='singular'&&!String(effect.unlockCondition||'').trim())throw Error('Ultimate rule effect requires unlock condition: '+row.id);
+    }
+  }
+  return true;
+}
 export function validateCausalAnswers(){
   const ids=new Set(),signatures=new Set(),motions=new Set([...INSPIRATION_MOTION_IDS,'guard','ready','retreat','brace','parry','counter']);
   for(const row of CAUSAL_ANSWERS){
     if(ids.has(row.id)||!INSPIRATION_KINDS[row.kind]||!row.family||!row.mechanic||!row.tradeoff)throw Error(`Invalid causal answer: ${row.id}`);
     ids.add(row.id);const signature=answerSignature(row);if(signatures.has(signature))throw Error(`Cosmetic duplicate: ${row.id}`);signatures.add(signature);
     if(row.questions.some(q=>!INSPIRATION_QUESTIONS[q]))throw Error(`Unknown question: ${row.id}`);
-    if(!Object.hasOwn(INSPIRATION_NAME_GRADES,row.nameGrade)||/[・･].*[・･]/.test(row.name))throw Error(`Invalid technique name: ${row.id}`);
-    if(row.specialEffects.length&&!['secret','ultimate'].includes(row.nameGrade))throw Error(`Special technique requires title grade: ${row.id}`);
     if(row.steps.some(s=>!motions.has(s.kind)))throw Error(`Unregistered motion: ${row.id}`);
     if(row.steps.length>3||(!row.executor&&['technique','variant'].includes(row.kind)&&!row.steps.length))throw Error(`Missing execution: ${row.id}`);
   }
-  return true;
+  validateInspirationNamePolicy(CAUSAL_ANSWERS);return true;
 }
