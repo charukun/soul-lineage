@@ -102,9 +102,11 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
   assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);
   assert.match(battleHtml,/battle-phase-wave/);assert.match(battleHtml,/battle-action-drift/);
-  assert.match(battleHtml,/間合いを測っている…/);assert.match(battleHtml,/38%\{opacity:1;transform:translateY\(0\)\}/);
-  assert.match(battleHtml,/visibility:visible!important;opacity:1!important;z-index:3!important/);
-  assert.match(battleHtml,/top:calc\(100% \+ 27px\)!important;z-index:2!important/);
+  assert.match(battleHtml,/id="battle-sequence-copy"/);assert.match(battleHtml,/id="battle-sequence-rest"[^>]*>間合いを測っている…<\/strong>/);
+  assert.match(battleHtml,/id="battle-sequence-events"/);assert.match(battleHtml,/@keyframes battle-sequence-copy-drift/);
+  assert.match(battleHtml,/38%\{opacity:1;transform:translate\(-50%,0\)\}/);assert.doesNotMatch(battleHtml,/id="phase-meta"/);assert.doesNotMatch(battleHtml,/id="phase-history"/);
+  assert.match(battleHtml,/battle-sequence-copy__rest/);assert.match(battleHtml,/visibility:visible;opacity:\.92/);
+  assert.match(battleSource,/q\('battle-sequence-rest'\)/);assert.match(battleSource,/q\('battle-sequence-events'\)/);
   assert.match(battleSource,/pushBattleReadout\(action,'action'\)/);assert.match(battleSource,/pushBattleReadout\(.*'hurt'\)/);
   assert.match(battleHtml,/Compact battle HUD pass/);assert.match(battleHtml,/#battle-technique-composition,/);assert.match(battleHtml,/position:fixed!important/);
   assert.match(battleHtml,/\.stage>\.technique-loadout\{left:8px!important;right:auto!important;top:8px!important;bottom:auto!important/);

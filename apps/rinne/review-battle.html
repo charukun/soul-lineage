@@ -318,6 +318,44 @@ main.battle-review.review-surface .camera-zoom button{
   .battle-foot-phase{bottom:12%;transform:translateX(-50%) perspective(220px) rotateX(60deg) scale(.92)}
 }
 
+
+/* Rebuilt battle sequence copy: isolated from legacy phase-meta/history cascade. */
+.battle-sequence-copy{
+  position:absolute;z-index:14;left:50%;bottom:5.5%;transform:translateX(-50%);
+  width:min(320px,78vw);height:72px;pointer-events:none;text-align:center;overflow:visible;
+  font-family:var(--font-rinne-display),ui-serif,"Yu Mincho","Hiragino Mincho ProN",serif;
+}
+.battle-sequence-copy__rest{
+  position:absolute;z-index:2;left:50%;top:0;transform:translateX(-50%);
+  display:block;visibility:visible;opacity:.92;min-width:max-content;max-width:100%;
+  padding:2px 10px;border:0;background:linear-gradient(90deg,transparent,rgba(6,16,29,.9) 18%,rgba(6,16,29,.9) 82%,transparent);
+  color:#d7d2c7;font-size:11px;font-weight:600;line-height:1.45;letter-spacing:.05em;
+  text-shadow:0 2px 5px #000,0 0 8px rgba(115,188,229,.18);white-space:nowrap;
+}
+.battle-sequence-copy__events{
+  position:absolute;z-index:3;left:0;right:0;top:22px;height:50px;overflow:visible;
+}
+.battle-sequence-copy__events>span{
+  position:absolute;left:50%;top:0;display:block;max-width:100%;padding:2px 9px;
+  border:0;background:linear-gradient(90deg,transparent,rgba(6,16,29,.94) 18%,rgba(6,16,29,.94) 82%,transparent);
+  color:#f1e7d4;font-size:11px;font-weight:650;line-height:1.5;letter-spacing:.04em;text-align:center;white-space:nowrap;
+  text-shadow:0 2px 6px #000;animation:battle-sequence-copy-drift 2.6s cubic-bezier(.18,.72,.25,1) forwards;
+}
+.battle-sequence-copy__events>span[data-kind="hurt"]{color:#f0a6a0;text-shadow:0 0 9px rgba(127,36,31,.68),0 2px 6px #000}
+@keyframes battle-sequence-copy-drift{
+  0%{opacity:0;transform:translate(-50%,-5px)}
+  8%{opacity:1;transform:translate(-50%,0)}
+  38%{opacity:1;transform:translate(-50%,0)}
+  100%{opacity:0;transform:translate(-50%,34px)}
+}
+@media(max-width:680px){
+  .battle-sequence-copy{bottom:4.5%;width:min(300px,82vw)}
+  .battle-sequence-copy__rest{font-size:10px}
+  .battle-sequence-copy__events>span{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .battle-sequence-copy__events>span{animation:none!important;display:none!important}
+}
 </style>
 </head>
 <body>
@@ -341,10 +379,13 @@ main.battle-review.review-surface .camera-zoom button{
       <span class="battle-foot-phase__step" data-foot-phase="jo">序</span><i class="battle-foot-phase__link" aria-hidden="true"></i><span class="battle-foot-phase__step" data-foot-phase="ha">破</span><i class="battle-foot-phase__link" aria-hidden="true"></i><span class="battle-foot-phase__step" data-foot-phase="kyu">急</span>
     </div>
     <aside id="battle-inspiration" class="battle-inspiration" role="status" aria-live="assertive" hidden><span>閃き</span><strong id="battle-inspiration-name"></strong><small id="battle-inspiration-phase"></small></aside>
-    <aside id="battle-phase" class="phase-panel combat-phase-indicator combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" data-combo-active="false" data-phase="idle" aria-label="序破急の現在状態" aria-live="polite">
+    <aside id="battle-phase" class="phase-panel combat-phase-indicator combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" data-combo-active="false" data-phase="idle" aria-label="序破急の現在状態">
       <span class="phase-step combat-sequence__step" data-phase-id="jo" data-phase-step="jo" data-combat-phase="jo" data-active="false">序</span><i class="phase-link phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="ha" data-phase-step="ha" data-combat-phase="ha" data-active="false">破</span><i class="phase-link phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="kyu" data-phase-step="kyu" data-combat-phase="kyu" data-active="false">急</span>
-      <strong id="phase-meta" class="phase-meta combat-phase-action combat-sequence__action">間合いを測っている…</strong><div id="phase-history" class="phase-history combat-phase-history combat-sequence__history" aria-hidden="true"></div>
     </aside>
+    <div id="battle-sequence-copy" class="battle-sequence-copy" aria-live="polite">
+      <strong id="battle-sequence-rest" class="battle-sequence-copy__rest">間合いを測っている…</strong>
+      <div id="battle-sequence-events" class="battle-sequence-copy__events" role="log" aria-relevant="additions"></div>
+    </div>
     <div class="camera-zoom" role="group" aria-label="カメラズーム"><button id="camera-zoom-out" type="button" aria-label="カメラをズームアウト">−</button><button id="camera-zoom-in" type="button" aria-label="カメラをズームイン">＋</button></div>
     <div id="battle-technique-composition" class="technique-composition" aria-label="段・技・連・序破急の構成"></div>
     <section id="battle-inspiration-history" class="inspiration-history" aria-label="閃いた技の履歴" hidden>
