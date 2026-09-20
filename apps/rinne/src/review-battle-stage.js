@@ -138,22 +138,22 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   let lastStatus='';
   const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();},render:()=>renderer.render(scene,camera)});
 
-  function inspirationCameraFrame(){
+  function inspirationCameraFrame(sequence){
     const heroPoint=hero.actor?.root?.position;if(!heroPoint)return null;
     const activeEnemies=enemies.filter(side=>side.actor?.root?.parent===stageRoot).map(side=>side.actor.root.position);
     if(!activeEnemies.length)return null;
     const enemyPoint=activeEnemies[0],dx=enemyPoint.x-heroPoint.x,dz=enemyPoint.z-heroPoint.z,len=Math.max(.01,Math.hypot(dx,dz)),forwardX=dx/len,forwardZ=dz/len,sideX=-forwardZ,sideZ=forwardX;
-    const distance=clamp(encounterMode==='one-v-three'?6.9:5.9,5.5,7.3),shoulder=2.05;
+    const distance=clamp(encounterMode==='one-v-three'?6.9:5.9,5.5,7.3),backstep=Math.max(0,Math.min(1,Number(sequence?.backstepProgress)||0)),orbit=backstep*backstep*(3-2*backstep),shoulder=2.05*orbit;
     const position={x:heroPoint.x-forwardX*distance+sideX*shoulder,y:2.4,z:heroPoint.z-forwardZ*distance+sideZ*shoulder};
-    const look={x:enemyPoint.x-forwardX*.35-sideX*.2,y:1.02,z:enemyPoint.z-forwardZ*.35-sideZ*.2};
-    return{position,look,follow:true,system:'inspiration',lock:'hero-over-shoulder',count:activeEnemies.length};
+    const look={x:enemyPoint.x-forwardX*.35-sideX*(.2*orbit),y:1.02,z:enemyPoint.z-forwardZ*.35-sideZ*(.2*orbit)};
+    return{position,look,follow:true,system:'inspiration',lock:orbit>.02?'hero-over-shoulder':'hero-rear',orbit,backstep,count:activeEnemies.length};
   }
 
   function updateCamera(core,dt,followCamera,cameraSystem){
     const wide=canvas.clientWidth/Math.max(1,canvas.clientHeight)>1.3;let frame=reviewBattleCameraFrame(core,{follow:followCamera,system:cameraSystem,encounterMode,wide});
     const now=performance.now()/1000,sequence=techniquePlayback?reviewInspirationSequenceFrame(now-techniquePlayback.startedAt):null,step=Math.max(1/120,Math.min(.05,Number(dt)||1/60));
     if(core?.hero&&core?.enemy&&followCamera)canvas.dataset.heroComposition=cameraSystem==='demon'?'kuumetsu-shared':'hyakunen-shared';
-    if(sequence&&sequence.stage!=='done'&&core?.hero&&core?.enemy)frame=inspirationCameraFrame()||frame;
+    if(sequence&&sequence.stage!=='done'&&core?.hero&&core?.enemy)frame=inspirationCameraFrame(sequence)||frame;
     else if(frame?.follow&&core?.hero&&core?.enemy&&!frame.finisher){
       cameraOrbit=(cameraOrbit+step*.05)%(Math.PI*2);const ox=frame.position.x-frame.look.x,oz=frame.position.z-frame.look.z,c=Math.cos(cameraOrbit),sn=Math.sin(cameraOrbit);
       frame={...frame,position:{...frame.position,x:frame.look.x+ox*c-oz*sn,z:frame.look.z+ox*sn+oz*c}};

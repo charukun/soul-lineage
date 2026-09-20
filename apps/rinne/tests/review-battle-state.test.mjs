@@ -110,7 +110,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleSource,/opponent:group\?'group':'duel'/);
   assert.match(battleSource,/const angle=battleStage\?\.cameraAngle\?\.\(\)\|\|0,input=reviewSwipe\.vector\(angle\)/);assert.match(battleSource,/runtime\.input\(input\.screenX,input\.screenY,input\.amount,angle\)/);assert.match(battleSource,/createReviewFinisher\(next,previous\)/);
   assert.match(stageSource,/cameraOrbit=\(cameraOrbit\+step\*\.05\)/);assert.match(stageSource,/!frame\.finisher/);assert.match(stageSource,/cameraLock=frame\.lock\|\|'scene'/);
-  assert.match(stageSource,/function inspirationCameraFrame\(\)/);assert.match(stageSource,/shoulder=2\.05/);assert.match(stageSource,/enemyPoint\.x-forwardX\*\.35-sideX\*\.2/);assert.match(stageSource,/lock:'hero-over-shoulder'/);
+  assert.match(stageSource,/function inspirationCameraFrame\(sequence\)/);assert.match(stageSource,/backstep=Math\.max\(0,Math\.min\(1,Number\(sequence\?\.backstepProgress\)\|\|0\)\)/);assert.match(stageSource,/shoulder=2\.05\*orbit/);assert.match(stageSource,/lock:orbit>\.02\?'hero-over-shoulder':'hero-rear'/);assert.match(stageSource,/inspirationCameraFrame\(sequence\)/);
   assert.match(stageSource,/zoomBy\(delta=0\)/);
   assert.match(battleHtml,/id="camera-zoom-out"/);assert.match(battleHtml,/id="camera-zoom-in"/);
   assert.doesNotMatch(battleHtml,/class="hud battle-vitals"/);
