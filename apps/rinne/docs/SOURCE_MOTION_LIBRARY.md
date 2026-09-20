@@ -20,7 +20,7 @@ build時にモーション全件をコンパイルしない。起動時にも全
 
 `apps/review/public/library/` をDEVの自己ホストAsset Originとし、利用者が選択したsourceだけをそこから遅延取得する。原典 repository / revision / path はprovenanceとして保持するがruntime URL生成には使わない。byte length / Git blob SHAを再検証してから既存Humanoid normalization経路で再生する。source単位でcacheし、モデル切替・速度・ループはsource motion数へ影響しない。
 
-Connectorで安全にmaterializeできない旧巨大packは `MOTION_LIBRARY_ARCHIVED_SOURCES` に残し、active runtimeから除外する。第三者GitHub/Codeberg/CDNをruntime fallbackとして使わない。
+登録済みmotion packはすべてDEV Asset Originへmaterializeしてactiveに保つ。Connectorで大きいbinaryを安全に搬送できない場合は、既存Astra方式の一時GitHub Actions Hosted Runner materializerで pinned upstream を取得し、Git blob SHAを照合してbranchへcommitする。一時workflowはmaterialization commitから削除し、第三者GitHub/Codeberg/CDNをruntime fallbackとして使わない。
 
 CMU BVHは専用adapterでcm→mへ変換し、BVHの初期フレーム腰位置をroot displacementの基準にする。骨名をHumanoidへ明示mapし、BVH source自体は1 clip = 1 source identityとして扱う。
 

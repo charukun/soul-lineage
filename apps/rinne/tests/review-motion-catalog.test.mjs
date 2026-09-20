@@ -53,12 +53,17 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
   const parkourRows=filterMotionReviewCatalog(buildMotionReviewCatalog(registry.motions),'parkour');
   assert.ok(parkourRows.length>=14);
   const mesh2motionIds=MOTION_LIBRARY_SOURCES.filter(source=>source.discoverAtRuntime).map(source=>source.id);
-  assert.deepEqual(mesh2motionIds,['mesh2motion-human-mocap']);
-  assert.deepEqual(MOTION_LIBRARY_ARCHIVED_SOURCES.map(row=>row.id),['kaykit-tools','quaternius-ual1','quaternius-ual2','mesh2motion-human-base','mesh2motion-human-addon']);
-  const discovered={'mesh2motion-human-mocap':[{index:0,name:'Cheer_One_Arm',duration:1.5}]};
+  assert.deepEqual(mesh2motionIds,['mesh2motion-human-base','mesh2motion-human-addon','mesh2motion-human-mocap']);
+  assert.deepEqual(MOTION_LIBRARY_ARCHIVED_SOURCES.map(row=>row.id),[]);
+  for(const id of ['kaykit-tools','quaternius-ual1','quaternius-ual2'])assert.ok(MOTION_LIBRARY_SOURCES.some(row=>row.id===id&&row.selfHosted));
+  const discovered={
+    'mesh2motion-human-base':[{index:0,name:'Angry',duration:1.2},{index:1,name:'Attack_Ground_Pound',duration:1.1}],
+    'mesh2motion-human-addon':[{index:0,name:'Fishing_Cast',duration:1.4}],
+    'mesh2motion-human-mocap':[{index:0,name:'Cheer_One_Arm',duration:1.5}]
+  };
   const expanded=buildReviewMotionRegistry(clips,discovered);
   for(const id of mesh2motionIds)assert.ok(expanded.motions.some(row=>row.sourceId===id));
-  assert.ok(expanded.addedSourceMotionCount>=1);
+  assert.ok(expanded.addedSourceMotionCount>=4);
 });
 
 test('motion review has a pinned unequipped mannequin as its dedicated default review body',async()=>{
