@@ -2,7 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "soul-lineage-demon-dev",
   "compatibility_date": "2026-09-19",
-  "workers_dev": true,\n  "preview_urls": true,
+  "workers_dev": true,
+  "preview_urls": true,
   "assets": {
     "directory": "./dist/demon"
   }
