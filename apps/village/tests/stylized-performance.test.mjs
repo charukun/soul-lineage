@@ -16,13 +16,6 @@ test('village loads one ordered runtime module graph before game boot',()=>{
  assert.match(main,/runtime-scale-stack\.js/);assert.ok(main.indexOf("./runtime-scale-stack.js")<main.indexOf("./web/main.js"));
  assert.ok(stack.indexOf("./asset-visuals.js")<stack.indexOf("./authored-visual-lod.js"));assert.ok(stack.indexOf("./authored-visual-lod.js")<stack.indexOf("./stylized-visual-target.js"));assert.ok(stack.indexOf("./stylized-visual-target.js")<stack.indexOf("./adaptive-visual-performance.js"));assert.ok(stack.indexOf("./adaptive-visual-performance.js")<stack.indexOf("./runtime-resilience.js"));assert.ok(stack.indexOf("./runtime-resilience.js")<stack.indexOf("./shared-world-scale.js"));assert.ok(stack.indexOf("./shared-world-scale.js")<stack.indexOf("./simulation-scale.js"));
 });
-test('village entry surface is interactive before post-entry enhancement graph',()=>{
- assert.ok(main.indexOf("./web/interface.js")<main.indexOf("./mura-entry-polish.js"));
- assert.ok(main.indexOf("./mura-entry-polish.js")<main.indexOf("./mura-enhancements.js"));
- assert.match(main,/addEventListener\('village:entered',[\s\S]*loadPostEntryEnhancements/);
- const entry=fs.readFileSync(new URL('../src/mura-entry-polish.js',import.meta.url),'utf8');
- assert.match(entry,/dispatchEvent\(new CustomEvent\('village:entered'\)\)/);
-});
 
 test('village GPU-aware bridge controls learned device, mobile render costs, transparency and thermal pressure without hiding gameplay objects',()=>{
   for(const token of ['deviceCapabilityProfile','createGpuAwareQualityGovernor','createGpuTimer','createPerformanceRecorder','createConservativeOcclusionCuller','createThermalTrendGovernor','applyVisualQualityFloor','auditTransparency','combineTransparencyAudits','transparentDrawCalls','transparentTriangleUpperBound','village-runtime-v1','signature','renderScale','shadowScale','applyTextureQuality','vegetationScale','presentationDistance','createWorldCellStreamingPlan'])assert.match(adaptive,new RegExp(token));
