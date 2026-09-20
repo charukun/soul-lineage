@@ -1,5 +1,13 @@
 {
-  "mode": "snapshot",
+  "mode": "lockfile",
   "sourceSha": "d350d6eb22229da12aa1e90c8bd62bd9feb4cbad",
-  "purpose": "序破急P2-P7の現行ゲーム仕様、描画、既存ブラウザ検査の限定的なソース取得。バイナリ・秘密情報・他アプリの取得なし。"
+  "baseBlob": "deb4da43774a1c068abd8aff53113ee3270c79bc",
+  "expectedBlob": "9b17eacece591f88f1eeab89283951ba1c837784",
+  "dependency": {
+    "app": "apps/review",
+    "name": "@soul/johakyu-combat",
+    "packagePath": "packages/johakyu-combat",
+    "version": "0.1.0",
+    "dependencies": {"@soul/game-data": "*"}
+  }
 }

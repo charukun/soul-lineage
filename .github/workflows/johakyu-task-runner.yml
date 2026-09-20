@@ -4,7 +4,7 @@ on:
   push:
     branches: ['dispatch/johakyu-session-20260921']
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: johakyu-task-session-20260921
   cancel-in-progress: false
@@ -26,7 +26,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const task=JSON.parse(fs.readFileSync('control/.task-start/johakyu-task.json','utf8'));
-          if(!/^[0-9a-f]{40}$/.test(task.sourceSha)||task.mode!=='snapshot')throw Error('Invalid task input');
+          if(!/^[0-9a-f]{40}$/.test(task.sourceSha)||!['snapshot','lockfile'].includes(task.mode))throw Error('Invalid task input');
           fs.appendFileSync(process.env.GITHUB_OUTPUT,`source=${task.sourceSha}\nmode=${task.mode}\n`);
           NODE
       - name: Checkout pinned repository source
@@ -40,14 +40,19 @@ jobs:
         with:
           node-version: '24'
       - name: Package requested source context
+        if: steps.plan.outputs.mode == 'snapshot'
         working-directory: work
         run: node ../control/.task-start/johakyu-source-snapshot.mjs ../control/.task-start/johakyu-task.json
+      - name: Materialize reviewed workspace lock blob
+        if: steps.plan.outputs.mode == 'lockfile'
+        working-directory: work
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node ../control/.task-start/johakyu-lockfile.mjs ../control/.task-start/johakyu-task.json
       - uses: actions/upload-artifact@v4
         with:
-          name: johakyu-source-${{ steps.plan.outputs.source }}
-          path: |
-            work/.task-output/source.tar.gz
-            work/.task-output/source-receipt.json
+          name: johakyu-task-${{ steps.plan.outputs.mode }}-${{ steps.plan.outputs.source }}
+          path: work/.task-output/
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error
