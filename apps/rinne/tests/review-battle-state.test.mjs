@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {normalizeReviewBattlePhase,reviewBattleCameraFrame,reviewBattleLoopDue,reviewBattlePhaseState,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from '../src/review-battle-state.js';
+import {advanceReviewFinisher,createReviewFinisher,normalizeReviewBattlePhase,reviewBattleCameraFrame,reviewBattleLoopDue,reviewBattlePhaseState,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from '../src/review-battle-state.js';
 import {REVIEW_INSPIRATION_TIMELINE,pickReviewInspiration,reviewInspirationCandidates,reviewInspirationSequenceFrame} from '../src/review-battle-inspiration.js';
 import {combatCameraFrame,combatCameraPosition} from '@soul/rendering/combat-camera-frame';
 
@@ -25,6 +25,11 @@ test('loop waits for the configured result hold before restarting',()=>{
   assert.equal(reviewBattleLoopDue({loopEnabled:true,playing:true,finished:true,finishedAt:1000,now:1899}),false);
   assert.equal(reviewBattleLoopDue({loopEnabled:true,playing:true,finished:true,finishedAt:1000,now:1900}),true);
   assert.equal(reviewBattleLoopDue({loopEnabled:false,playing:true,finished:true,finishedAt:1000,now:2500}),false);
+  const ending={done:true,hero:{x:0,z:0,yaw:0,dead:false},enemy:{x:2,z:0,hp:0,dead:true},enemies:[{x:2,z:0,hp:0,dead:true}]};
+  let finisher=createReviewFinisher(ending);assert.ok(finisher);
+  const opening=advanceReviewFinisher(finisher,0);assert.equal(opening.core.done,false);assert.equal(opening.core.enemies[0].downed,true);assert.equal(opening.core.hero.skill,'止め');
+  finisher=opening.run;const impact=advanceReviewFinisher(finisher,.6);assert.equal(impact.impact,true);assert.equal(impact.core.enemies[0].dead,false);
+  const finished=advanceReviewFinisher(impact.run,.5);assert.equal(finished.finished,true);assert.equal(finished.core.done,true);assert.equal(finished.core.enemies[0].dead,true);
 });
 
 const assertVectorClose=(actual,expected,epsilon=1e-12)=>{for(const key of ['x','y','z'])assert.ok(Math.abs(actual[key]-expected[key])<=epsilon,`${key}: ${actual[key]} != ${expected[key]}`);};
@@ -86,7 +91,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.execute+.01).stage,'execute');
   assert.match(battleSource,/reviewTechniqueSeen=new Map\(\)/);assert.match(battleSource,/seen\.add\(technique\.id\)/);
   assert.match(battleSource,/learnedSlots\[phase\]=technique/);
-  assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=550/);assert.match(battleSource,/bulbTimer=setTimeout\(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS\)/);assert.match(battleSource,/if\(cue==='spacing'\)\{showReviewSign\(payload\);battleSfx\.draw\(\);return;\}/);
+  assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=550/);assert.match(battleSource,/bulbTimer=setTimeout\(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS\)/);assert.match(battleSource,/if\(cue==='spacing'\)\{showReviewSign\(payload\);battleSfx\.inspiration\('anticipation'\);return;\}/);
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
   assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);assert.match(battleHtml,/id="battle-technique-loadout" class="technique-loadout"/);
   assert.match(battleHtml,/battle-phase-wave/);assert.match(battleHtml,/battle-action-drift/);
@@ -113,8 +118,8 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleHtml,/main\.battle-review\.review-surface > \.review-surface__workspace\{/);
   assert.match(battleHtml,/grid-template-rows:minmax\(0,1fr\) max-content!important/);
   assert.match(battleHtml,/min-height:34px!important;\s*max-height:36px!important/);
-  assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/visualBase/);assert.match(stageSource,/presentImpact/);
-  assert.doesNotMatch(stageSource,/attachWeapon\('reviewWeapon'/);assert.doesNotMatch(stageSource,/const length=\{dagger:/);
+  assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/rightHand/);assert.match(stageSource,/weaponBinding='right-hand-bone'/);assert.match(stageSource,/presentImpact/);
+  assert.match(battleSource,/battleSfx\.impact\(\{guard:Boolean\(impact\?\.guard\),power:Number\(impact\?\.power\)\|\|\.7\}\)/);assert.match(battleSource,/battleSfx\.swing\(/);
   assert.doesNotMatch(stageSource,/reviewBattleMultiHitFrame/);assert.match(stageSource,/core\?\.enemies/);
   assert.match(stageSource,/onInspirationCue\('spark'/);
 });
