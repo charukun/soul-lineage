@@ -78,7 +78,7 @@ test('real consumption, extraction, save reopen, upgrade and death form one pers
 
 test('main boot has one HUD owner, automatic sensing, and no menu extraction exploit',()=>{
   const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
-  const main=read('../src/web/main.js'), boot=read('../src/main.js'), html=read('../index.html');
+  const main=read('../src/web/main.js'), boot=read('../src/main.js'), brandStart=read('../src/brand-start.js'), bootGate=read('../../../packages/shared-ui/src/boot-gate.js'), html=read('../index.html');
   assert.match(main,/new HuntFlowUi/);assert.match(main,/game\.huntReceipt/);
   assert.match(main,/game\.scentCooldown <= 0/);assert.match(main,/game\.finish\('abandoned'\)/);
   assert.doesNotMatch(main,/new FeastHud|firstHuntGuide\(/);
