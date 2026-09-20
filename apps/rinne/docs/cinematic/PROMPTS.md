@@ -1,3 +1,7 @@
+# Historical R1 prompt — rejected
+
+This full-sequence prompt produced identity and proportion errors and is NOT the adopted film. Use DRONE-PROMPTS.md and PRODUCTION.md for the current revision. Consent-pending notes below describe the earlier attempt only.
+
 # Generation prompts — RINNE, six seconds
 
 Use the numbered roles in REFERENCES.json. The actual protagonist QA images override any invented face or clothes in the storyboard. Do not ask the model to reproduce the board as a grid. Output one full-frame film, no labels.
@@ -57,3 +61,4 @@ Use the final prompt above with an explicit output length of8 seconds. The first
 - If model output is8 seconds but camera still moves after6, trim/re-edit/regenerate. Do not simply set landingTime=6 and cover the motion with a menu.
 - If loop quality is weak, choose the6-second non-loop delivery, ending on a held decoded frame. A good still is preferable to an obvious loop jump.
 - Run `import-title-movie.mjs`, then inspect the matching poster and playtest the ready manifest. The script is an encoder/importer, not a quality judge.
+

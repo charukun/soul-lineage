@@ -14,6 +14,14 @@ export function validateTitleManifest(raw){
   if(!['ready','awaiting-generation'].includes(raw.status))throw Error('Invalid title media status');
   if(raw.status==='ready'&&!asset(raw.movie))throw Error('Ready title movie is missing');
   if(raw.webm&&!asset(raw.webm))throw Error('Invalid title WebM');
+  if(raw.portraitFraming){
+    if(!Array.isArray(raw.portraitFraming)||!raw.portraitFraming.length)throw Error('Invalid portrait framing');
+    let previous=-1;
+    for(const frame of raw.portraitFraming){
+      if(!frame||!Number.isFinite(frame.time)||frame.time<0||frame.time<=previous||frame.time>raw.titleLandingTime||!Number.isFinite(frame.x)||frame.x<0||frame.x>100)throw Error('Invalid portrait framing');
+      previous=frame.time;
+    }
+  }
   if(raw.livingLoop&&(!Number.isFinite(raw.livingLoop.start)||!Number.isFinite(raw.livingLoop.end)||raw.livingLoop.start<raw.titleLandingTime||raw.livingLoop.end>raw.duration||raw.livingLoop.end<=raw.livingLoop.start))throw Error('Invalid living-still loop');
   return Object.freeze({...raw});
 }

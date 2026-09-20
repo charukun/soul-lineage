@@ -1,15 +1,48 @@
 {
-  "status": "awaiting-generation",
-  "poster": {
-    "file": "landing.webp",
-    "provider": "OpenAI image generation",
-    "createdAt": "2026-09-20",
-    "role": "Original cinematic concept and interim title artwork; not a game screenshot or an extracted movie frame",
-    "references": ["docs/characters/qa/protagonist-villager-v1/three-quarter.png", "apps/rinne/src/rebuild/birth-village.js"],
-    "source": "Generated specifically for this task using repository character references. No downloaded stock image or third-party music."
+  "provider": "Google Flow Omni 1.1 Flash",
+  "revision": "drone-r2",
+  "sourceSha256": "b05c5fb156d501d5156db69c3cfc77141e7e314c54d1b47629f43994707c00ed",
+  "encodedSha256": "de357b3212328f43fa76489a95bb6e6106e89919a8166a11c07b1dff6ed39a7e",
+  "encodedBytes": 4924751,
+  "createdAt": "2026-09-20T02:33:48.522Z",
+  "review": {
+    "decision": "adopt edited drone revision after rejecting the full-sequence Veo attempt",
+    "identity": "separate mother, young adult, elderly and newborn clips; original model proportions anchor new keyframes",
+    "camera": "actual three-dimensional camera motion, roof/trunk parallax and final ascent",
+    "loop": "none; decoded final frame held at title landing",
+    "limits": [
+      "old age to newborn suggests continuation; no direct death depiction",
+      "generated architectural details are cinematic interpretation",
+      "not a certification of final commercial art approval"
+    ]
   },
-  "movie": null,
-  "audio": null,
-  "generationBlocker": "Google Flow image-use agreement is awaiting action-time user consent. No video generation credit was spent.",
-  "sourceDevelop": "ed50416e9be4ef8c14aff26c4ac5d6be718fd0a4"
+  "status": "ready",
+  "sourceResolution": {
+    "width": 1280,
+    "height": 720
+  },
+  "webResolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "native1080p": false,
+  "poster": {
+    "file": "landing-drone-r2.webp",
+    "sourceTime": 5.958333333333333,
+    "source": "extracted from this encoded movie"
+  },
+  "audio": {
+    "source": "generated with each Flow clip",
+    "autoplayMuted": true,
+    "externalMusic": false
+  },
+  "referencesProvider": "OpenAI image generation using repository protagonist model QA",
+  "imageUseConsent": "User approved in this session before upload agreement",
+  "credits": {
+    "purchased": 0,
+    "veoRejected": 20,
+    "omniAdopted": 28,
+    "blockedShotBilled": false
+  },
+  "sourceDevelop": "bfdd13907c0ead69689370db5f754ce167b7bec6"
 }
