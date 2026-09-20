@@ -19,6 +19,7 @@ class TitleCinematicController{
     this.onSeeked=()=>{
       if(!this.active||!this.seekPending||this.video.currentTime<this.landingFrame()-.1)return;
       this.seekPending=false;this.title.dataset.media='video';
+      this.syncFraming();
       if(this.manifest.livingLoop&&this.motionAllowed())this.play();else this.video.pause();
     };
     this.onEnded=()=>{if(this.active&&!this.failed){this.land();if(this.manifest.livingLoop)this.seekLanding();}};
@@ -52,7 +53,7 @@ class TitleCinematicController{
         try{const response=await fetch(TITLE_MANIFEST_URL,{signal:this.manifestAbort.signal,cache:'no-cache'});if(!response.ok)throw Error('Title manifest unavailable');this.manifest=await response.json();}finally{clearTimeout(timer);}
       }
       this.manifest=validateTitleManifest(this.manifest);if(this.disposed)return;
-      const m=this.manifest;this.seenKey=`${this.motionKey}:film-seen:${m.revision}`;
+      const m=this.manifest;this.syncFraming(0);this.seenKey=`${this.motionKey}:film-seen:${m.revision}`;
       try{this.seen=localStorage.getItem(this.seenKey)==='1';}catch{}
       video.poster=m.poster;const poster=this.title.querySelector('.title-world-base');if(poster)poster.src=m.poster;
       this.title.dataset.mediaRevision=m.revision;this.title.dataset.mediaStatus=m.status;
@@ -91,12 +92,17 @@ class TitleCinematicController{
   }
   onTimeUpdate(){
     if(!this.active||!this.manifest||this.failed||this.seekPending)return;
+    this.syncFraming();
     const m=this.manifest,t=this.video.currentTime;
     if(this.title.dataset.intro==='cinematic'){
       if(t>=(this.seen?m.returnVisitSkipTime:m.firstVisitSkipTime))this.title.dataset.skip='ready';
       if(t>=m.titleLandingTime)this.land();
     }
     if(this.title.dataset.intro!=='cinematic'&&m.livingLoop&&t>=m.livingLoop.end-1/m.fps)this.video.currentTime=m.livingLoop.start;
+  }
+  syncFraming(time=this.video.currentTime){
+    const frame=this.manifest?.portraitFraming?.findLast(frame=>time>=frame.time);
+    this.video.style?.setProperty('--title-video-position',`${frame?.x??50}% 50%`);
   }
   landingFrame(){return this.manifest.livingLoop?.start??Math.min(this.manifest.titleLandingTime,this.manifest.duration-1/this.manifest.fps);}
   seekLanding(){

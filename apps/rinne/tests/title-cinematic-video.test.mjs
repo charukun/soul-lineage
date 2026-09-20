@@ -8,7 +8,7 @@ const ready={...manifest,status:'ready',revision:'decoder-fixture',movie:'./titl
 const pending={...manifest,status:'awaiting-generation',movie:null,webm:null};
 
 class Element extends EventTarget{
-  constructor(){super();this.dataset={};this.attributes={};this.hidden=false;}
+  constructor(){super();this.dataset={};this.attributes={};this.hidden=false;this.styles={};this.style={setProperty:(key,value)=>{this.styles[key]=value;}};}
   setAttribute(k,v){this.attributes[k]=v;}removeAttribute(k){delete this.attributes[k];}
   querySelector(){return null;}
 }
@@ -23,6 +23,7 @@ class Video extends Element{
 test('manifest enforces timeline and local media contracts',()=>{
   assert.equal(validateTitleManifest(manifest).titleLandingTime,6);
   for(const mutation of [{duration:5},{firstVisitSkipTime:7},{movie:null},{poster:'https://invalid/x.webp'},{livingLoop:{start:5,end:8}},{fps:0}])assert.throws(()=>validateTitleManifest({...ready,...mutation}));
+  for(const portraitFraming of [{},[],[{time:0,x:101}],[{time:2,x:50},{time:1,x:40}],[{time:7,x:50}]])assert.throws(()=>validateTitleManifest({...ready,portraitFraming}));
 });
 
 test('film lifecycle: first skip, exact landing, return, reduced motion, failure and disposal',async t=>{
@@ -42,8 +43,10 @@ test('film lifecycle: first skip, exact landing, return, reduced motion, failure
   try{
     const first=await make();assert.equal(first.title.dataset.intro,'cinematic');assert.equal(first.menu.inert,true);
     first.video.tick(1.7);assert.equal(first.c.skip(),false);
+    assert.equal(first.video.styles['--title-video-position'],'44% 50%');
     first.video.tick(1.8);assert.equal(first.c.skip(),true);assert.equal(first.video.currentTime,6);
     first.video.dispatchEvent(new Event('seeked'));t.mock.timers.tick(650);
+    assert.equal(first.video.styles['--title-video-position'],'50% 50%','skip applies the landing crop');
     assert.equal(first.title.dataset.intro,'idle');assert.equal(first.menu.inert,false);assert.equal(first.title.dataset.media,'video');
     first.video.tick(7.99);assert.equal(first.video.currentTime,6,'only the authored living tail loops');
     first.c.pause();first.c.begin();assert.equal(first.title.dataset.intro,'idle');assert.equal(first.video.currentTime,6,'return never replays the opening');assert.ok(first.stops()>0);

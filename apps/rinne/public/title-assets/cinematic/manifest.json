@@ -17,5 +17,15 @@
   "audio": {
     "autoplayMuted": true
   },
-  "provenance": "PROVENANCE.json"
+  "provenance": "PROVENANCE.json",
+  "portraitFraming": [
+    {
+      "time": 0,
+      "x": 44
+    },
+    {
+      "time": 2.8333333333333335,
+      "x": 50
+    }
+  ]
 }

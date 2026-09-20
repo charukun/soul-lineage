@@ -16,6 +16,7 @@
 #title-screen .title-lockup .subtitle::before,#title-screen .title-lockup .subtitle::after{width:35px}
 #title-screen .title-copy{top:8%;right:5%;width:21em;font-size:11px;line-height:2;letter-spacing:.16em}
 #title-screen .title-actions{top:auto;bottom:max(6%,calc(env(safe-area-inset-bottom) + 28px));width:270px;gap:0}
+#title-screen .title-actions{padding:12px 0;background:radial-gradient(ellipse,rgba(5,20,27,.6),rgba(5,20,27,.32) 58%,transparent 76%);text-shadow:0 1px 5px #081b23}
 #title-screen .title-command{min-height:42px;font-size:18px;padding:7px 24px;letter-spacing:.17em}
 #title-screen #new-life{font-size:23px;margin-bottom:6px;color:#fff4d3}
 #title-screen .title-command:focus-visible{outline:1px solid #e6cc98;outline-offset:1px}
@@ -31,12 +32,13 @@
 @media(max-aspect-ratio:1/1){
   #title-screen .title-world{top:0;height:100%;overflow:hidden}
   #title-screen .title-world-base,#title-screen .title-cinematic-video{object-fit:cover;object-position:50% 50%}
+  #title-screen .title-cinematic-video{object-position:var(--title-video-position,50% 50%)}
   #title-screen::before{background:linear-gradient(180deg,rgba(13,36,44,.48),transparent 42%,rgba(9,25,31,.3) 58%,rgba(9,25,31,.88))}
   #title-screen .title-lockup{top:max(5%,calc(env(safe-area-inset-top) + 20px));width:92vw}
   #title-screen .title-lockup .crest{width:75px;margin-bottom:12px}
   #title-screen .title-lockup h1{font-size:clamp(50px,15vw,76px)}
   #title-screen .title-lockup .subtitle{font-size:11px!important;margin-top:10px}
-  #title-screen .title-copy{display:block;top:24%;right:0;width:100%;text-align:center;font-size:10px;line-height:1.8}
+  #title-screen .title-copy{display:block;top:30%;right:0;width:100%;text-align:center;font-size:10px;line-height:1.8;text-shadow:0 1px 6px #10212b}
   #title-screen .title-actions{bottom:max(7%,calc(env(safe-area-inset-bottom) + 40px));width:min(280px,80vw)}
   #title-screen .title-command{min-height:42px;font-size:17px}
   #title-screen #new-life{font-size:22px}

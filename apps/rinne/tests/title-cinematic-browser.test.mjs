@@ -43,9 +43,13 @@ test('RINNE title: decoded movie, skips, matching landing, return, failure and F
     await page.waitForFunction(()=>document.querySelector('video').currentTime>.1);
     assert.equal(await page.locator('.title-actions').evaluate(n=>n.inert),true);
     for(const [time,name] of [[.35,'01-film-mother'],[1.25,'02-film-battle'],[2.3,'03-film-elder'],[3.25,'04-film-rebirth']]){
-      await page.waitForFunction(t=>document.querySelector('video').currentTime>=t,time);
+      // Seek/pause the real decoded media for exact scene evidence, then resume normal playback.
+      await page.locator('video').evaluate(async(v,t)=>{v.pause();v.currentTime=t;if(v.seeking)await new Promise(done=>v.addEventListener('seeked',done,{once:true}));},time);
+      const position=await page.locator('video').evaluate(v=>getComputedStyle(v).objectPosition);
+      assert.equal(position,time<68/24?'44% 50%':'50% 50%');
       await shot(page,name+'-portrait');
     }
+    await page.locator('video').evaluate(v=>v.play());
     await idle();await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.title-actions')).opacity)>.99);
     const shippingMedia=await page.locator('video').evaluate(v=>({width:v.videoWidth,height:v.videoHeight,time:v.currentTime,error:v.error?.code??null,paused:v.paused,src:v.getAttribute('src')}));
     assert.equal(shippingMedia.src,manifest.movie);assert.equal(shippingMedia.width,manifest.width);assert.equal(shippingMedia.height,manifest.height);assert.equal(shippingMedia.error,null);assert.ok(shippingMedia.time>=manifest.duration-1/manifest.fps);
