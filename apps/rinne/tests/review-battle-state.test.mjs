@@ -118,7 +118,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleHtml,/main\.battle-review\.review-surface > \.review-surface__workspace\{/);
   assert.match(battleHtml,/grid-template-rows:minmax\(0,1fr\) max-content!important/);
   assert.match(battleHtml,/min-height:34px!important;\s*max-height:36px!important/);
-  assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/rightHand/);assert.match(stageSource,/weaponBinding='right-hand-bone'/);assert.match(stageSource,/presentImpact/);
+  assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/rightHand/);assert.match(stageSource,/binding='right-hand-bone'/);assert.match(stageSource,/userData\.weaponBinding=binding/);assert.match(stageSource,/presentImpact/);
   assert.match(battleSource,/battleSfx\.impact\(\{guard:Boolean\(impact\?\.guard\),power:Number\(impact\?\.power\)\|\|\.7\}\)/);assert.match(battleSource,/battleSfx\.swing\(/);
   assert.doesNotMatch(stageSource,/reviewBattleMultiHitFrame/);assert.match(stageSource,/core\?\.enemies/);
   assert.match(stageSource,/onInspirationCue\('spark'/);
