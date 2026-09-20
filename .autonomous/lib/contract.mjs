@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 export const REPOSITORY = 'charukun/soul-lineage';
 export const GAMES = Object.freeze({ village: 'apps/village', kuumetsu: 'apps/demon' });
 export const RECENT_LIMIT = 12;
+export const MODES = Object.freeze(['hardening', 'evolution', 'polish']);
 export const CONTEXTS = Object.freeze(['astra/fast-dev-contract', 'astra/focused-validation']);
 const SHA = /^[0-9a-f]{40}$/;
 const ID = /^[a-z0-9][a-z0-9-]{2,95}$/;
@@ -26,7 +27,7 @@ function noSelfScore(value) {
   }
 }
 export function validateRecord(record) {
-  need(record?.schemaVersion === 1 && ID.test(record.id || ''), 'record version/id');
+  need([1,2].includes(record?.schemaVersion) && ID.test(record.id || ''), 'record version/id');
   gameId(record.game);
   need(['infrastructure', 'gameplay', 'user-feedback'].includes(record.kind), 'record kind');
   need(text(record.problemKey) && text(record.observation?.summary), 'one named root cause is required');
@@ -44,10 +45,30 @@ export function validateRecord(record) {
   }
   need(text(record.hypothesis?.cause) && text(record.hypothesis.prediction) && text(record.hypothesis.falsifier), 'hypothesis must be falsifiable');
   need(Array.isArray(record.candidates) && record.candidates.length >= 2, 'compare at least two approaches');
-  need(record.candidates.filter(c => c.selected === true).length === 1, 'select exactly one approach/root cause');
+  need(record.candidates.filter(candidate => candidate.selected === true).length === 1, 'select exactly one approach/root cause');
   for (const candidate of record.candidates) need(text(candidate.id) && text(candidate.reason), 'candidate needs id/reason');
   need(Array.isArray(record.implementation?.paths) && record.implementation.paths.length > 0 && text(record.implementation.summary), 'implementation scope required');
   record.implementation.paths.forEach(safePath);
+  if (record.schemaVersion === 2) {
+    need(MODES.includes(record.mode), 'v2 iteration mode required');
+    if (record.kind === 'gameplay') {
+      const staging = record.observation.staging;
+      need(staging?.kind === 'immutable-staging' && SHA.test(staging.sourceSha || ''), 'gameplay v2 requires exact staging source SHA');
+      need(text(staging.reference) && Number.isFinite(Date.parse(staging.observedAt)), 'gameplay v2 requires immutable staging reference/time');
+      need(staging.conditions && typeof staging.conditions === 'object' && !Array.isArray(staging.conditions), 'gameplay v2 requires staging conditions');
+      need(Array.isArray(staging.notVerified), 'gameplay v2 requires staging notVerified');
+    }
+    need(record.evidencePlan?.objective === 'reproducible-causality', 'v2 evidence objective must be reproducible-causality');
+    need(Array.isArray(record.evidencePlan.focusedTests) && record.evidencePlan.focusedTests.length > 0, 'v2 focused validation plan required');
+    record.evidencePlan.focusedTests.forEach(safePath);
+    need(['required','optional','none'].includes(record.evidencePlan.stagingAfter), 'v2 stagingAfter policy required');
+    if (['evolution','polish'].includes(record.mode) && record.kind === 'gameplay') need(record.evidencePlan.stagingAfter === 'required', 'evolution/polish require staging After');
+    need(Array.isArray(record.evidencePlan.limitations) && record.evidencePlan.limitations.length > 0, 'v2 evidence limitations required');
+    need(record.receipt?.repository === REPOSITORY, 'receipt repository mismatch');
+    need(record.receipt.pullRequest === null || (Number.isSafeInteger(record.receipt.pullRequest) && record.receipt.pullRequest > 0), 'invalid receipt PR');
+    need(record.receipt.marker === `autonomous-receipt:${record.game}:${record.id}`, 'receipt marker mismatch');
+    noSelfScore(record); return true;
+  }
   need(['pending', 'supported', 'refuted', 'inconclusive'].includes(record.comparison?.verdict), 'invalid verdict');
   need(record.comparison.objective === 'reproducible-causality', 'subjective quality is not an objective');
   need(Array.isArray(record.comparison.limitations) && record.comparison.limitations.length > 0, 'record evidence limits');
@@ -67,8 +88,26 @@ export function validateRecord(record) {
   need(text(record.learning?.summary), 'retain learning including negative results');
   for (const key of ['failedApproaches', 'doNotRetry', 'unresolved', 'next']) need(Array.isArray(record.learning[key]), `learning.${key} is required`);
   for (const rule of record.learning.doNotRetry) need(text(rule.approach) && text(rule.reason) && text(rule.reconsiderWhen), 'doNotRetry needs approach/reason/reconsiderWhen');
-  noSelfScore(record);
-  return true;
+  noSelfScore(record); return true;
+}
+export function validateReceipt(receipt) {
+  need(receipt?.schemaVersion === 2 && ID.test(receipt.experimentId || ''), 'receipt version/experiment');
+  gameId(receipt.game);
+  need(receipt.repository === REPOSITORY && Number.isSafeInteger(receipt.pullRequest) && receipt.pullRequest > 0, 'receipt repository/PR');
+  need(receipt.marker === `autonomous-receipt:${receipt.game}:${receipt.experimentId}`, 'receipt marker mismatch');
+  need(SHA.test(receipt.validatedHead || '') && SHA.test(receipt.validationBase || ''), 'receipt exact validation SHA required');
+  need(Number.isSafeInteger(receipt.run?.id) && receipt.run.id > 0 && text(receipt.run.url) && receipt.run.conclusion === 'success', 'receipt hosted run required');
+  need(['supported','refuted','inconclusive'].includes(receipt.verdict), 'receipt verdict required');
+  need(text(receipt.learning?.summary), 'receipt learning required');
+  for (const key of ['failedApproaches','doNotRetry','unresolved','next']) need(Array.isArray(receipt.learning[key]), `receipt learning.${key} required`);
+  need(receipt.merge?.state === 'merged' && SHA.test(receipt.merge.sha || ''), 'receipt merged SHA required');
+  need(Array.isArray(receipt.notVerified), 'receipt notVerified required');
+  if (receipt.staging) for (const side of ['before','after']) {
+    const observation=receipt.staging[side]; if (observation == null) continue;
+    need(observation.kind === 'immutable-staging' && SHA.test(observation.sourceSha || '') && text(observation.reference), 'invalid receipt staging observation');
+    need(Number.isFinite(Date.parse(observation.observedAt)) && observation.conditions && typeof observation.conditions === 'object', 'receipt staging conditions/time required');
+  }
+  noSelfScore(receipt); return true;
 }
 export function loadContext(root, game) {
   gameId(game);
@@ -86,6 +125,19 @@ export function loadContext(root, game) {
   return { game, app: GAMES[game], readFirst: ['AGENTS.md', '.autonomous/README.md', '.autonomous/protected-rules.md', ...['charter.md', 'protected-rules.md', 'observations.md', 'hypotheses.md', 'experiment-history.json'].map(p => `.autonomous/${game}/${p}`)], ...index,
     receiptRule: 'Resolve pending records through their PR receipt marker and live GitHub status; never infer merged from this index.' };
 }
+export function receiptPath(game,id) { gameId(game); need(ID.test(id || ''), 'receipt id'); return `.autonomous/${game}/receipts/${id}.json`; }
+export function persistedReceipt(root, game, id) {
+  const path=resolve(root, receiptPath(game,id));
+  if (!existsSync(path)) return null;
+  const receipt=json(path); validateReceipt(receipt);
+  need(receipt.game === game && receipt.experimentId === id, 'receipt identity mismatch');
+  return receipt;
+}
+function learningFor(root, game, entry, record) {
+  const receipt=persistedReceipt(root, game, entry.id);
+  if (receipt) return receipt.learning;
+  return record.schemaVersion === 1 ? record.learning : {summary:'Awaiting external receipt',failedApproaches:[],doNotRetry:[],unresolved:[],next:[]};
+}
 function atomicJson(path, value) {
   mkdirSync(dirname(path), { recursive: true });
   const temp = `${path}.${process.pid}.tmp`;
@@ -102,7 +154,7 @@ export function appendRecord(root, record) {
   mkdirSync(dirname(full), { recursive: true });
   writeFileSync(full, JSON.stringify(record, null, 2) + '\n', { flag: 'wx' });
   const index = json(resolve(base, 'experiment-history.json'));
-  index.recent.push({ id: record.id, problemKey: record.problemKey, path, verdict: record.comparison.verdict });
+  index.recent.push(record.schemaVersion === 1 ? { id: record.id, problemKey: record.problemKey, path, verdict: record.comparison.verdict } : { id: record.id, problemKey: record.problemKey, path, schemaVersion: 2 });
   while (index.recent.length > RECENT_LIMIT) archive.entries.push(index.recent.shift());
   index.archive.count = archive.entries.length;
   atomicJson(resolve(base, index.archive.path), archive);
@@ -116,14 +168,25 @@ export function historyForProblem(root, game, problemKey) {
   need(Array.isArray(archived) && archived.length === context.archive.count, 'archive metadata mismatch');
   return [...context.recent, ...archived].filter(row => row.problemKey === problemKey).map(row => {
     need(row.path === `experiments/${row.id}.json` && ID.test(row.id), 'unsafe history reference');
-    return { ...row, record: json(resolve(base, row.path)) };
+    const record=json(resolve(base, row.path)); return { ...row, record, learning: learningFor(root, game, row, record), receipt: persistedReceipt(root, game, row.id) };
   });
+}
+export function appendReceipt(root, receipt) {
+  validateReceipt(receipt);
+  const context=loadContext(root, receipt.game), archived=json(resolve(root,'.autonomous',receipt.game,context.archive.path)).entries;
+  const entry=[...context.recent, ...archived].find(row=>row.id===receipt.experimentId);
+  need(entry, 'receipt experiment missing from history');
+  const record=json(resolve(root,'.autonomous',receipt.game,entry.path)); validateRecord(record);
+  need(record.schemaVersion === 2, 'persisted receipt files are for v2 experiments');
+  const full=resolve(root, receiptPath(receipt.game,receipt.experimentId));
+  mkdirSync(dirname(full),{recursive:true}); writeFileSync(full,JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});
+  return {experimentId:receipt.experimentId,path:receiptPath(receipt.game,receipt.experimentId)};
 }
 export function checkPriorLearning(root, record) {
   const selected = record.candidates.find(c => c.selected)?.id;
   for (const previous of historyForProblem(root, record.game, record.problemKey)) {
     if (previous.id === record.id) continue;
-    for (const rule of previous.record.learning.doNotRetry) {
+    for (const rule of previous.learning.doNotRetry) {
       if (rule.approach !== selected) continue;
       const retry = record.retryJustification;
       need(retry?.previousId === previous.id && text(retry.changedEvidence) &&
@@ -141,6 +204,7 @@ export function checkHistoryChanges(root, baseRef, headRef = 'HEAD') {
   for (const row of rows) {
     const [status, path] = row.split('\t');
     if (/^\.autonomous\/(village|kuumetsu)\/experiments\/.+\.json$/.test(path)) need(status === 'A', 'past experiments cannot be edited/deleted; append a correction');
+    if (/^\.autonomous\/(village|kuumetsu)\/receipts\/.+\.json$/.test(path)) need(status === 'A', 'past receipts cannot be edited/deleted');
     if (status === 'D' && /(?:\.test\.mjs|\/tests\/)/.test(path)) fail(`test deletion is protected: ${path}`);
   }
   for (const game of Object.keys(GAMES)) {
@@ -163,7 +227,9 @@ export function checkHistoryChanges(root, baseRef, headRef = 'HEAD') {
       need(ID.test(entry.id || '') && entry.path === `experiments/${entry.id}.json`, 'unsafe historical pointer');
       const record = readAt(head, prefix + entry.path, null);
       validateRecord(record);
-      need(record.id === entry.id && record.game === game && record.problemKey === entry.problemKey && record.comparison.verdict === entry.verdict, 'historical pointer mismatch');
+      need(record.id === entry.id && record.game === game && record.problemKey === entry.problemKey, 'historical pointer mismatch');
+      if (record.schemaVersion === 1) need(record.comparison.verdict === entry.verdict, 'v1 verdict pointer mismatch');
+      else need(entry.schemaVersion === 2 && !Object.hasOwn(entry,'verdict'), 'v2 history must derive outcome from receipt');
     }
   }
   return true;
