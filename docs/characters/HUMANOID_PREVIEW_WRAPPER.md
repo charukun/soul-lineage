@@ -17,14 +17,14 @@ The adopted goal is to combine eligible imported character models and motion sou
 | Auto-skipping incompatible clips can show a different movement than the selected thumbnail. | Preserve the selected source identity. Play partial mappings in preview mode; show an explicit error/retry for truly unusable data. Never silently replace the user's chosen motion. |
 | Permissive preview must not become permissive asset ingestion. | Preserve pinned source byte/hash checks and the strict source API. Verify CC0 review targets and their exact bytes before parsing. No new external asset, third-party runtime URL, or retired model is adopted. |
 | Old selection promises, repeated grid recreation and an undefined `resize()` could independently break the view. | Guard both successful and failed async completions by model/selection generation. Keep card nodes on selection. Use the existing stage lifecycle and keep RAF alive after a recoverable playback failure. Native/legacy clips remain operable. |
-| Regex checks and successful builds did not prove a moving character. | Add native Three.js pose, vertex-deformation, seek/clip-switch, topology, integrity and scale tests. Additional geometry-only probing uses already-published immutable KayKit bytes. Do not call that browser or DEV verification. |
+| Approximate retargeting needs evidence, but Fast DEV must stay cheap. | Use task-scoped/local evidence only when materially needed, and do not retain one-off Actions tests solely for future reuse. The persistent Fast DEV path remains contract/freshness plus the smallest existing check, or `Astra-Validation: none` when appropriate. |
 
 ## Delivery plan executed in this change
 
 1. **Binding and capability layer**: `packages/rendering/src/humanoid-binding.js` resolves joints, records methods/stable paths, inspects skin data and measures ratios. It never mutates source geometry or grants asset approval.
 2. **Pose adapter**: `packages/rendering/src/humanoid-preview.js` owns immutable rest transforms, canonical preview poses, partial-body application, torso composition, root-motion policy and bounded displacement. `strict` refuses approximate application; `preview` allows it with diagnostics.
 3. **Source and review integration**: keep the original strict normalization API for existing consumers. Opt the motion view into `preview:true`; use the same common wrapper for target and thumbnail poses. Skeleton-only motion sources are valid, models need not contain embedded clips, and the UI shows the selected binding/result under `互換性・体格`.
-4. **Verification and delivery**: run the wrapper/source/UI focused tests and RINNE build on the exact work head in the existing hosted validator, reconcile current develop, validate the reconciled head and merge. No persistent workflow/lifecycle expansion; DEV publication stays asynchronous.
+4. **Verification and delivery**: keep the persistent Fast DEV path minimal. One-off authoring evidence must not become reusable Actions workload by default. Use the exact-head contract/freshness gate and only the smallest existing check that is materially necessary; otherwise declare `Astra-Validation: none`. DEV publication stays asynchronous.
 
 ## Status contract
 
@@ -50,11 +50,9 @@ Unknown models are not automatically added to the active catalog. Registration/p
 
 ## Evidence interpretation
 
-`tests/humanoid-preview-wrapper.test.mjs` proves actual vertex deformation on weighted fixtures, several proportions and naming/hierarchy cases, partial torso composition, reset isolation, scale/orientation behavior, and rejection of corrupt input.
+The v1 authoring pass used one-time native/geometry evidence to establish the wrapper behavior. Those task-specific tests are not part of the long-lived Fast DEV Actions surface and are not retained for automatic or future reuse.
 
-`tests/humanoid-preview-source.test.mjs` proves partial-source sampling, exact-end/backward seeking, clip isolation and that preview does not bypass clip/source/target integrity. `tests/review-effects-motion-thumbnails.test.mjs` retains the existing layout/accessibility guards and replaces the obsolete automatic-substitution policy with selected-clip preservation and stale-request/RAF guards.
-
-Browser evidence must be described separately. A downloaded artifact, native geometry probe, static source review or a successful RINNE build is not `DEV browser verified`. Merely adding `Browser-Playtest: rinne` to a PR is not proof that a browser workflow actually ran.
+Persistent confidence comes from the repository's existing gates plus explicit, narrowly scoped evidence only when a future task materially needs it. A downloaded artifact, native geometry probe, static source review or a successful build is not `DEV browser verified`. A browser-playtest marker is not proof that a browser workflow actually ran.
 
 ## External technique references
 
