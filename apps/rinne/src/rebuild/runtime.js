@@ -142,6 +142,8 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     if(event.type==='player-hit')gameScreen.classList.add('strike-mark');
     if(event.type==='enemy-hit'){pulseHurt();gameScreen.dispatchEvent?.(new CustomEvent('rinne:combat-feedback',{detail:{type:'enemy-hit'}}));}
     if(event.type==='evaded')toast('見切った');
+    if(event.type==='enemy-downed')toast('戦闘不能 · 近づいてとどめ');
+    if(event.type==='finisher-start')toast('とどめ');
     if(event.type==='enemy-down')toast('撃破');
     if(event.type==='downed'){pulseHurt();toast('行動不能 · 救助待ち');}
     if(event.type==='rescued')toast('衛兵に救助された');

@@ -2,6 +2,8 @@
 const finite = Number.isFinite;
 const point = (row, height = 1) => row && finite(row.x) && finite(row.z)
   ? {x:row.x, y:finite(row.y)?row.y:height, z:row.z} : null;
+const impactPoint=event=>Array.isArray(event?.impact?.point)&&event.impact.point.length>=3&&event.impact.point.every(Number.isFinite)
+  ?{x:event.impact.point[0],y:event.impact.point[1],z:event.impact.point[2]}:null;
 
 export function combatEffectScope(state, front) {
   return `${state?.id||''}:${state?.zone||''}:${state?.interior?.buildingId||''}:${front?.stage??''}`;
@@ -22,19 +24,19 @@ export function combatEffectCues(events, {state, front, hostiles=[], anchors={}}
   const cues=[];
   for(const event of events){
     if(!event||!finite(event.damage)||event.damage<=0)continue;
-    const manual=event.type==='one-motion';
+    const manual=event.type==='one-motion'||event.type==='finisher';
     if(manual&&hitTargets.has(event.targetId))continue;
     const outgoing=event.type==='player-hit'||manual;
     if(!outgoing&&event.type!=='enemy-hit')continue;
     const enemy=point(foes.get(outgoing?event.targetId:event.sourceId));
     // Unknown/despawned source is not drawn at the origin or at another actor.
     if(!enemy)continue;
-    const from=outgoing?hero:enemy,to=outgoing?enemy:hero;
+    const from=outgoing?hero:enemy,to=outgoing?enemy:hero,contact=impactPoint(event)||to;
     const heavy=outgoing&&(manual||event.manual===true||event.phase==='one'||event.phase==='kyu');
     const rotation={x:0,y:Math.atan2(to.x-from.x,to.z-from.z),z:0};
     const color=outgoing?[255,236,196,255]:[255,126,96,255];
     // The dedicated finisher keeps its authored burst; no synthetic hit is added.
-    cues.push({effect:heavy?'finisher':'impact',position:{...to},rotation,scale:heavy?1.15:1,
+    cues.push({effect:heavy?'finisher':'impact',position:{...contact},rotation,scale:heavy?1.15:1,
       lifetime:heavy?1.8:1.2,color,priority:heavy?3:2,kind:heavy?'finisher':'contact'});
     // The authored ribbon follows the same Tidebreak hand/tip snapshot used by the visible weapon pose when available.
     if(outgoing){const anchor=anchors.hero,cuePosition=anchor?.position||{x:(from.x+to.x)/2,y:from.y,z:(from.z+to.z)/2};cues.push({effect:'slash',position:{...cuePosition},rotation:anchor?.rotation||rotation,scale:heavy?1.35:1,lifetime:.65,color,priority:1,kind:'contact-trail',followKey:anchor?'hero':null});}

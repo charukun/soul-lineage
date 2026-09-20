@@ -19,6 +19,7 @@ test('confirmed damage maps to target impact and authored source-to-target slash
   const before=JSON.stringify(context),cues=combatEffectCues([hit],context);
   assert.deepEqual(cues.map(c=>c.effect),['impact','slash']);assert.deepEqual(cues[0].position,{x:4,y:1,z:3});
   assert.deepEqual(cues[1].position,{x:3,y:1,z:3});assert.equal(cues[0].rotation.y,Math.PI/2);
+  const exact=combatEffectCues([{...hit,impact:{point:[3.6,1.22,3.1]}}],context);assert.deepEqual(exact[0].position,{x:3.6,y:1.22,z:3.1});
   assert.equal(JSON.stringify(context),before);
 });
 test('evade, block, zero damage, nonfinite damage and unresolved target never invent impacts',()=>{

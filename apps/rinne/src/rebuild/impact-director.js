@@ -6,14 +6,14 @@ const GUARD_ATTACKS=new Set(['guard','parry','counter','brace','ward','slip','re
 
 function actorPose(actor){return actor?.combat?.tidebreakPose||actor?.tidebreakPose||null;}
 function actorWeapon(actor){return actor?.equipment?.weapon||actor?.weapon||'sword';}
-function targetForEvent(event,{state,front}){return event.type==='player-hit'||event.type==='one-motion'?(front?.enemies||[]).find(row=>row.id===event.targetId)||null:state;}
+function targetForEvent(event,{state,front}){return event.type==='player-hit'||event.type==='one-motion'||event.type==='finisher'?(front?.enemies||[]).find(row=>row.id===event.targetId)||null:state;}
 function sourceForEvent(event,{state,front}){return event.type==='enemy-hit'?(front?.enemies||[]).find(row=>row.id===event.sourceId)||null:state;}
-function phaseForce(event){if(event.type==='one-motion'||event.manual===true||event.phase==='one')return 1.5;if(event.phase==='kyu')return 1.3;if(event.phase==='ha')return 1.08;return 1;}
+function phaseForce(event){if(event.type==='one-motion'||event.type==='finisher'||event.manual===true||event.phase==='one'||event.phase==='finisher')return 1.5;if(event.phase==='kyu')return 1.3;if(event.phase==='ha')return 1.08;return 1;}
 function directionForce(event){const sector=event.attackSector||event.sector;return sector==='back'?1.08:sector==='flank'||sector==='left'||sector==='right'?1.035:1;}
 function impactPart(event,pose){if(event.part)return event.part;const attack=String(pose?.attack||'');if(['uppercut','risingfist','meteor'].includes(attack))return'head';if(['sweep','round','spin'].includes(attack))return event.attackSector==='flank'?'rightArm':'torso';if(['thrust','pierce','straight','oneinch'].includes(attack))return'torso';return'torso';}
 
 export function impactEnergyForEvent(event,context={}){
-  if(!event||!['player-hit','enemy-hit','one-motion'].includes(event.type)||!(Number(event.damage)>0))return 0;
+  if(!event||!['player-hit','enemy-hit','one-motion','finisher'].includes(event.type)||!(Number(event.damage)>0))return 0;
   const source=sourceForEvent(event,context),target=targetForEvent(event,context),pose=actorPose(source),attack=String(pose?.attack||event.attack||'slash');
   const mass=WEAPON_MASS[actorWeapon(source)]||1,force=ATTACK_FORCE[attack]||1,phase=phaseForce(event),progress=clamp(pose?.progress),timing=.9+.1*Math.sin(progress*Math.PI),direction=directionForce(event),maxHp=Math.max(1,Number(target?.maxHp)||100),damageRatio=clamp(Number(event.damage)/maxHp,0,.7),direct=(event.guarded||event.blocked) ? .72 : 1,projectile=event.projectile ? .88 : 1;
   return clamp((.07+mass*.185+force*.175+phase*.125+Math.sqrt(damageRatio)*.27)*timing*direction,0,1)*direct*projectile;
@@ -35,7 +35,7 @@ export function weaponAnchor(actor){
   const frame=actorPose(actor),hand=frame?.pose?.hand,tip=frame?.pose?.tip,a=localPoint(actor,hand),b=localPoint(actor,tip);if(!a||!b)return null;const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,h=Math.max(.001,Math.hypot(dx,dz));return{position:{x:b.x,y:b.y,z:b.z},rotation:{x:-Math.atan2(dy,h),y:Math.atan2(dx,dz),z:0},hand:a,tip:b};
 }
 
-function attackVector(source,target){const anchor=weaponAnchor(source);if(anchor){const dx=anchor.tip.x-anchor.hand.x,dz=anchor.tip.z-anchor.hand.z,len=Math.max(.001,Math.hypot(dx,dz));return{x:dx/len,z:dz/len};}const a=source?.position||source,b=target?.position||target,dx=(Number(b?.x)||0)-(Number(a?.x)||0),dz=(Number(b?.z)||0)-(Number(a?.z)||0),len=Math.max(.001,Math.hypot(dx,dz));return{x:dx/len,z:dz/len};}
+function attackVector(source,target,event=null){const yaw=Number(event?.impact?.yaw);if(Number.isFinite(yaw))return{x:Math.sin(yaw),z:Math.cos(yaw)};const anchor=weaponAnchor(source);if(anchor){const dx=anchor.tip.x-anchor.hand.x,dz=anchor.tip.z-anchor.hand.z,len=Math.max(.001,Math.hypot(dx,dz));return{x:dx/len,z:dz/len};}const a=source?.position||source,b=target?.position||target,dx=(Number(b?.x)||0)-(Number(a?.x)||0),dz=(Number(b?.z)||0)-(Number(a?.z)||0),len=Math.max(.001,Math.hypot(dx,dz));return{x:dx/len,z:dz/len};}
 
 function lerpValue(a,b,t){if(Number.isFinite(a)&&Number.isFinite(b))return a+(b-a)*t;if(Array.isArray(a)&&Array.isArray(b)&&a.length===b.length)return a.map((v,i)=>lerpValue(v,b[i],t));if(a&&b&&typeof a==='object'&&typeof b==='object'){const out={...a};for(const key of Object.keys(b))out[key]=lerpValue(a[key],b[key],t);return out;}return t>.65?clone(b):clone(a??b);}
 function blendFrame(previous,current,t,slow){if(!current)return null;if(!previous||!slow)return clone(current);const same=previous.attack===current.attack&&previous.skill===current.skill;if(!same&&t<.72)return clone(previous);return lerpValue(previous,current,t);}
@@ -44,10 +44,10 @@ export function createImpactDirector({mobile=false,reducedMotion=false}={}){
   let stop=0,slow=0,slowDuration=0,slowScale=1,qualityLevel=0,reduced=reducedMotion,hidden=false,camera={x:0,z:0,strength:0,fov:0},reactions=[],poseDisplay=new Map(),attackTrack=new Map(),strongest=null;
   function present(events,context={}){
     if(hidden||!Array.isArray(events))return{impacts:[],strongest:null};const impacts=[],hitTargets=new Set(events.filter(event=>event?.type==='player-hit'&&Number(event.damage)>0).map(event=>event.targetId)),downTargets=new Set(events.filter(event=>event?.type==='enemy-down').map(event=>event.targetId));
-    for(const event of events){if(event?.type==='one-motion'&&hitTargets.has(event.targetId))continue;let energy=impactEnergyForEvent(event,context);if(downTargets.has(event?.targetId))energy=clamp(energy+.1);if(!(energy>0))continue;const profile=impactProfile(energy,{reduced,qualityLevel}),source=sourceForEvent(event,context),target=targetForEvent(event,context),vector=attackVector(source,target),targetKey=event.type==='enemy-hit'?'hero':`enemy:${event.targetId}`;
+    for(const event of events){if(event?.type==='one-motion'&&hitTargets.has(event.targetId))continue;let energy=impactEnergyForEvent(event,context);if(downTargets.has(event?.targetId))energy=clamp(energy+.1);if(!(energy>0))continue;const profile=impactProfile(energy,{reduced,qualityLevel}),source=sourceForEvent(event,context),target=targetForEvent(event,context),vector=attackVector(source,target,event),targetKey=event.type==='enemy-hit'?'hero':`enemy:${event.targetId}`;
       impacts.push({event,profile,source,target,vector,targetKey,part:impactPart(event,actorPose(source))});
     }
-    impacts.sort((a,b)=>b.profile.energy-a.profile.energy);strongest=impacts[0]||null;if(strongest){const p=strongest.profile;stop=Math.max(stop,p.stop);slow=Math.max(slow,p.slow);slowDuration=Math.max(slowDuration,p.slow);slowScale=Math.min(slowScale,p.scale);camera={x:strongest.vector.x,z:strongest.vector.z,strength:Math.max(camera.strength,p.camera),fov:Math.max(camera.fov,p.fov)};}
+    impacts.sort((a,b)=>b.profile.energy-a.profile.energy);strongest=impacts[0]||null;if(strongest){const p=strongest.profile,shared=strongest.event?.feel;if(!shared){stop=Math.max(stop,p.stop);slow=Math.max(slow,p.slow);slowDuration=Math.max(slowDuration,p.slow);slowScale=Math.min(slowScale,p.scale);}camera={x:strongest.vector.x,z:strongest.vector.z,strength:Math.max(camera.strength,p.camera),fov:Math.max(camera.fov,p.fov)};}
     for(const row of impacts)reactions.push({actorKey:row.targetKey,part:row.part,vector:row.vector,energy:row.profile.energy,remaining:.12+row.profile.energy*.12,duration:.12+row.profile.energy*.12});
     reactions=reactions.sort((a,b)=>b.energy-a.energy).slice(0,8);return{impacts,strongest};
   }

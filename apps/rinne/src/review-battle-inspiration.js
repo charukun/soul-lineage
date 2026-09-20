@@ -17,7 +17,7 @@ const SIGN_TEXT=Object.freeze({
   ha:'この崩しなら、もう一手を重ねられる。',
   kyu:'この間なら、最後まで届く。'
 });
-export const REVIEW_INSPIRATION_TIMELINE=Object.freeze({camera:.55,spacing:1.35,stagger:2.35,reveal:3.15,execute:3.65,end:5.35});
+export const REVIEW_INSPIRATION_TIMELINE=Object.freeze({camera:.12,spacing:.18,stagger:.58,reveal:.72,execute:1.08,end:2.65});
 
 const reviewArts=(open,middle,finish,tag)=>Object.freeze({
   open:Object.freeze(open),middle:Object.freeze(middle),finish:Object.freeze(finish),tag
@@ -119,7 +119,9 @@ export function reviewInspirationSequenceFrame(elapsed){
   else if(t>=m.spacing){stage='spacing';start=m.spacing;end=m.stagger;}
   else if(t>=m.camera){stage='camera';start=m.camera;end=m.spacing;}
   const progress=Math.max(0,Math.min(1,(t-start)/Math.max(.001,end-start)));
-  const spacing=stage==='spacing'?progress:stage==='stagger'||stage==='reveal'?1:stage==='execute'?1-progress:0;
+  const backstepStart=m.spacing,backstepDuration=Math.max(.001,m.stagger-m.spacing),backstepProgress=Math.max(0,Math.min(1,(t-backstepStart)/backstepDuration));
+  const burst=1-Math.pow(1-backstepProgress,4);
+  const spacing=stage==='spacing'?burst:stage==='stagger'||stage==='reveal'?1:stage==='execute'?1-progress:0;
   const executeProgress=stage==='execute'?progress:0;
-  return Object.freeze({stage,progress,elapsed:t,spacing,executeProgress});
+  return Object.freeze({stage,progress,elapsed:t,spacing,executeProgress,backstepProgress});
 }

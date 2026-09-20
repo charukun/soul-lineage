@@ -11,6 +11,8 @@ test('rapid board exposes work, app publication, issues and recent history witho
   }
   assert.match(script, /state\?\.pullRequests\?\.normal/);
   assert.match(script, /state\?\.applications/);
+  assert.match(script, /function managedApps/);
+  assert.doesNotMatch(script, /all\.slice\(0, 3\)|managedApps\(state\)\.slice\(0, 3\)/);
   assert.match(script, /eventDrivenAlerts/);
   assert.match(script, /state\?\.history\?\.publications/);
   assert.match(script, /state\?\.controlTower\?\.timeline/);

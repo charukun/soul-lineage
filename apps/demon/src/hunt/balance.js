@@ -47,6 +47,7 @@ export function automaticGrowth(profile) {
   };
 }
 export function huntPlan(profile, route = 'mission') {
+  if (!['mission', 'forage'].includes(route)) throw Error('狩りの経路が不正です。');
   const progress = readProgress(profile), chapter = progress.chapter;
   if (route === 'forage') return {chapter, route, name: '近場で立て直す', target: 'traveller', prey: '旅人', quota: 2, marked: false, bonus: 2, scale: 'small'};
   return {...MISSIONS[Math.min(chapter, MISSIONS.length - 1)], chapter, route: 'mission'};
@@ -109,7 +110,6 @@ export function settleProgress(profile, status, eaten, report) {
   const gained = extracted ? report.carried + bonus : 0;
   if (!integer(p.essence + gained) || !integer(p.returns + Number(extracted))) throw Error('帰還の記録が上限に達しました。');
   p.essence += gained; p.returns += Number(extracted);
-  if (extracted) p.autoGrowth = true;
   if (cleared) p.chapter = Math.min(MISSIONS.length, p.chapter + 1);
   p.bestHaul = Math.max(p.bestHaul, gained);
   p.lastResult = {status, extracted, cleared, gained, bonus, carried: report.carried, lost: extracted ? 0 : report.carried, eaten, chapter: p.chapter};

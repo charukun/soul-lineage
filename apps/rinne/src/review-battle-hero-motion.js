@@ -23,6 +23,24 @@ function idleGuard(bones,time){
   rotate(bones.leftUpperArm,-.26,0,-.2);rotate(bones.rightUpperArm,-.42,0,.18);
   rotate(bones.leftLowerArm,-.5);rotate(bones.rightLowerArm,-.58);
 }
+
+function backstepPose(bones,sequence){
+  const p=clamp(Number(sequence?.backstepProgress)||0,0,1);
+  if(p<=0)return false;
+  const launch=smooth01(clamp(p/.34,0,1)),air=Math.sin(Math.min(1,p)*Math.PI),land=smooth01(clamp((p-.68)/.32,0,1));
+  rotate(bones.hips,-.08*launch+.13*land,0,.035*Math.sin(p*Math.PI));
+  shiftY(bones.hips,air*.085-land*.035);
+  rotate(bones.spine,.22*launch-.16*land,0,-.05*Math.sin(p*Math.PI));
+  rotate(bones.head,-.06*launch+.04*land);
+  rotate(bones.leftUpperLeg,-.52*launch+.24*land);
+  rotate(bones.rightUpperLeg,.36*launch-.18*land);
+  rotate(bones.leftLowerLeg,.68*launch-.42*land);
+  rotate(bones.rightLowerLeg,-.5*launch+.34*land);
+  rotate(bones.leftUpperArm,-.22*launch,0,-.16*launch);
+  rotate(bones.rightUpperArm,-.18*launch,0,.14*launch);
+  rotate(bones.leftLowerArm,-.28*launch);rotate(bones.rightLowerArm,-.24*launch);
+  return true;
+}
 function sweepPose(bones,{release,recover,strike,cinematic}){
   const arc=(release*1.05-recover*.32)*cinematic;
   rotate(bones.rightUpperArm,-.48-.72*arc,-.22-.34*arc,.28-.44*arc);
@@ -48,6 +66,7 @@ const STYLE_POSE=Object.freeze({sweep:sweepPose,thrust:thrustPose,strike:strikeP
 export function applyReviewCombatMotion(bones,frame,sequence,time){
   if(!bones)return;
   const attack=String(frame?.attack||'');
+  if(backstepPose(bones,sequence)){if(!attack)idleGuard(bones,time);return;}
   if(!attack){idleGuard(bones,time);return;}
   const progress=clamp(Number(frame?.progress)||0,0,1),cinematic=sequence?.stage==='execute'?1.16:1;
   const wind=smooth01(clamp(progress/.24,0,1)),release=smooth01(clamp((progress-.18)/.42,0,1));

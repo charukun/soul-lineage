@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8');
 const main = read('../index.html'), advanced = read('../advanced.html');
-const engine = read('../src/character-review.js'), shell = read('../src/character-review-main.js');
+const engine = read('../src/character-review.js'), shell = read('../src/character-review-main.js'), grid = read('../src/character-review-grid.js');
 const css = read('../src/character-review-main.css'), detailCss = read('../src/character-review-advanced.css');
 const vite = read('../vite.config.js');
 test('main and advanced retain every audited renderer control with unique IDs', () => {
@@ -23,6 +23,7 @@ test('model review is the visible purpose while detailed editing controls remain
   assert.match(main, /href="\.\/advanced\.html"/);
   assert.match(shell, /ArrowRight/); assert.match(shell, /ArrowLeft/);
   for (const id of ['undo','redo','save-workspace','original-preview']) assert.ok(main.includes(`id="${id}"`));
+  for (const cls of ['review-slot-tabs','review-selection-current','review-choice-grid','review-choice-card','review-action-row']) assert.match(grid,new RegExp(cls));
   for (const id of ['seed','gene-height','session-file']) assert.ok(advanced.includes(`id="${id}"`));
 });
 test('both pages have bounded viewports and independent control scrolling', () => {

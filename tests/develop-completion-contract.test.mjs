@@ -9,15 +9,10 @@ import {
   LEGACY_READY_TERMINAL,
   verifyDevelopCompletionContract,
 } from '../scripts/develop-completion-contract.mjs';
-import { REPOSITORY, CONTEXTS, json, validateRecord, loadContext, appendRecord, checkPriorLearning, evaluateMergeGate } from '../.autonomous/lib/contract.mjs';
+import { REPOSITORY, CONTEXTS, json, validateRecord, validateReceipt, loadContext, appendRecord, appendReceipt, persistedReceipt, checkPriorLearning, evaluateMergeGate } from '../.autonomous/lib/contract.mjs';
 import { compareReports } from '../.autonomous/lib/probes.mjs';
-import { validateActiveExperiments } from '../.autonomous/lib/validation.mjs';
+import { activeExperimentsFromDiff, discoverActiveExperiments, validateActiveExperiments } from '../.autonomous/lib/validation.mjs';
 
-// Update these IDs for each requested iteration. This is meaningful test data,
-// selecting the exact experiment whose evidence and merge contract must hold.
-const activeExperiments = [
-  { game: 'kuumetsu', id: 'kuumetsu-plan-chapter-binding-20260920' },
-];
 const root = fileURLToPath(new URL('../', import.meta.url));
 
 test('develop implementation success terminates only after exact-head merge',async()=>{
@@ -56,6 +51,9 @@ test('develop implementation success terminates only after exact-head merge',asy
   const feedback = structuredClone(record); feedback.observation.evidence = [{ kind: 'user-feedback', statement: 'reported issue' }];
   assert.throws(() => validateRecord(feedback), /original words/);
   assert.equal(json(resolve(root, '.autonomous/schema/experiment.schema.json')).properties.schemaVersion.const, 1);
+  assert.equal(json(resolve(root, '.autonomous/schema/experiment-v2.schema.json')).properties.schemaVersion.const, 2);
+  assert.equal(json(resolve(root, '.autonomous/schema/receipt.schema.json')).properties.schemaVersion.const, 2);
+  assert.deepEqual(activeExperimentsFromDiff('A\t.autonomous/village/experiments/village-example-20260920.json\nM\tapps/village/src/game/core.js'),[{game:'village',id:'village-example-20260920'}]);
 
   const temp = mkdtempSync(resolve(tmpdir(), 'autonomous-ledger-'));
   try {
@@ -74,15 +72,30 @@ test('develop implementation success terminates only after exact-head merge',asy
     assert.equal(after.recent.length, 12);
     assert.ok(after.archive.count > beforeCount);
     assert.equal(json(resolve(temp, '.autonomous/village/experiments/' + record.id + '.json')).learning.doNotRetry.length, record.learning.doNotRetry.length);
+    const v2={
+      schemaVersion:2,id:'synthetic-v2-ledger',game:'village',mode:'hardening',kind:'gameplay',problemKey:'synthetic-v2-root',
+      observation:{summary:'fixed staging-bound observation',staging:{kind:'immutable-staging',sourceSha:base,reference:'artifact:village/web-stage/'+base,observedAt:'2026-09-20T00:00:00Z',conditions:{scenario:'synthetic'},notVerified:[]},evidence:[{kind:'source',revision:base,path:'apps/village/src/game/demography.js',symbol:'planDemographicYear',statement:'synthetic source evidence'}]},
+      hypothesis:{cause:'synthetic cause',prediction:'synthetic prediction',falsifier:'synthetic falsifier'},
+      candidates:[{id:'small-fix',selected:true,reason:'synthetic selected'},{id:'large-fix',selected:false,reason:'synthetic rejected'}],
+      implementation:{paths:['apps/village/src/game/demography.js'],summary:'synthetic implementation'},
+      evidencePlan:{objective:'reproducible-causality',focusedTests:['apps/village/tests/demography.test.mjs'],stagingAfter:'optional',limitations:['synthetic only']},
+      receipt:{repository:REPOSITORY,pullRequest:123,marker:'autonomous-receipt:village:synthetic-v2-ledger'}
+    };
+    assert.equal(validateRecord(v2),true);appendRecord(temp,v2);
+    const receipt={schemaVersion:2,marker:v2.receipt.marker,repository:REPOSITORY,experimentId:v2.id,game:'village',pullRequest:123,validatedHead:head,validationBase:base,run:{id:123,url:'https://github.com/'+REPOSITORY+'/actions/runs/123',conclusion:'success'},verdict:'supported',learning:{summary:'synthetic learning',failedApproaches:[],doNotRetry:[],unresolved:[],next:[]},merge:{state:'merged',sha:'3'.repeat(40)},notVerified:[]};
+    assert.equal(validateReceipt(receipt),true);appendReceipt(temp,receipt);assert.equal(persistedReceipt(temp,'village',v2.id).verdict,'supported');
   } finally { rmSync(temp, { recursive: true, force: true }); }
 
-  const reports = await validateActiveExperiments(root, activeExperiments);
-  const { before, after } = reports[0];
-  assert.equal(compareReports(after, after).changed, false);
-  const otherConditions = structuredClone(after); otherConditions.conditions.seeds = [999];
-  assert.throws(() => compareReports(before, otherConditions), /incomparable/);
-  const otherHarness = structuredClone(after); otherHarness.harness.sha256 = 'a'.repeat(64);
-  assert.throws(() => compareReports(before, otherHarness), /incomparable/);
-  const missingMetric = structuredClone(after); delete missingMetric.rows[0].metrics[Object.keys(missingMetric.rows[0].metrics)[0]];
-  assert.throws(() => compareReports(before, missingMetric), /metric\/scenario/);
+  const activeExperiments=discoverActiveExperiments(root);
+  if(activeExperiments.length){
+    const reports = await validateActiveExperiments(root, activeExperiments);
+    const { before, after } = reports[0];
+    assert.equal(compareReports(after, after).changed, false);
+    const otherConditions = structuredClone(after); otherConditions.conditions.seeds = [999];
+    assert.throws(() => compareReports(before, otherConditions), /incomparable/);
+    const otherHarness = structuredClone(after); otherHarness.harness.sha256 = 'a'.repeat(64);
+    assert.throws(() => compareReports(before, otherHarness), /incomparable/);
+    const missingMetric = structuredClone(after); delete missingMetric.rows[0].metrics[Object.keys(missingMetric.rows[0].metrics)[0]];
+    assert.throws(() => compareReports(before, missingMetric), /metric\/scenario/);
+  }
 });

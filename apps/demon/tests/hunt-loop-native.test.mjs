@@ -70,6 +70,7 @@ test('real consumption, extraction, save reopen, upgrade and death form one pers
       }
     }
   }
+  assert.throws(()=>huntPlan({},'unknown-route'),/狩りの経路/);
   const forgedSource={[PROGRESS_KEY]:{...freshProgress(),chapter:5}}, forgedPlan=huntPlan(forgedSource), untouched={};
   assert.throws(()=>settleProgress(untouched,'escaped',5,{carried:10,plan:forgedPlan,targetEaten:true,returnVerified:true}),/戦利品の記録/);
   assert.equal(readProgress(untouched).essence,0,'forged future chapter must not select a richer canonical bonus');

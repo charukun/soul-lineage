@@ -121,16 +121,16 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   modelHeading.append(make('strong', '', 'モデルを選ぶ'), make('span', 'character-model-picker-current', '読込中'));
   const modelList = make('select', 'character-model-list'); modelList.setAttribute('aria-label', 'キャラクターモデル候補');
   modelPicker.append(modelHeading, modelList);
-  const slots = make('nav', 'character-review-slots'); slots.setAttribute('role', 'tablist'); slots.setAttribute('aria-label', '詳細レビュー項目');
+  const slots = make('nav', 'character-review-slots review-slot-tabs'); slots.setAttribute('role', 'tablist'); slots.setAttribute('aria-label', '詳細レビュー項目');
   const criteria = make('div', 'character-review-criteria');
   criteria.setAttribute('aria-label', '確認観点');
   criteria.append(make('span', 'character-review-criteria-label', '確認観点'));
   for (const [, label] of REVIEW_CRITERIA) criteria.append(make('span', 'character-review-criterion', label));
-  const heading = make('div', 'character-review-current'); heading.id = 'character-review-current'; heading.setAttribute('role', 'status');
+  const heading = make('div', 'character-review-current review-selection-current'); heading.id = 'character-review-current'; heading.setAttribute('role', 'status');
   const panel = make('section', 'character-review-candidates'); panel.id = 'character-review-candidates'; panel.setAttribute('role', 'tabpanel');
-  const grid = make('div', 'character-review-grid'); grid.setAttribute('role', 'group'); grid.setAttribute('aria-labelledby', heading.id);
+  const grid = make('div', 'character-review-grid review-choice-grid'); grid.setAttribute('role', 'group'); grid.setAttribute('aria-labelledby', heading.id);
   const empty = make('p', 'character-review-empty', 'モデルを読み込んでいます。'); panel.append(grid, empty);
-  const tools = make('div', 'character-review-tools'); tools.setAttribute('aria-label', 'レビュー操作');
+  const tools = make('div', 'character-review-tools review-action-row'); tools.setAttribute('aria-label', 'レビュー操作');
   root.append(modelPicker, criteria, slots, heading, panel, tools); controls.prepend(root);
   const state = { active: 'individual', camera: 'front', framed: false, autoFit: true, queued: false, signature: '', modelSignature: '', groups: [] };
   const slotNodes = new Map();
@@ -190,7 +190,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   function renderOptions(group) {
     const focused = grid.contains(doc.activeElement) ? doc.activeElement?.dataset.optionKey : null;
     grid.replaceChildren(...group.options.map(option => {
-      const button = make('button', 'character-review-option'); button.type = 'button'; button.dataset.optionKey = option.key; button.dataset.group = group.id;
+      const button = make('button', 'character-review-option review-choice-card'); button.type = 'button'; button.dataset.optionKey = option.key; button.dataset.group = group.id;
       button.disabled = option.disabled; button.title = option.fullLabel; button.setAttribute('aria-label', option.fullLabel);
       button.setAttribute('aria-pressed', String(option.selected));
       const mark = make('span', 'character-review-mark', optionMark(group, option)); mark.setAttribute('aria-hidden', 'true');
