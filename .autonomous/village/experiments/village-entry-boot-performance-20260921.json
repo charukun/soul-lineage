@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 2,
+  "id": "village-entry-boot-performance-20260921",
+  "game": "village",
+  "mode": "hardening",
+  "kind": "gameplay",
+  "themeKey": "entry-screen-responsive-before-heavy-enhancements",
+  "rootCauses": [
+    {
+      "key": "entry-title-blocked-by-post-boot-graph",
+      "summary": "The title overlay is created from mura-entry-polish, but main waits for the entire mura-enhancements graph before importing the entry surface.",
+      "prediction": "Loading the entry surface before the enhancement graph removes heavy enhancement execution from pre-entry critical path.",
+      "falsifier": "Immutable After still executes the full enhancement graph before the entry CTA is interactive.",
+      "paths": [
+        "apps/village/src/main.js",
+        "apps/village/src/mura-enhancements.js"
+      ]
+    },
+    {
+      "key": "heavy-enhancements-run-before-player-intent",
+      "summary": "Director/crowd/visual/runtime post-boot modules execute while the player is still on the title card, producing long main-thread tasks with no gameplay benefit yet.",
+      "prediction": "Post-entry event gating keeps those modules out of the title dwell window while preserving them after entering the village.",
+      "falsifier": "Enhancements fail to load after entry or title-dwell long tasks remain materially unchanged.",
+      "paths": [
+        "apps/village/src/main.js",
+        "apps/village/src/mura-entry-polish.js"
+      ]
+    }
+  ],
+  "observation": {
+    "summary": "Immutable village staging reaches the title, but browser evidence records severe title-dwell main-thread stalls: 96 frame samples with 44 over 50ms, p50 33.2ms, and long tasks including 7.133s while the player has not entered the village.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "956da4c83dc3025bf1286a42ee6e61eebbe752ea",
+      "reference": "https://9997bb62-soul-lineage-village-dev.c-okamoto.workers.dev/",
+      "observedAt": "2026-09-20T21:31:49Z",
+      "conditions": {
+        "scenario": "fresh/saved title card, no input, 3.5s dwell",
+        "device": "GitHub hosted Chromium / SwiftShader",
+        "viewport": "673x841",
+        "developHead": "995b098d763442388b995b7d6c379d0a3efd912a",
+        "targetTreeIdentity": "956da..995 changes only apps/rinne"
+      },
+      "notVerified": [
+        "physical Pixel Fold timing",
+        "network cold-cache variance"
+      ]
+    },
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "995b098d763442388b995b7d6c379d0a3efd912a",
+        "path": "apps/village/src/main.js",
+        "symbol": "post-boot import order",
+        "statement": "main awaits mura-enhancements before character runtime, interface installation and village visual language; the title surface is nested inside that enhancement graph."
+      },
+      {
+        "kind": "source",
+        "revision": "995b098d763442388b995b7d6c379d0a3efd912a",
+        "path": "apps/village/src/mura-enhancements.js",
+        "symbol": "ordered side-effect imports",
+        "statement": "The graph synchronously includes world systems, performance, experience, director, crowd and entry-polish side effects before main continues."
+      },
+      {
+        "kind": "source",
+        "revision": "995b098d763442388b995b7d6c379d0a3efd912a",
+        "path": "apps/village/src/mura-entry-polish.js",
+        "symbol": "open / muraEnterVillage",
+        "statement": "The entry card itself only needs the already-booted village object and currently has no post-entry lifecycle signal."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "A presentation-only title gate is placed behind a large post-boot side-effect graph, so work needed only after player intent blocks title responsiveness.",
+    "prediction": "Move the title surface and core interface ahead of the optional enhancement graph, then trigger enhancements from a one-shot entered event. Same-condition immutable staging should show a responsive title dwell with no multi-second enhancement long task.",
+    "falsifier": "Focused tests fail to prove ordering/event lifecycle, entering loses enhancement behavior, or After staging retains the same multi-second title dwell stall."
+  },
+  "candidates": [
+    {
+      "id": "defer-enhancements-until-entry",
+      "selected": true,
+      "reason": "Moves nonessential work off the title critical path without removing systems or lowering visual/gameplay quality."
+    },
+    {
+      "id": "delete-expensive-enhancements",
+      "selected": false,
+      "reason": "Would weaken established features and quality instead of fixing lifecycle timing."
+    },
+    {
+      "id": "reduce-render-quality-on-title",
+      "selected": false,
+      "reason": "The observed stall is main-thread module/boot work; lowering visuals does not address the causal ordering."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/village/src/main.js",
+      "apps/village/src/mura-entry-polish.js",
+      "apps/village/tests/stylized-performance.test.mjs"
+    ],
+    "summary": "Install core interface and entry title first, dispatch a one-shot village:entered signal, and only then dynamically load post-boot enhancements/character integration/visual language."
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": [
+      "apps/village/tests/stylized-performance.test.mjs"
+    ],
+    "stagingAfter": "required",
+    "limitations": [
+      "SwiftShader timing is not a physical Pixel Fold benchmark.",
+      "Browser long-task timing can vary; lifecycle ordering is separately proven by source-level native assertions."
+    ]
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": null,
+    "marker": "autonomous-receipt:village:village-entry-boot-performance-20260921"
+  }
+}
