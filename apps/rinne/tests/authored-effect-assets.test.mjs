@@ -62,16 +62,16 @@ test('same-length altered bytes fail integrity validation',()=>{
   const bytes=Buffer.from('authored'),row={path:'sample',byteLength:bytes.length,gitBlobSha:gitBlobSha(bytes)};
   assert.equal(verifyEffectBytes(row,bytes),true);assert.throws(()=>verifyEffectBytes(row,Buffer.from('alteredd')),/integrity/);
 });
-test('download uses sourcePath when target path is namespaced, falls back, verifies cache, and rejects corruption',async()=>{
+test('download uses the project asset origin, verifies cache, and rejects corruption',async()=>{
   const outputRoot=await mkdtemp(path.join(tmpdir(),'rinne-vfx-'));
   try{
     const bytes=Buffer.from('exact original'),row={path:'review-library/source.dat',sourcePath:'source.dat',target:'review-library/copy.dat',repository:'example/assets',revision:'a'.repeat(40),byteLength:bytes.length,gitBlobSha:gitBlobSha(bytes)};
-    const urls=[],fetchImpl=async url=>{urls.push(url);return urls.length===1?new Response('down',{status:503}):new Response(bytes);};
-    const result=await acquireEffect(row,{outputRoot,fetchImpl});assert.equal(result.source,'pinned-upstream');assert.equal(urls.length,2);
-    assert.ok(urls.every(u=>u.includes('/source.dat')));assert.ok(urls.every(u=>!u.includes('/review-library/source.dat')));
+    const urls=[],fetchImpl=async url=>{urls.push(String(url));return new Response(bytes);};
+    const result=await acquireEffect(row,{outputRoot,fetchImpl});assert.equal(result.source,'project-dev-origin');assert.equal(urls.length,1);
+    assert.match(urls[0],/^https:\/\/soul-lineage-rinne-dev\.c-okamoto\.workers\.dev\/simulator\/assets\/effekseer\/review-library\/copy\.dat$/);
     assert.deepEqual(await readFile(result.target),bytes);
     assert.equal((await acquireEffect(row,{outputRoot,fetchImpl:()=>{throw Error('must not fetch');}})).source,'verified-cache');
-    await writeFile(result.target,'corrupt');await assert.rejects(acquireEffect(row,{outputRoot,fetchImpl:async()=>new Response('wrong')}),/acquisition failed/);
+    await writeFile(result.target,'corrupt');await assert.rejects(acquireEffect(row,{outputRoot,fetchImpl:async()=>new Response('wrong')}),/project-origin acquisition failed/);
   }finally{await rm(outputRoot,{recursive:true,force:true});}
 });
 test('oversized and traversal downloads are rejected',async()=>{
