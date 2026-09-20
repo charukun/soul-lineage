@@ -5,6 +5,7 @@ import {createServer} from 'node:http';
 import {readFile,writeFile,mkdir,stat} from 'node:fs/promises';
 import {resolve,extname,sep} from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {assertBattle2Frame,exerciseBattle2Switcher} from './battle2-shell-evidence.mjs';
 const root=resolve('dist/review'),out=resolve('.battle2-evidence');await mkdir(out,{recursive:true});
 const report={sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),scenarios:[],passed:false};
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.glb':'model/gltf-binary','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.woff2':'font/woff2'};
@@ -19,7 +20,7 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.
 const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
 async function snapshot(page){return page.evaluate(()=>({state:window.__BATTLE2__?.state,error:window.__BATTLE2__?.lastError,metrics:window.__BATTLE2__?.metrics,actors:window.__BATTLE2__?.actors,trace:window.__BATTLE2__?.trace}));}
 try{
-  // Capture the failing public baseline separately; never use its mutable page as After evidence.
+  // Public Before is observation only; After is the exact local artifact from the hosted checkout.
   const before=await browser.newContext({viewport:{width:412,height:915}}),bp=await before.newPage(),errors=[];
   bp.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   try{
@@ -40,6 +41,7 @@ try{
       await page.waitForFunction(()=>window.__BATTLE2__?.state==='BATTLE',{},{timeout:60000});
       result.initial=await snapshot(page);assert.equal(result.initial.metrics.models,28);assert.equal(result.initial.metrics.webgl2,true);
       assert.equal(await page.locator('button,input,select,iframe,dialog,[data-runtime-support]').count(),0);
+      result.frame=await assertBattle2Frame(page);
       await page.waitForFunction(()=>window.__BATTLE2__.metrics.actors>1&&window.__BATTLE2__.metrics.damage>0&&window.__BATTLE2__.metrics.renderedDeaths>0,{},{timeout:90000});
       result.combat=await snapshot(page);assert.ok(result.combat.metrics.totalKills>0);assert.ok(result.combat.metrics.drawCalls>0&&result.combat.metrics.triangles>0);assert.ok(result.combat.metrics.activeAnimations>0);
       assert.ok(result.combat.trace.some(e=>e.type==='animation'&&e.name==='Death_C_Skeletons'));
@@ -48,18 +50,27 @@ try{
       await page.waitForFunction(()=>window.__BATTLE2__.metrics.audio.unlocked&&window.__BATTLE2__.metrics.audio.notes>0,{},{timeout:45000});
       result.audio=await page.evaluate(()=>window.__BATTLE2__.metrics.audio);
       assert.ok(!((await snapshot(page)).trace.some(e=>e.type==='waypoint')),'Canvas gesture must not issue movement commands');
+      result.menu=await exerciseBattle2Switcher(page,{origin,out,name});
       if(name==='desktop'){
         let seconds=0,rounds=1;
         while(rounds<3&&seconds<1200){const m=await page.evaluate(()=>window.__BATTLE2__.advance(10));rounds=m.rounds;seconds+=10;assert.ok(m.actors<=20,'Actor lifetime leak');}
         result.replay={fixedStepSeconds:seconds,snapshot:await snapshot(page)};assert.ok(result.replay.snapshot.metrics.rounds>=3,'Two complete automatic restarts required');
       }
       await page.setViewportSize({width:viewport.height,height:viewport.width});
-      await page.waitForFunction(()=>{const c=document.getElementById('world'),r=c.getBoundingClientRect();return r.width===innerWidth&&r.height>0&&c.width>0;});
+      result.resizedFrame=await assertBattle2Frame(page);
       result.resized=await snapshot(page);assert.equal(result.resized.error,null);
+      await page.screenshot({path:out+'/'+name+'-rotated.png'});
+      if(name==='mobile'){
+        await page.setViewportSize({width:320,height:568});result.compactFrame=await assertBattle2Frame(page);
+        await page.screenshot({path:out+'/compact-frame.png'});
+      }
       assert.equal(await page.locator('#battle2-status').isVisible(),false,'No loader/HUD after battle starts');
       assert.equal(errors.length,0,JSON.stringify(errors));assert.equal(failed.length,0,JSON.stringify(failed));
       assert.ok(requests.some(u=>u.includes('/library/model/'))&&requests.some(u=>u.includes('/library/object/')));
       assert.ok(requests.every(u=>new URL(u).origin===origin),'Unexpected external runtime request: '+requests.filter(u=>new URL(u).origin!==origin));
+      // Navigation happens after runtime network checks; the Lab home owns its own prefetches.
+      await page.locator('.review-surface__back').click();await page.waitForURL(origin+'/');
+      assert.equal(await page.locator('[data-dev-tool="visual-review"]').isVisible(),true);result.backNavigation=true;
       result.passed=true;
     }finally{result.last=await snapshot(page).catch(()=>null);await page.screenshot({path:out+'/'+name+'-last.png'}).catch(()=>{});await context.tracing.stop({path:out+'/'+name+'-trace.zip'});await context.close();}
   }
@@ -67,7 +78,8 @@ try{
   await page.route('**/library/model/**/Knight.glb',route=>{attempts++;return route.fulfill({status:503,body:'intentional missing-asset fixture'});});
   await page.goto(origin+'/battle2',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__BATTLE2__?.state==='ERROR',{},{timeout:45000});
   const failure=await snapshot(page);assert.ok(failure.error.includes('adventurers/Knight'));assert.equal(attempts,2);assert.equal(await page.locator('#battle2-status').isVisible(),true);assert.equal(failure.metrics.ready,false);
+  assert.equal(await page.locator('.review-surface__back').isVisible(),true,'Error must not trap navigation');
   report.scenarios.push({name:'missing-asset',attempts,observed:failure,passed:true});await page.screenshot({path:out+'/missing-asset.png'});await broken.close();
   report.passed=true;
 }catch(error){report.error=error.stack||error.message;process.exitCode=1;}
-finally{await writeFile(out+'/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify({sourceSha:report.sourceSha,passed:report.passed,error:report.error,scenarios:report.scenarios.map(s=>({name:s.name,passed:s.passed,metrics:s.combat?.metrics,replayRounds:s.replay?.snapshot.metrics.rounds}))},null,2));await browser.close();await new Promise(r=>server.close(r));}
+finally{await writeFile(out+'/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify({sourceSha:report.sourceSha,passed:report.passed,error:report.error,scenarios:report.scenarios.map(s=>({name:s.name,passed:s.passed,metrics:s.combat?.metrics,replayRounds:s.replay?.snapshot.metrics.rounds,frame:s.frame,resizedFrame:s.resizedFrame,compactFrame:s.compactFrame,menu:s.menu,backNavigation:s.backNavigation}))},null,2));await browser.close();await new Promise(r=>server.close(r));}
