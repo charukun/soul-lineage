@@ -44,7 +44,18 @@ test('RINNE title: decoded movie, skips, matching landing, return, failure and F
     assert.equal(await page.locator('.title-actions').evaluate(n=>n.inert),true);
     for(const [time,name] of [[.35,'01-film-mother'],[1.25,'02-film-battle'],[2.3,'03-film-elder'],[3.25,'04-film-rebirth']]){
       // Seek/pause the real decoded media for exact scene evidence, then resume normal playback.
-      await page.locator('video').evaluate(async(v,t)=>{v.pause();v.currentTime=t;if(v.seeking)await new Promise(done=>v.addEventListener('seeked',done,{once:true}));},time);
+      const decoded=await page.locator('video').evaluate(async(v,t)=>{
+        v.pause();
+        return new Promise((done,reject)=>{
+          let callback=0;const timeout=setTimeout(()=>{v.cancelVideoFrameCallback(callback);reject(Error('Requested movie frame was not presented'));},5000);
+          const presented=(_now,frame)=>{
+            if(Math.abs(frame.mediaTime-t)<=1/24+.001){clearTimeout(timeout);v.pause();done({requested:t,presented:frame.mediaTime,currentTime:v.currentTime});}
+            else callback=v.requestVideoFrameCallback(presented);
+          };
+          callback=v.requestVideoFrameCallback(presented);v.currentTime=t;
+        });
+      },time);
+      (evidence.sceneFrames??=[]).push({name,...decoded});
       const position=await page.locator('video').evaluate(v=>getComputedStyle(v).objectPosition);
       assert.equal(position,time<68/24?'44% 50%':'50% 50%');
       await shot(page,name+'-portrait');
