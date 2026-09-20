@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b1110">
 <link rel="icon" href="./review-favicon.svg?v=1" type="image/svg+xml">
-<title>Visual Review｜技演出</title>
+<title>Visual Review｜技構成</title>
 <link rel="stylesheet" href="./src/typography.css">
 <style>
 :root{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#ece9df;background:#0b1110;color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#0b1110}.battle-review{min-height:100dvh;display:grid;grid-template-rows:48px minmax(0,1fr) auto}.battle-bar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid #29322f;background:#0d1211}.battle-bar a{color:#ece9df;text-decoration:none;font-size:15px}.battle-bar strong{text-align:center;font-size:15px}.battle-state{display:flex;gap:8px;align-items:center;color:#9ba59e;font-size:12px}.battle-state strong{color:#ece9df}.stage{position:relative;min-height:0;overflow:hidden}.stage canvas{display:block;width:100%;height:100%;min-height:360px;touch-action:none}.model-status{position:absolute;z-index:4;left:12px;top:12px;padding:7px 9px;border-radius:8px;background:#0b1110cc;color:#cbd2cd;font-size:11px}.note{position:absolute;z-index:4;right:12px;top:12px;color:#8e9993;font-size:10px;background:#0b1110aa;padding:6px 8px;border-radius:8px}.phase-panel{position:absolute;z-index:3;pointer-events:none;left:50%;bottom:8px;width:min(238px,calc(100% - 24px));transform:translateX(-50%);padding:8px 10px 10px;background:linear-gradient(90deg,transparent,rgba(7,19,22,.86) 18%,rgba(7,19,22,.86) 82%,transparent);backdrop-filter:blur(10px)}.phase-meta{max-width:210px}.phase-history{position:absolute;left:50%;top:100%;width:260px;height:70px;transform:translateX(-50%);overflow:hidden}.battle-state button{border:0;background:transparent;color:#c9d0cc;font:inherit;padding:4px 2px;min-width:26px}.battle-state button[data-enabled="false"]{color:#69736d}.controls{display:grid;grid-template-columns:minmax(0,1fr) 116px;gap:8px 10px;padding:10px 12px max(10px,env(safe-area-inset-bottom));border-top:1px solid #29322f;background:#0d1211}.pickers{display:grid;grid-template-columns:1fr 1fr;gap:8px;grid-column:1}.pickers label{display:grid;gap:4px;color:#9ba59e;font-size:10px}.pickers select,.actions button,.review-modes button{width:100%;border:1px solid #39413e;border-radius:9px;background:#171d1b;color:#ece9df;padding:9px 10px;font:inherit}.hud{display:grid;grid-template-columns:1fr 1fr;gap:8px;grid-column:1}.hud article{display:grid;gap:4px;padding:8px;border:1px solid #29322f;border-radius:9px;background:#121817}.hud span,.hud small{font-size:10px;color:#9ba59e}.hud strong{font-size:13px}.hud progress{width:100%;height:7px}.review-modes{display:grid;grid-template-columns:1fr 1fr;gap:6px;grid-column:1}.battle-mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:4px}.battle-mode-switch button[aria-pressed="true"]{border-color:#c7b77a;background:#ded5b9;color:#111714}.skin-switch{display:grid;grid-template-columns:1fr 1fr;gap:4px}.review-modes button{padding:8px 10px;font-size:11px;white-space:nowrap}.skin-switch button[aria-pressed="true"]{border-color:#c7b77a;background:#ded5b9;color:#111714}.review-modes>button[aria-pressed="true"]{border-color:#6e8e82;background:#21302b}.actions{display:grid;gap:6px;grid-column:2;grid-row:1/4}.actions button{min-width:96px}.actions button:last-child{align-self:end}@media(max-width:680px){.battle-review{grid-template-rows:44px minmax(0,1fr) auto}.battle-bar{padding:0 8px}.stage canvas{min-height:0}.model-status,.note{font-size:9px;top:8px}.model-status{left:8px}.note{right:8px}.phase-panel[data-skin="rinne"]{bottom:8px;width:min(330px,calc(100% - 16px));padding:8px 9px}.phase-panel[data-skin="jinku"]{right:8px;bottom:8px;width:min(220px,calc(100% - 16px));padding:8px 9px 9px 12px}.phase-current{font-size:25px}.phase-panel[data-skin="jinku"] .phase-current{font-size:29px}.phase-track{margin-top:5px}.phase-step{min-height:29px}.phase-step b{font-size:14px}.phase-meta{font-size:8px}.controls{grid-template-columns:1fr;padding:8px}.pickers,.hud,.review-modes,.actions{grid-column:1}.actions{grid-row:auto;grid-template-columns:1fr 1fr}.hud article{padding:7px}.review-modes{grid-template-columns:1fr 1fr}.skin-switch{grid-column:1/3}.battle-state{font-size:10px}}
@@ -198,14 +198,30 @@ main.battle-review.review-surface .camera-zoom button{
   }
 }
 
+
+/* Technique composition probe: 段 -> 技 -> 連 -> 序破急. */
+.stage>.technique-composition{position:absolute;z-index:14;left:8px;top:8px;width:min(540px,72vw);display:grid;gap:4px;padding:6px;border:1px solid rgba(199,161,93,.24);border-radius:12px;background:rgba(6,16,29,.82);backdrop-filter:blur(9px);box-shadow:0 7px 20px rgba(0,0,0,.28);pointer-events:auto}
+.technique-chain{display:grid;grid-template-columns:1fr;gap:3px;padding:4px 5px;border:1px solid rgba(199,161,93,.12);border-radius:8px;background:rgba(8,21,35,.56);transition:border-color .18s ease,background .18s ease}
+.technique-chain[data-active="true"]{border-color:rgba(227,199,127,.72);background:rgba(27,61,91,.78)}
+.technique-chain>header{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:17px}
+.technique-chain>header b{color:var(--rinne-gold-hi);font:700 10px/1 var(--font-rinne-display);letter-spacing:.08em}
+.technique-chain>header button{width:auto;min-width:38px;height:20px;padding:1px 7px;border:1px solid rgba(115,188,229,.34);border-radius:999px;background:rgba(11,35,56,.82);color:var(--rinne-blue-soft);font:700 8px/1 var(--font-rinne-display)}
+.technique-chain__flow{display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden}
+.technique-chain__flow>i{flex:0 0 auto;color:rgba(227,199,127,.62);font:700 15px/1 var(--font-rinne-display)}
+.technique-card{min-width:0;max-width:145px;display:grid;gap:2px;padding:3px 5px;border-left:2px solid rgba(199,161,93,.42);background:linear-gradient(90deg,rgba(18,40,62,.9),rgba(8,21,35,.42))}
+.technique-card>strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--rinne-ink);font-size:9px;line-height:1.2}
+.technique-card__stages{display:flex;gap:2px;min-width:0}
+.technique-card__stages small{display:inline-flex;align-items:center;justify-content:center;min-width:27px;padding:1px 3px;border:1px solid rgba(115,188,229,.2);border-radius:3px;color:var(--rinne-muted);font-size:7px;line-height:1.35}
+@media(max-width:680px){.stage>.technique-composition{left:6px;top:6px;width:min(430px,78vw);gap:3px;padding:4px}.technique-chain{padding:3px 4px}.technique-card{max-width:104px;padding:2px 4px}.technique-card>strong{font-size:8px}.technique-card__stages small{min-width:23px;font-size:6px}.technique-chain>header b{font-size:9px}.technique-chain>header button{height:18px;min-width:34px;font-size:7px}}
+
 </style>
 </head>
 <body>
-<main class="battle-review review-surface" aria-label="技演出レビュー。モーション・VFX・SFXと接触を確認します。本編の閃き判定や保存データは変更しません。">
+<main class="battle-review review-surface" aria-label="技構成レビュー。段・技・連・序破急の組み合わせと実演を確認します。本編の閃き判定や保存データは変更しません。">
   <header class="battle-bar review-surface__header">
     <div class="review-surface__title">
       <a class="review-surface__back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a>
-      <div><span class="review-surface__eyebrow">RINNE RUNTIME PROBE</span><h1>技演出</h1></div>
+      <div><span class="review-surface__eyebrow">RINNE RUNTIME PROBE</span><h1>技構成</h1></div>
     </div>
     <div class="battle-state"><strong id="battle-result">準備中</strong><span id="battle-time">0.0秒</span><button id="battle-sound" type="button" data-enabled="true" aria-pressed="true" aria-label="戦闘音の切替">音</button></div>
   </header>
@@ -223,7 +239,7 @@ main.battle-review.review-surface .camera-zoom button{
       <strong id="phase-meta" class="phase-meta combat-phase-action combat-sequence__action">間合いを測る</strong><div id="phase-history" class="phase-history combat-phase-history combat-sequence__history" aria-hidden="true"></div>
     </aside>
     <div class="camera-zoom" role="group" aria-label="カメラズーム"><button id="camera-zoom-out" type="button" aria-label="カメラをズームアウト">−</button><button id="camera-zoom-in" type="button" aria-label="カメラをズームイン">＋</button></div>
-    <div id="battle-technique-loadout" class="technique-loadout" aria-label="現在の序破急セット技"><span><b>序</b><strong data-loadout-phase="jo">基本技</strong></span><span><b>破</b><strong data-loadout-phase="ha">基本技</strong></span><span><b>急</b><strong data-loadout-phase="kyu">基本技</strong></span></div>
+    <div id="battle-technique-composition" class="technique-composition" aria-label="段・技・連・序破急の構成"></div>
     <section id="battle-inspiration-history" class="inspiration-history" aria-label="閃いた技の履歴" hidden>
       <header><div><span>閃き履歴</span><strong>この戦闘で閃いた技</strong></div><button id="battle-history-close" type="button" aria-label="閃き履歴を閉じる">閉じる</button></header>
       <div id="battle-inspiration-history-list" class="inspiration-history__list"></div>
