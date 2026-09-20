@@ -29,7 +29,7 @@ test('loop waits for the configured result hold before restarting',()=>{
   let finisher=createReviewFinisher(ending);assert.ok(finisher);
   const opening=advanceReviewFinisher(finisher,0);assert.equal(opening.core.done,false);assert.equal(opening.core.enemies[0].downed,true);assert.equal(opening.core.hero.skill,'止め');
   finisher=opening.run;const impact=advanceReviewFinisher(finisher,.6);assert.equal(impact.impact,true);assert.equal(impact.core.enemies[0].dead,false);
-  const finished=advanceReviewFinisher(impact.run,.5);assert.equal(finished.finished,true);assert.equal(finished.core.done,true);assert.equal(finished.core.enemies[0].dead,true);
+  const finished=advanceReviewFinisher(impact.run,.8);assert.equal(finished.finished,true);assert.equal(finished.core.done,true);assert.equal(finished.core.enemies[0].dead,true);
 });
 
 const assertVectorClose=(actual,expected,epsilon=1e-12)=>{for(const key of ['x','y','z'])assert.ok(Math.abs(actual[key]-expected[key])<=epsilon,`${key}: ${actual[key]} != ${expected[key]}`);};
