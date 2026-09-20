@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
-import { json, git, validateRecord, loadContext, checkHistoryChanges, checkPriorLearning } from './contract.mjs';
+import { json, git, validateRecord, loadContext, checkHistoryChanges, checkPriorLearning, recordThemeKey, recordProblemKeys } from './contract.mjs';
 import { captureProbe, compareReports, stable } from './probes.mjs';
 
 export function activeExperimentsFromDiff(rows) {
@@ -21,7 +21,7 @@ export function discoverActiveExperiments(root,{baseRef,headRef='HEAD'}={}) {
 }
 
 export async function validateActiveExperiments(root, active = discoverActiveExperiments(root)) {
-  assert.ok(Array.isArray(active) && active.length > 0 && active.length <= 2, 'one root cause, at most the two related game records');
+  assert.ok(Array.isArray(active) && active.length > 0 && active.length <= 2, 'one improvement theme, at most two related experiment records');
   const head = git(root, ['rev-parse', 'HEAD']);
   const base = git(root, ['rev-parse', process.env.AUTONOMOUS_BASE_REF || 'origin/develop']);
   git(root, ['merge-base', '--is-ancestor', base, head]);
@@ -42,9 +42,9 @@ export async function validateActiveExperiments(root, active = discoverActiveExp
     assert.equal(stable(after), stable(repeated), 'same exact source/fixture must be deterministic');
     const comparison = compareReports(before, after);
     assert.equal(comparison.comparable, true);
-    reports.push({ game, id, problemKey: record.problemKey, base, head, before, after, comparison, probeCoverageOnly:true });
+    reports.push({ game, id, themeKey: recordThemeKey(record), problemKeys: recordProblemKeys(record), base, head, before, after, comparison, probeCoverageOnly:true });
   }
-  assert.equal(new Set(reports.map(report => report.problemKey)).size, 1, 'one iteration = one primary problem');
+  assert.equal(new Set(reports.map(report => report.themeKey)).size, 1, 'one iteration = one improvement theme');
   for (const report of reports) console.log('AUTONOMOUS_EVIDENCE ' + JSON.stringify(report));
   return reports;
 }
