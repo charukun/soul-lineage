@@ -1,0 +1,23 @@
+{
+  "label": "戦闘演出bk",
+  "sourceSurface": "戦闘演出2",
+  "sourceCommit": "ceadbff4b3d49b67a21637873bff6defcfee799e",
+  "sourceRuntimeTree": "d8d6a237802f2fae3bbb68ceae0d539ff17d4ef6",
+  "publicPath": "/battlebk",
+  "runtimeDirectory": "src/nocturne-bk",
+  "assetPolicy": "Reuse the existing first-party /library/ assets with the copied manifest's SHA-256 and byteLength verification. No third-party runtime URLs or new binary copies.",
+  "sharedDependencies": ["three (repository lockfile)", "@soul/assets", "@soul/shared-ui/review-shell"],
+  "sourceBlobs": {
+    "battle2.html": "4d9724f5a4e8a36d02b2ee4eff22dcee6fc3b6fc",
+    "src/battle2.css": "0c06154a41a2d2a622ab5befeb8b9f1266a3c1a7",
+    "src/nocturne-stage.js": "c391f8dc86ddd17db7818257a3d9597ced6e05e3"
+  },
+  "runtimeBlobs": {
+    "assets.js": "0d6f61e72d377698d917557a8e4f2afac3e5563e",
+    "audio.js": "19048f48994b453c4b43da6b8d9579d71a42246d",
+    "environment.js": "f723b1b5a2e85142fe4b5a84ce7e495b90bac2f6",
+    "manifest.json": "933fb30303ef33a332bfeb6503e3812afaa7f832",
+    "runtime.js": "b4e1944de28b4e9f2679fc31b0f321a948ee0aab",
+    "source-receipt.json": "372a1861ef41ec80f9f5cbcfb04db024b31c3b0e"
+  }
+}

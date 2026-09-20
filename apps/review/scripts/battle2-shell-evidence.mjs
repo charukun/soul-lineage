@@ -29,11 +29,14 @@ export async function assertBattle2Frame(page){
 export async function exerciseBattle2Switcher(page,{origin,out,name}){
   const toggle=page.locator('[data-review-switcher]>summary');await toggle.click();
   assert.equal(await page.locator('.review-switcher[open]').count(),1);
-  const cards=page.locator('.review-switcher__grid>.review-probe-card');assert.equal(await cards.count(),8);
+  const cards=page.locator('.review-switcher__grid>.review-probe-card');assert.equal(await cards.count(),9);
   assert.equal(await cards.nth(6).locator('strong').innerText(),'戦闘演出');
   assert.equal(await cards.nth(7).locator('strong').innerText(),'戦闘演出2');
+  assert.equal(await cards.nth(8).locator('strong').innerText(),'戦闘演出bk');
   assert.equal(await cards.nth(6).getAttribute('href'),'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/review-battle');
   assert.equal(await cards.nth(7).getAttribute('href'),origin+'/battle2');
+  assert.equal(await cards.nth(8).getAttribute('href'),origin+'/battlebk');
+  assert.equal(await cards.nth(8).getAttribute('aria-current'),null);
   assert.equal(await cards.nth(7).getAttribute('aria-current'),'page');
   assert.equal(await page.locator('.review-surface__back').getAttribute('href'),origin+'/');
   const menu=await page.locator('.review-switcher__panel').evaluate(node=>{

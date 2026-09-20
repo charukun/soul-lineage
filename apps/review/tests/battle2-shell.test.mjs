@@ -32,8 +32,9 @@ test('battle2 nests native canvases inside the shared battle review frame',()=>{
 test('shared switcher highlights battle2 and retains canonical routes and a local Lab back link',()=>{
   const h=shellHarness();assert.equal(h.mount(),h.mounted);
   assert.equal(h.options.current,'battle2');assert.equal(h.options.homeHref,'https://preview.example/');
-  assert.equal(Object.keys(h.options.routes).length,8);assert.ok(Object.isFrozen(h.options.routes));
+  assert.equal(Object.keys(h.options.routes).length,9);assert.ok(Object.isFrozen(h.options.routes));
   assert.equal(h.options.routes.battle2,'https://preview.example/battle2');
+  assert.equal(h.options.routes.battlebk,'https://preview.example/battlebk');
   assert.equal(h.options.routes.battle,'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/review-battle');
   assert.ok(Object.values(h.options.routes).every(href=>!new URL(href).pathname.endsWith('.html')));
 });

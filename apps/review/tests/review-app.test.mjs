@@ -6,7 +6,7 @@ const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 test('Visual Review Lab is independent and presentation review is not a gameplay learning event',()=>{
   const pkg=JSON.parse(read('package.json')),html=read('index.html');
   assert.equal(pkg.name,'@soul/review');assert.equal(pkg.appKind,'dev-tool');assert.match(html,/Visual Review Lab/);assert.match(html,/data-dev-tool="visual-review"/);assert.doesNotMatch(html,/<title>輪廻転焦 Visual Review/);
-  assert.doesNotMatch(html,/<b>閃き確認<\/b>/);assert.match(html,/8 PROBES/);
+  assert.doesNotMatch(html,/<b>閃き確認<\/b>/);assert.match(html,/9 PROBES/);
 });
 
 test('Lab separates review probes and keeps delivered runtime routes canonical',()=>{

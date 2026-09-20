@@ -1,0 +1,20 @@
+:root{color-scheme:dark;background:#0a0f0e;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#0a0f0e}
+/* Same shared frame as battle review, but without its gameplay control panel.
+   Explicit owner-scoped rows override the shared two-pane phone/landscape defaults. */
+main.battlebk-review.review-surface>.review-surface__workspace{
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,1fr)!important;
+}
+.nocturne-stage{position:relative;min-width:0;min-height:0;overflow:hidden;background:#0b2424}
+.nocturne-stage canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+#world{z-index:0;touch-action:none}
+#effects{z-index:1;pointer-events:none}
+.nocturne-vignette{position:absolute;z-index:2;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 48%,transparent 42%,rgba(3,12,12,.22) 76%,rgba(2,7,7,.56) 100%)}
+#battlebk-status{position:absolute;z-index:3;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;width:min(85%,480px);padding:14px 18px;color:#e5ece4;background:#071c19e6;font:14px/1.7 system-ui,sans-serif;text-align:center;overflow-wrap:anywhere;pointer-events:none}
+#battlebk-status[role=alert]{color:#f5d5c7}
+/* Match the Lab choice-grid contract without changing other review surfaces. */
+.battlebk-review .review-switcher__grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+.battlebk-review .review-probe-card{padding:7px 4px;overflow-wrap:anywhere}
+[hidden]{display:none!important}
