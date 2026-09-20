@@ -66,3 +66,11 @@ test('motion review starts on a rigged KayKit model instead of the unrigged Mesh
   assert.doesNotMatch(source,/loadMotionReviewModel/);
   assert.match(source,/targetBones=kaykitHumanoidFromGLTF\(gltf\)/);
 });
+
+test('motion review skips every incompatible candidate instead of stopping after one fallback',async()=>{
+  const source=await read('apps/rinne/src/review-motion.js');
+  assert.match(source,/const fallback=nextPlayableMotion\(record\.sourceIdentity\);/);
+  assert.match(source,/return selectMotion\(fallback\);/);
+  assert.doesNotMatch(source,/allowFallback:false/);
+  assert.match(source,/selectedModel=model;invalidMotionIds\.clear\(\);renderModelGrid\(\)/);
+});
