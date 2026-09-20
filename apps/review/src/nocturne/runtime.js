@@ -268,13 +268,13 @@ function renderCamera(dt){
 
 
 function fail(error){game.ready=false;game.phase='error';renderer?.setAnimationLoop(null);sound.pause();record('error',{message:String(error?.message||error)});notify('ERROR',String(error?.message||error));}
-function draw(){renderCamera(1/60);renderer.info.autoReset=false;renderer.info.reset();if(game.high)composer.render();else renderer.render(scene,camera);drawEffects();if(actors.some(a=>a.dead&&a.deathTime>0&&a.deathTime<1.3))renderedDeaths++;}
+function draw(dt=1/60){renderCamera(dt);renderer.info.autoReset=false;renderer.info.reset();if(game.high)composer.render();else renderer.render(scene,camera);drawEffects();if(actors.some(a=>a.dead&&a.deathTime>0&&a.deathTime<1.3))renderedDeaths++;}
 function frame(now){
  if(disposed||!game.ready)return;
  const elapsed=previous?(now-previous)/1000:1/60;previous=now;if(document.hidden)return;
  const realDt=Math.max(0,Math.min(.05,elapsed));clock+=realDt;let dt=realDt;
  if(game.hitstop>0){game.hitstop=Math.max(0,game.hitstop-realDt);dt*=.12;}
- try{simulate(dt);draw();frameCount++;frameTime+=elapsed;if(frameTime>.5){fps=Math.round(frameCount/frameTime);frameCount=0;frameTime=0;}}catch(error){fail(error);}
+ try{simulate(dt);draw(realDt);frameCount++;frameTime+=elapsed;if(frameTime>.5){fps=Math.round(frameCount/frameTime);frameCount=0;frameTime=0;}}catch(error){fail(error);}
 }
 async function prepare(){
  makeRenderer();notify('ASSET_LOADING');
