@@ -45,7 +45,8 @@ export function applyChoreographyImpact(state,{damage=0,maxIntegrity=null,sector
   const targetPart=COMBAT_BODY_PARTS.includes(part)?part:choosePart(state,{sector,sourceId,damage,phase});
   const row=state.injuries[targetPart],base=Math.max(1,Number(maxIntegrity)||Number(state.maxHp)||100),relative=Math.max(0,Number(damage)||0)/base;
   const phaseScale=phase==='finisher'?1.8:phase==='one'?1.55:phase==='kyu'?1.38:phase==='ha'?1.14:.95;
-  const gain=clamp(relative*1.18*phaseScale+.006,.008,.42);
+  const phaseCap=phase==='finisher'?.55:phase==='one'?.4:phase==='kyu'?.24:phase==='ha'?.16:.11;
+  const gain=clamp(relative*1.08*phaseScale+.004,.005,phaseCap);
   row.severity=clamp(row.severity+gain);row.at=Number(state.ageSeconds)||0;
   const outcome=combatBodyOutcome(state),entry=outcome.body[targetPart];
   return Object.freeze({part:targetPart,label:entry.label,severity:entry.severity,durability:entry.durability,stage:entry.stage,gain,outcome});
