@@ -21,7 +21,7 @@ const phasePanel=q('battle-phase'),phaseMeta=q('phase-meta'),phaseHistory=q('pha
 const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
 let strategyA='balanced',strategyB='patient',strategyVariant='A',reviewSeed=6197,reviewInjury='none',reviewHeroBody=null,reviewEnemyBody=null;
-let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),signTimer=0,bulbTimer=0;
+let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),signTimer=0,bulbTimer=0,pendingInspirationTimer=0;
 const INSPIRATION_BULB_HOLD_MS=550;
 const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
 let techniqueComposition=createReviewTechniqueComposition(),compositionWeapon='';
@@ -70,7 +70,7 @@ function handleInspirationCue(cue,payload={}){
   const banner=q('battle-inspiration');
   if(cue==='spark'){inspirationSequenceActive=true;hideInspirationBanner();hideReviewSign();showInspirationBulb();battleSfx.inspiration('spark');return;}
   if(cue==='camera'){battleSfx.inspiration('camera');return;}
-  if(cue==='spacing'){showReviewSign(payload);battleSfx.inspiration('anticipation');return;}
+  if(cue==='spacing'){battleSfx.inspiration('anticipation');return;}
   if(cue==='stagger'){battleSfx.inspiration('stagger');return;}
   if(cue==='reveal'&&banner){hideReviewSign();const chainPreview=String(payload.id||'').startsWith('review-chain-');q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent=chainPreview?`${phaseLabel(payload.phase)}の連 · ${(payload.steps||[]).length}段を通し試演`:`${phaseLabel(payload.phase)} · ${selectedWeapon}の型から閃いた`;banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}
   if(cue==='execute'){battleSfx.inspiration('execute');return;}
@@ -109,7 +109,7 @@ function syncBodyReadout(){
   node.textContent=COMBAT_BODY_PARTS.map(part=>`${snapshot[part].label} ${snapshot[part].durability}`).join(' · ');
 }
 function resetBattle(){
-  reviewSwipe.cancel();lastCore=null;finishedAt=0;finisher=null;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks.clear();phaseHistory?.replaceChildren();battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
+  reviewSwipe.cancel();lastCore=null;finishedAt=0;finisher=null;clearTimeout(pendingInspirationTimer);pendingInspirationTimer=0;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks.clear();phaseHistory?.replaceChildren();battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
   const weapon=runtimeWeapon(),group=encounterMode==='one-v-three',strategy=strategyVariant==='A'?strategyA:strategyB;reviewHeroBody=makeReviewBody('hero',strategy);reviewEnemyBody=makeReviewBody('enemy','balanced');
   runtime=createTidebreakRuntime({seed:reviewSeed+(group?31:0),weapon,onImpact:impact=>{battleStage?.presentImpact?.(impact);battleSfx.impact({guard:Boolean(impact?.guard),power:Number(impact?.power)||.7});}});
   const loadout=runtimeLoadout(runtime,weapon);ensureTechniqueComposition(loadout);const positions=group
@@ -154,8 +154,8 @@ function activateInsight(technique,replay=false,phase='ha'){
   if(!replay){insightHistory.unshift({technique,name:technique.name,phase,weapon:selectedWeapon,weaponLabel:weaponSelect.selectedOptions[0]?.textContent||selectedWeapon});if(insightHistory.length>8)insightHistory.length=8;renderInsightHistory();}
 }
 function maybeInspire(phase){
-  if(!phase||phase===lastInspirationPhase||inspirationSequenceActive)return;lastInspirationPhase=phase;const chance=inspirationMode==='boost'?.82:.16;
-  if(Math.random()<chance){const technique=weightedTechnique(phase);if(technique)activateInsight(technique,false,phase);}
+  if(!phase||phase===lastInspirationPhase||inspirationSequenceActive||pendingInspirationTimer)return;lastInspirationPhase=phase;const chance=inspirationMode==='boost'?.82:.16;
+  if(Math.random()<chance){const technique=weightedTechnique(phase);if(technique){showReviewSign(technique);pendingInspirationTimer=setTimeout(()=>{pendingInspirationTimer=0;activateInsight(technique,false,phase);},620);}}
 }
 
 function syncBattle(dt){
