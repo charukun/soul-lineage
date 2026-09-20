@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 2,
+  "id": "kuumetsu-retreat-risk-20260921",
+  "game": "kuumetsu",
+  "mode": "evolution",
+  "kind": "gameplay",
+  "themeKey": "retreat-risk-reward",
+  "rootCauses": [
+    {
+      "key": "greed-does-not-escalate-response",
+      "summary": "Additional prey after the mission is already bankable does not increase the app-level simultaneous-response ceiling or force a concrete human reaction.",
+      "prediction": "Post-goal extra feeding raises response pressure and can add one responder without exceeding the existing four-combatant safety ceiling.",
+      "falsifier": "Extra feeding leaves encounter pressure identical or exceeds the protected combatant ceiling.",
+      "paths": [
+        "apps/demon/src/hunt/session-loop.js",
+        "apps/demon/src/hunt/balance.js"
+      ]
+    },
+    {
+      "key": "return-guidance-ignores-stake-pressure",
+      "summary": "Return guidance is driven almost entirely by goal completion or critical HP; carried value and escalating pursuit are not joined into the return decision.",
+      "prediction": "A pure pressure model joins current haul, goal state and health into a deterministic return recommendation.",
+      "falsifier": "Equivalent hunt states produce inconsistent recommendations or early safe states are forced home.",
+      "paths": [
+        "apps/demon/src/hunt/balance.js",
+        "apps/demon/src/web/hunt-flow-ui.js"
+      ]
+    },
+    {
+      "key": "risk-is-not-readable-in-hud",
+      "summary": "The hunt HUD shows quota and haul, but not the human response level or the amount at risk if the player keeps hunting and dies.",
+      "prediction": "The same HUD surface exposes response pressure and explicit at-risk haul while preserving the minimal mobile layout.",
+      "falsifier": "The player still cannot distinguish a safe partial return from high-pressure greed using the hunt HUD.",
+      "paths": [
+        "apps/demon/src/web/hunt-flow-ui.js"
+      ]
+    }
+  ],
+  "observation": {
+    "summary": "Immutable demon staging shows the hunt world and persistent haul/growth counters, while source inspection shows return guidance and encounter pressure are not connected to greed: post-goal hunting has little systemic escalation and the HUD does not state the current response pressure or loss-at-risk.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "decbbe809c34d832dd635291416a3b6b154a52e1",
+      "reference": "https://380853c5-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "observedAt": "2026-09-20T21:19:39Z",
+      "conditions": {
+        "scenario": "fresh profile / title-to-hunt baseline",
+        "device": "GitHub hosted Chromium / SwiftShader",
+        "viewport": "673x841",
+        "developHead": "88eb2d0c33187ff78de3737329bb08f64bc5accb",
+        "targetTreeIdentity": "decbbe..88eb changes only apps/review and apps/rinne"
+      },
+      "notVerified": [
+        "full mission completion through pointer-only play",
+        "physical Pixel Fold feel"
+      ]
+    },
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "88eb2d0c33187ff78de3737329bb08f64bc5accb",
+        "path": "apps/demon/src/web/hunt-flow-ui.js",
+        "symbol": "HuntFlowUi.shouldReturn / update",
+        "statement": "Return suggestion is based on goalReady or HP below 35%; HUD reports goal and haul but no explicit response pressure or loss-at-risk."
+      },
+      {
+        "kind": "source",
+        "revision": "88eb2d0c33187ff78de3737329bb08f64bc5accb",
+        "path": "apps/demon/src/hunt/session-loop.js",
+        "symbol": "HuntSession.engage",
+        "statement": "Simultaneous engagement cap is fixed by chapter/forage route and is independent of how far the player pushes beyond a bankable haul."
+      },
+      {
+        "kind": "git-tree",
+        "revision": "88eb2d0c33187ff78de3737329bb08f64bc5accb",
+        "path": "apps/demon",
+        "symbol": "decbbe..88eb target scope comparison",
+        "statement": "The exact immutable demon deployment at decbbe is target-tree equivalent to current develop; intervening files are confined to apps/review and apps/rinne."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "Carried reward, human response and extraction guidance are parallel systems rather than one feedback loop.",
+    "prediction": "Connecting post-goal greed to bounded human response and exposing pressure/stake makes 'take one more prey or extract now' a measurable gameplay decision without changing the authored combat engine.",
+    "falsifier": "Native tests show no pressure difference between bankable and greedy states, return recommendation fires in safe zero/low-stake states, or browser After cannot expose the new pressure/stake cues."
+  },
+  "candidates": [
+    {
+      "id": "bounded-response-pressure",
+      "selected": true,
+      "reason": "Connects reward, enemy response and extraction guidance at existing app boundaries while preserving Tidebreak and the shared four-combatant ceiling."
+    },
+    {
+      "id": "flat-loot-penalty",
+      "selected": false,
+      "reason": "Simply reducing rewards after a threshold changes arithmetic but does not create a world reaction or a moment-to-moment retreat decision."
+    },
+    {
+      "id": "global-combat-rewrite",
+      "selected": false,
+      "reason": "Replacing authored Tidebreak or shared group combat is unnecessary and violates the protected combat authority boundary."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/demon/src/hunt/balance.js",
+      "apps/demon/src/hunt/session-loop.js",
+      "apps/demon/src/web/hunt-flow-ui.js",
+      "apps/demon/tests/hunt-loop.test.mjs"
+    ],
+    "summary": "Add a pure hunt pressure/stake model, tie post-goal greed to bounded responder escalation, and surface response/stake in the existing minimal hunt HUD with focused native assertions."
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": [
+      "apps/demon/tests/hunt-loop.test.mjs"
+    ],
+    "stagingAfter": "required",
+    "limitations": [
+      "Browser observation validates player-visible feedback but native tests remain the causal proof.",
+      "No claim about all mission win rates or physical-device difficulty."
+    ]
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": 1166,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-retreat-risk-20260921"
+  }
+}
