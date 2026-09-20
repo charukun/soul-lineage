@@ -5,7 +5,7 @@ import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createCoopActors } from './coop-actors.js';
 import { createKaykitCharacterPools } from './kaykit-character-pool.js';
 import { createProtagonistCharacterPool } from './protagonist-character-pool.js';
-import { hideCarrierCombatProps, newbornCarryTransform } from './newborn-carry-presentation.js';
+import { applyCarrierCradlePose, applyNewbornCradlePose, hideCarrierCombatProps, newbornCarryTransform } from './newborn-carry-presentation.js';
 import { resolveRinneCharacterRuntime } from './character-runtime-adapter.js';
 import { applyTidebreakPose } from './tidebreak-pose.js';
 import {
@@ -19,22 +19,17 @@ import {
 
 const armorDye=Object.freeze({cloth:[1,1,1],light:[.72,.84,.78],heavy:[.68,.73,.82]});
 
-function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=false,tidebreak=null}={},time=0){
+function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=false,carriedChild=false,tidebreak=null}={},time=0){
   const cadence=Math.min(12,6.4+Math.max(0,speed)*.85),stride=moving?Math.sin(time*cadence)*.42:0;
   if(bones.leftUpperLeg)bones.leftUpperLeg.rotation.x+=stride;
   if(bones.rightUpperLeg)bones.rightUpperLeg.rotation.x-=stride;
   if(bones.leftLowerLeg)bones.leftLowerLeg.rotation.x+=Math.max(0,-stride)*.28;
   if(bones.rightLowerLeg)bones.rightLowerLeg.rotation.x+=Math.max(0,stride)*.28;
-  if(bones.leftUpperArm)bones.leftUpperArm.rotation.x-=stride*.42;
-  if(bones.rightUpperArm)bones.rightUpperArm.rotation.x+=stride*.42;
+  if(!carrier&&bones.leftUpperArm)bones.leftUpperArm.rotation.x-=stride*.42;
+  if(!carrier&&bones.rightUpperArm)bones.rightUpperArm.rotation.x+=stride*.42;
   if(combat&&bones.spine)bones.spine.rotation.x-=.06;
-  if(carrier){
-    if(bones.spine)bones.spine.rotation.x-=.035;
-    if(bones.leftUpperArm){bones.leftUpperArm.rotation.x-=.48;bones.leftUpperArm.rotation.z-=.34;}
-    if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.48;bones.rightUpperArm.rotation.z+=.34;}
-    if(bones.leftLowerArm){bones.leftLowerArm.rotation.x-=.58;bones.leftLowerArm.rotation.y-=.18;}
-    if(bones.rightLowerArm){bones.rightLowerArm.rotation.x-=.58;bones.rightLowerArm.rotation.y+=.18;}
-  }
+  if(carrier)applyCarrierCradlePose(bones,time,{moving});
+  if(carriedChild)applyNewbornCradlePose(bones,time);
   if(flash&&bones.spine)bones.spine.rotation.z+=Math.sin(time*32)*.12*flash;
   if(tidebreak)applyTidebreakPose(bones,tidebreak);
 }
@@ -89,10 +84,10 @@ function sampleSlot(actor,schedule,presentation,dt,pose){actor.setVisible(presen
 
 function renderActors({roster,heroSchedule,motherSchedule,motherMotion,characterPool},life,dt){
   const {heroActor,motherActor,enemyActors,guardActors,state}=roster,birth=life.phase==='birth',village=life.zone==='village',carried=birth&&village,villageOutside=village&&!life.interior;
-  state.heroDescriptor.character.ageMs=rinneRuntimeAgeMs(life.ageSeconds);state.heroDescriptor.character.lifeState='alive';heroActor.root.rotation.y=life.yaw;heroActor.root.rotation.z=0;motherActor.root.rotation.y=life.yaw;heroActor.attachments.visible=true;
-  if(carried){const carry=newbornCarryTransform(life.position,life.yaw);motherActor.setVisible(true);motherActor.root.position.set(life.position.x,0,life.position.z);heroActor.root.position.set(carry.x,carry.y,carry.z);heroActor.root.rotation.y=carry.yaw;heroActor.root.rotation.z=carry.roll;heroActor.attachments.visible=false;}else{motherActor.setVisible(false);heroActor.root.position.set(life.position.x,0,life.position.z);}
+  state.heroDescriptor.character.ageMs=rinneRuntimeAgeMs(life.ageSeconds);state.heroDescriptor.character.lifeState='alive';heroActor.root.rotation.x=0;heroActor.root.rotation.y=life.yaw;heroActor.root.rotation.z=0;motherActor.root.rotation.y=life.yaw;heroActor.attachments.visible=true;
+  if(carried){const carry=newbornCarryTransform(life.position,life.yaw);motherActor.setVisible(true);motherActor.root.position.set(life.position.x,0,life.position.z);heroActor.root.position.set(carry.x,carry.y,carry.z);heroActor.root.rotation.x=carry.pitch;heroActor.root.rotation.y=carry.yaw;heroActor.root.rotation.z=carry.roll;heroActor.attachments.visible=false;}else{motherActor.setVisible(false);heroActor.root.position.set(life.position.x,0,life.position.z);}
   const heroPresentation=resolveRinneRuntimeCharacter({...state.heroDescriptor,distance:0,visible:true,important:true});heroPresentation.appearance.dye=[...(armorDye[life.equipment.armor]||armorDye.cloth)];const heroTide=carried?null:life.combat?.tidebreakPose||null;
-  heroActor.root.userData.tidebreakPose=heroTide;syncRuntimeState(heroActor,{dead:Boolean(life.dead)||life.phase==='dead',hit:(Number(life.flash)||0)>0,attacking:Boolean(heroTide?.attack||life.attacking),resting:Boolean(life.resting),dashing:Boolean(life.dashing),moving:carried?false:Boolean(life.moving),speed:carried?0:(life.moving?4.1:0),combat:carried?false:Boolean(life.combat),runThreshold:3});sampleSlot(heroActor,heroSchedule,heroPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carried?false:life.moving,speed:carried?0:(life.moving?4.1:0),combat:carried?false:Boolean(life.combat),tidebreak:heroTide},time));
+  heroActor.root.userData.tidebreakPose=heroTide;syncRuntimeState(heroActor,{dead:Boolean(life.dead)||life.phase==='dead',hit:(Number(life.flash)||0)>0,attacking:Boolean(heroTide?.attack||life.attacking),resting:Boolean(life.resting),dashing:Boolean(life.dashing),moving:carried?false:Boolean(life.moving),speed:carried?0:(life.moving?4.1:0),combat:carried?false:Boolean(life.combat),runThreshold:3});sampleSlot(heroActor,heroSchedule,heroPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carried?false:life.moving,speed:carried?0:(life.moving?4.1:0),combat:carried?false:Boolean(life.combat),carriedChild:carried,tidebreak:heroTide},time));
   const motherPresentation=resolveRinneRuntimeCharacter({...state.motherDescriptor,distance:.3,visible:carried,important:true});syncRuntimeState(motherActor,{moving:motherMotion.active&&motherMotion.moving,speed:motherMotion.speed,runThreshold:3});sampleSlot(motherActor,motherSchedule,motherPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:motherMotion.active&&motherMotion.moving,speed:motherMotion.speed,carrier:carried},time));
   for(const enemy of state.front?.enemies||[]){const slot=enemyActors.get(enemy.id);if(!slot)continue;const distance=Math.hypot(enemy.x-life.position.x,enemy.z-life.position.z),presentation=resolveRinneRuntimeCharacter({...slot.descriptor,distance,visible:!enemy.dead,important:(state.front?.stage??0)>=5});promoteObservedModel(characterPool,slot,life,enemy,distance);slot.actor.root.userData.tidebreakPose=enemy.tidebreakPose||null;syncRuntimeState(slot.actor,{dead:Boolean(enemy.dead),hit:(Number(enemy.flash)||0)>0,attacking:Boolean(enemy.tidebreakPose?.attack||enemy.attacking),dashing:Boolean(enemy.dashing),moving:Boolean(enemy.moving),speed:enemy.moving?3.6:0,combat:true,runThreshold:3});sampleSlot(slot.actor,slot.schedule,presentation,dt,(bones,time)=>poseHumanoid(bones,{moving:Boolean(enemy.moving),speed:enemy.moving?3.6:0,combat:true,flash:enemy.flash||0,tidebreak:enemy.tidebreakPose||null},time));slot.actor.root.position.set(enemy.x,enemy.downed?.28:0,enemy.z);slot.actor.root.rotation.y=Number.isFinite(enemy.yaw)?enemy.yaw:0;slot.actor.root.rotation.z=enemy.downed?-Math.PI*.46:0;}
   for(const guard of state.skirmish?.guards||[]){const slot=guardActors.get(guard.id);if(!slot)continue;const distance=Math.hypot(guard.x-life.position.x,guard.z-life.position.z),presentation=resolveRinneRuntimeCharacter({...slot.descriptor,distance,visible:villageOutside&&!guard.dead,important:true});if(villageOutside)promoteObservedModel(characterPool,slot,life,guard,distance);syncRuntimeState(slot.actor,{dead:Boolean(guard.dead),hit:(Number(guard.flash)||0)>0,attacking:Boolean(guard.attacking),dashing:Boolean(guard.dashing),moving:Boolean(guard.moving),speed:guard.moving?3.3:0,combat:true,runThreshold:3});sampleSlot(slot.actor,slot.schedule,presentation,dt,(bones,time)=>poseHumanoid(bones,{moving:Boolean(guard.moving),speed:guard.moving?3.3:0,combat:true,flash:guard.flash||0},time));slot.actor.root.position.set(guard.x,0,guard.z);slot.actor.root.rotation.y=Number.isFinite(guard.yaw)?guard.yaw:0;}
