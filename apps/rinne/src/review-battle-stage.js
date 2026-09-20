@@ -156,13 +156,13 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     const now=performance.now()/1000,sequence=techniquePlayback?reviewInspirationSequenceFrame(now-techniquePlayback.startedAt):null,step=Math.max(1/120,Math.min(.05,Number(dt)||1/60));
     if(core?.hero&&core?.enemy&&followCamera)canvas.dataset.heroComposition=cameraSystem==='demon'?'kuumetsu-shared':'hyakunen-shared';
     if(sequence&&sequence.stage!=='done'&&core?.hero&&core?.enemy)frame=inspirationCameraFrame()||frame;
-    else if(frame?.follow&&core?.hero&&core?.enemy){
+    else if(frame?.follow&&core?.hero&&core?.enemy&&!frame.finisher){
       cameraOrbit=(cameraOrbit+step*.05)%(Math.PI*2);const ox=frame.position.x-frame.look.x,oz=frame.position.z-frame.look.z,c=Math.cos(cameraOrbit),sn=Math.sin(cameraOrbit);
       frame={...frame,position:{...frame.position,x:frame.look.x+ox*c-oz*sn,z:frame.look.z+ox*sn+oz*c}};
     }
     if(frame?.position&&frame?.look&&frame.system!=='inspiration'){const dx=frame.position.x-frame.look.x,dy=frame.position.y-frame.look.y,dz=frame.position.z-frame.look.z;frame={...frame,position:{x:frame.look.x+dx*cameraZoom,y:frame.look.y+dy*cameraZoom,z:frame.look.z+dz*cameraZoom}};}
     if(impactKick>0)frame={...frame,position:{...frame.position,x:frame.position.x-Math.sin(impactYaw)*impactKick,z:frame.position.z-Math.cos(impactYaw)*impactKick}};
-    cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);const blend=1-Math.exp(-step*(frame.system==='inspiration'?13:8));camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);camera.lookAt(cameraLook);canvas.dataset.cameraFollow=followCamera?'on':'off';canvas.dataset.cameraZoom=cameraZoom.toFixed(2);
+    cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);const blend=1-Math.exp(-step*(frame.system==='inspiration'?13:frame.finisher?16:10));camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);camera.lookAt(cameraLook);canvas.dataset.cameraFollow=followCamera?'on':'off';canvas.dataset.cameraLock=frame.lock||'scene';canvas.dataset.cameraMode=frame.finisher?'finisher':frame.system;canvas.dataset.cameraZoom=cameraZoom.toFixed(2);
   }
 
   function sync(core,dt=0,{followCamera=true,encounterMode:requestedMode='duel',cameraSystem='rinne'}={}){
