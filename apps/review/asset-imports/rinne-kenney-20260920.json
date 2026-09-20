@@ -1,25 +1,11 @@
 {
   "schema": 1,
-  "importId": "rinne-kenney-20260920",
+  "importId": "rinne-kenney-expansion-20260920",
   "repository": "eturner58/game-assets",
   "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
+  "reconciledAgainst": "f36fe5d9b3c33b5d3b8635b4233b1d120e045617",
+  "reusedExistingHashes": 15,
   "records": [
-    {
-      "id": "kenney-fantasy-town-cart",
-      "kind": "model",
-      "pack": "fantasy-town",
-      "path": "kenney/3D assets/Fantasy Town Kit/Models/GLB format/cart.glb",
-      "gitBlobSha": "451704fa87c984d6cbf49c93ee4b9d76b85b0ece",
-      "byteLength": 52920,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Fantasy%20Town%20Kit/Models/GLB%20format/cart.glb"
-    },
     {
       "id": "kenney-fantasy-town-fence",
       "kind": "model",
@@ -33,7 +19,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/fantasy-town-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Fantasy%20Town%20Kit/Models/GLB%20format/fence.glb"
     },
     {
@@ -49,7 +35,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/fantasy-town-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Fantasy%20Town%20Kit/Models/GLB%20format/stall.glb"
     },
     {
@@ -65,7 +51,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/fantasy-town-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Fantasy%20Town%20Kit/Models/GLB%20format/stall-bench.glb"
     },
     {
@@ -81,24 +67,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/fantasy-town-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Fantasy%20Town%20Kit/Models/GLB%20format/wall-door.glb"
-    },
-    {
-      "id": "kenney-fantasy-town-windmill",
-      "kind": "model",
-      "pack": "fantasy-town",
-      "path": "kenney/3D assets/Fantasy Town Kit/Models/GLB format/windmill.glb",
-      "gitBlobSha": "025c102b2b05ef840a86de2a9e9b2c05565bf57d",
-      "byteLength": 71160,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Fantasy%20Town%20Kit/Models/GLB%20format/windmill.glb"
     },
     {
       "id": "kenney-fantasy-town-blade",
@@ -113,24 +83,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/fantasy-town-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Fantasy%20Town%20Kit/Models/GLB%20format/blade.glb"
-    },
-    {
-      "id": "kenney-retro-fantasy-barrels",
-      "kind": "model",
-      "pack": "retro-fantasy",
-      "path": "kenney/3D assets/Retro Fantasy Kit/Models/GLB format/barrels.glb",
-      "gitBlobSha": "08d0e7c637f2a9c5dd52e42b3255bd70b8ebb3ab",
-      "byteLength": 63196,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Retro%20Fantasy%20Kit/Models/GLB%20format/barrels.glb"
     },
     {
       "id": "kenney-retro-fantasy-crate-ropes",
@@ -145,7 +99,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/retro-fantasy-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Retro%20Fantasy%20Kit/Models/GLB%20format/detail-crate-ropes.glb"
     },
     {
@@ -161,7 +115,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/retro-fantasy-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Retro%20Fantasy%20Kit/Models/GLB%20format/detail-crate.glb"
     },
     {
@@ -177,7 +131,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/retro-fantasy-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Retro%20Fantasy%20Kit/Models/GLB%20format/pulley-crate.glb"
     },
     {
@@ -193,7 +147,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/retro-fantasy-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Retro%20Fantasy%20Kit/Models/GLB%20format/structure-wall.glb"
     },
     {
@@ -209,24 +163,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/retro-fantasy-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Retro%20Fantasy%20Kit/Models/GLB%20format/tower-base.glb"
-    },
-    {
-      "id": "kenney-retro-fantasy-tower-top",
-      "kind": "model",
-      "pack": "retro-fantasy",
-      "path": "kenney/3D assets/Retro Fantasy Kit/Models/GLB format/tower-top.glb",
-      "gitBlobSha": "0088f141cd549677c3323d6ff6814d21300cc459",
-      "byteLength": 35704,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Retro%20Fantasy%20Kit/Models/GLB%20format/tower-top.glb"
     },
     {
       "id": "kenney-mini-dungeon-barrel",
@@ -241,40 +179,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/mini-dungeon",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Dungeon/Models/GLB%20format/barrel.glb"
-    },
-    {
-      "id": "kenney-mini-dungeon-chest",
-      "kind": "model",
-      "pack": "mini-dungeon",
-      "path": "kenney/3D assets/Mini Dungeon/Models/GLB format/chest.glb",
-      "gitBlobSha": "89faa6abb930cc0eff458c6ece787302e86c23ce",
-      "byteLength": 34048,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Dungeon/Models/GLB%20format/chest.glb"
-    },
-    {
-      "id": "kenney-mini-dungeon-gate",
-      "kind": "model",
-      "pack": "mini-dungeon",
-      "path": "kenney/3D assets/Mini Dungeon/Models/GLB format/gate.glb",
-      "gitBlobSha": "a22fbeaa626b950fb67715bd73f6a968f4385b48",
-      "byteLength": 14152,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Dungeon/Models/GLB%20format/gate.glb"
     },
     {
       "id": "kenney-mini-dungeon-pot",
@@ -289,7 +195,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/mini-dungeon",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Dungeon/Models/GLB%20format/pot.glb"
     },
     {
@@ -305,7 +211,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/mini-dungeon",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Dungeon/Models/GLB%20format/potion.glb"
     },
     {
@@ -321,7 +227,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/mini-dungeon",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Dungeon/Models/GLB%20format/stairs.glb"
     },
     {
@@ -337,7 +243,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/mini-dungeon",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Dungeon/Models/GLB%20format/wall-opening.glb"
     },
     {
@@ -353,7 +259,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/mini-dungeon",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Dungeon/Models/GLB%20format/wall.glb"
     },
     {
@@ -369,7 +275,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/mini-forest",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Forest/Models/GLB%20format/fence.glb"
     },
     {
@@ -385,40 +291,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/mini-forest",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Forest/Models/GLB%20format/patch-grass.glb"
-    },
-    {
-      "id": "kenney-mini-forest-rocks",
-      "kind": "model",
-      "pack": "mini-forest",
-      "path": "kenney/3D assets/Mini Forest/Models/GLB format/rocks-high.glb",
-      "gitBlobSha": "e4b3bdc3b4cbd421b9773d73fc0918778804212d",
-      "byteLength": 31952,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Forest/Models/GLB%20format/rocks-high.glb"
-    },
-    {
-      "id": "kenney-mini-forest-target",
-      "kind": "model",
-      "pack": "mini-forest",
-      "path": "kenney/3D assets/Mini Forest/Models/GLB format/target.glb",
-      "gitBlobSha": "ac46cfc19b86dcd2cc5515a6086c6d0eeb06a77f",
-      "byteLength": 17696,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Forest/Models/GLB%20format/target.glb"
     },
     {
       "id": "kenney-mini-forest-tree-high",
@@ -433,24 +307,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/mini-forest",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Forest/Models/GLB%20format/tree-high.glb"
-    },
-    {
-      "id": "kenney-mini-forest-tree",
-      "kind": "model",
-      "pack": "mini-forest",
-      "path": "kenney/3D assets/Mini Forest/Models/GLB format/tree.glb",
-      "gitBlobSha": "a8d0e5619df6c6239371e668bad72ac0c4c942fc",
-      "byteLength": 23476,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Mini%20Forest/Models/GLB%20format/tree.glb"
     },
     {
       "id": "kenney-survival-barrel",
@@ -465,24 +323,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/survival-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Survival%20Kit/Models/GLB%20format/barrel.glb"
-    },
-    {
-      "id": "kenney-survival-campfire-pit",
-      "kind": "model",
-      "pack": "survival",
-      "path": "kenney/3D assets/Survival Kit/Models/GLB format/campfire-pit.glb",
-      "gitBlobSha": "3de2a644a0cfb8ea16856acddf6c35dcf6604e29",
-      "byteLength": 26468,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Survival%20Kit/Models/GLB%20format/campfire-pit.glb"
     },
     {
       "id": "kenney-survival-campfire-stand",
@@ -497,7 +339,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/survival-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Survival%20Kit/Models/GLB%20format/campfire-stand.glb"
     },
     {
@@ -513,7 +355,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/survival-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Survival%20Kit/Models/GLB%20format/rock-a.glb"
     },
     {
@@ -529,7 +371,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/survival-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Survival%20Kit/Models/GLB%20format/rock-b.glb"
     },
     {
@@ -545,7 +387,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/survival-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Survival%20Kit/Models/GLB%20format/rock-flat-grass.glb"
     },
     {
@@ -561,24 +403,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/survival-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Survival%20Kit/Models/GLB%20format/tent.glb"
-    },
-    {
-      "id": "kenney-survival-axe",
-      "kind": "model",
-      "pack": "survival",
-      "path": "kenney/3D assets/Survival Kit/Models/GLB format/tool-axe.glb",
-      "gitBlobSha": "11fe453456faa24fbe888313cbb9521f4596a630",
-      "byteLength": 8612,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Survival%20Kit/Models/GLB%20format/tool-axe.glb"
     },
     {
       "id": "kenney-graveyard-coffin",
@@ -593,7 +419,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/graveyard-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Graveyard%20Kit/Models/GLB%20format/coffin.glb"
     },
     {
@@ -609,7 +435,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/graveyard-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Graveyard%20Kit/Models/GLB%20format/fence-gate.glb"
     },
     {
@@ -625,7 +451,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/graveyard-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Graveyard%20Kit/Models/GLB%20format/grave.glb"
     },
     {
@@ -641,24 +467,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/graveyard-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Graveyard%20Kit/Models/GLB%20format/gravestone-broken.glb"
-    },
-    {
-      "id": "kenney-graveyard-gravestone-cross",
-      "kind": "model",
-      "pack": "graveyard",
-      "path": "kenney/3D assets/Graveyard Kit/Models/GLB format/gravestone-cross.glb",
-      "gitBlobSha": "fac50d452f147808f5535a71e3dfbdae886c6810",
-      "byteLength": 20584,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Graveyard%20Kit/Models/GLB%20format/gravestone-cross.glb"
     },
     {
       "id": "kenney-graveyard-gravestone-decorative",
@@ -673,7 +483,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/graveyard-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Graveyard%20Kit/Models/GLB%20format/gravestone-decorative.glb"
     },
     {
@@ -689,7 +499,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/graveyard-kit",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/3D%20assets/Graveyard%20Kit/Models/GLB%20format/iron-fence-bar.glb"
     },
     {
@@ -705,7 +515,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/rpg-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/RPG%20Audio/Audio/bookClose.ogg"
     },
     {
@@ -721,7 +531,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/rpg-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/RPG%20Audio/Audio/bookFlip1.ogg"
     },
     {
@@ -737,7 +547,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/rpg-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/RPG%20Audio/Audio/bookFlip2.ogg"
     },
     {
@@ -753,7 +563,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/rpg-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/RPG%20Audio/Audio/bookOpen.ogg"
     },
     {
@@ -769,7 +579,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/rpg-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/RPG%20Audio/Audio/bookPlace1.ogg"
     },
     {
@@ -785,7 +595,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/rpg-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/RPG%20Audio/Audio/cloth1.ogg"
     },
     {
@@ -801,7 +611,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/rpg-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/RPG%20Audio/Audio/cloth2.ogg"
     },
     {
@@ -817,7 +627,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/rpg-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/RPG%20Audio/Audio/beltHandle1.ogg"
     },
     {
@@ -833,24 +643,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/rpg-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/RPG%20Audio/Audio/beltHandle2.ogg"
-    },
-    {
-      "id": "kenney-impact-footstep-wood-0",
-      "kind": "audio",
-      "pack": "impact",
-      "path": "kenney/Audio/Impact Sounds/Audio/footstep_wood_000.ogg",
-      "gitBlobSha": "5c381b032c376c7eda87184fe173cd0d88f277ed",
-      "byteLength": 8030,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/Impact%20Sounds/Audio/footstep_wood_000.ogg"
     },
     {
       "id": "kenney-impact-footstep-wood-1",
@@ -865,7 +659,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/impact-sounds",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/Impact%20Sounds/Audio/footstep_wood_001.ogg"
     },
     {
@@ -881,7 +675,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/impact-sounds",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/Impact%20Sounds/Audio/footstep_wood_002.ogg"
     },
     {
@@ -897,7 +691,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/impact-sounds",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/Impact%20Sounds/Audio/footstep_wood_003.ogg"
     },
     {
@@ -913,7 +707,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/impact-sounds",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/Impact%20Sounds/Audio/impactBell_heavy_000.ogg"
     },
     {
@@ -929,7 +723,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/impact-sounds",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/Impact%20Sounds/Audio/impactBell_heavy_001.ogg"
     },
     {
@@ -945,7 +739,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/impact-sounds",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/Impact%20Sounds/Audio/impactGeneric_light_000.ogg"
     },
     {
@@ -961,7 +755,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/impact-sounds",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/Impact%20Sounds/Audio/impactGeneric_light_001.ogg"
     },
     {
@@ -977,24 +771,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/impact-sounds",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/Impact%20Sounds/Audio/impactGlass_heavy_000.ogg"
-    },
-    {
-      "id": "kenney-ui-click-1",
-      "kind": "audio",
-      "pack": "ui",
-      "path": "kenney/Audio/UI Audio/Audio/click1.ogg",
-      "gitBlobSha": "30772ea56fc1fcc56d6fb41fa8c915bedb39551d",
-      "byteLength": 9050,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/UI%20Audio/Audio/click1.ogg"
     },
     {
       "id": "kenney-ui-click-2",
@@ -1009,7 +787,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/ui-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/UI%20Audio/Audio/click2.ogg"
     },
     {
@@ -1025,24 +803,8 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/ui-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/UI%20Audio/Audio/click3.ogg"
-    },
-    {
-      "id": "kenney-ui-switch-1",
-      "kind": "audio",
-      "pack": "ui",
-      "path": "kenney/Audio/UI Audio/Audio/switch1.ogg",
-      "gitBlobSha": "927aaa52b2a9236fc0507ea7190ae2358ab9d64e",
-      "byteLength": 13285,
-      "repository": "eturner58/game-assets",
-      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
-      "author": "Kenney",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
-      "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/UI%20Audio/Audio/switch1.ogg"
     },
     {
       "id": "kenney-ui-switch-10",
@@ -1057,7 +819,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/ui-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/UI%20Audio/Audio/switch10.ogg"
     },
     {
@@ -1073,7 +835,7 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "licenseEvidence": "https://github.com/eturner58/game-assets/blob/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/LICENSES.md",
-      "originalSource": "https://kenney.nl/assets",
+      "originalSource": "https://kenney.nl/assets/ui-audio",
       "acquisitionUrl": "https://raw.githubusercontent.com/eturner58/game-assets/fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa/kenney/Audio/UI%20Audio/Audio/switch11.ogg"
     }
   ]
