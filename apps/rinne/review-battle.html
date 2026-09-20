@@ -104,6 +104,18 @@
 .stage>.technique-loadout span{justify-content:flex-start!important;min-height:21px!important;padding:0 4px!important;gap:5px!important}.stage>.technique-loadout b{display:grid!important;place-items:center!important;width:18px!important;height:18px!important;flex:0 0 18px!important;border:1px solid rgba(199,161,93,.42)!important;border-radius:50%!important;background:rgba(8,31,48,.88)!important;font-size:9px!important}.stage>.technique-loadout strong{max-width:88px!important;font-size:7px!important;text-align:left!important}
 .battle-stage-switch{padding:4px!important;gap:4px!important}.battle-stage-switch>span{display:none!important}.battle-stage-switch button{min-width:48px!important;min-height:28px!important;font-size:9px!important}
 @media(max-width:680px){.controls.review-surface__panel{grid-template-columns:minmax(0,1fr) auto!important}.stage>.technique-loadout{left:7px!important;top:7px!important}.battle-stage-switch{right:7px!important;top:7px!important}.phase-panel[data-skin="rinne"]{transform:translate(-50%,-10%) scale(.96)!important}}
+.phase-panel[data-skin="rinne"] .phase-meta{
+  display:block!important;visibility:visible!important;opacity:1!important;z-index:3!important;
+  position:absolute!important;left:50%!important;top:calc(100% + 3px)!important;transform:translateX(-50%)!important;
+  margin:0!important;padding:3px 10px!important;min-width:max-content!important;max-width:min(260px,78vw)!important;
+  background:linear-gradient(90deg,transparent,rgba(6,16,29,.9) 18%,rgba(6,16,29,.9) 82%,transparent)!important;
+  color:#d7d2c7!important;font:600 11px/1.45 var(--font-rinne-display)!important;letter-spacing:.05em!important;
+  text-shadow:0 2px 5px #000,0 0 8px rgba(115,188,229,.18)!important;white-space:nowrap!important;
+}
+.phase-panel[data-skin="rinne"] .phase-history{
+  top:calc(100% + 27px)!important;z-index:2!important;
+}
+
 
 
 .battle-sign{position:absolute;z-index:9;left:50%;top:34%;transform:translate(-50%,-50%);max-width:min(290px,76vw);padding:7px 12px 8px;border:1px solid rgba(155,215,241,.34);border-radius:12px;background:linear-gradient(180deg,rgba(8,25,43,.94),rgba(6,16,29,.82));color:#e8f5fa;font:600 11px/1.55 var(--font-rinne-display,ui-serif);letter-spacing:.04em;text-align:center;pointer-events:none;filter:drop-shadow(0 5px 8px rgba(0,0,0,.44));animation:battle-sign-drift 2.35s ease-out both}
