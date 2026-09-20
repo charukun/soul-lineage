@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 2,
+  "id": "kuumetsu-retreat-decision-20260920",
+  "game": "kuumetsu",
+  "mode": "evolution",
+  "kind": "gameplay",
+  "observation": {
+    "summary": "Immutable staging shows the hunt running with carried loot at stake, but the current UI automatically turns goal-ready or low-HP states into return guidance, suppressing the player's greed-versus-extraction choice instead of exposing it.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "3559d8aa84e179e09d36fd9751e8a224f00ef212",
+      "reference": "https://883b5c0f-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "provider": "cloudflare-worker-version-preview",
+      "versionId": "883b5c0f-6e54-4b97-b03a-7ec1a824d276",
+      "versionJsonCommit": "3559d8aa84e179e09d36fd9751e8a224f00ef212",
+      "observedAt": "2026-09-20T03:34:28Z",
+      "conditions": {
+        "device": "Pixel Fold class portrait",
+        "viewport": "673x841",
+        "scenario": "fresh profile title-to-hunt baseline; Chromium WebGL2 browser review run 35486927173"
+      },
+      "notVerified": [
+        "long-session human input feel",
+        "physical Pixel Fold GPU/thermal behavior"
+      ]
+    },
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "3559d8aa84e179e09d36fd9751e8a224f00ef212",
+        "path": "apps/demon/src/web/hunt-flow-ui.js",
+        "symbol": "HuntFlowUi.shouldReturn/target/update",
+        "statement": "goalReady or HP below 35% is converted into returning=true; target() then returns null, so UI guidance collapses toward extraction before the player explicitly chooses it."
+      },
+      {
+        "kind": "source",
+        "revision": "3559d8aa84e179e09d36fd9751e8a224f00ef212",
+        "path": "apps/demon/src/hunt/session-loop.js",
+        "symbol": "HuntSession.emit/finish/nextHuntPrey",
+        "statement": "carried loot increases on consume, is only secured through verified extraction, and nextHuntPrey can still provide additional prey after the mission quota."
+      },
+      {
+        "kind": "source",
+        "revision": "3559d8aa84e179e09d36fd9751e8a224f00ef212",
+        "path": "apps/demon/src/hunt/balance.js",
+        "symbol": "settleProgress",
+        "statement": "unverified return/defeat loses carried loot while verified extraction banks it, so a meaningful all-at-risk stake already exists but is not surfaced as a decision model."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "The hunt has real extraction stakes, but UI policy conflates a return recommendation with a forced guidance state and exposes haul/progress without a compact risk readout. Existing loss-on-death therefore fails to become an explicit greed-versus-safety decision.",
+    "prediction": "If recommendation is separated from explicit return intent and a deterministic retreat-risk snapshot joins carried loot, HP, combat pressure and mission completion, then goal completion will still leave additional prey guidance available while the HUD clearly states what is at risk and when extraction is recommended.",
+    "falsifier": "The change is refuted if goal-ready/low-HP states still suppress prey guidance without explicit return intent, if risk labels do not change with HP/combat/haul, or if extraction/settlement semantics change."
+  },
+  "candidates": [
+    {
+      "id": "separate-recommendation-and-explicit-return",
+      "selected": true,
+      "reason": "Keeps existing combat, extraction and loss rules intact while making the latent risk/reward loop player-controlled and legible."
+    },
+    {
+      "id": "add-new-timer-or-forced-night-escalation",
+      "selected": false,
+      "reason": "Would introduce a new failure clock before proving the existing loss-on-death risk can support the decision once UI policy stops preempting it."
+    },
+    {
+      "id": "increase-enemy-count-or-damage",
+      "selected": false,
+      "reason": "Would tune combat difficulty rather than fix the causal disconnect between carried value, danger and the explicit choice to extract."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/demon/src/hunt/balance.js",
+      "apps/demon/src/web/hunt-flow-ui.js",
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "summary": "Add a pure retreat decision snapshot from canonical hunt state, render at-risk haul/danger/recommendation in the hunt HUD, and stop treating recommendation as explicit return intent so players can deliberately greed past the quota."
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": [
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "stagingAfter": "required",
+    "limitations": [
+      "Native assertions prove decision-state semantics and preserved settlement but not subjective fun; immutable staging After will verify player-visible choice/readability on Chromium at the same viewport."
+    ]
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": null,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-retreat-decision-20260920"
+  },
+  "themeKey": "retreat-risk-reward-choice",
+  "rootCauses": [
+    {
+      "key": "recommendation-overrides-choice",
+      "summary": "Return recommendation is promoted to the same `returning` state as explicit player intent, which suppresses next-prey guidance after quota completion or low HP.",
+      "exactSourceRevision": "3559d8aa84e179e09d36fd9751e8a224f00ef212",
+      "path": "apps/demon/src/web/hunt-flow-ui.js",
+      "symbol": "HuntFlowUi.shouldReturn/target/update",
+      "caller": "apps/demon/src/web/main.js hud()",
+      "stateReadSide": "game.goalReady(), game.player.hp/maxhp, returnMode",
+      "causalEvidence": "update() rewrites returning with shouldReturn(), and target() returns null whenever returning is truthy.",
+      "prediction": "Goal-ready/low-HP state will recommend extraction without hiding next prey unless the player explicitly activates return mode.",
+      "falsifier": "A goal-ready session still yields no guided prey while explicit return mode is false.",
+      "implementationPaths": [
+        "apps/demon/src/web/hunt-flow-ui.js"
+      ],
+      "paths": [
+        "apps/demon/src/web/hunt-flow-ui.js"
+      ]
+    },
+    {
+      "key": "stakes-not-composed-into-risk",
+      "summary": "HUD shows progress and haul but does not compose carried-at-risk, current HP and active combat pressure into a readable retreat risk state.",
+      "exactSourceRevision": "3559d8aa84e179e09d36fd9751e8a224f00ef212",
+      "path": "apps/demon/src/hunt/balance.js",
+      "symbol": "settleProgress / new retreatDecision",
+      "caller": "HuntFlowUi.update",
+      "stateReadSide": "game.carried, player hp/maxhp, combatantCount(), goalReady()",
+      "causalEvidence": "settleProgress already makes carried loot all-or-nothing on verified extraction, but no pure read model exposes that stake before settlement.",
+      "prediction": "A deterministic risk snapshot will rise as HP falls or combat pressure increases and always report current carried value as at-risk until extraction.",
+      "falsifier": "Risk state stays unchanged across low-HP/active-combat cases or reports secured value before verified extraction.",
+      "implementationPaths": [
+        "apps/demon/src/hunt/balance.js",
+        "apps/demon/src/web/hunt-flow-ui.js"
+      ],
+      "paths": [
+        "apps/demon/src/hunt/balance.js",
+        "apps/demon/src/web/hunt-flow-ui.js"
+      ]
+    },
+    {
+      "key": "goal-completion-ends-guided-greed-loop",
+      "summary": "The mission quota completion path announces return and removes prey targeting even though the session supports further consumption and higher carried loot.",
+      "exactSourceRevision": "3559d8aa84e179e09d36fd9751e8a224f00ef212",
+      "path": "apps/demon/src/hunt/session-loop.js",
+      "symbol": "HuntSession.nextHuntPrey",
+      "caller": "HuntFlowUi.target",
+      "stateReadSide": "eaten, targetEaten, remaining NPCs",
+      "causalEvidence": "nextHuntPrey remains valid after goalReady, but HuntFlowUi prevents calling it once shouldReturn becomes true.",
+      "prediction": "After quota completion, a non-returning player retains a valid additional prey target while explicit return mode still disables prey targeting.",
+      "falsifier": "Post-quota target remains unavailable without return mode.",
+      "implementationPaths": [
+        "apps/demon/src/web/hunt-flow-ui.js",
+        "apps/demon/tests/hunt-loop-native.test.mjs"
+      ],
+      "paths": [
+        "apps/demon/src/web/hunt-flow-ui.js",
+        "apps/demon/tests/hunt-loop-native.test.mjs"
+      ]
+    }
+  ]
+}
