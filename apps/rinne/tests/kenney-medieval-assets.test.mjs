@@ -57,6 +57,6 @@ test('Kenney assets are active through the project Asset Origin with no third-pa
     assert.match(source,/projectAssetUrl/);
     assert.doesNotMatch(source,/raw\.githubusercontent\.com|cdn\.jsdelivr\.net|codeberg\.org/);
   }
-  assert.equal((objects.match(/kenneyMedieval\('/g)||[]).length-1,23);
+  assert.equal((objects.match(/kenneyMedieval\('/g)||[]).length,23);
   assert.equal((sounds.match(/id:'kenney-/g)||[]).length,22);
 });
