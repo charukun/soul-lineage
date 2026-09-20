@@ -3,20 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#050707">
+<meta name="theme-color" content="#0b2424">
 <title>Visual Review｜戦闘演出2</title>
 <link rel="stylesheet" href="./src/battle2.css">
 </head>
 <body>
-<main class="nocturne-stage" data-review-surface="battle2">
-  <iframe
-    class="nocturne-stage__runtime"
-    src="https://nocturne-autobattle.c-okamoto.workers.dev/"
-    title="NOCTURNE 自動戦闘"
-    loading="eager"
-    allow="autoplay; fullscreen"
-    referrerpolicy="strict-origin-when-cross-origin"
-  ></iframe>
+<main class="nocturne-stage" data-review-surface="battle2" data-runtime="nocturne-native">
+  <canvas id="world" aria-label="NOCTURNE 自動戦闘"></canvas>
+  <canvas id="effects" aria-hidden="true"></canvas>
+  <div class="nocturne-vignette" aria-hidden="true"></div>
+  <div data-runtime-support aria-hidden="true">
+    <div id="loader"><span id="load-text"></span><i id="load-progress"></i></div>
+    <div id="title"></div><div id="hud"><i id="health-fill"></i><span id="hp-label"></span><span id="kills"></span><span id="timer"></span><i id="burst-icon"></i><span id="burst-text"></span><span id="stance-label"></span><span id="level-label"></span><span id="wave-label"></span><span id="wave-pips"><i></i><i></i><i></i><i></i><i></i></span><span id="move-hint"></span></div>
+    <div id="boss-hud"><i id="boss-fill"></i></div>
+    <div id="wave-banner"><small></small><span></span></div><div id="toast"></div>
+    <div id="upgrade"><span id="upgrade-countdown"></span><button data-upgrade="power"></button><button data-upgrade="vitality"></button><button data-upgrade="haste"></button></div>
+    <div id="paused"></div><div id="ending"><span id="end-eyebrow"></span><span id="end-title"></span><span id="end-copy"></span><span id="end-stats"></span></div>
+    <div id="fatal"><span id="fatal-detail"></span></div>
+    <button id="start"></button><button id="restart"></button><button id="pause"></button><button id="resume"></button><button id="back-title"></button><button id="end-title-button"></button>
+    <button id="sound"></button><button id="quality"></button><button id="speed"></button>
+    <button data-stance="assault"></button><button data-stance="balanced"></button><button data-stance="guard"></button>
+    <dialog id="credits"></dialog><button id="credits-open"></button><button id="credits-close"></button>
+  </div>
 </main>
+<script type="module" src="./src/nocturne-stage.js"></script>
 </body>
 </html>
