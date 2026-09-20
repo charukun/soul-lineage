@@ -17,7 +17,7 @@ const SIGN_TEXT=Object.freeze({
   ha:'この崩しなら、もう一手を重ねられる。',
   kyu:'この間なら、最後まで届く。'
 });
-export const REVIEW_INSPIRATION_TIMELINE=Object.freeze({camera:.12,spacing:.18,stagger:.58,reveal:.72,execute:1.08,end:2.65});
+export const REVIEW_INSPIRATION_TIMELINE=Object.freeze({camera:.16,spacing:.32,stagger:.74,reveal:1.08,execute:1.46,end:3.02});
 
 const reviewArts=(open,middle,finish,tag)=>Object.freeze({
   open:Object.freeze(open),middle:Object.freeze(middle),finish:Object.freeze(finish),tag
