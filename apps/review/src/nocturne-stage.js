@@ -14,6 +14,7 @@ function failed(error){report('ERROR',error?.message||String(error));sound?.paus
 window.__BATTLE2__=Object.freeze({
   get state(){return state;},get lastError(){return lastError;},get sourceSha(){return __BUILD_INFO__.commit;},
   get metrics(){return runtime?.metrics()||{ready:false};},get actors(){return runtime?.inspectActors()||[];},get trace(){return runtime?.trace.slice()||[];},
+  get observation(){return prepared?runtime?.inspectBattle(sequence)??null:null;},
   advance(seconds){if(!new URL(location.href).searchParams.has('evidence'))throw Error('Evidence mode required');return runtime.advance(seconds);}
 });
 async function boot(){
