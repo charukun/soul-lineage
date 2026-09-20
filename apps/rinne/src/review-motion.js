@@ -37,8 +37,9 @@ ground.rotation.x=-Math.PI/2;ground.position.y=-.005;scene.add(ground);
 
 const loader=new GLTFLoader(),stage=new THREE.Group();scene.add(stage);
 let subject=null,targetScene=null,targetBones=null,targetRest=null,mixer=null,action=null,targetClips=[],registry=null,catalog=[],selected=null;
-const MOTION_REVIEW_MODEL=Object.freeze({id:'mesh2motion-review-mannequin',label:'基準素体',reviewMannequin:true});
+const MOTION_REVIEW_MODEL=Object.freeze({id:'mesh2motion-review-mannequin',label:'基準素体',reviewMannequin:true,thumbnailUrl:'./review/catalog-thumbnails.svg#mesh2motion-review-mannequin'});
 const REVIEW_MODELS=Object.freeze([MOTION_REVIEW_MODEL,...KAYKIT_MODELS]);
+function createStaticThumbnail(url,label=''){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('review-static-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-label',label);svg.setAttribute('role','img');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href',url);svg.append(use);return svg;}
 let selectedModel=MOTION_REVIEW_MODEL,filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8,cameraPreset='three-quarter';
 let externalSource=null,externalSourceId='',externalTime=0,selectedDuration=0,selectSerial=0;
 const categoryOrder=['all','recommended','life','move','combat','reaction','other'];
@@ -121,7 +122,7 @@ function renderModelGrid(){
   const grid=el('motion-model-grid');grid.replaceChildren();
   for(const model of REVIEW_MODELS){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionModel=model.id;
-    const thumbnail=createRuntimeThumbnail(model.label),label=document.createElement('span');label.textContent=model.label;button.append(thumbnail,label);scheduleRuntimeThumbnail(thumbnail,`motion-model:${model.id}`,async()=>cloneSkeleton((await loadReviewModelForThumbnail(model)).scene),{disposeAfter:false});
+    const thumbnail=createStaticThumbnail(model.thumbnailUrl,model.label),label=document.createElement('span');label.textContent=model.label;button.append(thumbnail,label);
     button.setAttribute('aria-pressed',String(model.id===selectedModel.id));button.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(button);
   }
 }

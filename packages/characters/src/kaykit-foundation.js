@@ -4,6 +4,7 @@ export const KAYKIT_SOURCE_REPOSITORY = 'KayKit-Game-Assets/KayKit-Character-Pac
 export const KAYKIT_SOURCE_REVISION = '672074b73ba276876a19e8816ecdc5241817ab47';
 export const KAYKIT_LICENSE = 'CC0-1.0';
 export const KAYKIT_RIG_ID = 'Rig_Medium';
+const reviewThumbnailUrl=id=>`./review/catalog-thumbnails.svg#${id}`;
 
 const model = ({ id, label, file, blobSha, byteLength }) => Object.freeze({
   id: `kaykit.${id}.v1`,
@@ -28,7 +29,8 @@ const model = ({ id, label, file, blobSha, byteLength }) => Object.freeze({
   modelingMode: 'imported-reviewed',
   productionReady: false,
   visualApproval: 'pending',
-  procedural: false
+  procedural: false,
+  thumbnailUrl: reviewThumbnailUrl(`kaykit.${id}.v1`)
 });
 
 const equipmentFile=({id,label,file,blobSha,byteLength})=>Object.freeze({
