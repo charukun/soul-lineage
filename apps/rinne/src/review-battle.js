@@ -2,7 +2,8 @@ import {createTidebreakRuntime} from '@soul/tidebreak-combat';
 import {CAUSAL_ANSWERS,INSPIRATION_QUESTIONS} from '@soul/game-data';
 import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stage.js';
 import {tidebreakWeaponFor} from './rebuild/combat.js';
-import {applyChoreographyImpact,combatBodySnapshot,COMBAT_BODY_PARTS,strategyForState} from './rebuild/combat-choreography.js';
+import {applyChoreographyImpact,strategyForState} from './rebuild/combat-choreography.js';
+import {createCombatBodyHud} from './combat-body-hud.js';
 import {tidebreakMindsetFromVector} from './rebuild/combat-tactics.js';
 import {advanceReviewFinisher,createReviewFinisher,reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
 import {REVIEW_INSPIRATION_TIMELINE,generatedReviewInspirationCandidates,pickGeneratedReviewInspiration,pickReviewInspiration} from './review-battle-inspiration.js';
@@ -20,7 +21,7 @@ const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
 const phasePanel=q('battle-phase'),sequenceCurrent=q('battle-sequence-current'),soundButton=q('battle-sound'),historyNode=q('battle-inspiration-history'),historyList=q('battle-inspiration-history-list'),historyOpen=q('battle-history-open'),historyClose=q('battle-history-close'),historyCount=q('battle-history-count');
 const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
-let strategyA='balanced',strategyB='patient',strategyVariant='A',reviewSeed=6197,reviewInjury='none',reviewHeroBody=null,reviewEnemyBody=null;
+let strategyA='balanced',strategyB='patient',strategyVariant='A',reviewSeed=6197,reviewInjury='none',reviewHeroBody=null,reviewEnemyBody=null,bodyHud=null;
 let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),signTimer=0,bulbTimer=0,pendingInspirationTimer=0,sequenceTimer=0;
 const INSPIRATION_BULB_HOLD_MS=550;
 const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
@@ -104,10 +105,7 @@ function makeReviewBody(role,strategy){
   if(reviewInjury!=='none'&&role==='hero')state.injuries[reviewInjury]={severity:.72,at:0};
   combatBodySnapshot(state);return state;
 }
-function syncBodyReadout(){
-  const node=q('battle-body-readout');if(!node||!reviewHeroBody)return;const snapshot=combatBodySnapshot(reviewHeroBody);
-  node.textContent=COMBAT_BODY_PARTS.map(part=>`${snapshot[part].label} ${snapshot[part].durability}`).join(' · ');
-}
+function syncBodyHud(){if(reviewHeroBody)bodyHud?.update(reviewHeroBody);}
 function resetBattle(){
   reviewSwipe.cancel();lastCore=null;finishedAt=0;finisher=null;clearTimeout(pendingInspirationTimer);pendingInspirationTimer=0;clearTimeout(sequenceTimer);sequenceTimer=0;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks.clear();if(sequenceCurrent){sequenceCurrent.textContent='間合いを測っている…';sequenceCurrent.dataset.kind='idle';sequenceCurrent.classList.remove('battle-sequence-current--event');}battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
   const weapon=runtimeWeapon(),group=encounterMode==='one-v-three',strategy=strategyVariant==='A'?strategyA:strategyB;reviewHeroBody=makeReviewBody('hero',strategy);reviewEnemyBody=makeReviewBody('enemy','balanced');
@@ -116,7 +114,7 @@ function resetBattle(){
     ?{hero:{x:-2.65,z:0},enemy:{x:2.65,z:0},enemies:[{x:2.65,z:0},{x:2.45,z:-1.75},{x:2.45,z:1.75}]}
     :{hero:{x:-2.65,z:0},enemy:{x:2.65,z:0}};
   runtime.configure({weapon,loadout,opponent:group?'group':'duel',hp:230,maxhp:230,enemyHp:180,enemyWeapon:'sword',enemyStyle:'balanced',mindset:tidebreakMindsetFromVector(strategyForState(reviewHeroBody)),positions,...(group?{enemies:[{weapon:'sword',hp:180},{weapon:'spear',hp:165},{weapon:'axe',hp:195}]}:{})});
-  lastCore=runtime.state();last=performance.now();battleStage?.setEncounterMode(encounterMode);syncBodyReadout();
+  lastCore=runtime.state();last=performance.now();battleStage?.setEncounterMode(encounterMode);syncBodyHud();
 }
 const INTERNAL_ACTION_LABELS=Object.freeze({
   spin:'旋回攻撃',slash:'斬撃',crosscut:'連続斬り',thrust:'突き',heavy:'強撃',ready:'構え',guard:'受け',counter:'返し'
@@ -192,9 +190,9 @@ function advanceBattle(dt){
   const angle=battleStage?.cameraAngle?.()||0,input=reviewSwipe.vector(angle);
   runtime.input(input.screenX,input.screenY,input.amount,angle);const previous=lastCore,next=runtime.step(dt);
   const heroLoss=Math.max(0,(Number(previous?.hero?.hp)||0)-(Number(next?.hero?.hp)||0)),enemyLoss=Math.max(0,(Number(previous?.enemy?.hp)||0)-(Number(next?.enemy?.hp)||0));
-  if(heroLoss>.001){applyChoreographyImpact(reviewHeroBody,{damage:heroLoss,maxIntegrity:230,sector:'front',sourceId:'review-enemy',phase:next?.enemy?.slot||'ha'});pushBattleReadout(`被弾 −${Math.ceil(heroLoss)}`,'hurt');}
+  if(heroLoss>.001){const bodyImpact=applyChoreographyImpact(reviewHeroBody,{damage:heroLoss,maxIntegrity:230,sector:'front',sourceId:'review-enemy',phase:next?.enemy?.slot||'ha'});bodyHud?.flash(bodyImpact.part);pushBattleReadout(`被弾 −${Math.ceil(heroLoss)} · ${bodyImpact.label}`,'hurt');}
   if(enemyLoss>.001)applyChoreographyImpact(reviewEnemyBody,{damage:enemyLoss,maxIntegrity:180,sector:'front',sourceId:'review-hero',phase:next?.hero?.slot||'ha'});
-  syncBodyReadout();const ending=createReviewFinisher(next,previous);
+  syncBodyHud();const ending=createReviewFinisher(next,previous);
   if(ending){finisher=ending;const frame=advanceReviewFinisher(finisher,0);finisher=frame.run;lastCore=frame.core;}
   else lastCore=next;
 }
@@ -226,5 +224,6 @@ q('battle-review-seed')?.addEventListener('change',event=>{reviewSeed=Math.max(1
 q('battle-injury-preset')?.addEventListener('change',event=>{reviewInjury=event.target.value;resetBattle();});
 historyOpen?.addEventListener('click',()=>{insightHistoryOpen=true;renderInsightHistory();});historyClose?.addEventListener('click',()=>{insightHistoryOpen=false;renderInsightHistory();});
 document.addEventListener('pointerdown',()=>{battleSfx.unlock();syncSoundButton();},{passive:true});
-soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});window.addEventListener('pagehide',()=>{battleStage?.dispose();battleSfx.dispose();},{once:true});
+soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});window.addEventListener('pagehide',()=>{battleStage?.dispose();battleSfx.dispose();bodyHud?.destroy();},{once:true});
+bodyHud=createCombatBodyHud({root:q('battle-body-hud')});
 syncModelLabels();phasePanel.dataset.skin='rinne';syncSoundButton();renderTechniqueComposition();renderInsightHistory();resetBattle();void ensureBattleStage();requestAnimationFrame(frame);
