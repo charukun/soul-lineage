@@ -13,7 +13,8 @@
     "./combat-sequence.css": "./src/combat-sequence.css",
     "./media-lifecycle": "./src/media-lifecycle.js",
     "./review-shell": "./src/review-shell.js",
-    "./boot-gate": "./src/boot-gate.js"
+    "./boot-gate": "./src/boot-gate.js",
+    "./johakyu-observation": "./src/johakyu-observation.js"
   },
   "dependencies": {
     "@soul/audio": "*"

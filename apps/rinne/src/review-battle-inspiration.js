@@ -1,4 +1,4 @@
-import {INSPIRATION_WEAPON_ARTS} from '@soul/game-data';
+import {INSPIRATION_WEAPON_ARTS,generatedTechniqueCandidates} from '@soul/game-data';
 
 const PHASES=new Set(['jo','ha','kyu']);
 const SWEEP=new Set(['slash','back','heavy','spin','sweep','diagonal','crosscut','round','hook','bodyblow','barrage','rushfist','uppercut','risingfist','meteor','bullrush']);
@@ -36,7 +36,7 @@ const step=kind=>Object.freeze({kind,footwork:'stay',charge:'none'});
 const techniqueId=(weapon,phase,kinds)=>`review.${weapon}.${phase}.${kinds.join('-')}`;
 const techniqueName=(arts,phase,kinds)=>`${arts.tag}・${PHASE_LABELS[phase]} ${kinds.map(kind=>MOTION_LABELS[kind]||kind).join('・')}`;
 
-// Review-only combinations expand canonical weapon arts without changing gameplay learning or saves.
+// Legacy local sequence helpers remain for authored fallback inspection. Generated review techniques now use the same shared grammar as gameplay.
 function generatedSequences(arts,phase){
   if(phase==='jo'){
     const open=[...new Set(arts.open)];
@@ -77,22 +77,12 @@ const weightedPick=(rows,random=Math.random)=>{
 };
 
 export function generatedReviewInspirationCandidates({weapon='fist',phase='ha',seenIds=[],encounterMode='duel'}={}){
-  const arts=REVIEW_WEAPON_ARTS[weapon],slot=PHASES.has(phase)?phase:'ha',seen=new Set(seenIds);
-  if(!arts)return [];
-  return generatedSequences(arts,slot).map(kinds=>{
-    const row=Object.freeze({
-      id:techniqueId(weapon,slot,kinds),
-      name:techniqueName(arts,slot,kinds),
-      kind:'technique',
-      weapons:Object.freeze([weapon]),
-      phases:Object.freeze([slot]),
-      steps:Object.freeze(kinds.map(step)),
-      sign:SIGN_TEXT[slot]
-    });
-    return Object.freeze({row,weight:weightFor(kinds,slot,encounterMode)});
-  }).filter(item=>!seen.has(item.row.id));
+  const slot=PHASES.has(phase)?phase:'ha',seen=new Set(seenIds);
+  return generatedTechniqueCandidates({weapon,phase:slot}).filter(row=>!seen.has(row.id)).map(row=>Object.freeze({
+    row:Object.freeze({...row,sign:SIGN_TEXT[slot]}),
+    weight:weightFor(row.steps.map(item=>item.kind),slot,encounterMode)
+  }));
 }
-
 export function pickGeneratedReviewInspiration(options={},random=Math.random){
   return weightedPick(generatedReviewInspirationCandidates(options),random);
 }

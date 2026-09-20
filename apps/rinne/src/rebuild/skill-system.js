@@ -1,4 +1,4 @@
-import { CAUSAL_ANSWERS, CAUSAL_ANSWER_BY_ID, INSPIRATION_ATTRIBUTES } from '@soul/game-data';
+import { CAUSAL_ANSWERS, INSPIRATION_ATTRIBUTES, resolveInspirationAnswer } from '@soul/game-data';
 import { SUPPORT_SKILLS as LEGACY_SUPPORT, ACTION_SKILLS as LEGACY_ACTIONS } from './legacy-skill-system.js';
 
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
@@ -13,13 +13,14 @@ export const SUPPORT_SKILLS=Object.freeze([...support.values()]);
 export const ACTION_SKILLS=Object.freeze([...actions.values()]);
 export const DISCOVERIES=Object.freeze([...SUPPORT_SKILLS,...ACTION_SKILLS]);
 export const SKILL_BY_ID=Object.freeze(Object.fromEntries(DISCOVERIES.map(row=>[row.id,row])));
+export function skillDefinition(id){const known=SKILL_BY_ID[id];if(known)return known;const row=resolveInspirationAnswer(id);return row&&['technique','variant'].includes(row.kind)?causalRow(row):null;}
 
 function selectedSkillIds(state){
   const ids=new Set(),loadout=state?.combatLoadout;
   const allowed=id=>!state?.inspiration||(state.knownSkills?.includes(id)&&!state.inspiration.records?.[id]?.archived);
-  for(const id of loadout?.heart?.active||[])if(SKILL_BY_ID[id]?.type==='support'&&allowed(id))ids.add(id);
+  for(const id of loadout?.heart?.active||[])if(skillDefinition(id)?.type==='support'&&allowed(id))ids.add(id);
   const technique=loadout?.technique,combo=(technique?.combos||[]).find(row=>row.id===technique?.activeComboId)||technique?.combos?.[0];
-  for(const id of Object.values(combo?.slots||{}))if(SKILL_BY_ID[id]?.type==='action'&&allowed(id))ids.add(id);
+  for(const id of Object.values(combo?.slots||{}))if(skillDefinition(id)?.type==='action'&&allowed(id))ids.add(id);
   if(SKILL_BY_ID[technique?.oneMotion]?.type==='action'&&allowed(technique.oneMotion))ids.add(technique.oneMotion);
   return ids;
 }
@@ -28,10 +29,10 @@ export function faithProfile(state){
   const totals=Object.fromEntries(INSPIRATION_ATTRIBUTES.map(id=>[id,0])),ids=new Set(),inspiration=state?.inspiration;
   if(inspiration){
     for(const id of inspiration.legacySkills||[])ids.add(id);
-    for(const [id,record] of Object.entries(inspiration.records||{}))if(record?.kind==='heart'||CAUSAL_ANSWER_BY_ID[id]?.kind==='heart')ids.add(id);
+    for(const [id,record] of Object.entries(inspiration.records||{}))if(record?.kind==='heart'||resolveInspirationAnswer(id)?.kind==='heart')ids.add(id);
   }else for(const id of state?.knownSkills||[])ids.add(id);
   for(const id of ids){
-    const row=SKILL_BY_ID[id];if(row?.type!=='support')continue;
+    const row=skillDefinition(id);if(row?.type!=='support')continue;
     for(const [attribute,value] of Object.entries(row.faith||{}))if(Object.hasOwn(totals,attribute)&&Number.isFinite(value)&&value>0)totals[attribute]+=value;
   }
   for(const attribute of INSPIRATION_ATTRIBUTES)totals[attribute]=Number(Math.min(3,totals[attribute]).toFixed(4));
@@ -49,4 +50,4 @@ export function skillEffects(state){
 }
 /** Numeric legacy experience is never an acquisition route. Life episodes use inspiration-state. */
 export function eligibleDiscoveries(){return [];}
-export function skillName(id){return SKILL_BY_ID[id]?.name||CAUSAL_ANSWER_BY_ID[id]?.name||id;}
+export function skillName(id){return skillDefinition(id)?.name||resolveInspirationAnswer(id)?.name||id;}

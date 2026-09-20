@@ -7,14 +7,31 @@ const read=path=>readFileSync(new URL(path,root),'utf8');
 const blobHash=text=>createHash('sha1').update('blob '+Buffer.byteLength(text)+'\0').update(text).digest('hex');
 const baseline=JSON.parse(read('docs/rinne/JOHAKYU_BATTLE_BASELINE.json'));
 
-// P0 is deliberately name-only. Future behavior migrations must retain the immutable
-// baseline and replace the relevant active-source equality with causal tests AND
-// exact-build visual evidence, not refresh hashes to conceal rendering changes.
-test('P0 preserves the native combat, animation, camera, environment, audio and asset source bytes',()=>{
+// P1 adds only this lazy, read-only observation. After removing these exact
+// additions, every original native byte must still match the immutable P0 hash.
+// Combat/RNG/audio equivalence is ALSO exercised against bk by the causal test.
+function sourceWithoutP1Observation(path){
+  let source=read(path);
+  const removeOnce=value=>{
+    assert.equal(source.split(value).length,2,`Expected one exact P1 insertion: ${path}`);
+    source=source.replace(value,'');
+  };
+  if(path==='apps/review/src/nocturne/runtime.js'){
+    removeOnce("import {createBattleObservation} from '@soul/shared-ui/johakyu-observation';\n");
+    removeOnce("function inspectBattle(bootEpoch){\n if(!game.ready||disposed)return null;\n return createBattleObservation({authority:'native-demo',battleId:`battle2:${bootEpoch}:${rounds}`,timeSeconds:game.time,status:game.phase,\n  actors:actors.map(a=>({id:a.object.uuid,side:a.kind==='hero'?'hero':'enemy',position:a.pos.toArray(),hp:a.hp,maxHp:a.maxHp,dead:a.dead,phase:null,animation:a.actionName})),events:[]});\n}\n");
+    assert.equal(source.split('metrics,inspectActors,inspectBattle,advance').length,2);
+    source=source.replace('metrics,inspectActors,inspectBattle,advance','metrics,inspectActors,advance');
+  }else if(path==='apps/review/src/nocturne-stage.js'){
+    removeOnce('  get observation(){return prepared?runtime?.inspectBattle(sequence)??null:null;},\n');
+  }
+  return source;
+}
+
+test('P0/P1 preserve native combat, animation, camera, environment, audio and assets',()=>{
   assert.equal(baseline.sourceCommit,'58bf65db139a64f456f3923fe4988d741285418c');
   assert.equal(baseline.implementationStage,'P0-name-and-preservation-only');
   assert.equal(Object.keys(baseline.activeBlobs).length,11);
-  for(const [path,sha] of Object.entries(baseline.activeBlobs))assert.equal(blobHash(read(path)),sha,path);
+  for(const [path,sha] of Object.entries(baseline.activeBlobs))assert.equal(blobHash(sourceWithoutP1Observation(path)),sha,path);
 });
 
 test('the new name changes only page labels and its shared review catalog entry',()=>{

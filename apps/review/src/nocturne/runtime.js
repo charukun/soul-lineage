@@ -1,3 +1,4 @@
+import {createBattleObservation} from '@soul/shared-ui/johakyu-observation';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
@@ -289,6 +290,11 @@ async function prepare(){
 }
 function metrics(){return {ready:game.ready,phase:game.phase,rounds,totalKills:allKills,kills:game.kills,damage:game.damage,received:game.received,wave:game.wave,time:game.time,hp:hero?.hp,models:usedModels.size,loadedBytes,actors:actors.length,activeAnimations:actors.filter(a=>a.action?.isRunning()).length,renderedDeaths,frames:renderer?.info.render.frame||0,drawCalls:renderer?.info.render.calls||0,triangles:renderer?.info.render.triangles||0,fps,audio:sound.metrics(),webgl2:!!renderer?.getContext().texStorage2D};}
 function inspectActors(){return actors.map(a=>({kind:a.kind,hp:a.hp,dead:a.dead,deathTime:a.deathTime,position:a.pos.toArray(),animation:a.actionName,animationTime:a.action?.time||0,attack:a.attack?.time||0}));}
+function inspectBattle(bootEpoch){
+ if(!game.ready||disposed)return null;
+ return createBattleObservation({authority:'native-demo',battleId:`battle2:${bootEpoch}:${rounds}`,timeSeconds:game.time,status:game.phase,
+  actors:actors.map(a=>({id:a.object.uuid,side:a.kind==='hero'?'hero':'enemy',position:a.pos.toArray(),hp:a.hp,maxHp:a.maxHp,dead:a.dead,phase:null,animation:a.actionName})),events:[]});
+}
 function advance(seconds){if(!game.ready||disposed||!Number.isFinite(seconds)||seconds<=0||seconds>30)throw Error('Invalid evidence advancement');for(let i=0;i<Math.ceil(seconds*60);i++){simulate(1/60);clock+=1/60;}draw();return metrics();}
 function destroy(){
  if(disposed)return;disposed=true;game.ready=false;renderer?.setAnimationLoop(null);
@@ -298,6 +304,6 @@ function destroy(){
  gather(scene);for(const gltf of models.values())gather(gltf.scene);for(const r of [...textures,...materials,...geometries])r.dispose();
  for(const p of composer?.passes||[])p.dispose?.();composer?.dispose();renderer?.dispose();models.clear();
 }
-return Object.freeze({prepare,resize,metrics,inspectActors,advance,destroy,fail,trace});
+return Object.freeze({prepare,resize,metrics,inspectActors,inspectBattle,advance,destroy,fail,trace});
 
 }
