@@ -59,3 +59,13 @@ test('title reset replay never takes the interrupted placement recovery shortcut
  markFirstRunAutoplaySeen(state);
  assert.equal(shouldRecoverFirstRunAutoplay(state,{resetReplay:false,guidePlaced:true}),false);
 });
+
+test('title entry is a lifecycle boundary before post-entry enhancement loading',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const main=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
+ const entry=await readFile(new URL('../src/mura-entry-polish.js',import.meta.url),'utf8');
+ assert.ok(main.indexOf("./web/interface.js")<main.indexOf("./mura-entry-polish.js"));
+ assert.ok(main.indexOf("./mura-entry-polish.js")<main.indexOf("./mura-enhancements.js"));
+ assert.match(main,/addEventListener\('village:entered',[\s\S]*loadPostEntryEnhancements/);
+ assert.match(entry,/dispatchEvent\(new CustomEvent\('village:entered'\)\)/);
+});
