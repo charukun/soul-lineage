@@ -3,7 +3,16 @@ import * as THREE from 'three';
 const size=Object.freeze({width:288,height:184});
 let renderer=null,scene=null,camera=null,queue=Promise.resolve(),active=false;
 const cache=new Map(),targets=new WeakMap(),queuedKeys=new Set(),jobs=[];
-const idle=callback=>globalThis.requestIdleCallback?requestIdleCallback(callback,{timeout:350}):setTimeout(()=>callback({timeRemaining:()=>8,didTimeout:true}),24);
+const idle=callback=>globalThis.requestIdleCallback?requestIdleCallback(callback,{timeout:90}):setTimeout(()=>callback({timeRemaining:()=>8,didTimeout:true}),12);
+function paintPlaceholder(canvas){
+  const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
+  const bg=ctx.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#18231f');bg.addColorStop(1,'#0d1311');ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+  ctx.save();ctx.translate(w*.5,h*.49);ctx.strokeStyle='#74867d';ctx.fillStyle='#9aa9a1';ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.globalAlpha=.22;ctx.beginPath();ctx.ellipse(0,h*.35,w*.24,h*.055,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.72;
+  const r=Math.max(8,w*.035);ctx.beginPath();ctx.arc(0,-h*.22,r,0,Math.PI*2);ctx.fill();ctx.lineWidth=Math.max(5,w*.018);
+  ctx.beginPath();ctx.moveTo(0,-h*.14);ctx.lineTo(0,h*.08);ctx.moveTo(0,-h*.08);ctx.lineTo(-w*.09,h*.02);ctx.moveTo(0,-h*.08);ctx.lineTo(w*.09,h*.02);ctx.moveTo(0,h*.07);ctx.lineTo(-w*.065,h*.27);ctx.moveTo(0,h*.07);ctx.lineTo(w*.065,h*.27);ctx.stroke();ctx.restore();
+  canvas.dataset.thumbnailState='placeholder';
+}
 
 function ensureRuntime(){
   if(renderer)return;
@@ -95,7 +104,7 @@ export function createRuntimeThumbnail(label=''){
   const canvas=document.createElement('canvas');
   canvas.className='review-runtime-thumbnail';canvas.width=size.width;canvas.height=size.height;
   canvas.setAttribute('aria-hidden','true');canvas.dataset.thumbnailLabel=String(label||'');canvas.dataset.thumbnailState='idle';
-  const ctx=canvas.getContext('2d');ctx.fillStyle='#101715';ctx.fillRect(0,0,size.width,size.height);
+  paintPlaceholder(canvas);
   return canvas;
 }
 export function scheduleRuntimeThumbnail(target,key,load,options={}){
