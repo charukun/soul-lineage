@@ -7,7 +7,7 @@ const root=process.cwd(),app=resolve(root,'apps/rinne');
 // Explicit selection preserves the existing opt-in browser lane. No automatic sweep.
 const browserRequested=process.env.RINNE_TITLE_BROWSER==='1'||String(process.env.ASTRA_COMMIT_MESSAGE||'').split(/\r?\n/).some(line=>line.trim()==='Astra-Test: apps/rinne/tests/title-cinematic-browser.test.mjs');
 const manifest=JSON.parse(await readFile(resolve(app,'public/title-assets/cinematic/manifest.json')));
-const ready={...manifest,status:'ready',movie:'./title-assets/cinematic/opening.mp4',webm:null};
+const ready={...manifest,status:'ready',revision:'decoder-fixture',movie:'./title-assets/cinematic/opening.mp4',webm:null,duration:8,livingLoop:{start:6,end:8}};
 const browserPath=()=>{for(const name of ['google-chrome','google-chrome-stable','chromium','chromium-browser'])try{return execFileSync('which',[name],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim();}catch{}throw Error('Chromium is required for the selected browser test');};
 const waitForServer=async url=>{for(let i=0;i<450;i++){try{if((await fetch(url)).ok)return;}catch{}await new Promise(r=>setTimeout(r,200));}throw Error('Vite server did not start');};
 
@@ -17,7 +17,7 @@ test('RINNE title: decoded movie, skips, matching landing, return, failure and F
   // Use the repository's existing dev entry so pinned game assets are available.
   const server=spawn('npm',['run','dev','--workspace','@soul/rinne'],{cwd:root,env:{...process.env,NO_COLOR:'1'},stdio:['ignore','pipe','pipe'],detached:process.platform!=='win32'});
   let log='',browser;for(const stream of [server.stdout,server.stderr])stream.on('data',c=>{log=(log+c).slice(-8000);});
-  const evidence={media:'synthetic decoder fixture; not the delivered film',checks:[],consoleErrors:[],mediaErrors:[]};
+  const evidence={media:{shipping:manifest.movie,revision:manifest.revision,fixture:'synthetic H264 for transport/lifecycle edge cases'},checks:[],consoleErrors:[],mediaErrors:[]};
   const shot=async(page,name)=>{
     const bytes=await page.screenshot({type:'jpeg',quality:48});await writeFile(resolve(dir,name+'.jpg'),bytes);
     // Keep screenshots retrievable with this exact-head job; no new workflow/artifact step.
@@ -38,14 +38,26 @@ test('RINNE title: decoded movie, skips, matching landing, return, failure and F
     await page.route('**/title-assets/cinematic/opening.mp4',r=>mediaMode==='broken'?r.abort():r.continue({url:'http://127.0.0.1:5173/tests/fixtures/title-decoder-test.mp4'}));
     const goto=async()=>{await page.goto('http://127.0.0.1:5173/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>document.getElementById('title-screen').dataset.ready==='true');};
     const idle=()=>page.waitForFunction(()=>document.getElementById('title-screen').dataset.intro==='idle');
-    await goto();await idle();await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.title-actions')).opacity)>.99);
+    await goto();
+    assert.equal(manifest.status,'ready','the generated film is the shipping asset');
+    await page.waitForFunction(()=>document.querySelector('video').currentTime>.1);
+    assert.equal(await page.locator('.title-actions').evaluate(n=>n.inert),true);
+    for(const [time,name] of [[.35,'01-film-mother'],[1.25,'02-film-battle'],[2.3,'03-film-elder'],[3.25,'04-film-rebirth']]){
+      await page.waitForFunction(t=>document.querySelector('video').currentTime>=t,time);
+      await shot(page,name+'-portrait');
+    }
+    await idle();await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.title-actions')).opacity)>.99);
+    const shippingMedia=await page.locator('video').evaluate(v=>({width:v.videoWidth,height:v.videoHeight,time:v.currentTime,error:v.error?.code??null,paused:v.paused,src:v.getAttribute('src')}));
+    assert.equal(shippingMedia.src,manifest.movie);assert.equal(shippingMedia.width,manifest.width);assert.equal(shippingMedia.height,manifest.height);assert.equal(shippingMedia.error,null);assert.ok(shippingMedia.time>=manifest.duration-1/manifest.fps);
+    if(!manifest.livingLoop)assert.equal(shippingMedia.paused,true);
+    evidence.shippingDecode=shippingMedia;
     await shot(page,'01-shipping-portrait');
     await page.setViewportSize({width:915,height:412});await shot(page,'02-shipping-landscape');
     for(const size of [{width:412,height:915},{width:915,height:412}]){
       await page.setViewportSize(size);
       const boxes=await page.locator('.title-actions').boundingBox();assert.ok(boxes.x>=0&&boxes.y>=0&&boxes.x+boxes.width<=size.width&&boxes.y+boxes.height<=size.height,'menu fits Fold viewport');
     }
-    evidence.checks.push('shipping poster; portrait 412x915; landscape 915x412; menu inside viewport');
+    evidence.checks.push('delivered generated MP4 decodes and naturally lands at six seconds; portrait 412x915; landscape 915x412; menu inside viewport');
     mediaMode='ready';await page.setViewportSize({width:412,height:915});await goto();
     await page.waitForFunction(()=>document.querySelector('video').currentTime>.1);
     assert.equal(await page.locator('.title-actions').evaluate(n=>n.inert),true);

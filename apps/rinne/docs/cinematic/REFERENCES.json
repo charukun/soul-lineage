@@ -1,6 +1,43 @@
 {
-  "sourceDevelop": "ed50416e9be4ef8c14aff26c4ac5d6be718fd0a4",
+  "sourceDevelop": "bfdd13907c0ead69689370db5f754ce167b7bec6",
   "references": [
+    {
+      "id": "01",
+      "packFile": "hero-three-quarter.png",
+      "repositoryPath": "docs/characters/qa/protagonist-villager-v1/three-quarter.png",
+      "kind": "actual model QA",
+      "role": "Identity in volume; garment shape"
+    },
+    {
+      "id": "02",
+      "packFile": "drone-mother.webp",
+      "repositoryPath": "apps/rinne/docs/cinematic/drone-mother.webp",
+      "kind": "generated concept keyframe",
+      "role": "Mother and infant; village depth"
+    },
+    {
+      "id": "03",
+      "packFile": "drone-battle.webp",
+      "repositoryPath": "apps/rinne/docs/cinematic/drone-battle.webp",
+      "kind": "generated concept keyframe",
+      "role": "Exact young-adult proportions and parry"
+    },
+    {
+      "id": "04",
+      "packFile": "drone-elder.webp",
+      "repositoryPath": "apps/rinne/docs/cinematic/drone-elder.webp",
+      "kind": "generated concept keyframe",
+      "role": "Elderly rest; no direct death depiction"
+    },
+    {
+      "id": "05",
+      "packFile": "drone-rebirth.webp",
+      "repositoryPath": "apps/rinne/docs/cinematic/drone-rebirth.webp",
+      "kind": "generated concept keyframe",
+      "role": "Newborn awakening and camera ascent"
+    }
+  ],
+  "previousReferences": [
     {
       "id": "01",
       "packFile": "hero-front.png",
@@ -50,5 +87,7 @@
       "kind": "generated concept",
       "role": "Final composition, lighting and UI negative space"
     }
-  ]
+  ],
+  "revision": "drone-r2"
 }
+

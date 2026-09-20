@@ -4,12 +4,13 @@
 
 ## iteration の基本形
 
-1 iteration = 1 root cause。root cause は1関数のバグに限定せず、選択が結果へ接続されない、世界がプレイヤーへ反応しない、失敗が保存へ誤反映される等のゲーム上の構造問題を含みます。
+1 iteration = 1 improvement theme。1 theme の中で複数root cause・複数修正を扱えます。たとえば「撤退判断を成立させる」というthemeの中で、警戒度・負傷・持ち帰り量・帰還報酬・UI接続をまとめて直して構いません。禁止するのは無関係なついで修正であり、修正数そのものではありません。
 
 ```
 immutable staging observation
   -> candidate problems
-  -> choose one root cause
+  -> choose one improvement theme
+  -> identify related root causes
   -> focused source investigation
   -> falsifiable hypothesis
   -> implementation
@@ -19,7 +20,7 @@ immutable staging observation
   -> freshness / Ready / develop merge
 ```
 
-コードを先に広く読んで「見つけやすい小バグ」をiterationに昇格させません。まずゲーム上の観測から候補を作り、選んだ問題だけsource/caller/read-sideを追います。
+コードを先に広く読んで「見つけやすい小バグ」をiterationに昇格させません。まずゲーム上の観測からtheme候補を作り、採用themeに属するroot causeだけsource/caller/read-sideを追います。1 theme内のroot causeは複数可ですが、各root causeは観測・変更・Evidenceへ追跡可能でなければなりません。
 
 ## iteration mode
 
@@ -43,7 +44,7 @@ mutableな「最新DEV URL」はBefore/After Evidenceに使いません。Evolut
 
 既存schemaVersion 1 experimentは履歴互換のため不変で読み続けます。新規iterationはschemaVersion 2を使います。
 
-v2 experimentは実装前に確定できるものだけを保存します: mode、Observation + immutable staging baseline、root cause/hypothesis/falsifier、candidate比較、implementation scope、evidence plan、PR receipt marker。
+v2 experimentは実装前に確定できるものだけを保存します: mode、Observation + immutable staging baseline、`themeKey`、`rootCauses[]`、theme hypothesis/falsifier、candidate比較、implementation scope、evidence plan、PR receipt marker。`rootCauses[]` は最低1件で、各項目に `key / summary / prediction / falsifier / paths` を持たせます。
 
 最終verdict、Before/After結果、validation head/run、merge SHA、learningはexperiment自身へ書かずreceiptに保存します。merge直後の確定receiptは同PR Conversationへmarker付きで残し、次iterationで `receipts/<id>.json` へmaterializeできます。過去experimentは上書きしません。
 
@@ -53,7 +54,7 @@ v2 experimentは実装前に確定できるものだけを保存します: mode�
 
 共有 `tests/develop-completion-contract.test.mjs` のIDを書き換えません。merge-owning validationでは、validation baseとexact headのgit diffから今回追加された `.autonomous/<game>/experiments/<id>.json` を自動検出します。
 
-これによりvillage/kuumetsuの並行sessionが共有active定数を奪い合いません。1 iterationは原則1 experiment、同一root causeを表す関連recordが必要な場合のみ最大2件です。過去experimentの編集・削除は禁止です。
+これによりvillage/kuumetsuの並行sessionが共有active定数を奪い合いません。1 iterationは原則1 experimentです。同一themeを分割記録する必要がある場合のみ最大2件まで許可し、validationは同一`themeKey`を要求します。過去experimentの編集・削除は禁止です。
 
 ## Evidence と probe
 
@@ -71,7 +72,7 @@ Actions workflowは既存の `.github/workflows/astra-work-validation.yml` を�
 
 ## 履歴と学習
 
-同一problemKeyは過去experimentとreceiptを調べます。v1はexperiment内learning、v2はreceipt learningを正本にします。既知の `doNotRetry` を再選択する場合、新しいEvidenceとretryJustificationが必要です。
+同一themeKeyおよび各root cause keyについて過去experimentとreceiptを調べます。v1/旧v2の`problemKey`も互換検索します。v1はexperiment内learning、v2はreceipt learningを正本にします。既知の `doNotRetry` を再選択する場合、新しいEvidenceとretryJustificationが必要です。
 
 ## CLI
 

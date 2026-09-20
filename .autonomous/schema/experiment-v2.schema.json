@@ -9,7 +9,8 @@
     "game",
     "mode",
     "kind",
-    "problemKey",
+    "themeKey",
+    "rootCauses",
     "observation",
     "hypothesis",
     "candidates",
@@ -44,10 +45,6 @@
         "gameplay",
         "user-feedback"
       ]
-    },
-    "problemKey": {
-      "type": "string",
-      "minLength": 1
     },
     "observation": {
       "type": "object",
@@ -159,6 +156,50 @@
         },
         "marker": {
           "type": "string"
+        }
+      }
+    },
+    "themeKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rootCauses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "summary",
+          "prediction",
+          "falsifier",
+          "paths"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prediction": {
+            "type": "string",
+            "minLength": 1
+          },
+          "falsifier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "paths": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
       }
     }

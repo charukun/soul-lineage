@@ -33,3 +33,4 @@ Same modest medieval coastal village, no castle added, no melting architecture. 
 ```
 
 The initial Veo full-sequence prompt in PROMPTS.md is historical and rejected. The explicit-death shot03 was rejected by the service and was replaced with the peaceful living-retiree scene above. Do not retry blocked content or adopt the rejected source.
+

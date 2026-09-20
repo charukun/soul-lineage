@@ -73,15 +73,20 @@ test('develop implementation success terminates only after exact-head merge',asy
     assert.ok(after.archive.count > beforeCount);
     assert.equal(json(resolve(temp, '.autonomous/village/experiments/' + record.id + '.json')).learning.doNotRetry.length, record.learning.doNotRetry.length);
     const v2={
-      schemaVersion:2,id:'synthetic-v2-ledger',game:'village',mode:'hardening',kind:'gameplay',problemKey:'synthetic-v2-root',
+      schemaVersion:2,id:'synthetic-v2-ledger',game:'village',mode:'hardening',kind:'gameplay',themeKey:'synthetic-v2-theme',
+      rootCauses:[
+        {key:'synthetic-v2-root-a',summary:'first related root cause',prediction:'first local change',falsifier:'first local change absent',paths:['apps/village/src/game/demography.js']},
+        {key:'synthetic-v2-root-b',summary:'second related root cause',prediction:'second local change',falsifier:'second local change absent',paths:['apps/village/src/game/demography.js']}
+      ],
       observation:{summary:'fixed staging-bound observation',staging:{kind:'immutable-staging',sourceSha:base,reference:'artifact:village/web-stage/'+base,observedAt:'2026-09-20T00:00:00Z',conditions:{scenario:'synthetic'},notVerified:[]},evidence:[{kind:'source',revision:base,path:'apps/village/src/game/demography.js',symbol:'planDemographicYear',statement:'synthetic source evidence'}]},
-      hypothesis:{cause:'synthetic cause',prediction:'synthetic prediction',falsifier:'synthetic falsifier'},
+      hypothesis:{cause:'synthetic theme cause',prediction:'synthetic theme prediction',falsifier:'synthetic theme falsifier'},
       candidates:[{id:'small-fix',selected:true,reason:'synthetic selected'},{id:'large-fix',selected:false,reason:'synthetic rejected'}],
       implementation:{paths:['apps/village/src/game/demography.js'],summary:'synthetic implementation'},
       evidencePlan:{objective:'reproducible-causality',focusedTests:['apps/village/tests/demography.test.mjs'],stagingAfter:'optional',limitations:['synthetic only']},
       receipt:{repository:REPOSITORY,pullRequest:123,marker:'autonomous-receipt:village:synthetic-v2-ledger'}
     };
     assert.equal(validateRecord(v2),true);appendRecord(temp,v2);
+    const themed=loadContext(temp,'village').recent.find(row=>row.id===v2.id);assert.equal(themed.themeKey,v2.themeKey);assert.deepEqual(themed.problemKeys,v2.rootCauses.map(row=>row.key));
     const receipt={schemaVersion:2,marker:v2.receipt.marker,repository:REPOSITORY,experimentId:v2.id,game:'village',pullRequest:123,validatedHead:head,validationBase:base,run:{id:123,url:'https://github.com/'+REPOSITORY+'/actions/runs/123',conclusion:'success'},verdict:'supported',learning:{summary:'synthetic learning',failedApproaches:[],doNotRetry:[],unresolved:[],next:[]},merge:{state:'merged',sha:'3'.repeat(40)},notVerified:[]};
     assert.equal(validateReceipt(receipt),true);appendReceipt(temp,receipt);assert.equal(persistedReceipt(temp,'village',v2.id).verdict,'supported');
   } finally { rmSync(temp, { recursive: true, force: true }); }

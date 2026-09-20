@@ -4,7 +4,8 @@ import {readFile} from 'node:fs/promises';
 import {createTitleCinematicController} from '../src/title-cinematic.js';
 import {validateTitleManifest} from '../src/title-cinematic-media.js';
 const manifest=JSON.parse(await readFile(new URL('../public/title-assets/cinematic/manifest.json',import.meta.url)));
-const ready={...manifest,status:'ready',movie:'./title-assets/cinematic/opening.mp4'};
+const ready={...manifest,status:'ready',revision:'decoder-fixture',movie:'./title-assets/cinematic/opening.mp4',duration:8,livingLoop:{start:6,end:8}};
+const pending={...manifest,status:'awaiting-generation',movie:null,webm:null};
 
 class Element extends EventTarget{
   constructor(){super();this.dataset={};this.attributes={};this.hidden=false;}
@@ -49,9 +50,11 @@ test('film lifecycle: first skip, exact landing, return, reduced motion, failure
     const revisit=await make();assert.equal(revisit.c.skip(),true,'a seen revision skips before playback advances');
     revisit.c.dispose();assert.equal(revisit.video.paused,true);
     const natural=await make();natural.video.tick(6);assert.equal(natural.title.dataset.intro,'settling');t.mock.timers.tick(650);assert.equal(natural.title.dataset.intro,'idle');
+    const still=await make({...ready,revision:'no-loop',duration:6,livingLoop:null});still.video.tick(6);t.mock.timers.tick(650);assert.equal(still.title.dataset.intro,'idle');assert.equal(still.video.paused,true,'a six-second film holds its decoded final frame');
+    const stillSkip=await make({...ready,revision:'no-loop',duration:6,livingLoop:null});assert.equal(stillSkip.c.skip(),true);assert.equal(stillSkip.video.currentTime,6-1/24);stillSkip.video.dispatchEvent(new Event('seeked'));assert.equal(stillSkip.video.paused,true);
     doc.hidden=true;doc.dispatchEvent(new Event('visibilitychange'));assert.equal(natural.video.paused,true);doc.hidden=false;doc.dispatchEvent(new Event('visibilitychange'));assert.equal(natural.video.paused,false);
     natural.c.setMotion(false);assert.equal(natural.title.dataset.media,'poster');natural.c.setMotion(true);assert.equal(natural.video.currentTime,6);
-    const missing=await make(manifest);assert.equal(missing.video.playCalls,0);assert.equal(missing.title.dataset.intro,'idle');
+    const missing=await make(pending);assert.equal(missing.video.playCalls,0);assert.equal(missing.title.dataset.intro,'idle');
     const broken=await make();broken.video.dispatchEvent(new Event('error'));broken.video.dispatchEvent(new Event('playing'));broken.c.begin();assert.equal(broken.title.dataset.media,'poster');assert.equal(broken.menu.inert,false);
     const stalled=await make();t.mock.timers.tick(4500);assert.equal(stalled.title.dataset.mediaStatus,'media-timeout');
     globalThis.fetch=async()=>{throw Error('offline');};const offline=await make(null);offline.c.begin();assert.equal(offline.title.dataset.intro,'idle','manifest failure cannot return to pending');
