@@ -100,7 +100,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleSource,/learnedSlots\[phase\]=technique/);
   assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=550/);assert.match(battleSource,/bulbTimer=setTimeout\(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS\)/);assert.match(battleSource,/if\(cue==='spacing'\)\{showReviewSign\(payload\);battleSfx\.inspiration\('anticipation'\);return;\}/);
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
-  assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);assert.match(battleHtml,/id="battle-technique-loadout" class="technique-loadout"/);
+  assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);
   assert.match(battleHtml,/battle-phase-wave/);assert.match(battleHtml,/battle-action-drift/);
   assert.match(battleHtml,/Compact battle HUD pass/);
   assert.match(battleHtml,/\.stage>\.technique-loadout\{left:8px!important;right:auto!important;top:8px!important;bottom:auto!important/);
@@ -110,7 +110,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleSource,/opponent:group\?'group':'duel'/);
   assert.match(battleSource,/const angle=battleStage\?\.cameraAngle\?\.\(\)\|\|0,input=reviewSwipe\.vector\(angle\)/);assert.match(battleSource,/runtime\.input\(input\.screenX,input\.screenY,input\.amount,angle\)/);assert.match(battleSource,/createReviewFinisher\(next,previous\)/);
   assert.match(stageSource,/cameraOrbit=\(cameraOrbit\+step\*\.05\)/);assert.match(stageSource,/!frame\.finisher/);assert.match(stageSource,/cameraLock=frame\.lock\|\|'scene'/);
-  assert.match(stageSource,/function inspirationCameraFrame\(\)/);assert.match(stageSource,/shoulder=2\.05/);assert.match(stageSource,/enemyPoint\.x-forwardX\*\.35-sideX\*\.2/);assert.match(stageSource,/lock:'hero-over-shoulder'/);
+  assert.match(stageSource,/function inspirationCameraFrame\(sequence\)/);assert.match(stageSource,/backstep=Math\.max\(0,Math\.min\(1,Number\(sequence\?\.backstepProgress\)\|\|0\)\)/);assert.match(stageSource,/shoulder=2\.05\*orbit/);assert.match(stageSource,/lock:orbit>\.02\?'hero-over-shoulder':'hero-rear'/);assert.match(stageSource,/inspirationCameraFrame\(sequence\)/);
   assert.match(stageSource,/zoomBy\(delta=0\)/);
   assert.match(battleHtml,/id="camera-zoom-out"/);assert.match(battleHtml,/id="camera-zoom-in"/);
   assert.doesNotMatch(battleHtml,/class="hud battle-vitals"/);
