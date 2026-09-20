@@ -132,7 +132,7 @@ function advanceBattle(dt){
     return;
   }
   const angle=battleStage?.cameraAngle?.()||0,input=reviewSwipe.vector(angle);
-  runtime.input(input.screenX,input.screenY,input.amount,angle);const next=runtime.step(dt),ending=createReviewFinisher(next);
+  runtime.input(input.screenX,input.screenY,input.amount,angle);const previous=lastCore,next=runtime.step(dt),ending=createReviewFinisher(next,previous);
   if(ending){finisher=ending;const frame=advanceReviewFinisher(finisher,0);finisher=frame.run;lastCore=frame.core;}
   else lastCore=next;
 }
