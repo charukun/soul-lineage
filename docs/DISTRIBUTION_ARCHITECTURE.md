@@ -88,6 +88,7 @@ Target adapters and packaging may own:
 - storefront identity and entitlement;
 - controller mapping;
 - native lifecycle;
+- audio activation/lifecycle policy;
 - cloud save;
 - achievements;
 - commerce;

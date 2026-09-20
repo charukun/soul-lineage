@@ -9,6 +9,7 @@ export interface PlatformAdapter {
   identity: { current(): Promise<{ playerId: string; provider: string } | null> };
   lifecycle: { subscribe(listener: (state: 'active' | 'suspended') => void): () => void };
   input: { subscribe(listener: (action: { action: string; pressed: boolean }) => void): () => void };
+  audio: { readonly requiresUserActivation: boolean; readonly unlocked: boolean; unlock(): Promise<boolean>; subscribeUnlock(listener: () => void | Promise<void>): () => void };
   locale: { language: string; timeZone: string };
 }
 /** A backend uses a game-independent account ID, not a storefront account ID. */

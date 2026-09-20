@@ -5,7 +5,7 @@ export function storageScope({ environment, gameId, playerId = 'guest' }) {
   return `soul:v1:${environment}:${gameId}:${playerId}:`;
 }
 export function definePlatform(adapter) {
-  const ports = { clock: ['now', 'monotonic'], storage: ['read', 'write', 'remove'], network: ['request'], identity: ['current'], lifecycle: ['subscribe'], input: ['subscribe'] };
+  const ports = { clock: ['now', 'monotonic'], storage: ['read', 'write', 'remove'], network: ['request'], identity: ['current'], lifecycle: ['subscribe'], input: ['subscribe'], audio: ['unlock', 'subscribeUnlock'] };
   for (const [port, methods] of Object.entries(ports)) {
     if (!adapter[port] || methods.some(method => typeof adapter[port][method] !== 'function')) throw new Error(`Missing platform port: ${port}`);
   }

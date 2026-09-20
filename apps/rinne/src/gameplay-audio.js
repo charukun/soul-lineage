@@ -1,4 +1,5 @@
 import { audioURLs } from '@soul/audio/urls';
+import { webAudioActivation } from '@soul/platform-web/audio-activation';
 import { relinquishMediaElement, restoreMediaElement } from '@soul/shared-ui/media-lifecycle';
 
 let activeAudio=null;
@@ -57,8 +58,7 @@ export function createRinneAudio(){
   doc?.addEventListener?.('visibilitychange',onVisibilityChange);
   win?.addEventListener?.('pagehide',suspendForBackground);
   win?.addEventListener?.('pageshow',onVisibilityChange);
-  doc?.addEventListener?.('pointerdown',recoverFromGesture,{capture:true});
-  doc?.addEventListener?.('keydown',recoverFromGesture,{capture:true});
+  const unsubscribeAudioUnlock=webAudioActivation.subscribeUnlock(()=>unlock());
 
   function tone(freq,duration=.06,gain=.02,type='sine',delay=0){
     if(disposed||backgrounded||pageHidden()||!context)return;
@@ -81,7 +81,7 @@ export function createRinneAudio(){
     item(){tone(620,.08,.024,'triangle');setTimeout(()=>tone(840,.08,.018,'triangle'),55);},
     combat:()=>tone(128,.11,.032,'sawtooth'),rest:()=>tone(260,.14,.014),dash:()=>tone(170,.07,.022,'square'),
     step(now){if(now-lastStep<.25)return;lastStep=now;tone(92,.035,.012);},
-    dispose(){if(disposed)return;disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);win?.removeEventListener?.('pagehide',suspendForBackground);win?.removeEventListener?.('pageshow',onVisibilityChange);doc?.removeEventListener?.('pointerdown',recoverFromGesture,{capture:true});doc?.removeEventListener?.('keydown',recoverFromGesture,{capture:true});music.volume=BASE_MUSIC_VOLUME;detachMusic();void context?.close?.();context=null;}
+    dispose(){if(disposed)return;disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);win?.removeEventListener?.('pagehide',suspendForBackground);win?.removeEventListener?.('pageshow',onVisibilityChange);unsubscribeAudioUnlock();music.volume=BASE_MUSIC_VOLUME;detachMusic();void context?.close?.();context=null;}
   };
   activeAudio=controller;
   return controller;

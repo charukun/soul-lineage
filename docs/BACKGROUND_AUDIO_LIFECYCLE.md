@@ -4,6 +4,8 @@ Applies to `rinne`, `village`, and `demon` browser apps.
 
 ## Acceptance contract
 
+- Browser autoplay policy is isolated in `@soul/platform-web/audio-activation`; game code subscribes to the shared first-user-gesture gate instead of installing its own one-off unlock listeners.
+- Audio contexts that need first-gesture permission must be created/resumed synchronously from that gate before any network/decode await that could consume transient user activation.
 - When the document becomes hidden or is leaving the page, browser-backed BGM must stop and relinquish its active media source so Android/browser OS media controls cannot restart it while the game is backgrounded.
 - Web Audio contexts must remain suspended while hidden and must not be reawakened by game events.
 - Returning to the foreground may resume only audio that the player had already started or unlocked. No new autoplay is introduced.
