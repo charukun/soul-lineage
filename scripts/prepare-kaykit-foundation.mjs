@@ -2,9 +2,10 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { KAYKIT_MODELS, KAYKIT_MODEL_BY_KEY, KAYKIT_REVIEW_EQUIPMENT_FILES, KAYKIT_SOURCE_REPOSITORY, KAYKIT_SOURCE_REVISION } from '../packages/characters/src/kaykit-foundation.js';
+import { KAYKIT_MODELS, KAYKIT_MODEL_BY_KEY, KAYKIT_REVIEW_EQUIPMENT_FILES } from '../packages/characters/src/kaykit-foundation.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const PROJECT_KAYKIT_ORIGIN='https://soul-lineage-rinne-dev.c-okamoto.workers.dev/simulator/assets/kaykit/';
 const TARGETS = Object.freeze({
   rinne: Object.freeze({root:path.join(repoRoot, 'apps/rinne/public/simulator/assets/kaykit'),models:Object.freeze([...KAYKIT_MODELS,...KAYKIT_REVIEW_EQUIPMENT_FILES])}),
   'character-studio': Object.freeze({root:path.join(repoRoot, 'apps/character-studio/public/simulator/assets/kaykit'),models:Object.freeze([...KAYKIT_MODELS,...KAYKIT_REVIEW_EQUIPMENT_FILES])}),
@@ -51,10 +52,10 @@ async function acquireModel(model, target) {
     }
   }
 
-  const encodedPath = model.source.path.split('/').map(encodeURIComponent).join('/');
-  const url = `https://raw.githubusercontent.com/${KAYKIT_SOURCE_REPOSITORY}/${KAYKIT_SOURCE_REVISION}/${encodedPath}`;
+  const file = path.basename(model.runtime.localPath);
+  const url = new URL(encodeURIComponent(file), PROJECT_KAYKIT_ORIGIN);
   const response = await fetch(url, { signal: AbortSignal.timeout(90_000), redirect: 'follow' });
-  if (!response.ok) throw new Error(`${model.label}: KayKit download failed HTTP ${response.status}`);
+  if (!response.ok) throw new Error(`${model.label}: project KayKit asset HTTP ${response.status}`);
   const bytes = Buffer.from(await response.arrayBuffer());
   verifyKayKitBytes(model, bytes);
 
@@ -66,7 +67,7 @@ async function acquireModel(model, target) {
   } finally {
     await rm(temporary, { force: true });
   }
-  return { model: model.label, target, source: 'pinned-upstream' };
+  return { model: model.label, target, source: 'project-dev-origin' };
 }
 
 function normalizeTargets(targets) {
