@@ -8,14 +8,12 @@ export function withHuntSession(BaseSession, chooseSpecies) {
       super(village, {...profile, monsterSpecies: species}, {
         ...ports,
         consume(role, options = {}) {
-          // The named prey always leaves its ability; random extra learning remains unchanged.
           return ports.consume?.(role, {...options, learnTrait: options.learnTrait || role === plan.target}) ?? false;
         }
       });
       this.huntPlan = plan;
       this.carried = 0;
       this.huntReceipt = null;
-      // A short, readable opening on generated maps; keep deep threats and named targets.
       if (village.source === 'generated' && (plan.chapter === 0 || plan.route === 'forage')) {
         for (const npc of this.village.npcs) if (!npc.marked && npc.z > this.village.entry.z - 14 && ['smith', 'hunter'].includes(npc.role)) {
           Object.assign(npc, {role: 'traveller', name: '旅人', hp: 38, maxhp: 38, behavior: 'flee'});
@@ -28,14 +26,20 @@ export function withHuntSession(BaseSession, chooseSpecies) {
     growth() { return growthFor(this.eaten, this.monsterSpecies, this.profile); }
     huntStats() { return bodyStats(this.profile, this.eaten, this.monsterSpecies); }
     goalReady() { return goalReady(this.huntPlan, this.eaten, this.targetEaten); }
+    huntPressure() {
+      if (this.huntPlan?.route === 'forage') return {level:0, label:'低', cap:2};
+      const points = this.eaten + Number(this.targetEaten) + Number(this.carried >= 8);
+      const level = points >= 4 ? 2 : points >= 2 ? 1 : 0;
+      return {level, label:['低','中','高'][level], cap:2 + level};
+    }
     skillSet(npc) {
       const skills = super.skillSet(npc), tempo = this.huntStats().tempo;
-      // Native Tidebreak normalizes and actually uses tempo. No decorative powerScale / fake hits.
       return {...skills, loadout: Object.fromEntries(Object.entries(skills.loadout).map(([slot, recipe]) =>
         [slot, {...structuredClone(recipe), tempo}]))};
     }
     engage(npc) {
-      const cap = (this.huntPlan?.chapter || 0) < 2 || this.huntPlan?.route === 'forage' ? 2 : 4;
+      const chapterCap = (this.huntPlan?.chapter || 0) < 2 ? 3 : 4;
+      const cap = this.huntPlan?.route === 'forage' ? 2 : Math.min(chapterCap, this.huntPressure().cap);
       if (this.fight && (this.combatantCount?.() || 1) >= cap) return;
       return super.engage(npc);
     }
@@ -52,7 +56,8 @@ export function withHuntSession(BaseSession, chooseSpecies) {
         this.player.hp = Math.min(this.player.maxhp, before.hp + maxGain + heal);
         const value = preyValue(data.role); this.carried += value;
         data = {...data, reward: {...data.reward, healed: Math.max(0, this.player.hp - before.hp),
-          maxHpGain: maxGain, carried: this.carried, lootGain: value, techniqueSpeed: this.huntStats().techniqueSpeed}};
+          maxHpGain: maxGain, carried: this.carried, lootGain: value, techniqueSpeed: this.huntStats().techniqueSpeed,
+          pressure: this.huntPressure()}};
       }
       return super.emit(type, data);
     }

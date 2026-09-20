@@ -160,9 +160,16 @@ test('physical extraction receipt requires stopped, cleared exit hold', () => {
   }
   const s=new Session(village(),fresh());s.eaten=2;s.carried=4;s.escapeHold=1.7;s.finish('escaped');assert.equal(s.huntReceipt.returnVerified,true);
 });
-test('intro limits simultaneous pressure without replacing primary combat', () => {
-  const s=new Session(village(),fresh());for(let i=0;i<5;i++)s.engage({id:i});assert.equal(s.count,2);
-  const p=fresh();p[PROGRESS_KEY].chapter=3;const advanced=new Session(village(),p);for(let i=0;i<5;i++)advanced.engage({id:i});assert.equal(advanced.count,4);
+test('intro pressure escalates with greed without replacing primary combat', () => {
+  const s=new Session(village(),fresh());
+  assert.deepEqual(s.huntPressure(),{level:0,label:'低',cap:2});
+  for(let i=0;i<5;i++)s.engage({id:i});assert.equal(s.count,2);
+  s.count=0;s.fight=null;s.consume({role:'traveller',eaten:false});s.consume({role:'traveller',eaten:false});
+  assert.equal(s.huntPressure().level,1);
+  for(let i=0;i<5;i++)s.engage({id:'mid'+i});assert.equal(s.count,3);
+  const forageProfile=fresh(), forageVillage={...village(),huntPlan:{route:'forage'}};
+  const forage=new Session(forageVillage,forageProfile);forage.eaten=8;forage.carried=20;
+  assert.deepEqual(forage.huntPressure(),{level:0,label:'低',cap:2});
 });
 test('prey values reward dangerous targets more than easy prey', () => {
   assert.ok(preyValue('knight')>preyValue('hunter'));assert.ok(preyValue('hunter')>preyValue('traveller'));assert.equal(preyValue('unknown'),0);

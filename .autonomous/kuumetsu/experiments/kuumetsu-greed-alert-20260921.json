@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 2,
+  "id": "kuumetsu-greed-alert-20260921",
+  "game": "kuumetsu",
+  "mode": "evolution",
+  "kind": "gameplay",
+  "themeKey": "greed-driven-withdrawal-pressure",
+  "rootCauses": [
+    {
+      "key": "hunt-pressure-chapter-only",
+      "summary": "Simultaneous combat pressure is determined by chapter/route rather than what the player has already consumed and is carrying.",
+      "prediction": "After additional predation, the same mission permits more simultaneous responders while forage remains capped low.",
+      "falsifier": "Combatant cap remains unchanged after predation or forage escalation changes.",
+      "paths": [
+        "apps/demon/src/hunt/session-loop.js"
+      ]
+    },
+    {
+      "key": "haul-risk-disconnected",
+      "summary": "Partial extraction banks carried essence, but carrying more loot does not increase the danger of continuing the hunt.",
+      "prediction": "Accumulated prey/haul moves the hunt through low, medium and high pressure tiers before extraction.",
+      "falsifier": "Carrying/eating more prey does not change pressure tier.",
+      "paths": [
+        "apps/demon/src/hunt/session-loop.js"
+      ]
+    },
+    {
+      "key": "withdrawal-danger-unreadable",
+      "summary": "HUD shows objective and haul but not the rising danger cost of greed, so early-return risk/reward is not legible.",
+      "prediction": "The hunt objective surface exposes the current pressure tier and the first-return guide explains that greed raises alert.",
+      "falsifier": "A player-visible hunt state still omits pressure/alert information.",
+      "paths": [
+        "apps/demon/src/web/hunt-flow-ui.js"
+      ]
+    }
+  ],
+  "observation": {
+    "summary": "Immutable staging shows the hunt hub and existing extraction loop, while source confirms partial haul can be banked early but in-hunt enemy pressure is mostly fixed by chapter. Continuing after the first meal therefore increases reward without a matching action-driven village response.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "3559d8aa84e179e09d36fd9751e8a224f00ef212",
+      "reference": "https://883b5c0f-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "observedAt": "2026-09-20T03:36:19Z",
+      "conditions": {
+        "device": "GitHub hosted Chromium / SwiftShader",
+        "viewport": "673x841",
+        "scenario": "title baseline + hunt-entry attempt; version.json.commit verified on fixed Worker version"
+      },
+      "notVerified": [
+        "Full manual hunt completion on baseline browser review; click action failed before entering hunt.",
+        "Baseline Worker predates later demon combat-readout-only changes; hunt session/balance source used for causal analysis is exact current develop."
+      ]
+    },
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "466588f8beab63786921af097cdd98ee3509b632",
+        "path": "apps/demon/src/hunt/session-loop.js",
+        "symbol": "HuntSession.engage",
+        "statement": "Combatant cap is chapter/forage based and does not depend on eaten count or carried haul."
+      },
+      {
+        "kind": "source",
+        "revision": "466588f8beab63786921af097cdd98ee3509b632",
+        "path": "apps/demon/tests/hunt-loop.test.mjs",
+        "symbol": "early return banks a partial haul without claiming mission bonus",
+        "statement": "Native regression proves one-prey early return can bank partial haul, so a retreat decision already exists economically."
+      },
+      {
+        "kind": "source",
+        "revision": "466588f8beab63786921af097cdd98ee3509b632",
+        "path": "apps/demon/src/web/hunt-flow-ui.js",
+        "symbol": "HuntFlowUi.update",
+        "statement": "HUD exposes goal and haul but no hunt pressure or alert state."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "The extraction economy supports early retreat, but player greed is not connected to escalating responder pressure or readable danger.",
+    "prediction": "Connecting predation/haul to a bounded alert tier will make continuing a hunt materially riskier while preserving low-risk forage and existing extraction semantics.",
+    "falsifier": "Native session evidence shows no pressure escalation, forage becomes harder, or player-facing HUD still cannot distinguish danger tiers."
+  },
+  "candidates": [
+    {
+      "id": "derived-alert-pressure",
+      "selected": true,
+      "reason": "Derives alert from authoritative in-session facts already owned by HuntSession, changes responder cap without adding a second combat engine, and can be displayed directly in the existing hunt HUD."
+    },
+    {
+      "id": "random-reinforcement-spawns",
+      "selected": false,
+      "reason": "Would add new entities and randomness, increasing balance and persistence surface beyond the observed problem."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/demon/src/hunt/session-loop.js",
+      "apps/demon/src/web/hunt-flow-ui.js",
+      "apps/demon/tests/hunt-loop.test.mjs"
+    ],
+    "summary": "Add bounded low/medium/high hunt pressure derived from predation and haul; use it to escalate simultaneous responders on missions, keep forage low-risk, and expose alert on the hunt HUD/return guide."
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": [
+      "apps/demon/tests/hunt-loop.test.mjs"
+    ],
+    "stagingAfter": "required",
+    "limitations": [
+      "Native test proves pressure/cap causality but not player skill-dependent win rate.",
+      "Staging After is required for player-visible alert evidence."
+    ]
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": null,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-greed-alert-20260921"
+  }
+}

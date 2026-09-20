@@ -11,7 +11,7 @@ export class HuntFlowUi {
     document.body.classList.add('hunt-loop');
     this.objective = byId('objective');
     this.bag = document.createElement('div'); this.bag.className = 'hunt-bag';
-    this.bag.innerHTML = '<span class="hunt-goal" data-goal></span><span class="hunt-haul" data-haul></span><progress max="1" value="0" aria-label="捕食目標"></progress>';
+    this.bag.innerHTML = '<span class="hunt-goal" data-goal></span><span class="hunt-haul" data-haul></span><span class="hunt-alert" data-alert></span><progress max="1" value="0" aria-label="捕食目標"></progress>';
     this.objective.append(this.bag);
     this.bearing = document.createElement('b'); this.bearing.textContent = '↓'; this.bearing.setAttribute('aria-hidden', 'true');
     this.exitText = document.createElement('span'); this.exitText.className = 'hunt-return-copy';
@@ -35,16 +35,15 @@ export class HuntFlowUi {
   target(game, returning) { return game.fight || game.devour || returning || this.shouldReturn(game) ? null : game.nextHuntPrey(); }
   update(game, {returning = false, overlay = false} = {}) {
     returning = returning || this.shouldReturn(game);
-    const plan = game.huntPlan, ready = game.goalReady(), target = this.target(game, returning), exit = game.nearestEscape();
+    const plan = game.huntPlan, ready = game.goalReady(), pressure = game.huntPressure?.() || {level:0,label:'低'}, target = this.target(game, returning), exit = game.nearestEscape();
     const heading = this.objective.querySelector(':scope > small'), text = this.objective.querySelector(':scope > span');
     const guide = byId('first-hunt-guide');
     heading.textContent = plan.name;
     text.textContent = returning ? `${exit.label}へ · ${Math.ceil(exit.distance)}m` : ready ? '目標達成。持ち帰ろう' : goalText(plan);
-    // Action tips are short-lived. The old persistent tutorial remains hidden.
     const token = game.devour ? 'eat' : game.fight ? 'fight' : returning ? 'return' : target?.npc.dead ? 'fallen' : 'move';
     if (!overlay && game.eaten > 0 && !game.fight && !game.devour && !this.guideSeen.has('return-ready')) {
       this.guideSeen.add('return-ready');
-      this.guide?.show({side:'right', kicker:'帰りかた', title:'もう、帰れる', body:[{label:'帰還口', text:'輪の中で止まる'},{label:'帰れば', text:'戦利品を確保'}], variant:'compact', duration:4200});
+      this.guide?.show({side:'right', kicker:'帰りかた', title:'もう、帰れる', body:[{label:'帰還口', text:'輪の中で止まる'},{label:'欲張ると', text:'警戒が上がる'},{label:'帰れば', text:'戦利品を確保'}], variant:'compact', duration:4200});
     }
     if (token !== this.actionToken) {
       this.actionToken = token; this.actionAt = game.time;
@@ -64,8 +63,9 @@ export class HuntFlowUi {
     const haul = game.carried + (ready ? plan.bonus : 0), eaten = Math.min(game.eaten, plan.quota);
     this.bag.querySelector('[data-goal]').textContent = plan.marked ? `${plan.prey}${game.targetEaten ? '済' : '未'} ${eaten}/${plan.quota}` : `人影 ${eaten}/${plan.quota}`;
     this.bag.querySelector('[data-haul]').textContent = `戦利 ${haul}`;
+    const alert = this.bag.querySelector('[data-alert]'); alert.textContent = `警戒 ${pressure.label}`; alert.dataset.level = String(pressure.level);
     this.bag.querySelector('progress').value = Math.min(1, game.eaten / plan.quota);
-    this.objective.setAttribute('aria-label', `${goalText(plan)}。現在 ${eaten} / ${plan.quota}。持ち帰れば戦利品 ${haul}`);
+    this.objective.setAttribute('aria-label', `${goalText(plan)}。現在 ${eaten} / ${plan.quota}。持ち帰れば戦利品 ${haul}。警戒 ${pressure.label}`);
     byId('hud').dataset.huntState = game.fight ? 'combat' : returning ? 'return' : 'hunt';
     byId('return-hint').hidden = overlay || game.eaten < 1 || game.finished;
     this.bearing.style.transform = `rotate(${(.33 - Math.atan2(exit.x - game.player.x, exit.z - game.player.z)) * 180 / Math.PI}deg)`;
