@@ -6,6 +6,7 @@ import {EFFECT_SOURCE,EFFECT_RUNTIME,EFFECT_ASSETS,RUNTIME_ASSETS,EFFECT_PUBLIC_
 import {REVIEW_VFX_ADDITIONAL_SOURCES} from '../src/rebuild/review-vfx-additional-sources.js';
 
 const appRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const PROJECT_EFFECT_ORIGIN='https://soul-lineage-rinne-dev.c-okamoto.workers.dev/simulator/assets/effekseer/';
 const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1601,6],[1603,6],[1606,6],[1610,7],[1703,'dependent-files'],[1705,'dependent-files'],[1710,'dependent-files']]);
 const REVIEWED_EFFECT_VERSIONS=new Set(REVIEWED_EFFECT_LAYOUTS.keys());
 export const EFFECT_DOWNLOADS=Object.freeze([
@@ -79,22 +80,16 @@ export async function acquireEffect(row,{outputRoot,fetchImpl=globalThis.fetch}=
   if(!/^[a-f\d]{40}$/.test(row.revision)||!row.target||row.target.includes('..')||path.isAbsolute(row.target))throw Error('Unsafe effect manifest');
   const target=path.join(outputRoot,row.target);
   try{const bytes=await readFile(target);verifyEffectBytes(row,bytes);return {target,source:'verified-cache',bytes};}catch(error){if(error.code&&error.code!=='ENOENT')throw error;}
-  const sourcePath=row.sourcePath||row.path;
-  const encoded=sourcePath.split('/').map(encodeURIComponent).join('/');
-  const urls=[`https://raw.githubusercontent.com/${row.repository}/${row.revision}/${encoded}`,
-    `https://cdn.jsdelivr.net/gh/${row.repository}@${row.revision}/${encoded}`];
-  let bytes,lastError;
-  for(const url of urls){
-    try{
-      const response=await fetchImpl(url,{signal:AbortSignal.timeout(30_000),redirect:'follow'});
-      if(!response.ok)throw Error(`HTTP ${response.status}`);
-      bytes=await readBounded(response,row.byteLength);verifyEffectBytes(row,bytes);break;
-    }catch(error){lastError=error;bytes=null;}
-  }
-  if(!bytes)throw Error(`Effekseer acquisition failed: ${row.path}: ${lastError?.message}`);
+  const url=new URL(row.target.split('/').map(encodeURIComponent).join('/'),PROJECT_EFFECT_ORIGIN);
+  let bytes;
+  try{
+    const response=await fetchImpl(url,{signal:AbortSignal.timeout(30_000),redirect:'follow'});
+    if(!response.ok)throw Error(`HTTP ${response.status}`);
+    bytes=await readBounded(response,row.byteLength);verifyEffectBytes(row,bytes);
+  }catch(error){throw Error(`Effekseer project-origin acquisition failed: ${row.path}: ${error?.message}`);}
   await mkdir(path.dirname(target),{recursive:true});const temporary=`${target}.${randomUUID()}.tmp`;
   try{await writeFile(temporary,bytes,{flag:'wx'});await rename(temporary,target);}finally{await rm(temporary,{force:true});}
-  return {target,source:'pinned-upstream',bytes};
+  return {target,source:'project-dev-origin',bytes};
 }
 
 export async function prepareRinneEffects({outputRoot=path.join(appRoot,'public',EFFECT_PUBLIC_PATH),fetchImpl=globalThis.fetch}={}){

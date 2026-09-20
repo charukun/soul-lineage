@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {buildMotionReviewCatalog,classifyReviewMotion,filterMotionReviewCatalog} from '../src/review-motion-catalog.js';
 import {buildReviewMotionRegistry,canonicalMotionVariationKey,dedupeSourceMotions,motionRegistryCount} from '../src/review-motion-registry.js';
-import {MOTION_LIBRARY_SOURCES} from '../src/review-motion-sources.js';
+import {MOTION_LIBRARY_ARCHIVED_SOURCES,MOTION_LIBRARY_SOURCES} from '../src/review-motion-sources.js';
+import {DEV_ASSET_ORIGIN,isThirdPartyRuntimeAssetUrl} from '@soul/assets';
 
 const clips=[
   {name:'Idle',duration:2.1},{name:'Interact',duration:1.4},{name:'PickUp',duration:1.2},{name:'Cheer',duration:1.6},{name:'Wave',duration:1.5},{name:'Sitting_Idle',duration:3},
@@ -39,6 +40,7 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
     assert.match(source.gitBlobSha,/^[0-9a-f]{40}$/);
     assert.ok(!source.path.includes('..')&&!source.path.startsWith('/'));
     if(source.discoverAtRuntime)assert.equal(source.family,'mesh2motion');
+    assert.equal(source.selfHosted,true);assert.ok(source.runtimeUrl.startsWith(DEV_ASSET_ORIGIN));assert.equal(isThirdPartyRuntimeAssetUrl(source.runtimeUrl),false);
     if(source.reviewModel){assert.equal(source.id,'mesh2motion-review-mannequin');assert.equal(source.family,'mesh2motion');}
   }
   const cmuParkour=MOTION_LIBRARY_SOURCES.filter(source=>source.family==='cmu');
@@ -51,15 +53,12 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
   const parkourRows=filterMotionReviewCatalog(buildMotionReviewCatalog(registry.motions),'parkour');
   assert.ok(parkourRows.length>=14);
   const mesh2motionIds=MOTION_LIBRARY_SOURCES.filter(source=>source.discoverAtRuntime).map(source=>source.id);
-  assert.deepEqual(mesh2motionIds,['mesh2motion-human-base','mesh2motion-human-addon','mesh2motion-human-mocap']);
-  const discovered={
-    'mesh2motion-human-base':[{index:0,name:'Angry',duration:1.2},{index:1,name:'Attack_Ground_Pound',duration:1.1}],
-    'mesh2motion-human-addon':[{index:0,name:'Fishing_Cast',duration:1.4}],
-    'mesh2motion-human-mocap':[{index:0,name:'Cheer_One_Arm',duration:1.5}]
-  };
+  assert.deepEqual(mesh2motionIds,['mesh2motion-human-mocap']);
+  assert.deepEqual(MOTION_LIBRARY_ARCHIVED_SOURCES.map(row=>row.id),['kaykit-tools','quaternius-ual1','quaternius-ual2','mesh2motion-human-base','mesh2motion-human-addon']);
+  const discovered={'mesh2motion-human-mocap':[{index:0,name:'Cheer_One_Arm',duration:1.5}]};
   const expanded=buildReviewMotionRegistry(clips,discovered);
   for(const id of mesh2motionIds)assert.ok(expanded.motions.some(row=>row.sourceId===id));
-  assert.ok(expanded.addedSourceMotionCount>=4);
+  assert.ok(expanded.addedSourceMotionCount>=1);
 });
 
 test('motion review has a pinned unequipped mannequin as its dedicated default review body',async()=>{
@@ -73,7 +72,7 @@ test('motion review has a pinned unequipped mannequin as its dedicated default r
   assert.match(js,/loadMotionReviewModel\(model\.id\)/);
   assert.match(runtimeJs,/BVHLoader/);assert.match(runtimeJs,/CMU_BVH_METERS_PER_UNIT=\.01/);
   assert.match(runtimeJs,/cmuHumanoidFromBVH/);assert.match(runtimeJs,/restBase,hips:bones\.hips\.position\.toArray\(\)/);
-  assert.match(runtimeJs,/source\.format==='bvh'/);
+  assert.match(runtimeJs,/source\.format==='bvh'/);assert.doesNotMatch(runtimeJs,/raw\.githubusercontent\.com/);assert.match(js,/['"]parkour['"]/);
 });
 
 test('motion review recommendations stay bounded and presentation variants never increase source count',()=>{

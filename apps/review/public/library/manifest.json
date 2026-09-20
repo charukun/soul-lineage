@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "origin": "https://soul-lineage-review-dev.c-okamoto.workers.dev/library/",
+  "maxAssetBytes": 20971520,
+  "immutable": true,
+  "files": [
+    {
+      "path": "model/gobkit/goblin-runt/f7700d62b6252f14601743f156049ef3b8454f96.glb",
+      "bytes": 170752,
+      "gitBlobSha": "f7700d62b6252f14601743f156049ef3b8454f96"
+    },
+    {
+      "path": "model/gobkit/grave-ogre/ceb7beba04fa67b9607af9c8e704d1d084dd13ee.glb",
+      "bytes": 189716,
+      "gitBlobSha": "ceb7beba04fa67b9607af9c8e704d1d084dd13ee"
+    },
+    {
+      "path": "model/gobkit/horn-brute/b8419a471e5f2619c17b2a8905dec1a04101430b.glb",
+      "bytes": 174432,
+      "gitBlobSha": "b8419a471e5f2619c17b2a8905dec1a04101430b"
+    },
+    {
+      "path": "model/gobkit/maw-stalker/584b85913b3a075948e6630b6a0d48883227c6d4.glb",
+      "bytes": 151100,
+      "gitBlobSha": "584b85913b3a075948e6630b6a0d48883227c6d4"
+    },
+    {
+      "path": "model/gobkit/night-bat/766de4372d17206835c491f80f6b0db367ca0012.glb",
+      "bytes": 63308,
+      "gitBlobSha": "766de4372d17206835c491f80f6b0db367ca0012"
+    },
+    {
+      "path": "motion/cmu-parkour-cartwheel/ebbefcc997700a381bf4b5bc09a8c457de6ce5bd.bvh",
+      "bytes": 85023,
+      "gitBlobSha": "ebbefcc997700a381bf4b5bc09a8c457de6ce5bd"
+    },
+    {
+      "path": "motion/cmu-parkour-crawl-backward/e4b1ffbcef77fecbf1653f18e74b83b34fd651c1.bvh",
+      "bytes": 383156,
+      "gitBlobSha": "e4b1ffbcef77fecbf1653f18e74b83b34fd651c1"
+    },
+    {
+      "path": "motion/cmu-parkour-crawl-forward/958fd03554291bd8ccc4b779683bbcc15d023d1b.bvh",
+      "bytes": 347817,
+      "gitBlobSha": "958fd03554291bd8ccc4b779683bbcc15d023d1b"
+    },
+    {
+      "path": "motion/cmu-parkour-crouch-run/0b7d661958c7c7a8ca6ae4e0b88ced2506a28406.bvh",
+      "bytes": 53064,
+      "gitBlobSha": "0b7d661958c7c7a8ca6ae4e0b88ced2506a28406"
+    },
+    {
+      "path": "motion/cmu-parkour-crouch-walk/dfada0fdf9ed995e17ddd977cde16d1404d6372f.bvh",
+      "bytes": 104062,
+      "gitBlobSha": "dfada0fdf9ed995e17ddd977cde16d1404d6372f"
+    },
+    {
+      "path": "motion/cmu-parkour-run-crouch/a1d3b2e588e30acfae6e9fd905486c47c77054da.bvh",
+      "bytes": 52034,
+      "gitBlobSha": "a1d3b2e588e30acfae6e9fd905486c47c77054da"
+    },
+    {
+      "path": "motion/cmu-parkour-run-hop-walk/6d93bf8d135600f39bc57111fee89e034addcd23.bvh",
+      "bytes": 72671,
+      "gitBlobSha": "6d93bf8d135600f39bc57111fee89e034addcd23"
+    },
+    {
+      "path": "motion/cmu-parkour-run-jump-walk/6a12ad7a84b2eb7bed7cb0245c50022b386059ee.bvh",
+      "bytes": 71765,
+      "gitBlobSha": "6a12ad7a84b2eb7bed7cb0245c50022b386059ee"
+    },
+    {
+      "path": "motion/cmu-parkour-run-turn-left/a54b826d5e5a23d32c9561b650264fc0f426d8cc.bvh",
+      "bytes": 39571,
+      "gitBlobSha": "a54b826d5e5a23d32c9561b650264fc0f426d8cc"
+    },
+    {
+      "path": "motion/cmu-parkour-run-turn-right/41d4b70e844a152fb280cecb291a63baf1a11fcb.bvh",
+      "bytes": 76298,
+      "gitBlobSha": "41d4b70e844a152fb280cecb291a63baf1a11fcb"
+    },
+    {
+      "path": "motion/cmu-parkour-urban-traversal/be2b4146c8f7d2ce501dcece1d7a3d2849399a48.bvh",
+      "bytes": 265918,
+      "gitBlobSha": "be2b4146c8f7d2ce501dcece1d7a3d2849399a48"
+    },
+    {
+      "path": "motion/cmu-parkour-walk-crouch/32911b1891bc9338248cf84f0d96b5107dc06ef3.bvh",
+      "bytes": 123918,
+      "gitBlobSha": "32911b1891bc9338248cf84f0d96b5107dc06ef3"
+    },
+    {
+      "path": "motion/cmu-parkour-walk-hop-walk/986746d7fdcc15c6dd374725b2fcb7d8921d7af7.bvh",
+      "bytes": 110408,
+      "gitBlobSha": "986746d7fdcc15c6dd374725b2fcb7d8921d7af7"
+    },
+    {
+      "path": "motion/cmu-parkour-walk-leap-walk/f995327b741859665fa71098e92dc2bc9f6d9200.bvh",
+      "bytes": 100960,
+      "gitBlobSha": "f995327b741859665fa71098e92dc2bc9f6d9200"
+    },
+    {
+      "path": "motion/kaykit-combat-melee/0ab63f221ca5d5c7c485a245199fb6107f1f3764.glb",
+      "bytes": 999416,
+      "gitBlobSha": "0ab63f221ca5d5c7c485a245199fb6107f1f3764"
+    },
+    {
+      "path": "motion/kaykit-combat-ranged/df56bad0071108e4d735771483233aa4fc85456c.glb",
+      "bytes": 1014852,
+      "gitBlobSha": "df56bad0071108e4d735771483233aa4fc85456c"
+    },
+    {
+      "path": "motion/kaykit-general/5d16cb6815fc8371705147188813f851c10ba26a.glb",
+      "bytes": 828240,
+      "gitBlobSha": "5d16cb6815fc8371705147188813f851c10ba26a"
+    },
+    {
+      "path": "motion/kaykit-movement-advanced/f3ea309627f3ad76b92b85877ebc46f945cd4f1d.glb",
+      "bytes": 719628,
+      "gitBlobSha": "f3ea309627f3ad76b92b85877ebc46f945cd4f1d"
+    },
+    {
+      "path": "motion/kaykit-movement-basic/98e965e886ec539e80f8984a77a29b0c1c02e5e5.glb",
+      "bytes": 689624,
+      "gitBlobSha": "98e965e886ec539e80f8984a77a29b0c1c02e5e5"
+    },
+    {
+      "path": "motion/kaykit-simulation/c64056cda5d2fca14ecb3b61d02d9dde56d1b401.glb",
+      "bytes": 855904,
+      "gitBlobSha": "c64056cda5d2fca14ecb3b61d02d9dde56d1b401"
+    },
+    {
+      "path": "motion/kaykit-special/4c2277dee56909c52800430f0a0daa419fe58654.glb",
+      "bytes": 924308,
+      "gitBlobSha": "4c2277dee56909c52800430f0a0daa419fe58654"
+    },
+    {
+      "path": "motion/mesh2motion-human-mocap/f9ab473da79eb91a479cdfaf0b514d8279073e89.glb",
+      "bytes": 677736,
+      "gitBlobSha": "f9ab473da79eb91a479cdfaf0b514d8279073e89"
+    },
+    {
+      "path": "motion/mesh2motion-review-mannequin/3a317288be44f7bfa1cdd978214ba8541b2af0c5.glb",
+      "bytes": 364868,
+      "gitBlobSha": "3a317288be44f7bfa1cdd978214ba8541b2af0c5"
+    }
+  ]
+}

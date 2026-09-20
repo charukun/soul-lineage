@@ -6,6 +6,8 @@ import {tmpdir} from 'node:os';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {additionalAssets} from '../additional-assets.mjs';
 const root=fileURLToPath(new URL('..',import.meta.url)),out=resolve(root,'public/models');
+const PROJECT_ECLIPSE_ORIGIN='https://soul-lineage-eclipse-dev.c-okamoto.workers.dev/models/vendor/';
+const encode=p=>p.split('/').map(encodeURIComponent).join('/');
 const sha256=b=>createHash('sha256').update(b).digest('hex');
 const gitBlob=b=>createHash('sha1').update(`blob ${b.length}\0`).update(b).digest('hex');
 const manifest=JSON.parse(await readFile(resolve(out,'manifest.json'),'utf8')).filter(m=>!additionalAssets.some(a=>a.id===m.id));
@@ -16,7 +18,7 @@ for(const source of additionalAssets){
   const local=process.env.ECLIPSE_COMPATIBLE_MOTION;
   if(local)bytes=await readFile(resolve(local,'UAL1_Standard.glb'));
   else for(let attempt=0;attempt<4;attempt++){
-    try{const r=await fetch(source.sourceUrl,{signal:AbortSignal.timeout(90000)});if(!r.ok)throw Error(`HTTP ${r.status}`);bytes=Buffer.from(await r.arrayBuffer());break;}
+    try{const r=await fetch(new URL(encode(source.sourcePath),PROJECT_ECLIPSE_ORIGIN),{signal:AbortSignal.timeout(90000)});if(!r.ok)throw Error(`HTTP ${r.status}`);bytes=Buffer.from(await r.arrayBuffer());break;}
     catch(error){if(attempt===3)throw error;await new Promise(r=>setTimeout(r,1000*(attempt+1)));}
   }
   if(sha256(bytes)!==source.expectedSHA256||gitBlob(bytes)!==source.expectedGitBlob)throw Error('Original motion integrity failure');

@@ -1,10 +1,12 @@
+import {projectAssetUrl} from '@soul/assets';
 const freeze=value=>Object.freeze(value);
 const clipRows=rows=>freeze(rows.map(([index,name,category])=>freeze({index,name,...(category?{category}:{})})));
-const source=(meta,clips=[])=>freeze({
-  ...meta,
-  runtimeUrl:`https://raw.githubusercontent.com/${meta.repository}/${meta.revision}/${meta.path.split('/').map(encodeURIComponent).join('/')}`,
-  clips:clipRows(clips)
-});
+const runtimeEnvironment=typeof __BUILD_INFO__==='undefined'?'dev':__BUILD_INFO__.environment;
+const source=(meta,clips=[])=>{
+  const selfHosted=meta.selfHosted!==false,extension=meta.format==='bvh'?'bvh':String(meta.path).split('.').pop().toLowerCase();
+  const runtimeAssetPath=`motion/${meta.id}/${meta.gitBlobSha}.${extension}`;
+  return freeze({...meta,selfHosted,runtimeAssetPath,...(selfHosted?{runtimeUrl:projectAssetUrl(runtimeAssetPath,{environment:runtimeEnvironment})}:{}),clips:clipRows(clips)});
+};
 
 const CMU_PARKOUR_REPOSITORY='zlatnaspirala/matrix-engine-wgpu';
 const CMU_PARKOUR_REVISION='22a4d6b7e4d6f9c9e10b5742fdc42ca8310ea624';
@@ -35,7 +37,7 @@ const CMU_PARKOUR_SOURCES=freeze([
   cmuParkourSource({id:'cmu-parkour-run-turn-right',label:'CMU Parkour · Run Turn Right 90°',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_C14_RunTurnRight90.bvh',gitBlobSha:'41d4b70e844a152fb280cecb291a63baf1a11fcb',byteLength:76298,clipName:'Parkour_Run_Turn_Right_90'})
 ]);
 
-export const MOTION_LIBRARY_SOURCES=freeze([
+const MOTION_LIBRARY_SOURCE_RECORDS=freeze([
   source({
     "id": "kaykit-combat-melee",
     "label": "KayKit Combat Melee",
@@ -267,6 +269,7 @@ export const MOTION_LIBRARY_SOURCES=freeze([
   ]),
   source({
     "id": "kaykit-tools",
+    "selfHosted": false,
     "label": "KayKit Tools",
     "family": "kaykit",
     "rig": "kaykit-rig-medium",
@@ -313,6 +316,7 @@ export const MOTION_LIBRARY_SOURCES=freeze([
   ]),
   source({
     "id": "quaternius-ual1",
+    "selfHosted": false,
     "label": "Quaternius Universal Animation Library",
     "family": "quaternius",
     "rig": "quaternius-standard",
@@ -376,6 +380,7 @@ export const MOTION_LIBRARY_SOURCES=freeze([
   ]),
   source({
     "id": "quaternius-ual2",
+    "selfHosted": false,
     "label": "Quaternius Universal Animation Library 2",
     "family": "quaternius",
     "rig": "quaternius-standard",
@@ -438,6 +443,7 @@ export const MOTION_LIBRARY_SOURCES=freeze([
   ...CMU_PARKOUR_SOURCES,
   source({
     "id": "mesh2motion-human-base",
+    "selfHosted": false,
     "label": "Mesh2Motion Human Base",
     "family": "mesh2motion",
     "rig": "mesh2motion-human",
@@ -455,6 +461,7 @@ export const MOTION_LIBRARY_SOURCES=freeze([
   }),
   source({
     "id": "mesh2motion-human-addon",
+    "selfHosted": false,
     "label": "Mesh2Motion Human Addon",
     "family": "mesh2motion",
     "rig": "mesh2motion-human",
@@ -506,5 +513,7 @@ export const MOTION_LIBRARY_SOURCES=freeze([
   })
 ]);
 
+export const MOTION_LIBRARY_SOURCES=freeze(MOTION_LIBRARY_SOURCE_RECORDS.filter(row=>row.selfHosted));
+export const MOTION_LIBRARY_ARCHIVED_SOURCES=freeze(MOTION_LIBRARY_SOURCE_RECORDS.filter(row=>!row.selfHosted));
 export const MOTION_LIBRARY_SOURCE_BY_ID=freeze(Object.fromEntries(MOTION_LIBRARY_SOURCES.map(row=>[row.id,row])));
 export const MOTION_LIBRARY_CLIP_OCCURRENCES=MOTION_LIBRARY_SOURCES.reduce((sum,row)=>sum+row.clips.length,0);

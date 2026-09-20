@@ -4,11 +4,13 @@ import {BVHLoader} from 'three/addons/loaders/BVHLoader.js';
 import {captureMotionRest,captureNormalizedMotion} from '@soul/rendering/motion-quality';
 import {kaykitHumanoidFromGLTF} from '@soul/rendering/kaykit-rig';
 import {MOTION_LIBRARY_SOURCE_BY_ID} from './review-motion-sources.js';
+import {isThirdPartyRuntimeAssetUrl,projectAssetOrigin} from '@soul/assets';
 
 const MAX_SOURCE_BYTES=12_000_000;
 const encoder=new TextEncoder();
 const pinnedPromises=new Map();
 const reviewModelPromises=new Map();
+const runtimeEnvironment=typeof __BUILD_INFO__==='undefined'?'dev':__BUILD_INFO__.environment;
 
 async function gitBlobSha(bytes){
   const body=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);
@@ -19,7 +21,7 @@ async function gitBlobSha(bytes){
   return [...new Uint8Array(digest)].map(value=>value.toString(16).padStart(2,'0')).join('');
 }
 async function checkedBytes(source,fetcher=fetch){
-  if(!source||!/^https:\/\/raw\.githubusercontent\.com\//.test(source.runtimeUrl)||!source.runtimeUrl.includes(source.revision))throw new Error('Unsafe or mutable motion source URL');
+  if(!source?.selfHosted||!source.runtimeUrl||!source.runtimeUrl.startsWith(projectAssetOrigin(runtimeEnvironment))||isThirdPartyRuntimeAssetUrl(source.runtimeUrl))throw new Error('Unsafe or non-project motion source URL');
   if(source.path.split('/').some(part=>!part||part==='.'||part==='..'))throw new Error('Unsafe motion source path');
   if(!Number.isSafeInteger(source.byteLength)||source.byteLength<1||source.byteLength>MAX_SOURCE_BYTES)throw new Error('Invalid motion source size budget');
   const response=await fetcher(source.runtimeUrl,{signal:AbortSignal.timeout(60000),cache:'force-cache'});

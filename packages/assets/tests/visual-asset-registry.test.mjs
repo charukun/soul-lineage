@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {visualAssetRegistry,visualAssetById} from '../src/index.js';
+import {DEV_ASSET_ORIGIN,PROJECT_ASSET_MAX_BYTES,isThirdPartyRuntimeAssetUrl,projectAssetUrl,visualAssetRegistry,visualAssetById} from '../src/index.js';
 const gitBlobSha=bytes=>createHash('sha1').update(Buffer.from(`blob ${bytes.length}\0`)).update(bytes).digest('hex');
 
 test('single production visual registry requires authored materialized licensed provenance',()=>{
+ assert.equal(PROJECT_ASSET_MAX_BYTES,20*1024*1024);assert.equal(projectAssetUrl('motion/example/abc.bvh'),DEV_ASSET_ORIGIN+'motion/example/abc.bvh');assert.equal(isThirdPartyRuntimeAssetUrl('https://raw.githubusercontent.com/x/y/z'),true);assert.equal(isThirdPartyRuntimeAssetUrl(projectAssetUrl('model/example/abc.glb')),false);
  for(const asset of Object.values(visualAssetRegistry)){
   assert.equal(visualAssetById(asset.id),asset);assert.equal(asset.status,'MATERIALIZED');
   assert.ok(['artist-authored','rinne-owned-dcc'].includes(asset.origin)||(asset.id==='mura.housing-legacy-procedural.v1'&&asset.origin==='legacy-procedural'&&asset.legacy===true),asset.id);
