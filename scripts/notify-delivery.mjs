@@ -45,24 +45,37 @@ export function personalDevEmailEligible({ repository, pr }) {
   return repository === PERSONAL_DEV_EMAIL_REPOSITORY && pr?.user?.login === PERSONAL_DEV_EMAIL_LOGIN;
 }
 
-export function personalDevChangeLabel(pr) {
-  const firstBodyLine = String(pr?.body || '')
+export function personalDevChangeSummary(pr) {
+  const lines = String(pr?.body || '')
     .split(/\r?\n/)
     .map(line => line.trim())
-    .find(Boolean);
-  return firstBodyLine || String(pr?.title || '').trim();
+    .filter(Boolean);
+  const label = lines[0] || String(pr?.title || '').trim();
+  const description = lines.slice(1).find(line => !/^(?:Browser-Playtest|Scope|DEV review|Astra-[\w-]+):/i.test(line)) || '';
+  return Object.freeze({ label, description });
+}
+
+export function personalDevChangeLabel(pr) {
+  return personalDevChangeSummary(pr).label;
 }
 
 export function devChangeEmailMessage({ pr, repository }) {
   if (!personalDevEmailEligible({ repository, pr }) || !pr?.number) return null;
-  const label = personalDevChangeLabel(pr);
+  const { label, description } = personalDevChangeSummary(pr);
   if (!label) return null;
   return [
-    'DEV反映完了',
-    `「${label}」をDEVに反映しました。`,
+    `DEV反映完了【PR #${pr.number}】`,
+    `反映内容: ${label}`,
+    ...(description ? [`概要: ${description}`] : []),
     `DEVを確認: ${PERSONAL_DEV_URL}`,
-    `確認画像・動画の報告: https://github.com/${repository}/pull/${pr.number}`,
+    `確認・報告: https://github.com/${repository}/pull/${pr.number}`,
   ].join('\n');
+}
+
+export function devFallbackIssueTitle({ message, pr } = {}) {
+  const heading = String(message || '').split(/\r?\n/).map(line => line.trim()).find(Boolean) || 'DEV反映完了';
+  const label = personalDevChangeLabel(pr);
+  return `${heading} | PR #${pr?.number || '?'}${label ? ` ${label}` : ''}`.slice(0, 240);
 }
 
 async function githubJson(request, url, { token, method = 'GET', body } = {}) {
@@ -215,6 +228,15 @@ export async function recordGithubDeliveryReceipt({ token = '', repository, sha,
     if (comments.some(comment => (comment.body || '').includes(marker))) return 'existing';
     if (comments.length < 100) break;
     if (page === 3) throw new Error('GITHUB_DELIVERY_FALLBACK_COMMENT_PAGE_LIMIT');
+  }
+  try {
+    await githubJson(request, `${root}/issues/${PERSONAL_DEV_EMAIL_ISSUE}`, {
+      token,
+      method: 'PATCH',
+      body: { title: devFallbackIssueTitle({ message, pr }) },
+    });
+  } catch (error) {
+    console.warn(`::warning::DEV email thread title update failed; continuing with the receipt comment: ${error.message}`);
   }
   await githubJson(request, fallbackRoot, {
     token,

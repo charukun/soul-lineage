@@ -59,6 +59,8 @@ short task title
 short description of what changes
 ```
 
+The PR title and those first two lines are also the human-facing source for DEV notifications. When the task was requested in Japanese, write them in concise Japanese and describe the visible change rather than using implementation-only English wording. The first line should say what changed; the second should say what the user can now expect.
+
 Then include only useful scope, dependency, assumption, and DEV-review notes. Validation arming belongs to the final commit message, not the PR body.
 
 Normal terminal states are:
