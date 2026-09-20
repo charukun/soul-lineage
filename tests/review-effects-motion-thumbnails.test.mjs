@@ -24,9 +24,17 @@ test('effect review exposes high-resolution visible thumbnails in five columns',
   assert.match(css,/@media\(max-width:640px\)[\s\S]*?\.fx-option\{min-height:96px!important/);
 });
 
-test('motion review reserves thumbnail space in required five-column phone grid',async()=>{
-  const css=await read('apps/rinne/src/review-motion.css');
-  assert.match(css,/\.motion-grid \.review-choice-card\{min-height:112px!important/);
-  assert.match(css,/\.motion-grid \.review-choice-card>\.review-runtime-thumbnail\{width:100%!important;aspect-ratio:36\/23!important/);
-  assert.match(css,/@media\(max-width:620px\)[\s\S]*?\.motion-grid \.review-choice-card\{min-height:96px!important/);
+test('motion review is image-first in the required five-column phone grid',async()=>{
+  const [js,css,runtime]=await Promise.all([
+    read('apps/rinne/src/review-motion.js'),
+    read('apps/rinne/src/review-motion.css'),
+    read('apps/rinne/src/review-runtime-thumbnail.js'),
+  ]);
+  assert.match(css,/\.motion-grid \.review-choice-card\{min-height:0!important;display:block!important;aspect-ratio:36\/23!important/);
+  assert.match(css,/\.motion-grid \.review-choice-card>\.review-runtime-thumbnail\{width:100%!important;height:100%!important;aspect-ratio:36\/23!important/);
+  assert.match(css,/@media\(max-width:620px\)[\s\S]*?\.motion-grid \.review-choice-card\{min-height:0!important/);
+  assert.match(js,/button\.setAttribute\('aria-label',label\);button\.title=label;button\.append\(thumbnail\);/);
+  assert.doesNotMatch(js,/motion-category/);
+  assert.match(runtime,/requestIdleCallback\?requestIdleCallback\(callback,\{timeout:90\}\)/);
+  assert.match(runtime,/paintPlaceholder\(canvas\)/);
 });
