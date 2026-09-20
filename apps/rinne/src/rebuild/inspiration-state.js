@@ -13,17 +13,17 @@ const own=(o,k)=>Object.prototype.hasOwnProperty.call(o||{},k);
 const answer=id=>own(CAUSAL_ANSWER_BY_ID,id)?CAUSAL_ANSWER_BY_ID[id]:null;
 function hash(text){let h=2166136261;for(const c of String(text)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 function unit(seed,key){return hash(`${seed}:${key}`)/4294967295;}
-export function inspirationAffinityChance(state,affinity){
-  const score=Math.max(0,Number(faithProfile(state)?.[affinity])||0);
+export function inspirationAttributeChance(state,attribute){
+  const score=Math.max(0,Number(faithProfile(state)?.[attribute])||0);
   return clamp(1-Math.exp(-score),0,.82);
 }
-export function chooseInspirationEffectAffinity(state,answerId){
+export function chooseInspirationEffectAttribute(state,answerId){
   const entries=Object.entries(faithProfile(state)).filter(([,score])=>Number(score)>0),total=entries.reduce((sum,[,score])=>sum+Number(score),0);
   if(!(total>0))return null;
   const chance=clamp(1-Math.exp(-total),0,.82);
   if(unit(state?.seed??0,`faith-effect:${answerId}:gate`)>=chance)return null;
   let roll=unit(state?.seed??0,`faith-effect:${answerId}:pick`)*total;
-  for(const [affinity,score] of entries){roll-=Number(score);if(roll<=0)return affinity;}
+  for(const [attribute,score] of entries){roll-=Number(score);if(roll<=0)return attribute;}
   return entries.at(-1)?.[0]||null;
 }
 function sourceKind(kind){return ['practice','repeat','balance','breathe','focus','fall','distance'].includes(kind)?'practice':['observe','train','study','read','forge'].includes(kind)?'observation':'life';}
@@ -95,10 +95,10 @@ function enforceActiveLimit(state){
 function commitAnswer(state,candidate,context={}){
   const s=ensureInspiration(state),row=answer(candidate.id);if(!row||own(s.records,row.id)||state.ended||state.down||Object.keys(s.records).length>=INSPIRATION_LIMITS.records)return null;
   const record={answerId:row.id,family:row.family,name:inspirationTechniqueName(row),age:clamp(state.ageYears,0,100),kind:row.kind,stable:false,archived:false,contexts:[useContextKey(state,context)],provenance:provenanceFor(state,candidate,context),motifs:[...row.motifs]};
-  if(['technique','variant'].includes(row.kind)){const effectAffinity=chooseInspirationEffectAffinity(state,row.id);if(effectAffinity)record.effectAffinity=effectAffinity;}
+  if(['technique','variant'].includes(row.kind)){const effectAttribute=chooseInspirationEffectAttribute(state,row.id);if(effectAttribute)record.effectAttribute=effectAttribute;}
   if(row.kind==='link'&&context.combo)record.combo={...context.combo};
   s.records[row.id]=record;s.lastNamed=s.clock;s.revision++;enforceActiveLimit(state);synchronizeKnownSkills(state);
-  const event={type:'inspiration',id:row.id,name:record.name,kind:row.kind,family:row.family,age:record.age,provenance:record.provenance,effectAffinity:record.effectAffinity||null};state.events??=[];state.events.unshift({type:'inspiration',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${record.name}を閃いた。`,inspirationId:row.id});state.events.length=Math.min(state.events.length,80);return event;
+  const event={type:'inspiration',id:row.id,name:record.name,kind:row.kind,family:row.family,age:record.age,provenance:record.provenance,effectAttribute:record.effectAttribute||null};state.events??=[];state.events.unshift({type:'inspiration',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${record.name}を閃いた。`,inspirationId:row.id});state.events.length=Math.min(state.events.length,80);return event;
 }
 export function recordLifeExperience(state,kind,context={}){
   if(state.ended||state.down||Number(state.ageYears)<4||!own(ACTIVITY_MOTIFS,kind))return [];

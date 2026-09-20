@@ -16,14 +16,15 @@ test('RINNE gameplay removes the life gauge while keeping breath and injury-driv
   assert.doesNotMatch(runtime,/\$\('hp-bar'\)/);
 });
 
-test('technique presentation view exposes deterministic choreography comparison controls',async()=>{
+test('battle presentation view exposes deterministic choreography controls and body HUD',async()=>{
   const [html,source]=await Promise.all([
     readFile(new URL('../review-battle.html',import.meta.url),'utf8'),
     readFile(new URL('../src/review-battle.js',import.meta.url),'utf8')
   ]);
-  for(const id of ['battle-strategy-a','battle-strategy-b','battle-ab-toggle','battle-review-seed','battle-injury-preset','battle-body-readout'])assert.match(html,new RegExp(`id="${id}"`));
+  for(const id of ['battle-strategy-a','battle-strategy-b','battle-ab-toggle','battle-review-seed','battle-injury-preset','battle-body-hud'])assert.match(html,new RegExp(`id="${id}"`));
+  assert.match(html,/<title>Visual Review｜戦闘演出<\/title>/);assert.match(html,/<h1>戦闘演出<\/h1>/);assert.doesNotMatch(html,/id="battle-body-readout"/);
   assert.match(source,/strategyVariant==='A'/);
   assert.match(source,/reviewSeed/);
   assert.match(source,/applyChoreographyImpact/);
-  assert.match(source,/combatBodySnapshot/);
+  assert.match(source,/createCombatBodyHud/);assert.match(source,/bodyHud\?\.flash\(bodyImpact\.part\)/);
 });

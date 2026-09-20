@@ -91,17 +91,17 @@ export const RUNTIME_ASSETS = Object.freeze([
   asset('docs/effekseer.wasm', 1201973, 'c4c0e39ad688caec1401f2c408f88b3a387ea9a1'),
   asset('LICENSE', 1084, 'c7c0094a9a163d8013086a42b3dcb3a46f984cb1'),
 ]);
-const runtimeAffinityEffect=(sourceId,affinity,{scale=.72,lifetime=1.35}={})=>{
+const runtimeAttributeEffect=(sourceId,attribute,{scale=.72,lifetime=1.35}={})=>{
   const source=REVIEW_VFX_LIBRARY_EFFECTS.find(row=>row.id===sourceId);
-  if(!source||!source.affinities?.includes(affinity))throw Error(`Missing affinity VFX source: ${sourceId}/${affinity}`);
-  return Object.freeze({path:source.path,author:source.author,scale,lifetime,affinities:Object.freeze([affinity]),sourceEffectId:source.id});
+  if(!source||!source.attributes?.includes(attribute))throw Error(`Missing attribute VFX source: ${sourceId}/${attribute}`);
+  return Object.freeze({path:source.path,author:source.author,scale,lifetime,attributes:Object.freeze([attribute]),sourceEffectId:source.id});
 };
-export const AFFINITY_EFFECT_KEYS=Object.freeze({fire:'affinity-fire'});
+export const EFFECT_ATTRIBUTE_KEYS=Object.freeze({fire:'attribute-fire'});
 export const AUTHORED_EFFECTS = Object.freeze({
-  slash: Object.freeze({path:EFFECT_ASSETS[0].path, author:'Effekseer', scale:.32, lifetime:.65, affinities:Object.freeze([])}),
-  impact: Object.freeze({path:EFFECT_ASSETS[2].path, author:'tktk', scale:.065, lifetime:1.2, affinities:Object.freeze([])}),
-  finisher: Object.freeze({path:EFFECT_ASSETS[3].path, author:'tktk', scale:.05, lifetime:1.8, affinities:Object.freeze([])}),
-  'affinity-fire': runtimeAffinityEffect('lib-tktk02-fire1','fire'),
+  slash: Object.freeze({path:EFFECT_ASSETS[0].path, author:'Effekseer', scale:.32, lifetime:.65, attributes:Object.freeze([])}),
+  impact: Object.freeze({path:EFFECT_ASSETS[2].path, author:'tktk', scale:.065, lifetime:1.2, attributes:Object.freeze([])}),
+  finisher: Object.freeze({path:EFFECT_ASSETS[3].path, author:'tktk', scale:.05, lifetime:1.8, attributes:Object.freeze([])}),
+  'attribute-fire': runtimeAttributeEffect('lib-tktk02-fire1','fire'),
 });
 const reviewEffect = (path, author, scale, lifetime) => Object.freeze({path:`${REVIEW_EFFECT_SOURCE.basePath}/${path}`,author,scale,lifetime,reviewOnly:true});
 export const REVIEW_AUTHORED_EFFECTS = Object.freeze({

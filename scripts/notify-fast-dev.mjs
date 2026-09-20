@@ -2,21 +2,43 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { DEV_APP_NAMES } from './application-catalog.mjs';
 import { distributionPublicUrl } from './distribution-targets.mjs';
-import { PERSONAL_DEV_EMAIL_REPOSITORY, findAssociatedDevelopPr, personalDevChangeLabel, recordGithubDeliveryReceipt } from './notify-delivery.mjs';
+import { PERSONAL_DEV_EMAIL_REPOSITORY, findAssociatedDevelopPr, personalDevChangeSummary, recordGithubDeliveryReceipt } from './notify-delivery.mjs';
 import { refreshPulseState } from '../ops-board/refresh-client.mjs';
 
 const SHA=/^[a-f0-9]{40}$/;
 const PULSE_PUBLIC_URL='https://rinne-ops.c-okamoto.workers.dev/';
+const REVIEW_SURFACE_NAMES=Object.freeze({
+  '/review-motion':'モーション確認',
+  '/review-assets':'素材確認',
+  '/review-objects':'オブジェクト確認',
+  '/review-effects':'エフェクト確認',
+  '/review-sound':'サウンド確認',
+  '/review-battle':'戦闘確認',
+});
+
+function reviewSurfaceName(pr){
+  const source=`${pr?.title||''}\n${pr?.body||''}`;
+  return Object.entries(REVIEW_SURFACE_NAMES).find(([route])=>source.includes(route))?.[1]||'';
+}
+function compact(text,max=160){
+  const value=String(text||'').replace(/\s+/g,' ').trim();
+  return value.length>max?value.slice(0,max-1)+'…':value;
+}
 
 export function fastDevEmailMessage({pr,repository,apps=[]}={}){
   if(!pr?.number||!apps.length)return null;
-  const label=personalDevChangeLabel(pr);
+  const {label,description}=personalDevChangeSummary(pr);
+  const appNames=[...new Set(apps.map(app=>DEV_APP_NAMES[app]||app))];
+  const surface=reviewSurfaceName(pr);
+  const context=[...appNames,...(surface?[surface]:[])].join(' / ');
   const targets=apps.map(app=>`${DEV_APP_NAMES[app]||app}: ${distributionPublicUrl('web-dev',app)}`);
   return [
-    'DEV反映完了',
-    `「${label}」を高速DEVに反映しました。`,
-    ...targets,
-    `確認画像・動画の報告: https://github.com/${repository}/pull/${pr.number}`,
+    `DEV反映完了【${context}】`,
+    `反映内容: ${compact(label)}`,
+    ...(description?[`概要: ${compact(description)}`]:[]),
+    `PR: #${pr.number}`,
+    ...targets.map(target=>`確認先: ${target}`),
+    `確認・報告: https://github.com/${repository}/pull/${pr.number}`,
   ].join('\n');
 }
 
