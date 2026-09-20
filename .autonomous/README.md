@@ -37,6 +37,8 @@ Gameplay experiment v2 は実装前に exact source SHA に束縛された stagi
 
 mutableな「最新DEV URL」はBefore/After Evidenceに使いません。Evolution/Polishは固定SHA stagingがなければ開始しません。stagingは問題発見とplayer-facing Before/Afterの観測面であり、passing browser observationだけで因果修正を証明しません。pure/leaf/native testや既存native pathがcausal evidenceを担当します。
 
+現在の `village` / `kuumetsu` staging observation surface はCloudflare Worker version previewです。通常のlatest DEV URLを観測URLとして保存せず、該当deployの `Current Version ID` から `scripts/staging-preview.mjs` でimmutable preview URLを作り、公開先の `version.json.commit` がrecordの `sourceSha` と一致することを確認します。これは同じ `web-dev` artifactの固定versionなので、`version.json.environment` は `dev` のままです。
+
 ## experiment v2 と receipt
 
 既存schemaVersion 1 experimentは履歴互換のため不変で読み続けます。新規iterationはschemaVersion 2を使います。

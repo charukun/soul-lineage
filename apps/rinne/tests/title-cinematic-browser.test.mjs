@@ -4,15 +4,18 @@ import {execFileSync,spawn} from 'node:child_process';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const root=process.cwd(),app=resolve(root,'apps/rinne');
+// Explicit selection preserves the existing opt-in browser lane. No automatic sweep.
+const browserRequested=process.env.RINNE_TITLE_BROWSER==='1'||String(process.env.ASTRA_COMMIT_MESSAGE||'').split(/\r?\n/).some(line=>line.trim()==='Astra-Test: apps/rinne/tests/title-cinematic-browser.test.mjs');
 const manifest=JSON.parse(await readFile(resolve(app,'public/title-assets/cinematic/manifest.json')));
 const ready={...manifest,status:'ready',movie:'./title-assets/cinematic/opening.mp4',webm:null};
 const browserPath=()=>{for(const name of ['google-chrome','google-chrome-stable','chromium','chromium-browser'])try{return execFileSync('which',[name],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim();}catch{}throw Error('Chromium is required for the selected browser test');};
-const waitForServer=async url=>{for(let i=0;i<100;i++){try{if((await fetch(url)).ok)return;}catch{}await new Promise(r=>setTimeout(r,200));}throw Error('Vite server did not start');};
+const waitForServer=async url=>{for(let i=0;i<450;i++){try{if((await fetch(url)).ok)return;}catch{}await new Promise(r=>setTimeout(r,200));}throw Error('Vite server did not start');};
 
-test('RINNE title: decoded movie, skips, matching landing, return, failure and Fold layouts',{timeout:180000},async()=>{
+test('RINNE title: decoded movie, skips, matching landing, return, failure and Fold layouts',{skip:!browserRequested,timeout:240000},async()=>{
   const {chromium}=await import('playwright');
   const dir=resolve(root,'artifacts/browser/rinne-title-cinematic');await mkdir(dir,{recursive:true});
-  const server=spawn(process.execPath,[resolve(root,'node_modules/vite/bin/vite.js'),'--host','127.0.0.1','--port','5173','--strictPort'],{cwd:app,env:{...process.env,NO_COLOR:'1'},stdio:['ignore','pipe','pipe']});
+  // Use the repository's existing dev entry so pinned game assets are available.
+  const server=spawn('npm',['run','dev','--workspace','@soul/rinne'],{cwd:root,env:{...process.env,NO_COLOR:'1'},stdio:['ignore','pipe','pipe'],detached:process.platform!=='win32'});
   let log='',browser;for(const stream of [server.stdout,server.stderr])stream.on('data',c=>{log=(log+c).slice(-8000);});
   const evidence={media:'synthetic decoder fixture; not the delivered film',checks:[],consoleErrors:[],mediaErrors:[]};
   const shot=async(page,name)=>{
@@ -74,6 +77,8 @@ test('RINNE title: decoded movie, skips, matching landing, return, failure and F
     await context.close();
     // A separate context exercises the actual latest game and captures source-grounded references.
     const real=await browser.newContext({viewport:{width:915,height:412},deviceScaleFactor:1});const game=await real.newPage();
+    game.on('pageerror',e=>console.log('RINNE_GAME_ERROR '+e.message));
+    game.on('console',m=>{if(m.type()==='error')console.log('RINNE_GAME_CONSOLE '+m.text());});
     await game.goto('http://127.0.0.1:5173/',{waitUntil:'domcontentloaded'});
     await game.waitForFunction(()=>document.getElementById('title-screen').dataset.ready==='true',null,{timeout:65000});
     await game.locator('#new-life').click();await game.waitForFunction(()=>document.getElementById('game-screen').dataset.runtime==='active',null,{timeout:30000});
@@ -81,5 +86,5 @@ test('RINNE title: decoded movie, skips, matching landing, return, failure and F
     await game.locator('#back-title').click();await game.waitForFunction(()=>document.getElementById('title-screen').dataset.intro==='idle');
     evidence.checks.push('unmocked game boot, birth and return');await real.close();
     await writeFile(resolve(dir,'playtest-receipt.json'),JSON.stringify(evidence,null,2));console.log('RINNE_BROWSER_EVIDENCE '+JSON.stringify(evidence));
-  }catch(error){console.error(log);throw error;}finally{await browser?.close();server.kill('SIGTERM');}
+  }catch(error){console.error(log);throw error;}finally{await browser?.close();if(process.platform==='win32')server.kill('SIGTERM');else try{process.kill(-server.pid,'SIGTERM');}catch{}}
 });
