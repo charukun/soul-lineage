@@ -118,10 +118,14 @@ function resetBattle(){
   runtime.configure({weapon,loadout,opponent:group?'group':'duel',hp:230,maxhp:230,enemyHp:180,enemyWeapon:'sword',enemyStyle:'balanced',mindset:tidebreakMindsetFromVector(strategyForState(reviewHeroBody)),positions,...(group?{enemies:[{weapon:'sword',hp:180},{weapon:'spear',hp:165},{weapon:'axe',hp:195}]}:{})});
   lastCore=runtime.state();last=performance.now();battleStage?.setEncounterMode(encounterMode);syncBodyReadout();
 }
+function pushBattleReadout(text,kind='action'){
+  const value=String(text||'').trim();if(!value||!phaseHistory)return;
+  const item=document.createElement('span');item.textContent=value;item.dataset.kind=kind;phaseHistory.prepend(item);setTimeout(()=>item.remove(),2700);
+}
 function renderPhase(core){
-  const state=reviewBattlePhaseState(core);syncCombatSequence(phasePanel,state.phase);const footPhase=q('battle-foot-phase');if(footPhase){footPhase.dataset.phase=state.phase||'idle';footPhase.setAttribute('aria-label',`足元の序破急HUD · 現在は${phaseLabel(state.phase)}`);}const action=core?.hero?.attack||state.skill||'間合いを測る';phaseMeta.textContent=action;
+  const state=reviewBattlePhaseState(core);syncCombatSequence(phasePanel,state.phase);const footPhase=q('battle-foot-phase');if(footPhase){footPhase.dataset.phase=state.phase||'idle';footPhase.setAttribute('aria-label',`足元の序破急HUD · 現在は${phaseLabel(state.phase)}`);}const action=core?.hero?.attack||state.skill||'';phaseMeta.textContent='間合いを測っている…';
   for(const chain of document.querySelectorAll('#battle-technique-composition [data-chain-phase]'))chain.dataset.active=String(chain.dataset.chainPhase===state.heroPhase);
-  if(action!==lastSequenceAction||state.phase!==lastSequencePhase){if(lastSequenceAction){const item=document.createElement('span');item.textContent=`${phaseLabel(lastSequencePhase)} · ${lastSequenceAction}`;phaseHistory?.prepend(item);while(phaseHistory?.children.length>3)phaseHistory.lastElementChild?.remove();setTimeout(()=>item.remove(),2700);}lastSequenceAction=action;lastSequencePhase=state.phase;}
+  if(action!==lastSequenceAction||state.phase!==lastSequencePhase){if(action&&action!=='間合いを測る')pushBattleReadout(action,'action');lastSequenceAction=action;lastSequencePhase=state.phase;}
 }
 function syncBattleAudio(core){
   const actors=[['hero',core?.hero],...(core?.enemies||[]).map((actor,index)=>[`enemy-${index}`,actor])];
@@ -174,7 +178,7 @@ function advanceBattle(dt){
   const angle=battleStage?.cameraAngle?.()||0,input=reviewSwipe.vector(angle);
   runtime.input(input.screenX,input.screenY,input.amount,angle);const previous=lastCore,next=runtime.step(dt);
   const heroLoss=Math.max(0,(Number(previous?.hero?.hp)||0)-(Number(next?.hero?.hp)||0)),enemyLoss=Math.max(0,(Number(previous?.enemy?.hp)||0)-(Number(next?.enemy?.hp)||0));
-  if(heroLoss>.001)applyChoreographyImpact(reviewHeroBody,{damage:heroLoss,maxIntegrity:230,sector:'front',sourceId:'review-enemy',phase:next?.enemy?.slot||'ha'});
+  if(heroLoss>.001){applyChoreographyImpact(reviewHeroBody,{damage:heroLoss,maxIntegrity:230,sector:'front',sourceId:'review-enemy',phase:next?.enemy?.slot||'ha'});pushBattleReadout(`被弾 −${Math.ceil(heroLoss)} · 生命 ${Math.ceil(Math.max(0,Number(next?.hero?.hp)||0))}/${Math.ceil(Number(next?.hero?.maxhp)||230)}`,'hurt');}
   if(enemyLoss>.001)applyChoreographyImpact(reviewEnemyBody,{damage:enemyLoss,maxIntegrity:180,sector:'front',sourceId:'review-hero',phase:next?.hero?.slot||'ha'});
   syncBodyReadout();const ending=createReviewFinisher(next,previous);
   if(ending){finisher=ending;const frame=advanceReviewFinisher(finisher,0);finisher=frame.run;lastCore=frame.core;}
