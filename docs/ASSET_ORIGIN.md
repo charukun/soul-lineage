@@ -15,5 +15,6 @@ Current materialized groups:
 - RINNE motion review: eight KayKit motion packs, two Quaternius UAL packs, fourteen CMU parkour BVH motions, three Mesh2Motion motion packs and the Mesh2Motion review mannequin.
 - RINNE object/sound review: 54 curated Kenney CC0 medieval/fantasy environment models and 43 combat/life/UI audio assets (97 unique Kenney assets total), pinned with provenance and self-hosted.
 - Demon: five pinned Gobkit model surfaces.
+- NOCTURNE battle presentation 2: Knight, three Skeleton characters and 24 Nature Kit environment models. Their original embedded animations are preserved; all 28 GLBs and three license files are materialized in the same `model/`, `object/` and `licenses/` library groups. The provenance receipt is `library/provenance/nocturne-battle2-v1.json`. The NOCTURNE Worker is a historical source reference only, never this stage's runtime/build asset origin.
 
-The shared `@soul/assets` runtime-origin helper owns URL construction and the third-party runtime host deny-list.
+The shared `@soul/assets` runtime-origin helper owns URL construction and the third-party runtime host deny-list. The Review app that owns this library resolves the canonical `/library/` paths on its own current origin, including local and immutable evidence builds; other DEV apps continue using the configured shared origin.

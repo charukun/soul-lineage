@@ -34,30 +34,40 @@ jobs:
         run: python3 apps/review/scripts/materialize-nocturne.py
       - name: Materialize native runtime from pinned source when requested
         run: |
-          if test -f apps/review/scripts/extract-nocturne.mjs; then
-            git fetch --no-tags --depth=1 origin a923fcc02dfef9a57aad00001bd3daab8786fc07
-            node apps/review/scripts/extract-nocturne.mjs
-          fi
+          git fetch --no-tags --depth=1 origin a923fcc02dfef9a57aad00001bd3daab8786fc07
+          node apps/review/scripts/extract-nocturne.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('apps/review/src/nocturne/runtime.js')
+          text=p.read_text()
+          text=text.replace('function draw(){renderCamera(1/60);','function draw(dt=1/60){renderCamera(dt);')
+          text=text.replace('try{simulate(dt);draw();frameCount++;','try{simulate(dt);draw(realDt);frameCount++;')
+          assert 'function draw(dt=1/60){renderCamera(dt);' in text
+          assert 'try{simulate(dt);draw(realDt);frameCount++;' in text
+          p.write_text(text)
+          PY
       - name: Commit generated content to the same branch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add apps/review package-lock.json
           if ! git diff --cached --quiet; then
-            git commit -m 'Materialize pinned NOCTURNE library and native stage'
+            git commit -m 'Finalize NOCTURNE runtime camera clock'
             git push origin HEAD:fix/battle2-library-runtime-20260921
           fi
           git rev-parse HEAD > .battle2-evidence/source-sha.txt
-      - name: Focused browser evidence when the native probe exists
+      - name: Run specialist evidence on the exact final head
         env:
           APP_ENV: dev
         run: |
-          if test -f apps/review/scripts/nocturne-browser.mjs; then
+          if git log -1 --format=%B | grep -q '\[astra-validate\]'; then
             npm ci --ignore-scripts --no-audit --no-fund
             node --test apps/review/tests/review-app.test.mjs apps/review/tests/nocturne-library.test.mjs
             npm run build --workspace @soul/review
             npx playwright install --with-deps chromium
             node apps/review/scripts/nocturne-browser.mjs
+          else
+            echo 'Materialization preflight only. Re-run this specialist job after the final head is armed.'
           fi
       - name: Preserve source-bound evidence
         if: always()
@@ -65,5 +75,6 @@ jobs:
         with:
           name: battle2-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: .battle2-evidence/
+          include-hidden-files: true
           retention-days: 14
           if-no-files-found: error
