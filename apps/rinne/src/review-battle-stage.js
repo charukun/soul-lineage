@@ -25,8 +25,8 @@ function addStride(bones,time,amount){
   if(bones.leftUpperArm)bones.leftUpperArm.rotation.x-=stride*.4;if(bones.rightUpperArm)bones.rightUpperArm.rotation.x+=stride*.4;
 }
 function ring(color){
-  const mesh=new THREE.Mesh(new THREE.RingGeometry(.46,.54,40),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.52,side:THREE.DoubleSide,depthWrite:false}));
-  mesh.rotation.x=-Math.PI/2;mesh.position.y=.018;return mesh;
+  const mesh=new THREE.Mesh(new THREE.RingGeometry(.48,.59,48),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.78,side:THREE.DoubleSide,depthWrite:false,depthTest:false}));
+  mesh.rotation.x=-Math.PI/2;mesh.position.y=.022;mesh.renderOrder=30;mesh.frustumCulled=false;return mesh;
 }
 function disposeNode(root){root.traverse(node=>{node.geometry?.dispose?.();const materials=Array.isArray(node.material)?node.material:[node.material];for(const material of materials.filter(Boolean))material.dispose?.();});root.clear();}
 function addBox(group,size,position,material){const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),material);mesh.position.set(...position);group.add(mesh);return mesh;}
@@ -128,11 +128,11 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     if(techniquePlayback&&sequence?.stage==='execute'){const steps=techniquePlayback.steps||[],scaled=sequence.executeProgress*Math.max(1,steps.length),index=Math.min(steps.length-1,Math.floor(scaled)),step=steps[index];if(step)frame=tidebreakFrameFromSnapshot({...state,attack:step.kind,progress:scaled%1,slot:techniquePlayback.phase},{targetId:target?.id||null,intent:'review-battle-inspiration'});}
     if(sequence&&sequence.stage!=='done'&&target&&sequence.spacing>0){const dx=hero.actor.root.position.x-(Number(target.x)||0),dz=hero.actor.root.position.z-(Number(target.z)||0),len=Math.max(.001,Math.hypot(dx,dz));hero.actor.root.position.x+=dx/len*1.72*sequence.spacing;hero.actor.root.position.z+=dz/len*1.72*sequence.spacing;hero.actor.root.position.y+=Math.sin(Math.min(1,sequence.backstepProgress||0)*Math.PI)*.07;}
     hero.actor.sample(hero.appearance,time,(bones,sampleTime)=>{addStride(bones,sampleTime,presentation.stride);if(sequence?.stage==='reveal'){if(bones.spine)bones.spine.rotation.x-=.16;if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.7;bones.rightUpperArm.rotation.z+=.35;}}if(sequence?.stage==='execute'&&bones.spine)bones.spine.rotation.y+=Math.sin(sequence.executeProgress*Math.PI*2)*.22;if(!frame?.attack)addGuardPose(bones,'hero');applyTidebreakPose(bones,frame);applyReviewCombatMotion(bones,frame,sequence,sampleTime);if(time<hero.hitUntil&&bones.spine)bones.spine.rotation.z-=.13;});
-    hero.actor.updateAttachments();hero.actor.root.updateMatrixWorld(true);hero.marker.position.set(hero.actor.root.position.x,.018,hero.actor.root.position.z);updateWeaponVisual(weaponVisuals[0],state,heroWeaponRig);
+    hero.actor.updateAttachments();hero.actor.root.updateMatrixWorld(true);hero.marker.visible=true;hero.marker.position.set(hero.actor.root.position.x,.022,hero.actor.root.position.z);updateWeaponVisual(weaponVisuals[0],state,heroWeaponRig);
   }
   function animateEnemy(index,state,target,time,dt){
     const side=enemies[index];if(!side||!state)return;const hit=Number.isFinite(state.hp)&&side.hp!==null&&state.hp<side.hp;if(hit)side.hitUntil=time+.16;side.hp=Number.isFinite(state.hp)?state.hp:side.hp;
-    const presentation=reviewBattlePresentationFrame(state,target,side.presentation,dt,{hit});side.presentation=presentation;side.actor.root.position.set(presentation.x,state.downed?.24:0,presentation.z);side.actor.root.rotation.y=presentation.yaw;side.actor.root.rotation.z=state.downed?-Math.PI*.46:0;updateReviewMonsterAnimation(side.actor,state,time,{hit:time<side.hitUntil,downed:Boolean(state.downed)});side.actor.root.updateMatrixWorld(true);side.marker.position.set(presentation.x,.018,presentation.z);updateWeaponVisual(weaponVisuals[index+1],state,enemyWeaponRigs[index]);
+    const presentation=reviewBattlePresentationFrame(state,target,side.presentation,dt,{hit});side.presentation=presentation;side.actor.root.position.set(presentation.x,state.downed?.24:0,presentation.z);side.actor.root.rotation.y=presentation.yaw;side.actor.root.rotation.z=state.downed?-Math.PI*.46:0;updateReviewMonsterAnimation(side.actor,state,time,{hit:time<side.hitUntil,downed:Boolean(state.downed)});side.actor.root.updateMatrixWorld(true);side.marker.visible=true;side.marker.position.set(presentation.x,.022,presentation.z);updateWeaponVisual(weaponVisuals[index+1],state,enemyWeaponRigs[index]);
   }
 
   let lastStatus='';
