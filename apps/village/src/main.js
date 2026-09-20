@@ -63,12 +63,18 @@ try {
   disposeSpeech=installSharedVillageSpeech(village);
   // Preserve the single enhancement graph introduced on develop. Retired
   // entries are side-effect-free compatibility modules after consolidation.
-  await import('./mura-enhancements.js');
-  // Character runtime metadata wraps the final syncActor chain so later
-  // presentation enhancers cannot replace the shared semantic state adapter.
-  await import('./character-runtime-integration.js');
   const {installInterface}=await import('./web/interface.js');
   installInterface(window.village);
+  await import('./mura-entry-polish.js');
+  let postEntryEnhancements=null;
+  const loadPostEntryEnhancements=()=>postEntryEnhancements??=(async()=>{
+    await import('./mura-enhancements.js');
+    // Character runtime metadata wraps the final syncActor chain so later
+    // presentation enhancers cannot replace the shared semantic state adapter.
+    await import('./character-runtime-integration.js');
+    await import('./mura-village-visual-language.js');
+  })();
+  window.addEventListener('village:entered',()=>{void loadPostEntryEnhancements();},{once:true});
   if(serviceEnvironment!=='prod'){
     const speedButton=document.createElement('button'),speeds=[1,5,20];
     speedButton.id='muraDebugTimeAccel';speedButton.type='button';speedButton.dataset.debugControl='time-accel';speedButton.title='クリックで 1× / 5× / 20×';
@@ -76,7 +82,6 @@ try {
     speedButton.onclick=()=>{const current=speeds.indexOf(Number(village.world.state.settings.speed));village.world.state.settings.speed=speeds[(current+1)%speeds.length];syncSpeedButton();village.activity();void village.save();};
     syncSpeedButton();document.body.append(speedButton);
   }
-  await import('./mura-village-visual-language.js');
   clearTimeout(watchdog);
   finished = true;
   progress.value = 100;

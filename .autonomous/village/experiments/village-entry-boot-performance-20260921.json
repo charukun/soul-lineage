@@ -113,7 +113,7 @@
   },
   "receipt": {
     "repository": "charukun/soul-lineage",
-    "pullRequest": null,
+    "pullRequest": 1170,
     "marker": "autonomous-receipt:village:village-entry-boot-performance-20260921"
   }
 }
