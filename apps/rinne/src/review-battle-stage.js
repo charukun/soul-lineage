@@ -143,10 +143,10 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     const activeEnemies=enemies.filter(side=>side.actor?.root?.parent===stageRoot).map(side=>side.actor.root.position);
     if(!activeEnemies.length)return null;
     const enemyPoint=activeEnemies[0],dx=enemyPoint.x-heroPoint.x,dz=enemyPoint.z-heroPoint.z,len=Math.max(.01,Math.hypot(dx,dz)),forwardX=dx/len,forwardZ=dz/len,sideX=-forwardZ,sideZ=forwardX;
-    const distance=clamp(encounterMode==='one-v-three'?6.8:5.8,5.4,7.2),shoulder=.58;
-    const position={x:heroPoint.x-forwardX*distance+sideX*shoulder,y:2.45,z:heroPoint.z-forwardZ*distance+sideZ*shoulder};
-    const look={x:heroPoint.x+forwardX*1.35,y:1.08,z:heroPoint.z+forwardZ*1.35};
-    return{position,look,follow:true,system:'inspiration',lock:'hero-rear',count:activeEnemies.length};
+    const distance=clamp(encounterMode==='one-v-three'?6.9:5.9,5.5,7.3),shoulder=2.05;
+    const position={x:heroPoint.x-forwardX*distance+sideX*shoulder,y:2.4,z:heroPoint.z-forwardZ*distance+sideZ*shoulder};
+    const look={x:enemyPoint.x-forwardX*.35-sideX*.2,y:1.02,z:enemyPoint.z-forwardZ*.35-sideZ*.2};
+    return{position,look,follow:true,system:'inspiration',lock:'hero-over-shoulder',count:activeEnemies.length};
   }
 
   function updateCamera(core,dt,followCamera,cameraSystem){
