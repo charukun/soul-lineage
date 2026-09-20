@@ -42,7 +42,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add apps/review
+          git add apps/review package-lock.json
           if ! git diff --cached --quiet; then
             git commit -m 'Materialize pinned NOCTURNE library and native stage'
             git push origin HEAD:fix/battle2-library-runtime-20260921
@@ -54,6 +54,7 @@ jobs:
         run: |
           if test -f apps/review/scripts/nocturne-browser.mjs; then
             npm ci --ignore-scripts --no-audit --no-fund
+            node --test apps/review/tests/review-app.test.mjs apps/review/tests/nocturne-library.test.mjs
             npm run build --workspace @soul/review
             npx playwright install --with-deps chromium
             node apps/review/scripts/nocturne-browser.mjs
