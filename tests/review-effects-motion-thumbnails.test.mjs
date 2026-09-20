@@ -57,3 +57,12 @@ test('motion review recovers incompatible motion sources and keeps mobile contro
   assert.match(runtime,/hips:\['pelvis','Hips','hips','mixamorig:Hips'\]/);
   assert.match(runtime,/normalizeBoneName/);
 });
+
+test('motion review starts on a rigged KayKit model instead of the unrigged Mesh2Motion reference mesh',async()=>{
+  const source=await read('apps/rinne/src/review-motion.js');
+  assert.match(source,/const REVIEW_MODELS=KAYKIT_MODELS;/);
+  assert.match(source,/let selectedModel=REVIEW_MODELS\[0\]/);
+  assert.doesNotMatch(source,/mesh2motion-review-mannequin/);
+  assert.doesNotMatch(source,/loadMotionReviewModel/);
+  assert.match(source,/targetBones=kaykitHumanoidFromGLTF\(gltf\)/);
+});
