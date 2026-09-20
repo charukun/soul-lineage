@@ -1,4 +1,4 @@
-import { CAUSAL_ANSWER_BY_ID, INSPIRATION_QUESTIONS, inspirationTechniqueName } from '@soul/game-data';
+import { CAUSAL_ANSWER_BY_ID, INSPIRATION_QUESTIONS, inspirationTechniqueName, isInspirationAttribute } from '@soul/game-data';
 
 /** Persistence, migration and lineage compression are separate from live learning decisions. */
 export const INSPIRATION_VERSION=1;
@@ -55,7 +55,7 @@ export function validateInspiration(state){
   for(const [id,row] of Object.entries(s.records)){
     const definition=answer(id);if(!definition||row?.answerId!==id||!Array.isArray(row.provenance)||row.provenance.length>6)throw Error('技の由来が不正です。');
     boundedArray(row.contexts,INSPIRATION_LIMITS.contexts,'定着');row.contexts=unique(row.contexts.map(safe));row.name=inspirationTechniqueName(definition);
-    row.family=definition.family;row.kind=definition.kind;row.motifs=[...definition.motifs];row.archived=Boolean(row.archived);row.stable=Boolean(row.stable);finiteField(row.age,0,100,'会得年齢');
+    row.family=definition.family;row.kind=definition.kind;row.motifs=[...definition.motifs];row.archived=Boolean(row.archived);row.stable=Boolean(row.stable);if(row.effectAttribute!=null&&!isInspirationAttribute(row.effectAttribute))delete row.effectAttribute;finiteField(row.age,0,100,'会得年齢');
     row.provenance=row.provenance.map(p=>({type:safe(p.type),text:safe(p.text),traceId:safe(p.traceId),sourceLifeId:safe(p.sourceLifeId)}));
     if(row.combo)row.combo=Object.fromEntries(['jo','ha','kyu'].map(p=>[p,typeof row.combo[p]==='string'&&(BASIC.test(row.combo[p])||answer(row.combo[p]))?row.combo[p]:'basic.fist']));
   }
