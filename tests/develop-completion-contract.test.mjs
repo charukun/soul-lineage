@@ -53,7 +53,7 @@ test('develop implementation success terminates only after exact-head merge',asy
   assert.equal(json(resolve(root, '.autonomous/schema/experiment.schema.json')).properties.schemaVersion.const, 1);
   assert.equal(json(resolve(root, '.autonomous/schema/experiment-v2.schema.json')).properties.schemaVersion.const, 2);
   assert.equal(json(resolve(root, '.autonomous/schema/receipt.schema.json')).properties.schemaVersion.const, 2);
-  assert.deepEqual(activeExperimentsFromDiff('A\\t.autonomous/village/experiments/village-example-20260920.json\\nM\\tapps/village/src/game/core.js'),[{game:'village',id:'village-example-20260920'}]);
+  assert.deepEqual(activeExperimentsFromDiff('A\t.autonomous/village/experiments/village-example-20260920.json\nM\tapps/village/src/game/core.js'),[{game:'village',id:'village-example-20260920'}]);
 
   const temp = mkdtempSync(resolve(tmpdir(), 'autonomous-ledger-'));
   try {
