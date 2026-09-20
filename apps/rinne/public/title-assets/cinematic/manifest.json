@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "status": "awaiting-generation",
+  "revision": "six-seconds-r1",
+  "movie": null,
+  "webm": null,
+  "poster": "./title-assets/cinematic/landing.webp",
+  "width": 1920,
+  "height": 1080,
+  "fps": 24,
+  "duration": 8,
+  "titleLandingTime": 6,
+  "firstVisitSkipTime": 1.8,
+  "returnVisitSkipTime": 0,
+  "livingLoop": {"start": 6, "end": 8},
+  "maxWebBytes": 8388608,
+  "audio": {"autoplayMuted": true},
+  "provenance": "PROVENANCE.json"
+}

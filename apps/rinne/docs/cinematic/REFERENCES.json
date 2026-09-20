@@ -1,0 +1,54 @@
+{
+  "sourceDevelop": "ed50416e9be4ef8c14aff26c4ac5d6be718fd0a4",
+  "references": [
+    {
+      "id": "01",
+      "packFile": "hero-front.png",
+      "repositoryPath": "docs/characters/qa/protagonist-villager-v1/front.png",
+      "kind": "actual model QA",
+      "role": "Identity: face, hair, proportions"
+    },
+    {
+      "id": "02",
+      "packFile": "hero-three-quarter.png",
+      "repositoryPath": "docs/characters/qa/protagonist-villager-v1/three-quarter.png",
+      "kind": "actual model QA",
+      "role": "Identity in volume; garment shape"
+    },
+    {
+      "id": "03",
+      "packFile": "hero-side.png",
+      "repositoryPath": "docs/characters/qa/protagonist-villager-v1/side.png",
+      "kind": "actual model QA",
+      "role": "Profile and body proportions"
+    },
+    {
+      "id": "04",
+      "packFile": "hero-back.png",
+      "repositoryPath": "docs/characters/qa/protagonist-villager-v1/back.png",
+      "kind": "actual model QA",
+      "role": "Rear hair and garment continuity"
+    },
+    {
+      "id": "05",
+      "packFile": "current-character-review.png",
+      "repositoryPath": "docs/evidence/character-review-pixel-fold-fixed-20260920.png",
+      "kind": "actual review screenshot",
+      "role": "Enemy scale and materials only; ignore UI"
+    },
+    {
+      "id": "06",
+      "packFile": "reference-board.png",
+      "repositoryPath": "apps/rinne/docs/cinematic/reference-board.webp",
+      "kind": "generated concept",
+      "role": "Age and shot roles; never animate the grid"
+    },
+    {
+      "id": "07",
+      "packFile": "landing-concept.png",
+      "repositoryPath": "apps/rinne/public/title-assets/cinematic/landing.webp",
+      "kind": "generated concept",
+      "role": "Final composition, lighting and UI negative space"
+    }
+  ]
+}

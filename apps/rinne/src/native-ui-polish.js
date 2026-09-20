@@ -1,5 +1,3 @@
-import './title-live-world.js';
-
 const clockRates=['1','5','10','20'];
 
 function installClockRateButton(){
@@ -59,3 +57,4 @@ installClockRateButton();
 const installDynamicChoices=()=>replaceRebirthVillageSelect(document.getElementById('rebirth-village'));
 installDynamicChoices();
 new MutationObserver(installDynamicChoices).observe(document.body,{childList:true,subtree:true});
+
