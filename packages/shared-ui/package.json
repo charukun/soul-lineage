@@ -12,7 +12,8 @@
     "./combat-sequence": "./src/combat-sequence.js",
     "./combat-sequence.css": "./src/combat-sequence.css",
     "./media-lifecycle": "./src/media-lifecycle.js",
-    "./review-shell": "./src/review-shell.js"
+    "./review-shell": "./src/review-shell.js",
+    "./boot-gate": "./src/boot-gate.js"
   },
   "dependencies": {
     "@soul/audio": "*"

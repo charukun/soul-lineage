@@ -14,7 +14,7 @@
 #title-screen .title-lockup h1{font-size:clamp(58px,6.8vw,108px);line-height:1.1;letter-spacing:.02em;background:none;-webkit-text-fill-color:currentColor;color:#fff1c9;filter:drop-shadow(0 2px 2px #263831)}
 #title-screen .title-lockup .subtitle{font:400 12px/1.5 Georgia,serif!important;letter-spacing:.65em;text-indent:.65em;color:#fff3d6;margin-top:12px}
 #title-screen .title-lockup .subtitle::before,#title-screen .title-lockup .subtitle::after{width:35px}
-#title-screen .title-copy{top:8%;right:5%;width:21em;font-size:11px;line-height:2;letter-spacing:.16em}
+#title-screen .title-copy{position:static;width:21em;max-width:100%;margin:10px auto 0;text-align:center;font-size:11px;line-height:1.8;letter-spacing:.16em}
 #title-screen .title-actions{top:auto;bottom:max(6%,calc(env(safe-area-inset-bottom) + 28px));width:270px;gap:0}
 #title-screen .title-actions{padding:12px 0;background:radial-gradient(ellipse,rgba(5,20,27,.6),rgba(5,20,27,.32) 58%,transparent 76%);text-shadow:0 1px 5px #081b23}
 #title-screen .title-command{min-height:42px;font-size:18px;padding:7px 24px;letter-spacing:.17em}
@@ -38,7 +38,7 @@
   #title-screen .title-lockup .crest{width:75px;margin-bottom:12px}
   #title-screen .title-lockup h1{font-size:clamp(50px,15vw,76px)}
   #title-screen .title-lockup .subtitle{font-size:11px!important;margin-top:10px}
-  #title-screen .title-copy{display:block;top:30%;right:0;width:100%;text-align:center;font-size:10px;line-height:1.8;text-shadow:0 1px 6px #10212b}
+  #title-screen .title-copy{display:block;width:100%;margin-top:8px;font-size:10px;line-height:1.8;text-shadow:0 1px 6px #10212b}
   #title-screen .title-actions{bottom:max(7%,calc(env(safe-area-inset-bottom) + 40px));width:min(280px,80vw)}
   #title-screen .title-command{min-height:42px;font-size:17px}
   #title-screen #new-life{font-size:22px}
@@ -50,7 +50,7 @@
   #title-screen .title-lockup{left:24%;top:14%;width:40%}
   #title-screen .title-lockup .crest{width:68px}
   #title-screen .title-lockup h1{font-size:clamp(40px,6vw,62px)}
-  #title-screen .title-copy{left:4%;top:auto;bottom:16%;width:40%;text-align:center;font-size:9px}
+  #title-screen .title-copy{width:100%;margin-top:6px;text-align:center;font-size:9px}
   #title-screen .title-actions{left:75%;bottom:17%;width:220px}
   #title-screen .title-command{min-height:38px;font-size:16px}
   #title-screen #new-life{font-size:20px}
