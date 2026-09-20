@@ -28,7 +28,7 @@ test('loop waits for the configured result hold before restarting',()=>{
   const ending={done:true,hero:{x:0,z:0,yaw:0,dead:false},enemy:{x:2,z:0,hp:0,dead:true},enemies:[{x:2,z:0,hp:0,dead:true}]};
   let finisher=createReviewFinisher(ending);assert.ok(finisher);
   const opening=advanceReviewFinisher(finisher,0);assert.equal(opening.core.done,false);assert.equal(opening.core.enemies[0].downed,true);assert.equal(opening.core.hero.skill,'止め');
-  finisher=opening.run;const impact=advanceReviewFinisher(finisher,.6);assert.equal(impact.impact,true);assert.equal(impact.core.enemies[0].dead,false);
+  finisher=opening.run;const impact=advanceReviewFinisher(finisher,.72);assert.equal(impact.impact,true);assert.equal(impact.core.enemies[0].dead,false);
   const finished=advanceReviewFinisher(impact.run,.8);assert.equal(finished.finished,true);assert.equal(finished.core.done,true);assert.equal(finished.core.enemies[0].dead,true);
 });
 
