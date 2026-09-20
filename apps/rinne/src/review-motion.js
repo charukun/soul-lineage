@@ -96,7 +96,7 @@ function nextPlayableMotion(excludedIdentity=''){
     ||catalog.find(row=>row.sourceIdentity!==excludedIdentity&&!invalidMotionIds.has(row.sourceIdentity))
     ||null;
 }
-async function selectMotion(record,{allowFallback=true}={}){
+async function selectMotion(record){
   if(!record||!mixer||!targetBones||!targetRest)return;
   const serial=++selectSerial;playing=false;selected=record;syncSelectedMeta();renderMotionGrid();
   try{
@@ -116,8 +116,8 @@ async function selectMotion(record,{allowFallback=true}={}){
     invalidMotionIds.delete(record.sourceIdentity);playing=true;status('');renderMotionGrid();syncPlaybackUI();
   }catch(error){
     invalidMotionIds.add(record.sourceIdentity);playing=false;renderMotionGrid();
-    const fallback=allowFallback?nextPlayableMotion(record.sourceIdentity):null;
-    if(fallback){status('互換のあるモーションへ切り替えています。');return selectMotion(fallback,{allowFallback:false});}
+    const fallback=nextPlayableMotion(record.sourceIdentity);
+    if(fallback){status('互換のあるモーションへ切り替えています。');return selectMotion(fallback);}
     status('このモーションは現在の素体と互換性がありません。');syncPlaybackUI();
   }
 }
@@ -175,7 +175,7 @@ function seek(value){
   syncPlaybackUI();
 }
 async function loadModel(model){
-  const serial=++loadSerial,previousIdentity=selected?.sourceIdentity||'';selectedModel=model;renderModelGrid();status(model.label+' を読み込んでいます。');el('motion-load').removeAttribute('value');
+  const serial=++loadSerial,previousIdentity=selected?.sourceIdentity||'';selectedModel=model;invalidMotionIds.clear();renderModelGrid();status(model.label+' を読み込んでいます。');el('motion-load').removeAttribute('value');
   disposeSubject();selected=null;registry=null;catalog=[];selectedDuration=0;renderMotionGrid();
   try{
     const gltf=await loader.loadAsync(model.runtime.url,onProgress=>{if(serial!==loadSerial)return;const total=Number(onProgress.total)||0,loaded=Number(onProgress.loaded)||0;if(total>0)el('motion-load').value=Math.min(1,loaded/total);});
