@@ -34,12 +34,15 @@ async function checkedBytes(source,fetcher=fetch){
   if(actual!==source.gitBlobSha)throw new Error(`Motion source hash mismatch: expected ${source.gitBlobSha}, got ${actual}`);
   return bytes;
 }
+const normalizeBoneName=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 function exactObjectMap(root,names){
-  const nodes=new Map();root.traverse(node=>{if(node?.name)nodes.set(node.name,node);});
+  const nodes=[];root.traverse(node=>{if(node?.name)nodes.push(node);});
   const out={};
-  for(const [key,name] of Object.entries(names)){
-    const node=nodes.get(name);
-    if(!node)throw new Error(`Motion source bone missing: ${name}`);
+  for(const [key,rawNames] of Object.entries(names)){
+    const aliases=(Array.isArray(rawNames)?rawNames:[rawNames]).map(normalizeBoneName).filter(Boolean);
+    const node=nodes.find(candidate=>aliases.includes(normalizeBoneName(candidate.name)))
+      ||nodes.find(candidate=>aliases.some(alias=>normalizeBoneName(candidate.name).endsWith(alias)));
+    if(!node)throw new Error(`Motion source bone missing: ${(Array.isArray(rawNames)?rawNames:[rawNames]).join(' / ')}`);
     out[key]=node;
   }
   return Object.freeze(out);
@@ -47,11 +50,11 @@ function exactObjectMap(root,names){
 function exactNodeMap(gltf,names){return exactObjectMap(gltf.scene,names);}
 export function quaterniusHumanoidFromGLTF(gltf){
   return exactNodeMap(gltf,{
-    hips:'pelvis',spine:'spine_01',chest:'spine_02',upperChest:'spine_03',head:'Head',
-    leftUpperArm:'upperarm_l',leftLowerArm:'lowerarm_l',leftHand:'hand_l',
-    leftUpperLeg:'thigh_l',leftLowerLeg:'calf_l',leftFoot:'foot_l',
-    rightUpperArm:'upperarm_r',rightLowerArm:'lowerarm_r',rightHand:'hand_r',
-    rightUpperLeg:'thigh_r',rightLowerLeg:'calf_r',rightFoot:'foot_r'
+    hips:['pelvis','Hips','hips','mixamorig:Hips'],spine:['spine_01','Spine','spine'],chest:['spine_02','Spine1','chest'],upperChest:['spine_03','Spine2','upperchest'],head:['Head','head'],
+    leftUpperArm:['upperarm_l','LeftArm','leftupperarm'],leftLowerArm:['lowerarm_l','LeftForeArm','leftlowerarm'],leftHand:['hand_l','LeftHand','lefthand'],
+    leftUpperLeg:['thigh_l','LeftUpLeg','leftupperleg'],leftLowerLeg:['calf_l','LeftLeg','leftlowerleg'],leftFoot:['foot_l','LeftFoot','leftfoot'],
+    rightUpperArm:['upperarm_r','RightArm','rightupperarm'],rightLowerArm:['lowerarm_r','RightForeArm','rightlowerarm'],rightHand:['hand_r','RightHand','righthand'],
+    rightUpperLeg:['thigh_r','RightUpLeg','rightupperleg'],rightLowerLeg:['calf_r','RightLeg','rightlowerleg'],rightFoot:['foot_r','RightFoot','rightfoot']
   });
 }
 
