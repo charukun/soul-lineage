@@ -1,0 +1,81 @@
+name: Temporary exact-head asset validation
+on:
+  push:
+    branches:
+      - asset/kaykit-dungeon-curation-20260920
+    paths:
+      - .github/workflows/validate-kaykit-dungeon-curation.yml
+permissions:
+  contents: write
+  statuses: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: asset/kaykit-dungeon-curation-20260920
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Create self-cleaning final head
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/validate-kaykit-dungeon-curation.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Validate curated KayKit Dungeon assets [astra-validate]" -m "Astra-Test: tests/review-object-library-self-hosted.test.mjs" -m "Astra-Build: rinne"
+          git push origin HEAD:asset/kaykit-dungeon-curation-20260920
+          echo "HEAD_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Checkout exact final head and recover develop
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$HEAD_SHA"
+          git fetch --no-tags origin develop:refs/remotes/origin/develop
+          base="$(git merge-base origin/develop HEAD)"
+          echo "VALIDATION_BASE_SHA=$base" >> "$GITHUB_ENV"
+          git merge-base --is-ancestor origin/develop HEAD
+      - name: Enforce Fast DEV anti-expansion contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show origin/develop:scripts/fast-dev-contract.mjs > "$RUNNER_TEMP/fast-dev-contract.mjs"
+          node "$RUNNER_TEMP/fast-dev-contract.mjs" origin/develop HEAD
+      - name: Resolve focused validation
+        id: focused-plan
+        env:
+          ASTRA_COMMIT_MESSAGE: |
+            Validate curated KayKit Dungeon assets [astra-validate]
+
+            Astra-Test: tests/review-object-library-self-hosted.test.mjs
+
+            Astra-Build: rinne
+        run: node scripts/astra-focused-validation.mjs plan
+      - name: Install dependencies when selected
+        if: steps.focused-plan.outputs.needs_install == 'true'
+        run: npm ci --ignore-scripts
+      - name: Run focused validation
+        env:
+          ASTRA_COMMIT_MESSAGE: |
+            Validate curated KayKit Dungeon assets [astra-validate]
+
+            Astra-Test: tests/review-object-library-self-hosted.test.mjs
+
+            Astra-Build: rinne
+        run: node scripts/astra-focused-validation.mjs run
+      - name: Record exact-head success
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const target=`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            for (const [name,description] of [
+              ['astra/fast-dev-contract','Fast DEV execution contract is clean'],
+              ['astra/focused-validation','Astra-selected exact-head validation passed'],
+              ['astra/merge-freshness','Validated head contains current develop'],
+            ]) await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.HEAD_SHA,context:name,state:'success',description,target_url:target});
