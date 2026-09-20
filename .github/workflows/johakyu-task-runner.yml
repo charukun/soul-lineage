@@ -1,0 +1,53 @@
+name: Johakyu task runner (temporary)
+run-name: Johakyu task source ${{ github.sha }}
+on:
+  push:
+    branches: ['dispatch/johakyu-session-20260921']
+permissions:
+  contents: read
+concurrency:
+  group: johakyu-task-session-20260921
+  cancel-in-progress: false
+jobs:
+  task:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Read task control
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+          sparse-checkout: .task-start
+      - name: Resolve pinned source
+        id: plan
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const task=JSON.parse(fs.readFileSync('control/.task-start/johakyu-task.json','utf8'));
+          if(!/^[0-9a-f]{40}$/.test(task.sourceSha)||task.mode!=='snapshot')throw Error('Invalid task input');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`source=${task.sourceSha}\nmode=${task.mode}\n`);
+          NODE
+      - name: Checkout pinned repository source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.plan.outputs.source }}
+          path: work
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Package requested source context
+        working-directory: work
+        run: node ../control/.task-start/johakyu-source-snapshot.mjs ../control/.task-start/johakyu-task.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: johakyu-source-${{ steps.plan.outputs.source }}
+          path: |
+            work/.task-output/source.tar.gz
+            work/.task-output/source-receipt.json
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error

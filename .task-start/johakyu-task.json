@@ -1,0 +1,5 @@
+{
+  "mode": "snapshot",
+  "sourceSha": "d350d6eb22229da12aa1e90c8bd62bd9feb4cbad",
+  "purpose": "序破急P2-P7の現行ゲーム仕様、描画、既存ブラウザ検査の限定的なソース取得。バイナリ・秘密情報・他アプリの取得なし。"
+}
