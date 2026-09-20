@@ -1,6 +1,6 @@
 import {Quaternion,Vector3} from 'three';
 
-const CARRIER_COMBAT_PROP_RE=/(?:weapon|sword|dagger|knife|axe|mace|hammer|spear|bow|crossbow|quiver|shield|staff|wand)/i;
+const CARRIER_COMBAT_PROP_RE=/(?:weapon|sword|dagger|knife|axe|mace|hammer|spear|bow|crossbow|quiver|shield|staff|wand|orb|ball|sphere|potion|flask|bottle|lantern|torch|prop|item|tool|held|socket|holster)/i;
 
 export const NEWBORN_CARRY=Object.freeze({
   pelvisForward:.14,
@@ -166,5 +166,18 @@ export function hideCarrierCombatProps(root){
     if(node.isBone)return;
     node.visible=false;hidden+=1;
   });
+  return hidden;
+}
+
+/**
+ * Birth carry must never show a free hand-held object. Character pools keep
+ * detached weapon/socket visuals outside the skinned body, so suppress both
+ * those attachment roots and any embedded named prop meshes while carrying.
+ */
+export function sanitizeCarrierCarryVisual(root,{attachments=null,active=true}={}){
+  if(attachments)attachments.visible=!active;
+  if(!active)return 0;
+  const hidden=hideCarrierCombatProps(root);
+  if(root?.userData)root.userData.carryPropSanitized=true;
   return hidden;
 }
