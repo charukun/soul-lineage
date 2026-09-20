@@ -94,10 +94,10 @@ const thumbnailAbort=new AbortController(),thumbnailEntries=new WeakMap(),thumbn
 const thumbnailIdle=callback=>globalThis.requestIdleCallback?requestIdleCallback(callback,{timeout:420}):setTimeout(()=>callback({timeRemaining:()=>8,didTimeout:true}),28);
 function ensureThumbnailRuntime(){
   if(thumbnailRenderer)return;
-  thumbnailRenderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true,powerPreference:'low-power'});
-  thumbnailRenderer.setPixelRatio(1);thumbnailRenderer.setSize(144,92,false);thumbnailRenderer.outputColorSpace=THREE.SRGBColorSpace;thumbnailRenderer.toneMapping=THREE.ACESFilmicToneMapping;thumbnailRenderer.toneMappingExposure=1.05;
+  thumbnailRenderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'low-power'});
+  thumbnailRenderer.setPixelRatio(1);thumbnailRenderer.setSize(288,184,false);thumbnailRenderer.outputColorSpace=THREE.SRGBColorSpace;thumbnailRenderer.toneMapping=THREE.ACESFilmicToneMapping;thumbnailRenderer.toneMappingExposure=1.05;
   thumbnailScene=new THREE.Scene();thumbnailScene.background=new THREE.Color('#101715');
-  thumbnailCamera=new THREE.PerspectiveCamera(40,144/92,.05,40);thumbnailCamera.position.set(0,1.35,5.6);thumbnailCamera.lookAt(0,1.05,0);
+  thumbnailCamera=new THREE.PerspectiveCamera(40,288/184,.05,40);thumbnailCamera.position.set(0,1.35,5.6);thumbnailCamera.lookAt(0,1.05,0);
   thumbnailPlayer=createAuthoredEffectPlayer({mobile:true,onError:()=>{}});
 }
 function drawCachedEffectThumbnail(target,source){if(!target?.isConnected||!source)return;const ctx=target.getContext('2d');ctx.clearRect(0,0,target.width,target.height);ctx.drawImage(source,0,0,target.width,target.height);target.dataset.thumbnailState='ready';}

@@ -99,3 +99,9 @@ button,select{font:inherit;color:inherit}
 .motion-model-grid .review-choice-card{display:grid;grid-template-rows:minmax(0,1fr) auto;align-items:stretch;gap:3px;overflow:hidden;padding:4px!important;white-space:normal}
 .motion-model-grid .review-choice-card>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:8px}
 @media(max-width:620px){.motion-model-grid,.motion-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}.review-static-thumbnail{max-height:46px}}
+
+/* Motion cards reserve real thumbnail area even in the required five-column phone layout. */
+.motion-grid .review-choice-card{min-height:112px!important;display:grid!important;grid-template-rows:auto auto auto!important;align-content:start!important;gap:3px!important;padding:4px!important;overflow:hidden!important;text-align:center!important}
+.motion-grid .review-choice-card>.review-runtime-thumbnail{width:100%!important;aspect-ratio:36/23!important;min-height:0!important}
+.motion-grid .review-choice-card>span,.motion-grid .review-choice-card>.motion-category{min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:center!important}
+@media(max-width:620px){.motion-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important}.motion-grid .review-choice-card{min-height:96px!important;padding:3px!important}.motion-grid .review-choice-card>span{font-size:7px!important}.motion-grid .review-choice-card>.motion-category{font-size:6px!important}}
