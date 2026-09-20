@@ -2,7 +2,7 @@ import {createTidebreakRuntime} from '@soul/tidebreak-combat';
 import {CAUSAL_ANSWERS,INSPIRATION_QUESTIONS} from '@soul/game-data';
 import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stage.js';
 import {tidebreakWeaponFor} from './rebuild/combat.js';
-import {applyChoreographyImpact,strategyForState} from './rebuild/combat-choreography.js';
+import {applyChoreographyImpact,combatBodySnapshot,strategyForState} from './rebuild/combat-choreography.js';
 import {createCombatBodyHud} from './combat-body-hud.js';
 import {tidebreakMindsetFromVector} from './rebuild/combat-tactics.js';
 import {advanceReviewFinisher,createReviewFinisher,reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
