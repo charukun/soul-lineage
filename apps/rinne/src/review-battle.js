@@ -72,7 +72,7 @@ function handleInspirationCue(cue,payload={}){
   if(cue==='camera'){battleSfx.inspiration('camera');return;}
   if(cue==='spacing'){showReviewSign(payload);battleSfx.inspiration('anticipation');return;}
   if(cue==='stagger'){battleSfx.inspiration('stagger');return;}
-  if(cue==='reveal'&&banner){const chainPreview=String(payload.id||'').startsWith('review-chain-');q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent=chainPreview?`${phaseLabel(payload.phase)}の連 · ${(payload.steps||[]).length}段を通し試演`:`${phaseLabel(payload.phase)} · ${selectedWeapon}の型から閃いた`;banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}
+  if(cue==='reveal'&&banner){hideReviewSign();const chainPreview=String(payload.id||'').startsWith('review-chain-');q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent=chainPreview?`${phaseLabel(payload.phase)}の連 · ${(payload.steps||[]).length}段を通し試演`:`${phaseLabel(payload.phase)} · ${selectedWeapon}の型から閃いた`;banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}
   if(cue==='execute'){battleSfx.inspiration('execute');return;}
   if(cue==='done'){inspirationSequenceActive=false;hideInspirationBulb();setTimeout(hideInspirationBanner,280);}
 }
@@ -119,7 +119,7 @@ function resetBattle(){
   lastCore=runtime.state();last=performance.now();battleStage?.setEncounterMode(encounterMode);syncBodyReadout();
 }
 function renderPhase(core){
-  const state=reviewBattlePhaseState(core);syncCombatSequence(phasePanel,state.phase);const action=core?.hero?.attack||state.skill||'間合いを測る';phaseMeta.textContent=action;
+  const state=reviewBattlePhaseState(core);syncCombatSequence(phasePanel,state.phase);const footPhase=q('battle-foot-phase');if(footPhase){footPhase.dataset.phase=state.phase||'idle';footPhase.setAttribute('aria-label',`足元の序破急HUD · 現在は${phaseLabel(state.phase)}`);}const action=core?.hero?.attack||state.skill||'間合いを測る';phaseMeta.textContent=action;
   for(const chain of document.querySelectorAll('#battle-technique-composition [data-chain-phase]'))chain.dataset.active=String(chain.dataset.chainPhase===state.heroPhase);
   if(action!==lastSequenceAction||state.phase!==lastSequencePhase){if(lastSequenceAction){const item=document.createElement('span');item.textContent=`${phaseLabel(lastSequencePhase)} · ${lastSequenceAction}`;phaseHistory?.prepend(item);while(phaseHistory?.children.length>3)phaseHistory.lastElementChild?.remove();setTimeout(()=>item.remove(),2700);}lastSequenceAction=action;lastSequencePhase=state.phase;}
 }
