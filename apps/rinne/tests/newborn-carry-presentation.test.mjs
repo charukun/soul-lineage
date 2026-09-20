@@ -9,7 +9,8 @@ import {
   isCarrierCombatPropName,
   newbornCarryTransform,
   positionNewbornForCradle,
-  solveCarrierCradleContacts
+  solveCarrierCradleContacts,
+  sanitizeCarrierCarryVisual
 } from '../src/rebuild/newborn-carry-presentation.js';
 
 const bone=()=>({rotation:{x:0,y:0,z:0}});
@@ -108,4 +109,31 @@ test('carrier combat prop hiding leaves bones and ordinary meshes alone',()=>{
   assert.equal(nodes[0].visible,false);
   assert.equal(nodes[1].visible,true);
   assert.equal(nodes[2].visible,true);
+});
+
+
+test('carry visual sanitizer removes non-combat held props and suppresses attachments',()=>{
+  const nodes=[
+    {name:'Orb_RightHand',visible:true,isBone:false},
+    {name:'PotionBottle',visible:true,isBone:false},
+    {name:'Rig_Medium_RightHand',visible:true,isBone:true},
+    {name:'Body',visible:true,isBone:false}
+  ];
+  const root={userData:{},traverse(callback){nodes.forEach(callback);}},attachments={visible:true};
+  const hidden=sanitizeCarrierCarryVisual(root,{attachments,active:true});
+  assert.equal(hidden,2);
+  assert.equal(attachments.visible,false);
+  assert.equal(nodes[0].visible,false);
+  assert.equal(nodes[1].visible,false);
+  assert.equal(nodes[2].visible,true);
+  assert.equal(nodes[3].visible,true);
+  assert.equal(root.userData.carryPropSanitized,true);
+});
+
+test('carry visual sanitizer restores attachment visibility outside carry without hiding body',()=>{
+  const nodes=[{name:'Body',visible:true,isBone:false}];
+  const root={userData:{},traverse(callback){nodes.forEach(callback);}},attachments={visible:false};
+  assert.equal(sanitizeCarrierCarryVisual(root,{attachments,active:false}),0);
+  assert.equal(attachments.visible,true);
+  assert.equal(nodes[0].visible,true);
 });
