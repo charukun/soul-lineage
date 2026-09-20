@@ -168,6 +168,78 @@
       "path": "motion/quaternius-ual2/dc684c2a664927964307e8eb7b27b0000ebf6a18.glb",
       "bytes": 8061600,
       "gitBlobSha": "dc684c2a664927964307e8eb7b27b0000ebf6a18"
+    },
+    {
+      "path": "object/kaykit-dungeon/banner-shield-red/7e81382d8c57efce6fa89a0c8785eab15ab9576b.glb",
+      "bytes": 55104,
+      "gitBlobSha": "7e81382d8c57efce6fa89a0c8785eab15ab9576b",
+      "sha256": "d332133c940fa9dc6bea1668f2f8f2c07b5dce5db23b865ade5d035c8dc8e949"
+    },
+    {
+      "path": "object/kaykit-dungeon/barrel-large-decorated/dd8b97dde32e6b1a08b217ef0c640b1d7c93f283.glb",
+      "bytes": 73628,
+      "gitBlobSha": "dd8b97dde32e6b1a08b217ef0c640b1d7c93f283",
+      "sha256": "d3ad760d5005500a8755e5a816e574dd7e4227c5bb038685a3cb0ab2ad8bb6cb"
+    },
+    {
+      "path": "object/kaykit-dungeon/bed-decorated/b7195b9fad17836ed2140f5ae15f45bb118e87e1.glb",
+      "bytes": 94688,
+      "gitBlobSha": "b7195b9fad17836ed2140f5ae15f45bb118e87e1",
+      "sha256": "253e40b87607ac3646c0b3ecf6d252a198e175dd7cd89fd47fec64a7dcb545c4"
+    },
+    {
+      "path": "object/kaykit-dungeon/box-small-decorated/7ce90474db9145edd27aa7a46447cb9812d7ea3b.glb",
+      "bytes": 72748,
+      "gitBlobSha": "7ce90474db9145edd27aa7a46447cb9812d7ea3b",
+      "sha256": "b147bca5c2841f2d0bc8d85a4ed17b83862911ef6749b5fbeca2e962b0ff0843"
+    },
+    {
+      "path": "object/kaykit-dungeon/candle-triple/c8c7e63300d6b689607be6f13d828348f0ecc2e6.glb",
+      "bytes": 28240,
+      "gitBlobSha": "c8c7e63300d6b689607be6f13d828348f0ecc2e6",
+      "sha256": "3536f0a55df50c728ec9c369c4a6a81c913b33a507ac4a192d418d28fd6677c2"
+    },
+    {
+      "path": "object/kaykit-dungeon/chair/d714e3eace33b64d3a2190025a57dd9762e50a6f.glb",
+      "bytes": 36252,
+      "gitBlobSha": "d714e3eace33b64d3a2190025a57dd9762e50a6f",
+      "sha256": "5f133281686d398304c0a458c4d407dd483eeea8aba67220b585ceb89366efa2"
+    },
+    {
+      "path": "object/kaykit-dungeon/chest-gold/8dd05d691d4954009c94b9bb052e56db5c4f3432.glb",
+      "bytes": 140140,
+      "gitBlobSha": "8dd05d691d4954009c94b9bb052e56db5c4f3432",
+      "sha256": "04708d5f88ed59d361c8a6cec1efe8b7028dbc641dfae0a1467f272e14a94b6e"
+    },
+    {
+      "path": "object/kaykit-dungeon/chest/534c76a794d4b531a91619871845e92e3ca6e432.glb",
+      "bytes": 81412,
+      "gitBlobSha": "534c76a794d4b531a91619871845e92e3ca6e432",
+      "sha256": "f72fd2201cd42ad399928a0b7bcc34d5b0e6d0624aeaf824fef81852109955f8"
+    },
+    {
+      "path": "object/kaykit-dungeon/coin-stack-large/a806b1238fbd21299a8f2a1a06eab6486dbcaad2.glb",
+      "bytes": 101076,
+      "gitBlobSha": "a806b1238fbd21299a8f2a1a06eab6486dbcaad2",
+      "sha256": "1a64011dc0d6754bc95d932744ad7717132c538206976a0262293bd4ba31627e"
+    },
+    {
+      "path": "object/kaykit-dungeon/crates-stacked/7f273be5ebd143b58135ecc1d061d22a633cad92.glb",
+      "bytes": 103704,
+      "gitBlobSha": "7f273be5ebd143b58135ecc1d061d22a633cad92",
+      "sha256": "43182b077ead9b033804300ef453b7402bdc979f00cfce2d7f0c91dcf6bb5d3c"
+    },
+    {
+      "path": "object/kaykit-dungeon/keg-decorated/6420a0e39f8d76005cdbf3471e6de799099937b3.glb",
+      "bytes": 142052,
+      "gitBlobSha": "6420a0e39f8d76005cdbf3471e6de799099937b3",
+      "sha256": "02a31f44f66de39375510cd1ef35c5d19cee4cf910d78f38bc5f89093a6a2670"
+    },
+    {
+      "path": "object/kaykit-dungeon/keyring-hanging/51c110f8f77e4b49b4fb1a856c57cf060d6b9884.glb",
+      "bytes": 49108,
+      "gitBlobSha": "51c110f8f77e4b49b4fb1a856c57cf060d6b9884",
+      "sha256": "6edaf6494c7d0cae9178356fb4e2c11b2af2390933cc083203c5d9c287023364"
     }
   ]
 }
