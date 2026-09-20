@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import './review-object-library.css';
-import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {createMuraModels} from '@soul/rendering/mura';
@@ -81,12 +80,18 @@ function renderSelection(){
   for(const button of q('#object-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.object===selected));
   for(const button of q('#object-categories').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.category===selectedCategory));
 }
+function createObjectThumbnail(item){
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.classList.add('object-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
+  const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href',item.thumbnailUrl);svg.append(use);
+  return svg;
+}
 function renderObjectOptions(){
   const items=visibleObjects();
   q('#object-options').replaceChildren(...items.map(item=>{
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.object=item.id;
-    const thumbnail=createRuntimeThumbnail(item.label),label=document.createElement('span');label.textContent=item.label;
-    button.append(thumbnail,label);scheduleRuntimeThumbnail(thumbnail,`object:${item.id}`,async()=>{const root=item.kind==='gltf'?(await loader.loadAsync(new URL(item.url,location.href).href)).scene:runtimeObject(item);root.name=`ReviewObjectThumbnail:${item.id}`;return root;});
+    const thumbnail=createObjectThumbnail(item),label=document.createElement('span');label.textContent=item.label;
+    button.append(thumbnail,label);
     button.addEventListener('click',()=>loadObject(item.id).catch(error=>status(error.message,true)));return button;
   }));
   renderSelection();
@@ -145,4 +150,4 @@ const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.r
 function frame(){controls.update();renderer.render(scene,camera);frameId=requestAnimationFrame(frame);}
 frameId=requestAnimationFrame(frame);
 populate();loadObject(selected).catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{clearRuntimeThumbnailQueue();cancelAnimationFrame(frameId);stageLifecycle.destroy();controls.dispose();disposeRoot(objectRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);stageLifecycle.destroy();controls.dispose();disposeRoot(objectRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});

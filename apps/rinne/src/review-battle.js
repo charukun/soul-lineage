@@ -2,7 +2,7 @@ import {createTidebreakRuntime} from '@soul/tidebreak-combat';
 import {CAUSAL_ANSWERS,INSPIRATION_QUESTIONS} from '@soul/game-data';
 import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stage.js';
 import {tidebreakWeaponFor} from './rebuild/combat.js';
-import {reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
+import {advanceReviewFinisher,createReviewFinisher,reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
 import {REVIEW_INSPIRATION_TIMELINE,generatedReviewInspirationCandidates,pickGeneratedReviewInspiration,pickReviewInspiration} from './review-battle-inspiration.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import '@soul/shared-ui/combat-sequence.css';
@@ -17,7 +17,7 @@ const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
 const phasePanel=q('battle-phase'),phaseMeta=q('phase-meta'),phaseHistory=q('phase-history'),soundButton=q('battle-sound'),historyNode=q('battle-inspiration-history'),historyList=q('battle-inspiration-history-list'),historyOpen=q('battle-history-open'),historyClose=q('battle-history-close'),historyCount=q('battle-history-count');
 const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
-let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),signTimer=0,bulbTimer=0;
+let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),signTimer=0,bulbTimer=0;
 const INSPIRATION_BULB_HOLD_MS=550;
 const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
 // Shared with Demon and Rinne gameplay: one swipe parser owns drag, deadzone and terminal flick semantics after develop reconciliation.
@@ -69,7 +69,7 @@ function runtimeLoadout(engine,weapon){
   return result;
 }
 function resetBattle(){
-  reviewSwipe.cancel();lastCore=null;finishedAt=0;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks.clear();phaseHistory?.replaceChildren();battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
+  reviewSwipe.cancel();lastCore=null;finishedAt=0;finisher=null;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks.clear();phaseHistory?.replaceChildren();battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
   const weapon=runtimeWeapon(),group=encounterMode==='one-v-three';
   runtime=createTidebreakRuntime({seed:6197+(group?31:0),weapon,onImpact:impact=>battleStage?.presentImpact?.(impact)});
   const loadout=runtimeLoadout(runtime,weapon),positions=group
@@ -125,8 +125,16 @@ function syncBattle(dt){
   syncBattleAudio(core);renderPhase(core);const phase=reviewBattlePhaseState(core).phase;if(phase)maybeInspire(phase);else lastInspirationPhase='';battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
 }
 function advanceBattle(dt){
-  if(!runtime)return;const angle=battleStage?.cameraAngle?.()||0,input=reviewSwipe.vector(angle);
-  runtime.input(input.screenX,input.screenY,input.amount,angle);lastCore=runtime.step(dt);
+  if(!runtime)return;
+  if(finisher){
+    const frame=advanceReviewFinisher(finisher,dt);finisher=frame.run;lastCore=frame.core;
+    if(frame.impact){battleSfx.slash();battleStage?.presentFinisherImpact?.(lastCore,frame.targetIndex);}
+    return;
+  }
+  const angle=battleStage?.cameraAngle?.()||0,input=reviewSwipe.vector(angle);
+  runtime.input(input.screenX,input.screenY,input.amount,angle);const next=runtime.step(dt),ending=createReviewFinisher(next);
+  if(ending){finisher=ending;const frame=advanceReviewFinisher(finisher,0);finisher=frame.run;lastCore=frame.core;}
+  else lastCore=next;
 }
 function frame(now){
   const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;const finished=Boolean(lastCore?.done);

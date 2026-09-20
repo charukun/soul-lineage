@@ -101,6 +101,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     const mesh=new THREE.Mesh(new THREE.RingGeometry(.06,.095,20),material);mesh.position.set(Number(point[0])||0,Number(point[1])||.8,Number(point[2])||0);mesh.quaternion.copy(camera.quaternion);stageRoot.add(mesh);impactBursts.push({mesh,age:0,life:.18,power});
     impactKick=Math.max(impactKick,.035+power*.028);impactYaw=Number(impact.yaw)||0;
   }
+  function presentFinisherImpact(core,targetIndex=0){const rows=core?.enemies||[core?.enemy].filter(Boolean),target=rows[targetIndex]||rows.at(-1);if(!target)return;presentImpact({serial:++lastImpactSerial,point:[Number(target.x)||0,.58,Number(target.z)||0],guard:false,power:1.55,yaw:Number(core?.hero?.yaw)||0});}
   function updateImpacts(dt){
     const step=Math.max(1/240,Math.min(.05,Number(dt)||1/60));impactKick*=Math.exp(-step*18);
     for(let i=impactBursts.length-1;i>=0;i--){const row=impactBursts[i];row.age+=step;const u=clamp(row.age/row.life,0,1);row.mesh.scale.setScalar(.7+u*5*row.power);row.mesh.material.opacity=(1-u)*.9;if(u>=1){row.mesh.removeFromParent();row.mesh.geometry.dispose();row.mesh.material.dispose();impactBursts.splice(i,1);}}
@@ -117,7 +118,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   }
   function animateEnemy(index,state,target,time,dt){
     const side=enemies[index];if(!side||!state)return;const hit=Number.isFinite(state.hp)&&side.hp!==null&&state.hp<side.hp;if(hit)side.hitUntil=time+.16;side.hp=Number.isFinite(state.hp)?state.hp:side.hp;
-    const presentation=reviewBattlePresentationFrame(state,target,side.presentation,dt,{hit});side.presentation=presentation;side.actor.root.position.set(presentation.x,0,presentation.z);side.actor.root.rotation.y=presentation.yaw;updateReviewMonsterAnimation(side.actor,state,time,{hit:time<side.hitUntil});side.marker.position.set(presentation.x,.018,presentation.z);updateWeaponVisual(weaponVisuals[index+1],state);
+    const presentation=reviewBattlePresentationFrame(state,target,side.presentation,dt,{hit});side.presentation=presentation;side.actor.root.position.set(presentation.x,state.downed?.24:0,presentation.z);side.actor.root.rotation.y=presentation.yaw;side.actor.root.rotation.z=state.downed?-Math.PI*.46:0;updateReviewMonsterAnimation(side.actor,state,time,{hit:time<side.hitUntil,downed:Boolean(state.downed)});side.marker.position.set(presentation.x,.018,presentation.z);updateWeaponVisual(weaponVisuals[index+1],state);
   }
 
   let lastStatus='';
@@ -169,6 +170,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     setEncounterMode,
     setWeapon(){},
     presentImpact,
+    presentFinisherImpact,
     zoomBy(delta=0){cameraZoom=clamp(cameraZoom+Number(delta||0),.58,1.65);return cameraZoom;},
     setZoom(value=.82){cameraZoom=clamp(Number(value)||.82,.58,1.65);return cameraZoom;},
     cameraAngle(){return Math.atan2(camera.position.x-cameraLook.x,camera.position.z-cameraLook.z);},
