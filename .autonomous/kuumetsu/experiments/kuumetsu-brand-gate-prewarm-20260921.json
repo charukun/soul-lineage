@@ -117,7 +117,7 @@
   },
   "receipt": {
     "repository": "charukun/soul-lineage",
-    "pullRequest": null,
+    "pullRequest": 1188,
     "marker": "autonomous-receipt:kuumetsu:kuumetsu-brand-gate-prewarm-20260921"
   }
 }
