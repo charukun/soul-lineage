@@ -26,11 +26,19 @@ function noSelfScore(value) {
     noSelfScore(child);
   }
 }
+export function recordThemeKey(record) {
+  return record?.schemaVersion === 2 ? (record.themeKey || record.problemKey) : record?.problemKey;
+}
+export function recordProblemKeys(record) {
+  if (record?.schemaVersion === 2 && Array.isArray(record.rootCauses)) return record.rootCauses.map(row => row.key);
+  return text(record?.problemKey) ? [record.problemKey] : [];
+}
 export function validateRecord(record) {
   need([1,2].includes(record?.schemaVersion) && ID.test(record.id || ''), 'record version/id');
   gameId(record.game);
   need(['infrastructure', 'gameplay', 'user-feedback'].includes(record.kind), 'record kind');
-  need(text(record.problemKey) && text(record.observation?.summary), 'one named root cause is required');
+  need(text(record.observation?.summary), 'observation summary is required');
+  if (record.schemaVersion === 1) need(text(record.problemKey), 'v1 named root cause is required');
   need(Array.isArray(record.observation.evidence) && record.observation.evidence.length > 0, 'observation needs evidence');
   for (const item of record.observation.evidence) {
     need(['source', 'test', 'simulation', 'user-feedback', 'git-tree'].includes(item.kind), 'unknown evidence kind');
@@ -51,6 +59,19 @@ export function validateRecord(record) {
   record.implementation.paths.forEach(safePath);
   if (record.schemaVersion === 2) {
     need(MODES.includes(record.mode), 'v2 iteration mode required');
+    const legacySingleProblem = text(record.problemKey) && !record.themeKey && !record.rootCauses;
+    if (!legacySingleProblem) {
+      need(text(record.themeKey), 'v2 themeKey required');
+      need(Array.isArray(record.rootCauses) && record.rootCauses.length > 0, 'v2 rootCauses required');
+      const keys=new Set();
+      for (const cause of record.rootCauses) {
+        need(text(cause?.key) && !keys.has(cause.key), 'root cause key must be unique');
+        keys.add(cause.key);
+        need(text(cause.summary) && text(cause.prediction) && text(cause.falsifier), 'root cause summary/prediction/falsifier required');
+        need(Array.isArray(cause.paths) && cause.paths.length > 0, 'root cause paths required');
+        cause.paths.forEach(safePath);
+      }
+    }
     if (record.kind === 'gameplay') {
       const staging = record.observation.staging;
       need(staging?.kind === 'immutable-staging' && SHA.test(staging.sourceSha || ''), 'gameplay v2 requires exact staging source SHA');
@@ -119,7 +140,9 @@ export function loadContext(root, game) {
     need(ID.test(entry.id || '') && entry.path === `experiments/${entry.id}.json` && !ids.has(entry.id), 'invalid or duplicate history entry');
     ids.add(entry.id);
     const record = json(resolve(base, entry.path)); validateRecord(record);
-    need(record.game === game && record.id === entry.id && record.problemKey === entry.problemKey, 'index/record mismatch');
+    need(record.game === game && record.id === entry.id, 'index/record mismatch');
+    if (record.schemaVersion === 1 || entry.problemKey) need(record.problemKey === entry.problemKey, 'legacy problem index mismatch');
+    else need(recordThemeKey(record) === entry.themeKey, 'theme index mismatch');
   }
   for (const file of ['charter.md', 'protected-rules.md', 'observations.md', 'hypotheses.md']) need(existsSync(resolve(base, file)), `missing ${game}/${file}`);
   return { game, app: GAMES[game], readFirst: ['AGENTS.md', '.autonomous/README.md', '.autonomous/protected-rules.md', ...['charter.md', 'protected-rules.md', 'observations.md', 'hypotheses.md', 'experiment-history.json'].map(p => `.autonomous/${game}/${p}`)], ...index,
@@ -154,7 +177,11 @@ export function appendRecord(root, record) {
   mkdirSync(dirname(full), { recursive: true });
   writeFileSync(full, JSON.stringify(record, null, 2) + '\n', { flag: 'wx' });
   const index = json(resolve(base, 'experiment-history.json'));
-  index.recent.push(record.schemaVersion === 1 ? { id: record.id, problemKey: record.problemKey, path, verdict: record.comparison.verdict } : { id: record.id, problemKey: record.problemKey, path, schemaVersion: 2 });
+  index.recent.push(record.schemaVersion === 1
+    ? { id: record.id, problemKey: record.problemKey, path, verdict: record.comparison.verdict }
+    : record.themeKey
+      ? { id: record.id, themeKey: record.themeKey, problemKeys: recordProblemKeys(record), path, schemaVersion: 2 }
+      : { id: record.id, problemKey: record.problemKey, path, schemaVersion: 2 });
   while (index.recent.length > RECENT_LIMIT) archive.entries.push(index.recent.shift());
   index.archive.count = archive.entries.length;
   atomicJson(resolve(base, index.archive.path), archive);
@@ -166,7 +193,7 @@ export function historyForProblem(root, game, problemKey) {
   const context = loadContext(root, game), base = resolve(root, '.autonomous', game);
   const archived = json(resolve(base, context.archive.path)).entries;
   need(Array.isArray(archived) && archived.length === context.archive.count, 'archive metadata mismatch');
-  return [...context.recent, ...archived].filter(row => row.problemKey === problemKey).map(row => {
+  return [...context.recent, ...archived].filter(row => row.problemKey === problemKey || row.themeKey === problemKey || row.problemKeys?.includes(problemKey)).map(row => {
     need(row.path === `experiments/${row.id}.json` && ID.test(row.id), 'unsafe history reference');
     const record=json(resolve(base, row.path)); return { ...row, record, learning: learningFor(root, game, row, record), receipt: persistedReceipt(root, game, row.id) };
   });
@@ -184,7 +211,10 @@ export function appendReceipt(root, receipt) {
 }
 export function checkPriorLearning(root, record) {
   const selected = record.candidates.find(c => c.selected)?.id;
-  for (const previous of historyForProblem(root, record.game, record.problemKey)) {
+  const keys=[...new Set([recordThemeKey(record), ...recordProblemKeys(record)].filter(Boolean))];
+  const previousRows=new Map();
+  for (const key of keys) for (const previous of historyForProblem(root, record.game, key)) previousRows.set(previous.id,previous);
+  for (const previous of previousRows.values()) {
     if (previous.id === record.id) continue;
     for (const rule of previous.learning.doNotRetry) {
       if (rule.approach !== selected) continue;
@@ -227,9 +257,16 @@ export function checkHistoryChanges(root, baseRef, headRef = 'HEAD') {
       need(ID.test(entry.id || '') && entry.path === `experiments/${entry.id}.json`, 'unsafe historical pointer');
       const record = readAt(head, prefix + entry.path, null);
       validateRecord(record);
-      need(record.id === entry.id && record.game === game && record.problemKey === entry.problemKey, 'historical pointer mismatch');
-      if (record.schemaVersion === 1) need(record.comparison.verdict === entry.verdict, 'v1 verdict pointer mismatch');
-      else need(entry.schemaVersion === 2 && !Object.hasOwn(entry,'verdict'), 'v2 history must derive outcome from receipt');
+      need(record.id === entry.id && record.game === game, 'historical pointer mismatch');
+      if (record.schemaVersion === 1) {
+        need(record.problemKey === entry.problemKey && record.comparison.verdict === entry.verdict, 'v1 historical pointer mismatch');
+      } else {
+        need(entry.schemaVersion === 2 && !Object.hasOwn(entry,'verdict'), 'v2 history must derive outcome from receipt');
+        if (entry.themeKey) {
+          need(recordThemeKey(record) === entry.themeKey, 'v2 theme pointer mismatch');
+          need(JSON.stringify(recordProblemKeys(record)) === JSON.stringify(entry.problemKeys), 'v2 root cause pointer mismatch');
+        } else need(record.problemKey === entry.problemKey, 'legacy v2 problem pointer mismatch');
+      }
     }
   }
   return true;
