@@ -63,6 +63,10 @@ DEV is app-scoped and latest-wins per app.
 
 A `demon` change may publish `demon` while `rinne` or `village` work is in flight. A later `demon` source supersedes an older pending `demon` publication, but unrelated app publication must not be cancelled because another app advanced.
 
+Primary Web DEV publication is app-scoped Cloudflare Workers static assets. For autonomous gameplay observation, each published Worker version also exposes an immutable version preview URL. This preview is the staging observation surface: it serves the exact published app bytes without moving when a later DEV deployment replaces the latest URL. The staging role is observational; the artifact remains the same `web-dev` build and therefore keeps `environment=dev` in `version.json`.
+
+For `village` and `demon`, preview URLs are explicitly enabled in their Wrangler configs. Given a Wrangler `Current Version ID`, the preview host uses the first eight hex characters as the version prefix. `scripts/staging-preview.mjs` turns the exact source SHA plus Worker version ID into the canonical `immutable-staging` observation reference. Before/After observation must verify `version.json.commit` against the recorded source SHA.
+
 Primary Web DEV publication is app-scoped Cloudflare Workers static assets:
 
 - `rinne`: `https://soul-lineage-rinne-dev.c-okamoto.workers.dev/`
@@ -113,6 +117,7 @@ The repository now exposes:
 - `.github/workflows/distribution-artifact.yml` for explicit/reusable artifact production;
 - app-scoped `dev/<app>` commit statuses;
 - non-blocking public source diagnostics through `version.json`;
+- immutable Cloudflare Worker version-preview staging references for `village` and `demon`, derived by `scripts/staging-preview.mjs`;
 - one fast DEV completion receipt after every affected app for that merge is live.
 
 `deploy.yml` is Production-only. A one-shot retirement workflow removes the former Pages `/dev/` mirror while preserving existing non-DEV release bytes.
