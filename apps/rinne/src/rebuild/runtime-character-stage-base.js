@@ -5,7 +5,7 @@ import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createCoopActors } from './coop-actors.js';
 import { createKaykitCharacterPools } from './kaykit-character-pool.js';
 import { createProtagonistCharacterPool } from './protagonist-character-pool.js';
-import { NEWBORN_CARRY, applyCarrierCradlePose, applyNewbornCradlePose, hideCarrierCombatProps, newbornCarryTransform, positionNewbornForCradle, solveCarrierCradleContacts } from './newborn-carry-presentation.js';
+import { NEWBORN_CARRY, applyCarrierCradlePose, applyNewbornCradlePose, hideCarrierCombatProps, newbornCarryTransform, positionNewbornForCradle, sanitizeCarrierCarryVisual, solveCarrierCradleContacts } from './newborn-carry-presentation.js';
 import { resolveRinneCharacterRuntime } from './character-runtime-adapter.js';
 import { applyTidebreakPose } from './tidebreak-pose.js';
 import {
@@ -108,6 +108,7 @@ function renderActors({roster,heroSchedule,motherSchedule,motherMotion,character
   syncPresentationScale(heroActor.root,heroSampled,carried?NEWBORN_CARRY.visualScale:1);
   const motherPresentation=resolveRinneRuntimeCharacter({...state.motherDescriptor,distance:.3,visible:carried,important:true});syncRuntimeState(motherActor,{moving:carrierMoving,speed:motherMotion.speed,runThreshold:3});
   sampleSlot(motherActor,motherSchedule,motherPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carrierMoving,speed:motherMotion.speed,carrier:carried},time));
+  sanitizeCarrierCarryVisual(motherActor.root,{attachments:motherActor.attachments,active:carried});
   if(carried){
     const carryTime=performance.now()/1000;
     positionNewbornForCradle({carrierRoot:motherActor.root,carrierBones:motherActor.bones,childRoot:heroActor.root,childBones:heroActor.bones,time:carryTime,moving:carrierMoving});

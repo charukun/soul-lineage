@@ -1,4 +1,4 @@
-import { CAUSAL_ANSWERS, CAUSAL_ANSWER_BY_ID } from '@soul/game-data';
+import { CAUSAL_ANSWERS, CAUSAL_ANSWER_BY_ID, INSPIRATION_ATTRIBUTES } from '@soul/game-data';
 import { SUPPORT_SKILLS as LEGACY_SUPPORT, ACTION_SKILLS as LEGACY_ACTIONS } from './legacy-skill-system.js';
 
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
@@ -22,6 +22,20 @@ function selectedSkillIds(state){
   for(const id of Object.values(combo?.slots||{}))if(SKILL_BY_ID[id]?.type==='action'&&allowed(id))ids.add(id);
   if(SKILL_BY_ID[technique?.oneMotion]?.type==='action'&&allowed(technique.oneMotion))ids.add(technique.oneMotion);
   return ids;
+}
+
+export function faithProfile(state){
+  const totals=Object.fromEntries(INSPIRATION_ATTRIBUTES.map(id=>[id,0])),ids=new Set(),inspiration=state?.inspiration;
+  if(inspiration){
+    for(const id of inspiration.legacySkills||[])ids.add(id);
+    for(const [id,record] of Object.entries(inspiration.records||{}))if(record?.kind==='heart'||CAUSAL_ANSWER_BY_ID[id]?.kind==='heart')ids.add(id);
+  }else for(const id of state?.knownSkills||[])ids.add(id);
+  for(const id of ids){
+    const row=SKILL_BY_ID[id];if(row?.type!=='support')continue;
+    for(const [attribute,value] of Object.entries(row.faith||{}))if(Object.hasOwn(totals,attribute)&&Number.isFinite(value)&&value>0)totals[attribute]+=value;
+  }
+  for(const attribute of INSPIRATION_ATTRIBUTES)totals[attribute]=Number(Math.min(3,totals[attribute]).toFixed(4));
+  return totals;
 }
 export function skillEffects(state){
   const total={trainingGain:0,actionSpark:0,damage:0,mitigation:0,evasion:0,reach:0,staminaCost:0,recovery:0};

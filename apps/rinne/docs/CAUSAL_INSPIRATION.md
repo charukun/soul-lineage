@@ -9,6 +9,8 @@ This user-approved redesign supersedes the prohibition on all history-derived ch
 ## Implementation acceptance
 
 - Separate finite authored answers from per-person provenance: 心 / 体 / 技 / 連 / 変, semantic families rather than speed, mirror, VFX or damage-only variants.
+- 心得 may carry bounded faith weights keyed by the same canonical attributes used by techniques and VFX. Learned 心 records aggregate that faith over the life; stronger faith raises the chance that a newly realized 技/変 receives the matching presentation attribute. The attribute is stored separately from the technique ID, so VFX-only differences never become new techniques.
+- Authored/review VFX expose canonical elemental `attributes` metadata. Gameplay may promote an explicitly curated, pinned same-origin effect for a supported attribute; presentation attributes never invent elemental damage, resistance, hit authority or contact.
 - Record bounded meaningful life/observation/combat traces; repeated identical situations do not accumulate unlock currency.
 - Resolve 問い → 兆し → contextual opportunity → first performed answer → 定着. A prospective answer must be physically feasible and available in the real combat executor before it is recorded as a performed combat insight.
 - Use equipment, age, actual injury/stamina, continuous intention and bounded inherited motifs as different inputs. Crisis is not required and cannot mint resources or negate a hit.
