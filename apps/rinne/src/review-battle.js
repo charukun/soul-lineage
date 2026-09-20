@@ -119,7 +119,7 @@ function resetBattle(){
   lastCore=runtime.state();last=performance.now();battleStage?.setEncounterMode(encounterMode);syncBodyReadout();
 }
 function renderPhase(core){
-  const state=reviewBattlePhaseState(core);syncCombatSequence(phasePanel,state.phase);const footPhase=q('battle-foot-phase');if(footPhase)footPhase.dataset.phase=state.phase||'idle';const action=core?.hero?.attack||state.skill||'間合いを測る';phaseMeta.textContent=action;
+  const state=reviewBattlePhaseState(core);syncCombatSequence(phasePanel,state.phase);const footPhase=q('battle-foot-phase');if(footPhase){footPhase.dataset.phase=state.phase||'idle';footPhase.setAttribute('aria-label',`足元の序破急HUD · 現在は${phaseLabel(state.phase)}`);}const action=core?.hero?.attack||state.skill||'間合いを測る';phaseMeta.textContent=action;
   for(const chain of document.querySelectorAll('#battle-technique-composition [data-chain-phase]'))chain.dataset.active=String(chain.dataset.chainPhase===state.heroPhase);
   if(action!==lastSequenceAction||state.phase!==lastSequencePhase){if(lastSequenceAction){const item=document.createElement('span');item.textContent=`${phaseLabel(lastSequencePhase)} · ${lastSequenceAction}`;phaseHistory?.prepend(item);while(phaseHistory?.children.length>3)phaseHistory.lastElementChild?.remove();setTimeout(()=>item.remove(),2700);}lastSequenceAction=action;lastSequencePhase=state.phase;}
 }
