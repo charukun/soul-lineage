@@ -10,10 +10,10 @@ import {
   reviewSkeletonEquipmentForSlot,
 } from '@soul/assets';
 import './review-asset-library.css';
-import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
 mountRinneReviewShell('equipment');
 
 const q = selector => document.querySelector(selector);
+function createStaticThumbnail(url,label=''){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('review-static-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-label',label);svg.setAttribute('role','img');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href',url);svg.append(use);return svg;}
 const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const loader = new GLTFLoader();
 const reviewRawRoot = `https://raw.githubusercontent.com/${REVIEW_SKELETON_SOURCE.repository}/${REVIEW_SKELETON_SOURCE.commit}/`;
@@ -189,7 +189,7 @@ function renderEquipmentInspector(){
   const candidates=[{id:'',label:'なし'},...reviewSkeletonEquipmentForSlot(activeAssetSlot)];
   list.replaceChildren(...candidates.map(item=>{
     const button=document.createElement('button');
-    button.type='button';button.classList.add('review-choice-card');button.dataset.equipmentId=item.id;const text=document.createElement('span');text.textContent=item.label,thumbnail=createRuntimeThumbnail(item.label);button.append(thumbnail,text);if(item.id)scheduleRuntimeThumbnail(thumbnail,`equipment:${item.id}`,async()=> (await loader.loadAsync(reviewEquipmentUrl(item))).scene);
+    button.type='button';button.classList.add('review-choice-card');button.dataset.equipmentId=item.id;const text=document.createElement('span');text.textContent=item.label;const thumbnail=createStaticThumbnail(item.thumbnailUrl||'./review/catalog-thumbnails.svg#equipment-none',item.label);button.append(thumbnail,text);
     const selected=(selection[activeAssetSlot]||'')===item.id;
     button.setAttribute('role','option');button.setAttribute('aria-selected',String(selected));
     button.addEventListener('click',()=>{
@@ -224,7 +224,7 @@ function openModelPicker(){setModelPickerOpen(true);}
 function closeModelPicker(restoreFocus=false){setModelPickerOpen(false,{restoreFocus});}
 function populate() {
   const count=q('#asset-model-count');if(count)count.textContent=`MODELS ${REVIEW_SKELETON_MODELS.length}`;
-  q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.model=model.id;button.setAttribute('role','option');const text=document.createElement('span');text.textContent=model.label,thumbnail=createRuntimeThumbnail(model.label);button.append(thumbnail,text);scheduleRuntimeThumbnail(thumbnail,`asset-model:${model.id}`,async()=> (await loader.loadAsync(reviewModelUrl(model))).scene);button.addEventListener('click',()=>{closeModelPicker();loadModel(model.id).catch(error=>status(error.message,true));});return button;}));
+  q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.model=model.id;button.setAttribute('role','option');const text=document.createElement('span');text.textContent=model.label;const thumbnail=createStaticThumbnail(model.thumbnailUrl,model.label);button.append(thumbnail,text);button.addEventListener('click',()=>{closeModelPicker();loadModel(model.id).catch(error=>status(error.message,true));});return button;}));
   for(const slot of ['main','off','back']){
     const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>status('装備プレビューを更新しました。')).catch(error=>status(error.message,true)));
   }
@@ -246,4 +246,4 @@ function populate() {
 const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();},render:()=>renderer.render(scene,camera)});
 let last=performance.now();function frame(now){const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;controls.update();mixer?.update(dt);renderer.render(scene,camera);frameId=requestAnimationFrame(frame);}frameId=requestAnimationFrame(frame);
 populate();loadModel(selection.model).catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{clearRuntimeThumbnailQueue();cancelAnimationFrame(frameId);stageLifecycle.destroy();controls.dispose();for(const root of mounted.values())disposeRoot(root);disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);stageLifecycle.destroy();controls.dispose();for(const root of mounted.values())disposeRoot(root);disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});

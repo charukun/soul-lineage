@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
-const size=Object.freeze({width:144,height:92});
+const size=Object.freeze({width:288,height:184});
 let renderer=null,scene=null,camera=null,queue=Promise.resolve(),active=false;
 const cache=new Map(),targets=new WeakMap(),queuedKeys=new Set(),jobs=[];
 const idle=callback=>globalThis.requestIdleCallback?requestIdleCallback(callback,{timeout:350}):setTimeout(()=>callback({timeRemaining:()=>8,didTimeout:true}),24);
 
 function ensureRuntime(){
   if(renderer)return;
-  renderer=new THREE.WebGLRenderer({antialias:false,alpha:false,preserveDrawingBuffer:true,powerPreference:'low-power'});
+  renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,preserveDrawingBuffer:true,powerPreference:'low-power'});
   renderer.setPixelRatio(1);
   renderer.setSize(size.width,size.height,false);
   renderer.outputColorSpace=THREE.SRGBColorSpace;

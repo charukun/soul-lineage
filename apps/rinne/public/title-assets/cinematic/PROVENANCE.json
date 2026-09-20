@@ -1,0 +1,15 @@
+{
+  "status": "awaiting-generation",
+  "poster": {
+    "file": "landing.webp",
+    "provider": "OpenAI image generation",
+    "createdAt": "2026-09-20",
+    "role": "Original cinematic concept and interim title artwork; not a game screenshot or an extracted movie frame",
+    "references": ["docs/characters/qa/protagonist-villager-v1/three-quarter.png", "apps/rinne/src/rebuild/birth-village.js"],
+    "source": "Generated specifically for this task using repository character references. No downloaded stock image or third-party music."
+  },
+  "movie": null,
+  "audio": null,
+  "generationBlocker": "Google Flow image-use agreement is awaiting action-time user consent. No video generation credit was spent.",
+  "sourceDevelop": "ed50416e9be4ef8c14aff26c4ac5d6be718fd0a4"
+}

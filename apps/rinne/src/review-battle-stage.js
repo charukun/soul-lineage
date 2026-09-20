@@ -142,13 +142,11 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     const heroPoint=hero.actor?.root?.position;if(!heroPoint)return null;
     const activeEnemies=enemies.filter(side=>side.actor?.root?.parent===stageRoot).map(side=>side.actor.root.position);
     if(!activeEnemies.length)return null;
-    const enemyPoint=activeEnemies[0],points=[heroPoint,...activeEnemies],hx=heroPoint.x,hz=heroPoint.z,ex=enemyPoint.x,ez=enemyPoint.z,dx=ex-hx,dz=ez-hz,len=Math.max(.01,Math.hypot(dx,dz));
-    const lineX=dx/len,lineZ=dz/len,sideX=-lineZ,sideZ=lineX;let minLine=Infinity,maxLine=-Infinity,minSide=Infinity,maxSide=-Infinity;
-    for(const point of points){const along=point.x*lineX+point.z*lineZ,across=point.x*sideX+point.z*sideZ;minLine=Math.min(minLine,along);maxLine=Math.max(maxLine,along);minSide=Math.min(minSide,across);maxSide=Math.max(maxSide,across);}
-    const centerLine=(minLine+maxLine)*.5,centerSide=(minSide+maxSide)*.5,centerX=lineX*centerLine+sideX*centerSide,centerZ=lineZ*centerLine+sideZ*centerSide;
-    const aspect=Math.max(.46,Math.min(2.1,camera.aspect||1)),vFov=THREE.MathUtils.degToRad(camera.fov),hFov=2*Math.atan(Math.tan(vFov*.5)*aspect),halfWidth=(maxLine-minLine)*.5+1.05,halfHeight=1.55;
-    const horizontalDistance=halfWidth/Math.max(.12,Math.tan(hFov*.5)),verticalDistance=halfHeight/Math.tan(vFov*.5),distance=clamp(Math.max(horizontalDistance,verticalDistance)+.55,5.8,12.5);
-    return{position:{x:centerX+sideX*distance,y:3.25,z:centerZ+sideZ*distance},look:{x:centerX,y:1.05,z:centerZ},follow:true,system:'inspiration',count:points.length};
+    const enemyPoint=activeEnemies[0],dx=enemyPoint.x-heroPoint.x,dz=enemyPoint.z-heroPoint.z,len=Math.max(.01,Math.hypot(dx,dz)),forwardX=dx/len,forwardZ=dz/len,sideX=-forwardZ,sideZ=forwardX;
+    const distance=clamp(encounterMode==='one-v-three'?6.8:5.8,5.4,7.2),shoulder=.58;
+    const position={x:heroPoint.x-forwardX*distance+sideX*shoulder,y:2.45,z:heroPoint.z-forwardZ*distance+sideZ*shoulder};
+    const look={x:heroPoint.x+forwardX*1.35,y:1.08,z:heroPoint.z+forwardZ*1.35};
+    return{position,look,follow:true,system:'inspiration',lock:'hero-rear',count:activeEnemies.length};
   }
 
   function updateCamera(core,dt,followCamera,cameraSystem){

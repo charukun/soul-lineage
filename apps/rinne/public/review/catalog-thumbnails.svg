@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+<defs>
+  <linearGradient id="bone" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eee8d5"/><stop offset="1" stop-color="#9d9684"/></linearGradient>
+  <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dfe5e2"/><stop offset=".55" stop-color="#7f8a86"/><stop offset="1" stop-color="#3c4644"/></linearGradient>
+  <linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a98664"/><stop offset="1" stop-color="#4e3b32"/></linearGradient>
+  <linearGradient id="magic" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8db8d8"/><stop offset="1" stop-color="#594f91"/></linearGradient>
+</defs>
+<symbol id="equipment-none" viewBox="0 0 160 160"><circle cx="80" cy="80" r="45" fill="none" stroke="#6b7570" stroke-width="10"/><path d="M49 111L111 49" stroke="#8d9892" stroke-width="10" stroke-linecap="round"/></symbol>
+<symbol id="review-skeleton-warrior" viewBox="0 0 160 160"><circle cx="80" cy="42" r="23" fill="url(#bone)"/><path d="M59 66h42l16 58H43Z" fill="url(#steel)"/><path d="M53 76L30 109M107 76l23 33" stroke="url(#bone)" stroke-width="10" stroke-linecap="round"/><path d="M65 34h9m12 0h9M69 50h22" stroke="#343c39" stroke-width="5" stroke-linecap="round"/></symbol>
+<symbol id="review-skeleton-rogue" viewBox="0 0 160 160"><circle cx="80" cy="43" r="22" fill="url(#bone)"/><path d="M48 72q32-16 64 0l-8 54H56Z" fill="#485653"/><path d="M61 70L40 113M99 70l21 43" stroke="url(#bone)" stroke-width="9" stroke-linecap="round"/><path d="M67 35h8m10 0h8M69 50h22" stroke="#323937" stroke-width="5" stroke-linecap="round"/></symbol>
+<symbol id="review-skeleton-mage" viewBox="0 0 160 160"><circle cx="80" cy="43" r="22" fill="url(#bone)"/><path d="M56 68h48l18 59H38Z" fill="url(#magic)"/><path d="M47 80L31 121M113 80l16 41" stroke="url(#bone)" stroke-width="9" stroke-linecap="round"/><path d="M67 35h8m10 0h8M69 50h22" stroke="#313837" stroke-width="5" stroke-linecap="round"/></symbol>
+<symbol id="review-skeleton-minion" viewBox="0 0 160 160"><circle cx="80" cy="45" r="21" fill="url(#bone)"/><path d="M61 68h38l10 56H51Z" fill="url(#cloth)"/><path d="M60 76L39 111M100 76l21 35" stroke="url(#bone)" stroke-width="8" stroke-linecap="round"/><path d="M68 37h7m10 0h7M70 51h20" stroke="#313735" stroke-width="5" stroke-linecap="round"/></symbol>
+<symbol id="skeleton-blade" viewBox="0 0 160 160"><path d="M78 18l18 78-13 24-11-22Z" fill="url(#bone)"/><path d="M50 97h58v10H50Zm25 9h10v34H75Z" fill="url(#steel)"/></symbol>
+<symbol id="skeleton-axe" viewBox="0 0 160 160"><path d="M75 55h10v82H75Z" fill="url(#bone)"/><path d="M80 40q22-17 48-7l-8 34q-27 6-40-10Z" fill="url(#steel)"/></symbol>
+<symbol id="skeleton-staff" viewBox="0 0 160 160"><path d="M76 27h8v111h-8Z" fill="url(#bone)"/><circle cx="80" cy="28" r="20" fill="none" stroke="url(#magic)" stroke-width="8"/><circle cx="80" cy="28" r="7" fill="#b9d7e8"/></symbol>
+<symbol id="skeleton-crossbow" viewBox="0 0 160 160"><path d="M39 74h82v11H39Z" fill="url(#bone)"/><path d="M34 66q46-34 92 0M34 93q46 34 92 0" fill="none" stroke="url(#steel)" stroke-width="7"/><path d="M78 78h8v54h-8Z" fill="url(#cloth)"/></symbol>
+<symbol id="skeleton-shield-large-a" viewBox="0 0 160 160"><path d="M39 34h82v62q-9 29-41 43-32-14-41-43Z" fill="url(#steel)"/><path d="M80 44v79M52 73h56" stroke="#d7c99e" stroke-width="8"/></symbol>
+<symbol id="skeleton-shield-large-b" viewBox="0 0 160 160"><path d="M43 31h74l9 65q-13 28-46 42-33-14-46-42Z" fill="#59645f"/><path d="M54 48l52 68M106 48l-52 68" stroke="#c9c3af" stroke-width="8"/></symbol>
+<symbol id="skeleton-shield-small-a" viewBox="0 0 160 160"><circle cx="80" cy="80" r="48" fill="url(#steel)"/><circle cx="80" cy="80" r="16" fill="#c8b887"/><path d="M80 40v80M40 80h80" stroke="#9aa49f" stroke-width="6"/></symbol>
+<symbol id="skeleton-shield-small-b" viewBox="0 0 160 160"><circle cx="80" cy="80" r="47" fill="#59645f"/><path d="M80 38l16 29 33 5-24 23 6 32-31-15-31 15 6-32-24-23 33-5Z" fill="#b8af95"/></symbol>
+<symbol id="skeleton-quiver" viewBox="0 0 160 160"><path d="M60 47h40l-8 82H68Z" fill="url(#cloth)"/><path d="M68 40l-10-23M80 42V16M92 40l10-23" stroke="url(#bone)" stroke-width="6" stroke-linecap="round"/></symbol>
+<symbol id="mesh2motion-review-mannequin" viewBox="0 0 160 160"><circle cx="80" cy="38" r="20" fill="#b8c5c0"/><path d="M62 61h36l10 60H52Z" fill="#61716b"/><path d="M61 70L37 110M99 70l24 40M66 119l-12 25M94 119l12 25" stroke="#9daaa5" stroke-width="10" stroke-linecap="round"/></symbol>
+<symbol id="kaykit.knight.v1" viewBox="0 0 160 160"><circle cx="80" cy="40" r="20" fill="#c4a987"/><path d="M55 61h50l13 65H42Z" fill="url(#steel)"/><path d="M58 58h44l-8-18H66Z" fill="#8a9691"/></symbol>
+<symbol id="kaykit.barbarian.v1" viewBox="0 0 160 160"><circle cx="80" cy="40" r="21" fill="#c59a78"/><path d="M55 63h50l10 61H45Z" fill="#75533f"/><path d="M56 67L34 112M104 67l22 45" stroke="#b98868" stroke-width="11" stroke-linecap="round"/></symbol>
+<symbol id="kaykit.mage.v1" viewBox="0 0 160 160"><circle cx="80" cy="42" r="20" fill="#c3a78a"/><path d="M57 63h46l19 64H38Z" fill="url(#magic)"/><path d="M57 36q23-31 46 0-23-9-46 0Z" fill="#514986"/></symbol>
+<symbol id="kaykit.rogue.v1" viewBox="0 0 160 160"><circle cx="80" cy="41" r="20" fill="#c29c7b"/><path d="M56 62h48l10 63H46Z" fill="#53635d"/><path d="M58 58q22-17 44 0" fill="none" stroke="#303a37" stroke-width="8"/></symbol>
+<symbol id="kaykit.rogue-hooded.v1" viewBox="0 0 160 160"><path d="M51 57q5-37 29-41 24 4 29 41l-12 13H63Z" fill="#394742"/><circle cx="80" cy="45" r="17" fill="#c09a79"/><path d="M55 66h50l10 59H45Z" fill="#4d5c57"/></symbol>
+</svg>
