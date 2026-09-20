@@ -6,14 +6,14 @@ const GUARD_ATTACKS=new Set(['guard','parry','counter','brace','ward','slip','re
 
 function actorPose(actor){return actor?.combat?.tidebreakPose||actor?.tidebreakPose||null;}
 function actorWeapon(actor){return actor?.equipment?.weapon||actor?.weapon||'sword';}
-function targetForEvent(event,{state,front}){return event.type==='player-hit'||event.type==='one-motion'?(front?.enemies||[]).find(row=>row.id===event.targetId)||null:state;}
+function targetForEvent(event,{state,front}){return event.type==='player-hit'||event.type==='one-motion'||event.type==='finisher'?(front?.enemies||[]).find(row=>row.id===event.targetId)||null:state;}
 function sourceForEvent(event,{state,front}){return event.type==='enemy-hit'?(front?.enemies||[]).find(row=>row.id===event.sourceId)||null:state;}
-function phaseForce(event){if(event.type==='one-motion'||event.manual===true||event.phase==='one')return 1.5;if(event.phase==='kyu')return 1.3;if(event.phase==='ha')return 1.08;return 1;}
+function phaseForce(event){if(event.type==='one-motion'||event.type==='finisher'||event.manual===true||event.phase==='one'||event.phase==='finisher')return 1.5;if(event.phase==='kyu')return 1.3;if(event.phase==='ha')return 1.08;return 1;}
 function directionForce(event){const sector=event.attackSector||event.sector;return sector==='back'?1.08:sector==='flank'||sector==='left'||sector==='right'?1.035:1;}
 function impactPart(event,pose){if(event.part)return event.part;const attack=String(pose?.attack||'');if(['uppercut','risingfist','meteor'].includes(attack))return'head';if(['sweep','round','spin'].includes(attack))return event.attackSector==='flank'?'rightArm':'torso';if(['thrust','pierce','straight','oneinch'].includes(attack))return'torso';return'torso';}
 
 export function impactEnergyForEvent(event,context={}){
-  if(!event||!['player-hit','enemy-hit','one-motion'].includes(event.type)||!(Number(event.damage)>0))return 0;
+  if(!event||!['player-hit','enemy-hit','one-motion','finisher'].includes(event.type)||!(Number(event.damage)>0))return 0;
   const source=sourceForEvent(event,context),target=targetForEvent(event,context),pose=actorPose(source),attack=String(pose?.attack||event.attack||'slash');
   const mass=WEAPON_MASS[actorWeapon(source)]||1,force=ATTACK_FORCE[attack]||1,phase=phaseForce(event),progress=clamp(pose?.progress),timing=.9+.1*Math.sin(progress*Math.PI),direction=directionForce(event),maxHp=Math.max(1,Number(target?.maxHp)||100),damageRatio=clamp(Number(event.damage)/maxHp,0,.7),direct=(event.guarded||event.blocked) ? .72 : 1,projectile=event.projectile ? .88 : 1;
   return clamp((.07+mass*.185+force*.175+phase*.125+Math.sqrt(damageRatio)*.27)*timing*direction,0,1)*direct*projectile;

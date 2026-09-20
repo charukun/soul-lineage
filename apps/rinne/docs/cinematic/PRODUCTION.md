@@ -1,24 +1,87 @@
-# RINNE — 六秒で、次の人生へ
-Status: production in progress. Final user direction: 6 seconds, superseding the original 15–25 seconds.
-Source investigation: develop ed50416e9be4ef8c14aff26c4ac5d6be718fd0a4 (initial observed develop 68a5de0dafcc9746bcaf32adfe0c8316cf084b44).
+# 百年転生 — 六秒の「手から手へ」
 
-## Canonical story
-Current runtime: mother = KayKit Rogue_Hooded; player = protagonist.villager.v1 (CC0 Knight-derived head / Rogue-derived villager torso).
-Birth lasts until age 4; equipment begins at 7; frontier departure at 15; lifespan ends at 100.
-Rebirth resets age and equipment. The lineage record and homelands established by returning survive. Do not depict inherited combat power.
-Starting village is 風待ちの里: central fire square, market north, manor west, smith east, two southern watchtowers, distant east-coast harbor.
+最新のユーザー指示により、24秒案は廃棄。**オープニングは6秒**。世界が続く最後の構図を2秒のLiving Stillにし、6秒からロゴ、6.65秒からメニューを重ねる。8秒の配信ファイルでも、OPを8秒待たせない。
 
-## Six-second edit
-- 0.00–1.30: ground-level moving shot, mother in her hood carrying the small protagonist through the living village; cloth, grass and smoke move.
-- 1.30–2.70: match cut on the child's reaching hand to the same grown protagonist gripping a sword, stepping through one decisive non-gory clash. Lateral camera travel and a readable opponent.
-- 2.70–4.30: same hand ages; elder lowers the sword, stills, then a newborn grasps the released hand. One restrained warm thread bridges generations; the child opens its eyes.
-- 4.30–6.00: camera cranes above the mother's shoulder into the same inhabited village and east-coast horizon; decelerate by 5.40; compose a luminous, readable title landing.
-- 6.00+: exact final composition retained; logo then menu. A separate matching living-still loop may extend the asset but never the opening.
+## 現在の納品状態
 
-No text inside generated frames. No Ken Burns, panoramic still pans, particle-only darkness, generic anime substitution, logos, copyrighted music, or random VFX.
-First visit: full-screen skip after 1.8s. Return visit: immediate skip. Back from gameplay: title landing directly.
+- 旧リアルタイムOPと旧静止画パン動画はタイトルの再生経路から除外。
+- 6秒映画用の再生、スキップ、着地、復帰、失敗時の静止画、差し替えmanifestを実装。
+- 新規生成の着地コンセプト画像、7枚の参照、ショット別指示、最終投入プロンプトを用意。
+- **映像は未生成。商用品質の完成映像とは扱わない。** manifestは`awaiting-generation`。現状は新しい静止画タイトルへ直接着地する。静止画を動かして代替OPとする処理はない。
+- Google FlowのVeo 3.1 Fast（8秒・720p・1本20クレジット）を操作できる状態まで確認。参照画像投入時の「この画像の使用権」同意で保留。アクション時の同意確認が必要で、生成は実行していない。課金・購入なし。Seedance/Dreaminaはアカウント設定入力で停止。
 
-## Service investigation
-Dreamina/Seedance and Google Flow inspected directly. No purchases authorized.
-Flow has a usable editor; available generation modes and credit cost must be checked before submitting. Existing free credits may be used. No added subscription or credit purchase.
-Current cloud browser cannot initialize RINNE WebGL. Repository QA images provide the adopted model identity; this is a reference source limitation, not successful current-game browser evidence.
+## ゲームに固有の核
+
+基準: develop `ed50416e9be4ef8c14aff26c4ac5d6be718fd0a4` の実装。主人公は`protagonist.villager.v1`。象牙色の短髪、丸い黒目、約3頭身、クリーム色の巻き衣、ベルト、オリーブのズボン、茶のブーツ。母はKayKit Rogue_Hooded系。普通の村人であり、美少女アニメや写実的な騎士に作り替えない。
+
+0–4歳は母の抱っこと村巡り、4歳で自立、7歳で武具、15歳から村外の戦い、100年で人生の終わり。転生時に年齢・装備・戦闘力は戻る。残るのは系譜の記録と故郷。新生児に剣や強さが引き継がれる表現はしない。
+
+風待ちの里は焚火の広場、市場、氏族の屋敷、鍛冶、南の2塔、東の港を持つ。山・海・村のスケールは映画用の美術解釈で、実ゲームの測量図ではない。光の糸は血の継続を表す一瞬の比喩。戦闘魔法としては扱わない。
+
+確認した正本: `src/rebuild/birth-village.js`, `birth-experience.js`, `birth-tour.js`, `domain.js`, `character-presentation.js`, `protagonist-character-pool.js`, `renderer.js`。現在の実モデルQA画像を参照。既存DEVをブラウザで開いた環境ではWebGL生成に失敗したため、その画面を最新世界の成功証拠とは扱っていない。
+
+## 絵コンテ — 絵ではなく行為をつなぐ
+
+| ショット | 完成上の時刻 | 人物・環境・カメラ | 音 |
+|---|---:|---|---|
+| 01 受け取る手 | 0.00–1.35 | 海と村の奥行きを見せつつ、草の前景を越えて母の腕へ降下。幼児が母の指を握る。母が歩き、布・草・煙・帆が動く。 | 風、鳥、村人の遠声。弦1音。 |
+| 02 生きる手 | 1.35–2.75 | 握る手をマッチカット。同じ人物が青年になり一歩踏み込んで剣を受ける。半周ドリー、敵は1体。花弁が落葉へ変わり年月を予告。 | 土の足音、一度だけ短い金属音。2音目。 |
+| 03 離す手 | 2.75–4.05 | 刀身を横切る落葉で老いた手へ。帰郷した老人が同じ広場で静かに目を閉じ、手を開く。剣は膝脇に置かれたまま。雪が溶ける。 | 息、遠い鐘。3.65秒から一瞬の静寂。 |
+| 04 次の手 | 4.05–6.00 | 開いた手の琥珀色の反射を新生児の瞳へつなぐ。新生児が目を開き母の指を握る。カメラが腕を越えて上昇し、**同じ村**の海・市場・広場へ抜ける。 | 吸う息、衣擦れ、弦の解決。爆発音なし。 |
+| Living Still | 6.00–8.00 | 下右に母と子、中央に広場、右奥に海、上部に空。カメラは完全に固定。煙・帆・草・呼吸だけが続く。8→6秒のループを目視確認。 | 風と村へ戻す。ループ境界の音は短いクロスフェード。 |
+
+6秒で年齢の説明字幕を読ませない。顔よりも「同じ手の反復」で一生と次の命を伝える。ロゴは動画に焼き込まずゲームUIで描画する。
+
+## Reference Images（役割は REFERENCES.json に固定）
+
+1. `docs/characters/qa/protagonist-villager-v1/front.png` — 主人公の顔・髪・体格。最優先。
+2. 同ディレクトリ`three-quarter.png` — 顔と衣装の立体的な接続。
+3. `side.png` — 鼻・頭身・剣を持つ姿勢の側面基準。
+4. `back.png` — 髪と背中の衣服。カメラ周回時の破綻防止。
+5. `docs/evidence/character-review-pixel-fold-fixed-20260920.png` — 現行の騎士系モデルの材質と敵の寸法感。主人公の衣装としてコピーしない。UIは一切生成しない。
+6. [reference-board.webp](reference-board.webp) — 新規生成した6パネルの演出案。実ゲームのスクリーンショットではない。年齢、母子、死と誕生のショット役割。
+7. `public/title-assets/cinematic/landing.webp` — 新規生成の着地コンセプト。光、村の構図、余白。映画採用後は**採用動画の6秒フレームから抽出したposter**へ交換する。
+
+全7枚を無差別投入しない。単一生成には1・2・6・7を優先。ショット02のみ5を追加。年齢変化は1の骨格と髪色を保ち、老年は白髪としわ、幼児は同じ目・前髪を幼くする。参照の既存キャラクターモデルはRepositoryのCC0 KayKit由来。画像利用に関するサービス同意は利用者が確認する。
+
+## 生成・編集
+
+`PROMPTS.md`にSeedance最終プロンプト、Veo用8秒版、ショット別prompt / negative / camera / motion / continuityを収録。マスターは1920×1080 / 24fpsを優先。現在のFlow選択では720pのため、1080pへコンテナを拡大してもネイティブ1080p品質とは称さない。
+
+1回目は上記6秒の単一シーケンスを生成し、全フレームを確認する。4つの時代が混ざる、老人→幼児が伝わらない、母や服が変わる場合は不採用。4ショットを各4–5秒で個別生成し、最も良い動作を1.35/1.40/1.30/1.95秒に切り出す。最終ショットはループ用の固定構図を別途2秒確保する。静止画パン、生成後の無意味な速度上げは使わない。
+
+音は自作または生成サービスで利用範囲を確認できる素材のみ。未確認の音楽を追加しない。ブラウザ初回はmuted autoplay。無音でも意味が通る編集を必須とする。現在の納品にOP音源は含まれず、既存ゲームUIの操作音だけが残る。
+
+## 採用判定
+
+| 項目 | 採用基準 | 現在 |
+|---|---|---|
+| 百年転生固有性 | 母→成人→老い→次の子、同じ故郷 | 絵コンテ設計済み。映像未評価 |
+| 人物の連続性 | 参照顔・髪・衣服が全カット一致 | 実モデル参照を固定。映像未評価 |
+| motion / anatomy | 人物の行為、5本の指、剣の接触、布の自然な動き | 未評価 |
+| temporal consistency | 顔・建物・武器の融解/増殖なし | 未評価 |
+| 奥行き・壮大さ | 3層の画面、村と海が明るく読める | 着地画像は合格。映像未評価 |
+| 転生 | 死と新生児が一見して読め、同じ村へ帰る | 未評価 |
+| 接続 | 6秒のフレームとposter一致、8→6の目立つ飛びなし | 動画入稿時必須 |
+
+着地コンセプトの評価: 村・海・母子・遠景を明確に読める。実モデルに近い頭身を保持。細かな村人の手や奥の建物は生成画特有の解釈があるため、動画では目立つ位置の破綻を再生成する。未生成の映像を採用済みとは記録しない。
+
+## 実装と差し替え
+
+`public/title-assets/cinematic/manifest.json` が唯一のメディア設定。`status: ready`とMP4/WebM・poster・revision・dimensions・fps・duration・titleLandingTime・skip timing・任意livingLoopを管理。
+
+初回1.8秒までタップ無効。再訪はrevision別の閲覧記録で即スキップ可能。動画中のメニューは非表示かつinert。終了/skip時は同じ最終フレームへ着地。帰還では冒頭を再生しない。タブ非表示時は停止。reduce motion、manifest失敗、動画エラー、4.5秒の進行停止では静止画タイトルを操作可能にする。ゲームの準備失敗でもタイトルは維持する。
+
+`preload=none`で初期MP4リクエストを抑え、manifestのready確認後だけ動画を読み込む。H.264 yuv420p + faststart、24fps、1080p基準、最大8MiB。任意VP9/WebM。マスターは配信ディレクトリへ置かない。MP4を受け取ったら次を実行する:
+
+```sh
+node apps/rinne/scripts/import-title-movie.mjs --input /path/approved-master.mp4 --revision film-r2 --provider Seedance --loop
+```
+
+`--loop`は8秒マスターの6–8秒がループ可能な場合のみ。6秒のみなら省略し最終フレームで静止する。posterの抽出、Web用エンコード、容量・形式検査、manifest、provenance更新を行う。任意`--webm`。完了後に動画全体とposterを目視し、同一PR/通常の検証経路で反映する。コード変更は不要。
+
+## 検証の読み方
+
+`title-cinematic-video.test.mjs`: lifecycle・skip・停止・失敗・設定。
+`title-live-world.test.mjs`: 旧OP経路の排除と起動接続。
+`title-cinematic-browser.test.mjs`: Repository既存Playwright経路。実HTML/CSS/mainでportrait/landscape、実H.264デコード、skip、着地、帰還、失敗、最後に実ゲーム起動を操作する。生成前のデコーダー試験は**合成テスト映像**をrouteし、映画の完成証拠とは区別する。静止画タイトルのスクリーンショットと`RINNE_BROWSER_EVIDENCE`をexact-headのjobログへ残す。

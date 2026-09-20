@@ -2,8 +2,9 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { REPOSITORY, GAMES, json, loadContext, appendRecord, checkHistoryChanges, evaluateMergeGate, historyForProblem } from './lib/contract.mjs';
+import { REPOSITORY, GAMES, json, loadContext, appendRecord, appendReceipt, checkHistoryChanges, evaluateMergeGate, historyForProblem } from './lib/contract.mjs';
 import { captureProbe, compareReports } from './lib/probes.mjs';
+import { discoverActiveExperiments } from './lib/validation.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 function parse(args) {
@@ -56,6 +57,7 @@ async function main() {
     const matches = historyForProblem(root, first, second);
     result = { total: matches.length, nextOffset: offset + 8 < matches.length ? offset + 8 : null, entries: matches.slice(offset, offset + 8) };
   }
+  else if (command === 'active') result = { active: discoverActiveExperiments(root,{baseRef:flags.base,headRef:flags.head||'HEAD'}) };
   else if (command === 'check') {
     result = { games: Object.keys(GAMES).map(game => loadContext(root, game).game), history: flags.base ? checkHistoryChanges(root, flags.base, flags.head || 'HEAD') : 'structure-only', status: 'passed' };
   } else if (command === 'probe') result = await captureProbe(root, first, { ref: flags.ref || 'HEAD', seeds: flags.seeds ? flags.seeds.split(',').map(Number) : undefined });
@@ -65,11 +67,14 @@ async function main() {
   } else if (command === 'record') {
     if (!first) throw Error('record requires an experiment JSON file');
     result = appendRecord(root, json(resolve(first)));
+  } else if (command === 'receipt') {
+    if (!first) throw Error('receipt requires a receipt JSON file');
+    result = appendReceipt(root, json(resolve(first)));
   } else if (command === 'gate') {
     const snapshot = flags.snapshot ? json(resolve(flags.snapshot)) : await liveGate(flags);
     result = evaluateMergeGate(snapshot);
     if (!result.eligible) process.exitCode = 2;
-  } else throw Error('Usage: node .autonomous/cli.mjs context <village|kuumetsu> | lookup <game> <problemKey> [--offset N] | check [--base <ref>] | probe <game> [--ref <ref>] [--seeds 11,30,49] [--out file] | compare before.json after.json | record experiment.json | gate --pr N --head SHA --base SHA [--snapshot live.json]');
+  } else throw Error('Usage: node .autonomous/cli.mjs context <village|kuumetsu> | lookup <game> <problemKey> [--offset N] | active --base <ref> [--head <ref>] | check [--base <ref>] | probe <game> [--ref <ref>] [--seeds 11,30,49] [--out file] | compare before.json after.json | record experiment.json | receipt receipt.json | gate --pr N --head SHA --base SHA [--snapshot live.json]');
   const output = JSON.stringify(result, null, 2) + '\n';
   if (flags.out) { const path = resolve(flags.out); mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, output); }
   else process.stdout.write(output);

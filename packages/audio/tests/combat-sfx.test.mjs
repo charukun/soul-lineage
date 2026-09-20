@@ -22,6 +22,9 @@ test('combat SFX waits for user activation, then alternates real sample clips',a
   assert.equal(sfx.slash(),true);
   assert.equal(clips[0].plays,1);
   assert.equal(clips[1].plays,1);
+  assert.equal(sfx.swing({weapon:'great',power:.9}),true);
+  assert.equal(sfx.impact({guard:true,power:.8}),true);
+  assert.equal(sfx.inspiration('spark'),true);
   sfx.setEnabled(false);assert.equal(sfx.slash(),false);
   sfx.dispose();
 });
