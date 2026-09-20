@@ -135,6 +135,21 @@
       "gitBlobSha": "4c2277dee56909c52800430f0a0daa419fe58654"
     },
     {
+      "path": "motion/kaykit-tools/bc9db031f6608ce4b5e2b1c07f3cfae0c9b152a3.glb",
+      "bytes": 1461204,
+      "gitBlobSha": "bc9db031f6608ce4b5e2b1c07f3cfae0c9b152a3"
+    },
+    {
+      "path": "motion/mesh2motion-human-addon/b314ab1a99c546882786b44745915d97f32b6a88.glb",
+      "bytes": 5292804,
+      "gitBlobSha": "b314ab1a99c546882786b44745915d97f32b6a88"
+    },
+    {
+      "path": "motion/mesh2motion-human-base/3c5b3258af3b982fb922bbc4008296ec4efa8814.glb",
+      "bytes": 5656648,
+      "gitBlobSha": "3c5b3258af3b982fb922bbc4008296ec4efa8814"
+    },
+    {
       "path": "motion/mesh2motion-human-mocap/f9ab473da79eb91a479cdfaf0b514d8279073e89.glb",
       "bytes": 677736,
       "gitBlobSha": "f9ab473da79eb91a479cdfaf0b514d8279073e89"
@@ -143,6 +158,16 @@
       "path": "motion/mesh2motion-review-mannequin/3a317288be44f7bfa1cdd978214ba8541b2af0c5.glb",
       "bytes": 364868,
       "gitBlobSha": "3a317288be44f7bfa1cdd978214ba8541b2af0c5"
+    },
+    {
+      "path": "motion/quaternius-ual1/410b30c617cc3097f7d82e36d4c28ef130f66388.glb",
+      "bytes": 8114364,
+      "gitBlobSha": "410b30c617cc3097f7d82e36d4c28ef130f66388"
+    },
+    {
+      "path": "motion/quaternius-ual2/dc684c2a664927964307e8eb7b27b0000ebf6a18.glb",
+      "bytes": 8061600,
+      "gitBlobSha": "dc684c2a664927964307e8eb7b27b0000ebf6a18"
     }
   ]
 }

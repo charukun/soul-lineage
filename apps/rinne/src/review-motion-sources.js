@@ -269,7 +269,6 @@ const MOTION_LIBRARY_SOURCE_RECORDS=freeze([
   ]),
   source({
     "id": "kaykit-tools",
-    "selfHosted": false,
     "label": "KayKit Tools",
     "family": "kaykit",
     "rig": "kaykit-rig-medium",
@@ -316,7 +315,6 @@ const MOTION_LIBRARY_SOURCE_RECORDS=freeze([
   ]),
   source({
     "id": "quaternius-ual1",
-    "selfHosted": false,
     "label": "Quaternius Universal Animation Library",
     "family": "quaternius",
     "rig": "quaternius-standard",
@@ -380,7 +378,6 @@ const MOTION_LIBRARY_SOURCE_RECORDS=freeze([
   ]),
   source({
     "id": "quaternius-ual2",
-    "selfHosted": false,
     "label": "Quaternius Universal Animation Library 2",
     "family": "quaternius",
     "rig": "quaternius-standard",
@@ -443,7 +440,6 @@ const MOTION_LIBRARY_SOURCE_RECORDS=freeze([
   ...CMU_PARKOUR_SOURCES,
   source({
     "id": "mesh2motion-human-base",
-    "selfHosted": false,
     "label": "Mesh2Motion Human Base",
     "family": "mesh2motion",
     "rig": "mesh2motion-human",
@@ -461,7 +457,6 @@ const MOTION_LIBRARY_SOURCE_RECORDS=freeze([
   }),
   source({
     "id": "mesh2motion-human-addon",
-    "selfHosted": false,
     "label": "Mesh2Motion Human Addon",
     "family": "mesh2motion",
     "rig": "mesh2motion-human",
