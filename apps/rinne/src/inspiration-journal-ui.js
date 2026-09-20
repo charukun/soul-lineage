@@ -56,7 +56,7 @@ export function installInspirationUI(ui,{gameScreen,audio}){
   function recordCard(item,{manage=false}={}){
     const card=el('article',null,'inspiration-technique-card');card.dataset.inspirationId=item.id;card.dataset.focus=String(item.id===focusId);card.dataset.archived=String(item.archived);
     const top=el('header'),stateLabel=item.archived?'古技':item.stable?'定着':'会得';top.append(el('span',`${item.kindLabel} · ${stateLabel}`),el('small',`${Math.floor(item.age)}歳`));
-    card.append(top,el('h3',item.name),el('p',item.story,'inspiration-causal-story'),el('p',item.purpose,'inspiration-purpose'),el('p',item.tradeoff,'inspiration-tradeoff'));
+    card.append(top,el('h3',item.name));if(item.attributes.length)card.append(el('small','属性: '+item.attributes.join('・')));if(item.traits.length)card.append(el('small','特性: '+item.traits.join('・')));card.append(el('p',item.story,'inspiration-causal-story'),el('p',item.purpose,'inspiration-purpose'),el('p',item.tradeoff,'inspiration-tradeoff'));
     const row=CAUSAL_ANSWER_BY_ID[item.id];if(row.steps.length)card.append(el('small',`役割適性: ${item.phases.map(p=>({jo:'序',ha:'破',kyu:'急'})[p]).join('・')}。適性は技の格ではありません。`));
     if(!item.availability.usable&&!state.ended)card.append(el('p',item.availability.reason,'inspiration-unavailable'));
     const detail=el('details');detail.append(el('summary','この答えが生まれた理由'));provenance(detail,item.provenance);card.append(detail);
