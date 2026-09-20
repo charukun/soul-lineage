@@ -1,7 +1,7 @@
 import {createReviewRoutes,mountReviewShell} from '@soul/shared-ui/review-shell';
 
 // The review frame is shared with the original battle probe; the game stays headless.
-export function mountBattle2ReviewShell({doc=document,win=window}={}){
+export function mountBattlebkReviewShell({doc=document,win=window}={}){
   const header=doc.querySelector('.review-surface__header');
   if(!header)return null;
   const homeHref=new URL('/',win.location.href).href;
@@ -15,7 +15,7 @@ export function mountBattle2ReviewShell({doc=document,win=window}={}){
   }));
   routes.battle2=new URL('battle2',homeHref).href;
   routes.battlebk=new URL('battlebk',homeHref).href;
-  const mounted=mountReviewShell({current:'battle2',routes:Object.freeze(routes),homeHref,header});
+  const mounted=mountReviewShell({current:'battlebk',routes:Object.freeze(routes),homeHref,header});
   if(!mounted)return null;
   const onKeyDown=event=>{
     if(event.key==='Escape'&&mounted.root.open){mounted.root.open=false;mounted.root.querySelector('summary')?.focus();}
@@ -27,4 +27,4 @@ export function mountBattle2ReviewShell({doc=document,win=window}={}){
   header.addEventListener('keydown',onKeyDown);win.addEventListener('pagehide',onPageHide);
   return mounted;
 }
-if(typeof document!=='undefined'&&typeof window!=='undefined')mountBattle2ReviewShell();
+if(typeof document!=='undefined'&&typeof window!=='undefined')mountBattlebkReviewShell();
