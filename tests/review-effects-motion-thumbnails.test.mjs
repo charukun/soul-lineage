@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
+// Regression guard for five-column visual review thumbnails.
 const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
 test('runtime thumbnails scale inside five-column review cards',async()=>{
