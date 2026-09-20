@@ -1,8 +1,8 @@
 import {createReviewRoutes,renderReviewProbeLinks} from '@soul/shared-ui/review-shell';
 const DEV=Object.freeze({rinne:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',village:'https://soul-lineage-village-dev.c-okamoto.workers.dev/',demon:'https://soul-lineage-demon-dev.c-okamoto.workers.dev/',pulse:'https://rinne-ops.c-okamoto.workers.dev/',characters:'https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/'});
 const route=(base,path='')=>new URL(path,base).href;
-const ROUTES=Object.freeze({...createReviewRoutes({rinneBase:DEV.rinne,charactersBase:DEV.characters}),motion:route(DEV.rinne,'review-motion'),equipment:route(DEV.rinne,'review-assets'),objects:route(DEV.rinne,'review-objects'),effects:route(DEV.rinne,'review-effects'),sounds:route(DEV.rinne,'review-sound'),battle:route(DEV.rinne,'review-battle'),rinne:DEV.rinne,village:DEV.village,demon:DEV.demon,pulse:DEV.pulse});
-const WARM_ORDER=Object.freeze(['effects','battle','motion','characters','equipment','objects','sounds']);
+const ROUTES=Object.freeze({...createReviewRoutes({rinneBase:DEV.rinne,charactersBase:DEV.characters}),motion:route(DEV.rinne,'review-motion'),equipment:route(DEV.rinne,'review-assets'),objects:route(DEV.rinne,'review-objects'),effects:route(DEV.rinne,'review-effects'),sounds:route(DEV.rinne,'review-sound'),battle:route(DEV.rinne,'review-battle'),battle2:new URL('./battle2.html',location.href).href,rinne:DEV.rinne,village:DEV.village,demon:DEV.demon,pulse:DEV.pulse});
+const WARM_ORDER=Object.freeze(['effects','battle','battle2','motion','characters','equipment','objects','sounds']);
 const VFX_WARM_ASSETS=Object.freeze(['simulator/assets/effekseer/effekseer.js','simulator/assets/effekseer/effekseer.wasm','simulator/assets/effekseer/samples/00_Basic/Simple_Ribbon_Sword.efkefc','simulator/assets/effekseer/samples/02_Tktk03/ToonHit.efkefc']);
 const warmed=new Set(),connected=new Set();
 function warmRoute(id,{eager=false}={}){
