@@ -8,7 +8,7 @@ This user-approved redesign supersedes the prohibition on all history-derived ch
 
 ## Implementation acceptance
 
-- Separate finite authored answers from per-person provenance: 心 / 体 / 技 / 連 / 変, semantic families rather than speed, mirror, VFX or damage-only variants.
+- Keep 心 / 体 / 連 as bounded authored semantics, but generate 技 / 変 from a deterministic technique grammar. Motion role, footwork, weapon, spacing and execution compatibility define the structural technique; authored techniques remain golden reference cases, not the ceiling of the technique space.
 - 心得 may carry bounded faith weights keyed by the same canonical attributes used by techniques and VFX. Learned 心 records aggregate that faith over the life; stronger faith raises the chance that a newly realized 技/変 receives the matching presentation attribute. The attribute is stored separately from the technique ID, so VFX-only differences never become new techniques.
 - Authored/review VFX expose canonical elemental `attributes` metadata. Gameplay may promote an explicitly curated, pinned same-origin effect for a supported attribute; presentation attributes never invent elemental damage, resistance, hit authority or contact.
 - Record bounded meaningful life/observation/combat traces; repeated identical situations do not accumulate unlock currency.
@@ -16,7 +16,9 @@ This user-approved redesign supersedes the prohibition on all history-derived ch
 - Use equipment, age, actual injury/stamina, continuous intention and bounded inherited motifs as different inputs. Crisis is not required and cannot mint resources or negate a hit.
 - Preserve evidence explaining why a discovery belongs to this person. No fabricated ancestor memories or provenance.
 - Transmit body tendencies and compressed motifs, not learned technique IDs; preserve observation/teaching provenance separately from ancestry. Bound active memory and inheritance across long play.
-- Keep authored motion/contact semantics and presentation independent. No generated animation or cosmetic variations counted as new techniques.
+- Keep authored motion/contact semantics and presentation independent. The grammar may combine only executable authored motion parts whose sequence is physically admissible; speed, mirror, VFX, attributes or scalar damage never mint a new structural technique.
+- Generated technique IDs must reconstruct the same structure deterministically after save/load. The runtime resolves generated IDs through the shared grammar, and the combat review uses that same grammar rather than a separate review-only naming system.
+- Technique naming is derived from normalized structure. Attributes and status traits remain presentation/state layers; only rule-changing traits may promote the displayed grade to 秘技 / 奥義.
 - Refresh in-game technique/journal/lineage presentation: readable situations, signs, purpose, provenance, dormant/usable status and renaming, not an unlock checklist.
 - Distinguish 技演出レビュー (motion/VFX/SFX/contact presentation) from 閃き検証 (causal simulation). Review fixtures do not mutate a player's save.
 - Include deterministic focused tests for distinct lives, repetition resistance, injury/age/equipment constraints, real execution, save migration, lineage and bounded storage, plus the existing browser evidence route.

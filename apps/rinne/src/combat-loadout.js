@@ -1,5 +1,5 @@
-import { ACTION_SKILLS, SUPPORT_SKILLS, SKILL_BY_ID } from './rebuild/skill-system.js';
-import { CAUSAL_ANSWER_BY_ID } from '@soul/game-data';
+import { ACTION_SKILLS, SUPPORT_SKILLS, SKILL_BY_ID, skillDefinition } from './rebuild/skill-system.js';
+import { resolveInspirationAnswer, isGeneratedTechniqueId } from '@soul/game-data';
 import { inspirationName } from './rebuild/inspiration-state.js';
 
 export const PHASES=Object.freeze([['jo','序'],['ha','破'],['kyu','急']]);
@@ -34,14 +34,14 @@ function combatCatalog(state){
   if(!state)return new Set(defaultCatalog());
   if(state.inspiration?.version===1){
     const legacy=new Set(state.inspiration.legacySkills||[]),records=state.inspiration.records||{};
-    state.combatCatalog=[...new Set((state.knownSkills||[]).filter(id=>SKILL_BY_ID[id]&&(legacy.has(id)||Object.hasOwn(records,id))&&!records[id]?.archived))];
+    state.combatCatalog=[...new Set((state.knownSkills||[]).filter(id=>skillDefinition(id)&&(legacy.has(id)||Object.hasOwn(records,id))&&!records[id]?.archived))];
   }else if(!Array.isArray(state.combatCatalog))state.combatCatalog=defaultCatalog();
-  else state.combatCatalog=[...new Set(state.combatCatalog.filter(id=>SKILL_BY_ID[id]))];
+  else state.combatCatalog=[...new Set(state.combatCatalog.filter(id=>skillDefinition(id)))];
   return new Set(state.combatCatalog);
 }
-const isAction=(state,id)=>id===basicSkill(state)||(combatCatalog(state).has(id)&&SKILL_BY_ID[id]?.type==='action');
-const weaponCompatible=(state,id)=>{const weapons=CAUSAL_ANSWER_BY_ID[id]?.weapons;return !weapons?.length||weapons.includes(state?.equipment?.weapon);};
-const actionIds=state=>[basicSkill(state),...ACTION_SKILLS.map(row=>row.id).filter(id=>combatCatalog(state).has(id))];
+const isAction=(state,id)=>id===basicSkill(state)||(combatCatalog(state).has(id)&&skillDefinition(id)?.type==='action');
+const weaponCompatible=(state,id)=>{const weapons=resolveInspirationAnswer(id)?.weapons;return !weapons?.length||weapons.includes(state?.equipment?.weapon);};
+const actionIds=state=>[basicSkill(state),...[...new Set([...ACTION_SKILLS.map(row=>row.id),...(state?.knownSkills||[])])].filter(id=>combatCatalog(state).has(id)&&skillDefinition(id)?.type==='action')];
 function phaseFromLegacy(state,phase){const id=Object.entries(state?.skillWeights?.[phase]||{}).filter(([,value])=>Number(value)>0).sort((a,b)=>Number(b[1])-Number(a[1]))[0]?.[0];return isAction(state,id)?id:basicSkill(state);}
 function makeCombo(state,index=0,source=null){
   const id=source?.id||`combo-${index+1}`;
@@ -55,13 +55,13 @@ export function ensureCombatLoadout(state){
   if(!Array.isArray(heart.active))heart.active=[];else heart.active=[...new Set(heart.active.filter(id=>availableHeart.includes(id)))].slice(0,HEART_SLOT_COUNT);
   const technique=existing.technique&&typeof existing.technique==='object'?existing.technique:{},rawCombos=Array.isArray(technique.combos)?technique.combos.slice(0,MAX_COMBOS):[];
   technique.combos=(rawCombos.length?rawCombos:[null]).map((row,index)=>makeCombo(state,index,row));if(!technique.combos.some(row=>row.id===technique.activeComboId))technique.activeComboId=technique.combos[0].id;
-  if(SKILL_BY_ID[technique.oneMotion]?.type!=='action'||!available.has(technique.oneMotion)||String(technique.oneMotion).startsWith('spark.'))technique.oneMotion=null;
+  if(skillDefinition(technique.oneMotion)?.type!=='action'||!available.has(technique.oneMotion)||String(technique.oneMotion).startsWith('spark.')||isGeneratedTechniqueId(technique.oneMotion))technique.oneMotion=null;
   state.combatLoadout={heart,technique,body:normalizeBody(state,existing.body)};mirrorLegacy(state);return state.combatLoadout;
 }
 export function availableCombatSkills(state){ensureCombatLoadout(state);return[...combatCatalog(state)];}
 export function learnedHeartSkills(state){ensureCombatLoadout(state);const available=combatCatalog(state);return supportIds().filter(id=>available.has(id));}
-export function learnedTechniqueSkills(state,{oneMotion=false}={}){ensureCombatLoadout(state);const ids=actionIds(state);return oneMotion?ids.filter(id=>SKILL_BY_ID[id]?.type==='action'&&!id.startsWith('spark.')):ids;}
-export function techniqueName(id,state=null){const fallback=SKILL_BY_ID[id]?.name||BASIC_LABELS[id]||id||'未設定';return state?inspirationName(state,id,fallback):fallback;}
+export function learnedTechniqueSkills(state,{oneMotion=false}={}){ensureCombatLoadout(state);const ids=actionIds(state);return oneMotion?ids.filter(id=>skillDefinition(id)?.type==='action'&&!id.startsWith('spark.')&&!isGeneratedTechniqueId(id)):ids;}
+export function techniqueName(id,state=null){const fallback=skillDefinition(id)?.name||BASIC_LABELS[id]||id||'未設定';return state?inspirationName(state,id,fallback):fallback;}
 export function activeCombo(state){const loadout=state?.combatLoadout||ensureCombatLoadout(state);return loadout?.technique?.combos?.find(row=>row.id===loadout.technique.activeComboId)||loadout?.technique?.combos?.[0]||null;}
 export function comboById(state,id){ensureCombatLoadout(state);return state.combatLoadout.technique.combos.find(row=>row.id===id)||activeCombo(state);}
 export function setHeartActive(state,id,active){
@@ -81,7 +81,7 @@ export function removeCombo(state,id){const loadout=ensureCombatLoadout(state),r
 export function setActiveCombo(state,id){const loadout=ensureCombatLoadout(state);if(!loadout.technique.combos.some(row=>row.id===id))return false;loadout.technique.activeComboId=id;mirrorLegacy(state);return true;}
 export function setComboSkill(state,comboId,phase,skill){const combo=comboById(state,comboId);if(!combo||!PHASES.some(([id])=>id===phase)||!isAction(state,skill)||!weaponCompatible(state,skill))return false;combo.slots[phase]=skill;if(combo.id===state.combatLoadout.technique.activeComboId)mirrorLegacy(state);return true;}
 export function toggleFavored(state,comboId,phase){const combo=comboById(state,comboId);if(!combo||!PHASES.some(([id])=>id===phase))return false;combo.favored[phase]=!combo.favored[phase];return combo.favored[phase];}
-export function setOneMotion(state,skill){const loadout=ensureCombatLoadout(state);if(skill===null){loadout.technique.oneMotion=null;return true;}if(SKILL_BY_ID[skill]?.type!=='action'||!combatCatalog(state).has(skill)||String(skill).startsWith('spark.'))return false;loadout.technique.oneMotion=skill;return true;}
+export function setOneMotion(state,skill){const loadout=ensureCombatLoadout(state);if(skill===null){loadout.technique.oneMotion=null;return true;}if(skillDefinition(skill)?.type!=='action'||!combatCatalog(state).has(skill)||String(skill).startsWith('spark.')||isGeneratedTechniqueId(skill))return false;loadout.technique.oneMotion=skill;return true;}
 export function setBodyChoice(state,kind,id){const loadout=ensureCombatLoadout(state),map={stance:BODY_STANCES,style:BODY_STYLES,zanshin:BODY_ZANSHIN},list=map[kind];if(!list)return false;const row=list.find(item=>item.id===id);if(!row||!optionUnlocked(state,row))return false;loadout.body[kind]=id;return true;}
 export function unlockedBodyOptions(state,kind){ensureCombatLoadout(state);const map={stance:BODY_STANCES,style:BODY_STYLES,zanshin:BODY_ZANSHIN};return(map[kind]||[]).filter(row=>optionUnlocked(state,row));}
 export function bodyRuntime(state){const loadout=ensureCombatLoadout(state),stance=BODY_STANCES.find(row=>row.id===loadout.body.stance)||BODY_STANCES[0],style=BODY_STYLES.find(row=>row.id===loadout.body.style)||BODY_STYLES[0],zanshin=BODY_ZANSHIN.find(row=>row.id===loadout.body.zanshin)||BODY_ZANSHIN[0];return{stance,style,zanshin,guardBonus:(stance.guardBonus||0)+(zanshin.guardBonus||0)};}

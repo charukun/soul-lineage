@@ -1,4 +1,4 @@
-import { CAUSAL_ANSWERS, CAUSAL_ANSWER_BY_ID, INSPIRATION_QUESTIONS, inspirationTechniqueName } from '@soul/game-data';
+import { CAUSAL_ANSWERS, INSPIRATION_QUESTIONS, inspirationTechniqueName, inspirationCombatAnswerPool, resolveInspirationAnswer } from '@soul/game-data';
 import { INSPIRATION_LIMITS, MOTIFS, ensureInspiration, synchronizeKnownSkills } from './inspiration-persistence.js';
 import { faithProfile } from './skill-system.js';
 export { INSPIRATION_VERSION, INSPIRATION_LIMITS, ensureInspiration, synchronizeKnownSkills, validateInspiration, inspirationImprint } from './inspiration-persistence.js';
@@ -10,7 +10,7 @@ const safe=value=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,'').trim().
 const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,Number.isFinite(Number(v))?Number(v):a));
 const unique=values=>[...new Set(values)];
 const own=(o,k)=>Object.prototype.hasOwnProperty.call(o||{},k);
-const answer=id=>own(CAUSAL_ANSWER_BY_ID,id)?CAUSAL_ANSWER_BY_ID[id]:null;
+const answer=id=>resolveInspirationAnswer(id);
 function hash(text){let h=2166136261;for(const c of String(text)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 function unit(seed,key){return hash(`${seed}:${key}`)/4294967295;}
 export function inspirationAttributeChance(state,attribute){
@@ -67,9 +67,14 @@ function candidateScore(state,row,context){
   const motifs=unique(s.traces.flatMap(t=>t.motifs));score+=row.motifs.filter(m=>motifs.includes(m)).length*.12;
   score+=Math.min(.3,s.heritage.filter(h=>row.motifs.includes(h.motif)).reduce((n,h)=>n+h.strength*.15,0));score+=unit(state.seed,`aptitude:${row.family}`)*.08;return score;
 }
+function candidateAnswerPool(state,window){
+  if(window!=='combat')return CAUSAL_ANSWERS;
+  const weapon=state.equipment?.weapon||'fist',nonCombat=CAUSAL_ANSWERS.filter(row=>!['technique','variant'].includes(row.kind));
+  return [...nonCombat,...inspirationCombatAnswerPool(weapon)];
+}
 export function inspirationCandidates(state,context={}){
   const s=ensureInspiration(state),window=context.window||'combat',questions=context.questions||Object.keys(s.questions),rows=[];
-  for(const row of CAUSAL_ANSWERS){
+  for(const row of candidateAnswerPool(state,window)){
     if(own(s.records,row.id)||s.legacySkills.includes(row.id))continue;
     if(row.requiresFamily&&!Object.values(s.records).some(r=>r.family===row.requiresFamily))continue;
     if(!row.questions.some(q=>questions.includes(q)&&own(s.questions,q)))continue;
@@ -122,7 +127,7 @@ function signBlockedHint(reason=''){
   return '別々の経験が、つながりかけている。';
 }
 function signCandidate(state,question,context={}){
-  const s=ensureInspiration(state),rows=CAUSAL_ANSWERS.filter(row=>row.kind!=='link'&&row.questions.includes(question)&&!own(s.records,row.id)&&(!row.requiresFamily||Object.values(s.records).some(r=>r.family===row.requiresFamily)));
+  const s=ensureInspiration(state),rows=candidateAnswerPool(state,'combat').filter(row=>row.kind!=='link'&&row.questions.includes(question)&&!own(s.records,row.id)&&(!row.requiresFamily||Object.values(s.records).some(r=>r.family===row.requiresFamily)));
   let blocked=null;
   for(const row of rows){
     if(!materialProof(s,row))continue;
@@ -135,7 +140,7 @@ function signCandidate(state,question,context={}){
 export function updateInspirationSigns(state,context={}){
   const s=ensureInspiration(state),rows=[];
   for(const [id,q]of Object.entries(s.questions)){
-    const remaining=CAUSAL_ANSWERS.some(row=>row.kind!=='link'&&row.questions.includes(id)&&!own(s.records,row.id));if(!remaining)continue;
+    const remaining=candidateAnswerPool(state,'combat').some(row=>row.kind!=='link'&&row.questions.includes(id)&&!own(s.records,row.id));if(!remaining)continue;
     const candidate=signCandidate(state,id,context);
     rows.push({question:id,text:INSPIRATION_QUESTIONS[id],hint:candidate?.hint||'稽古や暮らしの中で、別の手掛かりを探している。',age:q.age,ready:Boolean(candidate?.ready)});
   }
