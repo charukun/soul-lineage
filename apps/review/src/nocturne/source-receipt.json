@@ -1,0 +1,20 @@
+{
+  "sourceCommit": "a923fcc02dfef9a57aad00001bd3daab8786fc07",
+  "sourcePath": "apps/review/src/nocturne-stage.js",
+  "sourceGitBlob": "11c667ea69302f87a925e03317b849969f83e6dd",
+  "migration": "headless-nocturne-library-v1",
+  "preserved": [
+    "forest geometry and placement",
+    "actor rigs and clips",
+    "attack and death timing",
+    "combat rules and hit effects",
+    "camera and lighting"
+  ],
+  "changes": [
+    "shared library assets",
+    "no HUD or input controls",
+    "owned restart lifecycle",
+    "audio gesture and visibility lifecycle",
+    "observable startup and errors"
+  ]
+}
