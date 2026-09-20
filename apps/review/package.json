@@ -11,7 +11,9 @@
     "preview": "vite preview --host 0.0.0.0 --port 5276 --strictPort"
   },
   "dependencies": {
-    "@soul/shared-ui": "*"
+    "@soul/shared-ui": "*",
+    "@soul/assets": "*",
+    "three": "0.186.0"
   },
   "devDependencies": {
     "vite": "8.2.2"
