@@ -27,7 +27,7 @@ test('sound review filtering supports kind and Japanese metadata search',()=>{
 test('sound review UI stays isolated from motion and VFX',async()=>{
   const [html,source]=await Promise.all([read('review-sound.html'),read('src/review-sound.js')]);
   for(const id of ['sound-play','sound-restart','sound-seek','sound-volume','sound-loop','sound-search','sound-catalog'])assert.match(html,new RegExp(`id="${id}"`));
-  assert.match(html,/モーションやエフェクトから切り離して単独で確認/);
+  assert.match(html,/モーション・VFX・ゲームロジックとの同期はここでは行いません/);
   assert.match(source,/new Audio\(\)/);
   assert.match(source,/filterSoundReviewLibrary/);
   assert.match(source,/document\.hidden/);
