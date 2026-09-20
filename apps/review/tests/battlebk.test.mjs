@@ -35,7 +35,7 @@ test('Lab registers one extensionless backup route and builds both independent e
   const shared=readFileSync(new URL('../../../packages/shared-ui/src/review-shell.js',import.meta.url),'utf8');
   const context={};runInNewContext(shared.replace(/^import[^\n]+\n/,'').replaceAll('export ','')+'\nresult=REVIEW_PROBES;',context);
   assert.equal(context.result.length,9);
-  assert.deepEqual(Array.from(context.result.slice(-3),p=>[p.id,p.label]),[['battle','戦闘演出'],['battle2','戦闘演出2'],['battlebk','戦闘演出bk']]);
+  assert.deepEqual(Array.from(context.result.slice(-3),p=>[p.id,p.label]),[['battle','戦闘演出'],['battle2','序破急バトルシステム'],['battlebk','戦闘演出bk']]);
 });
 
 test('backup switcher selects itself, links to the original, and preserves Escape/teardown behavior',()=>{

@@ -19,7 +19,7 @@ export async function assertBattle2Frame(page){
   assert.ok(geometry.canvas.y>=geometry.stage.y&&geometry.canvas.bottom<=geometry.stage.bottom+1);
   assert.ok(geometry.stage.bottom>=geometry.frame.bottom-14,'No empty control-panel or mobile grid row');
   assert.ok(geometry.stage.height>geometry.viewport.height*.7,'Render region should occupy the available frame');
-  assert.equal(await page.locator('.review-surface__title h1').innerText(),'戦闘演出2');
+  assert.equal(await page.locator('.review-surface__title h1').innerText(),'序破急バトルシステム');
   assert.equal(await page.locator('.review-surface__title h1').isVisible(),true);
   assert.equal(await page.locator('.review-surface__back').isVisible(),true);
   assert.equal(await page.locator('.review-surface__panel').count(),0);
@@ -31,7 +31,7 @@ export async function exerciseBattle2Switcher(page,{origin,out,name}){
   assert.equal(await page.locator('.review-switcher[open]').count(),1);
   const cards=page.locator('.review-switcher__grid>.review-probe-card');assert.equal(await cards.count(),9);
   assert.equal(await cards.nth(6).locator('strong').innerText(),'戦闘演出');
-  assert.equal(await cards.nth(7).locator('strong').innerText(),'戦闘演出2');
+  assert.equal(await cards.nth(7).locator('strong').innerText(),'序破急バトルシステム');
   assert.equal(await cards.nth(8).locator('strong').innerText(),'戦闘演出bk');
   assert.equal(await cards.nth(6).getAttribute('href'),'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/review-battle');
   assert.equal(await cards.nth(7).getAttribute('href'),origin+'/battle2');
