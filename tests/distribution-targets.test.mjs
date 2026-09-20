@@ -9,6 +9,7 @@ import { distributionPlanForDev } from '../scripts/distribution-plan.mjs';
 import { artifactRelativePath, installStaticArtifact, materializeStaticArtifact, readArtifactReceipt } from '../scripts/distribution-artifacts.mjs';
 import { buildCommandForTarget } from '../scripts/build-target.mjs';
 import { fastDevEmailMessage } from '../scripts/notify-fast-dev.mjs';
+import { parseWranglerDeployment, stagingObservation, workerPreviewUrl } from '../scripts/staging-preview.mjs';
 
 test('distribution catalog separates buildable web targets from contract-only consumer targets',()=>{
   for(const id of ['web-dev','web-staging','web-prod'])assert.equal(distributionTarget(id).status,'buildable');
@@ -23,6 +24,13 @@ test('distribution catalog separates buildable web targets from contract-only co
   assert.equal(targetSupportsApp('web-staging','review'),false);
   assert.equal(targetSupportsApp('web-staging','character-studio'),false);
   assert.ok(DISTRIBUTION_TARGETS.length>=9);
+  const version='6c6f6499-055b-47e2-97bc-8d837434c084',sha='1'.repeat(40);
+  assert.equal(workerPreviewUrl({app:'village',versionId:version}),'https://6c6f6499-soul-lineage-village-dev.c-okamoto.workers.dev/');
+  const parsed=parseWranglerDeployment('Deployed\n  https://soul-lineage-village-dev.c-okamoto.workers.dev\nCurrent Version ID: '+version,{app:'village'});
+  assert.equal(parsed.previewUrl,'https://6c6f6499-soul-lineage-village-dev.c-okamoto.workers.dev/');
+  const observation=stagingObservation({app:'village',sourceSha:sha,versionId:version,observedAt:'2026-09-20T00:00:00Z',conditions:{scenario:'baseline'}});
+  assert.equal(observation.sourceSha,sha);
+  assert.equal(observation.provider,'cloudflare-worker-version-preview');
 });
 
 test('DEV distribution plan is app-scoped and fans shared dependencies out through workspace closure',()=>{
