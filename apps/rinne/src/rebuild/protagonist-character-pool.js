@@ -5,26 +5,12 @@ import { kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
 import { RINNE_CHARACTER_RUNTIME } from './character-runtime-adapter.js';
 import {
   RINNE_PROTAGONIST_BYTES,
-  RINNE_PROTAGONIST_GIT_BLOB_SHA,
   RINNE_PROTAGONIST_MODEL_ID,
-  RINNE_PROTAGONIST_RUNTIME_ASSET
+  RINNE_PROTAGONIST_RUNTIME_ASSET,
+  RINNE_PROTAGONIST_SHA256
 } from './protagonist-runtime-asset.js';
 
-const EMBEDDED_COMBAT_PROP=/\b(?:arrow|axe|blade|bow|crossbow|dagger|mace|quiver|shield|spear|staff|sword|wand|weapon)\b/i;
 const toHex = bytes => [...new Uint8Array(bytes)].map(value => value.toString(16).padStart(2, '0')).join('');
-
-function hideEmbeddedCombatProps(root) {
-  let hidden = 0;
-  root?.traverse?.(node => {
-    if (!node?.isMesh) return;
-    const materials = (Array.isArray(node.material) ? node.material : [node.material]).filter(Boolean);
-    const signature = [node.name, node.geometry?.name, ...materials.map(material => material?.name)].filter(Boolean).join(' ').replace(/[_\-.]+/g, ' ');
-    if (!EMBEDDED_COMBAT_PROP.test(signature)) return;
-    node.visible = false;
-    hidden++;
-  });
-  return hidden;
-}
 
 export async function verifyProtagonistRuntimeBytes(bytes) {
   if (!(bytes instanceof ArrayBuffer)) throw new Error('Protagonist runtime asset must be an ArrayBuffer');
@@ -32,16 +18,12 @@ export async function verifyProtagonistRuntimeBytes(bytes) {
     throw new Error(`Protagonist runtime byte length mismatch: ${bytes.byteLength} != ${RINNE_PROTAGONIST_BYTES}`);
   }
   const subtle = globalThis.crypto?.subtle;
-  if (!subtle?.digest) throw new Error('WebCrypto SHA-1 is required for protagonist runtime integrity');
-  const header = new TextEncoder().encode(`blob ${bytes.byteLength}\0`);
-  const payload = new Uint8Array(header.byteLength + bytes.byteLength);
-  payload.set(header, 0);
-  payload.set(new Uint8Array(bytes), header.byteLength);
-  const gitBlobSha = toHex(await subtle.digest('SHA-1', payload));
-  if (gitBlobSha !== RINNE_PROTAGONIST_GIT_BLOB_SHA) {
-    throw new Error(`Protagonist runtime Git blob SHA-1 mismatch: ${gitBlobSha} != ${RINNE_PROTAGONIST_GIT_BLOB_SHA}`);
+  if (!subtle?.digest) throw new Error('WebCrypto SHA-256 is required for protagonist runtime integrity');
+  const sha256 = toHex(await subtle.digest('SHA-256', bytes));
+  if (sha256 !== RINNE_PROTAGONIST_SHA256) {
+    throw new Error(`Protagonist runtime SHA-256 mismatch: ${sha256} != ${RINNE_PROTAGONIST_SHA256}`);
   }
-  return Object.freeze({ gitBlobSha, bytes: bytes.byteLength });
+  return Object.freeze({ sha256, bytes: bytes.byteLength });
 }
 
 async function loadTemplate(loader) {
@@ -49,13 +31,16 @@ async function loadTemplate(loader) {
   if (!response.ok) throw new Error(`Protagonist runtime fetch failed: HTTP ${response.status}`);
   const bytes = await response.arrayBuffer();
   const integrity = await verifyProtagonistRuntimeBytes(bytes);
-  const gltf = await loader.parseAsync(bytes, './simulator/assets/kaykit/');
+  const gltf = await loader.parseAsync(bytes, './simulator/assets/');
+  const metadata = gltf?.parser?.json?.asset?.extras?.rinneCharacter;
+  if (metadata?.id !== RINNE_PROTAGONIST_MODEL_ID || metadata?.license !== 'CC0-1.0') {
+    throw new Error('Protagonist runtime metadata does not match the adopted CC0 model');
+  }
   const humanoid = kaykitHumanoidFromGLTF(gltf);
-  const hiddenEmbeddedCombatProps = hideEmbeddedCombatProps(gltf.scene);
-  return Object.freeze({ scene: gltf.scene, humanoid, integrity, hiddenEmbeddedCombatProps });
+  return Object.freeze({ scene: gltf.scene, humanoid, integrity });
 }
 
-function stamp(actor, template) {
+function stamp(actor, integrity) {
   Object.assign(actor.root.userData, {
     characterFamily: RINNE_CHARACTER_RUNTIME.family,
     characterModel: RINNE_PROTAGONIST_MODEL_ID,
@@ -63,9 +48,8 @@ function stamp(actor, template) {
     characterRuntimeFormat: RINNE_CHARACTER_RUNTIME.format,
     characterRuntimeRig: RINNE_CHARACTER_RUNTIME.rigFamily,
     characterRuntimeState: RINNE_CHARACTER_RUNTIME.resolveState(),
-    characterAssetGitBlobSha: template.integrity.gitBlobSha,
-    characterAssetBytes: template.integrity.bytes,
-    characterEmbeddedCombatPropsHidden: template.hiddenEmbeddedCombatProps,
+    characterAssetSha256: integrity.sha256,
+    characterAssetBytes: integrity.bytes,
     characterProductionStage: RINNE_PROTAGONIST_RUNTIME_ASSET.productionStage,
     characterVisualApproval: RINNE_PROTAGONIST_RUNTIME_ASSET.visualApproval
   });
@@ -80,7 +64,7 @@ export async function createProtagonistCharacterPool(renderer) {
     const pool = Object.freeze({
       spawn(id) {
         const actor = inner.spawn(id);
-        stamp(actor, template);
+        stamp(actor, template.integrity);
         return createCharacterModelWrapper({
           actor,
           adapter: RINNE_CHARACTER_RUNTIME,

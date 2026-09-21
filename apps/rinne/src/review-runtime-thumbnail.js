@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {disposeReviewObject} from '@soul/rendering';
 
 const size=Object.freeze({width:288,height:184});
 let renderer=null,scene=null,camera=null,queue=Promise.resolve(),active=false;
@@ -37,19 +38,7 @@ function draw(target,source){
 function snapshot(target){
   const copy=document.createElement('canvas');copy.width=target.width;copy.height=target.height;copy.getContext('2d').drawImage(target,0,0);return copy;
 }
-function dispose(root){
-  const geometries=new Set(),materials=new Set(),textures=new Set(),skeletons=new Set();
-  root?.traverse?.(node=>{
-    if(node.geometry)geometries.add(node.geometry);
-    if(node.skeleton)skeletons.add(node.skeleton);
-    for(const material of Array.isArray(node.material)?node.material:node.material?[node.material]:[]){
-      if(!material)continue;materials.add(material);
-      for(const value of Object.values(material))if(value?.isTexture)textures.add(value);
-    }
-  });
-  geometries.forEach(value=>value.dispose?.());materials.forEach(value=>value.dispose?.());textures.forEach(value=>value.dispose?.());skeletons.forEach(value=>value.dispose?.());
-  root?.removeFromParent?.();
-}
+function dispose(root){disposeReviewObject(root);}
 async function renderNow(target,root,{disposeAfter=true,ground=true}={}){
   if(!target?.isConnected||!root){if(disposeAfter)dispose(root);return;}
   ensureRuntime();

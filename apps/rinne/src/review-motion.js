@@ -1,39 +1,43 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
-import {KAYKIT_MODELS} from '@soul/characters';
+import {RINNE_MOTION_REVIEW_DEFAULT_MODEL,RINNE_MOTION_REVIEW_MODELS} from './review-motion-models.js';
 import {createHumanoidPreview} from '@soul/rendering/humanoid-preview';
 import {createHumanoidPreviewConstraints} from '@soul/rendering/humanoid-preview-constraints';
-import {createReviewRenderer,normalizeReviewSubject,positionReviewCamera} from '@soul/rendering';
-import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGORY_LABELS} from './review-motion-catalog.js';
+import {createReviewCameraPresetController,createReviewRenderer,disposeReviewObject,normalizeReviewSubject,positionReviewCamera} from '@soul/rendering';
+import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGORY_LABELS,reviewMotionDisplayName} from './review-motion-catalog.js';
 import {buildReviewMotionRegistry,motionRegistryCount,externalMotionRecords,dedupeSourceMotions} from './review-motion-registry.js';
 import {loadPinnedMotionSource,loadPinnedReviewTarget,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import {resolveReviewHumanoidDescriptor,createRigRequiredDccRoute} from './review-humanoid-calibrations.js';
+import {hideEmbeddedCombatProps} from './review-battle-equipment.js';
+import {MOTION_REVIEW_WEAPON_OPTIONS,loadMotionReviewWeapon} from './review-motion-equipment.js';
 import './review-motion-library.css';
 import './review-motion-preview.css';
 import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
+import {createReviewSvgThumbnail} from '@soul/shared-ui/review-thumbnail';
+import {setReviewStatus} from '@soul/shared-ui/review-status';
 mountRinneReviewShell('motion');
 
 const el=id=>document.getElementById(id),canvas=el('motion-stage');
-const status=message=>{if(el('motion-status').textContent!==message)el('motion-status').textContent=message;};
+const status=message=>{if(el('motion-status').textContent!==message)setReviewStatus(el('motion-status'),message);};
 const renderer=createReviewRenderer(canvas,{exposure:1.05});
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1110);scene.fog=new THREE.Fog(0x0b1110,9,22);
 const camera=new THREE.PerspectiveCamera(38,1,.04,60),controls=new OrbitControls(camera,canvas);
-controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=.7;controls.maxDistance=12;
+controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=1;controls.maxDistance=12;
 scene.add(new THREE.HemisphereLight(0xe3ece8,0x27312d,2.4));
 const key=new THREE.DirectionalLight(0xffe7bc,3.1);key.position.set(-4,7,5);scene.add(key);
 const rim=new THREE.DirectionalLight(0x9ac8d5,1.35);rim.position.set(5,4,-4);scene.add(rim);
 const ground=new THREE.Mesh(new THREE.CircleGeometry(3.5,64),new THREE.MeshStandardMaterial({color:0x1a2420,roughness:.96,metalness:.01}));
 ground.rotation.x=-Math.PI/2;ground.position.y=-.005;scene.add(ground);
 const stage=new THREE.Group();scene.add(stage);
-const REVIEW_MODELS=KAYKIT_MODELS;
-let selectedModel=REVIEW_MODELS[0],subject=null,targetScene=null,targetAdapter=null,targetConstraints=null,targetCalibration=null,targetDccRoute=null,mixer=null,action=null,targetClips=[],catalog=[],selected=null;
-let filter='all',playing=false,speed=1,loop=true,last=performance.now(),loadSerial=0,selectSerial=0,cameraPreset='three-quarter';
+const REVIEW_MODELS=RINNE_MOTION_REVIEW_MODELS;
+let selectedModel=RINNE_MOTION_REVIEW_DEFAULT_MODEL,subject=null,targetScene=null,targetAdapter=null,targetConstraints=null,targetCalibration=null,targetDccRoute=null,mixer=null,action=null,targetClips=[],catalog=[],selected=null;
+let filter='all',playing=false,speed=1,loop=true,last=performance.now(),loadSerial=0,selectSerial=0;
 let externalSource=null,externalTime=0,selectedDuration=0,ready=false,rootMotion='in-place',constraintMode='raw',stopped=false;
+let selectedWeapon='none',equippedWeapon=null,weaponSerial=0;
 const motionFailures=new Map(),thumbnailModelPromises=new Map(),categoryOrder=['all','recommended','life','move','parkour','combat','reaction','other'];
-const formatName=name=>String(name).replaceAll('_',' ').replace(/\s+/g,' ').trim();
 const categoryLabel=category=>REVIEW_MOTION_CATEGORY_LABELS[category]||category;
 const isExternal=()=>selected?.runtime?.kind==='pinned-motion-source';
 const playbackTime=()=>isExternal()?externalTime:Math.max(0,action?.time||0);
@@ -42,8 +46,10 @@ const playbackTime=()=>isExternal()?externalTime:Math.max(0,action?.time||0);
 const quality=document.createElement('output');quality.id='motion-quality';quality.className='motion-quality';quality.setAttribute('aria-live','polite');
 canvas.closest('.motion-stage').append(quality);
 const compatibility=document.createElement('details');compatibility.className='motion-compatibility';
-compatibility.innerHTML='<summary>互換性・体格</summary><p>近似再生は素材比較用です。製品品質の承認ではありません。</p><label>腰の移動 <select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場で再生</option><option value="free">移動も適用</option><option value="locked">腰を固定</option></select></label><label>補正 <select id="motion-constraint-policy" aria-label="プレビュー補正"><option value="raw">生の近似</option><option value="assisted">接地・接触を補助</option></select></label><pre id="motion-binding-report"></pre>';
+compatibility.innerHTML='<summary>設定</summary><p>武器・腰移動・プレビュー補正を切り替えます。近似再生は素材比較用です。</p><label>武器 <select id="motion-weapon" aria-label="武器"></select></label><label>腰の移動 <select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場で再生</option><option value="free">移動も適用</option><option value="locked">腰を固定</option></select></label><label>補正 <select id="motion-constraint-policy" aria-label="プレビュー補正"><option value="raw">生の近似</option><option value="assisted">接地・接触を補助</option></select></label><pre id="motion-binding-report"></pre>';
 el('motion-meta').closest('details').before(compatibility);
+for(const option of MOTION_REVIEW_WEAPON_OPTIONS)el('motion-weapon').add(new Option(option.label,option.id));
+el('motion-weapon').value=selectedWeapon;
 let lastReport='';
 function showCompatibility(result,source=externalSource){
   const labels={PLAYABLE:'再生可能',DEGRADED:'近似再生',RIG_REQUIRED:'骨・ウェイトの準備が必要',UNSUPPORTED:'データを確認してください',LOADING:'読み込み中',NATIVE:'原版再生'};
@@ -53,24 +59,41 @@ function showCompatibility(result,source=externalSource){
   const signature=(targetAdapter?.descriptor.assetHash||'')+(source?.id||'')+JSON.stringify(summary);
   if(signature!==lastReport){el('motion-binding-report').textContent=JSON.stringify({target:targetAdapter?.descriptor,calibration:targetCalibration,dccRoute:targetDccRoute,source:source?.compatibility||null,result:summary},null,2);lastReport=signature;}
 }
-function disposeScene(root){
-  const geometries=new Set(),materials=new Set(),textures=new Set(),skeletons=new Set();
-  root?.traverse(node=>{
-    if(node.geometry)geometries.add(node.geometry);if(node.skeleton)skeletons.add(node.skeleton);
-    for(const material of Array.isArray(node.material)?node.material:[node.material]){if(!material)continue;materials.add(material);for(const value of Object.values(material))if(value?.isTexture)textures.add(value);}
-  });
-  geometries.forEach(v=>v.dispose());materials.forEach(v=>v.dispose());textures.forEach(v=>v.dispose());skeletons.forEach(v=>v.dispose());
+function disposeEquippedWeapon(){
+  weaponSerial++;
+  if(!equippedWeapon)return;
+  disposeReviewObject(equippedWeapon);equippedWeapon=null;
+}
+async function syncWeapon(){
+  const serial=++weaponSerial;
+  if(equippedWeapon){disposeReviewObject(equippedWeapon);equippedWeapon=null;}
+  canvas.dataset.motionWeapon=selectedWeapon;
+  if(selectedWeapon==='none'||!targetAdapter)return;
+  const anchor=targetAdapter.bones?.rightHand;
+  if(!anchor){status('右手の武器スロットが見つかりません。');return;}
+  try{
+    const loaded=await loadMotionReviewWeapon(selectedWeapon);
+    if(serial!==weaponSerial||stopped||!targetAdapter){if(loaded.root)disposeReviewObject(loaded.root);return;}
+    if(!loaded.root)return;
+    anchor.add(loaded.root);equippedWeapon=loaded.root;canvas.dataset.motionWeapon=loaded.option.id;
+  }catch(error){
+    if(serial!==weaponSerial||stopped)return;
+    canvas.dataset.motionWeapon='error';status('武器読込失敗: '+String(error?.message||error));
+  }
 }
 function disposeSubject(){
+  disposeEquippedWeapon();
   if(mixer&&targetScene){mixer.stopAllAction();mixer.uncacheRoot(targetScene);}
-  if(subject){stage.remove(subject);disposeScene(subject);}
+  if(subject)disposeReviewObject(subject);
   subject=null;targetScene=null;targetAdapter=null;targetConstraints=null;targetCalibration=null;targetDccRoute=null;mixer=null;action=null;targetClips=[];
 }
-function setCameraPreset(id){
-  cameraPreset=id;
-  if(subject)positionReviewCamera({camera,controls,root:subject,preset:id,padding:1.18,minDistance:.7,maxDistance:12});
-  for(const b of document.querySelectorAll('[data-motion-camera]'))b.setAttribute('aria-pressed',String(b.dataset.motionCamera===id));
-}
+const motionCameraPresets=createReviewCameraPresetController({
+  selector:'[data-motion-camera]',
+  datasetKey:'motionCamera',
+  initialPreset:'three-quarter',
+  applyPreset:id=>{if(subject)positionReviewCamera({camera,controls,root:subject,preset:id,padding:1.75,minDistance:1,maxDistance:12});},
+});
+function setCameraPreset(id){motionCameraPresets.set(id);}
 function syncPlaybackUI(){
   const time=Math.min(selectedDuration,playbackTime());
   const playLabel=playing?'一時停止':'▶ 再生';if(el('motion-play').textContent!==playLabel)el('motion-play').textContent=playLabel;
@@ -88,11 +111,11 @@ function syncMotionCards(){
 }
 function syncSelectedMeta(){
   if(!selected)return;const row=selected;
-  el('motion-selected').textContent=formatName(row.name);
-  el('motion-meta').textContent=`source ${row.sourceRepository} @ ${row.sourceRevision} / ${row.sourcePath} / clip ${row.upstreamClipIndex} “${row.upstreamClipName}” / ${row.immutableHash} / ${row.author} / ${row.license}`;
+  el('motion-selected').textContent=row.displayName||reviewMotionDisplayName(row.name,row.index);
+  el('motion-meta').textContent=`source ${row.sourceRepository} @ ${row.sourceRevision} / ${row.sourcePath} / clip ${row.upstreamClipIndex}「${row.displayName||reviewMotionDisplayName(row.name,row.index)}」 / ${row.immutableHash} / ${row.author} / ${row.license}`;
   el('motion-license').href=row.licenseEvidence||row.licenseUrl||'./simulator/licenses/REVIEW_MOTION_SOURCES.txt';
   el('motion-origin').href=row.originalSource||'./simulator/licenses/REVIEW_MOTION_SOURCES.txt';
-  canvas.dataset.motionName=row.name;canvas.dataset.motionCategory=row.category;canvas.dataset.motionIdentity=row.sourceIdentity;
+  canvas.dataset.motionName=row.displayName||reviewMotionDisplayName(row.name,row.index);canvas.dataset.motionUpstreamName=row.upstreamClipName;canvas.dataset.motionCategory=row.category;canvas.dataset.motionIdentity=row.sourceIdentity;
 }
 function applyExternal(time){
   const result=targetAdapter.apply(externalSource.sample(selected.upstreamClipIndex,time),{rootMotion,mode:'preview'});
@@ -127,13 +150,16 @@ async function selectMotion(record){
   }
   syncMotionCards();syncPlaybackUI();
 }
-function createStaticThumbnail(url,label=''){
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('review-static-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-label',label);svg.setAttribute('role','img');
-  const use=document.createElementNS(svg.namespaceURI,'use');use.setAttribute('href',url);svg.append(use);return svg;
+const createStaticThumbnail=(url,label='')=>createReviewSvgThumbnail(url,{label});
+function createModelThumbnail(model){
+  if(model.thumbnailUrl)return createStaticThumbnail(model.thumbnailUrl,model.label);
+  const thumbnail=createRuntimeThumbnail(model.label);
+  scheduleRuntimeThumbnail(thumbnail,`motion-model:v1:${model.id}`,async()=>cloneSkeleton((await loadReviewModelForThumbnail(model)).scene),{disposeAfter:false});
+  return thumbnail;
 }
 function renderModelGrid(){
   const grid=el('motion-model-grid');grid.replaceChildren();
-  for(const model of REVIEW_MODELS){const b=document.createElement('button');b.type='button';b.className='review-choice-card';b.dataset.motionModel=model.id;b.append(createStaticThumbnail(model.thumbnailUrl,model.label));b.setAttribute('aria-label',model.label);b.title=model.label;b.setAttribute('aria-pressed',String(model.id===selectedModel.id));b.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(b);}
+  for(const model of REVIEW_MODELS){const b=document.createElement('button');b.type='button';b.className='review-choice-card';b.dataset.motionModel=model.id;b.append(createModelThumbnail(model));b.setAttribute('aria-label',model.label);b.title=model.label;b.setAttribute('aria-pressed',String(model.id===selectedModel.id));b.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(b);}
 }
 function renderFilters(){
   const root=el('motion-filters');root.replaceChildren();
@@ -148,7 +174,7 @@ function renderMotionGrid(){
   if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty';empty.textContent=targetAdapter?'この分類のモーションはありません。':'モデルを準備しています。';root.append(empty);return;}
   for(const record of rows){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionIdentity=record.sourceIdentity;button.dataset.recommended=String(record.recommended);
-    const label=formatName(record.name),thumbnail=createRuntimeThumbnail(label);button.setAttribute('aria-label',label);button.title=label;button.append(thumbnail);
+    const label=record.displayName||reviewMotionDisplayName(record.name,record.index),thumbnail=createRuntimeThumbnail(label);button.setAttribute('aria-label',label);button.title=label;button.append(thumbnail);
     scheduleRuntimeThumbnail(thumbnail,`motion-pose:v1:${model.id}:${record.sourceIdentity}`,async()=>{
       const gltf=await loadReviewModelForThumbnail(model),poseRoot=cloneSkeleton(gltf.scene);
       if(record.runtime.kind==='kaykit-embedded'){
@@ -183,15 +209,17 @@ async function loadModel(model){
   clearRuntimeThumbnailQueue();disposeSubject();renderModelGrid();catalog=[];renderMotionGrid();syncPlaybackUI();status(model.label+' を読み込んでいます。');el('motion-load').hidden=false;el('motion-load').removeAttribute('value');
   try{
     const gltf=await loadPinnedReviewTarget(model);
-    if(serial!==loadSerial||stopped){disposeScene(gltf.scene);return;}
+    if(serial!==loadSerial||stopped){disposeReviewObject(gltf.scene);return;}
+    hideEmbeddedCombatProps(gltf.scene);
     const wrapper=new THREE.Group();wrapper.name='MotionReview:'+model.id;wrapper.add(gltf.scene);
     normalizeReviewSubject(wrapper);subject=wrapper;targetScene=gltf.scene;stage.add(subject);
     targetCalibration=resolveReviewHumanoidDescriptor(model);
     targetAdapter=createHumanoidPreview(gltf.scene,{role:'target',assetHash:model.source?.gitBlobSha,basis:targetCalibration.basis,mapping:targetCalibration.mapping});
     targetConstraints=createHumanoidPreviewConstraints({root:gltf.scene,bones:targetAdapter.bones,profile:targetAdapter.profile,groundY:0});
     targetDccRoute=createRigRequiredDccRoute(model,targetAdapter.descriptor);
+    void syncWeapon();
     targetClips=gltf.animations||[];mixer=new THREE.AnimationMixer(gltf.scene);mixer.addEventListener('finished',()=>{playing=false;syncPlaybackUI();});
-    const legacy=el('motion-legacy');legacy.replaceChildren(new Option('原版クリップを選択',''));targetClips.forEach((c,i)=>legacy.add(new Option(c.name,String(i))));legacy.disabled=!targetClips.length;
+    const legacy=el('motion-legacy');legacy.replaceChildren(new Option('原版クリップを選択',''));targetClips.forEach((c,i)=>legacy.add(new Option(reviewMotionDisplayName(c.name,i),String(i))));legacy.disabled=!targetClips.length;
     rebuildCatalog();canvas.dataset.motionSource='source-registry';canvas.dataset.motionModel=model.id;el('motion-load').value=1;el('motion-load').hidden=true;setCameraPreset('three-quarter');showCompatibility({status:targetAdapter.descriptor.status});
     const first=catalog.find(r=>r.sourceIdentity===previousIdentity)||catalog.find(r=>r.runtime.kind==='kaykit-embedded'&&/idle/i.test(r.name))||catalog[0];
     if(['PLAYABLE','DEGRADED'].includes(targetAdapter.descriptor.status))await selectMotion(first);
@@ -202,7 +230,6 @@ async function loadModel(model){
     if(serial!==loadSerial||stopped)return;playing=false;ready=false;el('motion-load').value=0;status('読込失敗: '+String(error?.message||error));canvas.dataset.motionSource='error';showCompatibility({status:'UNSUPPORTED',reasons:[String(error?.message||error)]});syncPlaybackUI();
   }
 }
-for(const b of document.querySelectorAll('[data-motion-camera]'))b.addEventListener('click',()=>setCameraPreset(b.dataset.motionCamera));
 el('motion-play').addEventListener('click',()=>{if(ready){playing=!playing;syncPlaybackUI();}});
 el('motion-restart').addEventListener('click',()=>{if(ready){seek(0);playing=ready;syncPlaybackUI();}});
 el('motion-speed').addEventListener('change',e=>{speed=Number(e.target.value)||1;});
@@ -212,16 +239,17 @@ el('motion-prev-frame').addEventListener('click',()=>{playing=false;seek(playbac
 el('motion-next-frame').addEventListener('click',()=>{playing=false;seek(playbackTime()+1/60);});
 el('motion-root-policy').addEventListener('change',e=>{rootMotion=e.target.value;if(ready&&isExternal())seek(playbackTime());});
 el('motion-constraint-policy').addEventListener('change',e=>{constraintMode=e.target.value;if(ready&&isExternal())seek(playbackTime());});
+el('motion-weapon').addEventListener('change',e=>{selectedWeapon=e.target.value;void syncWeapon();});
 el('motion-legacy').addEventListener('change',e=>{
   const index=Number(e.target.value);if(e.target.value===''||!targetClips[index]||!mixer)return;
   ++selectSerial;selected=null;externalSource=null;mixer.stopAllAction();targetAdapter.reset();externalTime=0;const clip=targetClips[index];selectedDuration=clip.duration;
   action=mixer.clipAction(clip);action.reset().setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);action.clampWhenFinished=!loop;action.play();ready=true;playing=true;
-  el('motion-selected').textContent=formatName(clip.name);const source=selectedModel.source;
-  el('motion-meta').textContent=`source ${source.repository} @ ${source.revision} / ${source.path} / clip ${index} “${clip.name}” / git-sha1:${source.gitBlobSha} / ${selectedModel.license}`;
+  el('motion-selected').textContent=reviewMotionDisplayName(clip.name,index);const source=selectedModel.source;
+  el('motion-meta').textContent=`source ${source.repository} @ ${source.revision} / ${source.path} / clip ${index}「${reviewMotionDisplayName(clip.name,index)}」 / git-sha1:${source.gitBlobSha} / ${selectedModel.license}`;
   el('motion-license').href='https://creativecommons.org/publicdomain/zero/1.0/';el('motion-origin').href='https://kaylousberg.com/game-assets/characters-adventurers';
-  canvas.dataset.motionName=clip.name;canvas.dataset.motionIdentity='legacy:'+index+':'+clip.name;status('');showCompatibility({status:'NATIVE',applied:true});syncMotionCards();syncPlaybackUI();
+  canvas.dataset.motionName=reviewMotionDisplayName(clip.name,index);canvas.dataset.motionUpstreamName=clip.name;canvas.dataset.motionIdentity='legacy:'+index+':'+clip.name;status('');showCompatibility({status:'NATIVE',applied:true});syncMotionCards();syncPlaybackUI();
 });
-const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();setCameraPreset(cameraPreset);},render:()=>renderer.render(scene,camera)});
+const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();motionCameraPresets.apply();},render:()=>renderer.render(scene,camera)});
 let frameId=0;
 function frame(now){
   if(stopped)return;frameId=requestAnimationFrame(frame);
@@ -235,4 +263,4 @@ function frame(now){
   }catch(error){playing=false;ready=false;status('再生を停止しました: '+String(error?.message||error));syncPlaybackUI();}
 }
 renderFilters();renderModelGrid();setCameraPreset('three-quarter');frameId=requestAnimationFrame(frame);void loadModel(selectedModel);
-window.addEventListener('pagehide',event=>{if(event.persisted)return;stopped=true;++loadSerial;++selectSerial;cancelAnimationFrame(frameId);clearRuntimeThumbnailQueue();stageLifecycle.destroy();disposeSubject();disposePinnedMotionSources();for(const promise of thumbnailModelPromises.values())void promise.then(g=>disposeScene(g.scene)).catch(()=>{});thumbnailModelPromises.clear();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',event=>{if(event.persisted)return;stopped=true;++loadSerial;++selectSerial;cancelAnimationFrame(frameId);clearRuntimeThumbnailQueue();stageLifecycle.destroy();motionCameraPresets.destroy();disposeSubject();disposePinnedMotionSources();for(const promise of thumbnailModelPromises.values())void promise.then(g=>disposeReviewObject(g.scene)).catch(()=>{});thumbnailModelPromises.clear();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});

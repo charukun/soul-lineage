@@ -1,5 +1,6 @@
 import { WEAPONS } from './domain.js';
 import { ensureCombatInjuryState } from './combat-injury.js';
+import {applyChoreographyImpact} from './combat-choreography.js';
 
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const TAU=Math.PI*2;
@@ -42,9 +43,22 @@ function markDown(state,enemy,events,source='world-contact'){
   if(enemy.dead||enemy.downed)return;enemy.hp=0;enemy.downed=true;enemy.downedElapsed=0;enemy.moving=false;enemy.attacking=false;state.defeats=(Number(state.defeats)||0)+1;events.push({type:'enemy-downed',targetId:enemy.id,engine:source});
 }
 
+const WORLD_CONTACTS=new WeakMap();
+/** The existing world-contact authority applies each attack/target exactly once. */
+export function applyWorldBodyContact(source,target,{attackId,damage,phase='ha',sector='front'}={}){
+  if(!attackId||!(damage>0)||!Number.isFinite(damage)||target.dead||target.downed||target.down||target.ended)return null;
+  let seen=WORLD_CONTACTS.get(target);if(!seen){seen=new Set();WORLD_CONTACTS.set(target,seen);}
+  const key=`${source.id}:${attackId}:${target.id}`;if(seen.has(key))return null;seen.add(key);if(seen.size>1024)seen.delete(seen.values().next().value);
+  const actual=Math.min(target.hp,damage);if(!(actual>0))return null;
+  target.hp=Math.max(0,target.hp-actual);
+  const injury=applyChoreographyImpact(target,{damage:actual,maxIntegrity:target.maxHp,sourceId:source.id,phase,sector});
+  if(injury.outcome.incapacitated)target.hp=0;else if(target.hp<=.001)target.hp=Math.max(1,target.maxHp*.18);
+  return {attackId,sourceId:source.id,targetId:target.id,damage:actual,phase,bodyPart:injury.part,bodyDurability:injury.durability,injuryStage:injury.stage};
+}
+
 export function applyMultiTargetContact(state,front,event,events){
   if(event.type!=='player-hit'||event.projectile||event.multiTarget||!(event.damage>0))return[];const attack=String(state.combat?.tidebreakPose?.attack||'');if(STOP_ON_FIRST.has(attack))return[];
-  const hits=[],factor=(attack==='spin'||attack==='round'||attack==='barrage') ? .82 : .7;for(const enemy of worldContactCandidates(state,front,event)){const damage=Math.min(enemy.hp,event.damage*factor);if(!(damage>0))continue;enemy.hp=Math.max(0,enemy.hp-damage);enemy.flash=1;const row={type:'player-hit',targetId:enemy.id,skill:event.skill,phase:event.phase,damage,multiTarget:true,engine:'world-contact'};events.push(row);hits.push(row);if(enemy.hp<=.001)markDown(state,enemy,events);}return hits;
+  const hits=[],factor=(attack==='spin'||attack==='round'||attack==='barrage') ? .82 : .7;for(const enemy of worldContactCandidates(state,front,event)){const contact=applyWorldBodyContact(state,enemy,{attackId:event.attackId,damage:event.damage*factor,phase:event.phase});if(!contact)continue;enemy.flash=1;const row={type:'player-hit',...contact,skill:event.skill,multiTarget:true,engine:'world-contact'};events.push(row);hits.push(row);if(enemy.hp<=.001)markDown(state,enemy,events);}return hits;
 }
 
 function projectileState(state){ensureCombatInjuryState(state);state.rangedCombat??={cooldown:0,serial:0,projectiles:[]};if(!Array.isArray(state.rangedCombat.projectiles))state.rangedCombat.projectiles=[];return state.rangedCombat;}
@@ -54,7 +68,7 @@ function firstProjectileHit(front,a,b){let best=null,bestD=Infinity;for(const en
 export function tickRangedProjectiles(state,front,dt,events){
   ensureCombatTerrain(front);const ranged=projectileState(state);ranged.cooldown=Math.max(0,ranged.cooldown-dt);
   if(state.equipment?.weapon==='staff'&&ranged.cooldown<=0&&state.ammo.staffCharges>0&&!state.down&&!state.ended){const target=nearestRangedTarget(state,front);if(target){const dx=target.x-state.position.x,dz=target.z-state.position.z,len=Math.max(.001,Math.hypot(dx,dz));state.ammo.staffCharges--;ranged.cooldown=.82;ranged.projectiles.push({id:`p-${++ranged.serial}`,x:state.position.x,z:state.position.z,vx:dx/len*8.5,vz:dz/len*8.5,ttl:1.25,damage:22,targetId:target.id});events.push({type:'projectile-fired',targetId:target.id,ammo:state.ammo.staffCharges,engine:'world-contact'});}}
-  const next=[];for(const p of ranged.projectiles){const a={x:p.x,z:p.z},b={x:p.x+p.vx*dt,z:p.z+p.vz*dt};p.ttl-=dt;if(lineBlocked(front,a,b)){events.push({type:'projectile-blocked',projectileId:p.id,engine:'world-contact'});continue;}const hit=firstProjectileHit(front,a,b);if(hit){const shieldScale=hit.shield ? .55 : 1,damage=Math.min(hit.hp,p.damage*shieldScale);hit.hp=Math.max(0,hit.hp-damage);hit.flash=1;events.push({type:'player-hit',targetId:hit.id,skill:'staff.projectile',phase:'ranged',damage,projectile:true,engine:'world-contact'});if(hit.hp<=.001)markDown(state,hit,events,'world-contact');continue;}p.x=b.x;p.z=b.z;if(p.ttl>0)next.push(p);}ranged.projectiles=next;return events;
+  const next=[];for(const p of ranged.projectiles){const a={x:p.x,z:p.z},b={x:p.x+p.vx*dt,z:p.z+p.vz*dt};p.ttl-=dt;if(lineBlocked(front,a,b)){events.push({type:'projectile-blocked',projectileId:p.id,engine:'world-contact'});continue;}const hit=firstProjectileHit(front,a,b);if(hit){const shieldScale=hit.shield ? .55 : 1,contact=applyWorldBodyContact(state,hit,{attackId:`${state.id}:${state.generation}:${p.id}`,damage:p.damage*shieldScale,phase:'ha'});if(contact){hit.flash=1;events.push({type:'player-hit',...contact,projectileId:p.id,skill:'staff.projectile',projectile:true,engine:'world-contact'});if(hit.hp<=.001)markDown(state,hit,events,'world-contact');}continue;}p.x=b.x;p.z=b.z;if(p.ttl>0)next.push(p);}ranged.projectiles=next;return events;
 }
 
 export function terrainMovementScale(front,from,to,radius=.3){const terrain=ensureCombatTerrain(front);for(const obstacle of terrain.obstacles){if(Math.abs(to.x-obstacle.x)<=obstacle.w/2+radius&&Math.abs(to.z-obstacle.z)<=obstacle.d/2+radius)return 0;if(lineIntersectsRect(from,to,obstacle))return .15;}return 1;}

@@ -22,7 +22,7 @@
   <section class="review-surface__workspace">
   <div class="review-surface__stage-column">
   <section class="motion-stage review-surface__stage" aria-label="モーション表示">
-    <canvas id="motion-stage" aria-label="KayKitキャラクターのモーション。ドラッグで回転、ピンチで拡大"></canvas>
+    <canvas id="motion-stage" aria-label="主人公モデルのモーション。ドラッグで回転、ピンチで拡大"></canvas>
     <div class="motion-stage-caption" aria-live="polite">
       <strong id="motion-selected">モーション準備中</strong>
       <small id="motion-source">pinned CC0</small>
@@ -31,7 +31,7 @@
       <output id="motion-status" role="status" aria-live="polite">モーションを読み込んでいます。</output>
       <progress id="motion-load" max="1" value="0" aria-label="モデル読込状況"></progress>
     </div>
-    <div class="motion-camera-strip" aria-label="表示方向">
+    <div class="motion-camera-strip" data-review-stage-control aria-label="表示方向">
       <button type="button" data-motion-camera="front" aria-pressed="false">正面</button>
       <button type="button" data-motion-camera="three-quarter" aria-pressed="true">斜め</button>
       <button type="button" data-motion-camera="side" aria-pressed="false">横</button>
@@ -83,7 +83,7 @@
       <p>以前の埋め込みクリップを保持しています。反復・部分・モデル違いは上の件数に加算しません。</p>
       <select id="motion-legacy" aria-label="既存の原版クリップ"><option value="">原版クリップを選択</option></select>
     </details>
-    <details class="motion-meta">
+    <details class="motion-meta review-surface__meta">
       <summary>出典・不変ハッシュ</summary>
       <p id="motion-meta"></p>
       <a id="motion-license" href="./simulator/licenses/REVIEW_MOTION_SOURCES.txt" target="_blank" rel="noopener">ライセンス</a>

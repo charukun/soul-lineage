@@ -2,7 +2,7 @@ import { endLifeEarly } from './domain.js';
 import { frontierFatalityChance, tickFront as tickCoreFront, tickSharedFront as tickCoreSharedFront } from './combat-core.js';
 import { directionalDefenseFor } from './combat-tactics.js';
 import { applyCombatInjury,ensureCombatInjuryState,injuryEffects,recoverPersistentInjuries } from './combat-injury.js';
-import { applyMultiTargetContact,enemySweepTargets,ensureCombatTerrain,lineBlocked,terrainMovementScale,tickRangedProjectiles } from './combat-world-contact.js';
+import { applyWorldBodyContact,applyMultiTargetContact,enemySweepTargets,ensureCombatTerrain,lineBlocked,terrainMovementScale,tickRangedProjectiles } from './combat-world-contact.js';
 import { applySquadTactics,assignSquadRoles,recordEnemyPattern,squadSnapshot } from './combat-squad-ai.js';
 import { finalizeCombatReplay,recordCombatReplay,replaySummary } from './combat-replay.js';
 import { prepareInspirationCombat, settleInspirationCombat, observePeerInspiration } from './inspiration-combat.js';
@@ -23,8 +23,8 @@ function positionalScale(sector){return sector==='back'?1.25:sector==='flank'?1.
 function markExtraDown(state,target,events){if(target.dead||target.downed||target.hp>.001)return;target.hp=0;target.downed=true;target.downedElapsed=0;target.moving=false;target.attacking=false;state.defeats=(Number(state.defeats)||0)+1;events.push({type:'enemy-downed',targetId:target.id,engine:'combat-position'});}
 function undoCoreDown(state,target,events){if(!target?.downed||!(target.hp>0))return;target.downed=false;target.downedElapsed=0;target.moving=false;target.attacking=false;state.defeats=Math.max(0,(Number(state.defeats)||0)-1);for(let i=events.length-1;i>=0;i--)if(events[i].type==='enemy-downed'&&events[i].targetId===target.id)events.splice(i,1);}
 function resolveCollateralLethal(state,attacker,front,events){if(state.hp>0||state.down||state.ended)return;const fatalChance=frontierFatalityChance(state),fatalRoll=hash01(`${state.seed}:${attacker.id}:sweep-fatal:${front.stage}:${Math.floor(state.ageSeconds)}:${state.defeats}`);if(fatalRoll<fatalChance){endLifeEarly(state,`第${front.stage+1}前線の巻き込み`);events.push({type:'life-end',cause:'combat',fatalChance,sourceId:attacker.id,multiTarget:true,engine:'world-contact'});}else{state.down={elapsed:0,rescueSeconds:40,frontier:true};state.combat=null;events.push({type:'downed',fatalChance,sourceId:attacker.id,multiTarget:true,engine:'world-contact'});}}
-function applyEnemyCollateral(states,front,result){const seen=new Set();for(const [primaryId,rows]of result){for(const event of [...rows]){if(event.type!=='enemy-hit'||event.multiTarget||!(event.damage>0))continue;const attacker=sourceEnemy(front,event.sourceId),key=`${primaryId}:${event.sourceId}`;if(!attacker||seen.has(key))continue;seen.add(key);for(const victim of enemySweepTargets(attacker,states,primaryId,front)){const defense=directionalDefenseFor(victim,attacker),damage=Math.min(victim.hp,event.damage*.72*defense.damageScale);if(!(damage>0))continue;victim.hp=Math.max(0,victim.hp-damage);const targetRows=result.get(victim.id)||[];targetRows.push({type:'enemy-hit',sourceId:attacker.id,damage,sector:defense.sector,awareness:defense.awareness,multiTarget:true,engine:'world-contact'});result.set(victim.id,targetRows);resolveCollateralLethal(victim,attacker,front,targetRows);}}}return result;}
-function processCombatEvents(state,front,events){
+function applyEnemyCollateral(states,front,result){const seen=new Set();for(const [primaryId,rows]of result){for(const event of [...rows]){if(event.type!=='enemy-hit'||event.multiTarget||!(event.damage>0))continue;const attacker=sourceEnemy(front,event.sourceId),key=`${primaryId}:${event.sourceId}`;if(!attacker||seen.has(key))continue;seen.add(key);for(const victim of enemySweepTargets(attacker,states,primaryId,front)){const defense=directionalDefenseFor(victim,attacker),contact=applyWorldBodyContact(attacker,victim,{attackId:event.attackId,damage:event.damage*.72*defense.damageScale,sector:defense.sector,phase:event.phase||'ha'});if(!contact)continue;const targetRows=result.get(victim.id)||[];targetRows.push({type:'enemy-hit',...contact,sector:defense.sector,awareness:defense.awareness,multiTarget:true,engine:'world-contact'});result.set(victim.id,targetRows);resolveCollateralLethal(victim,attacker,front,targetRows);}}}return result;}
+export function processCombatEvents(state,front,events){
   const effects=injuryEffects(state),original=[...events];
   for(const event of original){
     if(event.type==='player-hit'&&event.damage>0){
@@ -33,7 +33,12 @@ function processCombatEvents(state,front,events){
       if(target&&event.damage>0){const sector=attackSector(state,target),scale=positionalScale(sector);event.attackSector=sector;if(scale>1&&!event.projectile){const extra=Math.min(target.hp,event.damage*(scale-1));target.hp=Math.max(0,target.hp-extra);event.damage+=extra;markExtraDown(state,target,events);}}
       if(target)recordEnemyPattern(target,state.id,event.skill);if(event.damage>0){const extras=applyMultiTargetContact(state,front,event,events);for(const extra of extras){const secondary=targetEnemy(front,extra.targetId);if(secondary)recordEnemyPattern(secondary,state.id,extra.skill);}}
     }
-    if(event.type==='enemy-hit'&&event.damage>0){const injury=applyCombatInjury(state,{damage:event.damage,sector:event.sector||'front',sourceId:event.sourceId});event.part=injury.part;event.injuryGain=injury.gain;events.push({type:'injury',part:injury.part,severity:injury.severity,sourceId:event.sourceId,engine:'combat-injury'});}
+    if(event.type==='enemy-hit'&&event.damage>0){
+      // Core contacts already applied the six-part injury. Announce that exact
+      // part rather than rolling and applying a second wound in presentation.
+      const injury=event.bodyPart?{part:event.bodyPart,severity:state.injuries[event.bodyPart].severity,gain:0}:applyCombatInjury(state,{damage:event.damage,sector:event.sector||'front',sourceId:event.sourceId});
+      event.part=injury.part;event.injuryGain=injury.gain;events.push({type:'injury',part:injury.part,severity:injury.severity,sourceId:event.sourceId,attackId:event.attackId,engine:'combat-injury'});
+    }
   }return events;
 }
 function settleFront(state,front){if(front.enemies.every(enemy=>enemy.dead)){front.cleared=true;state.combat=null;state.attacking=false;}}

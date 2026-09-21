@@ -1,4 +1,4 @@
-import {mountReviewGroup,mountReviewSelect,mountReviewSelectGrid} from './review-slot-picker.js';
+import {mountReviewGroup,mountReviewSelect,mountReviewSelectGrid} from '@soul/shared-ui/review-slot-picker';
 const byId=id=>document.getElementById(id);
 const qs=selector=>document.querySelector(selector);
 

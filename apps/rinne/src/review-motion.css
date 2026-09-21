@@ -5,7 +5,7 @@ button,select{font:inherit;color:inherit}
 .motion-review{min-height:100dvh;display:grid;grid-template-rows:minmax(390px,60dvh) minmax(0,40dvh);overflow:hidden}
 .motion-stage{position:relative;min-height:0;background:radial-gradient(circle at 50% 28%,#27332e 0,#151d19 48%,#090d0c 100%);overflow:hidden}
 .motion-stage canvas{display:block;width:100%;height:100%;touch-action:none}
-.motion-stage-caption{position:absolute;z-index:2;left:max(16px,env(safe-area-inset-left));bottom:42px;display:grid;gap:2px;max-width:min(70%,520px);padding:8px 10px;border-radius:8px;background:#0b1110b8;backdrop-filter:blur(8px);pointer-events:none}
+.motion-stage-caption{position:absolute;z-index:2;left:max(16px,env(safe-area-inset-left));top:14px;bottom:auto;display:grid;gap:2px;max-width:min(70%,520px);padding:8px 10px;border-radius:8px;background:#0b1110b8;backdrop-filter:blur(8px);pointer-events:none}
 .motion-stage-caption strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;letter-spacing:.01em}
 .motion-stage-caption small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#9ba7a1;font-size:9px}
 .motion-stage-status{position:absolute;z-index:2;left:16px;right:16px;bottom:12px;display:flex;align-items:center;gap:10px;color:#87938d;font-size:9px;pointer-events:none}
@@ -66,7 +66,7 @@ button,select{font:inherit;color:inherit}
   .motion-review .review-surface__stage-column{order:0;position:relative;min-height:0}
   .motion-stage{height:clamp(250px,38dvh,340px);min-height:250px}
   .motion-controls{order:1;overflow:visible;padding:10px 10px max(24px,env(safe-area-inset-bottom))}
-  .motion-stage-caption{left:10px;bottom:34px;max-width:78%}
+  .motion-stage-caption{left:10px;top:10px;bottom:auto;max-width:44%}
   .motion-stage-status{left:10px;right:10px;bottom:8px}
   .motion-library-primary{padding:9px 8px;margin-bottom:8px}
   .motion-filters{position:sticky;top:0;z-index:5;margin:7px -8px 0;padding:7px 8px;background:#121912eF;backdrop-filter:blur(10px)}
@@ -95,7 +95,6 @@ button,select{font:inherit;color:inherit}
 
 /* Model catalogs use static metadata thumbnails and preserve the five-column review invariant. */
 .motion-model-grid,.motion-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}
-.review-static-thumbnail{display:block;width:100%;height:100%;min-height:0;max-height:62px;filter:drop-shadow(0 3px 4px #0006);pointer-events:none}
 .motion-model-grid .review-choice-card{display:block;overflow:hidden;padding:3px!important}
 @media(max-width:620px){.motion-model-grid,.motion-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}.review-static-thumbnail{max-height:46px}}
 
@@ -127,7 +126,7 @@ button,select{font:inherit;color:inherit}
   .motion-library-head small,.motion-grid-title{display:none}
   .motion-filters{margin-top:6px!important}
   .motion-grid{max-height:34dvh!important}
-  .motion-stage-caption{bottom:30px;padding:6px 8px;background:#0b1110d8}
+  .motion-stage-caption{top:10px;bottom:auto;padding:6px 8px;background:#0b1110d8}
   .motion-stage-status{bottom:6px}
 }
 

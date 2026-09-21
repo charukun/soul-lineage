@@ -1,56 +1,36 @@
-import {createReviewRoutes,renderReviewProbeLinks} from '@soul/shared-ui/review-shell';
-const DEV=Object.freeze({rinne:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',village:'https://soul-lineage-village-dev.c-okamoto.workers.dev/',demon:'https://soul-lineage-demon-dev.c-okamoto.workers.dev/',pulse:'https://rinne-ops.c-okamoto.workers.dev/',characters:'https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/'});
-const route=(base,path='')=>new URL(path,base).href;
-const ROUTES=Object.freeze({...createReviewRoutes({rinneBase:DEV.rinne,charactersBase:DEV.characters}),motion:route(DEV.rinne,'review-motion'),equipment:route(DEV.rinne,'review-assets'),objects:route(DEV.rinne,'review-objects'),effects:route(DEV.rinne,'review-effects'),sounds:route(DEV.rinne,'review-sound'),battle:route(DEV.rinne,'review-battle'),battle2:new URL('./battle2',location.href).href,battlebk:new URL('./battlebk',location.href).href,rinne:DEV.rinne,village:DEV.village,demon:DEV.demon,pulse:DEV.pulse});
-const WARM_ORDER=Object.freeze(['effects','battle','battle2','motion','characters','equipment','objects','sounds']);
-const VFX_WARM_ASSETS=Object.freeze(['simulator/assets/effekseer/effekseer.js','simulator/assets/effekseer/effekseer.wasm','simulator/assets/effekseer/samples/00_Basic/Simple_Ribbon_Sword.efkefc','simulator/assets/effekseer/samples/02_Tktk03/ToonHit.efkefc']);
-const MENU_ICONS=Object.freeze({
-  characters:'<circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4.2 2.8-6.3 6.5-6.3s5.9 2.1 6.5 6.3"/>',
-  motion:'<path d="M4 7h8l-2.4 2.4M20 17h-8l2.4-2.4"/><path d="M6.8 17.4 11 13l2.8-4.8 3.2 1.5"/>',
-  equipment:'<path d="M12 3 19 6v5.4c0 4.2-2.6 7.4-7 9.6-4.4-2.2-7-5.4-7-9.6V6l7-3Z"/><path d="M12 5.2v13.2"/>',
-  objects:'<path d="m12 3 7 4-7 4-7-4 7-4Z"/><path d="m5 7v8l7 4 7-4V7M12 11v8"/>',
-  effects:'<path d="m12 3 1.5 4.3L18 9l-4.5 1.7L12 15l-1.5-4.3L6 9l4.5-1.7L12 3Z"/><path d="m19 14 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14ZM5 14l.6 1.7L7.3 16l-1.7.6L5 18.3l-.6-1.7L2.7 16l1.7-.3L5 14Z"/>',
-  sounds:'<path d="M5 10h3l4-4v12l-4-4H5v-4Z"/><path d="M15 9.2c1.7 1.5 1.7 4.1 0 5.6M17.8 6.8c3.1 2.8 3.1 7.6 0 10.4"/>',
-  battle:'<path d="m7 4 10 16M17 4 7 20"/><path d="m5 4 4 1-2 3M19 4l-4 1 2 3"/>',
-  battle2:'<circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/><path d="M7.2 12h2.6M14.2 12h2.6"/>',
-  battlebk:'<path d="m6 5 5 5-5 9M18 5l-5 5 5 9"/><path d="M4 5h4M16 5h4"/>',
-  rinne:'<path d="M7 4c0 4-2 5.5-3 8 1 4 4 6.5 8 8 4-1.5 7-4 8-8-1-2.5-3-4-3-8-2 2-3.2 4-5 7-1.8-3-3-5-5-7Z"/>',
-  village:'<path d="M4 11 12 4l8 7v9H4v-9Z"/><path d="M9 20v-5h6v5M8 11h.1M16 11h.1"/>',
-  demon:'<path d="M12 4c4.5 0 7 2.3 7 5.8 0 4-3 7.2-7 10.2-4-3-7-6.2-7-10.2C5 6.3 7.5 4 12 4Z"/><path d="M8.8 10.5h.1M15.1 10.5h.1M9.5 15c1.6 1 3.4 1 5 0"/>',
-  pulse:'<path d="M3 13h4l2-5 3 9 2-4h7"/><path d="M4 5h16v14H4z"/>'
+import {renderReviewProbeLinks} from '@soul/shared-ui/review-shell';
+import {REVIEW_DEV,REVIEW_ROUTES,REVIEW_VFX_WARM_ASSETS,REVIEW_WARM_ORDER} from './review-lab-config.js';
+import {decorateReviewMenuIcons} from './review-lab-icons.js';
+import {createReviewWarmup} from './review-lab-warmup.js';
+
+const probeGrid=document.querySelector('#probe-grid');
+renderReviewProbeLinks(probeGrid,{routes:REVIEW_ROUTES});
+decorateReviewMenuIcons({routes:REVIEW_ROUTES});
+
+for(const link of document.querySelectorAll('[data-route]')){
+  const href=REVIEW_ROUTES[link.dataset.route];
+  if(href){link.href=href;link.rel='noopener'}
+}
+
+const warmup=createReviewWarmup({
+  routes:REVIEW_ROUTES,
+  assetBase:REVIEW_DEV.rinne,
+  order:REVIEW_WARM_ORDER,
+  assetPaths:REVIEW_VFX_WARM_ASSETS,
 });
-const warmed=new Set(),connected=new Set();
-function iconNode(id){const body=MENU_ICONS[id];if(!body)return null;const span=document.createElement('span');span.className='menu-card__icon';span.setAttribute('aria-hidden','true');span.innerHTML='<svg viewBox="0 0 24 24" focusable="false" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+body+'</svg>';return span}
-function decorateMenuIcons(){
-  for(const [id,href] of Object.entries(ROUTES)){
-    if(!MENU_ICONS[id]||!href)continue;
-    const absolute=new URL(href,location.href).href;
-    const probe=[...document.querySelectorAll('#probe-grid a')].find(link=>link.href===absolute);
-    if(probe&&!probe.querySelector('.menu-card__icon'))probe.prepend(iconNode(id));
-  }
-  for(const link of document.querySelectorAll('[data-route]')){const icon=iconNode(link.dataset.route);if(icon&&!link.querySelector('.menu-card__icon'))link.prepend(icon)}
+
+const warmIdsByHref=new Map(REVIEW_WARM_ORDER.map(id=>[REVIEW_ROUTES[id],id]));
+for(const link of probeGrid?.querySelectorAll('a')||[]){
+  const id=warmIdsByHref.get(link.href);
+  if(!id)continue;
+  link.addEventListener('pointerenter',()=>warmup.warmRoute(id,{eager:true}),{passive:true});
+  link.addEventListener('focus',()=>warmup.warmRoute(id,{eager:true}));
+  link.addEventListener('touchstart',()=>warmup.warmRoute(id,{eager:true}),{passive:true});
 }
-function warmRoute(id,{eager=false}={}){
-  const href=ROUTES[id];if(!href||warmed.has(href))return;
-  const url=new URL(href);
-  if(!connected.has(url.origin)){const preconnect=document.createElement('link');preconnect.rel='preconnect';preconnect.href=url.origin;preconnect.crossOrigin='anonymous';document.head.append(preconnect);connected.add(url.origin);}
-  const prefetch=document.createElement('link');prefetch.rel='prefetch';prefetch.as='document';prefetch.href=href;prefetch.dataset.reviewWarm=id;if(eager)prefetch.fetchPriority='high';document.head.append(prefetch);warmed.add(href);
+warmup.start();
+
+const build=document.querySelector('[data-build]');
+if(build){
+  const sha=String(__BUILD_INFO__?.commit||'').slice(0,12);
+  build.textContent=sha?'source '+sha:'source unknown';
 }
-function warmVfxAssets(){
-  for(const path of VFX_WARM_ASSETS){
-    const href=route(DEV.rinne,path);if(warmed.has(href))continue;
-    const prefetch=document.createElement('link');prefetch.rel='prefetch';prefetch.href=href;prefetch.fetchPriority='low';prefetch.dataset.reviewWarmAsset='vfx';document.head.append(prefetch);warmed.add(href);
-  }
-}
-function startPriorityWarmup(){
-  const schedule=globalThis.requestIdleCallback?callback=>requestIdleCallback(callback,{timeout:900}):callback=>setTimeout(callback,120);
-  let index=0;
-  const next=()=>{if(index>=WARM_ORDER.length)return;warmRoute(WARM_ORDER[index],{eager:index===0});index++;schedule(next);};
-  warmRoute(WARM_ORDER[index++],{eager:true});warmVfxAssets();schedule(next);
-}
-renderReviewProbeLinks(document.querySelector('#probe-grid'),{routes:ROUTES});
-decorateMenuIcons();
-for(const link of document.querySelectorAll('[data-route]')){const href=ROUTES[link.dataset.route];if(href){link.href=href;link.rel='noopener'}}
-for(const link of document.querySelectorAll('#probe-grid a')){const id=WARM_ORDER.find(key=>ROUTES[key]===link.href);if(!id)continue;link.addEventListener('pointerenter',()=>warmRoute(id,{eager:true}),{passive:true});link.addEventListener('focus',()=>warmRoute(id,{eager:true}));link.addEventListener('touchstart',()=>warmRoute(id,{eager:true}),{passive:true});}
-startPriorityWarmup();
-const build=document.querySelector('[data-build]');if(build){const sha=String(__BUILD_INFO__?.commit||'').slice(0,12);build.textContent=sha?'source '+sha:'source unknown'}
