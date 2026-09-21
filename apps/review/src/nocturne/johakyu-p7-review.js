@@ -71,8 +71,12 @@ export function createJohakyuP7ReviewScenario({mode='duel'}={}){
   }
   function meta(frameValue){
     const hero=battle.actors.get('hero'),injuries=Object.entries(hero.injuries).sort((a,b)=>b[1].severity-a[1].severity),worst=injuries[0];
-    const phase=phaseAt(time),livingParty=1,livingEnemies=[...battle.actors.values()].filter(a=>a.side==='enemy'&&!a.incapacitated&&!a.dead).length;
-    return freeze({mode,modeLabel:MODES[mode],phase,phaseLabel:PHASE_LABELS[phase],stamina:Math.round(hero.stamina),injuryPart:PART_LABELS[worst[0]],injuryPercent:Math.round(worst[1].severity*100),party:livingParty,enemies:livingEnemies,resumes,encounter,epoch,battleId:frameValue.battleId});
+    const heroView=frameValue.actors.find(actor=>actor.self),action=heroView?.action??null,phase=action?.phase??null;
+    const livingParty=1,livingEnemies=[...battle.actors.values()].filter(a=>a.side==='enemy'&&!a.incapacitated&&!a.dead).length;
+    return freeze({mode,modeLabel:MODES[mode],phase,phaseLabel:phase?PHASE_LABELS[phase]:'',actionId:action?.id??null,
+      actionName:action?.name??action?.techniqueId??null,actionMotion:action?.motion?.kind??null,
+      stamina:Math.round(hero.stamina),injuryPart:PART_LABELS[worst[0]],injuryPercent:Math.round(worst[1].severity*100),
+      party:livingParty,enemies:livingEnemies,resumes,encounter,epoch,battleId:frameValue.battleId});
   }
   function step(dt=1/60){
     if(!Number.isFinite(dt)||dt<0||dt>.25)throw new TypeError('Invalid P7 review delta');
