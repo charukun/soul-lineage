@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildDevelopmentSessions, fastDevRunKind } from '../ops-board/development-sessions.mjs';
+import { autonomousIterationMeta, buildDevelopmentSessions, fastDevRunKind } from '../ops-board/development-sessions.mjs';
 
 const head='a'.repeat(40),merge='b'.repeat(40);
 const pr={number:42,title:'PULSE visual flow',body:'Browser-Playtest: demon',state:'closed',draft:false,merged_at:'2026-09-22T00:05:00Z',updated_at:'2026-09-22T00:05:00Z',html_url:'https://github.com/charukun/soul-lineage/pull/42',merge_commit_sha:merge,head:{ref:'feat/pulse',sha:head},base:{ref:'develop'},targetApps:[{id:'ops-board',label:'開発状況ボード'}]};
@@ -35,4 +35,18 @@ test('run classifier stays independent from dynamic workflow display titles',()=
   assert.equal(fastDevRunKind({name:'Astra final-head validation feat/x abc'}),'validation');
   assert.equal(fastDevRunKind({name:'Per-App DEV Publish'}),'publish');
   assert.equal(fastDevRunKind({name:'Browser Review Dispatcher'}),'browser');
+});
+
+test('autonomous iteration sessions expose observation through DEV as a dedicated six-stage flow',()=>{
+  const auto={...pr,title:'Kuumetsu iteration 4: enemy reaction',body:'Autonomous iteration 4/4. Immutable Before: https://example.test/\nBrowser-Playtest: demon',targetApps:[{id:'demon',label:'喰滅廻遊'}]};
+  const runs=[
+    run(2,'Astra final-head validation feat/pulse '+head,head,'success'),
+    run(3,'Browser Review Dispatcher','d'.repeat(40),'success',{display_title:auto.title,head_branch:'main'}),
+    run(4,'Per-App DEV Publish',merge,'success',{head_branch:'develop'}),
+  ];
+  const [session]=buildDevelopmentSessions([auto],runs);
+  assert.deepEqual(autonomousIterationMeta(auto),{kind:'autonomous',game:'kuumetsu',number:4,observationRecorded:true});
+  assert.equal(session.autonomous.game,'kuumetsu');
+  assert.deepEqual(session.iterationSteps.map(step=>step.id),['observation','implementation','validation','after','merge','publish']);
+  assert.deepEqual(session.iterationSteps.map(step=>step.state),['done','done','done','done','done','done']);
 });
