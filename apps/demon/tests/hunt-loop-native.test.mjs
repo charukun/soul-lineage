@@ -90,4 +90,8 @@ test('main boot has one HUD owner, automatic sensing, and no menu extraction exp
   assert.match(bootGate,/\.wordmark\{[^}]*opacity:1/);
   assert.doesNotMatch(bootGate,/@keyframes pa(?:Scorpion|Bolts)\{0%\{opacity:0/,'brand animation must not blank the first paint');
   for(const token of ['@keyframes paLoaderIn','@keyframes paLoadPulse','@keyframes paTouchIn','.armed .touch']) assert.ok(bootGate.includes(token));
+  const feastHud=read('../src/web/feast-hud.js');
+  assert.match(feastHud,/prey\.power/,'next-prey guidance must carry power in its own tracker');
+  assert.match(feastHud,/setAttribute\('aria-label','次に狙う力 /);
+  assert.doesNotMatch(feastHud,/objective\.querySelector\('small'\)\.textContent='次に狙う力'/,'feast guidance must not overwrite the mission objective');
 });
