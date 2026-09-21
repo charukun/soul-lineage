@@ -52,12 +52,16 @@ test('adopted protagonist runtime bytes and DCC evidence are repository-local', 
   assert.equal(receipt.humanoidRig, 'kaykit.Rig_Medium.v1');
 });
 
-test('motion review keeps explicit model selection rather than silently forcing the protagonist', () => {
+test('motion review defaults to the current game protagonist while retaining explicit model selection', () => {
   const source = readFileSync('apps/rinne/src/review-motion.js', 'utf8');
-  assert.match(source, /const REVIEW_MODELS=KAYKIT_MODELS/);
+  const models = readFileSync('apps/rinne/src/review-motion-models.js', 'utf8');
+  assert.match(source, /RINNE_MOTION_REVIEW_MODELS/);
+  assert.match(source, /selectedModel=RINNE_MOTION_REVIEW_DEFAULT_MODEL/);
   assert.match(source, /dataset\.motionModel=model\.id/);
   assert.match(source, /loadModel\(model\)/);
-  assert.doesNotMatch(source, /PROTAGONIST_VILLAGER_MODEL_ID/);
+  assert.match(models, /PROTAGONIST_VILLAGER_MODEL/);
+  assert.match(models, /PROTAGONIST_VILLAGER_V1\.glb/);
+  assert.match(models, /28fae04c0d0276af60e854756e8e7d10a5b965d3/);
 });
 
 
