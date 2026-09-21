@@ -42,7 +42,12 @@ export async function validateActiveExperiments(root, active = discoverActiveExp
     assert.equal(stable(after), stable(repeated), 'same exact source/fixture must be deterministic');
     const comparison = compareReports(before, after);
     assert.equal(comparison.comparable, true);
-    reports.push({ game, id, themeKey: recordThemeKey(record), problemKeys: recordProblemKeys(record), base, head, before, after, comparison, probeCoverageOnly:true });
+    reports.push({
+      game,id,themeKey:recordThemeKey(record),problemKeys:recordProblemKeys(record),
+      workItems:record.schemaVersion===3?record.workItems.map(item=>({id:item.id,rootCauseKeys:item.rootCauseKeys,paths:item.paths})):[],
+      experienceGoal:record.schemaVersion===3?record.experienceGoal:null,
+      base,head,before,after,comparison,probeCoverageOnly:true
+    });
   }
   assert.equal(new Set(reports.map(report => report.themeKey)).size, 1, 'one iteration = one improvement theme');
   for (const report of reports) console.log('AUTONOMOUS_EVIDENCE ' + JSON.stringify(report));

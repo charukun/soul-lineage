@@ -8,11 +8,13 @@ import { kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
 import { reviewSettings, createReviewCohort, editReviewCharacter, serializeReviewSession, deserializeReviewSession,
   reviewGlbDocument, MAX_MODEL_BYTES, MAX_SESSION_BYTES } from './state.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
+import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
 import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
 
 const el = id => document.getElementById(id);
 const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null, displayModelId: null };
 window.masterCharacterReview = review;
+const modelLoads=createReviewLoadController();
 const status = (message, isError = false) => { el('status').textContent = message; el('status').dataset.error = String(isError); };
 const report = error => { const message = String(error?.message ?? error); review.errors.push(message); if (review.errors.length > 100) review.errors.shift(); status(`エラー: ${message}`, true); };
 const download = (blob, name) => {
@@ -96,7 +98,7 @@ function start() {
   const marker = new THREE.Mesh(new THREE.RingGeometry(.48, .51, 48), new THREE.MeshBasicMaterial({ color: '#dcc493', side: THREE.DoubleSide }));
   marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
-  let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, loadSequence = 0, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
+  let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
   let activeModelLabel = defaultModel.label;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
   const simpleModelReview = document.body.classList.contains('simple-review');
@@ -252,15 +254,15 @@ function start() {
     background();
   }
   async function load(getBytes, auditDocument = auditKaykitDocument, rigBuilder = kaykitReviewRig) {
-    if (!alive) return; const sequence = ++loadSequence; loading = true; retry = getBytes; retryAudit = auditDocument; retryRig = rigBuilder; review.ready = false; el('retry').disabled = true; el('progress').value = .1;
+    if (!alive) return; const loadToken=modelLoads.begin(); loading = true; retry = getBytes; retryAudit = auditDocument; retryRig = rigBuilder; review.ready = false; el('retry').disabled = true; el('progress').value = .1;
     status('モデル取得・ハッシュと利用条件を確認中…'); let nextTemplate = null, nextPool = null, installed = false;
     try {
-      const bytes = await getBytes(); if (!alive || sequence !== loadSequence) return;
+      const bytes = await getBytes(); if (!alive || !modelLoads.isCurrent(loadToken)) return;
       const json = reviewGlbDocument(bytes), hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join(''), blobSha = await gitBlobSha(bytes);
       const audit = auditDocument(json, hash, bytes.byteLength, blobSha); if (!audit.approved) throw new Error(`モデル監査不合格: ${audit.errors.join(', ')}`);
       status(`${activeModelLabel} と共通モーションの準備中…`); el('progress').value = .4;
       const gltf = await new GLTFLoader().parseAsync(bytes, ''); nextTemplate = gltf.scene;
-      const rig = await rigBuilder(gltf); if (!alive || sequence !== loadSequence) return;
+      const rig = await rigBuilder(gltf); if (!alive || !modelLoads.isCurrent(loadToken)) return;
       nextPool = createCharacterProductionPool({ template: nextTemplate, rig });
       // Check every required actor before replacing a working pool.
       const preflight = records.slice(0, settings.count).map(record => nextPool.spawn(record.id)); preflight.forEach(a => nextPool.despawn(a.id));
@@ -271,8 +273,8 @@ function start() {
       el('capabilities').textContent = `SHA-256 ${hash}\nLicense ${audit.license || 'unverified'}\n表情 ${capabilities.expressionNames.length}種\n揺れ ${capabilities.springChains}チェーン / ${capabilities.springJoints}関節\n${capabilities.warnings.join('\n') || 'PBR・共通Humanoid表示'}`;
       rebuild(); el('progress').value = .8; renderer.compile(scene, camera); renderer.render(scene, camera);
       review.ready = true; el('progress').value = 1; status(`${activeModelLabel}を表示中。`);
-    } catch (error) { if (sequence === loadSequence) { review.ready = !installed && Boolean(pool); report(error); el('retry').disabled = !alive; } }
-    finally { nextPool?.dispose(); disposeTemplate(nextTemplate); if (sequence === loadSequence) { loading = false; window.dispatchEvent(new Event('character-review-change')); } }
+    } catch (error) { if (modelLoads.isCurrent(loadToken)) { review.ready = !installed && Boolean(pool); report(error); el('retry').disabled = !alive; } }
+    finally { nextPool?.dispose(); disposeTemplate(nextTemplate); if (modelLoads.isCurrent(loadToken)) { loading = false; window.dispatchEvent(new Event('character-review-change')); } }
   }
   for (const id of ['view', 'count']) on(el(id), 'change', guard(() => update({ [id]: id === 'count' ? Number(el(id).value) : el(id).value }, id === 'count' ? 'rebuild' : 'arrange')));
   function regenerate() { settings = reviewSettings({ ...settings, seed: Number(el('seed').value) }); records = createReviewCohort(settings); rebuild(); }
@@ -415,7 +417,7 @@ function start() {
   motionQA = createWorkshopMotionQA({ review, scene, camera, orbit, canvas, refresh: refreshLooks, draw: () => renderer.render(scene, camera) });
   review.motionQA = motionQA;
   function dispose() {
-    if (!alive) return; alive = false; review.ready = false; cancelAnimationFrame(frameId); events.abort(); stageLifecycle.destroy(); orbit.dispose();
+    if (!alive) return; alive = false; modelLoads.invalidate(); review.ready = false; cancelAnimationFrame(frameId); events.abort(); stageLifecycle.destroy(); orbit.dispose();
     motionQA?.dispose(); pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
   }
   on(window, 'pagehide', event => { if (!event.persisted) dispose(); else suspend(); });

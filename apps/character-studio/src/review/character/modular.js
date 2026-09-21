@@ -1,4 +1,4 @@
-import './character-review-modular.css';
+import './modular.css';
 import {
   APPEARANCE_PARTS, BASE_APPEARANCE_PARTS, appearancePartsForCharacter,
   mergeAppearanceParts, nextAppearanceParts
