@@ -1,0 +1,25 @@
+name: Reconcile situation-aware choice
+on:
+  push:
+    branches: ['feat/johakyu-situation-aware-choice-20260922']
+    paths: ['.github/workflows/reconcile-situation-aware-choice.yml']
+permissions: {contents: write}
+jobs:
+  reconcile:
+    if: contains(github.event.head_commit.message, '[reconcile-situation-aware-choice]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v6
+        with: {fetch-depth: 0}
+      - shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name Astra
+          git config user.email actions@users.noreply.github.com
+          git fetch --no-tags origin develop:refs/remotes/origin/develop
+          git merge --no-edit origin/develop
+          rm .github/workflows/reconcile-situation-aware-choice.yml
+          git add -A
+          git commit -m "chore(combat): remove temporary reconcile workflow"
+          git push origin HEAD:feat/johakyu-situation-aware-choice-20260922
