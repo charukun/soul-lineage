@@ -1,0 +1,112 @@
+name: Village center-follow public verification
+on:
+  push:
+    branches: [probe/village-center-follow-public-20260921]
+permissions: {contents: read}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v6
+        with: {node-version: '24', cache: npm}
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Verify actual public DEV center-follow placement
+        env: {URL: 'https://soul-lineage-village-dev.c-okamoto.workers.dev/'}
+        run: |
+          mkdir -p test-results/center-follow
+          node --input-type=module <<'NODE'
+          import {chromium} from '@playwright/test';import fs from 'node:fs/promises';
+          const browser=await chromium.launch({headless:true});
+          const ctx=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,recordVideo:{dir:'test-results/center-follow/video',size:{width:390,height:844}}});
+          const p=await ctx.newPage(),errors=[],failed=[];
+          p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('pageerror',e=>errors.push(e.message));p.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText}));
+          const report={url:process.env.URL,errors,failed,samples:[]};
+          const boot=async()=>{await p.locator('#soul-brand-boot.armed').waitFor({timeout:30000});await p.locator('#soul-brand-boot').click();await p.waitForFunction(()=>window.village&&document.querySelector('#loading')?.hidden===true,null,{timeout:60000});};
+          const placementState=()=>p.evaluate(()=>{
+            const v=window.village,r=v.view.canvas.getBoundingClientRect(),q=v.ui.pending&&v.view.project(v.ui.pending.x,0,v.ui.pending.z),panel=document.querySelector('#placement')?.getBoundingClientRect();
+            return {
+              pending:v.ui.pending?{...v.ui.pending}:null,
+              target:{x:v.view.target.x,z:v.view.target.z},
+              center:{x:r.left+r.width/2,y:r.top+r.height/2},
+              projected:q?{x:r.left+q.x,y:r.top+q.y}:null,
+              panel:panel?{left:panel.left,top:panel.top,right:panel.right,bottom:panel.bottom,width:panel.width,height:panel.height}:null,
+              placementMode:v.view.canvas.dataset.placement,
+              objects:v.world.objects.filter(o=>o.kind==='tent').map(o=>({id:o.id,x:o.x,z:o.z,rot:o.rot})),
+            };
+          });
+          try{
+            await p.goto(process.env.URL,{waitUntil:'domcontentloaded',timeout:60000});await boot();
+            report.commit=await p.locator('#game').getAttribute('data-commit');
+            await p.locator('#muraResetVillage').click();const nav=p.waitForNavigation({waitUntil:'domcontentloaded',timeout:60000});await p.locator('#muraResetConfirm [data-reset]').click();await nav;await boot();
+            await p.locator('#muraEnterVillage').click();await p.locator('#muraFirstRunGuide').waitFor({state:'visible',timeout:15000});
+            await p.locator('.muraFirstRunStart').click();await p.waitForFunction(()=>document.querySelector('#muraFirstRunGuide')?.dataset.stage==='build');
+            await p.locator('#build').click();await p.waitForFunction(()=>document.querySelector('#muraFirstRunGuide')?.dataset.stage==='catalog');
+            await p.locator('#catalog .card[data-kind="tent"]').click();await p.waitForFunction(()=>document.querySelector('#muraFirstRunGuide')?.dataset.stage==='drag');
+            await p.waitForTimeout(250);
+            report.before=await placementState();
+            report.controls=await p.evaluate(()=>{
+              const visible=n=>!!n&&getComputedStyle(n).display!=='none'&&getComputedStyle(n).visibility!=='hidden';
+              return{
+                left:visible(document.querySelector('#muraRotateLeft')),
+                right:visible(document.querySelector('#rotate')),
+                cancel:visible(document.querySelector('#muraCancelPlacement')),
+                done:visible(document.querySelector('#cancelPlace')),
+                text:document.querySelector('#placementText')?.textContent||'',
+              };
+            });
+            await p.screenshot({path:'test-results/center-follow/01-before-drag.png',fullPage:true});
+            const box=await p.locator('#game').boundingBox();if(!box)throw new Error('canvas missing');
+            const sx=box.x+box.width*.28,sy=box.y+box.height*.68,ex=sx+82,ey=sy-54;
+            const cdp=await ctx.newCDPSession(p);
+            await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:sx,y:sy,id:1}]});
+            for(let i=1;i<=8;i++){
+              await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:sx+(ex-sx)*i/8,y:sy+(ey-sy)*i/8,id:1}]});
+              await p.waitForTimeout(55);
+              report.samples.push(await placementState());
+            }
+            await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();await p.waitForTimeout(300);
+            report.afterRelease=await placementState();
+            report.stageAfterRelease=await p.locator('#muraFirstRunGuide').getAttribute('data-stage');
+            await p.screenshot({path:'test-results/center-follow/02-after-drag-release.png',fullPage:true});
+            const pendingBeforeTap={...report.afterRelease.pending};
+            // Deliberately tap far away from screen center. Center-follow must commit
+            // the currently displayed center candidate, not this finger coordinate.
+            const tx=box.x+box.width*.18,ty=box.y+box.height*.77;
+            await p.touchscreen.tap(tx,ty);
+            await p.waitForFunction(()=>window.village.world.objects.some(o=>o.kind==='tent')&&!window.village.ui.pending,null,{timeout:10000});
+            report.afterTap=await placementState();
+            report.stageAfterTap=await p.locator('#muraFirstRunGuide').getAttribute('data-stage');
+            const placed=report.afterTap.objects.at(-1);
+            report.commitDelta=placed?Math.hypot(placed.x-pendingBeforeTap.x,placed.z-pendingBeforeTap.z):null;
+            report.tap={x:tx,y:ty};
+            report.ui=await p.evaluate(()=>{
+              const d=getComputedStyle(document.querySelector('#drawer')),c=getComputedStyle(document.querySelector('#catalog .card')||document.createElement('div')),pl=getComputedStyle(document.querySelector('#placement'));
+              return{drawerRadius:d.borderRadius,drawerClip:d.clipPath,cardRadius:c.borderRadius,placementRadius:pl.borderRadius};
+            });
+            await p.screenshot({path:'test-results/center-follow/03-committed.png',fullPage:true});
+          }catch(e){report.exception=String(e)}
+          const centerError=s=>s?.projected?Math.hypot(s.projected.x-s.center.x,s.projected.y-s.center.y):999;
+          report.metrics={
+            beforeCenterError:centerError(report.before),
+            maxDragCenterError:report.samples.length?Math.max(...report.samples.map(centerError)):999,
+            releaseCenterError:centerError(report.afterRelease),
+            targetMovement:report.before&&report.afterRelease?Math.hypot(report.afterRelease.target.x-report.before.target.x,report.afterRelease.target.z-report.before.target.z):0,
+            candidateMovement:report.before?.pending&&report.afterRelease?.pending?Math.hypot(report.afterRelease.pending.x-report.before.pending.x,report.afterRelease.pending.z-report.before.pending.z):0,
+            panelAboveCenter:!!report.before?.panel&&report.before.panel.bottom<report.before.center.y,
+            pendingAfterRelease:!!report.afterRelease?.pending,
+            tentsBeforeTap:report.afterRelease?.objects?.length??-1,
+            tentsAfterTap:report.afterTap?.objects?.length??-1,
+          };
+          await fs.writeFile('test-results/center-follow/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));
+          await ctx.close();await browser.close();
+          const relevantErrors=errors.filter(x=>/mura-|Failed to fetch dynamically imported module|404/i.test(x)),relevantFailed=failed.filter(x=>/mura-/i.test(x.url));
+          const m=report.metrics,u=report.ui||{};
+          if(report.exception||report.before?.placementMode!=='center-follow'||m.beforeCenterError>32||m.maxDragCenterError>32||m.releaseCenterError>32||m.targetMovement<.01||m.candidateMovement<.01||!m.panelAboveCenter||!m.pendingAfterRelease||m.tentsBeforeTap!==0||m.tentsAfterTap!==1||report.stageAfterRelease!=='place'||report.stageAfterTap!=='done'||report.commitDelta>0.01||!report.controls?.left||!report.controls?.right||!report.controls?.cancel||u.drawerRadius!=='19px'||u.cardRadius!=='16px'||u.placementRadius!=='17px'||relevantErrors.length||relevantFailed.length)process.exit(1);
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: village-center-follow-public-verification, path: test-results/center-follow/, retention-days: 7}
