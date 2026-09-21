@@ -17,7 +17,10 @@ try{
   await page.goto(target,{waitUntil:'networkidle',timeout:90000});
   await page.waitForFunction(()=>document.querySelector('#battle-canvas')?.dataset.battleModels==='ready',null,{timeout:90000});
   await page.locator('[data-inspiration-mode="boost"]').click();
-  await page.waitForFunction(()=>document.querySelector('.stage')?.dataset.inspirationCinematic==='true',null,{timeout:60000});
+  // Deterministically force the next high-probability inspiration roll so this
+  // browser probe exercises the same spontaneous inspiration path every run.
+  await page.evaluate(()=>{globalThis.__inspirationProbeOriginalRandom=Math.random;Math.random=()=>0;});
+  await page.waitForFunction(()=>document.querySelector('.stage')?.dataset.inspirationCinematic==='true',null,{timeout:20000});
   const t0=await timeValue();
   const before=await page.locator('#battle-canvas').screenshot({path:out+'/inspiration-start.png'});
   await page.waitForTimeout(1200);
