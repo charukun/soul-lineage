@@ -10,6 +10,7 @@ import {curatedAssetById,fetchCuratedAssetBytes,projectAssetUrl,CURATED_PROVENAN
 import {RINNE_OBJECT_REVIEW_CATALOG as OBJECTS} from './catalog.js';
 import {createReviewSvgThumbnail} from '@soul/shared-ui/review-thumbnail';
 import {setReviewStatus} from '@soul/shared-ui/review-status';
+import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
 mountRinneReviewShell('objects');
 
 const runtimeEnvironment=typeof __BUILD_INFO__==='undefined'?'dev':__BUILD_INFO__.environment;
@@ -28,7 +29,8 @@ const ground=new THREE.Mesh(new THREE.CircleGeometry(3.8,64),new THREE.MeshStand
 ground.rotation.x=-Math.PI/2;ground.position.y=-.006;scene.add(ground);
 const models=createMuraModels(THREE,{createCanvas:()=>document.createElement('canvas'),textileFibers:1800,textileBlotches:40});
 const CATEGORY_OPTIONS=Object.freeze([{id:'all',label:'すべて'},{id:'props',label:'小物'},{id:'outdoor',label:'屋外'},{id:'furniture',label:'家具'},{id:'training',label:'訓練'},{id:'weapons',label:'武器'},{id:'creatures',label:'魔物・動物'}]);
-let objectRoot=null,frameId=0,loadSequence=0,selected=OBJECTS[0].id,selectedCategory='all',searchText='';
+let objectRoot=null,frameId=0,selected=OBJECTS[0].id,selectedCategory='all',searchText='';
+const objectLoads=createReviewLoadController();
 let mixer=null,animationRoot=null,clips=[],action=null,loadAbort=null,lastFrame=0;
 
 function status(message,error=false){setReviewStatus(q('#object-status'),message,{error});}
@@ -120,7 +122,7 @@ function playClip(index){
 }
 async function loadObject(id){
   const item=OBJECTS.find(row=>row.id===id);if(!item)throw new Error(`Unknown review object: ${id}`);
-  const sequence=++loadSequence;selected=id;status(`${item.label} を読み込み中…`);q('#object-selected').textContent=item.label;q('#object-selected-source').textContent='読み込み中…';renderSelection();
+  const loadToken=objectLoads.begin();selected=id;status(`${item.label} を読み込み中…`);q('#object-selected').textContent=item.label;q('#object-selected-source').textContent='読み込み中…';renderSelection();
   loadAbort?.abort();loadAbort=new AbortController();const signal=loadAbort.signal;
   releaseAnimation();disposeRoot(objectRoot);objectRoot=null;
   let gltf=null,root=null;
@@ -131,7 +133,7 @@ async function loadObject(id){
     }else if(item.kind==='gltf')gltf=await loader.loadAsync(new URL(item.url,location.href).href);
     // A wrapper carries review framing; authored root animation tracks stay untouched.
     root=new THREE.Group();root.add(gltf?gltf.scene:runtimeObject(item));
-    if(sequence!==loadSequence||signal.aborted){disposeRoot(root);return;}
+    if(!objectLoads.isCurrent(loadToken)||signal.aborted){disposeRoot(root);return;}
     objectRoot=root;objectRoot.name=`ReviewObject:${item.id}`;
     objectRoot.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}});
     scene.add(objectRoot);fitObject(objectRoot);setCameraPreset('full');renderSelection();showProvenance(item);
@@ -142,9 +144,9 @@ async function loadObject(id){
     }
     canvas.dataset.loadedAsset=id;q('#object-selected-source').textContent=item.source+(clips.length?` · ${clips.length} モーション`:'');status(`${item.label} · ${item.source}${clips.length?` · ${clips.length} モーション`:''}`);
   }catch(error){
-    if(sequence===loadSequence){releaseAnimation();disposeRoot(root);objectRoot=null;}
+    if(objectLoads.isCurrent(loadToken)){releaseAnimation();disposeRoot(root);objectRoot=null;}
     else disposeRoot(root);
-    if(error.name!=='AbortError'&&sequence===loadSequence)throw error;
+    if(error.name!=='AbortError'&&objectLoads.isCurrent(loadToken))throw error;
   }
 }
 function populate(){
@@ -169,4 +171,4 @@ function frame(now){
   controls.update();renderer.render(scene,camera);frameId=requestAnimationFrame(frame);
 }
 frameId=requestAnimationFrame(frame);populate();loadObject(selected).catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{loadSequence++;loadAbort?.abort();cancelAnimationFrame(frameId);releaseAnimation();stageLifecycle.destroy();objectCameraPresets.destroy();controls.dispose();disposeRoot(objectRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{objectLoads.invalidate();loadAbort?.abort();cancelAnimationFrame(frameId);releaseAnimation();stageLifecycle.destroy();objectCameraPresets.destroy();controls.dispose();disposeRoot(objectRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});

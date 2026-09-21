@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {createReviewCameraPresetController,createReviewRenderer,disposeReviewObject} from '@soul/rendering';
 import {createReviewSvgThumbnail} from '@soul/shared-ui/review-thumbnail';
 import {setReviewStatus} from '@soul/shared-ui/review-status';
+import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
 import {mountRinneReviewShell} from '../shared/lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import { PROTAGONIST_VILLAGER_MODEL } from '@soul/characters';
@@ -33,7 +34,8 @@ const fill = new THREE.DirectionalLight('#8dcbe1', 1.7); fill.position.set(5,4,-
 const ground = new THREE.Mesh(new THREE.CircleGeometry(3.8,64), new THREE.MeshStandardMaterial({color:'#263431',roughness:1}));
 ground.rotation.x = -Math.PI/2; ground.position.y = -.006; scene.add(ground);
 
-let modelRoot = null, mixer = null, frameId = 0, loadSequence = 0;
+let modelRoot = null, mixer = null, frameId = 0;
+const modelLoads=createReviewLoadController();
 const mounted = new Map();
 const equipmentCache = new Map();
 const equipmentLoads = new Map();
@@ -288,9 +290,9 @@ function applyPresentationPose(root){
   root.updateMatrixWorld(true);
 }
 async function loadModel() {
-  const sequence=++loadSequence; selection.model=PROTAGONIST_VILLAGER_MODEL.id; status('主人公モデルを読み込み中…');
+  const loadToken=modelLoads.begin(); selection.model=PROTAGONIST_VILLAGER_MODEL.id; status('主人公モデルを読み込み中…');
   for(const value of mounted.values())for(const root of mountedRoots(value))root.removeFromParent();mounted.clear(); if(modelRoot)disposeRoot(modelRoot); modelRoot=null; mixer?.stopAllAction();mixer=null;
-  const gltf=await loader.loadAsync(protagonistModelUrl); if(sequence!==loadSequence){disposeRoot(gltf.scene);return;}
+  const gltf=await loader.loadAsync(protagonistModelUrl); if(!modelLoads.isCurrent(loadToken)){disposeRoot(gltf.scene);return;}
   modelRoot=gltf.scene; modelRoot.name='ReviewModel:Protagonist'; modelRoot.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}}); scene.add(modelRoot); hideNativeAccessories(modelRoot);
   modelRoot.updateMatrixWorld(true); const box=new THREE.Box3().setFromObject(modelRoot),center=box.getCenter(new THREE.Vector3()); modelRoot.position.x-=center.x;modelRoot.position.z-=center.z;modelRoot.position.y-=box.min.y;modelRoot.updateMatrixWorld(true);
   const idleClip=gltf.animations?.find(clip=>/idle|stand|breath/i.test(clip.name||''));
