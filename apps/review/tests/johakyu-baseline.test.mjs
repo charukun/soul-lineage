@@ -32,6 +32,8 @@ test('P2 does not upgrade, replace or remove any original dependency',()=>{
   assert.equal(lock.packages['apps/review'].dependencies['@soul/johakyu-combat'],'*');
   assert.deepEqual(lock.packages['node_modules/@soul/johakyu-combat'],{resolved:'packages/johakyu-combat',link:true});
   assert.deepEqual(lock.packages['packages/johakyu-combat'],{version:'0.1.0',dependencies:{'@soul/game-data':'*'}});
+  assert.equal(lock.packages['apps/rinne'].dependencies['@soul/johakyu-combat'],'*');
+  delete lock.packages['apps/rinne'].dependencies['@soul/johakyu-combat'];
   delete lock.packages['apps/review'].dependencies['@soul/johakyu-combat'];
   delete lock.packages['node_modules/@soul/johakyu-combat'];delete lock.packages['packages/johakyu-combat'];
   assert.equal(blobHash(JSON.stringify(lock,null,2)+'\n'),baseline.activeBlobs['package-lock.json']);

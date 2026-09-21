@@ -82,6 +82,7 @@ function startAttack(a,target,options={}){
  a.combo++;let duration=(a.kind==='hero'?.88:1.22)*(a.kind==='hero'?styles[game.stance].rate/a.attackSpeed:1);
  const heavy=a.kind==='hero'&&a.combo%3===0,big=a.boss&&a.combo%3===0;if(big)duration=1.6;
  const action=rules?.begin(a,options)??null;
+ if(rules?.ownsDamage&&!action){play(a,'Idle');return;}
  if(action)record('johakyu-action',{actorId:a.object.uuid,kind:a.kind,attackId:action.id,phase:action.phase,techniqueId:action.techniqueId,motion:action.clip});
  const name=action?.clip??(a.kind==='mage'?'Spellcast_Shoot':big?'2H_Melee_Attack_Chop':heavy?'1H_Melee_Attack_Slice_Horizontal':a.combo%2?'1H_Melee_Attack_Slice_Diagonal':'1H_Melee_Attack_Chop');
  a.attack={time:0,duration,target,hit:false,heavy:rules?false:heavy,big:rules?false:big,...(rules?{action}: {})};play(a,name,true,duration);a.trail=[];if(big)ring(a.pos,3.3,'#d45358',1.2,true);
@@ -111,9 +112,10 @@ function damage(target,amount,source,critical=false){
  if(target.dead)return;
  if(target.kind==='hero')amount=Math.max(1,Math.round(amount*styles[game.stance].defense));
  if(rules)amount=Math.max(1,Math.round(amount*rules.damageScale(target)));
- rules?.impact(source,target,Math.min(target.hp,amount),source.attack?.action);
+ if(rules?.ownsDamage){const result=rules.applyImpact(source,target,amount,source.attack?.action);if(!result.applied)return false;amount=result.dealt;}
+ else rules?.impact(source,target,Math.min(target.hp,amount),source.attack?.action);
  if(rules&&source.attack?.action)record('johakyu-impact',{attackId:source.attack.action.id,sourceId:source.object.uuid,targetId:target.object.uuid,phase:source.attack.action.phase,damage:Math.min(target.hp,amount)});
- target.hp=Math.max(0,target.hp-amount);target.flash=.15;target.showHp=3;
+ if(!rules?.ownsDamage)target.hp=Math.max(0,target.hp-amount);target.flash=.15;target.showHp=3;
  const away=new V().subVectors(target.pos,source.pos).setY(0).normalize();if(target.kind!=='hero')target.pos.addScaledVector(away,.16);
  const color=target.kind==='hero'?'#dc8c80':critical?'#fff1b8':'#dfd7bd';
  randRange(-15,15); // Preserve the original RNG stream without drawing damage numbers.
@@ -313,7 +315,7 @@ function inspectActors(){return actors.map(a=>({kind:a.kind,hp:a.hp,dead:a.dead,
 function inspectBattle(bootEpoch){
  if(!game.ready||disposed)return null;
  return createBattleObservation({authority:rules?'johakyu-review':'native-demo',battleId:`battle2:${bootEpoch}:${rounds}`,timeSeconds:game.time,status:game.phase,
-  actors:actors.map(a=>({id:a.object.uuid,side:a.kind==='hero'?'hero':'enemy',position:a.pos.toArray(),hp:a.hp,maxHp:a.maxHp,dead:a.dead,phase:rules?.inspect(a).phase??null,techniqueId:rules?.inspect(a).techniqueId??null,animation:a.actionName})),events:rules?.snapshot().events??[]});
+  actors:actors.map(a=>({id:rules?.inspect(a).id??a.object.uuid,side:a.kind==='hero'?'hero':'enemy',position:a.pos.toArray(),hp:a.hp,maxHp:a.maxHp,dead:rules?.inspect(a).dead??a.dead,incapacitated:rules?.inspect(a).incapacitated??a.dead,body:rules?.inspect(a).body??null,stamina:rules?.inspect(a).stamina??null,phase:rules?.inspect(a).phase??null,techniqueId:rules?.inspect(a).techniqueId??null,animation:a.actionName})),events:rules?.snapshot().events??[]});
 }
 function advance(seconds){if(!game.ready||disposed||!Number.isFinite(seconds)||seconds<=0||seconds>30)throw Error('Invalid evidence advancement');for(let i=0;i<Math.ceil(seconds*60);i++){simulate(1/60);clock+=1/60;}draw();return metrics();}
 function destroy(){

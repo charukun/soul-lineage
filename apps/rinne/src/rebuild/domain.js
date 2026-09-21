@@ -1,3 +1,4 @@
+import {spendActionStamina,recoverActionStamina} from '@soul/johakyu-combat/stamina';
 import { DISCOVERIES, skillEffects, skillName } from './skill-system.js';
 import { enterInteriorState, leaveInteriorState } from './interior-state.js';
 import { ensureCombatInjuryState, recoverPersistentInjuries } from './combat-injury.js';
@@ -119,19 +120,13 @@ export function applyEquipmentStation(state,station){
 }
 export function setMoving(state,moving,yaw=state.yaw){state.moving=Boolean(moving);if(Number.isFinite(yaw))state.yaw=yaw;if(state.moving){state.idleSeconds=0;state.resting=false;stopAutomaticActivity(state,'move');}return state;}
 function recover(state,dt){
-  ensureCombatInjuryState(state);recoverPersistentInjuries(state);const armor=ARMORS[state.equipment.armor],capBase=100*armor.staminaScale,effects=skillEffects(state);
-  state.staminaCap=clamp(Math.min(state.staminaCap,capBase),22,100);state.lastSpendSeconds+=dt;
-  if(state.moving){state.stamina=Math.min(state.staminaCap,state.stamina+4*dt);return;}
-  state.idleSeconds+=dt;if(state.idleSeconds>=.48&&!state.activity&&!state.combat)state.resting=true;
-  const rest=state.resting&&state.idleSeconds>=.35;
-  if(state.lastSpendSeconds>=.55)state.stamina=Math.min(state.staminaCap,state.stamina+(rest?32:14)*dt);
-  if(rest)state.staminaCap=Math.min(capBase,state.staminaCap+8*dt);else if(state.lastSpendSeconds>=6)state.staminaCap=Math.min(capBase,state.staminaCap+.2*dt);
-  if(rest&&state.hp<state.maxHp)state.hp=Math.min(state.maxHp,state.hp+1.2*(1+effects.recovery)*dt);
-  if(rest&&state.zone==='village'&&state.ammo.staffCharges<state.ammo.staffMax){state.ammoRecovery=(Number(state.ammoRecovery)||0)+dt;if(state.ammoRecovery>=6){state.ammo.staffCharges=Math.min(state.ammo.staffMax,state.ammo.staffCharges+1);state.ammoRecovery=0;}}
+  ensureCombatInjuryState(state);recoverPersistentInjuries(state);
+  const armor=ARMORS[state.equipment.armor],effects=skillEffects(state);
+  recoverActionStamina(state,dt,{capBase:100*armor.staminaScale,recovery:effects.recovery});
 }
 export function spendStamina(state,amount){
-  const effects=skillEffects(state);amount=Math.max(0,(Number(amount)||0)*(1+effects.staminaCost)*inspirationEffortScale(state));if(state.stamina<amount)return false;
-  state.stamina-=amount;state.staminaCap=Math.max(22,state.staminaCap-amount*.08);state.lastSpendSeconds=0;return true;
+  const effects=skillEffects(state);amount=Math.max(0,(Number(amount)||0)*(1+effects.staminaCost)*inspirationEffortScale(state));
+  return spendActionStamina(state,amount);
 }
 export function endLifeEarly(state,cause='戦い'){
   if(state.ended)return false;state.ended=true;state.phase='ended';state.moving=false;state.resting=false;state.activity=null;state.combat=null;state.down=null;state.interior=null;state.hp=0;
