@@ -33,7 +33,10 @@ test('1v1 executes every configured stage in technique order before advancing ph
  for(let i=0;i<1800;i++){const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self),a=hero?.action;if(a&&a.id!==lastId){lastId=a.id;starts.push({phase:a.phase,techniqueId:a.techniqueId,techniqueIndex:a.techniqueIndex,stageIndex:a.stageIndex,kind:a.motion.kind});}if(starts.some(x=>x.phase==='kyu'&&x.techniqueIndex>=1&&x.stageIndex>=2))break;}
  assert.ok(starts.length>10,JSON.stringify(starts));const order={jo:0,ha:1,kyu:2};let previous=-1;
  for(const row of starts){const current=order[row.phase];assert.ok(current>=previous||previous===2&&current===0,JSON.stringify(starts));previous=current;}
- for(const phase of ['jo','ha','kyu']){const rows=starts.filter(r=>r.phase===phase);assert.ok(rows.length>=3,phase);for(let i=1;i<rows.length;i++){const a=rows[i-1],b=rows[i];assert.ok(b.techniqueIndex>a.techniqueIndex||b.techniqueIndex===a.techniqueIndex&&b.stageIndex===a.stageIndex+1,JSON.stringify(rows));}}
+ for(let i=1;i<starts.length;i++){const a=starts[i-1],b=starts[i];if(a.phase!==b.phase)continue;
+   assert.ok(b.techniqueIndex>a.techniqueIndex||b.techniqueIndex===a.techniqueIndex&&b.stageIndex===a.stageIndex+1,JSON.stringify(starts));
+ }
+ for(const phase of ['jo','ha','kyu'])assert.ok(starts.filter(r=>r.phase===phase).length>=3,phase);
 });
 
 test('actual impact identity carries technique, phase and stage',()=>{
