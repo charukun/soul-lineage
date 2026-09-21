@@ -133,58 +133,62 @@
     "heart-hero": {
       "source": "heart",
       "crop": [
-        530,
-        827,
-        887,
-        918
+        519,
+        776,
+        907,
+        933
       ],
       "file": "heart-hero.webp",
-      "sha256": "766e20e206cb2c7b972c6521fe17b3d558bd6cf5c3770b98d8d53a6ed1881c90",
-      "byteLength": 7274,
-      "width": 357,
-      "height": 91
+      "sha256": "c14393f512fb317169e0021cbb4bfe3f2aba3c56becb91d2ad67ee26740c117f",
+      "byteLength": 14162,
+      "width": 388,
+      "height": 157,
+      "processing": "Illustration crop with state-ribbon area replaced by adjacent artwork; all item state and descriptive text are native UI."
     },
     "technique-hero": {
       "source": "technique",
       "crop": [
-        514,
-        790,
-        889,
-        880
+        504,
+        754,
+        902,
+        905
       ],
       "file": "technique-hero.webp",
-      "sha256": "7fe857bb7db9b25471cae8af559084c40b50ad0218f7cbe863a4d94ade3f201e",
-      "byteLength": 11012,
-      "width": 375,
-      "height": 90
+      "sha256": "10f7756d0021015c9d89d7e60cc81f5d3008160673b418cb2528ddde1a5b856b",
+      "byteLength": 20038,
+      "width": 398,
+      "height": 151,
+      "processing": "Illustration crop with state-ribbon area replaced by adjacent artwork; all item state and descriptive text are native UI."
     },
     "body-hero": {
       "source": "body",
       "crop": [
-        555,
-        778,
-        897,
-        928
+        550,
+        765,
+        908,
+        947
       ],
       "file": "body-hero.webp",
-      "sha256": "20f7bc3215c793a8035c7450bd4525d2e8eb7e848b1b883e270f2fd78ea1d936",
-      "byteLength": 15556,
-      "width": 342,
-      "height": 150
+      "sha256": "d1509efc778f344ceea67765b4ee6fb667378d68b30e024c9cea5499ba260cdd",
+      "byteLength": 19556,
+      "width": 358,
+      "height": 182,
+      "processing": "Illustration crop with state-ribbon area replaced by adjacent artwork; all item state and descriptive text are native UI."
     },
     "items-hero": {
       "source": "items",
       "crop": [
-        531,
-        791,
-        888,
-        877
+        522,
+        754,
+        901,
+        905
       ],
       "file": "items-hero.webp",
-      "sha256": "763e0378149357788799f231d1a22672ae74b77e5cc2ea1db9cccf53823f6428",
-      "byteLength": 8780,
-      "width": 357,
-      "height": 86
+      "sha256": "07e29392ace7498d09eadff75fbf39a1310c8eef2f5b972a2194884bf43ce1cb",
+      "byteLength": 15182,
+      "width": 379,
+      "height": 151,
+      "processing": "Illustration crop with state-ribbon area replaced by adjacent artwork; all item state and descriptive text are native UI."
     },
     "icon-heart": {
       "source": "heart",
@@ -679,58 +683,62 @@
     "nav-heart": {
       "source": "heart",
       "crop": [
-        165,
-        1464,
-        297,
-        1588
+        163,
+        1462,
+        286,
+        1585
       ],
       "file": "nav-heart.webp",
-      "sha256": "6d91dc9be8f4896deb2c23c54d048489ed32a1633829a119d9aa2597bf222dda",
-      "byteLength": 4878,
-      "width": 132,
-      "height": 124
+      "sha256": "0c1981d9d1337588c822d0b0f86b7204ba807d4c1fb42b2f85558fdeefa95cee",
+      "byteLength": 7608,
+      "width": 144,
+      "height": 144,
+      "processing": "Centered circle alpha matte; source page provides a consistent inactive token, active state is real CSS."
     },
     "nav-technique": {
-      "source": "technique",
+      "source": "heart",
       "crop": [
-        319,
-        1472,
-        445,
-        1595
+        314,
+        1471,
+        423,
+        1580
       ],
       "file": "nav-technique.webp",
-      "sha256": "f89869b4317611a7898f3a338cc0f7fd05888fcbc9fb8684ec0c620f2ce63446",
-      "byteLength": 4700,
-      "width": 126,
-      "height": 123
+      "sha256": "5f7b3ad94bedf3f2dd70f04a3c950c50a50691b95ce96403479d16b468057f19",
+      "byteLength": 7852,
+      "width": 144,
+      "height": 144,
+      "processing": "Centered circle alpha matte; source page provides a consistent inactive token, active state is real CSS."
     },
     "nav-body": {
-      "source": "body",
+      "source": "heart",
       "crop": [
-        464,
-        1471,
-        592,
-        1597
+        453,
+        1470,
+        562,
+        1579
       ],
       "file": "nav-body.webp",
-      "sha256": "3eec5be733fa7eb23f8123ca9847ae07f0ed7079d9dff6161850a9350a6dab1b",
-      "byteLength": 4270,
-      "width": 128,
-      "height": 126
+      "sha256": "a7d7e692c17abb727dc85546f982aa2e32f5c0e2c0183dcdaecd6aa28d816b5b",
+      "byteLength": 7550,
+      "width": 144,
+      "height": 144,
+      "processing": "Centered circle alpha matte; source page provides a consistent inactive token, active state is real CSS."
     },
     "nav-items": {
-      "source": "items",
+      "source": "heart",
       "crop": [
-        606,
-        1457,
-        738,
-        1586
+        595,
+        1470,
+        704,
+        1579
       ],
       "file": "nav-items.webp",
-      "sha256": "0323ad80ab5d0fc4a9ceed131a1047dbcb2dc447da723d807020e4b0264ed169",
-      "byteLength": 4998,
-      "width": 132,
-      "height": 129
+      "sha256": "fecd5245331789c10026f257576e7755d17d479d7d3cb8b5ff47d95f977c65be",
+      "byteLength": 8332,
+      "width": 144,
+      "height": 144,
+      "processing": "Centered circle alpha matte; source page provides a consistent inactive token, active state is real CSS."
     },
     "crest-heart": {
       "source": "heart",
@@ -787,6 +795,66 @@
       "byteLength": 18464,
       "width": 269,
       "height": 181
+    },
+    "masthead-heart": {
+      "source": "heart",
+      "crop": [
+        0,
+        0,
+        941,
+        265
+      ],
+      "file": "masthead-heart.webp",
+      "sha256": "12d12332b3eef777a367e48c45eb7bd20a35bdc84f33f73ab1e6be3b8119870a",
+      "byteLength": 54740,
+      "width": 941,
+      "height": 265,
+      "processing": "Approved scene header; actual generation, age and name overlay replace the proposal values. Proposal age/season text replaced with adjacent panel material; actual life data is rendered natively."
+    },
+    "masthead-technique": {
+      "source": "technique",
+      "crop": [
+        0,
+        0,
+        941,
+        265
+      ],
+      "file": "masthead-technique.webp",
+      "sha256": "649a14706ec5a8c101aff52343dbc3054ad77deea7793fc4b5326727897ea1b5",
+      "byteLength": 57222,
+      "width": 941,
+      "height": 265,
+      "processing": "Approved scene header; actual generation, age and name overlay replace the proposal values. Proposal age/season text replaced with adjacent panel material; actual life data is rendered natively."
+    },
+    "masthead-body": {
+      "source": "body",
+      "crop": [
+        0,
+        0,
+        941,
+        265
+      ],
+      "file": "masthead-body.webp",
+      "sha256": "d1e695eaa5bd3e2d998605c83404ea07809554541d60b2601482876dafc55421",
+      "byteLength": 58486,
+      "width": 941,
+      "height": 265,
+      "processing": "Approved scene header; actual generation, age and name overlay replace the proposal values. Proposal age/season text replaced with adjacent panel material; actual life data is rendered natively."
+    },
+    "masthead-items": {
+      "source": "items",
+      "crop": [
+        0,
+        0,
+        941,
+        265
+      ],
+      "file": "masthead-items.webp",
+      "sha256": "6fc2e5782a5f7ba71248eb8730c010ac70bec63c139f0cc01cfa4d6ba06f8d80",
+      "byteLength": 57106,
+      "width": 941,
+      "height": 265,
+      "processing": "Approved scene header; actual generation, age and name overlay replace the proposal values. Proposal age/season text replaced with adjacent panel material; actual life data is rendered natively."
     }
   },
   "references": {
