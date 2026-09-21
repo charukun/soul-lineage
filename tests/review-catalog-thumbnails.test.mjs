@@ -6,7 +6,7 @@ const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
 test('all review choice grids remain five-column on phone and desktop',async()=>{
   const [shared,objects,assets,motion]=await Promise.all([
-    read('packages/shared-ui/src/review-shell.css'),
+    read('packages/shared-ui/src/review-controls.css'),
     read('apps/rinne/src/review-object-library.css'),
     read('apps/rinne/src/review-asset-library.css'),
     read('apps/rinne/src/review-motion.css'),
