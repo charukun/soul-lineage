@@ -12,7 +12,11 @@ function install(){
  if(!village)return;
  const resetReplay=consumeFirstRunAutoplayAfterReset(village.info.environment);
  const freshLoad=consumeFreshVillageLoad()||resetReplay;
+ const previousGuide=village.world.state?.onboarding?.firstRunAutoplay;
  if(!shouldRunFirstRunAutoplay(village.world.state,{freshLoad}))return;
+ if(previousGuide?.seen&&previousGuide.version!==4&&!village.world.state.tutorial?.completed){
+  village.world.state.tutorial={...(village.world.state.tutorial||{}),dismissed:false};
+ }
 
  const canvas=village.view.canvas||document.getElementById('game');
  if(!canvas)return;

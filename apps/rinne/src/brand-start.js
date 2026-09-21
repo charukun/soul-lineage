@@ -1,3 +1,4 @@
+import {prepareRinneTitleAudio} from './gameplay-audio.js';
 import {openBrandBootGate} from '@soul/shared-ui/boot-gate';
 
 const RINNE_STEPS=[
@@ -19,7 +20,7 @@ await openBrandBootGate({
       for(const [match,value] of RINNE_STEPS)if(text.includes(match))report(value);
     };
     const ready=new Promise((resolve,reject)=>{
-      const finish=()=>{report(1);statusObserver?.disconnect();gameObserver?.disconnect();resolve();};
+      const finish=()=>{report(.92);statusObserver?.disconnect();gameObserver?.disconnect();resolve();};
       if(game?.dataset.runtime==='prepared'){finish();return;}
       statusObserver=new MutationObserver(updateStatus);
       if(status)statusObserver.observe(status,{childList:true,characterData:true,subtree:true});
@@ -32,5 +33,7 @@ await openBrandBootGate({
     });
     await import('./main.js');
     await ready;
+    report(.96);
+    await prepareRinneTitleAudio();
   },
 });
