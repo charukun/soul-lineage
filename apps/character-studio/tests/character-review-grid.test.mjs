@@ -112,3 +112,17 @@ test('review controls follow reviewer intent: target, three scopes, five-column 
   assert.match(css, /\.character-review-decision--ok\[aria-pressed="true"\]/);
   assert.match(css, /\.character-review-decision--fix\[aria-pressed="true"\]/);
 });
+
+
+test('model browsing is the primary review surface and detailed editing is secondary', () => {
+  assert.match(code, /character-model-grid review-choice-grid/);
+  assert.match(code, /role', 'listbox'/);
+  assert.match(code, /character-review-details-summary', '詳細確認'/);
+  assert.match(code, /root\.append\(modelPicker, tools, details\)/);
+  assert.match(code, /stepModel\(1\)/);
+  assert.match(code, /state\.modelVerdicts\.set\(option\.key, verdict\)/);
+  assert.match(css, /\.character-model-grid\s*\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.character-model-review-actions\s*\{[^}]*grid-template-columns:\.72fr 1fr 1fr \.72fr/);
+  assert.match(css, /\.character-review-details-summary/);
+  assert.match(css, /\.character-model-list\{display:none!important\}/);
+});
