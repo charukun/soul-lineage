@@ -2,7 +2,6 @@ import {resolveInspirationAnswer} from '@soul/game-data';
 import {ensureCombatLoadout,learnedHeartSkills,learnedTechniqueSkills,techniqueName,activeCombo,unlockedBodyOptions,BODY_STANCES,BODY_STYLES,BODY_ZANSHIN,PHASES} from './combat-loadout.js';
 import {skillDefinition} from './rebuild/skill-system.js';
 import {inspirationJournalModel} from './inspiration-journal-model.js';
-import {answerAvailability} from './rebuild/inspiration-state.js';
 import {tidebreakMindVectorFor} from './rebuild/combat-tactics.js';
 import {ensureProgression,WEAPON_LABELS,ARMOR_LABELS} from './gameplay-world.js';
 
@@ -18,6 +17,8 @@ export const BOOK_TRAITS=Object.freeze([['reach','間合い'],['drive','力'],['
 const EFFECTS={reachScale:'間合い',turnScale:'旋回',guardBonus:'受け',distanceScale:'保つ距離',advanceScale:'踏み込み',retreatScale:'退き',orbitScale:'回り込み',recoveryScale:'構えへの戻り',staminaRefund:'息の回復'};
 const GEAR_KINDS=[['weapon','武器','weapons'],['armor','防具','armors'],['shield','盾','shields']];
 const GEAR_NOTES={fist:'得物を持たない状態。',sword:'片手剣。',dagger:'短い得物。',great:'大きな両手の得物。',spear:'長い得物。',axe:'戦斧。',staff:'杖。',cloth:'旅の衣服。',light:'軽装の防具。',heavy:'重装の防具。'};
+// Art is illustrative. Never label the bow in the proposal as an implemented spear.
+const gearIcon=(kind,value)=>kind==='shield'?(value?'shield':'stance'):value==='fist'?'stance':value==='spear'?'staff':String(value);
 const iconFor=id=>{
   const t=String(id||'');
   if(/observe|read|precision/.test(t))return 'book';
@@ -30,17 +31,16 @@ const iconFor=id=>{
   return 'heart';
 };
 function knownRow(state,id,journal){
-  const record=journal.families.flatMap(f=>f.variants).find(r=>r.id===id),def=skillDefinition(id),answer=resolveInspirationAnswer(id);
-  const basic=String(id).startsWith('basic.');
-  return {id,name:techniqueName(id,state),kind:record?.kind||def?.type||'basic',known:true,icon:basic?(state.equipment.weapon==='fist'?'stance':state.equipment.weapon):iconFor(id),
+  const record=journal.families.flatMap(f=>f.variants).find(r=>r.id===id),def=skillDefinition(id),answer=resolveInspirationAnswer(id),basic=String(id).startsWith('basic.');
+  return {id,name:techniqueName(id,state),kind:record?.kind||def?.type||'basic',known:true,icon:basic?gearIcon('weapon',state.equipment.weapon):iconFor(id),
     purpose:record?.purpose||answer?.mechanic||def?.description||(basic?'得物を使うための基本の型。閃きには数えません。':'この人生で身につけた心得。'),
     tradeoff:record?.tradeoff||answer?.tradeoff||'',story:record?.story||(basic?'いつでも使える基本動作。':'移行前の保存から受け継いだ習得記録です。'),
     provenance:record?.provenance||[],status:record?.status||(basic?'基礎':'習得済'),attributes:record?.attributes||[],phases:record?.phases||[],
     availability:record?.availability||{usable:true,reason:''},weapons:answer?.weapons||[],basic};
 }
 function bodyRow(state,kind,label,option,known){
-  const facts=Object.entries(EFFECTS).filter(([key])=>typeof option[key]==='number').map(([key,name])=>({label:name,value:/Bonus|Refund/.test(key)?`${Math.round(option[key]*100)}%`:`${Math.round(option[key]*100)}%`,raw:option[key],key}));
-  return {id:`${kind}:${option.id}`,choice:option.id,category:kind,categoryLabel:label,name:option.label,known,kind:'body',icon:kind==='stance'?'stance':kind==='style'?'flow':'breath',purpose:option.description,tradeoff:'',story:known?'身につけた型から選べます。':'関連する心得を会得すると選べます。',requires:option.requiresAny||[],facts,status:known?'習得済':'未習得',availability:{usable:known,reason:known?'':'まだ身につけていません。'}};
+  const facts=Object.entries(EFFECTS).filter(([key])=>typeof option[key]==='number').map(([key,name])=>({label:name,value:`${Math.round(option[key]*100)}%`,raw:option[key],key}));
+  return {id:`${kind}:${option.id}`,choice:option.id,category:kind,categoryLabel:label,name:option.label,known,kind:'body',icon:kind==='stance'?'stance':kind==='style'?'flow':'breath',purpose:option.description,tradeoff:'',story:known?'身につけた型から選べます。':'関連する心得を会得すると選べます。',provenance:[],requires:option.requiresAny||[],facts,status:known?'習得済':'未習得',availability:{usable:known,reason:known?'':'まだ身につけていません。'}};
 }
 export function bookReadOnlyReason(state,{coop=false}={}){
   if(!state)return '人生を開始してから開けます。';
@@ -66,7 +66,7 @@ export function buildStorybookModel(state,page,{slot=0,category='all',filter='al
   }else{
     for(const [kind,label,key]of GEAR_KINDS){for(const value of state.inventory[key]){
       const id=`${kind}:${String(value)}`,name=kind==='weapon'?(WEAPON_LABELS[value]||value):kind==='armor'?(ARMOR_LABELS[value]||value):value?'盾':'盾なし';
-      rows.push({id,name,value,category:kind,categoryLabel:label,known:true,kind:'gear',icon:kind==='shield'?(value?'shield':'stance'):value==='fist'?'stance':value,purpose:GEAR_NOTES[value]||(value?'受けに使う盾。':'盾を持たない状態。'),tradeoff:'',story:'この人生で所持している武具。装備の変更は7歳から、村の武具置き場の近くで。',status:'所持',availability:{usable:state.ageYears>=7,reason:state.ageYears<7?'武具を変更できるのは7歳からです。':''}});
+      rows.push({id,name,value,category:kind,categoryLabel:label,known:true,kind:'gear',icon:gearIcon(kind,value),purpose:GEAR_NOTES[value]||(value?'受けに使う盾。':'盾を持たない状態。'),tradeoff:'',story:'この人生で所持している武具。装備の変更は7歳から、村の武具置き場の近くで。',provenance:[],status:'所持',availability:{usable:state.ageYears>=7,reason:state.ageYears<7?'武具を変更できるのは7歳からです。':''}});
     }}
     slots=GEAR_KINDS.map(([key,label])=>({key,label,id:`${key}:${String(state.equipment[key])}`}));
   }
@@ -74,16 +74,13 @@ export function buildStorybookModel(state,page,{slot=0,category='all',filter='al
   const visible=rows.filter(r=>(category==='all'||r.category===category)&&(filter==='all'||(filter==='learned'?r.known:!r.known))&&(!query||`${r.name} ${r.purpose}`.includes(query)));
   if(sort==='name')visible.sort((a,b)=>a.name.localeCompare(b.name,'ja'));else if(sort==='equipped')visible.sort((a,b)=>Number(slots.some(s=>s.id===b.id))-Number(slots.some(s=>s.id===a.id)));
   const mind=tidebreakMindVectorFor(state),total=BOOK_MIND.reduce((sum,[id])=>sum+Math.max(0,Number(mind[id])||0),0)||1;
-  return {page,...BOOK_PAGES[page],name:state.name||'旅人',age:Math.floor(state.ageYears||0),generation:state.generation||1,rows:visible,allRows,slots:slots.map(s=>({...s,row:allRows.find(r=>r.id===s.id)||null})),selectedSlot,combo,combos:l.technique.combos,oneMotion:l.technique.oneMotion,
+  return {page,...BOOK_PAGES[page],weapon:state.equipment.weapon,name:state.name||'旅人',age:Math.floor(state.ageYears||0),generation:state.generation||1,rows:visible,allRows,slots:slots.map(s=>({...s,row:allRows.find(r=>r.id===s.id)||null})),selectedSlot,combo,combos:l.technique.combos,oneMotion:l.technique.oneMotion,
     readonly:bookReadOnlyReason(state,{coop}),signs:journal.signs,body:journal.body,mind:BOOK_MIND.map(([id,label])=>({id,label,value:Math.max(0,Number(mind[id])||0)/total})),equipped:new Set(slots.map(s=>s.id).filter(Boolean))};
 }
 export function storybookRowLock(model,row){
   if(!row)return 'まだ選択されていません。';
   if(model.readonly)return model.readonly;
   if(!row.known)return 'まだ身につけていません。';
-  if(row.weapons?.length&&model.page==='technique'&&!model.allRows.some(r=>r.basic&&r.id===`basic.${row.weapons.find(w=>r.id===`basic.${w}`)}`)){
-    const current=model.allRows.find(r=>r.basic)?.id.replace('basic.','');
-    if(!row.weapons.includes(current))return '今の得物では使えません。';
-  }
+  if(model.page==='technique'&&row.weapons?.length&&!row.weapons.includes(model.weapon))return '今の得物では使えません。';
   return row.availability?.usable===false?row.availability.reason||'いまは使用できません。':'';
 }
