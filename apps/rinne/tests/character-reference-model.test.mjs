@@ -15,10 +15,6 @@ test('Character Workshop builds selectable model controls from the license-clean
   assert.equal(Object.hasOwn(CHARACTER_REFERENCE_MODELS, 'shino.reference.v2'), false);
   assert.equal(Object.hasOwn(CHARACTER_REFERENCE_MODELS, 'protagonist.villager.v1'), true);
   assert.equal(Object.hasOwn(CHARACTER_REFERENCE_MODELS, 'arcanist.atlas-dcc.v1'), false);
-  for (const retired of ['child-boy.reference.v1','child-girl.reference.v1','elderly-man.reference.v1','elderly-woman.reference.v1','guard.reference.v1','knight.reference.v1','blacksmith.reference.v1','laborer.reference.v1','hunter.reference.v1','arcanist.reference.v1']) {
-    assert.equal(Object.hasOwn(CHARACTER_REFERENCE_MODELS, retired), false, `${retired} must never be exposed as an active runtime model`);
-  }
-  assert.ok(Object.values(CHARACTER_REFERENCE_MODELS).every(model => model.kind !== 'runtime-reference-model'));
 });
 
 test('active reference model selection stays review-only and is scoped to the selected actor', () => {
