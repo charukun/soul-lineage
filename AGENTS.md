@@ -52,6 +52,7 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs on
 - The Fast DEV Actions surface is a hard anti-expansion ceiling. Without an explicit user request to change the Fast DEV contract itself, never add persistent Actions jobs/steps, automatic test sweeps, unconditional builds, new network/materialization work, or heavier lifecycle commands to the validation path.
 - `Astra Work Validation` runs the anti-expansion contract before task-specific validation. Routine branches cannot rewrite the workflow, focused runner, contract, or freshness classifier. Dependency installation uses `npm ci --ignore-scripts` only when the Astra-selected test/build plan actually needs dependencies.
 - Repository-wide syntax scans, code-health, visual-budget, production-asset audits, and all-affected-app builds are not default merge-owning Actions work. Astra may choose the smallest relevant check/test/build for the task and must declare it on the final commit.
+- Default Fast DEV validation must stay light: do not select broad RINNE runtime suites, browser/integration tests, or app builds for routine feature/fix work. Prefer the smallest changed-package test plus targeted `Astra-Check` entries. The focused-validation planner rejects known heavy tests and `Astra-Build` unless the current task explicitly requires heavy validation and the final commit carries `[astra-heavy-validation]`.
 - `astra/fast-dev-contract=error` is a recoverable self-inflicted violation, not `FAILED`. Keep the same branch / PR, identify the attempted expansion from the receipt, remove it or move it outside Fast DEV, then create a new final head and validate again. Do not ask the user how to recover from your own violation.
 - A contract violation intentionally does not make the GitHub merge button mechanically impossible. Astra must nevertheless not mark Ready or merge while the violation remains, unless the user explicitly requested a Fast DEV contract change in the current task.
 - For an explicit user-requested Fast DEV contraction only, the final merge-owning commit also includes `[astra-contract-change]`. That marker may reduce workflow count or per-run workload, but never authorizes adding persistent Actions work.
@@ -81,7 +82,7 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs on
 | Task | Read |
 | --- | --- |
 | Routine implementation | `docs/DEVELOPMENT.md` |
-| Autonomous improvement: village / 喰滅廻遊, 1 or N iterations | `.autonomous/README.md`, `.autonomous/prompts/run-iteration.md`, then the selected game's charter/protected rules/recent history |
+| Autonomous improvement: village / 喰滅廻遊 / 百年転生, 1 or N iterations | `.autonomous/README.md`, `.autonomous/prompts/run-iteration.md`, then the selected game's charter/protected rules/recent history |
 | Micro Patch | `docs/MICRO_PATCH_FAST_LANE.md` |
 | develop merge / DEV publication | `docs/DEVELOP_MERGE.md` |
 | Context retrieval | `docs/CONTEXT_EFFICIENCY.md` |
@@ -92,4 +93,4 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs on
 
 Specialized character, motion, browser, distribution, and DCC source contracts still apply when that task is requested, but routine execution stays on the canonical Astra lane. Do not read them preemptively.
 
-For 「村アプリを1 iteration自律改善してください」 or 「喰滅廻遊を1 iteration自律改善してください」, use the autonomous route above (`village` / `kuumetsu` respectively). Preserve the Fast DEV ceiling and existing quality gates. Gameplay iterations start from an immutable staging observation bound to an exact source SHA; never use a mutable latest-DEV page as Before/After evidence. Browser observation is evidence discovery, not a substitute for causal/native validation. Completion still requires validated exact-head merge to develop in this session, not Ready alone.
+For 「村アプリを1 iteration自律改善してください」, 「喰滅廻遊を1 iteration自律改善してください」, or 「百年転生を1 iteration自律改善してください」, use the autonomous route above (`village` / `kuumetsu` / `rinne` respectively). Preserve the Fast DEV ceiling and existing quality gates. Gameplay iterations start from an immutable staging observation bound to an exact source SHA; never use a mutable latest-DEV page as Before/After evidence. Browser observation is evidence discovery, not a substitute for causal/native validation. Completion still requires validated exact-head merge to develop in this session, not Ready alone.

@@ -1,4 +1,4 @@
-/** The scene's only gesture owner. Placement follows one-finger drag; a short tap commits through the normal tap path. */
+/** The scene's only gesture owner. During placement, drag pans the world beneath the fixed center candidate; a short tap commits that displayed candidate. */
 export function installSceneInput(canvas, {view, ui, tap, preview = () => {}, commit = () => false, activity = () => {},
   raf = requestAnimationFrame, caf = cancelAnimationFrame, now = () => performance.now()}) {
   const pointers = new Map();
@@ -43,8 +43,10 @@ export function installSceneInput(canvas, {view, ui, tap, preview = () => {}, co
     if(Math.hypot(p.x-p.sx,p.y-p.sy)>7)p.drag=true;
     if(!p.drag)return;
     if(ui.pending){
-      const point=view.ground?.(e.clientX,e.clientY);if(point)preview(point.x,point.z);
-      activity();e.preventDefault();return;
+      // Center-follow placement: move the world/camera under the fixed center ghost.
+      // mura-first-build wraps view.pan so the displayed candidate is re-sampled
+      // from the screen center after every pan.
+      view.pan(dx,dy);activity();e.preventDefault();return;
     }
     view.pan(dx,dy);activity();e.preventDefault();
     vx=vx*.62+dx/elapsed*.38;vy=vy*.62+dy/elapsed*.38;
@@ -52,9 +54,9 @@ export function installSceneInput(canvas, {view, ui, tap, preview = () => {}, co
   const finish = (e, cancelled=false) => {
     const p=pointers.get(e.pointerId);if(!p)return;
     pointers.delete(e.pointerId);
-    if(!cancelled&&!p.multi){
-      if(!p.drag&&Math.hypot(e.clientX-p.sx,e.clientY-p.sy)<7)tap(e.clientX,e.clientY);
-      else if(p.drag&&ui.pending&&!ui.pending.error)commit();
+    if(!cancelled&&!p.multi&&!p.drag&&Math.hypot(e.clientX-p.sx,e.clientY-p.sy)<7){
+      if(ui.pending&&!ui.pending.error)commit();
+      else tap(e.clientX,e.clientY);
     }
     if(!cancelled&&p.drag&&!p.multi&&!pointers.size&&!ui.pending&&!ui.drawer&&Math.hypot(vx,vy)>.045){lastCoast=now();coast=raf(coasting);}
     else stop();

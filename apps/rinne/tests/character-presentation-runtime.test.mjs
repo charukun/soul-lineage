@@ -20,7 +20,7 @@ import {
 
 const here=dirname(fileURLToPath(import.meta.url)),rebuild=join(here,'../src/rebuild');
 
-test('playable hero uses the adopted DCC protagonist while the surrounding cast stays on pinned KayKit',()=>{
+test('playable hero stays on the adopted DCC protagonist while the surrounding cast stays on pinned KayKit',()=>{
   const state=createLife({seed:41});state.phase='living';state.ageSeconds=24*60;state.ageYears=24;
   const front=createFront(0,state.seed),hero=createRinneHeroCharacter(state),mother=createRinneMotherCharacter(state);
   const enemies=front.enemies.map((enemy,index)=>createRinneEnemyCharacter(enemy,{lifeSeed:state.seed,stage:0,index}));
@@ -88,13 +88,14 @@ test('Rinne main runtime keeps one character stage and cannot reintroduce legacy
     if(/\bmodels\.person\s*\(/.test(source))offenders.push(name);
   }
   assert.deepEqual(offenders,[]);
-  const renderer=readFileSync(join(rebuild,'renderer.js'),'utf8'),stage=readFileSync(join(rebuild,'runtime-character-stage.js'),'utf8'),runtime=readFileSync(join(rebuild,'runtime.js'),'utf8');
+  const renderer=readFileSync(join(rebuild,'renderer.js'),'utf8'),stage=readFileSync(join(rebuild,'runtime-character-stage.js'),'utf8'),stageBase=readFileSync(join(rebuild,'runtime-character-stage-base.js'),'utf8'),runtime=readFileSync(join(rebuild,'runtime.js'),'utf8');
   assert.match(renderer,/createRinneCharacterStage/);
-  assert.match(stage,/createKaykitCharacterPools/);
-  assert.match(stage,/createProtagonistCharacterPool/);
-  assert.match(stage,/heroPool/);
-  assert.match(stage,/createRinneEnemyCharacter/);
-  assert.doesNotMatch(stage,/SHINO_review\.vrm|shinoHumanoidFromGLTF/);
+  assert.match(stage,/createBaseStage/);
+  assert.match(stageBase,/createKaykitCharacterPools/);
+  assert.match(stageBase,/createProtagonistCharacterPool/);
+  assert.match(stageBase,/heroPool/);
+  assert.match(stageBase,/createRinneEnemyCharacter/);
+  assert.doesNotMatch(stageBase,/SHINO_review\.vrm|shinoHumanoidFromGLTF/);
   assert.match(runtime,/await createWorldRenderer/);
 });
 

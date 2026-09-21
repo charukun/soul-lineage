@@ -342,3 +342,21 @@ body.asset-model-picker-open{overflow:hidden}
 }
 .asset-slot-statuses>div small{color:#7f8d86;font-size:8px;font-weight:750}
 .asset-slot-statuses>div strong{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+
+/* Equipment warmup: pay network/parse/shader cost once, then keep weapon swaps instant. */
+.asset-stage-loading{
+  position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid #58645e;border-radius:999px;
+  background:#0b1210e8;color:#eee8d7;box-shadow:0 10px 28px #0008;backdrop-filter:blur(10px);
+  pointer-events:none
+}
+.asset-stage-loading[hidden]{display:none!important}
+.asset-stage-loading strong{font-size:9px;letter-spacing:.02em}
+.asset-loading-spinner{
+  width:14px;height:14px;border:2px solid #6f7a74;border-top-color:#d7c58b;border-radius:50%;
+  animation:asset-loading-spin .7s linear infinite
+}
+.asset-weapon-types .review-choice-card:disabled{opacity:.5;cursor:progress}
+@keyframes asset-loading-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.asset-loading-spinner{animation:none}}

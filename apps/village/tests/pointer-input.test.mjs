@@ -9,13 +9,19 @@ function fixture(pending=null){
  const send=(type,x=100,y=100,pointerId=1)=>{now+=16;const e=new Event(type,{cancelable:true});Object.assign(e,{clientX:x,clientY:y,pointerId,button:0});canvas.dispatchEvent(e);};
  return{ui,calls,input,send,frames,advance(){now+=16;const f=[...frames.values()][0];frames.clear();f?.(now);}};
 }
-test('placement drag previews under the finger and commits once on release',()=>{
+test('placement drag pans the world beneath the fixed center candidate and release keeps it pending',()=>{
  const pending={kind:'chair',x:7,z:-3,rot:1.2,roomId:'b1'},f=fixture(pending);
  f.send('pointerdown');f.send('pointermove',130,125);f.send('pointermove',170,155);f.send('pointerup',170,155);
- assert.deepEqual(f.calls.preview,[[13,12.5],[17,15.5]]);assert.equal(f.calls.commit,1);assert.equal(f.ui.pending,null);assert.equal(f.calls.tap.length,0);assert.equal(f.calls.pan.length,0);assert.equal(f.frames.size,0);assert.equal(f.input.pointers.size,0);f.input.dispose();
+ assert.deepEqual(f.calls.preview,[]);assert.deepEqual(f.calls.pan,[[30,25],[40,30]]);
+ assert.equal(f.calls.commit,0);assert.equal(f.ui.pending,pending);assert.equal(f.calls.tap.length,0);assert.equal(f.frames.size,0);assert.equal(f.input.pointers.size,0);f.input.dispose();
+});
+test('placement short tap commits the displayed center candidate instead of raycasting at the finger',()=>{
+ const pending={kind:'chair',x:7,z:-3,rot:1.2,roomId:'b1'},f=fixture(pending);
+ f.send('pointerdown',101,102);f.send('pointerup',102,103);
+ assert.equal(f.calls.commit,1);assert.equal(f.ui.pending,null);assert.equal(f.calls.tap.length,0);assert.equal(f.calls.preview.length,0);f.input.dispose();
 });
 test('a short tap chooses a candidate once; cancellation is never a tap',()=>{
- const f=fixture({kind:'chair'});f.send('pointerdown',101,102);f.send('pointerup',102,103);assert.deepEqual(f.calls.tap,[[102,103]]);
+ const f=fixture();f.send('pointerdown',101,102);f.send('pointerup',102,103);assert.deepEqual(f.calls.tap,[[102,103]]);
  f.send('pointerdown');f.send('pointercancel');assert.equal(f.calls.tap.length,1);assert.equal(f.input.pointers.size,0);f.input.dispose();
 });
 test('two-finger zoom and staggered release do not cause placement or one-finger taps',()=>{

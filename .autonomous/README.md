@@ -1,6 +1,6 @@
 # Autonomous Game Improvement
 
-対象は `village` → `apps/village`（星継ぎの庭）、`kuumetsu` → `apps/demon`（喰滅廻遊）。正本は現在の `develop`、`AGENTS.md`、GitHub状態です。
+対象は `village` → `apps/village`（星継ぎの庭）、`kuumetsu` → `apps/demon`（喰滅廻遊）、`rinne` → `apps/rinne`（百年転生）。正本は現在の `develop`、`AGENTS.md`、GitHub状態です。
 
 ## iteration の基本形
 
@@ -30,7 +30,7 @@ immutable staging observation
 - `evolution`: 発展途中のゲームで、意思決定、system接続、risk/reward、世界反応、成長ループなどゲームシステム自体を進化させる。
 - `polish`: gameplay仕様を維持し、UI、camera、VFX、audio、feel、可読性を改善する。
 
-既定は `village=hardening`、`kuumetsu=evolution`。明示された依頼が優先します。
+既定は `village=hardening`、`kuumetsu=evolution`、`rinne=hardening`。明示された依頼が優先します。
 
 ## immutable staging observation
 
@@ -38,7 +38,7 @@ Gameplay experiment v2 は実装前に exact source SHA に束縛された stagi
 
 mutableな「最新DEV URL」はBefore/After Evidenceに使いません。Evolution/Polishは固定SHA stagingがなければ開始しません。stagingは問題発見とplayer-facing Before/Afterの観測面であり、passing browser observationだけで因果修正を証明しません。pure/leaf/native testや既存native pathがcausal evidenceを担当します。
 
-現在の `village` / `kuumetsu` staging observation surface はCloudflare Worker version previewです。通常のlatest DEV URLを観測URLとして保存せず、該当deployの `Current Version ID` から `scripts/staging-preview.mjs` でimmutable preview URLを作り、公開先の `version.json.commit` がrecordの `sourceSha` と一致することを確認します。これは同じ `web-dev` artifactの固定versionなので、`version.json.environment` は `dev` のままです。
+現在の `village` / `kuumetsu` / `rinne` staging observation surface はCloudflare Worker version previewです。通常のlatest DEV URLを観測URLとして保存せず、該当deployの `Current Version ID` から `scripts/staging-preview.mjs` でimmutable preview URLを作り、公開先の `version.json.commit` がrecordの `sourceSha` と一致することを確認します。これは同じ `web-dev` artifactの固定versionなので、`version.json.environment` は `dev` のままです。
 
 ## experiment v2 と receipt
 
@@ -88,3 +88,22 @@ node .autonomous/cli.mjs receipt receipt.json
 ```
 
 Connector実装ではexperiment/indexやreceiptをblob→tree→commit→refのcoherent treeとして公開します。1 branchを並列writerで更新しません。
+
+
+## Isolated autonomous staging controller
+
+Repeated autonomous runs use the existing `.github/workflows/dev-app-publish.yml` workflow with an exact `source_sha`, then bind observation to the Cloudflare Worker **version preview** returned by that publication.
+
+The controller contract is:
+
+1. Pin the current iteration to one exact source SHA and a stable `run_key`.
+2. Dispatch `Per-App DEV Publish` manually with `app` plus that exact `source_sha`. Do not observe the mutable latest DEV URL.
+3. Read the publication's `Current Version ID`, derive the immutable preview with `scripts/staging-preview.mjs`, and verify `version.json.commit === source_sha`.
+4. Once captured, that version preview is the iteration's staging coordinate. Later develop pushes or unrelated DEV publishes cannot overwrite it.
+5. If the shared publish job is cancelled before the immutable version is captured, retry the same exact SHA. Cancellation never changes the run's source coordinate.
+6. Code changes stay on the iteration's dedicated branch / Draft PR. Other develop movement is considered only by the normal merge freshness gate.
+7. After a validated merge, the next iteration begins from the new merge SHA and captures a new immutable Before preview.
+
+`scripts/autonomous-run-controller.mjs` plans these coordinates and binds Cloudflare version IDs. It rejects mutable source coordinates and carries one `run_key` across all requested iterations.
+
+This controller adds no persistent Actions workload and does not alter Fast DEV, exact-head Astra validation, freshness, Ready, develop merge, or Production gates.

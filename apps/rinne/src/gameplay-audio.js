@@ -10,11 +10,14 @@ export const presentRinneImpactAudio=options=>activeAudio?.impact?.(options);
 export const clearRinneImpactAudio=()=>activeAudio?.clearImpact?.();
 export const enterRinneGameplayAudio=()=>activeAudio?.enterGameplay?.();
 export const prepareRinneTitleAudio=()=>activeAudio?.prepareTitle?.()??Promise.resolve(false);
+export const enterRinneLineageAudio=()=>activeAudio?.enterLineage?.();
+export const exitRinneLineageAudio=()=>activeAudio?.exitLineage?.();
+export const playRinneLineageAudio=(kind,index=0)=>activeAudio?.lineage?.(kind,index);
 
 export function createRinneAudio(){
   const BASE_MUSIC_VOLUME=.2,TITLE_MUSIC_VOLUME=1,TITLE_MUSIC_GAIN=1.25,musicURL=audioURLs.r01,titleMusicURL=audioURLs.r22,music=new Audio(musicURL),titleMusic=new Audio(titleMusicURL);music.loop=true;music.volume=BASE_MUSIC_VOLUME;music.preload='auto';titleMusic.loop=true;titleMusic.volume=TITLE_MUSIC_VOLUME;titleMusic.preload='auto';titleMusic.load();
   const doc=globalThis.document,win=globalThis.window,pageHidden=()=>Boolean(doc&&(doc.hidden||doc.visibilityState==='hidden'));
-  let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden(),duckTimer=0,musicDetached=false,musicPosition=0,brandPending=Boolean(win?.__SOUL_BRAND_BOOT_PENDING__),titleMode=false,titleSource=null,titleGain=null,titlePrepared=false,titlePreparePromise=null;
+  let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden(),duckTimer=0,musicDetached=false,musicPosition=0,brandPending=Boolean(win?.__SOUL_BRAND_BOOT_PENDING__),titleMode=false,titleSource=null,titleGain=null,titlePrepared=false,titlePreparePromise=null,lineageMode=false,lineageAmbience=null,lineageFocusAt=0;
 
   const contextCanResume=()=>Boolean(context&&context.state!=='running'&&context.state!=='closed');
   const once=(target,event,timeout=4500)=>new Promise((resolve,reject)=>{let timer=0;const cleanup=()=>{target.removeEventListener(event,onEvent);target.removeEventListener('error',onError);clearTimeout(timer);};const onEvent=()=>{cleanup();resolve(true);};const onError=()=>{cleanup();reject(new Error(`Rinne title audio ${event} failed`));};target.addEventListener(event,onEvent,{once:true});target.addEventListener('error',onError,{once:true});timer=setTimeout(()=>{cleanup();reject(new Error(`Rinne title audio ${event} timeout`));},timeout);});
@@ -22,6 +25,48 @@ export function createRinneAudio(){
     if(!context||titleSource)return;
     try{titleSource=context.createMediaElementSource(titleMusic);titleGain=context.createGain();titleGain.gain.value=TITLE_MUSIC_GAIN;titleSource.connect(titleGain).connect(context.destination);}catch(error){console.warn('Rinne title gain unavailable',error);}
   }
+  function titleGainTo(value,duration=.2){
+    if(!context||!titleGain)return;
+    const now=context.currentTime,target=Math.max(.0001,Number(value)||.0001),current=Math.max(.0001,titleGain.gain.value||.0001);
+    titleGain.gain.cancelScheduledValues(now);titleGain.gain.setValueAtTime(current,now);titleGain.gain.exponentialRampToValueAtTime(target,now+Math.max(.01,duration));
+  }
+  function stopLineageAmbience(){
+    if(!lineageAmbience)return;
+    for(const source of lineageAmbience.sources)try{source.stop();}catch{}
+    for(const node of lineageAmbience.nodes)try{node.disconnect();}catch{}
+    lineageAmbience=null;
+  }
+  function startLineageAmbience(){
+    if(!lineageMode||disposed||backgrounded||pageHidden()||!context||context.state!=='running'||lineageAmbience)return;
+    ensureTitleGraph();titleGainTo(TITLE_MUSIC_GAIN*.36,.35);
+    const filter=context.createBiquadFilter(),bus=context.createGain(),sources=[],nodes=[filter,bus];
+    filter.type='lowpass';filter.frequency.value=520;filter.Q.value=.7;bus.gain.value=1;filter.connect(bus).connect(context.destination);
+    const oscillator=(frequency,type,gainValue,detune=0)=>{
+      const osc=context.createOscillator(),gain=context.createGain();osc.type=type;osc.frequency.value=frequency;osc.detune.value=detune;gain.gain.value=gainValue;osc.connect(gain).connect(filter);osc.start();sources.push(osc);nodes.push(gain);
+    };
+    oscillator(55,'sine',.012);oscillator(82.41,'triangle',.006,-4);
+    const frames=Math.max(1,Math.floor(context.sampleRate*1.5)),buffer=context.createBuffer(1,frames,context.sampleRate),data=buffer.getChannelData(0);
+    for(let i=0;i<frames;i++)data[i]=(Math.random()*2-1)*.16;
+    const noise=context.createBufferSource(),noiseGain=context.createGain();noise.buffer=buffer;noise.loop=true;noiseGain.gain.value=.0045;noise.connect(noiseGain).connect(filter);noise.start();sources.push(noise);nodes.push(noiseGain);
+    lineageAmbience={sources,nodes};
+  }
+  function enterLineage(){
+    if(disposed)return;lineageMode=true;titleMode=true;
+    void unlock().then(()=>{if(!lineageMode)return;startLineageAmbience();lineage('enter');});
+  }
+  function exitLineage(){
+    lineageMode=false;stopLineageAmbience();titleGainTo(TITLE_MUSIC_GAIN,.32);
+  }
+  function lineage(kind,index=0){
+    if(disposed||backgrounded||pageHidden())return;
+    const now=globalThis.performance?.now?.()??Date.now();
+    if(kind==='focus'){if(now-lineageFocusAt<90)return;lineageFocusAt=now;tone(620+Math.max(0,index)*64,.05,.007,'triangle');return;}
+    if(kind==='choose'){tone(190+Math.max(0,index)*28,.12,.014,'sine');tone(420+Math.max(0,index)*56,.11,.012,'triangle',.045);return;}
+    if(kind==='back'||kind==='cancel'){tone(310,.08,.009,'triangle');tone(220,.1,.007,'sine',.045);return;}
+    if(kind==='confirm'){titleGainTo(TITLE_MUSIC_GAIN*.16,.08);tone(58,.42,.02,'sine');tone(196,.18,.018,'triangle',.025);tone(392,.22,.014,'triangle',.11);tone(588,.3,.012,'sine',.18);return;}
+    if(kind==='enter'){tone(110,.2,.008,'sine');tone(330,.14,.006,'triangle',.08);}
+  }
+
   async function prepareTitle(){
     if(disposed)return false;
     if(titlePrepared)return true;
@@ -92,7 +137,7 @@ export function createRinneAudio(){
     if(titlePrepared)start();else void prepareTitle().finally(start);
   }
   function enterGameplay(){
-    if(disposed)return;titleMode=false;titleMusic.pause();music.volume=BASE_MUSIC_VOLUME;
+    if(disposed)return;exitLineage();titleMode=false;titleMusic.pause();music.volume=BASE_MUSIC_VOLUME;
     void resumePlayback();
   }
   doc?.addEventListener?.('visibilitychange',onVisibilityChange);
@@ -118,11 +163,11 @@ export function createRinneAudio(){
   function select(){tone(520,.045,.014,'triangle');}
   function commit(){tone(390,.055,.018,'triangle');setTimeout(()=>tone(660,.07,.016,'triangle'),48);}
   const controller={
-    unlock,select,commit,ui:select,impact,clearImpact,enterGameplay,prepareTitle,
+    unlock,select,commit,ui:select,impact,clearImpact,enterGameplay,prepareTitle,enterLineage,exitLineage,lineage,
     item(){tone(620,.08,.024,'triangle');setTimeout(()=>tone(840,.08,.018,'triangle'),55);},
     combat:()=>tone(128,.11,.032,'sawtooth'),rest:()=>tone(260,.14,.014),dash:()=>tone(170,.07,.022,'square'),
     step(now){if(now-lastStep<.25)return;lastStep=now;tone(92,.035,.012);},
-    dispose(){if(disposed)return;disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);win?.removeEventListener?.('pagehide',suspendForBackground);win?.removeEventListener?.('pageshow',onVisibilityChange);win?.removeEventListener?.('soul:brand-enter',onBrandEnter);unsubscribeAudioUnlock();music.volume=BASE_MUSIC_VOLUME;titleMusic.pause();titleMusic.removeAttribute('src');titleMusic.load();detachMusic();void context?.close?.();context=null;}
+    dispose(){if(disposed)return;exitLineage();disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);win?.removeEventListener?.('pagehide',suspendForBackground);win?.removeEventListener?.('pageshow',onVisibilityChange);win?.removeEventListener?.('soul:brand-enter',onBrandEnter);unsubscribeAudioUnlock();music.volume=BASE_MUSIC_VOLUME;titleMusic.pause();titleMusic.removeAttribute('src');titleMusic.load();detachMusic();void context?.close?.();context=null;}
   };
   activeAudio=controller;
   return controller;

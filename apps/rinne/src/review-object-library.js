@@ -5,6 +5,7 @@ import './review-object-library.css';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {createMuraModels} from '@soul/rendering/mura';
+import {createReviewRenderer,measureReviewSubject,normalizeReviewSubject,positionReviewCamera} from '@soul/rendering';
 import {curatedAssetById,fetchCuratedAssetBytes,projectAssetUrl,CURATED_PROVENANCE_PATH} from '@soul/assets';
 import {RINNE_OBJECT_REVIEW_CATALOG as OBJECTS} from './review-object-catalog.js';
 mountRinneReviewShell('objects');
@@ -13,11 +14,7 @@ const runtimeEnvironment=typeof __BUILD_INFO__==='undefined'?'dev':__BUILD_INFO_
 const q=selector=>document.querySelector(selector);
 const canvas=q('#object-stage');
 const loader=new GLTFLoader();
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
-renderer.outputColorSpace=THREE.SRGBColorSpace;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.15;
+const renderer=createReviewRenderer(canvas,{exposure:1.15});
 const scene=new THREE.Scene();scene.background=new THREE.Color('#111716');
 const camera=new THREE.PerspectiveCamera(38,1,.01,80);
 const controls=new OrbitControls(camera,canvas);
@@ -52,30 +49,11 @@ function releaseAnimation(){
   const panel=q('#object-animation');if(panel)panel.hidden=true;
   delete canvas.dataset.nativeClip;delete canvas.dataset.loadedAsset;
 }
-function objectFrame(){
-  if(!objectRoot)return null;
-  objectRoot.updateMatrixWorld(true);
-  const box=new THREE.Box3().setFromObject(objectRoot),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
-  const radius=Math.max(size.x,size.y,size.z,.4);
-  return {box,center,size,radius,target:new THREE.Vector3(center.x,box.min.y+size.y*.5,center.z)};
-}
-function fitObject(root){
-  root.updateMatrixWorld(true);
-  let box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3()),longest=Math.max(size.x,size.y,size.z);
-  if(!Number.isFinite(longest)||longest<1e-6)throw new Error('物体geometryが空です');
-  root.scale.multiplyScalar(1.75/longest);root.updateMatrixWorld(true);
-  box=new THREE.Box3().setFromObject(root);const center=box.getCenter(new THREE.Vector3());
-  root.position.x-=center.x;root.position.z-=center.z;root.position.y-=box.min.y;root.updateMatrixWorld(true);
-}
+function objectFrame(){return objectRoot?measureReviewSubject(objectRoot):null;}
+function fitObject(root){normalizeReviewSubject(root,{targetLongest:1.75});}
 function setCameraPreset(preset='full'){
-  const frame=objectFrame();if(!frame)return;
-  const {box,center,size,radius,target}=frame,eyeY=box.min.y+size.y*.58,distance=radius*1.9;
-  controls.target.copy(target);
-  if(preset==='front')camera.position.set(center.x,eyeY,center.z+distance);
-  else if(preset==='side')camera.position.set(center.x+distance,eyeY,center.z);
-  else if(preset==='top')camera.position.set(center.x,box.max.y+distance*.8,center.z+.01);
-  else camera.position.set(center.x+radius*.85,eyeY+radius*.22,center.z+distance);
-  controls.update();
+  if(!objectRoot)return;
+  positionReviewCamera({camera,controls,root:objectRoot,preset,padding:1.18,minDistance:.35,maxDistance:18});
   for(const button of document.querySelectorAll('[data-object-camera]'))button.setAttribute('aria-pressed',String(button.dataset.objectCamera===preset));
 }
 function visibleObjects(){

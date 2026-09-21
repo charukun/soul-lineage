@@ -1,4 +1,4 @@
-import {KAYKIT_MODELS} from '@soul/characters';
+import {RINNE_MOTION_REVIEW_MODELS} from './review-motion-models.js';
 import {MOTION_LIBRARY_SOURCES} from './review-motion-sources.js';
 
 const freeze=value=>Object.freeze(value);
@@ -30,7 +30,7 @@ const descriptor=row=>{
     productionReady:false
   });
 };
-const rows=[...KAYKIT_MODELS,...MOTION_LIBRARY_SOURCES];
+const rows=[...RINNE_MOTION_REVIEW_MODELS,...MOTION_LIBRARY_SOURCES];
 export const REVIEW_HUMANOID_DESCRIPTOR_BY_HASH=freeze(Object.fromEntries(rows.map(row=>{
   const d=descriptor(row);return[d.assetHash,d];
 }).filter(([hash])=>/^[a-f0-9]{40}$/.test(hash))));

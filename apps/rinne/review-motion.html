@@ -22,7 +22,7 @@
   <section class="review-surface__workspace">
   <div class="review-surface__stage-column">
   <section class="motion-stage review-surface__stage" aria-label="モーション表示">
-    <canvas id="motion-stage" aria-label="KayKitキャラクターのモーション。ドラッグで回転、ピンチで拡大"></canvas>
+    <canvas id="motion-stage" aria-label="主人公モデルのモーション。ドラッグで回転、ピンチで拡大"></canvas>
     <div class="motion-stage-caption" aria-live="polite">
       <strong id="motion-selected">モーション準備中</strong>
       <small id="motion-source">pinned CC0</small>
@@ -30,6 +30,12 @@
     <div class="motion-stage-status">
       <output id="motion-status" role="status" aria-live="polite">モーションを読み込んでいます。</output>
       <progress id="motion-load" max="1" value="0" aria-label="モデル読込状況"></progress>
+    </div>
+    <div class="motion-camera-strip" aria-label="表示方向">
+      <button type="button" data-motion-camera="front" aria-pressed="false">正面</button>
+      <button type="button" data-motion-camera="three-quarter" aria-pressed="true">斜め</button>
+      <button type="button" data-motion-camera="side" aria-pressed="false">横</button>
+      <button type="button" data-motion-camera="back" aria-pressed="false">背面</button>
     </div>
   </section>
   </div>

@@ -60,7 +60,7 @@ test('adopted protagonist GLB identifies the clean KayKit CC0 DCC lineage', () =
 
 test('playable protagonist adoption is fail-closed and does not add a legacy fallback', () => {
   const pool = readFileSync(join(app, 'src/rebuild/protagonist-character-pool.js'), 'utf8');
-  const stage = readFileSync(join(app, 'src/rebuild/runtime-character-stage.js'), 'utf8');
+  const stage = readFileSync(join(app, 'src/rebuild/runtime-character-stage-base.js'), 'utf8');
   assert.match(pool, /byte length mismatch/);
   assert.match(pool, /SHA-256 mismatch/);
   assert.match(pool, /metadata does not match the adopted CC0 model/);

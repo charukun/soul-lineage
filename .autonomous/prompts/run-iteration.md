@@ -1,13 +1,13 @@
 # Astra: autonomous iteration 実行プロンプト
 
-対象 `{game}` は `village` または `kuumetsu`。回数は明示値、未指定なら1。各iterationをmergeまで直列完了し、次回は新しいdevelopから開始します。
+対象 `{game}` は `village` / `kuumetsu` / `rinne`。回数は明示値、未指定なら1。各iterationをmergeまで直列完了し、次回は新しいdevelopから開始します。
 
 ## 1. Observe before code
 
 1. 最新develop SHA、AGENTS、対象charter/protected rules、recent history/receiptsを取得する。
 2. gameplay iterationは、そのdevelop SHAに束縛されたimmutable staging snapshotを観測する。mutable latest DEVをBefore evidenceに使わない。
 3. staging上の現象、再現条件、未確認範囲を記録し、改善候補を3〜5個出す。ユーザーフィードバックは候補より優先する。
-4. modeを決める。既定は `village=hardening`、`kuumetsu=evolution`。明示依頼があれば上書きする。
+4. modeを決める。既定は `village=hardening`、`kuumetsu=evolution`、`rinne=hardening`。明示依頼があれば上書きする。
 5. modeに照らして1 improvement themeを選ぶ。自己採点や「実装が簡単だから」は選定根拠にしない。theme内では複数root causeを扱ってよいが、無関係な問題を混ぜない。
 
 ## 2. Investigate and hypothesize
@@ -35,3 +35,26 @@
 20. 次iteration開始時に直前receiptを解決し、必要なら `.autonomous/<game>/receipts/<id>.json` へmaterializeする。過去experimentは編集しない。
 
 複数iterationsで前回themeを惰性継続しない。各回、更新されたstagingを観測して候補から選び直す。1 iterationで扱う修正数に固定上限は置かないが、すべて同じthemeへ因果的に属していること。
+
+
+## Controller lane for one-request completion
+
+For multi-iteration requests, create one stable `run_key` at the beginning and keep it for the full request. Each iteration is serial:
+
+```
+exact current develop
+  -> dispatch existing Per-App DEV Publish with exact source_sha
+  -> capture immutable Cloudflare version preview as Before
+  -> choose theme / create experiment / dedicated branch + Draft PR
+  -> implement + exact-head Astra validation
+  -> publish the exact candidate or merge-equivalent source
+  -> capture a new immutable version preview as After
+  -> verdict / receipt / freshness / Ready / develop merge
+  -> next iteration from the new merge SHA
+```
+
+Never use the mutable latest DEV URL as Before/After. The normal DEV worker is only the publication vehicle; the immutable Cloudflare version preview is the observation surface. Once a version preview is captured and its `version.json.commit` matches the pinned SHA, unrelated sessions cannot alter that evidence.
+
+If the shared publication job is cancelled before version capture, retry the same exact SHA instead of rebasing or changing the run. Develop drift remains irrelevant until the normal freshness check.
+
+A refuted or inconclusive experiment still counts as a completed iteration when its evidence, receipt and develop merge are complete. Continue automatically until the requested iteration count is exhausted.

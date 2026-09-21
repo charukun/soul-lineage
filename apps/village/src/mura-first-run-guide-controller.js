@@ -93,6 +93,18 @@ function onPointerMove(ctx,event){
 
 function handlePlacementRelease(ctx,gesture){
  if(gesture.multi||!ctx.active||(ctx.guide.stage!=='drag'&&ctx.guide.stage!=='place'))return;
+ if(gesture.stage==='drag'){
+  if(gesture.max<DRAG_DISTANCE){
+   ctx.guide.setHint('テントを1本指で少し動かして、置きたい場所を決めます。');
+   return;
+  }
+  if(ctx.ui.pending?.error){
+   ctx.guide.setHint(`そこには置けません。「${ctx.ui.pending.error}」なので、少し場所をずらしてください。`,3800);
+   return;
+  }
+  accept(ctx,'place','中央のテント位置でよければ、短く1回タップすると置けます。');
+  return;
+ }
  requestAnimationFrame(()=>requestAnimationFrame(()=>verifyPlacement(ctx)));
 }
 
@@ -104,7 +116,7 @@ function verifyPlacement(ctx){
   ctx.guide.setHint(`そこには置けません。「${ctx.ui.pending.error}」なので、少し場所をずらしてから短くタップ。`,3800);
   return;
  }
- ctx.guide.setHint('空いている場所を短くタップするか、テントを指で動かして離すと置けます。');
+ ctx.guide.setHint('中央に見えている位置で、短く1回タップすると置けます。');
 }
 
 function onPointerFinish(ctx,event){

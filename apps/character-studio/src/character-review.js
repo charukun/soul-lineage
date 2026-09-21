@@ -8,9 +8,10 @@ import { kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
 import { reviewSettings, createReviewCohort, editReviewCharacter, serializeReviewSession, deserializeReviewSession,
   reviewGlbDocument, MAX_MODEL_BYTES, MAX_SESSION_BYTES } from './character-review-state.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
+import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
 
 const el = id => document.getElementById(id);
-const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null };
+const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null, displayModelId: null };
 window.masterCharacterReview = review;
 const status = (message, isError = false) => { el('status').textContent = message; el('status').dataset.error = String(isError); };
 const report = error => { const message = String(error?.message ?? error); review.errors.push(message); if (review.errors.length > 100) review.errors.shift(); status(`エラー: ${message}`, true); };
@@ -82,9 +83,7 @@ function createCharacterStageLifecycle({canvas,renderer,camera,scene,onResize}) 
 }
 
 function start() {
-  const canvas = el('stage'), renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5)); renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2;
+  const canvas = el('stage'), renderer = createReviewRenderer(canvas,{exposure:1.2});
   renderer.debug.onShaderError = () => { throw new Error('モデルのシェーダーをコンパイルできませんでした'); };
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(38, 1, .01, 120);
   const orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true; orbit.minDistance = .18; orbit.maxDistance = 45;
@@ -98,7 +97,9 @@ function start() {
   marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
   let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, loadSequence = 0, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
+  let activeModelLabel = defaultModel.label;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
+  const simpleModelReview = document.body.classList.contains('simple-review');
   let motionQA = null;
   const events = new AbortController(), on = (target, type, handler) => target.addEventListener(type, handler, { signal: events.signal });
   const guard = handler => event => { try { handler(event); } catch (error) { report(error); syncUI(); } };
@@ -151,6 +152,12 @@ function start() {
     cameraPreset = preset;
     if (motionQA?.active) { motionQA.aim(preset === 'side' ? 'left' : ['front','back'].includes(preset) ? preset : 'front'); return; }
     const actor = actors[settings.selected]; if (!actor) return;
+    if (simpleModelReview) {
+      const sharedPreset=preset==='overview'?'three-quarter':preset;
+      camera.fov=38;camera.updateProjectionMatrix();
+      positionReviewCamera({camera,controls:orbit,root:actor.root,preset:sharedPreset,padding:1.14,minDistance:.35,maxDistance:18});
+      resetMeasure();return;
+    }
     let target, distance;
     orbit.maxDistance = ['village','demon'].includes(preset) ? 120 : 45;
     camera.fov = preset === 'demon' ? 42 : 38;
@@ -227,7 +234,7 @@ function start() {
   }
   function refreshLooks() {
     appearances = records.slice(0, settings.count).map(appearanceForCharacter);
-    actors.forEach((actor, i) => { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); applyExpressions(actor, i); });
+    if (!simpleModelReview) actors.forEach((actor, i) => { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); applyExpressions(actor, i); });
     syncUI(); resetMeasure();
   }
   function rebuild() {
@@ -251,7 +258,7 @@ function start() {
       const bytes = await getBytes(); if (!alive || sequence !== loadSequence) return;
       const json = reviewGlbDocument(bytes), hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join(''), blobSha = await gitBlobSha(bytes);
       const audit = auditDocument(json, hash, bytes.byteLength, blobSha); if (!audit.approved) throw new Error(`モデル監査不合格: ${audit.errors.join(', ')}`);
-      status('CC0モデルと共通モーションの準備中…'); el('progress').value = .4;
+      status(`${activeModelLabel} と共通モーションの準備中…`); el('progress').value = .4;
       const gltf = await new GLTFLoader().parseAsync(bytes, ''); nextTemplate = gltf.scene;
       const rig = await rigBuilder(gltf); if (!alive || sequence !== loadSequence) return;
       nextPool = createCharacterProductionPool({ template: nextTemplate, rig });
@@ -263,7 +270,7 @@ function start() {
       if (!capabilities.expressionNames.includes(settings.expression)) settings.expression = '';
       el('capabilities').textContent = `SHA-256 ${hash}\nLicense ${audit.license || 'unverified'}\n表情 ${capabilities.expressionNames.length}種\n揺れ ${capabilities.springChains}チェーン / ${capabilities.springJoints}関節\n${capabilities.warnings.join('\n') || 'PBR・共通Humanoid表示'}`;
       rebuild(); el('progress').value = .8; renderer.compile(scene, camera); renderer.render(scene, camera);
-      review.ready = true; el('progress').value = 1; status('CC0 KayKitモデルを表示中。個体差・動き・共有状態を検査できます。');
+      review.ready = true; el('progress').value = 1; status(`${activeModelLabel}を表示中。`);
     } catch (error) { if (sequence === loadSequence) { review.ready = !installed && Boolean(pool); report(error); el('retry').disabled = !alive; } }
     finally { nextPool?.dispose(); disposeTemplate(nextTemplate); if (sequence === loadSequence) { loading = false; window.dispatchEvent(new Event('character-review-change')); } }
   }
@@ -327,11 +334,11 @@ function start() {
       actors.forEach((actor, i) => {
         const policy = plan.get(actor.id); if (actor.root.visible) drawnActors++;
         if (!settings.paused) {
-          if (schedules[i].advance(dt, policy.animationHz) !== null) { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); }
+          if (!simpleModelReview && schedules[i].advance(dt, policy.animationHz) !== null) { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); }
           if (settings.rotate) actor.root.rotation.y = elapsed * .22;
-          if (policy.visible) applyExpressions(actor, i);
+          if (!simpleModelReview && policy.visible) applyExpressions(actor, i);
         }
-        const enabled = policy.visible && (settings.springs === 'all' || settings.springs === 'auto' && policy.springBones);
+        const enabled = !simpleModelReview && policy.visible && (settings.springs === 'all' || settings.springs === 'auto' && policy.springBones);
         if (enabled && actor.secondaryJointCount) physicsActors++;
         if (!settings.paused) actor.updateSecondary(dt, enabled && !motionQA?.active);
       });
@@ -343,11 +350,48 @@ function start() {
       }
     } catch (error) { review.ready = false; report(error); }
   }
-  review.loadDefaultModel = () => { modelRequestSequence++; return load(defaultBytes, auditKaykitDocument, kaykitReviewRig); };
+  review.loadDefaultModel = () => {
+    modelRequestSequence++;
+    review.displayModelId = null;
+    activeModelLabel = defaultModel.label;
+    return load(defaultBytes, auditKaykitDocument, kaykitReviewRig);
+  };
+  review.loadFoundationModel = model => {
+    modelRequestSequence++;
+    review.displayModelId = model.id;
+    activeModelLabel = model.label;
+    const auditFoundationDocument = (document, _sha256, byteLength, blobSha) => {
+      const errors = [];
+      if (!String(document?.asset?.version || '').startsWith('2.')) errors.push('glTF 2.xではありません');
+      if (byteLength !== model.source.byteLength) errors.push('固定KayKit assetのbyte lengthと一致しません');
+      if (blobSha !== model.source.gitBlobSha) errors.push('固定KayKit assetのGit blob SHAと一致しません');
+      return Object.freeze({ approved: errors.length === 0, errors, modelId: model.id, license: model.license, source: model.source });
+    };
+    return load(() => modelBytes(model.runtime.url), auditFoundationDocument, kaykitReviewRig);
+  };
   review.loadReferenceModel = async model => {
     const request = ++modelRequestSequence;
-    if (request !== modelRequestSequence) return;
-    report(new Error(`DCCモデル ${model?.id || 'unknown'} は旧carrier rig依存のため退役中です。CC0またはRINNE-owned rigへ再リグしてください`));
+    try {
+      if (!model || model.kind !== 'dcc-character-model') throw new Error('実体のあるDCCモデルだけを表示できます');
+      const receiptResponse = await fetch(new URL(model.integrityPath, location.href), { signal: AbortSignal.timeout(15000) });
+      if (!receiptResponse.ok) throw new Error(`モデル監査票 HTTP ${receiptResponse.status}`);
+      const receipt = await receiptResponse.json();
+      if (request !== modelRequestSequence) return;
+      const auditReferenceDocument = (document, sha256, byteLength) => {
+        const errors = [];
+        if (!String(document?.asset?.version || '').startsWith('2.')) errors.push('glTF 2.xではありません');
+        if (receipt.id !== model.id || receipt.assetId !== model.assetId) errors.push('モデル監査票のIDが一致しません');
+        if (receipt.bytes !== byteLength) errors.push('モデル監査票のbyte lengthと一致しません');
+        if (receipt.sha256 !== sha256) errors.push('モデル監査票のSHA-256と一致しません');
+        if (receipt.humanoidRig !== 'kaykit.Rig_Medium.v1') errors.push('Rig_Medium互換ではありません');
+        return Object.freeze({ approved: errors.length === 0, errors, modelId: model.id, license: 'CC0-1.0 / RINNE DCC', source: receipt });
+      };
+      review.displayModelId = model.id;
+      activeModelLabel = model.label;
+      return load(() => modelBytes(model.assetPath), auditReferenceDocument, kaykitReviewRig);
+    } catch (error) {
+      if (request === modelRequestSequence) report(error);
+    }
   };
   review.sample = age => { settings = reviewSettings({ ...settings, age, ages: 'fixed' }); records = records.map(r => editReviewCharacter(r, { age })); refreshLooks(); };
   // Explicit inspection API. Never touches game saves, inventories or network authority.

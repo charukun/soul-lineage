@@ -81,3 +81,87 @@ body.mura-first-run-canvas-target #muraFirstRunGuide:before{content:"";position:
  .mura-first-run-target,#muraFirstRunGuide.mura-first-run-hint .muraFirstRunGuideCard{animation:none!important}
  .muraFirstRunGuideCard,.muraFirstRunProgress i{transition:none!important}
 }
+
+
+/* Guided-attention pass: keep the player's eyes on one actionable place at a time. */
+body.mura-first-run-active :is(#title,#idleStatus,#idleMoment,#muraHud,#muraDebugTimeAccel,#muraModeControls,#context){
+ opacity:.16!important;filter:saturate(.45) brightness(.78);transition:opacity .18s ease,filter .18s ease;pointer-events:none!important;
+}
+body.mura-first-run-active #drawer,body.mura-first-run-active #placement,body.mura-first-run-active #build{transition:opacity .18s ease,filter .18s ease}
+#muraFirstRunGuide[data-stage="build"]~#build{opacity:1}
+.muraFirstRunSpotlight{
+ position:fixed;z-index:1;pointer-events:none;border:1px solid rgba(250,229,168,.82);border-radius:18px;background:rgba(255,244,205,.025);
+ box-shadow:0 0 0 999vmax rgba(23,32,25,.42),inset 0 0 22px rgba(255,241,193,.07),0 0 28px rgba(248,224,158,.18);
+ transition:left .22s cubic-bezier(.2,.72,.26,1),top .22s cubic-bezier(.2,.72,.26,1),width .22s cubic-bezier(.2,.72,.26,1),height .22s cubic-bezier(.2,.72,.26,1),border-radius .22s ease;
+}
+#muraFirstRunGuide[data-stage="drag"] .muraFirstRunSpotlight,#muraFirstRunGuide[data-stage="place"] .muraFirstRunSpotlight{border-radius:50%}
+.muraFirstRunTrail{position:fixed;z-index:2;width:18px;height:18px;pointer-events:none;transform:translate(-50%,-50%);filter:drop-shadow(0 0 7px rgba(255,233,165,.8))}
+.muraFirstRunTrail[hidden]{display:none!important}
+.muraFirstRunTrail i{position:absolute;inset:4px;border-radius:50%;background:#ffe9a9;box-shadow:0 0 0 5px rgba(255,234,172,.12),0 0 18px rgba(255,226,145,.8)}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard{
+ top:var(--mura-coach-top,max(12px,calc(env(safe-area-inset-top) + 4px)));left:var(--mura-coach-left,50%);transform:none;
+ width:min(410px,calc(100vw - 24px));padding:11px 13px 10px;
+}
+#muraFirstRunGuide[data-stage="catalog"] .muraFirstRunGuideCard,#muraFirstRunGuide[data-stage="build"] .muraFirstRunGuideCard{width:min(360px,calc(100vw - 24px))}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard strong{font-size:15px;margin-bottom:3px}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard p{font-size:10.5px;line-height:1.42}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideFooter{margin-top:6px;min-height:34px}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard button{min-height:34px}
+@media(max-width:600px){
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard{width:min(330px,calc(100vw - 16px));padding:9px 10px 8px}
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard strong{font-size:14px}
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard p{font-size:10px;line-height:1.38}
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideFooter{min-height:40px}
+}
+@media(prefers-reduced-motion:reduce){
+ body.mura-first-run-active :is(#title,#idleStatus,#idleMoment,#muraHud,#muraDebugTimeAccel,#muraModeControls,#context),.muraFirstRunSpotlight{transition:none!important}
+ .muraFirstRunTrail{display:none!important}
+}
+
+
+/* Message-focus pass: action steps are glanceable captions, not reading cards. */
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard{
+ width:min(286px,calc(100vw - 28px));padding:10px 40px 10px 13px;
+ clip-path:none;border:0;border-radius:12px;overflow:visible;
+ background:rgba(245,237,211,.92);
+ box-shadow:0 5px 16px rgba(30,40,30,.16),inset 3px 0 rgba(112,132,92,.72);
+ backdrop-filter:blur(5px);
+}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard:before,
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard:after{content:none}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideTop{position:absolute;inset:0;display:block;margin:0;pointer-events:none}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideEyebrow{display:none}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunStep{
+ position:absolute;right:9px;top:9px;margin:0;min-width:27px;padding:2px 5px;border:0;background:rgba(67,82,59,.09);
+ font-size:8px;line-height:1.3;color:#67715e;pointer-events:none;
+}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunSkip{
+ position:absolute;right:-1px;top:-34px;display:block!important;min-height:28px!important;padding:3px 7px!important;
+ border:0!important;background:rgba(36,48,36,.46)!important;color:rgba(255,250,232,.92)!important;border-radius:999px!important;
+ font-size:8px!important;opacity:.72;pointer-events:auto;
+}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard strong{
+ margin:0;padding:0;font:700 clamp(16px,4.4vw,19px)/1.28 "Yu Mincho","Hiragino Mincho ProN",serif;
+ letter-spacing:.01em;color:#2f402d;text-wrap:balance;
+}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard p{display:none}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideFooter{display:none;margin:0;min-height:0}
+#muraFirstRunGuide[data-mode="coach"].mura-first-run-hint .muraFirstRunGuideCard{
+ width:min(320px,calc(100vw - 24px));padding-bottom:11px;
+}
+#muraFirstRunGuide[data-mode="coach"].mura-first-run-hint .muraFirstRunGuideCard p{
+ display:block;margin-top:4px;font-size:11px;line-height:1.38;font-weight:650;color:#5d523e;
+}
+#muraFirstRunGuide[data-mode="coach"].mura-first-run-hint .muraFirstRunGuideFooter,
+#muraFirstRunGuide[data-mode="coach"].mura-first-run-accepted .muraFirstRunGuideFooter{
+ display:flex;position:absolute;left:10px;bottom:-25px;margin:0;min-height:22px;
+}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunCue[data-state="success"],
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunCue[data-state="hint"]{
+ display:block;padding:3px 7px;font-size:8px;box-shadow:0 2px 7px rgba(35,45,33,.12);
+}
+@media(max-width:600px){
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard{width:min(268px,calc(100vw - 24px));padding:9px 36px 9px 12px}
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard strong{font-size:17px;line-height:1.24}
+ #muraFirstRunGuide[data-mode="coach"].mura-first-run-hint .muraFirstRunGuideCard{width:min(292px,calc(100vw - 20px))}
+}
