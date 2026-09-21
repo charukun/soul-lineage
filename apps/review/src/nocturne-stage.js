@@ -1,11 +1,12 @@
 const stage=document.querySelector('[data-review-surface="battle2"]');
-const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects');
+const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects'),versionNode=document.getElementById('battle2-version');
 const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
 const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],modeButtons=[...document.querySelectorAll('[data-battle-mode]')];
 const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'};
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
 let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,reviewMeta=null,battleMode='duel',history=[],seenActions=new Set(),lastBattleId='';
 let state='BOOT',lastError=null;
+const buildCommit=String(__BUILD_INFO__?.commit||'dev');if(versionNode)versionNode.textContent=`DEV · ${buildCommit.slice(0,7)}`;
 function report(next,detail=''){if(disposed)return;if(next==='BATTLE'&&!prepared)return;state=next;stage.dataset.state=next;if(next==='ERROR'){lastError=String(detail);stage.dataset.error=lastError;status.hidden=false;status.setAttribute('role','alert');status.textContent='戦闘を読み込めませんでした。'+lastError+' 再読み込みで再試行できます。';}else{status.setAttribute('role','status');status.hidden=next==='BATTLE'||next==='RESETTING';status.textContent=next==='ASSET_LOADING'?'戦闘を読み込み中… '+detail:'戦闘を準備中…';}}
 const motionLabel=kind=>MOVE_LABEL[kind]||kind||'動作';
 function shortActionName(meta){return String(meta?.techniqueName||meta?.actionName||motionLabel(meta?.actionMotion)||'').trim();}

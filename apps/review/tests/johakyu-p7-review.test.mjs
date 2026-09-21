@@ -114,6 +114,25 @@ test('an early incoming hit breaks an unprotected chain instead of retrying a la
  assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,proof.broken.techniqueIndex);assert.equal(proof.restart.stageIndex,0);
 });
 
+
+test('real guard and parry resolve incoming contact before damage and parry arms a counter',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2});let parry=null,counter=null;
+ for(let i=0;i<720&&!(parry&&counter);i++){
+   const r=scenario.step(1/60);
+   parry=parry||r.events.find(event=>event.type==='parry'&&event.targetId==='hero');
+   counter=counter||r.events.find(event=>event.type==='player-hit'&&event.counter===true);
+ }
+ assert.ok(parry,'authored parry stage must intercept a real incoming contact');
+ assert.equal(parry.damage,0);assert.equal(parry.blocked,true);assert.equal(parry.parried,true);
+ assert.ok(counter,'counter stage must only land from the armed parry window');
+ assert.ok(counter.damage>0);assert.equal(counter.counter,true);
+});
+
+test('battle2 shows the current build version from canonical build info',()=>{
+ const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
+ assert.match(html,/id="battle2-version"/);assert.match(stage,/__BUILD_INFO__\?\.commit/);assert.match(stage,/DEV · \$\{buildCommit\.slice\(0,7\)\}/);assert.match(css,/\.battle2-version\{/);
+});
+
 test('HUD metadata comes from the executing technique and stage',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let checked=0;
  for(let i=0;i<480;i++){const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self);if(!hero.action)continue;checked++;
