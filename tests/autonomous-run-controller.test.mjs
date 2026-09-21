@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {bindImmutableVersion,isolatedPublicationPlan,nextIteration} from '../scripts/autonomous-run-controller.mjs';
+import {bindImmutableVersion,isolatedPublicationPlan,nextIteration,verifyImmutableVersion} from '../scripts/autonomous-run-controller.mjs';
 
 const SHA='0123456789abcdef0123456789abcdef01234567';
 const VERSION='12345678-1234-1234-1234-123456789abc';
@@ -22,6 +22,34 @@ test('immutable Cloudflare version preview is bound after publication',()=>{
   assert.equal(staged.reference,'https://12345678-soul-lineage-village-dev.c-okamoto.workers.dev/');
   assert.equal(staged.verifiedSourceSha,SHA);
   assert.equal(staged.immutable,true);
+});
+
+test('immutable preview verification rejects source drift and emits experiment-ready observation',async()=>{
+  const plan=isolatedPublicationPlan({game:'kuumetsu',sourceSha:SHA,runKey:'verify-run',phase:'before'});
+  const binding=bindImmutableVersion({plan,versionId:VERSION});
+  const verified=await verifyImmutableVersion({
+    binding,
+    observedAt:'2026-09-22T00:00:00.000Z',
+    conditions:{viewport:'673x841'},
+    notVerified:['physical device'],
+    fetchImpl:async url=>({
+      ok:true,
+      async json(){
+        assert.equal(url,'https://12345678-soul-lineage-demon-dev.c-okamoto.workers.dev/version.json');
+        return {commit:SHA,environment:'dev'};
+      },
+    }),
+  });
+  assert.equal(verified.sourceSha,SHA);
+  assert.equal(verified.verification.commit,SHA);
+  assert.equal(verified.verification.matched,true);
+  assert.equal(verified.reference,binding.reference);
+  assert.equal(verified.phase,'before');
+  assert.deepEqual(verified.conditions,{viewport:'673x841'});
+  await assert.rejects(
+    ()=>verifyImmutableVersion({binding,fetchImpl:async()=>({ok:true,json:async()=>({commit:'f'.repeat(40)})})}),
+    /version\.json\.commit mismatch/
+  );
 });
 
 test('next iteration is serial and starts from the previous merge SHA',()=>{

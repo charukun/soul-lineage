@@ -85,7 +85,7 @@ test('DEV publish and browser evidence receipts use existing logs and artifacts'
       {id:2,name:'Publish rinne DEV',conclusion:'success',steps:[
         {name:'Publish exact app artifact',conclusion:'success'},
         {name:'Diagnose public app source',conclusion:'success'},
-      ],diagnostic_log:'Current Version ID: 12345678-abcd\nhttps://soul-lineage-rinne-dev.c-okamoto.workers.dev/'},
+      ],diagnostic_log:'Current Version ID: 12345678-1234-1234-1234-123456789abc\nhttps://soul-lineage-rinne-dev.c-okamoto.workers.dev/'},
     ]},
     {workflow:'PR Checks',kind:'validation',run_id:21,head_sha:sha,conclusion:'success',jobs:[
       {id:3,name:'Affected browser smoke',conclusion:'success',steps:[{name:'Playwright browser smoke',conclusion:'success'}],
@@ -93,7 +93,9 @@ test('DEV publish and browser evidence receipts use existing logs and artifacts'
     ]},
   ];
   const receipts=devPublishReceipts(runs,[{context:'dev/rinne',state:'success',target_url:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/'}]);
-  assert.equal(receipts[0].worker_version_id,'12345678-abcd');
+  assert.equal(receipts[0].worker_version_id,'12345678-1234-1234-1234-123456789abc');
+  assert.equal(receipts[0].immutable_preview_url,'https://12345678-soul-lineage-rinne-dev.c-okamoto.workers.dev/');
+  assert.equal(receipts[0].immutable_preview_source,'derived-from-version-id');
   assert.equal(receipts[0].version_verification,'success');
   const browser=browserEvidenceSummary(runs,[{type:'trace',artifact_url:'trace-url'}]);
   assert.equal(browser.result,'success');
@@ -135,4 +137,21 @@ test('summary exposes one Fast DEV session JSON including exact head, ready snap
   assert.ok(summary.session_manifest);
   assert.ok(summary.failure_digest);
   assert.ok(summary.artifact_index);
+  assert.equal(summary.validation_entry.reconcile_before_validation,false);
+});
+
+test('summary surfaces related develop drift before final validation is armed',()=>{
+  const freshness={
+    result:'reconcile-required',latest_develop_sha:'c'.repeat(40),validation_base_sha:'b'.repeat(40),
+    develop_contained_in_head:false,reconcile_required:true,revalidation_required:true,independent_drift:false,
+  };
+  const summary=buildActionsSummary({
+    repo:'charukun/soul-lineage',sha:'a'.repeat(40),validation_sha:'a'.repeat(40),statuses:[],runs:[],
+    pr:{number:7,state:'open',draft:true,mergeable:true,mergeable_state:'clean',labels:[],body:'',head:{sha:'a'.repeat(40)},base:{ref:'develop',sha:'b'.repeat(40)}},
+    freshness,required_validation:{none:true,checks:[],tests:[],builds:[],source:'commit-message'},
+    required_evidence:{browser:{required:false}},session_manifest:{affected_scope:{apps:['demon'],packages:[]}},test_plan:{advisory:true},
+  });
+  assert.equal(summary.validation_entry.develop_drift_detected,true);
+  assert.equal(summary.validation_entry.reconcile_before_validation,true);
+  assert.equal(summary.validation_entry.action,'reconcile-before-final-validation');
 });
