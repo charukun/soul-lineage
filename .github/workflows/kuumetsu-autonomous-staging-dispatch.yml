@@ -1,0 +1,32 @@
+name: Kuumetsu autonomous staging dispatch
+
+on:
+  push:
+    branches:
+      - 'controller/kuumetsu-3iter-20260921'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    name: Dispatch exact demon DEV publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Dispatch Per-App DEV Publish
+        uses: actions/github-script@v8
+        env:
+          SOURCE_SHA: '50971dc822ed9d0000f72c17b1bb357a309f735b'
+          RUN_KEY: 'kuumetsu-3iter-20260921T1829JST'
+          ITERATION: '1'
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo,
+              workflow_id: 'dev-app-publish.yml',
+              ref: 'develop',
+              inputs: { app: 'demon', source_sha: process.env.SOURCE_SHA }
+            });
+            core.notice(`staging-dispatch run_key=${process.env.RUN_KEY} iteration=${process.env.ITERATION} source_sha=${process.env.SOURCE_SHA}`);
