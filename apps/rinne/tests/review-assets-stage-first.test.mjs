@@ -25,9 +25,10 @@ test('equipment review is protagonist-first and weapon-type driven', async () =>
 });
 
 test('equipment review keeps the character preview primary on phones', async () => {
-  const [html, css] = await Promise.all([
+  const [html, css, js] = await Promise.all([
     readFile(htmlUrl, 'utf8'),
     readFile(cssUrl, 'utf8'),
+    readFile(jsUrl, 'utf8'),
   ]);
   assert.match(html, /class="asset-stage-hint"/);
   assert.match(js, /is-dismissed/);
