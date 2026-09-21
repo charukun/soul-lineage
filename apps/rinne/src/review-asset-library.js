@@ -35,6 +35,9 @@ ground.rotation.x = -Math.PI/2; ground.position.y = -.006; scene.add(ground);
 
 let modelRoot = null, mixer = null, frameId = 0, loadSequence = 0;
 const mounted = new Map();
+const equipmentCache = new Map();
+const equipmentLoads = new Map();
+let stageBusyCount = 0, weaponLibraryBusy = true;
 const selection = {model: PROTAGONIST_VILLAGER_MODEL.id, weaponType:'none', main:null, off:null, back:null};
 let activeAssetSlot='main',activeViewDirection='front',activeViewFocus='full';
 
@@ -76,11 +79,23 @@ function status(message,error=false) {
   q('#asset-status').dataset.error=String(error);
   const indicator=q('#asset-load-state');
   if(indicator){
-    const loading=!error&&/読み込み中|モデルを読み込んで/.test(message);
+    const loading=!error&&/読み込み中|モデルを読み込んで|準備中/.test(message);
     indicator.dataset.state=error?'error':loading?'loading':'ready';
     const label=indicator.querySelector('strong');
     if(label)label.textContent=error?'要確認':loading?'準備中':'表示中';
   }
+}
+function setStageBusy(active,label='武器を準備中…'){
+  stageBusyCount=Math.max(0,stageBusyCount+(active?1:-1));
+  const overlay=q('#asset-stage-loading'); if(!overlay)return;
+  const visible=stageBusyCount>0;
+  overlay.hidden=!visible; overlay.setAttribute('aria-hidden',String(!visible));
+  const text=overlay.querySelector('strong'); if(text&&active)text.textContent=label;
+}
+async function withStageBusy(task,label){
+  setStageBusy(true,label);
+  try{return await task();}
+  finally{setStageBusy(false,label);}
 }
 function findNode(root, wanted) {
   const target = normalize(wanted); let exact = null, suffix = null;
@@ -100,9 +115,11 @@ function hideNativeAccessories(root) {
 function modelHeight() {
   if(!modelRoot)return 1.7; const box=new THREE.Box3().setFromObject(modelRoot); const height=box.max.y-box.min.y; return Number.isFinite(height)&&height>.05?height:1.7;
 }
-function fitObject(root, fraction) {
-  root.updateMatrixWorld(true); const box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3()),longest=Math.max(size.x,size.y,size.z);
-  if(!Number.isFinite(longest)||longest<1e-6)throw new Error('装備geometryが空です'); root.scale.multiplyScalar(modelHeight()*fraction/longest);
+function fitObject(root, fraction, referenceHeight=modelHeight()) {
+  root.scale.set(1,1,1);root.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3()),longest=Math.max(size.x,size.y,size.z);
+  if(!Number.isFinite(longest)||longest<1e-6)throw new Error('装備geometryが空です');
+  root.scale.setScalar(referenceHeight*fraction/longest);
 }
 function flattenScene(src) {
   if(src.children.length!==1)return src; const child=src.children[0],holder=new THREE.Group(); holder.scale.copy(child.scale); child.scale.set(1,1,1); child.position.set(0,0,0); child.rotation.set(0,0,0); src.remove(child); holder.add(child); return holder;
@@ -113,31 +130,69 @@ function slotAnchor(slot) {
   if(slot==='off')return findNode(modelRoot,'handslot.l')||findNode(modelRoot,'lefthand')||findNode(modelRoot,'hand.l')||findNode(modelRoot,'hand_l')||findNode(modelRoot,'lefthandbone');
   return findNode(modelRoot,'chest')||findNode(modelRoot,'spine');
 }
-function applyTransform(payload,spec,slot) {
+function equipmentCacheKey(slot,id){return `${slot}:${id}`;}
+async function prepareEquipment(slot,spec){
+  const key=equipmentCacheKey(slot,spec.id);
+  if(equipmentCache.has(key))return equipmentCache.get(key);
+  if(equipmentLoads.has(key))return equipmentLoads.get(key);
+  const request=loader.loadAsync(reviewEquipmentUrl(spec)).then(gltf=>{
+    const payload=flattenScene(gltf.scene);payload.name=`ReviewEquipment:${spec.id}:${slot}`;
+    payload.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;}});
+    equipmentCache.set(key,payload);
+    return payload;
+  }).finally(()=>equipmentLoads.delete(key));
+  equipmentLoads.set(key,request);
+  return request;
+}
+function dedicatedHandSlot(anchor,slot){
+  if(slot==='back'||!anchor)return false;
+  return normalize(anchor.name)===normalize(slot==='off'?'handslot.l':'handslot.r');
+}
+function applyTransform(payload,spec,slot,anchor,characterHeight) {
   const side=slot==='off'?'l':'r';
+  payload.position.set(0,0,0);payload.quaternion.identity();payload.scale.set(1,1,1);
   if(slot==='back'){
     const row=BACK_GRIPS[spec.family];
-    if(row){payload.position.set(...row.position);payload.rotation.set(...row.rotation);fitObject(payload,spec.targetFraction);return;}
-    payload.position.set(0,0,-modelHeight()*.11);payload.rotation.set(0,0,0);fitObject(payload,spec.targetFraction);return;
+    if(row){payload.position.set(...row.position);payload.rotation.set(...row.rotation);fitObject(payload,spec.targetFraction,characterHeight);return;}
+    payload.position.set(0,0,-characterHeight*.11);fitObject(payload,spec.targetFraction,characterHeight);return;
+  }
+  if(dedicatedHandSlot(anchor,slot)){
+    fitObject(payload,spec.targetFraction,characterHeight);
+    return;
   }
   const nativeName=ACCESSORY_NODES[spec.family]?.[side],native=nativeName?findNode(modelRoot,nativeName):null;
   if(native){payload.position.copy(native.position);payload.quaternion.copy(native.quaternion);payload.scale.copy(native.scale);return;}
   const grip=HAND_GRIPS[spec.family]?.[side]||HAND_GRIPS[spec.family]?.r;
   if(grip){payload.position.set(...grip.position);payload.quaternion.set(...grip.quaternion);payload.scale.setScalar(grip.scale);return;}
-  payload.position.set(0,0,0);payload.rotation.set(0,0,slot==='off'?Math.PI/2:-Math.PI/2);fitObject(payload,spec.targetFraction);
+  payload.rotation.set(0,0,slot==='off'?Math.PI/2:-Math.PI/2);fitObject(payload,spec.targetFraction,characterHeight);
 }
 async function setEquipment(slot,id) {
-  const previous=mounted.get(slot); if(previous){disposeRoot(previous);mounted.delete(slot);}
+  const previous=mounted.get(slot); if(previous){previous.removeFromParent();mounted.delete(slot);}
   selection[slot]=id||null;
   if(!id)return;
   const spec=REVIEW_SKELETON_EQUIPMENT.find(row=>row.id===id); if(!spec||!spec.slots.includes(slot))throw new Error(`装備できない組み合わせ: ${slot}/${id}`);
   const anchor=slotAnchor(slot); if(!anchor)throw new Error(`${slot} 装備用の骨/slotが見つかりません`);
-  const gltf=await loader.loadAsync(reviewEquipmentUrl(spec)),payload=flattenScene(gltf.scene); payload.name=`ReviewEquipment:${spec.id}`;
-  payload.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}}); anchor.add(payload); applyTransform(payload,spec,slot); mounted.set(slot,payload);
+  const characterHeight=modelHeight();
+  const payload=await prepareEquipment(slot,spec);payload.removeFromParent();anchor.add(payload);
+  applyTransform(payload,spec,slot,anchor,characterHeight);mounted.set(slot,payload);
 }
 async function reapplyEquipment() {
   const wanted={main:selection.main,off:selection.off,back:selection.back};
   for(const slot of ['main','off','back']){selection[slot]=null;await setEquipment(slot,wanted[slot]);}
+}
+async function prepareWeaponLibrary(){
+  const specs=WEAPON_TYPES.map(type=>type.equipment&&equipmentSpec(type.equipment)).filter(Boolean);
+  const payloads=await Promise.all(specs.map(spec=>prepareEquipment('main',spec)));
+  const warmup=new THREE.Group();warmup.name='ReviewEquipmentWarmup';warmup.position.y=-1000;
+  for(const payload of payloads){payload.removeFromParent();warmup.add(payload);}
+  scene.add(warmup);
+  try{
+    if(typeof renderer.compileAsync==='function')await renderer.compileAsync(scene,camera);
+    else renderer.compile(scene,camera);
+  }finally{
+    for(const payload of payloads)payload.removeFromParent();
+    warmup.removeFromParent();
+  }
 }
 function cameraFrame() {
   if(!modelRoot)return null;
@@ -184,7 +239,7 @@ function applyPresentationPose(root){
 }
 async function loadModel() {
   const sequence=++loadSequence; selection.model=PROTAGONIST_VILLAGER_MODEL.id; status('主人公モデルを読み込み中…');
-  for(const root of mounted.values())disposeRoot(root);mounted.clear(); if(modelRoot)disposeRoot(modelRoot); modelRoot=null; mixer?.stopAllAction();mixer=null;
+  for(const root of mounted.values())root.removeFromParent();mounted.clear(); if(modelRoot)disposeRoot(modelRoot); modelRoot=null; mixer?.stopAllAction();mixer=null;
   const gltf=await loader.loadAsync(protagonistModelUrl); if(sequence!==loadSequence){disposeRoot(gltf.scene);return;}
   modelRoot=gltf.scene; modelRoot.name='ReviewModel:Protagonist'; modelRoot.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}}); scene.add(modelRoot); hideNativeAccessories(modelRoot);
   modelRoot.updateMatrixWorld(true); const box=new THREE.Box3().setFromObject(modelRoot),center=box.getCenter(new THREE.Vector3()); modelRoot.position.x-=center.x;modelRoot.position.z-=center.z;modelRoot.position.y-=box.min.y;modelRoot.updateMatrixWorld(true);
@@ -208,6 +263,7 @@ function renderWeaponTypes(){
   list.replaceChildren(...WEAPON_TYPES.map(type=>{
     const button=document.createElement('button');
     button.type='button';button.classList.add('review-choice-card');button.dataset.weaponType=type.id;
+    button.disabled=Boolean(type.equipment&&weaponLibraryBusy);
     button.setAttribute('role','option');button.setAttribute('aria-selected',String(type.id===selection.weaponType));
     const text=document.createElement('span');text.textContent=type.label;
     const spec=type.equipment?REVIEW_SKELETON_EQUIPMENT.find(row=>row.id===type.equipment):null;
@@ -219,7 +275,9 @@ function renderWeaponTypes(){
 async function selectWeaponType(typeId){
   const type=WEAPON_TYPES.find(row=>row.id===typeId); if(!type)throw new Error(`Unknown weapon type: ${typeId}`);
   const select=q('#slot-main');if(select)select.value=type.equipment||'';
-  await setEquipment('main',type.equipment);
+  const missing=Boolean(type.equipment&&!equipmentCache.has(equipmentCacheKey('main',type.equipment)));
+  const equip=()=>setEquipment('main',type.equipment);
+  if(missing)await withStageBusy(equip,'武器を読み込み中…');else await equip();
   selection.weaponType=type.id;
   renderSelection({syncWeaponType:false});
   status(type.id==='none'?'素手を表示しています':`${type.label}を装備しました`);
@@ -247,5 +305,12 @@ function populate() {
 }
 const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();},render:()=>renderer.render(scene,camera)});
 let last=performance.now();function frame(now){const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;controls.update();mixer?.update(dt);renderer.render(scene,camera);frameId=requestAnimationFrame(frame);}frameId=requestAnimationFrame(frame);
-populate();loadModel().catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);stageLifecycle.destroy();controls.dispose();for(const root of mounted.values())disposeRoot(root);disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+async function initialize(){
+  populate();
+  const modelTask=loadModel();
+  const preloadTask=withStageBusy(prepareWeaponLibrary(),'武器を準備中…').catch(error=>status(`武器の事前準備に失敗しました: ${error.message}`,true));
+  await Promise.allSettled([modelTask,preloadTask]);
+  weaponLibraryBusy=false;renderWeaponTypes();
+}
+initialize().catch(error=>status(error.message,true));
+window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);stageLifecycle.destroy();controls.dispose();for(const root of equipmentCache.values())disposeRoot(root);equipmentCache.clear();mounted.clear();disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
