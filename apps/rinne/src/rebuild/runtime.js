@@ -2,7 +2,6 @@ import { createWebPlatform } from '@soul/platform-web';
 import { createSharedWorldChannel } from '@soul/platform-web/shared-world';
 import { defaultMuraLayout, validateMuraLayout, safeMuraPosition } from '@soul/world/mura';
 import { createLife, deserializeLife, serializeLife, setClockRate, setMoving, tickLife, rebirth, LIFE_YEARS, canDepart, depart, advanceFront, returnHome, enterBuilding, leaveBuilding } from './domain.js';
-import { resolveSoloLifeStart } from './life-start.js';
 import {combatBodyOutcome} from './combat-choreography.js';
 import { buildStations, nearestStation, normalizeLayout } from './locations.js';
 import { createWorldRenderer } from './combat-effects-renderer.js';
@@ -65,7 +64,7 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   host.dispose=()=>{if(host.disposed)return;host.disposed=true;host.active=false;stopTitlePreview();canvas.dataset.runtime='disposed';view.dispose();};
   return host;
 }
-export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepared,coop=null,clanOrigin=null,expectedSave}={}){
+export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepared,coop=null,family=null,expectedSave=undefined}={}){
   const ownsPrepared=!prepared,host=prepared||await prepareRuntime({buildInfo,onProgress});
   if(host.disposed)throw Error('描画世界は終了済みです');
   if(host.active)throw Error('人生はすでに始まっています');
@@ -73,8 +72,19 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   const {platform,saveKey,channel,layout,stations,skirmishAnchor,canvas,loading,gameScreen,view}=host;
   let state=null;
   try{
-    if(coop)state=placeState(structuredClone(coop.snapshot().view.me),layout);
-    else state=await resolveSoloLifeStart({mode,storage:platform.storage,saveKey,name,seed:Date.now()>>>0,villageIds:[layout.id],clanOrigin,expectedSave,place:next=>placeState(next,layout)});
+    if(coop)state=structuredClone(coop.snapshot().view.me);
+    else if(mode==='continue'){
+      const raw=await platform.storage.read(saveKey);
+      if(!raw)throw Error('続きから遊べる保存データがありません');
+      state=deserializeLife(raw);
+    }else if(mode==='new'&&expectedSave!==undefined){
+      const current=await platform.storage.read(saveKey);
+      if((current||null)!==expectedSave)throw Error('保存が更新されました。タイトルに戻って、もう一度お選びください。');
+    }
+    if(!state)state=createLife({name,seed:(Date.now()>>>0),villageIds:[layout.id],family});
+    placeState(state,layout);
+    // Confirmed identity is durable before the first frame. Storage failure does not silently start a disposable life.
+    if(!coop&&mode==='new')await platform.storage.write(saveKey,serializeLife(state));
   }catch(error){host.active=false;if(ownsPrepared)host.dispose();throw error;}
 
   let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,doorDwell=0,doorStationId='',movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='',firstRunGuide=null;
@@ -117,7 +127,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     view.clearCombatEffects?.();
     if(endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
-    endDialog.innerHTML='<form method="dialog"><p id="life-end-age"></p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>次の出生<select id="rebirth-village"></select></label><p class="life-end-help">次の人生は0歳・基礎装備から。一族の起源と記録、帰還して刻んだ故郷を受け継ぐ。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
+    endDialog.innerHTML='<form method="dialog"><p id="life-end-age"></p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>次の出生<select id="rebirth-village"></select></label><p class="life-end-help">次の人生は0歳・基礎装備から。一族の家伝と記録、帰還して刻んだ故郷を受け継ぎます。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
     endDialog.querySelector('#life-end-age').textContent=state.ageYears>=LIFE_YEARS?'100年の生涯':`${Math.floor(state.ageYears)}歳の生涯`;
     endDialog.querySelector('#life-end-name').textContent=`${state.name} · ${state.generation}代`;
     endDialog.querySelector('#life-end-defeats').textContent=String(state.defeats);endDialog.querySelector('#life-end-returns').textContent=String(state.returns);endDialog.querySelector('#life-end-skills').textContent=String(state.knownSkills.length);

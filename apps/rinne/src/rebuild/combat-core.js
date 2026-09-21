@@ -44,20 +44,7 @@ function createSession(state,target,front,signature,{secondary=false,enemyCanHit
   const session={runtime,loadout,targetId:target.id,signature,secondary,enemyCanHit,heroHpScale:hScale,enemyHpScale:eScale,last:snapshot,lastAttackKey:snapshot.hero.attack?`${snapshot.hero.slot||''}:${snapshot.hero.attack}`:null,oneMotionArmed:null,invalid:false,rotateAfterKyu:false};sessionMap(state).set(target.id,session);return session;
 }
 function sessionDrift(session,state,target){const h=session.last?.hero,e=session.last?.enemy;if(!h||!e)return Infinity;return Math.max(Math.hypot(h.x-state.position.x,h.z-state.position.z),Math.hypot(e.x-target.x,e.z-target.z));}
-function sessionFor(state,target,front,options={}){
- const signature=combatSignature(state,target,front,options),existing=sessionMap(state).get(target.id);
- const secondary=Boolean(options.secondary),enemyCanHit=options.enemyCanHit!==false;
- // Direction, body intent and stamina change continuously during one encounter.
- // Recreating the executor for those policies restarts weapon draw indefinitely.
- // Only identity, health scaling, explicit invalidation or a teleport starts anew.
- if(!existing||existing.invalid||sessionDrift(existing,state,target)>1.15||existing.last.hero.weapon!==tidebreakWeaponFor(state.equipment.weapon)||existing.last.enemy.weapon!==enemyWeapon(front,target)||existing.heroHpScale!==heroHpScale(state)||existing.enemyHpScale!==enemyHpScale(state))return createSession(state,target,front,signature,options);
- if(existing.signature!==signature||existing.secondary!==secondary||existing.enemyCanHit!==enemyCanHit){
-  const loadout=secondary?defensiveLoadoutFor(state,target):tidebreakLoadoutFor(state,state?.combat?.comboId,target);
-  existing.runtime.updatePolicy({loadout,mindset:tidebreakMindsetFor(state),enemyLoadout:enemyCanHit?null:passiveEnemyLoadout(enemyWeapon(front,target))});
-  Object.assign(existing,{signature,secondary,enemyCanHit,loadout,last:existing.runtime.state()});
- }
- return existing;
-}
+function sessionFor(state,target,front,options={}){const signature=combatSignature(state,target,front,options),existing=sessionMap(state).get(target.id);return !existing||existing.signature!==signature||existing.secondary!==Boolean(options.secondary)||existing.enemyCanHit!==Boolean(options.enemyCanHit)||existing.invalid||sessionDrift(existing,state,target)>1.15?createSession(state,target,front,signature,options):existing;}
 function clearSession(state,targetId=null){const map=SESSIONS.get(state);if(!map)return;if(targetId!==null){map.delete(targetId);if(!map.size)SESSIONS.delete(state);}else SESSIONS.delete(state);}
 function pruneSessions(state,keep){const map=SESSIONS.get(state);if(!map)return;for(const id of map.keys())if(!keep.has(id))map.delete(id);if(!map.size)SESSIONS.delete(state);}
 function nearestEnemy(position,enemies){let best=null,bestDistance=Infinity;for(const enemy of enemies){const d=dist(position,enemy);if(d<bestDistance){best=enemy;bestDistance=d;}}return{enemy:best,distance:bestDistance};}

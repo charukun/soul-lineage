@@ -3506,20 +3506,6 @@ addLog=(text,type='')=>ports.onLog?.({text,type});loadStorage();
 replaceActor=()=>{};equippedWeapon=ports.weapon||'fist';for(const k of ATTACK_KEYS)loadout[k].weapon=equippedWeapon;sharedFacade.resetFeel();resetScene(true);
 const snapshotActor=a=>sharedFacade.snapshotActor(a);
 function syncActors(v={}){sharedFacade.syncActor(hero,v.hero);const rows=Array.isArray(v.enemies)?v.enemies:v.enemy?[v.enemy]:[];for(let i=0;i<Math.min(rows.length,enemies.length);i++)sharedFacade.syncActor(enemies[i],rows[i]);return state();}
-// Live intent changes must not replay draw/spawn or erase committed motion.
-// Weapon/arena identity changes still use configure(); policies update the next
-// authored sequence while an existing sequence, contact and recovery keep time.
-function updatePolicy(v={}){
- if(v.weapon!=null&&v.weapon!==equippedWeapon)throw Error('Live policy cannot replace a weapon');
- if(v.loadout){
-  for(const k of [...ATTACK_KEYS,'uke'])if(v.loadout[k])loadout[k]=normalizeRecipe({...v.loadout[k],weapon:equippedWeapon});
-  drafts=copy(loadout);poolReady=false;initPools();hero.plan=null;
- }
- if(v.mindset&&Object.hasOwn(MINDS,v.mindset)){mindset=v.mindset;fixedMindset=v.mindset;}
- if(Object.hasOwn(v,'heroPassive'))sharedFacade.setHeroPassive(v.heroPassive);
- if(Object.hasOwn(v,'enemyLoadout'))for(const e of enemies){if(v.enemyLoadout)e.sharedLoadout=copy(v.enemyLoadout);else delete e.sharedLoadout;}
- return state();
-}
 function configure(v={}){
  world.colliders=(v.colliders||[]).map(c=>({...c}));equippedWeapon=Object.hasOwn(WEAPONS,v.weapon)?v.weapon:'fist';enemyStyle=v.enemyStyle||'balanced';opponent=sharedFacade.opponent(v.opponent);sharedFacade.setHeroPassive(v.heroPassive);
  const set=v.loadout;if(set)for(const k of ATTACK_KEYS)if(set[k])loadout[k]=normalizeRecipe({...set[k],weapon:equippedWeapon});for(const k of ATTACK_KEYS)loadout[k].weapon=equippedWeapon;
@@ -3532,7 +3518,7 @@ const enemyChoiceOriginal=chooseEnemyRecipe;
 chooseEnemyRecipe=a=>{if(a.sharedLoadout){const k=ATTACK_KEYS[(a.attackCount||0)%3];if(a.sharedLoadout[k])return normalizeRecipe({...a.sharedLoadout[k],weapon:a.weapon});}return enemyChoiceOriginal(a);};
 function state(){const rows=enemies.map(snapshotActor);return{hero:snapshotActor(hero),enemy:rows[0]||null,enemies:rows,time,stats:copy(stats),contacts:copy(lastContacts),...sharedFacade.impactState(),feel:sharedFacade.feel(hitstop),done:hero.dead||rows.every(row=>row.dead)};}
 return {
- configure,updatePolicy,
+ configure,
  step(dt=1/60){sharedFacade.beginStep();if(!hero.dead&&!enemies.every(e=>e.dead))update(dt);return state();},
  input(x,y,amount,cameraAngle=0){manual.dx=x;manual.dy=y;manual.amount=clamp(amount,0,1);camAngle=cameraAngle;},
  syncActors,state,weaponSpec:weapon=>sharedFacade.weaponSpec(weapon),weaponSpecs:sharedFacade.weaponSpecs,
