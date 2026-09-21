@@ -1,4 +1,5 @@
 import {createCanonicalPresentationDriver} from './driver.js';
+import {resolveFatiguePresentation} from './fatigue.js';
 import {createBattleObservation} from '@soul/shared-ui/johakyu-observation';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -45,9 +46,54 @@ function makeRenderer(){
  composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),.22,.5,1.15));composer.addPass(new OutputPass());resize();
 }
 
+function collectFatigueRig(root){
+ const rows=[];
+ root.traverse(node=>{
+  if(!node.isBone)return;
+  const raw=String(node.name||'').toLowerCase(),name=raw.replace(/[^a-z0-9]/g,'');let kind=null;
+  if(/spine|chest/.test(name))kind='spine';
+  else if(/shoulder|clavicle/.test(name))kind='shoulder';
+  else if(/neck|head/.test(name))kind='head';
+  if(kind)rows.push({node,kind,side:/left|(^|[._-])l($|[._-])/.test(raw)?-1:1,x:0,z:0});
+ });
+ return rows;
+}
+function clearFatigueRig(a){
+ for(const row of a.fatigueRig){if(row.x)row.node.rotation.x-=row.x;if(row.z)row.node.rotation.z-=row.z;row.x=0;row.z=0;}
+}
+function emitFatigueSweat(a,profile,dt){
+ if(a.kind!=='hero'||!(profile.sweatInterval>0))return;
+ a.sweatClock-=dt;if(a.sweatClock>0)return;
+ a.sweatClock=profile.sweatInterval*randRange(.78,1.22);
+ const pos=a.pos.clone().add(new V(randRange(-.11,.11),a.height*.82,randRange(-.08,.08)));
+ particles.push({pos,vel:new V(randRange(-.08,.08),randRange(.12,.35),randRange(-.05,.05)),life:.48,max:.48,color:'#d7edf0',size:.72});
+}
+function applyFatigue(a,row,dt){
+ const profile=resolveFatiguePresentation(row);
+ if(a.fatigueBand!==profile.band||a.fatigueLocked!==profile.attackLocked){
+  a.fatigueBand=profile.band;a.fatigueLocked=profile.attackLocked;a.fatigueSince=clock;a.sweatClock=0;
+ }
+ const phase=Math.max(0,clock-a.fatigueSince)*TAU*profile.breathHz,inhale=(Math.sin(phase)+1)*.5;
+ const blend=row.action?.motion?.offense ? .32 : 1;
+ a.posture.rotation.x=profile.lean*blend+profile.breathLift*(inhale-.5)*.12;
+ a.posture.rotation.z=Math.sin(phase*.5)*profile.sway*blend;
+ a.posture.position.y=-profile.drop*blend+profile.breathLift*inhale*.08;
+ a.posture.position.z=profile.lean*.08*blend;
+ a.posture.scale.set(1,1+profile.breathLift*inhale*.055,1);
+ for(const item of a.fatigueRig){
+  let x=0,z=0;
+  if(item.kind==='spine')x=(profile.lean*.16+profile.breathLift*(inhale-.5)*.22)*blend;
+  else if(item.kind==='shoulder')z=item.side*profile.shoulder*(.38+.62*inhale)*blend;
+  else if(item.kind==='head')x=-profile.lean*.11*blend;
+  item.node.rotation.x+=x;item.node.rotation.z+=z;item.x=x;item.z=z;
+ }
+ emitFatigueSweat(a,profile,dt);
+ sound.fatigue?.(a.canonicalId,{active:a.kind==='hero'&&profile.audioGain>0&&!row.dead&&!row.downed,gain:profile.audioGain,rate:profile.audioRate,x:a.pos.x,z:a.pos.z});
+ a.fatiguePresentation={band:profile.band,attackLocked:profile.attackLocked,breath:Number(inhale.toFixed(3)),rigNodes:a.fatigueRig.length};
+}
 function actor(kind,position,boss=false){
  const key=kind==='hero'?'adventurers/Knight':kind==='mage'?'skeletons/Skeleton_Mage':kind==='minion'?'skeletons/Skeleton_Minion':'skeletons/Skeleton_Warrior';
- const asset=models.get(key),root=cloneSkeleton(asset.scene),container=new THREE.Group();
+ const asset=models.get(key),root=cloneSkeleton(asset.scene),container=new THREE.Group(),posture=new THREE.Group();
  if(kind==='hero')for(const name of ['1H_Sword_Offhand','Rectangle_Shield','Round_Shield','Spike_Shield','2H_Sword']){const o=root.getObjectByName(name);if(o)o.visible=false;}
  if(kind!=='hero'&&kind!=='mage'){
   const sword=models.get('adventurers/Knight').scene.getObjectByName(boss?'2H_Sword':'1H_Sword');
@@ -55,7 +101,7 @@ function actor(kind,position,boss=false){
   if(sword&&socket){const weapon=sword.clone(true);weapon.visible=true;weapon.traverse(o=>{if(o.isMesh)o.userData.assetSource='adventurers/Knight';});socket.add(weapon);}
  }
  const box=new THREE.Box3().setFromObject(root),height=kind==='hero'?2.95:boss?4.25:kind==='mage'?2.55:2.45;
- const scale=height/Math.max(.1,box.max.y-box.min.y);container.scale.setScalar(scale);container.add(root);container.position.copy(position);scene.add(container);
+ const scale=height/Math.max(.1,box.max.y-box.min.y);container.scale.setScalar(scale);posture.add(root);container.add(posture);container.position.copy(position);scene.add(container);
  const mats=[];
  root.traverse(o=>{if(o.isMesh){
   o.castShadow=true;o.receiveShadow=true;o.userData.assetSource=o.userData.assetSource||key;o.frustumCulled=false;
@@ -63,7 +109,7 @@ function actor(kind,position,boss=false){
   const next=list.map(m=>{const n=m.clone();n.roughness=.74;n.metalness=.08;n.emissive=new THREE.Color('#000000');if(/Eyes/.test(o.name)){n.emissive.set(kind==='mage'?'#b870f1':'#c97450');n.emissiveIntensity=1.2;}mats.push({mat:n,base:n.emissive.clone(),power:n.emissiveIntensity});return n;});
   o.material=Array.isArray(o.material)?next:next[0];
  }});
- const a={kind,boss,root,object:container,pos:container.position,height,hp:kind==='hero'?220:boss?620:38+game.wave*8,maxHp:kind==='hero'?220:boss?620:38+game.wave*8,mixer:new THREE.AnimationMixer(root),clips:new Map(asset.animations.map(c=>[c.name,c])),action:null,actionName:'',attack:null,cd:randRange(.4,1.3),dead:false,deathTime:0,flash:0,showHp:0,mats,damage:kind==='hero'?27:boss?18:kind==='mage'?10:7,speed:kind==='hero'?2.7:boss?1.2:kind==='mage'?1.1:1.55,attackSpeed:1,combo:0,spawn:kind==='hero'?0:.7,trail:[],reaction:null,reactionSerial:0,presentationActionId:null,presentationProgress:0,swingKey:null,stepClock:0};
+ const a={kind,boss,root,posture,fatigueRig:collectFatigueRig(root),fatigueBand:'fresh',fatigueLocked:false,fatigueSince:0,sweatClock:0,fatiguePresentation:null,object:container,pos:container.position,height,hp:kind==='hero'?220:boss?620:38+game.wave*8,maxHp:kind==='hero'?220:boss?620:38+game.wave*8,mixer:new THREE.AnimationMixer(root),clips:new Map(asset.animations.map(c=>[c.name,c])),action:null,actionName:'',attack:null,cd:randRange(.4,1.3),dead:false,deathTime:0,flash:0,showHp:0,mats,damage:kind==='hero'?27:boss?18:kind==='mage'?10:7,speed:kind==='hero'?2.7:boss?1.2:kind==='mage'?1.1:1.55,attackSpeed:1,combo:0,spawn:kind==='hero'?0:.7,trail:[],reaction:null,reactionSerial:0,presentationActionId:null,presentationProgress:0,swingKey:null,stepClock:0};
  actors.push(a);play(a,'Idle');if(kind!=='hero'){ring(a.pos,1.1,'#bf7dcb',.6);play(a,'Spawn_Ground_Skeletons',true,.8);}return a;
 }
 function play(a,name,once=false,duration=0){
@@ -71,7 +117,7 @@ function play(a,name,once=false,duration=0){
  const next=a.mixer.clipAction(clip);next.reset();next.enabled=true;next.setEffectiveWeight(1);next.setEffectiveTimeScale(duration?clip.duration/duration:1);next.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);next.clampWhenFinished=once;
  if(a.action&&a.action!==next)a.action.fadeOut(.13);next.fadeIn(.12).play();a.action=next;a.actionName=name;record('animation',{kind:a.kind,name,once});
 }
-function removeActor(a){rules?.release(a);a.mixer.stopAllAction();a.mixer.uncacheRoot(a.root);scene.remove(a.object);for(const {mat} of a.mats)mat.dispose();}
+function removeActor(a){rules?.release(a);sound.fatigue?.(a.canonicalId,{active:false});a.mixer.stopAllAction();a.mixer.uncacheRoot(a.root);scene.remove(a.object);for(const {mat} of a.mats)mat.dispose();}
 function face(a,target,dt){const yaw=Math.atan2(target.x-a.pos.x,target.z-a.pos.z);const delta=Math.atan2(Math.sin(yaw-a.object.rotation.y),Math.cos(yaw-a.object.rotation.y));a.object.rotation.y+=delta*Math.min(1,dt*12);}
 function move(a,target,dt,mult=1){
  const d=new V().subVectors(target,a.pos);d.y=0;const distance=d.length();if(distance<.08)return false;face(a,target,dt);d.multiplyScalar(Math.min(distance,a.speed*dt*mult)/distance);a.pos.add(d);const r=Math.hypot(a.pos.x,a.pos.z);if(r>8.75)a.pos.multiplyScalar(8.75/r);play(a,a.kind==='hero'?'Running_A':'Walking_D_Skeletons');return true;
@@ -345,8 +391,7 @@ function createDrivenPort(){
   remove(a){removeActor(a);actors.splice(actors.indexOf(a),1);bindings.delete(a.canonicalId);},
   self(a){hero=a;selfBinding=a;},
   update(a,row,dt,{initial}){
-   a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;
-   if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-dt);if(a.reaction.remaining<=0)a.reaction=null;}
+   a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;clearFatigueRig(a);if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-dt);if(a.reaction.remaining<=0)a.reaction=null;}
    const equipmentKey=row.equipment.weapon+':'+row.equipment.shield;
    if(a.equipmentKey!==equipmentKey){
     for(const name of equipmentNames){const node=a.root.getObjectByName(name);if(node)node.visible=false;}
@@ -368,6 +413,7 @@ function createDrivenPort(){
     a.presentationActionId=null;a.action.paused=false;if(initial&&terminal)a.action.time=a.clips.get(clip).duration-.000001;a.mixer.update(dt);
     if(row.moving&&!terminal){a.stepClock-=dt;if(a.stepClock<=0){a.stepClock=.34;sound.footstep?.({pan:spatialPan(a.pos),rate:a.kind==='hero'?1.04:.94});}}else a.stepClock=0;
    }
+   applyFatigue(a,row,dt);
    if(terminal)a.deathTime+=dt;
    a.flash=Math.max(0,a.flash-dt);for(const {mat,base,power} of a.mats){mat.emissive.copy(a.flash>0?new THREE.Color('#ffe7c4'):base);mat.emissiveIntensity=a.flash>0?1.7:power;}
   },
@@ -416,7 +462,7 @@ function createDrivenPort(){
 }
 if(presentationPort)presentationPort.install(createDrivenPort());
 
-function inspectActors(){return actors.map(a=>({kind:a.kind,hp:a.hp,dead:a.dead,deathTime:a.deathTime,position:a.pos.toArray(),animation:a.actionName,animationTime:a.action?.time||0,attack:a.attack?.time||0}));}
+function inspectActors(){return actors.map(a=>({kind:a.kind,hp:a.hp,dead:a.dead,deathTime:a.deathTime,position:a.pos.toArray(),animation:a.actionName,animationTime:a.action?.time||0,attack:a.attack?.time||0,fatigue:a.fatiguePresentation}));}
 function inspectBattle(bootEpoch){
  if(!game.ready||disposed)return null;
  return createBattleObservation({authority:rules?'johakyu-review':'native-demo',battleId:`battle2:${bootEpoch}:${rounds}`,timeSeconds:game.time,status:game.phase,

@@ -159,7 +159,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   }
   function reactionContext(actor){const cursor=cursorFor(actor),node=nodeFor(actor,cursor);return{cursor,node};}
   function beginReaction(actor,target,kind,reason){
-    const {cursor,node}=reactionContext(actor),baseCost=KIND_COST[kind]??0,footwork=kind==='counter'?'forward':'stay';
+    const {node}=reactionContext(actor),baseCost=KIND_COST[kind]??0,footwork=kind==='counter'?'forward':'stay';
     const capability=johakyuStageCapability(actor,{weapon:'sword',phase:'uke',kind,footwork,charge:'none',staminaCost:baseCost});
     if(!capability.allowed)return null;
     const effectiveCost=Math.ceil(capability.stamina.effectiveCost*100)/100;
@@ -173,25 +173,20 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   }
   function maybeBeginDefenseReaction(actor,target){
     if(!target||time<(reactionCooldowns.get(actor.id)||0))return null;
+    const node=nodeFor(actor,cursorFor(actor));if(['guard','brace','parry'].includes(node.stage.step.kind))return null;
+    const settleUntil=readyAt.get(actor.id)||0;if(time>=settleUntil)return null;
     const threat=incomingThreat(actor,target);if(!threat)return null;
-    const active=actionState.get(actor.id),activeKind=stateKind(active);
-    if(active&&['guard','brace','parry'].includes(activeKind))return null;
-    if(active){
-      const progress=stateProgress(active);
-      if(active.motion.offense&&(active.impacted||progress>=.16))return null;
-      actionState.delete(actor.id);readyAt.set(actor.id,Math.max(readyAt.get(actor.id)||0,time+.04));
-      traceRow({type:'reaction-interrupt',actorId:actor.id,attackId:active.id,progress:Number(progress.toFixed(3)),incomingAttackId:threat.state.id});
-    }
     const staminaRatio=actor.stamina/Math.max(1,actor.staminaCap),incomingKind=stateKind(threat.state);
-    const kind=HEAVY_THREATS.has(incomingKind)||staminaRatio<.28||threat.progress>.42?'guard':'parry';
+    const kind=HEAVY_THREATS.has(incomingKind)||staminaRatio<.28||threat.progress>.43?'guard':'parry';
     const reaction=beginReaction(actor,target,kind,'incoming-threat');
-    if(reaction)reactionCooldowns.set(actor.id,time+(kind==='parry'?.82:.58));
+    if(reaction)reactionCooldowns.set(actor.id,time+(kind==='parry'?1.35:1.0));
     return reaction;
   }
   function maybeBeginCounterReaction(actor,target){
     const window=counterWindows.get(actor.id);if(!window)return null;
     if(time>window.until){counterWindows.delete(actor.id);return null;}
     if(window.against!==target?.id||window.claimed)return null;
+    const node=nodeFor(actor,cursorFor(actor));if(node.stage.step.kind==='counter')return null;
     const distance=distanceBetween(positions,actor,target);
     if(distance>COUNTER_PRESS_DISTANCE){setManeuver(actor,target,{reason:'counter-press',footwork:'chase',seconds:.55,stopDistance:COUNTER_PRESS_DISTANCE});return null;}
     const reaction=beginReaction(actor,target,'counter','parry-window');
@@ -224,7 +219,8 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   function nextAction(actor){
     if(actor.dead||actor.incapacitated)return null;
     const target=selectTarget(battle,actor.id);if(!target)return null;
-    const cursor=cursorFor(actor),node=nodeFor(actor,cursor),cost=stageCost(node.stage);
+    const cursor=cursorFor(actor),node=nodeFor(actor,cursor),cost=stageCost(node.stage),actorCapability=johakyuActorCapability(actor);
+    if(stageDamage(node.stage)>0&&!actorCapability.canAttack){readyAt.set(actor.id,time+.24);return null;}
     const capability=johakyuStageCapability(actor,{weapon:'sword',phase:node.phase,kind:node.stage.step.kind,footwork:node.stage.step.footwork,charge:node.stage.step.charge,staminaCost:cost});
     if(!capability.allowed){readyAt.set(actor.id,time+.28);if(actor.id==='hero')traceRow({type:'capability-block',reason:capability.reason,phase:node.phase,techniqueId:node.technique.id,stageIndex:node.stage.index});return null;}
     const effectiveCost=Math.ceil(capability.stamina.effectiveCost*100)/100;
@@ -264,12 +260,16 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
     let state=actionState.get(actor.id);
     if(state?.interrupted){finishAction(actor,state,{interrupted:state.interrupted});state=null;}
     if(state&&time-state.startedAt>=state.duration){finishAction(actor,state);state=null;}
-    const target=selectTarget(battle,actor.id);if(!target)return null;
     if(reaction)return actionView(actor,reaction);
-    const defense=maybeBeginDefenseReaction(actor,target);if(defense)return actionView(actor,defense);
-    state=actionState.get(actor.id);if(state)return actionView(actor,state);
-    const counter=maybeBeginCounterReaction(actor,target);if(counter)return actionView(actor,counter);
+    if(state)return actionView(actor,state);
     const recovery=recoveries.get(actor.id);if(recovery&&time<recovery.until)return null;if(recovery)recoveries.delete(actor.id);
+    const target=selectTarget(battle,actor.id);if(!target)return null;
+    const counterWindow=counterWindows.get(actor.id);
+    if(counterWindow&&time<=counterWindow.until){
+      const counter=maybeBeginCounterReaction(actor,target);if(counter)return actionView(actor,counter);
+      if(counterWindow.claimed===false&&nodeFor(actor,cursorFor(actor)).stage.step.kind!=='counter')return null;
+    }
+    const defense=maybeBeginDefenseReaction(actor,target);if(defense)return actionView(actor,defense);
     if(time<(readyAt.get(actor.id)||0))return null;
     const node=nodeFor(actor,cursorFor(actor)),threat=['guard','brace','parry'].includes(node.stage.step.kind)?incomingThreat(actor,target):null;
     if(activeManeuver(actor)&&!threat)return null;
@@ -327,7 +327,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   function facingYaw(actor){const target=selectTarget(battle,actor.id);if(!target)return LAYOUT[actor.id]?.yaw??0;const from=positionOf(positions,actor),to=positionOf(positions,target);return Math.atan2(to.x-from.x,to.z-from.z);}
   function locomotionFor(actor){const maneuver=activeManeuver(actor);if(!maneuver)return null;const binding=resolveJohakyuLocomotion({footwork:maneuver.footwork});return binding.supported?Object.freeze({kind:maneuver.footwork,clip:binding.clip}):Object.freeze({kind:maneuver.footwork,clip:null});}
   function frame(actions){
-    const actors=[...battle.actors.values()].map(actor=>{const action=actions.get(actor.id)??null,maneuver=!action?activeManeuver(actor):null,capability=johakyuActorCapability(actor);return{id:actor.id,side:actor.side,self:actor.id==='hero',kind:actor.side==='party'?'hero':'enemy',boss:actor.id==='enemy-c',position:positionFor(actor),yaw:facingYaw(actor),hp:actor.hp,maxHp:actor.maxHp,body:bodyView(actor),stamina:{value:actor.stamina,cap:actor.staminaCap},equipment:{weapon:'sword',armor:actor.side==='party'?'heavy':'cloth',shield:false},moving:Boolean(capability.canMove&&(action&&action.footwork!=='stay'||maneuver)),locomotion:!action?locomotionFor(actor):null,resting:false,dead:actor.dead,downed:actor.incapacitated,hit:false,ageYears:actor.side==='party'?28:0,action};});
+    const actors=[...battle.actors.values()].map(actor=>{const action=actions.get(actor.id)??null,maneuver=!action?activeManeuver(actor):null,capability=johakyuActorCapability(actor);return{id:actor.id,side:actor.side,self:actor.id==='hero',kind:actor.side==='party'?'hero':'enemy',boss:actor.id==='enemy-c',position:positionFor(actor),yaw:facingYaw(actor),hp:actor.hp,maxHp:actor.maxHp,body:bodyView(actor),stamina:{value:actor.stamina,cap:actor.staminaCap},capability:{canMove:capability.canMove,canAttack:capability.canAttack,stamina:capability.stamina},equipment:{weapon:'sword',armor:actor.side==='party'?'heavy':'cloth',shield:false},moving:Boolean(capability.canMove&&(action&&action.footwork!=='stay'||maneuver)),locomotion:!action?locomotionFor(actor):null,resting:false,dead:actor.dead,downed:actor.incapacitated,hit:false,ageYears:actor.side==='party'?28:0,action};});
     return freeze({version:1,authority:'rinne-domain',reviewFixture:'p7-technique-composition',reviewMode:mode,battleId:battle.battleId,epoch,revision,status:battle.result?'won':'battle',actors,obstacles:[],projectiles:[],result:battle.result??{cleared:false,defeats:0,returns:resumes}});
   }
   function meta(frameValue){
