@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "id": "kuumetsu-live-lineage-20260922",
+  "game": "kuumetsu",
+  "mode": "evolution",
+  "kind": "gameplay",
+  "themeKey": "active-hunt-lineage-progress",
+  "rootCauses": [{
+    "key": "lineage-omits-active-hunt-consumption",
+    "summary": "The lineage read side displays currentLife.eaten, which is aggregated at hunt finish, without projecting the active session's eaten count. Powers and encounters already update during the hunt, producing contradictory growth feedback.",
+    "prediction": "Projecting only a live, entered session into the current-life card shows two observed meals immediately, labels the current-hunt contribution and unbanked loot, and leaves persisted counters and extraction authority unchanged.",
+    "falsifier": "Two live meals still display as zero; finished or closed sessions are added again; another life/visit is projected; rendering mutates profile, session, settlement or rewards.",
+    "paths": ["apps/demon/src/web/lineage.js", "apps/demon/src/web/main.js"]
+  }],
+  "observation": {
+    "summary": "Native browser steering, authored combat and automatic devouring produced two meals. HUD showed 人影2/2 and 未確保4・帰還10, but pause > 転生史 showed 捕食0 alongside 交戦2 and the acquired 命の余熱. The issue reproduced in two fresh-profile runs on the same immutable baseline.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c",
+      "reference": "https://a349204c-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "observedAt": "2026-09-21T19:59:39.030Z",
+      "conditions": {
+        "viewport": "673x841",
+        "deviceScaleFactor": 1,
+        "hasTouch": true,
+        "browser": "hosted Chromium / SwiftShader",
+        "profile": "fresh generated profile; procedural village varies",
+        "scenario": "native armed-brand click > begin > native drag towards nearest traveller > release during authored combat/devouring > two meals > pause > lineage",
+        "readOnlyDiagnostics": "__NIGHT_HUNT__.snapshot and presentationSnapshot; no state-changing review hooks",
+        "browserRun": 35647757372,
+        "artifactId": 10660583694,
+        "artifactDigest": "sha256:9ec73e1ed1ecee32330b60f129e6851a1c79e20b452183cdde4fd86013f51f14",
+        "image": "05-lineage.png",
+        "versionCommitMatched": true,
+        "replicationRun": 35647636132
+      },
+      "notVerified": ["Physical Pixel Fold performance", "Exact procedural world identity across fresh profiles", "All enemy combinations and whole-game balance", "Cause of two aborted worker/blob requests; there were no pageerrors"]
+    },
+    "evidence": [
+      {"kind":"source","revision":"994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c","path":"apps/demon/src/web/lineage.js","symbol":"renderLineage / lifeCard","statement":"The current-life metric reads only entry.eaten; no current session is accepted."},
+      {"kind":"source","revision":"994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c","path":"apps/demon/src/web/main.js","symbol":"lineage","statement":"The sheet passes only profile despite having the active game available."},
+      {"kind":"source","revision":"994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c","path":"packages/raid/profile.js","symbol":"consume / finish","statement":"consume persists total consumption and acquired powers; finish adds the ended hunt's eaten count to currentLife. This is ended-hunt bookkeeping, not exclusively verified-return rewards; do not rewrite it."}
+    ],
+    "themeCandidates": [
+      {"id":"live-lineage-progress","selected":true,"reason":"Direct same-state contradiction between two native meals, acquired growth and a visible zero-meal life card. Connect current progress without changing authority."},
+      {"id":"combat-phase-copy","selected":false,"reason":"Diagnostic copy can lag execution, but some diagnostic text is hidden. Needs a separate visible-state causal observation."},
+      {"id":"risk-hud-contrast","selected":false,"reason":"Faint risk text is visible in screenshots; prior HUD hierarchy work must not be repeated without dedicated new contrast evidence."},
+      {"id":"remaining-render-cost","selected":false,"reason":"Software-rendered play remains slow; the last two performance themes and physical-device coverage limits argue against another unprofiled density change."}
+    ],
+    "historyReview": {
+      "recentReceiptsChecked": [1309,1314,1321,1166,1188],
+      "lastThreeThemes": ["hunt-hud-decision-hierarchy","hunt-entry-mobile-world-cost","title-to-hunt-ready-cost"],
+      "selectedThemePriorMatch": false,
+      "doNotRetryApplied": "No further decoration/title density changes, HUD ownership rewrite, serial brand boot, or combat replacement. Keep save and manual-growth contracts intact.",
+      "branchBase": "69831e051f8b811ee9711738de191471768851f7",
+      "baselineDrift": "Compared baseline to branch base: no demon, raid profile, kuumetsu history or AGENTS changes. Preserve independent review/rinne/package additions."
+    }
+  },
+  "hypothesis": {
+    "cause": "The lineage view omits the active-hunt contribution while neighboring growth facts already update live.",
+    "prediction": "A ledger- and life-bound read-only projection makes current consumption and its still-unbanked stake visible; ended hunts use persisted values exactly once.",
+    "falsifier": "The same-condition After still shows zero after two meals, causal tests expose double counting or cross-life projection, or any persistent state/reward changes during rendering."
+  },
+  "candidates": [
+    {"id":"read-only-active-hunt-projection","selected":true,"reason":"Connects current growth feedback, displays the unfinished contribution explicitly, and preserves finish/consume and save semantics."},
+    {"id":"increment-life-eaten-on-consume","selected":false,"reason":"Would change interruption/save bookkeeping and require reworking finish to prevent double counting; unnecessary authority expansion."},
+    {"id":"relabel-ended-count-only","selected":false,"reason":"Explains zero but still omits the player's current two-meal progress from the growth surface."}
+  ],
+  "implementation": {
+    "paths": ["apps/demon/src/web/lineage.js","apps/demon/src/web/main.js","apps/demon/src/web/ominous-shell.css","apps/demon/tests/hunt-loop-native.test.mjs"],
+    "summary": "Pass active hunt context to lineage, project validated unfinished current-life meals without mutations, label ended/current contributions and unbanked loot, and extend the existing native persistent-loop case with lifecycle and no-mutation assertions."
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": ["apps/demon/tests/hunt-loop-native.test.mjs","tests/develop-completion-contract.test.mjs"],
+    "stagingAfter": "required",
+    "limitations": ["The portable balance probe does not measure lineage rendering; use the actual store/session native regression for causality.","Browser Before/After use the same native observer and fresh-profile conditions, not identical procedural RNG worlds.","No whole-game win-rate, physical-device performance or changed reward/balance claim."],
+    "counterfactual": "Run the added native persistent-loop assertion against the unmodified baseline renderer; it must fail at the observed live-meal display, then pass on the candidate."
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": null,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-live-lineage-20260922"
+  }
+}
