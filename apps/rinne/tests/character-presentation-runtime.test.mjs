@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readdirSync,readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname,join} from 'node:path';
-import {KAYKIT_FAMILY_ID,KAYKIT_MODELS} from '@soul/characters';
+import {KAYKIT_FAMILY_ID,KAYKIT_MODEL_BY_KEY,KAYKIT_MODELS} from '@soul/characters';
 import {createLife} from '../src/rebuild/domain.js';
 import {createFront} from '../src/rebuild/combat.js';
 import {
@@ -20,7 +20,7 @@ import {
 
 const here=dirname(fileURLToPath(import.meta.url)),rebuild=join(here,'../src/rebuild');
 
-test('playable hero uses the adopted DCC protagonist while the surrounding cast stays on pinned KayKit',()=>{
+test('playable hero uses the same pinned KayKit Knight as motion review while the surrounding cast stays on KayKit',()=>{
   const state=createLife({seed:41});state.phase='living';state.ageSeconds=24*60;state.ageYears=24;
   const front=createFront(0,state.seed),hero=createRinneHeroCharacter(state),mother=createRinneMotherCharacter(state);
   const enemies=front.enemies.map((enemy,index)=>createRinneEnemyCharacter(enemy,{lifeSeed:state.seed,stage:0,index}));
@@ -34,14 +34,15 @@ test('playable hero uses the adopted DCC protagonist while the surrounding cast 
   assert.match(RINNE_RUNTIME_CHARACTER_ASSET.url,/kaykit\/Rogue\.glb$/);
 
   assert.equal(hero.familyId,KAYKIT_FAMILY_ID);
-  assert.equal(hero.modelId,'protagonist.villager.v1');
+  assert.equal(hero.modelId,KAYKIT_MODEL_BY_KEY.knight.id);
   assert.equal(hero.asset,RINNE_PROTAGONIST_RUNTIME_ASSET);
-  assert.equal(hero.asset.productionStage,'PRIMARY');
-  assert.equal(hero.asset.modelingMode,'dcc-blender');
+  assert.equal(hero.asset.productionStage,'REFERENCE');
+  assert.equal(hero.asset.modelingMode,'imported-reviewed');
   assert.equal(hero.asset.productionReady,false);
   assert.equal(hero.asset.visualApproval,'pending');
   assert.equal(hero.asset.usage,'dev-runtime-protagonist');
-  assert.match(hero.asset.url,/PROTAGONIST_VILLAGER_V1\.glb$/);
+  assert.equal(hero.asset.source.gitBlobSha,'717b56ca2b5ff5392679774725201ba03a3eefab');
+  assert.match(hero.asset.url,/kaykit\/Knight\.glb$/);
 
   assert.equal(mother.modelId,'kaykit.rogue-hooded.v1');
   for(const actor of [mother,...enemies]){
@@ -55,7 +56,7 @@ test('playable hero uses the adopted DCC protagonist while the surrounding cast 
     assert.equal(presentation.productionAsset,null,'foundation asset must not be promoted to RUNTIME_READY implicitly');
   }
   const heroPresentation=resolveRinneRuntimeCharacter({...hero,distance:0,visible:true,important:true});
-  assert.equal(heroPresentation.runtimeAsset.modelId,'protagonist.villager.v1');
+  assert.equal(heroPresentation.runtimeAsset.modelId,KAYKIT_MODEL_BY_KEY.knight.id);
   assert.equal(heroPresentation.productionAsset,null,'PRIMARY hero remains separate from RUNTIME_READY promotion');
 });
 
@@ -70,7 +71,7 @@ test('combat roster uses shared render tiers and multiple KayKit cast models ins
   assert.equal(roster[0].render.tier,'full');
   assert.ok(roster.some(row=>row.render.tier==='mid'||row.render.tier==='far'));
   assert.ok(roster.every(row=>row.characterFamily===KAYKIT_FAMILY_ID));
-  assert.equal(roster[0].runtimeAsset.modelId,'protagonist.villager.v1');
+  assert.equal(roster[0].runtimeAsset.modelId,KAYKIT_MODEL_BY_KEY.knight.id);
   assert.ok(new Set(roster.slice(1).map(row=>row.runtimeAsset.modelId)).size>=1);
 });
 
@@ -88,13 +89,14 @@ test('Rinne main runtime keeps one character stage and cannot reintroduce legacy
     if(/\bmodels\.person\s*\(/.test(source))offenders.push(name);
   }
   assert.deepEqual(offenders,[]);
-  const renderer=readFileSync(join(rebuild,'renderer.js'),'utf8'),stage=readFileSync(join(rebuild,'runtime-character-stage.js'),'utf8'),runtime=readFileSync(join(rebuild,'runtime.js'),'utf8');
+  const renderer=readFileSync(join(rebuild,'renderer.js'),'utf8'),stage=readFileSync(join(rebuild,'runtime-character-stage.js'),'utf8'),stageBase=readFileSync(join(rebuild,'runtime-character-stage-base.js'),'utf8'),runtime=readFileSync(join(rebuild,'runtime.js'),'utf8');
   assert.match(renderer,/createRinneCharacterStage/);
-  assert.match(stage,/createKaykitCharacterPools/);
-  assert.match(stage,/createProtagonistCharacterPool/);
-  assert.match(stage,/heroPool/);
-  assert.match(stage,/createRinneEnemyCharacter/);
-  assert.doesNotMatch(stage,/SHINO_review\.vrm|shinoHumanoidFromGLTF/);
+  assert.match(stage,/createBaseStage/);
+  assert.match(stageBase,/createKaykitCharacterPools/);
+  assert.match(stageBase,/createProtagonistCharacterPool/);
+  assert.match(stageBase,/heroPool/);
+  assert.match(stageBase,/createRinneEnemyCharacter/);
+  assert.doesNotMatch(stageBase,/SHINO_review\.vrm|shinoHumanoidFromGLTF/);
   assert.match(runtime,/await createWorldRenderer/);
 });
 

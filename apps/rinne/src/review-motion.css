@@ -11,7 +11,7 @@ button,select{font:inherit;color:inherit}
 .motion-stage-status{position:absolute;z-index:2;left:16px;right:16px;bottom:12px;display:flex;align-items:center;gap:10px;color:#87938d;font-size:9px;pointer-events:none}
 .motion-stage-status output{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .motion-stage-status progress{margin-left:auto;width:92px;height:4px}
-.motion-controls{position:relative;min-height:0;overflow:auto;padding:14px 16px max(22px,env(safe-area-inset-bottom));background:#101614;border-top:1px solid #2a332f}
+.motion-controls{min-height:0;overflow:auto;padding:14px 16px max(22px,env(safe-area-inset-bottom));background:#101614;border-top:1px solid #2a332f}
 .motion-control-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 .motion-control-header>div{min-width:0}
 .motion-back{flex:0 0 auto;min-height:34px;display:inline-flex;align-items:center;padding:5px 10px;border:1px solid #36413c;border-radius:999px;background:#0b1210;color:#cfd7d2;text-decoration:none;font-size:10px;font-weight:700}
@@ -131,7 +131,3 @@ button,select{font:inherit;color:inherit}
   .motion-stage-status{bottom:6px}
 }
 
-/* Motion settings belong to the lower control panel, never the render stage. */
-.motion-controls>.review-stage-controls{top:10px!important;right:10px!important;bottom:auto!important}
-.motion-controls>.review-stage-controls .review-stage-controls__panel{top:48px!important;bottom:auto!important}
-.motion-controls>.motion-library-primary{padding-right:58px!important}
