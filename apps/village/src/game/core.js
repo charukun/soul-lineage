@@ -41,7 +41,7 @@ export function initial(){return{
  clock:.36,time:8.64,stock:Object.fromEntries(Object.keys(RESOURCE_NAMES).map(k=>[k,0])),known:[],traffic:{},
  settings:{speed:1,tilt:.85,quality:1},stats:{arrivals:0,produced:0,meals:0,purchases:0,furnished:0,ships:0,raids:0,defeated:0,rescues:0,losses:0,upgrades:0,moments:0},
  news:[],moments:[],memorial:[],tutorial:{dismissed:false,completed:false},merchant:{present:false,cycle:-1},voyage:{lastCycle:0,phase:'away',progress:0},seenRaidIds:[],
- defense:{nextRaid:8.5,lastRaid:-100,sequence:0,raid:null,nextWildlife:2.8},wildlife:[],connection:{mode:'local',hostEpoch:0}
+ defense:{nextRaid:8.5,lastRaid:-100,sequence:0,raid:null,nextWildlife:2.8,pressure:[],proposal:null},wildlife:[],connection:{mode:'local',hostEpoch:0}
 };}
 export class World{
  constructor(state=initial()){this.state=validate(state);this.history=[];this.future=[];this.listeners=new Set();this.resourceRevision=0;}
@@ -185,6 +185,8 @@ export function validate(input){
  s.tutorial={dismissed:!!s.tutorial?.dismissed,completed:!!s.tutorial?.completed};s.merchant={present:false,cycle:-1};
  s.voyage={lastCycle:Math.floor(s.clock/(DAYS_YEAR*5)),phase:'away',progress:0,...s.voyage};if(!['away','arriving','docked','departing'].includes(s.voyage.phase)||!finite(s.voyage.progress)||s.voyage.progress<0||!finite(s.voyage.lastCycle))throw Error('航路の情報が不正です');
  s.defense={...defaults.defense,nextRaid:s.clock+8,...s.defense};for(const k of ['nextRaid','lastRaid','sequence','nextWildlife'])if(!finite(s.defense[k]))throw Error('襲撃時刻が不正です');
+ s.defense.pressure=(Array.isArray(s.defense.pressure)?s.defense.pressure:[]).filter(r=>r&&['east','west','north','south'].includes(r.sector)&&finite(r.score)&&r.score>=0&&r.score<=9).slice(-4).map(r=>({sector:r.sector,score:r.score,events:finite(r.events)?clamp(Math.floor(r.events),0,999):0,lastDay:finite(r.lastDay)?r.lastDay:s.clock}));
+ {const p=s.defense.proposal;s.defense.proposal=p&&['fence','wall'].includes(p.kind)&&['east','west','north','south'].includes(p.sector)&&finite(p.x)&&finite(p.z)&&finite(p.score)&&p.score>=2&&Math.abs(p.x)<=LIMIT&&Math.abs(p.z)<=LIMIT?{sector:p.sector,side:String(p.side||'守りの薄い側').slice(0,20),x:p.x,z:p.z,kind:p.kind,score:Math.min(9,p.score),day:finite(p.day)?p.day:s.clock,source:String(p.source||'raid').slice(0,20),guardId:typeof p.guardId==='string'?p.guardId:null,guardName:String(p.guardName||'警備職').slice(0,40)}:null;}
  const validateThreat=t=>{if(!t||typeof t.id!=='string'||![t.x,t.z,t.health].every(finite)||Math.abs(t.x)>270||Math.abs(t.z)>270||t.health<0||t.health>1e5)throw Error('脅威の情報が不正です');if(t.damage!==undefined&&(!finite(t.damage)||t.damage<0||t.damage>1000))throw Error('脅威の攻撃力が不正です');if(t.speed!==undefined&&(!finite(t.speed)||t.speed<0||t.speed>30))throw Error('脅威の速度が不正です');t.path=[];t.repath=0;};
  if(s.defense.raid){const r=s.defense.raid;if(!['warning','active'].includes(r.phase)||!finite(r.startDay)||!finite(r.age)||!Array.isArray(r.monsters)||r.monsters.length>24)throw Error('襲撃情報が不正です');if(!r.budget||!['count','health','damage','speed'].every(k=>finite(r.budget[k])&&r.budget[k]>=0))throw Error('襲撃の強さが不正です');r.monsters.forEach(validateThreat);}
  s.wildlife=Array.isArray(s.wildlife)?s.wildlife:[];if(s.wildlife.length>30)throw Error('野生動物が多すぎます');s.wildlife.forEach(validateThreat);

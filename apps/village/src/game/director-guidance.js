@@ -1,4 +1,5 @@
 import {defs,unlocked} from './catalog.js';
+import {activeDefenseProposal} from './defense-autonomy.js';
 
 const BUILD_SITES={
   tent:[-12,8],
@@ -10,9 +11,9 @@ const BUILD_SITES={
   carpenter:[8,-18],
 };
 
-function buildAction(world,kind,label='見にいく'){
+function buildAction(world,kind,label='見にいく',at=null){
   if(!defs[kind]||!unlocked(world.state,kind))return null;
-  return{type:'build',kind,at:BUILD_SITES[kind]||null,label};
+  return{type:'build',kind,at:at||BUILD_SITES[kind]||null,label};
 }
 
 function guidance(id,title,text,action=null){
@@ -61,6 +62,16 @@ export function nextVillageGuidance(world){
       buildAction(world,'guardpost','守りをつくる'),
     );
   }
+  const defenseProposal=activeDefenseProposal(world);
+  if(defenseProposal){
+    return guidance(
+      'defense-proposal',
+      `${defenseProposal.guardName}が${defenseProposal.side}の守りを気にしている……`,
+      `同じ方角から危険が重なった。勝手に建てず、この辺りへ${defs[defenseProposal.kind]?.label||'防衛設備'}を置く案を出している。`,
+      buildAction(world,defenseProposal.kind,'提案を見る',[defenseProposal.x,defenseProposal.z]),
+    );
+  }
+
   const hasFoodSource=world.objects?.some(object=>defs[object.kind]?.produce?.food);
   if(!hasFoodSource){
     return guidance(
