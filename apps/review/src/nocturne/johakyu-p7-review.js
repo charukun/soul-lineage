@@ -71,7 +71,7 @@ function contactPointBetween(positions,source,target){
   return{x:Number(((from.x+to.x)*.5).toFixed(3)),z:Number(((from.z+to.z)*.5).toFixed(3))};
 }
 function parryDirectionFor(state){
-  const kind=stateKind(state);
+  const kind=state?.reactionKind??state?.node?.stage?.step?.kind??null;
   return RIGHT_DEFLECTION_KINDS.has(kind)?'right':'left';
 }
 function resolveBodySeparation(battle,positions){
