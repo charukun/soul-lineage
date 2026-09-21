@@ -19,8 +19,8 @@ export function mountReviewStageControls({stage=document.querySelector('.review-
   if(!stage||stage.querySelector('[data-review-stage-controls]'))return null;
   const nodes=groups.flatMap(selector=>[...document.querySelectorAll(selector)]).filter((node,index,all)=>node&&!all.slice(0,index).some(parent=>parent.contains(node)));
   const root=make('div','review-stage-controls');root.dataset.reviewStageControls='true';
-  const button=make('button','review-stage-controls__button','⚙');button.type='button';button.setAttribute('aria-label',label);button.setAttribute('aria-expanded','false');
-  const panel=make('div','review-stage-controls__panel');panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label',label);
+  const button=make('button','review-stage-controls__button','⚙');button.type='button';button.title=label;button.setAttribute('aria-label',label);button.setAttribute('aria-expanded','false');
+  const panel=make('div','review-stage-controls__panel');panel.id='review-stage-controls-panel';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label',label);button.setAttribute('aria-controls',panel.id);
   const title=make('strong','review-stage-controls__title',label);panel.append(title,...nodes);root.append(panel,button);stage.append(root);
   const setOpen=open=>{panel.hidden=!open;root.dataset.open=String(open);button.setAttribute('aria-expanded',String(open));};
   button.addEventListener('click',event=>{event.stopPropagation();setOpen(panel.hidden)});
