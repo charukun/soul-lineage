@@ -145,6 +145,7 @@ function weightedTechnique(phase){
   let technique=pickGeneratedReviewInspiration({weapon:selectedWeapon,phase,seenIds:[...seen],encounterMode},Math.random);
   if(!technique&&generatedReviewInspirationCandidates({weapon:selectedWeapon,phase,encounterMode}).length){seen.clear();technique=pickGeneratedReviewInspiration({weapon:selectedWeapon,phase,encounterMode},Math.random);}
   if(!technique){technique=pickReviewInspiration(CAUSAL_ANSWERS,{weapon:selectedWeapon,phase,learnedIds:[...seen],encounterMode},Math.random);if(!technique){seen.clear();technique=pickReviewInspiration(CAUSAL_ANSWERS,{weapon:selectedWeapon,phase,encounterMode},Math.random);}}
+  if(technique?.generated){const naming=generatedTechniqueNaming(technique,{seed:reviewSeed,motifs:technique.motifs||[]});technique={...technique,name:naming.displayName,naming};}
   if(technique)seen.add(technique.id);return technique;
 }
 function copyRepairRequest(row){
