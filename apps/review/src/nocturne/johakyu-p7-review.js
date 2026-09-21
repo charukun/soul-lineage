@@ -1,5 +1,6 @@
 import {applyJohakyuImpactOnce,createJohakyuBattle,createJohakyuCheckpoint,johakyuActorCapability,recoverJohakyuStamina,restoreJohakyuCheckpoint,selectReachableTarget,spendJohakyuStamina} from '@soul/johakyu-combat/domain';
-import {resolveJohakyuMotion} from '@soul/johakyu-combat/motion-contract';
+import {resolveJohakyuLocomotion,resolveJohakyuMotion} from '@soul/johakyu-combat/motion-contract';
+import {johakyuStageCapability} from '@soul/johakyu-combat/execution-capability';
 import {addTechniqueToReviewChain,compileTechniqueComposition,createReviewTechniqueComposition,reviewChainLabel,techniqueFromCombatForm} from '@soul/johakyu-combat/technique-composition';
 
 const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
@@ -14,7 +15,8 @@ const KIND_COST=Object.freeze({slash:5,back:5,thrust:6,pierce:7,heavy:12,diagona
 const RHYTHM_SECONDS=Object.freeze({sharp:.58,flow:.66,weight:.82,elastic:.64,seamless:.54});
 const CONTACT_REACH=2.35,MIN_SPACING=1.08,ENGAGE_DISTANCE=2.08,DISENGAGE_DISTANCE=2.72,COUNTER_PRESS_DISTANCE=2.18;
 const RECOVERY_SECONDS=Object.freeze({miss:.62,blocked:.52,parried:.78,countered:.88,'hit-before-contact':.42,hit:.28});
-const DEFENSE_WINDOW=Object.freeze({guard:[.12,.92],brace:[.1,.96],parry:[.18,.72]});
+const REACTION_SECONDS=Object.freeze({guard:.42,parry:.38,counter:.52}),HEAVY_THREATS=new Set(['heavy','sweep','bash','pommel']);
+const DEFENSE_WINDOW=Object.freeze({guard:[.12,.92],brace:[.1,.96],parry:[.12,.9]});
 const FOOTWORK_SPEED=Object.freeze({stay:0,forward:.72,chase:1.08,rush:1.5,retreat:.78,sideL:.7,sideR:.7,orbitL:.58,orbitR:.58,cross:.82,spiral:.9});
 
 function buildComposition(rows){
@@ -101,13 +103,13 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   if(!Number.isFinite(enemyLeadSeconds)||enemyLeadSeconds<0||enemyLeadSeconds>1)throw new RangeError('Invalid enemy lead');
   if(!PHASES.includes(heroStartPhase)||!Number.isInteger(heroStartTechniqueIndex)||heroStartTechniqueIndex<0||heroStartTechniqueIndex>2)throw new RangeError('Invalid hero start');
   let encounter=1,epoch=1,revision=0,time=0,resumes=0,resumed=false,battle;
-  let actionState=new Map(),cursors=new Map(),readyAt=new Map(),positions=new Map(),recoveries=new Map(),maneuvers=new Map(),counterWindows=new Map(),lastEvents=[],trace=[],lastFrame=null,lastMeta=null,attemptSerial=0;
+  let actionState=new Map(),reactionState=new Map(),reactionCooldowns=new Map(),cursors=new Map(),readyAt=new Map(),positions=new Map(),recoveries=new Map(),maneuvers=new Map(),counterWindows=new Map(),lastEvents=[],trace=[],lastFrame=null,lastMeta=null,attemptSerial=0;
 
   function cursorFor(actor){let cursor=cursors.get(actor.id);if(!cursor){cursor=cursorState();cursors.set(actor.id,cursor);}return cursor;}
   function seedReadyWindow(delay=.24){readyAt.clear();for(const actor of battle.actors.values())readyAt.set(actor.id,time+Math.max(0,delay+(actor.side==='enemy'?.12-enemyLeadSeconds:0)));}
   function freshBattle(){
     battle=createJohakyuBattle({battleId:`review-p7:${mode}:${encounter}`,actors:actorRows(mode),seed:73917+encounter});
-    actionState=new Map();cursors=new Map();readyAt=new Map();positions=new Map(Object.entries(LAYOUT).filter(([id])=>battle.actors.has(id)).map(([id,row])=>[id,{x:row.x,z:row.z}]));recoveries=new Map();maneuvers=new Map();counterWindows=new Map();
+    actionState=new Map();reactionState=new Map();reactionCooldowns=new Map();cursors=new Map();readyAt=new Map();positions=new Map(Object.entries(LAYOUT).filter(([id])=>battle.actors.has(id)).map(([id,row])=>[id,{x:row.x,z:row.z}]));recoveries=new Map();maneuvers=new Map();counterWindows=new Map();
     cursors.set('hero',{phaseIndex:PHASES.indexOf(heroStartPhase),techniqueIndex:heroStartTechniqueIndex,stageIndex:0,cycle:0});
     if(mode==='duel')positions.set('enemy-a',{x:LAYOUT.hero.x,z:LAYOUT.hero.z+duelGap});
     lastEvents=[];resumed=false;revision=0;attemptSerial=0;seedReadyWindow(.34);
@@ -126,10 +128,13 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
     const row={reason,targetId:target.id,footwork,until:time+Math.max(.08,seconds),stopDistance:Number.isFinite(stopDistance)?stopDistance:null};
     maneuvers.set(actor.id,row);traceRow({type:'maneuver-start',actorId:actor.id,targetId:target.id,reason,footwork,stopDistance:row.stopDistance,distance:Number(distanceBetween(positions,actor,target).toFixed(3))});return row;
   }
+  function combatState(id){return reactionState.get(id)??actionState.get(id)??null;}
+  function stateKind(state){return state?.reactionKind??state?.node?.stage?.step?.kind??null;}
+  function stateProgress(state){return state?Math.min(.999,Math.max(0,(time-state.startedAt)/state.duration)):1;}
   function incomingThreat(actor,target){
-    const incoming=target?actionState.get(target.id):null;if(!incoming||!incoming.motion.offense||incoming.impacted)return null;
-    const progress=Math.max(0,(time-incoming.startedAt)/incoming.duration);
-    return progress<.56&&distanceBetween(positions,actor,target)<=2.95?{state:incoming,progress}:null;
+    const incoming=target?combatState(target.id):null;if(!incoming||!incoming.motion.offense||incoming.impacted)return null;
+    const progress=stateProgress(incoming);
+    return progress<.58&&distanceBetween(positions,actor,target)<=2.95?{state:incoming,progress}:null;
   }
   function gateAction(actor,target,node){
     const kind=node.stage.step.kind,distance=distanceBetween(positions,actor,target),counterWindow=counterWindows.get(actor.id);
@@ -152,11 +157,78 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
     const row=maneuvers.get(actor.id);if(!row)return null;const target=battle.actors.get(row.targetId);
     if(!target||maneuverDone(positions,actor,target,row,time)){maneuvers.delete(actor.id);return null;}return row;
   }
+  function reactionContext(actor){const cursor=cursorFor(actor),node=nodeFor(actor,cursor);return{cursor,node};}
+  function beginReaction(actor,target,kind,reason){
+    const {cursor,node}=reactionContext(actor),baseCost=KIND_COST[kind]??0,footwork=kind==='counter'?'forward':'stay';
+    const capability=johakyuStageCapability(actor,{weapon:'sword',phase:'uke',kind,footwork,charge:'none',staminaCost:baseCost});
+    if(!capability.allowed)return null;
+    const effectiveCost=Math.ceil(capability.stamina.effectiveCost*100)/100;
+    if(effectiveCost>0&&!spendJohakyuStamina(actor,effectiveCost))return null;
+    const motion=resolveJohakyuMotion({weapon:'sword',kind,phase:'uke'});if(!motion.supported)return null;
+    const state={reaction:true,reactionKind:kind,reason,startedAt:time,duration:REACTION_SECONDS[kind],impacted:false,outcome:null,
+      id:`${battle.battleId}:${actor.id}:reaction-${kind}:attempt-${++attemptSerial}`,targetId:target.id,motion,context:node};
+    reactionState.set(actor.id,state);maneuvers.delete(actor.id);
+    traceRow({type:'reaction-start',actorId:actor.id,targetId:target.id,reaction:kind,reason,phase:node.phase,contextTechniqueId:node.technique.id});
+    return state;
+  }
+  function maybeBeginDefenseReaction(actor,target){
+    if(!target||time<(reactionCooldowns.get(actor.id)||0))return null;
+    const threat=incomingThreat(actor,target);if(!threat)return null;
+    const active=actionState.get(actor.id),activeKind=stateKind(active);
+    if(active&&['guard','brace','parry'].includes(activeKind))return null;
+    if(active){
+      const progress=stateProgress(active);
+      if(active.motion.offense&&(active.impacted||progress>=.16))return null;
+      actionState.delete(actor.id);readyAt.set(actor.id,Math.max(readyAt.get(actor.id)||0,time+.04));
+      traceRow({type:'reaction-interrupt',actorId:actor.id,attackId:active.id,progress:Number(progress.toFixed(3)),incomingAttackId:threat.state.id});
+    }
+    const staminaRatio=actor.stamina/Math.max(1,actor.staminaCap),incomingKind=stateKind(threat.state);
+    const kind=HEAVY_THREATS.has(incomingKind)||staminaRatio<.28||threat.progress>.42?'guard':'parry';
+    const reaction=beginReaction(actor,target,kind,'incoming-threat');
+    if(reaction)reactionCooldowns.set(actor.id,time+(kind==='parry'?.82:.58));
+    return reaction;
+  }
+  function maybeBeginCounterReaction(actor,target){
+    const window=counterWindows.get(actor.id);if(!window)return null;
+    if(time>window.until){counterWindows.delete(actor.id);return null;}
+    if(window.against!==target?.id||window.claimed)return null;
+    const distance=distanceBetween(positions,actor,target);
+    if(distance>COUNTER_PRESS_DISTANCE){setManeuver(actor,target,{reason:'counter-press',footwork:'chase',seconds:.55,stopDistance:COUNTER_PRESS_DISTANCE});return null;}
+    const reaction=beginReaction(actor,target,'counter','parry-window');
+    if(reaction)window.claimed=true;
+    return reaction;
+  }
+  function finishReaction(actor,state,{interrupted=false}={}){
+    reactionState.delete(actor.id);const target=battle.actors.get(state.targetId);
+    if(state.reactionKind==='counter'&&(state.outcome==='miss'||(!state.impacted&&!interrupted))){
+      counterWindows.delete(actor.id);setRecovery(actor,'miss',state.targetId,.38);
+      if(target)setManeuver(actor,target,{reason:'miss-reset',footwork:'chase',seconds:.72,stopDistance:ENGAGE_DISTANCE});
+    }
+    readyAt.set(actor.id,Math.max(readyAt.get(actor.id)||0,time+(state.reactionKind==='counter'?.18:.08)));
+    traceRow({type:'reaction-end',actorId:actor.id,targetId:state.targetId,reaction:state.reactionKind,outcome:interrupted||state.outcome||'complete'});
+  }
+  function actionView(actor,state){
+    const progress=stateProgress(state);
+    if(state.reaction){
+      const node=state.context,cursor=cursorFor(actor);
+      return{id:state.id,targetId:state.targetId,techniqueId:node.technique.id,name:state.reactionKind==='parry'?'弾き':state.reactionKind==='guard'?'受け':'返し',phase:node.phase,step:-1,
+        stageIndex:-1,stageLabel:'反応',techniqueIndex:node.chain.indexOf(node.technique),chainLength:node.chain.length,chainLabel:reviewChainLabel(node.phase,node.chain.length),cycle:cursor.cycle,
+        footwork:state.reactionKind==='counter'?'forward':'stay',progress,duration:state.duration,motion:state.motion,legal:true,scope:'combat-reaction',reaction:state.reactionKind};
+    }
+    const {node}=state;
+    return{id:state.id,targetId:state.targetId,techniqueId:node.technique.id,name:node.technique.name,phase:node.phase,step:node.stage.index,
+      stageIndex:node.stage.index,stageLabel:node.stage.label,techniqueIndex:node.chain.indexOf(node.technique),chainLength:node.chain.length,
+      chainLabel:reviewChainLabel(node.phase,node.chain.length),cycle:cursorFor(actor).cycle,footwork:node.stage.step.footwork,
+      progress,duration:state.duration,motion:state.motion,legal:true,scope:'review-technique-composition'};
+  }
   function nextAction(actor){
     if(actor.dead||actor.incapacitated)return null;
     const target=selectTarget(battle,actor.id);if(!target)return null;
     const cursor=cursorFor(actor),node=nodeFor(actor,cursor),cost=stageCost(node.stage);
-    if(cost>0&&!spendJohakyuStamina(actor,cost)){readyAt.set(actor.id,time+.32);return null;}
+    const capability=johakyuStageCapability(actor,{weapon:'sword',phase:node.phase,kind:node.stage.step.kind,footwork:node.stage.step.footwork,charge:node.stage.step.charge,staminaCost:cost});
+    if(!capability.allowed){readyAt.set(actor.id,time+.28);if(actor.id==='hero')traceRow({type:'capability-block',reason:capability.reason,phase:node.phase,techniqueId:node.technique.id,stageIndex:node.stage.index});return null;}
+    const effectiveCost=Math.ceil(capability.stamina.effectiveCost*100)/100;
+    if(effectiveCost>0&&!spendJohakyuStamina(actor,effectiveCost)){readyAt.set(actor.id,time+.32);return null;}
     const motion=motionFor(node),duration=stageDuration(node.technique,node.stage),serial=`${cursor.cycle}:${cursor.phaseIndex}:${cursor.techniqueIndex}:${cursor.stageIndex}`;
     const state={phaseEpoch:`${cursor.cycle}:${cursor.phaseIndex}`,startedAt:time,duration,impacted:false,outcome:null,
       id:`${battle.battleId}:${actor.id}:${serial}:attempt-${++attemptSerial}`,targetId:target.id,node,motion};
@@ -186,61 +258,63 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
     readyAt.set(actor.id,Math.max(readyAt.get(actor.id)||0,time+settle));
   }
   function currentAction(actor){
+    let reaction=reactionState.get(actor.id);
+    if(reaction?.interrupted){finishReaction(actor,reaction,{interrupted:reaction.interrupted});reaction=null;}
+    if(reaction&&time-reaction.startedAt>=reaction.duration){finishReaction(actor,reaction);reaction=null;}
     let state=actionState.get(actor.id);
     if(state?.interrupted){finishAction(actor,state,{interrupted:state.interrupted});state=null;}
     if(state&&time-state.startedAt>=state.duration){finishAction(actor,state);state=null;}
-    if(!state){
-      const recovery=recoveries.get(actor.id);if(recovery&&time<recovery.until)return null;if(recovery)recoveries.delete(actor.id);
-      if(time<(readyAt.get(actor.id)||0))return null;
-      const target=selectTarget(battle,actor.id);if(!target)return null;
-      const node=nodeFor(actor,cursorFor(actor)),threat=['guard','brace','parry'].includes(node.stage.step.kind)?incomingThreat(actor,target):null;
-      if(activeManeuver(actor)&&!threat)return null;
-      if(!gateAction(actor,target,node))return null;
-      state=nextAction(actor);if(!state)return null;actionState.set(actor.id,state);
-    }
-    const {node}=state,progress=Math.min(.999,Math.max(0,(time-state.startedAt)/state.duration));
-    return{id:state.id,targetId:state.targetId,techniqueId:node.technique.id,name:node.technique.name,phase:node.phase,step:node.stage.index,
-      stageIndex:node.stage.index,stageLabel:node.stage.label,techniqueIndex:node.chain.indexOf(node.technique),chainLength:node.chain.length,
-      chainLabel:reviewChainLabel(node.phase,node.chain.length),cycle:cursorFor(actor).cycle,footwork:node.stage.step.footwork,
-      progress,duration:state.duration,motion:state.motion,legal:true,scope:'review-technique-composition'};
+    const target=selectTarget(battle,actor.id);if(!target)return null;
+    if(reaction)return actionView(actor,reaction);
+    const defense=maybeBeginDefenseReaction(actor,target);if(defense)return actionView(actor,defense);
+    state=actionState.get(actor.id);if(state)return actionView(actor,state);
+    const counter=maybeBeginCounterReaction(actor,target);if(counter)return actionView(actor,counter);
+    const recovery=recoveries.get(actor.id);if(recovery&&time<recovery.until)return null;if(recovery)recoveries.delete(actor.id);
+    if(time<(readyAt.get(actor.id)||0))return null;
+    const node=nodeFor(actor,cursorFor(actor)),threat=['guard','brace','parry'].includes(node.stage.step.kind)?incomingThreat(actor,target):null;
+    if(activeManeuver(actor)&&!threat)return null;
+    if(!gateAction(actor,target,node))return null;
+    state=nextAction(actor);if(!state)return null;actionState.set(actor.id,state);
+    return actionView(actor,state);
   }
   function defenseContact(targetState,progress){
-    const kind=targetState?.node?.stage?.step?.kind,window=DEFENSE_WINDOW[kind];
+    const kind=stateKind(targetState),window=DEFENSE_WINDOW[kind];
     return window&&progress>=window[0]&&progress<=window[1]?kind:null;
   }
   function applyContacts(actions){
     const events=[];
     for(const [id,action] of actions){
       if(!action||!action.motion.offense||action.progress<.46)continue;
-      const state=actionState.get(id);if(!state||state.impacted)continue;state.impacted=true;
+      const state=combatState(id);if(!state||state.impacted)continue;state.impacted=true;
       const source=battle.actors.get(id),target=battle.actors.get(action.targetId);if(!source||!target)continue;
-      const damage=stageDamage(state.node.stage);if(!(damage>0))continue;
+      const damage=state.reactionKind==='counter'?KIND_DAMAGE.counter:stageDamage(state.node.stage);if(!(damage>0))continue;
       const contact=contactWindow(positions,source,target);
       if(!contact.reachable){state.outcome='miss';trace.push({type:'miss',time:Number(time.toFixed(2)),attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,techniqueId:action.techniqueId,stageIndex:action.stageIndex,distance:Number(contact.distance.toFixed(3)),reach:CONTACT_REACH});continue;}
-      const targetState=actionState.get(target.id),targetProgress=targetState?Math.max(0,(time-targetState.startedAt)/targetState.duration):1,defense=defenseContact(targetState,targetProgress);
+      const targetState=combatState(target.id),targetProgress=stateProgress(targetState),defense=defenseContact(targetState,targetProgress);
       if(defense){
         const parried=defense==='parry';state.outcome=parried?'parried':'blocked';
-        if(parried){state.interrupted='parried';targetState.outcome='parry';counterWindows.set(target.id,{against:source.id,until:time+1.35});}
+        if(parried){state.interrupted='parried';targetState.outcome='parry';counterWindows.set(target.id,{against:source.id,until:time+1.35,claimed:false});}
         else targetState.outcome='guard';
-        const event=freeze({id:`${action.id}:${source.id}:${target.id}:${defense}`,type:parried?'parry':'guard',attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,damage:0,blocked:true,parried,techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,defenseTechniqueId:targetState.node.technique.id,defenseTechniqueName:targetState.node.technique.name,defenseStageIndex:targetState.node.stage.index,contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH});
+        const defenseNode=targetState.context??targetState.node,defenseStage=targetState.reaction?-1:targetState.node.stage.index;
+        const event=freeze({id:`${action.id}:${source.id}:${target.id}:${defense}`,type:parried?'parry':'guard',attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,damage:0,blocked:true,parried,techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,defenseTechniqueId:defenseNode.technique.id,defenseTechniqueName:defenseNode.technique.name,defenseStageIndex:defenseStage,defenseScope:targetState.reaction?'combat-reaction':'review-technique-composition',contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH});
         events.push(event);traceRow({...event});
         if(parried){setRecovery(source,'parried',target.id,RECOVERY_SECONDS.parried);setManeuver(source,target,{reason:'parried-recoil',footwork:'retreat',seconds:.64,stopDistance:DISENGAGE_DISTANCE});}
         else{setRecovery(source,'blocked',target.id,RECOVERY_SECONDS.blocked);setManeuver(source,target,{reason:'guard-recoil',footwork:'retreat',seconds:.48,stopDistance:2.54});}
         continue;
       }
-      const counterWindow=counterWindows.get(source.id),countered=state.node.stage.step.kind==='counter'&&counterWindow?.against===target.id&&time<=counterWindow.until;
+      const counterWindow=counterWindows.get(source.id),countered=(state.reactionKind==='counter'||stateKind(state)==='counter')&&counterWindow?.against===target.id&&time<=counterWindow.until;
       const dealtDamage=countered?Math.round(damage*1.18):damage;
       const eventId=`${action.id}:${source.id}:${target.id}:impact`,result=applyJohakyuImpactOnce(battle,{eventId,attackId:action.id,sourceId:source.id,targetId:target.id,damage:dealtDamage,phase:action.phase});
       if(!result.applied)continue;state.outcome='hit';if(countered)counterWindows.delete(source.id);
       const event=freeze({id:eventId,type:source.side==='party'?'player-hit':'enemy-hit',attackId:action.id,sourceId:source.id,targetId:target.id,damage:result.dealt,phase:action.phase,counter:countered,
         techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH,bodyPart:result.part,bodyDurability:result.durability,blocked:false});
       events.push(event);traceRow({...event});
-      const targetAction=actionState.get(target.id),incomingProgress=targetAction?Math.max(0,(time-targetAction.startedAt)/targetAction.duration):1;
+      const targetAction=combatState(target.id),incomingProgress=stateProgress(targetAction),targetKind=stateKind(targetAction);
       if(countered){
         setRecovery(target,'countered',source.id,RECOVERY_SECONDS.countered);
-        if(targetAction&&!['guard','parry','brace'].includes(targetAction.node.stage.step.kind))targetAction.interrupted='countered';
+        if(targetAction&&!['guard','parry','brace'].includes(targetKind))targetAction.interrupted='countered';
         setManeuver(target,source,{reason:'countered-withdrawal',footwork:'retreat',seconds:.72,stopDistance:DISENGAGE_DISTANCE});
-      }else if(targetAction&&incomingProgress<.34&&!targetAction.impacted&&!['guard','parry','brace'].includes(targetAction.node.stage.step.kind)){
+      }else if(targetAction&&incomingProgress<.34&&!targetAction.impacted&&!['guard','parry','brace'].includes(targetKind)){
         targetAction.interrupted='hit-before-contact';setManeuver(target,source,{reason:'hit-withdrawal',footwork:'retreat',seconds:.34,stopDistance:2.44});
       }else if(!targetAction){
         setRecovery(target,'hit',source.id,.2);setManeuver(target,source,{reason:'hit-withdrawal',footwork:'retreat',seconds:.28,stopDistance:2.4});
@@ -251,9 +325,9 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   }
   function positionFor(actor){const p=positionOf(positions,actor);return{x:p.x,z:p.z};}
   function facingYaw(actor){const target=selectTarget(battle,actor.id);if(!target)return LAYOUT[actor.id]?.yaw??0;const from=positionOf(positions,actor),to=positionOf(positions,target);return Math.atan2(to.x-from.x,to.z-from.z);}
-  function locomotionFor(actor){const maneuver=activeManeuver(actor);if(!maneuver)return null;if(maneuver.footwork!=='retreat')return Object.freeze({kind:maneuver.footwork,clip:null});const motion=resolveJohakyuMotion({weapon:'sword',kind:'retreat',phase:'enemy'});return motion.supported?Object.freeze({kind:'retreat',clip:motion.clip}):null;}
+  function locomotionFor(actor){const maneuver=activeManeuver(actor);if(!maneuver)return null;const binding=resolveJohakyuLocomotion({footwork:maneuver.footwork});return binding.supported?Object.freeze({kind:maneuver.footwork,clip:binding.clip}):Object.freeze({kind:maneuver.footwork,clip:null});}
   function frame(actions){
-    const actors=[...battle.actors.values()].map(actor=>{const action=actions.get(actor.id)??null,maneuver=!action?activeManeuver(actor):null,capability=johakyuActorCapability(actor);void capability;return{id:actor.id,side:actor.side,self:actor.id==='hero',kind:actor.side==='party'?'hero':'enemy',boss:actor.id==='enemy-c',position:positionFor(actor),yaw:facingYaw(actor),hp:actor.hp,maxHp:actor.maxHp,body:bodyView(actor),stamina:{value:actor.stamina,cap:actor.staminaCap},equipment:{weapon:'sword',armor:actor.side==='party'?'heavy':'cloth',shield:false},moving:Boolean(action&&action.footwork!=='stay'||maneuver),locomotion:!action?locomotionFor(actor):null,resting:false,dead:actor.dead,downed:actor.incapacitated,hit:false,ageYears:actor.side==='party'?28:0,action};});
+    const actors=[...battle.actors.values()].map(actor=>{const action=actions.get(actor.id)??null,maneuver=!action?activeManeuver(actor):null,capability=johakyuActorCapability(actor);return{id:actor.id,side:actor.side,self:actor.id==='hero',kind:actor.side==='party'?'hero':'enemy',boss:actor.id==='enemy-c',position:positionFor(actor),yaw:facingYaw(actor),hp:actor.hp,maxHp:actor.maxHp,body:bodyView(actor),stamina:{value:actor.stamina,cap:actor.staminaCap},equipment:{weapon:'sword',armor:actor.side==='party'?'heavy':'cloth',shield:false},moving:Boolean(capability.canMove&&(action&&action.footwork!=='stay'||maneuver)),locomotion:!action?locomotionFor(actor):null,resting:false,dead:actor.dead,downed:actor.incapacitated,hit:false,ageYears:actor.side==='party'?28:0,action};});
     return freeze({version:1,authority:'rinne-domain',reviewFixture:'p7-technique-composition',reviewMode:mode,battleId:battle.battleId,epoch,revision,status:battle.result?'won':'battle',actors,obstacles:[],projectiles:[],result:battle.result??{cleared:false,defeats:0,returns:resumes}});
   }
   function meta(frameValue){
@@ -270,7 +344,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
     if(!Number.isFinite(dt)||dt<0||dt>.25)throw new TypeError('Invalid P7 review delta');
     time+=dt;revision++;for(const actor of battle.actors.values())recoverJohakyuStamina(actor,dt);
     const actions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)]));advanceFootwork(battle,positions,actions,maneuvers,time,dt);const events=applyContacts(actions);
-    if(!resumed&&time>=RESUME_SECONDS){const checkpoint=createJohakyuCheckpoint({battle,lifeId:'review-life',ageSeconds:28*60,encounterId:`review-${encounter}`});battle=restoreJohakyuCheckpoint(checkpoint).battle;epoch++;revision=0;resumes++;resumed=true;actionState.clear();counterWindows.clear();maneuvers.clear();recoveries.clear();seedReadyWindow(.08);traceRow({type:'resume',epoch});}
+    if(!resumed&&time>=RESUME_SECONDS){const checkpoint=createJohakyuCheckpoint({battle,lifeId:'review-life',ageSeconds:28*60,encounterId:`review-${encounter}`});battle=restoreJohakyuCheckpoint(checkpoint).battle;epoch++;revision=0;resumes++;resumed=true;actionState.clear();reactionState.clear();reactionCooldowns.clear();counterWindows.clear();maneuvers.clear();recoveries.clear();seedReadyWindow(.08);traceRow({type:'resume',epoch});}
     if(time>=ENCOUNTER_SECONDS||battle.result){encounter++;epoch++;time=0;freshBattle();traceRow({type:'encounter-reset',epoch,encounter});}
     const nextActions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)])),snapshot=frame(nextActions),review=meta(snapshot);lastFrame=snapshot;lastMeta=review;
     return freeze({frame:snapshot,events,meta:review});
