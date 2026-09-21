@@ -1,4 +1,4 @@
-import {applyJohakyuImpactOnce,createJohakyuBattle,createJohakyuCheckpoint,johakyuActorCapability,recoverJohakyuStamina,restoreJohakyuCheckpoint,spendJohakyuStamina} from '@soul/johakyu-combat/domain';
+import {applyJohakyuImpactOnce,createJohakyuBattle,createJohakyuCheckpoint,johakyuActorCapability,recoverJohakyuStamina,restoreJohakyuCheckpoint,selectReachableTarget,spendJohakyuStamina} from '@soul/johakyu-combat/domain';
 import {resolveJohakyuMotion} from '@soul/johakyu-combat/motion-contract';
 import {addTechniqueToReviewChain,compileTechniqueComposition,createReviewTechniqueComposition,reviewChainLabel,techniqueFromCombatForm} from '@soul/johakyu-combat/technique-composition';
 
@@ -12,6 +12,8 @@ const TARGETS=Object.freeze({hero:['enemy-a','enemy-b','enemy-c'],'enemy-a':['he
 const KIND_DAMAGE=Object.freeze({slash:7,back:7,thrust:8,pierce:9,heavy:14,diagonal:9,sweep:8,counter:10,bash:7,pommel:6});
 const KIND_COST=Object.freeze({slash:5,back:5,thrust:6,pierce:7,heavy:12,diagonal:7,sweep:7,counter:8,bash:6,pommel:5,guard:2,brace:2,parry:3,slip:3,retreat:2,ready:0});
 const RHYTHM_SECONDS=Object.freeze({sharp:.58,flow:.66,weight:.82,elastic:.64,seamless:.54});
+const CONTACT_REACH=2.35,MIN_SPACING=1.02;
+const FOOTWORK_SPEED=Object.freeze({stay:0,forward:.72,chase:1.08,rush:1.5,retreat:.78,sideL:.7,sideR:.7,orbitL:.58,orbitR:.58,cross:.82,spiral:.9});
 
 function buildComposition(rows){
   const composition=createReviewTechniqueComposition();
@@ -48,24 +50,43 @@ function stageDuration(technique,stage){const base=RHYTHM_SECONDS[technique.rhyt
 function stageCost(stage){return KIND_COST[stage.kind]??5;}
 function stageDamage(stage){return KIND_DAMAGE[stage.kind]??0;}
 function motionFor(node){const motion=resolveJohakyuMotion({weapon:'sword',kind:node.stage.step.kind,charge:node.stage.step.charge,phase:node.phase});if(!motion.supported)throw new Error('Unsupported composition motion: '+node.technique.id+'/'+node.stage.step.kind);return motion;}
-function footworkOffset(actor,footwork){
-  const dir=actor.side==='party'?1:-1;
-  if(footwork==='forward')return{x:0,z:.08*dir};if(footwork==='chase')return{x:0,z:.14*dir};if(footwork==='rush')return{x:0,z:.2*dir};
-  if(footwork==='retreat')return{x:0,z:-.16*dir};if(footwork==='sideL')return{x:-.12*dir,z:0};if(footwork==='sideR')return{x:.12*dir,z:0};
-  if(footwork==='orbitL')return{x:-.1*dir,z:.02*dir};if(footwork==='orbitR')return{x:.1*dir,z:.02*dir};if(footwork==='cross')return{x:.08*dir,z:.06*dir};if(footwork==='spiral')return{x:.12*dir,z:.08*dir};
+const clampPosition=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
+function positionOf(positions,actor){return positions.get(actor.id)??{x:LAYOUT[actor.id]?.x??0,z:LAYOUT[actor.id]?.z??0};}
+function footworkVector(positions,actor,target,footwork){
+  const from=positionOf(positions,actor),to=positionOf(positions,target),dx=to.x-from.x,dz=to.z-from.z,length=Math.max(.001,Math.hypot(dx,dz)),tx=dx/length,tz=dz/length,leftX=-tz,leftZ=tx;
+  if(footwork==='retreat')return{x:-tx,z:-tz};
+  if(footwork==='sideL')return{x:leftX,z:leftZ};if(footwork==='sideR')return{x:-leftX,z:-leftZ};
+  if(footwork==='orbitL')return{x:leftX*.94+tx*.18,z:leftZ*.94+tz*.18};if(footwork==='orbitR')return{x:-leftX*.94+tx*.18,z:-leftZ*.94+tz*.18};
+  if(footwork==='cross')return{x:tx*.72+leftX*.7,z:tz*.72+leftZ*.7};if(footwork==='spiral')return{x:tx*.62-leftX*.82,z:tz*.62-leftZ*.82};
+  if(['forward','chase','rush'].includes(footwork))return{x:tx,z:tz};
   return{x:0,z:0};
+}
+function advanceFootwork(battle,positions,actions,dt){
+  for(const actor of battle.actors.values()){
+    const action=actions.get(actor.id),target=action?battle.actors.get(action.targetId):null,footwork=action?.footwork||'stay',speed=FOOTWORK_SPEED[footwork]??0;
+    if(!target||!(speed>0)||actor.dead||actor.incapacitated)continue;
+    const from=positionOf(positions,actor),targetPos=positionOf(positions,target),vector=footworkVector(positions,actor,target,footwork),closing=['forward','chase','rush','cross','spiral','orbitL','orbitR'].includes(footwork);
+    let step=speed*dt;
+    if(closing){const distance=Math.hypot(targetPos.x-from.x,targetPos.z-from.z);step=Math.min(step,Math.max(0,distance-MIN_SPACING));}
+    positions.set(actor.id,{x:clampPosition(from.x+vector.x*step,-4.8,4.8),z:clampPosition(from.z+vector.z*step,-1.4,5.4)});
+  }
+}
+function contactWindow(positions,source,target){
+  const from=positionOf(positions,source),to=positionOf(positions,target),distance=Math.hypot(to.x-from.x,to.z-from.z);
+  const reachable=selectReachableTarget({source:{id:source.id,...from},candidates:[{id:target.id,...to,dead:target.dead||target.incapacitated}],reach:CONTACT_REACH});
+  return{reachable:Boolean(reachable),distance};
 }
 
 export function createJohakyuP7ReviewScenario({mode='duel'}={}){
   if(!Object.hasOwn(MODES,mode))throw new RangeError('Unsupported battle review mode');
   let encounter=1,epoch=1,revision=0,time=0,resumes=0,resumed=false,battle;
-  let actionState=new Map(),cursors=new Map(),readyAt=new Map(),lastEvents=[],trace=[],lastFrame=null,lastMeta=null,attemptSerial=0;
+  let actionState=new Map(),cursors=new Map(),readyAt=new Map(),positions=new Map(),lastEvents=[],trace=[],lastFrame=null,lastMeta=null,attemptSerial=0;
 
   function cursorFor(actor){let cursor=cursors.get(actor.id);if(!cursor){cursor=cursorState();cursors.set(actor.id,cursor);}return cursor;}
   function seedReadyWindow(delay=.24){readyAt.clear();for(const actor of battle.actors.values())readyAt.set(actor.id,time+delay+(actor.side==='enemy'?.12:0));}
   function freshBattle(){
     battle=createJohakyuBattle({battleId:`review-p7:${mode}:${encounter}`,actors:actorRows(mode),seed:73917+encounter});
-    actionState=new Map();cursors=new Map();readyAt=new Map();lastEvents=[];resumed=false;revision=0;attemptSerial=0;seedReadyWindow(.34);
+    actionState=new Map();cursors=new Map();readyAt=new Map();positions=new Map(Object.entries(LAYOUT).filter(([id])=>battle.actors.has(id)).map(([id,row])=>[id,{x:row.x,z:row.z}]));lastEvents=[];resumed=false;revision=0;attemptSerial=0;seedReadyWindow(.34);
   }
   freshBattle();
 
@@ -104,20 +125,19 @@ export function createJohakyuP7ReviewScenario({mode='duel'}={}){
       const state=actionState.get(id);if(!state||state.impacted)continue;state.impacted=true;
       const source=battle.actors.get(id),target=battle.actors.get(action.targetId);if(!source||!target)continue;
       const damage=stageDamage(state.node.stage);if(!(damage>0))continue;
+      const contact=contactWindow(positions,source,target);
+      if(!contact.reachable){trace.push({type:'miss',time:Number(time.toFixed(2)),attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,techniqueId:action.techniqueId,stageIndex:action.stageIndex,distance:Number(contact.distance.toFixed(3)),reach:CONTACT_REACH});continue;}
       const eventId=`${action.id}:${source.id}:${target.id}:impact`,result=applyJohakyuImpactOnce(battle,{eventId,attackId:action.id,sourceId:source.id,targetId:target.id,damage,phase:action.phase});
       if(!result.applied)continue;
       const event=freeze({id:eventId,type:source.side==='party'?'player-hit':'enemy-hit',attackId:action.id,sourceId:source.id,targetId:target.id,damage:result.dealt,phase:action.phase,
-        techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,bodyPart:result.part,bodyDurability:result.durability,blocked:false});
+        techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH,bodyPart:result.part,bodyDurability:result.durability,blocked:false});
       events.push(event);trace.push({type:'impact',time:Number(time.toFixed(2)),...event});
       const targetAction=actionState.get(target.id),targetProgress=targetAction?Math.max(0,(time-targetAction.startedAt)/targetAction.duration):1;if(targetAction&&targetProgress<.34&&!targetAction.impacted&&!['guard','parry','brace'].includes(targetAction.node.stage.step.kind))targetAction.interrupted=true;
     }
     if(events.length){lastEvents=events;if(trace.length>120)trace=trace.slice(-120);}
     return events;
   }
-  function positionFor(actor,action){
-    const base=LAYOUT[actor.id],index=Object.keys(LAYOUT).indexOf(actor.id),offset=footworkOffset(actor,action?.footwork||'stay');
-    return{x:base.x+offset.x+Math.sin(time*.58+index)*.04,z:base.z+offset.z+Math.cos(time*.48+index)*.03};
-  }
+  function positionFor(actor){const p=positionOf(positions,actor);return{x:p.x,z:p.z};}
   function frame(actions){
     const actors=[...battle.actors.values()].map(actor=>{const action=actions.get(actor.id)??null,capability=johakyuActorCapability(actor);void capability;return{id:actor.id,side:actor.side,self:actor.id==='hero',kind:actor.side==='party'?'hero':'enemy',boss:actor.id==='enemy-c',position:positionFor(actor,action),yaw:LAYOUT[actor.id].yaw,hp:actor.hp,maxHp:actor.maxHp,body:bodyView(actor),stamina:{value:actor.stamina,cap:actor.staminaCap},equipment:{weapon:'sword',armor:actor.side==='party'?'heavy':'cloth',shield:false},moving:Boolean(action&&action.footwork!=='stay'),resting:false,dead:actor.dead,downed:actor.incapacitated,hit:false,ageYears:actor.side==='party'?28:0,action};});
     return freeze({version:1,authority:'rinne-domain',reviewFixture:'p7-technique-composition',reviewMode:mode,battleId:battle.battleId,epoch,revision,status:battle.result?'won':'battle',actors,obstacles:[],projectiles:[],result:battle.result??{cleared:false,defeats:0,returns:resumes}});
@@ -135,7 +155,7 @@ export function createJohakyuP7ReviewScenario({mode='duel'}={}){
   function step(dt=1/60){
     if(!Number.isFinite(dt)||dt<0||dt>.25)throw new TypeError('Invalid P7 review delta');
     time+=dt;revision++;for(const actor of battle.actors.values())recoverJohakyuStamina(actor,dt);
-    const actions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)])),events=applyContacts(actions);
+    const actions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)]));advanceFootwork(battle,positions,actions,dt);const events=applyContacts(actions);
     if(!resumed&&time>=RESUME_SECONDS){const checkpoint=createJohakyuCheckpoint({battle,lifeId:'review-life',ageSeconds:28*60,encounterId:`review-${encounter}`});battle=restoreJohakyuCheckpoint(checkpoint).battle;epoch++;revision=0;resumes++;resumed=true;actionState.clear();seedReadyWindow(.08);trace.push({type:'resume',time:Number(time.toFixed(2)),epoch});}
     if(time>=ENCOUNTER_SECONDS||battle.result){encounter++;epoch++;time=0;freshBattle();trace.push({type:'encounter-reset',time:0,epoch,encounter});}
     const nextActions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)])),snapshot=frame(nextActions),review=meta(snapshot);lastFrame=snapshot;lastMeta=review;

@@ -66,6 +66,22 @@ test('1v3 retains canonical impact, body and stamina state',()=>{
  assert.ok(ids.size>0);assert.ok(maxInjury>0);assert.ok(minStamina<100);
 });
 
+
+test('canonical footwork persists in world space and only reachable impacts become hits',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let origin=null,maxTravel=0,hits=0;
+ for(let i=0;i<900;i++){
+   const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self);origin??={...hero.position};
+   maxTravel=Math.max(maxTravel,Math.hypot(hero.position.x-origin.x,hero.position.z-origin.z));
+   for(const event of r.events.filter(e=>e.type==='player-hit')){
+     hits++;assert.ok(Number.isFinite(event.contactDistance));assert.equal(event.contactReach,2.35);
+     assert.ok(event.contactDistance<=event.contactReach+1e-9,`out-of-range hit: ${event.contactDistance}`);
+   }
+ }
+ assert.ok(maxTravel>.2,`footwork must persist beyond a cosmetic offset: ${maxTravel}`);assert.ok(hits>0);
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');
+ assert.match(source,/selectReachableTarget/);assert.match(source,/type:'miss'/);assert.doesNotMatch(source,/function footworkOffset/);
+});
+
 test('HUD metadata comes from the executing technique and stage',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let checked=0;
  for(let i=0;i<480;i++){const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self);if(!hero.action)continue;checked++;
