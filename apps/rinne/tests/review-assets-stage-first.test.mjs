@@ -41,3 +41,16 @@ test('equipment slots are status-only and preview remains character-first on pho
   assert.match(js, /idle\|stand\|breath/);
   assert.match(css, /height:clamp\(470px,67dvh,700px\)/);
 });
+
+
+test('direct weapon selection uses protagonist native accessories before review-only fetch', async () => {
+  const js = await readFile(jsUrl,'utf8');
+  assert.match(js, /const nativeMounted = new Map\(\)/);
+  assert.match(js, /const nativeName=slot!==['"]back['"]\?ACCESSORY_NODES\[spec\.family\]\?\.\[side\]:null/);
+  assert.match(js, /native\.visible=true/);
+  assert.match(js, /nativeMounted\.set\(slot,native\)/);
+  const nativeReturn=js.indexOf('nativeMounted.set(slot,native)');
+  const networkLoad=js.indexOf('loader.loadAsync(reviewEquipmentUrl(spec))');
+  assert.ok(nativeReturn>=0 && networkLoad>nativeReturn);
+  for (const family of ['1H_Sword','1H_Axe','2H_Staff','2H_Crossbow']) assert.ok(js.includes(family));
+});
