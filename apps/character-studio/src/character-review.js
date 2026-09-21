@@ -98,6 +98,7 @@ function start() {
   marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
   let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, loadSequence = 0, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
+  let activeModelLabel = defaultModel.label;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
   let motionQA = null;
   const events = new AbortController(), on = (target, type, handler) => target.addEventListener(type, handler, { signal: events.signal });
@@ -251,7 +252,7 @@ function start() {
       const bytes = await getBytes(); if (!alive || sequence !== loadSequence) return;
       const json = reviewGlbDocument(bytes), hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join(''), blobSha = await gitBlobSha(bytes);
       const audit = auditDocument(json, hash, bytes.byteLength, blobSha); if (!audit.approved) throw new Error(`モデル監査不合格: ${audit.errors.join(', ')}`);
-      status('CC0モデルと共通モーションの準備中…'); el('progress').value = .4;
+      status(`${activeModelLabel} と共通モーションの準備中…`); el('progress').value = .4;
       const gltf = await new GLTFLoader().parseAsync(bytes, ''); nextTemplate = gltf.scene;
       const rig = await rigBuilder(gltf); if (!alive || sequence !== loadSequence) return;
       nextPool = createCharacterProductionPool({ template: nextTemplate, rig });
@@ -263,7 +264,7 @@ function start() {
       if (!capabilities.expressionNames.includes(settings.expression)) settings.expression = '';
       el('capabilities').textContent = `SHA-256 ${hash}\nLicense ${audit.license || 'unverified'}\n表情 ${capabilities.expressionNames.length}種\n揺れ ${capabilities.springChains}チェーン / ${capabilities.springJoints}関節\n${capabilities.warnings.join('\n') || 'PBR・共通Humanoid表示'}`;
       rebuild(); el('progress').value = .8; renderer.compile(scene, camera); renderer.render(scene, camera);
-      review.ready = true; el('progress').value = 1; status('CC0 KayKitモデルを表示中。個体差・動き・共有状態を検査できます。');
+      review.ready = true; el('progress').value = 1; status(`${activeModelLabel}を表示中。`);
     } catch (error) { if (sequence === loadSequence) { review.ready = !installed && Boolean(pool); report(error); el('retry').disabled = !alive; } }
     finally { nextPool?.dispose(); disposeTemplate(nextTemplate); if (sequence === loadSequence) { loading = false; window.dispatchEvent(new Event('character-review-change')); } }
   }
@@ -343,11 +344,33 @@ function start() {
       }
     } catch (error) { review.ready = false; report(error); }
   }
-  review.loadDefaultModel = () => { modelRequestSequence++; return load(defaultBytes, auditKaykitDocument, kaykitReviewRig); };
+  review.loadDefaultModel = () => {
+    modelRequestSequence++;
+    activeModelLabel = defaultModel.label;
+    return load(defaultBytes, auditKaykitDocument, kaykitReviewRig);
+  };
   review.loadReferenceModel = async model => {
     const request = ++modelRequestSequence;
-    if (request !== modelRequestSequence) return;
-    report(new Error(`DCCモデル ${model?.id || 'unknown'} は旧carrier rig依存のため退役中です。CC0またはRINNE-owned rigへ再リグしてください`));
+    try {
+      if (!model || model.kind !== 'dcc-character-model') throw new Error('実体のあるDCCモデルだけを表示できます');
+      const receiptResponse = await fetch(new URL(model.integrityPath, location.href), { signal: AbortSignal.timeout(15000) });
+      if (!receiptResponse.ok) throw new Error(`モデル監査票 HTTP ${receiptResponse.status}`);
+      const receipt = await receiptResponse.json();
+      if (request !== modelRequestSequence) return;
+      const auditReferenceDocument = (document, sha256, byteLength) => {
+        const errors = [];
+        if (!String(document?.asset?.version || '').startsWith('2.')) errors.push('glTF 2.xではありません');
+        if (receipt.id !== model.id || receipt.assetId !== model.assetId) errors.push('モデル監査票のIDが一致しません');
+        if (receipt.bytes !== byteLength) errors.push('モデル監査票のbyte lengthと一致しません');
+        if (receipt.sha256 !== sha256) errors.push('モデル監査票のSHA-256と一致しません');
+        if (receipt.humanoidRig !== 'kaykit.Rig_Medium.v1') errors.push('Rig_Medium互換ではありません');
+        return Object.freeze({ approved: errors.length === 0, errors, modelId: model.id, license: 'CC0-1.0 / RINNE DCC', source: receipt });
+      };
+      activeModelLabel = model.label;
+      return load(() => modelBytes(model.assetPath), auditReferenceDocument, kaykitReviewRig);
+    } catch (error) {
+      if (request === modelRequestSequence) report(error);
+    }
   };
   review.sample = age => { settings = reviewSettings({ ...settings, age, ages: 'fixed' }); records = records.map(r => editReviewCharacter(r, { age })); refreshLooks(); };
   // Explicit inspection API. Never touches game saves, inventories or network authority.

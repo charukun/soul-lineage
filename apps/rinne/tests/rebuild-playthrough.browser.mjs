@@ -5,6 +5,7 @@ import {createLife,serializeLife,LIFE_SECONDS} from '../src/rebuild/domain.js';
 import {createFront} from '../src/rebuild/combat.js';
 import {buildStations} from '../src/rebuild/locations.js';
 import {defaultMuraLayout} from '@soul/world/mura';
+import {chooseFamilyOrigin} from './family-origin.browser.mjs';
 
 const text=async locator=>(await locator.textContent()||'').trim();
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -28,22 +29,27 @@ export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=f
     if(await page.locator('#game-screen').isVisible().catch(()=>false)){await page.locator('#back-title').click();await page.locator('#title-screen').waitFor({state:'visible'});assert.equal(await page.locator('#game').getAttribute('data-runtime'),'prepared');}
   }
   async function saveKey(){const label=(await text(page.locator('#build-label'))).split('·')[0].trim().toLowerCase();return `soul:v1:${label||'local'}:rinne:local:life-v2`;}
-  let key='';
+  let key='',chosenFamily=null;
   async function load(state){
     await backToTitle();if(!key)key=await saveKey();const value=serializeLife(state);
     await page.evaluate(({key,value})=>localStorage.setItem(key,value),{key,value});await page.reload({waitUntil:'domcontentloaded'});
     await page.locator('#title-screen').waitFor({state:'visible'});assert.equal(await page.locator('#game').getAttribute('data-runtime'),'prepared');
     await page.locator('#continue-life').waitFor({state:'visible'});await page.locator('#continue-life').click();await waitGame();
+    assert.equal(await page.locator('.family-origin').count(),0,'Continue must not repeat the origin questions');
   }
-  const stateAt=(age,seed=41)=>{const state=createLife({name:'導線テスト',seed,villageIds:[defaultMuraLayout().id]});state.ageYears=age;state.ageSeconds=age*60;if(age>=4)state.phase='living';return state;};
+  const stateAt=(age,seed=41)=>{const state=createLife({name:'導線テスト',seed,villageIds:[defaultMuraLayout().id],family:chosenFamily});state.ageYears=age;state.ageSeconds=age*60;if(age>=4)state.phase='living';return state;};
 
   try{
     const response=await page.goto(url,{waitUntil:'domcontentloaded'});assert.ok(response?.ok(),'rinne preview must answer successfully');
     await page.locator('#title-screen').waitFor({state:'visible'});assert.equal(await page.locator('#game').getAttribute('data-runtime'),'prepared');
     await expectNonEmpty(page.locator('.title-copy'),'title copy');assert.equal(await page.locator('.crest').count(),1);key=await saveKey();
 
-    // Birth: the world, mother-led tour and real movement input must all work.
-    await page.locator('#new-life').click();await waitGame();await expectTone('village');
+    // Birth: choose a family with real input, then preserve the mother-led tour and movement assertions.
+    await page.locator('#new-life').click();
+    await chooseFamilyOrigin(page,{checkCancel:true,capture:name=>page.screenshot({path:join(output,name),fullPage:true})});
+    await waitGame();await expectTone('village');
+    chosenFamily=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).family,key);
+    assert.equal(chosenFamily.cultureId,'wa');assert.equal(chosenFamily.traditionId,'katana');
     assert.match(await text(page.locator('#life-stage')),/誕生/);await expectNonEmpty(page.locator('#objective'),'birth objective');await expectNonEmpty(page.locator('#objective-badge'),'birth objective badge');
     assert.equal(await page.locator('#game-screen').getAttribute('data-birth-tour'),'true');assert.equal(await page.locator('.objective-card').isHidden(),true,'birth tour must teach through the world instead of the objective card');
     await page.locator('#dialogue').waitFor({state:'visible'});await expectNonEmpty(page.locator('#dialogue-text'),'birth dialogue');await expectNonEmpty(page.locator('#move-hint'),'movement hint');
@@ -52,6 +58,12 @@ export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=f
     // Growth: accelerated world time must leave the birth tour and enter normal play.
     for(let i=0;i<3;i++)await page.locator('#clock-rate').click();assert.equal(await page.locator('#clock-rate').evaluate(node=>node.value),'20');
     await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('2/6'),null,{timeout:18000});assert.equal(await page.locator('#game-screen').getAttribute('data-birth-tour'),'false');await page.locator('.objective-card').waitFor({state:'visible'});await expectTone('village');await page.screenshot({path:join(output,'01-village-growth.png')});
+    await page.locator('.family-memory-trigger').click();await page.locator('.family-memory-dialog[open]').waitFor({state:'visible'});assert.match(await text(page.locator('.family-memory-dialog')),/刀の家伝/);await page.locator('.family-memory-close').click();
+    await backToTitle();assert.match(await text(page.locator('.title-family-caption')),/霧山の一族/);
+    const savedLife=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
+    await page.locator('#continue-life').click();await waitGame();assert.equal(await page.locator('.family-origin').count(),0);
+    const resumedLife=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
+    assert.equal(resumedLife.id,savedLife.id);assert.equal(resumedLife.family.id,chosenFamily.id);assert.ok(resumedLife.ageSeconds>=savedLife.ageSeconds);
 
     // Equipment: proximity to the actual sword rack must produce a usable weapon.
     const prep=stateAt(8,42);prep.position={x:sword.x+1.35,z:sword.z};await load(prep);assert.match(await text(page.locator('#life-stage')),/支度/);await expectTone('village');
@@ -93,6 +105,7 @@ export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=f
 
     // Lifespan end must expose a valid rebirth choice and start a fresh generation.
     const old=stateAt(99.99,48);old.ageSeconds=LIFE_SECONDS-.35;old.ageYears=old.ageSeconds/60;old.clockRate=20;old.lastDepartureCycle=20;old.equipment={weapon:'spear',armor:'light',shield:true};old.knownSkills.push('basic.spear','skill.step');old.defeats=12;old.returns=3;await load(old);await page.locator('.life-end-dialog[open]').waitFor({state:'visible',timeout:5000});await page.waitForFunction(()=>document.getElementById('game-screen')?.dataset.worldTone==='rebirth');await expectTone('rebirth');assert.match(await text(page.locator('.life-end-summary')),/12/);assert.match(await text(page.locator('.life-end-help')),/0歳/);assert.ok(await page.locator('.rinne-choice-list .rinne-choice').count()>0);await page.screenshot({path:join(output,'05-life-end.png')});await page.locator('#rebirth').click();await page.waitForFunction(()=>document.getElementById('generation')?.textContent?.includes('2代目'),null,{timeout:5000});await expectTone('village');assert.match(await text(page.locator('#life-stage')),/誕生/);assert.match(await text(page.locator('#toast')),/2代目.*0歳/);await page.screenshot({path:join(output,'06-rebirth.png')});
+    const inherited=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).family,key);assert.equal(inherited.id,chosenFamily.id);assert.equal(inherited.traditionId,'katana');assert.equal(inherited.contributions.at(-1).lifeId,old.id);
 
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
   } finally {await context.close();}

@@ -13,7 +13,6 @@ import { RINNE_RUNTIME_PERFORMANCE } from './performance.js';
 import { splitRuntimeFrameDelta } from './runtime-clock.js';
 import { SwipeInput } from '@soul/input';
 import { startRinneFirstRunGuide } from '../first-run-guide.js';
-import { createLineageLifePanel } from '../lineage-origin-ui.js';
 
 const $=id=>document.getElementById(id);
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
@@ -65,7 +64,7 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   host.dispose=()=>{if(host.disposed)return;host.disposed=true;host.active=false;stopTitlePreview();canvas.dataset.runtime='disposed';view.dispose();};
   return host;
 }
-export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepared,coop=null,lineageOrigin=null}={}){
+export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepared,coop=null,family=null,expectedSave=undefined}={}){
   const ownsPrepared=!prepared,host=prepared||await prepareRuntime({buildInfo,onProgress});
   if(host.disposed)throw Error('描画世界は終了済みです');
   if(host.active)throw Error('人生はすでに始まっています');
@@ -76,11 +75,16 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     if(coop)state=structuredClone(coop.snapshot().view.me);
     else if(mode==='continue'){
       const raw=await platform.storage.read(saveKey);
-      if(!raw)throw Error('続きから遊べる保存データが見つかりません。');
+      if(!raw)throw Error('続きから遊べる保存データがありません');
       state=deserializeLife(raw);
+    }else if(mode==='new'&&expectedSave!==undefined){
+      const current=await platform.storage.read(saveKey);
+      if((current||null)!==expectedSave)throw Error('保存が更新されました。タイトルに戻って、もう一度お選びください。');
     }
-    if(!state)state=createLife({name,seed:(Date.now()>>>0),villageIds:[layout.id],lineageOrigin});
+    if(!state)state=createLife({name,seed:(Date.now()>>>0),villageIds:[layout.id],family});
     placeState(state,layout);
+    // Confirmed identity is durable before the first frame. Storage failure does not silently start a disposable life.
+    if(!coop&&mode==='new')await platform.storage.write(saveKey,serializeLife(state));
   }catch(error){host.active=false;if(ownsPrepared)host.dispose();throw error;}
 
   let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,doorDwell=0,doorStationId='',movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='',firstRunGuide=null;
@@ -89,7 +93,6 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   let skirmish=coop?null:createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);
   let coopTick=-1,coopEpoch=0,coopHistoryRevision=-1,rebirthPending=false,inputElapsed=0;
   const birth=createBirthExperience({document,canvas,gameScreen,view,stations,getState:()=>state,dialogue});
-  const familyPanel=createLineageLifePanel({document,gameScreen,getState:()=>state});
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
   const save=async()=>{if(!active||!state)return false;try{if(coop)return await coop.save();state.frontState=front;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
@@ -116,7 +119,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     $('stamina-bar').style.width=`${clamp(state.stamina/100*100,0,100)}%`;
     const guide=guidanceFor({state,stations,front}),body=combatBodyOutcome(state);$('life-stage').textContent=guide.stage;$('objective').textContent=guide.objective;$('objective-badge').textContent=guide.badge||'';
     gameScreen.dataset.worldTone=worldTone(guide);gameScreen.dataset.frontierCombat=String(Boolean(state.zone==='frontier'&&state.combat));gameScreen.dataset.birthTour=String(birth.active());gameScreen.dataset.interior=state.interior?.buildingId||'';gameScreen.style.setProperty('--wound',String(clamp(body.severity,0,.85)));showChapter(guide.stage);
-    $('clock-rate').value=String(state.clockRate);syncMovementHint();familyPanel.sync();
+    $('clock-rate').value=String(state.clockRate);syncMovementHint();
   }
   function dialogue(speaker,text){$('speaker').textContent=speaker;$('dialogue-text').textContent=text;$('dialogue').hidden=false;clearTimeout(dialogue.timer);dialogue.timer=setTimeout(()=>$('dialogue').hidden=true,4200);}
   function showBirthIntro(){birth.showIntro();}
@@ -124,7 +127,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     view.clearCombatEffects?.();
     if(endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
-    endDialog.innerHTML='<form method="dialog"><p id="life-end-age"></p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>次の出生<select id="rebirth-village"></select></label><p class="life-end-help">次の人生は0歳・基礎装備から。一族の家風と家伝、歩んだ記録と故郷を受け継ぐ。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
+    endDialog.innerHTML='<form method="dialog"><p id="life-end-age"></p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>次の出生<select id="rebirth-village"></select></label><p class="life-end-help">次の人生は0歳・基礎装備から。一族の家伝と記録、帰還して刻んだ故郷を受け継ぎます。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
     endDialog.querySelector('#life-end-age').textContent=state.ageYears>=LIFE_YEARS?'100年の生涯':`${Math.floor(state.ageYears)}歳の生涯`;
     endDialog.querySelector('#life-end-name').textContent=`${state.name} · ${state.generation}代`;
     endDialog.querySelector('#life-end-defeats').textContent=String(state.defeats);endDialog.querySelector('#life-end-returns').textContent=String(state.returns);endDialog.querySelector('#life-end-skills').textContent=String(state.knownSkills.length);
@@ -231,12 +234,10 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   document.addEventListener('visibilitychange',visibility);
   window.addEventListener('pagehide',pagehide);
   if(front)view.syncFront(front);else view.syncFront(null);view.renderState(state,.016);birth.afterRender(.016,{carrierMoving:false});syncUI();uiElapsed=0;loading.hidden=true;canvas.dataset.runtime='active';
-  // A new family must be durably saved before gameplay starts.
-  if(!coop&&mode==='new'&&!await save()){dispose();throw Error('一族を保存できませんでした。端末の保存領域を確認してください。');}
-  armMovementHint();showBirthIntro();const birthNews=state.events?.find(event=>event.type==='village-news'&&event.worldSecond===0);if(birthNews&&state.ageYears<.2)toast(`村報 · ${birthNews.text}`);firstRunGuide=coop?null:startRinneFirstRunGuide({root:gameScreen.querySelector('.rinne-gameplay-upgrade'),gameScreen,canvas,getState:()=>state,environment:host.environment,mode});last=performance.now();raf=requestAnimationFrame(frame);if(mode!=='new')void save();
+  armMovementHint();showBirthIntro();const birthNews=state.events?.find(event=>event.type==='village-news'&&event.worldSecond===0);if(birthNews&&state.ageYears<.2)toast(`村報 · ${birthNews.text}`);firstRunGuide=coop?null:startRinneFirstRunGuide({root:gameScreen.querySelector('.rinne-gameplay-upgrade'),gameScreen,canvas,getState:()=>state,environment:host.environment,mode});raf=requestAnimationFrame(frame);void save();
 
   function dispose(){
-    if(!active)return;active=false;host.active=false;firstRunGuide?.dispose?.();firstRunGuide=null;view.clearCombatEffects?.();cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();familyPanel.dispose();unsubscribeWorld();
+    if(!active)return;active=false;host.active=false;firstRunGuide?.dispose?.();firstRunGuide=null;view.clearCombatEffects?.();cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();unsubscribeWorld();
     window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);
     document.removeEventListener('visibilitychange',visibility);for(const key of Object.keys(canvas.dataset))if(key.startsWith('coop'))delete canvas.dataset[key];view.syncPeers([]);$('coop-darkness').hidden=true;$('coop-people').textContent='';$('clock-rate').disabled=false;
     keys.clear();swipe.cancel();setAxis({x:0,y:0});endDialog?.remove();endDialog=null;$('dialogue').hidden=true;$('toast').hidden=true;canvas.dataset.runtime='prepared';
