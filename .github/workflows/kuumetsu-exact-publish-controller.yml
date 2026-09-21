@@ -1,0 +1,24 @@
+name: Kuumetsu exact DEV publish controller
+on:
+  push:
+    branches: [dispatch/kuumetsu-autonomous-20260921]
+permissions:
+  actions: write
+  contents: read
+jobs:
+  dispatch:
+    if: contains(github.event.head_commit.message, '[kuumetsu-publish]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v8
+        env:
+          TARGET_SHA: 762b62c344b85d44e2452b73e679effc739316a9
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'dev-app-publish.yml',
+              ref: 'develop',
+              inputs: { app: 'demon', source_sha: process.env.TARGET_SHA }
+            });
