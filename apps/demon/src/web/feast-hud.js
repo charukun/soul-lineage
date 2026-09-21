@@ -39,11 +39,9 @@ export class FeastHud {
   this.tracker.hidden=!target;
   if(target){
    this.tracker.querySelector('b').style.transform=`rotate(${scentBearing(game.player,target.npc)}rad)`;
-   this.tracker.querySelector('span').textContent=`${target.fresh?'未知の記憶':'生命の気配'} · ${Math.ceil(target.distance)} m${target.npc.dead?' · 指を離して喰らう':''}`;
-   const objective=this.hud.querySelector('#objective');
-   objective.querySelector('small').textContent='次に狙う力';
-   objective.querySelector('span').textContent=PREY[target.npc.role].power;
-   const guide=objective.querySelector('#first-hunt-guide');guide.hidden=true;
+   const prey=PREY[target.npc.role];
+   this.tracker.querySelector('span').textContent=(target.fresh?'未知の記憶':'生命の気配')+' · '+prey.power+' · '+Math.ceil(target.distance)+' m'+(target.npc.dead?' · 指を離して喰らう':'');
+   this.tracker.setAttribute('aria-label','次に狙う力 '+prey.power+'。距離 '+Math.ceil(target.distance)+' メートル。');
    this.hud.dataset.guide='hunt';
   }
   return target;
