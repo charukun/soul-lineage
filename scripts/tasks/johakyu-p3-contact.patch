@@ -1,0 +1,74 @@
+diff --git a/apps/rinne/src/rebuild/combat-core.js b/apps/rinne/src/rebuild/combat-core.js
+index c84b0b5..e7d393b 100644
+--- a/apps/rinne/src/rebuild/combat-core.js
++++ b/apps/rinne/src/rebuild/combat-core.js
+@@ -43 +43 @@ function createSession(state,target,front,signature,{secondary=false,enemyCanHit
+-  const snapshot=runtime.configure({weapon,enemyWeapon:foeWeapon,enemyStyle:enemyStyle(front,target),enemyLoadout:enemyCanHit?undefined:passiveEnemyLoadout(foeWeapon),loadout,mindset,hp:Math.max(.001,state.hp/hScale),maxhp:Math.max(.001,state.maxHp/hScale),enemyHp:Math.max(.001,target.hp/eScale),positions:{hero:{x:state.position.x,z:state.position.z,yaw:state.yaw},enemy:{x:target.x,z:target.z,yaw:target.yaw}}});
++  const snapshot=runtime.configure({encounterReady:true,weapon,enemyWeapon:foeWeapon,enemyStyle:enemyStyle(front,target),enemyLoadout:enemyCanHit?undefined:passiveEnemyLoadout(foeWeapon),loadout,mindset,hp:Math.max(.001,state.hp/hScale),maxhp:Math.max(.001,state.maxHp/hScale),enemyHp:Math.max(.001,target.hp/eScale),positions:{hero:{x:state.position.x,z:state.position.z,yaw:state.yaw},enemy:{x:target.x,z:target.z,yaw:target.yaw}}});
+@@ -47 +47,10 @@ function sessionDrift(session,state,target){const h=session.last?.hero,e=session
+-function sessionFor(state,target,front,options={}){const signature=combatSignature(state,target,front,options),existing=sessionMap(state).get(target.id);return !existing||existing.signature!==signature||existing.secondary!==Boolean(options.secondary)||existing.enemyCanHit!==Boolean(options.enemyCanHit)||existing.invalid||sessionDrift(existing,state,target)>1.15?createSession(state,target,front,signature,options):existing;}
++function sessionFor(state,target,front,options={}){
++  const signature=combatSignature(state,target,front,options),existing=sessionMap(state).get(target.id),next=JSON.parse(signature),prior=existing?JSON.parse(existing.signature):null;
++  const hardChanged=prior&&['weapon','armor','shield','enemyWeapon','enemyStyle'].some(key=>prior[key]!==next[key]);
++  if(!existing||hardChanged||existing.invalid||sessionDrift(existing,state,target)>1.15)return createSession(state,target,front,signature,options);
++  if(existing.signature!==signature){
++    existing.runtime.setPolicy({loadout:next.loadout,mindset:next.mind,enemyLoadout:next.enemyCanHit?null:passiveEnemyLoadout(next.enemyWeapon)});
++    existing.signature=signature;existing.loadout=next.loadout;existing.secondary=Boolean(options.secondary);existing.enemyCanHit=Boolean(options.enemyCanHit);
++  }
++  return existing;
++}
+@@ -100 +109 @@ function applyTidebreakStep(state,target,front,dt,events,{primary=false,bodyAuth
+-export function tickFront(state,front,dt,{advanceEnemies=true,allowedEnemyIds=null,advanceFormation=true,heroPositionAuthority=true,enemyPositionAuthority=true,attentionStates=null,sharedParticipantCount=1}={}){
++function tickFrontStep(state,front,dt,{advanceEnemies=true,allowedEnemyIds=null,advanceFormation=true,heroPositionAuthority=true,enemyPositionAuthority=true,attentionStates=null,sharedParticipantCount=1}={}){
+@@ -115 +124,18 @@ export function tickFront(state,front,dt,{advanceEnemies=true,allowedEnemyIds=nu
+-export function tickSharedFront(states,front,dt){const ordered=[...states].sort((a,b)=>a.id.localeCompare(b.id)),events=new Map();if(!ordered.length)return events;if(ordered.length===1){events.set(ordered[0].id,tickFront(ordered[0],front,dt));return events;}advanceEnemyClock(front,dt);const eligible=ordered.filter(state=>!state.down&&!state.ended),living=front.enemies.filter(row=>!row.dead);refreshAttention(living,eligible);advanceSharedEnemyFormation(eligible,living,dt,front.stage);for(const state of ordered)events.set(state.id,tickFront(state,front,dt,{advanceEnemies:false,advanceFormation:false,heroPositionAuthority:true,enemyPositionAuthority:false,attentionStates:eligible,sharedParticipantCount:eligible.length}));if(front.enemies.every(enemy=>enemy.dead)){front.cleared=true;front.clearSeconds+=dt;}return events;}
++function tickSharedFrontStep(states,front,dt){const ordered=[...states].sort((a,b)=>a.id.localeCompare(b.id)),events=new Map();if(!ordered.length)return events;if(ordered.length===1){events.set(ordered[0].id,tickFront(ordered[0],front,dt));return events;}advanceEnemyClock(front,dt);const eligible=ordered.filter(state=>!state.down&&!state.ended),living=front.enemies.filter(row=>!row.dead);refreshAttention(living,eligible);advanceSharedEnemyFormation(eligible,living,dt,front.stage);for(const state of ordered)events.set(state.id,tickFront(state,front,dt,{advanceEnemies:false,advanceFormation:false,heroPositionAuthority:true,enemyPositionAuthority:false,attentionStates:eligible,sharedParticipantCount:eligible.length}));if(front.enemies.every(enemy=>enemy.dead)){front.cleared=true;front.clearSeconds+=dt;}return events;}
++
++// Tidebreak caps one motor step at 1/30 s. Subdivide real time here instead of
++// silently discarding elapsed time on lower-rate clients or server ticks.
++function realSteps(dt){
++  if(!Number.isFinite(dt)||dt<0||dt>.25)throw new RangeError('Invalid combat real-time delta');
++  return dt>0?Math.ceil(dt/(1/60)):0;
++}
++export function tickFront(state,front,dt,options={}){
++  const count=realSteps(dt),events=[];
++  for(let i=0;i<count;i++)events.push(...tickFrontStep(state,front,dt/count,options));
++  return events;
++}
++export function tickSharedFront(states,front,dt){
++  const count=realSteps(dt),events=new Map(states.map(state=>[state.id,[]]));
++  for(let i=0;i<count;i++)for(const [id,rows] of tickSharedFrontStep(states,front,dt/count))events.get(id).push(...rows);
++  return events;
++}
+ diff --git a/packages/tidebreak-combat/index.js b/packages/tidebreak-combat/index.js
+index 6f12cf9..358e212 100644
+--- a/packages/tidebreak-combat/index.js
++++ b/packages/tidebreak-combat/index.js
+@@ -3508,0 +3509,16 @@ function syncActors(v={}){sharedFacade.syncActor(hero,v.hero);const rows=Array.i
++// Update the next canonical selection without recreating actors, consuming RNG,
++// resetting attack instances, or replaying the standalone demonstration intro.
++function setPolicy(v={}){
++ const set=v.loadout;
++ if(set){
++  for(const k of ATTACK_KEYS)if(set[k]){
++   const recipe=normalizeRecipe({...set[k],weapon:equippedWeapon});
++   attackPools[k]=[recipe,emptyRecipe(k),emptyRecipe(k)];draftPools[k]=copy(attackPools[k]);candidateIndex[k]=0;attackWeights[k]=[100,0,0];
++  }
++  bindPools();
++  if(set.uke){const recipe=normalizeRecipe({...set.uke,weapon:equippedWeapon});if(recipe.type!=='reaction')throw Error('Canonical reaction must be a reaction recipe');loadout.uke=copy(recipe);defensePools.uke=[recipe];}
++ }
++ if(v.mindset&&Object.hasOwn(MINDS,v.mindset)){mindset=fixedMindset=v.mindset;defensePools.mind=[mindset];if(hero)hero.mindCandidate=0;}
++ if(Object.hasOwn(v,'enemyLoadout')&&enemies[0]){if(v.enemyLoadout)enemies[0].sharedLoadout=copy(v.enemyLoadout);else delete enemies[0].sharedLoadout;}
++ battleMode=defenseMode=tempoMode='fixed';return state();
++}
+@@ -3515 +3531,6 @@ function configure(v={}){
+- if(v.positions?.hero){Object.assign(hero,v.positions.hero);hero.home=[hero.x,hero.z];initFeet(hero);}return state();
++ if(v.positions?.hero){Object.assign(hero,v.positions.hero);hero.home=[hero.x,hero.z];initFeet(hero);}
++ // A canonical encounter has already entered combat. Do not replay the demo's
++ // sheath/draw introduction every time the host refreshes a policy session.
++ setPolicy(v);
++ if(v.encounterReady===true)for(const actor of [hero,...enemies]){actor.combatReady=true;actor.combatBlend=1;actor.weaponDraw=1;actor.weaponTransition=null;}
++ return state();
+@@ -3521 +3542 @@ return {
+- configure,
++ configure,setPolicy,
