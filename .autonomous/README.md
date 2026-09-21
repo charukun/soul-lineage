@@ -111,6 +111,32 @@ The controller contract is:
 This controller adds no persistent Actions workload and does not alter Fast DEV, exact-head Astra validation, freshness, Ready, develop merge, or Production gates.
 
 
+
+## Iteration telemetry
+
+PULSEへ自律改善の進行を正確に出すため、すべての新規iterationは `runKey + iteration` で一意なtelemetry recordを持ちます。1セッション1iterationでも、同一セッション3iterationsでも、複数セッション並行でも同じ契約です。
+
+正規stepは次の10個です。
+
+`observation → investigation → implementation → causalValidation → astraValidation → afterObservation → verdict → freshness → merge → devPublish`
+
+telemetryは `scripts/autonomous-iteration-telemetry.mjs` を正本とし、各stepに `startedAt / completedAt / durationMs / state` を持ちます。時刻は実行runtimeまたはtoolが返した実時刻を使い、推測値を記録しません。step境界では前stepを完了して同一時刻から次stepを開始します。
+
+iteration開始時、immutable Before取得より前にtelemetryを初期化します。Draft PR作成前のtelemetryはそのセッション内で保持し、PR作成後に `autonomous-iteration-telemetry:v1` markerとしてPR bodyへbindします。以後はstep境界ごとに同じmarkerだけを更新し、PR本文の人間向け説明を消しません。
+
+theme決定後は `theme / themeKey / rootCauses`、実装後は `improvementSummary / changes / changedPaths`、検証・完了時は `validatedHead / verdict / mergeSha` を同じrecordへ追記します。telemetryは観測UI用の記録であり、experiment v3 / receipt / GitHub Actions / merge freshnessの正本を置き換えません。
+
+`scripts/autonomous-run-controller.mjs` は以下も提供します。
+
+```sh
+node scripts/autonomous-run-controller.mjs telemetry-init --game kuumetsu --sha <source-sha> --run-key <run-key> --iteration 1 --iterations 3 --at <iso-time>
+node scripts/autonomous-run-controller.mjs telemetry-advance --telemetry-json '<json>' --from observation --to investigation --at <iso-time> --patch-json '<json>'
+node scripts/autonomous-run-controller.mjs telemetry-marker --telemetry-json '<json>'
+```
+
+DEV publication完了は従来どおり待機しません。merge後の `devPublish` はPULSEが実際のPer-App DEV Publish runと照合して補完できます。
+
+
 ## Iteration fast path
 
 自律iterationの制御は、品質gateを増やさず次の3種類の情報を同じrun座標へ集約する。

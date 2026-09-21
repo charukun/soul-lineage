@@ -14,6 +14,8 @@ test('publication plan pins exact source and reuses the existing per-app DEV wor
   assert.deepEqual(plan.dispatch.inputs,{app:'demon',source_sha:SHA});
   assert.equal(plan.dispatch.retrySameSourceIfCancelled,true);
   assert.equal(plan.isolation.mutableLatestDevForbidden,true);
+  assert.equal(plan.telemetry.iterationId,'run-20260921-a:2');
+  assert.equal(plan.telemetry.runKey,'run-20260921-a');
 });
 
 test('immutable Cloudflare version preview is bound after publication',()=>{
@@ -76,4 +78,7 @@ test('controller requires immutable version previews for evidence',()=>{
   assert.match(source,/cloudflare-worker-version-preview/);
   assert.match(source,/mutableLatestDevForbidden:true/);
   assert.match(source,/workerPreviewUrl/);
+  assert.match(source,/telemetry-init/);
+  assert.match(source,/telemetry-advance/);
+  assert.match(source,/telemetry-marker/);
 });

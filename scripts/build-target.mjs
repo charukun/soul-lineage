@@ -21,7 +21,7 @@ export function targetInputHash(root,nodes,app,targetId){
   const target=assertBuildableTarget(targetId,app);
   const environment=target.environment||'dev';
   if(app===PULSE_APP){
-    const files=git(root,['ls-files','ops-board','wrangler.dev.pulse.jsonc','scripts/prepare-pulse-worker.mjs','scripts/notify-fast-dev.mjs'])
+    const files=git(root,['ls-files','ops-board','wrangler.dev.pulse.jsonc','scripts/prepare-pulse-worker.mjs','scripts/notify-fast-dev.mjs','scripts/autonomous-iteration-telemetry.mjs'])
       .split(/\r?\n/).filter(Boolean).sort();
     const source=createHash('sha256').update('pulse-worker-v1\0');
     for(const file of files)source.update(file).update('\0').update(readFileSync(resolve(root,file))).update('\0');

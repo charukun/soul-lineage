@@ -300,16 +300,20 @@ function renderSession(session,{iteration=false}={}) {
   const row=el('article','rapid-session-row '+(session.status||'active')+(iteration?' rapid-iteration-row':''));
   const head=el('div','rapid-session-head');
   const prHref=safeHref(session.pr?.url);
-  const titlePrefix=iteration?(iterationGameLabel(session.autonomous?.game)+(session.autonomous?.number?' · Iteration '+session.autonomous.number:'')):'#'+(session.pr?.number||'?');
+  const iterationGame=session.autonomous?.game||session.game,iterationNumber=session.autonomous?.number||session.iteration;
+  const titlePrefix=iteration?(iterationGameLabel(iterationGame)+(iterationNumber?' · Iteration '+iterationNumber:'')):'#'+(session.pr?.number||'?');
   const title=el(prHref?'a':'strong','rapid-session-title',titlePrefix+' · '+(session.title||'開発セッション'));
   if(prHref){title.href=prHref;title.target='_blank';title.rel='noreferrer';}
   const target=(session.targets||[]).map(item=>item.label).join(' / ')||'対象確認中';
   head.append(title,el('time','',relative(session.updatedAt)));
   const meta=el('div','rapid-session-meta');
   meta.append(el('span','',target));
-  if(session.validatedExactHead)meta.append(el('code','',String(session.validatedExactHead).slice(0,8)));
+  const validated=session.validatedExactHead||session.validatedHead;
+  if(validated)meta.append(el('code','',String(validated).slice(0,8)));
   if(session.repairAttempts)meta.append(el('span','rapid-session-repair','repair '+session.repairAttempts));
-  const phases=iteration?(session.iterationSteps||session.steps||[]):(session.steps||[]);
+  const allPhases=iteration?(session.iterationSteps||session.steps||[]):(session.steps||[]);
+  const summaryIds=new Set(['observation','implementation','astraValidation','afterObservation','merge','devPublish']);
+  const phases=iteration?allPhases.filter(phase=>summaryIds.has(phase.id)):allPhases;
   const flow=el('div','rapid-session-flow'+(iteration?' rapid-iteration-flow':''));
   for(const phase of phases){
     const view=sessionStepView(phase.state),href=safeHref(phase.url);
@@ -326,9 +330,12 @@ function renderSession(session,{iteration=false}={}) {
 function renderIterations(state){
   const root=$('#rapid-iteration-list'),count=$('#rapid-iteration-count');
   if(!root||!count)return;
-  const iterations=(state?.developmentSessions||[]).filter(session=>session.autonomous).slice(0,3);
+  const all=Array.isArray(state?.autonomousIterations)&&state.autonomousIterations.length
+    ? state.autonomousIterations
+    : (state?.developmentSessions||[]).filter(session=>session.autonomous);
+  const iterations=all.slice(0,3);
   root.replaceChildren();
-  count.textContent=iterations.length?iterations.length+'件':'0件';
+  count.textContent=all.length?all.length+'件':'0件';
   if(!iterations.length){
     root.append(el('p','rapid-empty','直近の自律イテレーションはありません'));
     return;

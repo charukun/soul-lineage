@@ -8,7 +8,7 @@ const PULSE_APP='pulse';
 const pulsePath=path=>path.startsWith('ops-board/')
   || path==='wrangler.ops.jsonc'
   || path==='wrangler.dev.pulse.jsonc'
-  || /^scripts\/(?:application-catalog|distribution-targets|prepare-pulse-worker|notify-fast-dev)\.mjs$/.test(path);
+  || /^scripts\/(?:application-catalog|distribution-targets|prepare-pulse-worker|notify-fast-dev|autonomous-iteration-telemetry)\.mjs$/.test(path);
 
 export function distributionPlanForDev(nodes,paths){
   const publishPulse=paths.some(pulsePath);
