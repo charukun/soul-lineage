@@ -102,8 +102,8 @@ test('review controls follow reviewer intent: target, three scopes, five-column 
     ['outfit','服・パーツ',['part','variant','dye']]
   ]);
   assert.match(code, /character-review-section-tabs/);
-  assert.match(code, /data\.reviewDecision = 'ok'/);
-  assert.match(code, /data\.reviewDecision = 'fix'/);
+  assert.match(code, /dataset\.reviewDecision = 'ok'/);
+  assert.match(code, /dataset\.reviewDecision = 'fix'/);
   assert.match(code, /'OK'/);
   assert.match(code, /'要修正'/);
   assert.doesNotMatch(code, /REVIEW_CRITERIA|確認観点/);
