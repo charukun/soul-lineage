@@ -44,7 +44,7 @@ function advanceCursor(actor,cursor){
       if(cursor.phaseIndex>=PHASES.length){cursor.phaseIndex=0;cursor.cycle++;}}}
   return{before,after:nodeFor(actor,cursor)};
 }
-function stageDuration(technique,stage){const base=RHYTHM_SECONDS[technique.rhythm]||.66,kindScale=stage.kind==='heavy'?1.22:stage.kind==='ready'||stage.kind==='guard'||stage.kind==='brace'?.9:1;return Math.max(.38,base*kindScale/Math.max(.72,technique.tempo||1));}
+function stageDuration(technique,stage){const base=RHYTHM_SECONDS[technique.rhythm]||.66,kindScale=stage.kind==='heavy'?1.22:(['ready','guard','brace'].includes(stage.kind)?.9:1);return Math.max(.38,base*kindScale/Math.max(.72,technique.tempo||1));}
 function stageCost(stage){return KIND_COST[stage.kind]??5;}
 function stageDamage(stage){return KIND_DAMAGE[stage.kind]??0;}
 function motionFor(node){const motion=resolveJohakyuMotion({weapon:'sword',kind:node.stage.step.kind,charge:node.stage.step.charge,phase:node.phase});if(!motion.supported)throw new Error('Unsupported composition motion: '+node.technique.id+'/'+node.stage.step.kind);return motion;}
@@ -59,13 +59,13 @@ function footworkOffset(actor,footwork){
 export function createJohakyuP7ReviewScenario({mode='duel'}={}){
   if(!Object.hasOwn(MODES,mode))throw new RangeError('Unsupported battle review mode');
   let encounter=1,epoch=1,revision=0,time=0,resumes=0,resumed=false,battle;
-  let actionState=new Map(),cursors=new Map(),readyAt=new Map(),lastEvents=[],trace=[],lastFrame=null,lastMeta=null;
+  let actionState=new Map(),cursors=new Map(),readyAt=new Map(),lastEvents=[],trace=[],lastFrame=null,lastMeta=null,attemptSerial=0;
 
   function cursorFor(actor){let cursor=cursors.get(actor.id);if(!cursor){cursor=cursorState();cursors.set(actor.id,cursor);}return cursor;}
   function seedReadyWindow(delay=.24){readyAt.clear();for(const actor of battle.actors.values())readyAt.set(actor.id,time+delay+(actor.side==='enemy'?.12:0));}
   function freshBattle(){
     battle=createJohakyuBattle({battleId:`review-p7:${mode}:${encounter}`,actors:actorRows(mode),seed:73917+encounter});
-    actionState=new Map();cursors=new Map();readyAt=new Map();lastEvents=[];resumed=false;revision=0;seedReadyWindow(.34);
+    actionState=new Map();cursors=new Map();readyAt=new Map();lastEvents=[];resumed=false;revision=0;attemptSerial=0;seedReadyWindow(.34);
   }
   freshBattle();
 
@@ -76,7 +76,7 @@ export function createJohakyuP7ReviewScenario({mode='duel'}={}){
     if(cost>0&&!spendJohakyuStamina(actor,cost)){readyAt.set(actor.id,time+.32);return null;}
     const motion=motionFor(node),duration=stageDuration(node.technique,node.stage),serial=`${cursor.cycle}:${cursor.phaseIndex}:${cursor.techniqueIndex}:${cursor.stageIndex}`;
     return{phaseEpoch:`${cursor.cycle}:${cursor.phaseIndex}`,startedAt:time,duration,impacted:false,
-      id:`${battle.battleId}:${actor.id}:${serial}`,targetId:target.id,node,motion};
+      id:`${battle.battleId}:${actor.id}:${serial}:attempt-${++attemptSerial}`,targetId:target.id,node,motion};
   }
   function finishAction(actor,state,{interrupted=false}={}){
     actionState.delete(actor.id);
