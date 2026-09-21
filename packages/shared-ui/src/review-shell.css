@@ -36,3 +36,12 @@
 
 .review-runtime-thumbnail{display:block!important;width:100%!important;height:auto!important;max-width:100%!important;aspect-ratio:36/23!important;object-fit:cover!important;border-radius:5px!important;background:#101715!important;pointer-events:none!important}
 .review-choice-card>.review-runtime-thumbnail{min-width:0!important;align-self:start!important}
+
+.review-stage-controls{position:absolute;z-index:32;right:max(10px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom));font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.review-stage-controls__button{width:42px;height:42px;display:grid;place-items:center;padding:0;border:1px solid #59655f;border-radius:50%;background:#101715e8;color:#ece9df;box-shadow:0 8px 22px #0009;backdrop-filter:blur(12px);font-size:18px;line-height:1;cursor:pointer;touch-action:manipulation}
+.review-stage-controls[data-open="true"] .review-stage-controls__button{border-color:var(--vrl-accent);background:#29271ff2;color:#fff1c8}
+.review-stage-controls__panel{position:absolute;right:0;bottom:50px;width:min(330px,calc(100vw - 28px));max-height:min(62dvh,460px);overflow:auto;overscroll-behavior:contain;padding:10px;border:1px solid #46534d;border-radius:12px;background:#0b110ff5;box-shadow:0 18px 44px #000c;backdrop-filter:blur(16px)}
+.review-stage-controls__panel[hidden]{display:none!important}.review-stage-controls__title{display:block;margin:0 0 8px;color:#d8ded9;font-size:10px;letter-spacing:.05em}
+.review-stage-controls__panel>.motion-playback,.review-stage-controls__panel>.motion-timeline,.review-stage-controls__panel>.sound-time,.review-stage-controls__panel>.sound-actions,.review-stage-controls__panel>.asset-camera-strip,.review-stage-controls__panel>.object-camera-strip,.review-stage-controls__panel>.camera-zoom{position:static!important;inset:auto!important;transform:none!important;width:100%!important;max-width:none!important;margin:6px 0!important}
+.review-stage-controls__panel>details{position:static!important;inset:auto!important;width:100%!important;max-width:none!important;margin:6px 0!important;transform:none!important}
+@media(max-width:520px){.review-stage-controls{right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom))}.review-stage-controls__button{width:40px;height:40px}.review-stage-controls__panel{bottom:47px;width:min(310px,calc(100vw - 22px));max-height:min(58dvh,390px)}}
