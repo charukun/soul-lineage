@@ -83,7 +83,7 @@ function executionStage(session,execution){
 }
 function executionCapability(state,session,next){
   const execution=next.hero.execution;if(!execution)return null;
-  const step=executionStage(session,execution)||{},base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,phase=execution.phase||next.hero.slot||'jo';
+  const step=executionStage(session,execution)||{},base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,rawPhase=execution.phase||next.hero.slot||'jo',phase=rawPhase==='mind'?'uke':(['jo','ha','kyu','uke','one','finisher','enemy'].includes(rawPhase)?rawPhase:(state.combat?.phase||'jo'));
   const effort=causalTechnique(session,next.hero)?.row.effort||1,cost=session.secondary?0:base.stamina*(phase==='kyu'?1.25:phase==='ha'?1.08:1)*effort;
   return johakyuStageCapability(state,{weapon:execution.weapon||tidebreakWeaponFor(state.equipment.weapon),phase,kind:step.kind||execution.kind||'ready',footwork:step.footwork||'stay',charge:step.charge||execution.charge||'none',staminaCost:cost});
 }
