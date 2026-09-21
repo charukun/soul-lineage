@@ -141,7 +141,7 @@ test('real guard and parry resolve incoming contact before damage and parry arms
    counter=counter||r.events.find(event=>event.type==='player-hit'&&event.counter===true);
  }
  assert.ok(parry,'authored parry stage must intercept a real incoming contact');
- assert.equal(parry.damage,0);assert.equal(parry.blocked,true);assert.equal(parry.parried,true);
+ assert.equal(parry.damage,0);assert.equal(parry.blocked,true);assert.equal(parry.parried,true);assert.ok(['left','right'].includes(parry.parryDirection));
  assert.ok(counter,'counter stage must only land from the armed parry window');
  assert.ok(counter.damage>0);assert.equal(counter.counter,true);
 });
@@ -199,6 +199,18 @@ test('threat-driven reaction parry can occur outside the configured technique cu
  assert.ok(parryStart);assert.equal(parryStart.contextTechniqueId,'action.crash','reaction must preserve the technique cursor instead of impersonating action.counter');
 });
 
+test('parry direction opens an angled counter lane instead of returning straight through center',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5});let parry=null,counterAction=null;
+ for(let i=0;i<1200&&!(parry&&counterAction);i++){
+   const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self);
+   parry=parry||r.events.find(e=>e.type==='parry'&&e.targetId==='hero'&&e.defenseScope==='combat-reaction');
+   if(parry&&hero?.action?.scope==='combat-reaction'&&hero.action.reaction==='counter')counterAction=hero.action;
+ }
+ assert.ok(parry);assert.ok(counterAction,'parry must create an observable reaction counter');
+ assert.equal(counterAction.parryDirection,parry.parryDirection);
+ assert.equal(counterAction.footwork,parry.parryDirection==='right'?'counterR':'counterL');
+});
+
 test('side and orbit spacing use authored strafe clips that exist on both combat actors',()=>{
  const expected={sideL:'Running_Strafe_Left',sideR:'Running_Strafe_Right',orbitL:'Running_Strafe_Left',orbitR:'Running_Strafe_Right',retreat:'Walking_Backwards'},manifest=JSON.parse(readFileSync(new URL('../src/nocturne/manifest.json',import.meta.url),'utf8'));
  for(const [footwork,clip] of Object.entries(expected)){const binding=resolveJohakyuLocomotion({footwork});assert.equal(binding.supported,true);assert.equal(binding.clip,clip);for(const id of ['adventurers/Knight','skeletons/Skeleton_Warrior'])assert.ok(manifest.models[id].animations.includes(clip),id+'/'+clip);}
@@ -209,7 +221,7 @@ test('battle2 presentation layers hit reactions, local hit stop, two-actor frami
  const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),audio=readFileSync(new URL('../src/nocturne/audio.js',import.meta.url),'utf8'),sharedAudio=readFileSync(new URL('../../../packages/johakyu-presentation/src/audio.js',import.meta.url),'utf8');
  assert.match(runtime,/resolveFatiguePresentation/);assert.match(runtime,/applyFatigue\(a,row,dt\)/);assert.match(runtime,/reactionClip=\['head','leftArm','rightArm'\]\.includes\(event\.bodyPart\)\?'Hit_B':'Hit_A'/);
  assert.match(runtime,/game\.hitstop=Math\.max/);assert.match(runtime,/midpoint=opponent\?hero\.pos\.clone\(\)\.lerp\(opponent\.pos,\.5\)/);assert.match(runtime,/camera\.zoom=lerp/);
- assert.match(runtime,/sound\.swing\?\./);assert.match(runtime,/sound\.parry\?\./);assert.match(runtime,/sound\.impact\?\./);assert.match(runtime,/event\.contactPoint/);assert.match(runtime,/const parry=event\.type==='parry',point=event\.contactPoint/);assert.match(sharedAudio,/createStereoPanner/);assert.match(sharedAudio,/fatigueVoices/);
+ assert.match(runtime,/sound\.swing\?\./);assert.match(runtime,/sound\.parry\?\./);assert.match(runtime,/sound\.impact\?\./);assert.match(runtime,/event\.contactPoint/);assert.match(runtime,/bladeClashPoint/);assert.match(runtime,/function weaponAxis/);assert.match(runtime,/source\.parryRecoil=/);assert.match(runtime,/applyParryRecoil\(a\)/);assert.match(sharedAudio,/createStereoPanner/);assert.match(sharedAudio,/fatigueVoices/);
  for(const path of [
   '../public/library/audio/kenney/sword-swing/368a5d13d3b2cc9d0bf6abe86c5ba950e49aaeb4.ogg',
   '../public/library/audio/kenney/sword-metal/7c57bffa367f23199029ef8dade2643b58627e98.ogg',
