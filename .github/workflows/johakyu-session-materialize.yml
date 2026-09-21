@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 4
+          fetch-depth: 8
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
@@ -24,15 +24,14 @@ jobs:
           mkdir -p /tmp/johakyu-source
           cp scripts/tasks/johakyu-p3-program.json /tmp/johakyu-source/program.json
           git rev-parse HEAD > /tmp/johakyu-source/SOURCE_SHA
-          npm pack three@0.186.0 --pack-destination /tmp/johakyu-source
+          npm pack three@0.186.0 --quiet --pack-destination /tmp/johakyu-source
       - name: Verify and materialize exact P3 implementation
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import json,base64,gzip,hashlib,pathlib,subprocess
-          p=pathlib.Path('scripts/tasks/johakyu-p3-program.json')
-          manifest=json.loads(p.read_text())
+          manifest=json.loads(pathlib.Path('scripts/tasks/johakyu-p3-program.json').read_text())
           encoded=manifest['program']
           repairs=pathlib.Path('scripts/tasks/johakyu-p3-repairs.json')
           if repairs.exists():
@@ -41,11 +40,10 @@ jobs:
                   encoded=encoded.replace(old,new)
           program=gzip.decompress(base64.b64decode(encoded,validate=True))
           assert hashlib.sha256(program).hexdigest()==manifest['sha256'], 'Source program hash mismatch'
-          # Input must still be based on the declared exact implementation.
           subprocess.run(['git','merge-base','--is-ancestor',manifest['baseSha'],'HEAD'],check=True)
           assert subprocess.check_output(['git','diff','--name-only',manifest['baseSha'],'HEAD','--','apps','packages','package-lock.json']).strip()==b'', 'Source drift before transformation'
-          exec(compile(program,'johakyu-p3-materialize','exec'))
-          p.unlink()
+          exec(compile(program,'johakyu-p3-materialize','exec'), {'__name__':'__main__'})
+          pathlib.Path('scripts/tasks/johakyu-p3-program.json').unlink()
           if repairs.exists(): repairs.unlink()
           pathlib.Path('.github/workflows/johakyu-session-materialize.yml').unlink()
           PY
