@@ -56,3 +56,36 @@ test('Character Studio groups review domains and reuses shared slot picker',asyn
   await assert.rejects(access(new URL('apps/character-studio/src/review-slot-picker.js',root)));
   await assert.rejects(access(new URL('apps/character-studio/src/review-slot-picker.css',root)));
 });
+
+
+test('Character Studio review styles are colocated with the character review domain',async()=>{
+  const [index,advanced,grid,modular]=await Promise.all([
+    read('apps/character-studio/index.html'),
+    read('apps/character-studio/advanced.html'),
+    read('apps/character-studio/src/review/character/grid.js'),
+    read('apps/character-studio/src/review/character/modular.js'),
+  ]);
+  assert.match(index,/src\/review\/character\/main\.css/);
+  assert.match(advanced,/src\/review\/character\/runtime\.css/);
+  assert.match(advanced,/src\/review\/character\/advanced\.css/);
+  assert.match(grid,/import '\.\/grid\.css'/);
+  assert.match(modular,/import '\.\/modular\.css'/);
+  for(const legacy of ['character-review-main.css','character-review-grid.css','character-review.css','character-review-advanced.css','character-review-modular.css']){
+    await assert.rejects(access(new URL('apps/character-studio/src/'+legacy,root)));
+  }
+});
+
+test('review loading and DOM auto-install lifecycle use shared primitives',async()=>{
+  const [pkg,objects,equipment,character,charSlots,rinneSlots]=await Promise.all([
+    read('packages/shared-ui/package.json'),
+    read('apps/rinne/src/review/objects/entrypoint.js'),
+    read('apps/rinne/src/review/equipment/entrypoint.js'),
+    read('apps/character-studio/src/review/character/runtime.js'),
+    read('apps/character-studio/src/review-slot-auto.js'),
+    read('apps/rinne/src/review/shared/slot-auto.js'),
+  ]);
+  assert.match(pkg,/review-auto-install/);
+  assert.match(pkg,/review-load-controller/);
+  for(const source of [objects,equipment,character])assert.match(source,/createReviewLoadController/);
+  for(const source of [charSlots,rinneSlots])assert.match(source,/createReviewAutoInstaller/);
+});

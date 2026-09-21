@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
 import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.js';
 import {createCanonicalPresentationDriver} from '../../../packages/johakyu-presentation/src/driver.js';
-import {resolveJohakyuLocomotion} from '../../../packages/johakyu-combat/src/motion-contract.js';
+import {resolveJohakyuLocomotion,resolveJohakyuMotion} from '../../../packages/johakyu-combat/src/motion-contract.js';
+import {BATTLE2_VERSION} from '../src/battle2-version.js';
 
 const stageSource=()=>readFileSync(new URL('../src/nocturne-stage.js',import.meta.url),'utf8');
 const hudCss=()=>readFileSync(new URL('../src/nocturne/johakyu-p7-readout.css',import.meta.url),'utf8');
@@ -88,6 +89,12 @@ test('canonical footwork persists in world space and only reachable impacts beco
 });
 
 
+test('authored sword motions expose contact timing and blade trajectory metadata',()=>{
+ const slash=resolveJohakyuMotion({weapon:'sword',kind:'slash',phase:'jo'}),parry=resolveJohakyuMotion({weapon:'sword',kind:'parry',phase:'uke'});
+ assert.equal(slash.supported,true);assert.ok(slash.contactProgress>.45&&slash.contactProgress<.65);assert.ok(['left','right'].includes(slash.deflect));assert.notEqual(slash.bladeTrajectory,'neutral');
+ assert.equal(parry.supported,true);assert.ok(parry.contactProgress>.3&&parry.contactProgress<.6);assert.equal(parry.clip,'Block_Hit');
+});
+
 test('duel body clearance prevents mesh penetration and parry exposes a weapon-clash point',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2});let minDistance=Infinity,parry=null,parryFrame=null;
  for(let i=0;i<900&&(!parry||i<240);i++){
@@ -98,7 +105,7 @@ test('duel body clearance prevents mesh penetration and parry exposes a weapon-c
  }
  assert.ok(minDistance>=1.459,`body centers must never collapse through each other: ${minDistance}`);
  assert.ok(parry,'duel must produce a parry');
- assert.equal(parry.bodyClearance,1.46);assert.ok(parry.contactDistance>=parry.bodyClearance-.001);
+ assert.equal(parry.bodyClearance,1.46);assert.ok(parry.contactDistance>=parry.bodyClearance-.001);assert.ok(parry.sourceContactProgress>.45&&parry.sourceContactProgress<.65);assert.ok(parry.defenseContactProgress>.3&&parry.defenseContactProgress<.6);
  assert.ok(Number.isFinite(parry.contactPoint?.x)&&Number.isFinite(parry.contactPoint?.z),'parry must expose a real clash point');
  const midpoint={x:(parryFrame.hero.x+parryFrame.enemy.x)/2,z:(parryFrame.hero.z+parryFrame.enemy.z)/2};
  assert.ok(Math.hypot(parry.contactPoint.x-midpoint.x,parry.contactPoint.z-midpoint.z)<.01,'clash point must sit between the two weapon bearers');
@@ -221,7 +228,7 @@ test('battle2 presentation layers hit reactions, local hit stop, two-actor frami
  const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),audio=readFileSync(new URL('../src/nocturne/audio.js',import.meta.url),'utf8'),sharedAudio=readFileSync(new URL('../../../packages/johakyu-presentation/src/audio.js',import.meta.url),'utf8');
  assert.match(runtime,/resolveFatiguePresentation/);assert.match(runtime,/applyFatigue\(a,row,dt\)/);assert.match(runtime,/reactionClip=\['head','leftArm','rightArm'\]\.includes\(event\.bodyPart\)\?'Hit_B':'Hit_A'/);
  assert.match(runtime,/game\.hitstop=Math\.max/);assert.match(runtime,/midpoint=opponent\?hero\.pos\.clone\(\)\.lerp\(opponent\.pos,\.5\)/);assert.match(runtime,/camera\.zoom=lerp/);
- assert.match(runtime,/sound\.swing\?\./);assert.match(runtime,/sound\.parry\?\./);assert.match(runtime,/sound\.impact\?\./);assert.match(runtime,/event\.contactPoint/);assert.match(runtime,/bladeClashPoint/);assert.match(runtime,/function weaponAxis/);assert.match(runtime,/source\.parryRecoil=/);assert.match(runtime,/applyParryRecoil\(a\)/);assert.match(sharedAudio,/createStereoPanner/);assert.match(sharedAudio,/fatigueVoices/);
+ assert.match(runtime,/sound\.swing\?\./);assert.match(runtime,/sound\.parry\?\./);assert.match(runtime,/sound\.impact\?\./);assert.match(runtime,/event\.contactPoint/);assert.match(runtime,/bladeClashPoint/);assert.match(runtime,/function weaponAxis/);assert.match(runtime,/sampleWeaponTrace/);assert.match(runtime,/deflectionFromBladeTrace/);assert.match(runtime,/syncContactPose/);assert.match(runtime,/source\.parryRecoil=/);assert.match(runtime,/collectParryRig/);assert.match(runtime,/applyParryRecoil\(a\)/);assert.match(runtime,/contactHold/);assert.match(sharedAudio,/createStereoPanner/);assert.match(sharedAudio,/fatigueVoices/);
  for(const path of [
   '../public/library/audio/kenney/sword-swing/368a5d13d3b2cc9d0bf6abe86c5ba950e49aaeb4.ogg',
   '../public/library/audio/kenney/sword-metal/7c57bffa367f23199029ef8dade2643b58627e98.ogg',
@@ -235,9 +242,11 @@ test('battle2 consumes canonical actor capability without duplicating the next i
  const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');assert.match(source,/johakyuActorCapability/);assert.match(source,/capability\.canAttack/);assert.match(source,/capability:\{canMove:capability\.canMove,canAttack:capability\.canAttack/);assert.doesNotMatch(source,/johakyuStageCapability|void capability/);
 });
 
-test('battle2 shows the current build version from canonical build info',()=>{
+test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(html,/id="battle2-version"/);assert.match(stage,/__BUILD_INFO__\?\.commit/);assert.match(stage,/DEV · \$\{buildCommit\.slice\(0,7\)\}/);assert.match(css,/\.battle2-version\{/);
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'1.0.0');
+ assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
+ assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
 
 test('HUD metadata comes from the executing technique and stage',()=>{

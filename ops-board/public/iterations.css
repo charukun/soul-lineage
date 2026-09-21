@@ -57,3 +57,15 @@ body{margin:0;background:#0b0f15;color:#dbe4ef;font-family:Inter,ui-sans-serif,s
 .iteration-meta a{color:#86aee0;text-decoration:none}
 .iteration-empty{padding:28px 12px;border:1px dashed #293445;border-radius:12px;color:#77869a;text-align:center}
 @media(max-width:720px){.iteration-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.iteration-grid{grid-template-columns:1fr}.iteration-card-head{grid-template-columns:1fr}.iteration-current{justify-items:start}.iteration-times{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Iteration operator UX: deep links, NOW emphasis and repair handoff. */
+.iteration-card.requested{border-color:#4f7da8;box-shadow:0 0 0 1px rgba(105,164,219,.22),0 0 26px rgba(68,121,171,.12)}
+.iteration-current-label{color:#7da8d2!important;font-size:8px!important;font-weight:900;letter-spacing:.1em}
+.iteration-card.problem .iteration-current-label{color:#d99499!important}
+.iteration-retry{color:#c89d63}
+.iteration-repair-action{display:flex;align-items:center;gap:8px;padding-top:2px}
+.iteration-repair-button{min-height:34px;padding:6px 10px;border:1px solid #704048;border-radius:8px;background:#171116;color:#e0a6aa;font:800 9px/1.2 inherit;cursor:pointer}
+.iteration-repair-button:focus-visible{outline:2px solid #d58b91;outline-offset:2px}
+.iteration-repair-status{color:#8794a7;font-size:8px}
+.iteration-copy-fallback{position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
