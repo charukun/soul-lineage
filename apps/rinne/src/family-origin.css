@@ -94,3 +94,21 @@ dialog.family-memory-dialog{box-sizing:border-box;width:min(460px,calc(100vw - 2
 @media(max-height:580px){.family-origin-content{padding-top:48px;padding-bottom:20px}.family-story-prompt{font-size:21px;margin-bottom:6px}.family-memory-stage{height:210px}.family-memory-presence{min-height:200px}.family-memory-apparition{width:min(46vw,220px);height:145px;margin-bottom:5px}.family-memory-label{font-size:11px}.family-story-crest{width:48px;height:48px;margin-bottom:8px}.family-story-family{font-size:24px}.family-story-tradition{margin:3px 0 8px}.family-birth-confirm{width:104px;height:104px;font-size:13px}.family-story-replace{margin-bottom:5px}}
 .family-origin[data-motion=off] *{animation:none!important;transition:none!important}.family-origin[data-motion=off] .family-memory-presence{opacity:1;transform:none;filter:none}
 @media(prefers-reduced-motion:reduce){.family-origin *{animation:none!important;transition:none!important}.family-memory-presence{opacity:1;transform:none;filter:none}}
+
+
+/* Family Home: shared title resume / in-game lineage / life-end surface. */
+.family-home-dialog{width:min(680px,calc(100vw - 24px));max-width:none;max-height:min(88dvh,820px);padding:0;border:1px solid rgba(206,174,104,.62);border-radius:16px;background:#091019;color:#eee4cd;overflow:hidden;box-shadow:0 26px 90px rgba(0,0,0,.72)}
+.family-home-dialog::backdrop{background:rgba(2,6,10,.82);backdrop-filter:blur(7px)}
+.family-home-shell{position:relative;max-height:min(88dvh,820px);overflow:auto;padding:0 22px 24px;background:linear-gradient(180deg,rgba(12,22,30,.92),rgba(6,11,16,.99))}
+.family-home-shell .family-memory-close{position:absolute;z-index:4;right:12px;top:12px;width:44px;height:44px;border:1px solid rgba(218,190,130,.42);border-radius:50%;background:rgba(7,13,18,.76);color:#f0dfbb;font-size:24px}
+.family-home-dialog .family-home-picture{height:172px;margin:0 -22px 0;overflow:hidden;opacity:.72;mask-image:linear-gradient(#000 54%,transparent)}
+.family-home-dialog .family-preview-crest{width:78px;height:78px;margin:-57px auto 4px;position:relative;z-index:2}
+.family-home-name{margin:0;text-align:center;font-family:var(--font-rinne-display)!important;font-size:26px;font-weight:500;letter-spacing:.12em;color:#f6e6be}
+.family-home-dialog .family-preview-tradition{text-align:center;margin:6px 0 18px;color:#b8ab8d;font-size:11px;letter-spacing:.1em}
+.family-home-current{padding:15px;border:1px solid rgba(199,168,106,.32);border-radius:10px;background:rgba(25,31,34,.76)}
+.family-home-kicker{display:block;margin-bottom:5px;color:#cda968;font-size:10px;letter-spacing:.12em}
+.family-home-current>strong{font-family:var(--font-rinne-display)!important;font-size:18px;font-weight:500}.family-home-current>p{margin:5px 0 0;color:#ddd1b7;font-size:12px}.family-home-life-end{display:block;margin-top:8px;color:#c7a485}
+.family-home-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:13px}.family-home-stats span{display:grid;place-items:center;padding:7px 3px;border-top:1px solid rgba(204,171,105,.22)}.family-home-stats b{font-size:16px;color:#f2ddb2}.family-home-stats small{font-size:9px;color:#90866f}
+.family-home-history-title{margin:18px 0 8px;font-family:var(--font-rinne-display)!important;font-size:12px;font-weight:500;letter-spacing:.12em;color:#c8ad79}.family-home-history{margin:0;padding:0;list-style:none}.family-home-history li{padding:9px 4px;border-bottom:1px solid rgba(200,171,112,.14);font-size:11px;color:#c9c0aa}.family-home-empty{opacity:.72}
+.family-home-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:20px}.family-home-actions button{min-height:50px;border-radius:8px;font-family:var(--font-rinne-display)!important;letter-spacing:.08em}.family-home-primary{grid-column:1/-1;border:1px solid #c49a51;background:linear-gradient(180deg,#76552e,#49361f);color:#fff0c8}.family-home-secondary{border:1px solid #5e6870;background:#20282e;color:#ddd8ca}
+@media(max-width:560px){.family-home-shell{padding-inline:16px}.family-home-dialog .family-home-picture{margin-inline:-16px}.family-home-name{font-size:23px}.family-home-actions{grid-template-columns:1fr}.family-home-stats{gap:3px}.family-home-stats b{font-size:14px}}

@@ -64,7 +64,7 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   host.dispose=()=>{if(host.disposed)return;host.disposed=true;host.active=false;stopTitlePreview();canvas.dataset.runtime='disposed';view.dispose();};
   return host;
 }
-export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepared,coop=null,family=null,expectedSave=undefined}={}){
+export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProgress,prepared,coop=null,family=null,expectedSave=undefined}={}){
   const ownsPrepared=!prepared,host=prepared||await prepareRuntime({buildInfo,onProgress});
   if(host.disposed)throw Error('描画世界は終了済みです');
   if(host.active)throw Error('人生はすでに始まっています');
@@ -91,7 +91,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   const swipe=new SwipeInput();
   let front=coop?coop.snapshot().view.front:state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;if(front)state.frontState=front;
   let skirmish=coop?null:createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);
-  let coopTick=-1,coopEpoch=0,coopHistoryRevision=-1,rebirthPending=false,inputElapsed=0;
+  let coopTick=-1,coopEpoch=0,coopHistoryRevision=-1,rebirthPending=false,familyHomePending=false,inputElapsed=0;
   const birth=createBirthExperience({document,canvas,gameScreen,view,stations,getState:()=>state,dialogue});
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
@@ -123,9 +123,16 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   }
   function dialogue(speaker,text){$('speaker').textContent=speaker;$('dialogue-text').textContent=text;$('dialogue').hidden=false;clearTimeout(dialogue.timer);dialogue.timer=setTimeout(()=>$('dialogue').hidden=true,4200);}
   function showBirthIntro(){birth.showIntro();}
+  async function rebirthCurrent(villageId=null){
+    if(coop){rebirthPending=true;await coop.rebirth(villageId);return;}
+    state=rebirth(state,{villageId,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);skirmish=createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();syncUI();armMovementHint();showBirthIntro();toast(`${state.generation}代目 · 0歳`);
+  }
   function endLife(){
     view.clearCombatEffects?.();
-    if(endDialog?.open)return;
+    if(onLifeHome&&!familyHomePending){
+      familyHomePending=true;void (async()=>{try{await save();const action=await onLifeHome(structuredClone(state));if(action==='rebirth')await rebirthCurrent(null);else if(action==='title')await $('back-title').onclick();}catch(error){console.error(error);toast('一族の記録を開けませんでした');}finally{familyHomePending=false;}})();return;
+    }
+    if(onLifeHome||endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
     endDialog.innerHTML='<form method="dialog"><p id="life-end-age"></p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>次の出生<select id="rebirth-village"></select></label><p class="life-end-help">次の人生は0歳・基礎装備から。一族の家伝と記録、帰還して刻んだ故郷を受け継ぎます。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
     endDialog.querySelector('#life-end-age').textContent=state.ageYears>=LIFE_YEARS?'100年の生涯':`${Math.floor(state.ageYears)}歳の生涯`;
@@ -136,7 +143,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     document.body.append(endDialog);
     endDialog.addEventListener('close',async()=>{if(endDialog.returnValue==='rebirth'){
       if(coop){rebirthPending=true;void Promise.resolve(coop.rebirth(select.value||null)).catch(error=>{rebirthPending=false;toast(error.message);});endDialog.remove();endDialog=null;return;}
-      state=rebirth(state,{villageId:select.value||null,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);skirmish=createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;syncUI();armMovementHint();showBirthIntro();toast(`${state.generation}代目 · 0歳`);
+      await rebirthCurrent(select.value||null);endDialog.remove();endDialog=null;
     }else endDialog.showModal();});endDialog.showModal();
   }
   function handleEvents(events,eventKey){view.presentCombatEvents?.(events,{state,front,eventKey});for(const event of events){
