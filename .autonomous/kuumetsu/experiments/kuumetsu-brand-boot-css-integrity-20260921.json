@@ -61,7 +61,7 @@
     ]
   },
   "hypothesis": {
-    "cause": "The new progress-loader edit inserted escaped newline text into CSS source instead of real newlines, invalidating later animation rules and hiding the intended brand while load continues.",
+    "cause": "The progress-loader edit inserted escaped newline text into CSS source instead of real newlines, invalidating later animation rules and hiding the intended brand while load continues.",
     "prediction": "A source-only newline repair plus regression assertion restores branded loading without changing readiness scheduling, audio unlock, gameplay bootstrap, or hunt systems.",
     "falsifier": "Focused native assertion fails, boot scheduling changes, or fixed staging still shows the blank loader-only state."
   },
@@ -92,12 +92,13 @@
     "stagingAfter": "required",
     "limitations": [
       "Native assertion proves stylesheet source integrity, not cross-browser visual fidelity.",
-      "After staging will verify player-visible brand restoration; physical-device timing remains unmeasured."
+      "Exact work-head immutable Cloudflare staging is unavailable through the connected control surface; player-visible After will be checked on the post-merge immutable DEV version and recorded as such.",
+      "Physical-device timing remains unmeasured."
     ]
   },
   "receipt": {
     "repository": "charukun/soul-lineage",
-    "pullRequest": null,
+    "pullRequest": 1200,
     "marker": "autonomous-receipt:kuumetsu:kuumetsu-brand-boot-css-integrity-20260921"
   }
 }

@@ -13,7 +13,8 @@
   "dependencies": {
     "@soul/shared-ui": "*",
     "@soul/assets": "*",
-    "three": "0.186.0"
+    "three": "0.186.0",
+    "@soul/johakyu-combat": "*"
   },
   "devDependencies": {
     "vite": "8.2.2"
