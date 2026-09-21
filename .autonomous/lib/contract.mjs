@@ -27,14 +27,14 @@ function noSelfScore(value) {
   }
 }
 export function recordThemeKey(record) {
-  return record?.schemaVersion === 2 ? (record.themeKey || record.problemKey) : record?.problemKey;
+  return record?.schemaVersion >= 2 ? (record.themeKey || record.problemKey) : record?.problemKey;
 }
 export function recordProblemKeys(record) {
-  if (record?.schemaVersion === 2 && Array.isArray(record.rootCauses)) return record.rootCauses.map(row => row.key);
+  if (record?.schemaVersion >= 2 && Array.isArray(record.rootCauses)) return record.rootCauses.map(row => row.key);
   return text(record?.problemKey) ? [record.problemKey] : [];
 }
 export function validateRecord(record) {
-  need([1,2].includes(record?.schemaVersion) && ID.test(record.id || ''), 'record version/id');
+  need([1,2,3].includes(record?.schemaVersion) && ID.test(record.id || ''), 'record version/id');
   gameId(record.game);
   need(['infrastructure', 'gameplay', 'user-feedback'].includes(record.kind), 'record kind');
   need(text(record.observation?.summary), 'observation summary is required');
@@ -57,12 +57,12 @@ export function validateRecord(record) {
   for (const candidate of record.candidates) need(text(candidate.id) && text(candidate.reason), 'candidate needs id/reason');
   need(Array.isArray(record.implementation?.paths) && record.implementation.paths.length > 0 && text(record.implementation.summary), 'implementation scope required');
   record.implementation.paths.forEach(safePath);
-  if (record.schemaVersion === 2) {
-    need(MODES.includes(record.mode), 'v2 iteration mode required');
+  if (record.schemaVersion >= 2) {
+    need(MODES.includes(record.mode), `v${record.schemaVersion} iteration mode required`);
     const legacySingleProblem = text(record.problemKey) && !record.themeKey && !record.rootCauses;
     if (!legacySingleProblem) {
-      need(text(record.themeKey), 'v2 themeKey required');
-      need(Array.isArray(record.rootCauses) && record.rootCauses.length > 0, 'v2 rootCauses required');
+      need(text(record.themeKey), `v${record.schemaVersion} themeKey required`);
+      need(Array.isArray(record.rootCauses) && record.rootCauses.length > 0, `v${record.schemaVersion} rootCauses required`);
       const keys=new Set();
       for (const cause of record.rootCauses) {
         need(text(cause?.key) && !keys.has(cause.key), 'root cause key must be unique');
@@ -74,17 +74,45 @@ export function validateRecord(record) {
     }
     if (record.kind === 'gameplay') {
       const staging = record.observation.staging;
-      need(staging?.kind === 'immutable-staging' && SHA.test(staging.sourceSha || ''), 'gameplay v2 requires exact staging source SHA');
-      need(text(staging.reference) && Number.isFinite(Date.parse(staging.observedAt)), 'gameplay v2 requires immutable staging reference/time');
-      need(staging.conditions && typeof staging.conditions === 'object' && !Array.isArray(staging.conditions), 'gameplay v2 requires staging conditions');
-      need(Array.isArray(staging.notVerified), 'gameplay v2 requires staging notVerified');
+      need(staging?.kind === 'immutable-staging' && SHA.test(staging.sourceSha || ''), `gameplay v${record.schemaVersion} requires exact staging source SHA`);
+      need(text(staging.reference) && Number.isFinite(Date.parse(staging.observedAt)), `gameplay v${record.schemaVersion} requires immutable staging reference/time`);
+      need(staging.conditions && typeof staging.conditions === 'object' && !Array.isArray(staging.conditions), `gameplay v${record.schemaVersion} requires staging conditions`);
+      need(Array.isArray(staging.notVerified), `gameplay v${record.schemaVersion} requires staging notVerified`);
     }
-    need(record.evidencePlan?.objective === 'reproducible-causality', 'v2 evidence objective must be reproducible-causality');
-    need(Array.isArray(record.evidencePlan.focusedTests) && record.evidencePlan.focusedTests.length > 0, 'v2 focused validation plan required');
+    need(record.evidencePlan?.objective === 'reproducible-causality', `v${record.schemaVersion} evidence objective must be reproducible-causality`);
+    need(Array.isArray(record.evidencePlan.focusedTests) && record.evidencePlan.focusedTests.length > 0, `v${record.schemaVersion} focused validation plan required`);
     record.evidencePlan.focusedTests.forEach(safePath);
-    need(['required','optional','none'].includes(record.evidencePlan.stagingAfter), 'v2 stagingAfter policy required');
+    need(['required','optional','none'].includes(record.evidencePlan.stagingAfter), `v${record.schemaVersion} stagingAfter policy required`);
     if (['evolution','polish'].includes(record.mode) && record.kind === 'gameplay') need(record.evidencePlan.stagingAfter === 'required', 'evolution/polish require staging After');
-    need(Array.isArray(record.evidencePlan.limitations) && record.evidencePlan.limitations.length > 0, 'v2 evidence limitations required');
+    need(Array.isArray(record.evidencePlan.limitations) && record.evidencePlan.limitations.length > 0, `v${record.schemaVersion} evidence limitations required`);
+    if (record.schemaVersion === 3) {
+      const goal=record.experienceGoal;
+      need(text(goal?.playerProblem) && text(goal?.targetState), 'v3 player experience goal required');
+      need(Array.isArray(goal.successSignals) && goal.successSignals.length >= 2 && goal.successSignals.every(text), 'v3 needs at least two player-facing success signals');
+      need(new Set(goal.successSignals.map(row=>row.trim())).size === goal.successSignals.length, 'v3 success signals must be unique');
+      need(Array.isArray(record.workItems) && record.workItems.length >= 1 && record.workItems.length <= 12, 'v3 workItems required');
+      const causeKeys=new Set(record.rootCauses.map(row=>row.key)), workIds=new Set();
+      for (const item of record.workItems) {
+        need(ID.test(item?.id || '') && !workIds.has(item.id), 'v3 work item id must be unique');
+        workIds.add(item.id);
+        need(text(item.summary) && text(item.evidence), 'v3 work item summary/evidence required');
+        need(Array.isArray(item.rootCauseKeys) && item.rootCauseKeys.length > 0 && item.rootCauseKeys.every(key=>causeKeys.has(key)), 'v3 work item must reference known root causes');
+        need(Array.isArray(item.paths) && item.paths.length > 0, 'v3 work item paths required');
+        item.paths.forEach(path=>{ safePath(path); need(record.implementation.paths.includes(path), 'v3 work item path must be inside implementation scope'); });
+      }
+      if (record.kind === 'gameplay' && record.workItems.length < 2) {
+        const exception=record.singleFixException;
+        need(['critical-regression','protected-rule-risk','observation-found-one-causal-fix'].includes(exception?.reason), 'dense gameplay iteration requires at least two work items or an explicit single-fix exception');
+        need(text(exception.evidence) && record.observation.evidence.some(row=>row.statement===exception.evidence), 'single-fix exception requires matching observation evidence');
+      }
+      const coverage=record.evidencePlan?.workItemCoverage;
+      need(Array.isArray(coverage) && coverage.length === record.workItems.length, 'v3 evidence must cover every work item');
+      const covered=new Set();
+      for (const row of coverage) {
+        need(workIds.has(row?.workItemId) && !covered.has(row.workItemId) && text(row.evidence), 'v3 work item coverage must be unique and evidence-backed');
+        covered.add(row.workItemId);
+      }
+    }
     need(record.receipt?.repository === REPOSITORY, 'receipt repository mismatch');
     need(record.receipt.pullRequest === null || (Number.isSafeInteger(record.receipt.pullRequest) && record.receipt.pullRequest > 0), 'invalid receipt PR');
     need(record.receipt.marker === `autonomous-receipt:${record.game}:${record.id}`, 'receipt marker mismatch');
@@ -180,8 +208,8 @@ export function appendRecord(root, record) {
   index.recent.push(record.schemaVersion === 1
     ? { id: record.id, problemKey: record.problemKey, path, verdict: record.comparison.verdict }
     : record.themeKey
-      ? { id: record.id, themeKey: record.themeKey, problemKeys: recordProblemKeys(record), path, schemaVersion: 2 }
-      : { id: record.id, problemKey: record.problemKey, path, schemaVersion: 2 });
+      ? { id: record.id, themeKey: record.themeKey, problemKeys: recordProblemKeys(record), path, schemaVersion: record.schemaVersion }
+      : { id: record.id, problemKey: record.problemKey, path, schemaVersion: record.schemaVersion });
   while (index.recent.length > RECENT_LIMIT) archive.entries.push(index.recent.shift());
   index.archive.count = archive.entries.length;
   atomicJson(resolve(base, index.archive.path), archive);
@@ -204,7 +232,7 @@ export function appendReceipt(root, receipt) {
   const entry=[...context.recent, ...archived].find(row=>row.id===receipt.experimentId);
   need(entry, 'receipt experiment missing from history');
   const record=json(resolve(root,'.autonomous',receipt.game,entry.path)); validateRecord(record);
-  need(record.schemaVersion === 2, 'persisted receipt files are for v2 experiments');
+  need([2,3].includes(record.schemaVersion), 'persisted receipt files are for v2/v3 experiments');
   const full=resolve(root, receiptPath(receipt.game,receipt.experimentId));
   mkdirSync(dirname(full),{recursive:true}); writeFileSync(full,JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});
   return {experimentId:receipt.experimentId,path:receiptPath(receipt.game,receipt.experimentId)};
@@ -261,7 +289,7 @@ export function checkHistoryChanges(root, baseRef, headRef = 'HEAD') {
       if (record.schemaVersion === 1) {
         need(record.problemKey === entry.problemKey && record.comparison.verdict === entry.verdict, 'v1 historical pointer mismatch');
       } else {
-        need(entry.schemaVersion === 2 && !Object.hasOwn(entry,'verdict'), 'v2 history must derive outcome from receipt');
+        need([2,3].includes(entry.schemaVersion) && entry.schemaVersion === record.schemaVersion && !Object.hasOwn(entry,'verdict'), 'v2/v3 history must derive outcome from receipt');
         if (entry.themeKey) {
           need(recordThemeKey(record) === entry.themeKey, 'v2 theme pointer mismatch');
           need(JSON.stringify(recordProblemKeys(record)) === JSON.stringify(entry.problemKeys), 'v2 root cause pointer mismatch');
