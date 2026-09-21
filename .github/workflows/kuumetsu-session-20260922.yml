@@ -1,4 +1,4 @@
-name: Temporary kuumetsu first-combat agency evidence 20260922
+name: Temporary kuumetsu first-combat agency final evidence 20260922
 # Task-scoped ops branch only. Never merge this workflow to develop/main.
 on:
   push:
@@ -10,18 +10,17 @@ permissions:
   statuses: read
   pull-requests: read
 env:
-  SOURCE_SHA: 3a9fd9fa1936776adc40a90023afb7cc34576573
+  SOURCE_SHA: 065cf7313b7812442a77b7ed87f9b9950a6a4638
 jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
       preview: ${{ steps.publish.outputs.preview }}
-      publish_run: ${{ steps.publish.outputs.publish_run }}
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 3a9fd9fa1936776adc40a90023afb7cc34576573
+          ref: 065cf7313b7812442a77b7ed87f9b9950a6a4638
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -66,17 +65,15 @@ jobs:
                 const v=await(await fetch(new URL('version.json',preview))).json();
                 if(v.commit!==process.env.SOURCE_SHA)continue;
                 if(job.conclusion!=='success')throw new Error('Exact publication job failed: '+run.html_url);
-                const receipt={runId:run.id,jobId:job.id,url:run.html_url,sourceSha:process.env.SOURCE_SHA,versionId,preview,version:v,commitMatched:true,verifiedAt:new Date().toISOString()};
-                fs.writeFileSync('session-evidence/after-publication.json',JSON.stringify(receipt,null,2));
-                core.setOutput('preview',preview);core.setOutput('publish_run',String(run.id));
-                core.info('IMMUTABLE_AFTER '+preview+' '+v.commit);return;
+                fs.writeFileSync('session-evidence/after-publication.json',JSON.stringify({runId:run.id,jobId:job.id,url:run.html_url,sourceSha:process.env.SOURCE_SHA,versionId,preview,version:v,commitMatched:true,verifiedAt:new Date().toISOString()},null,2));
+                core.setOutput('preview',preview);core.info('IMMUTABLE_AFTER '+preview+' '+v.commit);return;
               }
             }
             throw new Error('Bounded exact-source publication wait elapsed');
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-first-combat-agency-publish-1370
+          name: kuumetsu-first-combat-agency-final-publish-1370
           path: session-evidence
           retention-days: 14
   observe:
@@ -86,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 3a9fd9fa1936776adc40a90023afb7cc34576573
+          ref: 065cf7313b7812442a77b7ed87f9b9950a6a4638
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -103,7 +100,7 @@ jobs:
             fs.writeFileSync('session-observe.mjs',Buffer.from(r.data.content,'base64'));
       - name: Same-condition immutable native After
         env:
-          SOURCE_SHA: 3a9fd9fa1936776adc40a90023afb7cc34576573
+          SOURCE_SHA: 065cf7313b7812442a77b7ed87f9b9950a6a4638
           PREVIEW_URL: ${{ needs.publish.outputs.preview }}
         run: mkdir -p session-evidence && cp session-observe.mjs session-evidence/observer.mjs && node session-observe.mjs > session-evidence/browser.log 2>&1
       - name: Evaluate first-combat agency success signals
@@ -111,24 +108,26 @@ jobs:
           node --input-type=module - <<'JS'
           import {readFileSync,writeFileSync} from 'node:fs';
           const d=JSON.parse(readFileSync('session-evidence/observation.json'));
-          const entry=d.stages.find(s=>s.name==='02-hunt-entry');
-          const combat=d.stages.find(s=>s.snapshot?.combat);
-          const entryText=entry?.text||'',combatText=combat?.text||'';
+          const huntStages=d.stages.filter(s=>s.name==='02-hunt-entry'||s.name.startsWith('03-play-'));
+          const text=huntStages.map(s=>s.text||'').join('\n');
+          const combat=huntStages.find(s=>s.snapshot?.combat);
+          const combatText=combat?.text||'';
           const result={
             sourceSha:d.sourceSha,
             sourceMatched:d.version?.commit===d.sourceSha,
             browserSuccess:d.success===true,
-            guideShowsAutoCombat:entryText.includes('近づく')&&entryText.includes('自動戦闘'),
-            guideShowsDisengage:entryText.includes('離れたい')&&entryText.includes('滑らせて距離を取る'),
             automaticCombatObserved:!!combat,
+            fightGuideShowsAutoCombat:text.includes('近づけば、自動戦闘'),
+            fightGuideShowsSwipeSpacing:text.includes('スワイプ')&&text.includes('間合いを変える'),
+            fightGuideShowsDisengage:text.includes('離れたい')&&text.includes('敵と逆へ距離を取る'),
             combatReadoutShowsAgency:combatText.includes('自動戦闘 · スワイプで間合い'),
             errors:d.errors||[],
             failedRequests:d.failedRequests||[],
             firstCombatStage:combat?.name||null,
-            observedAt:combat?.at||entry?.at||d.observedAt,
+            observedAt:combat?.at||d.observedAt,
             verdict:'supported'
           };
-          if(!result.sourceMatched||!result.browserSuccess||!result.guideShowsAutoCombat||!result.guideShowsDisengage||!result.automaticCombatObserved||!result.combatReadoutShowsAgency||result.errors.length)result.verdict='inconclusive';
+          if(!result.sourceMatched||!result.browserSuccess||!result.automaticCombatObserved||!result.fightGuideShowsAutoCombat||!result.fightGuideShowsSwipeSpacing||!result.fightGuideShowsDisengage||!result.combatReadoutShowsAgency||result.errors.length)result.verdict='inconclusive';
           writeFileSync('session-evidence/agency-comparison.json',JSON.stringify(result,null,2));
           console.log(JSON.stringify(result));
           if(result.verdict!=='supported')throw new Error('After did not support all first-combat agency success signals');
@@ -136,6 +135,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-first-combat-agency-after-1370
+          name: kuumetsu-first-combat-agency-final-after-1370
           path: session-evidence
           retention-days: 14
