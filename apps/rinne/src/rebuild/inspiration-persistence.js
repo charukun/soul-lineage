@@ -48,7 +48,7 @@ export function validateInspiration(state){
   for(const key of BODY_KEYS)finiteField(s.body?.[key],.7,1.3,'身体');
   finiteField(s.clock,0,1e9,'時間');finiteField(s.serial,0,1e9,'記録');finiteField(s.revision,0,1e9,'版');finiteField(s.lastNamed,-1e9,1e9,'発現時刻');
   boundedArray(s.traces,INSPIRATION_LIMITS.traces,'経験');boundedArray(s.seen,INSPIRATION_LIMITS.seen,'経験署名');boundedArray(s.heritage,INSPIRATION_LIMITS.heritage,'系譜');boundedArray(s.legacySkills,64,'移行技');boundedArray(s.talents,8,'才能');
-  s.talents=unique(s.talents.filter(id=>['gifted','prodigy'].includes(id)));if(!s.talentDetails||Array.isArray(s.talentDetails)||typeof s.talentDetails!=='object')s.talentDetails={};
+  s.talents=unique(s.talents.filter(id=>['gifted','prodigy','sui'].includes(id)));if(!s.talentDetails||Array.isArray(s.talentDetails)||typeof s.talentDetails!=='object')s.talentDetails={};
   if(!s.records||Array.isArray(s.records)||typeof s.records!=='object'||Object.keys(s.records).length>INSPIRATION_LIMITS.records)throw Error('技譜が不正です。');
   if(!s.questions||Array.isArray(s.questions)||typeof s.questions!=='object'||Object.keys(s.questions).length>INSPIRATION_LIMITS.questions)throw Error('問いが不正です。');
   const traceIds=new Set();
