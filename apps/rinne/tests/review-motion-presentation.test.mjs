@@ -61,9 +61,9 @@ test('motion gear opens downward with compact controls and collapsed diagnostics
   assert.match(source,/補正なし/);
   assert.match(source,/motion-diagnostics/);
   assert.match(source,/<summary>技術詳細<\/summary>/);
-  assert.match(preview,/\.motion-review \.motion-stage\{overflow:visible;z-index:20\}/);
-  assert.match(preview,/\.motion-review \.review-stage-controls\{top:auto!important;bottom:max\(10px,env\(safe-area-inset-bottom\)\)!important\}/);
-  assert.match(preview,/\.motion-review \.review-stage-controls__panel\{top:50px!important;bottom:auto!important\}/);
+  assert.match(source,/reviewStagePanelHost='\.motion-library-primary'/);
+  assert.match(preview,/\.motion-review \.motion-library-primary\{position:relative\}/);
+  assert.match(preview,/\.motion-review \.motion-library-primary>\.review-stage-controls__panel\{position:absolute!important;top:8px!important;right:8px!important/);
 });
 
 test('motion review settings can equip a right-hand weapon without changing the motion source',()=>{
@@ -80,4 +80,12 @@ test('motion review settings can equip a right-hand weapon without changing the 
     const root=new Group();applyMotionReviewWeaponGrip(root,motionReviewWeaponOption(id).spec);
     assert.equal(root.position.lengthSq(),0,id+' must seat at the right-hand anchor');
   }
+});
+
+test('shared stage controls can portal the panel away from the gear button',()=>{
+  const shared=read('../../../packages/shared-ui/src/review-stage.js');
+  assert.match(shared,/stage\.dataset\.reviewStagePanelHost\?doc\.querySelector/);
+  assert.match(shared,/\(panelHost\|\|root\)\.append\(panel\)/);
+  assert.match(shared,/!root\.contains\(event\.target\)&&!panel\.contains\(event\.target\)/);
+  assert.match(shared,/panel\.remove\(\)/);
 });

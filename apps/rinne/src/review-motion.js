@@ -49,6 +49,7 @@ compatibility.innerHTML='<div class="motion-setting-grid"><label><span>武器</s
 el('motion-meta').closest('details').before(compatibility);
 for(const option of MOTION_REVIEW_WEAPON_OPTIONS)el('motion-weapon').add(new Option(option.label,option.id));
 el('motion-weapon').value=selectedWeapon;
+canvas.closest('.motion-stage').dataset.reviewStagePanelHost='.motion-library-primary';
 mountRinneReviewShell('motion');
 let lastReport='';
 function showCompatibility(result,source=externalSource){
