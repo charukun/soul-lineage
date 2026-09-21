@@ -109,6 +109,16 @@ function observeExperience(state,kind,station){
   // Legacy scores remain historical only. The causal engine consumes the actual episode, never this counter.
   return recordLifeExperience(state,kind,{place:station?.label||station?.id||state.birthVillageId,terrain:state.interior?'interior':'open'});
 }
+export function practiceDummy(state,station){
+  if(!station?.trainingDummy||state.phase!=='living'||state.ended||state.down||state.zone!=='village'||state.interior)return [];
+  const events=[{type:'training-hit',stationId:station.id,label:station.label||'かかし'}],now=state.ageSeconds,last=state.experienceRecent.practice??-1e9;
+  if(now-last<5)return events;
+  const repeated=state.experiences.practice?.count||0,gain=Math.max(.32,1-Math.min(.68,repeated*.055));
+  state.experienceRecent.practice=now;state.experiences.practice={count:repeated+1,score:(state.experiences.practice?.score||0)+gain,last:now};
+  const discoveries=recordLifeExperience(state,'practice',{place:station.label||'かかし',terrain:'dojo',encounter:'training',description:'かかしへ実際に打ち込み、間合いと打ち終わりを確かめた'});
+  pushEvent(state,'experience','かかしへの打ち込みが経験として残った。');
+  events.push({type:'activity-complete',kind:'practice',sparks:discoveries.map(e=>e.id)},...discoveries);return events;
+}
 export function acceptDiscoveries(state){if(Array.isArray(state.pendingDiscoveries))state.pendingDiscoveries.length=0;return [];}
 export function startAutomaticActivity(state,station){
   if(!station?.activity||state.ageYears<4||state.phase!=='living'||state.combat||state.ended)return false;

@@ -14,8 +14,8 @@ export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=f
   await mkdir(output,{recursive:true});
   const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,reducedMotion:'reduce',...(recordVideo?{recordVideo:{dir:join(output,'video'),size:{width:390,height:844}}}:{})}),page=await context.newPage(),errors=[];
   page.setDefaultTimeout(30000);page.on('pageerror',error=>errors.push(error.message));page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
-  const stations=buildStations(defaultMuraLayout()),sword=stations.find(row=>row.id==='rack.weapon.sword'),port=stations.find(row=>row.id==='port-prayer');
-  assert.ok(sword&&port,'default village must expose a sword rack and port');
+  const stations=buildStations(defaultMuraLayout()),sword=stations.find(row=>row.id==='rack.weapon.sword'),dummy=stations.find(row=>row.id==='training-dummy'),port=stations.find(row=>row.id==='port-prayer');
+  assert.ok(sword&&dummy&&port,'default village must expose a sword rack, training dummy and port');
 
   async function expectTone(tone){assert.equal(await page.locator('#game-screen').getAttribute('data-world-tone'),tone);}
   async function expectNonEmpty(locator,label){const value=await text(locator);assert.ok(value.length>0,`${label} must not be empty`);return value;}
@@ -68,6 +68,11 @@ export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=f
     // Equipment: proximity to the actual sword rack must produce a usable weapon.
     const prep=stateAt(8,42);prep.position={x:sword.x+1.35,z:sword.z};await load(prep);assert.match(await text(page.locator('#life-stage')),/支度/);await expectTone('village');
     prep.position={x:sword.x,z:sword.z};await load(prep);await page.waitForFunction(()=>document.getElementById('toast')?.textContent.includes('装備'),null,{timeout:4000});assert.match(await text(page.locator('#toast')),/装備/);await page.screenshot({path:join(output,'02-equipment.png')});
+
+    // Playable core: one organized mobile menu and a real tap-driven dummy strike.
+    const training=stateAt(8,242);training.position={x:dummy.x,z:dummy.z};training.equipment.weapon='sword';training.knownSkills.push('basic.sword');await load(training);
+    await page.locator('[data-menu]').click();await page.locator('[data-quick-menu]').waitFor({state:'visible'});assert.equal(await page.locator('[data-quick-menu] .quick-menu-action').count(),4);await page.locator('[data-menu]').click();await page.locator('[data-quick-menu]').waitFor({state:'hidden'});
+    await page.locator('[data-training-strike]').waitFor({state:'visible'});await page.locator('[data-training-strike]').click();await page.waitForFunction(()=>/打ち込/.test(document.getElementById('toast')?.textContent||''),null,{timeout:2500});await page.screenshot({path:join(output,'02b-playable-dummy.png')});
 
     // Heart / Technique / Body evidence: capture every page separately on the same exact-head,
     // same 390x844 touch context. Technique evidence is captured after configuring the extra
