@@ -17,7 +17,7 @@ const SIGN_TEXT=Object.freeze({
   ha:'この崩しなら、もう一手を重ねられる。',
   kyu:'この間なら、最後まで届く。'
 });
-export const REVIEW_INSPIRATION_TIMELINE=Object.freeze({nearMiss:.95,camera:1.85,spacing:3.05,stagger:4.2,silence:5.35,execute:6.15,impact:8.45,impactRelease:8.66,reveal:9.55,afterglow:10.85,end:12.65});
+export const REVIEW_INSPIRATION_TIMELINE=Object.freeze({nearMiss:.95,camera:1.45,spacing:1.75,stagger:2.0,silence:2.18,reveal:2.3,titleEnd:3.05,execute:3.05,impact:8.45,impactRelease:8.66,settle:9.55,afterglow:10.85,end:12.65});
 
 const reviewArts=(open,middle,finish,tag)=>Object.freeze({
   open:Object.freeze(open),middle:Object.freeze(middle),finish:Object.freeze(finish),tag
@@ -104,10 +104,11 @@ export function reviewInspirationSequenceFrame(elapsed){
   if(t>=m.end)return Object.freeze({stage:'done',progress:1,elapsed:t,spacing:0,executeProgress:1,backstepProgress:1,nearMiss:0,targetStagger:0,strikeTravel:0,impactRecoil:0,cameraRelease:1,focus:'world',hitStop:false,cameraFov:40});
   let stage='premonition',start=0,end=m.camera;
   if(t>=m.afterglow){stage='afterglow';start=m.afterglow;end=m.end;}
-  else if(t>=m.reveal){stage='reveal';start=m.reveal;end=m.afterglow;}
-  else if(t>=m.impact){stage='impact';start=m.impact;end=m.reveal;}
+  else if(t>=m.settle){stage='settle';start=m.settle;end=m.afterglow;}
+  else if(t>=m.impact){stage='impact';start=m.impact;end=m.settle;}
   else if(t>=m.execute){stage='execute';start=m.execute;end=m.impact;}
-  else if(t>=m.silence){stage='silence';start=m.silence;end=m.execute;}
+  else if(t>=m.reveal){stage='reveal';start=m.reveal;end=m.execute;}
+  else if(t>=m.silence){stage='silence';start=m.silence;end=m.reveal;}
   else if(t>=m.stagger){stage='stagger';start=m.stagger;end=m.silence;}
   else if(t>=m.spacing){stage='spacing';start=m.spacing;end=m.stagger;}
   else if(t>=m.camera){stage='camera';start=m.camera;end=m.spacing;}
@@ -116,7 +117,7 @@ export function reviewInspirationSequenceFrame(elapsed){
   if(t<m.nearMiss)nearMiss=Math.sin(clamp01(t/m.nearMiss)*Math.PI*.5);
   else if(t<m.camera)nearMiss=Math.cos(clamp01((t-m.nearMiss)/Math.max(.001,m.camera-m.nearMiss))*Math.PI*.5);
   const backstepProgress=clamp01((t-m.spacing)/Math.max(.001,m.stagger-m.spacing));
-  const spacing=stage==='spacing'?(1-Math.pow(1-backstepProgress,4))*.075:stage==='stagger'||stage==='silence'?.075:stage==='execute'?.075*(1-progress):0;
+  const spacing=stage==='spacing'?(1-Math.pow(1-backstepProgress,4))*.075:stage==='stagger'||stage==='silence'||stage==='reveal'?.075:stage==='execute'?.075*(1-progress):0;
   let targetStagger=0;
   if(t>=m.camera&&t<m.afterglow)targetStagger=smooth((t-m.camera)/.42);
   else if(t>=m.afterglow)targetStagger=1-smooth(progress);
@@ -124,14 +125,14 @@ export function reviewInspirationSequenceFrame(elapsed){
   if(t>=m.execute){
     if(t<m.impact)executeProgress=easeOut((t-m.execute)/Math.max(.001,m.impact-m.execute))*.72;
     else if(t<m.impactRelease)executeProgress=.72;
-    else if(t<m.reveal)executeProgress=.72+smooth((t-m.impactRelease)/Math.max(.001,m.reveal-m.impactRelease))*.28;
+    else if(t<m.settle)executeProgress=.72+smooth((t-m.impactRelease)/Math.max(.001,m.settle-m.impactRelease))*.28;
     else executeProgress=1;
   }
-  const strikeTravel=stage==='execute'?easeOut(progress):stage==='impact'||stage==='reveal'?1:stage==='afterglow'?1-smooth(progress):0;
-  const impactRecoil=stage==='impact'?easeOut(progress):stage==='reveal'?1:stage==='afterglow'?1-smooth(progress)*.55:0;
-  const cameraRelease=stage==='execute'?smooth((progress-.56)/.44):stage==='impact'?1:stage==='reveal'?.72:stage==='afterglow'?1-progress:0;
+  const strikeTravel=stage==='execute'?easeOut(progress):stage==='impact'||stage==='settle'?1:stage==='afterglow'?1-smooth(progress):0;
+  const impactRecoil=stage==='impact'?easeOut(progress):stage==='settle'?1:stage==='afterglow'?1-smooth(progress)*.55:0;
+  const cameraRelease=stage==='execute'?smooth((progress-.56)/.44):stage==='impact'?1:stage==='settle'?.72:stage==='afterglow'?1-progress:0;
   const hitStop=t>=m.impact&&t<m.impactRelease;
-  const focus=stage==='camera'||stage==='silence'?'weapon':stage==='spacing'?'target':stage==='stagger'?'connection':stage==='execute'||stage==='impact'?'strike':'world';
-  const cameraFov=stage==='premonition'?41:stage==='camera'?36:stage==='spacing'?41:stage==='stagger'?42:stage==='silence'?35:stage==='execute'?42+cameraRelease*7:stage==='impact'?53:stage==='reveal'?45:41-progress;
+  const focus=stage==='camera'||stage==='silence'||stage==='reveal'?'weapon':stage==='spacing'?'target':stage==='stagger'?'connection':stage==='execute'||stage==='impact'?'strike':'world';
+  const cameraFov=stage==='premonition'?41:stage==='camera'?36:stage==='spacing'?41:stage==='stagger'?42:stage==='silence'?35:stage==='reveal'?38:stage==='execute'?42+cameraRelease*7:stage==='impact'?53:stage==='settle'?45:41-progress;
   return Object.freeze({stage,progress,elapsed:t,spacing,executeProgress,backstepProgress,nearMiss,targetStagger,strikeTravel,impactRecoil,cameraRelease,focus,hitStop,cameraFov});
 }
