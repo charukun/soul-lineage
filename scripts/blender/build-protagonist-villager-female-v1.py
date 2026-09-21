@@ -62,7 +62,7 @@ def material(name,color,rough=.82):
     if b:b.inputs["Base Color"].default_value=color;b.inputs["Roughness"].default_value=rough;b.inputs["Metallic"].default_value=0
     return m
 
-def hair_lock(name,start,end,radius,mat,arm,bone,bend):
+def hair_lock(name,start,end,radius,bend,mat,arm,bone):
     c=bpy.data.curves.new(name+"Curve","CURVE");c.dimensions="3D";c.resolution_u=2;c.bevel_depth=radius;c.bevel_resolution=1
     s=c.splines.new("BEZIER");s.bezier_points.add(2)
     mid=(start+end)*.5+Vector((bend,.035,.025))
