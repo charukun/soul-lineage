@@ -1,5 +1,5 @@
-/** The scene's only gesture owner. Releasing a pointer never commits placement. */
-export function installSceneInput(canvas, {view, ui, tap, activity = () => {},
+/** The scene's only gesture owner. Placement follows one-finger drag; a short tap commits through the normal tap path. */
+export function installSceneInput(canvas, {view, ui, tap, preview = () => {}, activity = () => {},
   raf = requestAnimationFrame, caf = cancelAnimationFrame, now = () => performance.now()}) {
   const pointers = new Map();
   const abort = new AbortController();
@@ -42,7 +42,10 @@ export function installSceneInput(canvas, {view, ui, tap, activity = () => {},
     gesture=null;
     if(Math.hypot(p.x-p.sx,p.y-p.sy)>7)p.drag=true;
     if(!p.drag)return;
-    // A camera drag does not change the candidate's world/local coordinates.
+    if(ui.pending){
+      const point=view.ground?.(e.clientX,e.clientY);if(point)preview(point.x,point.z);
+      activity();e.preventDefault();return;
+    }
     view.pan(dx,dy);activity();e.preventDefault();
     vx=vx*.62+dx/elapsed*.38;vy=vy*.62+dy/elapsed*.38;
   },{passive:false});
@@ -63,7 +66,7 @@ export function installSceneInput(canvas, {view, ui, tap, activity = () => {},
   return {pointers,stop,dispose(){stop();abort.abort();pointers.clear();}};
 }
 
-/** Keep long-press catalog dragging, but dropping only chooses a preview. */
+/** Keep long-press catalog dragging; dropping on the scene commits the displayed valid candidate. */
 export function installCatalogDrag(button, kind, {ui, begin, preview, canvas}) {
   let start=null,timer=null;
   const clear=()=>{clearTimeout(timer);timer=null;};
@@ -81,7 +84,7 @@ export function installCatalogDrag(button, kind, {ui, begin, preview, canvas}) {
   for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,()=>{clear();start=null;});
 }
 
-export function installCatalogDrop({ui, view, preview, activity, cancel}, doc=document) {
+export function installCatalogDrop({ui, view, preview, commit, activity, cancel}, doc=document) {
   const abort=new AbortController();
   doc.addEventListener('pointermove',e=>{
     if(!ui.drag||ui.drag.id!==e.pointerId)return;
@@ -91,8 +94,10 @@ export function installCatalogDrop({ui, view, preview, activity, cancel}, doc=do
   },{signal:abort.signal});
   doc.addEventListener('pointerup',e=>{
     if(!ui.drag||ui.drag.id!==e.pointerId)return;
-    // Use the last rendered candidate, not a new raycast after pointer capture ends.
+    const r=view.canvas.getBoundingClientRect(),overCanvas=e.clientX>=r.left&&e.clientY>=r.top&&e.clientX<=r.right&&e.clientY<=r.bottom;
+    // Commit the last rendered candidate instead of raycasting again after pointer capture ends.
     ui.lastDrag=performance.now();ui.drag=null;view.lastInteraction=performance.now();activity();
+    if(overCanvas&&ui.pending&&!ui.pending.error)commit?.();
   },{signal:abort.signal});
   doc.addEventListener('pointercancel',()=>{if(ui.drag){ui.drag=null;cancel();}},{signal:abort.signal});
   return()=>abort.abort();

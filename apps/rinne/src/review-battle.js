@@ -1,5 +1,5 @@
 import {createTidebreakRuntime} from '@soul/tidebreak-combat';
-import {CAUSAL_ANSWERS,INSPIRATION_QUESTIONS} from '@soul/game-data';
+import {CAUSAL_ANSWERS} from '@soul/game-data';
 import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stage.js';
 import {tidebreakWeaponFor} from './rebuild/combat.js';
 import {applyChoreographyImpact,combatBodySnapshot,strategyForState} from './rebuild/combat-choreography.js';
@@ -22,7 +22,7 @@ const phasePanel=q('battle-phase'),sequenceCurrent=q('battle-sequence-current'),
 const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
 let strategyA='balanced',strategyB='patient',strategyVariant='A',reviewSeed=6197,reviewInjury='none',reviewHeroBody=null,reviewEnemyBody=null,bodyHud=null;
-let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),signTimer=0,bulbTimer=0,pendingInspirationTimer=0,sequenceTimer=0;
+let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),bulbTimer=0,pendingInspirationTimer=0,sequenceTimer=0;
 const INSPIRATION_BULB_HOLD_MS=550;
 const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
 let techniqueComposition=createReviewTechniqueComposition(),compositionWeapon='';
@@ -61,19 +61,15 @@ async function previewTechniqueChain(phase){
 function hideInspirationBanner(){const banner=q('battle-inspiration');if(!banner)return;banner.hidden=true;delete banner.dataset.burst;delete banner.dataset.sequence;}
 function hideInspirationBulb(){clearTimeout(bulbTimer);bulbTimer=0;const bulb=q('battle-lightbulb');if(bulb)bulb.hidden=true;}
 function showInspirationBulb(){const bulb=q('battle-lightbulb');if(!bulb)return;clearTimeout(bulbTimer);bulb.hidden=true;void bulb.offsetWidth;bulb.hidden=false;bulbTimer=setTimeout(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS);}
-function hideReviewSign(){const sign=q('battle-sign');if(sign)sign.hidden=true;clearTimeout(signTimer);}
-function showReviewSign(technique){
-  const sign=q('battle-sign'),row=CAUSAL_ANSWERS.find(item=>item.id===technique?.id);if(!sign)return;
-  const question=technique?.sign||row?.questions?.map(id=>INSPIRATION_QUESTIONS[id]).find(Boolean)||row?.mechanic||'この間なら、届くかもしれない。';
-  clearTimeout(signTimer);sign.hidden=true;sign.textContent=question;void sign.offsetWidth;sign.hidden=false;sign.dataset.signState='兆し';signTimer=setTimeout(()=>{sign.hidden=true;},2350);
-}
+function hideReviewSign(){const sign=q('battle-sign');if(sign)sign.hidden=true;}
+function showReviewSign(){hideReviewSign();}
 function handleInspirationCue(cue,payload={}){
   const banner=q('battle-inspiration');
   if(cue==='spark'){inspirationSequenceActive=true;hideInspirationBanner();hideReviewSign();showInspirationBulb();battleSfx.inspiration('spark');return;}
   if(cue==='camera'){battleSfx.inspiration('camera');return;}
   if(cue==='spacing'){battleSfx.inspiration('anticipation');return;}
   if(cue==='stagger'){battleSfx.inspiration('stagger');return;}
-  if(cue==='reveal'&&banner){hideReviewSign();const chainPreview=String(payload.id||'').startsWith('review-chain-');q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent=chainPreview?`${phaseLabel(payload.phase)}の連 · ${(payload.steps||[]).length}段を通し試演`:`${phaseLabel(payload.phase)} · ${selectedWeapon}の型から閃いた`;banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}
+  if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}
   if(cue==='execute'){battleSfx.inspiration('execute');return;}
   if(cue==='done'){inspirationSequenceActive=false;hideInspirationBulb();setTimeout(hideInspirationBanner,280);}
 }

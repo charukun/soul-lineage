@@ -1,5 +1,5 @@
 import { installRinneGameplayUpgrade } from './gameplay-upgrade.js';
-import { confirmRinneAudio, selectRinneAudio, unlockRinneAudio } from './gameplay-audio.js';
+import { confirmRinneAudio, enterRinneGameplayAudio, selectRinneAudio, unlockRinneAudio } from './gameplay-audio.js';
 import { createTitleCinematicController } from './title-cinematic.js';
 import './native-ui-polish.js';
 const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'百年転生',app:'rinne',environment:'local',commit:'UNBUILT'};
@@ -44,6 +44,9 @@ const titleCinematic=createTitleCinematicController({
   motionKey,
   getPrepared:()=>prepared,
 });
+function beginTitleCinematic(){if(window.__SOUL_BRAND_BOOT_PENDING__)return;titleCinematic.begin();}
+const onBrandEnter=()=>{unlockTitleAudio();beginTitleCinematic();};
+window.addEventListener('soul:brand-enter',onBrandEnter);
 function refreshContinue(){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
   hasSave=Boolean(saved);const button=$('continue-life');
@@ -58,7 +61,7 @@ function setLoading(message,titleText='世界をつくっています'){
 }
 function showTitle(status=''){
   app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;game.setAttribute('aria-hidden','true');loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(Boolean(prepared),status);
-  titleCinematic.begin();
+  beginTitleCinematic();
 }
 function showBootFailure(error){
   console.error(error);booting=false;launching=false;pendingLaunchMode=null;
@@ -88,7 +91,7 @@ async function openCoopDialog(){
 async function boot(){
   if(booting||prepared)return;
   booting=true;app.dataset.screen='loading';title.hidden=false;game.hidden=true;game.classList.add('is-loading');game.setAttribute('aria-busy','true');loading.hidden=true;
-  refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(false,'世界を準備しています');titleCinematic.begin();
+  refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(false,'世界を準備しています');beginTitleCinematic();
   try{
     await afterVisiblePaint();
     runtimeModule=await import('./rebuild/runtime.js');
@@ -125,7 +128,7 @@ function requestLaunch(mode){
 async function launch(mode,coop=null){
   if(runtime)throw Error('いったんタイトルへ戻ってから参加してください。');
   if(!coop&&coopMenu?.session)await coopMenu.leave();
-  if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';titleCinematic.pause();title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.removeAttribute('aria-hidden');loading.hidden=true;
+  if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';titleCinematic.pause();enterRinneGameplayAudio();title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.removeAttribute('aria-hidden');loading.hidden=true;
   try{
     runtime=await runtimeModule.startRuntime({mode,buildInfo:info,name:$('life-name').value,prepared,coop,onExit:()=>exitGame(coop)});
     $('open-coop-game').hidden=!coop;villageDialog.close();game.dataset.runtime='active';launching=false;
@@ -169,4 +172,4 @@ if(new URLSearchParams(location.search).has('villageHostLab')){
   })().catch(error=>{console.error(error);$('boot-status').textContent=`村診断失敗：${error?.message||error}`;});
 }
 
-if(import.meta.hot)import.meta.hot.dispose(()=>{titleCinematic.dispose();runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});
+if(import.meta.hot)import.meta.hot.dispose(()=>{window.removeEventListener('soul:brand-enter',onBrandEnter);titleCinematic.dispose();runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});
