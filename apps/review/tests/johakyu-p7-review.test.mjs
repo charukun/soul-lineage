@@ -32,7 +32,7 @@ test('1v1 executes every configured stage in technique order before advancing ph
  const scenario=createJohakyuP7ReviewScenario({mode:'duel'}),starts=[];let lastId=null;
  for(let i=0;i<1800;i++){const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self),a=hero?.action;if(a&&a.id!==lastId){lastId=a.id;starts.push({phase:a.phase,techniqueId:a.techniqueId,techniqueIndex:a.techniqueIndex,stageIndex:a.stageIndex,kind:a.motion.kind});}if(starts.some(x=>x.phase==='kyu'&&x.techniqueIndex>=1&&x.stageIndex>=2))break;}
  assert.ok(starts.length>10,JSON.stringify(starts));const order={jo:0,ha:1,kyu:2};let previous=-1;
- for(const row of starts){const current=order[row.phase];assert.ok(current>=previous||previous===2&&current===0,JSON.stringify(starts));previous=current;}
+ for(const row of starts){const current=order[row.phase];assert.ok(current===previous||current===previous+1||previous===2&&current===0||previous===-1,JSON.stringify(starts));previous=current;}
  for(let i=1;i<starts.length;i++){const a=starts[i-1],b=starts[i];if(a.phase!==b.phase)continue;
    assert.ok(b.techniqueIndex>a.techniqueIndex||b.techniqueIndex===a.techniqueIndex&&b.stageIndex===a.stageIndex+1,JSON.stringify(starts));
  }
