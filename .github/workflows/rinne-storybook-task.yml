@@ -14,28 +14,29 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Materialize approved conversation artwork
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Prepare task browser
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Receive approved attachment in a browser
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          node scripts/rinne-storybook-receive.mjs
           python3 - <<'PY'
-          import runpy,urllib.error
-          try:runpy.run_path('scripts/rinne-storybook-materialize.py',run_name='__main__')
-          except urllib.error.HTTPError as e:
-            print('Provider response:',e.code,e.read().decode('utf-8','replace')[:1600]);raise
+          from pathlib import Path
+          p=Path('scripts/rinne-storybook-materialize.py')
+          text=p.read_text().replace("source=urllib.request.urlopen(config['source'],timeout=60).read()", "source=Path('.storybook-source.zip').read_bytes()")
+          exec(compile(text,str(p),'exec'),{'__name__':'__main__'})
           PY
-      - uses: actions/setup-node@v6
-        if: hashFiles('.storybook-compare-enabled') != ''
-        with:
-          node-version: '24'
       - name: Compare and refine approved UI
         if: hashFiles('.storybook-compare-enabled') != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          npm ci --ignore-scripts --no-audit --no-fund
-          npx playwright install --with-deps chromium
-          node scripts/rinne-storybook-compare.mjs
+        run: node scripts/rinne-storybook-compare.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
