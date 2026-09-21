@@ -133,7 +133,7 @@ def reshape_tunic():
         v.co=inv@w
     for name in ["Protagonist_KnightPart_ArmLeft","Protagonist_KnightPart_ArmRight"]:
         obj=bpy.data.objects.get(name)
-        if obj: scale_mesh_about_center(obj,.82,.86,.98)
+        if obj: scale_mesh_about_center(obj,.76,.80,.97)
     for name in ["Protagonist_KnightPart_LegLeft","Protagonist_KnightPart_LegRight"]:
         obj=bpy.data.objects.get(name)
         if obj: scale_mesh_about_center(obj,.90,.92,1.0)
@@ -264,29 +264,10 @@ def create_head(arm,old_lo,old_hi):
     return [head,cap], cloth
 
 def create_overskirt(arm,cloth):
-    hips=arm.data.bones.get("hips")
-    if not hips: raise RuntimeError("Rig_Medium hips bone missing")
-    body=bpy.data.objects.get("Protagonist_RogueTunic_Body")
-    lo,hi=object_bounds(body); cx=(lo.x+hi.x)*.5
-    ztop=lo.z+(hi.z-lo.z)*.37; zbottom=max(lo.z+.055,ztop-.16)
-    yfront=lo.y-.024; yback=hi.y+.012
-    # Split village tunic tails instead of a rigid skirt ring. The gaps preserve
-    # leg readability in front/side and avoid the box silhouette seen in round 1.
-    for name,xtl,xtr,xbl,xbr in [
-      ("RINNE_FemaleTunicTail_L",-.205,-.018,-.235,-.030),
-      ("RINNE_FemaleTunicTail_R",.018,.205,.030,.235),
-    ]:
-        tapered_panel(name,(cx+xtl,yfront,ztop),(cx+xtr,yfront,ztop),
-          (cx+xbr,yfront-.006,zbottom),(cx+xbl,yfront-.006,zbottom),.018,cloth,arm,"hips")
-    # One narrow rear split panel gives a back-view identity without wrapping
-    # around the hips as a rectangular belt.
-    for name,xtl,xtr,xbl,xbr in [
-      ("RINNE_FemaleTunicBack_L",-.180,-.015,-.205,-.030),
-      ("RINNE_FemaleTunicBack_R",.015,.180,.030,.205),
-    ]:
-        front=[(cx+xtl,yback,ztop),(cx+xtr,yback,ztop),(cx+xbr,yback,zbottom+.015),(cx+xbl,yback,zbottom+.015)]
-        back=[(x,y-.016,z) for x,y,z in front]
-        prism(name,front,back,cloth,arm,"hips")
+    # Round 3 deliberately removes the rigid add-on panels. The Rogue tunic's
+    # existing lower flare reads cleaner in motion; female identity is carried by
+    # authored head/face/hair and the narrower shoulder/arm silhouette.
+    return []
 
 def export_result(out):
     src=out/"source"; exp=out/"export"; src.mkdir(parents=True,exist_ok=True); exp.mkdir(parents=True,exist_ok=True)
