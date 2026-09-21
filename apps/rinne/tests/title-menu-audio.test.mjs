@@ -12,7 +12,7 @@ const audio=readFileSync(join(appRoot,'src/gameplay-audio.js'),'utf8');
 const rich=readFileSync(join(appRoot,'src/title-rich.css'),'utf8');
 
 test('title menu keeps only the requested primary routes',()=>{
-  assert.match(html,/id="new-life"[^>]*>最初から<\/button>/);
+  assert.match(html,/id="new-life"[^>]*>はじめから<\/button>/);
   assert.match(html,/id="continue-life"[^>]*>続きから<\/button>/);
   assert.match(html,/id="open-village-code"[^>]*>村コード<\/button>/);
   assert.match(html,/id="open-settings"[^>]*>設定<\/button>/);

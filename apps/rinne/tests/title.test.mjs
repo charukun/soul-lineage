@@ -25,7 +25,7 @@ test('百年転生 boots the world before revealing the title',async()=>{
  assert.match(html,/id="title-screen"[^>]*hidden/);assert.match(html,/class="title-world"/);assert.match(html,/id="title-cinematic-video"/);assert.match(html,/title-assets\/world\.webp/);assert.match(html,/title-assets\/crest\.svg/);
  assert.match(html,/id="game-screen"[^>]*class="game-screen is-loading"/);assert.match(html,/aria-busy="true"/);
  assert.match(html,/id="loading-card"/);assert.match(html,/id="boot-retry"/);assert.match(html,/id="new-life"/);assert.match(html,/id="continue-life"/);assert.match(html,/id="open-village-code"/);assert.match(html,/id="open-settings"/);assert.match(html,/viewport-fit=cover/);
- assert.match(html,/>はじめる</);assert.match(html,/>続きから</);assert.match(html,/>村コード</);assert.match(html,/>設定</);
+ assert.match(html,/>はじめから</);assert.match(html,/>続きから</);assert.match(html,/>村コード</);assert.match(html,/>設定</);
  assert.doesNotMatch(html,/id="continue-life"[^>]*hidden/);assert.doesNotMatch(html,/class="name-field"/);assert.doesNotMatch(html,/href="\.\/simulator\/index\.html"/);
  assert.doesNotMatch(html,/id="start-simulator"/);assert.match(html,/id="loading-progress"/);
 });
@@ -43,8 +43,9 @@ test('clean bootstrap prewarms renderer/world and start buttons only bind a life
 test('title menu keeps new life primary while records preserve continue behavior',async()=>{
  const main=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
  assert.match(main,/selectTitleCommand\(\$\('new-life'\),\{sound:false\}\)/);
- assert.match(main,/\$\('new-life'\)\.addEventListener\('click',\(\)=>\{void launch\('new'\);\}\)/);
- assert.match(main,/\$\('continue-life'\).*launch\('continue'\)/s);
+ assert.match(main,/\$\('new-life'\).*requestLaunch\('new'\)/s);
+ assert.match(main,/\$\('continue-life'\).*requestContinue\(\)/s);
+ assert.match(main,/openFamilyHome/);
  assert.match(main,/aria-disabled/);
  assert.match(main,/title-motion-v1/);
 });

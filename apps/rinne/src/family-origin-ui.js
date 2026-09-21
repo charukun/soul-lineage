@@ -188,31 +188,62 @@ export function openFamilyOrigin({document = globalThis.document, hasSave = fals
   });
 }
 
+
+export function openFamilyHome({document = globalThis.document, state, source = 'title', mode = 'resume', allowClose = true} = {}) {
+  if (!state) return Promise.resolve(null);
+  const family = familyForLife(state), description = describeFamily(family), ended = Boolean(state.ended || state.phase === 'ended');
+  const previousFocus = document.activeElement, dialog = node(document, 'dialog', 'family-memory-dialog family-home-dialog');
+  dialog.dataset.source = source; dialog.dataset.lifeEnded = String(ended); dialog.setAttribute('aria-labelledby', 'family-memory-name');
+  const shell = node(document, 'section', 'family-home-shell');
+  const closeButton = node(document, 'button', 'family-memory-close', '×'); closeButton.type = 'button'; closeButton.setAttribute('aria-label','一族画面を閉じる'); closeButton.hidden = !allowClose;
+  const home = node(document, 'div', 'family-home-picture'); home.innerHTML = familyHomeArt(family.cultureId);
+  const crest = node(document, 'div', 'family-preview-crest'); crest.innerHTML = familyCrestArt(family.cultureId);
+  const heading = node(document, 'h2', 'family-home-name', description.name); heading.id = 'family-memory-name';
+  const tradition = node(document, 'p', 'family-preview-tradition', `${description.ethos} · ${description.tradition}`);
+  const current = node(document, 'section', 'family-home-current');
+  current.append(node(document, 'span', 'family-home-kicker', ended ? '生涯の記録' : '現在の人生'));
+  current.append(node(document, 'strong', '', `${state.generation || 1}代目 · ${state.name || '旅人'}`));
+  current.append(node(document, 'p', '', ended ? `${Math.floor(Number(state.ageYears)||0)}歳で生涯を終えた` : `${Math.floor(Number(state.ageYears)||0)}歳 · 今を生きている`));
+  const lifeEnd = ended ? (state.events || []).find(event => event?.type === 'life-end') : null;
+  if (lifeEnd?.text) current.append(node(document, 'small', 'family-home-life-end', lifeEnd.text));
+  const stats = node(document, 'div', 'family-home-stats');
+  for (const [label,value] of [['撃破',state.defeats||0],['凱旋',state.returns||0],['技',state.knownSkills?.length||0],['故郷',state.homelands?.length||0]]) {
+    const item = node(document, 'span', ''); item.append(node(document,'b','',String(value)),node(document,'small','',label)); stats.append(item);
+  }
+  current.append(stats);
+  const records = node(document, 'ol', 'family-contributions family-home-history');
+  for (const record of family.contributions.slice(-5)) records.append(node(document, 'li', '', `${record.generation}代目 ${record.name} · 凱旋${record.returns}回 · 遺した技${record.skills.length}つ`));
+  if (!family.contributions.length) records.append(node(document, 'li', 'family-home-empty', 'この一族の最初の人生。ここから記録が始まる。'));
+  const actions = node(document, 'div', 'family-home-actions');
+  const actionButton = (action,label,primary=false) => {
+    const button = node(document, 'button', primary ? 'family-home-primary' : 'family-home-secondary', label); button.type = 'button'; button.dataset.familyAction = action; return button;
+  };
+  if (mode !== 'view') {
+    if (ended) actions.append(actionButton('rebirth','次の人生へ',true));
+    else actions.append(actionButton('continue','この人生を続ける',true));
+    if (source === 'death') actions.append(actionButton('title','タイトルへ'));
+  } else actions.append(actionButton('close','閉じる',true));
+  shell.append(closeButton,home,crest,heading,tradition,current,node(document,'h3','family-home-history-title','この家の歩み'),records,actions);
+  dialog.append(shell); document.body.append(dialog);
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = action => { if (settled) return; settled = true; dialog.remove(); if (previousFocus?.isConnected) previousFocus.focus({preventScroll:true}); resolve(action); };
+    closeButton.addEventListener('click',()=>finish(null));
+    for (const button of actions.querySelectorAll('[data-family-action]')) button.addEventListener('click',()=>finish(button.dataset.familyAction === 'close' ? null : button.dataset.familyAction));
+    dialog.addEventListener('cancel',event=>{event.preventDefault();if(allowClose)finish(null);});
+    dialog.addEventListener('close',()=>{if(allowClose)finish(null);});
+    dialog.showModal();
+  });
+}
+
 export function installFamilyMemory({gameScreen, getState}) {
   const document = gameScreen.ownerDocument, trigger = gameScreen.querySelector('.life-chip');
   if (!trigger) return {dispose() {}};
   const old = {role:trigger.getAttribute('role'), tabindex:trigger.getAttribute('tabindex'), label:trigger.getAttribute('aria-label')};
-  trigger.setAttribute('role', 'button'); trigger.tabIndex = 0; trigger.setAttribute('aria-label', '一族の記憶をひらく'); trigger.classList.add('family-memory-trigger');
-  let dialog = null;
-  function close() { dialog?.remove(); dialog = null; trigger.focus({preventScroll:true}); }
-  function open() {
-    const state = getState(); if (!state || dialog) return;
-    const family = familyForLife(state), description = describeFamily(family);
-    dialog = node(document, 'dialog', 'family-memory-dialog'); dialog.setAttribute('aria-labelledby', 'family-memory-name');
-    const closeButton = node(document, 'button', 'family-memory-close', '閉じる'); closeButton.type = 'button'; closeButton.addEventListener('click', close); dialog.append(closeButton);
-    const home = node(document, 'div', 'family-home-picture'); home.innerHTML = familyHomeArt(family.cultureId); dialog.append(home);
-    const crest = node(document, 'div', 'family-preview-crest'); crest.innerHTML = familyCrestArt(family.cultureId); dialog.append(crest);
-    const name = node(document, 'h2', '', description.name); name.id = 'family-memory-name'; dialog.append(name, node(document, 'p', 'family-preview-tradition', `${description.ethos} · ${description.tradition}`));
-    dialog.append(node(document, 'p', '', description.memory), node(document, 'p', 'family-teaching', description.teaching), node(document, 'h3', '', description.heirloom), node(document, 'p', '', description.traditionMemory || description.practice));
-    dialog.append(node(document, 'p', 'family-practice', state.ageYears < 7 ? `家族の稽古を見つめる。${description.practice}` : description.practice));
-    const records = node(document, 'ol', 'family-contributions');
-    for (const record of family.contributions.slice(-6)) records.append(node(document, 'li', '', `${record.generation}代目 ${record.name} · 凱旋${record.returns}回 · 遺した技${record.skills.length}つ`));
-    records.append(node(document, 'li', 'family-current-life', `${state.generation}代目 ${state.name} · 今を生きている`));
-    dialog.append(node(document, 'h3', '', 'この家の歩み'), records);
-    dialog.addEventListener('cancel', event => { event.preventDefault(); close(); }); dialog.addEventListener('close', close);
-    document.body.append(dialog); dialog.showModal();
-  }
-  const key = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } };
+  trigger.setAttribute('role', 'button'); trigger.tabIndex = 0; trigger.setAttribute('aria-label', '一族の詳細をひらく'); trigger.classList.add('family-memory-trigger');
+  let opening = false;
+  const open = async () => { const state = getState(); if (!state || opening) return; opening = true; try { await openFamilyHome({document,state,source:'game',mode:'view',allowClose:true}); } finally { opening = false; } };
+  const key = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void open(); } };
   trigger.addEventListener('click', open); trigger.addEventListener('keydown', key);
-  return {dispose() { dialog?.remove(); dialog = null; trigger.removeEventListener('click', open); trigger.removeEventListener('keydown', key); trigger.classList.remove('family-memory-trigger'); for (const [key, value] of Object.entries({'role':old.role, 'tabindex':old.tabindex, 'aria-label':old.label})) { if (value === null) trigger.removeAttribute(key); else trigger.setAttribute(key, value); } }};
+  return {dispose() { trigger.removeEventListener('click', open); trigger.removeEventListener('keydown', key); trigger.classList.remove('family-memory-trigger'); for (const [key, value] of Object.entries({'role':old.role, 'tabindex':old.tabindex, 'aria-label':old.label})) { if (value === null) trigger.removeAttribute(key); else trigger.setAttribute(key, value); } }};
 }
