@@ -4,10 +4,10 @@ on:
     branches:
       - 'work/female-protagonist-blender-refinement-20260921'
 permissions:
-  contents: read
+  contents: write
 jobs:
   diagnose:
-    if: ${{ contains(github.event.head_commit.message, '[character-studio-diagnostic]') }}
+    if: ${{ contains(github.event.head_commit.message, '[character-studio-diagnostic]') && !contains(github.event.head_commit.message, '[skip-character-studio-diagnostic]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -64,6 +64,17 @@ jobs:
           await browser.close();
           if(state.displayModelId!=='protagonist.villager.female.v1'||state.ready!==true||state.errors.length||pageErrors.length||failedRequests.length||httpErrors.length) process.exit(2);
           NODE
+      - name: Commit clean Character Studio evidence
+        if: success()
+        run: |
+          rm -rf docs/characters/qa/protagonist-villager-female-v1/character-studio
+          mkdir -p docs/characters/qa/protagonist-villager-female-v1/character-studio
+          cp test-results/female-character-studio/* docs/characters/qa/protagonist-villager-female-v1/character-studio/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/characters/qa/protagonist-villager-female-v1/character-studio
+          git commit -m "test: refresh clean Character Studio female evidence [skip-character-studio-diagnostic]"
+          git push origin HEAD:work/female-protagonist-blender-refinement-20260921
       - uses: actions/upload-artifact@v4
         if: always()
         with:
