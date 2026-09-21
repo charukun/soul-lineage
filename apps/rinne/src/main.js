@@ -1,7 +1,7 @@
 import { installRinneGameplayUpgrade } from './gameplay-upgrade.js';
-import { confirmRinneAudio, enterRinneGameplayAudio, selectRinneAudio, unlockRinneAudio } from './gameplay-audio.js';
+import { confirmRinneAudio, enterRinneGameplayAudio, enterRinneLineageAudio, exitRinneLineageAudio, selectRinneAudio, unlockRinneAudio } from './gameplay-audio.js';
 import { createTitleCinematicController } from './title-cinematic.js';
-import {openFamilyOrigin, renderFamilyTitle, installFamilyMemory} from './family-origin-ui.js';
+import {openFamilyOrigin, installFamilyMemory} from './family-origin-ui.js';
 import './family-origin.css';
 import './native-ui-polish.js';
 const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'百年転生',app:'rinne',environment:'local',commit:'UNBUILT'};
@@ -59,7 +59,6 @@ function refreshContinue(){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
   hasSave=Boolean(saved&&typeof saved==='object'&&!Array.isArray(saved));const button=$('continue-life');
   button.hidden=false;button.setAttribute('aria-disabled',String(!hasSave));button.dataset.available=String(hasSave);
-  renderFamilyTitle(title,hasSave?saved:null);
   if(hasSave){
     const age=Math.max(0,Math.min(100,Math.floor(Number(saved.ageYears)||0)));
     button.setAttribute('aria-label',`続きから ${saved.name||'旅人'} ${age}歳 ${saved.generation||1}代目`);
@@ -132,14 +131,14 @@ async function requestLaunch(mode){
   if(mode!=='new'){await launch(mode);return;}
   if(originOpen||launching||runtime)return;
   if(!prepared||!runtimeModule){if(booting)pendingLaunchMode=mode;return;}
-  originOpen=true;titleCinematic.pause();
+  originOpen=true;titleCinematic.pause();enterRinneLineageAudio();
   try{
     const expectedSave=localStorage.getItem(storageKey);
     let saved=null;try{saved=JSON.parse(expectedSave||'null');}catch{}
     const family=await openFamilyOrigin({document,hasSave:expectedSave!==null,savedName:saved?.name,motion:motionToggle.getAttribute('aria-checked')!=='false'});
     if(family)await launch('new',null,{family,expectedSave});else showTitle();
   }catch(error){console.error(error);showTitle(`一族を開けませんでした：${error?.message||error}`);}
-  finally{originOpen=false;}
+  finally{originOpen=false;exitRinneLineageAudio();}
 }
 async function launch(mode,coop=null,origin={}){
   if(runtime)throw Error('いったんタイトルへ戻ってから参加してください。');
