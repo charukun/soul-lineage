@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 2,
+  "id": "kuumetsu-hunt-entry-frame-budget-20260921",
+  "game": "kuumetsu",
+  "mode": "polish",
+  "kind": "gameplay",
+  "themeKey": "hunt-entry-frame-budget",
+  "rootCauses": [
+    {
+      "key": "hunt-entry-synchronously-rebuilds-decorative-world",
+      "summary": "NightView.build reconstructs core hunt geometry together with 100 procedural forest trees and 130 edge-clutter placements synchronously on the same click path that enters the hunt.",
+      "prediction": "Moving non-interactive forest/edge decoration into bounded post-entry batches shortens the click-to-hunt main-thread block while converging to the same decoration counts.",
+      "falsifier": "The first hunt still performs all decorative batches synchronously or the final staged world loses the deferred decoration.",
+      "paths": [
+        "apps/demon/src/web/view.js"
+      ]
+    },
+    {
+      "key": "hunt-ui-cannot-paint-before-heavy-scene-build",
+      "summary": "claimAndEnter calls newSession, and newSession calls view.build before mode becomes hunt and the title/HUD are swapped, so the browser cannot paint the hunt state until the expensive scene rebuild returns.",
+      "prediction": "Core scene/session ownership becomes visible before deferred decoration drains, without changing input, combat, extraction or save semantics.",
+      "falsifier": "The hunt mode/HUD still waits for all decoration work or gameplay starts against an incomplete interactive core.",
+      "paths": [
+        "apps/demon/src/web/main.js",
+        "apps/demon/src/web/view.js"
+      ]
+    }
+  ],
+  "observation": {
+    "summary": "Immutable Cloudflare staging for source afde80d shows a valid title, then the 狩夜へ click is followed by a 14.419s long task on hosted Chromium/SwiftShader. The first hunt snapshot eventually reaches mode=hunt, but sampled FPS is 2 while the transition settles. Source inspection shows the click synchronously runs NightView.build, including procedural forest and edge decoration, before the hunt UI swap completes.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "afde80d27a314f3c86e9ef8e6028d90b5c6b15cf",
+      "reference": "https://82dcf557-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "versionId": "82dcf557-2fa2-4fb8-a583-cfb7ecc91240",
+      "observedAt": "2026-09-21T12:47:06Z",
+      "conditions": {
+        "viewport": "673x841",
+        "device": "GitHub hosted Chromium / SwiftShader",
+        "scenario": "cold open -> TAP -> title -> 狩夜へ -> first hunt",
+        "browserReviewRun": 35601390870
+      },
+      "notVerified": [
+        "physical Pixel Fold feel",
+        "full hunt completion in this baseline"
+      ]
+    },
+    "evidence": [
+      {
+        "kind": "browser",
+        "revision": "afde80d27a314f3c86e9ef8e6028d90b5c6b15cf",
+        "path": "browser-review artifact 10639490930",
+        "symbol": "frames.longTasks / first hunt snapshot",
+        "statement": "version.json.commit matches sourceSha; after #begin click a 14.419s long task occurs and hunt snapshot reports fps=2 while settling."
+      },
+      {
+        "kind": "source",
+        "revision": "afde80d27a314f3c86e9ef8e6028d90b5c6b15cf",
+        "path": "apps/demon/src/web/main.js",
+        "symbol": "claimAndEnter/newSession",
+        "statement": "The click awaits character readiness, then newSession invokes view.build before mode/hud transition is completed."
+      },
+      {
+        "kind": "source",
+        "revision": "afde80d27a314f3c86e9ef8e6028d90b5c6b15cf",
+        "path": "apps/demon/src/web/view.js",
+        "symbol": "NightView.build",
+        "statement": "A single synchronous build constructs interactive world plus 100 procedural forest trees and 130 edge-clutter placements before returning."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "The first-hunt entry path mixes interactive scene construction with non-interactive decorative generation in one synchronous task and performs that task before the hunt state can paint.",
+    "prediction": "Stage the build: finish the interactive core synchronously, enter hunt, then drain decorative work in bounded animation-frame batches. This will reduce the dominant click-time long task without changing the eventual scene or gameplay systems.",
+    "falsifier": "Same-condition After retains a comparable >10s click-time long task, never reaches a painted hunt before decoration completes, or final decoration counts differ."
+  },
+  "candidates": [
+    {
+      "id": "defer-decoration-in-bounded-frame-batches",
+      "selected": true,
+      "reason": "Preserves final visual density and gameplay geometry while moving only non-interactive decoration off the click critical path."
+    },
+    {
+      "id": "prebuild-complete-hunt-behind-title",
+      "selected": false,
+      "reason": "Moves the same stall into title time, increases simultaneous scene memory and does not remove the long synchronous task."
+    },
+    {
+      "id": "cut-forest-and-clutter-counts",
+      "selected": false,
+      "reason": "Would improve timing by visibly reducing scene richness instead of fixing scheduling."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/demon/src/web/view.js",
+      "apps/demon/src/web/main.js",
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "summary": "Split decorative forest/edge construction from the interactive core, run it in cancellable bounded frame batches for hunt entry, and keep title build/full scene compatibility."
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": [
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "stagingAfter": "required",
+    "limitations": [
+      "Portable balance probe does not measure render scheduling; mark coverage outside.",
+      "Hosted Chromium timing is evidence for this staging environment, not a physical Pixel Fold benchmark."
+    ]
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": null,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-hunt-entry-frame-budget-20260921"
+  }
+}
