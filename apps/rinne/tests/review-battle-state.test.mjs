@@ -73,6 +73,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   const stageSource=readFileSync(new URL('../src/review-battle-stage.js',import.meta.url),'utf8');
   const battleSource=readFileSync(new URL('../src/review-battle.js',import.meta.url),'utf8');
   const battleHtml=readFileSync(new URL('../review-battle.html',import.meta.url),'utf8');
+  const battleCss=readFileSync(new URL('../src/review-battle.css',import.meta.url),'utf8');
   const monsterSource=readFileSync(new URL('../src/review-battle-monster.js',import.meta.url),'utf8');
   const runtimeSource=readFileSync(new URL('../src/rebuild/runtime.js',import.meta.url),'utf8');
   assert.match(battleSource,/enemyModel='skeleton-minion'/);
@@ -109,7 +110,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleSource,/learnedSlots\[phase\]=technique/);
   assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=420/);assert.match(battleSource,/if\(cue==='silence'\)\{showInspirationBulb\(\);battleSfx\.inspiration\('spark'\);return;\}/);assert.match(battleSource,/setInspirationState\?\.\(\{active:true,targetId,duration,nearMissSeconds:REVIEW_INSPIRATION_TIMELINE\.camera\}\)/);assert.match(battleSource,/if\(cue==='impact'\)\{battleSfx\.impact/);
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
-  assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);assert.match(battleHtml,/class="battle-inspiration-mark"[^>]*>閃<\/span>/);assert.doesNotMatch(battleHtml,/💡/);assert.match(battleHtml,/Cinematic inspiration pass: focus -> lock -> strike -> name/);
+  assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);assert.match(battleHtml,/class="battle-inspiration-mark"[^>]*>閃<\/span>/);assert.doesNotMatch(battleHtml,/💡/);assert.match(battleCss,/Cinematic inspiration pass: focus -> lock -> strike -> name/);assert.match(battleCss,/Long-form inspiration ecstasy window: 12\.5s of live combat/);
   assert.match(battleHtml,/battle-phase-wave/);assert.match(battleHtml,/battle-action-drift/);
   assert.match(battleHtml,/id="battle-sequence-hud"/);assert.match(battleHtml,/id="battle-sequence-current"[^>]*>間合いを測っている…<\/strong>/);
   assert.match(battleHtml,/battle-sequence-hud__wave combat-sequence__link/);
