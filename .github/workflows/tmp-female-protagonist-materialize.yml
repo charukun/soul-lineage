@@ -46,4 +46,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.* apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.* packages/characters/production/protagonist-villager-female-v1.production.json
           git commit -m "art(characters): materialize visually refined female protagonist"
+          git fetch origin fix/female-protagonist-visual-refinement-20260921
+          git rebase origin/fix/female-protagonist-visual-refinement-20260921
           git push origin HEAD:fix/female-protagonist-visual-refinement-20260921
