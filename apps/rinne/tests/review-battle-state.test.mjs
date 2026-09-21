@@ -102,7 +102,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.silence+.01).stage,'silence');
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.execute+.01).stage,'execute');
   const impactHold=reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.impact+.01),impactLate=reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.impactRelease-.01);
-  assert.equal(impactHold.stage,'impact');assert.equal(impactHold.hitStop,true);assert.equal(impactHold.executeProgress,.68);assert.ok(impactLate.executeProgress>=.68);
+  assert.equal(impactHold.stage,'impact');assert.equal(impactHold.hitStop,true);assert.equal(impactHold.executeProgress,.72);assert.ok(impactLate.executeProgress>=.72);
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.reveal+.01).stage,'reveal');
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.afterglow+.01).stage,'afterglow');
   assert.ok(REVIEW_INSPIRATION_TIMELINE.reveal>REVIEW_INSPIRATION_TIMELINE.impactRelease);assert.ok(REVIEW_INSPIRATION_TIMELINE.end>=10&&REVIEW_INSPIRATION_TIMELINE.end<=15);
