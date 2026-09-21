@@ -5,16 +5,16 @@
   "assetId": "character.protagonist-villager-female.v1",
   "format": "glb",
   "path": "./simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb",
-  "sha256": "06de3a20266316b5ce1f75b88ca7434916d13c2f161036c29649f06f6b44c78c",
-  "bytes": 305508,
+  "sha256": "7c422960add80f120d5dbcd91a6b74e23269b35049796f60cb1e6c4e4604d9a2",
+  "bytes": 317144,
   "productionStage": "PRIMARY",
   "modelingMode": "dcc-blender",
-  "sourceBlendSha256": "3e6d3598ade98aa009e83b021c3af78adbd760ea08c7d8a43ba17b4cb2f88166",
+  "sourceBlendSha256": "ec4c09cf6a952d1a69728adc3743cad673ba7dcd7e20036bda6feba888ce4fac",
   "humanoidRig": "kaykit.Rig_Medium.v1",
   "referencePath": "docs/characters/references/protagonist-villager-female-v1.svg",
   "visualApproval": "pending",
   "license": {
     "rigProvenance": "Derived from repository-local protagonist.villager.v1; KayKit Character Pack Adventures 1.0 Rig_Medium at revision 672074b73ba276876a19e8816ecdc5241817ab47, CC0-1.0.",
-    "surfaceAuthorship": "RINNE-authored DCC female variant; existing KayKit-derived surfaces retain CC0 provenance; silhouette, hair locks and waist cloth are RINNE-authored modifications."
+    "surfaceAuthorship": "RINNE-authored DCC female variant on the pinned CC0 KayKit Rig_Medium foundation; head/face, bob hair masses, fringe, shoulders/arms/torso silhouette are repository-authored modifications reviewed from fixed Blender renders."
   }
 }
