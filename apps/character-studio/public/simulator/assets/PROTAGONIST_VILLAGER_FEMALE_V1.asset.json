@@ -1,0 +1,20 @@
+{
+  "schema": "character-asset-integrity",
+  "version": 1,
+  "id": "protagonist.villager.female.v1",
+  "assetId": "character.protagonist-villager-female.v1",
+  "format": "glb",
+  "path": "./simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb",
+  "sha256": "db3a93059f19002c01ec5c516a07a6b26f00aa595c2cf78a3408eb185b2baeb4",
+  "bytes": 285480,
+  "productionStage": "PRIMARY",
+  "modelingMode": "dcc-blender",
+  "sourceBlendSha256": "bdbc8ff238069ab7b8470023d8e627dc0074a3db8a505b05113581448f37b5a1",
+  "humanoidRig": "kaykit.Rig_Medium.v1",
+  "referencePath": "docs/characters/references/protagonist-villager-female-v1.svg",
+  "visualApproval": "pending",
+  "license": {
+    "rigProvenance": "Derived from repository-local protagonist.villager.v1; KayKit Character Pack Adventures 1.0 Rig_Medium at revision 672074b73ba276876a19e8816ecdc5241817ab47, CC0-1.0.",
+    "surfaceAuthorship": "RINNE-authored DCC female variant; existing KayKit-derived surfaces retain CC0 provenance; silhouette, hair locks and waist cloth are RINNE-authored modifications."
+  }
+}

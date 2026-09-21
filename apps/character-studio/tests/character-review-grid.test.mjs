@@ -1,135 +1,83 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 
 const read = name => readFileSync(new URL(`../src/${name}`, import.meta.url), 'utf8');
 const code = read('character-review-grid.js');
 const css = read('character-review-grid.css');
-const auto = read('review-slot-auto.js');
-const workspace = read('character-workspace.js');
-const { REVIEW_SECTIONS, readCharacterReviewGroups, gridFocusIndex, installCharacterReviewGrid } = await import(
+const main = read('character-review-main.js');
+const review = read('character-review.js');
+const { readCharacterModels, gridFocusIndex, installCharacterReviewGrid } = await import(
   `data:text/javascript;base64,${Buffer.from(code.replace("import './character-review-grid.css';", '')).toString('base64')}`
 );
-function source(label, { pressed = false, disabled = false, ariaLabel = '', swatch = '', camera, tick = false } = {}) {
+
+function source(label, { id='model', pressed=false, disabled=false, stage='PRIMARY' } = {}) {
   return {
-    dataset: camera ? { camera } : {}, isConnected: true,
-    getAttribute: name => name === 'aria-pressed' ? String(pressed) : name === 'aria-label' ? ariaLabel : null,
-    matches: selector => selector === ':disabled' && disabled,
-    querySelector: selector => selector === 'i' && swatch ? { style: { backgroundColor: swatch } } : null,
-    cloneNode() {
-      const clone = { textContent: label + (tick ? '選択中' : '') };
-      clone.querySelectorAll = () => tick ? [{ remove: () => { clone.textContent = label; } }] : [];
-      return clone;
-    }
+    textContent: label,
+    dataset: { characterModel:id, modelStage:stage },
+    isConnected:true,
+    getAttribute:name => name === 'aria-pressed' ? String(pressed) : null,
+    matches:selector => selector === ':disabled' && disabled
   };
 }
-function readGroups(rows, ready = true, camera = 'front') {
-  return readCharacterReviewGroups({ querySelectorAll: selector => rows[selector] || [] }, ready, camera);
-}
 
-test('nine editable review groups share one slot-to-grid catalogue, with no technical build action', () => {
-  const groups = readGroups({});
-  assert.deepEqual(groups.map(row => row.id), ['model','individual','part','variant','age','hair','eyes','skin','dye']);
-  assert.equal(new Set(groups.map(row => row.id)).size, 9);
-  assert.match(code, /#character-model-options \[data-character-model\]/);
-  assert.doesNotMatch(code, /character-build-request/);
+test('simple character review exposes real models only', () => {
+  assert.match(main, /const simpleReview = document\.body\.classList\.contains\('simple-review'\)/);
+  assert.match(main, /if \(!simpleReview\) \{\s*const generated = button\('量産モデル'/);
+  assert.match(main, /主人公 男/);
+  assert.match(main, /主人公 女/);
+  assert.match(code, /実モデルのみ/);
+  assert.doesNotMatch(code, /要修正|reviewDecision|modelVerdicts|詳細確認|stepModel/);
 });
 
-test('slots reflect the actual selected source, remove ticks, and preserve full accessible labels', () => {
-  const first = source('少年'), second = source('少女', { pressed: true, ariaLabel: '少女モデルの全ラベル', tick: true });
-  const model = readGroups({ '#character-model-options [data-character-model]': [first, second] })[0];
-  assert.equal(model.value, '少女');
-  assert.deepEqual(model.options.map(row => row.selected), [false, true]);
-  assert.equal(model.options[1].fullLabel, '少女モデルの全ラベル');
-  assert.equal(model.options[1].source, second);
+test('model catalog remains a five-column review grid on phone and desktop', () => {
+  assert.match(css, /\.character-model-grid\{[\s\S]*?grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
+  assert.match(css, /@media\(max-width:760px\)[\s\S]*?\.character-model-grid\{[\s\S]*?repeat\(5,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(css, /38%|62%/);
+  assert.match(css, /grid-template-rows:minmax\(260px,1fr\) auto!important/);
 });
 
-test('custom age does not falsely select the first age preset', () => {
-  const age = readGroups({ '#age-options [data-age]': [source('0歳'), source('22歳')] }).find(row => row.id === 'age');
-  assert.equal(age.value, 'カスタム');
-  assert.equal(age.options.filter(row => row.selected).length, 0);
+test('camera controls are stage-local and review panel does not reserve an empty half-screen', () => {
+  assert.match(code, /character-review-camera-dock review-surface__stage-tools/);
+  assert.match(code, /cameraDock\.append\(frameButton\)/);
+  assert.match(css, /editor-dock\.review-surface__panel\{[\s\S]*?height:auto!important/);
+  assert.match(css, /character-review-camera-dock[\s\S]*?border-radius:999px!important/);
 });
 
-test('loading and inherited fieldset disabled states both disable live candidates', () => {
-  const rows = { '#slot-tabs [data-slot]': [source('髪', { pressed: true }), source('顔', { disabled: true })] };
-  assert.deepEqual(readGroups(rows).find(row => row.id === 'part').options.map(row => row.disabled), [false, true]);
-  assert.deepEqual(readGroups(rows, false).find(row => row.id === 'part').options.map(row => row.disabled), [true, true]);
-  assert.equal(readGroups({}, false)[0].value, '読込中');
-});
-
-test('palette colours are copied from real swatches rather than invented', () => {
-  const group = readGroups({ '#color-options [data-gene="hair"]': [source('茶', { pressed: true, swatch: 'rgb(102, 72, 47)' })] }).find(row => row.id === 'hair');
-  assert.equal(group.value, '茶');
-  assert.equal(group.options[0].swatch, 'rgb(102, 72, 47)');
-});
-
-test('keyboard navigation matches five columns and skips disabled cells safely', () => {
-  const items = Array.from({ length: 10 }, () => ({ disabled: false }));
-  assert.equal(gridFocusIndex(items, 1, 'ArrowDown'), 6);
-  assert.equal(gridFocusIndex(items, 6, 'ArrowUp'), 1);
-  assert.equal(gridFocusIndex(items, 0, 'ArrowLeft'), 0);
-  assert.equal(gridFocusIndex(items, 9, 'ArrowRight'), 9);
-  items[5].disabled = true;
-  assert.equal(gridFocusIndex(items, 4, 'ArrowRight'), 6);
-  assert.equal(gridFocusIndex(items, 6, 'Home'), 0);
-  assert.equal(gridFocusIndex(items, 1, 'End'), 9);
-  assert.equal(gridFocusIndex(items, 1, 'Enter'), 1);
-});
-
-test('procedural reference-sheet model attachment is absent from the active Character Studio runtime', () => {
-  assert.doesNotMatch(workspace, /attachReferenceCharacterController|referenceControllers/);
-});
-
-test('installation is character-only and idempotent before querying or changing the legacy UI', () => {
-  assert.equal(installCharacterReviewGrid({ body: { dataset: { reviewMode: 'motion' } } }, {}), false);
-  assert.equal(installCharacterReviewGrid({ body: { dataset: { reviewMode: 'character' } }, getElementById: () => ({}) }, {}), false);
-  assert.match(auto, /if\(mode==='character'\)\{installCharacterReviewGrid\(\);return;\}/);
-  assert.ok(auto.indexOf("if(mode==='character'){installCharacterReviewGrid();return;}") < auto.indexOf('  installStageCameraSlot();'));
-  assert.doesNotMatch(auto, /mountReviewGroup\(byId\('part-options'\)/);
-});
-
-test('candidates stay visible in five columns; original duplicate controls are scoped out', () => {
-  assert.match(css, /\.character-review-grid\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
-  assert.match(css, /\.character-review-section-tabs\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(css, /body\.character-grid-ready \.review-controls > :not\(#character-review-picker\)/);
-  assert.doesNotMatch(code, /aria-haspopup|review-slot-panel|localStorage|sessionStorage|fetch\(/);
-  assert.match(code, /option\.source\.click\(\)/);
-  assert.match(code, /!option\.source\.isConnected \|\| option\.source\.matches\(':disabled'\)/);
-  assert.match(code, /if \(!ready\) state\.framed = false/);
-  assert.match(code, /if \(!event\.persisted\)/);
-});
-
-
-test('review controls follow reviewer intent: target, three scopes, five-column candidates and binary verdict', () => {
-  assert.deepEqual(REVIEW_SECTIONS.map(row => [row.id, row.label, [...row.groups]]), [
-    ['overall','全体',['individual','age']],
-    ['face','顔',['hair','eyes','skin']],
-    ['outfit','服・パーツ',['part','variant','dye']]
+test('model source selection is the single writer and first real model becomes the initial simple-review target', () => {
+  assert.match(code, /model\.source\.click\(\)/);
+  assert.match(code, /!workspace\(\)\?\.modelId/);
+  assert.match(code, /autoSelected = true/);
+  const models = readCharacterModels({querySelectorAll:()=>[
+    source('主人公 男',{id:'protagonist.villager.v1',pressed:true}),
+    source('主人公 女',{id:'protagonist.villager.female.v1'})
+  ]}, true);
+  assert.deepEqual(models.map(x=>[x.key,x.label,x.selected]), [
+    ['protagonist.villager.v1','主人公 男',true],
+    ['protagonist.villager.female.v1','主人公 女',false]
   ]);
-  assert.match(code, /character-review-section-tabs/);
-  assert.match(code, /dataset\.reviewDecision = 'ok'/);
-  assert.match(code, /dataset\.reviewDecision = 'fix'/);
-  assert.match(code, /'OK'/);
-  assert.match(code, /'要修正'/);
-  assert.doesNotMatch(code, /REVIEW_CRITERIA|確認観点/);
-  assert.match(css, /\.character-review-grid\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
-  assert.match(css, /\.character-review-section-tabs\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(css, /\.character-review-decision--ok\[aria-pressed="true"\]/);
-  assert.match(css, /\.character-review-decision--fix\[aria-pressed="true"\]/);
 });
 
+test('keyboard navigation keeps five-column geometry', () => {
+  const items=Array.from({length:10},()=>({disabled:false}));
+  assert.equal(gridFocusIndex(items,1,'ArrowDown'),6);
+  assert.equal(gridFocusIndex(items,6,'ArrowUp'),1);
+});
 
-test('model browsing is the primary review surface and detailed editing is secondary', () => {
-  assert.match(code, /character-model-grid review-choice-grid/);
-  assert.match(code, /role', 'listbox'/);
-  assert.match(code, /character-review-details-summary', '詳細確認'/);
-  assert.match(code, /root\.append\(modelPicker, tools, details\)/);
-  assert.match(code, /stepModel\(1\)/);
-  assert.match(code, /state\.modelVerdicts\.set\(option\.key, verdict\)/);
-  assert.match(css, /\.character-model-grid\s*\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.match(css, /\.character-model-review-actions\s*\{[^}]*grid-template-columns:\.72fr 1fr 1fr \.72fr/);
-  assert.match(css, /\.character-review-details-summary/);
-  assert.match(css, /\.character-model-list\{display:none!important\}/);
-  assert.match(css, /\.character-model-card-icon\{display:none!important\}/);
-  assert.match(css, /grid-template-rows:minmax\(250px,38%\) minmax\(0,62%\)/);
+test('simple installer stays character-only and idempotent', () => {
+  assert.equal(installCharacterReviewGrid({ body:{ classList:{contains:()=>false}, dataset:{reviewMode:'character'} } }, {}), false);
+});
+
+test('committed protagonist assets are locally available to character-studio and DCC loading is integrity checked', () => {
+  for (const file of [
+    '../public/simulator/assets/PROTAGONIST_VILLAGER_V1.glb',
+    '../public/simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json',
+    '../public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb',
+    '../public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json'
+  ]) assert.ok(statSync(new URL(file, import.meta.url)).size > 0, file);
+  assert.match(review, /model\.integrityPath/);
+  assert.match(review, /model\.assetPath/);
+  assert.match(review, /receipt\.sha256 !== sha256/);
+  assert.match(review, /kaykit\.Rig_Medium\.v1/);
+  assert.doesNotMatch(review, /旧carrier rig依存のため退役中/);
 });

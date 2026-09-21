@@ -20,20 +20,26 @@ function aimForSlot() { if (!studio?.review.ready) return; studio.review.aim(['f
 function buildModelOptions() {
   const panel = el('panel-parts'), heading = make('h3', 'キャラモデル'), row = make('div', '', 'choice-row'), note = make('p', '', 'hint');
   heading.id = 'character-model-title'; row.id = 'character-model-options'; row.setAttribute('role', 'group'); row.setAttribute('aria-labelledby', heading.id); note.id = 'character-model-note';
-  const generated = button('量産モデル', () => { studio.workspace.configure({ view: 'single' }); studio.workspace.selectModel(null); studio.review.aim('front'); });
-  generated.dataset.characterModel = ''; row.append(generated);
-  for (const model of Object.values(CHARACTER_REFERENCE_MODELS)) {
-    const b = button(model.label, () => { studio.workspace.configure({ view: 'single' }); studio.workspace.selectModel(model.id); studio.review.aim('front'); });
-    b.dataset.characterModel = model.id; row.append(b);
+  const simpleReview = document.body.classList.contains('simple-review');
+  if (!simpleReview) {
+    const generated = button('量産モデル', () => { studio.workspace.configure({ view: 'single' }); studio.workspace.selectModel(null); studio.review.aim('front'); });
+    generated.dataset.characterModel = ''; row.append(generated);
   }
-  const buildRequest = button('モデル生成仕様JSON', () => {
-    const model = studio.workspace.model;
-    if (!model) throw new Error('先にキャラクターリファレンスを選択してください');
-    const request = createCharacterModelBuildRequest(model.id, { requestedBy: 'character-workshop' });
-    downloadWorkspace(`${JSON.stringify(request, null, 2)}\n`, `${model.characterId}-model-build-request.json`);
-    toast('モデル生成仕様JSONを保存しました');
-  });
-  buildRequest.dataset.characterBuildRequest = 'true'; row.append(buildRequest);
+  for (const model of Object.values(CHARACTER_REFERENCE_MODELS)) {
+    const concise = model.id === 'protagonist.villager.v1' ? '主人公 男' : model.id === 'protagonist.villager.female.v1' ? '主人公 女' : model.label;
+    const b = button(concise, () => { studio.workspace.configure({ view: 'single' }); studio.workspace.selectModel(model.id); studio.review.aim('front'); });
+    b.dataset.characterModel = model.id; b.dataset.modelStage = model.productionStage || ''; row.append(b);
+  }
+  if (!simpleReview) {
+    const buildRequest = button('モデル生成仕様JSON', () => {
+      const model = studio.workspace.model;
+      if (!model) throw new Error('先にキャラクターリファレンスを選択してください');
+      const request = createCharacterModelBuildRequest(model.id, { requestedBy: 'character-workshop' });
+      downloadWorkspace(`${JSON.stringify(request, null, 2)}\n`, `${model.characterId}-model-build-request.json`);
+      toast('モデル生成仕様JSONを保存しました');
+    });
+    buildRequest.dataset.characterBuildRequest = 'true'; row.append(buildRequest);
+  }
   panel.prepend(note); panel.prepend(row); panel.prepend(heading);
 }
 function buildOptions() {
@@ -76,8 +82,8 @@ function render() {
   const buildRequest = document.querySelector('[data-character-build-request]');
   if (buildRequest) buildRequest.disabled = !w.model;
   if (el('character-model-note')) el('character-model-note').textContent = w.model
-    ? `${w.model.note} リファレンス画像は ${w.model.referencePath}。生成仕様JSONはこの正本と未実装/ゲーム装備の境界を保持します。`
-    : '通常の量産モデルです。seed・遺伝・役割から見た目を生成します。リファレンスを選ぶとモデル生成仕様JSONを出力できます。';
+    ? `${w.model.label} / ${w.model.productionStage || 'MODEL'}`
+    : '詳細編集では量産・個体差・パーツ調整を確認できます。';
   for (const b of document.querySelectorAll('[data-modular-value]')) b.setAttribute('aria-pressed', String(p[slot] === b.dataset.modularValue));
   el('original-preview').setAttribute('aria-pressed', String(w.previewing));
   el('original-preview').textContent = w.previewing ? '編集した姿に戻す' : '元のパーツと比較'; el('preview-label').hidden = !w.previewing;
