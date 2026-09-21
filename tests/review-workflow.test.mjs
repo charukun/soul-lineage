@@ -74,3 +74,20 @@ test('GitHub Pages is not reintroduced as a DEV tool route',async()=>{
   assert.doesNotMatch(toolSection,/charukun\.github\.io|PAGES_ROOT|rinneDevToolTarget/);
   assert.match(distribution,/GitHub Pages is not a DEV publisher/);
 });
+
+
+test('Visual Review Lab entrypoint stays orchestration-only after the split',async()=>{
+  const [main,config,icons,warmup]=await Promise.all([
+    read('apps/review/src/main.js'),
+    read('apps/review/src/review-lab-config.js'),
+    read('apps/review/src/review-lab-icons.js'),
+    read('apps/review/src/review-lab-warmup.js'),
+  ]);
+  assert.match(main,/review-lab-config\.js/);
+  assert.match(main,/review-lab-icons\.js/);
+  assert.match(main,/review-lab-warmup\.js/);
+  assert.doesNotMatch(main,/MENU_ICONS|const warmed=|function warmRoute/);
+  assert.doesNotMatch(config,/reviewRoute\s*=/);
+  assert.match(icons,/export const REVIEW_MENU_ICONS/);
+  assert.match(warmup,/export function createReviewWarmup/);
+});

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
-import {KAYKIT_MODELS} from '@soul/characters';
+import {RINNE_MOTION_REVIEW_DEFAULT_MODEL,RINNE_MOTION_REVIEW_MODELS} from './review-motion-models.js';
 import {createHumanoidPreview} from '@soul/rendering/humanoid-preview';
 import {createHumanoidPreviewConstraints} from '@soul/rendering/humanoid-preview-constraints';
 import {createReviewRenderer,normalizeReviewSubject,positionReviewCamera} from '@soul/rendering';
@@ -28,8 +28,8 @@ const rim=new THREE.DirectionalLight(0x9ac8d5,1.35);rim.position.set(5,4,-4);sce
 const ground=new THREE.Mesh(new THREE.CircleGeometry(3.5,64),new THREE.MeshStandardMaterial({color:0x1a2420,roughness:.96,metalness:.01}));
 ground.rotation.x=-Math.PI/2;ground.position.y=-.005;scene.add(ground);
 const stage=new THREE.Group();scene.add(stage);
-const REVIEW_MODELS=KAYKIT_MODELS;
-let selectedModel=REVIEW_MODELS[0],subject=null,targetScene=null,targetAdapter=null,targetConstraints=null,targetCalibration=null,targetDccRoute=null,mixer=null,action=null,targetClips=[],catalog=[],selected=null;
+const REVIEW_MODELS=RINNE_MOTION_REVIEW_MODELS;
+let selectedModel=RINNE_MOTION_REVIEW_DEFAULT_MODEL,subject=null,targetScene=null,targetAdapter=null,targetConstraints=null,targetCalibration=null,targetDccRoute=null,mixer=null,action=null,targetClips=[],catalog=[],selected=null;
 let filter='all',playing=false,speed=1,loop=true,last=performance.now(),loadSerial=0,selectSerial=0,cameraPreset='three-quarter';
 let externalSource=null,externalTime=0,selectedDuration=0,ready=false,rootMotion='in-place',constraintMode='raw',stopped=false;
 const motionFailures=new Map(),thumbnailModelPromises=new Map(),categoryOrder=['all','recommended','life','move','parkour','combat','reaction','other'];
@@ -131,9 +131,15 @@ function createStaticThumbnail(url,label=''){
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('review-static-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-label',label);svg.setAttribute('role','img');
   const use=document.createElementNS(svg.namespaceURI,'use');use.setAttribute('href',url);svg.append(use);return svg;
 }
+function createModelThumbnail(model){
+  if(model.thumbnailUrl)return createStaticThumbnail(model.thumbnailUrl,model.label);
+  const thumbnail=createRuntimeThumbnail(model.label);
+  scheduleRuntimeThumbnail(thumbnail,`motion-model:v1:${model.id}`,async()=>cloneSkeleton((await loadReviewModelForThumbnail(model)).scene),{disposeAfter:false});
+  return thumbnail;
+}
 function renderModelGrid(){
   const grid=el('motion-model-grid');grid.replaceChildren();
-  for(const model of REVIEW_MODELS){const b=document.createElement('button');b.type='button';b.className='review-choice-card';b.dataset.motionModel=model.id;b.append(createStaticThumbnail(model.thumbnailUrl,model.label));b.setAttribute('aria-label',model.label);b.title=model.label;b.setAttribute('aria-pressed',String(model.id===selectedModel.id));b.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(b);}
+  for(const model of REVIEW_MODELS){const b=document.createElement('button');b.type='button';b.className='review-choice-card';b.dataset.motionModel=model.id;b.append(createModelThumbnail(model));b.setAttribute('aria-label',model.label);b.title=model.label;b.setAttribute('aria-pressed',String(model.id===selectedModel.id));b.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(b);}
 }
 function renderFilters(){
   const root=el('motion-filters');root.replaceChildren();
