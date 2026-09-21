@@ -13,7 +13,7 @@ export function readSavedBody(raw){
 }
 /** Strip derived pose/executor snapshots, not damage, injuries, projectiles or results. */
 export function clearSavedPresentation(state){
-  if(state.combat)delete state.combat.tidebreakPose;
+  if(state.combat){delete state.combat.tidebreakPose;delete state.combat.exchange;}
   if(state.inspiration)delete state.inspiration.execution;
   for(const enemy of state.frontState?.enemies||[])enemy.tidebreakPose=null;
   return state;

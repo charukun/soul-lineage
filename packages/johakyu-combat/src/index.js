@@ -79,3 +79,4 @@ export function johakyuIntent({mind='balanced',distance,threat=false,threatProgr
 export * from './domain.js';
 
 export * from './execution-capability.js';
+export * from './exchange-policy.js';
