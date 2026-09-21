@@ -385,3 +385,21 @@ main.battle-review.review-surface .camera-zoom button{
 @keyframes hirameki-impact-flash{0%{opacity:1}100%{opacity:0}}
 @media(max-width:520px){.battle-inspiration{max-width:min(250px,68vw)!important}.battle-inspiration .battle-inspiration-mark{font-size:26px!important}.battle-inspiration strong{max-width:min(190px,50vw)!important;font-size:16px!important}}
 @media(prefers-reduced-motion:reduce){.battle-lightbulb,.battle-inspiration[data-burst="true"],.battle-inspiration[data-sequence="reveal"],.stage[data-inspiration-beat="impact"]::before{animation:none!important}}
+
+
+/* Long-form inspiration ecstasy window: 12.5s of live combat, not a paused cutscene. */
+.stage[data-inspiration-cinematic="true"] canvas{transition:filter .38s cubic-bezier(.2,.7,.2,1)!important}
+.stage[data-inspiration-beat="premonition"] canvas{filter:saturate(.82) contrast(1.04) brightness(.90)!important}
+.stage[data-inspiration-beat="camera"] canvas,.stage[data-inspiration-beat="spacing"] canvas{filter:saturate(.70) contrast(1.08) brightness(.84)!important}
+.stage[data-inspiration-beat="stagger"] canvas{filter:saturate(.62) contrast(1.10) brightness(.80)!important}
+.stage[data-inspiration-beat="silence"] canvas{filter:saturate(.48) contrast(1.13) brightness(.76)!important}
+.stage[data-inspiration-beat="execute"] canvas{filter:saturate(1.04) contrast(1.10) brightness(.98)!important}
+.stage[data-inspiration-beat="impact"] canvas{filter:saturate(1.13) contrast(1.14) brightness(1.06)!important}
+.stage[data-inspiration-beat="reveal"] canvas{filter:saturate(1.02) contrast(1.08) brightness(.98)!important}
+.stage[data-inspiration-beat="afterglow"] canvas{filter:saturate(.94) contrast(1.04) brightness(.94)!important}
+.stage[data-inspiration-cinematic="true"]>:is(.combat-body-hud-host,.note,.model-status,.battle-sequence-hud,.technique-composition,.camera-zoom){opacity:.10!important;transition:opacity .42s ease,filter .42s ease!important}
+.stage[data-inspiration-beat="reveal"]>:is(.combat-body-hud-host,.note,.model-status,.battle-sequence-hud,.technique-composition,.camera-zoom),.stage[data-inspiration-beat="afterglow"]>:is(.combat-body-hud-host,.note,.model-status,.battle-sequence-hud,.technique-composition,.camera-zoom){opacity:.18!important}
+.stage[data-inspiration-beat="silence"]::after{background:radial-gradient(circle at 50% 48%,transparent 0 13%,rgba(3,7,10,.22) 38%,rgba(3,7,10,.72) 100%)!important}
+.battle-lightbulb{animation:hirameki-spark .42s cubic-bezier(.16,.9,.2,1) both!important}
+.battle-inspiration[data-burst="true"],.battle-inspiration[data-sequence="reveal"]{animation:hirameki-name .55s cubic-bezier(.12,.82,.16,1) both!important}
+@media(prefers-reduced-motion:reduce){.stage[data-inspiration-cinematic="true"] canvas,.stage[data-inspiration-cinematic="true"]>:is(.combat-body-hud-host,.note,.model-status,.battle-sequence-hud,.technique-composition,.camera-zoom){transition:none!important}}
