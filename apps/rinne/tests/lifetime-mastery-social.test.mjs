@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultMuraLayout } from '@soul/world/mura';
 import { generatedTechniqueCandidates } from '@soul/game-data';
-import { createLife } from '../src/rebuild/domain.js';
+import { createLife, rebirth } from '../src/rebuild/domain.js';
 import { CoopWorld } from '../src/rebuild/coop-world.js';
-import { inspirationMasteryProfile, inspirationRuleEffectsFor } from '../src/rebuild/inspiration-state.js';
+import { evaluateSuiAwakening, inspirationMasteryProfile, inspirationRuleEffectsFor, validateInspiration } from '../src/rebuild/inspiration-state.js';
 
 function maturedState(age,{gifted=false}={}){
   const state=createLife({name:'試験者',seed:7});
@@ -69,4 +69,28 @@ test('co-op village news and peer visibility expose community hooks to other pla
   assert.ok(ownerPeer.talents.includes('prodigy'));
   assert.ok(ownerPeer.socialHooks.some(hook=>hook.kind==='protect-gifted-child'));
   assert.ok(ownerPeer.socialHooks.some(hook=>hook.kind==='rally-around-prodigy'));
+});
+
+
+test('彗 is a rare deterministic mid-life awakening, boosts mastery, survives save validation, and is not inherited',()=>{
+  let awakened=null;
+  for(let seed=1;seed<=5000;seed++){
+    const state=createLife({name:'彗候補',seed});
+    state.ageYears=32;state.ageSeconds=32*60;state.phase='living';
+    state.inspiration.traces=Array.from({length:12},(_,index)=>({id:'trace-'+index,kind:['life','practice','observation','combat'][index%4],motifs:['precision'],text:'積み重ね',age:20+index*.5,place:'village',key:'k'+index,semanticKey:'s'+index,sourceId:'',sourceName:'',relation:''}));
+    state.inspiration.serial=12;
+    const before=inspirationMasteryProfile(state).mastery;
+    const detail=evaluateSuiAwakening(state,{id:'skill.sui-test',name:'境の一手',motifs:['precision']});
+    if(detail){awakened={state,before,detail};break;}
+  }
+  assert.ok(awakened,'a deterministic sui awakening should exist in a broad seed sample');
+  assert.equal(awakened.detail.label,'彗');
+  assert.equal(awakened.detail.axis,'精度');
+  assert.ok(awakened.state.inspiration.talents.includes('sui'));
+  assert.ok(inspirationMasteryProfile(awakened.state).mastery>awakened.before);
+  assert.ok(awakened.state.events.some(event=>event.type==='village-news'&&event.tag==='彗'&&event.text.includes('彗')));
+  validateInspiration(awakened.state);
+  assert.ok(awakened.state.inspiration.talents.includes('sui'));
+  const next=rebirth(awakened.state,{name:'次代'});
+  assert.ok(!next.inspiration.talents.includes('sui'));
 });

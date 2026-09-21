@@ -7,6 +7,7 @@ export { INSPIRATION_VERSION, INSPIRATION_LIMITS, ensureInspiration, synchronize
 const ACTIVITY_MOTIFS=Object.freeze({play:['balance','space','timing'],pray:['patience','breath'],forge:['tool','observation'],train:['observation','timing'],study:['observation','precision'],read:['patience','observation'],care:['care','patience'],observe:['observation','patience'],track:['space','observation'],maintain:['tool','handling'],voyage:['balance','patience'],rest:['breath','patience'],breathe:['breath'],balance:['balance'],fall:['balance','space'],focus:['precision','patience'],sense:['observation','space'],repeat:['handling','timing'],distance:['space','observation'],adapt:['balance','space'],practice:['handling','timing']});
 const ACTIVITY_QUESTIONS=Object.freeze({play:'balance',balance:'balance',fall:'balance',adapt:'balance',voyage:'balance',breathe:'fatigue',rest:'fatigue',pray:'fatigue',forge:'tool',maintain:'tool',care:'care',observe:'opening',train:'opening',study:'opening',read:'opening',sense:'opening',track:'reach',distance:'reach',focus:'opening',repeat:'rhythm',practice:'recovery'});
 const LABELS=Object.freeze({play:'遊び',pray:'祈り',forge:'鍛冶の見学',train:'稽古の見学',study:'学び',read:'読書',care:'手伝い',observe:'観察',track:'足跡を追う',maintain:'得物の手入れ',voyage:'船上で過ごす',rest:'休息',breathe:'呼吸を整える',balance:'姿勢を整える',fall:'受身を試す',focus:'一点へ集中する',sense:'気配を読む',repeat:'反復する',distance:'間合いを見る',adapt:'足場に馴染む',practice:'型を試す'});
+const SUI_MOTIF_LABELS=Object.freeze({balance:'身の軸',space:'間合い',timing:'拍子',handling:'得物さばき',observation:'観察',patience:'待ち',care:'支え',tool:'道具扱い',force:'力の通し方',breath:'呼吸',precision:'精度',return:'返し',angle:'角度',wait:'待機',read:'読み',advance:'踏み込み'});
 const safe=value=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,96);
 const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,Number.isFinite(Number(v))?Number(v):a));
 const unique=values=>[...new Set(values)];
@@ -36,11 +37,12 @@ export function inspirationMasteryProfile(state,row=null){
   const decline=Math.max(0,1-(Number(body.endurance)||1))+Math.max(0,1-(Number(body.drive)||1))*.6;
   const adaptation=Math.min(1,(age>=45?.35:age>=32?.15:0)+decline*.9+Math.abs((Number(body.balance)||1)-1)*.45);
   const continuity=Math.min(1,(row?.motifs||[]).filter(motif=>(s.heritage||[]).some(h=>h.motif===motif)).length/2);
-  const mastery=clamp(ageMaturity*.38+stableMastery*.22+contextMastery*.14+lineageMastery*.12+adaptation*.1+continuity*.04);
+  const suiMastery=s.talents?.includes('sui')?1:0;
+  const mastery=clamp(ageMaturity*.38+stableMastery*.22+contextMastery*.14+lineageMastery*.12+adaptation*.1+continuity*.04+suiMastery*.12);
   const secretChance=clamp(.015+mastery*.34+(age>=40?.06:0),.015,.48);
   let ultimateChance=clamp(.001+Math.pow(mastery,2)*.105+(age>=45?.035:0)+(age>=60?.025:0),.001,.18);
   if(age<30)ultimateChance*=s.talents?.includes('gifted') ? .34 : .12;else if(age<40)ultimateChance*=.42;
-  return Object.freeze({age,mastery,ageMaturity,stableMastery,contextMastery,lineageMastery,adaptation,continuity,secretChance,ultimateChance});
+  return Object.freeze({age,mastery,ageMaturity,stableMastery,contextMastery,lineageMastery,adaptation,continuity,suiMastery,secretChance,ultimateChance});
 }
 const GENERATED_RULE_EFFECTS=Object.freeze({
   adaptive:Object.freeze({id:'adaptive-space',label:'転位継ぎ',impact:'rule',rarity:'rare'}),
@@ -67,6 +69,16 @@ export function initializeBirthTalents(state){
 }
 function addTalent(state,id,detail={}){
   const s=ensureInspiration(state);s.talents??=[];s.talentDetails??={};if(!s.talents.includes(id))s.talents.push(id);s.talentDetails[id]={...(s.talentDetails[id]||{}),...detail,id};s.revision++;
+}
+export function evaluateSuiAwakening(state,{id='',name='',motifs=[]}={}){
+  const s=ensureInspiration(state),age=clamp(Number(state.ageYears)||0,0,100);
+  if(age<12||s.talents?.includes('sui')||s.traces.length<6)return null;
+  const diversity=unique(s.traces.map(trace=>trace.kind)).length;if(diversity<3)return null;
+  const chance=clamp(.018+Math.min(.045,s.traces.length*.0025)+Math.min(.03,diversity*.008)+(age>=30?.015:0),.018,.12);
+  if(unit(state.seed??0,`sui:${id}:${Math.floor(age)}:${s.serial}`)>=chance)return null;
+  const motif=motifs.find(value=>MOTIFS.includes(value))||'observation',axis=SUI_MOTIF_LABELS[motif]||'才覚';
+  const detail={label:'彗',axis,motif,awakenedAge:age,techniqueId:safe(id),techniqueName:safe(name),chance:Number(chance.toFixed(4))};
+  addTalent(state,'sui',detail);state.events??=[];state.events.unshift({type:'village-news',scope:'village',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${state.name||'旅人'}に「彗」が現れた。${name?`${name}を境に、`:''}${axis}の才覚が一段跳ねた。`,tag:'彗',subjectId:state.id});state.events.length=Math.min(state.events.length,80);return detail;
 }
 function sourceKind(kind){return ['practice','repeat','balance','breathe','focus','fall','distance'].includes(kind)?'practice':['observe','train','study','read','forge'].includes(kind)?'observation':'life';}
 
@@ -159,8 +171,9 @@ function commitAnswer(state,candidate,context={}){
   if(['technique','variant'].includes(row.kind)){const effectAttribute=chooseInspirationEffectAttribute(state,row.id);if(effectAttribute)record.effectAttribute=effectAttribute;}
   if(row.kind==='link'&&context.combo)record.combo={...context.combo};
   s.records[row.id]=record;s.lastNamed=s.clock;s.revision++;enforceActiveLimit(state);synchronizeKnownSkills(state);
+  const sui=evaluateSuiAwakening(state,{id:row.id,name:record.name,motifs:row.motifs});
   const villageAnnouncement=prodigy?`${state.name||'若き達人'}が${Math.floor(record.age)}歳で${record.name}を閃いた。天賦の才が村に知れ渡った。`:null;
-  const event={type:'inspiration',id:row.id,name:record.name,kind:row.kind,family:row.family,age:record.age,provenance:record.provenance,effectAttribute:record.effectAttribute||null,grade:naming?.grade||'normal',prodigy,villageAnnouncement};
+  const event={type:'inspiration',id:row.id,name:record.name,kind:row.kind,family:row.family,age:record.age,provenance:record.provenance,effectAttribute:record.effectAttribute||null,grade:naming?.grade||'normal',prodigy,sui:Boolean(sui),suiDetail:sui,villageAnnouncement};
   state.events??=[];state.events.unshift({type:prodigy?'village-news':'inspiration',scope:prodigy?'village':'self',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:villageAnnouncement||`${record.name}を閃いた。`,inspirationId:row.id,tag:prodigy?'天賦の才':'',subjectId:state.id,communityHook:prodigy?{kind:'rally-around-prodigy',roles:['師匠','稽古仲間','共闘仲間']}:null});state.events.length=Math.min(state.events.length,80);return event;
 }
 export function recordLifeExperience(state,kind,context={}){
