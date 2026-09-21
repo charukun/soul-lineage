@@ -17,7 +17,7 @@
       "tool": "Blender",
       "version": "4.0.2",
       "sourcePath": "assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend",
-      "sourceSha256": "bdbc8ff238069ab7b8470023d8e627dc0074a3db8a505b05113581448f37b5a1"
+      "sourceSha256": "3e6d3598ade98aa009e83b021c3af78adbd760ea08c7d8a43ba17b4cb2f88166"
     }
   },
   "evidence": {
@@ -60,6 +60,6 @@
     "productionReady": false,
     "licensePolicy": "allowed-cc0",
     "distributionEligible": true,
-    "note": "Female protagonist DCC variant preserves shared Rig_Medium gameplay contract. PRIMARY only; deformation, motion, polish, device performance and explicit human visual approval remain pending."
+    "note": "Three-round fixed-view and Character Studio visual refinement completed. Rig_Medium preserved; human visual approval remains pending."
   }
 }
