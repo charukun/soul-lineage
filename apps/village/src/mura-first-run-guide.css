@@ -117,3 +117,51 @@ body.mura-first-run-active #drawer,body.mura-first-run-active #placement,body.mu
  body.mura-first-run-active :is(#title,#idleStatus,#idleMoment,#muraHud,#muraDebugTimeAccel,#muraModeControls,#context),.muraFirstRunSpotlight{transition:none!important}
  .muraFirstRunTrail{display:none!important}
 }
+
+
+/* Message-focus pass: action steps are glanceable captions, not reading cards. */
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard{
+ width:min(286px,calc(100vw - 28px));padding:10px 40px 10px 13px;
+ clip-path:none;border:0;border-radius:12px;overflow:visible;
+ background:rgba(245,237,211,.92);
+ box-shadow:0 5px 16px rgba(30,40,30,.16),inset 3px 0 rgba(112,132,92,.72);
+ backdrop-filter:blur(5px);
+}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard:before,
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard:after{content:none}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideTop{position:absolute;inset:0;display:block;margin:0;pointer-events:none}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideEyebrow{display:none}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunStep{
+ position:absolute;right:9px;top:9px;margin:0;min-width:27px;padding:2px 5px;border:0;background:rgba(67,82,59,.09);
+ font-size:8px;line-height:1.3;color:#67715e;pointer-events:none;
+}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunSkip{
+ position:absolute;right:-1px;top:-34px;display:block!important;min-height:28px!important;padding:3px 7px!important;
+ border:0!important;background:rgba(36,48,36,.46)!important;color:rgba(255,250,232,.92)!important;border-radius:999px!important;
+ font-size:8px!important;opacity:.72;pointer-events:auto;
+}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard strong{
+ margin:0;padding:0;font:700 clamp(16px,4.4vw,19px)/1.28 "Yu Mincho","Hiragino Mincho ProN",serif;
+ letter-spacing:.01em;color:#2f402d;text-wrap:balance;
+}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard p{display:none}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideFooter{display:none;margin:0;min-height:0}
+#muraFirstRunGuide[data-mode="coach"].mura-first-run-hint .muraFirstRunGuideCard{
+ width:min(320px,calc(100vw - 24px));padding-bottom:11px;
+}
+#muraFirstRunGuide[data-mode="coach"].mura-first-run-hint .muraFirstRunGuideCard p{
+ display:block;margin-top:4px;font-size:11px;line-height:1.38;font-weight:650;color:#5d523e;
+}
+#muraFirstRunGuide[data-mode="coach"].mura-first-run-hint .muraFirstRunGuideFooter,
+#muraFirstRunGuide[data-mode="coach"].mura-first-run-accepted .muraFirstRunGuideFooter{
+ display:flex;position:absolute;left:10px;bottom:-25px;margin:0;min-height:22px;
+}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunCue[data-state="success"],
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunCue[data-state="hint"]{
+ display:block;padding:3px 7px;font-size:8px;box-shadow:0 2px 7px rgba(35,45,33,.12);
+}
+@media(max-width:600px){
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard{width:min(268px,calc(100vw - 24px));padding:9px 36px 9px 12px}
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard strong{font-size:17px;line-height:1.24}
+ #muraFirstRunGuide[data-mode="coach"].mura-first-run-hint .muraFirstRunGuideCard{width:min(292px,calc(100vw - 20px))}
+}
