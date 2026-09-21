@@ -40,11 +40,14 @@ test('1v1 executes only configured techniques and keeps stage order inside each 
  assert.ok(rows.length>12);
  const firstBattle=rows.filter(row=>row.battleId===rows[0].battleId),firstSeen=new Set(),ordered=[];
  for(const row of firstBattle){const key=`${row.phase}:${row.techniqueIndex}:${row.stageIndex}`;if(firstSeen.has(key))continue;firstSeen.add(key);ordered.push(key);}
- assert.deepEqual(ordered.slice(0,18),[
+ const canonical=[
    'jo:0:0','jo:0:1','jo:0:2','jo:1:0','jo:1:1','jo:1:2',
    'ha:0:0','ha:0:1','ha:0:2','ha:1:0','ha:1:1','ha:1:2',
    'kyu:0:0','kyu:0:1','kyu:0:2','kyu:1:0','kyu:1:1','kyu:1:2'
- ]);
+ ];
+ assert.ok(ordered.length>=12,'real combat should reach the later chain before resolution');
+ assert.ok(ordered.some(key=>key.startsWith('kyu:')),'real combat should reach 急 when uninterrupted enough');
+ assert.deepEqual(ordered,canonical.slice(0,ordered.length),'observed stages must remain a canonical prefix without skips');
 });
 
 test('phase changes only when the configured chain completes',()=>{
@@ -80,6 +83,35 @@ test('canonical footwork persists in world space and only reachable impacts beco
  assert.ok(maxTravel>.2,`footwork must persist beyond a cosmetic offset: ${maxTravel}`);assert.ok(hits>0);
  const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');
  assert.match(source,/selectReachableTarget/);assert.match(source,/type:'miss'/);assert.doesNotMatch(source,/function footworkOffset/);
+});
+
+
+test('a real miss breaks the current chain and restarts its phase from the first stage',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',duelGap:3.6});let proof=null;
+ for(let i=0;i<900&&!proof;i++){
+   scenario.step(1/60);const trace=scenario.inspect().trace;
+   const missIndex=trace.findIndex(row=>row.type==='miss'&&row.sourceId==='hero');
+   if(missIndex<0)continue;
+   const breakIndex=trace.findIndex((row,index)=>index>missIndex&&row.type==='chain-break'&&row.reason==='miss');
+   if(breakIndex<0)continue;
+   const restart=trace.slice(breakIndex+1).find(row=>row.type==='stage-start');
+   if(restart)proof={broken:trace[breakIndex],restart};
+ }
+ assert.ok(proof,'miss must produce a chain break followed by a restart');
+ assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,proof.broken.techniqueIndex);assert.equal(proof.restart.stageIndex,0);
+});
+
+test('an early incoming hit breaks an unprotected chain instead of retrying a later stage',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',enemyLeadSeconds:.3});let proof=null;
+ for(let i=0;i<720&&!proof;i++){
+   scenario.step(1/60);const trace=scenario.inspect().trace;
+   const breakIndex=trace.findIndex(row=>row.type==='chain-break'&&row.reason==='hit-before-contact');
+   if(breakIndex<0)continue;
+   const restart=trace.slice(breakIndex+1).find(row=>row.type==='stage-start');
+   if(restart)proof={broken:trace[breakIndex],restart};
+ }
+ assert.ok(proof,'early real contact must break the chain');
+ assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,proof.broken.techniqueIndex);assert.equal(proof.restart.stageIndex,0);
 });
 
 test('HUD metadata comes from the executing technique and stage',()=>{
