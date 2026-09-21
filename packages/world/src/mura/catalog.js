@@ -62,6 +62,8 @@ export const GARDEN=[
  {id:'flowers',label:'花',w:2.5,d:2.5,soft:true,unlock:['seed'],cost:{seed:1}},
  {id:'hedge',label:'生垣',w:4,d:1.1,unlock:['seed'],cost:{seed:2},defense:.12},
  {id:'lamp',label:'街灯',w:.9,d:.9,unlock:['wood'],cost:{wood:1},defense:.25},
+ {id:'logseat',label:'丸太の椅子',w:2.2,d:1.15,unlock:['wood'],cost:{wood:1},leisure:'seat',trait:'伐った丸太をそのまま生かした腰掛け。丸太のテーブルの近くに置くと、住人が仕事の合間にくつろぎます。'},
+ {id:'logtable',label:'丸太のテーブル',w:2.5,d:1.9,unlock:['wood'],cost:{wood:2},leisure:'table',trait:'村の外でお茶や立ち話を楽しむ素朴な卓。丸太の椅子と組み合わせると小さなくつろぎ場になります。'},
  {id:'bench',label:'ベンチ',w:2.8,d:1.3,unlock:['plank'],cost:{plank:2}},
  {id:'wardlamp',label:'魔除けの灯り',w:1.2,d:1.2,unlock:['charm'],cost:{stone:3,charm:2},defense:2}
 ].map(o=>({...o,category:'庭',garden:true}));
@@ -97,5 +99,7 @@ export const TUTORIAL=[
  {kind:'storage',version:5,title:'資材を置く場所',text:'集めた木や石を置ける資材置き場をつくります。',at:[12,-12]},
  {kind:'tent',version:5,title:'次の住人のためのテント',text:'新しい仲間を迎えられる空きテントをひとつ用意します。',at:[-10,12]},
  {kind:'logging',version:5,title:'木こりの仕事場',text:'林のそばに伐採場をつくり、丸太を集められるようにします。',at:[-20,-15]},
- {kind:'carpenter',version:5,title:'大工の仕事場',text:'集めた丸太を板材へ変える木工所をつくります。',at:[8,-18]}
+ {kind:'carpenter',version:5,title:'大工の仕事場',text:'集めた丸太を板材へ変える木工所をつくります。',at:[8,-18]},
+ {kind:'logseat',version:5,title:'仕事の合間の腰掛け',text:'丸太の椅子をひとつ置いて、仕事だけではない村の居場所をつくります。',at:[3,14]},
+ {kind:'logtable',version:5,title:'くつろぎの卓を',text:'椅子の近くに丸太のテーブルを置きましょう。そろうと住人がここでひと休みするようになります。',at:[6,14]}
 ];

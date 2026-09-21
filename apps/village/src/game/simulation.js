@@ -24,15 +24,18 @@ export class Navigation{
 const ROLE_NAMES={mayor:'村長',guard:'護衛',resident:'村人',player:'一族プレイヤー'};
 const FAVORITES=['焚き火の語らい','花を眺める','木陰でひと休み','釣り','部屋を飾る','読書','朝の散歩'];
 export class Simulation{
- constructor(world){this.world=world;this.nav=new Navigation(world);this.elapsed=0;this.arrivalTimer=6;this.assignmentTimer=0;this.constructionTimer=0;this.decayTimer=0;this.momentTimer=18;this.trafficRevision=1;this.extras=[];this.onEvent=()=>{};this.refresh();}
+ constructor(world){this.world=world;this.nav=new Navigation(world);this.elapsed=0;this.arrivalTimer=6;this.assignmentTimer=0;this.constructionTimer=0;this.decayTimer=0;this.momentTimer=18;this.trafficRevision=1;this.extras=[];this.merchantExtra=null;this.dog=null;this.onEvent=()=>{};this.refresh();}
  get raid(){return this.world.state.defense.raid;}
  set raid(value){this.world.state.defense.raid=value;}
- refresh(){this.trafficRevision++;this.nav.revision=-1;this.extras=[];
+ refresh(){this.trafficRevision++;this.nav.revision=-1;this.merchantExtra=null;
   for(const p of this.world.people){p.hunger??=85;p.purse??=0;p.task??='idle';p.timer??=0;p.path??=[];p.health??=100;p.skill??=0;p.happiness??=75;p.favorite??=FAVORITES[this.world.people.indexOf(p)%FAVORITES.length];p.memories??=[];p.seed??=this.world.random()*20;}
-  if(!this.world.state.wildlife.length)this.seedWildlife();
+  const mayor=this.world.people.find(p=>p.role==='mayor'),home=mayor&&this.world.object(mayor.homeId),start=home?entry(home):mayor||{x:0,z:0};
+  this.dog={id:'mayor-dog',name:'村長の犬',species:'dog',role:'pet',x:start.x+1.4,z:start.z+.7,seed:17,angle:.4,moving:false,path:[],repath:0,status:'村長のそばでのんびりしている',cargo:this.world.state.logistics.active?.items||null};
+  this.syncExtras();if(!this.world.state.wildlife.length)this.seedWildlife();
  }
+ syncExtras(){this.extras=[this.dog,...(this.merchantExtra?[this.merchantExtra]:[])].filter(Boolean);}
  random(){return this.world.random();}
- inTransit(resource,except=null){return this.world.people.reduce((sum,p)=>sum+(p!==except?(Number(p.cargo?.items?.[resource])||0):0),0);}
+ inTransit(resource){const logistics=this.world.state.logistics,queued=[...(logistics.pending||[]),...(logistics.active?[logistics.active]:[])];return queued.reduce((sum,r)=>sum+(Number(r.items?.[resource])||0),0);}
  nearestStorage(p){return this.world.objects.filter(o=>ready(o)&&defs[o.kind].effect==='storage').sort((a,b)=>dist(a,p)-dist(b,p))[0]||null;}
  cargoText(items){return Object.entries(items||{}).filter(([,n])=>n>0).map(([k,n])=>`${RESOURCE_NAMES[k]} ${Math.abs(n-Math.round(n))<.05?Math.round(n):n.toFixed(1)}`).join('・');}
  emit(text,type='life'){this.world.notify(text,type);this.onEvent(text,type);}
@@ -83,7 +86,7 @@ export class Simulation{
  go(p,o,action){if(!o)return false;const destination=o.kind?(muraHasInterior(o)?muraInteriorEntry(o):entry(o)):o;const path=this.nav.route(p,destination);
   if(path===null){p.task='idle';p.timer=5;p.status='通れる道を探しています';return false;}
   p.path=path;p.destination={x:destination.x,z:destination.z};p.navRevision=this.world.state.revision;p.task='walk';p.nextAction=action;p.targetId=o.id||null;
-  p.status={work:'仕事へ向かう',deliver:'資材置き場へ運ぶ',eat:'食事へ向かう',shop:'旅商人の店へ',decorate:'家具を家へ運ぶ',home:'自宅へ帰る',rest:'休みに行く',wander:'散歩',service:'施設へ向かう',social:'語らいの輪へ',patrol:'ゆっくり見回り',escort:'村長に同行中',rescue:'救助に向かう'}[action]||'移動中';return true;
+  p.status={work:'仕事へ向かう',relax:'丸太のくつろぎ場へ',eat:'食事へ向かう',shop:'旅商人の店へ',decorate:'家具を家へ運ぶ',home:'自宅へ帰る',rest:'休みに行く',wander:'散歩',service:'施設へ向かう',social:'語らいの輪へ',patrol:'ゆっくり見回り',escort:'村長に同行中',rescue:'救助に向かう'}[action]||'移動中';return true;
  }
  footprint(x,z,amount){if(inWater(x,z))return;const k=key(cell(x),cell(z));this.world.state.traffic[k]=Math.min(40,(this.world.state.traffic[k]||0)+amount);this.trafficRevision++;}
  walk(p,dt){if(p.navRevision!==this.world.state.revision){const target=p.targetId?this.world.object(p.targetId):p.destination;if(!target){p.task='idle';p.timer=0;return;}if(!this.go(p,target,p.nextAction))return;}
@@ -92,30 +95,25 @@ export class Simulation{
   if(p.insideId){const inside=this.world.object(p.insideId);if(!inside||!muraInteriorAt({objects:[inside]},p.x,p.z))p.insideId=null;}
   if(!p.path.length)this.onArrival(p);
  }
- onArrival(p){p.moving=false;p.task=p.nextAction;p.timer={work:8,deliver:1.2,eat:4,shop:3,decorate:4,home:6,rest:10,wander:6,service:7,social:10,patrol:5,escort:2}[p.task]||3;
+ onArrival(p){p.moving=false;p.task=p.nextAction;p.timer={work:8,relax:9,eat:4,shop:3,decorate:4,home:6,rest:10,wander:6,service:7,social:10,patrol:5,escort:2}[p.task]||3;
   const h=this.world.object(p.targetId);if(h&&muraHasInterior(h)){p.x=p.destination.x;p.z=p.destination.z;p.insideId=h.id;}else if(!h||!muraHasInterior(h))p.insideId=null;
   const jobs={logging:'薪をまとめている',wheat:'小麦を刈っている',quarry:'石を選り分けている',clay:'粘土をすくっている',carpenter:'板を削っている',fishpond:'釣り糸を垂れている',orchard:'実を摘んでいる',school:'読み書きを学んでいる',smith:'鉄を鍛えている'};
-  p.status={work:jobs[h?.kind]||'仕事中',deliver:'資材を荷下ろししている',eat:'食事中',shop:'小物を選んでいる',decorate:'部屋を飾っている',home:'自宅でひと休み',rest:'休息中',wander:p.favorite||'ひなたぼっこ',service:'施設を利用中',social:'焚き火を囲んで語らう',patrol:'周囲を見守っている',escort:'村長のそばで見守る'}[p.task]||'ひと休み';
+  p.status={work:jobs[h?.kind]||'仕事中',relax:'丸太の椅子でのんびりしている',eat:'食事中',shop:'小物を選んでいる',decorate:'部屋を飾っている',home:'自宅でひと休み',rest:'休息中',wander:p.favorite||'ひなたぼっこ',service:'施設を利用中',social:'焚き火を囲んで語らう',patrol:'周囲を見守っている',escort:'村長のそばで見守る'}[p.task]||'ひと休み';
  }
  finish(p){const w=this.world,s=w.state,o=w.object(p.targetId),d=o&&defs[o.kind];
   if(this.raid?.phase==='active'&&p.insideId&&['home','rest'].includes(p.task)){p.timer=4;p.health=Math.min(100,p.health+3);p.status='屋内で、警備職の帰りを待つ';return;}
   if(p.task==='work'&&o&&ready(o)){
    let valid=w.canAfford(d.input||{})&&(d.id!=='market'||s.merchant.present);
    if(valid){w.spend(d.input||{});const tools=w.objects.some(b=>ready(b)&&b.kind==='tools')?1.15:1;const mult=(1+(o.level-1)*.45)*(1+p.skill*.005)*tools*(o.damage>30?.75:1),cargo={};
-    for(const[k,n]of Object.entries(d.produce||{})){const amount=Math.min(Math.max(0,this.capacity()-s.stock[k]-this.inTransit(k,p)),n*mult);if(amount>0){cargo[k]=(cargo[k]||0)+amount;s.stats.produced+=amount;}}
-    if(d.id==='quarry'&&o.level>=2){o.workCycles=(o.workCycles||0)+1;if(o.workCycles%3===0){const amount=Math.min(1,Math.max(0,this.capacity()-s.stock.crystal-this.inTransit('crystal',p)));if(amount>0)cargo.crystal=(cargo.crystal||0)+amount;}}
-    if(Object.keys(cargo).length){p.cargo={sourceId:o.id,items:cargo};p.status='できた資材を資材置き場へ運ぶ';}
+    for(const[k,n]of Object.entries(d.produce||{})){const amount=Math.min(Math.max(0,this.capacity()-s.stock[k]-this.inTransit(k)),n*mult);if(amount>0){cargo[k]=(cargo[k]||0)+amount;s.stats.produced+=amount;}}
+    if(d.id==='quarry'&&o.level>=2){o.workCycles=(o.workCycles||0)+1;if(o.workCycles%3===0){const amount=Math.min(1,Math.max(0,this.capacity()-s.stock.crystal-this.inTransit('crystal')));if(amount>0)cargo.crystal=(cargo.crystal||0)+amount;}}
+    if(Object.keys(cargo).length){w.queueDelivery(o.id,cargo);p.status='できた品を犬の荷かごへまとめている';}
     p.purse=Math.min(200,p.purse+5);p.skill=Math.min(100,p.skill+.1);p.workCount=(p.workCount||0)+1;
     if(d.effect==='healing'){for(const n of w.people)if(dist(n,o)<36)n.health=Math.min(100,n.health+7);}
     if(['learning','training'].includes(d.effect))p.skill=Math.min(100,p.skill+.5);
     if(d.effect==='comfort')p.happiness=Math.min(100,p.happiness+6);
     if(p.workCount%5===0)this.remember(p,`${d.label}で${Object.keys(d.produce||{}).map(k=>RESOURCE_NAMES[k]).join('と')||'ひと仕事'}を仕上げた`,'ひと仕事おわり');
    }else p.status='材料や旅商人の到着を待つ';
-  }else if(p.task==='deliver'&&p.cargo&&d?.effect==='storage'){
-   const delivered={},remaining={};
-   for(const[k,n]of Object.entries(p.cargo.items||{})){const amount=Math.min(n,Math.max(0,this.capacity()-s.stock[k]));if(amount>0){w.gain(k,amount);delivered[k]=amount;}if(n-amount>.001)remaining[k]=n-amount;}
-   if(Object.keys(delivered).length){w.recordDelivery({storageId:o.id,sourceId:p.cargo.sourceId,personId:p.id,items:delivered});p.deliveryCount=(p.deliveryCount||0)+1;p.status=`資材庫へ搬入：${this.cargoText(delivered)}`;if(p.deliveryCount%5===0)this.remember(p,`${this.cargoText(delivered)}を資材置き場へ届けた`,'搬入おわり');}
-   if(Object.keys(remaining).length){p.cargo={...p.cargo,items:remaining};p.cargoRetry=8;if(!Object.keys(delivered).length)p.status='資材置き場がいっぱいです';}else delete p.cargo;
   }else if(p.task==='eat'){
    const food=w.spend({food:1});p.hunger=Math.min(100,p.hunger+(food?78:40));p.happiness=Math.min(100,p.happiness+(food?4:0));s.stats.meals++;this.remember(p,food?'みんなの収穫で食事をした':'木の実を集めて腹ごしらえ','いただきます');
   }else if(p.task==='shop'&&s.merchant.present&&p.purse>=10&&!p.carry){
@@ -123,6 +121,7 @@ export class Simulation{
    if(owned<8&&options.length){p.carry=options[owned%options.length];p.purse-=10;s.stats.purchases++;this.remember(p,defs[p.carry].label+'を買った','家に飾ろう');this.emit(`${p.name}が${defs[p.carry].label}を買いました`);}
   }else if(p.task==='decorate'&&p.carry){if(w.furnish(p,p.carry)){const label=defs[p.carry].label;p.carry=null;this.remember(p,label+'を部屋に置いた','いい感じ');this.moment(`${p.name}の部屋に、新しい${label}が増えました。`,[p]);}else{p.status='家具を置く場所を待っています';p.decorateRetry=30;}}
   else if(['rest','home'].includes(p.task)){p.health=Math.min(100,p.health+14);p.happiness=Math.min(100,p.happiness+3);}
+  else if(p.task==='relax'){p.health=Math.min(100,p.health+3);p.happiness=Math.min(100,p.happiness+7);this.remember(p,'丸太の席で仕事の手を休めた','いい風だね');}
   else if(p.task==='social'){p.happiness=Math.min(100,p.happiness+9);p.friendships=(p.friendships||0)+1;}
   else if(p.task==='service'&&d){if(d.effect==='healing')p.health=100;if(['learning','training'].includes(d.effect))p.skill=Math.min(100,p.skill+.5);p.happiness=Math.min(100,p.happiness+7);}
   p.task='idle';p.timer=1+this.random()*2;
@@ -130,12 +129,13 @@ export class Simulation{
  decide(p){const w=this.world,s=w.state,home=w.object(p.homeId),job=w.object(p.jobId),fire=w.objects.find(o=>o.kind==='campfire');
   if(this.raid?.phase==='warning'){if(p.insideId===p.homeId){p.task='home';p.timer=5;p.status='屋内で警報が解けるのを待つ';}else{this.go(p,home,'home');p.status='襲撃に備えて自宅へ戻る';}return;}
   if(this.raid?.phase==='active'){if(!p.insideId)this.go(p,home,'home');else{p.task='home';p.timer=5;}return;}
-  if(p.cargo){if(p.cargoRetry>0){p.task='idle';p.timer=Math.min(2,p.cargoRetry);p.status='資材置き場の空きを待っています';return;}const storage=this.nearestStorage(p);if(storage){this.go(p,storage,'deliver');return;}p.task='idle';p.timer=5;p.status='資材置き場の完成を待っています';return;}
   if(p.hunger<44){const restaurants=w.objects.filter(o=>ready(o)&&['meal','feast'].includes(defs[o.kind].effect));this.go(p,restaurants.sort((a,b)=>dist(a,p)-dist(b,p))[0]||fire,'eat');return;}
   if(p.carry&&!p.decorateRetry){this.go(p,home,'decorate');return;}
   const market=w.objects.find(o=>o.kind==='market'&&ready(o));if(market&&s.merchant.present&&p.purse>=10&&!p.carry&&(home.room.filter(f=>f.ownerId===p.id).length<8)){this.go(p,market,'shop');return;}
   if(s.time>=21||s.time<5){this.go(p,home,'rest');return;}
   if(s.time>=17&&s.time<=21&&this.random()<.65){const a=this.random()*6.28;this.go(p,{x:fire.x+Math.cos(a)*4,z:fire.z+Math.sin(a)*4},'social');return;}
+  const tables=w.objects.filter(o=>o.kind==='logtable'),seat=w.objects.filter(o=>o.kind==='logseat'&&tables.some(t=>dist(o,t)<5)).sort((a,b)=>dist(a,p)-dist(b,p))[0];
+  if(seat&&dist(seat,p)<70&&this.random()<.28){this.go(p,{id:seat.id,x:seat.x,z:seat.z+.45},'relax');return;}
   if(job&&this.random()<.84){this.go(p,job,'work');return;}
   const sites=w.objects.filter(o=>ready(o)&&defs[o.kind].effect&&!['harbor','storage','guard','watch'].includes(defs[o.kind].effect));if(sites.length&&this.random()<.3){this.go(p,sites[Math.floor(this.random()*sites.length)],'service');return;}
   const bench=w.objects.find(o=>o.kind==='bench'&&dist(o,p)<50);if(bench&&this.random()<.5){this.go(p,{x:bench.x,z:bench.z+1},'wander');return;}
@@ -152,7 +152,21 @@ export class Simulation{
  }
  merchant(){const s=this.world.state,m=this.world.objects.find(o=>o.kind==='market'&&ready(o)),cycle=Math.floor(s.clock/4),present=!!m&&(s.clock%4<2);
   if(present&&!s.merchant.present)this.emit('旅商人が市場にやってきました','moment');s.merchant={present,cycle};
-  if(present){const e=entry(m);this.extras=[{id:'merchant',name:'旅商人',x:e.x+2,z:e.z,seed:13,angle:-.5,moving:false,role:'merchant',status:'旅の品物を並べる'}];}else this.extras=[];
+  if(present){const e=entry(m);this.merchantExtra={id:'merchant',name:'旅商人',x:e.x+2,z:e.z,seed:13,angle:-.5,moving:false,role:'merchant',status:'旅の品物を並べる'};}else this.merchantExtra=null;this.syncExtras();
+ }
+ dogStep(dt){const w=this.world,s=w.state,log=s.logistics,dog=this.dog,mayor=w.people.find(p=>p.role==='mayor');if(!dog||!mayor)return;
+  dog.cargo=log.active?.items||null;
+  if(this.raid?.phase){const safe={x:mayor.x+1.5,z:mayor.z+1.2};dog.status='村長のそばで危険が過ぎるのを待つ';if(dist(dog,safe)>2.5)this.threatMotion(dog,safe,dt,3.8);else dog.moving=false;return;}
+  if(log.active){const storage=this.nearestStorage(dog);if(!storage){const wait={x:mayor.x+2,z:mayor.z+1};dog.status='資材置き場ができるのを待っている';if(dist(dog,wait)>3)this.threatMotion(dog,wait,dt,3.2);else dog.moving=false;return;}
+   const target=entry(storage);if(dist(dog,target)>2.4){dog.status='背中のかごで資材を運んでいる';this.threatMotion(dog,target,dt,4.3);return;}
+   const delivered={},remaining={};dog.moving=false;dog.path=[];for(const[k,n]of Object.entries(log.active.items||{})){const amount=Math.min(n,Math.max(0,this.capacity()-s.stock[k]));if(amount>0){w.gain(k,amount);delivered[k]=amount;}if(n-amount>.001)remaining[k]=n-amount;}
+   if(Object.keys(delivered).length){w.recordDelivery({storageId:storage.id,sourceId:log.active.sourceId,personId:dog.id,items:delivered});dog.status=`資材を届けてしっぽを振っている`;}
+   if(Object.keys(remaining).length){log.active={...log.active,items:remaining};dog.status='資材置き場の空きを待っている';}else log.active=null;dog.cargo=log.active?.items||null;return;
+  }
+  const next=log.pending[0];if(next){const source=w.object(next.sourceId);if(source){const target=entry(source);if(dist(dog,target)>2.4){dog.status=`${defs[source.kind].label}へ荷物を迎えにいく`;this.threatMotion(dog,target,dt,4.3);return;}}
+   log.active=log.pending.shift();dog.cargo=log.active.items;dog.path=[];dog.repath=0;dog.moving=false;dog.status='できた品を背中のかごに載せてもらった';return;
+  }
+  dog.cargo=null;const a=this.elapsed*.08+dog.seed,home={x:mayor.x+Math.cos(a)*2.4,z:mayor.z+Math.sin(a)*2.4};dog.status='村長のそばをのんびり歩いている';if(dist(dog,home)>3.2)this.threatMotion(dog,home,dt,3);else{dog.moving=false;dog.path=[];}
  }
  ship(dt){const w=this.world,s=w.state,v=s.voyage,harbor=w.objects.find(o=>o.kind==='harbor'&&ready(o)),cycle=Math.floor(s.clock/(DAYS_YEAR*5));
   if(cycle>v.lastCycle){v.lastCycle=cycle;if(harbor&&v.phase==='away'){v.phase='arriving';v.progress=0;v.harborId=harbor.id;this.emit('魔王軍戦線へ向かう巨大帆船が沖に現れました','voyage');}}
@@ -243,8 +257,8 @@ export class Simulation{
   }
  }
  quietMoments(){const w=this.world,s=w.state;if(this.raid?.phase==='active')return;
-  const free=w.people.filter(p=>!p.downed&&!p.insideId&&!isGuard(p)&&!p.cargo),a=free[Math.floor(this.random()*free.length)];if(!a)return;
-  const b=free.find(p=>p.id!==a.id&&dist(a,p)<7&&!p.carry&&!a.carry&&!p.cargo&&!a.cargo&&['idle','wander','social'].includes(p.task)&&['idle','wander','social'].includes(a.task));
+  const free=w.people.filter(p=>!p.downed&&!p.insideId&&!isGuard(p)),a=free[Math.floor(this.random()*free.length)];if(!a)return;
+  const b=free.find(p=>p.id!==a.id&&dist(a,p)<7&&!p.carry&&!a.carry&&['idle','wander','social'].includes(p.task)&&['idle','wander','social'].includes(a.task));
   if(b){for(const[p,q]of[[a,b],[b,a]]){p.path=[];p.task='social';p.timer=5;p.moving=false;p.angle=Math.atan2(q.x-p.x,q.z-p.z);p.status=q.name+'と少し立ち話';}this.remember(a,`${b.name}と顔を合わせて挨拶した`,'おつかれさま');this.remember(b,`${a.name}に挨拶を返した`,'いい日だね');a.happiness=Math.min(100,a.happiness+3);b.happiness=Math.min(100,b.happiness+3);this.moment(`${a.name}と${b.name}が、道ばたで少し立ち話。`,[a,b]);}
   else{const messages=[`${a.name}が、風に揺れる木立を眺めています。`,`${a.name}の足取りから、小さな道が育っています。`,`${a.name}は${a.favorite}の時間を楽しんでいます。`];this.remember(a,'村で静かなひとときを過ごした','ひとやすみ');this.moment(messages[Math.floor(this.random()*messages.length)],[a]);}
   const restaurant=w.objects.find(o=>o.kind==='restaurant'&&ready(o));if(restaurant&&s.clock%6<1&&w.spend({food:3,herb:1})){for(const p of w.people)p.happiness=Math.min(100,p.happiness+12);this.moment('料亭からよい香り。小さなごちそうの集いが始まりました。',w.people.slice(0,3));}
@@ -254,8 +268,8 @@ export class Simulation{
   this.arrivalTimer-=dt;if(this.arrivalTimer<=0){this.arrivalTimer=27;this.arrive();}
   this.assignmentTimer-=dt;if(this.assignmentTimer<=0){this.assignmentTimer=5;this.assignJobs();this.merchant();w.discover();}
   this.constructionTimer+=dt;if(this.constructionTimer>=.5){this.construction(this.constructionTimer);this.constructionTimer=0;}
-  this.ship(dt);this.updateRaid(dt);
-  for(const p of w.people){if(p.downed||p.remoteControlled)continue;p.hunger=Math.max(0,(p.hunger??80)-dt*.34);p.decorateRetry=Math.max(0,(p.decorateRetry||0)-dt);p.cargoRetry=Math.max(0,(p.cargoRetry||0)-dt);
+  this.ship(dt);this.updateRaid(dt);this.dogStep(dt);
+  for(const p of w.people){if(p.downed||p.remoteControlled)continue;p.hunger=Math.max(0,(p.hunger??80)-dt*.34);p.decorateRetry=Math.max(0,(p.decorateRetry||0)-dt);
    if(isGuard(p)){this.guardStep(p,dt);continue;}
    if(p.bubble&&p.bubble.until<this.elapsed)p.bubble=null;
    if(p.task==='walk'){this.walk(p,dt);continue;}p.moving=false;p.timer-=dt;if(p.timer>0)continue;if(p.task==='idle')this.decide(p);else this.finish(p);
