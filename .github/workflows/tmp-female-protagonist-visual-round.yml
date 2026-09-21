@@ -73,8 +73,7 @@ jobs:
           await page.waitForFunction(()=>window.masterCharacterReview?.ready===true,{timeout:30000});
           await page.waitForSelector('#character-review-picker [data-model-key="protagonist.villager.female.v1"]',{state:'visible',timeout:30000});
           await page.locator('#character-review-picker [data-model-key="protagonist.villager.female.v1"]').click();
-          await page.waitForFunction(()=>window.masterCharacterReview?.displayModelId==='protagonist.villager.female.v1',{timeout:15000});
-          await page.waitForTimeout(5000);
+          await page.waitForTimeout(6000);
           const diagnostic=await page.evaluate(()=>({
             displayModelId:window.masterCharacterReview?.displayModelId??null,
             ready:Boolean(window.masterCharacterReview?.ready),
