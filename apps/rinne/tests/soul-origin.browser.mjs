@@ -39,7 +39,7 @@ export async function verifySoulOriginPrelude(page,output,key,errors){
   await page.evaluate(({key,marker})=>{const original=Storage.prototype.setItem;window.__restoreOriginStorage=()=>{Storage.prototype.setItem=original;delete window.__restoreOriginStorage;};Storage.prototype.setItem=function(k,v){if(k===key)throw Error(marker);return original.call(this,k,v);};},{key,marker});
   try{
     await dialog.locator('[data-origin-confirm]').click();await page.waitForFunction(marker=>document.querySelector('.origin-status')?.textContent.includes(marker),marker);
-    assert.equal(await read(),null);assert.equal(await dialog.isVisible(),true);assert.equal(await page.locator('#game-screen').getAttribute('data-runtime'),'prepared');
+    assert.equal(await read(),null);assert.equal(await dialog.isVisible(),true);assert.equal(await page.locator('#game').getAttribute('data-runtime'),'prepared');
     assert.equal(errors.filter(message=>message.includes(marker)).length,1,'the expected write failure must really occur');
     errors.splice(errors.findIndex(message=>message.includes(marker)),1);
     await page.screenshot({path:join(output,'origin-04-storage-retry.png')});
@@ -59,7 +59,7 @@ export async function verifySoulOriginContinue(page,key){
   await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),key),before,'abandoning another family leaves the previous save byte-for-byte intact');
   assert.match(await page.locator('.title-clan-caption').textContent(),/水鏡の一族/);
-  await page.locator('#continue-life').click();await page.waitForFunction(()=>document.getElementById('game-screen')?.dataset.runtime==='active');
+  await page.locator('#continue-life').click();await page.waitForFunction(()=>document.getElementById('game')?.dataset.runtime==='active');
   assert.equal(await dialog.isVisible(),false,'continue must never enter questions');
   const after=JSON.parse(await page.evaluate(key=>localStorage.getItem(key),key)),previous=JSON.parse(before);
   assert.equal(after.id,previous.id);assert.equal(after.generation,previous.generation);assert.deepEqual(after.clanOrigin,previous.clanOrigin);assert.ok(after.ageSeconds>=previous.ageSeconds);
