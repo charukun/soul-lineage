@@ -7,7 +7,7 @@ import {installSceneInput,installCatalogDrag,installCatalogDrop} from './pointer
 import {Simulation} from '../game/simulation.js';
 import {PlayerResidenceBridge} from '../game/bridge.js';
 import {createWebPlatform} from '@soul/platform-web';
-import {sharedEmblemUrl} from '@soul/assets';
+import {rinneCrestUrl} from '@soul/assets';
 import {createApp} from '../app.js';
 import {createSaveStore} from '../game/save-store.js';
 const $=id=>document.getElementById(id==='scene'?'game':id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -22,7 +22,7 @@ window.__VILLAGE_BOOT__={recover:()=>store.recover(),canRecover:()=>store.blocke
 const canvas=$('scene');
 Object.assign(canvas.dataset,{app:info.app,commit:info.commit,environment:info.environment,platform:platform.id,contentVersion:String(foundation.contentVersion),gameWorld:'hoshitsugi.life-and-guard.v5'});
 document.title=`星継ぎの庭 | ${info.environment.toUpperCase()}`;
-$('emblem').src=sharedEmblemUrl;
+$('emblem').src=rinneCrestUrl;
 onProgress(35,'保存した村を確かめています。');
 const saved=await store.load();
 const world=new World(saved||undefined);publishLayout();
@@ -146,7 +146,7 @@ function confirmPlacement(){
  // The displayed candidate is the only commit source. No pointer raycast here.
  const r=p.moveId?world.move(p.moveId,p.x,p.z,p.rot,p.roomId):world.add(p.kind,p.x,p.z,p.rot,p.roomId,{material:p.material});
  if(r.error){toast(r.error);refreshPreview();return false;}
- const id=p.moveId||r.object?.id;cancelPlacement();if(id)selection(id,p.roomId);void save();
+ cancelPlacement();deselect();void save();
  toast(p.moveId?'移動しました':r.object?.phase==='planned'?'建築を予約しました':'配置しました',2000);return true;
 }
 $('build').onclick=()=>ui.drawer?closeDrawer():openDrawer();$('deselect').onclick=deselect;
