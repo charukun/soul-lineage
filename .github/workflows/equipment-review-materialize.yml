@@ -1,0 +1,80 @@
+name: Materialize equipment review assets
+
+on:
+  push:
+    branches:
+      - fix/equipment-review-materialize-20260921
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Download and verify pinned KayKit Skeleton equipment
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import {createHash} from 'node:crypto';
+          import {mkdir,writeFile} from 'node:fs/promises';
+          import path from 'node:path';
+          const repository='KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0';
+          const revision='15b62b9bad122f72926c10fb14d622c73819fa54';
+          const root='addons/kaykit_character_pack_skeletons/Assets/gltf';
+          const rows=[
+            ['Skeleton_Blade.gltf',3047,'4ebd36b31663c00936b6270c15b6af751b5be091'],
+            ['Skeleton_Blade.bin',20056,'98fa74bb4ecca0d474d8f992d10cbd7e55f18106'],
+            ['Skeleton_Axe.gltf',3045,'79d77edd260b727980571b4b2836f942e0b31d3d'],
+            ['Skeleton_Axe.bin',25348,'609e545071b90bfff0472719ae5229e0d206be68'],
+            ['Skeleton_Staff.gltf',3057,'d0cff560383244e2ebbc4a593c0afb890082a514'],
+            ['Skeleton_Staff.bin',69244,'5fc8906eb543a7e056e712993326a678456d4397'],
+            ['Skeleton_Crossbow.gltf',3052,'11b414738856ae5611437373fcb4369ae6b90dca'],
+            ['Skeleton_Crossbow.bin',28624,'6820e64878016c9564cee6962db4e35277cd7c2a'],
+            ['skeleton_texture.png',17037,'00bf24bd5fd17937e08fd90f819a7bc69de432b8'],
+          ];
+          const outRoot='apps/rinne/public/asset-review/equipment';
+          await mkdir(outRoot,{recursive:true});
+          const manifest=[];
+          for(const [file,size,blobSha] of rows){
+            const url=`https://raw.githubusercontent.com/${repository}/${revision}/${root}/${file}`;
+            const response=await fetch(url,{signal:AbortSignal.timeout(30000)});
+            if(!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
+            const bytes=Buffer.from(await response.arrayBuffer());
+            if(bytes.length!==size) throw new Error(`${file}: size ${bytes.length} != ${size}`);
+            const actualBlob=createHash('sha1').update(`blob ${bytes.length}\\0`).update(bytes).digest('hex');
+            if(actualBlob!==blobSha) throw new Error(`${file}: git blob ${actualBlob} != ${blobSha}`);
+            const sha256=createHash('sha256').update(bytes).digest('hex');
+            await writeFile(path.join(outRoot,file),bytes);
+            manifest.push({file,byteLength:bytes.length,gitBlobSha:actualBlob,sha256});
+          }
+          const licenseUrl=`https://raw.githubusercontent.com/${repository}/${revision}/LICENSE.txt`;
+          const licenseResponse=await fetch(licenseUrl,{signal:AbortSignal.timeout(30000)});
+          if(!licenseResponse.ok) throw new Error(`license: HTTP ${licenseResponse.status}`);
+          const license=Buffer.from(await licenseResponse.arrayBuffer());
+          const licenseBlob=createHash('sha1').update(`blob ${license.length}\\0`).update(license).digest('hex');
+          if(license.length!==914||licenseBlob!=='5de5a1e35003680bd6b97b4c247eed71d51a9fb7') throw new Error('license provenance mismatch');
+          await mkdir('apps/rinne/public/asset-review/licenses',{recursive:true});
+          await writeFile('apps/rinne/public/asset-review/licenses/KayKit-Skeletons-CC0.txt',license);
+          await writeFile('apps/rinne/public/asset-review/manifest.json',JSON.stringify({
+            schema:1,scope:'rinne-equipment-review',repository,revision,license:'CC0-1.0',
+            runtimeOrigin:'self-hosted RINNE Cloudflare Static Assets',files:manifest
+          },null,2)+'\n');
+          NODE
+      - name: Commit materialized assets and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/equipment-review-materialize.yml
+          git add apps/rinne/public/asset-review
+          git commit -m "fix: materialize equipment review assets [astra-validate]" -m "Astra-Test: apps/rinne/tests/review-assets-stage-first.test.mjs" -m "Astra-Build: rinne"
+          git push origin HEAD:${{ github.ref_name }}
