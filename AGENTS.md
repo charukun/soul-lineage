@@ -9,6 +9,18 @@
 3. If a checked-out workspace is already available, use `npm run context:plan -- --task "<short summary>"` when useful.
 4. Do not preload past chats, all docs, merged PR history, huge diffs, or full CI logs.
 
+## Exoskeleton doctrine
+
+The repository's development process is a **capability-gap exoskeleton**, not permanent product architecture.
+
+- No current autonomous mechanism is presumed permanent. Tests, CI, browser review, staging, evidence, experiment schemas, telemetry, iteration contracts, and merge choreography exist because of current model/tool/operational gaps and may be removed or replaced when those gaps disappear.
+- Current requirements remain mandatory until an explicit contract change removes them. Never self-declare a model "smart enough" and silently skip today's gates inside an ordinary task.
+- Framework changes should reduce hidden coupling. Every new scaffold must name the gap it compensates for, its dependencies, and a condition under which it can be detached.
+- When a newer model/tool can achieve equal or better outcomes with less external process, deleting ceremony is an improvement, not a regression.
+- Zero autonomous scaffolding is a valid future endpoint. Do not preserve a mechanism merely because it is established practice.
+
+The detailed doctrine is `.autonomous/EXOSKELETON.md`; the machine-readable inventory is `.autonomous/exoskeleton.json`. Autonomous framework changes must keep them aligned.
+
 ## Astra fast flow
 
 1. **Implement** — start from latest `develop`, use a dedicated work branch / Draft PR, and construct the implementation through the connected GitHub Connector. Prefer composing a coherent final tree and updating the branch once instead of pushing every tiny intermediate edit. Intermediate pushes never justify waiting for CI.

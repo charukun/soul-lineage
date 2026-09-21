@@ -2,6 +2,16 @@
 
 対象は `village` → `apps/village`（星継ぎの庭）、`kuumetsu` → `apps/demon`（喰滅廻遊）、`rinne` → `apps/rinne`（百年転生）。正本は現在の `develop`、`AGENTS.md`、GitHub状態です。
 
+## 外骨格原則
+
+`.autonomous` は自律開発そのものの永久仕様ではなく、**現在のモデル/ツールに足りない能力だけを外から補う着脱可能な外骨格**です。Observation First、Dense Iteration、experiment schema、focused test、GitHub Actions、immutable staging、browser evidence、receipt、telemetry、freshness/reconcile を含め、現在存在する機構を将来も残す前提にしません。
+
+現在requiredな機構は、現在の契約下では最後まで実行します。ただし「required-currently」と「永久に必要」を混同しません。新しいモデル/ツールが同等以上の結果をより直接に成立させるなら、testやCIを含む既存工程を削除・置換することは正当な進化です。通常タスク中にAI自身が勝手にgateを省略するのではなく、framework変更として明示的に契約を縮退させます。
+
+新しいscaffoldを追加するときは、何の能力不足を補うか、何へ依存するか、どの状態になれば外せるかを明示し、無関係なscaffold同士を癒着させません。同じ品質・安全性・プレイヤー成果を得られるなら、外骨格は少ないほどよいものとして扱います。最終的に外骨格がゼロになる状態も正常です。
+
+詳細は `.autonomous/EXOSKELETON.md`、機械可読な現行inventoryは `.autonomous/exoskeleton.json` を正本とします。
+
 ## iteration の基本形
 
 1 iteration = 1 **player-experience theme**。themeは「見つけた最小の不具合」ではなく、プレイヤーが達成できていない判断・理解・成長・操作・反応のまとまりとして切る。1 theme の中で複数root cause・複数修正を扱うのが通常形です。たとえば「撤退判断を成立させる」というthemeの中で、警戒度・負傷・持ち帰り量・帰還報酬・UI接続をまとめて直す。禁止するのは無関係なついで修正であり、修正数そのものではありません。

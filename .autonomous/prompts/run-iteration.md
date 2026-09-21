@@ -2,6 +2,8 @@
 
 対象 `{game}` は `village` / `kuumetsu` / `rinne`。回数は明示値、未指定なら1。各iterationをmergeまで直列完了し、次回は新しいdevelopから開始します。
 
+> このprompt自体も現在世代の外骨格です。ここに書かれた工程を永久的な開発真理としてruntimeやgameplayへ埋め込まないでください。現行契約では全工程を守りますが、frameworkを進化させる依頼では `.autonomous/EXOSKELETON.md` と `.autonomous/exoskeleton.json` を参照し、モデル/ツール能力が代替できるscaffoldは削除可能なものとして扱います。test / CI / browser review / evidence / receiptを含め、慣習だけを理由に残す機構はありません。
+
 ## 0. Run identity / telemetry
 
 - 1リクエストにつきstable `runKey` を1つ作る。複数iterationsでも全回で同じrunKeyを使い、`iteration=1..N` だけを進める。並行セッションは別runKeyにする。
