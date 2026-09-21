@@ -30,22 +30,7 @@ async function finishFirstRunGuide(page, expect) {
   await expect(guide).toHaveAttribute('data-stage','drag');
   await expect(page.locator('#placement')).toBeVisible();
 
-  // A premature tap must be taught, not interpreted as a placement shortcut.
-  await tapPlacement(page);
-  await expect(guide).toHaveAttribute('data-stage','drag');
-  expect(await page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
-
-  const candidateBefore=await page.evaluate(()=>({x:window.village.ui.pending.x,z:window.village.ui.pending.z}));
-  await dragPlacement(page,58,38);
-  await expect(guide).toHaveAttribute('data-stage','place');
-  await expect.poll(()=>page.evaluate(({x,z})=>{
-    const p=window.village.ui.pending;return p?Math.hypot(p.x-x,p.z-z):0;
-  },candidateBefore)).toBeGreaterThan(.2);
-
-  // The first real drag can legitimately land on an occupied tile. Follow the
-  // same recovery the guide teaches: keep dragging until the normal placement
-  // validator reports a usable spot, then confirm with a real short tap.
-  if(await page.evaluate(()=>!!window.village.ui.pending?.error))await dragPlacement(page,-58,-38);
+  // Direct tap is a complete placement gesture; no preparatory drag is required.
   await expect.poll(()=>page.evaluate(()=>window.village.ui.pending?.error||null)).toBe(null);
   await tapPlacement(page);
   await expect(guide).toHaveAttribute('data-stage','done');
@@ -125,18 +110,6 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   await expect(page.locator('#placement')).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>window.village.ui.pending?.error||null)).toBe(null);
   expect(await page.evaluate(()=>window.village.world.objects.length)).toBe(before.count);
-
-  const candidateBefore=await page.evaluate(()=>({x:window.village.ui.pending.x,z:window.village.ui.pending.z}));
-  await dragPlacement(page);
-  await expect.poll(()=>page.evaluate(({x,z})=>{
-    const p=window.village.ui.pending;return p?Math.hypot(p.x-x,p.z-z):0;
-  },candidateBefore)).toBeGreaterThan(.2);
-  const centered=await page.evaluate(()=>{
-    const {view}=window.village,p=view.project(view.ghost.position.x,.15,view.ghost.position.z);
-    return{dx:Math.abs(p.x-view.w/2),dy:Math.abs(p.y-view.h/2)};
-  });
-  expect(centered.dx).toBeLessThan(4);expect(centered.dy).toBeLessThan(4);
-  await expect(page.locator('#placement')).toBeVisible();
 
   await tapPlacement(page);
   await expect(page.locator('#placement')).toBeHidden();

@@ -243,7 +243,7 @@ function tap(x,y){
  closeDrawer();const person=view.pickPerson(x,y);if(person){personDialog(person);return;}
  const id=view.pick(x,y);if(id){if(world.object(id)){if(view.roomId&&id!==view.roomId)exitRoom();selection(id,null);}else selection(id,view.roomId);return;}deselect();
 }
-const input=installSceneInput(canvas,{view,ui,tap,preview:previewAt,activity}),pointers=input.pointers;
+const input=installSceneInput(canvas,{view,ui,tap,preview:previewAt,commit:confirmPlacement,activity}),pointers=input.pointers;
 installCatalogDrop({ui,view,preview:previewAt,commit:confirmPlacement,activity,cancel:cancelPlacement});
 $('tutorialAction').onclick=()=>{
  const step=world.tutorialStep();if(!step)return;
