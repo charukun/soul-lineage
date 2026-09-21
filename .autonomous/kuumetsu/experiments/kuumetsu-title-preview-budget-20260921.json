@@ -100,7 +100,7 @@
   "retryJustification": "Earlier startup scheduling work said not to continue without new evidence. The current immutable version supplies new evidence: TAP is blocked for 9.4s with an 8.157s pointer-adjacent long task, and source now identifies full title-world construction as a distinct root cause.",
   "receipt": {
     "repository": "charukun/soul-lineage",
-    "pullRequest": null,
+    "pullRequest": 1321,
     "marker": "autonomous-receipt:kuumetsu:kuumetsu-title-preview-budget-20260921"
   }
 }
