@@ -7,6 +7,7 @@ const VERSION=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const APP_URLS=Object.freeze({
   village:'https://soul-lineage-village-dev.c-okamoto.workers.dev/',
   demon:'https://soul-lineage-demon-dev.c-okamoto.workers.dev/',
+  rinne:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',
 });
 
 export function workerPreviewUrl({app,versionId,deploymentUrl=APP_URLS[app]}={}){
@@ -20,7 +21,7 @@ export function workerPreviewUrl({app,versionId,deploymentUrl=APP_URLS[app]}={})
 export function parseWranglerDeployment(output,{app}={}){
   const text=String(output||'');
   const versionId=text.match(/Current Version ID:\s*([0-9a-f-]{36})/i)?.[1]?.toLowerCase();
-  const deploymentUrl=text.match(/https:\/\/soul-lineage-(?:village|demon)-dev\.c-okamoto\.workers\.dev\/?/i)?.[0];
+  const deploymentUrl=text.match(/https:\/\/soul-lineage-(?:village|demon|rinne)-dev\.c-okamoto\.workers\.dev\/?/i)?.[0];
   assert.ok(versionId,'Wrangler output is missing Current Version ID');
   assert.ok(deploymentUrl,'Wrangler output is missing deployment URL');
   return Object.freeze({versionId,deploymentUrl,previewUrl:workerPreviewUrl({app,versionId,deploymentUrl})});
@@ -49,7 +50,7 @@ function option(args,name,fallback=null){
 
 async function main(){
   const args=process.argv.slice(2),app=option(args,'--app'),sourceSha=option(args,'--sha'),versionId=option(args,'--version');
-  if(!app||!sourceSha||!versionId)throw new Error('Usage: node scripts/staging-preview.mjs --app <village|demon> --sha <40-hex> --version <worker-version-uuid>');
+  if(!app||!sourceSha||!versionId)throw new Error('Usage: node scripts/staging-preview.mjs --app <village|demon|rinne> --sha <40-hex> --version <worker-version-uuid>');
   console.log(JSON.stringify(stagingObservation({app,sourceSha,versionId}),null,2));
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)await main();

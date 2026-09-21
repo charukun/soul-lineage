@@ -35,7 +35,8 @@
     "game": {
       "enum": [
         "village",
-        "kuumetsu"
+        "kuumetsu",
+        "rinne"
       ]
     },
     "pullRequest": {

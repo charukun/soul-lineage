@@ -29,7 +29,8 @@
     "game": {
       "enum": [
         "village",
-        "kuumetsu"
+        "kuumetsu",
+        "rinne"
       ]
     },
     "mode": {

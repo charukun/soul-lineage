@@ -74,7 +74,7 @@ async function main() {
     const snapshot = flags.snapshot ? json(resolve(flags.snapshot)) : await liveGate(flags);
     result = evaluateMergeGate(snapshot);
     if (!result.eligible) process.exitCode = 2;
-  } else throw Error('Usage: node .autonomous/cli.mjs context <village|kuumetsu> | lookup <game> <problemKey> [--offset N] | active --base <ref> [--head <ref>] | check [--base <ref>] | probe <game> [--ref <ref>] [--seeds 11,30,49] [--out file] | compare before.json after.json | record experiment.json | receipt receipt.json | gate --pr N --head SHA --base SHA [--snapshot live.json]');
+  } else throw Error('Usage: node .autonomous/cli.mjs context <village|kuumetsu|rinne> | lookup <game> <problemKey> [--offset N] | active --base <ref> [--head <ref>] | check [--base <ref>] | probe <game> [--ref <ref>] [--seeds 11,30,49] [--out file] | compare before.json after.json | record experiment.json | receipt receipt.json | gate --pr N --head SHA --base SHA [--snapshot live.json]');
   const output = JSON.stringify(result, null, 2) + '\n';
   if (flags.out) { const path = resolve(flags.out); mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, output); }
   else process.stdout.write(output);
