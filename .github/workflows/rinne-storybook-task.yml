@@ -5,6 +5,9 @@ on:
     paths: [.storybook-task-input.json]
 permissions:
   contents: write
+env:
+  APP_ENV: dev
+  APP_BRANCH: feat/rinne-approved-storybook-20260922
 jobs:
   work:
     runs-on: ubuntu-latest
@@ -28,6 +31,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/rinne-storybook-compare.mjs
+      - name: Preserve failure evidence
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/rinne-storybook-failure.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
