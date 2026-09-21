@@ -146,7 +146,7 @@ export function normalizeIterationTelemetry(value){
       const startedAt=raw?.startedAt?iso(raw.startedAt):null,completedAt=raw?.completedAt?iso(raw.completedAt):null;
       steps[definition.id]=Object.freeze({
         id:definition.id,label:definition.label,state,startedAt,completedAt,
-        durationMs:Number.isFinite(Number(raw?.durationMs))?Math.max(0,Number(raw.durationMs)):(startedAt&&completedAt?duration(startedAt,completedAt):null),
+        durationMs:raw?.durationMs!==null&&raw?.durationMs!==undefined&&raw?.durationMs!==''&&Number.isFinite(Number(raw.durationMs))?Math.max(0,Number(raw.durationMs)):(startedAt&&completedAt?duration(startedAt,completedAt):null),
         ...(raw?.summary?{summary:clean(raw.summary,500)}:{}),
       });
     }

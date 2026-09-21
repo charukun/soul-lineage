@@ -54,7 +54,9 @@ test('telemetry marker round-trips without replacing the human PR body',()=>{
   assert.equal(parsed.theme,'HUD cohesion');
   const updated=upsertIterationTelemetry(body,patchIterationTelemetry(parsed,{changes:['one','two']}));
   assert.equal((updated.match(/autonomous-iteration-telemetry:v1/g)||[]).length,1);
-  assert.deepEqual(readIterationTelemetry(updated).changes,['one','two']);
+  const reparsed=readIterationTelemetry(updated);
+  assert.deepEqual(reparsed.changes,['one','two']);
+  assert.equal(reparsed.steps.astraValidation.durationMs,null);
 });
 
 test('parallel sessions with the same iteration number cannot collide',()=>{

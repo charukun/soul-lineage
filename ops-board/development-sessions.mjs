@@ -121,7 +121,7 @@ export function buildDevelopmentSessions(pulls=[],runs=[],{limit=8}={}){
           id:definition.id,label:definition.label,state:stateValue,
           startedAt:raw.startedAt||run?.created_at||null,
           completedAt:raw.completedAt||run?.updated_at||null,
-          durationMs:Number.isFinite(Number(raw.durationMs))?Number(raw.durationMs):null,
+          durationMs:raw.durationMs!==null&&raw.durationMs!==undefined&&raw.durationMs!==''&&Number.isFinite(Number(raw.durationMs))?Number(raw.durationMs):null,
           runId:run?.id||null,url:run?.html_url||null,
           ...(raw.summary?{summary:raw.summary}:{}),
         });

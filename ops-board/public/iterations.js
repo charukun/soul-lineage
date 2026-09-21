@@ -21,8 +21,8 @@ const gameLabel=value=>({kuumetsu:'喰滅廻遊',rinne:'百年転生',village:'�
 const stateLabel=value=>({running:'進行中',active:'進行中',publishing:'DEV公開中',problem:'異常',complete:'完了'})[value]||value||'確認中';
 const stateClass=value=>['running','active','publishing','problem','complete'].includes(value)?value:'active';
 const stepDuration=(step,now=Date.now())=>{
-  const explicit=Number(step?.durationMs);
-  if(Number.isFinite(explicit)&&explicit>=0)return explicit;
+  const raw=step?.durationMs,explicit=Number(raw);
+  if(raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(explicit)&&explicit>=0)return explicit;
   const start=parsed(step?.startedAt),end=parsed(step?.completedAt);
   if(start!==null&&end!==null)return Math.max(0,end-start);
   if(step?.state==='running'&&start!==null)return Math.max(0,now-start);

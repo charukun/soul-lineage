@@ -4,7 +4,9 @@
 
 ## iteration の基本形
 
-1 iteration = 1 improvement theme。1 theme の中で複数root cause・複数修正を扱えます。たとえば「撤退判断を成立させる」というthemeの中で、警戒度・負傷・持ち帰り量・帰還報酬・UI接続をまとめて直して構いません。禁止するのは無関係なついで修正であり、修正数そのものではありません。
+1 iteration = 1 **player-experience theme**。themeは「見つけた最小の不具合」ではなく、プレイヤーが達成できていない判断・理解・成長・操作・反応のまとまりとして切る。1 theme の中で複数root cause・複数修正を扱うのが通常形です。たとえば「撤退判断を成立させる」というthemeの中で、警戒度・負傷・持ち帰り量・帰還報酬・UI接続をまとめて直す。禁止するのは無関係なついで修正であり、修正数そのものではありません。
+
+通常のgameplay iterationは、Observationから `playerProblem` と望ましい `targetState` を定義し、最低2つのplayer-facing `successSignals` と、同じthemeへ因果的に属する複数 `workItems` を計画する。単発work itemは例外であり、重大regression、protected-rule risk、またはObservation上1つしか因果修正が存在しない場合に限り、同じObservation Evidenceへ結びつく `singleFixException` を明示する。
 
 ```
 immutable staging observation
@@ -40,15 +42,15 @@ mutableな「最新DEV URL」はBefore/After Evidenceに使いません。Evolut
 
 現在の `village` / `kuumetsu` / `rinne` staging observation surface はCloudflare Worker version previewです。通常のlatest DEV URLを観測URLとして保存せず、該当deployの `Current Version ID` から `scripts/staging-preview.mjs` でimmutable preview URLを作り、公開先の `version.json.commit` がrecordの `sourceSha` と一致することを確認します。これは同じ `web-dev` artifactの固定versionなので、`version.json.environment` は `dev` のままです。
 
-## experiment v2 と receipt
+## experiment v3 と receipt
 
-既存schemaVersion 1 experimentは履歴互換のため不変で読み続けます。新規iterationはschemaVersion 2を使います。
+既存schemaVersion 1/2 experimentは履歴互換のため不変で読み続けます。新規iterationはschemaVersion 3を使います。
 
-v2 experimentは実装前に確定できるものだけを保存します: mode、Observation + immutable staging baseline、`themeKey`、`rootCauses[]`、theme hypothesis/falsifier、candidate比較、implementation scope、evidence plan、PR receipt marker。`rootCauses[]` は最低1件で、各項目に `key / summary / prediction / falsifier / paths` を持たせます。
+v3 experimentは実装前に確定できるものだけを保存します: mode、Observation + immutable staging baseline、`themeKey`、`experienceGoal`、`rootCauses[]`、`workItems[]`、theme hypothesis/falsifier、candidate比較、implementation scope、work-item coverageを含むevidence plan、PR receipt marker。`experienceGoal` は playerProblem / targetState / successSignals を持ち、work itemごとにroot cause、変更path、因果Evidenceを追跡する。
 
 最終verdict、Before/After結果、validation head/run、merge SHA、learningはexperiment自身へ書かずreceiptに保存します。merge直後の確定receiptは同PR Conversationへmarker付きで残し、次iterationで `receipts/<id>.json` へmaterializeできます。過去experimentは上書きしません。
 
-`experiment-history.json` は直近12件の発見索引です。v2の完了状態を `verdict: pending` から推測せず、persisted receipt、PR marker、live GitHub merged/run/headを照合して状態を導出します。
+`experiment-history.json` は直近12件の発見索引です。v2/v3の完了状態を `verdict: pending` から推測せず、persisted receipt、PR marker、live GitHub merged/run/headを照合して状態を導出します。
 
 ## active experiment の自動検出
 
@@ -72,7 +74,7 @@ Actions workflowは既存の `.github/workflows/astra-work-validation.yml` を�
 
 ## 履歴と学習
 
-同一themeKeyおよび各root cause keyについて過去experimentとreceiptを調べます。v1/旧v2の`problemKey`も互換検索します。v1はexperiment内learning、v2はreceipt learningを正本にします。既知の `doNotRetry` を再選択する場合、新しいEvidenceとretryJustificationが必要です。
+同一themeKeyおよび各root cause keyについて過去experimentとreceiptを調べます。v1/旧v2の`problemKey`も互換検索します。v1はexperiment内learning、v2/v3はreceipt learningを正本にします。既知の `doNotRetry` を再選択する場合、新しいEvidenceとretryJustificationが必要です。
 
 ## CLI
 
@@ -122,7 +124,7 @@ telemetryは `scripts/autonomous-iteration-telemetry.mjs` を正本とし、各s
 
 iteration開始時、immutable Before取得より前にtelemetryを初期化します。Draft PR作成前のtelemetryはそのセッション内で保持し、PR作成後に `autonomous-iteration-telemetry:v1` markerとしてPR bodyへbindします。以後はstep境界ごとに同じmarkerだけを更新し、PR本文の人間向け説明を消しません。
 
-theme決定後は `theme / themeKey / rootCauses`、実装後は `improvementSummary / changes / changedPaths`、検証・完了時は `validatedHead / verdict / mergeSha` を同じrecordへ追記します。telemetryは観測UI用の記録であり、experiment / receipt / GitHub Actions / merge freshnessの正本を置き換えません。
+theme決定後は `theme / themeKey / rootCauses`、実装後は `improvementSummary / changes / changedPaths`、検証・完了時は `validatedHead / verdict / mergeSha` を同じrecordへ追記します。telemetryは観測UI用の記録であり、experiment v3 / receipt / GitHub Actions / merge freshnessの正本を置き換えません。
 
 `scripts/autonomous-run-controller.mjs` は以下も提供します。
 
@@ -146,3 +148,16 @@ DEV publication完了は従来どおり待機しません。merge後の `devPubl
 `scripts/autonomous-run-controller.mjs verify` はversion previewの`version.json`を取得してsource SHAを照合し、experimentへそのまま保存できるverified observation JSONを返す。`scripts/autonomous-evidence.mjs` はbrowser evidence JSONに対してsame-state relationを評価する。どちらも既存のDEV publish / browser lane / Astra validationを呼び替えたり弱めたりせず、証拠を標準化するCLIである。
 
 Browser runnerのimage/container最適化は描画特性を変え得るため、このfast pathの一部として自動置換しない。renderer identityを保ったまま起動コストが下がることを別Evidenceで示せる場合だけ採用する。
+
+## Dense iteration contract
+
+自律改善の速度は「1 iterationの所要時間」だけでなく、1回あたりに解消するプレイヤー体験の面積で評価する。通常gameplay iterationでは次を守る。
+
+1. 候補は個別バグではなく、playerProblemとして再束ねできるか検討する。
+2. 選定themeに対して、targetStateと最低2つのsuccessSignalsを先に定義する。
+3. root causeを調べたあと、同じtargetStateへ寄与するwork itemを原則2件以上束ねる。目安は2〜6件で、上限を埋めること自体は目的にしない。
+4. 各work itemは既知root causeに結び、implementation scopeとcausal evidenceを持つ。無関係なUI掃除や「ついで修正」で密度を水増ししない。
+5. Evidenceはwork itemごとの局所因果と、theme全体のplayer-facing Afterの両方を持つ。1個通れば全体supportedとはしない。
+6. 単発修正に縮める場合はsingleFixExceptionをObservation Evidenceへ結び、なぜbundle化しない方が安全/正確かを機械可読に残す。
+
+これにより「修正数のノルマ」ではなく「1つのプレイヤー体験問題を十分な深さで閉じる」ことをiteration単位とする。

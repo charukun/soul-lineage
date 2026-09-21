@@ -1,4 +1,4 @@
-import './character-review-grid.css';
+import './grid.css';
 
 function sourceLabel(source) {
   return source.dataset.reviewLabel || source.getAttribute('aria-label') || (source.textContent || '').trim() || 'モデル';

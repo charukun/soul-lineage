@@ -80,5 +80,6 @@ test('recorded telemetry makes runKey and per-step durations authoritative for p
   assert.equal(item.currentStep,'implementation');
   assert.equal(item.steps.find(step=>step.id==='observation').durationMs,10000);
   assert.equal(item.steps.find(step=>step.id==='investigation').durationMs,12000);
+  assert.equal(item.steps.find(step=>step.id==='astraValidation').durationMs,null);
   assert.equal(item.telemetry,'recorded');
 });
