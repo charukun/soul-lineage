@@ -5,6 +5,7 @@ import {captureMotionRest,captureNormalizedMotion} from '@soul/rendering/motion-
 import {kaykitHumanoidFromGLTF} from '@soul/rendering/kaykit-rig';
 import {createHumanoidPreview} from '@soul/rendering/humanoid-preview';
 import {MOTION_LIBRARY_SOURCE_BY_ID} from './review-motion-sources.js';
+import {resolveReviewHumanoidDescriptor} from './review-humanoid-calibrations.js';
 import {isThirdPartyRuntimeAssetUrl,projectAssetOrigin} from '@soul/assets';
 
 const MAX_SOURCE_BYTES=12_000_000;
@@ -80,10 +81,10 @@ export function cmuHumanoidFromBVH(root){
     rightUpperArm:'RightArm',rightLowerArm:'RightForeArm',rightHand:'RightHand',rightUpperLeg:'RightUpLeg',rightLowerLeg:'RightLeg',rightFoot:'RightFoot'
   });
 }
-export function createNormalizedBvhMotionSource(parsed,{id='cmu-bvh',clipName='CMU_Motion',preview=false}={}){
+export function createNormalizedBvhMotionSource(parsed,{id='cmu-bvh',clipName='CMU_Motion',preview=false,binding={}}={}){
   const root=parsed?.skeleton?.bones?.[0],clip=parsed?.clip;if(!root||!clip)throw new Error('Loaded BVH motion source required');
   clip.name=clipName;scaleBvhToMeters(root,clip);
-  if(preview)return createPreviewMotionSource({scene:root,animations:[clip]},{id,zeroInitialTranslation:true});
+  if(preview)return createPreviewMotionSource({scene:root,animations:[clip]},{id,zeroInitialTranslation:true,...binding});
   const bones=cmuHumanoidFromBVH(root),sourceHeight=skeletonHeight(root),restBase=captureMotionRest(bones,sourceHeight),mixer=new T.AnimationMixer(root);
   const action=mixer.clipAction(clip);action.reset().setLoop(T.LoopRepeat,Infinity).play();mixer.setTime(0);root.updateMatrixWorld(true);
   const rest=Object.freeze({...restBase,hips:bones.hips.position.toArray()});
@@ -96,7 +97,8 @@ export function createNormalizedBvhMotionSource(parsed,{id='cmu-bvh',clipName='C
 export function parseCmuBvhMotionSource(bytes,source,{preview=false}={}){
   if(!(bytes instanceof Uint8Array))throw new Error('CMU BVH source bytes required');
   const parsed=new BVHLoader().parse(new TextDecoder('utf-8').decode(bytes));
-  return createNormalizedBvhMotionSource(parsed,{id:source.id,clipName:source.clips[0]?.name||source.id,preview});
+  const calibration=resolveReviewHumanoidDescriptor(source);
+  return createNormalizedBvhMotionSource(parsed,{id:source.id,clipName:source.clips[0]?.name||source.id,preview,binding:{basis:calibration.basis,mapping:calibration.mapping}});
 }
 function sceneHeight(scene){scene.updateMatrixWorld(true);const size=new T.Vector3();new T.Box3().setFromObject(scene).getSize(size);return Number.isFinite(size.y)&&size.y>.1&&size.y<100?size.y:2;}
 function checkClips(gltf,id,expectedClips){
@@ -150,7 +152,8 @@ export async function loadPinnedMotionSource(sourceId,{fetcher=fetch,preview=fal
     const bytes=await checkedBytes(source,fetcher);
     if(source.format==='bvh')return parseCmuBvhMotionSource(bytes,source,{preview});
     const gltf=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
-    const options={id:source.id,expectedClips:source.clips.length?source.clips:null,assetHash:source.gitBlobSha};
+    const calibration=resolveReviewHumanoidDescriptor(source);
+    const options={id:source.id,expectedClips:source.clips.length?source.clips:null,assetHash:source.gitBlobSha,basis:calibration.basis,mapping:calibration.mapping};
     if(preview)return createPreviewMotionSource(gltf,options);
     const rigResolver=source.rig==='kaykit-rig-medium'?kaykitHumanoidFromGLTF:['quaternius-standard','mesh2motion-human'].includes(source.rig)?quaterniusHumanoidFromGLTF:null;
     if(!rigResolver)throw new Error(`Unsupported motion rig: ${source.rig}`);return createNormalizedMotionSource(gltf,rigResolver,options);
@@ -162,7 +165,8 @@ export async function loadMotionReviewModel(sourceId,{fetcher=fetch}={}){
   if(reviewModelPromises.has(sourceId))return reviewModelPromises.get(sourceId);
   const promise=(async()=>{
     const bytes=await checkedBytes(source,fetcher),gltf=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
-    const wrapper=createHumanoidPreview(gltf.scene,{role:'target',assetHash:source.gitBlobSha});
+    const calibration=resolveReviewHumanoidDescriptor(source);
+    const wrapper=createHumanoidPreview(gltf.scene,{role:'target',assetHash:source.gitBlobSha,basis:calibration.basis,mapping:calibration.mapping});
     return Object.freeze({source,gltf,bones:wrapper.bones,wrapper,compatibility:wrapper.descriptor});
   })().catch(error=>{reviewModelPromises.delete(sourceId);throw error;});
   reviewModelPromises.set(sourceId,promise);return promise;

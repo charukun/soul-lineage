@@ -3,9 +3,11 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {KAYKIT_MODELS} from '@soul/characters';
 import {createHumanoidPreview} from '@soul/rendering/humanoid-preview';
+import {createHumanoidPreviewConstraints} from '@soul/rendering/humanoid-preview-constraints';
 import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGORY_LABELS} from './review-motion-catalog.js';
 import {buildReviewMotionRegistry,motionRegistryCount,externalMotionRecords,dedupeSourceMotions} from './review-motion-registry.js';
 import {loadPinnedMotionSource,loadPinnedReviewTarget,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
+import {resolveReviewHumanoidDescriptor,createRigRequiredDccRoute} from './review-humanoid-calibrations.js';
 import './review-motion-library.css';
 import './review-motion-preview.css';
 import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
@@ -28,9 +30,9 @@ const ground=new THREE.Mesh(new THREE.CircleGeometry(3.5,64),new THREE.MeshStand
 ground.rotation.x=-Math.PI/2;ground.position.y=-.005;scene.add(ground);
 const stage=new THREE.Group();scene.add(stage);
 const REVIEW_MODELS=KAYKIT_MODELS;
-let selectedModel=REVIEW_MODELS[0],subject=null,targetScene=null,targetAdapter=null,mixer=null,action=null,targetClips=[],catalog=[],selected=null;
+let selectedModel=REVIEW_MODELS[0],subject=null,targetScene=null,targetAdapter=null,targetConstraints=null,targetCalibration=null,targetDccRoute=null,mixer=null,action=null,targetClips=[],catalog=[],selected=null;
 let filter='all',playing=false,speed=1,loop=true,last=performance.now(),loadSerial=0,selectSerial=0,modelHeight=1.8,cameraPreset='three-quarter';
-let externalSource=null,externalTime=0,selectedDuration=0,ready=false,rootMotion='in-place',stopped=false;
+let externalSource=null,externalTime=0,selectedDuration=0,ready=false,rootMotion='in-place',constraintMode='raw',stopped=false;
 const motionFailures=new Map(),thumbnailModelPromises=new Map(),categoryOrder=['all','recommended','life','move','parkour','combat','reaction','other'];
 const formatName=name=>String(name).replaceAll('_',' ').replace(/\s+/g,' ').trim();
 const categoryLabel=category=>REVIEW_MOTION_CATEGORY_LABELS[category]||category;
@@ -41,16 +43,16 @@ const playbackTime=()=>isExternal()?externalTime:Math.max(0,action?.time||0);
 const quality=document.createElement('output');quality.id='motion-quality';quality.className='motion-quality';quality.setAttribute('aria-live','polite');
 canvas.closest('.motion-stage').append(quality);
 const compatibility=document.createElement('details');compatibility.className='motion-compatibility';
-compatibility.innerHTML='<summary>互換性・体格</summary><p>近似再生は素材比較用です。製品品質の承認ではありません。</p><label>腰の移動 <select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場で再生</option><option value="free">移動も適用</option><option value="locked">腰を固定</option></select></label><pre id="motion-binding-report"></pre>';
+compatibility.innerHTML='<summary>互換性・体格</summary><p>近似再生は素材比較用です。製品品質の承認ではありません。</p><label>腰の移動 <select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場で再生</option><option value="free">移動も適用</option><option value="locked">腰を固定</option></select></label><label>補正 <select id="motion-constraint-policy" aria-label="プレビュー補正"><option value="raw">生の近似</option><option value="assisted">接地・接触を補助</option></select></label><pre id="motion-binding-report"></pre>';
 el('motion-meta').closest('details').before(compatibility);
 let lastReport='';
 function showCompatibility(result,source=externalSource){
   const labels={PLAYABLE:'再生可能',DEGRADED:'近似再生',RIG_REQUIRED:'骨・ウェイトの準備が必要',UNSUPPORTED:'データを確認してください',LOADING:'読み込み中',NATIVE:'原版再生'};
   const code=result?.status||targetAdapter?.descriptor.status||'LOADING';
   if(quality.dataset.state!==code){quality.value=labels[code]||code;quality.dataset.state=code;canvas.dataset.motionCompatibility=code;}
-  const summary={status:code,applied:result?.applied,reasons:result?.reasons,rootMotion:result?.rootMotion};
+  const summary={status:code,applied:result?.applied,reasons:result?.reasons,rootMotion:result?.rootMotion,constraintMode,constraints:result?.constraints};
   const signature=(targetAdapter?.descriptor.assetHash||'')+(source?.id||'')+JSON.stringify(summary);
-  if(signature!==lastReport){el('motion-binding-report').textContent=JSON.stringify({target:targetAdapter?.descriptor,source:source?.compatibility||null,result:summary},null,2);lastReport=signature;}
+  if(signature!==lastReport){el('motion-binding-report').textContent=JSON.stringify({target:targetAdapter?.descriptor,calibration:targetCalibration,dccRoute:targetDccRoute,source:source?.compatibility||null,result:summary},null,2);lastReport=signature;}
 }
 function disposeScene(root){
   const geometries=new Set(),materials=new Set(),textures=new Set(),skeletons=new Set();
@@ -63,7 +65,7 @@ function disposeScene(root){
 function disposeSubject(){
   if(mixer&&targetScene){mixer.stopAllAction();mixer.uncacheRoot(targetScene);}
   if(subject){stage.remove(subject);disposeScene(subject);}
-  subject=null;targetScene=null;targetAdapter=null;mixer=null;action=null;targetClips=[];
+  subject=null;targetScene=null;targetAdapter=null;targetConstraints=null;targetCalibration=null;targetDccRoute=null;mixer=null;action=null;targetClips=[];
 }
 function setCameraPreset(id){
   cameraPreset=id;const h=Math.max(.6,modelHeight),targetY=h*.52,d=Math.max(2.15,h*1.72);
@@ -97,7 +99,11 @@ function syncSelectedMeta(){
 }
 function applyExternal(time){
   const result=targetAdapter.apply(externalSource.sample(selected.upstreamClipIndex,time),{rootMotion,mode:'preview'});
-  showCompatibility(result);if(!result.applied)throw new Error(result.reasons.join(', '));
+  if(!result.applied){showCompatibility(result);throw new Error(result.reasons.join(', '));}
+  const constraints=targetConstraints?.apply({clipName:selected?.name||selected?.upstreamClipName||'',mode:constraintMode})||{mode:'raw',corrections:[],reasons:[]};
+  const reasons=[...(result.reasons||[]),...(constraints.reasons||[])];
+  const combined={...result,status:reasons.length?'DEGRADED':result.status,reasons,constraints};
+  showCompatibility(combined);
 }
 async function selectMotion(record){
   if(!record||!mixer||!targetAdapter)return;
@@ -153,7 +159,7 @@ function renderMotionGrid(){
         const mix=new THREE.AnimationMixer(poseRoot);mix.clipAction(clip).play();mix.setTime(clip.duration*.38);
         // Do not stopAllAction here: Three restores the rest pose before the screenshot.
       }else{
-        const source=await loadPinnedMotionSource(record.sourceId,{preview:true}),wrapper=createHumanoidPreview(poseRoot,{role:'target',assetHash:model.source?.gitBlobSha});
+        const source=await loadPinnedMotionSource(record.sourceId,{preview:true}),calibration=resolveReviewHumanoidDescriptor(model),wrapper=createHumanoidPreview(poseRoot,{role:'target',assetHash:model.source?.gitBlobSha,basis:calibration.basis,mapping:calibration.mapping});
         const result=wrapper.apply(source.sample(record.upstreamClipIndex,source.duration(record.upstreamClipIndex)*.38));
         thumbnail.dataset.poseStatus=result.status;if(!result.applied)throw new Error(result.status);
       }
@@ -184,7 +190,10 @@ async function loadModel(model){
     const wrapper=new THREE.Group();wrapper.name='MotionReview:'+model.id;wrapper.add(gltf.scene);
     const box=new THREE.Box3().setFromObject(gltf.scene),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
     modelHeight=Math.max(.4,size.y);wrapper.position.set(-center.x,-box.min.y,-center.z);subject=wrapper;targetScene=gltf.scene;stage.add(subject);
-    targetAdapter=createHumanoidPreview(gltf.scene,{role:'target',assetHash:model.source?.gitBlobSha});
+    targetCalibration=resolveReviewHumanoidDescriptor(model);
+    targetAdapter=createHumanoidPreview(gltf.scene,{role:'target',assetHash:model.source?.gitBlobSha,basis:targetCalibration.basis,mapping:targetCalibration.mapping});
+    targetConstraints=createHumanoidPreviewConstraints({root:gltf.scene,bones:targetAdapter.bones,profile:targetAdapter.profile,groundY:0});
+    targetDccRoute=createRigRequiredDccRoute(model,targetAdapter.descriptor);
     targetClips=gltf.animations||[];mixer=new THREE.AnimationMixer(gltf.scene);mixer.addEventListener('finished',()=>{playing=false;syncPlaybackUI();});
     const legacy=el('motion-legacy');legacy.replaceChildren(new Option('原版クリップを選択',''));targetClips.forEach((c,i)=>legacy.add(new Option(c.name,String(i))));legacy.disabled=!targetClips.length;
     rebuildCatalog();canvas.dataset.motionSource='source-registry';canvas.dataset.motionModel=model.id;el('motion-load').value=1;el('motion-load').hidden=true;setCameraPreset('three-quarter');showCompatibility({status:targetAdapter.descriptor.status});
@@ -206,6 +215,7 @@ el('motion-time').addEventListener('input',e=>{playing=false;seek(Number(e.targe
 el('motion-prev-frame').addEventListener('click',()=>{playing=false;seek(playbackTime()-1/60);});
 el('motion-next-frame').addEventListener('click',()=>{playing=false;seek(playbackTime()+1/60);});
 el('motion-root-policy').addEventListener('change',e=>{rootMotion=e.target.value;if(ready&&isExternal())seek(playbackTime());});
+el('motion-constraint-policy').addEventListener('change',e=>{constraintMode=e.target.value;if(ready&&isExternal())seek(playbackTime());});
 el('motion-legacy').addEventListener('change',e=>{
   const index=Number(e.target.value);if(e.target.value===''||!targetClips[index]||!mixer)return;
   ++selectSerial;selected=null;externalSource=null;mixer.stopAllAction();targetAdapter.reset();externalTime=0;const clip=targetClips[index];selectedDuration=clip.duration;
