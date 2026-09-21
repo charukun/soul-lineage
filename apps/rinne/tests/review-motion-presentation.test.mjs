@@ -52,10 +52,10 @@ test('motion stage starts farther away and selected motion caption stays top-lef
 });
 
 
-test('motion gear opens in the shared lower workbench with compact controls and collapsed diagnostics',()=>{
+test('motion gear opens in the reference motion library with compact controls and collapsed diagnostics',()=>{
   const source=read('../src/review-motion.js');
   const html=read('../review-motion.html');
-  const workbench=read('../../../packages/shared-ui/src/review-workbench.css');
+  const preview=read('../src/review-motion-preview.css');
   assert.match(source,/createElement\('section'\).*motion-compatibility/);
   assert.match(source,/motion-setting-grid/);
   assert.match(source,/接地補正/);
@@ -63,8 +63,9 @@ test('motion gear opens in the shared lower workbench with compact controls and 
   assert.match(source,/motion-diagnostics/);
   assert.match(source,/<summary>技術詳細<\/summary>/);
   assert.match(html,/data-review-stage-panel-host="\.motion-library-primary"/);
-  assert.match(html,/motion-library-primary review-workbench__library review-workbench__panel-host/);
-  assert.match(workbench,/\.review-workbench__panel-host>\.review-stage-controls__panel\{position:absolute!important;top:8px!important;right:8px!important/);
+  assert.match(html,/motion-library motion-library-primary/);
+  assert.doesNotMatch(html,/motion-library-primary review-workbench__/);
+  assert.match(preview,/\.motion-review \.motion-library-primary>\.review-stage-controls__panel\{position:absolute!important;top:8px!important;right:8px!important/);
 });
 
 test('motion review settings can equip a right-hand weapon without changing the motion source',()=>{
