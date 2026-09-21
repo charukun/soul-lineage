@@ -12,7 +12,7 @@ const TARGETS=Object.freeze({hero:['enemy-a','enemy-b','enemy-c'],'enemy-a':['he
 const KIND_DAMAGE=Object.freeze({slash:7,back:7,thrust:8,pierce:9,heavy:14,diagonal:9,sweep:8,counter:10,bash:7,pommel:6});
 const KIND_COST=Object.freeze({slash:5,back:5,thrust:6,pierce:7,heavy:12,diagonal:7,sweep:7,counter:8,bash:6,pommel:5,guard:2,brace:2,parry:3,slip:3,retreat:2,ready:0});
 const RHYTHM_SECONDS=Object.freeze({sharp:.58,flow:.66,weight:.82,elastic:.64,seamless:.54});
-const CONTACT_REACH=2.35,MIN_SPACING=1.08,ENGAGE_DISTANCE=2.08,DISENGAGE_DISTANCE=2.72,COUNTER_PRESS_DISTANCE=2.18;
+const CONTACT_REACH=2.35,BODY_CLEARANCE=1.72,MIN_SPACING=BODY_CLEARANCE,ENGAGE_DISTANCE=2.08,DISENGAGE_DISTANCE=2.72,COUNTER_PRESS_DISTANCE=2.18;
 const RECOVERY_SECONDS=Object.freeze({miss:.62,blocked:.52,parried:.78,countered:.88,'hit-before-contact':.42,hit:.28});
 const REACTION_SECONDS=Object.freeze({guard:.42,parry:.38,counter:.52}),HEAVY_THREATS=new Set(['heavy','sweep','bash','pommel']);
 const DEFENSE_WINDOW=Object.freeze({guard:[.12,.92],brace:[.1,.96],parry:[.12,.9]});
@@ -65,6 +65,25 @@ function footworkVector(positions,actor,target,footwork){
   return{x:0,z:0};
 }
 function distanceBetween(positions,actor,target){const from=positionOf(positions,actor),to=positionOf(positions,target);return Math.hypot(to.x-from.x,to.z-from.z);}
+function contactPointBetween(positions,source,target){
+  const from=positionOf(positions,source),to=positionOf(positions,target);
+  return{x:Number(((from.x+to.x)*.5).toFixed(3)),z:Number(((from.z+to.z)*.5).toFixed(3))};
+}
+function resolveBodySeparation(battle,positions){
+  const live=[...battle.actors.values()].filter(actor=>!actor.dead&&!actor.incapacitated);
+  for(let i=0;i<live.length;i++)for(let j=i+1;j<live.length;j++){
+    const a=live[i],b=live[j],pa=positionOf(positions,a),pb=positionOf(positions,b),dx=pb.x-pa.x,dz=pb.z-pa.z;
+    let distance=Math.hypot(dx,dz);if(distance>=BODY_CLEARANCE-.0001)continue;
+    const nx=distance>.0001?dx/distance:((a.id<b.id)?1:-1),nz=distance>.0001?dz/distance:0,push=(BODY_CLEARANCE-distance)*.5;
+    positions.set(a.id,{x:clampPosition(pa.x-nx*push,-4.8,4.8),z:clampPosition(pa.z-nz*push,-1.4,5.4)});
+    positions.set(b.id,{x:clampPosition(pb.x+nx*push,-4.8,4.8),z:clampPosition(pb.z+nz*push,-1.4,5.4)});
+    distance=distanceBetween(positions,a,b);
+    if(distance<BODY_CLEARANCE-.01){
+      const corrected=positionOf(positions,b),extra=BODY_CLEARANCE-distance;
+      positions.set(b.id,{x:clampPosition(corrected.x+nx*extra,-4.8,4.8),z:clampPosition(corrected.z+nz*extra,-1.4,5.4)});
+    }
+  }
+}
 function maneuverDone(positions,actor,target,maneuver,now){
   if(!maneuver||now>=maneuver.until)return true;
   const distance=distanceBetween(positions,actor,target);
@@ -290,7 +309,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
         if(parried){state.interrupted='parried';targetState.outcome='parry';counterWindows.set(target.id,{against:source.id,until:time+1.35,claimed:false});}
         else targetState.outcome='guard';
         const defenseNode=targetState.context??targetState.node,defenseStage=targetState.reaction?-1:targetState.node.stage.index;
-        const event=freeze({id:`${action.id}:${source.id}:${target.id}:${defense}`,type:parried?'parry':'guard',attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,damage:0,blocked:true,parried,techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,defenseTechniqueId:defenseNode.technique.id,defenseTechniqueName:defenseNode.technique.name,defenseStageIndex:defenseStage,defenseScope:targetState.reaction?'combat-reaction':'review-technique-composition',contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH});
+        const event=freeze({id:`${action.id}:${source.id}:${target.id}:${defense}`,type:parried?'parry':'guard',attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,damage:0,blocked:true,parried,techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,defenseTechniqueId:defenseNode.technique.id,defenseTechniqueName:defenseNode.technique.name,defenseStageIndex:defenseStage,defenseScope:targetState.reaction?'combat-reaction':'review-technique-composition',contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH,bodyClearance:BODY_CLEARANCE,contactPoint:contactPointBetween(positions,source,target)});
         events.push(event);traceRow({...event});
         if(parried){setRecovery(source,'parried',target.id,RECOVERY_SECONDS.parried);setManeuver(source,target,{reason:'parried-recoil',footwork:'retreat',seconds:.64,stopDistance:DISENGAGE_DISTANCE});}
         else{setRecovery(source,'blocked',target.id,RECOVERY_SECONDS.blocked);setManeuver(source,target,{reason:'guard-recoil',footwork:'retreat',seconds:.48,stopDistance:2.54});}
@@ -337,7 +356,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   function step(dt=1/60){
     if(!Number.isFinite(dt)||dt<0||dt>.25)throw new TypeError('Invalid P7 review delta');
     time+=dt;revision++;for(const actor of battle.actors.values())recoverJohakyuStamina(actor,dt);
-    const actions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)]));advanceFootwork(battle,positions,actions,maneuvers,time,dt);const events=applyContacts(actions);
+    const actions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)]));advanceFootwork(battle,positions,actions,maneuvers,time,dt);resolveBodySeparation(battle,positions);const events=applyContacts(actions);
     if(!resumed&&time>=RESUME_SECONDS){const checkpoint=createJohakyuCheckpoint({battle,lifeId:'review-life',ageSeconds:28*60,encounterId:`review-${encounter}`});battle=restoreJohakyuCheckpoint(checkpoint).battle;epoch++;revision=0;resumes++;resumed=true;actionState.clear();reactionState.clear();reactionCooldowns.clear();counterWindows.clear();maneuvers.clear();recoveries.clear();seedReadyWindow(.08);traceRow({type:'resume',epoch});}
     if(time>=ENCOUNTER_SECONDS||battle.result){encounter++;epoch++;time=0;freshBattle();traceRow({type:'encounter-reset',epoch,encounter});}
     const nextActions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)])),snapshot=frame(nextActions),review=meta(snapshot);lastFrame=snapshot;lastMeta=review;
