@@ -1,0 +1,64 @@
+name: Village public placement restore verification
+on:
+  push:
+    branches: [probe/village-public-placement-restore-20260921]
+permissions: {contents: read}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v6
+        with: {node-version: '24', cache: npm}
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Verify actual public DEV placement feel and UI
+        env: {URL: 'https://soul-lineage-village-dev.c-okamoto.workers.dev/'}
+        run: |
+          mkdir -p test-results/public-placement
+          node --input-type=module <<'NODE'
+          import {chromium} from '@playwright/test';import fs from'node:fs/promises';
+          const browser=await chromium.launch({headless:true});
+          const ctx=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,recordVideo:{dir:'test-results/public-placement/video',size:{width:390,height:844}}});
+          const p=await ctx.newPage(),errors=[],failed=[];p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('pageerror',e=>errors.push(e.message));p.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText}));
+          const report={url:process.env.URL,errors,failed};
+          const boot=async()=>{await p.locator('#soul-brand-boot.armed').waitFor({timeout:30000});await p.locator('#soul-brand-boot').click();await p.waitForFunction(()=>window.village&&document.querySelector('#loading')?.hidden===true,null,{timeout:60000});};
+          try{
+            await p.goto(process.env.URL,{waitUntil:'domcontentloaded',timeout:60000});await boot();
+            report.commit=await p.locator('#game').getAttribute('data-commit');
+            await p.locator('#muraResetVillage').click();const nav=p.waitForNavigation({waitUntil:'domcontentloaded',timeout:60000});await p.locator('#muraResetConfirm [data-reset]').click();await nav;await boot();
+            await p.locator('#muraEnterVillage').click();await p.locator('#muraFirstRunGuide').waitFor({state:'visible',timeout:15000});
+            await p.locator('.muraFirstRunStart').click();await p.waitForFunction(()=>document.querySelector('#muraFirstRunGuide')?.dataset.stage==='build');
+            await p.locator('#build').click();await p.waitForFunction(()=>document.querySelector('#muraFirstRunGuide')?.dataset.stage==='catalog');
+            report.ui=await p.evaluate(()=>{
+              const d=document.querySelector('#drawer'),card=document.querySelector('#catalog .card[data-kind="tent"]'),close=document.querySelector('#closeDrawer');
+              const ds=getComputedStyle(d),cs=getComputedStyle(card);
+              return{drawerRadius:ds.borderRadius,drawerClip:ds.clipPath,drawerBackground:ds.backgroundImage,cardRadius:cs.borderRadius,cardBackground:cs.backgroundImage,header:document.querySelector('#drawerTitle')?.textContent,closeVisible:!!close&&getComputedStyle(close).display!=='none',help:document.querySelector('#drawer footer small')?.textContent,buildPath:document.querySelector('#build path')?.getAttribute('d')};
+            });
+            await p.screenshot({path:'test-results/public-placement/01-soft-drawer.png',fullPage:true});
+            await p.locator('#catalog .card[data-kind="tent"]').click();await p.waitForFunction(()=>document.querySelector('#muraFirstRunGuide')?.dataset.stage==='drag');
+            const before=await p.evaluate(()=>({...window.village.ui.pending}));
+            const box=await p.locator('#game').boundingBox();if(!box)throw new Error('canvas missing');const sx=box.x+box.width*.50,sy=box.y+box.height*.50,ex=sx+58,ey=sy+36;
+            const cdp=await ctx.newCDPSession(p);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:sx,y:sy,id:1}]});
+            for(let i=1;i<=6;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:sx+(ex-sx)*i/6,y:sy+(ey-sy)*i/6,id:1}]});await p.waitForTimeout(50);}
+            await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();await p.waitForTimeout(350);
+            const after=await p.evaluate(()=>window.village.ui.pending?({...window.village.ui.pending}):null);
+            report.drag={before,after,stage:await p.locator('#muraFirstRunGuide').getAttribute('data-stage'),placedBeforeTap:await p.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))};
+            await p.screenshot({path:'test-results/public-placement/02-drag-release-pending.png',fullPage:true});
+            if(!after)throw new Error('drag release committed unexpectedly');
+            await p.touchscreen.tap(ex,ey);await p.waitForFunction(()=>window.village.world.objects.some(o=>o.kind==='tent')&&!window.village.ui.pending,null,{timeout:10000});
+            report.placed=await p.evaluate(()=>window.village.world.objects.filter(o=>o.kind==='tent').length);
+            report.finalStage=await p.locator('#muraFirstRunGuide').getAttribute('data-stage');
+            await p.screenshot({path:'test-results/public-placement/03-tap-committed.png',fullPage:true});
+          }catch(e){report.exception=String(e)}
+          await fs.writeFile('test-results/public-placement/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));
+          await ctx.close();await browser.close();
+          const ui=report.ui||{},moved=report.drag?.after&&Math.hypot(report.drag.after.x-report.drag.before.x,report.drag.after.z-report.drag.before.z)>.01;
+          const relevantErrors=errors.filter(x=>/mura-|Failed to fetch dynamically imported module|404/i.test(x)),relevantFailed=failed.filter(x=>/mura-/i.test(x.url));
+          if(report.exception||report.commit!=='08a5e023fa798f65e9bf052a8d936f4242cd1b49'||ui.drawerRadius!=='19px'||ui.drawerClip!=='none'||ui.cardRadius!=='16px'||ui.header!=='村に、何を置こう。'||!ui.closeVisible||ui.help!=='選んで地面をタップ · 長押しでドラッグ'||!moved||report.drag?.placedBeforeTap!==false||report.drag?.stage!=='place'||!report.placed||report.finalStage!=='done'||relevantErrors.length||relevantFailed.length)process.exit(1);
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: village-public-placement-restore-verification, path: test-results/public-placement/, retention-days: 7}
