@@ -65,7 +65,7 @@ export function renderProgressMini(steps=[],{
     for(const {point,x,y} of coords){
       const dot=documentRef.createElementNS('http://www.w3.org/2000/svg','circle');
       dot.setAttribute('cx',x.toFixed(2));dot.setAttribute('cy',y.toFixed(2));dot.setAttribute('r','2.6');
-      dot.setAttribute('class','rapid-progress-point '+point.tone);
+      dot.setAttribute('class','rapid-progress-point '+point.tone+(model.current?.id===point.id?' current':''));
       svg.append(dot);
     }
   }
@@ -74,7 +74,7 @@ export function renderProgressMini(steps=[],{
   labels.className='rapid-progress-labels';
   for(const point of model.points){
     const label=documentRef.createElement('span');
-    label.className='rapid-progress-label '+point.tone;
+    label.className='rapid-progress-label '+point.tone+(model.current?.id===point.id?' current':'');
     label.textContent=point.label;
     labels.append(label);
   }
@@ -84,7 +84,7 @@ export function renderProgressMini(steps=[],{
   const leftMeta=documentRef.createElement('span');
   leftMeta.textContent=model.complete+'/'+model.total;
   const current=documentRef.createElement('strong');
-  current.textContent=model.current?model.current.label:'未記録';
+  current.textContent=model.current?'現在 '+model.current.label:'未記録';
   meta.append(leftMeta,current);
 
   root.append(svg,labels,meta);
