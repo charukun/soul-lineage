@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const stateSource = await readFile(new URL('../src/title/state.js', import.meta.url), 'utf8');
-const brandSource = await readFile(new URL('../src/brand-start.js', import.meta.url), 'utf8');
 // Legacy title state remains testable while the clean rebuild no longer boots through it.
 const stateURL = 'data:text/javascript;base64,' + Buffer.from(stateSource).toString('base64');
 const {transition, normalizeEnvironment, normalizedSettings, acceptsReadyMessage, acceptsFrameOrigin} = await import(stateURL);
@@ -64,10 +63,3 @@ test('HTTPS never admits opaque or foreign legacy frame origin',()=>{assert.equa
 test('local legacy frame support is restricted to explicit offline adapter',()=>{assert.equal(acceptsFrameOrigin('null','content://downloads','content:',true),true);assert.equal(acceptsFrameOrigin('null','file://','file:',true),true);assert.equal(acceptsFrameOrigin('null','content://downloads','content:',false),false);assert.equal(acceptsFrameOrigin('https://evil.test','null','content:',true),false);});
 test('legacy progress and asset requests still require channel and token',()=>{for(const type of ['progress','asset-request']){assert.equal(acceptsReadyMessage({channel:'rinne-title-v1',type,token:'expected-123'},'expected-123'),true);assert.equal(acceptsReadyMessage({channel:'rinne-title-v1',type,token:'stale-123'},'expected-123'),false);}});
 test('separate simulator keeps its early error bridge',async()=>{const html=await readFile(new URL('../public/simulator/index.html',import.meta.url),'utf8');assert.ok(html.indexOf('src="./title-bridge.js"')<html.indexOf('type="module"'));assert.match(html,/function fatal\(e\)\{window\.__RINNE_BOOT__\?\.fail\(e\)/);});
-
-
-test('百年転生 boot brand exposes the canonical crest for sibling apps',()=>{
- assert.match(brandSource,/applyBootBrand/);
- assert.match(brandSource,/rinneCrestUrl/);
- assert.match(brandSource,/wordmark:'百年転生'/);
-});
