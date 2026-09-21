@@ -70,3 +70,17 @@ test('held weapons use the protagonist hand sockets instead of skeleton-model gr
   assert.match(js,/if\(dedicatedHandSlot\(anchor,slot\)\)\{[\s\S]*fitObject\(payload,spec\.targetFraction,characterHeight\);[\s\S]*return;/);
   assert.match(js,/const characterHeight=modelHeight\(\);[\s\S]*anchor\.add\(payload\);[\s\S]*applyTransform\(payload,spec,slot,anchor,characterHeight\)/);
 });
+
+
+test('equipment preview uses reviewed humanoid idle stance and padded FOV-aware camera framing', async () => {
+  const js=await readFile(jsUrl,'utf8');
+  assert.match(js,/import \{applyReviewCombatMotion\} from '\.\/review-battle-hero-motion\.js'/);
+  assert.match(js,/applyReviewCombatMotion\(presentationBones\(root\),\{attack:''\},\{stage:'idle'\},0\)/);
+  assert.doesNotMatch(js,/rightUpper\.rotation\.z-=Math\.PI\*\.30|leftUpper\.rotation\.z\+=Math\.PI\*\.30/);
+  assert.match(js,/function fullViewDistance\(frame,direction=activeViewDirection\)/);
+  assert.match(js,/THREE\.MathUtils\.degToRad\(camera\.fov\*\.5\)/);
+  assert.match(js,/return Math\.max\(vertical,horizontal\)\*1\.34/);
+  assert.doesNotMatch(js,/radius\*1\.48|height\*\.74/);
+  assert.match(js,/find\(clip=>\/idle\|stand\|breath\/i\.test/);
+  assert.doesNotMatch(js,/find\(clip=>!\/t\[-_ \]\?pose/);
+});

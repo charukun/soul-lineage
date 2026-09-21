@@ -9,6 +9,7 @@ import {
   reviewSkeletonEquipmentForSlot,
 } from '@soul/assets';
 import { PROTAGONIST_VILLAGER_MODEL } from '@soul/characters';
+import {applyReviewCombatMotion} from './review-battle-hero-motion.js';
 import './review-asset-library.css';
 mountRinneReviewShell('equipment');
 
@@ -198,8 +199,18 @@ function cameraFrame() {
   if(!modelRoot)return null;
   modelRoot.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(modelRoot),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
-  const height=Math.max(size.y,.5),radius=Math.max(size.x,size.y,size.z,.5);
-  return {box,center,height,radius,target:new THREE.Vector3(center.x,box.min.y+height*.5,center.z)};
+  const height=Math.max(size.y,.5);
+  return {box,center,size,height,target:new THREE.Vector3(center.x,box.min.y+height*.49,center.z)};
+}
+function fullViewDistance(frame,direction=activeViewDirection){
+  const halfFov=THREE.MathUtils.degToRad(camera.fov*.5);
+  const tanV=Math.max(.05,Math.tan(halfFov));
+  const tanH=Math.max(.05,tanV*Math.max(.45,camera.aspect));
+  const depthFacing=direction==='left'||direction==='right'||direction==='side';
+  const width=depthFacing?frame.size.z:direction==='three-quarter'?Math.hypot(frame.size.x,frame.size.z)*.72:frame.size.x;
+  const vertical=(frame.height*.5)/tanV;
+  const horizontal=(Math.max(width,.35)*.5)/tanH;
+  return Math.max(vertical,horizontal)*1.34;
 }
 function focusTarget(frame,focus) {
   if(focus==='full')return frame.target.clone();
@@ -209,9 +220,9 @@ function focusTarget(frame,focus) {
 }
 function applyViewPreset() {
   const frame=cameraFrame(); if(!frame)return;
-  const {center,height,radius}=frame,target=focusTarget(frame,activeViewFocus);
-  const distance=activeViewFocus==='full'?Math.max(radius*1.48,height*.74):Math.max(height*.50,.66);
-  const eyeY=activeViewFocus==='full'?target.y+height*.08:target.y+height*.04;
+  const {center,height}=frame,target=focusTarget(frame,activeViewFocus);
+  const distance=activeViewFocus==='full'?fullViewDistance(frame):Math.max(height*.58,.78);
+  const eyeY=activeViewFocus==='full'?target.y+height*.025:target.y+height*.04;
   controls.target.copy(target);
   if(activeViewDirection==='left')camera.position.set(target.x-distance,eyeY,target.z);
   else if(activeViewDirection==='right'||activeViewDirection==='side')camera.position.set(target.x+distance,eyeY,target.z);
@@ -227,15 +238,22 @@ function applyViewPreset() {
 function setCameraPreset(preset='front'){activeViewDirection=preset;applyViewPreset();}
 function setFocusPreset(focus='full'){activeViewFocus=focus;applyViewPreset();}
 function frameModel(){activeViewFocus='full';applyViewPreset();}
+function presentationBones(root){
+  return {
+    hips:findNode(root,'hips'),spine:findNode(root,'spine'),chest:findNode(root,'chest'),head:findNode(root,'head'),
+    leftUpperArm:findNode(root,'upperarm.l')||findNode(root,'leftupperarm'),
+    rightUpperArm:findNode(root,'upperarm.r')||findNode(root,'rightupperarm'),
+    leftLowerArm:findNode(root,'lowerarm.l')||findNode(root,'leftlowerarm'),
+    rightLowerArm:findNode(root,'lowerarm.r')||findNode(root,'rightlowerarm'),
+    leftUpperLeg:findNode(root,'upperleg.l')||findNode(root,'leftupperleg'),
+    rightUpperLeg:findNode(root,'upperleg.r')||findNode(root,'rightupperleg'),
+    leftLowerLeg:findNode(root,'lowerleg.l')||findNode(root,'leftlowerleg'),
+    rightLowerLeg:findNode(root,'lowerleg.r')||findNode(root,'rightlowerleg'),
+  };
+}
 function applyPresentationPose(root){
-  const rightUpper=findNode(root,'upperarmr')||findNode(root,'rightupperarm');
-  const leftUpper=findNode(root,'upperarml')||findNode(root,'leftupperarm');
-  const rightLower=findNode(root,'lowerarmr')||findNode(root,'rightlowerarm');
-  const leftLower=findNode(root,'lowerarml')||findNode(root,'leftlowerarm');
-  if(rightUpper)rightUpper.rotation.z-=Math.PI*.30;
-  if(leftUpper)leftUpper.rotation.z+=Math.PI*.30;
-  if(rightLower)rightLower.rotation.y+=.16;
-  if(leftLower)leftLower.rotation.y-=.16;
+  applyReviewCombatMotion(presentationBones(root),{attack:''},{stage:'idle'},0);
+  root.updateMatrixWorld(true);
 }
 async function loadModel() {
   const sequence=++loadSequence; selection.model=PROTAGONIST_VILLAGER_MODEL.id; status('主人公モデルを読み込み中…');
@@ -243,7 +261,7 @@ async function loadModel() {
   const gltf=await loader.loadAsync(protagonistModelUrl); if(sequence!==loadSequence){disposeRoot(gltf.scene);return;}
   modelRoot=gltf.scene; modelRoot.name='ReviewModel:Protagonist'; modelRoot.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}}); scene.add(modelRoot); hideNativeAccessories(modelRoot);
   modelRoot.updateMatrixWorld(true); const box=new THREE.Box3().setFromObject(modelRoot),center=box.getCenter(new THREE.Vector3()); modelRoot.position.x-=center.x;modelRoot.position.z-=center.z;modelRoot.position.y-=box.min.y;modelRoot.updateMatrixWorld(true);
-  const idleClip=gltf.animations?.find(clip=>/idle|stand|breath/i.test(clip.name||''))||gltf.animations?.find(clip=>!/t[-_ ]?pose|bind|rest/i.test(clip.name||''));
+  const idleClip=gltf.animations?.find(clip=>/idle|stand|breath/i.test(clip.name||''));
   if(idleClip){mixer=new THREE.AnimationMixer(modelRoot);mixer.clipAction(idleClip).play();}else applyPresentationPose(modelRoot);
   await reapplyEquipment(); frameModel(); status('装備を表示しています'); renderSelection();
 }
