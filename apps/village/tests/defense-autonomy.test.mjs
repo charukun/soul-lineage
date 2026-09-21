@@ -35,7 +35,7 @@ test('guards move toward the warned side before the raid reaches the village',()
 
 test('guards autonomously repair damaged defensive fixtures after danger passes',()=>{
  const world=new World();give(world);const sim=new Simulation(world),guard=world.people.find(p=>p.id==='guard-npc');
- const placed=world.add('fence',30,24);assert.equal(placed.error,undefined);const fence=placed.object;
+ const placed=world.add('fence',0,25);assert.equal(placed.error,undefined);const fence=placed.object;
  fence.damage=20;guard.x=fence.x+1;guard.z=fence.z;guard.hunger=90;
  sim.guardStep(guard,1);
  assert.ok(fence.damage<20);

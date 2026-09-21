@@ -1,4 +1,4 @@
-const DEFENSE_KINDS=new Set(['fence','wall','guardpost','watchtower','wardlamp']);
+const DEFENSE_KINDS=new Set(['fence','hedge','wall','guardpost','watchtower','wardlamp','barracks']);
 const DEFENSE_RANK={fence:1,hedge:1,wall:2,guardpost:2,watchtower:3,wardlamp:3,barracks:3};
 const SECTORS={
  east:{id:'east',label:'東側',x:1,z:0},
