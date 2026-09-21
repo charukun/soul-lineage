@@ -22,3 +22,5 @@ jobs:
           git fetch origin develop
           git merge --no-edit origin/develop
           git push origin HEAD:work/female-protagonist-blender-refinement-20260921
+
+# refresh latest develop before final validation
