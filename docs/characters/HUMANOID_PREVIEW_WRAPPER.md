@@ -61,3 +61,15 @@ Persistent confidence comes from the repository's existing gates plus explicit, 
 - Blender Armature Deform parenting: https://docs.blender.org/manual/en/latest/animation/armatures/skinning/parenting.html (automatic weights can require correction).
 
 These explain techniques; repository asset/license/runtime contracts remain authoritative.
+
+
+## Follow-on plan execution — 2026-09-21
+
+The four follow-on stages are now wired into the preview architecture without expanding the Fast DEV Actions surface.
+
+1. **Rig-family/rest calibration** — immutable-hash descriptors now cover the eligible review catalog and resolve the four current humanoid source families: KayKit Rig_Medium, Quaternius Standard, Mesh2Motion Human and CMU BVH. Each descriptor carries a versioned basis/mapping calibration id, while body-proportion scaling continues to use measured rest-skeleton height/limb ratios rather than model-name assumptions.
+2. **Contact/foot/weapon constraints** — the shared preview constraint adapter adds explicit locomotion foot-ground alignment and reuses the existing anatomical arm-clearance solver for high-value contact motions. Weapon-like clips are explicitly marked as requiring a bound weapon contact; when no weapon object/profile/socket is present the preview reports `weapon-contact-unbound` rather than inventing a grip. Motion review keeps a raw/assisted selector so the uncorrected retarget remains available for comparison.
+3. **RIG_REQUIRED → DCC** — a RIG_REQUIRED target now produces a deterministic Character DCC Carrier route (`dcc/<slug>`, `reference.*` + `build.py`, KayKit Rig_Medium foundation, weighted GLB/VRM output). This does not fabricate weights in the browser and does not auto-promote a character.
+4. **Descriptor persistence by immutable hash** — the review catalog builds a versioned descriptor registry keyed by the pinned Git blob SHA of every registered target/source. The importers consume the descriptor's basis/mapping calibration before preview binding. Adapter approval remains separate from `visualApproval` and `productionReady`.
+
+The current active target catalog is still KayKit-only under the repository license/game axis. The additional rig-family calibration applies to motion sources and future eligible registered targets; it is not a claim that arbitrary downloaded meshes are production-ready. No new model-specific playback path, test sweep, build sweep, workflow, or Action job is introduced.

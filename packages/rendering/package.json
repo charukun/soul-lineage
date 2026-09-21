@@ -50,7 +50,8 @@
     "./motion-quality": "./src/motion-quality.js",
     "./motion-runtime": "./src/motion-runtime.js",
     "./combat-camera-frame": "./src/combat-camera-frame.js",
-    "./humanoid-preview": "./src/humanoid-preview.js"
+    "./humanoid-preview": "./src/humanoid-preview.js",
+    "./humanoid-preview-constraints": "./src/humanoid-preview-constraints.js"
   },
   "dependencies": {
     "three": "0.186.0",
