@@ -41,3 +41,17 @@ test('frontier combat is resolved by the headless Tidebreak runtime while keepin
   assert.ok(Number.isFinite(state.position.x)&&Number.isFinite(state.position.z));
   assert.ok(Number.isFinite(enemy.x)&&Number.isFinite(enemy.z));
 });
+
+
+test('canonical stage capability blocks an illegal authored attack before damage is applied',()=>{
+  const state=combatState(91),front=createFront(0,91),enemy=front.enemies[0];
+  front.enemies=[enemy];enemy.x=0;enemy.z=1.35;enemy.hp=enemy.maxHp=120;enemy.cooldown=99;
+  state.injuries.leftArm={severity:.82,at:state.ageSeconds};state.injuries.rightArm={severity:.82,at:state.ageSeconds};
+  const startHp=enemy.hp,events=[];
+  for(let i=0;i<240&&!events.some(event=>event.type==='execution-blocked');i++)events.push(...tickFront(state,front,1/60));
+  const blocked=events.find(event=>event.type==='execution-blocked');
+  assert.ok(blocked,'runtime must surface the canonical execution rejection');
+  assert.equal(blocked.reason,'arm-injury');assert.equal(blocked.authority,'rinne-domain');
+  assert.equal(events.some(event=>event.type==='player-hit'),false);assert.equal(enemy.hp,startHp);
+  assert.equal(state.attacking,false);assert.ok(state.combat?.executionBlock?.remaining>0);
+});
