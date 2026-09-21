@@ -47,7 +47,7 @@ test('ritual keeps accessibility and reduced-motion escape routes',async()=>{
   assert.match(ui,/aria-pressed/);
   assert.match(ui,/data-origin-back/);
   assert.match(ui,/data-origin-cancel/);
-  assert.match(ui,/data-replace-family/);
+  assert.match(ui,/dataset\.replaceFamily/);
   assert.match(css,/prefers-reduced-motion:reduce/);
   assert.match(css,/family-origin\[data-motion=off\]/);
 });
