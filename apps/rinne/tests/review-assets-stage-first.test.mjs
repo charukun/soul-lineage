@@ -16,7 +16,7 @@ test('equipment review equips the selected weapon type directly', async () => {
   assert.match(html, /武器の種類/);
   assert.doesNotMatch(html, /右手の装備候補|装備候補/);
   assert.doesNotMatch(html, /asset-equipment-options|asset-clear-slot/);
-  assert.match(js, /await setEquipment\('main',type\.equipment\)/);
+  assert.match(js, /const equip=\(\)=>setEquipment\('main',type\.equipment\)/);
   assert.match(js, /\$\{type\.label\}を装備しました/);
   assert.doesNotMatch(js, /setFocusPreset\('main'\)/);
   assert.doesNotMatch(js, /data-asset-slot[^\n]+setFocusPreset/);
