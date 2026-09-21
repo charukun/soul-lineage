@@ -13,16 +13,24 @@ test('family story still starts only after Start and never owns the title',async
   assert.doesNotMatch(css,/\.title-screen/);
 });
 
-test('deep water story uses one short prompt at a time with staggered rising answers',async()=>{
+test('deep water story shows one memory at a time instead of a three-up choice grid',async()=>{
   const [ui,css]=await Promise.all([read('../src/family-origin-ui.js'),read('../src/family-origin.css')]);
   assert.match(ui,/dialog\.dataset\.scene = 'deepwater'/);
   assert.match(ui,/STORY_PROMPTS = Object\.freeze\(\['どこへ帰る？','何が、残っている？','その手に、何がある？'\]\)/);
   assert.doesNotMatch(ui,/土地の記憶|家の言葉|受け継ぐもの/);
   assert.doesNotMatch(ui,/遠い水底から|声は姿を持たない|次の生へ流れ着く/);
   assert.match(ui,/family-story-question/);
-  assert.match(ui,/family-memory-orb/);
-  assert.match(css,/animation-delay:calc\(var\(--slot\)\*230ms \+ 140ms\)/);
-  assert.match(css,/@keyframes family-memory-rise/);
+  assert.match(ui,/family-memory-stage/);
+  assert.match(ui,/data\.memoryCurrent = 'true'/);
+  assert.match(ui,/function cycleMemory\(delta, source='input'\)/);
+  assert.match(ui,/event\.key === 'ArrowRight'/);
+  assert.match(ui,/event\.key === 'ArrowLeft'/);
+  assert.match(ui,/Math\.abs\(dx\) < 48/);
+  assert.doesNotMatch(ui,/family-story-choices/);
+  assert.doesNotMatch(css,/grid-template-columns:repeat\(3/);
+  assert.match(css,/@keyframes family-memory-arrive/);
+  assert.match(css,/@keyframes family-memory-absorb/);
+  assert.match(css,/data-shifting=true/);
   assert.match(css,/data-answering=true/);
   assert.doesNotMatch(css,/family-ancestral-gate|family-oath-gate|family-orb-rings|family-ritual-progress/);
 });
@@ -39,13 +47,13 @@ test('Birth becomes a large ascent, then a separate loading beat before gameplay
   assert.match(css,/@keyframes family-light-burst/);
   assert.match(css,/family-birth-thread/);
   assert.match(css,/family-birth-seed/);
-  assert.match(audio,/if\(kind==='loading'\)/);
+  assert.match(audio,/if\(kind==='loading'\)/);assert.match(audio,/if\(kind==='drift'\)/);
 });
 
 test('story keeps save replacement, keyboard semantics and reduced motion',async()=>{
   const [ui,css]=await Promise.all([read('../src/family-origin-ui.js'),read('../src/family-origin.css')]);
   assert.match(ui,/aria-labelledby/);
-  assert.match(ui,/aria-pressed/);
+  assert.match(ui,/aria-pressed/);assert.match(ui,/左右キーまたはスワイプで別の記憶/);
   assert.match(ui,/data-origin-back/);
   assert.match(ui,/data-origin-cancel/);
   assert.match(ui,/dataset\.replaceFamily/);
