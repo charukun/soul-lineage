@@ -9,6 +9,8 @@ import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGOR
 import {buildReviewMotionRegistry,motionRegistryCount,externalMotionRecords,dedupeSourceMotions} from './review-motion-registry.js';
 import {loadPinnedMotionSource,loadPinnedReviewTarget,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import {resolveReviewHumanoidDescriptor,createRigRequiredDccRoute} from './review-humanoid-calibrations.js';
+import {hideEmbeddedCombatProps} from './review-battle-equipment.js';
+import {MOTION_REVIEW_WEAPON_OPTIONS,loadMotionReviewWeapon} from './review-motion-equipment.js';
 import './review-motion-library.css';
 import './review-motion-preview.css';
 import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
@@ -21,7 +23,7 @@ const status=message=>{if(el('motion-status').textContent!==message)el('motion-s
 const renderer=createReviewRenderer(canvas,{exposure:1.05});
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1110);scene.fog=new THREE.Fog(0x0b1110,9,22);
 const camera=new THREE.PerspectiveCamera(38,1,.04,60),controls=new OrbitControls(camera,canvas);
-controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=.9;controls.maxDistance=12;
+controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=1;controls.maxDistance=12;
 scene.add(new THREE.HemisphereLight(0xe3ece8,0x27312d,2.4));
 const key=new THREE.DirectionalLight(0xffe7bc,3.1);key.position.set(-4,7,5);scene.add(key);
 const rim=new THREE.DirectionalLight(0x9ac8d5,1.35);rim.position.set(5,4,-4);scene.add(rim);
@@ -32,6 +34,7 @@ const REVIEW_MODELS=RINNE_MOTION_REVIEW_MODELS;
 let selectedModel=RINNE_MOTION_REVIEW_DEFAULT_MODEL,subject=null,targetScene=null,targetAdapter=null,targetConstraints=null,targetCalibration=null,targetDccRoute=null,mixer=null,action=null,targetClips=[],catalog=[],selected=null;
 let filter='all',playing=false,speed=1,loop=true,last=performance.now(),loadSerial=0,selectSerial=0,cameraPreset='three-quarter';
 let externalSource=null,externalTime=0,selectedDuration=0,ready=false,rootMotion='in-place',constraintMode='raw',stopped=false;
+let selectedWeapon='none',equippedWeapon=null,weaponSerial=0;
 const motionFailures=new Map(),thumbnailModelPromises=new Map(),categoryOrder=['all','recommended','life','move','parkour','combat','reaction','other'];
 const categoryLabel=category=>REVIEW_MOTION_CATEGORY_LABELS[category]||category;
 const isExternal=()=>selected?.runtime?.kind==='pinned-motion-source';
@@ -41,8 +44,10 @@ const playbackTime=()=>isExternal()?externalTime:Math.max(0,action?.time||0);
 const quality=document.createElement('output');quality.id='motion-quality';quality.className='motion-quality';quality.setAttribute('aria-live','polite');
 canvas.closest('.motion-stage').append(quality);
 const compatibility=document.createElement('details');compatibility.className='motion-compatibility';
-compatibility.innerHTML='<summary>互換性・体格</summary><p>近似再生は素材比較用です。製品品質の承認ではありません。</p><label>腰の移動 <select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場で再生</option><option value="free">移動も適用</option><option value="locked">腰を固定</option></select></label><label>補正 <select id="motion-constraint-policy" aria-label="プレビュー補正"><option value="raw">生の近似</option><option value="assisted">接地・接触を補助</option></select></label><pre id="motion-binding-report"></pre>';
+compatibility.innerHTML='<summary>設定</summary><p>武器・腰移動・プレビュー補正を切り替えます。近似再生は素材比較用です。</p><label>武器 <select id="motion-weapon" aria-label="武器"></select></label><label>腰の移動 <select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場で再生</option><option value="free">移動も適用</option><option value="locked">腰を固定</option></select></label><label>補正 <select id="motion-constraint-policy" aria-label="プレビュー補正"><option value="raw">生の近似</option><option value="assisted">接地・接触を補助</option></select></label><pre id="motion-binding-report"></pre>';
 el('motion-meta').closest('details').before(compatibility);
+for(const option of MOTION_REVIEW_WEAPON_OPTIONS)el('motion-weapon').add(new Option(option.label,option.id));
+el('motion-weapon').value=selectedWeapon;
 let lastReport='';
 function showCompatibility(result,source=externalSource){
   const labels={PLAYABLE:'再生可能',DEGRADED:'近似再生',RIG_REQUIRED:'骨・ウェイトの準備が必要',UNSUPPORTED:'データを確認してください',LOADING:'読み込み中',NATIVE:'原版再生'};
@@ -60,14 +65,37 @@ function disposeScene(root){
   });
   geometries.forEach(v=>v.dispose());materials.forEach(v=>v.dispose());textures.forEach(v=>v.dispose());skeletons.forEach(v=>v.dispose());
 }
+function disposeEquippedWeapon(){
+  weaponSerial++;
+  if(!equippedWeapon)return;
+  equippedWeapon.removeFromParent();disposeScene(equippedWeapon);equippedWeapon=null;
+}
+async function syncWeapon(){
+  const serial=++weaponSerial;
+  if(equippedWeapon){equippedWeapon.removeFromParent();disposeScene(equippedWeapon);equippedWeapon=null;}
+  canvas.dataset.motionWeapon=selectedWeapon;
+  if(selectedWeapon==='none'||!targetAdapter)return;
+  const anchor=targetAdapter.bones?.rightHand;
+  if(!anchor){status('右手の武器スロットが見つかりません。');return;}
+  try{
+    const loaded=await loadMotionReviewWeapon(selectedWeapon);
+    if(serial!==weaponSerial||stopped||!targetAdapter){if(loaded.root)disposeScene(loaded.root);return;}
+    if(!loaded.root)return;
+    anchor.add(loaded.root);equippedWeapon=loaded.root;canvas.dataset.motionWeapon=loaded.option.id;
+  }catch(error){
+    if(serial!==weaponSerial||stopped)return;
+    canvas.dataset.motionWeapon='error';status('武器読込失敗: '+String(error?.message||error));
+  }
+}
 function disposeSubject(){
+  disposeEquippedWeapon();
   if(mixer&&targetScene){mixer.stopAllAction();mixer.uncacheRoot(targetScene);}
   if(subject){stage.remove(subject);disposeScene(subject);}
   subject=null;targetScene=null;targetAdapter=null;targetConstraints=null;targetCalibration=null;targetDccRoute=null;mixer=null;action=null;targetClips=[];
 }
 function setCameraPreset(id){
   cameraPreset=id;
-  if(subject)positionReviewCamera({camera,controls,root:subject,preset:id,padding:1.5,minDistance:.9,maxDistance:12});
+  if(subject)positionReviewCamera({camera,controls,root:subject,preset:id,padding:1.75,minDistance:1,maxDistance:12});
   for(const b of document.querySelectorAll('[data-motion-camera]'))b.setAttribute('aria-pressed',String(b.dataset.motionCamera===id));
 }
 function syncPlaybackUI(){
@@ -189,12 +217,14 @@ async function loadModel(model){
   try{
     const gltf=await loadPinnedReviewTarget(model);
     if(serial!==loadSerial||stopped){disposeScene(gltf.scene);return;}
+    hideEmbeddedCombatProps(gltf.scene);
     const wrapper=new THREE.Group();wrapper.name='MotionReview:'+model.id;wrapper.add(gltf.scene);
     normalizeReviewSubject(wrapper);subject=wrapper;targetScene=gltf.scene;stage.add(subject);
     targetCalibration=resolveReviewHumanoidDescriptor(model);
     targetAdapter=createHumanoidPreview(gltf.scene,{role:'target',assetHash:model.source?.gitBlobSha,basis:targetCalibration.basis,mapping:targetCalibration.mapping});
     targetConstraints=createHumanoidPreviewConstraints({root:gltf.scene,bones:targetAdapter.bones,profile:targetAdapter.profile,groundY:0});
     targetDccRoute=createRigRequiredDccRoute(model,targetAdapter.descriptor);
+    void syncWeapon();
     targetClips=gltf.animations||[];mixer=new THREE.AnimationMixer(gltf.scene);mixer.addEventListener('finished',()=>{playing=false;syncPlaybackUI();});
     const legacy=el('motion-legacy');legacy.replaceChildren(new Option('原版クリップを選択',''));targetClips.forEach((c,i)=>legacy.add(new Option(reviewMotionDisplayName(c.name,i),String(i))));legacy.disabled=!targetClips.length;
     rebuildCatalog();canvas.dataset.motionSource='source-registry';canvas.dataset.motionModel=model.id;el('motion-load').value=1;el('motion-load').hidden=true;setCameraPreset('three-quarter');showCompatibility({status:targetAdapter.descriptor.status});
@@ -217,6 +247,7 @@ el('motion-prev-frame').addEventListener('click',()=>{playing=false;seek(playbac
 el('motion-next-frame').addEventListener('click',()=>{playing=false;seek(playbackTime()+1/60);});
 el('motion-root-policy').addEventListener('change',e=>{rootMotion=e.target.value;if(ready&&isExternal())seek(playbackTime());});
 el('motion-constraint-policy').addEventListener('change',e=>{constraintMode=e.target.value;if(ready&&isExternal())seek(playbackTime());});
+el('motion-weapon').addEventListener('change',e=>{selectedWeapon=e.target.value;void syncWeapon();});
 el('motion-legacy').addEventListener('change',e=>{
   const index=Number(e.target.value);if(e.target.value===''||!targetClips[index]||!mixer)return;
   ++selectSerial;selected=null;externalSource=null;mixer.stopAllAction();targetAdapter.reset();externalTime=0;const clip=targetClips[index];selectedDuration=clip.duration;

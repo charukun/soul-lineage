@@ -4,7 +4,7 @@
 .motion-compatibility{margin-top:10px;border-top:1px solid #28312d;font-size:12px;order:5}
 .motion-compatibility>summary{padding:12px 2px;cursor:pointer}
 .motion-compatibility p{line-height:1.5;color:#a8b6ae}
-.motion-compatibility select{padding:7px;background:#121b16;border:1px solid #56645b;border-radius:6px}
+.motion-compatibility label{display:flex;align-items:center;gap:10px;margin:7px 0;color:#b9c6bf}.motion-compatibility select{margin-left:auto;min-width:128px;padding:7px;background:#121b16;border:1px solid #56645b;border-radius:6px}
 .motion-compatibility pre{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;color:#b5c5ba}
 .motion-grid .review-choice-card[data-preview-state="error"]{border-color:#9a635c!important;opacity:.7}
 .motion-playback button:disabled,.motion-timeline button:disabled{opacity:.45;cursor:wait}
