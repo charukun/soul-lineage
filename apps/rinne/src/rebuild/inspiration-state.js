@@ -1,6 +1,7 @@
 import { CAUSAL_ANSWERS, INSPIRATION_QUESTIONS, inspirationTechniqueName, inspirationCombatAnswerPool, resolveInspirationAnswer, isGeneratedTechniqueId, generatedTechniqueNaming } from '@soul/game-data';
 import { INSPIRATION_LIMITS, MOTIFS, ensureInspiration, synchronizeKnownSkills } from './inspiration-persistence.js';
 import { faithProfile } from './skill-system.js';
+import { familyAffinityForSkill } from './family-origin.js';
 export { INSPIRATION_VERSION, INSPIRATION_LIMITS, ensureInspiration, synchronizeKnownSkills, validateInspiration, inspirationImprint } from './inspiration-persistence.js';
 
 const ACTIVITY_MOTIFS=Object.freeze({play:['balance','space','timing'],pray:['patience','breath'],forge:['tool','observation'],train:['observation','timing'],study:['observation','precision'],read:['patience','observation'],care:['care','patience'],observe:['observation','patience'],track:['space','observation'],maintain:['tool','handling'],voyage:['balance','patience'],rest:['breath','patience'],breathe:['breath'],balance:['balance'],fall:['balance','space'],focus:['precision','patience'],sense:['observation','space'],repeat:['handling','timing'],distance:['space','observation'],adapt:['balance','space'],practice:['handling','timing']});
@@ -112,7 +113,10 @@ function candidateScore(state,row,context){
   for(const [key,value]of Object.entries(row.intent))score+=(Number(mind[key])||0)*value;
   for(const [key,value]of Object.entries(row.bodyAffinity))score+=(body[key]-1)*value*2;
   const motifs=unique(s.traces.flatMap(t=>t.motifs));score+=row.motifs.filter(m=>motifs.includes(m)).length*.12;
-  score+=Math.min(.3,s.heritage.filter(h=>row.motifs.includes(h.motif)).reduce((n,h)=>n+h.strength*.15,0));score+=unit(state.seed,`aptitude:${row.family}`)*.08;return score;
+  score+=Math.min(.3,s.heritage.filter(h=>row.motifs.includes(h.motif)).reduce((n,h)=>n+h.strength*.15,0));
+  // Family history bends probability; it never bypasses materials, questions, equipment, age, or availability.
+  score+=familyAffinityForSkill(state.family,row);
+  score+=unit(state.seed,`aptitude:${row.family}`)*.08;return score;
 }
 function candidateAnswerPool(state,window){
   if(window!=='combat')return CAUSAL_ANSWERS;
