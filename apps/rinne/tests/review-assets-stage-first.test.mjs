@@ -106,3 +106,16 @@ test('equipment review hides embedded combat props and applies calibrated hand g
   assert.match(catalog,/2H_Crossbow/);
   assert.match(catalog,/rotation:Object\.freeze\(\[0,0,-Math\.PI\/2\]\)/);
 });
+
+
+test('equipment library exposes armor categories and body slots', async () => {
+  const [html,js,catalog]=await Promise.all([readFile(htmlUrl,'utf8'),readFile(jsUrl,'utf8'),readFile(catalogUrl,'utf8')]);
+  for(const id of ['head','body','arms','legs','back'])assert.match(html,new RegExp(`asset-current-${id}`));
+  for(const label of ['頭','胴','腕','脚','背中'])assert.match(catalog,new RegExp(`${label}:'`));
+  for(const armor of ['helmet','chestplate','bracers','greaves','mantle'])assert.match(catalog,new RegExp(`'${armor}'`));
+  assert.match(js,/const EQUIPMENT_SLOTS=Object\.freeze\(\['main','off','head','body','arms','legs','back'\]\)/);
+  assert.match(js,/function runtimeArmor\(item\)/);
+  assert.match(js,/lowerarm\.\\\$\{side\}/);
+  assert.match(js,/lowerleg\.\\\$\{side\}/);
+  assert.match(js,/attachArmorRoots\(roots,characterHeight\)/);
+});

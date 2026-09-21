@@ -19,6 +19,11 @@
 <symbol id="skeleton-shield-small-a" viewBox="0 0 160 160"><circle cx="80" cy="80" r="48" fill="url(#steel)"/><circle cx="80" cy="80" r="16" fill="#c8b887"/><path d="M80 40v80M40 80h80" stroke="#9aa49f" stroke-width="6"/></symbol>
 <symbol id="skeleton-shield-small-b" viewBox="0 0 160 160"><circle cx="80" cy="80" r="47" fill="#59645f"/><path d="M80 38l16 29 33 5-24 23 6 32-31-15-31 15 6-32-24-23 33-5Z" fill="#b8af95"/></symbol>
 <symbol id="skeleton-quiver" viewBox="0 0 160 160"><path d="M60 47h40l-8 82H68Z" fill="url(#cloth)"/><path d="M68 40l-10-23M80 42V16M92 40l10-23" stroke="url(#bone)" stroke-width="6" stroke-linecap="round"/></symbol>
+<symbol id="armor-helmet" viewBox="0 0 160 160"><path d="M38 77q3-49 42-55 39 6 42 55v28H38Z" fill="url(#steel)"/><path d="M39 79h82M55 80v34M105 80v34" stroke="#c8b887" stroke-width="7"/></symbol>
+<symbol id="armor-chest" viewBox="0 0 160 160"><path d="M42 42l22-15h32l22 15-9 87H51Z" fill="url(#steel)"/><path d="M80 33v89M53 67h54" stroke="#c8b887" stroke-width="7"/></symbol>
+<symbol id="armor-arms" viewBox="0 0 160 160"><path d="M33 43h29l-5 77H38Zm65 0h29l-5 77h-19Z" fill="url(#steel)"/><path d="M38 68h20m44 0h20" stroke="#c8b887" stroke-width="6"/></symbol>
+<symbol id="armor-legs" viewBox="0 0 160 160"><path d="M45 31h27l-5 103H38Zm43 0h27l7 103H93Z" fill="url(#steel)"/><path d="M43 73h26m22 0h27" stroke="#c8b887" stroke-width="6"/></symbol>
+<symbol id="armor-mantle" viewBox="0 0 160 160"><path d="M51 29q29-15 58 0l20 107H31Z" fill="url(#cloth)"/><path d="M55 36q25 16 50 0" fill="none" stroke="#c8b887" stroke-width="7"/></symbol>
 <symbol id="mesh2motion-review-mannequin" viewBox="0 0 160 160"><circle cx="80" cy="38" r="20" fill="#b8c5c0"/><path d="M62 61h36l10 60H52Z" fill="#61716b"/><path d="M61 70L37 110M99 70l24 40M66 119l-12 25M94 119l12 25" stroke="#9daaa5" stroke-width="10" stroke-linecap="round"/></symbol>
 <symbol id="kaykit.knight.v1" viewBox="0 0 160 160"><circle cx="80" cy="40" r="20" fill="#c4a987"/><path d="M55 61h50l13 65H42Z" fill="url(#steel)"/><path d="M58 58h44l-8-18H66Z" fill="#8a9691"/></symbol>
 <symbol id="kaykit.barbarian.v1" viewBox="0 0 160 160"><circle cx="80" cy="40" r="21" fill="#c59a78"/><path d="M55 63h50l10 61H45Z" fill="#75533f"/><path d="M56 67L34 112M104 67l22 45" stroke="#b98868" stroke-width="11" stroke-linecap="round"/></symbol>

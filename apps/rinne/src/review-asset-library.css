@@ -383,3 +383,7 @@ body.asset-model-picker-open{overflow:hidden}
   .asset-filters{gap:4px}
   .asset-filters button{min-height:28px;padding:4px 8px;font-size:8px}
 }
+
+/* Armor slots extend the equipment library without changing the five-column candidate grid. */
+.asset-slot-statuses{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:520px){.asset-slot-statuses{grid-template-columns:repeat(3,minmax(0,1fr))}}
