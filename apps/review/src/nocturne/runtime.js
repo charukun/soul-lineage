@@ -163,7 +163,7 @@ function chooseUpgrade(choice){
  else if(choice==='vitality'){hero.maxHp+=40;hero.hp=Math.min(hero.maxHp,hero.hp+85);}else hero.attackSpeed*=1.15;
  hero.hp=Math.min(hero.maxHp,hero.hp+25);game.level++;record('upgrade',{choice});wave();
 }
-function ending(win){game.phase=win?'victory':'defeat';game.resetSeconds=3.2;notify('RESETTING');record(win?'victory':'defeat');if(win)play(hero,'Cheer');}
+function ending(win){if(rules)for(const a of actors){rules.cancel(a,a.attack?.action);a.attack=null;}game.phase=win?'victory':'defeat';game.resetSeconds=3.2;notify('RESETTING');record(win?'victory':'defeat');if(win)play(hero,'Cheer');}
 
 function simulate(dt){
  rules?.beginStep();
@@ -190,7 +190,7 @@ function simulate(dt){
   if(a.dead){a.deathTime+=dt;if(a.deathTime>1.5&&a.kind!=='hero')a.pos.y-=dt*.65;continue;}
   a.flash=Math.max(0,a.flash-dt);a.showHp=Math.max(0,a.showHp-dt);
   for(const {mat,base,power} of a.mats){mat.emissive.copy(a.flash>0?new THREE.Color('#ffe7c4'):base);mat.emissiveIntensity=a.flash>0?1.7:power;}
-  if(!battle)continue;
+  if(!battle||(rules&&game.phase!=='battle'))continue;
   if(a.spawn>0){a.spawn-=dt;continue;}
   rules?.step(a,dt);
   if(rules?.reaction(a)){play(a,rules.reaction(a).mode==='parry'?'Block_Hit':'Blocking');continue;}

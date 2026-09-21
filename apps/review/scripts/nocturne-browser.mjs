@@ -54,6 +54,21 @@ try{
       result.initial=await snapshot(page);assert.equal(result.initial.metrics.models,28);assert.equal(result.initial.metrics.webgl2,true);
       assert.equal(await page.locator('button,input,select,iframe,dialog,[data-runtime-support]').count(),0);
       result.frame=await assertBattle2Frame(page);
+      if(mode==='p2'){
+        // The existing evidence clock drives the real simulation and paints each
+        // sample. This is stepped diagnostic playback, not real-device FPS.
+        result.playback={mode:'fixed-step-diagnostic',stepSeconds:.25,samples:[],physicalDevice:false};
+        for(let step=0;step<160;step++){
+          const sample=await page.evaluate(()=>{
+            const metrics=window.__BATTLE2__.advance(.25);
+            return {time:metrics.time,rounds:metrics.rounds,actors:metrics.actors,damage:metrics.damage,
+              renderedDeaths:metrics.renderedDeaths,phase:metrics.phase,
+              phases:[...new Set(window.__BATTLE2__.trace.filter(e=>e.type==='johakyu-action'&&e.kind==='hero').map(e=>e.phase))]};
+          });
+          result.playback.samples.push(sample);
+          if(sample.actors>1&&sample.damage>0&&sample.renderedDeaths>0&&['jo','ha','kyu'].every(phase=>sample.phases.includes(phase)))break;
+        }
+      }
       await page.waitForFunction(()=>window.__BATTLE2__.metrics.actors>1&&window.__BATTLE2__.metrics.damage>0&&window.__BATTLE2__.metrics.renderedDeaths>0,{},{timeout:90000});
       result.combat=await snapshot(page);assert.ok(result.combat.metrics.totalKills>0);assert.ok(result.combat.metrics.drawCalls>0&&result.combat.metrics.triangles>0);assert.ok(result.combat.metrics.activeAnimations>0);
       assert.ok(result.combat.trace.some(e=>e.type==='animation'&&e.name==='Death_C_Skeletons'));
