@@ -1,13 +1,13 @@
 # Astra: autonomous iteration 実行プロンプト
 
-対象 `{game}` は `village` または `kuumetsu`。回数は明示値、未指定なら1。各iterationをmergeまで直列完了し、次回は新しいdevelopから開始します。
+対象 `{game}` は `village` / `kuumetsu` / `rinne`。回数は明示値、未指定なら1。各iterationをmergeまで直列完了し、次回は新しいdevelopから開始します。
 
 ## 1. Observe before code
 
 1. 最新develop SHA、AGENTS、対象charter/protected rules、recent history/receiptsを取得する。
 2. gameplay iterationは、そのdevelop SHAに束縛されたimmutable staging snapshotを観測する。mutable latest DEVをBefore evidenceに使わない。
 3. staging上の現象、再現条件、未確認範囲を記録し、改善候補を3〜5個出す。ユーザーフィードバックは候補より優先する。
-4. modeを決める。既定は `village=hardening`、`kuumetsu=evolution`。明示依頼があれば上書きする。
+4. modeを決める。既定は `village=hardening`、`kuumetsu=evolution`、`rinne=hardening`。明示依頼があれば上書きする。
 5. modeに照らして1 improvement themeを選ぶ。自己採点や「実装が簡単だから」は選定根拠にしない。theme内では複数root causeを扱ってよいが、無関係な問題を混ぜない。
 
 ## 2. Investigate and hypothesize

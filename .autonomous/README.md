@@ -1,6 +1,6 @@
 # Autonomous Game Improvement
 
-対象は `village` → `apps/village`（星継ぎの庭）、`kuumetsu` → `apps/demon`（喰滅廻遊）。正本は現在の `develop`、`AGENTS.md`、GitHub状態です。
+対象は `village` → `apps/village`（星継ぎの庭）、`kuumetsu` → `apps/demon`（喰滅廻遊）、`rinne` → `apps/rinne`（百年転生）。正本は現在の `develop`、`AGENTS.md`、GitHub状態です。
 
 ## iteration の基本形
 
@@ -30,7 +30,7 @@ immutable staging observation
 - `evolution`: 発展途中のゲームで、意思決定、system接続、risk/reward、世界反応、成長ループなどゲームシステム自体を進化させる。
 - `polish`: gameplay仕様を維持し、UI、camera、VFX、audio、feel、可読性を改善する。
 
-既定は `village=hardening`、`kuumetsu=evolution`。明示された依頼が優先します。
+既定は `village=hardening`、`kuumetsu=evolution`、`rinne=hardening`。明示された依頼が優先します。
 
 ## immutable staging observation
 
@@ -38,7 +38,7 @@ Gameplay experiment v2 は実装前に exact source SHA に束縛された stagi
 
 mutableな「最新DEV URL」はBefore/After Evidenceに使いません。Evolution/Polishは固定SHA stagingがなければ開始しません。stagingは問題発見とplayer-facing Before/Afterの観測面であり、passing browser observationだけで因果修正を証明しません。pure/leaf/native testや既存native pathがcausal evidenceを担当します。
 
-現在の `village` / `kuumetsu` staging observation surface はCloudflare Worker version previewです。通常のlatest DEV URLを観測URLとして保存せず、該当deployの `Current Version ID` から `scripts/staging-preview.mjs` でimmutable preview URLを作り、公開先の `version.json.commit` がrecordの `sourceSha` と一致することを確認します。これは同じ `web-dev` artifactの固定versionなので、`version.json.environment` は `dev` のままです。
+現在の `village` / `kuumetsu` / `rinne` staging observation surface はCloudflare Worker version previewです。通常のlatest DEV URLを観測URLとして保存せず、該当deployの `Current Version ID` から `scripts/staging-preview.mjs` でimmutable preview URLを作り、公開先の `version.json.commit` がrecordの `sourceSha` と一致することを確認します。これは同じ `web-dev` artifactの固定versionなので、`version.json.environment` は `dev` のままです。
 
 ## experiment v2 と receipt
 

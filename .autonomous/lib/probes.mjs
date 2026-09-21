@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { git, gameId } from './contract.mjs';
 
-export const SOURCES = Object.freeze({ village: 'apps/village/src/game/demography.js', kuumetsu: 'apps/demon/src/hunt/balance.js' });
+export const SOURCES = Object.freeze({ village: 'apps/village/src/game/demography.js', kuumetsu: 'apps/demon/src/hunt/balance.js', rinne: 'apps/rinne/public/simulator/src/life-clock.js' });
 const digest = value => createHash('sha256').update(value).digest('hex');
 const ensure = (condition, message) => { if (!condition) throw new Error(`AUTONOMOUS_PROBE: ${message}`); };
 export function canonical(value) {
@@ -53,6 +53,15 @@ export function kuumetsuProbe(api, seeds) {
   }
   return rows;
 }
+export function rinneProbe(api,seeds){
+  const rows=[];
+  for(const seed of seeds){
+    const age=(seed%80)+.5,appearance=api.appearanceForAge(age),clock=new api.LifeClock({version:1,ageSeconds:age*60,worldSeconds:age*60,rate:[1,5,10,20][seed%4],enemiesEnabled:true,lives:1});
+    const before=clock.snapshot(),advanced=clock.advance(1),after=clock.snapshot();
+    rows.push({id:`${seed}/life`,seed,condition:'life',metrics:{age:before.age,stage:before.appearance.stage,scale:Math.round(appearance.scale*10000)/10000,rate:before.rate,birthdays:advanced.birthdays,died:advanced.died,ageAfter:after.age}});
+  }
+  return rows;
+}
 export async function captureProbe(root, game, { ref = 'HEAD', seeds } = {}) {
   gameId(game);
   ensure(typeof ref === 'string' && /^[A-Za-z0-9][A-Za-z0-9_./-]*$/.test(ref), 'invalid git ref');
@@ -66,7 +75,7 @@ export async function captureProbe(root, game, { ref = 'HEAD', seeds } = {}) {
   // Do not silently substitute stubs or a second implementation when dependencies appear.
   ensure(!/(?:^|\n)\s*import\s|\bimport\s*\(|\bexport\s[^;]*\bfrom\s|\b(?:fetch|document|window)\b/.test(source), 'module is no longer a portable leaf; adapt explicitly, never fake the game');
   const api = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
-  const rows = game === 'village' ? villageProbe(api, seeds) : kuumetsuProbe(api, seeds);
+  const rows = game === 'village' ? villageProbe(api,seeds) : game === 'kuumetsu' ? kuumetsuProbe(api,seeds) : rinneProbe(api,seeds);
   const harnessSource = readFileSync(fileURLToPath(import.meta.url), 'utf8');
   return canonical({ schemaVersion: 1, game, kind: 'portable-state-probe',
     source: { revision, path, sha256: digest(source) },

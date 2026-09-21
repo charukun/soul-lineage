@@ -7,7 +7,7 @@ export function activeExperimentsFromDiff(rows) {
   const active=[];
   for (const row of String(rows||'').split('\n').filter(Boolean)) {
     const [status,path]=row.split('\t');
-    const match=path?.match(/^\.autonomous\/(village|kuumetsu)\/experiments\/([a-z0-9][a-z0-9-]{2,95})\.json$/);
+    const match=path?.match(/^\.autonomous\/(village|kuumetsu|rinne)\/experiments\/([a-z0-9][a-z0-9-]{2,95})\.json$/);
     if (match && status === 'A') active.push({game:match[1],id:match[2]});
   }
   return active;
@@ -16,7 +16,7 @@ export function activeExperimentsFromDiff(rows) {
 export function discoverActiveExperiments(root,{baseRef,headRef='HEAD'}={}) {
   const base=git(root,['rev-parse',baseRef || process.env.AUTONOMOUS_BASE_REF || 'origin/develop']);
   const head=git(root,['rev-parse',headRef]);
-  const diff=git(root,['diff','--name-status','--no-renames',base,head,'--','.autonomous/village/experiments','.autonomous/kuumetsu/experiments']);
+  const diff=git(root,['diff','--name-status','--no-renames',base,head,'--','.autonomous/village/experiments','.autonomous/kuumetsu/experiments','.autonomous/rinne/experiments']);
   return activeExperimentsFromDiff(diff);
 }
 
