@@ -24,11 +24,9 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Show preinstalled browsers
-        run: |
-          google-chrome --version
-          chromium --version
       - run: npm ci --ignore-scripts
+      - name: Install video encoder only
+        run: npx playwright install ffmpeg
       - name: Switch review launch to preinstalled Chrome
         run: |
           node - <<'NODE'
@@ -46,4 +44,5 @@ jobs:
       - name: Check evidence
         run: |
           test -f test-results/browser-review/review.json
+          test -n "$(find test-results/browser-review -maxdepth 1 -name '*.webm' -print -quit)"
           find test-results/browser-review -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
