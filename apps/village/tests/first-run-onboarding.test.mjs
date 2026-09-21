@@ -79,6 +79,6 @@ test('title entry is a lifecycle boundary before post-entry enhancement loading'
  assert.match(main,/addEventListener\('village:entered',[\s\S]*loadPostEntryEnhancements/);
  assert.match(main,/yieldEntryPaint\(\)[\s\S]*loadMuraEnhancements\(\)[\s\S]*yieldBrowserTurn\(\)[\s\S]*character-runtime-integration/);
  assert.doesNotMatch(enhancements,/^import\s+['"]\.\/mura-world-systems\.js['"]/m);
- assert.match(enhancements,/for\(const modulePath of ORDERED_ENHANCEMENTS\)[\s\S]*await import\(modulePath\)[\s\S]*await yieldToBrowser\(\)/);
+ assert.match(enhancements,/for\(const modulePath of ORDERED_ENHANCEMENTS\)[\s\S]*await import\(\/\* @vite-ignore \*\/ new URL\(modulePath,import\.meta\.url\)\.href\)[\s\S]*await yieldToBrowser\(\)/);
  assert.match(entry,/dispatchEvent\(new CustomEvent\('village:entered'\)\)/);
 });
