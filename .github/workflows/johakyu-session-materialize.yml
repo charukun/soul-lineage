@@ -2,39 +2,63 @@ name: Johakyu session materialization
 on:
   push:
     branches: ['work/johakyu-p3-p7-20260921']
-    paths: ['.github/workflows/johakyu-session-materialize.yml']
+    paths: ['.github/workflows/johakyu-session-materialize.yml', 'scripts/tasks/johakyu-p3-repairs.json']
 permissions:
-  contents: read
+  contents: write
 jobs:
   source:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 1
-          persist-credentials: false
-      - name: Materialize task source without asset binaries
+          fetch-depth: 4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Prepare task input receipt and native dependency
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/johakyu-source
+          cp scripts/tasks/johakyu-p3-program.json /tmp/johakyu-source/program.json
           git rev-parse HEAD > /tmp/johakyu-source/SOURCE_SHA
+          npm pack three@0.186.0 --pack-destination /tmp/johakyu-source
+      - name: Verify and materialize exact P3 implementation
+        shell: bash
+        run: |
+          set -euo pipefail
           python3 - <<'PY'
-          import subprocess, tarfile, pathlib
-          paths = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
-          suffixes = {'.js','.mjs','.cjs','.json','.ts','.tsx','.css','.html','.md','.yml','.yaml'}
-          roots = ('apps/review/','apps/rinne/','packages/','scripts/','docs/rinne/','.github/workflows/')
-          exact = {'AGENTS.md','package.json','package-lock.json','docs/DEVELOPMENT.md','docs/DEVELOP_MERGE.md','docs/BROWSER_PLAYTEST_ROUTING.md','docs/BROWSER_SELF_HEALING.md','docs/DISTRIBUTION_ARCHITECTURE.md'}
-          selected = [p for p in paths if p and (p in exact or (p.startswith(roots) and pathlib.Path(p).suffix in suffixes)) and '/node_modules/' not in p and pathlib.Path(p).is_file()]
-          with tarfile.open('/tmp/johakyu-source/source.tar.gz','w:gz') as archive:
-              for p in selected: archive.add(p,arcname=p,recursive=False)
-          pathlib.Path('/tmp/johakyu-source/SOURCE_FILES.txt').write_text('\n'.join(selected)+'\n')
-          print(f'Materialized {len(selected)} tracked task source files from exact checkout.')
+          import json,base64,gzip,hashlib,pathlib,subprocess
+          p=pathlib.Path('scripts/tasks/johakyu-p3-program.json')
+          manifest=json.loads(p.read_text())
+          encoded=manifest['program']
+          repairs=pathlib.Path('scripts/tasks/johakyu-p3-repairs.json')
+          if repairs.exists():
+              for old,new in json.loads(repairs.read_text()):
+                  assert encoded.count(old)==1, 'Ambiguous transport repair'
+                  encoded=encoded.replace(old,new)
+          program=gzip.decompress(base64.b64decode(encoded,validate=True))
+          assert hashlib.sha256(program).hexdigest()==manifest['sha256'], 'Source program hash mismatch'
+          # Input must still be based on the declared exact implementation.
+          subprocess.run(['git','merge-base','--is-ancestor',manifest['baseSha'],'HEAD'],check=True)
+          assert subprocess.check_output(['git','diff','--name-only',manifest['baseSha'],'HEAD','--','apps','packages','package-lock.json']).strip()==b'', 'Source drift before transformation'
+          exec(compile(program,'johakyu-p3-materialize','exec'))
+          p.unlink()
+          if repairs.exists(): repairs.unlink()
+          pathlib.Path('.github/workflows/johakyu-session-materialize.yml').unlink()
           PY
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/review apps/rinne packages/johakyu-combat packages/shared-ui/src/johakyu-observation.js package-lock.json docs/rinne/JOHAKYU_P3_ACCEPTANCE.md docs/rinne/JOHAKYU_P7_COMPLETE scripts/tasks .github/workflows/johakyu-session-materialize.yml
+          git commit -m 'feat(johakyu): P3 canonical physiology and actual review impact authority'
+          git push origin HEAD:work/johakyu-p3-p7-20260921
+          git rev-parse HEAD > /tmp/johakyu-source/MATERIALIZED_SHA
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: johakyu-task-source-${{ github.sha }}
+          name: johakyu-task-input-${{ github.sha }}
           path: /tmp/johakyu-source/
           retention-days: 1
