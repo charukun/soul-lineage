@@ -5,6 +5,7 @@ import { validateVisualIdentity } from './visual-identity.js';
 
 export { CHARACTER_REFERENCE_MODEL_VERSION };
 export const PROTAGONIST_VILLAGER_MODEL_ID = 'protagonist.villager.v1';
+export const PROTAGONIST_VILLAGER_FEMALE_MODEL_ID = 'protagonist.villager.female.v1';
 
 const base = BASE_CHARACTER_REFERENCE_MODELS['child-boy.reference.v1'];
 const profile = canonicalAppearanceParts({
@@ -96,8 +97,54 @@ const protagonist = {
 validateVisualIdentity(protagonist);
 export const PROTAGONIST_VILLAGER_MODEL = deepFreeze(protagonist);
 
+const femaleProtagonist = {
+  ...protagonist,
+  id: PROTAGONIST_VILLAGER_FEMALE_MODEL_ID,
+  label: '主人公・女の子 / 村人服 PRIMARY',
+  characterId: 'Protagonist_Villager_Female_V1',
+  assetId: 'character.protagonist-villager-female.v1',
+  assetPath: './simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb',
+  integrityPath: './simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json',
+  dccSourcePath: 'assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend',
+  referencePath: 'docs/characters/references/protagonist-villager-female-v1.svg',
+  front: 'fringe',
+  back: 'tied',
+  face: { ...protagonist.face, jaw: .92, cheek: 1.08, eyeWidth: 1.08, eyeHeight: 1.08, chin: .92 },
+  proportions: { shoulders: .90, arms: .96, legs: .95, head: 1.12 },
+  cloth: [.73, .66, .52],
+  trim: [.23, .34, .27],
+  hairValue: .82,
+  referenceStyle: {
+    ...protagonist.referenceStyle,
+    design: 'protagonist-female-kaykit-derivative',
+    palette: {
+      ...protagonist.referenceStyle.palette,
+      hair: [.16, .085, .045],
+      primary: [.73, .66, .52],
+      secondary: [.23, .34, .27],
+      accent: [.50, .34, .19]
+    }
+  },
+  production: {
+    ...protagonist.production,
+    authority: {
+      ...protagonist.production.authority,
+      implementedModularParts: [
+        'protagonist-villager-v1-base',
+        'female-silhouette-dcc-pass',
+        'female-bob-braid-hair',
+        'female-village-waist-cloth'
+      ]
+    }
+  },
+  note: '既存主人公のKayKit Rig_Medium互換DCC sourceを正本として、肩/腰/脚のシルエット、ボブ＋後ろ髪、村人腰布と配色を女主人公向けに再構成した別実モデル。操作・モーション・武器ソケット・当たり判定契約は共通。PRIMARYでありvisualApproval / RUNTIME_READYは未昇格。'
+};
+validateVisualIdentity(femaleProtagonist);
+export const PROTAGONIST_VILLAGER_FEMALE_MODEL = deepFreeze(femaleProtagonist);
+
 export const CHARACTER_REFERENCE_MODELS = deepFreeze({
   [PROTAGONIST_VILLAGER_MODEL_ID]: PROTAGONIST_VILLAGER_MODEL,
+  [PROTAGONIST_VILLAGER_FEMALE_MODEL_ID]: PROTAGONIST_VILLAGER_FEMALE_MODEL,
   ...BASE_CHARACTER_REFERENCE_MODELS
 });
 

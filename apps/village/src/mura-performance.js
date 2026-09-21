@@ -1,5 +1,5 @@
 const village=window.village;
-if(!village)throw new Error('叡智豊満 performance layer requires a booted village');
+if(!village)throw new Error('宝満叡智 performance layer requires a booted village');
 const {world,view}=village;
 
 // The detailed simulation intentionally stays under 100 named/pathfinding actors.

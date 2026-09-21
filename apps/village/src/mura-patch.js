@@ -118,7 +118,7 @@ View.prototype.getProp=function(kind){if(kind==='dirtbed')return dirtBed();retur
 function guardArmor(node){
  if(!node||node.userData.muraGuardArmor)return;
  node.userData.muraGuardArmor=true;node.scale.setScalar(1.14);
- const body=node.userData.body||node,gear=new T.Group();gear.name='叡智豊満_GuardGear';body.add(gear);
+ const body=node.userData.body||node,gear=new T.Group();gear.name='宝満叡智_GuardGear';body.add(gear);
  const steel=new T.MeshStandardMaterial({color:0x45515a,roughness:.68,metalness:.42}),iron=new T.MeshStandardMaterial({color:0x252c31,roughness:.58,metalness:.55}),leather=new T.MeshStandardMaterial({color:0x4b3329,roughness:.9,metalness:0});
  const helmet=new T.Mesh(new T.SphereGeometry(.38,10,8,0,Math.PI*2,0,Math.PI*.62),steel);helmet.position.set(0,1.78,-.02);helmet.scale.y=.78;gear.add(helmet);
  const crest=new T.Mesh(new T.BoxGeometry(.07,.28,.5),leather);crest.position.set(0,2.02,-.08);gear.add(crest);
@@ -138,4 +138,4 @@ View.prototype.syncActor=function(p,time,monster=false){
 
 // Runtime contract for the shared soundtrack. Playback/UI are provided by the
 // repository-wide shared music library installed by the village bootstrap.
-window.__叡智豊満__={title:'叡智豊満',soundtrack:threeWorlds150,furnitureEffects:FURNITURE_RULES};
+window.__宝満叡智__={title:'宝満叡智',soundtrack:threeWorlds150,furnitureEffects:FURNITURE_RULES};

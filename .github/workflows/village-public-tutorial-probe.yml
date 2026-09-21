@@ -1,0 +1,73 @@
+name: Village reset guide evidence
+run-name: Village reset guide evidence 00b736402b789d506e5c4961192bd384ea35f132
+on:
+  push:
+    branches: [probe/village-public-tutorial-20260921]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SOURCE_SHA: 00b736402b789d506e5c4961192bd384ea35f132
+      APP_ENV: dev
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 00b736402b789d506e5c4961192bd384ea35f132
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Build exact Village source
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git diff --check HEAD^ HEAD
+          npm run build:village
+      - name: Observe public failure and exercise exact built reset path
+        run: |
+          node --input-type=module <<'NODE'
+          import {chromium} from '@playwright/test';
+          import {spawn} from 'node:child_process';
+          import {resolve} from 'node:path';
+          import fs from 'node:fs/promises';
+          import {verifyVillageResetGuide} from './apps/village/tests/reset-guide.browser.mjs';
+          const out='test-results/village-reset-evidence';await fs.mkdir(out,{recursive:true});
+          const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader']});
+          const preview=spawn(process.execPath,[resolve('node_modules/vite/bin/vite.js'),'preview','--host','127.0.0.1','--port','5274','--strictPort'],{cwd:resolve('apps/village'),stdio:['ignore','pipe','pipe']});
+          const previewLog=[];preview.stdout.on('data',c=>previewLog.push(c.toString()));preview.stderr.on('data',c=>previewLog.push(c.toString()));
+          try{
+            const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,locale:'ja-JP'}),page=await context.newPage();
+            const before={url:'https://soul-lineage-village-dev.c-okamoto.workers.dev/',errors:[],httpFailures:[]};
+            page.on('pageerror',e=>before.errors.push(e.message));page.on('response',r=>{if(r.status()>=400)before.httpFailures.push({url:r.url(),status:r.status()});});
+            try{
+              await page.goto(before.url,{waitUntil:'domcontentloaded',timeout:60000});
+              await page.waitForFunction(()=>window.village&&document.querySelector('#loading')?.hidden,null,{timeout:60000});
+              if(await page.locator('#soul-brand-boot').count()){await page.locator('#soul-brand-boot.armed').waitFor({timeout:15000});await page.locator('#soul-brand-boot').tap();await page.locator('#soul-brand-boot').waitFor({state:'detached'});}
+              if(await page.locator('#muraEnterVillage').count())await page.locator('#muraEnterVillage').tap();
+              await page.waitForTimeout(5000);
+              before.state=await page.evaluate(()=>({commit:document.querySelector('#game')?.dataset.commit,enhancements:document.querySelector('#game')?.dataset.enhancements,guide:!!document.querySelector('#muraFirstRunGuide'),finger:!!document.querySelector('.muraFirstRunFinger'),tutorial:document.querySelector('#tutorial')?.textContent}));
+              await page.screenshot({path:`${out}/public-before.png`});
+            }catch(error){before.failure=String(error);await page.screenshot({path:`${out}/public-before-failure.png`}).catch(()=>{});}
+            finally{await fs.writeFile(`${out}/public-before.json`,JSON.stringify(before,null,2));await context.close();}
+            let served=false;
+            for(let attempt=0;attempt<60;attempt++){if(preview.exitCode!==null)throw Error('Preview exited');try{served=(await fetch('http://127.0.0.1:5274/')).ok;}catch{}if(served)break;await new Promise(r=>setTimeout(r,250));}
+            if(!served)throw Error('Preview did not start');
+            const reports=[];
+            for(const width of [390,820])reports.push(await verifyVillageResetGuide(browser,'http://127.0.0.1:5274/',`${out}/touch-${width}`,{expectedCommit:process.env.SOURCE_SHA,width,height:844}));
+            await fs.writeFile(`${out}/playtest-receipt.json`,JSON.stringify({sourceHead:process.env.SOURCE_SHA,publicBefore:before.state,success:reports.every(r=>r.success),reports:reports.map(r=>({width:r.viewport.width,commit:r.commit,checks:r.checks.length,success:r.success}))},null,2));
+            console.log('VILLAGE RESET EVIDENCE',JSON.stringify(reports.map(r=>({commit:r.commit,viewport:r.viewport,success:r.success,checks:r.checks.map(c=>c.name)}))));
+          }finally{await fs.writeFile(`${out}/preview.log`,previewLog.join(''));await browser.close();preview.kill('SIGTERM');}
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: village-reset-guide-00b736402b789d506e5c4961192bd384ea35f132
+          path: test-results/village-reset-evidence/
+          if-no-files-found: error
+          retention-days: 14

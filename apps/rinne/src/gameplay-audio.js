@@ -86,24 +86,9 @@ export function createRinneAudio(){
     if(!unlocked||disposed||backgrounded||pageHidden()||brandPending)return;
     if(music.paused||contextCanResume())void resumePlayback();
   }
-  function titleSting(){
-    if(!context||context.state!=='running'||disposed||backgrounded||pageHidden())return;
-    const now=context.currentTime;
-    const master=context.createGain();
-    master.gain.setValueAtTime(.0001,now);
-    master.gain.exponentialRampToValueAtTime(.11,now+.025);
-    master.gain.exponentialRampToValueAtTime(.0001,now+.82);
-    master.connect(context.destination);
-    for(const [freq,type,delay,gain] of [[73.42,'sine',0,.9],[146.83,'triangle',.015,.65],[293.66,'sawtooth',.045,.24]]){
-      const osc=context.createOscillator(),amp=context.createGain();
-      osc.type=type;osc.frequency.setValueAtTime(freq,now+delay);
-      amp.gain.value=gain;osc.connect(amp).connect(master);
-      osc.start(now+delay);osc.stop(now+.86);
-    }
-  }
   function onBrandEnter(){
     if(disposed)return;brandPending=false;titleMode=true;music.pause();titleMusic.volume=TITLE_MUSIC_VOLUME;
-    const start=()=>{try{titleMusic.currentTime=0;}catch{}void unlock().then(()=>titleSting());};
+    const start=()=>{try{titleMusic.currentTime=0;}catch{}void unlock();};
     if(titlePrepared)start();else void prepareTitle().finally(start);
   }
   function enterGameplay(){

@@ -50,7 +50,7 @@ Existing legacy asset debt is reported by `npm run visual:budget` but is not ret
 
 ## World streaming, occlusion and HLOD boundary
 
-The shared world exposes cell preload/retain planning with hysteresis. 叡智豊満 uses this as a common-world streaming contract while reducing visual-only vegetation density. 喰滅廻遊 also uses distance streaming on non-critical static environment roots.
+The shared world exposes cell preload/retain planning with hysteresis. 宝満叡智 uses this as a common-world streaming contract while reducing visual-only vegetation density. 喰滅廻遊 also uses distance streaming on non-critical static environment roots.
 
 A bounded conservative occlusion layer may additionally hide static set dressing only when all sampled rays are blocked. Large structures, interaction-critical roots and explicitly critical landmarks are excluded. Existing optimized environment chunks act as HLOD-sized units; future authored cell proxies can replace those chunks without changing the streaming contract.
 
@@ -77,7 +77,7 @@ Mobile scenes can become GPU-heavy even after polygon reduction because hair car
 - transparent triangle upper bound;
 - cutout triangle upper bound.
 
-This is deliberately described as a **pressure estimate**, not physical GPU overdraw or screen coverage. A mesh using mixed materials contributes its full triangle count as a conservative upper bound. 叡智豊満 and 喰滅廻遊 refresh the audit only periodically, then attach the latest values to Performance Lab samples and diagnostics.
+This is deliberately described as a **pressure estimate**, not physical GPU overdraw or screen coverage. A mesh using mixed materials contributes its full triangle count as a conservative upper bound. 宝満叡智 and 喰滅廻遊 refresh the audit only periodically, then attach the latest values to Performance Lab samples and diagnostics.
 
 Transparency regressions are review warnings. Actual frame/GPU regressions remain the hard runtime evidence.
 

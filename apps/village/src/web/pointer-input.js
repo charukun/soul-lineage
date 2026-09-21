@@ -1,5 +1,5 @@
-/** The scene's only gesture owner. Placement follows one-finger drag; a short tap commits through the normal tap path. */
-export function installSceneInput(canvas, {view, ui, tap, preview = () => {}, commit = () => false, activity = () => {},
+/** One gesture owner. Drag adjusts the centred candidate; only a short tap commits. */
+export function installSceneInput(canvas, {view, ui, tap, activity = () => {},
   raf = requestAnimationFrame, caf = cancelAnimationFrame, now = () => performance.now()}) {
   const pointers = new Map();
   const abort = new AbortController();
@@ -19,6 +19,7 @@ export function installSceneInput(canvas, {view, ui, tap, preview = () => {}, co
   };
   on('pointerdown', e => {
     if (e.button !== undefined && e.button !== 0) return;
+    if (ui.entryOpen || ui.dialogPage) return;
     stop();activity();view.lastInteraction=now();
     canvas.setPointerCapture?.(e.pointerId);
     pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,time:now(),drag:false,multi:false});
@@ -40,21 +41,20 @@ export function installSceneInput(canvas, {view, ui, tap, preview = () => {}, co
       gesture=next;activity();e.preventDefault();return;
     }
     gesture=null;
+    // A remaining finger after pinch/rotate cannot become a new placement drag.
+    if(p.multi)return;
     if(Math.hypot(p.x-p.sx,p.y-p.sy)>7)p.drag=true;
     if(!p.drag)return;
-    if(ui.pending){
-      const point=view.ground?.(e.clientX,e.clientY);if(point)preview(point.x,point.z);
-      activity();e.preventDefault();return;
-    }
     view.pan(dx,dy);activity();e.preventDefault();
     vx=vx*.62+dx/elapsed*.38;vy=vy*.62+dy/elapsed*.38;
   },{passive:false});
   const finish = (e, cancelled=false) => {
     const p=pointers.get(e.pointerId);if(!p)return;
     pointers.delete(e.pointerId);
-    if(!cancelled&&!p.multi){
-      if(!p.drag&&Math.hypot(e.clientX-p.sx,e.clientY-p.sy)<7)tap(e.clientX,e.clientY);
-      else if(p.drag&&ui.pending&&!ui.pending.error)commit();
+    // A guide may prevent a premature tap, but it must never prevent cleanup.
+    if(!cancelled&&!e.defaultPrevented&&!p.drag&&!p.multi&&Math.hypot(e.clientX-p.sx,e.clientY-p.sy)<7){
+      if(ui.pending&&ui.placementInput?.tap)void ui.placementInput.tap();
+      else tap(e.clientX,e.clientY);
     }
     if(!cancelled&&p.drag&&!p.multi&&!pointers.size&&!ui.pending&&!ui.drawer&&Math.hypot(vx,vy)>.045){lastCoast=now();coast=raf(coasting);}
     else stop();
@@ -69,11 +69,12 @@ export function installSceneInput(canvas, {view, ui, tap, preview = () => {}, co
   return {pointers,stop,dispose(){stop();abort.abort();pointers.clear();}};
 }
 
-/** Keep long-press catalog dragging; dropping on the scene commits the displayed valid candidate. */
-export function installCatalogDrag(button, kind, {ui, begin, preview, canvas}) {
+/** Long-press catalog dragging chooses a preview, never builds on release. */
+export function installCatalogDrag(button, kind, {ui, begin}) {
   let start=null,timer=null;
   const clear=()=>{clearTimeout(timer);timer=null;};
   button.addEventListener('pointerdown',e=>{
+    if(e.button!==undefined&&e.button!==0)return;
     start={id:e.pointerId,x:e.clientX,y:e.clientY,touch:e.pointerType==='touch'};
     timer=setTimeout(()=>{
       if(!start||!button.isConnected)return;
@@ -87,7 +88,7 @@ export function installCatalogDrag(button, kind, {ui, begin, preview, canvas}) {
   for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,()=>{clear();start=null;});
 }
 
-export function installCatalogDrop({ui, view, preview, commit, activity, cancel}, doc=document) {
+export function installCatalogDrop({ui, view, preview, activity, cancel}, doc=document) {
   const abort=new AbortController();
   doc.addEventListener('pointermove',e=>{
     if(!ui.drag||ui.drag.id!==e.pointerId)return;
@@ -97,10 +98,7 @@ export function installCatalogDrop({ui, view, preview, commit, activity, cancel}
   },{signal:abort.signal});
   doc.addEventListener('pointerup',e=>{
     if(!ui.drag||ui.drag.id!==e.pointerId)return;
-    const r=view.canvas.getBoundingClientRect(),overCanvas=e.clientX>=r.left&&e.clientY>=r.top&&e.clientX<=r.right&&e.clientY<=r.bottom;
-    // Commit the last rendered candidate instead of raycasting again after pointer capture ends.
     ui.lastDrag=performance.now();ui.drag=null;view.lastInteraction=performance.now();activity();
-    if(overCanvas&&ui.pending&&!ui.pending.error)commit?.();
   },{signal:abort.signal});
   doc.addEventListener('pointercancel',()=>{if(ui.drag){ui.drag=null;cancel();}},{signal:abort.signal});
   return()=>abort.abort();

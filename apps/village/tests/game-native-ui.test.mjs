@@ -8,7 +8,7 @@ test('Village primary HUD uses finite game pages instead of internal scrolling',
  const [source,css,doc]=await Promise.all([
   read('src/web/interface.js'),
   read('src/web/consumer-game-ui.css'),
-  read('docs/叡智豊満.md'),
+  read('docs/宝満叡智.md'),
  ]);
  assert.match(source,/RESOURCE_PAGE_SIZE=6/);
  assert.match(source,/muraHudLifeTab/);

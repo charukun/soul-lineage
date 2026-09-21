@@ -44,7 +44,6 @@ document.head.append(css);
 
 let busy=false,toastTimer=0,activePending=null;
 const nativePan=view.pan.bind(view),nativeFocus=view.focus.bind(view);
-const tracked=new Map();
 const HELP_TEXT='つくるで施設や家具を選ぶと、画面中央にゴーストが出ます。1本指でなぞって場所を動かし、短くタップするとその位置へ配置します。置けない場所では理由が表示され、配置されません。回転はゴースト上のボタンを使います。';
 
 function notice(text,ms=3500){
@@ -128,7 +127,7 @@ $('muraRotation').addEventListener('input',()=>queueMicrotask(()=>syncPendingPre
 
 async function commitCurrentPlacement(){
  const p=ui.pending;if(!p||busy)return false;
- centerCandidate();
+ // Commit exactly the displayed candidate; the tap position cannot move it.
  const result=commitPlacement(world,p);
  if(result.error){notice(result.error);syncPendingPresentation(p);return false;}
  busy=true;
@@ -145,37 +144,23 @@ async function commitCurrentPlacement(){
  return true;
 }
 done.onclick=()=>void commitCurrentPlacement();
-
-function pointerDistance(p,x,y){return Math.hypot(x-p.sx,y-p.sy);}
-function markMulti(){if(tracked.size>1)for(const p of tracked.values())p.multi=true;}
-function onPointerDown(event){
- if(event.button!==undefined&&event.button!==0)return;
- tracked.set(event.pointerId,{sx:event.clientX,sy:event.clientY,x:event.clientX,y:event.clientY,multi:false});markMulti();
-}
-function onPointerMove(event){const p=tracked.get(event.pointerId);if(!p)return;p.x=event.clientX;p.y=event.clientY;markMulti();}
-function finishPointer(event,cancelled=false){
- const p=tracked.get(event.pointerId);if(!p)return;
- tracked.delete(event.pointerId);p.x=event.clientX;p.y=event.clientY;
- if(cancelled||p.multi||!ui.pending||pointerDistance(p,p.x,p.y)>=7)return;
- queueMicrotask(()=>{if(!ui.pending||busy)return;centerCandidate();void commitCurrentPlacement();});
-}
-canvas.addEventListener('pointerdown',onPointerDown,{passive:true});
-canvas.addEventListener('pointermove',onPointerMove,{passive:true});
-canvas.addEventListener('pointerup',event=>finishPointer(event),{passive:true});
-canvas.addEventListener('pointercancel',event=>finishPointer(event,true),{passive:true});
-canvas.addEventListener('lostpointercapture',event=>queueMicrotask(()=>tracked.delete(event.pointerId)),{passive:true});
+// The scene input owner routes short taps here. No second pointerup listener,
+// no drag-release commit, and no competing raycast in the base tap handler.
+const placementInput={tap:commitCurrentPlacement};
+ui.placementInput=placementInput;
 
 function syncHelp(){
  const host=$('dialogContent');if(!host)return;
- const heading=[...host.querySelectorAll('h3')].find(node=>node.textContent.trim()==='建築と内装');
- const paragraph=heading?.nextElementSibling;
- if(paragraph&&paragraph.tagName==='P'&&paragraph.textContent!==HELP_TEXT)paragraph.textContent=HELP_TEXT;
+ const heading=[...host.querySelectorAll('h2,h3')].find(node=>node.textContent.trim()==='建築と内装');
+ const paragraph=heading?.nextElementSibling?.matches('p')?heading.nextElementSibling:host.querySelector('.muraHelpPage p');
+ if(heading&&paragraph&&paragraph.textContent!==HELP_TEXT)paragraph.textContent=HELP_TEXT;
 }
 const helpObserver=new MutationObserver(syncHelp);helpObserver.observe($('dialogContent'),{childList:true,subtree:true});
 const observer=new MutationObserver(refresh);observer.observe(panel,{attributes:true,attributeFilter:['hidden']});
 refresh();
-window.__MURA_CENTER_PLACEMENT__={version:1,centerCandidate,commit:commitCurrentPlacement};
+window.__MURA_CENTER_PLACEMENT__={version:2,centerCandidate,commit:commitCurrentPlacement};
 window.addEventListener('pagehide',()=>{
- observer.disconnect();helpObserver.disconnect();clearTimeout(toastTimer);tracked.clear();
+ observer.disconnect();helpObserver.disconnect();clearTimeout(toastTimer);
+ if(ui.placementInput===placementInput)delete ui.placementInput;
  view.pan=nativePan;view.focus=nativeFocus;
 },{once:true});

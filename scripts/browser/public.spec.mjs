@@ -154,7 +154,7 @@ for (const target of targets) {
     } else if (target.app === 'village' && !target.legacy && await page.locator('#build').count()) {
       await expect(canvas).toHaveAttribute('data-game-world', 'hoshitsugi.life-and-guard.v5');
       await expect(page.locator('#loading')).toBeHidden();
-      await expect(page.locator('#muraEntry').getByRole('heading', {level: 2})).toHaveText('叡智豊満');
+      await expect(page.locator('#muraEntry').getByRole('heading', {level: 2})).toHaveText('宝満叡智');
       // Carry forward PR #59: enter the current start screen before using the HUD.
       await expect(page.locator('#muraEntry')).toBeVisible();
       await page.locator('#muraEnterVillage').click();

@@ -26,4 +26,4 @@ function installSmoothWorldTime(){
 }
 
 installSmoothWorldTime();
-window.__叡智豊満_EXPERIENCE__={version:2};
+window.__宝満叡智_EXPERIENCE__={version:2};
