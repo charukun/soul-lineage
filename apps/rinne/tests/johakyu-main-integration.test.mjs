@@ -41,11 +41,11 @@ test('P5 terrain-blocked core contact cannot apply a hidden body injury before b
 });
 test('P6 actual life serialization preserves enemy parts, incapacity and rewards but not stale animation',()=>{
   const {state,front}=scenario();const enemy=front.enemies[0];enemy.injuries=readSavedBody(null);enemy.injuries.leftArm={severity:.71,at:0};enemy.injuries.head={severity:.89,at:0};enemy.hp=0;enemy.downed=true;enemy.tidebreakPose={attack:'heavy',execution:{attackId:'stale'}};
-  state.injuries.rightLeg={severity:.43,at:state.ageSeconds};state.defeats=2;state.returns=1;state.combat={targetId:enemy.id,tidebreakPose:{attack:'heavy'}};
+  state.injuries.rightLeg={severity:.43,at:state.ageSeconds};state.defeats=2;state.returns=1;state.combat={targetId:enemy.id,tidebreakPose:{attack:'heavy'},exchange:{mode:'pressure',initiativeId:state.id,responderId:enemy.id,serial:2,pressureCount:4,lastPhase:'ha',lastReason:'guard',continuity:'retain'}};
   const serialized=serializeLife(state),restored=deserializeLife(serialized),resumedFront=normalizeFront(restored.frontState,0);
   assert.equal(resumedFront.enemies[0].injuries.head.severity,.89);assert.equal(resumedFront.enemies[0].injuries.leftArm.severity,.71);assert.equal(resumedFront.enemies[0].downed,true);assert.equal(resumedFront.enemies[0].hp,0);assert.equal(resumedFront.enemies[0].tidebreakPose,null);
-  assert.equal(restored.injuries.rightLeg.severity,.43);assert.equal(restored.defeats,2);assert.equal(restored.returns,1);assert.equal(restored.combat.tidebreakPose,undefined);
-  assert.equal(state.combat.tidebreakPose.attack,'heavy','saving must not mutate live animation');
+  assert.equal(restored.injuries.rightLeg.severity,.43);assert.equal(restored.defeats,2);assert.equal(restored.returns,1);assert.equal(restored.combat.tidebreakPose,undefined);assert.equal(restored.combat.exchange,undefined,'in-flight exchange interpretation must restart from reading after load');
+  assert.equal(state.combat.tidebreakPose.attack,'heavy','saving must not mutate live animation');assert.equal(state.combat.exchange.mode,'pressure','saving must not mutate the live exchange');
 });
 test('P6 corrupted body progress is rejected, and rebirth keeps homeland rather than combat wounds',()=>{
   const {state,front}=scenario();front.enemies[0].injuries={head:{severity:1.5,at:0}};assert.throws(()=>normalizeFront(front,0),/部位/);assert.throws(()=>serializeLife(state),/部位/);front.enemies[0].injuries=readSavedBody(null);
