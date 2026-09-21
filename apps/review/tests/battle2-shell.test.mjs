@@ -23,7 +23,9 @@ test('battle2 nests native canvases inside the shared battle review frame',()=>{
   assert.match(html,/<section class="review-surface__workspace"[^>]*>\s*<div class="review-surface__stage-column">\s*<section class="nocturne-stage review-surface__stage"[^>]*data-review-surface="battle2"/);
   assert.equal((html.match(/<canvas\b/g)||[]).length,2);
   assert.match(html,/src="\.\/src\/battle2-shell\.js"/);assert.match(html,/src="\.\/src\/nocturne-stage\.js"/);
-  assert.doesNotMatch(html,/<iframe\b|<button\b|<select\b|<input\b|review-surface__panel|data-runtime-support|id="hud"/i);
+  assert.doesNotMatch(html,/<iframe\b|<select\b|<input\b|data-runtime-support|id="hud"/i);
+  assert.equal((html.match(/<button\b/g)||[]).length,2);
+  assert.equal((html.match(/review-surface__panel/g)||[]).length,1);
   assert.match(css,/main\.battle2-review\.review-surface>\.review-surface__workspace\s*\{\s*grid-template-columns:minmax\(0,1fr\)!important;\s*grid-template-rows:minmax\(0,1fr\)!important;/);
   assert.doesNotMatch(css,/position:\s*fixed|height:\s*100dvh/);
   assert.match(css,/review-switcher__grid\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
