@@ -176,11 +176,11 @@ test('shared presentation forwards authored guard/parry contacts while still sup
 });
 
 test('threat-driven reaction parry can occur outside the configured technique cursor and create a counter opportunity',()=>{
- const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'jo',heroStartTechniqueIndex:0,enemyLeadSeconds:.5});let parry=null,counter=null,reactionFrame=null;
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5});let parry=null,counter=null,reactionFrame=null;
  for(let i=0;i<1200&&!(parry&&counter&&reactionFrame);i++){const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self);reactionFrame=reactionFrame||(hero?.action?.scope==='combat-reaction'?hero.action:null);parry=parry||r.events.find(e=>e.type==='parry'&&e.targetId==='hero'&&e.defenseScope==='combat-reaction');counter=counter||r.events.find(e=>e.type==='player-hit'&&e.sourceId==='hero'&&e.counter===true);}
  assert.ok(reactionFrame,'reaction must use a separate action scope');assert.ok(parry,'an incoming threat must be parryable between configured technique stages');assert.ok(counter,'parry must create a real counter opportunity');
  const trace=scenario.inspect().trace,parryStart=trace.find(row=>row.type==='reaction-start'&&row.actorId==='hero'&&row.reaction==='parry');
- assert.ok(parryStart);assert.equal(parryStart.contextTechniqueId,'action.feint','reaction must preserve the technique cursor instead of impersonating action.counter');
+ assert.ok(parryStart);assert.equal(parryStart.contextTechniqueId,'action.crash','reaction must preserve the technique cursor instead of impersonating action.counter');
 });
 
 test('side and orbit spacing use authored strafe clips that exist on both combat actors',()=>{

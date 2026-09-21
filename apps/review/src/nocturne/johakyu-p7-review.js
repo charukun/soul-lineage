@@ -170,13 +170,13 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   }
   function maybeBeginDefenseReaction(actor,target){
     if(!target||time<(reactionCooldowns.get(actor.id)||0))return null;
-    const node=nodeFor(actor,cursorFor(actor));if(['guard','brace','parry'].includes(node.stage.step.kind))return null;
+    const cursor=cursorFor(actor),node=nodeFor(actor,cursor);if(cursor.stageIndex!==0||['ready','slip','guard','brace','parry'].includes(node.stage.step.kind))return null;
     const settleUntil=readyAt.get(actor.id)||0;if(time>=settleUntil)return null;
     const threat=incomingThreat(actor,target);if(!threat)return null;
     const staminaRatio=actor.stamina/Math.max(1,actor.staminaCap),incomingKind=stateKind(threat.state);
     const kind=HEAVY_THREATS.has(incomingKind)||staminaRatio<.28||threat.progress>.43?'guard':'parry';
     const reaction=beginReaction(actor,target,kind,'incoming-threat');
-    if(reaction)reactionCooldowns.set(actor.id,time+(kind==='parry'?1.35:1.0));
+    if(reaction)reactionCooldowns.set(actor.id,time+(kind==='parry'?2.2:1.6));
     return reaction;
   }
   function maybeBeginCounterReaction(actor,target){
