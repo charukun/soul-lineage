@@ -82,10 +82,15 @@ test('motion review settings can equip a right-hand weapon without changing the 
   }
 });
 
-test('shared stage controls can portal the panel away from the gear button',()=>{
+test('shared stage controls portal into the motion-derived workbench host',()=>{
   const shared=read('../../../packages/shared-ui/src/review-stage.js');
+  const workbench=read('../../../packages/shared-ui/src/review-workbench.css');
+  const html=read('../review-motion.html');
   assert.match(shared,/stage\.dataset\.reviewStagePanelHost\?doc\.querySelector/);
   assert.match(shared,/\(panelHost\|\|root\)\.append\(panel\)/);
   assert.match(shared,/!root\.contains\(event\.target\)&&!panel\.contains\(event\.target\)/);
   assert.match(shared,/panel\.remove\(\)/);
+  assert.match(workbench,/\.review-workbench__panel-host>\.review-stage-controls__panel/);
+  assert.match(html,/data-review-stage-panel-host="\.motion-library-primary"/);
+  assert.match(html,/motion-library-primary review-workbench__library review-workbench__panel-host/);
 });
