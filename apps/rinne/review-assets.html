@@ -20,6 +20,7 @@
         <canvas id="asset-stage" aria-label="装備プレビュー。ドラッグで自由回転、ピンチで拡大"></canvas>
 
         <div class="asset-stage-slot" aria-live="polite">
+          <small id="asset-stage-slot-label">右手</small>
           <strong id="asset-combination">読み込み中</strong>
         </div>
         <div class="asset-stage-hint" aria-hidden="true">ドラッグで回転 · ピンチで拡大</div>
@@ -33,27 +34,28 @@
     </div>
 
     <aside class="asset-catalog review-surface__panel" aria-label="装備レビュー操作">
-      <section class="asset-section asset-weapon-section asset-primary-selection" aria-labelledby="asset-weapon-title">
-        <div class="asset-primary-head">
-          <h2 id="asset-weapon-title">主人公の武器種</h2>
-        </div>
-        <div id="asset-weapon-types" class="asset-weapon-types review-choice-grid" role="listbox" aria-label="主人公の武器種"></div>
-      </section>
-
       <section class="asset-section asset-equipment-section" aria-labelledby="asset-equipment-title">
         <div class="asset-primary-head">
-          <h2 id="asset-equipment-title">詳細装備</h2>
-          <button id="asset-reset" class="asset-reset" type="button">全解除</button>
+          <h2 id="asset-equipment-title">装備箇所</h2>
+          <button id="asset-reset" class="asset-reset" type="button">すべて外す</button>
         </div>
-        <div id="asset-slot-tabs" class="asset-slot-tabs review-slot-tabs" style="--review-slot-columns:3" role="tablist" aria-label="装備スロット">
-          <button type="button" data-asset-slot="main" role="tab" aria-selected="true"><small>右手</small><strong id="asset-current-main">なし</strong></button>
-          <button type="button" data-asset-slot="off" role="tab" aria-selected="false"><small>左手</small><strong id="asset-current-off">なし</strong></button>
-          <button type="button" data-asset-slot="back" role="tab" aria-selected="false"><small>背中</small><strong id="asset-current-back">なし</strong></button>
+        <div id="asset-slot-tabs" class="asset-slot-tabs review-slot-tabs" style="--review-slot-columns:3" role="tablist" aria-label="装備箇所">
+          <button type="button" data-asset-slot="main" role="tab" aria-selected="true"><small>右手</small><strong id="asset-current-main">空き</strong></button>
+          <button type="button" data-asset-slot="off" role="tab" aria-selected="false"><small>左手</small><strong id="asset-current-off">空き</strong></button>
+          <button type="button" data-asset-slot="back" role="tab" aria-selected="false"><small>背中</small><strong id="asset-current-back">空き</strong></button>
         </div>
 
-        <div class="asset-candidate-head review-selection-current"><strong id="asset-candidate-label">右手の装備を選択</strong></div>
+        <section id="asset-weapon-section" class="asset-weapon-section" aria-labelledby="asset-weapon-title">
+          <div class="asset-candidate-head review-selection-current">
+            <strong id="asset-weapon-title">武器の種類</strong>
+            <small>右手</small>
+          </div>
+          <div id="asset-weapon-types" class="asset-weapon-types review-choice-grid" role="listbox" aria-label="右手武器の種類"></div>
+        </section>
+
+        <div class="asset-candidate-head review-selection-current"><strong id="asset-candidate-label">装備候補</strong></div>
         <div id="asset-equipment-options" class="asset-equipment-options review-choice-grid" role="listbox" aria-label="右手装備の候補"></div>
-        <button id="asset-clear-slot" class="asset-clear-slot" type="button">右手の装備を外す</button>
+        <button id="asset-clear-slot" class="asset-clear-slot" type="button">右手を空ける</button>
 
         <div class="asset-native-selects" hidden>
           <label>右手<select id="slot-main" aria-label="右手装備"></select></label>
