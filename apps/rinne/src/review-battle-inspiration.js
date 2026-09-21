@@ -17,7 +17,7 @@ const SIGN_TEXT=Object.freeze({
   ha:'この崩しなら、もう一手を重ねられる。',
   kyu:'この間なら、最後まで届く。'
 });
-export const REVIEW_INSPIRATION_TIMELINE=Object.freeze({nearMiss:.85,camera:1.35,spacing:3.5,stagger:4.9,silence:5.85,execute:6.35,impact:8.8,impactRelease:8.98,reveal:9.75,afterglow:10.85,end:12.5});
+export const REVIEW_INSPIRATION_TIMELINE=Object.freeze({nearMiss:.95,camera:1.85,spacing:3.05,stagger:4.2,silence:5.35,execute:6.15,impact:8.45,impactRelease:8.66,reveal:9.55,afterglow:10.85,end:12.65});
 
 const reviewArts=(open,middle,finish,tag)=>Object.freeze({
   open:Object.freeze(open),middle:Object.freeze(middle),finish:Object.freeze(finish),tag
@@ -100,8 +100,8 @@ export function pickReviewInspiration(answers,options={},random=Math.random){
 }
 
 export function reviewInspirationSequenceFrame(elapsed){
-  const t=Math.max(0,Number(elapsed)||0),m=REVIEW_INSPIRATION_TIMELINE,clamp01=value=>Math.max(0,Math.min(1,value));
-  if(t>=m.end)return Object.freeze({stage:'done',progress:1,elapsed:t,spacing:0,executeProgress:1,backstepProgress:1,nearMiss:0,targetStagger:0,focus:'world',hitStop:false,cameraFov:40});
+  const t=Math.max(0,Number(elapsed)||0),m=REVIEW_INSPIRATION_TIMELINE,clamp01=value=>Math.max(0,Math.min(1,value)),smooth=value=>{const u=clamp01(value);return u*u*(3-2*u);},easeOut=value=>1-Math.pow(1-clamp01(value),3);
+  if(t>=m.end)return Object.freeze({stage:'done',progress:1,elapsed:t,spacing:0,executeProgress:1,backstepProgress:1,nearMiss:0,targetStagger:0,strikeTravel:0,impactRecoil:0,cameraRelease:1,focus:'world',hitStop:false,cameraFov:40});
   let stage='premonition',start=0,end=m.camera;
   if(t>=m.afterglow){stage='afterglow';start=m.afterglow;end=m.end;}
   else if(t>=m.reveal){stage='reveal';start=m.reveal;end=m.afterglow;}
@@ -112,21 +112,26 @@ export function reviewInspirationSequenceFrame(elapsed){
   else if(t>=m.spacing){stage='spacing';start=m.spacing;end=m.stagger;}
   else if(t>=m.camera){stage='camera';start=m.camera;end=m.spacing;}
   const progress=clamp01((t-start)/Math.max(.001,end-start));
-  const nearMiss=t<m.nearMiss?Math.sin(clamp01(t/m.nearMiss)*Math.PI):0;
+  let nearMiss=0;
+  if(t<m.nearMiss)nearMiss=Math.sin(clamp01(t/m.nearMiss)*Math.PI*.5);
+  else if(t<m.camera)nearMiss=Math.cos(clamp01((t-m.nearMiss)/Math.max(.001,m.camera-m.nearMiss))*Math.PI*.5);
   const backstepProgress=clamp01((t-m.spacing)/Math.max(.001,m.stagger-m.spacing));
-  const spacing=stage==='spacing'?(1-Math.pow(1-backstepProgress,4))*.10:stage==='stagger'||stage==='silence'?.10:stage==='execute'?.10*(1-progress):0;
+  const spacing=stage==='spacing'?(1-Math.pow(1-backstepProgress,4))*.075:stage==='stagger'||stage==='silence'?.075:stage==='execute'?.075*(1-progress):0;
   let targetStagger=0;
-  if(t>=m.nearMiss&&t<m.afterglow)targetStagger=clamp01((t-m.nearMiss)/.38);
-  else if(t>=m.afterglow)targetStagger=1-progress;
+  if(t>=m.camera&&t<m.afterglow)targetStagger=smooth((t-m.camera)/.42);
+  else if(t>=m.afterglow)targetStagger=1-smooth(progress);
   let executeProgress=0;
   if(t>=m.execute){
-    if(t<m.impact)executeProgress=clamp01((t-m.execute)/Math.max(.001,m.impact-m.execute))*.68;
-    else if(t<m.impactRelease)executeProgress=.68;
-    else if(t<m.reveal)executeProgress=.68+clamp01((t-m.impactRelease)/Math.max(.001,m.reveal-m.impactRelease))*.32;
+    if(t<m.impact)executeProgress=easeOut((t-m.execute)/Math.max(.001,m.impact-m.execute))*.72;
+    else if(t<m.impactRelease)executeProgress=.72;
+    else if(t<m.reveal)executeProgress=.72+smooth((t-m.impactRelease)/Math.max(.001,m.reveal-m.impactRelease))*.28;
     else executeProgress=1;
   }
+  const strikeTravel=stage==='execute'?easeOut(progress):stage==='impact'||stage==='reveal'?1:stage==='afterglow'?1-smooth(progress):0;
+  const impactRecoil=stage==='impact'?easeOut(progress):stage==='reveal'?1:stage==='afterglow'?1-smooth(progress)*.55:0;
+  const cameraRelease=stage==='execute'?smooth((progress-.56)/.44):stage==='impact'?1:stage==='reveal'?.72:stage==='afterglow'?1-progress:0;
   const hitStop=t>=m.impact&&t<m.impactRelease;
   const focus=stage==='camera'||stage==='silence'?'weapon':stage==='spacing'?'target':stage==='stagger'?'connection':stage==='execute'||stage==='impact'?'strike':'world';
-  const cameraFov=stage==='premonition'?38:stage==='camera'?34:stage==='spacing'?35:stage==='stagger'?33:stage==='silence'?31.5:stage==='execute'?44+progress*4:stage==='impact'?50:stage==='reveal'?44:40.5-progress*.5;
-  return Object.freeze({stage,progress,elapsed:t,spacing,executeProgress,backstepProgress,nearMiss,targetStagger,focus,hitStop,cameraFov});
+  const cameraFov=stage==='premonition'?37.5:stage==='camera'?33.5:stage==='spacing'?34.5:stage==='stagger'?33:stage==='silence'?31.5:stage==='execute'?34+cameraRelease*14:stage==='impact'?50:stage==='reveal'?43:40.5-progress*.5;
+  return Object.freeze({stage,progress,elapsed:t,spacing,executeProgress,backstepProgress,nearMiss,targetStagger,strikeTravel,impactRecoil,cameraRelease,focus,hitStop,cameraFov});
 }

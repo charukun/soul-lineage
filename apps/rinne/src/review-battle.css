@@ -403,3 +403,21 @@ main.battle-review.review-surface .camera-zoom button{
 .battle-lightbulb{animation:hirameki-spark .42s cubic-bezier(.16,.9,.2,1) both!important}
 .battle-inspiration[data-burst="true"],.battle-inspiration[data-sequence="reveal"]{animation:hirameki-name .55s cubic-bezier(.12,.82,.16,1) both!important}
 @media(prefers-reduced-motion:reduce){.stage[data-inspiration-cinematic="true"] canvas,.stage[data-inspiration-cinematic="true"]>:is(.combat-body-hud-host,.note,.model-status,.battle-sequence-hud,.technique-composition,.camera-zoom){transition:none!important}}
+
+
+/* Inspiration refinement: eventful 12s, blade-first near miss, impact-space naming, soft return. */
+.stage>:is(.combat-body-hud-host,.note,.model-status,.battle-sequence-hud,.technique-composition,.camera-zoom){transition:opacity .62s ease,filter .62s ease!important}
+.stage[data-inspiration-beat="premonition"] canvas{filter:saturate(.88) contrast(1.04) brightness(.92)!important}
+.stage[data-inspiration-beat="camera"] canvas{filter:saturate(.76) contrast(1.07) brightness(.87)!important}
+.stage[data-inspiration-beat="spacing"] canvas{filter:saturate(.70) contrast(1.09) brightness(.84)!important}
+.stage[data-inspiration-beat="stagger"] canvas{filter:saturate(.66) contrast(1.10) brightness(.82)!important}
+.stage[data-inspiration-beat="silence"] canvas{filter:saturate(.50) contrast(1.14) brightness(.76)!important}
+.stage[data-inspiration-beat="execute"] canvas{filter:saturate(1.06) contrast(1.12) brightness(1.00)!important}
+.stage[data-inspiration-beat="impact"] canvas{filter:saturate(1.18) contrast(1.16) brightness(1.08)!important}
+.stage[data-inspiration-beat="reveal"] canvas{filter:saturate(1.02) contrast(1.10) brightness(.98)!important}
+.stage[data-inspiration-beat="afterglow"] canvas{filter:saturate(.96) contrast(1.04) brightness(.95)!important}
+.stage[data-inspiration-beat="afterglow"]>:is(.combat-body-hud-host,.note,.model-status,.battle-sequence-hud,.technique-composition,.camera-zoom){opacity:calc(.18 + var(--inspiration-progress,0)*.72)!important;filter:saturate(calc(.55 + var(--inspiration-progress,0)*.45)) brightness(calc(.76 + var(--inspiration-progress,0)*.24))!important}
+.battle-inspiration[data-inspiration-anchor="impact-space"]{transform-origin:50% 100%!important}
+.battle-inspiration[data-sequence="reveal"] .battle-inspiration-mark{font-size:35px!important;text-shadow:0 0 9px rgba(255,235,174,.74),0 0 26px rgba(227,199,127,.34)!important}
+.battle-inspiration[data-sequence="reveal"] strong{font-size:19px!important;line-height:1.05!important}
+@media(max-width:520px){.battle-inspiration[data-sequence="reveal"] .battle-inspiration-mark{font-size:31px!important}.battle-inspiration[data-sequence="reveal"] strong{font-size:17px!important}}

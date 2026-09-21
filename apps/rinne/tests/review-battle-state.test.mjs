@@ -93,8 +93,8 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.deepEqual(reviewInspirationCandidates(answers,{weapon:'sword',phase:'ha',learnedIds:['a']}).map(x=>x.row.id),['b']);
   assert.equal(pickReviewInspiration(answers,{weapon:'sword',phase:'ha',learnedIds:['a']},()=>0).id,'b');
   assert.equal(pickReviewInspiration(answers,{weapon:'sword',phase:'ha',learnedIds:['a','b']},()=>0),null);
-  const nearMiss=reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.nearMiss*.5);
-  assert.equal(nearMiss.stage,'premonition');assert.ok(nearMiss.nearMiss>.9);assert.equal(nearMiss.hitStop,false);
+  const nearMiss=reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.nearMiss*.98);
+  assert.equal(nearMiss.stage,'premonition');assert.ok(nearMiss.nearMiss>.95);assert.equal(nearMiss.hitStop,false);
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.camera+.01).focus,'weapon');
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.spacing+.01).stage,'spacing');
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.spacing+.01).focus,'target');
@@ -105,12 +105,13 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.equal(impactHold.stage,'impact');assert.equal(impactHold.hitStop,true);assert.equal(impactHold.executeProgress,.68);assert.ok(impactLate.executeProgress>=.68);
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.reveal+.01).stage,'reveal');
   assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.afterglow+.01).stage,'afterglow');
-  assert.ok(REVIEW_INSPIRATION_TIMELINE.end>=10&&REVIEW_INSPIRATION_TIMELINE.end<=15);
+  assert.ok(REVIEW_INSPIRATION_TIMELINE.reveal>REVIEW_INSPIRATION_TIMELINE.impactRelease);assert.ok(REVIEW_INSPIRATION_TIMELINE.end>=10&&REVIEW_INSPIRATION_TIMELINE.end<=15);
+  assert.ok(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.execute+.25).cameraRelease<.15);
   assert.match(battleSource,/reviewTechniqueSeen=new Map\(\)/);assert.match(battleSource,/seen\.add\(technique\.id\)/);
   assert.match(battleSource,/learnedSlots\[phase\]=technique/);
   assert.match(battleSource,/INSPIRATION_BULB_HOLD_MS=420/);assert.match(battleSource,/if\(cue==='silence'\)\{showInspirationBulb\(\);battleSfx\.inspiration\('spark'\);return;\}/);assert.match(battleSource,/setInspirationState\?\.\(\{active:true,targetId,duration,nearMissSeconds:REVIEW_INSPIRATION_TIMELINE\.camera\}\)/);assert.match(battleSource,/if\(cue==='impact'\)\{battleSfx\.impact/);
   assert.match(stageSource,/hyakunen-shared/);assert.match(stageSource,/kuumetsu-shared/);
-  assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);assert.match(battleHtml,/class="battle-inspiration-mark"[^>]*>閃<\/span>/);assert.doesNotMatch(battleHtml,/💡/);assert.match(battleCss,/Cinematic inspiration pass: focus -> lock -> strike -> name/);assert.match(battleCss,/Long-form inspiration ecstasy window: 12\.5s of live combat/);
+  assert.match(battleHtml,/id="battle-history-open"/);assert.match(battleHtml,/class="battle-stage-switch"/);assert.match(battleHtml,/class="battle-inspiration-mark"[^>]*>閃<\/span>/);assert.doesNotMatch(battleHtml,/💡/);assert.match(battleCss,/Cinematic inspiration pass: focus -> lock -> strike -> name/);assert.match(battleCss,/Long-form inspiration ecstasy window: 12\.5s of live combat/);assert.match(battleCss,/Inspiration refinement: eventful 12s/);
   assert.match(battleCss,/battle-phase-wave/);assert.match(battleCss,/battle-action-drift/);
   assert.match(battleHtml,/id="battle-sequence-hud"/);assert.match(battleHtml,/id="battle-sequence-current"[^>]*>間合いを測っている…<\/strong>/);
   assert.match(battleHtml,/battle-sequence-hud__wave combat-sequence__link/);
@@ -132,7 +133,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(battleSource,/opponent:group\?'group':'duel'/);
   assert.match(battleSource,/const angle=battleStage\?\.cameraAngle\?\.\(\)\|\|0,input=reviewSwipe\.vector\(angle\)/);assert.match(battleSource,/runtime\.input\(input\.screenX,input\.screenY,input\.amount,angle\)/);assert.match(battleSource,/createReviewFinisher\(next,previous\)/);
   assert.match(stageSource,/cameraOrbit=\(cameraOrbit\+step\*\.05\)/);assert.match(stageSource,/!frame\.finisher/);assert.match(stageSource,/cameraLock=frame\.lock\|\|'scene'/);
-  assert.match(stageSource,/function inspirationCameraFrame\(sequence\)/);assert.match(stageSource,/heroWeaponPoint\(inspirationHandPoint\)/);assert.match(stageSource,/sequence\?\.nearMiss>0/);assert.match(stageSource,/sequence\?\.targetStagger>0/);assert.match(stageSource,/lock:stage==='camera'\?'weapon-focus'/);assert.match(stageSource,/fovTarget=sequence&&sequence\.stage!=='done'\?sequence\.cameraFov:40/);assert.match(stageSource,/dataset\.inspirationBeat=sequence\.stage/);assert.match(stageSource,/\['camera','spacing','stagger','silence','execute','impact','reveal','afterglow'\]/);assert.match(stageSource,/cue==='impact'\)presentImpact/);
+  assert.match(stageSource,/function inspirationCameraFrame\(sequence\)/);assert.match(stageSource,/heroWeaponPoint\(inspirationHandPoint\)/);assert.match(stageSource,/nearMissVector\(target,sequence/);assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/sequence\?\.targetStagger>0/);assert.match(stageSource,/sequence\.impactRecoil/);assert.match(stageSource,/blendCameraFrames\(cinematicFrame,baseFrame,sequence\.progress\)/);assert.match(stageSource,/inspirationAnchor='impact-space'/);assert.match(stageSource,/lock:stage==='camera'\?'weapon-focus'/);assert.match(stageSource,/fovTarget=sequence&&sequence\.stage!=='done'\?sequence\.cameraFov:40/);assert.match(stageSource,/dataset\.inspirationBeat=sequence\.stage/);assert.match(stageSource,/\['camera','spacing','stagger','silence','execute','impact','reveal','afterglow'\]/);assert.match(stageSource,/cue==='impact'\)presentImpact/);
   assert.match(stageSource,/zoomBy\(delta=0\)/);
   assert.match(battleHtml,/id="camera-zoom-out"/);assert.match(battleHtml,/id="camera-zoom-in"/);
   assert.doesNotMatch(battleHtml,/class="hud battle-vitals"/);
