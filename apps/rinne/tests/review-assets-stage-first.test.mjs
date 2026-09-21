@@ -12,7 +12,7 @@ test('equipment review is protagonist-first and weapon-type driven', async () =>
     readFile(cssUrl, 'utf8'),
     readFile(jsUrl, 'utf8'),
   ]);
-  assert.match(html, /主人公の武器種/);
+  assert.match(html, /aria-label="主人公の武器種"/);
   assert.doesNotMatch(html, /素体選択|素体を選択/);
   assert.match(html, /id="asset-weapon-types"/);
   assert.match(js, /PROTAGONIST_VILLAGER_MODEL/);
@@ -21,18 +21,24 @@ test('equipment review is protagonist-first and weapon-type driven', async () =>
   assert.match(css, /\.asset-weapon-types\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
 });
 
-test('equipment review keeps the character preview primary on phones', async () => {
-  const [html, css] = await Promise.all([
+test('equipment review removes duplicate chrome from the primary flow', async () => {
+  const [html, css, js] = await Promise.all([
     readFile(htmlUrl, 'utf8'),
     readFile(cssUrl, 'utf8'),
+    readFile(jsUrl, 'utf8'),
   ]);
-  assert.match(html, /class="asset-stage-hint"/);
-  assert.match(css, /height:clamp\(440px,64dvh,680px\)/);
-  assert.match(css, /\.asset-catalog::before/);
+  assert.doesNotMatch(html, /asset-combination|asset-stage-hint|asset-camera-strip|asset-candidate-label|asset-clear-slot/);
+  assert.equal((html.match(/data-asset-camera=/g) || []).length, 1);
+  assert.match(html, /class="asset-stage-front"/);
+  assert.match(html, /<details class="asset-equipment-details">/);
+  assert.doesNotMatch(html, /<details class="asset-equipment-details"[^>]*\sopen/);
+  assert.match(css, /\.asset-stage-front\{/);
+  assert.match(css, /\.asset-equipment-details>summary\{/);
+  assert.doesNotMatch(js, /asset-combination|asset-candidate-label|asset-clear-slot/);
 });
 
-test('equipment slot copy follows the active slot', async () => {
-  const js = await readFile(jsUrl, 'utf8');
-  assert.match(js, /\$\{labels\[activeAssetSlot\]\}の装備を選択/);
-  assert.match(js, /\$\{labels\[activeAssetSlot\]\}の装備を外す/);
+test('equipment review keeps the character preview primary on phones', async () => {
+  const css = await readFile(cssUrl, 'utf8');
+  assert.match(css, /height:clamp\(440px,64dvh,680px\)/);
+  assert.match(css, /\.asset-catalog::before/);
 });

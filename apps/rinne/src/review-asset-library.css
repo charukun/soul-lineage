@@ -301,3 +301,39 @@ body.asset-model-picker-open{overflow:hidden}
   .asset-weapon-types{gap:4px}
   .asset-weapon-types .review-choice-card{min-height:64px;padding:4px 2px;font-size:8px}
 }
+
+
+/* Minimal equipment surface: model + weapon type first, everything else on demand. */
+.asset-stage-front{
+  position:absolute;z-index:3;right:10px;bottom:10px;
+  min-width:46px;min-height:34px;padding:5px 9px;
+  border:1px solid #45524c;border-radius:999px;
+  background:#0a100ed9;color:#c8d0cc;font-size:9px;font-weight:750;
+  box-shadow:0 8px 22px #0007;backdrop-filter:blur(8px)
+}
+.asset-stage-front[aria-pressed="true"]{border-color:#c9b36f;color:#fff3c9;background:#2b281ce8}
+.asset-weapon-section{gap:0}
+.asset-equipment-details{
+  border-top:1px solid var(--line-soft);
+  padding-top:2px
+}
+.asset-equipment-details>summary{
+  min-height:40px;display:flex;align-items:center;justify-content:space-between;
+  padding:7px 2px;color:#aeb8b3;font-size:10px;font-weight:750;cursor:pointer;
+  list-style:none
+}
+.asset-equipment-details>summary::-webkit-details-marker{display:none}
+.asset-equipment-details>summary::after{content:"⌄";font-size:14px;color:#79867f;transition:transform .16s ease}
+.asset-equipment-details[open]>summary::after{transform:rotate(180deg)}
+.asset-equipment-details .asset-equipment-section{padding-top:4px;border-top:0}
+.asset-equipment-details .asset-reset{justify-self:end;min-height:30px}
+@media(max-width:860px){
+  .asset-catalog{gap:6px}
+}
+@media(max-width:520px){
+  .asset-stage-front{right:8px;bottom:8px;min-height:32px;font-size:8px}
+  .asset-catalog{gap:5px;padding:8px 9px max(11px,env(safe-area-inset-bottom))}
+  .asset-catalog::before{margin:-1px auto 3px}
+  .asset-weapon-types .review-choice-card{min-height:60px}
+  .asset-equipment-details>summary{min-height:36px;padding:5px 1px}
+}

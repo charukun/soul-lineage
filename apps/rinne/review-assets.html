@@ -19,48 +19,33 @@
       <section class="asset-stage-shell review-surface__stage" aria-label="キャラクター装備のプレビュー">
         <canvas id="asset-stage" aria-label="装備プレビュー。ドラッグで自由回転、ピンチで拡大"></canvas>
 
-        <div class="asset-stage-slot" aria-live="polite">
-          <strong id="asset-combination">読み込み中</strong>
-        </div>
-        <div class="asset-stage-hint" aria-hidden="true">ドラッグで回転 · ピンチで拡大</div>
-        <div class="asset-camera-strip asset-stage-cameras" aria-label="表示方向">
-          <button type="button" data-asset-camera="front" aria-pressed="true">正面</button>
-          <button type="button" data-asset-camera="left" aria-pressed="false">左</button>
-          <button type="button" data-asset-camera="right" aria-pressed="false">右</button>
-          <button type="button" data-asset-camera="back" aria-pressed="false">背面</button>
-        </div>
+        <button class="asset-stage-front" type="button" data-asset-camera="front" aria-pressed="true" aria-label="正面に戻す">正面</button>
       </section>
     </div>
 
     <aside class="asset-catalog review-surface__panel" aria-label="装備レビュー操作">
-      <section class="asset-section asset-weapon-section asset-primary-selection" aria-labelledby="asset-weapon-title">
-        <div class="asset-primary-head">
-          <h2 id="asset-weapon-title">主人公の武器種</h2>
-        </div>
+      <section class="asset-section asset-weapon-section" aria-label="主人公の武器種">
         <div id="asset-weapon-types" class="asset-weapon-types review-choice-grid" role="listbox" aria-label="主人公の武器種"></div>
       </section>
 
-      <section class="asset-section asset-equipment-section" aria-labelledby="asset-equipment-title">
-        <div class="asset-primary-head">
-          <h2 id="asset-equipment-title">詳細装備</h2>
+      <details class="asset-equipment-details">
+        <summary>詳細装備</summary>
+        <section class="asset-section asset-equipment-section" aria-label="詳細装備">
+          <div id="asset-slot-tabs" class="asset-slot-tabs review-slot-tabs" style="--review-slot-columns:3" role="tablist" aria-label="装備スロット">
+            <button type="button" data-asset-slot="main" role="tab" aria-selected="true"><small>右手</small><strong id="asset-current-main">なし</strong></button>
+            <button type="button" data-asset-slot="off" role="tab" aria-selected="false"><small>左手</small><strong id="asset-current-off">なし</strong></button>
+            <button type="button" data-asset-slot="back" role="tab" aria-selected="false"><small>背中</small><strong id="asset-current-back">なし</strong></button>
+          </div>
+          <div id="asset-equipment-options" class="asset-equipment-options review-choice-grid" role="listbox" aria-label="右手装備の候補"></div>
           <button id="asset-reset" class="asset-reset" type="button">全解除</button>
-        </div>
-        <div id="asset-slot-tabs" class="asset-slot-tabs review-slot-tabs" style="--review-slot-columns:3" role="tablist" aria-label="装備スロット">
-          <button type="button" data-asset-slot="main" role="tab" aria-selected="true"><small>右手</small><strong id="asset-current-main">なし</strong></button>
-          <button type="button" data-asset-slot="off" role="tab" aria-selected="false"><small>左手</small><strong id="asset-current-off">なし</strong></button>
-          <button type="button" data-asset-slot="back" role="tab" aria-selected="false"><small>背中</small><strong id="asset-current-back">なし</strong></button>
-        </div>
 
-        <div class="asset-candidate-head review-selection-current"><strong id="asset-candidate-label">右手の装備を選択</strong></div>
-        <div id="asset-equipment-options" class="asset-equipment-options review-choice-grid" role="listbox" aria-label="右手装備の候補"></div>
-        <button id="asset-clear-slot" class="asset-clear-slot" type="button">右手の装備を外す</button>
-
-        <div class="asset-native-selects" hidden>
-          <label>右手<select id="slot-main" aria-label="右手装備"></select></label>
-          <label>左手<select id="slot-off" aria-label="左手装備"></select></label>
-          <label>背中<select id="slot-back" aria-label="背中装備"></select></label>
-        </div>
-      </section>
+          <div class="asset-native-selects" hidden>
+            <label>右手<select id="slot-main" aria-label="右手装備"></select></label>
+            <label>左手<select id="slot-off" aria-label="左手装備"></select></label>
+            <label>背中<select id="slot-back" aria-label="背中装備"></select></label>
+          </div>
+        </section>
+      </details>
 
       <output id="asset-status" class="asset-status" role="status" aria-live="polite">モデルを読み込んでいます。</output>
 

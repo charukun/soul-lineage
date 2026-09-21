@@ -181,7 +181,6 @@ async function loadModel() {
   await reapplyEquipment(); frameModel(); status(`主人公 · 武器種 ${weaponTypeLabel()}`); renderSelection();
 }
 function equipmentLabel(id){return REVIEW_SKELETON_EQUIPMENT.find(row=>row.id===id)?.label||'なし';}
-function modelLabel(){return '主人公';}
 function renderEquipmentInspector(){
   const labels={main:'右手',off:'左手',back:'背中'};
   for(const slot of ['main','off','back']){
@@ -189,10 +188,6 @@ function renderEquipmentInspector(){
     if(tab){tab.setAttribute('aria-selected',String(slot===activeAssetSlot));tab.tabIndex=slot===activeAssetSlot?0:-1;}
     const current=q(`#asset-current-${slot}`);if(current)current.textContent=equipmentLabel(selection[slot]);
   }
-  const summary=q('#asset-combination');
-  if(summary)summary.textContent=`${modelLabel()} · 武器種 ${weaponTypeLabel()} · 右 ${equipmentLabel(selection.main)} · 左 ${equipmentLabel(selection.off)} · 背 ${equipmentLabel(selection.back)}`;
-  const label=q('#asset-candidate-label');if(label)label.textContent=`${labels[activeAssetSlot]}の装備を選択`;
-  const clear=q('#asset-clear-slot');if(clear)clear.textContent=`${labels[activeAssetSlot]}の装備を外す`;
   const list=q('#asset-equipment-options');
   if(!list)return;
   list.setAttribute('aria-label',`${labels[activeAssetSlot]}装備の候補`);
@@ -245,7 +240,6 @@ function populate() {
   for(const button of document.querySelectorAll('[data-asset-slot]'))button.addEventListener('click',()=>{activeAssetSlot=button.dataset.assetSlot;renderEquipmentInspector();});
   for(const slot of ['main','off','back'])q(`#slot-${slot}`)?.addEventListener('change',renderSelection);
   controls.addEventListener('start',()=>{for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed','false');});
-  q('#asset-clear-slot')?.addEventListener('click',()=>{const select=q(`#slot-${activeAssetSlot}`);if(!select)return;select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));});
   q('#asset-reset').addEventListener('click',()=>{
     for(const slot of ['main','off','back']){q(`#slot-${slot}`).value='';void setEquipment(slot,null);}
     activeAssetSlot='main';frameModel();queueMicrotask(renderEquipmentInspector);
