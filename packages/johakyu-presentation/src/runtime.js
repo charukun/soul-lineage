@@ -424,10 +424,11 @@ function createDrivenPort(){
   },
   impact(event,source,target){
    if(['guard','parry'].includes(event.type)){
-    const parry=event.type==='parry',pan=spatialPan(target.pos);burst(target.pos,parry?12:8,parry?'#ffe2a0':'#d9c486');
-    if(source)arc(source.pos,2.1,source.object.rotation.y,parry?2.4:1.5,'#f7cf80',.24);
-    if(parry)sound.parry?.({pan});else sound.guard?.({pan});game.hitstop=Math.max(game.hitstop,parry?.052:.032);game.cameraPunch=Math.max(game.cameraPunch,parry?.025:.012);game.shake=parry?.025:.012;kickCamera(source,target,parry?.14:.07);
-    record('canonical-defense',{type:event.type,attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId});return;
+    const parry=event.type==='parry',point=event.contactPoint,clash=point?new V(point.x,Math.min(source?.height||target.height,target.height)*.58,point.z):target.pos.clone().add(new V(0,target.height*.58,0)),pan=spatialPan(clash);
+    burst(clash,parry?15:9,parry?'#fff0b8':'#d9c486');
+    if(source)arc(source.pos,Math.max(1.55,source.pos.distanceTo(target.pos)*.62),source.object.rotation.y,parry?1.45:1.1,'#f7cf80',.2);
+    if(parry)sound.parry?.({pan});else sound.guard?.({pan});game.hitstop=Math.max(game.hitstop,parry?.064:.032);game.cameraPunch=Math.max(game.cameraPunch,parry?.03:.012);game.shake=parry?.022:.012;kickCamera(source,target,parry?.12:.07);
+    record('canonical-defense',{type:event.type,attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,contactPoint:point||null,contactDistance:event.contactDistance||null});return;
    }
    if(!['player-hit','enemy-hit','finisher'].includes(event.type))return;
    target.flash=.15;const heavy=event.phase==='kyu'||event.type==='finisher'||event.counter,pan=spatialPan(target.pos),reactionClip=['head','leftArm','rightArm'].includes(event.bodyPart)?'Hit_B':'Hit_A';
