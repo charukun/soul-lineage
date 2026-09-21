@@ -179,3 +179,137 @@ body.simple-review.character-grid-ready .load-indicator[data-state="error"]{disp
     max-height:calc(100% - 16px)!important;
   }
 }
+
+/* Mobile character review: stage-first, compact controls, no side rail. */
+.character-review-slots,
+.character-review-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:5px;
+}
+.character-review-slots{margin:0}
+.character-review-slot{position:relative;min-width:0;min-height:42px;padding:5px 4px}
+.character-review-grid .character-review-option{
+  position:relative;
+  min-width:0;
+  min-height:58px;
+  padding:5px 3px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:3px;
+}
+.character-review-tools{display:grid;grid-template-columns:minmax(0,1fr);gap:5px}
+.character-review-tools [data-review-action="quality-mark"]{min-height:38px}
+
+@media (max-width:760px) and (orientation:portrait){
+  body.simple-review.character-grid-ready .review-surface__header{
+    min-height:50px!important;
+    padding:4px 10px!important;
+  }
+  body.simple-review.character-grid-ready .review-surface__title{gap:8px!important}
+  body.simple-review.character-grid-ready .review-surface__title h1{font-size:18px!important;line-height:1.15!important}
+  body.simple-review.character-grid-ready .review-surface__workspace{
+    grid-template-rows:minmax(0,50%) minmax(0,50%)!important;
+    gap:0!important;
+  }
+  body.simple-review.character-grid-ready .review-surface__stage{
+    border-radius:8px 8px 0 0!important;
+  }
+  body.simple-review.character-grid-ready .character-review-camera-dock{
+    left:50%!important;
+    right:auto!important;
+    top:auto!important;
+    bottom:8px!important;
+    width:min(330px,calc(100% - 24px))!important;
+    max-width:none!important;
+    transform:translateX(-50%)!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    grid-template-rows:34px!important;
+    padding:4px!important;
+    gap:3px!important;
+    border-radius:10px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-camera-dock button{
+    min-width:0!important;
+    height:34px!important;
+    min-height:34px!important;
+    padding:2px 2px!important;
+    font-size:9px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-picker{
+    min-height:0!important;
+    height:100%!important;
+    overflow:hidden!important;
+    grid-template-rows:auto auto auto minmax(0,1fr) auto!important;
+    gap:4px!important;
+    padding:6px 8px max(6px,env(safe-area-inset-bottom))!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker{
+    grid-template-columns:74px minmax(0,1fr)!important;
+    gap:6px!important;
+    padding:0 0 5px!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker-heading strong{font-size:9px!important}
+  body.simple-review.character-grid-ready .character-model-list{
+    min-height:34px!important;
+    height:34px!important;
+    padding:4px 30px 4px 9px!important;
+    border-radius:8px!important;
+    font-size:11px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-criteria{display:none!important}
+  body.simple-review.character-grid-ready .character-review-slots{
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    gap:3px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-slots .character-review-slot{
+    min-height:38px!important;
+    padding:4px 2px!important;
+    border-radius:7px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-slots .character-review-slot small{font-size:7px!important}
+  body.simple-review.character-grid-ready .character-review-slots .character-review-slot strong{font-size:8px!important}
+  body.simple-review.character-grid-ready .character-review-current{
+    min-height:15px!important;
+    padding:0 1px!important;
+    font-size:8px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-current::before{content:none!important}
+  body.simple-review.character-grid-ready .character-review-candidates{
+    min-height:0!important;
+    overflow:auto!important;
+    padding:0 0 3px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-grid{
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    gap:3px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-grid .character-review-option{
+    min-height:52px!important;
+    padding:3px 2px!important;
+    border-radius:7px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-mark{
+    width:22px!important;
+    height:22px!important;
+    font-size:12px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-option-label{
+    font-size:8px!important;
+    line-height:1.15!important;
+  }
+  body.simple-review.character-grid-ready .character-review-tools{
+    position:sticky;
+    bottom:0;
+    grid-template-columns:minmax(0,1fr)!important;
+    padding-top:3px;
+    background:#0b1110;
+  }
+  body.simple-review.character-grid-ready .character-review-tools button{
+    min-height:36px!important;
+    height:36px!important;
+    border-radius:8px!important;
+    font-size:9px!important;
+  }
+}
