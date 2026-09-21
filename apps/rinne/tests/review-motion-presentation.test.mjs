@@ -91,7 +91,7 @@ test('shared stage controls portal into the motion-derived workbench host',()=>{
   assert.match(shared,/\(panelHost\|\|root\)\.append\(panel\)/);
   assert.match(shared,/!root\.contains\(event\.target\)&&!panel\.contains\(event\.target\)/);
   assert.match(shared,/panel\.remove\(\)/);
-  assert.match(workbench,/\.review-workbench__panel-host>\.review-stage-controls__panel/);
   assert.match(html,/data-review-stage-panel-host="\.motion-library-primary"/);
-  assert.match(html,/motion-library-primary review-workbench__library review-workbench__panel-host/);
+  assert.match(html,/motion-library motion-library-primary/);
+  assert.doesNotMatch(html,/motion-library-primary review-workbench__/);
 });
