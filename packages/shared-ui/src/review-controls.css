@@ -15,6 +15,7 @@
 .review-action-row{display:grid!important;grid-template-columns:repeat(var(--review-action-columns,1),minmax(0,1fr))!important;gap:5px!important}
 @media(max-width:520px){.review-choice-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important}.review-slot-tabs>button{padding-inline:4px!important}}
 
+.review-static-thumbnail{display:block;width:100%;height:100%;min-height:0;max-height:62px;filter:drop-shadow(0 3px 4px #0006);pointer-events:none}
 .review-runtime-thumbnail{display:block!important;width:100%!important;height:auto!important;max-width:100%!important;aspect-ratio:36/23!important;object-fit:cover!important;border-radius:5px!important;background:#101715!important;pointer-events:none!important}
 .review-choice-card>.review-runtime-thumbnail{min-width:0!important;align-self:start!important}
 
