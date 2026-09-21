@@ -1,9 +1,9 @@
 import {createDrivenBattleRuntime} from '@soul/johakyu-presentation';
 import {createJohakyuP7ReviewScenario} from './johakyu-p7-review.js';
 
-export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,onMeta=()=>{},evidence=false}){
+export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,onMeta=()=>{},evidence=false,mode='duel'}){
   const driven=createDrivenBattleRuntime({world,effects,stage,sound,notify,signal});
-  const scenario=createJohakyuP7ReviewScenario();
+  const scenario=createJohakyuP7ReviewScenario({mode});
   let disposed=false,raf=0,previous=0,current=null,trace=[],lastResumes=0,lastEncounter=1;
   function render(dt){
     if(disposed)return null;
