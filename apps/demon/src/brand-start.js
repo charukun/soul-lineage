@@ -1,7 +1,6 @@
 import {openBrandBootGate} from '@soul/shared-ui/boot-gate';
 
 await openBrandBootGate({
-  app:'demon',
   load:async report=>{
     const progress=document.getElementById('boot-progress');
     const update=()=>report((Number(progress?.value)||0)/(Number(progress?.max)||3));

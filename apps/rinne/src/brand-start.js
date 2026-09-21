@@ -9,7 +9,6 @@ const RINNE_STEPS=[
 ];
 
 await openBrandBootGate({
-  app:'rinne',
   load:async report=>{
     report(.08);
     const status=document.getElementById('boot-status');
