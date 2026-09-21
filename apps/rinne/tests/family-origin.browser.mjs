@@ -26,7 +26,8 @@ export async function chooseFamilyOrigin(page, {capture = null, checkCancel = fa
   const replace = dialog.locator('[data-replace-family]');
   if (await replace.count()) {
     assert.equal(await dialog.locator('[data-origin-confirm]').isDisabled(), true);
-    await replace.check();
+    await dialog.locator('.family-replace-oath').click();
+    assert.equal(await replace.isChecked(), true);
   }
   if (capture) await capture('family-origin-home.png');
   await dialog.locator('[data-origin-confirm]').click();
