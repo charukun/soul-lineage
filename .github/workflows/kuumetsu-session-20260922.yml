@@ -1,111 +1,141 @@
-name: Temporary kuumetsu observation transport 20260922
-# Task-scoped branch only. Never merge to develop/main. Read-only evidence audit.
+name: Temporary kuumetsu first-combat agency evidence 20260922
+# Task-scoped ops branch only. Never merge this workflow to develop/main.
 on:
   push:
     branches: [ops/kuumetsu-observe-20260922-01]
     paths: [.github/workflows/kuumetsu-session-20260922.yml]
 permissions:
   contents: read
-  actions: read
+  actions: write
   statuses: read
   pull-requests: read
-  issues: read
+env:
+  SOURCE_SHA: 3a9fd9fa1936776adc40a90023afb7cc34576573
 jobs:
-  audit:
+  publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
+    outputs:
+      preview: ${{ steps.publish.outputs.preview }}
+      publish_run: ${{ steps.publish.outputs.publish_run }}
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: f2266ceb84c39740559eac4b45696be7ed6d4394
+          ref: 3a9fd9fa1936776adc40a90023afb7cc34576573
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-      - name: Canonical current Actions summary first
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: mkdir -p final-audit && npm run actions:summary -- --repo charukun/soul-lineage --sha f2266ceb84c39740559eac4b45696be7ed6d4394 --pr 1345 --output final-audit/actions-summary.json > /tmp/actions-summary.log
-      - uses: actions/download-artifact@v4
-        with:
-          name: kuumetsu-before-native-armed-994f61b
-          run-id: 35647757372
-          github-token: ${{ github.token }}
-          path: /tmp/lineage-before
-      - uses: actions/download-artifact@v4
-        with:
-          name: kuumetsu-lineage-after-1345
-          run-id: 35650389669
-          github-token: ${{ github.token }}
-          path: /tmp/lineage-after
-      - name: Compare unchanged browser evidence to same-state authority
-        run: |
-          node --input-type=module - <<'JS'
-          import assert from 'node:assert/strict';
-          import {readFileSync,writeFileSync} from 'node:fs';
-          import {createHash} from 'node:crypto';
-          const load=p=>JSON.parse(readFileSync(p));
-          const hash=p=>createHash('sha256').update(readFileSync(p)).digest('hex');
-          const before=load('/tmp/lineage-before/observation.json'),after=load('/tmp/lineage-after/observation.json');
-          const originalComparison=load('/tmp/lineage-after/lineage-comparison.json');
-          assert.deepEqual(before.conditions,after.conditions);
-          const rows=[];
-          for(const [label,data,sha,url] of [
-            ['before',before,'994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c','https://a349204c-soul-lineage-demon-dev.c-okamoto.workers.dev/'],
-            ['after',after,'f2266ceb84c39740559eac4b45696be7ed6d4394','https://e9fa0ed1-soul-lineage-demon-dev.c-okamoto.workers.dev/']]){
-            assert.equal(data.sourceSha,sha);assert.equal(data.version.commit,sha);assert.equal(data.url,url);
-            assert.equal(data.success,true);assert.deepEqual(data.errors,[]);
-            assert.equal(hash(`/tmp/lineage-${label}/observer.mjs`),'5ff7fe476f281a38e2355d9d35cb179e36c5797ec73ea850ad3a256de237346b');
-            const stage=data.stages.find(s=>s.name==='05-lineage'),s=stage.snapshot,t=stage.text;
-            assert.equal(s.eaten,2);assert.equal(s.profile.currentLife.eaten,0);assert.equal(s.finished,false);
-            const carried=s.hunt.carried,hud=t.match(/^未確保 (\d+) · 帰還 (\d+)$/m);
-            assert.ok(Number.isSafeInteger(carried)&&carried>0);assert.ok(hud);assert.equal(Number(hud[1]),carried);
-            const display=Number(t.match(/^捕食 (\d+)$/m)?.[1]);
-            if(label==='before'){assert.equal(display,0);assert.doesNotMatch(t,/今回の狩り/);}
-            else{
-              assert.equal(display,s.profile.currentLife.eaten+s.eaten);
-              assert.ok(t.includes(`今回の狩り 捕食 ${s.eaten}`));
-              assert.ok(t.includes(`終了した狩り ${s.profile.currentLife.eaten} ＋ 今回 ${s.eaten}`));
-              const live=t.match(/^未確保の戦利品 (\d+) · 帰還で確保$/m);assert.ok(live);
-              assert.equal(Number(live[1]),carried,'lineage unbanked amount must equal native snapshot, not a fixed encounter yield');
-              const paused=data.stages.find(s=>s.name==='04-pause').snapshot;
-              assert.deepEqual(s.profile,paused.profile,'opening lineage must not change persisted profile');
-              assert.deepEqual(s.hunt,paused.hunt,'opening lineage must not change hunt authority');
-            }
-            rows.push({label,sourceSha:sha,reference:url,observedAt:stage.at,eaten:s.eaten,endedMeals:s.profile.currentLife.eaten,display,carried,hudCarried:Number(hud[1]),lineageImageSha256:hash(`/tmp/lineage-${label}/05-lineage.png`),failedRequests:data.failedRequests});
-          }
-          assert.equal(originalComparison.unbankedVisible,false,'retain the original fixed-four comparison failure');
-          assert.equal(rows[1].carried,5,'this audit concerns the existing captured run, not a rerun chosen for a different result');
-          writeFileSync('final-audit/evidence-audit.json',JSON.stringify({verdict:'supported',conditions:after.conditions,rows,observerByteIdentical:true,browserEvidenceModified:false,qualityGatesModified:false,originalComparison,correction:'Compare rendered unbanked amount to native snapshot.hunt.carried and HUD. Fresh procedural encounters yielded 4 before and 5 after; no reward/balance change is inferred.',visualReview:'Assistant inspected both 05-lineage.png screenshots in the conversation before this audit; live progress is visible without overlapping metrics or growth chips.'},null,2));
-          console.log('Immutable read-side prediction supported; original failure retained; no browser rerun or app changes.');
-          JS
-      - name: Read fresh exact-head merge gate
+      - name: Require canonical exact-head validation
         uses: actions/github-script@v8
         with:
           script: |
-            const fs=require('fs'),path=require('path'),{pathToFileURL}=require('url');
-            const head='f2266ceb84c39740559eac4b45696be7ed6d4394',base='29b88f5f077f645f52d27974540b420a1bbd9340';
-            const pr=(await github.rest.pulls.get({...context.repo,pull_number:1345})).data;
-            const develop=(await github.rest.repos.getBranch({...context.repo,branch:'develop'})).data;
-            const comparison=(await github.rest.repos.compareCommits({...context.repo,base:develop.commit.sha,head})).data;
-            const run=(await github.rest.actions.getWorkflowRun({...context.repo,run_id:35650326852})).data;
-            const statusResponse=(await github.rest.repos.getCombinedStatusForRef({...context.repo,ref:head})).data;
-            const reviews=await github.paginate(github.rest.pulls.listReviews,{...context.repo,pull_number:1345,per_page:100});
-            const comments=await github.paginate(github.rest.issues.listComments,{...context.repo,issue_number:1345,per_page:100});
-            if(!comments.some(c=>c.id===5767040659&&c.body.includes('premerge-evidence:kuumetsu:kuumetsu-live-lineage-20260922')&&c.body.includes(head)))throw new Error('Missing inspected premerge evidence/learning record');
-            const blockingDependencies=[pr.body,...comments.map(c=>c.body)].filter(body=>/^\s*(?:blocked by|depends on|hold|do not merge|manual merge only)\b/im.test(body||''));
-            const snapshot={fetchedAt:new Date().toISOString(),expected:{headSha:head,developSha:base},pr,develop,comparison,run,statusResponse,reviews,blockingDependencies};
-            const {evaluateMergeGate}=await import(pathToFileURL(path.resolve('.autonomous/lib/contract.mjs')).href);
-            const gate=evaluateMergeGate(snapshot);
-            const fresh=statusResponse.statuses.filter(s=>s.context==='astra/merge-freshness').sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at))[0];
-            if(fresh?.state!=='success'||fresh.target_url!==run.html_url){gate.eligible=false;gate.errors.push('LATEST_FRESHNESS_STATUS_REQUIRED');}
-            fs.writeFileSync('final-audit/merge-gate-snapshot.json',JSON.stringify(snapshot,null,2));
-            fs.writeFileSync('final-audit/merge-gate.json',JSON.stringify({...gate,fetchedAt:snapshot.fetchedAt,canonicalRunId:run.id,prDraft:pr.draft,reviewCount:reviews.length,blockingDependencyCount:blockingDependencies.length},null,2));
-            core.info('MERGE_GATE '+JSON.stringify(gate));
-            if(!gate.eligible)throw new Error('Repair same PR before Ready: '+gate.errors.join(', '));
+            const fs=require('fs');
+            const runs=(await github.rest.actions.listWorkflowRuns({...context.repo,workflow_id:'astra-work-validation.yml',head_sha:process.env.SOURCE_SHA,per_page:10})).data.workflow_runs;
+            const run=runs.find(r=>r.head_sha===process.env.SOURCE_SHA&&r.event==='push'&&r.status==='completed');
+            if(!run||run.conclusion!=='success')throw new Error('Canonical exact-head validation is not successful');
+            const statuses=(await github.rest.repos.getCombinedStatusForRef({...context.repo,ref:process.env.SOURCE_SHA})).data.statuses;
+            for(const name of ['astra/fast-dev-contract','astra/focused-validation','astra/merge-freshness']){
+              const latest=statuses.filter(s=>s.context===name).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at))[0];
+              if(latest?.state!=='success')throw new Error('Missing canonical success: '+name);
+            }
+            fs.mkdirSync('session-evidence',{recursive:true});
+            fs.writeFileSync('session-evidence/canonical-validation.json',JSON.stringify({runId:run.id,url:run.html_url,head:run.head_sha,conclusion:run.conclusion},null,2));
+      - name: Publish exact head through existing Per-App DEV Publish
+        id: publish
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs=require('fs');
+            const started=Date.now(),seen=new Set();
+            await github.rest.actions.createWorkflowDispatch({...context.repo,workflow_id:'dev-app-publish.yml',ref:'develop',inputs:{app:'demon',source_sha:process.env.SOURCE_SHA}});
+            for(let attempt=0;attempt<48;attempt++){
+              await new Promise(r=>setTimeout(r,15000));
+              const runs=(await github.rest.actions.listWorkflowRuns({...context.repo,workflow_id:'dev-app-publish.yml',event:'workflow_dispatch',per_page:15})).data.workflow_runs.filter(r=>Date.parse(r.created_at)>=started-3000);
+              for(const run of runs){
+                if(seen.has(run.id))continue;
+                const jobs=(await github.rest.actions.listJobsForWorkflowRun({...context.repo,run_id:run.id,per_page:30})).data.jobs;
+                const job=jobs.find(j=>j.name==='Publish demon DEV');
+                if(!job||job.status!=='completed')continue;
+                seen.add(run.id);
+                const response=await github.rest.actions.downloadJobLogsForWorkflowRun({...context.repo,job_id:job.id});
+                const log=typeof response.data==='string'?response.data:Buffer.from(response.data).toString('utf8');
+                const versionId=log.match(/Current Version ID:\s*([0-9a-f-]{36})/i)?.[1];
+                if(!versionId)continue;
+                const preview='https://'+versionId.slice(0,8)+'-soul-lineage-demon-dev.c-okamoto.workers.dev/';
+                const v=await(await fetch(new URL('version.json',preview))).json();
+                if(v.commit!==process.env.SOURCE_SHA)continue;
+                if(job.conclusion!=='success')throw new Error('Exact publication job failed: '+run.html_url);
+                const receipt={runId:run.id,jobId:job.id,url:run.html_url,sourceSha:process.env.SOURCE_SHA,versionId,preview,version:v,commitMatched:true,verifiedAt:new Date().toISOString()};
+                fs.writeFileSync('session-evidence/after-publication.json',JSON.stringify(receipt,null,2));
+                core.setOutput('preview',preview);core.setOutput('publish_run',String(run.id));
+                core.info('IMMUTABLE_AFTER '+preview+' '+v.commit);return;
+              }
+            }
+            throw new Error('Bounded exact-source publication wait elapsed');
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-lineage-final-audit-1345
-          path: final-audit
+          name: kuumetsu-first-combat-agency-publish-1370
+          path: session-evidence
+          retention-days: 14
+  observe:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 3a9fd9fa1936776adc40a90023afb7cc34576573
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium > /tmp/browser-install.log 2>&1
+      - name: Load existing native kuumetsu observer
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs=require('fs');
+            const r=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-session-observe.mjs',ref:context.sha});
+            fs.writeFileSync('session-observe.mjs',Buffer.from(r.data.content,'base64'));
+      - name: Same-condition immutable native After
+        env:
+          SOURCE_SHA: 3a9fd9fa1936776adc40a90023afb7cc34576573
+          PREVIEW_URL: ${{ needs.publish.outputs.preview }}
+        run: mkdir -p session-evidence && cp session-observe.mjs session-evidence/observer.mjs && node session-observe.mjs > session-evidence/browser.log 2>&1
+      - name: Evaluate first-combat agency success signals
+        run: |
+          node --input-type=module - <<'JS'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          const d=JSON.parse(readFileSync('session-evidence/observation.json'));
+          const entry=d.stages.find(s=>s.name==='02-hunt-entry');
+          const combat=d.stages.find(s=>s.snapshot?.combat);
+          const entryText=entry?.text||'',combatText=combat?.text||'';
+          const result={
+            sourceSha:d.sourceSha,
+            sourceMatched:d.version?.commit===d.sourceSha,
+            browserSuccess:d.success===true,
+            guideShowsAutoCombat:entryText.includes('近づく')&&entryText.includes('自動戦闘'),
+            guideShowsDisengage:entryText.includes('離れたい')&&entryText.includes('滑らせて距離を取る'),
+            automaticCombatObserved:!!combat,
+            combatReadoutShowsAgency:combatText.includes('自動戦闘 · スワイプで間合い'),
+            errors:d.errors||[],
+            failedRequests:d.failedRequests||[],
+            firstCombatStage:combat?.name||null,
+            observedAt:combat?.at||entry?.at||d.observedAt,
+            verdict:'supported'
+          };
+          if(!result.sourceMatched||!result.browserSuccess||!result.guideShowsAutoCombat||!result.guideShowsDisengage||!result.automaticCombatObserved||!result.combatReadoutShowsAgency||result.errors.length)result.verdict='inconclusive';
+          writeFileSync('session-evidence/agency-comparison.json',JSON.stringify(result,null,2));
+          console.log(JSON.stringify(result));
+          if(result.verdict!=='supported')throw new Error('After did not support all first-combat agency success signals');
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kuumetsu-first-combat-agency-after-1370
+          path: session-evidence
           retention-days: 14
