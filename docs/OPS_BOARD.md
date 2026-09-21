@@ -20,6 +20,7 @@ PULSE自身の同期障害と、ゲーム・ツールの公開状態は別レイ
 | staging / Production | 公開 `deployment-manifest.json` |
 | PULSE自身の公開 | `dev/pulse` status + `https://rinne-ops.c-okamoto.workers.dev/` |
 | PULSE同期ヘルス | `/api/state.syncStatus` |
+| 自律iteration進捗 | PR bodyの `autonomous-iteration-telemetry:v1` marker + GitHub Actions / merge事実 |
 
 GitHub Pages の旧 `/dev/` はDEVの正本ではありません。DEVの判定に使用しません。
 
@@ -69,12 +70,24 @@ PULSE snapshot、GitHub APIキャッシュ、control historyはDurable Objects�
 トップは ACTIVE / ITERATIONS / APPS / ISSUES / RECENT の5区画です。
 
 - ACTIVE: Draft / Ready のopen develop PR
-- ITERATIONS: 自律改善PRを `観測 → 実装 → 検証 → After → merge → DEV` の6段で表示
+- ITERATIONS: 自律改善の軽量サマリ。詳細は専用 `iterations.html` で1 iteration単位に表示
 - APPS: 全管理対象のDEV状態
 - ISSUES: 実際の失敗と人の確認が必要な項目。各異常から、現在GitHub状態を再確認して同じPRで修復するためのAIプロンプトをコピーできる
 - RECENT: 直近Fast DEVセッションを `実装 → 検証 → Browser → merge → DEV` の5段で表示し、セッション情報がない場合だけmerge・DEV公開・PULSE状態変化を表示
 
 トップのApps Healthyは管理対象7件を母数とし、各DEV実体の `version.json` を確認できたアプリをHealthyとして数えます。ゲーム3本だけを数えません。
+
+
+### Iterations専用ページ
+
+`iterations.html` は `runKey + iteration` を1件の表示単位とします。同一runKeyの1/3・2/3・3/3も別カードで、異なるrunKeyの並行セッションも混在させず識別します。
+
+各カードはtheme、improvement summary、root causes、changes、changed paths、PR、validated head、merge SHA、verdictを表示します。stepは `観測 / 原因分析 / 実装 / Causal / Astra / After / Verdict / Freshness / Merge / DEV` の10段です。
+
+telemetryに実測durationがあるstepは秒数を折れ線グラフで表示し、進行中stepだけ `startedAt` から現在時刻までをライブ計算します。未計測の旧iterationに秒数を推測して補いません。Astra/DEVなどGitHub Actionsに確定runがある場合は、その実run状態・時刻で補完できます。
+
+トップ画面は最大3件の軽量サマリに留め、詳細な改修内容・step timing・並行session確認は専用ページへ委譲します。
+
 
 ## 7. PULSE公開成功
 

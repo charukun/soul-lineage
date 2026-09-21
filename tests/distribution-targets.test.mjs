@@ -44,6 +44,7 @@ test('DEV distribution plan is app-scoped and fans shared dependencies out throu
   assert.deepEqual(shared.include,[
     {app:'character-studio',target:'web-dev'},{app:'demon',target:'web-dev'},{app:'rinne',target:'web-dev'},{app:'village',target:'web-dev'}
   ]);
+  assert.deepEqual(distributionPlanForDev(nodes,['scripts/autonomous-iteration-telemetry.mjs']),{apps:['pulse'],include:[{app:'pulse',target:'web-dev'}]});
   assert.deepEqual(distributionPlanForDev(nodes,['docs/PLATFORMS.md']),{apps:[],include:[]});
 });
 

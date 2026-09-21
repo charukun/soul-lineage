@@ -2,6 +2,13 @@ import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { stagingObservation, workerPreviewUrl } from './staging-preview.mjs';
+import {
+  ITERATION_TELEMETRY_SCHEMA,
+  advanceIterationTelemetry,
+  createIterationTelemetry,
+  iterationTelemetryId,
+  telemetryMarker,
+} from './autonomous-iteration-telemetry.mjs';
 
 const SHA=/^[0-9a-f]{40}$/;
 const VERSION=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -58,6 +65,13 @@ export function isolatedPublicationPlan({
     iteration:current,
     phase:stage,
     sourceSha:sha,
+    telemetry:Object.freeze({
+      schema:ITERATION_TELEMETRY_SCHEMA,
+      iterationId:iterationTelemetryId(key,current),
+      runKey:key,
+      iteration:current,
+      iterations:total,
+    }),
     dispatch:Object.freeze({
       workflow:'dev-app-publish.yml',
       ref:sha,
@@ -149,6 +163,34 @@ function jsonOption(args,name,fallback){
 }
 async function main(){
   const args=process.argv.slice(2),command=args[0];
+  if(command==='telemetry-init'){
+    const telemetry=createIterationTelemetry({
+      game:option(args,'--game'),
+      sourceSha:option(args,'--sha'),
+      runKey:option(args,'--run-key'),
+      iteration:option(args,'--iteration','1'),
+      iterations:option(args,'--iterations','1'),
+      startedAt:option(args,'--at',new Date().toISOString()),
+    });
+    process.stdout.write(JSON.stringify(telemetry,null,2)+'\n');
+    return;
+  }
+  if(command==='telemetry-advance'){
+    const state=JSON.parse(option(args,'--telemetry-json','{}'));
+    const next=advanceIterationTelemetry(state,{
+      from:option(args,'--from',state.currentStep),
+      to:option(args,'--to',null),
+      at:option(args,'--at',new Date().toISOString()),
+      completedState:option(args,'--completed-state','done'),
+      patch:jsonOption(args,'--patch-json',{}),
+    });
+    process.stdout.write(JSON.stringify(next,null,2)+'\n');
+    return;
+  }
+  if(command==='telemetry-marker'){
+    process.stdout.write(telemetryMarker(JSON.parse(option(args,'--telemetry-json','{}')))+'\n');
+    return;
+  }
   if(command==='plan'){
     const plan=isolatedPublicationPlan({
       game:option(args,'--game'),
@@ -187,6 +229,6 @@ async function main(){
     process.stdout.write(JSON.stringify(verified,null,2)+'\n');
     return;
   }
-  throw new Error('Usage: node scripts/autonomous-run-controller.mjs <plan|bind|verify> --game <village|kuumetsu|rinne> --sha <40-hex> --run-key <key> --iteration <n> --iterations <n> --phase <before|after> [--version <worker-version-id>] [--deployment-url <url>] [--conditions-json <json>] [--not-verified-json <json>]');
+  throw new Error('Usage: node scripts/autonomous-run-controller.mjs <plan|bind|verify|telemetry-init|telemetry-advance|telemetry-marker> ...');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)await main();

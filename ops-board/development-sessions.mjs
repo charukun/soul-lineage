@@ -1,3 +1,4 @@
+import { ITERATION_STEPS, readIterationTelemetry } from '../scripts/autonomous-iteration-telemetry.mjs';
 const RUNNING=new Set(['queued','in_progress','waiting','requested','pending']);
 const FAILED=new Set(['failure','timed_out','action_required','startup_failure','stale']);
 const at=value=>{const time=Date.parse(value||'');return Number.isFinite(time)?time:0;};
@@ -25,6 +26,11 @@ function browserRequired(pr){
 
 export function autonomousIterationMeta(pr={}){
   const title=String(pr?.title||''),body=String(pr?.body||''),text=title+'\n'+body;
+  const telemetry=readIterationTelemetry(body);
+  if(telemetry)return Object.freeze({
+    kind:'autonomous',game:telemetry.game,number:telemetry.iteration,iterations:telemetry.iterations,
+    runKey:telemetry.runKey,observationRecorded:telemetry.steps?.observation?.state==='done',telemetry,
+  });
   const explicit=/\bautonomous\s+iteration\b|\biteration\s*\d+\b|自律改善|Observation[- ]First|immutable\s+Before/i.test(text);
   if(!explicit)return null;
   const targets=Array.isArray(pr?.targetApps)?pr.targetApps:[];
@@ -34,7 +40,7 @@ export function autonomousIterationMeta(pr={}){
       :targetIds.has('rinne')||/rinne|百年転生/i.test(text)?'rinne':null;
   const number=title.match(/(?:iteration|イテレーション)\s*#?\s*(\d+)/i)?.[1]||body.match(/(?:iteration|イテレーション)\s*#?\s*(\d+)/i)?.[1]||null;
   const observationRecorded=/immutable\s+Before|Observation[- ]First|observation first|staging/i.test(text);
-  return Object.freeze({kind:'autonomous',game,number:number?Number(number):null,observationRecorded});
+  return Object.freeze({kind:'autonomous',game,number:number?Number(number):null,iterations:null,runKey:null,observationRecorded,telemetry:null});
 }
 
 function related(run,pr){
@@ -94,14 +100,43 @@ export function buildDevelopmentSessions(pulls=[],runs=[],{limit=8}={}){
       step('merge','merge',merged?'done':state==='Closed'?'problem':'waiting'),
       step('publish','DEV',merged?runState(publishRun,{required:true}):'waiting',publishRun),
     ];
-    const iterationSteps=autonomous?Object.freeze([
-      step('observation','観測',autonomous.observationRecorded?'done':'waiting'),
-      step('implementation','実装',implementationState),
-      step('validation','検証',runState(validationRun,{required:true}),validationRun),
-      step('after','After',browserState,browserRun),
-      step('merge','merge',merged?'done':state==='Closed'?'problem':'waiting'),
-      step('publish','DEV',merged?runState(publishRun,{required:true}):'waiting',publishRun),
-    ]):null;
+    let iterationSteps=null;
+    if(autonomous?.telemetry){
+      const telemetry=autonomous.telemetry;
+      iterationSteps=ITERATION_STEPS.map(definition=>{
+        const raw=telemetry.steps?.[definition.id]||{};
+        let stateValue=raw.state||'pending',run=null;
+        if(definition.id==='astraValidation'&&validationRun){
+          const actual=runState(validationRun,{required:true});
+          if(stateValue==='pending'||stateValue==='running'||actual==='problem')stateValue=actual;
+          run=validationRun;
+        }
+        if(definition.id==='merge'&&merged)stateValue='done';
+        if(definition.id==='devPublish'&&merged){
+          const actual=runState(publishRun,{required:true});
+          if(stateValue==='pending'||stateValue==='running'||actual==='problem')stateValue=actual;
+          run=publishRun;
+        }
+        return Object.freeze({
+          id:definition.id,label:definition.label,state:stateValue,
+          startedAt:raw.startedAt||run?.created_at||null,
+          completedAt:raw.completedAt||run?.updated_at||null,
+          durationMs:Number.isFinite(Number(raw.durationMs))?Number(raw.durationMs):null,
+          runId:run?.id||null,url:run?.html_url||null,
+          ...(raw.summary?{summary:raw.summary}:{}),
+        });
+      });
+      iterationSteps=Object.freeze(iterationSteps);
+    }else if(autonomous){
+      iterationSteps=Object.freeze([
+        step('observation','観測',autonomous.observationRecorded?'done':'waiting'),
+        step('implementation','実装',implementationState),
+        step('astraValidation','Astra',runState(validationRun,{required:true}),validationRun),
+        step('afterObservation','After',browserState,browserRun),
+        step('merge','Merge',merged?'done':state==='Closed'?'problem':'waiting'),
+        step('devPublish','DEV',merged?runState(publishRun,{required:true}):'waiting',publishRun),
+      ]);
+    }
     const failedAttempts=validations.filter(run=>FAILED.has(run.conclusion)).length;
     const updatedAt=[pr.updated_at,pr.merged_at,...matched.map(run=>run.updated_at||run.created_at)].filter(Boolean).sort((a,b)=>at(b)-at(a))[0]||null;
     sessions.push(Object.freeze({
@@ -115,4 +150,56 @@ export function buildDevelopmentSessions(pulls=[],runs=[],{limit=8}={}){
     if(sessions.length>=limit)break;
   }
   return Object.freeze(sessions);
+}
+
+
+function iterationView(session){
+  const telemetry=session.autonomous?.telemetry||null,steps=session.iterationSteps||[];
+  const running=steps.find(item=>item.state==='running');
+  const pending=steps.find(item=>item.state==='waiting'||item.state==='pending');
+  const problem=steps.find(item=>item.state==='problem');
+  const currentStep=telemetry?.currentStep||running?.id||(!session.mergeSha?pending?.id:null)||null;
+  const status=problem?'problem':session.mergeSha&&(steps.find(item=>item.id==='devPublish')?.state==='done')?'complete'
+    :session.mergeSha?'publishing':running?'running':session.status;
+  return Object.freeze({
+    id:telemetry?.iterationId||('pr:'+session.pr.number),
+    runKey:telemetry?.runKey||null,
+    game:session.autonomous?.game||null,
+    iteration:telemetry?.iteration||session.autonomous?.number||null,
+    iterations:telemetry?.iterations||session.autonomous?.iterations||null,
+    telemetry:telemetry?'recorded':'inferred',
+    theme:telemetry?.theme||null,
+    themeKey:telemetry?.themeKey||null,
+    improvementSummary:telemetry?.improvementSummary||null,
+    rootCauses:telemetry?.rootCauses||[],
+    changes:telemetry?.changes||[],
+    changedPaths:telemetry?.changedPaths||[],
+    experimentId:telemetry?.experimentId||null,
+    verdict:telemetry?.verdict||null,
+    currentStep,status,
+    startedAt:telemetry?.startedAt||null,
+    completedAt:telemetry?.completedAt||null,
+    updatedAt:telemetry?.updatedAt||session.updatedAt,
+    sourceSha:telemetry?.sourceSha||null,
+    validatedHead:telemetry?.validatedHead||session.validatedExactHead||null,
+    mergeSha:telemetry?.mergeSha||session.mergeSha||null,
+    pr:session.pr,
+    branch:session.branch,
+    title:session.title,
+    repairAttempts:session.repairAttempts,
+    targets:session.targets,
+    steps:Object.freeze(steps),
+  });
+}
+
+export function buildAutonomousIterations(pulls=[],runs=[],{limit=40}={}){
+  return Object.freeze(buildDevelopmentSessions(pulls,runs,{limit:Math.max(limit,40)})
+    .filter(session=>session.autonomous)
+    .map(iterationView)
+    .sort((a,b)=>{
+      const activeA=['running','active','publishing','problem'].includes(a.status)?0:1;
+      const activeB=['running','active','publishing','problem'].includes(b.status)?0:1;
+      return activeA-activeB||at(b.updatedAt)-at(a.updatedAt)||Number(b.pr?.number||0)-Number(a.pr?.number||0);
+    })
+    .slice(0,limit));
 }
