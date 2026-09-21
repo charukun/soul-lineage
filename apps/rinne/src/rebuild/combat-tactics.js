@@ -60,9 +60,12 @@ export function directionalDefenseFor(state,target){
 }
 
 export function resolveBodyIntent(state,living,primaryId){
-  const mind=tidebreakMindVectorFor(state),stamina=staminaPolicyFor(state),rows=(living||[]).filter(row=>!row.dead).map(enemy=>{const d=Math.hypot(enemy.x-state.position.x,enemy.z-state.position.z),defense=directionalDefenseFor(state,enemy),committed=(enemy.attackWindow||0)>0,ready=(enemy.cooldown||0)<=.12;let urgency=(committed?2.2:ready?1.05:0)+Math.max(0,2.6-d)*.42+(defense.sector==='back'?.55:defense.sector==='flank'?.25:0);urgency*=.35+.65*defense.awareness;return{enemy,d,defense,urgency};}).sort((a,b)=>b.urgency-a.urgency);
+  const mind=tidebreakMindVectorFor(state),stamina=staminaPolicyFor(state),rows=(living||[]).filter(row=>!row.dead).map(enemy=>{const d=Math.hypot(enemy.x-state.position.x,enemy.z-state.position.z),defense=directionalDefenseFor(state,enemy),committed=(enemy.attackWindow||0)>0,ready=(enemy.cooldown||0)<=.12;let urgency=(committed?2.2:ready?1.05:0)+Math.max(0,2.6-d)*.42+(defense.sector==='back'?.55:defense.sector==='flank'?.25:0);urgency*=.35+.65*defense.awareness;return{enemy,d,defense,urgency,committed};}).sort((a,b)=>b.urgency-a.urgency);
   const urgent=rows[0]||null;if(!stamina.allowOffense)return{mode:'recover',bodyTargetId:urgent?.enemy.id||primaryId,primaryTargetId:primaryId,vector:mind,stamina};
-  if(urgent&&urgent.enemy.id!==primaryId&&urgent.urgency>1.08){const mode=mind.counter>.7?'counter':mind.mobility>.72?'evade':'guard';return{mode,bodyTargetId:urgent.enemy.id,primaryTargetId:primaryId,vector:mind,stamina};}
+  // An expired enemy cooldown is readiness, not an incoming strike. Readiness can
+  // persist indefinitely; treating it as an interrupt starves automatic offense.
+  // Keep directional defense for an actual secondary attack's committed window.
+  if(urgent&&urgent.committed&&urgent.enemy.id!==primaryId&&urgent.urgency>1.08){const mode=mind.counter>.7?'counter':mind.mobility>.72?'evade':'guard';return{mode,bodyTargetId:urgent.enemy.id,primaryTargetId:primaryId,vector:mind,stamina};}
   return{mode:'attack',bodyTargetId:primaryId||urgent?.enemy.id||null,primaryTargetId:primaryId,vector:mind,stamina};
 }
 
