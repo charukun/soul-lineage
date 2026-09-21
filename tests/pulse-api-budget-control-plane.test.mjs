@@ -49,18 +49,18 @@ test('missed-wake watchdog is hourly and dispatches only after a Ready scan', ()
   assert.match(worker, /if \(!ready\.length\) return \{ dispatched: false, ready: 0 \}/);
 });
 
-test('PULSE keeps explicit refresh authenticated and cold-start recovery bounded', () => {
+test('PULSE retries rate limits exactly and rejects anonymous event refreshes', () => {
   const worker = text('ops-board/worker.mjs');
-  const client = text('ops-board/github-client.mjs');
+  assert.match(worker, /reconcileRetryAlarm/);
   assert.match(worker, /async alarm\(\)/);
-  assert.match(worker, /recoverPublic/);
-  assert.match(worker, /cold-start-public/);
-  assert.match(worker, /env\.OPS_GITHUB_TOKEN \? stub\.refresh\(source\) : stub\.recoverPublic/);
+  assert.match(worker, /refresh\('rate-limit-retry'\)/);
+  assert.match(worker, /if \(!env\.OPS_GITHUB_TOKEN\) return/);
   assert.match(worker, /if \(!token\) throw githubAuthError\(source\)/);
   assert.match(worker, /if \(!token && !env\.OPS_GITHUB_TOKEN\)/);
-  assert.match(client, /PUBLIC_REQUEST_CAP = 6/);
-  assert.match(client, /allowPublic = false/);
+  assert.match(worker, /if \(!state && env\.OPS_GITHUB_TOKEN\) state = await stub\.refresh\('cold-start'\)/);
+  assert.doesNotMatch(worker, /await stub\.getState\(\) \|\| await stub\.refresh\(eventReason\(request\)\)/);
 });
+
 test('PULSE exposes the API budget used by the current snapshot', () => {
   const app = text('ops-board/public/app.js');
   assert.match(app, /api\.requests/);
