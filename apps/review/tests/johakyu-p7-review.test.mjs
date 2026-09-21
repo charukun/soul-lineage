@@ -141,7 +141,7 @@ test('1v1 creates situational breathing room before re-engaging instead of perma
  assert.ok(trace.some(row=>row.type==='maneuver-start'&&['hit-withdrawal','guard-recoil','parried-recoil','countered-withdrawal','reset-angle'].includes(row.reason)),'an exchange must reshape spacing');
  assert.ok(sawMovingReset,'between-action footwork must be visible in canonical frames');
  assert.ok(maxDistance-minDistance>.45,`distance must breathe rather than pin: ${minDistance}..${maxDistance}`);
- assert.ok(offenseStarts.length>3);assert.ok(offenseStarts.every(row=>row.distance<=2.721),JSON.stringify(offenseStarts.slice(0,5)));
+ assert.ok(offenseStarts.length>3);assert.ok(offenseStarts.every(row=>row.distance<=3.161),JSON.stringify(offenseStarts.slice(0,5)));
  assert.ok(offenseStarts.some(row=>row.distance>2.35),'step-in attacks should be allowed to begin at the edge of measure before real contact');
  const starts=trace.filter(row=>row.type==='stage-start').map(row=>row.time),gaps=starts.slice(1).map((time,index)=>time-starts[index]);
  assert.ok(gaps.some(gap=>gap>.3),'combat rhythm needs at least one real settle/reposition gap');

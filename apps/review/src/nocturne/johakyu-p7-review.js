@@ -129,7 +129,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   function incomingThreat(actor,target){
     const incoming=target?actionState.get(target.id):null;if(!incoming||!incoming.motion.offense||incoming.impacted)return null;
     const progress=Math.max(0,(time-incoming.startedAt)/incoming.duration);
-    return progress<.56&&distanceBetween(positions,actor,target)<=CONTACT_REACH+.28?{state:incoming,progress}:null;
+    return progress<.56&&distanceBetween(positions,actor,target)<=2.95?{state:incoming,progress}:null;
   }
   function gateAction(actor,target,node){
     const kind=node.stage.step.kind,distance=distanceBetween(positions,actor,target),counterWindow=counterWindows.get(actor.id);
@@ -142,7 +142,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
       if(distance>COUNTER_PRESS_DISTANCE){setManeuver(actor,target,{reason:'counter-press',footwork:'chase',seconds:.5,stopDistance:COUNTER_PRESS_DISTANCE});return false;}
       maneuvers.delete(actor.id);return true;
     }
-    const attackFootwork=node.stage.step.footwork,launchDistance=['rush','chase','forward'].includes(attackFootwork)?2.72:['cross','spiral'].includes(attackFootwork)?2.64:ENGAGE_DISTANCE;
+    const attackFootwork=node.stage.step.footwork,launchDistance=attackFootwork==='cross'?3.16:attackFootwork==='spiral'?2.82:['rush','chase','forward'].includes(attackFootwork)?2.72:ENGAGE_DISTANCE;
     if(stageDamage(node.stage)>0&&distance>launchDistance){
       setManeuver(actor,target,{reason:'engage-range',footwork:distance>3.05?'chase':'forward',seconds:.85,stopDistance:launchDistance});return false;
     }
