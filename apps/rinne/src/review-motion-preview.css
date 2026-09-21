@@ -1,4 +1,4 @@
-.motion-quality{position:absolute;top:10px;left:10px;z-index:3;padding:5px 9px;border:1px solid #52665a;border-radius:6px;background:#101915dc;color:#d6eadb;font-size:12px;pointer-events:none}
+.motion-quality{position:absolute;top:10px;left:auto;right:10px;z-index:3;padding:5px 9px;border:1px solid #52665a;border-radius:6px;background:#101915dc;color:#d6eadb;font-size:12px;pointer-events:none}
 .motion-quality[data-state="DEGRADED"],.motion-quality[data-state="RIG_REQUIRED"]{border-color:#ac8c50;color:#f2d59b}
 .motion-quality[data-state="UNSUPPORTED"]{border-color:#9a635c;color:#f1b8ae}
 .motion-compatibility{margin-top:10px;border-top:1px solid #28312d;font-size:12px;order:5}

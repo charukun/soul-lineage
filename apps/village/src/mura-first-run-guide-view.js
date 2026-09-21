@@ -21,6 +21,7 @@ function createLayer(hidden){
    <strong id="muraFirstRunGuideTitle"></strong><p id="muraFirstRunGuideText" aria-live="polite"></p>
    <div class="muraFirstRunGuideFooter"><div class="muraFirstRunProgress" aria-label="チュートリアル進行"><i></i></div><span class="muraFirstRunCue" aria-live="polite"></span><button type="button" class="muraFirstRunReplay">もう一度見る</button><button type="button" class="muraFirstRunStart">やってみる</button><button type="button" class="muraFirstRunFinish">村を始める</button></div>
   </section>
+  <div class="muraFirstRunSpotlight" aria-hidden="true"></div><div class="muraFirstRunTrail" aria-hidden="true"><i></i></div>
   <div class="muraFirstRunFinger" aria-hidden="true"><i></i><b></b></div><div class="muraFirstRunRipple" aria-hidden="true"></div><div class="muraFirstRunDragStart" aria-hidden="true"></div><div class="muraFirstRunDragEnd" aria-hidden="true"></div>`;
  document.body.append(layer);
  return layer;
@@ -41,6 +42,47 @@ function centerOf(element,offset={x:0,y:0}){
 function placeMarker(node,point){
  node.style.left=`${Math.round(point.x)}px`;
  node.style.top=`${Math.round(point.y)}px`;
+}
+
+function focusRect(stage,element,canvas){
+ if(stage==='drag'||stage==='place'){
+  const rect=canvas.getBoundingClientRect(),width=Math.min(260,rect.width*.56),height=Math.min(180,rect.height*.28);
+  return{left:rect.left+(rect.width-width)/2,top:rect.top+rect.height*.55-height/2,width,height,right:rect.left+(rect.width+width)/2,bottom:rect.top+rect.height*.55+height/2};
+ }
+ const rect=element?.getBoundingClientRect?.();
+ return rect?{left:rect.left,top:rect.top,width:rect.width,height:rect.height,right:rect.right,bottom:rect.bottom}:null;
+}
+
+function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
+
+function placeCoach(card,stage,rect){
+ if(stage==='welcome'||stage==='done'||!rect){card.style.removeProperty('--mura-coach-left');card.style.removeProperty('--mura-coach-top');return;}
+ const margin=12,cardRect=card.getBoundingClientRect(),viewportWidth=innerWidth,viewportHeight=innerHeight;
+ const preferredAbove=rect.top-cardRect.height-18;
+ const top=preferredAbove>=margin?preferredAbove:Math.min(viewportHeight-cardRect.height-margin,rect.bottom+18);
+ const left=clamp(rect.left+rect.width/2-cardRect.width/2,margin,Math.max(margin,viewportWidth-cardRect.width-margin));
+ card.style.setProperty('--mura-coach-left',`${Math.round(left)}px`);
+ card.style.setProperty('--mura-coach-top',`${Math.round(Math.max(margin,top))}px`);
+}
+
+function placeSpotlight(node,rect){
+ if(!rect){node.hidden=true;return;}
+ node.hidden=false;
+ node.style.left=`${Math.round(rect.left-8)}px`;
+ node.style.top=`${Math.round(rect.top-8)}px`;
+ node.style.width=`${Math.round(rect.width+16)}px`;
+ node.style.height=`${Math.round(rect.height+16)}px`;
+}
+
+function animateTrail(node,from,to,reduced){
+ if(!from||!to||reduced||Math.hypot(to.x-from.x,to.y-from.y)<36)return;
+ node.hidden=false;placeMarker(node,from);
+ const dx=to.x-from.x,dy=to.y-from.y;
+ const animation=node.animate(
+  [{opacity:0,transform:'translate(-50%,-50%) scale(.65)'},{opacity:.9,offset:.18},{opacity:.78,transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(1)`,offset:.82},{opacity:0,transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.72)`}],
+  {duration:520,easing:'cubic-bezier(.2,.72,.26,1)'}
+ );
+ animation.onfinish=()=>{node.hidden=true;};
 }
 
 function setProgress(progress,step,stage,number){
@@ -104,24 +146,32 @@ async function animateDrag({finger,start,end,canvas,timing,reduced}){
 export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=false,timing}){
  const layer=createLayer(initiallyHidden);
  const nodes={
-  title:layer.querySelector('#muraFirstRunGuideTitle'),text:layer.querySelector('#muraFirstRunGuideText'),cue:layer.querySelector('.muraFirstRunCue'),step:layer.querySelector('.muraFirstRunStep'),progress:layer.querySelector('.muraFirstRunProgress'),
+  card:layer.querySelector('.muraFirstRunGuideCard'),title:layer.querySelector('#muraFirstRunGuideTitle'),text:layer.querySelector('#muraFirstRunGuideText'),cue:layer.querySelector('.muraFirstRunCue'),step:layer.querySelector('.muraFirstRunStep'),progress:layer.querySelector('.muraFirstRunProgress'),
   replay:layer.querySelector('.muraFirstRunReplay'),start:layer.querySelector('.muraFirstRunStart'),finish:layer.querySelector('.muraFirstRunFinish'),skip:layer.querySelector('.muraFirstRunSkip'),
+  spotlight:layer.querySelector('.muraFirstRunSpotlight'),trail:layer.querySelector('.muraFirstRunTrail'),
   finger:layer.querySelector('.muraFirstRunFinger'),ripple:layer.querySelector('.muraFirstRunRipple'),dragStart:layer.querySelector('.muraFirstRunDragStart'),dragEnd:layer.querySelector('.muraFirstRunDragEnd'),
  };
  const demoNodes=[nodes.finger,nodes.ripple,nodes.dragStart,nodes.dragEnd];
- let stage='welcome',target=null,demoTimer=0,hintTimer=0,acceptTimer=0,demoVersion=0,destroyed=false;
+ let stage='welcome',target=null,lastFocus=null,demoTimer=0,hintTimer=0,acceptTimer=0,demoVersion=0,destroyed=false;
 
  function clearTarget(){
   target?.classList?.remove('mura-first-run-target');
   target=null;
   document.body.classList.remove('mura-first-run-canvas-target');
  }
- function updateTarget(){
+ function updateTarget({transition=false}={}){
   clearTarget();
   target=targetFor(stage,canvas);
-  if(!target)return;
+  if(!target){nodes.spotlight.hidden=true;lastFocus=null;placeCoach(nodes.card,stage,null);return;}
   if(target===canvas)document.body.classList.add('mura-first-run-canvas-target');
   else{target.classList.add('mura-first-run-target');if(stage==='catalog')target.scrollIntoView({block:'nearest',inline:'nearest'});}
+  requestAnimationFrame(()=>{
+   if(destroyed)return;
+   const rect=focusRect(stage,target,canvas);if(!rect)return;
+   const focus={x:rect.left+rect.width/2,y:rect.top+rect.height/2};
+   if(transition)animateTrail(nodes.trail,lastFocus,focus,reduced);
+   lastFocus=focus;placeSpotlight(nodes.spotlight,rect);placeCoach(nodes.card,stage,rect);
+  });
  }
  function cancelDemo(){
   demoVersion++;
@@ -159,7 +209,7 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
   nodes.finish.hidden=next!=='done';
   nodes.replay.hidden=next==='welcome'||next==='done';
   nodes.cue.hidden=next==='welcome'||next==='done';
-  updateTarget();
+  updateTarget({transition:true});
   scheduleDemo();
  }
  function setHint(message,ms=2800){
@@ -194,6 +244,7 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
   cancelDemo();
   clearTimeout(hintTimer);clearTimeout(acceptTimer);
   clearTarget();
+  nodes.trail.getAnimations?.().forEach(animation=>animation.cancel());
   document.body.classList.remove('mura-first-run-active');
   layer.remove();
  }

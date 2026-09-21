@@ -5,7 +5,7 @@ import {RINNE_MOTION_REVIEW_DEFAULT_MODEL,RINNE_MOTION_REVIEW_MODELS} from './re
 import {createHumanoidPreview} from '@soul/rendering/humanoid-preview';
 import {createHumanoidPreviewConstraints} from '@soul/rendering/humanoid-preview-constraints';
 import {createReviewCameraPresetController,createReviewRenderer,disposeReviewObject,normalizeReviewSubject,positionReviewCamera} from '@soul/rendering';
-import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGORY_LABELS} from './review-motion-catalog.js';
+import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGORY_LABELS,reviewMotionDisplayName} from './review-motion-catalog.js';
 import {buildReviewMotionRegistry,motionRegistryCount,externalMotionRecords,dedupeSourceMotions} from './review-motion-registry.js';
 import {loadPinnedMotionSource,loadPinnedReviewTarget,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import {resolveReviewHumanoidDescriptor,createRigRequiredDccRoute} from './review-humanoid-calibrations.js';
@@ -23,7 +23,7 @@ const status=message=>{if(el('motion-status').textContent!==message)setReviewSta
 const renderer=createReviewRenderer(canvas,{exposure:1.05});
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1110);scene.fog=new THREE.Fog(0x0b1110,9,22);
 const camera=new THREE.PerspectiveCamera(38,1,.04,60),controls=new OrbitControls(camera,canvas);
-controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=.7;controls.maxDistance=12;
+controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=.9;controls.maxDistance=12;
 scene.add(new THREE.HemisphereLight(0xe3ece8,0x27312d,2.4));
 const key=new THREE.DirectionalLight(0xffe7bc,3.1);key.position.set(-4,7,5);scene.add(key);
 const rim=new THREE.DirectionalLight(0x9ac8d5,1.35);rim.position.set(5,4,-4);scene.add(rim);
@@ -35,7 +35,6 @@ let selectedModel=RINNE_MOTION_REVIEW_DEFAULT_MODEL,subject=null,targetScene=nul
 let filter='all',playing=false,speed=1,loop=true,last=performance.now(),loadSerial=0,selectSerial=0;
 let externalSource=null,externalTime=0,selectedDuration=0,ready=false,rootMotion='in-place',constraintMode='raw',stopped=false;
 const motionFailures=new Map(),thumbnailModelPromises=new Map(),categoryOrder=['all','recommended','life','move','parkour','combat','reaction','other'];
-const formatName=name=>String(name).replaceAll('_',' ').replace(/\s+/g,' ').trim();
 const categoryLabel=category=>REVIEW_MOTION_CATEGORY_LABELS[category]||category;
 const isExternal=()=>selected?.runtime?.kind==='pinned-motion-source';
 const playbackTime=()=>isExternal()?externalTime:Math.max(0,action?.time||0);
@@ -64,7 +63,7 @@ const motionCameraPresets=createReviewCameraPresetController({
   selector:'[data-motion-camera]',
   datasetKey:'motionCamera',
   initialPreset:'three-quarter',
-  applyPreset:id=>{if(subject)positionReviewCamera({camera,controls,root:subject,preset:id,padding:1.18,minDistance:.7,maxDistance:12});},
+  applyPreset:id=>{if(subject)positionReviewCamera({camera,controls,root:subject,preset:id,padding:1.5,minDistance:.9,maxDistance:12});},
 });
 function setCameraPreset(id){motionCameraPresets.set(id);}
 function syncPlaybackUI(){
@@ -84,11 +83,11 @@ function syncMotionCards(){
 }
 function syncSelectedMeta(){
   if(!selected)return;const row=selected;
-  el('motion-selected').textContent=formatName(row.name);
-  el('motion-meta').textContent=`source ${row.sourceRepository} @ ${row.sourceRevision} / ${row.sourcePath} / clip ${row.upstreamClipIndex} “${row.upstreamClipName}” / ${row.immutableHash} / ${row.author} / ${row.license}`;
+  el('motion-selected').textContent=row.displayName||reviewMotionDisplayName(row.name,row.index);
+  el('motion-meta').textContent=`source ${row.sourceRepository} @ ${row.sourceRevision} / ${row.sourcePath} / clip ${row.upstreamClipIndex}「${row.displayName||reviewMotionDisplayName(row.name,row.index)}」 / ${row.immutableHash} / ${row.author} / ${row.license}`;
   el('motion-license').href=row.licenseEvidence||row.licenseUrl||'./simulator/licenses/REVIEW_MOTION_SOURCES.txt';
   el('motion-origin').href=row.originalSource||'./simulator/licenses/REVIEW_MOTION_SOURCES.txt';
-  canvas.dataset.motionName=row.name;canvas.dataset.motionCategory=row.category;canvas.dataset.motionIdentity=row.sourceIdentity;
+  canvas.dataset.motionName=row.displayName||reviewMotionDisplayName(row.name,row.index);canvas.dataset.motionUpstreamName=row.upstreamClipName;canvas.dataset.motionCategory=row.category;canvas.dataset.motionIdentity=row.sourceIdentity;
 }
 function applyExternal(time){
   const result=targetAdapter.apply(externalSource.sample(selected.upstreamClipIndex,time),{rootMotion,mode:'preview'});
@@ -147,7 +146,7 @@ function renderMotionGrid(){
   if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty';empty.textContent=targetAdapter?'この分類のモーションはありません。':'モデルを準備しています。';root.append(empty);return;}
   for(const record of rows){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionIdentity=record.sourceIdentity;button.dataset.recommended=String(record.recommended);
-    const label=formatName(record.name),thumbnail=createRuntimeThumbnail(label);button.setAttribute('aria-label',label);button.title=label;button.append(thumbnail);
+    const label=record.displayName||reviewMotionDisplayName(record.name,record.index),thumbnail=createRuntimeThumbnail(label);button.setAttribute('aria-label',label);button.title=label;button.append(thumbnail);
     scheduleRuntimeThumbnail(thumbnail,`motion-pose:v1:${model.id}:${record.sourceIdentity}`,async()=>{
       const gltf=await loadReviewModelForThumbnail(model),poseRoot=cloneSkeleton(gltf.scene);
       if(record.runtime.kind==='kaykit-embedded'){
@@ -190,7 +189,7 @@ async function loadModel(model){
     targetConstraints=createHumanoidPreviewConstraints({root:gltf.scene,bones:targetAdapter.bones,profile:targetAdapter.profile,groundY:0});
     targetDccRoute=createRigRequiredDccRoute(model,targetAdapter.descriptor);
     targetClips=gltf.animations||[];mixer=new THREE.AnimationMixer(gltf.scene);mixer.addEventListener('finished',()=>{playing=false;syncPlaybackUI();});
-    const legacy=el('motion-legacy');legacy.replaceChildren(new Option('原版クリップを選択',''));targetClips.forEach((c,i)=>legacy.add(new Option(c.name,String(i))));legacy.disabled=!targetClips.length;
+    const legacy=el('motion-legacy');legacy.replaceChildren(new Option('原版クリップを選択',''));targetClips.forEach((c,i)=>legacy.add(new Option(reviewMotionDisplayName(c.name,i),String(i))));legacy.disabled=!targetClips.length;
     rebuildCatalog();canvas.dataset.motionSource='source-registry';canvas.dataset.motionModel=model.id;el('motion-load').value=1;el('motion-load').hidden=true;setCameraPreset('three-quarter');showCompatibility({status:targetAdapter.descriptor.status});
     const first=catalog.find(r=>r.sourceIdentity===previousIdentity)||catalog.find(r=>r.runtime.kind==='kaykit-embedded'&&/idle/i.test(r.name))||catalog[0];
     if(['PLAYABLE','DEGRADED'].includes(targetAdapter.descriptor.status))await selectMotion(first);
@@ -214,10 +213,10 @@ el('motion-legacy').addEventListener('change',e=>{
   const index=Number(e.target.value);if(e.target.value===''||!targetClips[index]||!mixer)return;
   ++selectSerial;selected=null;externalSource=null;mixer.stopAllAction();targetAdapter.reset();externalTime=0;const clip=targetClips[index];selectedDuration=clip.duration;
   action=mixer.clipAction(clip);action.reset().setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);action.clampWhenFinished=!loop;action.play();ready=true;playing=true;
-  el('motion-selected').textContent=formatName(clip.name);const source=selectedModel.source;
-  el('motion-meta').textContent=`source ${source.repository} @ ${source.revision} / ${source.path} / clip ${index} “${clip.name}” / git-sha1:${source.gitBlobSha} / ${selectedModel.license}`;
+  el('motion-selected').textContent=reviewMotionDisplayName(clip.name,index);const source=selectedModel.source;
+  el('motion-meta').textContent=`source ${source.repository} @ ${source.revision} / ${source.path} / clip ${index}「${reviewMotionDisplayName(clip.name,index)}」 / git-sha1:${source.gitBlobSha} / ${selectedModel.license}`;
   el('motion-license').href='https://creativecommons.org/publicdomain/zero/1.0/';el('motion-origin').href='https://kaylousberg.com/game-assets/characters-adventurers';
-  canvas.dataset.motionName=clip.name;canvas.dataset.motionIdentity='legacy:'+index+':'+clip.name;status('');showCompatibility({status:'NATIVE',applied:true});syncMotionCards();syncPlaybackUI();
+  canvas.dataset.motionName=reviewMotionDisplayName(clip.name,index);canvas.dataset.motionUpstreamName=clip.name;canvas.dataset.motionIdentity='legacy:'+index+':'+clip.name;status('');showCompatibility({status:'NATIVE',applied:true});syncMotionCards();syncPlaybackUI();
 });
 const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();motionCameraPresets.apply();},render:()=>renderer.render(scene,camera)});
 let frameId=0;
