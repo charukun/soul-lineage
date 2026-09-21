@@ -68,8 +68,9 @@ jobs:
             }
             await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
             await cdp.detach();
-            await expect(guide).toHaveAttribute('data-stage','place');
-            const afterDrag=await page.evaluate(()=>({pending:window.village.ui.pending?{...window.village.ui.pending}:null,count:window.village.world.objects.filter(o=>o.kind==='tent').length}));
+            await page.waitForTimeout(800);
+            const afterDrag=await page.evaluate(()=>({pending:window.village.ui.pending?{...window.village.ui.pending}:null,count:window.village.world.objects.filter(o=>o.kind==='tent').length,stage:document.querySelector('#muraFirstRunGuide')?.dataset.stage,text:document.querySelector('#muraFirstRunGuideText')?.textContent,cue:document.querySelector('.muraFirstRunCue')?.textContent}));
+            if(afterDrag.stage!=='place')throw new Error('guide did not advance after drag: '+JSON.stringify(afterDrag));
             report.drag={before,after:afterDrag};
             if(!afterDrag.pending)throw new Error('drag release committed placement');
             if(afterDrag.count!==before.count)throw new Error('drag release added a tent');
