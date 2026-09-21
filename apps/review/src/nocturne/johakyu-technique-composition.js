@@ -1,4 +1,5 @@
 import {BASIC_FORMS,ACTION_FORMS} from '@soul/game-data/combat-forms';
+import {resolveJohakyuMotion} from '@soul/johakyu-combat/motion-contract';
 
 export const REVIEW_TECHNIQUE_PHASES=Object.freeze(['jo','ha','kyu']);
 export const MAX_REVIEW_CHAIN=3;
@@ -15,13 +16,15 @@ function techniqueFromForm(id,name,form){
   const kinds=form?.kinds||['ready'],feet=form?.feet||[],charges=form?.charges||[];
   return Object.freeze({id,name,steps:Object.freeze(kinds.slice(0,3).map((kind,index)=>cloneStep(kind,feet[index],charges[index]))),rhythm:form?.rhythm||'flow',tempo:Number(form?.tempo)||1});
 }
-export function reviewTechniqueDefinition(id,{weapon='sword'}={}){
-  if(id===`basic.${weapon}`)return techniqueFromForm(id,BASIC_NAME[weapon]||'基本の型',BASIC_FORMS[weapon]||BASIC_FORMS.sword);
-  const form=ACTION_FORMS[id];return form?techniqueFromForm(id,ACTION_NAME[id]||id,form):null;
+export function reviewTechniqueDefinition(id,{weapon='sword',phase='jo'}={}){
+  const form=id===`basic.${weapon}`?(BASIC_FORMS[weapon]||BASIC_FORMS.sword):ACTION_FORMS[id];if(!form)return null;
+  const technique=techniqueFromForm(id,id===`basic.${weapon}`?(BASIC_NAME[weapon]||'基本の型'):(ACTION_NAME[id]||id),form);
+  const supported=technique.steps.every(step=>resolveJohakyuMotion({weapon,kind:step.kind,charge:step.charge,phase}).supported);
+  return supported?technique:null;
 }
 export function createCanonicalReviewComposition({weapon='sword'}={}){
   const ids={jo:[`basic.${weapon}`,'action.feint'],ha:['action.guard-step','action.counter','action.flow'],kyu:['action.lunge','action.finish']};
-  return Object.freeze(Object.fromEntries(REVIEW_TECHNIQUE_PHASES.map(phase=>[phase,Object.freeze(ids[phase].map(id=>reviewTechniqueDefinition(id,{weapon})).filter(Boolean).slice(0,MAX_REVIEW_CHAIN))])));
+  return Object.freeze(Object.fromEntries(REVIEW_TECHNIQUE_PHASES.map(phase=>[phase,Object.freeze(ids[phase].map(id=>reviewTechniqueDefinition(id,{weapon,phase})).filter(Boolean).slice(0,MAX_REVIEW_CHAIN))])));
 }
 export function reviewTechniqueStageLabel(technique,index){return Object.freeze({phaseLabel:null,technique:technique.name,stage:index+1,stageLabel:`${index+1}段`,step:technique.steps[index]??null});}
 export function reviewChainLabel(phase,composition){const count=composition?.[phase]?.length||0;return`${PHASE_LABEL[phase]||phase}・${count}連`;}
