@@ -102,7 +102,7 @@ function handlePlacementRelease(ctx,gesture){
    ctx.guide.setHint(`そこには置けません。「${ctx.ui.pending.error}」なので、少し場所をずらしてください。`,3800);
    return;
   }
-  accept(ctx,'place','場所が決まりました。ここで短く1回タップすると置けます。');
+  accept(ctx,'place','中央のテント位置でよければ、短く1回タップすると置けます。');
   return;
  }
  requestAnimationFrame(()=>requestAnimationFrame(()=>verifyPlacement(ctx)));
@@ -116,7 +116,7 @@ function verifyPlacement(ctx){
   ctx.guide.setHint(`そこには置けません。「${ctx.ui.pending.error}」なので、少し場所をずらしてから短くタップ。`,3800);
   return;
  }
- ctx.guide.setHint('空いている場所を短く1回タップすると置けます。');
+ ctx.guide.setHint('中央に見えている位置で、短く1回タップすると置けます。');
 }
 
 function onPointerFinish(ctx,event){

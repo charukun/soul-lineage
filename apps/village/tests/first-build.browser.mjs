@@ -33,12 +33,22 @@ async function finishFirstRunGuide(page, expect) {
   // Historical placement feel: drag only moves the candidate, release keeps it pending,
   // then a short tap commits at the displayed location.
   await expect.poll(()=>page.evaluate(()=>window.village.ui.pending?.error||null)).toBe(null);
-  const beforeDrag=await page.evaluate(()=>({...window.village.ui.pending}));
+  const beforeDrag=await page.evaluate(()=>{
+    const v=window.village,r=v.view.canvas.getBoundingClientRect();
+    const p=v.view.project(v.ui.pending.x,0,v.ui.pending.z);
+    return{pending:{...v.ui.pending},target:{x:v.view.target.x,z:v.view.target.z},screen:{x:r.left+p.x,y:r.top+p.y},center:{x:r.left+r.width/2,y:r.top+r.height/2}};
+  });
   await dragPlacement(page,54,34);
   await expect(guide).toHaveAttribute('data-stage','place');
-  const afterDrag=await page.evaluate(()=>window.village.ui.pending?({...window.village.ui.pending}):null);
-  expect(afterDrag).not.toBeNull();
-  expect(Math.hypot(afterDrag.x-beforeDrag.x,afterDrag.z-beforeDrag.z)).toBeGreaterThan(.01);
+  const afterDrag=await page.evaluate(()=>{
+    const v=window.village,r=v.view.canvas.getBoundingClientRect();
+    const p=v.view.project(v.ui.pending.x,0,v.ui.pending.z);
+    return{pending:v.ui.pending?({...v.ui.pending}):null,target:{x:v.view.target.x,z:v.view.target.z},screen:{x:r.left+p.x,y:r.top+p.y},center:{x:r.left+r.width/2,y:r.top+r.height/2}};
+  });
+  expect(afterDrag.pending).not.toBeNull();
+  expect(Math.hypot(afterDrag.target.x-beforeDrag.target.x,afterDrag.target.z-beforeDrag.target.z)).toBeGreaterThan(.01);
+  expect(Math.hypot(afterDrag.pending.x-beforeDrag.pending.x,afterDrag.pending.z-beforeDrag.pending.z)).toBeGreaterThan(.01);
+  expect(Math.hypot(afterDrag.screen.x-afterDrag.center.x,afterDrag.screen.y-afterDrag.center.y)).toBeLessThan(28);
   expect(await page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
   await tapPlacement(page);
   await expect(guide).toHaveAttribute('data-stage','done');
