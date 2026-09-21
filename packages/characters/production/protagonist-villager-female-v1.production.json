@@ -1,0 +1,65 @@
+{
+  "schema": "character-production",
+  "version": 2,
+  "id": "protagonist.villager.female.v1",
+  "stage": "PRIMARY",
+  "modelingMode": "dcc-blender",
+  "license": "CC0-1.0",
+  "source": {
+    "referencePaths": [
+      "docs/characters/references/protagonist-villager-female-v1.svg"
+    ],
+    "meshPath": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb",
+    "integrityPath": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json",
+    "rigId": "kaykit.Rig_Medium.v1",
+    "rigProvenance": "Derived from repository-local protagonist.villager.v1; KayKit Character Pack Adventures 1.0 Rig_Medium at revision 672074b73ba276876a19e8816ecdc5241817ab47, CC0-1.0.",
+    "dcc": {
+      "tool": "Blender",
+      "version": "4.0.2",
+      "sourcePath": "assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend",
+      "sourceSha256": "bdbc8ff238069ab7b8470023d8e627dc0074a3db8a505b05113581448f37b5a1"
+    }
+  },
+  "evidence": {
+    "reference": {
+      "intentLocked": true,
+      "views": [
+        "front",
+        "side",
+        "back"
+      ]
+    },
+    "blockout": {
+      "views": [
+        "front",
+        "side",
+        "back",
+        "three-quarter"
+      ],
+      "proportionsReviewed": true,
+      "silhouetteReviewed": true,
+      "reviewEvidence": "docs/characters/qa/protagonist-villager-female-v1/"
+    },
+    "primary": {
+      "topologyReviewed": true,
+      "uvReviewed": true,
+      "separateSurfaces": [
+        "skin",
+        "hair",
+        "clothing",
+        "source-protagonist-kaykit-parts"
+      ],
+      "auditPath": "docs/characters/qa/protagonist-villager-female-v1/blender-audit.json",
+      "meshObjects": 13,
+      "triangles": 4596,
+      "materials": 7
+    }
+  },
+  "status": {
+    "visualApproval": "pending",
+    "productionReady": false,
+    "licensePolicy": "allowed-cc0",
+    "distributionEligible": true,
+    "note": "Female protagonist DCC variant preserves shared Rig_Medium gameplay contract. PRIMARY only; deformation, motion, polish, device performance and explicit human visual approval remain pending."
+  }
+}

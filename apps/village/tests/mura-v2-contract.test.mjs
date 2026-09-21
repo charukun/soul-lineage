@@ -30,7 +30,7 @@ test('population, storage, construction and aging contracts stay enabled',()=>{
 // Interaction assertions live in pointer-input.test.mjs and the touch-driven
 // playthrough.browser.mjs. These checks only guard retained bootstrap contracts.
 test('climate and the existing mayor model remain enabled',()=>{
- const source=read('mura-v2-ui.js');assert.match(source,/currentClimate/);assert.match(source,/叡智豊満_MayorRegalia/);
+ const source=read('mura-v2-ui.js');assert.match(source,/currentClimate/);assert.match(source,/宝満叡智_MayorRegalia/);
 });
 test('entry and explicit interface bootstrap remain enabled',()=>{
  const source=read('mura-entry-polish.js');assert.match(source,/muraEntryCard/);assert.match(source,/muraEnterVillage/);

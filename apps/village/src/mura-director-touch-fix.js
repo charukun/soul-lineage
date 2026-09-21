@@ -1,5 +1,5 @@
 const village=window.village;
-if(!village)throw new Error('叡智豊満 director touch fix requires a booted village');
+if(!village)throw new Error('宝満叡智 director touch fix requires a booted village');
 
 const style=document.createElement('style');
 style.dataset.muraDirectorTouchFix='1';

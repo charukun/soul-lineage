@@ -1,3 +1,4 @@
+import {CURATED_REVIEW_SOUNDS} from './review-curated-library.js';
 import {selectTracks} from '@soul/audio';
 import {audioURLs} from '@soul/audio/urls';
 import {combatSfxURLs} from '@soul/audio/sfx-urls';
@@ -48,7 +49,7 @@ const bgm=selectTracks({game:'rinne'}).map(track=>Object.freeze({
   description:track.description,productionStatus:track.productionStatus,
   commercialClearance:track.commercialClearance,licenseStatus:track.licenseStatus
 }));
-export const RINNE_SOUND_REVIEW_LIBRARY=Object.freeze([...sfx,...kenneySfx,...kenneyExpansionSfx,...bgm]);
+export const RINNE_SOUND_REVIEW_LIBRARY=Object.freeze([...sfx,...kenneySfx,...kenneyExpansionSfx,...CURATED_REVIEW_SOUNDS,...bgm]);
 const searchable=item=>[item.id,item.kind,item.title,item.category,item.scene,item.description,item.source].filter(Boolean).join(' ').toLocaleLowerCase('ja');
 export function filterSoundReviewLibrary({kind='all',query=''}={}){
   const normalized=String(query).trim().toLocaleLowerCase('ja');

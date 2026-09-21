@@ -14,14 +14,13 @@ const GROUPS = Object.freeze([
 
 const DETAIL_GROUPS = GROUPS.filter(([id]) => id !== 'model');
 
-const REVIEW_CRITERIA = Object.freeze([
-  ['silhouette', 'シルエット'],
-  ['collision', '干渉'],
-  ['face', '顔'],
-  ['age', '年齢差'],
-  ['variation', '個体差'],
-  ['distance', 'ゲーム距離']
+export const REVIEW_SECTIONS = Object.freeze([
+  Object.freeze({ id: 'overall', label: '全体', groups: Object.freeze(['individual','age']) }),
+  Object.freeze({ id: 'face', label: '顔', groups: Object.freeze(['hair','eyes','skin']) }),
+  Object.freeze({ id: 'outfit', label: '服・パーツ', groups: Object.freeze(['part','variant','dye']) })
 ]);
+
+const sectionForGroup = id => REVIEW_SECTIONS.find(section => section.groups.includes(id)) || REVIEW_SECTIONS[0];
 
 function sourceLabel(source) {
   const copy = source.cloneNode(true);
@@ -74,7 +73,6 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const actions = doc.querySelector('.stage-actions');
   const frameButton = doc.getElementById('frame-model');
   const subjectRow = doc.querySelector('.subject-row');
-  const stageHead = doc.querySelector('.stage-head');
   const canvasWrap = doc.querySelector('.canvas-wrap');
   const cameraDock = doc.createElement('div');
   cameraDock.className = 'character-review-camera-dock review-surface__stage-tools';
@@ -105,35 +103,39 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   if (stageStatus) stageStatus.classList.add('review-surface__stage-status');
   if (canvasWrap && stageStatus && !canvasWrap.contains(stageStatus)) canvasWrap.append(stageStatus);
   if (actions) actions.hidden = true;
-  if (subjectRow && stageHead && !stageHead.contains(subjectRow)) {
-    subjectRow.classList.add('character-review-pager');
-    stageHead.append(subjectRow);
-  }
+  if (subjectRow) subjectRow.classList.add('character-review-pager','character-review-target-pager');
   const make = (tag, className, text = '') => {
     const node = doc.createElement(tag); node.className = className; node.textContent = text; return node;
   };
   const attr = (node, name, value) => { if (node.getAttribute(name) !== String(value)) node.setAttribute(name, String(value)); };
   const text = (node, value) => { if (node.textContent !== value) node.textContent = value; };
   const root = make('section', 'character-review-picker'); root.id = 'character-review-picker';
-  root.setAttribute('aria-label', 'キャラクターモデルと確認項目');
-  const modelPicker = make('section', 'character-model-picker'); modelPicker.setAttribute('aria-label', 'モデルを選ぶ');
+  root.setAttribute('aria-label', 'キャラクターモデル一覧とレビュー');
+  const modelPicker = make('section', 'character-model-picker character-model-browser'); modelPicker.setAttribute('aria-label', '使えるキャラクターモデル');
   const modelHeading = make('div', 'character-model-picker-heading');
-  modelHeading.append(make('strong', '', 'モデルを選ぶ'), make('span', 'character-model-picker-current', '読込中'));
-  const modelList = make('select', 'character-model-list'); modelList.setAttribute('aria-label', 'キャラクターモデル候補');
-  modelPicker.append(modelHeading, modelList);
-  const slots = make('nav', 'character-review-slots review-slot-tabs'); slots.setAttribute('role', 'tablist'); slots.setAttribute('aria-label', '詳細レビュー項目');
-  const criteria = make('div', 'character-review-criteria');
-  criteria.setAttribute('aria-label', '確認観点');
-  criteria.append(make('span', 'character-review-criteria-label', '確認観点'));
-  for (const [, label] of REVIEW_CRITERIA) criteria.append(make('span', 'character-review-criterion', label));
+  modelHeading.append(make('strong', '', 'キャラモデル'), make('span', 'character-model-picker-current', '読込中'));
+  const modelGrid = make('div', 'character-model-grid review-choice-grid'); modelGrid.setAttribute('role', 'listbox'); modelGrid.setAttribute('aria-label', 'キャラクターモデル一覧');
+  modelPicker.append(modelHeading, modelGrid);
+  const tools = make('div', 'character-review-tools character-model-review-actions'); tools.setAttribute('aria-label', 'モデルレビュー操作');
+  const prevModelButton = make('button', 'character-model-nav', '‹ 前'); prevModelButton.type = 'button';
+  const okButton = make('button', 'character-review-decision character-review-decision--ok', 'OK'); okButton.type = 'button'; okButton.dataset.reviewDecision = 'ok';
+  const fixButton = make('button', 'character-review-decision character-review-decision--fix', '要修正'); fixButton.type = 'button'; fixButton.dataset.reviewDecision = 'fix';
+  const nextModelButton = make('button', 'character-model-nav character-model-nav--next', '次 ›'); nextModelButton.type = 'button';
+  tools.append(prevModelButton, okButton, fixButton, nextModelButton);
+  const details = make('details', 'character-review-details');
+  const detailsSummary = make('summary', 'character-review-details-summary', '詳細確認');
+  const detailsBody = make('div', 'character-review-details-body');
+  if (subjectRow) detailsBody.append(subjectRow);
+  const sectionTabs = make('nav', 'character-review-section-tabs'); sectionTabs.setAttribute('role', 'tablist'); sectionTabs.setAttribute('aria-label', '確認する範囲');
+  const slots = make('nav', 'character-review-slots review-slot-tabs'); slots.setAttribute('role', 'tablist'); slots.setAttribute('aria-label', '確認する項目');
   const heading = make('div', 'character-review-current review-selection-current'); heading.id = 'character-review-current'; heading.setAttribute('role', 'status');
   const panel = make('section', 'character-review-candidates'); panel.id = 'character-review-candidates'; panel.setAttribute('role', 'tabpanel');
   const grid = make('div', 'character-review-grid review-choice-grid'); grid.setAttribute('role', 'group'); grid.setAttribute('aria-labelledby', heading.id);
   const empty = make('p', 'character-review-empty', 'モデルを読み込んでいます。'); panel.append(grid, empty);
-  const tools = make('div', 'character-review-tools review-action-row'); tools.setAttribute('aria-label', 'レビュー操作');
-  root.append(modelPicker, criteria, slots, heading, panel, tools); controls.prepend(root);
-  const state = { active: 'individual', camera: 'front', framed: false, autoFit: true, queued: false, signature: '', modelSignature: '', groups: [] };
-  const slotNodes = new Map();
+  detailsBody.append(sectionTabs, slots, heading, panel); details.append(detailsSummary, detailsBody);
+  root.append(modelPicker, tools, details); controls.prepend(root);
+  const state = { section: 'overall', active: 'individual', camera: 'front', framed: false, autoFit: true, queued: false, signature: '', modelSignature: '', groups: [], modelVerdicts: new Map() };
+  const sectionNodes = new Map(), slotNodes = new Map();
   const review = () => win.characterStudio?.review;
   const fit = () => { if (review()?.ready && state.autoFit) review().aim(state.camera === 'free' ? 'front' : state.camera); };
   const fitAfterLayout = () => { win.requestAnimationFrame(() => win.requestAnimationFrame(fit)); };
@@ -143,8 +145,29 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   };
   function activate(id, focus = false) {
     if (state.active !== id) { state.active = id; state.signature = ''; panel.scrollTop = 0; }
-    sync(); if (focus) slotNodes.get(id).button.focus();
+    state.section = sectionForGroup(id).id;
+    sync(); if (focus) slotNodes.get(id)?.button.focus();
   }
+  function activateSection(id, focus = false) {
+    const section = REVIEW_SECTIONS.find(row => row.id === id) || REVIEW_SECTIONS[0];
+    state.section = section.id;
+    if (!section.groups.includes(state.active)) state.active = section.groups[0];
+    state.signature = ''; panel.scrollTop = 0; sync();
+    if (focus) sectionNodes.get(section.id)?.focus();
+  }
+  for (const section of REVIEW_SECTIONS) {
+    const button = make('button', 'character-review-section'); button.type = 'button'; button.id = `character-section-${section.id}`;
+    button.setAttribute('role', 'tab'); button.setAttribute('aria-controls', slots.id || 'character-review-slots');
+    button.textContent = section.label; button.addEventListener('click', () => activateSection(section.id)); sectionTabs.append(button);
+    sectionNodes.set(section.id, button);
+  }
+  sectionTabs.addEventListener('keydown', event => {
+    const entries = [...sectionNodes.values()], current = entries.indexOf(event.target);
+    if (current < 0 || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+    event.preventDefault(); const next = gridFocusIndex(entries.map(() => ({disabled:false})), current, event.key, REVIEW_SECTIONS.length);
+    activateSection(REVIEW_SECTIONS[next].id, true);
+  });
+  slots.id = 'character-review-slots';
   for (const [id, label] of DETAIL_GROUPS) {
     const button = make('button', 'character-review-slot'); button.type = 'button'; button.id = `character-slot-${id}`;
     button.setAttribute('role', 'tab'); button.setAttribute('aria-controls', panel.id);
@@ -153,16 +176,32 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     slotNodes.set(id, { button, value });
   }
   slots.addEventListener('keydown', event => {
-    const entries = [...slotNodes.values()].map(row => row.button), current = entries.indexOf(event.target);
-    if (current < 0 || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
-    event.preventDefault(); const next = gridFocusIndex(entries, current, event.key); activate(DETAIL_GROUPS[next][0], true);
+    const ids = sectionForGroup(state.active).groups;
+    const entries = ids.map(id => slotNodes.get(id)?.button).filter(Boolean), current = entries.indexOf(event.target);
+    if (current < 0 || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+    event.preventDefault(); const next = gridFocusIndex(entries.map(button => ({ disabled: button.disabled })), current, event.key, entries.length);
+    activate(ids[next], true);
   });
-  const actionNodes = ['quality-mark'].map(id => {
-    const source = doc.getElementById(id); if (!source) return null;
-    const button = make('button', 'character-review-action'); button.type = 'button'; button.dataset.reviewAction = id;
-    button.addEventListener('click', () => { if (!source.matches(':disabled')) source.click(); schedule(); });
-    tools.append(button); return { source, button, id };
-  }).filter(Boolean);
+  const currentModelGroup = () => state.groups.find(item => item.id === 'model');
+  const currentModelOption = () => currentModelGroup()?.options.find(option => option.selected) || currentModelGroup()?.options[0];
+  const stepModel = delta => {
+    const group = currentModelGroup(); if (!group?.options.length) return;
+    const current = Math.max(0, group.options.findIndex(option => option.selected));
+    let next = current;
+    for (let i = 0; i < group.options.length; i++) {
+      next = (next + delta + group.options.length) % group.options.length;
+      if (!group.options[next].disabled) { choose(group, group.options[next]); return; }
+    }
+  };
+  const applyDecision = verdict => {
+    const option = currentModelOption(); if (!option || option.disabled) return;
+    state.modelVerdicts.set(option.key, verdict); schedule();
+    stepModel(1);
+  };
+  prevModelButton.addEventListener('click', () => stepModel(-1));
+  nextModelButton.addEventListener('click', () => stepModel(1));
+  okButton.addEventListener('click', () => applyDecision('ok'));
+  fixButton.addEventListener('click', () => applyDecision('fix'));
   function choose(group, option) {
     // Re-check the live source; a load/rebuild may have started since the last paint.
     if (!review()?.ready || !option.source.isConnected || option.source.matches(':disabled')) return;
@@ -174,17 +213,28 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     schedule();
   }
   function renderModelOptions(group) {
-    const hadFocus = doc.activeElement === modelList;
-    modelList.replaceChildren(...group.options.map(option => {
-      const item = new Option(option.label, option.key, option.selected, option.selected);
-      item.disabled = option.disabled; item.title = option.fullLabel; return item;
+    const focused = modelGrid.contains(doc.activeElement) ? doc.activeElement?.dataset.modelKey : null;
+    modelGrid.replaceChildren(...group.options.map((option, index) => {
+      const button = make('button', 'character-model-card'); button.type = 'button'; button.dataset.modelKey = option.key; button.dataset.modelIndex = String(index);
+      button.disabled = option.disabled; button.title = option.fullLabel; button.setAttribute('role', 'option'); button.setAttribute('aria-label', option.fullLabel);
+      button.setAttribute('aria-selected', String(option.selected));
+      const icon = make('span', 'character-model-card-icon', ''); icon.setAttribute('aria-hidden', 'true');
+      const label = make('span', 'character-model-card-label', option.label);
+      const verdict = make('span', 'character-model-card-verdict', '');
+      const stateVerdict = state.modelVerdicts.get(option.key);
+      if (stateVerdict) { button.dataset.verdict = stateVerdict; verdict.textContent = stateVerdict === 'ok' ? 'OK' : '要修正'; }
+      button.append(icon, label, verdict);
+      button.addEventListener('click', () => choose(group, option)); return button;
     }));
-    if (hadFocus) modelList.focus({ preventScroll: true });
+    const buttons = [...modelGrid.children], selected = group.options.findIndex(option => option.selected && !option.disabled);
+    buttons.forEach((button, index) => { button.tabIndex = index === (selected >= 0 ? selected : 0) ? 0 : -1; });
+    if (focused !== null) buttons.find(button => button.dataset.modelKey === focused && !button.disabled)?.focus({ preventScroll: true });
   }
-  modelList.addEventListener('change', () => {
-    const group = state.groups.find(item => item.id === 'model');
-    const option = group?.options.find(item => item.key === modelList.value);
-    if (group && option) choose(group, option);
+  modelGrid.addEventListener('keydown', event => {
+    const buttons = [...modelGrid.children], current = buttons.indexOf(event.target);
+    if (current < 0 || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
+    event.preventDefault(); const next = gridFocusIndex(buttons.map(button => ({ disabled: button.disabled })), current, event.key);
+    buttons.forEach((button, index) => { button.tabIndex = index === next ? 0 : -1; }); buttons[next]?.focus();
   });
 
   function renderOptions(group) {
@@ -214,10 +264,15 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     const modelGroup = state.groups.find(item => item.id === 'model');
     const modelSignature = JSON.stringify(modelGroup.options.map(({ key, label, fullLabel, selected, disabled }) => [key,label,fullLabel,selected,disabled]));
     if (modelSignature !== state.modelSignature) { state.modelSignature = modelSignature; renderModelOptions(modelGroup); }
-    text(modelHeading.querySelector('.character-model-picker-current'), `${modelGroup.value} · ${modelGroup.options.length}候補`);
+    text(modelHeading.querySelector('.character-model-picker-current'), `${modelGroup.value} · ${modelGroup.options.length}体`);
+    const activeSection = REVIEW_SECTIONS.find(section => section.id === state.section) || sectionForGroup(state.active);
+    for (const section of REVIEW_SECTIONS) {
+      const button = sectionNodes.get(section.id); attr(button, 'aria-selected', section.id === activeSection.id); button.tabIndex = section.id === activeSection.id ? 0 : -1;
+    }
     for (const group of state.groups.filter(item => item.id !== 'model')) {
       const { button, value } = slotNodes.get(group.id); text(value, group.value);
-      attr(button, 'aria-selected', group.id === state.active); button.tabIndex = group.id === state.active ? 0 : -1;
+      const visible = activeSection.groups.includes(group.id); button.hidden = !visible;
+      attr(button, 'aria-selected', group.id === state.active); button.tabIndex = visible && group.id === state.active ? 0 : -1;
       attr(button, 'aria-label', `${group.label}：${group.value}。候補を表示`); button.title = `${group.label}：${group.value}`;
     }
     const group = state.groups.find(item => item.id === state.active);
@@ -227,13 +282,10 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     const sourceChanged = group.options.some((option, index) => option.source !== state.sources?.[index]);
     if (signature !== state.signature || sourceChanged) { state.signature = signature; state.sources = group.options.map(option => option.source); renderOptions(group); }
     empty.hidden = group.options.length > 0; text(empty, ready ? 'この項目に候補はありません。' : 'モデルを読み込んでいます。');
-    for (const { source, button, id } of actionNodes) {
-      button.disabled = !ready || source.matches(':disabled');
-      const comparing = source.getAttribute('aria-pressed') === 'true';
-      text(button, id === 'quality-mark'
-        ? (source.getAttribute('aria-pressed') === 'true' ? '要修正を解除' : '要修正')
-        : source.textContent);
-    }
+    const currentModel = currentModelOption(), verdict = currentModel ? state.modelVerdicts.get(currentModel.key) : null;
+    const decisionDisabled = !ready || !currentModel || currentModel.disabled;
+    okButton.disabled = decisionDisabled; fixButton.disabled = decisionDisabled; prevModelButton.disabled = decisionDisabled; nextModelButton.disabled = decisionDisabled;
+    attr(okButton, 'aria-pressed', verdict === 'ok'); attr(fixButton, 'aria-pressed', verdict === 'fix');
     for (const button of cameraButtons) attr(button, 'aria-pressed', button.dataset.camera === state.camera);
     if (!ready) state.framed = false;
     if (ready && !state.framed) { state.framed = true; win.requestAnimationFrame(fit); }
@@ -252,6 +304,6 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   if (canvas && win.ResizeObserver) { resizeObserver = new win.ResizeObserver(() => win.requestAnimationFrame(fit)); resizeObserver.observe(canvas); }
   win.addEventListener('pagehide', event => { if (!event.persisted) { observer.disconnect(); resizeObserver?.disconnect(); } });
   doc.body.classList.add('character-grid-ready');
-  controls.removeAttribute('tabindex'); controls.setAttribute('aria-label', 'モデル選択と詳細レビュー');
+  controls.removeAttribute('tabindex'); controls.setAttribute('aria-label', 'キャラクターモデル一覧とレビュー');
   sync(); fitAfterLayout(); return true;
 }

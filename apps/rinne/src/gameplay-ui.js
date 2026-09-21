@@ -28,6 +28,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     <section class="rinne-player-strip" data-player-info aria-label="プレイヤー情報">
       <div class="player-identity"><strong data-name>旅人</strong><small data-state>探索</small></div>
       <div class="player-equipment"><span>装</span><strong data-equip>素手 · 旅装</strong></div>
+      <div data-talent-tags class="player-talent-tags" aria-label="人物タグ"></div>
       <button data-record class="player-record-button" type="button" aria-label="人生と系譜を開く"><b>記</b><small>人生</small></button>
     </section>
     <section data-vitals class="rinne-context-vitals" hidden aria-label="息">
@@ -80,7 +81,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     heart:q('[data-heart]'),techniques:q('[data-techniques]'),bodyButton:q('.rinne-bottom-controls [data-body]'),items:q('[data-items]'),map:q('[data-map]'),record:q('[data-record]'),phase:q('[data-phase]'),phaseHistory:q('[data-phase-history]'),phaseAction:q('[data-phase-action]'),
     radarPlaces:q('[data-radar-places]'),radarTarget:q('[data-radar-target]'),radarPlayer:q('[data-radar-player]'),radarDistance:q('[data-radar-distance]'),radarLabel:q('[data-radar-label]'),
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
-    rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]'),
+    rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]'),talentTags:q('[data-talent-tags]'),
     vitals:q('[data-vitals]'),vitalBreath:q('[data-vital-breath]'),contextStamina:q('[data-context-stamina]'),
     mind:q('[data-mind]'),mindState:q('[data-mind-state]')
   };
@@ -246,7 +247,8 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     ui.mindState.textContent=labels[dominant]||'中庸';ui.mind.dataset.dominant=dominant;
   }
   function summary(s,{dashing=false,resting=false,training=null}={}){
-    state=s;speech.sync();loadoutUI.syncCombat(s);ui.name.textContent=s.name||'旅人';ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;updateRadar();
+    state=s;speech.sync();loadoutUI.syncCombat(s);ui.name.textContent=s.name||'旅人';ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;
+    const talents=s.inspiration?.talents||[],tags=[];if(talents.includes('gifted'))tags.push('ギフテッド');if(talents.includes('prodigy'))tags.push('天賦の才');ui.talentTags.replaceChildren(...tags.map(label=>{const tag=document.createElement('span');tag.textContent=label;return tag;}));ui.talentTags.hidden=!tags.length;updateRadar();
     ui.state.textContent=s.down?'救助待ち':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;if(engaged)ui.trainingName.textContent=training.label;updateContextVitals(s,{dashing,resting,training});updateMindBalance(s,training);
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
     ui.phase.hidden=!phase;

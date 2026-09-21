@@ -20,8 +20,10 @@
         <canvas id="asset-stage" aria-label="装備プレビュー。ドラッグで自由回転、ピンチで拡大"></canvas>
 
         <div class="asset-stage-slot" aria-live="polite">
+          <small id="asset-stage-slot-label">右手</small>
           <strong id="asset-combination">読み込み中</strong>
         </div>
+        <div class="asset-stage-hint" aria-hidden="true">ドラッグで回転 · ピンチで拡大</div>
         <div class="asset-camera-strip asset-stage-cameras" aria-label="表示方向">
           <button type="button" data-asset-camera="front" aria-pressed="true">正面</button>
           <button type="button" data-asset-camera="left" aria-pressed="false">左</button>
@@ -32,20 +34,25 @@
     </div>
 
     <aside class="asset-catalog review-surface__panel" aria-label="装備レビュー操作">
-      <section class="asset-section asset-equipment-section asset-primary-selection" aria-labelledby="asset-equipment-title">
+      <section class="asset-section asset-equipment-section" aria-labelledby="asset-equipment-title">
         <div class="asset-primary-head">
-          <h2 id="asset-equipment-title">装備</h2>
-          <button id="asset-reset" class="asset-reset" type="button">全解除</button>
+          <h2 id="asset-equipment-title">装備箇所</h2>
+          <button id="asset-reset" class="asset-reset" type="button">すべて外す</button>
         </div>
-        <div id="asset-slot-tabs" class="asset-slot-tabs review-slot-tabs" style="--review-slot-columns:3" role="tablist" aria-label="装備スロット">
-          <button type="button" data-asset-slot="main" role="tab" aria-selected="true"><small>右手</small><strong id="asset-current-main">なし</strong></button>
-          <button type="button" data-asset-slot="off" role="tab" aria-selected="false"><small>左手</small><strong id="asset-current-off">なし</strong></button>
-          <button type="button" data-asset-slot="back" role="tab" aria-selected="false"><small>背中</small><strong id="asset-current-back">なし</strong></button>
+        <div id="asset-slot-tabs" class="asset-slot-tabs asset-slot-statuses" aria-label="現在の装備">
+          <div data-asset-slot="main"><small>右手</small><strong id="asset-current-main">空き</strong></div>
+          <div data-asset-slot="off"><small>左手</small><strong id="asset-current-off">空き</strong></div>
+          <div data-asset-slot="back"><small>背中</small><strong id="asset-current-back">空き</strong></div>
         </div>
 
-        <div class="asset-candidate-head review-selection-current"><strong id="asset-candidate-label">右手</strong></div>
-        <div id="asset-equipment-options" class="asset-equipment-options review-choice-grid" role="listbox" aria-label="右手装備の候補"></div>
-        <button id="asset-clear-slot" class="asset-clear-slot" type="button">右手の装備を外す</button>
+        <section id="asset-weapon-section" class="asset-weapon-section" aria-labelledby="asset-weapon-title">
+          <div class="asset-candidate-head review-selection-current">
+            <strong id="asset-weapon-title">武器の種類</strong>
+            <small>右手</small>
+          </div>
+          <div id="asset-weapon-types" class="asset-weapon-types review-choice-grid" role="listbox" aria-label="右手武器の種類"></div>
+        </section>
+
 
         <div class="asset-native-selects" hidden>
           <label>右手<select id="slot-main" aria-label="右手装備"></select></label>
@@ -54,28 +61,11 @@
         </div>
       </section>
 
-      <section class="asset-section asset-model-section" aria-labelledby="asset-model-title">
-        <h2 id="asset-model-title">素体選択</h2>
-        <button id="asset-model-trigger" class="asset-model-trigger" type="button" aria-haspopup="dialog" aria-controls="asset-model-picker" aria-expanded="false">
-          <strong id="asset-model-current">読み込み中</strong><span aria-hidden="true">⌄</span>
-        </button>
-      </section>
-
       <output id="asset-status" class="asset-status" role="status" aria-live="polite">モデルを読み込んでいます。</output>
 
     </aside>
   </section>
 
-  <div id="asset-model-picker" class="asset-model-picker" hidden role="dialog" aria-modal="true" aria-labelledby="asset-model-picker-title">
-    <button class="asset-model-picker-backdrop" type="button" data-model-picker-close aria-label="素体選択を閉じる"></button>
-    <section class="asset-model-picker-sheet">
-      <div class="asset-model-picker-head">
-        <h2 id="asset-model-picker-title">素体を選択</h2>
-        <button type="button" class="asset-model-picker-close" data-model-picker-close aria-label="閉じる">×</button>
-      </div>
-      <div id="model-options" class="model-options review-choice-grid" role="listbox" aria-label="検証モデル"></div>
-    </section>
-  </div>
 </main>
 <script type="module" src="./src/review-asset-library.js"></script>
 </body>
