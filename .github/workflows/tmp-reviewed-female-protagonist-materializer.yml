@@ -13,8 +13,8 @@ jobs:
     timeout-minutes: 15
     env:
       GH_TOKEN: ${{ github.token }}
-      REVIEW_RUN_ID: "35585969372"
-      REVIEW_ARTIFACT: "female-visual-round-c30e5cb1d4e96386c9aa5aed467f55011ad6bb12"
+      REVIEW_RUN_ID: "35586147387"
+      REVIEW_ARTIFACT: "female-visual-round-7241266a34ef7f9eccfc2dff4a0628bc0db15a56"
     steps:
       - uses: actions/checkout@v6
         with:
@@ -76,12 +76,15 @@ jobs:
           glb=Path("apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb")
           build=json.loads(Path("docs/characters/qa/protagonist-villager-female-v1/refinement-build.json").read_text())
           audit=json.loads(Path("docs/characters/qa/protagonist-villager-female-v1/blender-audit.json").read_text())
-          diagnostic=json.loads(Path("docs/characters/qa/protagonist-villager-female-v1/character-studio-diagnostic.json").read_text())
+          diagnostic_text=Path("docs/characters/qa/protagonist-villager-female-v1/character-studio-diagnostic.json").read_text()
+          if diagnostic_text.endswith("\\n"):
+              diagnostic_text=diagnostic_text[:-2]
+          diagnostic=json.loads(diagnostic_text)
           sha=lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
           glb_sha=sha(glb); blend_sha=sha(blend)
-          if glb_sha != "965098813b6cef5a8f80d196742e5f6e56c5d9f0a381c16e04a70120a99cf297":
+          if glb_sha != "06de3a20266316b5ce1f75b88ca7434916d13c2f161036c29649f06f6b44c78c":
               raise SystemExit(f"reviewed GLB hash mismatch: {glb_sha}")
-          if blend_sha != "ee437d5c322fdcfe1f9956e6c00fcdba8ecbccee5f42933485f391b08585b1c3":
+          if blend_sha != "bc95edbca5c803f42d1f03177a2ee22e9f1952560ac41cc9ddc979b8fdbdfae7":
               raise SystemExit(f"reviewed blend hash mismatch: {blend_sha}")
           if diagnostic.get("displayModelId") != "protagonist.villager.female.v1" or not diagnostic.get("ready") or diagnostic.get("errors"):
               raise SystemExit(f"Character Studio evidence invalid: {diagnostic}")
@@ -91,7 +94,7 @@ jobs:
           receipt["bytes"]=glb.stat().st_size
           receipt["sourceBlendSha256"]=blend_sha
           receipt["visualApproval"]="pending"
-          receipt["license"]["surfaceAuthorship"]="RINNE-authored visual refinement of the CC0 KayKit-derived protagonist foundation: authored head/face, bob/fringe hair masses and split village-tunic tails; shared Rig_Medium and existing body skinning retained."
+          receipt["license"]["surfaceAuthorship"]="RINNE-authored visual refinement of the CC0 KayKit-derived protagonist foundation: authored head/face and bob/fringe hair masses with a narrower shoulder/arm silhouette; shared Rig_Medium, Rogue tunic and existing body skinning retained."
           for target in [
               receipt_path,
               Path("apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json")
