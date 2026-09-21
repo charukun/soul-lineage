@@ -275,21 +275,18 @@ test('HUD metadata comes from the executing technique and stage',()=>{
  assert.ok(checked>120);
 });
 
-test('HUD follows the canonical self actor feet and stays terse',()=>{
+test('HUD is fixed to the screen center and stays terse',()=>{
  const stage=stageSource(),css=hudCss(),html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8');
- const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
- const controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8');
- assert.match(runtime,/self\(a\)\{hero=a;selfBinding=a;\}/);assert.match(runtime,/footAnchor\(\)\{if\(!selfBinding\)return null/);
- assert.match(controller,/footAnchor:\(\)=>driven\.footAnchor/);assert.match(stage,/function positionHud\(\)/);assert.match(stage,/runtime\?\.footAnchor\?\.\(\)/);assert.match(stage,/const hudState=meta\.hudState\|\|'maai'/);assert.match(stage,/phasePanel\.dataset\.phase=hudState/);
- assert.match(stage,/hud\.style\.left/);assert.match(stage,/hud\.style\.top/);assert.doesNotMatch(html,/間合いを測っている/);
- assert.match(stage,/function shortActionName/);assert.match(stage,/line\.textContent=row\.label/);
- assert.doesNotMatch(stage,/currentNode\.textContent=.*meta\.stamina|currentNode\.textContent=.*injury/i);
+ assert.doesNotMatch(stage,/function positionHud|footAnchor|hud\\.style\\.(?:left|top)/);assert.match(stage,/hud\\.dataset\\.anchored='true'/);
+ assert.match(stage,/const hudState=meta\\.hudState\\|\\|'maai'/);assert.match(stage,/phasePanel\\.dataset\\.phase=hudState/);assert.doesNotMatch(html,/間合いを測っている/);
+ assert.match(css,/left:50%;top:50%/);assert.match(css,/grid-template-columns:36px 24px 27px 24px 27px 24px 36px/);
+ assert.match(stage,/function shortActionName/);assert.match(stage,/line\\.textContent=row\\.label/);assert.doesNotMatch(stage,/currentNode\\.textContent=.*meta\\.stamina|currentNode\\.textContent=.*injury/i);
 });
 
 test('HUD centers 破 on the hero axis and spans 間合い through 残心',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),css=hudCss();
  assert.ok(html.includes('battle-sequence-hud__edge--maai')&&html.includes('間合い'));assert.ok(html.includes('battle-sequence-hud__edge--zanshin')&&html.includes('残心'));
- assert.ok(css.includes('grid-template-columns:minmax(58px,1fr) 28px 44px 28px 44px 28px minmax(58px,1fr)'));
+ assert.ok(css.includes('grid-template-columns:36px 24px 27px 24px 27px 24px 36px'));assert.ok(css.includes('width:198px'));
  assert.ok(css.includes('.battle-sequence-hud__edge path{'));assert.ok(css.includes('[data-phase="maai"] .battle-sequence-hud__edge--maai'));assert.ok(css.includes('[data-phase="zanshin"] .battle-sequence-hud__edge--zanshin'));
 });
 
