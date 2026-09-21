@@ -4,6 +4,16 @@ import path from 'node:path';
 
 const message = process.env.ASTRA_COMMIT_MESSAGE || '';
 const mode = process.argv[2] || 'run';
+const heavyValidationExplicit = /\[astra-heavy-validation\]/.test(message);
+const HEAVY_TEST_PATTERNS = Object.freeze([
+  /(?:^|\/)browser(?:[-.]|\/)/i,
+  /(?:^|[-.])integration(?:[-.]|\.test\.mjs$)/i,
+  /apps\/rinne\/tests\/character-presentation-runtime\.test\.mjs$/i
+]);
+
+function isHeavyTest(file) {
+  return HEAVY_TEST_PATTERNS.some(pattern => pattern.test(file));
+}
 
 function cleanPath(value, kind) {
   const raw=String(value||'').trim().replaceAll('\\','/');
@@ -39,6 +49,12 @@ function parsePlan(source) {
   for (const file of plan.tests) {
     if (!file.endsWith('.test.mjs')) throw new Error(`Astra-Test only accepts .test.mjs files: ${file}`);
     if (!existsSync(file)) throw new Error(`Astra-Test target does not exist: ${file}`);
+    if (!heavyValidationExplicit && isHeavyTest(file)) {
+      throw new Error(`Heavy DEV test is not allowed in the default Fast DEV lane: ${file}. Use a narrow focused test/check instead.`);
+    }
+  }
+  if (!heavyValidationExplicit && plan.builds.length) {
+    throw new Error('Astra-Build is not allowed in the default Fast DEV lane. Use focused tests/checks; heavy validation requires an explicit [astra-heavy-validation] request.');
   }
   for (const app of plan.builds) {
     if (!/^[a-z0-9][a-z0-9-]*$/.test(app)) throw new Error(`Invalid Astra-Build app id: ${app}`);
