@@ -200,55 +200,59 @@ export function openFamilyOrigin({document = globalThis.document, hasSave = fals
 export function openFamilyHome({document = globalThis.document, state, source = 'title', mode = 'resume', allowClose = true} = {}) {
   if (!state) return Promise.resolve(null);
   const family = familyForLife(state), description = describeFamily(family), ended = Boolean(state.ended || state.phase === 'ended');
-  const previousFocus = document.activeElement, dialog = node(document, 'dialog', 'family-memory-dialog family-home-dialog family-home-world');
+  const previousFocus = document.activeElement, dialog = node(document, 'dialog', 'family-memory-dialog family-home-dialog family-home-v5');
   dialog.dataset.source = source; dialog.dataset.lifeEnded = String(ended); dialog.dataset.culture = family.cultureId || 'wanderer'; dialog.setAttribute('aria-labelledby', 'family-memory-name');
-  const world = node(document, 'div', 'family-home-worldscape');
-  world.innerHTML = '<i class="family-home-sky"></i><i class="family-home-land"></i><i class="family-home-mist"></i><i class="family-home-light"></i><i class="family-home-vignette"></i>';
-  const shell = node(document, 'section', 'family-home-shell family-home-shell-v4');
-  const closeButton = node(document, 'button', 'family-memory-close', '×'); closeButton.type = 'button'; closeButton.setAttribute('aria-label','一族画面を閉じる'); closeButton.hidden = !allowClose;
-  const version = node(document,'small','family-surface-version','UI '+RINNE_UI_VERSION);
-  const eyebrow = node(document,'p','family-home-eyebrow', ended ? 'A LIFE REMEMBERED' : 'BLOODLINE');
-  const crest = node(document, 'div', 'family-preview-crest'); crest.innerHTML = familyCrestArt(family.cultureId);
-  const heading = node(document, 'h2', 'family-home-name', description.name); heading.id = 'family-memory-name';
-  const tradition = node(document, 'p', 'family-preview-tradition', `${description.ethos} · ${description.tradition}`);
-  const memory = node(document,'p','family-home-memory', description.memory || '世界と血は続く。');
-  const current = node(document, 'section', 'family-home-current family-home-current-v4');
-  const currentHead = node(document,'div','family-home-current-head');
-  currentHead.append(node(document, 'span', 'family-home-kicker', ended ? '生涯の記録' : '現在の人生'));
-  currentHead.append(node(document, 'strong', '', `${state.generation || 1}代目 · ${state.name || '旅人'}`));
-  currentHead.append(node(document, 'p', '', ended ? `${Math.floor(Number(state.ageYears)||0)}歳で生涯を終えた` : `${Math.floor(Number(state.ageYears)||0)}歳 · 今を生きている`));
+
+  const world = node(document,'div','family-home-worldscape');
+  world.innerHTML='<i class="family-home-sky"></i><i class="family-home-light"></i><i class="family-home-mist"></i><i class="family-home-vignette"></i>';
+  const shell=node(document,'section','family-home-shell family-home-shell-v5');
+  const closeButton=node(document,'button','family-memory-close','×');closeButton.type='button';closeButton.setAttribute('aria-label','一族画面を閉じる');closeButton.hidden=!allowClose;
+  const version=node(document,'small','family-surface-version','UI '+RINNE_UI_VERSION);
+
+  const hero=node(document,'header','family-home-hero');
+  const crest=node(document,'div','family-preview-crest');crest.innerHTML=familyCrestArt(family.cultureId);
+  const textWrap=node(document,'div','family-home-hero-copy');
+  const eyebrow=node(document,'span','family-home-eyebrow',ended?'おかえりなさい':'わたしの一族');
+  const heading=node(document,'h2','family-home-name',description.name);heading.id='family-memory-name';
+  const tradition=node(document,'p','family-preview-tradition',description.ethos+' · '+description.tradition);
+  textWrap.append(eyebrow,heading,tradition);hero.append(crest,textWrap);
+
+  const current=node(document,'section','family-home-current family-home-current-v5');
+  const currentHead=node(document,'div','family-home-current-head');
+  currentHead.append(node(document,'span','family-home-kicker',ended?'この人生の記録':'いまの人生'));
+  currentHead.append(node(document,'strong','',`${state.generation || 1}代目 · ${state.name || '旅人'}`));
+  currentHead.append(node(document,'p','',ended?`${Math.floor(Number(state.ageYears)||0)}歳で生涯を終えた`:`${Math.floor(Number(state.ageYears)||0)}歳 · 今日もこの世界にいる`));
   current.append(currentHead);
-  const lifeEnd = ended ? (state.events || []).find(event => event?.type === 'life-end') : null;
-  if (lifeEnd?.text) current.append(node(document, 'small', 'family-home-life-end', lifeEnd.text));
-  const stats = node(document, 'div', 'family-home-stats family-home-stats-v4');
-  for (const [mark,label,value] of [['剣','撃破',state.defeats||0],['環','凱旋',state.returns||0],['閃','技',state.knownSkills?.length||0],['家','故郷',state.homelands?.length||0]]) {
-    const item = node(document, 'span', ''); item.append(node(document,'i','',mark),node(document,'b','',String(value)),node(document,'small','',label)); stats.append(item);
+
+  const stats=node(document,'div','family-home-stats family-home-stats-v5');
+  for(const [mark,label,value] of [['⚔','撃破',state.defeats||0],['⌂','凱旋',state.returns||0],['✦','技',state.knownSkills?.length||0],['♥','故郷',state.homelands?.length||0]]){
+    const item=node(document,'span','');item.append(node(document,'i','',mark),node(document,'b','',String(value)),node(document,'small','',label));stats.append(item);
   }
   current.append(stats);
-  const historyWrap = node(document,'section','family-home-history-wrap');
-  const historyHead = node(document,'div','family-home-history-head');
-  historyHead.append(node(document,'span','','LINEAGE'),node(document,'h3','family-home-history-title','この家の歩み'));
-  const records = node(document, 'ol', 'family-contributions family-home-history');
-  for (const record of family.contributions.slice(-5)) records.append(node(document, 'li', '', `${record.generation}代目  ${record.name}　凱旋${record.returns}回　遺した技${record.skills.length}つ`));
-  if (!family.contributions.length) records.append(node(document, 'li', 'family-home-empty', 'まだ名のない最初の一歩。ここから百年の記録が始まる。'));
+
+  const actions=node(document,'nav','family-home-actions family-home-actions-v5');
+  const actionButton=(action,label,primary=false)=>{const button=node(document,'button',primary?'family-home-primary':'family-home-secondary');button.type='button';button.dataset.familyAction=action;button.innerHTML=`<span>${label}</span><i aria-hidden="true">›</i>`;return button;};
+  if(mode!=='view'){
+    actions.append(actionButton(ended?'rebirth':'continue',ended?'次の人生へ':'この人生を続ける',true));
+    if(source==='death')actions.append(actionButton('title','タイトルへ'));
+  }else actions.append(actionButton('close','世界へ戻る',true));
+
+  const memory=node(document,'p','family-home-memory',description.memory||'世界と血は続く。');
+  const historyWrap=node(document,'details','family-home-history-wrap');
+  const historyHead=node(document,'summary','family-home-history-head');
+  historyHead.append(node(document,'b','','一族の歩み'),node(document,'span','',family.contributions.length?`${family.contributions.length}人の記録`:'これから始まる'),node(document,'i','','⌄'));
+  const records=node(document,'ol','family-contributions family-home-history');
+  for(const record of family.contributions.slice(-5))records.append(node(document,'li','',`${record.generation}代目　${record.name}　凱旋${record.returns}回　技${record.skills.length}つ`));
+  if(!family.contributions.length)records.append(node(document,'li','family-home-empty','まだ最初の一歩。ここから家族の物語が増えていく。'));
   historyWrap.append(historyHead,records);
-  const actions = node(document, 'nav', 'family-home-actions family-home-actions-v4');
-  const actionButton = (action,label,primary=false) => {
-    const button = node(document, 'button', primary ? 'family-home-primary' : 'family-home-secondary'); button.type = 'button'; button.dataset.familyAction = action;
-    button.innerHTML = `<span>${label}</span><i aria-hidden="true">›</i>`; return button;
-  };
-  if (mode !== 'view') {
-    if (ended) actions.append(actionButton('rebirth','次の人生へ',true));
-    else actions.append(actionButton('continue','この人生を続ける',true));
-    if (source === 'death') actions.append(actionButton('title','タイトルへ'));
-  } else actions.append(actionButton('close','世界へ戻る',true));
-  shell.append(closeButton,version,eyebrow,crest,heading,tradition,memory,current,historyWrap,actions);
-  dialog.append(world,shell); document.body.append(dialog);
-  return new Promise(resolve => {
-    let settled = false;
-    const finish = action => { if (settled) return; settled = true; dialog.remove(); if (previousFocus?.isConnected) previousFocus.focus({preventScroll:true}); resolve(action); };
+
+  shell.append(closeButton,version,hero,current,actions,memory,historyWrap);
+  dialog.append(world,shell);document.body.append(dialog);
+  return new Promise(resolve=>{
+    let settled=false;
+    const finish=action=>{if(settled)return;settled=true;dialog.remove();if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});resolve(action);};
     closeButton.addEventListener('click',()=>finish(null));
-    for (const button of actions.querySelectorAll('[data-family-action]')) button.addEventListener('click',()=>finish(button.dataset.familyAction === 'close' ? null : button.dataset.familyAction));
+    for(const button of actions.querySelectorAll('[data-family-action]'))button.addEventListener('click',()=>finish(button.dataset.familyAction==='close'?null:button.dataset.familyAction));
     dialog.addEventListener('cancel',event=>{event.preventDefault();if(allowClose)finish(null);});
     dialog.addEventListener('close',()=>{if(allowClose)finish(null);});
     dialog.showModal();
