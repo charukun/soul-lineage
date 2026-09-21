@@ -1,0 +1,49 @@
+name: Browser Review Preinstalled Chrome Benchmark
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  REVIEW_URL: https://762f30c0-soul-lineage-demon-dev.c-okamoto.workers.dev/
+
+jobs:
+  preinstalled-chrome:
+    if: github.event.pull_request.number == 1329
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: browser-review/control
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Show preinstalled browsers
+        run: |
+          google-chrome --version
+          chromium --version
+      - run: npm ci --ignore-scripts
+      - name: Switch review launch to preinstalled Chrome
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='scripts/browser/review-control.mjs';
+          let s=fs.readFileSync(p,'utf8');
+          s=s.replace("chromium.launch({headless:true,args:", "chromium.launch({channel:'chrome',headless:true,args:");
+          fs.writeFileSync(p,s);
+          NODE
+      - name: Run real Browser Review without Playwright browser install
+        run: |
+          mkdir -p .browser-review
+          node -e "require('fs').writeFileSync('.browser-review/command.json',JSON.stringify({url:process.env.REVIEW_URL,viewport:{width:673,height:841},deviceScaleFactor:1,video:true,actions:[{op:'wait',ms:500,label:'settle'}]}))"
+          node scripts/browser/review-control.mjs .browser-review/command.json
+      - name: Check evidence
+        run: |
+          test -f test-results/browser-review/review.json
+          find test-results/browser-review -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
