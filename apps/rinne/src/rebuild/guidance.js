@@ -7,6 +7,7 @@ function stationById(stations,id){return stations.find(row=>row.id===id)||null;}
 function supportCount(state){return (state.knownSkills||[]).filter(id=>id.startsWith('skill.')).length;}
 function actionCount(state){return (state.knownSkills||[]).filter(id=>id.startsWith('action.')).length;}
 function housingSeen(state){return SUPPORT_EXPERIENCES.some(kind=>score(state,kind)>0);}
+function inspirationCount(state,kinds){const set=new Set(kinds);return Object.values(state.inspiration?.records||{}).filter(row=>!row?.archived&&set.has(row?.kind)).length;}
 
 function practiceStation(state,stations){
   const rows=stations.filter(row=>row.activity&&!row.interiorId&&row.id!=='port-prayer'&&!row.trainingDummy);
@@ -65,16 +66,20 @@ export function guidanceFor({state,stations=[],front=null}){
   const practice=practiceStation(state,stations),dummy=stationById(stations,'training-dummy'),door=housingDoor(state,stations),edge=stationById(stations,'village-skirmish');
   if(age<7){
     if(!housingSeen(state)&&door)return {stage:'2/6 村',objective:`${door.label}へ入る`,badge:'暮らしを見る',target:target(door,door.label),tone:'home'};
-    if(dummy&&score(state,'practice')<1.6)return {stage:'2/6 修行',objective:'かかしへ',badge:'型を試す',target:target(dummy,'かかし'),tone:'prepare'};
+    const play=stationById(stations,'garden'),watch=stationById(stations,'dojo');
+    if(play&&score(state,'play')<.5)return {stage:'2/6 遊び',objective:'広場で遊ぶ',badge:'身体を知る',target:target(play,'広場'),tone:'calm'};
+    if(watch&&score(state,'train')<.5)return {stage:'2/6 見学',objective:'稽古を見る',badge:'心得の兆し',target:target(watch,'道場'),tone:'prepare'};
+    if(dummy&&score(state,'practice')<.5)return {stage:'2/6 稽古',objective:'かかしで打つ',badge:inspirationCount(state,['heart','body'])?'心得あり':'心得を探す',target:target(dummy,'かかし'),tone:'prepare'};
     return {stage:'2/6 村',objective:activityLabel(practice),badge:'武具 7歳',target:target(practice,activityLabel(practice)),tone:'calm'};
   }
   if(age<15&&state.equipment?.weapon==='fist'){
     const rack=weaponStation(state,stations);
-    return {stage:'3/6 支度',objective:'武具を選ぶ',badge:'出航 15歳',target:target(rack,rack?.label||'武具'),tone:'prepare'};
+    return {stage:'3/6 支度',objective:'武具を選ぶ',badge:'7歳から武具',target:target(rack,rack?.label||'武具'),tone:'prepare'};
   }
   if(age<15){
-    if(dummy&&(actionCount(state)<2||score(state,'practice')<3.2))return {stage:'3/6 修行',objective:'かかしへ',badge:'型を試す',target:target(dummy,'かかし'),tone:'prepare'};
-    if(edge&&score(state,'combat')<1)return {stage:'3/6 腕試し',objective:'村外へ',badge:'危険',target:target(edge,'村外の戦場'),tone:'danger'};
+    if(dummy&&score(state,'practice')<1.35)return {stage:'3/6 稽古',objective:'かかしで打ち込む',badge:'実戦前の確認',target:target(dummy,'かかし'),tone:'prepare'};
+    if(edge&&score(state,'combat')<1)return {stage:'3/6 腕試し',objective:'村外で実戦する',badge:'技の閃きへ',target:target(edge,'村外の戦場'),tone:'danger'};
+    if(inspirationCount(state,['technique','variant'])===0&&edge)return {stage:'3/6 実戦',objective:'実戦で答えを探す',badge:'技の兆し',target:target(edge,'村外の戦場'),tone:'danger'};
     return {stage:'3/6 支度',objective:activityLabel(practice),badge:'出航 15歳',target:target(practice,activityLabel(practice)),tone:'prepare'};
   }
   const port=stationById(stations,'port-prayer');
