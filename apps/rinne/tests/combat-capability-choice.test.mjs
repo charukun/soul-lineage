@@ -29,6 +29,6 @@ test('combat choice switches only to another configured combo when injury makes 
 test('combat choice fails closed so tactics can recover when no configured technique is physically executable',()=>{
   const s=state();s.injuries.leftLeg={severity:.82,at:s.ageSeconds};s.injuries.rightLeg={severity:.84,at:s.ageSeconds};
   const choice=resolveCapabilityTechniqueChoice(s,{id:'foe'});
-  assert.equal(choice.ok,false);assert.equal(choice.comboId,null);assert.equal(choice.reason,'leg-injury');
+  assert.equal(choice.ok,false);assert.equal(choice.comboId,null);assert.equal(choice.reason,'incapacitated');
   assert.equal(choice.attempts.every(row=>row.canContinue===false),true);
 });
