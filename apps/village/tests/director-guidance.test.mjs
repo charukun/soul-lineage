@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {nextVillageGoal,nextVillageGuidance} from '../src/game/director-guidance.js';
 
-function fixture({tutorial=null,raid=null,population={},people=[],objects=[],known=[]}={}) {
+function fixture({tutorial=null,raid=null,proposal=null,population={},people=[],objects=[],known=[]}={}) {
   return {
     tutorialStep:()=>tutorial,
-    state:{defense:{raid},known},
+    state:{defense:{raid,proposal},known},
     population:()=>({people:2,openBeds:4,safety:6,food:6,...population}),
     people,
     objects,
@@ -67,4 +67,21 @@ test('stable villages keep a quiet contextual hint without forcing another const
   assert.equal(next.id,'stable');
   assert.equal(next.action,null);
   assert.match(nextVillageGoal(fixture({people:[resident],objects:[{kind:'wheat'}]})),/穏やか/);
+});
+
+
+test('repeated danger becomes a guard proposal without placing a permanent structure',()=>{
+  const proposal={sector:'east',side:'東側',x:25,z:8,kind:'fence',score:2,day:10,source:'raid',guardName:'アルド'};
+  const next=nextVillageGuidance(fixture({
+    proposal,
+    known:['wood'],
+    population:{people:4,openBeds:6,safety:8,food:8},
+    people:[{name:'ミナ',role:'resident',dead:false,jobId:'b-work'}],
+    objects:[{kind:'wheat'}],
+  }));
+  assert.equal(next.id,'defense-proposal');
+  assert.equal(next.action.kind,'fence');
+  assert.deepEqual(next.action.at,[25,8]);
+  assert.match(next.title,/アルド.*東側/);
+  assert.match(next.text,/勝手に建てず/);
 });

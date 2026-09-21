@@ -1,6 +1,7 @@
 import {muraBlocked,muraFurnitureFits,muraHasInterior,muraInteriorAt,muraInteriorEntry} from '@soul/world/mura';
 import {defs,ready,entry,inWater,LIMIT,extent,DAY_SECONDS,DAYS_YEAR,clamp,isGuard,isPlayer,dist,capacityOf,jobsOf,RESOURCE_NAMES} from './core.js';
 import {TERRAIN_SITES} from './terrain.js';
+import {recordDefensePressure,warningGuardPost} from './defense-autonomy.js';
 const STEP=2, key=(x,z)=>`${x},${z}`,cell=v=>Math.round(v/STEP);
 const names=['こはる','リオ','セナ','ルカ','ミオ','ニナ','ソラ','カイ','エマ','フィン','ハル','ユノ','レイ','ノア','アオ','メイ','テオ','リナ','ナギ','ミナ','ルイ','アン','トワ','リネ'];
 class Heap{constructor(){this.a=[];}push(n){const a=this.a;a.push(n);let i=a.length-1;while(i){const p=(i-1)>>1;if(a[p].f<=n.f)break;a[i]=a[p];i=p;}a[i]=n;}pop(){const a=this.a,r=a[0],n=a.pop();if(a.length){let i=0;while(i*2+1<a.length){let c=i*2+1;if(c+1<a.length&&a[c+1].f<a[c].f)c++;if(n.f<=a[c].f)break;a[i]=a[c];i=c;}a[i]=n;}return r;}get length(){return this.a.length;}}
@@ -118,6 +119,7 @@ export class Simulation{
   p.task='idle';p.timer=1+this.random()*2;
  }
  decide(p){const w=this.world,s=w.state,home=w.object(p.homeId),job=w.object(p.jobId),fire=w.objects.find(o=>o.kind==='campfire');
+  if(this.raid?.phase==='warning'){if(p.insideId===p.homeId){p.task='home';p.timer=5;p.status='屋内で警報が解けるのを待つ';}else{this.go(p,home,'home');p.status='襲撃に備えて自宅へ戻る';}return;}
   if(this.raid?.phase==='active'){if(!p.insideId)this.go(p,home,'home');else{p.task='home';p.timer=5;}return;}
   if(p.hunger<44){const restaurants=w.objects.filter(o=>ready(o)&&['meal','feast'].includes(defs[o.kind].effect));this.go(p,restaurants.sort((a,b)=>dist(a,p)-dist(b,p))[0]||fire,'eat');return;}
   if(p.carry&&!p.decorateRetry){this.go(p,home,'decorate');return;}
@@ -156,10 +158,11 @@ export class Simulation{
  raidBudget(pop){return{count:clamp(Math.ceil(pop/3),2,18),health:30+Math.floor(Math.sqrt(pop)*4),damage:2.2+Math.floor(pop/12)*.65,speed:1.4+Math.min(.8,pop*.012)};}
  startRaid({immediate=false}={}){if(this.raid)return false;const w=this.world,s=w.state,seq=++s.defense.sequence,pop=w.people.length,budget=this.raidBudget(pop),fire=w.objects.find(o=>o.kind==='campfire');
   const angle=2.3+this.random()*1.5,anchor={x:fire.x+Math.cos(angle)*60,z:fire.z+Math.sin(angle)*60};
-  this.raid={id:'village-raid-'+seq,phase:immediate?'active':'warning',startDay:s.clock+(immediate?0:.75),age:0,popSnapshot:pop,budget,monsters:[]};
+  this.raid={id:'village-raid-'+seq,phase:immediate?'active':'warning',startDay:s.clock+(immediate?0:.75),age:0,popSnapshot:pop,budget,approach:{x:anchor.x,z:anchor.z},monsters:[]};
   for(let i=0;i<budget.count;i++){const pos=this.nav.free(cell(anchor.x+i*3),cell(anchor.z+i%3*3));if(!pos)continue;const elite=i%6===5,maxHealth=budget.health*(elite?1.4:1);this.raid.monsters.push({id:`raid-${seq}-${i}`,name:elite?'魔王軍の精鋭':'魔王軍の斥候',x:pos.x*STEP,z:pos.z*STEP,health:maxHealth,maxHealth,damage:budget.damage,speed:budget.speed,seed:i,angle:0,moving:false,path:[],repath:0,hostile:true,species:'monster'});}
   if(immediate)s.stats.raids++;
-  this.emit(immediate?'魔王軍の斥候が村へ近づいています。警備職が迎撃します。':'遠くに魔王軍の気配。住人たちは帰宅の支度を始めます。','threat');return true;
+  if(!immediate)for(const p of w.people)if(!isGuard(p)&&!p.downed&&!p.remoteControlled){p.task='idle';p.timer=0;p.path=[];p.status='襲撃に備えて自宅へ戻る';}
+  this.emit(immediate?'魔王軍の斥候が村へ近づいています。警備職が迎撃します。':'遠くに魔王軍の気配。住人は帰宅し、警備職が危険な側へ先回りします。','threat');return true;
  }
  threatMotion(a,target,dt,speed){if(!target)return;a.repath=(a.repath||0)-dt;if(a.repath<=0||!a.path){a.path=this.nav.route(a,target)||[];a.repath=2.5;}
   a.moving=false;let left=dt*speed;while(left>0&&a.path.length){const n=a.path[0],dx=n.x-a.x,dz=n.z-a.z,d=Math.hypot(dx,dz);if(d<.05){a.path.shift();continue;}const k=Math.min(left,d);a.x+=dx/d*k;a.z+=dz/d*k;a.angle=Math.atan2(dx,dz);left-=k;a.moving=true;if(k>=d-.01)a.path.shift();}
@@ -180,6 +183,12 @@ export class Simulation{
   const home=w.object(g.jobId||g.homeId),mayor=w.people.find(p=>p.role==='mayor'),anchor=g.id==='guard-npc'?(mayor||home):home;
   const target=threats.filter(a=>a.health>0&&(dist(a,g)<20||dist(a,anchor)<24)).sort((a,b)=>dist(a,g)-dist(b,g))[0];
   if(target){g.insideId=null;g.status='村を守って迎撃中';g.task='defending';if(dist(g,target)<=3.6){g.moving=false;g.angle=Math.atan2(target.x-g.x,target.z-g.z);target.health=Math.max(0,target.health-dt*this.guardPower(g));g.attackPulse=this.elapsed;g.skill=Math.min(100,g.skill+dt*.015);}else this.threatMotion(g,target,dt,5);return;}
+  if(this.raid?.phase==='warning'){
+   const guards=w.people.filter(p=>isGuard(p)&&p.health>0&&!p.downed),stage=warningGuardPost(w,this.raid,g,Math.max(0,guards.indexOf(g)));
+   if(stage){g.insideId=null;g.status=`${stage.side}の外れへ先回りしている`;g.task='patrol';if(dist(g,stage)>3)this.threatMotion(g,stage,dt,4.7);else{g.moving=false;g.path=[];g.repath=0;}return;}
+  }
+  const repair=w.objects.filter(o=>(o.damage||0)>.5&&defs[o.kind]?.defense&&dist(o,g)<60).sort((a,b)=>dist(a,g)-dist(b,g))[0];
+  if(repair){g.insideId=null;g.task='repairing';if(dist(g,repair)>4){g.status=`${defs[repair.kind].label}の応急修理へ向かう`;this.threatMotion(g,repair,dt,4);}else{const before=repair.damage;g.moving=false;g.status=`${defs[repair.kind].label}を応急修理している`;repair.damage=Math.max(0,before-dt*5);if(before>0&&repair.damage===0){this.remember(g,`${defs[repair.kind].label}を応急修理した`,'ここは任せて');this.emit(`${g.name}が${defs[repair.kind].label}を応急修理しました`,'rescue');}}return;}
   if(g.hunger<=42){const meal=w.spend({food:1});g.hunger=Math.min(100,g.hunger+(meal?64:45));g.snackUntil=this.elapsed+4;w.state.stats.meals++;this.remember(g,meal?'見張りの合間にお弁当を食べた':'木の実で腹ごしらえをした','見張りながら、ひと口');}
   if(g.snackUntil>this.elapsed){g.moving=false;g.status='見張りを続けながら、軽く食事';return;}
   if(g.id==='guard-npc'&&mayor?.insideId&&(w.state.time>=21||w.state.time<5)){
@@ -209,10 +218,10 @@ export class Simulation{
   for(const a of r.monsters){if(a.health<=0)continue;const people=w.people.filter(p=>!p.downed&&p.health>0&&!p.insideId).sort((p,q)=>dist(p,a)-dist(q,a));const target=people[0];
    if(target&&dist(a,target)<2.5){a.moving=false;this.hurt(target,dt*(a.damage||r.budget.damage),'monster');}else this.threatMotion(a,target||fire,dt,a.speed||1.5);
    for(const o of w.objects){if(!ready(o))continue;if(['watchtower','wardlamp'].includes(o.kind)&&dist(a,o)<(o.kind==='wardlamp'?16:28)){const staffed=o.kind==='wardlamp'||w.people.some(p=>p.jobId===o.id);if(staffed)a.health=Math.max(0,a.health-dt*(o.kind==='wardlamp'?3:4)*(o.level||1));}
-    if(defs[o.kind].building&&dist(a,o)<8){o.damage=Math.min(80,(o.damage||0)+dt*(o.material==='stone'?.25:.6));}}
+    if((defs[o.kind].building||defs[o.kind].defense)&&dist(a,o)<8){const hard=o.kind==='wall'||o.material==='stone';o.damage=Math.min(80,(o.damage||0)+dt*(hard?.25:.6));}}
   }
   const before=r.monsters.length;r.monsters=r.monsters.filter(a=>a.health>0);s.stats.defeated+=before-r.monsters.length;
-  if(!r.monsters.length||r.age>100){const won=!r.monsters.length;this.raid=null;s.defense.lastRaid=s.clock;s.defense.nextRaid=s.clock+12+this.random()*2;this.emit(won?'村を守りきりました。住人が小径へ戻ってきます。':'魔王軍が退いていきました。村はゆっくり元の暮らしへ。','rescue');this.moment('焚き火のまわりに、いつもの暮らしが戻りました。',w.people.slice(0,2));}
+  if(!r.monsters.length||r.age>100){const won=!r.monsters.length,{proposal,created}=recordDefensePressure(w,r.approach||r.monsters[0]||fire,{source:'raid'});this.raid=null;s.defense.lastRaid=s.clock;s.defense.nextRaid=s.clock+12+this.random()*2;this.emit(won?'村を守りきりました。住人が小径へ戻ってきます。':'魔王軍が退いていきました。村はゆっくり元の暮らしへ。','rescue');if(created&&proposal)this.emit(`${proposal.guardName}が${proposal.side}の守りを見直す案を出しました`,'life');this.moment('焚き火のまわりに、いつもの暮らしが戻りました。',w.people.slice(0,2));}
  }
  rescueAndRecovery(dt){const w=this.world,clinic=w.objects.find(o=>o.kind==='clinic'&&ready(o)&&w.people.some(p=>p.jobId===o.id));
   for(const p of [...w.people]){if(!p.downed)continue;
