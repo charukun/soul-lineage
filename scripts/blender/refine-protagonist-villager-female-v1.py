@@ -110,6 +110,13 @@ def set_palette():
         m.use_nodes=True; b=m.node_tree.nodes.get("Principled BSDF")
         if b: b.inputs["Base Color"].default_value=color; b.inputs["Roughness"].default_value=rough
 
+def scale_mesh_about_center(obj,sx=1.0,sy=1.0,sz=1.0):
+    lo,hi=object_bounds(obj); center=(lo+hi)*.5; inv=obj.matrix_world.inverted()
+    for v in obj.data.vertices:
+        w=obj.matrix_world@v.co
+        w=center+Vector(((w.x-center.x)*sx,(w.y-center.y)*sy,(w.z-center.z)*sz))
+        v.co=inv@w
+
 def reshape_tunic():
     body=bpy.data.objects.get("Protagonist_RogueTunic_Body")
     if not body: return
@@ -118,12 +125,18 @@ def reshape_tunic():
     for v in body.data.vertices:
         w=body.matrix_world@v.co
         t=(w.z-lo.z)/max(.001,hi.z-lo.z)
-        if t>.72: sx=.92
-        elif t>.42: sx=.86
-        else: sx=1.035
+        if t>.72: sx=.86
+        elif t>.42: sx=.82
+        else: sx=.98
         w.x=cx+(w.x-cx)*sx
-        if .35<t<.82: w.y*=.965
+        if .35<t<.82: w.y*=.94
         v.co=inv@w
+    for name in ["Protagonist_KnightPart_ArmLeft","Protagonist_KnightPart_ArmRight"]:
+        obj=bpy.data.objects.get(name)
+        if obj: scale_mesh_about_center(obj,.82,.86,.98)
+    for name in ["Protagonist_KnightPart_LegLeft","Protagonist_KnightPart_LegRight"]:
+        obj=bpy.data.objects.get(name)
+        if obj: scale_mesh_about_center(obj,.90,.92,1.0)
 
 def remove_old_head_parts():
     for obj in list(bpy.context.scene.objects):
@@ -255,29 +268,25 @@ def create_overskirt(arm,cloth):
     if not hips: raise RuntimeError("Rig_Medium hips bone missing")
     body=bpy.data.objects.get("Protagonist_RogueTunic_Body")
     lo,hi=object_bounds(body); cx=(lo.x+hi.x)*.5
-    ztop=lo.z+(hi.z-lo.z)*.39; zbottom=max(lo.z+.005,ztop-.19)
-    yfront=lo.y-.020; yback=hi.y+.018
-    panels=[
-      ("RINNE_FemaleTunicFrontC",-.105,.105,-.135,.135,0.000),
-      ("RINNE_FemaleTunicFrontL",-.275,-.085,-.305,-.115,.012),
-      ("RINNE_FemaleTunicFrontR",.085,.275,.115,.305,-.012),
-    ]
-    for name,xtl,xtr,xbl,xbr,yshift in panels:
-        tapered_panel(name,(cx+xtl,yfront+yshift,ztop),(cx+xtr,yfront+yshift,ztop),
-          (cx+xbr,yfront+yshift,zbottom),(cx+xbl,yfront+yshift,zbottom),.024,cloth,arm,"hips")
+    ztop=lo.z+(hi.z-lo.z)*.37; zbottom=max(lo.z+.055,ztop-.16)
+    yfront=lo.y-.024; yback=hi.y+.012
+    # Split village tunic tails instead of a rigid skirt ring. The gaps preserve
+    # leg readability in front/side and avoid the box silhouette seen in round 1.
     for name,xtl,xtr,xbl,xbr in [
-      ("RINNE_FemaleTunicBackL",-.260,-.015,-.285,-.035),
-      ("RINNE_FemaleTunicBackR",.015,.260,.035,.285),
+      ("RINNE_FemaleTunicTail_L",-.205,-.018,-.235,-.030),
+      ("RINNE_FemaleTunicTail_R",.018,.205,.030,.235),
     ]:
-        front=[(cx+xtl,yback,ztop),(cx+xtr,yback,ztop),(cx+xbr,yback,zbottom),(cx+xbl,yback,zbottom)]
-        back=[(x,y-.024,z) for x,y,z in front]
+        tapered_panel(name,(cx+xtl,yfront,ztop),(cx+xtr,yfront,ztop),
+          (cx+xbr,yfront-.006,zbottom),(cx+xbl,yfront-.006,zbottom),.018,cloth,arm,"hips")
+    # One narrow rear split panel gives a back-view identity without wrapping
+    # around the hips as a rectangular belt.
+    for name,xtl,xtr,xbl,xbr in [
+      ("RINNE_FemaleTunicBack_L",-.180,-.015,-.205,-.030),
+      ("RINNE_FemaleTunicBack_R",.015,.180,.030,.205),
+    ]:
+        front=[(cx+xtl,yback,ztop),(cx+xtr,yback,ztop),(cx+xbr,yback,zbottom+.015),(cx+xbl,yback,zbottom+.015)]
+        back=[(x,y-.016,z) for x,y,z in front]
         prism(name,front,back,cloth,arm,"hips")
-    for side in (-1,1):
-        x=cx+side*.285
-        front=[(x,yfront+.015,ztop-.012),(x,yback-.015,ztop-.012),
-          (x+side*.025,yback-.020,zbottom+.018),(x+side*.025,yfront+.020,zbottom+.018)]
-        back=[(vx-side*.018,vy,vz) for vx,vy,vz in front]
-        prism("RINNE_FemaleTunicSide_L" if side<0 else "RINNE_FemaleTunicSide_R",front,back,cloth,arm,"hips")
 
 def export_result(out):
     src=out/"source"; exp=out/"export"; src.mkdir(parents=True,exist_ok=True); exp.mkdir(parents=True,exist_ok=True)
