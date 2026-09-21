@@ -7,6 +7,7 @@
 <title>Visual Review｜序破急バトルシステム</title>
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="./src/battle2.css">
+<link rel="stylesheet" href="./src/nocturne/johakyu-p7-readout.css">
 </head>
 <body>
 <main class="battle2-review review-surface" aria-label="序破急バトルシステムレビュー">
@@ -19,9 +20,13 @@
   <section class="review-surface__workspace" aria-label="戦闘描画エリア">
     <div class="review-surface__stage-column">
       <section class="nocturne-stage review-surface__stage" data-review-surface="battle2" data-runtime="nocturne-native" data-state="BOOT">
-        <canvas id="world" aria-label="NOCTURNE 自動戦闘"></canvas>
+        <canvas id="world" aria-label="序破急 canonical 自動戦闘"></canvas>
         <canvas id="effects" aria-hidden="true"></canvas>
         <div class="nocturne-vignette" aria-hidden="true"></div>
+        <div class="battle2-p7-readout" data-p7-readout hidden aria-label="P7戦闘状態">
+          <span class="battle2-p7-phase" data-p7-phase>序</span>
+          <span class="battle2-p7-copy"><strong data-p7-summary>P7 本編契約 · 2対3</strong><small data-p7-detail>ST 100 · 傷 なし</small></span>
+        </div>
         <p id="battle2-status" role="status" aria-live="polite">戦闘を準備中…</p>
       </section>
     </div>
