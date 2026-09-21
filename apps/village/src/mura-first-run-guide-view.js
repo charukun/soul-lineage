@@ -1,10 +1,10 @@
 const STAGES={
- welcome:{number:0,title:'最初のテントを、一緒に置く。',text:'4つの操作だけ。あなたが動かしたときだけ、次へ進みます。',cue:'4ステップ'},
- build:{number:1,title:'① つくる',text:'画面下の「つくる」を1回タップ。',cue:'下のボタン'},
- catalog:{number:2,title:'② 空きテント',text:'光っている「空きテント」を1回タップ。',cue:'光っている住まい'},
- drag:{number:3,title:'③ 場所を動かす',text:'1本指で画面をなぞり、テントを置きたい場所へ。',cue:'1本指でなぞる'},
- place:{number:4,title:'④ ここに置く',text:'場所がよければ、画面を短く1回タップ。',cue:'短くタップ'},
- done:{number:4,title:'置けました。',text:'基本操作はこれで完了。必要なときだけ「つくる」から村を増やせます。',cue:'完了'},
+ welcome:{number:0,title:'テントをひとつ置こう',text:'光る場所だけ追えばOK。',cue:''},
+ build:{number:1,title:'「つくる」をタップ',text:'',cue:''},
+ catalog:{number:2,title:'「空きテント」をタップ',text:'',cue:''},
+ drag:{number:3,title:'指で場所を動かす',text:'',cue:''},
+ place:{number:4,title:'ここでタップ',text:'',cue:''},
+ done:{number:4,title:'置けた。',text:'これで村づくりを始められます。',cue:''},
 };
 
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -207,8 +207,8 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
   setProgress(nodes.progress,nodes.step,next,config.number);
   nodes.start.hidden=next!=='welcome';
   nodes.finish.hidden=next!=='done';
-  nodes.replay.hidden=next==='welcome'||next==='done';
-  nodes.cue.hidden=next==='welcome'||next==='done';
+  nodes.replay.hidden=true;
+  nodes.cue.hidden=true;
   updateTarget({transition:true});
   scheduleDemo();
  }
@@ -225,13 +225,13 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
  }
  function accept(next,message,duration){
   clearTimeout(acceptTimer);
-  setStage(next,{message});
+  setStage(next);
   cancelDemo();
   nodes.cue.hidden=false;
   nodes.cue.textContent='できた';
   nodes.cue.dataset.state='success';
   layer.classList.add('mura-first-run-accepted');
-  acceptTimer=setTimeout(()=>{if(!destroyed&&stage===next){layer.classList.remove('mura-first-run-accepted');nodes.text.textContent=STAGES[next].text;nodes.cue.textContent=STAGES[next].cue;nodes.cue.removeAttribute('data-state');nodes.cue.hidden=next==='welcome'||next==='done';scheduleDemo();}},duration);
+  acceptTimer=setTimeout(()=>{if(!destroyed&&stage===next){layer.classList.remove('mura-first-run-accepted');nodes.cue.removeAttribute('data-state');nodes.cue.hidden=true;scheduleDemo();}},duration);
  }
  function show(){
   layer.hidden=false;
