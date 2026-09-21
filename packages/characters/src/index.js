@@ -65,3 +65,5 @@ export * from './runtime-asset-audit.js';
 export * from './runtime-character-contract.js';
 export * from './art-direction.js';
 export * from './material-library.js';
+
+export * from './character-model-wrapper.js';

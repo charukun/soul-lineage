@@ -1,4 +1,4 @@
-import { KAYKIT_DEFAULT_MODEL_ID, KAYKIT_MODELS, selectKaykitModel } from '@soul/characters';
+import { KAYKIT_DEFAULT_MODEL_ID, KAYKIT_MODELS, createCharacterModelWrapper, selectKaykitModel } from '@soul/characters';
 import { GLTFLoader } from '@soul/rendering';
 import { createMasterCharacterPool } from '@soul/rendering/master-character';
 import { createManifestationEffect, createProgressiveManifestation } from '@soul/rendering/progressive-manifestation';
