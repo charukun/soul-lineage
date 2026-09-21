@@ -10,7 +10,7 @@ permissions:
   statuses: read
   pull-requests: read
 env:
-  SOURCE_SHA: b3bcad1bb2ed599fd40538abe5682d735b65f5d4
+  SOURCE_SHA: f2266ceb84c39740559eac4b45696be7ed6d4394
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: b3bcad1bb2ed599fd40538abe5682d735b65f5d4
+          ref: f2266ceb84c39740559eac4b45696be7ed6d4394
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -105,7 +105,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: b3bcad1bb2ed599fd40538abe5682d735b65f5d4
+          ref: f2266ceb84c39740559eac4b45696be7ed6d4394
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
