@@ -1,0 +1,62 @@
+name: Village public end-to-end probe
+on:
+  push:
+    branches: [probe/village-public-after-1236]
+permissions: {contents: read}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v6
+        with: {node-version: '24', cache: npm}
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Reproduce then verify actual public DEV
+        env: {URL: 'https://soul-lineage-village-dev.c-okamoto.workers.dev/'}
+        run: |
+          mkdir -p test-results/public-e2e
+          node --input-type=module <<'NODE'
+          import {chromium} from '@playwright/test';import fs from'node:fs/promises';
+          const browser=await chromium.launch({headless:true});
+          const ctx=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});
+          const p=await ctx.newPage(),errors=[],failed=[];p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('pageerror',e=>errors.push(e.message));p.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText}));
+          const report={errors,failed,url:process.env.URL};
+          const boot=async()=>{await p.locator('#soul-brand-boot.armed').waitFor({timeout:30000});await p.locator('#soul-brand-boot').click();await p.waitForFunction(()=>window.village&&document.querySelector('#loading')?.hidden===true,null,{timeout:60000});};
+          try{
+            await p.goto(process.env.URL,{waitUntil:'domcontentloaded',timeout:60000});await boot();
+            report.commit=await p.locator('#game').getAttribute('data-commit');
+            await p.locator('#muraResetVillage').click();await p.locator('#muraResetConfirm [data-reset]').click();
+            await p.waitForFunction(()=>window.village&&document.querySelector('#loading')?.hidden===true,null,{timeout:60000});
+            await boot();
+            await p.locator('#muraEnterVillage').click();
+            await p.locator('#muraFirstRunGuide').waitFor({state:'visible',timeout:15000});
+            report.guide={count:await p.locator('#muraFirstRunGuide').count(),stage:await p.locator('#muraFirstRunGuide').getAttribute('data-stage'),finger:await p.locator('.muraFirstRunFinger').count()};
+            await p.screenshot({path:'test-results/public-e2e/01-guide.png',fullPage:true});
+            await p.locator('.muraFirstRunStart').click();
+            await p.waitForFunction(()=>document.querySelector('#muraFirstRunGuide')?.dataset.stage==='build');
+            let moved=false,first=null;
+            for(let i=0;i<12;i++){await p.waitForTimeout(150);const b=await p.locator('.muraFirstRunFinger').boundingBox();if(b){if(first&&Math.hypot(b.x-first.x,b.y-first.y)>2)moved=true;if(!first)first=b;}}
+            report.fingerMoved=moved;
+            await p.locator('#build').click();
+            await p.waitForFunction(()=>document.querySelector('#muraFirstRunGuide')?.dataset.stage==='catalog');
+            await p.locator('#catalog .card[data-kind="tent"]').click();
+            await p.waitForFunction(()=>['drag','place'].includes(document.querySelector('#muraFirstRunGuide')?.dataset.stage));
+            const canvas=p.locator('#game'),box=await canvas.boundingBox();if(!box)throw new Error('canvas missing');
+            const x=box.x+box.width*.58,y=box.y+box.height*.55;
+            await p.touchscreen.tap(x,y);
+            await p.waitForFunction(()=>window.village.world.objects.some(o=>o.kind==='tent')&&!window.village.ui.pending,null,{timeout:10000});
+            report.placed=await p.evaluate(()=>window.village.world.objects.filter(o=>o.kind==='tent').length);
+            report.finalStage=await p.locator('#muraFirstRunGuide').getAttribute('data-stage');
+            await p.screenshot({path:'test-results/public-e2e/02-placed.png',fullPage:true});
+          }catch(e){report.exception=String(e)}
+          await fs.writeFile('test-results/public-e2e/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));await browser.close();
+          const relevantErrors=errors.filter(x=>/mura-|Failed to fetch dynamically imported module|404/i.test(x));
+          const relevantFailed=failed.filter(x=>/mura-|world-scale/i.test(x.url));
+          if(report.exception||report.commit!=='1143839d393404108bca2f9c6e1b79a56ca8bf4f'||report.guide?.count!==1||report.guide?.finger!==1||!report.fingerMoved||!report.placed||relevantErrors.length||relevantFailed.length)process.exit(1);
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: village-public-e2e-after-1236, path: test-results/public-e2e/, retention-days: 7}
