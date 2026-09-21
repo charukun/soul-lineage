@@ -1,4 +1,5 @@
 name: Temporary Asset Completion 20260921
+# retry: short-sfx-playback
 run-name: Complete PR1203 exact-head assets ${{ github.sha }}
 on:
   push:
