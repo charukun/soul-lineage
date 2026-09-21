@@ -15,6 +15,20 @@ export function normalizeReviewBackButton({header=document.querySelector('.revie
   if(href)back.href=href;back.textContent='‹ '+label;back.setAttribute('aria-label',ariaLabel);back.rel='noopener';
   return back;
 }
+export function mountReviewStageControls({stage=document.querySelector('.review-surface__stage'),groups=[],label='表示・再生コントロール'}={}){
+  if(!stage||stage.querySelector('[data-review-stage-controls]'))return null;
+  const nodes=groups.flatMap(selector=>[...document.querySelectorAll(selector)]).filter((node,index,all)=>node&&!all.slice(0,index).some(parent=>parent.contains(node)));
+  const root=make('div','review-stage-controls');root.dataset.reviewStageControls='true';
+  const button=make('button','review-stage-controls__button','⚙');button.type='button';button.setAttribute('aria-label',label);button.setAttribute('aria-expanded','false');
+  const panel=make('div','review-stage-controls__panel');panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label',label);
+  const title=make('strong','review-stage-controls__title',label);panel.append(title,...nodes);root.append(panel,button);stage.append(root);
+  const setOpen=open=>{panel.hidden=!open;root.dataset.open=String(open);button.setAttribute('aria-expanded',String(open));};
+  button.addEventListener('click',event=>{event.stopPropagation();setOpen(panel.hidden)});
+  const outside=event=>{if(!panel.hidden&&!root.contains(event.target))setOpen(false)};
+  const escape=event=>{if(event.key==='Escape'&&!panel.hidden){setOpen(false);button.focus()}};
+  document.addEventListener('pointerdown',outside,true);document.addEventListener('keydown',escape);
+  return{root,destroy(){document.removeEventListener('pointerdown',outside,true);document.removeEventListener('keydown',escape);for(const node of nodes)node.remove();root.remove()}};
+}
 export function createReviewStageLifecycle({canvas,stage=canvas?.closest('.review-surface__stage')||canvas?.parentElement,onResize,render,win=window}={}){
   if(!canvas||!stage||typeof onResize!=='function')throw new Error('Review stage lifecycle requires canvas, stage and onResize');
   let raf=0,destroyed=false,lastWidth=0,lastHeight=0;
