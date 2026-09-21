@@ -3,23 +3,30 @@ const status=document.getElementById('battle2-status'),world=document.getElement
 const phasePanel=document.getElementById('battle-phase'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
 const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],modeButtons=[...document.querySelectorAll('[data-battle-mode]')];
 const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'};
-const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'構え',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
+const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
 let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,reviewMeta=null,battleMode='duel',history=[],seenActions=new Set(),lastBattleId='';
 let state='BOOT',lastError=null;
 function report(next,detail=''){if(disposed)return;if(next==='BATTLE'&&!prepared)return;state=next;stage.dataset.state=next;if(next==='ERROR'){lastError=String(detail);stage.dataset.error=lastError;status.hidden=false;status.setAttribute('role','alert');status.textContent='戦闘を読み込めませんでした。'+lastError+' 再読み込みで再試行できます。';}else{status.setAttribute('role','status');status.hidden=next==='BATTLE'||next==='RESETTING';status.textContent=next==='ASSET_LOADING'?'戦闘を読み込み中… '+detail:'戦闘を準備中…';}}
 const motionLabel=kind=>MOVE_LABEL[kind]||kind||'動作';
-function renderHistory(){historyNode.replaceChildren(...history.map((row,index)=>{const line=document.createElement('span');line.className='battle-sequence-history__row';line.dataset.phase=row.phase;line.dataset.age=String(index);const phase=document.createElement('b');phase.textContent=PHASE_LABEL[row.phase]||'・';const name=document.createElement('strong');name.textContent=row.name;const move=document.createElement('small');move.textContent=row.move;line.append(phase,name,move);return line;}));}
-function resetHistory(battleId=''){lastBattleId=battleId;seenActions.clear();history=[];renderHistory();}
+function clearVisualHistory(){historyNode.replaceChildren();}
+function resetHistory(battleId=''){lastBattleId=battleId;seenActions.clear();history=[];clearVisualHistory();}
+function spawnActionText(row){
+  const line=document.createElement('span');line.className='battle-sequence-history__float';line.dataset.phase=row.phase;
+  const phase=document.createElement('b');phase.textContent=PHASE_LABEL[row.phase]||'・';
+  const text=document.createElement('span');text.textContent=`${row.name}　${row.move}`;
+  line.style.setProperty('--float-x',row.phase==='jo'?'-7px':row.phase==='kyu'?'7px':'0px');line.append(phase,text);historyNode.append(line);
+  const remove=()=>line.remove();line.addEventListener('animationend',remove,{once:true});setTimeout(remove,4200);
+}
 function pushAction(meta){
  if(!meta?.actionId||seenActions.has(meta.actionId))return;
- seenActions.add(meta.actionId);history.unshift({phase:meta.phase,name:meta.actionName||'基本動作',move:motionLabel(meta.actionMotion)});if(history.length>4)history.length=4;renderHistory();
+ seenActions.add(meta.actionId);const row={phase:meta.phase,name:meta.actionName||'基本動作',move:motionLabel(meta.actionMotion)};history.unshift(row);if(history.length>8)history.length=8;spawnActionText(row);
 }
 function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId)resetHistory(meta.battleId);
  const phase=meta.phase,index=PHASE_INDEX[phase]??-1;phasePanel.dataset.phase=phase||'idle';phasePanel.dataset.combatSequencePhase=phase||'idle';phasePanel.dataset.comboActive=String(index>=0);
  for(const node of phaseNodes){const i=PHASE_INDEX[node.dataset.combatPhase];node.dataset.active=String(i===index);node.dataset.completed=String(index>=0&&i<index);}
  if(meta.actionId){currentNode.dataset.kind=phase;currentNode.textContent=`${meta.actionName||'基本動作'}　${motionLabel(meta.actionMotion)}`;pushAction(meta);}
- else{currentNode.dataset.kind='idle';currentNode.textContent='間合いを測っている…';}
+ else{currentNode.dataset.kind='idle';currentNode.textContent=meta.flowPhase==='jo'?'間合いを測っている…':'間を取り直している…';}
 }
 function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));}
 function failed(error){report('ERROR',error?.message||String(error));sound?.pause();}
