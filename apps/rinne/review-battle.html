@@ -356,19 +356,20 @@ main.battle-review.review-surface .camera-zoom button{
 
 /* Compact inspiration card: anchored to the protagonist head by review-battle-stage.js. */
 .battle-inspiration{
-  z-index:18!important;width:max-content!important;min-width:172px!important;max-width:min(258px,66vw)!important;
+  z-index:18!important;width:max-content!important;min-width:172px!important;max-width:min(244px,60vw)!important;
   padding:10px 16px 11px!important;gap:2px!important;border:1px solid rgba(227,199,127,.62)!important;
   border-radius:16px 16px 18px 18px!important;background:radial-gradient(circle at 50% 0,rgba(115,188,229,.20),transparent 48%),linear-gradient(180deg,rgba(13,39,61,.95),rgba(6,19,33,.97))!important;
   box-shadow:0 7px 18px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.09)!important;filter:none!important;
-  transform:translate(-50%,-112%) scale(1)!important;text-align:center!important;overflow:visible!important;
+  transform:translate(-50%,-50%) scale(1)!important;text-align:center!important;overflow:visible!important;
 }
 .battle-inspiration::before{content:"✦";position:absolute;left:50%;top:-12px;transform:translateX(-50%);color:var(--rinne-blue-soft);font-size:12px;text-shadow:0 0 9px rgba(115,188,229,.72)}
 .battle-inspiration span{font-size:8px!important;line-height:1!important;letter-spacing:.2em!important;color:var(--rinne-blue-soft)!important}
 .battle-inspiration strong{display:block!important;margin-top:3px!important;max-width:100%!important;font-size:20px!important;line-height:1.16!important;letter-spacing:.055em!important;white-space:normal!important;text-wrap:balance!important;text-shadow:0 0 12px rgba(227,199,127,.26)!important}
 .battle-inspiration small{display:none!important}
 .battle-inspiration[data-burst="true"]{animation:battle-inspiration-pop .24s cubic-bezier(.2,.8,.25,1) both}
-@keyframes battle-inspiration-pop{0%{opacity:0;transform:translate(-50%,-102%) scale(.84)}70%{opacity:1;transform:translate(-50%,-116%) scale(1.05)}100%{opacity:1;transform:translate(-50%,-112%) scale(1)}}
-@media(max-width:520px){.battle-inspiration{min-width:160px!important;max-width:min(228px,62vw)!important;padding:9px 14px 10px!important}.battle-inspiration strong{font-size:18px!important}}
+@keyframes battle-inspiration-pop{0%{opacity:0;transform:translate(-50%,-44%) scale(.84)}70%{opacity:1;transform:translate(-50%,-53%) scale(1.05)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@media(max-width:520px){.battle-inspiration{min-width:158px!important;max-width:min(218px,56vw)!important;padding:9px 14px 10px!important}.battle-inspiration strong{font-size:18px!important}}
+.stage[data-inspiration-cinematic="true"]::after{background:linear-gradient(118deg,rgba(3,10,18,.46),transparent 26% 68%,rgba(3,10,18,.30)),radial-gradient(circle at 54% 48%,transparent 0 24%,rgba(3,10,18,.22) 72%,rgba(3,10,18,.42) 100%)!important}
 @media(prefers-reduced-motion:reduce){.battle-inspiration[data-burst="true"]{animation:none!important}}
 </style>
 </head>
