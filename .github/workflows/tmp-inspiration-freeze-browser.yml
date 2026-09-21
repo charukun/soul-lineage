@@ -9,6 +9,8 @@ jobs:
   reproduce:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      APP_ENV: dev
     steps:
       - uses: actions/checkout@v6
         with:
