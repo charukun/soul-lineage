@@ -67,8 +67,12 @@ export class HuntFlowUi {
     this.actionLine.hidden = true;
     const haul = game.carried + (ready ? plan.bonus : 0), eaten = Math.min(game.eaten, plan.quota);
     this.bag.querySelector('[data-goal]').textContent = plan.marked ? `${plan.prey}${game.targetEaten ? '済' : '未'} ${eaten}/${plan.quota}` : `人影 ${eaten}/${plan.quota}`;
-    this.bag.querySelector('[data-haul]').textContent = `戦利 ${haul} · 未確保 ${game.carried}`;
-    this.bag.querySelector('[data-pressure]').textContent = `警戒 ${risk.label}`;
+    const haulNode = this.bag.querySelector('[data-haul]'), pressureNode = this.bag.querySelector('[data-pressure]');
+    haulNode.textContent = `未確保 ${game.carried}${ready ? ` · 帰還 ${haul}` : ''}`;
+    haulNode.hidden = game.carried <= 0 && !ready;
+    pressureNode.textContent = `警戒 ${risk.label}`;
+    pressureNode.hidden = risk.level <= 0;
+    this.bag.dataset.pressure = String(risk.level);
     this.bag.querySelector('progress').value = Math.min(1, game.eaten / plan.quota);
     this.objective.setAttribute('aria-label', `${goalText(plan)}。現在 ${eaten} / ${plan.quota}。持ち帰れば戦利品 ${haul}。未確保 ${game.carried}。警戒 ${risk.label}`);
     byId('hud').dataset.huntState = game.fight ? 'combat' : returning ? 'return' : 'hunt';
