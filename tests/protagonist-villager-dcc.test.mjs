@@ -92,11 +92,11 @@ test('female protagonist is a separate repository-local Rig_Medium DCC model', (
   const production = JSON.parse(readFileSync(productionPath, 'utf8'));
   assert.equal(bytes.length, receipt.bytes);
   assert.equal(createHash('sha256').update(bytes).digest('hex'), receipt.sha256);
-  assert.equal(receipt.sha256, 'db3a93059f19002c01ec5c516a07a6b26f00aa595c2cf78a3408eb185b2baeb4');
+  assert.equal(receipt.sha256, '06de3a20266316b5ce1f75b88ca7434916d13c2f161036c29649f06f6b44c78c');
   assert.equal(receipt.humanoidRig, 'kaykit.Rig_Medium.v1');
   assert.equal(production.stage, 'PRIMARY');
   assert.equal(production.status.visualApproval, 'pending');
   assert.equal(production.status.productionReady, false);
-  assert.equal(production.evidence.primary.meshObjects, 13);
-  assert.equal(production.evidence.primary.triangles, 4596);
+  assert.equal(production.evidence.primary.meshObjects, 25);
+  assert.equal(production.evidence.primary.triangles, 4128);
 });

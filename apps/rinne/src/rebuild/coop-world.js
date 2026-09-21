@@ -1,3 +1,4 @@
+import {clearSavedPresentation} from './johakyu-save-contract.js';
 import { equippedVfxSkillIds } from './vfx-streaming.js';
 import { createLife, validateLife, tickLife, setMoving, setClockRate, canDepart, depart, advanceFront, returnHome, rebirth } from './domain.js';
 import { createFront, normalizeFront, tickSharedFront } from './combat.js';
@@ -11,7 +12,7 @@ const clone=value=>structuredClone(value),identifier=value=>typeof value==='stri
 const seedOf=text=>{let n=2166136261;for(const c of text)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;};
 const speed=age=>age<4?1.2:age<7?2.15:age<65?4.15:Math.max(2.3,4.15-(age-65)*.035);
 const socialHooks=s=>{const talents=s.inspiration?.talents||[],hooks=[];if(talents.includes('gifted'))hooks.push({kind:'protect-gifted-child',label:'ギフテッド',roles:['見守り役','師匠候補','将来の共闘仲間']});if(talents.includes('prodigy'))hooks.push({kind:'rally-around-prodigy',label:'天賦の才',roles:['師匠','稽古仲間','共闘仲間']});return hooks;};
-const visibleLife=s=>({id:s.id,name:s.name,seed:s.seed,birthVillageId:s.birthVillageId,ageSeconds:s.ageSeconds,ageYears:s.ageYears,phase:s.phase,zone:s.zone,front:s.front,position:clone(s.position),yaw:s.yaw,moving:s.moving,equipment:clone(s.equipment),vfxSkills:equippedVfxSkillIds(s),talents:[...(s.inspiration?.talents||[])],socialHooks:socialHooks(s),combat:Boolean(s.combat),combatPose:s.combat?.tidebreakPose?clone(s.combat.tidebreakPose):null,combatIntent:s.combat?.bodyIntent||null,rangedCombat:s.rangedCombat?clone(s.rangedCombat):null,ended:s.ended});
+const visibleLife=s=>({hp:s.hp,maxHp:s.maxHp,stamina:s.stamina,staminaCap:s.staminaCap,injuries:clone(s.injuries),down:clone(s.down||null),resting:Boolean(s.resting),generation:s.generation,finisher:clone(s.finisher||null),id:s.id,name:s.name,seed:s.seed,birthVillageId:s.birthVillageId,ageSeconds:s.ageSeconds,ageYears:s.ageYears,phase:s.phase,zone:s.zone,front:s.front,position:clone(s.position),yaw:s.yaw,moving:s.moving,equipment:clone(s.equipment),vfxSkills:equippedVfxSkillIds(s),talents:[...(s.inspiration?.talents||[])],socialHooks:socialHooks(s),combat:Boolean(s.combat),combatPose:s.combat?.tidebreakPose?clone(s.combat.tidebreakPose):null,combatIntent:s.combat?.bodyIntent||null,rangedCombat:s.rangedCombat?clone(s.rangedCombat):null,ended:s.ended});
 
 export class CoopWorld {
   constructor({worldId,ownerId,name,layout,saved=null}){
@@ -23,7 +24,7 @@ export class CoopWorld {
       if(!saved.players||Object.keys(saved.players).length>COOP_LIMIT||!Object.hasOwn(saved.players,ownerId))throw Error('試遊の参加者が不正です。');
       for(const [id,row]of Object.entries(saved.players)){if(!identifier(id)||typeof row.token!=='string'||row.token.length>120)throw Error('参加者の記録が不正です。');validateLife(row.life);}
       for(const [stage,front]of Object.entries(saved.fronts||{}))normalizeFront(front,Number(stage));
-      this.data=clone(saved);this.data.epoch++;this.setRate(ownerId,saved.clockRate);
+      this.data=clone(saved);for(const row of Object.values(this.data.players))row.life=clearSavedPresentation(validateLife(row.life));for(const [stage,front]of Object.entries(this.data.fronts||{}))this.data.fronts[stage]=normalizeFront(front,Number(stage));this.data.epoch++;this.setRate(ownerId,saved.clockRate);
     }else this.addPlayer(ownerId,name,'owner');
   }
   broadcastVillageNews(sourceId,event){
@@ -93,5 +94,5 @@ export class CoopWorld {
     const me=clone(own);me.frontState=null;
     return{worldId:this.data.worldId,epoch:this.data.epoch,tick:this.data.tick,worldSeconds:this.data.worldSeconds,count:Object.keys(this.data.players).length,me,peers,front:own.zone==='frontier'?clone(this.data.fronts[own.front]||createFront(own.front)):null,events:clone(this.events.get(id)||[])};
   }
-  save(){return{layout:clone(this.layout),world:clone(this.data)};}
+  save(){const world=clone(this.data);for(const row of Object.values(world.players))clearSavedPresentation(row.life);for(const front of Object.values(world.fronts))clearSavedPresentation({frontState:front});return{layout:clone(this.layout),world};}
 }

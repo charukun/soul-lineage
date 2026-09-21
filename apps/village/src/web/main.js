@@ -146,7 +146,7 @@ function confirmPlacement(){
  // The displayed candidate is the only commit source. No pointer raycast here.
  const r=p.moveId?world.move(p.moveId,p.x,p.z,p.rot,p.roomId):world.add(p.kind,p.x,p.z,p.rot,p.roomId,{material:p.material});
  if(r.error){toast(r.error);refreshPreview();return false;}
- const id=p.moveId||r.object?.id;cancelPlacement();if(id)selection(id,p.roomId);void save();
+ cancelPlacement();deselect();void save();
  toast(p.moveId?'移動しました':r.object?.phase==='planned'?'建築を予約しました':'配置しました',2000);return true;
 }
 $('build').onclick=()=>ui.drawer?closeDrawer():openDrawer();$('deselect').onclick=deselect;

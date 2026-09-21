@@ -1,33 +1,26 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0a0f0e">
-<title>Visual Review｜序破急バトルシステム</title>
-<link rel="icon" href="./favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./src/battle2.css">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0a0f0e">
+<title>Visual Review｜序破急バトル</title><link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./src/battle2.css"><link rel="stylesheet" href="./src/nocturne/johakyu-p7-readout.css">
 </head>
 <body>
-<main class="battle2-review review-surface" aria-label="序破急バトルシステムレビュー">
-  <header class="battle-bar review-surface__header">
-    <div class="review-surface__title">
-      <a class="review-surface__back" href="./" aria-label="Visual Reviewへ戻る">‹ 戻る</a>
-      <div><span class="review-surface__eyebrow">NOCTURNE RUNTIME PROBE</span><h1>序破急バトルシステム</h1></div>
-    </div>
-  </header>
-  <section class="review-surface__workspace" aria-label="戦闘描画エリア">
-    <div class="review-surface__stage-column">
-      <section class="nocturne-stage review-surface__stage" data-review-surface="battle2" data-runtime="nocturne-native" data-state="BOOT">
-        <canvas id="world" aria-label="NOCTURNE 自動戦闘"></canvas>
-        <canvas id="effects" aria-hidden="true"></canvas>
-        <div class="nocturne-vignette" aria-hidden="true"></div>
-        <p id="battle2-status" role="status" aria-live="polite">戦闘を準備中…</p>
-      </section>
-    </div>
-  </section>
+<main class="battle2-review review-surface review-workbench" aria-label="序破急バトルレビュー">
+<header class="battle-bar review-surface__header"><div class="review-surface__title"><a class="review-surface__back" href="./" aria-label="Visual Reviewへ戻る">‹ 戻る</a><div><span class="review-surface__eyebrow">NOCTURNE RUNTIME PROBE</span><h1>序破急バトル</h1></div></div></header>
+<section class="review-surface__workspace">
+<div class="review-surface__stage-column"><section class="nocturne-stage review-surface__stage" data-review-surface="battle2" data-runtime="nocturne-native" data-state="BOOT">
+<canvas id="world" aria-label="序破急 canonical 自動戦闘"></canvas><canvas id="effects" aria-hidden="true"></canvas><div class="nocturne-vignette" aria-hidden="true"></div>
+<div id="battle-sequence-hud" class="battle-sequence-hud" aria-live="polite">
+<aside id="battle-phase" class="battle-sequence-hud__phase combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" data-phase="idle" aria-label="序破急の現在状態">
+<span class="battle-sequence-hud__step combat-sequence__step" data-combat-phase="jo" data-active="false">序</span><i class="battle-sequence-hud__wave combat-sequence__link" data-combat-link="jo-ha" aria-hidden="true"></i><span class="battle-sequence-hud__step combat-sequence__step" data-combat-phase="ha" data-active="false">破</span><i class="battle-sequence-hud__wave combat-sequence__link" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="battle-sequence-hud__step combat-sequence__step" data-combat-phase="kyu" data-active="false">急</span>
+</aside>
+<strong id="battle-sequence-current" class="battle-sequence-current" data-kind="idle">間合いを測っている…</strong>
+<div id="battle-sequence-history" class="battle-sequence-history" aria-label="使用した技と動作の履歴"></div>
+</div>
+<p id="battle2-status" role="status" aria-live="polite">戦闘を準備中…</p>
+</section></div>
+<section class="controls review-surface__panel review-workbench__panel-host" aria-label="戦闘人数の切替"><div class="battle-stage-switch"><div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="oneVsThree" aria-pressed="false">1v3</button></div></div></section>
+</section>
 </main>
-<script type="module" src="./src/battle2-shell.js"></script>
-<script type="module" src="./src/nocturne-stage.js"></script>
-</body>
-</html>
+<script type="module" src="./src/battle2-shell.js"></script><script type="module" src="./src/nocturne-stage.js"></script>
+</body></html>

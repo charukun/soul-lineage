@@ -12,6 +12,54 @@ export function createReviewRenderer(canvas,{exposure=1.15,pixelRatioCap=1.5,pow
   return renderer;
 }
 
+export function disposeReviewObject(root,{remove=true,closeImageSources=true}={}){
+  if(!root)return;
+  const geometries=new Set(),materials=new Set(),textures=new Set(),skeletons=new Set();
+  root.traverse?.(node=>{
+    if(node.geometry)geometries.add(node.geometry);
+    if(node.skeleton)skeletons.add(node.skeleton);
+    for(const material of Array.isArray(node.material)?node.material:node.material?[node.material]:[]){
+      if(!material)continue;
+      materials.add(material);
+      for(const value of Object.values(material))if(value?.isTexture)textures.add(value);
+    }
+  });
+  if(remove)root.removeFromParent?.();
+  skeletons.forEach(value=>value.dispose?.());
+  geometries.forEach(value=>value.dispose?.());
+  materials.forEach(value=>value.dispose?.());
+  textures.forEach(value=>{value.dispose?.();if(closeImageSources)value.source?.data?.close?.();});
+}
+
+export function createReviewCameraPresetController({selector='',buttons=null,datasetKey='reviewCamera',initialPreset='front',applyPreset,doc=document}={}){
+  let current=initialPreset;
+  const entries=buttons?[...buttons]:selector?[...doc.querySelectorAll(selector)]:[];
+  const presetOf=button=>button?.dataset?.[datasetKey]||'';
+  const sync=()=>{for(const button of entries)button.setAttribute('aria-pressed',String(presetOf(button)===current));};
+  const set=(preset,{apply=true}={})=>{
+    current=preset||current;
+    if(apply)applyPreset?.(current);
+    sync();
+    return current;
+  };
+  const apply=()=>{applyPreset?.(current);sync();return current;};
+  const clear=()=>{for(const button of entries)button.setAttribute('aria-pressed','false');};
+  const listeners=entries.map(button=>{
+    const onClick=()=>set(presetOf(button));
+    button.addEventListener('click',onClick);
+    return [button,onClick];
+  });
+  sync();
+  return Object.freeze({
+    get current(){return current;},
+    set,
+    apply,
+    clear,
+    sync,
+    destroy(){for(const [button,onClick] of listeners)button.removeEventListener('click',onClick);},
+  });
+}
+
 export function measureReviewSubject(root,{minimumExtent=.4}={}){
   if(!root?.isObject3D)throw new Error('Review subject must be Object3D');
   root.updateWorldMatrix(true,true);

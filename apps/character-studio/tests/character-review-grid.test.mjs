@@ -14,7 +14,7 @@ const { readCharacterModels, gridFocusIndex, installCharacterReviewGrid } = awai
 function source(label, { id='model', pressed=false, disabled=false, stage='PRIMARY' } = {}) {
   return {
     textContent: label,
-    dataset: { characterModel:id, modelStage:stage },
+    dataset: { characterModel:id, modelStage:stage, reviewLabel:'' },
     isConnected:true,
     getAttribute:name => name === 'aria-pressed' ? String(pressed) : null,
     matches:selector => selector === ':disabled' && disabled
@@ -26,6 +26,7 @@ test('simple character review exposes real models only', () => {
   assert.match(main, /if \(!simpleReview\) \{\s*const generated = button\('量産モデル'/);
   assert.match(main, /主人公 男/);
   assert.match(main, /主人公 女/);
+  assert.match(main, /dataset\.reviewLabel = concise/);
   assert.match(main, /KAYKIT_MODELS/);
   for (const label of ['騎士','蛮族','魔術師','盗賊','フード盗賊']) assert.match(main, new RegExp(label));
   assert.match(code, /実モデルのみ/);
@@ -82,6 +83,9 @@ test('committed protagonist assets are locally available to character-studio and
   assert.match(review, /model\.runtime\.url/);
   assert.match(review, /model\.integrityPath/);
   assert.match(review, /model\.assetPath/);
+  assert.match(review, /cache: 'no-store'/);
+  assert.match(review, /assetUrl\.searchParams\.set\('sha256', receipt\.sha256\)/);
+  assert.match(review, /modelBytes\(assetUrl\.href, \{ cache: 'no-store' \}\)/);
   assert.match(review, /receipt\.sha256 !== sha256/);
   assert.match(review, /kaykit\.Rig_Medium\.v1/);
   assert.doesNotMatch(review, /旧carrier rig依存のため退役中/);

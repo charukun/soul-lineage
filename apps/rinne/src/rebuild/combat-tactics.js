@@ -11,13 +11,8 @@ export function activeHeartIds(state){
   ensureCombatLoadout(state);return new Set(state.combatLoadout?.heart?.active||[]);
 }
 
-export function staminaPolicyFor(state){
-  const cap=Math.max(1,Number(state?.staminaCap)||100),ratio=clamp((Number(state?.stamina)||0)/cap);
-  if(ratio<.14)return{band:'critical',ratio,allowOffense:false,allowFinisher:false,tempoScale:.72,recoveryBias:1,guardBias:.36};
-  if(ratio<.32)return{band:'low',ratio,allowOffense:true,allowFinisher:false,tempoScale:.86,recoveryBias:.65,guardBias:.2};
-  if(ratio<.62)return{band:'steady',ratio,allowOffense:true,allowFinisher:true,tempoScale:.96,recoveryBias:.25,guardBias:.08};
-  return{band:'fresh',ratio,allowOffense:true,allowFinisher:true,tempoScale:1.05,recoveryBias:0,guardBias:0};
-}
+export {staminaPolicyFor} from '@soul/johakyu-combat/stamina';
+import {staminaPolicyFor} from '@soul/johakyu-combat/stamina';
 
 export function tidebreakMindVectorFor(state){
   ensureCombatLoadout(state);const body=bodyRuntime(state),heart=activeHeartIds(state),stamina=staminaPolicyFor(state),injury=injuryEffects(state),bodyOutcome=combatBodyOutcome(state),strategy=strategyForState(state);

@@ -79,7 +79,7 @@
   },
   "receipt": {
     "repository": "charukun/soul-lineage",
-    "pullRequest": null,
+    "pullRequest": 1296,
     "marker": "autonomous-receipt:kuumetsu:kuumetsu-prey-guidance-20260921"
   }
 }

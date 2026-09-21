@@ -1,10 +1,12 @@
 const make=(tag,cls='',text='')=>{const node=document.createElement(tag);if(cls)node.className=cls;if(text)node.textContent=text;return node};
 
-export function mountReviewStageControls({stage=document.querySelector('.review-surface__stage'),groups=[],label='表示・再生コントロール'}={}){
+export function mountReviewStageControls({stage=document.querySelector('.review-surface__stage'),groups=null,selector='[data-review-stage-control]',label='表示・再生コントロール',doc=document}={}){
   if(!stage||stage.querySelector('[data-review-stage-controls]'))return null;
-  const nodes=groups
-    .flatMap(selector=>[...document.querySelectorAll(selector)])
+  const selectors=groups?.length?groups:[selector];
+  const nodes=selectors
+    .flatMap(candidate=>[...doc.querySelectorAll(candidate)])
     .filter((node,index,all)=>node&&!all.slice(0,index).some(parent=>parent.contains(node)));
+  if(!nodes.length)return null;
   const root=make('div','review-stage-controls');
   root.dataset.reviewStageControls='true';
   const button=make('button','review-stage-controls__button','⚙');
@@ -20,20 +22,23 @@ export function mountReviewStageControls({stage=document.querySelector('.review-
   button.setAttribute('aria-controls',panel.id);
   const title=make('strong','review-stage-controls__title',label);
   panel.append(title,...nodes);
-  root.append(panel,button);
+  const panelHost=stage.dataset.reviewStagePanelHost?doc.querySelector(stage.dataset.reviewStagePanelHost):null;
+  root.append(button);
+  (panelHost||root).append(panel);
   stage.append(root);
   const setOpen=open=>{panel.hidden=!open;root.dataset.open=String(open);button.setAttribute('aria-expanded',String(open));};
   button.addEventListener('click',event=>{event.stopPropagation();setOpen(panel.hidden)});
-  const outside=event=>{if(!panel.hidden&&!root.contains(event.target))setOpen(false)};
+  const outside=event=>{if(!panel.hidden&&!root.contains(event.target)&&!panel.contains(event.target))setOpen(false)};
   const escape=event=>{if(event.key==='Escape'&&!panel.hidden){setOpen(false);button.focus()}};
-  document.addEventListener('pointerdown',outside,true);
-  document.addEventListener('keydown',escape);
+  doc.addEventListener('pointerdown',outside,true);
+  doc.addEventListener('keydown',escape);
   return{
     root,
     destroy(){
-      document.removeEventListener('pointerdown',outside,true);
-      document.removeEventListener('keydown',escape);
+      doc.removeEventListener('pointerdown',outside,true);
+      doc.removeEventListener('keydown',escape);
       for(const node of nodes)node.remove();
+      panel.remove();
       root.remove();
     },
   };

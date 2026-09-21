@@ -5,9 +5,11 @@ import './review-object-library.css';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {createMuraModels} from '@soul/rendering/mura';
-import {createReviewRenderer,measureReviewSubject,normalizeReviewSubject,positionReviewCamera} from '@soul/rendering';
+import {createReviewCameraPresetController,createReviewRenderer,disposeReviewObject,measureReviewSubject,normalizeReviewSubject,positionReviewCamera} from '@soul/rendering';
 import {curatedAssetById,fetchCuratedAssetBytes,projectAssetUrl,CURATED_PROVENANCE_PATH} from '@soul/assets';
 import {RINNE_OBJECT_REVIEW_CATALOG as OBJECTS} from './review-object-catalog.js';
+import {createReviewSvgThumbnail} from '@soul/shared-ui/review-thumbnail';
+import {setReviewStatus} from '@soul/shared-ui/review-status';
 mountRinneReviewShell('objects');
 
 const runtimeEnvironment=typeof __BUILD_INFO__==='undefined'?'dev':__BUILD_INFO__.environment;
@@ -29,20 +31,8 @@ const CATEGORY_OPTIONS=Object.freeze([{id:'all',label:'すべて'},{id:'props',l
 let objectRoot=null,frameId=0,loadSequence=0,selected=OBJECTS[0].id,selectedCategory='all',searchText='';
 let mixer=null,animationRoot=null,clips=[],action=null,loadAbort=null,lastFrame=0;
 
-function status(message,error=false){q('#object-status').textContent=message;q('#object-status').dataset.error=String(error);}
-function disposeRoot(root){
-  if(!root)return;
-  const geometries=new Set(),materials=new Set(),textures=new Set(),skeletons=new Set();
-  root.traverse(node=>{
-    if(node.geometry)geometries.add(node.geometry);
-    if(node.skeleton)skeletons.add(node.skeleton);
-    for(const material of Array.isArray(node.material)?node.material:node.material?[node.material]:[]){
-      materials.add(material);for(const value of Object.values(material))if(value?.isTexture)textures.add(value);
-    }
-  });
-  root.removeFromParent();skeletons.forEach(value=>value.dispose?.());geometries.forEach(value=>value.dispose?.());materials.forEach(value=>value.dispose?.());
-  textures.forEach(value=>{value.dispose?.();value.source?.data?.close?.();});
-}
+function status(message,error=false){setReviewStatus(q('#object-status'),message,{error});}
+function disposeRoot(root){disposeReviewObject(root);}
 function releaseAnimation(){
   mixer?.stopAllAction();if(mixer&&animationRoot)mixer.uncacheRoot(animationRoot);
   mixer=null;animationRoot=null;clips=[];action=null;
@@ -51,11 +41,13 @@ function releaseAnimation(){
 }
 function objectFrame(){return objectRoot?measureReviewSubject(objectRoot):null;}
 function fitObject(root){normalizeReviewSubject(root,{targetLongest:1.75});}
-function setCameraPreset(preset='full'){
-  if(!objectRoot)return;
-  positionReviewCamera({camera,controls,root:objectRoot,preset,padding:1.18,minDistance:.35,maxDistance:18});
-  for(const button of document.querySelectorAll('[data-object-camera]'))button.setAttribute('aria-pressed',String(button.dataset.objectCamera===preset));
-}
+const objectCameraPresets=createReviewCameraPresetController({
+  selector:'[data-object-camera]',
+  datasetKey:'objectCamera',
+  initialPreset:'full',
+  applyPreset:preset=>{if(objectRoot)positionReviewCamera({camera,controls,root:objectRoot,preset,padding:1.18,minDistance:.35,maxDistance:18});},
+});
+function setCameraPreset(preset='full'){objectCameraPresets.set(preset);}
 function visibleObjects(){
   const query=searchText.trim().toLocaleLowerCase();
   return OBJECTS.filter(item=>(selectedCategory==='all'||item.category===selectedCategory)&&(!query||`${item.label} ${item.id} ${item.source} ${item.provenance?.path||''}`.toLocaleLowerCase().includes(query)));
@@ -69,9 +61,7 @@ function createObjectThumbnail(item){
     const image=document.createElement('img');image.className='object-thumbnail';image.src=item.thumbnailUrl;
     image.alt='';image.loading='lazy';image.decoding='async';image.width=160;image.height=160;return image;
   }
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.classList.add('object-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
-  const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href',item.thumbnailUrl);svg.append(use);return svg;
+  return createReviewSvgThumbnail(item.thumbnailUrl,{className:'object-thumbnail',decorative:true});
 }
 function renderObjectOptions(){
   const items=visibleObjects();
@@ -130,7 +120,7 @@ function playClip(index){
 }
 async function loadObject(id){
   const item=OBJECTS.find(row=>row.id===id);if(!item)throw new Error(`Unknown review object: ${id}`);
-  const sequence=++loadSequence;selected=id;status(`${item.label} を読み込み中…`);renderSelection();
+  const sequence=++loadSequence;selected=id;status(`${item.label} を読み込み中…`);q('#object-selected').textContent=item.label;q('#object-selected-source').textContent='読み込み中…';renderSelection();
   loadAbort?.abort();loadAbort=new AbortController();const signal=loadAbort.signal;
   releaseAnimation();disposeRoot(objectRoot);objectRoot=null;
   let gltf=null,root=null;
@@ -150,7 +140,7 @@ async function loadObject(id){
       const select=q('#object-clip');select.replaceChildren(...clips.map((clip,index)=>new Option(clip.name||`Motion ${index+1}`,String(index))));
       q('#object-animation').hidden=false;playClip(Math.max(0,clips.findIndex(clip=>/idle/i.test(clip.name))));
     }
-    canvas.dataset.loadedAsset=id;status(`${item.label} · ${item.source}${clips.length?` · ${clips.length} モーション`:''}`);
+    canvas.dataset.loadedAsset=id;q('#object-selected-source').textContent=item.source+(clips.length?` · ${clips.length} モーション`:'');status(`${item.label} · ${item.source}${clips.length?` · ${clips.length} モーション`:''}`);
   }catch(error){
     if(sequence===loadSequence){releaseAnimation();disposeRoot(root);objectRoot=null;}
     else disposeRoot(root);
@@ -158,10 +148,10 @@ async function loadObject(id){
   }
 }
 function populate(){
-  const searchLabel=document.createElement('label');searchLabel.textContent='素材を探す';
+  const searchLabel=document.createElement('label');searchLabel.className='object-search review-workbench__search';searchLabel.innerHTML='<span>検索</span>';
   const search=document.createElement('input');search.id='object-search';search.type='search';search.placeholder='名前・作者・原典ファイル名';
   search.addEventListener('input',()=>{searchText=search.value;renderObjectOptions();});searchLabel.append(search);
-  const count=document.createElement('output');count.id='object-result-count';count.setAttribute('aria-live','polite');
+  const count=document.createElement('output');count.id='object-result-count';count.className='review-workbench__grid-title';count.setAttribute('aria-live','polite');
   const animation=document.createElement('fieldset');animation.id='object-animation';animation.hidden=true;
   const legend=document.createElement('legend');legend.textContent='原版モーション';
   const select=document.createElement('select');select.id='object-clip';select.setAttribute('aria-label','モーション');select.addEventListener('change',()=>playClip(Number(select.value)));
@@ -170,8 +160,7 @@ function populate(){
   animation.append(legend,select,toggle);q('#object-options').before(searchLabel,count,animation);
   q('#object-categories').replaceChildren(...CATEGORY_OPTIONS.map(item=>{const button=document.createElement('button');button.type='button';button.textContent=item.label;button.dataset.category=item.id;button.addEventListener('click',()=>selectCategory(item.id));return button;}));
   renderObjectOptions();
-  for(const button of document.querySelectorAll('[data-object-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.objectCamera));
-  controls.addEventListener('start',()=>{for(const button of document.querySelectorAll('[data-object-camera]'))button.setAttribute('aria-pressed','false');});
+  controls.addEventListener('start',()=>objectCameraPresets.clear());
 }
 const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();},render:()=>renderer.render(scene,camera)});
 function frame(now){
@@ -180,4 +169,4 @@ function frame(now){
   controls.update();renderer.render(scene,camera);frameId=requestAnimationFrame(frame);
 }
 frameId=requestAnimationFrame(frame);populate();loadObject(selected).catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{loadSequence++;loadAbort?.abort();cancelAnimationFrame(frameId);releaseAnimation();stageLifecycle.destroy();controls.dispose();disposeRoot(objectRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{loadSequence++;loadAbort?.abort();cancelAnimationFrame(frameId);releaseAnimation();stageLifecycle.destroy();objectCameraPresets.destroy();controls.dispose();disposeRoot(objectRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});

@@ -1,3 +1,5 @@
+import {readSavedBody,readSavedTerrain,clearSavedPresentation} from './johakyu-save-contract.js';
+import {spendActionStamina,recoverActionStamina} from '@soul/johakyu-combat/stamina';
 import { DISCOVERIES, skillEffects, skillName } from './skill-system.js';
 import { enterInteriorState, leaveInteriorState } from './interior-state.js';
 import { ensureCombatInjuryState, recoverPersistentInjuries } from './combat-injury.js';
@@ -92,10 +94,10 @@ export function validateLife(raw){
   state.name=cleanName(state.name);state.ageYears=state.ageSeconds/YEAR_SECONDS;
   state.family=familyForLife(state);
   // Migrate before injury cleanup so explicitly chosen legacy loadouts remain usable.
-  validateInspiration(state);ensureCombatInjuryState(state);recoverPersistentInjuries(state);return state;
+  state.injuries=readSavedBody(state.injuries);if(state.frontState){if(!Array.isArray(state.frontState.enemies))throw Error('遭遇の保存データが不正です。');for(const enemy of state.frontState.enemies)enemy.injuries=readSavedBody(enemy.injuries);if(state.frontState.terrain)state.frontState.terrain=readSavedTerrain(state.frontState.terrain);}validateInspiration(state);ensureCombatInjuryState(state);recoverPersistentInjuries(state);return state;
 }
-export function serializeLife(state){return JSON.stringify(validateLife(state));}
-export function deserializeLife(text){if(typeof text!=='string'||text.length>250_000)throw Error('保存データが大きすぎます。');return validateLife(JSON.parse(text));}
+export function serializeLife(state){return JSON.stringify(clearSavedPresentation(validateLife(state)));}
+export function deserializeLife(text){if(typeof text!=='string'||text.length>250_000)throw Error('保存データが大きすぎます。');return clearSavedPresentation(validateLife(JSON.parse(text)));}
 export function setClockRate(state,rate){rate=Number(rate);if(!CLOCK_RATES.includes(rate))throw Error('選べない時間倍率です。');state.clockRate=rate;return state;}
 function pushEvent(state,type,text){state.events.unshift({type,worldSecond:Math.floor(state.ageSeconds),text});if(state.events.length>80)state.events.length=80;}
 function addKnownSkill(state,id){if(state.knownSkills.includes(id))return false;state.knownSkills.push(id);return true;}
@@ -124,19 +126,13 @@ export function applyEquipmentStation(state,station){
 }
 export function setMoving(state,moving,yaw=state.yaw){state.moving=Boolean(moving);if(Number.isFinite(yaw))state.yaw=yaw;if(state.moving){state.idleSeconds=0;state.resting=false;stopAutomaticActivity(state,'move');}return state;}
 function recover(state,dt){
-  ensureCombatInjuryState(state);recoverPersistentInjuries(state);const armor=ARMORS[state.equipment.armor],capBase=100*armor.staminaScale,effects=skillEffects(state);
-  state.staminaCap=clamp(Math.min(state.staminaCap,capBase),22,100);state.lastSpendSeconds+=dt;
-  if(state.moving){state.stamina=Math.min(state.staminaCap,state.stamina+4*dt);return;}
-  state.idleSeconds+=dt;if(state.idleSeconds>=.48&&!state.activity&&!state.combat)state.resting=true;
-  const rest=state.resting&&state.idleSeconds>=.35;
-  if(state.lastSpendSeconds>=.55)state.stamina=Math.min(state.staminaCap,state.stamina+(rest?32:14)*dt);
-  if(rest)state.staminaCap=Math.min(capBase,state.staminaCap+8*dt);else if(state.lastSpendSeconds>=6)state.staminaCap=Math.min(capBase,state.staminaCap+.2*dt);
-  if(rest&&state.hp<state.maxHp)state.hp=Math.min(state.maxHp,state.hp+1.2*(1+effects.recovery)*dt);
-  if(rest&&state.zone==='village'&&state.ammo.staffCharges<state.ammo.staffMax){state.ammoRecovery=(Number(state.ammoRecovery)||0)+dt;if(state.ammoRecovery>=6){state.ammo.staffCharges=Math.min(state.ammo.staffMax,state.ammo.staffCharges+1);state.ammoRecovery=0;}}
+  ensureCombatInjuryState(state);recoverPersistentInjuries(state);
+  const armor=ARMORS[state.equipment.armor],effects=skillEffects(state);
+  recoverActionStamina(state,dt,{capBase:100*armor.staminaScale,recovery:effects.recovery});
 }
 export function spendStamina(state,amount){
-  const effects=skillEffects(state);amount=Math.max(0,(Number(amount)||0)*(1+effects.staminaCost)*inspirationEffortScale(state));if(state.stamina<amount)return false;
-  state.stamina-=amount;state.staminaCap=Math.max(22,state.staminaCap-amount*.08);state.lastSpendSeconds=0;return true;
+  const effects=skillEffects(state);amount=Math.max(0,(Number(amount)||0)*(1+effects.staminaCost)*inspirationEffortScale(state));
+  return spendActionStamina(state,amount);
 }
 export function endLifeEarly(state,cause='戦い'){
   if(state.ended)return false;state.ended=true;state.phase='ended';state.moving=false;state.resting=false;state.activity=null;state.combat=null;state.down=null;state.interior=null;state.hp=0;
@@ -158,10 +154,10 @@ export function tickLife(state,{realDelta,lifeDelta=realDelta,station=null,pause
 }
 export function departureCycle(state){return Math.floor(state.ageYears/5);}
 export function canDepart(state){return state.phase==='living'&&!state.ended&&!state.combat&&!state.interior&&state.ageYears>=15&&departureCycle(state)>state.lastDepartureCycle;}
-export function depart(state){if(!canDepart(state))return false;state.lastDepartureCycle=departureCycle(state);state.zone='frontier';state.front=0;state.position={x:0,z:5.2};state.resting=false;state.activity=null;state.interior=null;pushEvent(state,'depart','前線へ向けて出航した。');return true;}
-export function advanceFront(state){if(state.zone!=='frontier'||state.front>=5)return false;state.front++;state.position={x:0,z:5.2};state.combat=null;pushEvent(state,'front',`第${state.front+1}前線へ進んだ。`);return true;}
+export function depart(state){if(!canDepart(state))return false;state.lastDepartureCycle=departureCycle(state);state.zone='frontier';if(state.rangedCombat){state.rangedCombat.projectiles=[];state.rangedCombat.cooldown=0;}state.front=0;state.position={x:0,z:5.2};state.resting=false;state.activity=null;state.interior=null;pushEvent(state,'depart','前線へ向けて出航した。');return true;}
+export function advanceFront(state){if(state.zone!=='frontier'||state.front>=5)return false;if(state.rangedCombat){state.rangedCombat.projectiles=[];state.rangedCombat.cooldown=0;}state.front++;state.position={x:0,z:5.2};state.combat=null;pushEvent(state,'front',`第${state.front+1}前線へ進んだ。`);return true;}
 export function returnHome(state){
-  if(state.zone!=='frontier')return false;state.zone='village';state.front=0;state.position={x:166,z:0};state.combat=null;state.interior=null;state.returns++;
+  if(state.zone!=='frontier')return false;if(state.rangedCombat){state.rangedCombat.projectiles=[];state.rangedCombat.cooldown=0;}state.zone='village';state.front=0;state.position={x:166,z:0};state.combat=null;state.interior=null;state.returns++;
   const firstReturn=!state.homelands.includes(state.birthVillageId);if(firstReturn)state.homelands.push(state.birthVillageId);pushEvent(state,'return',firstReturn?'村へ帰還した。この村が一族の故郷として刻まれた。':'村へ帰還した。');return true;
 }
 export function objectiveFor(state){

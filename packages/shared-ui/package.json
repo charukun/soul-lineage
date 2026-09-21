@@ -14,7 +14,11 @@
     "./media-lifecycle": "./src/media-lifecycle.js",
     "./review-shell": "./src/review-shell.js",
     "./boot-gate": "./src/boot-gate.js",
-    "./johakyu-observation": "./src/johakyu-observation.js"
+    "./johakyu-observation": "./src/johakyu-observation.js",
+    "./review-navigation": "./src/review-navigation.js",
+    "./review-thumbnail": "./src/review-thumbnail.js",
+    "./review-status": "./src/review-status.js",
+    "./review-slot-picker": "./src/review-slot-picker.js"
   },
   "dependencies": {
     "@soul/audio": "*"

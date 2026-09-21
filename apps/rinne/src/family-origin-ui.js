@@ -4,155 +4,187 @@ import {playRinneLineageAudio} from './gameplay-audio.js';
 
 const node = (document, tag, className, text) => { const element = document.createElement(tag); element.className = className; if (text !== undefined) element.textContent = text; return element; };
 const reducedMotion = (document, motion) => !motion || Boolean(document.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
-const STEP_NAMES = Object.freeze(['土地の記憶','家の言葉','受け継ぐもの']);
+const STORY_PROMPTS = Object.freeze(['どこへ帰る？','何が、残っている？','その手に、何がある？']);
 
 export function openFamilyOrigin({document = globalThis.document, hasSave = false, savedName = '', motion = true, makeId = () => `family-${globalThis.crypto.randomUUID()}`} = {}) {
   const journey = createFamilyJourney(), view = document.defaultView, previousFocus = document.activeElement;
   const dialog = node(document, 'dialog', 'family-origin');
   dialog.setAttribute('aria-labelledby', 'family-origin-question');
   dialog.dataset.motion = reducedMotion(document, motion) ? 'off' : 'on';
-  dialog.dataset.scene = 'ritual';
+  dialog.dataset.scene = 'deepwater-single';
+  dialog.dataset.phase = 'question';
   dialog.innerHTML = `
-    <div class="family-ritual-world" aria-hidden="true">
-      <i class="family-abyss"></i>
-      <i class="family-caustic-field"></i>
-      <i class="family-moon"></i>
-      <i class="family-ancestral-gate"></i>
-      <i class="family-spirit-column"></i>
-      <i class="family-water-horizon"></i>
-      <i class="family-depth-fog family-depth-fog-a"></i>
-      <i class="family-depth-fog family-depth-fog-b"></i>
+    <div class="family-deepwater" aria-hidden="true">
+      <i class="family-deep"></i>
+      <i class="family-water-light"></i>
+      <i class="family-current"></i>
+      <i class="family-birth-flash"></i>
       <i class="family-soul"></i>
       <div class="family-motes"></div>
       <div class="family-ripples"></div>
     </div>
-    <div class="family-ritual-shell">
-      <header class="family-ritual-hud">
-        <button type="button" class="family-rune-button" data-origin-back aria-label="ひとつ前の記憶へ"><span aria-hidden="true">‹</span></button>
-        <div class="family-ritual-emblem" aria-hidden="true"><i></i><b>血</b><i></i></div>
-        <button type="button" class="family-rune-button" data-origin-cancel aria-label="一族の問答を取り消してタイトルへ戻る"><span aria-hidden="true">×</span></button>
-      </header>
+    <div class="family-story-shell">
+      <button type="button" class="family-story-back" data-origin-back aria-label="ひとつ前へ">‹</button>
+      <button type="button" class="family-story-close" data-origin-cancel aria-label="やめる">×</button>
       <main class="family-origin-content"></main>
-      <footer class="family-ritual-footer">
-        <div class="family-ritual-progress" aria-label="一族の問答の進み具合"><i></i><i></i><i></i></div>
-        <p>記憶に触れ、血の流れを選ぶ</p>
-      </footer>
+      <p class="family-story-live" aria-live="polite"></p>
     </div>`;
-  const content = dialog.querySelector('.family-origin-content'), back = dialog.querySelector('[data-origin-back]');
-  const progressDots = [...dialog.querySelectorAll('.family-ritual-progress i')], motes = dialog.querySelector('.family-motes');
-  for (let i = 0; i < 34; i++) {
-    const mote = node(document, 'i', i % 7 === 0 ? 'family-petal' : i % 4 === 0 ? 'family-bubble' : 'family-mote');
-    mote.style.setProperty('--i', String(i)); mote.style.setProperty('--seed', String((i * 37) % 101)); motes.append(mote);
+  const content = dialog.querySelector('.family-origin-content'), back = dialog.querySelector('[data-origin-back]'), motes = dialog.querySelector('.family-motes'), live = dialog.querySelector('.family-story-live');
+  for (let i = 0; i < 18; i++) {
+    const mote = node(document, 'i', i % 5 === 0 ? 'family-bubble' : 'family-mote');
+    mote.style.setProperty('--i', String(i)); mote.style.setProperty('--seed', String((i * 41) % 97)); motes.append(mote);
   }
   document.body.append(dialog);
-  let settled = false, transitionTimer = 0, riseTimer = 0, frame = 0, pointer = null;
-  const rippleTimers = new Set();
+
+  let settled = false, transitionTimer = 0, birthTimer = 0, loadingTimer = 0, memoryTimer = 0, shiftTimer = 0, swipeResetTimer = 0, frame = 0, pointer = null, swipeStart = null, suppressClick = false;
+  let activeQuestion = null, memoryStage = null, memoryIndex = 0;
+  const memoryIndices = [0,0,0], rippleTimers = new Set();
 
   return new Promise(resolve => {
-    function finish(value) {
-      if (settled) return; settled = true;
-      view.clearTimeout(transitionTimer); view.clearTimeout(riseTimer); view.cancelAnimationFrame(frame);
+    function clearMemoryTimers() { view.clearTimeout(memoryTimer); view.clearTimeout(shiftTimer); memoryTimer = 0; shiftTimer = 0; }
+    function clearTimers() {
+      clearMemoryTimers(); view.clearTimeout(transitionTimer); view.clearTimeout(birthTimer); view.clearTimeout(loadingTimer); view.clearTimeout(swipeResetTimer); view.cancelAnimationFrame(frame);
       for (const timer of rippleTimers) view.clearTimeout(timer);
-      rippleTimers.clear(); dialog.remove();
+      rippleTimers.clear();
+    }
+    function finish(value) {
+      if (settled) return; settled = true; clearTimers(); dialog.remove();
       if (previousFocus?.isConnected) previousFocus.focus({preventScroll:true});
       resolve(value);
     }
-    function cancel() { playRinneLineageAudio('cancel'); if (journey.cancel()) finish(null); }
-    function updateProgress(step) {
-      progressDots.forEach((dot,index) => { dot.dataset.state = index < step ? 'done' : index === step ? 'current' : 'waiting'; });
+    function cancel() {
+      if (!['question','confirm'].includes(dialog.dataset.phase)) return;
+      playRinneLineageAudio('cancel'); if (journey.cancel()) finish(null);
     }
-    function render() {
-      view.clearTimeout(transitionTimer); transitionTimer = 0; dialog.dataset.transitioning = 'false';
+    function scheduleDrift() {
+      view.clearTimeout(memoryTimer);
+      if (dialog.dataset.motion === 'off' || dialog.dataset.phase !== 'question' || dialog.dataset.answering === 'true') return;
+      memoryTimer = view.setTimeout(() => cycleMemory(1,'auto'), 3400);
+    }
+    function renderMemory() {
+      if (!activeQuestion || !memoryStage) return;
+      const choice = activeQuestion.choices[memoryIndex];
+      memoryStage.replaceChildren();
+      dialog.dataset.memoryId = choice.id;
+      dialog.dataset.memoryIndex = String(memoryIndex);
+      dialog.dataset.shifting = 'false';
+      live.textContent = choice.label;
+      const presence = node(document, 'button', 'family-memory-presence'); presence.type = 'button'; presence.dataset.answer = choice.id; presence.dataset.memoryCurrent = 'true';
+      presence.setAttribute('aria-label', `${choice.label}。触れて選ぶ。左右キーまたはスワイプで別の記憶。`);
+      presence.setAttribute('aria-pressed', String(journey.snapshot().answers[activeQuestion.key] === choice.id));
+      presence.innerHTML = `<span class="family-memory-apparition" aria-hidden="true">${familyMemoryArt(choice.id)}</span><span class="family-memory-label">${choice.label}</span>`;
+      const focusSound = () => playRinneLineageAudio('focus', memoryIndex);
+      presence.addEventListener('pointerenter', focusSound, {passive:true}); presence.addEventListener('focus', focusSound);
+      presence.addEventListener('click', () => {
+        if (suppressClick) { suppressClick = false; return; }
+        const state = journey.snapshot();
+        if (dialog.dataset.answering === 'true' || state.step >= FAMILY_QUESTIONS.length || !journey.choose(choice.id)) return;
+        clearMemoryTimers(); playRinneLineageAudio('choose', memoryIndex); dialog.dataset.answering = 'true'; presence.dataset.chosen = 'true'; back.disabled = true;
+        transitionTimer = view.setTimeout(() => { activeQuestion = null; memoryStage = null; renderQuestion(); }, dialog.dataset.motion === 'off' ? 0 : 820);
+      });
+      memoryStage.append(presence); presence.focus({preventScroll:true}); scheduleDrift();
+    }
+    function cycleMemory(delta, source='input') {
+      if (!activeQuestion || !memoryStage || dialog.dataset.phase !== 'question' || dialog.dataset.answering === 'true' || dialog.dataset.shifting === 'true') return false;
+      clearMemoryTimers(); const next = (memoryIndex + delta + activeQuestion.choices.length) % activeQuestion.choices.length;
+      if (next === memoryIndex) return false;
+      dialog.dataset.shifting = 'true'; dialog.dataset.shiftDirection = delta > 0 ? 'next' : 'previous';
+      const presence = memoryStage.querySelector('[data-memory-current]'); if (presence) presence.dataset.departing = 'true';
+      if (source !== 'auto') playRinneLineageAudio('drift', next);
+      shiftTimer = view.setTimeout(() => {
+        memoryIndex = next; memoryIndices[journey.snapshot().step] = next; renderMemory();
+      }, dialog.dataset.motion === 'off' ? 0 : 320);
+      return true;
+    }
+    function renderQuestion() {
+      clearMemoryTimers();
       const state = journey.snapshot(), question = FAMILY_QUESTIONS[state.step];
-      dialog.dataset.step = String(state.step); back.disabled = state.step === 0; updateProgress(Math.min(state.step,2));
-      content.replaceChildren();
+      dialog.dataset.step = String(state.step); dialog.dataset.phase = state.step < 3 ? 'question' : 'confirm'; dialog.dataset.answering = 'false'; dialog.dataset.shifting = 'false';
+      back.hidden = state.step === 0; back.disabled = false; content.replaceChildren();
 
       if (state.step < 3) {
-        const headingBlock = node(document, 'section', 'family-question-block');
-        const kicker = node(document, 'p', 'family-question-kicker', STEP_NAMES[state.step]);
-        const heading = node(document, 'h2', 'family-question-title', question.text); heading.id = 'family-origin-question'; heading.tabIndex = -1;
-        const whisper = node(document, 'p', 'family-question-whisper', state.step === 0 ? '遠い水底から、ひとつだけ懐かしい景色が浮かぶ。' : state.step === 1 ? '声は姿を持たない。それでも、家の言葉だけは残っている。' : '最後まで手放さなかったものが、次の生へ流れ着く。');
-        headingBlock.append(kicker, heading, whisper);
-
-        const altar = node(document, 'div', 'family-memory-altar');
-        question.choices.forEach((choice,index) => {
-          const button = node(document, 'button', 'family-memory-orb'); button.type = 'button'; button.dataset.answer = choice.id; button.style.setProperty('--slot', String(index));
-          button.setAttribute('aria-pressed', String(state.answers[question.key] === choice.id));
-          button.innerHTML = `
-            <span class="family-orb-aura" aria-hidden="true"></span>
-            <span class="family-orb-rings" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span class="family-orb-core"><span class="family-orb-picture">${familyMemoryArt(choice.id)}</span><i class="family-orb-glint" aria-hidden="true"></i></span>
-            <span class="family-orb-label">${choice.label}</span>
-            <span class="family-orb-mark" aria-hidden="true">${['壱','弐','参'][index]}</span>`;
-          const focusSound = () => playRinneLineageAudio('focus', index);
-          button.addEventListener('pointerenter', focusSound, {passive:true}); button.addEventListener('focus', focusSound);
-          button.addEventListener('click', () => {
-            if (dialog.dataset.transitioning === 'true' || journey.snapshot().step !== state.step || !journey.choose(choice.id)) return;
-            playRinneLineageAudio('choose', index); dialog.dataset.transitioning = 'true'; button.dataset.chosen = 'true'; back.disabled = true;
-            for (const item of altar.querySelectorAll('button')) item.disabled = true;
-            transitionTimer = view.setTimeout(render, dialog.dataset.motion === 'off' ? 0 : 420);
-          });
-          altar.append(button);
-        });
-        content.append(headingBlock, altar); heading.focus({preventScroll:true});
-        return;
+        activeQuestion = question;
+        const selected = question.choices.findIndex(choice => choice.id === state.answers[question.key]);
+        memoryIndex = selected >= 0 ? selected : memoryIndices[state.step] || 0; memoryIndices[state.step] = memoryIndex;
+        const scene = node(document, 'section', 'family-story-question');
+        const heading = node(document, 'h2', 'family-story-prompt', STORY_PROMPTS[state.step]); heading.id = 'family-origin-question'; heading.tabIndex = -1;
+        memoryStage = node(document, 'div', 'family-memory-stage'); memoryStage.setAttribute('role','group'); memoryStage.setAttribute('aria-label', `記憶 ${memoryIndex + 1} / ${question.choices.length}`);
+        scene.append(heading, memoryStage); content.append(scene); renderMemory(); return;
       }
 
+      activeQuestion = null; memoryStage = null; live.textContent = '';
       const family = createFamily(state.answers, 'preview'), description = describeFamily(family);
-      const heading = node(document, 'h2', 'family-question-title family-question-title-final', 'この血を、次の百年へ。'); heading.id = 'family-origin-question'; heading.tabIndex = -1;
-      const preview = node(document, 'section', 'family-origin-preview');
-      preview.innerHTML = `
-        <div class="family-oath-gate" aria-hidden="true">
-          <i class="family-oath-pillar family-oath-pillar-left"></i><i class="family-oath-pillar family-oath-pillar-right"></i>
-          <div class="family-home-picture">${familyHomeArt(family.cultureId)}</div>
-          <div class="family-preview-crest">${familyCrestArt(family.cultureId)}</div>
-          <i class="family-oath-thread family-oath-thread-a"></i><i class="family-oath-thread family-oath-thread-b"></i>
-        </div>`;
-      preview.append(node(document, 'p', 'family-preview-kicker', '受け継ぐ一族'), node(document, 'h3', 'family-preview-name', description.name), node(document, 'p', 'family-preview-tradition', `${description.ethos} · ${description.tradition}`));
-      const heirloom = node(document, 'div', 'family-heirloom'); heirloom.innerHTML = `<span class="family-heirloom-art">${familyMemoryArt(family.traditionId)}</span>`; heirloom.append(node(document, 'span', '', description.heirloom));
-      preview.append(heirloom, node(document, 'p', 'family-teaching', description.teaching));
+      const scene = node(document, 'section', 'family-story-final');
+      const crest = node(document, 'div', 'family-story-crest'); crest.innerHTML = familyCrestArt(family.cultureId);
+      const heading = node(document, 'h2', 'family-story-family', description.name); heading.id = 'family-origin-question'; heading.tabIndex = -1;
+      const tradition = node(document, 'p', 'family-story-tradition', description.tradition);
+      scene.append(crest, heading, tradition);
 
       let acknowledgement = null;
       if (hasSave) {
-        const label = node(document, 'label', 'family-replace-oath');
+        const replace = node(document, 'label', 'family-story-replace');
         acknowledgement = node(document, 'input', ''); acknowledgement.type = 'checkbox'; acknowledgement.dataset.replaceFamily = 'true';
-        const seal = node(document, 'span', 'family-replace-seal'); seal.setAttribute('aria-hidden','true'); seal.textContent = '継';
-        label.append(acknowledgement, seal, node(document, 'span', 'family-replace-copy', `${String(savedName || '現在の人生').slice(0,24)}の記録を閉じ、新しい一族として生まれる`));
-        preview.append(label);
+        const seal = node(document, 'i', 'family-replace-seal', '継'); seal.setAttribute('aria-hidden','true');
+        replace.append(acknowledgement, seal, node(document, 'span', '', `${String(savedName || '今の人生').slice(0,24)}を閉じる`));
+        scene.append(replace);
       }
       const confirm = node(document, 'button', 'family-birth-confirm'); confirm.type = 'button'; confirm.dataset.originConfirm = 'true'; confirm.disabled = hasSave;
-      confirm.innerHTML = '<i aria-hidden="true"></i><span>この家に、生まれる</span><b aria-hidden="true">◆</b>';
+      confirm.innerHTML = '<i class="family-birth-core" aria-hidden="true"></i><span>生まれる</span>';
       acknowledgement?.addEventListener('change', () => { confirm.disabled = !acknowledgement.checked; playRinneLineageAudio('focus', acknowledgement.checked ? 2 : 0); });
       confirm.addEventListener('click', () => {
         const confirmed = journey.confirm(makeId(), {hasSave, replaceAcknowledged:Boolean(acknowledgement?.checked)});
         if (!confirmed) return;
-        playRinneLineageAudio('confirm'); for (const button of dialog.querySelectorAll('button, input')) button.disabled = true;
-        dialog.classList.add('is-rising'); riseTimer = view.setTimeout(() => finish(confirmed), dialog.dataset.motion === 'off' ? 0 : 850);
+        clearMemoryTimers(); playRinneLineageAudio('confirm'); dialog.dataset.phase = 'birth'; back.hidden = true; dialog.querySelector('[data-origin-cancel]').hidden = true;
+        for (const control of dialog.querySelectorAll('button,input')) control.disabled = true;
+        dialog.classList.add('is-birthing');
+        birthTimer = view.setTimeout(() => {
+          dialog.classList.remove('is-birthing'); dialog.dataset.phase = 'loading'; content.replaceChildren();
+          const loading = node(document, 'div', 'family-birth-loading');
+          loading.innerHTML = '<i class="family-birth-thread" aria-hidden="true"></i><i class="family-birth-seed" aria-hidden="true"></i><span class="family-loading-accessible">生まれています</span>';
+          content.append(loading); playRinneLineageAudio('loading');
+          loadingTimer = view.setTimeout(() => finish(confirmed), dialog.dataset.motion === 'off' ? 140 : 1250);
+        }, dialog.dataset.motion === 'off' ? 140 : 1900);
       });
-      preview.append(confirm); content.append(heading, preview); heading.focus({preventScroll:true});
+      scene.append(confirm); content.append(scene); heading.focus({preventScroll:true});
     }
 
-    back.addEventListener('click', () => { if (dialog.dataset.transitioning === 'true') return; if (journey.back()) { playRinneLineageAudio('back'); render(); } });
+    back.addEventListener('click', () => {
+      if (dialog.dataset.answering === 'true' || dialog.dataset.shifting === 'true') return;
+      if (journey.back()) { playRinneLineageAudio('back'); renderQuestion(); }
+    });
     dialog.querySelector('[data-origin-cancel]').addEventListener('click', cancel);
     dialog.addEventListener('cancel', event => { event.preventDefault(); cancel(); });
     dialog.addEventListener('close', () => { if (journey.snapshot().status !== 'confirmed') cancel(); });
-    dialog.addEventListener('keydown', event => { if (event.repeat && event.key === 'Enter') event.preventDefault(); });
+    dialog.addEventListener('keydown', event => {
+      event.stopPropagation();
+      if (dialog.dataset.phase === 'question' && event.key === 'ArrowRight') { event.preventDefault(); cycleMemory(1); return; }
+      if (dialog.dataset.phase === 'question' && event.key === 'ArrowLeft') { event.preventDefault(); cycleMemory(-1); return; }
+      if (event.repeat && event.key === 'Enter') event.preventDefault();
+    });
+    dialog.addEventListener('pointerdown', event => {
+      swipeStart = {x:event.clientX,y:event.clientY,time:performance.now()};
+      if (dialog.dataset.motion === 'off' || rippleTimers.size >= 4) return;
+      const ripple = node(document, 'i', 'family-ripple'); ripple.style.left = `${event.clientX}px`; ripple.style.top = `${event.clientY}px`; dialog.querySelector('.family-ripples').append(ripple);
+      const timer = view.setTimeout(() => { ripple.remove(); rippleTimers.delete(timer); }, 1000); rippleTimers.add(timer);
+    }, {passive:true});
+    dialog.addEventListener('pointerup', event => {
+      if (!swipeStart || dialog.dataset.phase !== 'question') { swipeStart = null; return; }
+      const dx = event.clientX - swipeStart.x, dy = event.clientY - swipeStart.y; swipeStart = null;
+      if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.15) return;
+      suppressClick = true; cycleMemory(dx < 0 ? 1 : -1);
+      view.clearTimeout(swipeResetTimer); swipeResetTimer = view.setTimeout(() => { suppressClick = false; }, 60);
+    }, {passive:true});
     dialog.addEventListener('pointermove', event => {
       if (dialog.dataset.motion === 'off') return;
       pointer = {x:event.clientX / Math.max(1, view.innerWidth), y:event.clientY / Math.max(1, view.innerHeight)};
       if (frame) return;
       frame = view.requestAnimationFrame(() => {
         frame = 0; if (settled || !pointer) return;
-        dialog.style.setProperty('--look-x', String((pointer.x - .5).toFixed(3))); dialog.style.setProperty('--look-y', String((pointer.y - .5).toFixed(3)));
-        dialog.style.setProperty('--soul-x', `${(pointer.x - .5) * 90}px`); dialog.style.setProperty('--soul-y', `${(pointer.y - .5) * 36}px`);
+        dialog.style.setProperty('--soul-x', `${(pointer.x - .5) * 28}px`); dialog.style.setProperty('--soul-y', `${(pointer.y - .5) * 16}px`);
       });
     }, {passive:true});
-    dialog.addEventListener('pointerdown', event => {
-      if (dialog.dataset.motion === 'off' || rippleTimers.size >= 6) return;
-      const ripple = node(document, 'i', 'family-ripple'); ripple.style.left = `${event.clientX}px`; ripple.style.top = `${event.clientY}px`; dialog.querySelector('.family-ripples').append(ripple);
-      const timer = view.setTimeout(() => { ripple.remove(); rippleTimers.delete(timer); }, 1100); rippleTimers.add(timer);
-    }, {passive:true});
-    dialog.showModal(); render();
+
+    dialog.showModal(); renderQuestion();
   });
 }
 

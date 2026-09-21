@@ -23,7 +23,7 @@ const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
 let strategyA='balanced',strategyB='patient',strategyVariant='A',reviewSeed=6197,reviewInjury='none',reviewHeroBody=null,reviewEnemyBody=null,bodyHud=null;
 let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),bulbTimer=0,pendingInspirationTimer=0,sequenceTimer=0;
-const INSPIRATION_BULB_HOLD_MS=550;
+const INSPIRATION_BULB_HOLD_MS=420;
 const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
 let techniqueComposition=createReviewTechniqueComposition(),compositionWeapon='';
 // Shared with Demon and Rinne gameplay: one swipe parser owns drag, deadzone and terminal flick semantics after develop reconciliation.
@@ -56,22 +56,29 @@ function ensureTechniqueComposition(loadout){
 }
 async function previewTechniqueChain(phase){
   if(inspirationSequenceActive)return;const chain=techniqueComposition[phase]||[],steps=flattenReviewTechniqueChain(chain);if(!steps.length)return;
-  inspirationSequenceActive=true;try{const stage=await ensureBattleStage();stage.triggerInspiration({id:`review-chain-${phase}`,name:reviewChainLabel(phase,chain.length),steps,phase});}catch{inspirationSequenceActive=false;hideInspirationBulb();}
+  inspirationSequenceActive=true;beginInspirationWindow();try{const stage=await ensureBattleStage();stage.triggerInspiration({id:`review-chain-${phase}`,name:reviewChainLabel(phase,chain.length),steps,phase});}catch{inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();}
 }
 function hideInspirationBanner(){const banner=q('battle-inspiration');if(!banner)return;banner.hidden=true;delete banner.dataset.burst;delete banner.dataset.sequence;}
 function hideInspirationBulb(){clearTimeout(bulbTimer);bulbTimer=0;const bulb=q('battle-lightbulb');if(bulb)bulb.hidden=true;}
 function showInspirationBulb(){const bulb=q('battle-lightbulb');if(!bulb)return;clearTimeout(bulbTimer);bulb.hidden=true;void bulb.offsetWidth;bulb.hidden=false;bulbTimer=setTimeout(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS);}
+function beginInspirationWindow(duration=REVIEW_INSPIRATION_TIMELINE.end){
+  const enemies=lastCore?.enemies||[lastCore?.enemy].filter(Boolean),target=enemies.find(enemy=>!enemy.dead&&enemy.attack)||enemies.find(enemy=>!enemy.dead),targetId=target?.id??null;
+  runtime?.setInspirationState?.({active:true,targetId,duration,nearMissSeconds:REVIEW_INSPIRATION_TIMELINE.camera});
+}
+function endInspirationWindow(){runtime?.setInspirationState?.({active:false});}
 function hideReviewSign(){const sign=q('battle-sign');if(sign)sign.hidden=true;}
 function showReviewSign(){hideReviewSign();}
 function handleInspirationCue(cue,payload={}){
   const banner=q('battle-inspiration');
-  if(cue==='spark'){inspirationSequenceActive=true;hideInspirationBanner();hideReviewSign();showInspirationBulb();battleSfx.inspiration('spark');return;}
+  if(cue==='spark'){inspirationSequenceActive=true;hideInspirationBanner();hideReviewSign();return;}
   if(cue==='camera'){battleSfx.inspiration('camera');return;}
   if(cue==='spacing'){battleSfx.inspiration('anticipation');return;}
   if(cue==='stagger'){battleSfx.inspiration('stagger');return;}
-  if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}
+  if(cue==='silence'){battleSfx.inspiration('spark');return;}
   if(cue==='execute'){battleSfx.inspiration('execute');return;}
-  if(cue==='done'){inspirationSequenceActive=false;hideInspirationBulb();setTimeout(hideInspirationBanner,280);}
+  if(cue==='impact'){battleSfx.impact({guard:false,power:1});return;}
+  if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}
+  if(cue==='done'){inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();setTimeout(hideInspirationBanner,260);}
 }
 
 function syncModelLabels(){if(q('enemy-name'))q('enemy-name').textContent='スケルトン';}
@@ -103,7 +110,7 @@ function makeReviewBody(role,strategy){
 }
 function syncBodyHud(){if(reviewHeroBody)bodyHud?.update(reviewHeroBody);}
 function resetBattle(){
-  reviewSwipe.cancel();lastCore=null;finishedAt=0;finisher=null;clearTimeout(pendingInspirationTimer);pendingInspirationTimer=0;clearTimeout(sequenceTimer);sequenceTimer=0;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks.clear();if(sequenceCurrent){sequenceCurrent.textContent='間合いを測っている…';sequenceCurrent.dataset.kind='idle';sequenceCurrent.classList.remove('battle-sequence-current--event');}battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
+  endInspirationWindow();reviewSwipe.cancel();lastCore=null;finishedAt=0;finisher=null;clearTimeout(pendingInspirationTimer);pendingInspirationTimer=0;clearTimeout(sequenceTimer);sequenceTimer=0;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks.clear();if(sequenceCurrent){sequenceCurrent.textContent='間合いを測っている…';sequenceCurrent.dataset.kind='idle';sequenceCurrent.classList.remove('battle-sequence-current--event');}battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
   const weapon=runtimeWeapon(),group=encounterMode==='one-v-three',strategy=strategyVariant==='A'?strategyA:strategyB;reviewHeroBody=makeReviewBody('hero',strategy);reviewEnemyBody=makeReviewBody('enemy','balanced');
   runtime=createTidebreakRuntime({seed:reviewSeed+(group?31:0),weapon,onImpact:impact=>{battleStage?.presentImpact?.(impact);battleSfx.impact({guard:Boolean(impact?.guard),power:Number(impact?.power)||.7});}});
   const loadout=runtimeLoadout(runtime,weapon);ensureTechniqueComposition(loadout);const positions=group
@@ -163,12 +170,12 @@ function activateInsight(technique,replay=false,phase='ha'){
   if(!technique||inspirationSequenceActive)return;
   inspirationSequenceActive=true;
   if(!replay){learnedSlots[phase]=technique;addTechniqueToReviewChain(techniqueComposition,phase,technique);renderTechniqueComposition();}
-  void ensureBattleStage().then(stage=>stage.triggerInspiration({id:technique.id,name:technique.name,steps:technique.steps,phase,duration:REVIEW_INSPIRATION_TIMELINE.end})).catch(()=>{inspirationSequenceActive=false;hideInspirationBulb();});
+  beginInspirationWindow(REVIEW_INSPIRATION_TIMELINE.end);void ensureBattleStage().then(stage=>stage.triggerInspiration({id:technique.id,name:technique.name,steps:technique.steps,phase,duration:REVIEW_INSPIRATION_TIMELINE.end})).catch(()=>{inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();});
   if(!replay){insightHistory.unshift({technique,name:technique.name,phase,weapon:selectedWeapon,weaponLabel:weaponSelect.selectedOptions[0]?.textContent||selectedWeapon});if(insightHistory.length>8)insightHistory.length=8;renderInsightHistory();}
 }
 function maybeInspire(phase){
   if(!phase||phase===lastInspirationPhase||inspirationSequenceActive||pendingInspirationTimer)return;lastInspirationPhase=phase;const chance=inspirationMode==='boost'?.82:.16;
-  if(Math.random()<chance){const technique=weightedTechnique(phase);if(technique){showReviewSign(technique);pendingInspirationTimer=setTimeout(()=>{pendingInspirationTimer=0;activateInsight(technique,false,phase);},620);}}
+  if(Math.random()<chance){const technique=weightedTechnique(phase);if(technique){showReviewSign(technique);pendingInspirationTimer=setTimeout(()=>{pendingInspirationTimer=0;activateInsight(technique,false,phase);},180);}}
 }
 
 function syncBattle(dt){

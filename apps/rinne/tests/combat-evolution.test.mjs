@@ -15,8 +15,8 @@ function front(enemies,stage=0){return{stage,enemies,cleared:false,clearSeconds:
 
 test('one Tidebreak sweep can damage several world targets while thrust remains first-contact only',()=>{
   const s=state(),a=enemy('a',0,1),b=enemy('b',.75,1.05),c=enemy('c',-.72,.95),f=front([a,b,c]);s.combat={tidebreakPose:{attack:'spin',pose:{hand:[0,1,0],tip:[0,1,1]}}};
-  const events=[{type:'player-hit',targetId:'a',skill:'basic.sword',phase:'jo',damage:12,engine:'tidebreak'}];applyMultiTargetContact(s,f,events[0],events);assert.ok(b.hp<100&&c.hp<100);assert.ok(events.filter(e=>e.multiTarget).length>=2);
-  const d=enemy('d',.7,1,100),f2=front([enemy('main',0,1),d]);s.combat.tidebreakPose.attack='thrust';const rows=[{type:'player-hit',targetId:'main',skill:'basic.sword',phase:'jo',damage:12,engine:'tidebreak'}];applyMultiTargetContact(s,f2,rows[0],rows);assert.equal(d.hp,100);
+  const events=[{type:'player-hit',attackId:'sweep-1',targetId:'a',skill:'basic.sword',phase:'jo',damage:12,engine:'tidebreak'}];applyMultiTargetContact(s,f,events[0],events);assert.ok(b.hp<100&&c.hp<100);assert.ok(events.filter(e=>e.multiTarget).length>=2);
+  const d=enemy('d',.7,1,100),f2=front([enemy('main',0,1),d]);s.combat.tidebreakPose.attack='thrust';const rows=[{type:'player-hit',attackId:'thrust-1',targetId:'main',skill:'basic.sword',phase:'jo',damage:12,engine:'tidebreak'}];applyMultiTargetContact(s,f2,rows[0],rows);assert.equal(d.hp,100);
 });
 
 test('enemy sweep can threaten multiple players without an attacker cap',()=>{

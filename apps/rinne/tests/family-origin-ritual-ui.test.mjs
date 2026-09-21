@@ -4,50 +4,60 @@ import {readFile} from 'node:fs/promises';
 
 const read=path=>readFile(new URL(path,import.meta.url),'utf8');
 
-test('family ritual is launched after Start without owning any title markup',async()=>{
+test('family story still starts only after Start and never owns the title',async()=>{
   const [main,ui,css]=await Promise.all([read('../src/main.js'),read('../src/family-origin-ui.js'),read('../src/family-origin.css')]);
   assert.match(main,/await openFamilyOrigin/);
   assert.match(main,/titleCinematic\.pause\(\);enterRinneLineageAudio\(\)/);
   assert.doesNotMatch(main,/renderFamilyTitle/);
   assert.doesNotMatch(ui,/export function renderFamilyTitle/);
-  for(const retired of ['family-return-world','title-family-caption','data-family'])assert.doesNotMatch(css,new RegExp(retired));
   assert.doesNotMatch(css,/\.title-screen/);
 });
 
-test('ritual choices are spatial memory orbs rather than the retired flat card surface',async()=>{
+test('deep water story shows one memory at a time instead of a three-up choice grid',async()=>{
   const [ui,css]=await Promise.all([read('../src/family-origin-ui.js'),read('../src/family-origin.css')]);
-  for(const token of ['family-ritual-world','family-ancestral-gate','family-water-horizon','family-memory-altar','family-memory-orb','family-orb-rings','family-orb-core','family-oath-gate'])assert.match(ui,new RegExp(token),token);
-  assert.match(ui,/dialog\.dataset\.scene = 'ritual'/);
-  assert.match(ui,/dialog\.dataset\.transitioning = 'true'/);
-  assert.doesNotMatch(ui,/family-memory-choice/);
-  assert.doesNotMatch(css,/family-memory-choice/);
-  assert.ok((css.match(/@keyframes family-/g)||[]).length>=12,'ritual requires layered animation rather than a static page');
-  assert.match(css,/perspective\(430px\)/);
-  assert.match(css,/conic-gradient/);
-  assert.match(css,/clip-path:polygon/);
+  assert.match(ui,/dialog\.dataset\.scene = 'deepwater-single'/);
+  assert.match(ui,/STORY_PROMPTS = Object\.freeze\(\['どこへ帰る？','何が、残っている？','その手に、何がある？'\]\)/);
+  assert.doesNotMatch(ui,/土地の記憶|家の言葉|受け継ぐもの/);
+  assert.doesNotMatch(ui,/遠い水底から|声は姿を持たない|次の生へ流れ着く/);
+  assert.match(ui,/family-story-question/);
+  assert.match(ui,/family-memory-stage/);
+  assert.match(ui,/presence\.dataset\.memoryCurrent = 'true'/);
+  assert.match(ui,/function cycleMemory\(delta, source='input'\)/);
+  assert.match(ui,/event\.key === 'ArrowRight'/);
+  assert.match(ui,/event\.key === 'ArrowLeft'/);
+  assert.match(ui,/Math\.abs\(dx\) < 48/);
+  assert.doesNotMatch(ui,/family-story-choices/);
+  assert.doesNotMatch(css,/grid-template-columns:repeat\(3/);
+  assert.match(css,/@keyframes family-memory-arrive/);
+  assert.match(css,/@keyframes family-memory-absorb/);
+  assert.match(css,/data-shifting=true/);
+  assert.match(css,/data-answering=true/);
+  assert.doesNotMatch(css,/family-ancestral-gate|family-oath-gate|family-orb-rings|family-ritual-progress/);
 });
 
-test('ritual audio layers onto the existing Rinne audio graph and restores it on exit',async()=>{
-  const [audio,main,ui]=await Promise.all([read('../src/gameplay-audio.js'),read('../src/main.js'),read('../src/family-origin-ui.js')]);
-  for(const name of ['enterRinneLineageAudio','exitRinneLineageAudio','playRinneLineageAudio'])assert.match(audio,new RegExp(`export const ${name}`));
-  assert.match(audio,/function startLineageAmbience\(\)/);
-  assert.match(audio,/createBiquadFilter\(\)/);
-  assert.match(audio,/createOscillator\(\)/);
-  assert.match(audio,/createBufferSource\(\)/);
-  assert.match(audio,/titleGainTo\(TITLE_MUSIC_GAIN\*\.36/);
-  assert.match(audio,/function enterGameplay\(\)\{[\s\S]*exitLineage\(\)/);
-  assert.ok(main.indexOf('enterRinneLineageAudio()')<main.indexOf('await openFamilyOrigin'),'ritual sound must begin with the post-Start scene');
-  assert.match(main,/finally\{originOpen=false;exitRinneLineageAudio\(\);\}/);
-  for(const cue of ["'focus'","'choose'","'back'","'cancel'","'confirm'"])assert.match(ui,new RegExp(`playRinneLineageAudio\\(${cue}`));
+test('Birth becomes a large ascent, then a separate loading beat before gameplay can start',async()=>{
+  const [ui,css,audio]=await Promise.all([read('../src/family-origin-ui.js'),read('../src/family-origin.css'),read('../src/gameplay-audio.js')]);
+  assert.match(ui,/dialog\.dataset\.phase = 'birth'/);
+  assert.match(ui,/dialog\.dataset\.phase = 'loading'/);
+  assert.match(ui,/family-birth-loading/);
+  assert.match(ui,/playRinneLineageAudio\('loading'\)/);
+  assert.ok(ui.indexOf("dialog.dataset.phase = 'birth'") < ui.indexOf("dialog.dataset.phase = 'loading'"));
+  assert.ok(ui.indexOf("dialog.dataset.phase = 'loading'") < ui.indexOf("finish(confirmed)"));
+  assert.match(css,/@keyframes family-soul-rise/);
+  assert.match(css,/@keyframes family-light-burst/);
+  assert.match(css,/family-birth-thread/);
+  assert.match(css,/family-birth-seed/);
+  assert.match(audio,/if\(kind==='loading'\)/);assert.match(audio,/if\(kind==='drift'\)/);
 });
 
-test('ritual keeps accessibility and reduced-motion escape routes',async()=>{
+test('story keeps save replacement, keyboard semantics and reduced motion',async()=>{
   const [ui,css]=await Promise.all([read('../src/family-origin-ui.js'),read('../src/family-origin.css')]);
   assert.match(ui,/aria-labelledby/);
-  assert.match(ui,/aria-pressed/);
+  assert.match(ui,/aria-pressed/);assert.match(ui,/左右キーまたはスワイプで別の記憶/);
   assert.match(ui,/data-origin-back/);
   assert.match(ui,/data-origin-cancel/);
   assert.match(ui,/dataset\.replaceFamily/);
+  assert.match(ui,/journey\.back\(\)/);
   assert.match(css,/prefers-reduced-motion:reduce/);
   assert.match(css,/family-origin\[data-motion=off\]/);
 });

@@ -3499,32 +3499,74 @@ const sharedFacade=createSharedTidebreakFacade({copy,clamp,weapons:WEAPONS,strik
 const registerHitFacade=registerHit;
 registerHit=(source,target,attack,contact)=>sharedFacade.withHitContext(source,target,attack,()=>registerHitFacade(source,target,attack,contact));
 impactAt=(x,y,z,yaw,power,guard)=>{hitstop=sharedFacade.impact({x,y,z,yaw,power,guard,hitstop});};
-const updateFacade=update;update=dt=>updateFacade(sharedFacade.simulationDt(dt,hitstop));
+function applyInspirationControl(){
+ const window=sharedFacade.inspirationState();if(!window.active||!hero)return;
+ hero.invuln=Math.max(hero.invuln,.16);hero.stun=0;hero.reaction=null;hero.kx=hero.kz=0;hero.air=0;hero.airV=0;hero.pendingReceive=null;hero.pendingCounter=null;hero.guarding=false;hero.cool=Math.max(hero.cool,.12);
+ const target=enemies.find(actor=>actor.id===window.targetId&&!actor.dead)||enemies.find(actor=>!actor.dead);
+ if(target&&window.elapsed>=window.nearMissSeconds){
+  if(target.attack)audio.cancelAttack(target.attack.id);target.attack=null;target.run=null;target.recovery=null;target.pendingReceive=null;target.pendingCounter=null;target.plan=null;target.flow=null;target.guarding=false;target.kx=target.kz=0;target.stun=Math.max(target.stun,.16);target.cool=Math.max(target.cool,.18);
+ }
+}
+const updateFacade=update;update=dt=>{const before=sharedFacade.inspirationState(),protectedHp=before.active&&hero&&!hero.dead?hero.hp:null;applyInspirationControl();updateFacade(sharedFacade.simulationDt(dt,hitstop));if(protectedHp!==null&&hero.hp<protectedHp){hero.hp=protectedHp;hero.dead=false;hero.deadTime=0;}sharedFacade.advanceInspirationState(dt);applyInspirationControl();};
 const approachFacade=approach;
 approach=function(a,dt){if(sharedFacade.shouldHoldHero(a)){a.guarding=false;a.plan=null;a.spacing=null;a.cool=Math.max(a.cool,.08);const t=nearest(a);if(t)a.yaw+=clamp(angleMotion(Math.atan2(t.x-a.x,t.z-a.z),a.yaw),-dt*5,dt*5);return;}return approachFacade(a,dt);};
 addLog=(text,type='')=>ports.onLog?.({text,type});loadStorage();
 replaceActor=()=>{};equippedWeapon=ports.weapon||'fist';for(const k of ATTACK_KEYS)loadout[k].weapon=equippedWeapon;sharedFacade.resetFeel();resetScene(true);
 const snapshotActor=a=>sharedFacade.snapshotActor(a);
 function syncActors(v={}){sharedFacade.syncActor(hero,v.hero);const rows=Array.isArray(v.enemies)?v.enemies:v.enemy?[v.enemy]:[];for(let i=0;i<Math.min(rows.length,enemies.length);i++)sharedFacade.syncActor(enemies[i],rows[i]);return state();}
+// Update the next canonical selection without recreating actors, consuming RNG,
+// resetting attack instances, or replaying the standalone demonstration intro.
+function setPolicy(v={}){
+ const set=v.loadout;
+ if(set){
+  for(const k of ATTACK_KEYS)if(set[k]){
+   const recipe=normalizeRecipe({...set[k],weapon:equippedWeapon});
+   attackPools[k]=[recipe,emptyRecipe(k),emptyRecipe(k)];draftPools[k]=copy(attackPools[k]);candidateIndex[k]=0;attackWeights[k]=[100,0,0];
+  }
+  bindPools();
+  if(set.uke){const recipe=normalizeRecipe({...set.uke,weapon:equippedWeapon});if(recipe.type!=='reaction')throw Error('Canonical reaction must be a reaction recipe');loadout.uke=copy(recipe);defensePools.uke=[recipe];}
+ }
+ if(v.mindset&&Object.hasOwn(MINDS,v.mindset)){mindset=fixedMindset=v.mindset;defensePools.mind=[mindset];if(hero)hero.mindCandidate=0;}
+ if(Object.hasOwn(v,'enemyLoadout')&&enemies[0]){if(v.enemyLoadout)enemies[0].sharedLoadout=copy(v.enemyLoadout);else delete enemies[0].sharedLoadout;}
+ battleMode=defenseMode=tempoMode='fixed';return state();
+}
 function configure(v={}){
  world.colliders=(v.colliders||[]).map(c=>({...c}));equippedWeapon=Object.hasOwn(WEAPONS,v.weapon)?v.weapon:'fist';enemyStyle=v.enemyStyle||'balanced';opponent=sharedFacade.opponent(v.opponent);sharedFacade.setHeroPassive(v.heroPassive);
  const set=v.loadout;if(set)for(const k of ATTACK_KEYS)if(set[k])loadout[k]=normalizeRecipe({...set[k],weapon:equippedWeapon});for(const k of ATTACK_KEYS)loadout[k].weapon=equippedWeapon;
  drafts=copy(loadout);poolReady=false;initPools();if(v.mindset&&Object.hasOwn(MINDS,v.mindset)){mindset=v.mindset;fixedMindset=v.mindset;}sharedFacade.resetFeel();resetScene(true);
  hero.weapon=equippedWeapon;hero.hp=v.hp??240;hero.maxhp=v.maxhp??hero.hp;const rows=Array.isArray(v.enemies)?v.enemies:[];
  for(let i=0;i<enemies.length;i++){const e=enemies[i],row=rows[i]||{},fallback=i===0?v.enemyWeapon:null;if(Object.hasOwn(WEAPONS,row.weapon))e.weapon=row.weapon;else if(Object.hasOwn(WEAPONS,fallback))e.weapon=fallback;const hp=row.hp??(Array.isArray(v.enemyHp)?v.enemyHp[i]:v.enemyHp)??100;e.hp=hp;e.maxhp=row.maxhp??hp;const pos=v.positions?.enemies?.[i]||(i===0?v.positions?.enemy:null);if(pos){Object.assign(e,pos);e.home=[e.x,e.z];initFeet(e);}const shared=row.loadout||(i===0?v.enemyLoadout:null);if(shared)e.sharedLoadout=copy(shared);}
- if(v.positions?.hero){Object.assign(hero,v.positions.hero);hero.home=[hero.x,hero.z];initFeet(hero);}return state();
+ if(v.positions?.hero){Object.assign(hero,v.positions.hero);hero.home=[hero.x,hero.z];initFeet(hero);}
+ // A canonical encounter has already entered combat. Do not replay the demo's
+ // sheath/draw introduction every time the host refreshes a policy session.
+ setPolicy(v);
+ if(v.encounterReady===true)for(const actor of [hero,...enemies]){actor.combatReady=true;actor.combatBlend=1;actor.weaponDraw=1;actor.weaponTransition=null;}
+ return state();
+}
+function setInspirationState(value={}){
+ const window=sharedFacade.setInspirationState(value);
+ if(window.active&&hero){
+  if(hero.attack)audio.cancelAttack(hero.attack.id);hero.attack=null;hero.run=null;hero.recovery=null;hero.pendingReceive=null;hero.pendingCounter=null;hero.plan=null;hero.flow=null;hero.reaction=null;hero.stun=0;hero.kx=hero.kz=0;hero.guarding=false;hero.cool=Math.max(hero.cool,.12);hero.invuln=Math.max(hero.invuln,.18);
+  const target=enemies.find(actor=>actor.id===window.targetId&&!actor.dead)||enemies.find(actor=>!actor.dead);
+  if(target&&!target.attack&&!target.run&&!target.recovery){
+   target.combatReady=true;target.combatBlend=1;target.weaponDraw=1;target.weaponTransition=null;target.cool=0;let opening=null;
+   for(let i=0;i<4&&!opening;i++){const candidate=chooseEnemyRecipe(target);if(candidate?.steps?.some(step=>(STRIKES[step.kind]?.damage||0)>0))opening=candidate;}
+   if(opening)startSequence(target,opening,'enemy');
+  }
+ }
+ applyInspirationControl();return state();
 }
 const enemyChoiceOriginal=chooseEnemyRecipe;
 chooseEnemyRecipe=a=>{if(a.sharedLoadout){const k=ATTACK_KEYS[(a.attackCount||0)%3];if(a.sharedLoadout[k])return normalizeRecipe({...a.sharedLoadout[k],weapon:a.weapon});}return enemyChoiceOriginal(a);};
-function state(){const rows=enemies.map(snapshotActor);return{hero:snapshotActor(hero),enemy:rows[0]||null,enemies:rows,time,stats:copy(stats),contacts:copy(lastContacts),...sharedFacade.impactState(),feel:sharedFacade.feel(hitstop),done:hero.dead||rows.every(row=>row.dead)};}
+function state(){const rows=enemies.map(snapshotActor);return{hero:snapshotActor(hero),enemy:rows[0]||null,enemies:rows,time,stats:copy(stats),contacts:copy(lastContacts),inspiration:sharedFacade.inspirationState(),...sharedFacade.impactState(),feel:sharedFacade.feel(hitstop),done:hero.dead||rows.every(row=>row.dead)};}
 return {
- configure,
+ configure,setPolicy,setInspirationState,
  step(dt=1/60){sharedFacade.beginStep();if(!hero.dead&&!enemies.every(e=>e.dead))update(dt);return state();},
  input(x,y,amount,cameraAngle=0){manual.dx=x;manual.dy=y;manual.amount=clamp(amount,0,1);camAngle=cameraAngle;},
  syncActors,state,weaponSpec:weapon=>sharedFacade.weaponSpec(weapon),weaponSpecs:sharedFacade.weaponSpecs,
  templates:()=>copy(TEMPLATES),loadout:()=>copy(loadout),weapons:()=>Object.keys(WEAPONS),inspirationCatalog:()=>copy(WEAPON_ARTS),
- decodeNotebook:data=>copy(decodeNotebook(data,false)),exportNotebook:()=>copy(exportData()),sourceVersion:'Tidebreak 10.1 / shared-inspiration catalog / shared-contact-impact',
- _test:{generateSkill(weapon='sword',slot='jo',automatic=true){const before=equippedWeapon;equippedWeapon=weapon;try{return copy(generateSkill(slot,automatic));}finally{equippedWeapon=before;}},hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}}
+ decodeNotebook:data=>copy(decodeNotebook(data,false)),exportNotebook:()=>copy(exportData()),sourceVersion:'Tidebreak 10.1 / shared-inspiration catalog / shared-contact-impact / live inspiration protection / forced near-miss opening',
+ _test:{generateSkill(weapon='sword',slot='jo',automatic=true){const before=equippedWeapon;equippedWeapon=weapon;try{return copy(generateSkill(slot,automatic));}finally{equippedWeapon=before;}},hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;if(!(who==='hero'&&sharedFacade.inspirationState().active))t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}}
 };
 })();
 }
