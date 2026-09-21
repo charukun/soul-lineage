@@ -4,7 +4,7 @@ on:
     branches: ['work/johakyu-p3-p7-20260921']
     paths: ['.github/workflows/johakyu-resume-source.yml']
 permissions:
-  contents: write
+  contents: read
 jobs:
   source:
     if: contains(github.event.head_commit.message, '[johakyu-resume-source]')
@@ -12,36 +12,37 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v6
         with:
-          fetch-depth: 0
-      - name: Reconcile current develop without conflict overrides
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git fetch --no-tags origin develop
-          git merge --no-edit origin/develop
-          git push origin HEAD:work/johakyu-p3-p7-20260921
-      - name: Export focused source for task authoring
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - name: Formal ordered P1 through P4 contract evidence
         run: |
           mkdir -p /tmp/johakyu-source
+          node --test apps/review/tests/johakyu-observation.test.mjs > /tmp/johakyu-source/P1.txt
+          node --test packages/johakyu-combat/test/sequence.test.mjs apps/review/tests/johakyu-sequence.test.mjs > /tmp/johakyu-source/P2.txt
+          node --test packages/johakyu-combat/test/domain.test.mjs apps/review/tests/johakyu-physiology.test.mjs apps/rinne/tests/johakyu-physiology.test.mjs > /tmp/johakyu-source/P3.txt
+          node --test packages/johakyu-combat/test/motion-contract.test.mjs apps/review/tests/johakyu-catalog.test.mjs apps/rinne/tests/johakyu-technique-contract.test.mjs apps/rinne/tests/johakyu-contact-clock.test.mjs > /tmp/johakyu-source/P4.txt
+      - name: Native authored mesh and dependency receipt
+        run: |
           python3 - <<'PY'
-          import pathlib, subprocess, json, zipfile
-          root=pathlib.Path('.')
-          paths=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
-          prefixes=('apps/rinne/','apps/review/','packages/','scripts/','docs/rinne/','.github/')
-          extensions={'.js','.mjs','.cjs','.ts','.tsx','.json','.html','.css','.md','.yml','.yaml','.toml','.txt','.lock'}
-          with zipfile.ZipFile('/tmp/johakyu-source/source.zip','w',zipfile.ZIP_DEFLATED) as archive:
-            for name in paths:
-              p=root/name
-              if not name or not p.is_file() or p.suffix not in extensions: continue
-              if not name.startswith(prefixes) and '/' in name: continue
-              if '/public/' in name and p.suffix not in {'.json','.js','.html','.css'}: continue
-              if p.stat().st_size>3000000: continue
-              archive.write(p,name)
-            archive.writestr('CHECKOUT.json',json.dumps({'head':subprocess.check_output(['git','rev-parse','HEAD']).decode().strip(),'develop':subprocess.check_output(['git','rev-parse','origin/develop']).decode().strip(),'files':paths},ensure_ascii=False))
+          import pathlib, subprocess, json, zipfile,struct
+          manifest=json.loads(pathlib.Path('apps/review/src/nocturne/manifest.json').read_text())
+          report={}
+          for name,row in manifest['models'].items():
+            if not name.startswith(('adventurers/','skeletons/')): continue
+            data=pathlib.Path('apps/review/public/library',row['path']).read_bytes()
+            length,kind=struct.unpack_from('<II',data,12)
+            doc=json.loads(data[20:20+length]);report[name]={'nodes':[n.get('name') for n in doc.get('nodes',[])],'meshes':[m.get('name') for m in doc.get('meshes',[])]}
+          pathlib.Path('/tmp/johakyu-source/models.json').write_text(json.dumps(report,indent=2))
+          pathlib.Path('/tmp/johakyu-source/head.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD']).decode())
+          with zipfile.ZipFile('/tmp/johakyu-source/dependencies.zip','w',zipfile.ZIP_DEFLATED) as archive:
+            for p in pathlib.Path('node_modules/three').rglob('*'):
+              if p.is_file(): archive.write(p,p)
           PY
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: johakyu-task-source
-          path: /tmp/johakyu-source/source.zip
+          name: johakyu-phase-evidence-and-meshes
+          path: /tmp/johakyu-source/
           retention-days: 3
