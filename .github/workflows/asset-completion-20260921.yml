@@ -37,7 +37,6 @@ jobs:
           git rm -- .github/workflows/asset-completion-20260921.yml
           git diff --cached --check
           git commit -m $'feat(assets): finalize curated library against latest develop [astra-validate]\n\nAstra-Check: packages/assets/src/curated-library.js\nAstra-Check: apps/rinne/src/review-curated-library.js\nAstra-Test: tests/curated-asset-library.test.mjs\nAstra-Build: rinne'
-          git status --porcelain
           test -z "$(git status --porcelain)"
           git rev-parse HEAD | tee /tmp/final-head
       - uses: actions/setup-node@v6
@@ -51,7 +50,7 @@ jobs:
       - name: Exact-head asset integrity test
         run: node --test tests/curated-asset-library.test.mjs
       - name: Exact-head RINNE build
-        run: npm run build --workspace @soul-lineage/rinne
+        run: npm run build --workspace @soul/rinne
       - name: Exact-head parse render rig animation audio and review browser evidence
         run: node scripts/browser/curated-assets.mjs
       - name: Preserve exact-head browser evidence
