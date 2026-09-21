@@ -17,7 +17,17 @@ jobs:
       - name: Materialize approved conversation artwork
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 scripts/rinne-storybook-materialize.py
+        run: |
+          python3 - <<'PY'
+          import runpy,urllib.error
+          try:runpy.run_path('scripts/rinne-storybook-materialize.py',run_name='__main__')
+          except urllib.error.HTTPError as e:
+            print('Provider response:',e.code,e.read().decode('utf-8','replace')[:1600]);raise
+          PY
+      - uses: actions/setup-node@v6
+        if: hashFiles('.storybook-compare-enabled') != ''
+        with:
+          node-version: '24'
       - name: Compare and refine approved UI
         if: hashFiles('.storybook-compare-enabled') != ''
         env:
