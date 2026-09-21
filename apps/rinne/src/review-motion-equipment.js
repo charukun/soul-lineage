@@ -10,10 +10,10 @@ const MAIN_WEAPON_IDS=Object.freeze([
 ]);
 
 const HAND_GRIPS=Object.freeze({
-  '1H_Sword':Object.freeze({position:[0,.555174,0],quaternion:[0,1,0,0],scale:.8876}),
-  '1H_Axe':Object.freeze({position:[.231697,.382471,0],quaternion:[0,1,0,0],scale:.622211}),
-  '2H_Staff':Object.freeze({position:[-.0427,.1769,0],quaternion:[0,1,0,0],scale:1.0773}),
-  '2H_Crossbow':Object.freeze({position:[.3381,.058,0],quaternion:[0,Math.SQRT1_2,0,Math.SQRT1_2],scale:.7204})
+  '1H_Sword':Object.freeze({position:[0,0,0],quaternion:[0,1,0,0],scale:.8876}),
+  '1H_Axe':Object.freeze({position:[0,0,0],quaternion:[0,1,0,0],scale:.622211}),
+  '2H_Staff':Object.freeze({position:[0,0,0],quaternion:[0,1,0,0],scale:1.0773}),
+  '2H_Crossbow':Object.freeze({position:[0,0,0],quaternion:[0,Math.SQRT1_2,0,Math.SQRT1_2],scale:.7204})
 });
 
 const byId=new Map(REVIEW_SKELETON_EQUIPMENT.map(row=>[row.id,row]));
