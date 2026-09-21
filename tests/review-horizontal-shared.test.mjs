@@ -6,12 +6,12 @@ const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
 test('review 3D surfaces share renderer, camera preset, and resource lifetime primitives',async()=>{
   const [rendering,motion,assets,objects,effects,thumbnails]=await Promise.all([
-    read('packages/rendering/src/review-preview-stage.js'),
+    read('packages/rendering/src/review/preview-stage.js'),
     read('apps/rinne/src/review-motion.js'),
     read('apps/rinne/src/review-asset-library.js'),
     read('apps/rinne/src/review-object-library.js'),
     read('apps/rinne/src/review-effects.js'),
-    read('apps/rinne/src/review-runtime-thumbnail.js'),
+    read('apps/rinne/src/review/shared/runtime-thumbnail.js'),
   ]);
   assert.match(rendering,/export function createReviewCameraPresetController/);
   assert.match(rendering,/export function disposeReviewObject/);
@@ -25,7 +25,7 @@ test('review 3D surfaces share renderer, camera preset, and resource lifetime pr
 
 test('static thumbnails and review status updates use shared-ui primitives',async()=>{
   const [controls,motion,assets,objects]=await Promise.all([
-    read('packages/shared-ui/src/review-controls.css'),
+    read('packages/shared-ui/src/review/controls.css'),
     read('apps/rinne/src/review-motion.js'),
     read('apps/rinne/src/review-asset-library.js'),
     read('apps/rinne/src/review-object-library.js'),

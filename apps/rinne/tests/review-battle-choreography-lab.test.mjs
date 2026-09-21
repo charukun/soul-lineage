@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MOTION_LIBRARY_SOURCE_BY_ID} from '../src/review-motion-sources.js';
+import {MOTION_LIBRARY_SOURCE_BY_ID} from '../src/review/motion/sources.js';
 import {REVIEW_AUTHORED_EFFECTS} from '../src/rebuild/authored-effect-manifest.js';
-import {INSPIRATION_MOTION_SELECTIONS,INSPIRATION_MOTION_CLIPS,INSPIRATION_VFX_SELECTIONS,inspirationAttackClipName,inspirationMotionPlan,blendInspirationPose} from '../src/review-battle-choreography-lab.js';
+import {INSPIRATION_MOTION_SELECTIONS,INSPIRATION_MOTION_CLIPS,INSPIRATION_VFX_SELECTIONS,inspirationAttackClipName,inspirationMotionPlan,blendInspirationPose} from '../src/review/battle/choreography-lab.js';
 
 test('inspiration choreography is sourced from pinned Visual Review motion assets',()=>{
   for(const row of Object.values(INSPIRATION_MOTION_CLIPS)){

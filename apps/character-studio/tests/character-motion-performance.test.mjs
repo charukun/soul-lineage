@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {THIRTY_SECOND_ENBU_SEGMENTS,THIRTY_SECOND_SLASH_BEATS,thirtySecondEnbuState,thirtySecondSlashBeat} from '../src/character-motion-performance.js';
+import {THIRTY_SECOND_ENBU_SEGMENTS,THIRTY_SECOND_SLASH_BEATS,thirtySecondEnbuState,thirtySecondSlashBeat} from '../src/review/motion/performance.js';
 
 test('30-second review plan remains continuous and deterministic',()=>{
   assert.deepEqual(THIRTY_SECOND_SLASH_BEATS,[.28,1.48,2.40,3.32,4.30]);
@@ -21,7 +21,7 @@ test('30-second review plan remains continuous and deterministic',()=>{
 });
 
 test('retired conditional-model motion source fails closed in the independent Character Studio',async()=>{
-  const source=await readFile(new URL('../src/character-motion-source.js',import.meta.url),'utf8');
+  const source=await readFile(new URL('../src/review/motion/source.js',import.meta.url),'utf8');
   assert.match(source,/WORKSHOP_MOTION_SOURCE_STATE='retired-conditional-model'/);
   assert.match(source,/Motion QA source retired/);
   assert.match(source,/throw new Error/);

@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8');
-const main = read('../src/character-review-main.js'), workspace = read('../src/character-workspace.js');
+const main = read('../src/review/character/main.js'), workspace = read('../src/review/workspace/index.js');
 test('studio connects all five slots to the production modular controller', () => {
-  assert.match(main, /import '\.\/character-review\.js';/);
+  assert.match(main, /import '\.\/runtime\.js';/);
   assert.match(workspace, /@soul\/rendering\/master-character-modular/);
   for (const slot of ['face','hair','body','outfit','accessory']) assert.match(main, new RegExp(`${slot}:`));
   assert.match(main, /workspace.change\(slot, row.id\)/);
