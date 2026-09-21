@@ -2,6 +2,16 @@ import path from 'node:path';
 import {expect} from '@playwright/test';
 const assert=(value,message)=>{if(!value)throw new Error(message);};
 
+// Playback controls live in the shared stage dialog. Exercise the same visible
+// gear button as a player; never force-click controls hidden by the current UI.
+async function openStageControls(page){
+  const toggle=page.getByRole('button',{name:'表示・再生コントロール',exact:true});
+  await expect(toggle).toBeVisible();
+  if(await toggle.getAttribute('aria-expanded')!=='true')await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded','true');
+  await expect(page.getByRole('dialog',{name:'表示・再生コントロール',exact:true})).toBeVisible();
+}
+
 export async function verifyCuratedReview({page,context,local,output,ledger,receipt}){
   const start=receipt.requests.length;
   await page.goto(local+'/review-objects',{waitUntil:'domcontentloaded'});
@@ -53,27 +63,34 @@ export async function verifyCuratedReview({page,context,local,output,ledger,rece
     const ids=['kenney-rpg-additions-','kenney-impact-additions-'];
     return [...ids.map(prefix=>items.find(item=>item.id.startsWith(prefix))),items.find(item=>item.kind==='sfx'&&!ids.some(prefix=>item.id.startsWith(prefix)))].map(item=>({id:item.id,title:item.title,url:item.url}));
   });
+  await openStageControls(page);
   await page.locator('#sound-loop').check();
   for(const item of choices){
     await page.locator('#sound-search').fill(item.title);
     const button=page.locator('#sound-catalog .sound-option').filter({has:page.locator('strong',{hasText:item.title})}).first();
     await button.click();await expect(page.locator('#sound-id')).toHaveText(item.id);
+    // Selecting a catalog entry legitimately dismisses the stage dialog.
+    await openStageControls(page);
     await page.locator('#sound-play').click();
     await page.waitForFunction(()=>document.querySelector('#sound-pulse').classList.contains('is-playing')&&Number(document.querySelector('#sound-seek').value)>.01,{},{timeout:15000});
     const duration=await page.locator('#sound-seek').evaluate(node=>Number(node.max));assert(duration>0,'HTML audio metadata/playback missing');
-    receipt.ui.push({route:'/review-sound',id:item.id,status:'passed',duration,actualHtmlAudioPlayback:true,url:item.url});
+    receipt.ui.push({route:'/review-sound',id:item.id,status:'passed',duration,actualHtmlAudioPlayback:true,stageControls:true,url:item.url});
     await page.locator('#sound-play').click();
   }
   await page.screenshot({path:path.join(output,'review-audio.png')});
 
   await page.goto(local+'/review-motion',{waitUntil:'domcontentloaded'});
+  await openStageControls(page);
+  await expect(page.locator('#motion-play')).toBeVisible();
   await expect(page.locator('#motion-play')).toBeEnabled({timeout:90000});
   await expect(page.locator('#motion-quality')).toHaveAttribute('data-state',/NATIVE|PLAYABLE|DEGRADED/);
   await page.waitForFunction(()=>Number(document.querySelector('#motion-time').value)>.03,{},{timeout:30000});
   const externalSelector='#motion-grid [data-motion-identity]';
   await page.waitForFunction(selector=>Array.from(document.querySelectorAll(selector)).some(node=>/kaykit-combat-melee|Rig_Medium_CombatMelee/.test(node.dataset.motionIdentity)),externalSelector,{timeout:90000});
   const identity=await page.locator(externalSelector).evaluateAll(nodes=>nodes.map(node=>node.dataset.motionIdentity).find(id=>/kaykit-combat-melee|Rig_Medium_CombatMelee/.test(id)));
-  await page.locator(externalSelector).filter({visible:true}).evaluateAll((nodes,identity)=>{const button=nodes.find(node=>node.dataset.motionIdentity===identity);if(!button)throw new Error('External motion card missing');button.click();},identity);
+  await page.locator(`#motion-grid [data-motion-identity=${JSON.stringify(identity)}]`).click();
+  await openStageControls(page);
+  await expect(page.locator('#motion-play')).toBeVisible();
   await expect(page.locator('#motion-play')).toBeEnabled({timeout:60000});
   await page.waitForFunction(()=>{
     const report=JSON.parse(document.querySelector('#motion-binding-report').textContent||'{}');
@@ -81,16 +98,17 @@ export async function verifyCuratedReview({page,context,local,output,ledger,rece
   },{},{timeout:30000});
   const binding=await page.locator('#motion-binding-report').evaluate(node=>JSON.parse(node.textContent));
   assert(['PLAYABLE','DEGRADED'].includes(binding.result.status),'Existing retarget did not apply');
-  receipt.ui.push({route:'/review-motion',status:'passed',identity,retarget:binding.result,source:binding.source});
+  receipt.ui.push({route:'/review-motion',status:'passed',identity,stageControls:true,retarget:binding.result,source:binding.source});
   await page.locator('#motion-stage').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(output,'review-retarget.png')});
 
   await page.goto(local+'/review-effects',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#fx-metrics')).toContainText('backend ready',{timeout:90000});
+  await openStageControls(page);
   await page.locator('[data-preset="slash"]').click();
   await page.waitForFunction(()=>/played [1-9]\d*/.test(document.querySelector('#fx-metrics').textContent),{},{timeout:30000});
   const metrics=await page.locator('#fx-metrics').textContent();
   const count=await page.locator('#fx-model-count').textContent();assert(Number.parseInt(count,10)>=307,'Existing VFX library shrank');
   await page.locator('#fx-stage').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(output,'review-vfx.png')});
-  receipt.ui.push({route:'/review-effects',status:'passed',metrics,count,existingEffekseer:true});
+  receipt.ui.push({route:'/review-effects',status:'passed',metrics,count,stageControls:true,existingEffekseer:true});
   await page.goto('about:blank');
 }
