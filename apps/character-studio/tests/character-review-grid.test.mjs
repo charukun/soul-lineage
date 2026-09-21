@@ -6,7 +6,7 @@ const read = name => readFileSync(new URL(`../src/${name}`, import.meta.url), 'u
 const code = read('character-review-grid.js');
 const css = read('character-review-grid.css');
 const auto = read('review-slot-auto.js');
-const { readCharacterReviewGroups, gridFocusIndex, installCharacterReviewGrid } = await import(
+const { REVIEW_SECTIONS, readCharacterReviewGroups, gridFocusIndex, installCharacterReviewGrid } = await import(
   `data:text/javascript;base64,${Buffer.from(code.replace("import './character-review-grid.css';", '')).toString('base64')}`
 );
 function source(label, { pressed = false, disabled = false, ariaLabel = '', swatch = '', camera, tick = false } = {}) {
@@ -28,7 +28,7 @@ function readGroups(rows, ready = true, camera = 'front') {
 
 test('nine editable review groups share one slot-to-grid catalogue, with no technical build action', () => {
   const groups = readGroups({});
-  assert.deepEqual(groups.map(row => row.id), ['model','part','variant','individual','hair','eyes','skin','dye','age']);
+  assert.deepEqual(groups.map(row => row.id), ['model','individual','part','variant','age','hair','eyes','skin','dye']);
   assert.equal(new Set(groups.map(row => row.id)).size, 9);
   assert.match(code, /#character-model-options \[data-character-model\]/);
   assert.doesNotMatch(code, /character-build-request/);
@@ -51,8 +51,8 @@ test('custom age does not falsely select the first age preset', () => {
 
 test('loading and inherited fieldset disabled states both disable live candidates', () => {
   const rows = { '#slot-tabs [data-slot]': [source('髪', { pressed: true }), source('顔', { disabled: true })] };
-  assert.deepEqual(readGroups(rows)[1].options.map(row => row.disabled), [false, true]);
-  assert.deepEqual(readGroups(rows, false)[1].options.map(row => row.disabled), [true, true]);
+  assert.deepEqual(readGroups(rows).find(row => row.id === 'part').options.map(row => row.disabled), [false, true]);
+  assert.deepEqual(readGroups(rows, false).find(row => row.id === 'part').options.map(row => row.disabled), [true, true]);
   assert.equal(readGroups({}, false)[0].value, '読込中');
 });
 
@@ -85,11 +85,30 @@ test('installation is character-only and idempotent before querying or changing 
 
 test('candidates stay visible in five columns; original duplicate controls are scoped out', () => {
   assert.match(css, /\.character-review-grid\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
-  assert.match(css, /\.character-review-slots\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(css, /\.character-review-section-tabs\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(css, /body\.character-grid-ready \.review-controls > :not\(#character-review-picker\)/);
   assert.doesNotMatch(code, /aria-haspopup|review-slot-panel|localStorage|sessionStorage|fetch\(/);
   assert.match(code, /option\.source\.click\(\)/);
   assert.match(code, /!option\.source\.isConnected \|\| option\.source\.matches\(':disabled'\)/);
   assert.match(code, /if \(!ready\) state\.framed = false/);
   assert.match(code, /if \(!event\.persisted\)/);
+});
+
+
+test('review controls follow reviewer intent: target, three scopes, five-column candidates and binary verdict', () => {
+  assert.deepEqual(REVIEW_SECTIONS.map(row => [row.id, row.label, [...row.groups]]), [
+    ['overall','全体',['individual','age']],
+    ['face','顔',['hair','eyes','skin']],
+    ['outfit','服・パーツ',['part','variant','dye']]
+  ]);
+  assert.match(code, /character-review-section-tabs/);
+  assert.match(code, /data\.reviewDecision = 'ok'/);
+  assert.match(code, /data\.reviewDecision = 'fix'/);
+  assert.match(code, /'OK'/);
+  assert.match(code, /'要修正'/);
+  assert.doesNotMatch(code, /REVIEW_CRITERIA|確認観点/);
+  assert.match(css, /\.character-review-grid\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(css, /\.character-review-section-tabs\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.character-review-decision--ok\[aria-pressed="true"\]/);
+  assert.match(css, /\.character-review-decision--fix\[aria-pressed="true"\]/);
 });

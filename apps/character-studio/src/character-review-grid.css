@@ -313,3 +313,141 @@ body.simple-review.character-grid-ready .load-indicator[data-state="error"]{disp
     font-size:9px!important;
   }
 }
+
+/* Review decisions are organized by reviewer intent: target, scope, candidate, verdict. */
+.character-review-picker{
+  grid-template-rows:auto auto auto auto minmax(0,1fr) auto;
+}
+.character-model-picker{
+  grid-template-columns:auto minmax(0,1fr) minmax(116px,auto);
+}
+.character-model-picker .character-review-target-pager{
+  position:static!important;
+  inset:auto!important;
+  transform:none!important;
+  display:grid!important;
+  grid-template-columns:30px minmax(0,1fr) 30px!important;
+  align-items:center;
+  width:100%;
+  max-width:180px;
+  height:36px;
+  margin:0;
+  border:1px solid #303b37;
+  border-radius:9px;
+  background:#101714;
+  box-shadow:none;
+  overflow:hidden;
+}
+.character-model-picker .character-review-target-pager button{
+  width:30px!important;
+  min-width:30px!important;
+  min-height:34px!important;
+  height:34px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  font-size:16px!important;
+}
+.character-model-picker .character-review-target-pager span{
+  min-width:0;
+  padding:0 3px;
+  font-size:8px;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.character-review-section-tabs{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:4px;
+  padding:1px 0;
+}
+.character-review-section{
+  min-height:40px;
+  padding:5px 8px;
+  border-color:#303b37;
+  background:#101714;
+  color:#aeb8b3;
+  font-size:11px;
+  font-weight:750;
+}
+.character-review-section[aria-selected="true"]{
+  border-color:#d7c58b;
+  background:#242217;
+  color:#fff1cb;
+}
+.character-review-slots{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.character-review-slot[hidden]{display:none!important}
+.character-review-current::before{content:none}
+.character-review-tools{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.character-review-decision{
+  min-height:42px!important;
+  font-size:12px!important;
+  font-weight:800;
+}
+.character-review-decision--ok[aria-pressed="true"]{
+  border-color:#6f8f79!important;
+  background:#1d2a22!important;
+  color:#e7f2e9!important;
+}
+.character-review-decision--fix[aria-pressed="true"]{
+  border-color:#a28b56!important;
+  background:#332a19!important;
+  color:#fff0c7!important;
+}
+
+@media(max-width:760px) and (orientation:portrait){
+  body.simple-review.character-grid-ready .character-review-picker{
+    grid-template-rows:auto auto auto auto minmax(0,1fr) auto!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker{
+    grid-template-columns:64px minmax(0,1fr) 98px!important;
+    gap:5px!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker .character-review-target-pager{
+    max-width:none!important;
+    height:34px!important;
+    grid-template-columns:27px minmax(0,1fr) 27px!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker .character-review-target-pager button{
+    width:27px!important;
+    min-width:27px!important;
+    min-height:32px!important;
+    height:32px!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker .character-review-target-pager span{
+    font-size:7px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-section-tabs{
+    gap:3px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-section{
+    min-height:34px!important;
+    height:34px!important;
+    padding:3px 4px!important;
+    font-size:10px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-slots{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:3px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-slots .character-review-slot{
+    min-height:34px!important;
+    height:34px!important;
+    padding:3px 2px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-tools{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:5px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-tools button{
+    min-height:38px!important;
+    height:38px!important;
+    font-size:11px!important;
+  }
+}
