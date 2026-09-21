@@ -83,7 +83,7 @@ test('female protagonist is a separate repository-local Rig_Medium DCC model', (
   assert.equal(existsSync(blendPath), true);
   assert.equal(existsSync(receiptPath), true);
   assert.equal(existsSync(productionPath), true);
-  for (const view of ['front', 'three-quarter', 'side', 'back']) {
+  for (const view of ['front', 'three-quarter', 'side', 'back', 'face', 'pose-front', 'pose-side']) {
     assert.equal(existsSync(`docs/characters/qa/protagonist-villager-female-v1/${view}.png`), true);
   }
 
@@ -92,11 +92,22 @@ test('female protagonist is a separate repository-local Rig_Medium DCC model', (
   const production = JSON.parse(readFileSync(productionPath, 'utf8'));
   assert.equal(bytes.length, receipt.bytes);
   assert.equal(createHash('sha256').update(bytes).digest('hex'), receipt.sha256);
-  assert.equal(receipt.sha256, '06de3a20266316b5ce1f75b88ca7434916d13c2f161036c29649f06f6b44c78c');
+  assert.equal(receipt.sha256, '7c422960add80f120d5dbcd91a6b74e23269b35049796f60cb1e6c4e4604d9a2');
   assert.equal(receipt.humanoidRig, 'kaykit.Rig_Medium.v1');
   assert.equal(production.stage, 'PRIMARY');
   assert.equal(production.status.visualApproval, 'pending');
   assert.equal(production.status.productionReady, false);
   assert.equal(production.evidence.primary.meshObjects, 25);
-  assert.equal(production.evidence.primary.triangles, 4128);
+  assert.equal(production.evidence.primary.triangles, 4196);
+  assert.equal(production.status.visualApproval, 'pending');
+  const studioGlbPath = 'apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb';
+  assert.equal(readFileSync(studioGlbPath).equals(bytes), true);
+  const studio = JSON.parse(readFileSync('docs/characters/qa/protagonist-villager-female-v1/character-studio/receipt.json', 'utf8'));
+  assert.equal(studio.displayModelId, 'protagonist.villager.female.v1');
+  assert.equal(studio.ready, true);
+  assert.deepEqual(studio.errors, []);
+  assert.deepEqual(studio.consoleErrors, []);
+  assert.deepEqual(studio.httpErrors, []);
+  assert.deepEqual(studio.failedRequests, []);
+  assert.deepEqual(studio.pageErrors, []);
 });
