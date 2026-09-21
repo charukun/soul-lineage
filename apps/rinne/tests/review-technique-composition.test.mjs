@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {addTechniqueToReviewChain,createReviewTechniqueComposition,flattenReviewTechniqueChain,reviewChainLabel,reviewTechniqueStages} from '../src/review-technique-composition.js';
+import {reviewInspirationModeState} from '../src/review-battle-state.js';
 
 const appRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const read=path=>readFile(resolve(appRoot,path),'utf8');
@@ -15,6 +16,11 @@ test('review composition separates stages, techniques, chains, and jo-ha-kyu',()
   assert.equal(reviewChainLabel('jo',composition.jo.length),'序 · 二連');
   assert.deepEqual(reviewTechniqueStages(composition.jo[0]).map(row=>row.label),['一段','二段']);
   assert.deepEqual(flattenReviewTechniqueChain(composition.jo).map(step=>step.kind),['slash','back','dash','thrust','back']);
+});
+
+test('inspiration probability mode changes preserve the active phase gate',()=>{
+  assert.deepEqual(reviewInspirationModeState('boost','ha'),{mode:'boost',lastPhase:'ha'});
+  assert.deepEqual(reviewInspirationModeState('normal','kyu'),{mode:'normal',lastPhase:'kyu'});
 });
 
 test('review chains stay compact and move repeated techniques to the active end',()=>{

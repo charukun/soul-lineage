@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {advanceReviewFinisher,createReviewFinisher,normalizeReviewBattlePhase,reviewBattleCameraFrame,reviewBattleLoopDue,reviewBattlePhaseState,reviewBattleMultiHitFrame,reviewBattlePresentationFrame,reviewInspirationModeState} from '../src/review-battle-state.js';
+import {advanceReviewFinisher,createReviewFinisher,normalizeReviewBattlePhase,reviewBattleCameraFrame,reviewBattleLoopDue,reviewBattlePhaseState,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from '../src/review-battle-state.js';
 import {REVIEW_INSPIRATION_TIMELINE,pickReviewInspiration,reviewInspirationCandidates,reviewInspirationSequenceFrame} from '../src/review-battle-inspiration.js';
 import {combatCameraFrame,combatCameraPosition} from '@soul/rendering/combat-camera-frame';
 
@@ -12,11 +12,6 @@ test('phase state follows the live Tidebreak slot and clears between attacks',()
   assert.equal(between.phase,'');
   assert.equal(between.source,'');
   assert.equal(normalizeReviewBattlePhase('fake'),'');
-});
-
-test('inspiration probability mode changes preserve the active phase gate',()=>{
-  assert.deepEqual(reviewInspirationModeState('boost','ha'),{mode:'boost',lastPhase:'ha'});
-  assert.deepEqual(reviewInspirationModeState('normal','kyu'),{mode:'normal',lastPhase:'kyu'});
 });
 
 test('enemy phase is visible when the left actor is not running a phase',()=>{
