@@ -25,10 +25,17 @@ const gitBlob=bytes=>crypto.createHash('sha1').update(`blob ${bytes.length}\0`).
 const assert=(value,message)=>{if(!value)throw new Error(message);};
 const receipt={schema:1,head,mode:generate?'generate':uiOnly?'ui-only':'exact-head',status:'running',assetOrigin:origin.href,
   transport:'Project Asset Origin URLs fulfilled from exact-head local materialized files before deployment; not a claim of live DEV publication',assets:[],ui:[],errors:[],requests:[]};
-const vite=spawn(process.execPath,['node_modules/vite/bin/vite.js','--config','apps/rinne/vite.config.js','--host','127.0.0.1','--port','5173','--strictPort'],{cwd:root,env:{...process.env,APP_ENV:'dev'},stdio:['ignore','pipe','pipe']});
-let viteOutput='';vite.stdout.on('data',data=>viteOutput+=data.toString());vite.stderr.on('data',data=>viteOutput+=data.toString());
-const local='http://127.0.0.1:5173';let browser,context,page;
+let vite,viteOutput='',browser,context,page,tracing=false;
+const local='http://127.0.0.1:5173';
 try{
+  // Starting Vite directly bypasses npm's predev lifecycle. Preserve the real app
+  // preparation path so existing pinned KayKit, Basis and Effekseer payloads exist.
+  execFileSync('npm',['run','predev','--workspace','@soul/rinne'],{cwd:root,env:{...process.env,APP_ENV:'dev'},stdio:'inherit'});
+  const preparedDirty=execFileSync('git',['diff','--name-only','HEAD'],{encoding:'utf8'}).trim();
+  assert(!preparedDirty,'Preparation modified tracked exact-head source: '+preparedDirty);
+  receipt.legacyPreparation={command:'npm run predev --workspace @soul/rinne',status:'passed',trackedSourceUnchanged:true};
+  vite=spawn(process.execPath,['node_modules/vite/bin/vite.js','--config','apps/rinne/vite.config.js','--host','127.0.0.1','--port','5173','--strictPort'],{cwd:root,env:{...process.env,APP_ENV:'dev'},stdio:['ignore','pipe','pipe']});
+  vite.stdout.on('data',data=>viteOutput+=data.toString());vite.stderr.on('data',data=>viteOutput+=data.toString());
   for(let attempt=0;attempt<120;attempt++){
     if(vite.exitCode!==null)throw new Error('Vite failed: '+viteOutput);
     try{if((await fetch(local)).ok)break;}catch{}
@@ -97,19 +104,28 @@ try{
     if(generate){manifest.files.sort((a,b)=>a.path.localeCompare(b.path));await fs.writeFile(manifestPath,JSON.stringify(manifest,null,2)+'\n');}
   }
   if(!generate){
-    await context.tracing.start({screenshots:true,snapshots:true,sources:false});
+    await context.tracing.start({screenshots:true,snapshots:true,sources:false});tracing=true;
     const {verifyCuratedReview}=await import('./curated-review-smoke.mjs');
     await verifyCuratedReview({page,context,local,output,ledger,receipt});
-    await context.tracing.stop({path:path.join(output,'review-trace.zip')});
+    await context.tracing.stop({path:path.join(output,'review-trace.zip')});tracing=false;
   }
   assert(receipt.errors.length===0,receipt.errors.join('\n'));
   if(!uiOnly)assert(receipt.assets.length===ledger.files.length&&receipt.assets.every(item=>item.status==='passed'),'All materialized assets must pass');
   receipt.status='passed';
-}catch(error){receipt.status='failed';receipt.errors.push(error.stack||error.message);process.exitCode=1;}
+}catch(error){
+  receipt.status='failed';receipt.errors.push(error.stack||error.message);process.exitCode=1;
+  if(page&&!page.isClosed()){
+    try{
+      receipt.failurePage=await page.evaluate(()=>({url:location.href,statuses:Object.fromEntries(['motion-status','motion-quality','motion-binding-report','object-status','fx-metrics'].map(id=>[id,document.getElementById(id)?.textContent||null]))}));
+      await page.screenshot({path:path.join(output,'failure-page.png'),fullPage:true});
+    }catch(diagnosticError){receipt.errors.push('Failure diagnostics: '+diagnosticError.message);}
+  }
+}
 finally{
+  if(tracing)try{await context.tracing.stop({path:path.join(output,'review-trace.zip')});}catch(error){receipt.errors.push('Trace capture: '+error.message);receipt.status='failed';process.exitCode=1;}
   receipt.finishedAt=new Date().toISOString();
   await fs.writeFile(path.join(output,generate?'native-receipt.json':uiOnly?'ui-receipt.json':'exact-head-receipt.json'),JSON.stringify(receipt,null,2)+'\n');
   await fs.writeFile(path.join(output,'vite.log'),viteOutput);
   console.log(JSON.stringify({head:receipt.head,status:receipt.status,assets:receipt.assets.length,clips:receipt.assets.reduce((n,row)=>n+(row.animations?.length||0),0),errors:receipt.errors.slice(0,15)}));
-  await context?.close();await browser?.close();vite.kill('SIGTERM');
+  await context?.close();await browser?.close();vite?.kill('SIGTERM');
 }
