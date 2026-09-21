@@ -14,7 +14,6 @@ export const assetCatalog = Object.freeze({
   'building.cottage.v1': Object.freeze({ id: 'building.cottage.v1', type: 'building', dimensions: [4, 3, 4] }),
 });
 export const sharedEmblemUrl = new URL('./emblem.svg', import.meta.url).href;
-export const rinneCrestUrl = new URL('./rinne-crest.svg', import.meta.url).href;
 
 const iconNames = Object.freeze([
   'menu', 'sword', 'heart', 'sparkles', 'flask-conical', 'book-open', 'backpack', 'hammer', 'map',
