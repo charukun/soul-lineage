@@ -106,6 +106,7 @@ function renderCatalog({preferredKind=null}={}){const visible=BUILDINGS.filter(d
 }
 $('catalogPrev').onclick=()=>{if(ui.catalogPage>0){ui.catalogPage--;renderCatalog();}};
 $('catalogNext').onclick=()=>{ui.catalogPage++;renderCatalog();};
+$('closeDrawer').onclick=closeDrawer;
 function updateStockTray(){const keys=world.state.known.filter(k=>world.state.stock[k]>=1).slice(0,7);$('stockTray').textContent=keys.length?keys.map(k=>`${RESOURCE_NAMES[k]} ${Math.floor(world.state.stock[k])}`).join('　'):'資材は、住人たちの仕事で少しずつ集まります。';}
 function renderMaterials(){const p=ui.pending;if(!p)return;const options=materialOptions(world.state,p.kind);$('materialChoices').innerHTML='';
  if(options.length>1&&!p.roomId&&!p.moveId)for(const option of options){const b=document.createElement('button');b.className=option.id===p.material?'active':'';b.textContent=option.label+(option.affordable?'':'');b.dataset.material=option.id;b.onclick=()=>{p.material=option.id;renderMaterials();refreshPreview();};$('materialChoices').append(b);}

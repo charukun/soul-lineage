@@ -9,10 +9,10 @@ function fixture(pending=null){
  const send=(type,x=100,y=100,pointerId=1)=>{now+=16;const e=new Event(type,{cancelable:true});Object.assign(e,{clientX:x,clientY:y,pointerId,button:0});canvas.dispatchEvent(e);};
  return{ui,calls,input,send,frames,advance(){now+=16;const f=[...frames.values()][0];frames.clear();f?.(now);}};
 }
-test('placement drag previews under the finger and commits once on release',()=>{
+test('placement drag previews under the finger and release keeps the candidate pending',()=>{
  const pending={kind:'chair',x:7,z:-3,rot:1.2,roomId:'b1'},f=fixture(pending);
  f.send('pointerdown');f.send('pointermove',130,125);f.send('pointermove',170,155);f.send('pointerup',170,155);
- assert.deepEqual(f.calls.preview,[[13,12.5],[17,15.5]]);assert.equal(f.calls.commit,1);assert.equal(f.ui.pending,null);assert.equal(f.calls.tap.length,0);assert.equal(f.calls.pan.length,0);assert.equal(f.frames.size,0);assert.equal(f.input.pointers.size,0);f.input.dispose();
+ assert.deepEqual(f.calls.preview,[[13,12.5],[17,15.5]]);assert.equal(f.calls.commit,0);assert.equal(f.ui.pending,pending);assert.equal(f.calls.tap.length,0);assert.equal(f.calls.pan.length,0);assert.equal(f.frames.size,0);assert.equal(f.input.pointers.size,0);f.input.dispose();
 });
 test('a short tap chooses a candidate once; cancellation is never a tap',()=>{
  const f=fixture({kind:'chair'});f.send('pointerdown',101,102);f.send('pointerup',102,103);assert.deepEqual(f.calls.tap,[[102,103]]);
