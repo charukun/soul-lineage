@@ -21,6 +21,16 @@ test('facility output queues for the mayor dog instead of turning a resident int
  assert.deepEqual(world.state.logistics.pending[0]?.items,{wood:5,seed:1});
  assert.equal(world.state.logistics.pending[0]?.sourceId,logging.id);
  assert.equal(sim.dog.species,'dog');
+ assert.equal(sim.extras.some(actor=>actor.id==='mayor-dog'),false);
+});
+
+test('dog rendering is deferred until the simulation advances after the entry screen',()=>{
+ const world=new World(),sim=new Simulation(world);
+ assert.equal(sim.dogVisible,false);
+ assert.equal(sim.extras.some(actor=>actor.id==='mayor-dog'),false);
+ sim.dogStep(0);
+ assert.equal(sim.dogVisible,true);
+ assert.equal(sim.extras.some(actor=>actor.id==='mayor-dog'),true);
 });
 
 test('mayor dog picks up facility goods and delivers them to storage',()=>{
@@ -63,5 +73,6 @@ test('storage delivery stays a small icon and delta treatment',async()=>{
  assert.doesNotMatch(css,/min-width:126px/);
  assert.match(css,/animation:muraDeliveryRise 1\.9s/);
  assert.match(view,/species==='dog'/);
+ assert.match(models,/const g=baseAnimal\('wolf'\)/);
  assert.match(models,/species==='dog'\?dog\(\):baseAnimal/);
 });
