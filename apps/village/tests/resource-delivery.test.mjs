@@ -51,8 +51,12 @@ test('storage delivery has an anchored visual receipt and carried crate',async()
   readFile(new URL('../src/web/consumer-game-ui.css',import.meta.url),'utf8'),
   readFile(new URL('../src/web/view.js',import.meta.url),'utf8')
  ]);
- assert.match(ui,/資材庫へ搬入/);
- assert.match(ui,/view\.project\(storage\.x,5\.6,storage\.z\)/);
- assert.match(css,/muraDeliveryRise/);
+ assert.match(ui,/aria-label.*資材庫へ搬入/);
+ assert.match(ui,/<b>\+\$\{formatDeliveryAmount\(n\)\}<\/b>/);
+ assert.doesNotMatch(ui,/<small>資材庫へ搬入<\/small>/);
+ assert.match(ui,/view\.project\(storage\.x,4\.8,storage\.z\)/);
+ assert.match(css,/position:absolute;display:flex/);
+ assert.doesNotMatch(css,/min-width:126px/);
+ assert.match(css,/animation:muraDeliveryRise 1\.9s/);
  assert.match(view,/resource-cargo/);
 });
