@@ -82,6 +82,35 @@ test('canonical footwork persists in world space and only reachable impacts beco
  assert.match(source,/selectReachableTarget/);assert.match(source,/type:'miss'/);assert.doesNotMatch(source,/function footworkOffset/);
 });
 
+
+test('a real miss breaks the current chain and restarts its phase from the first stage',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',duelGap:3.6});let proof=null;
+ for(let i=0;i<900&&!proof;i++){
+   scenario.step(1/60);const trace=scenario.inspect().trace;
+   const missIndex=trace.findIndex(row=>row.type==='miss'&&row.sourceId==='hero');
+   if(missIndex<0)continue;
+   const breakIndex=trace.findIndex((row,index)=>index>missIndex&&row.type==='chain-break'&&row.reason==='miss');
+   if(breakIndex<0)continue;
+   const restart=trace.slice(breakIndex+1).find(row=>row.type==='stage-start');
+   if(restart)proof={broken:trace[breakIndex],restart};
+ }
+ assert.ok(proof,'miss must produce a chain break followed by a restart');
+ assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,0);assert.equal(proof.restart.stageIndex,0);
+});
+
+test('an early incoming hit breaks an unprotected chain instead of retrying a later stage',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',enemyLeadSeconds:.3});let proof=null;
+ for(let i=0;i<720&&!proof;i++){
+   scenario.step(1/60);const trace=scenario.inspect().trace;
+   const breakIndex=trace.findIndex(row=>row.type==='chain-break'&&row.reason==='hit-before-contact');
+   if(breakIndex<0)continue;
+   const restart=trace.slice(breakIndex+1).find(row=>row.type==='stage-start');
+   if(restart)proof={broken:trace[breakIndex],restart};
+ }
+ assert.ok(proof,'early real contact must break the chain');
+ assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,0);assert.equal(proof.restart.stageIndex,0);
+});
+
 test('HUD metadata comes from the executing technique and stage',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let checked=0;
  for(let i=0;i<480;i++){const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self);if(!hero.action)continue;checked++;
