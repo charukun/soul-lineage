@@ -1,5 +1,5 @@
 name: Temporary kuumetsu observation transport 20260922
-# Task-scoped control branch only. Never merge into develop/main. Native gate-aware attempt.
+# Task-scoped control branch only. Never merge into develop/main.
 on:
   push:
     branches: [ops/kuumetsu-observe-20260922-01]
@@ -28,15 +28,19 @@ jobs:
           script: |
             const fs=require('fs');
             const r=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-session-observe.mjs',ref:context.sha});
-            fs.writeFileSync('session-observe.mjs',Buffer.from(r.data.content,'base64'));
+            const original=Buffer.from(r.data.content,'base64').toString();
+            const anchor="if(await gate.isVisible()){await tap('#soul-brand-boot');";
+            if(!original.includes(anchor))throw new Error('observer patch anchor missing');
+            const source=original.replace(anchor,"if(await gate.isVisible()){await page.locator('#soul-brand-boot.armed').waitFor({state:'visible'});await tap('#soul-brand-boot');");
+            fs.writeFileSync('session-observe.mjs',source);
       - name: Immutable native Before
         env:
           SOURCE_SHA: 994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c
           PREVIEW_URL: https://a349204c-soul-lineage-demon-dev.c-okamoto.workers.dev/
-        run: mkdir -p session-evidence && node session-observe.mjs > session-evidence/browser.log 2>&1
+        run: mkdir -p session-evidence && cp session-observe.mjs session-evidence/observer.mjs && node session-observe.mjs > session-evidence/browser.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-before-native-v2-994f61b
+          name: kuumetsu-before-native-armed-994f61b
           path: session-evidence
           retention-days: 14
