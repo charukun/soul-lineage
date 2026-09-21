@@ -6,7 +6,7 @@ const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.
 const script = readFileSync(new URL('../ops-board/public/rapid-board.js', import.meta.url), 'utf8');
 
 test('rapid board exposes work, app publication, issues and recent history without replacing source data', () => {
-  for (const id of ['rapid-active-list','rapid-app-list','rapid-issue-list','rapid-recent-list']) {
+  for (const id of ['rapid-active-list','rapid-iteration-list','rapid-app-list','rapid-issue-list','rapid-recent-list']) {
     assert.match(html, new RegExp('id="' + id + '"'));
   }
   assert.match(script, /state\?\.pullRequests\?\.normal/);
@@ -18,6 +18,11 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /state\?\.controlTower\?\.timeline/);
   assert.match(script, /state\?\.developmentSessions/);
   assert.match(script, /rapid-session-flow/);
+  assert.match(script, /renderIterations/);
+  assert.match(script, /iterationSteps/);
+  assert.match(script, /buildIssueRepairPrompt/);
+  assert.match(script, /navigator\.clipboard/);
+  assert.match(script, /修復プロンプトをコピー/);
   assert.doesNotMatch(script, /api\.github\.com|innerHTML/);
 });
 

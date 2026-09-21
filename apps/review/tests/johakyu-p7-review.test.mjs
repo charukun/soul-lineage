@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
 import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.js';
 import {createCanonicalPresentationDriver} from '../../../packages/johakyu-presentation/src/driver.js';
+import {resolveJohakyuLocomotion} from '../../../packages/johakyu-combat/src/motion-contract.js';
 
 const stageSource=()=>readFileSync(new URL('../src/nocturne-stage.js',import.meta.url),'utf8');
 const hudCss=()=>readFileSync(new URL('../src/nocturne/johakyu-p7-readout.css',import.meta.url),'utf8');
@@ -32,7 +33,7 @@ test('1v1 executes only configured techniques and keeps stage order inside each 
  const scenario=createJohakyuP7ReviewScenario({mode:'duel'}),composition=scenario.composition.hero,seen=new Set(),rows=[];
  for(let i=0;i<1500;i++){
    const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self),action=hero?.action;
-   if(!action||seen.has(action.id))continue;seen.add(action.id);
+   if(!action||action.scope==='combat-reaction'||seen.has(action.id))continue;seen.add(action.id);
    const technique=composition[action.phase][action.techniqueIndex],stage=technique?.stages[action.stageIndex];
    assert.ok(technique,'configured technique');assert.ok(stage,'configured stage');
    assert.equal(action.techniqueId,technique.id);assert.equal(action.name,technique.name);assert.equal(action.motion.kind,stage.kind);assert.equal(action.footwork,stage.step.footwork);
@@ -104,7 +105,7 @@ test('a real miss breaks the current chain and restarts its phase from the first
 
 test('an early incoming hit breaks an unprotected chain instead of retrying a later stage',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel',enemyLeadSeconds:.3});let proof=null;
- for(let i=0;i<720&&!proof;i++){
+ for(let i=0;i<1200&&!proof;i++){
    scenario.step(1/60);const trace=scenario.inspect().trace;
    const breakIndex=trace.findIndex(row=>row.type==='chain-break'&&row.reason==='hit-before-contact');
    if(breakIndex<0)continue;
@@ -172,6 +173,38 @@ test('shared presentation forwards authored guard/parry contacts while still sup
    {id:'blocked-hit',type:'enemy-hit',blocked:true,damage:8,sourceId:'enemy',targetId:'hero'}
  ]);
  assert.deepEqual(delivered,['parry','guard']);driver.dispose();
+});
+
+test('threat-driven reaction parry can occur outside the configured technique cursor and create a counter opportunity',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5});let parry=null,counter=null,reactionFrame=null;
+ for(let i=0;i<1200&&!(parry&&counter&&reactionFrame);i++){const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self);reactionFrame=reactionFrame||(hero?.action?.scope==='combat-reaction'?hero.action:null);parry=parry||r.events.find(e=>e.type==='parry'&&e.targetId==='hero'&&e.defenseScope==='combat-reaction');counter=counter||r.events.find(e=>e.type==='player-hit'&&e.sourceId==='hero'&&e.counter===true);}
+ assert.ok(reactionFrame,'reaction must use a separate action scope');assert.ok(parry,'an incoming threat must be parryable between configured technique stages');assert.ok(counter,'parry must create a real counter opportunity');
+ const trace=scenario.inspect().trace,parryStart=trace.find(row=>row.type==='reaction-start'&&row.actorId==='hero'&&row.reaction==='parry');
+ assert.ok(parryStart);assert.equal(parryStart.contextTechniqueId,'action.crash','reaction must preserve the technique cursor instead of impersonating action.counter');
+});
+
+test('side and orbit spacing use authored strafe clips that exist on both combat actors',()=>{
+ const expected={sideL:'Running_Strafe_Left',sideR:'Running_Strafe_Right',orbitL:'Running_Strafe_Left',orbitR:'Running_Strafe_Right',retreat:'Walking_Backwards'},manifest=JSON.parse(readFileSync(new URL('../src/nocturne/manifest.json',import.meta.url),'utf8'));
+ for(const [footwork,clip] of Object.entries(expected)){const binding=resolveJohakyuLocomotion({footwork});assert.equal(binding.supported,true);assert.equal(binding.clip,clip);for(const id of ['adventurers/Knight','skeletons/Skeleton_Warrior'])assert.ok(manifest.models[id].animations.includes(clip),id+'/'+clip);}
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');assert.match(source,/resolveJohakyuLocomotion/);assert.match(source,/reason:'reset-angle'/);
+});
+
+test('battle2 presentation layers hit reactions, local hit stop, two-actor framing and self-hosted positional SFX without removing fatigue',()=>{
+ const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),audio=readFileSync(new URL('../src/nocturne/audio.js',import.meta.url),'utf8'),sharedAudio=readFileSync(new URL('../../../packages/johakyu-presentation/src/audio.js',import.meta.url),'utf8');
+ assert.match(runtime,/resolveFatiguePresentation/);assert.match(runtime,/applyFatigue\(a,row,dt\)/);assert.match(runtime,/reactionClip=\['head','leftArm','rightArm'\]\.includes\(event\.bodyPart\)\?'Hit_B':'Hit_A'/);
+ assert.match(runtime,/game\.hitstop=Math\.max/);assert.match(runtime,/midpoint=opponent\?hero\.pos\.clone\(\)\.lerp\(opponent\.pos,\.5\)/);assert.match(runtime,/camera\.zoom=lerp/);
+ assert.match(runtime,/sound\.swing\?\./);assert.match(runtime,/sound\.parry\?\./);assert.match(runtime,/sound\.impact\?\./);assert.match(sharedAudio,/createStereoPanner/);assert.match(sharedAudio,/fatigueVoices/);
+ for(const path of [
+  '../public/library/audio/kenney/sword-swing/368a5d13d3b2cc9d0bf6abe86c5ba950e49aaeb4.ogg',
+  '../public/library/audio/kenney/sword-metal/7c57bffa367f23199029ef8dade2643b58627e98.ogg',
+  '../public/library/audio/kenney-impact-additions/impactmetal-heavy-002/4e1053cad3e3aa16694ffefad1789b3343373aa0.ogg',
+  '../public/library/audio/kenney/footstep-00/7ea335755952eb5570f72d9581d1dfce6536d6b9.ogg'
+ ])assert.equal(existsSync(new URL(path,import.meta.url)),true,path);
+ assert.match(audio,/BATTLE2_SOUND_SAMPLES/);
+});
+
+test('battle2 consumes canonical actor capability without duplicating the next injury layer',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');assert.match(source,/johakyuActorCapability/);assert.match(source,/capability\.canAttack/);assert.match(source,/capability:\{canMove:capability\.canMove,canAttack:capability\.canAttack/);assert.doesNotMatch(source,/johakyuStageCapability|void capability/);
 });
 
 test('battle2 shows the current build version from canonical build info',()=>{
