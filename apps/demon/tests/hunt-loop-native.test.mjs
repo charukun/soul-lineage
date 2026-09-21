@@ -6,6 +6,7 @@ import {HuntProfileStore, HuntSession} from '../src/hunt/runtime.js';
 import {createTidebreakRuntime} from '@soul/tidebreak-combat';
 import {offerVillages} from '@soul/raid/world';
 import {readProgress, chooseHunt, freshProgress, PROGRESS_KEY, huntPlan, settleProgress, bodyStats, preyValue} from '../src/hunt/balance.js';
+import {renderLineage} from '../src/web/lineage.js';
 import {worldDetailBudget,titleWorldDetailBudget} from '../src/web/world-detail-budget.js';
 
 function setup() {
@@ -45,7 +46,38 @@ test('real consumption, extraction, save reopen, upgrade and death form one pers
   game.consume(game.village.npcs[0]);game.consume(game.village.npcs[1]);
   const haul=game.carried;assert.ok(haul>=4);assert.equal(readProgress(store.read()).essence,0);
   assert.equal(game.goalReady(),true);assert.ok(game.player.growthScale<.8);
+  // Regression: two real meals used to remain invisible in the current life.
+  // Rendering must not move the existing finish-time counters or bank any loot.
+  const liveProfile=store.read(),beforeRender=JSON.stringify(liveProfile);
+  const beforeStorage=store.storage.getItem('kurai.nighthunt.v2');
+  const beforeSession={eaten:game.eaten,carried:game.carried,finished:game.finished,profile:JSON.stringify(game.profile)};
+  const live=renderLineage(liveProfile,{hunt:game});
+  assert.match(live,/<span>捕食 <b>2<\/b><\/span>/,'active two-meal lineage must display the native session contribution');
+  assert.match(live,/今回の狩り <b>捕食 2/);
+  assert.match(live,/終了した狩り 0 ＋ 今回 2/);
+  assert.match(live,new RegExp(`未確保の戦利品 <b>${haul}</b> · 帰還で確保`));
+  assert.equal(liveProfile.currentLife.eaten,0,'ended-hunt counter stays authoritative');
+  assert.equal(JSON.stringify(liveProfile),beforeRender);
+  assert.equal(store.storage.getItem('kurai.nighthunt.v2'),beforeStorage,'view is never a writer');
+  assert.deepEqual({eaten:game.eaten,carried:game.carried,finished:game.finished,profile:JSON.stringify(game.profile)},beforeSession);
+  assert.doesNotMatch(renderLineage(liveProfile),/lineage-live/,'title/legacy callers have no live context');
+  const noProjection=hunt=>assert.doesNotMatch(renderLineage(liveProfile,{hunt}),/lineage-live/);
+  noProjection({...game,finished:true});
+  noProjection({...game,village:{id:'unknown-visit'}});
+  noProjection({...game,profile:{...liveProfile,id:'another-player'}});
+  noProjection({...game,profile:{...liveProfile,currentLife:{...liveProfile.currentLife,number:99}}});
+  noProjection({...game,profile:{...liveProfile,currentLife:{...liveProfile.currentLife,bornAt:999}}});
+  for(const bad of [-1,NaN,Infinity,1.5,Number.MAX_SAFE_INTEGER+1,'2']){
+    noProjection({...game,eaten:bad});noProjection({...game,carried:bad});
+  }
+  assert.doesNotMatch(renderLineage({...liveProfile,currentLife:{...liveProfile.currentLife,eaten:Number.MAX_SAFE_INTEGER}},{hunt:game}),/lineage-live/);
+  const legacy={...liveProfile};delete legacy.currentLife;
+  assert.doesNotMatch(renderLineage(legacy,{hunt:game}),/lineage-live/);
   Object.assign(game.player,game.village.entry);game.escapeHold=1.7;game.finish('escaped');
+  const settled=renderLineage(store.read(),{hunt:game});
+  assert.match(settled,/<span>捕食 <b>2<\/b><\/span>/);
+  assert.doesNotMatch(settled,/lineage-live/,'finished session cannot count the same meals twice');
+  assert.doesNotMatch(renderLineage(store.read(),{hunt:{...game,finished:false}}),/lineage-live/,'closed visit rejects stale live context');
   assert.equal(readProgress(store.read()).essence,haul+6);assert.equal(readProgress(store.read()).chapter,1);
   assert.equal(store.upgrade('fang'),true);const kept=readProgress(store.read()).essence;
   const oldLife=store.read().currentLife.number;game=enter();assert.equal(game.huntStats().techniqueSpeed,109);
@@ -53,6 +85,21 @@ test('real consumption, extraction, save reopen, upgrade and death form one pers
   assert.equal(readProgress(store.read()).essence,kept);assert.equal(readProgress(store.read()).upgrades.fang,1);
   assert.equal(store.read().currentLife.number,oldLife+1);assert.ok(store.read().unlocked.includes('traveller'));
   assert.equal(readProgress(store.read()).lastResult.lost,game.carried);
+  const reborn=renderLineage(store.read(),{hunt:game});
+  assert.doesNotMatch(reborn,/lineage-live/,'defeated life must not project into its successor');
+  const currentCard=reborn.split('<section class="adaptation-ledger">')[0];
+  assert.match(currentCard,/<span>捕食 <b>0<\/b><\/span>/);
+  assert.equal(store.read().lives.at(-1).eaten,3,'past-life meals remain recorded exactly once');
+  for(const end of ['abandoned','interrupted']){
+    const other=setup(),unfinished=other.enter();unfinished.consume(unfinished.village.npcs[0]);
+    if(end==='abandoned')unfinished.finish('abandoned');else other.store.abandonInterrupted();
+    const closed=other.store.read(),bytes=other.store.storage.getItem('kurai.nighthunt.v2');
+    assert.doesNotMatch(renderLineage(closed,{hunt:unfinished}),/lineage-live/);
+    assert.equal(closed.currentLife.eaten,end==='abandoned'?1:0,'existing end/interruption semantics are unchanged');
+    assert.equal(other.store.storage.getItem('kurai.nighthunt.v2'),bytes);
+    assert.equal(readProgress(closed).essence,0,'a menu or interrupted hunt does not bank rewards');
+  }
+
   // Keep app regression tests inside the workspace; root tooling owns version comparison.
   for(const [species,meals] of [['night-bat',4],['night-creature',2],['grave-ogre',3]]){
     for(const condition of ['verifiedReturn','unverifiedReturn','defeat','forageReturn']){
@@ -80,6 +127,7 @@ test('real consumption, extraction, save reopen, upgrade and death form one pers
 test('main boot has one HUD owner, automatic sensing, and no menu extraction exploit',()=>{
   const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
   const main=read('../src/web/main.js'), boot=read('../src/main.js'), brandStart=read('../src/brand-start.js'), bootGate=read('../../../packages/shared-ui/src/boot-gate.js'), html=read('../index.html');
+  assert.match(main,/renderLineage\(profile, \{hunt: mode === 'hunt' \? game : null\}\)/,'only the active gameplay caller projects live meals');
   assert.match(main,/new HuntFlowUi/);assert.match(main,/game\.huntReceipt/);
   assert.match(main,/game\.scentCooldown <= 0/);assert.match(main,/game\.finish\('abandoned'\)/);
   assert.doesNotMatch(main,/new FeastHud|firstHuntGuide\(/);
