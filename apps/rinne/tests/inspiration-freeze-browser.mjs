@@ -11,42 +11,63 @@ const events=[];
 page.on('console',msg=>{if(['error','warning'].includes(msg.type()))events.push({type:'console-'+msg.type(),text:msg.text()});});
 page.on('pageerror',err=>events.push({type:'pageerror',text:String(err?.stack||err)}));
 page.on('requestfailed',req=>events.push({type:'requestfailed',text:req.url()+' '+String(req.failure()?.errorText||'')}));
-const timeValue=async()=>Number(((await page.locator('#battle-time').textContent())||'0').replace('秒',''))||0;
 const hash=buf=>createHash('sha256').update(buf).digest('hex');
+const state=async()=>page.evaluate(()=>({
+  time:Number((document.querySelector('#battle-time')?.textContent||'0').replace('秒',''))||0,
+  phase:document.querySelector('#battle-phase')?.dataset.phase||'',
+  result:document.querySelector('#battle-result')?.textContent||'',
+  mode:document.body.dataset.inspirationMode||'',
+  cinematic:document.querySelector('.stage')?.dataset.inspirationCinematic==='true',
+  bannerHidden:document.querySelector('#battle-inspiration')?.hidden,
+  bulbHidden:document.querySelector('#battle-lightbulb')?.hidden,
+  boostPressed:document.querySelector('[data-inspiration-mode="boost"]')?.getAttribute('aria-pressed')
+}));
+let result={target,events};
 try{
   await page.goto(target,{waitUntil:'networkidle',timeout:90000});
   await page.waitForFunction(()=>document.querySelector('#battle-canvas')?.dataset.battleModels==='ready',null,{timeout:90000});
+  result.ready=await state();
   await page.locator('[data-inspiration-mode="boost"]').click();
-  // Deterministically force the next high-probability inspiration roll so this
-  // browser probe exercises the same spontaneous inspiration path every run.
   await page.evaluate(()=>{globalThis.__inspirationProbeOriginalRandom=Math.random;Math.random=()=>0;});
-  await page.waitForFunction(()=>document.querySelector('.stage')?.dataset.inspirationCinematic==='true',null,{timeout:20000});
-  const t0=await timeValue();
+  result.afterBoost=await state();
+
+  let trigger='spontaneous';
+  try{
+    await page.waitForFunction(()=>document.querySelector('.stage')?.dataset.inspirationCinematic==='true',null,{timeout:6000});
+  }catch{
+    result.beforeFallback=await state();
+    trigger='chain-preview-fallback';
+    await page.locator('[data-chain-preview]').first().evaluate(button=>button.click());
+    await page.waitForFunction(()=>document.querySelector('.stage')?.dataset.inspirationCinematic==='true',null,{timeout:6000});
+  }
+  result.trigger=trigger;
+  const start=await state();
   const before=await page.locator('#battle-canvas').screenshot({path:out+'/inspiration-start.png'});
   await page.waitForTimeout(1200);
-  const t1=await timeValue();
+  const duringState=await state();
   const during=await page.locator('#battle-canvas').screenshot({path:out+'/inspiration-during.png'});
-  const activeAfter1200=await page.evaluate(()=>document.querySelector('.stage')?.dataset.inspirationCinematic==='true');
   await page.waitForFunction(()=>document.querySelector('.stage')?.dataset.inspirationCinematic!=='true',null,{timeout:8000});
-  const tDone=await timeValue();
+  const done=await state();
   await page.waitForTimeout(900);
-  const t2=await timeValue();
+  const afterState=await state();
   const after=await page.locator('#battle-canvas').screenshot({path:out+'/inspiration-after.png'});
-  const result={
-    target,
-    title:await page.title(),
-    t0,t1,tDone,t2,
-    duringDelta:Number((t1-t0).toFixed(3)),
-    afterDelta:Number((t2-tDone).toFixed(3)),
-    activeAfter1200,
+  result={...result,start,during:duringState,done,after:afterState,
+    duringDelta:Number((duringState.time-start.time).toFixed(3)),
+    afterDelta:Number((afterState.time-done.time).toFixed(3)),
     canvasChangedDuring:hash(before)!==hash(during),
-    canvasChangedAfter:hash(during)!==hash(after),
-    events
+    canvasChangedAfter:hash(during)!==hash(after)
   };
   await writeFile(out+'/result.json',JSON.stringify(result,null,2));
   console.log(JSON.stringify(result,null,2));
-  if(t1-t0<0.25)throw new Error('FREEZE_REPRODUCED: battle time did not advance during inspiration');
-  if(t2-tDone<0.15)throw new Error('POST_INSPIRATION_STALL: battle time did not resume after inspiration');
+  if(duringState.time-start.time<0.25)throw new Error('FREEZE_REPRODUCED: battle time did not advance during inspiration');
+  if(afterState.time-done.time<0.15)throw new Error('POST_INSPIRATION_STALL: battle time did not resume after inspiration');
+  const pageErrors=events.filter(row=>row.type==='pageerror');
+  if(pageErrors.length)throw new Error('PAGE_ERROR_DURING_INSPIRATION: '+pageErrors.map(row=>row.text).join(' | '));
+}catch(error){
+  result={...result,error:String(error?.stack||error),finalState:await state().catch(()=>null)};
+  await writeFile(out+'/result.json',JSON.stringify(result,null,2));
+  console.error(JSON.stringify(result,null,2));
+  throw error;
 }finally{
   await browser.close();
 }
