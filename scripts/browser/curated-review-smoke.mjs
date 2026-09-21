@@ -1,5 +1,6 @@
 import path from 'node:path';
 import {expect} from '@playwright/test';
+import {installHtmlAudioObservation,verifyHtmlAudioPlayback} from './curated-html-audio.mjs';
 const assert=(value,message)=>{if(!value)throw new Error(message);};
 
 // Playback controls live in the shared stage dialog. Exercise the same visible
@@ -56,6 +57,7 @@ export async function verifyCuratedReview({page,context,local,output,ledger,rece
   await expect(page.locator('#object-stage')).toHaveAttribute('data-loaded-asset',creatures.at(-1).id,{timeout:30000});
   receipt.ui.push({route:'/review-objects',status:'passed',initial,lazyPayloads:new Set(newModelRequests.map(row=>row.url)).size,creatures:creatures.length,nativeClipSelectors:true,search:true,staleSelection:true,legacyBarrel:true,mobile});
 
+  await installHtmlAudioObservation(page);
   await page.goto(local+'/review-sound',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#sound-catalog .sound-option').first()).toBeVisible();
   const choices=await page.evaluate(async()=>{
@@ -71,12 +73,9 @@ export async function verifyCuratedReview({page,context,local,output,ledger,rece
     await button.click();await expect(page.locator('#sound-id')).toHaveText(item.id);
     // Selecting a catalog entry legitimately dismisses the stage dialog.
     await openStageControls(page);
-    await page.waitForFunction(()=>Number(document.querySelector('#sound-seek').max)>0,{},{timeout:15000});
-    await page.locator('#sound-play').click();
-    await page.waitForFunction(()=>document.querySelector('#sound-pulse').classList.contains('is-playing')||Number(document.querySelector('#sound-seek').value)>.001,{},{timeout:15000});
-    const duration=await page.locator('#sound-seek').evaluate(node=>Number(node.max));assert(duration>0,'HTML audio metadata/playback missing');
-    receipt.ui.push({route:'/review-sound',id:item.id,status:'passed',duration,actualHtmlAudioPlayback:true,stageControls:true,url:item.url});
-    await page.locator('#sound-play').click();
+    const playback=await verifyHtmlAudioPlayback(page,item);
+    receipt.ui.push({route:'/review-sound',id:item.id,status:'passed',duration:playback.duration,
+      actualHtmlAudioPlayback:true,stageControls:true,url:item.url,playback});
   }
   await page.screenshot({path:path.join(output,'review-audio.png')});
 
