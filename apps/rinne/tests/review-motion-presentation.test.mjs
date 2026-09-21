@@ -74,7 +74,7 @@ test('motion review settings can equip a right-hand weapon without changing the 
   assert.match(source,/targetAdapter\.bones\?\.rightHand/);
   assert.match(source,/hideEmbeddedCombatProps\(gltf\.scene\)/);
   assert.match(source,/canvas\.dataset\.motionWeapon/);
-  assert.match(preview,/\.motion-compatibility label\{display:flex/);
+  assert.match(preview,/\.motion-compatibility label\{display:grid/);
   for(const id of ['skeleton-blade','skeleton-axe','skeleton-staff','skeleton-crossbow']){
     const root=new Group();applyMotionReviewWeaponGrip(root,motionReviewWeaponOption(id).spec);
     assert.equal(root.position.lengthSq(),0,id+' must seat at the right-hand anchor');
