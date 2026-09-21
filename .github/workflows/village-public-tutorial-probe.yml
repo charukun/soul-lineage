@@ -67,6 +67,11 @@ jobs:
               };
               await page.screenshot({path:`${out}/02-after-reset-title.png`,fullPage:true});
             }
+            if(await page.locator('#soul-brand-boot').count()&&await page.locator('#soul-brand-boot').isVisible()){
+              report.afterResetBrandBoot={label:await page.locator('#soul-brand-boot').getAttribute('aria-label')};
+              await page.locator('#soul-brand-boot').click();
+              await page.waitForTimeout(800);
+            }
             if(await page.locator('#muraEnterVillage').count()) await page.locator('#muraEnterVillage').click();
             await page.waitForTimeout(500);
             report.afterEnter={
