@@ -1,5 +1,13 @@
 import village from '../data/villages/foundation.json' with { type: 'json' };
 import { assetById } from '@soul/assets';
+
+export {
+  defineWorldObject,
+  createWorldObject,
+  createBuildingObject,
+  createPlaceableObject
+} from './world-object.js';
+
 export function validateWorld(data) {
   if (data.schemaVersion !== 1 || !data.id || !Number.isSafeInteger(data.revision) || data.revision < 1 || !Array.isArray(data.entities)) throw new Error('Invalid world document');
   const ids = new Set();

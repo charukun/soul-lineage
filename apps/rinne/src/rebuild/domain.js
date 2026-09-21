@@ -118,7 +118,6 @@ export function enterBuilding(state,station){const changed=enterInteriorState(st
 export function leaveBuilding(state){const changed=leaveInteriorState(state);if(changed)pushEvent(state,'building','建物の外へ出た。');return changed;}
 export function applyEquipmentStation(state,station){
   if(!station?.equipment||state.ageYears<7||state.phase!=='living'||state.combat||state.ended)return null;
-  if(state.activity?.stationId===station.id&&state.ended)return null;
   const before=JSON.stringify(state.equipment),next={...state.equipment,...station.equipment};if(!WEAPONS[next.weapon]||!ARMORS[next.armor])return null;
   state.equipment=next;if(next.weapon!=='fist')addKnownSkill(state,WEAPONS[next.weapon].skill);if(before===JSON.stringify(next))return null;
   pushEvent(state,'equipment',`${station.label}に持ち替えた。`);return clone(next);

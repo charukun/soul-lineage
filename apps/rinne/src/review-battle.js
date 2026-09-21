@@ -194,10 +194,10 @@ function advanceBattle(dt){
   else lastCore=next;
 }
 function frame(now){
-  const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;const finished=Boolean(lastCore?.done);
-  if(runtime&&!finished)advanceBattle(dt);
+  const elapsed=Math.min(1,Math.max(0,(now-last)/1000));last=now;const finished=Boolean(lastCore?.done);
+  if(runtime&&!finished){let remaining=elapsed,steps=0;while(remaining>.0001&&steps<20&&!lastCore?.done){const step=Math.min(.05,remaining);advanceBattle(step);remaining-=step;steps++;}}
   const nextFinished=Boolean(lastCore?.done);if(nextFinished&&!finishedAt)finishedAt=now;else if(!nextFinished)finishedAt=0;
-  if(reviewBattleLoopDue({loopEnabled,playing:true,finished:nextFinished,finishedAt,now}))resetBattle();syncBattle(dt);requestAnimationFrame(frame);
+  if(reviewBattleLoopDue({loopEnabled,playing:true,finished:nextFinished,finishedAt,now}))resetBattle();syncBattle(Math.min(.05,elapsed));requestAnimationFrame(frame);
 }
 
 const battleCanvas=q('battle-canvas');

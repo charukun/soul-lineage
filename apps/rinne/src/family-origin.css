@@ -42,7 +42,8 @@ dialog.family-origin::backdrop{background:#071d2a}
 .family-replace-ack input{flex:0 0 auto;width:20px;height:20px;accent-color:#7ea69a}
 .family-origin.is-rising .family-origin-shell{animation:family-rise .55s ease-in forwards}
 .family-origin.is-rising .family-water{animation:family-surface .55s ease-in forwards}
-.family-return-world{position:absolute;inset:0;overflow:hidden;background:radial-gradient(ellipse at 50% -10%,#5dafa644,transparent 62%),linear-gradient(#1b4859,#071d2d)}
+.family-return-world{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden;background:radial-gradient(ellipse at 50% -10%,#5dafa644,transparent 62%),linear-gradient(#1b4859,#071d2d)}
+.title-screen[data-family=unborn]:not([data-intro=idle]) .family-return-world{visibility:hidden}
 .family-return-world>svg{position:absolute;width:100%;height:100%;object-fit:cover}
 .title-screen[data-family=chosen] .family-return-world>svg,.title-screen[data-family=legacy] .family-return-world>svg{filter:brightness(.76) saturate(.8)}
 .title-screen .title-family-caption{font-size:clamp(11px,1.8vw,15px);line-height:1.8;letter-spacing:.1em;color:#d6debc;margin:12px 0 0;text-shadow:0 2px 9px #071b29}
@@ -65,7 +66,7 @@ dialog.family-memory-dialog{box-sizing:border-box;width:min(460px,calc(100vw - 2
 @keyframes family-ripple{to{transform:scale(12);opacity:0}}
 @keyframes family-rise{to{transform:translateY(-28px);opacity:0}}
 @keyframes family-surface{to{filter:brightness(2.3)}}
-.family-origin[data-motion=off] *{animation:none!important;transition:none!important}
+.family-origin[data-motion=off] *,.title-screen[data-motion=off] .family-return-world *{animation:none!important;transition:none!important}
 @media(max-width:480px){.family-origin-shell{padding-inline:14px}.family-memory-choices{gap:4px}.family-origin .family-memory-choice{min-height:170px;gap:15px}.family-memory-picture{aspect-ratio:1}.family-origin-shell>header{font-size:11px;letter-spacing:.05em}.family-origin-content{padding-block:16px}.family-origin-content h2{max-width:19em}.family-origin-preview .family-home-picture{height:150px}}
 @media(max-height:560px){.family-origin-content{justify-content:flex-start}.family-memory-choices{margin-block:18px}.family-origin .family-memory-choice{min-height:150px}.family-origin .family-memory-picture{max-width:190px}.family-origin .family-soul{top:35%}}
 @media(prefers-reduced-motion:reduce){.family-origin *,.family-return-world *{animation:none!important;transition:none!important}}

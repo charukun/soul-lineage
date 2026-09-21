@@ -47,7 +47,11 @@ const titleCinematic=createTitleCinematicController({
   motionKey,
   getPrepared:()=>prepared,
 });
-function beginTitleCinematic(){if(window.__SOUL_BRAND_BOOT_PENDING__)return;titleCinematic.begin();if(hasSave)titleCinematic.skip();}
+function beginTitleCinematic(){
+  if(window.__SOUL_BRAND_BOOT_PENDING__)return;
+  if(hasSave){titleCinematic.pause();titleCinematic.setPhase('idle');return;}
+  titleCinematic.begin();
+}
 const onBrandEnter=()=>{unlockTitleAudio();beginTitleCinematic();};
 window.addEventListener('soul:brand-enter',onBrandEnter);
 function refreshContinue(){
