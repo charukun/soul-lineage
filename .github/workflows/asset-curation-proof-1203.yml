@@ -1,0 +1,87 @@
+name: Temporary PR1203 Exact Asset Evidence
+run-name: PR1203 specialist asset evidence from ${{ github.sha }}
+on:
+  push:
+    branches: ['work/asset-library-expansion-20260921']
+    paths: ['.github/workflows/asset-curation-proof-1203.yml']
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: asset-curation-proof-1203
+  cancel-in-progress: false
+jobs:
+  evidence:
+    if: ${{ contains(github.event.head_commit.message, '[asset-proof-1203]') && github.ref == 'refs/heads/work/asset-library-expansion-20260921' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      APP_ENV: dev
+      BASE_SHA: fe9319fcaf2cd691f27660b9f482b78aa7353335
+    steps:
+      - name: Resolve the final workflow-free work branch head
+        id: source
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const {data:pr}=await github.rest.pulls.get({...context.repo,pull_number:1203});
+            if(pr.state!=='open'||!pr.draft||pr.base.ref!=='develop'||pr.head.ref!=='work/asset-library-expansion-20260921'||pr.head.repo.full_name!=='charukun/soul-lineage')throw new Error('Unexpected PR identity or state');
+            const {data:ref}=await github.rest.git.getRef({...context.repo,ref:'heads/'+pr.head.ref});
+            const {data:commit}=await github.rest.git.getCommit({...context.repo,commit_sha:ref.object.sha});
+            if(commit.tree.sha!=='ce3be2c6bd0fe9ab08769f58ab426e8aa74ce765'||!commit.message.includes('[astra-validate]')||!commit.parents.some(parent=>parent.sha===context.sha))throw new Error('Final exact head is not armed or its source tree changed');
+            core.setOutput('head',ref.object.sha);
+            core.info(`Exact tested work branch head: ${ref.object.sha}`);
+      - name: Checkout exact final head, not the temporary workflow commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.source.outputs.head }}
+          fetch-depth: 256
+          persist-credentials: false
+      - name: Confirm temporary workflows are absent
+        env:
+          TEST_HEAD: ${{ steps.source.outputs.head }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$TEST_HEAD"
+          test ! -e .github/workflows/asset-curation-proof-1203.yml
+          test ! -e .github/workflows/asset-library-materialize-20260921.yml
+          test ! -e .github/workflows/asset-curation-native-20260921.yml
+          git merge-base --is-ancestor "$BASE_SHA" HEAD
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked specialist dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Chromium for the explicitly requested asset playtest
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Prove additive preservation against exact develop baseline
+        run: node scripts/assets/verify-curation-preservation.mjs "$BASE_SHA"
+      - name: Verify all materialized assets and existing review runtimes
+        run: node scripts/browser/curated-assets.mjs
+      - name: Assert exact-head receipt and report evidence
+        env:
+          TEST_HEAD: ${{ steps.source.outputs.head }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const receipt=JSON.parse(fs.readFileSync('.deploy-state/asset-curation-evidence/exact-head-receipt.json','utf8'));
+          assert.equal(receipt.head,process.env.TEST_HEAD);
+          assert.equal(receipt.status,'passed');
+          assert.equal(receipt.assets.length,556);
+          assert.equal(receipt.assets.reduce((n,row)=>n+(row.animations?.length||0),0),165);
+          assert.equal(receipt.errors.length,0);
+          assert.equal(receipt.legacyPreparation?.status,'passed');
+          for(const route of ['/review-objects','/review-sound','/review-motion','/review-effects'])assert.ok(receipt.ui.some(row=>row.route===route&&row.status==='passed'),route);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`Exact head: ${receipt.head}\n\n556 assets and 165 native clips passed. Existing object, audio, humanoid retarget and VFX reviews passed.\n\nPre-publication project-origin bytes came from the exact checkout; legacy preparation uses verified self-owned origin payloads. This does not claim live DEV publication.\n`);
+          NODE
+      - name: Preserve screenshots, trace, receipts and diagnostics
+        if: always() && steps.source.outputs.head != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-curation-exact-head-${{ steps.source.outputs.head }}
+          path: .deploy-state/asset-curation-evidence/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

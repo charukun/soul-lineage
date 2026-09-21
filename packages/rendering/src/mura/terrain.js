@@ -8,7 +8,7 @@ export function flattenMuraModel(T,g){g.updateMatrixWorld(true);const bins=new M
  const geo=new T.BufferGeometry();for(const [key,a] of Object.entries(merged.attributes))geo.setAttribute(key,new T.Float32BufferAttribute(a.array,a.itemSize,a.normalized));if(merged.index)geo.setIndex(new T.Uint32BufferAttribute(merged.index.array,1));merged.dispose();
  const m=new T.Mesh(geo,b.m);m.castShadow=m.receiveShadow=true;out.add(m);for(const x of b.geos)x.dispose();}return out;}
 
-/** One terrain renderer for 叡智豊満 and visitors; host owns camera and simulation. */
+/** One terrain renderer for 宝満叡智 and visitors; host owns camera and simulation. */
 export function createMuraTerrain({THREE:T,scene,outside,getProp,mat,createCanvas,layoutObjects=[]}){
 const view={scene,outside,getProp},UP=new T.Vector3(0,1,0);
  const groundDetail=new T.Group();groundDetail.name='MuraGroundDetail';view.outside.add(groundDetail);

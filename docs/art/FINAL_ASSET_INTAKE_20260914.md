@@ -6,9 +6,9 @@ Purpose: finish the remaining asset review without disturbing the parallel Chara
 
 ## Adopted
 
-- Kenney Fantasy Town Kit: 叡智豊満 modular village geometry, CC0.
+- Kenney Fantasy Town Kit: 宝満叡智 modular village geometry, CC0.
 - Kenney Nature Kit / Pirate Kit: tent, campfire, soil, stone, pier, boat and later Nature GLBs, CC0.
-- KayKit Dungeon Remastered: 叡智豊満 furniture and 喰滅廻遊 environment props, CC0.
+- KayKit Dungeon Remastered: 宝満叡智 furniture and 喰滅廻遊 environment props, CC0.
 - KayKit Skeletons: Skeleton Minion ambient visual in 喰滅廻遊, CC0. Combat semantics are intentionally not attached.
 - Kenney Particle Pack: repository-local spark/slash/smoke/flare textures used by 喰滅廻遊, CC0.
 - Lucide pinned UI SVG set from `lucide-icons/lucide@a79b2d131dab2bf20cb224bd0937b439a9c4fa99`: 17 neutral reusable UI icons stored repository-local with upstream license and provenance, exposed through `@soul/assets`.

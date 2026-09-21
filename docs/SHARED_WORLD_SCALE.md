@@ -1,6 +1,6 @@
 # Shared World Scale Architecture
 
-This layer lets 叡智豊満, 喰滅廻遊 and future common-world consumers scale to many visible/present actors without moving gameplay authority into rendering code.
+This layer lets 宝満叡智, 喰滅廻遊 and future common-world consumers scale to many visible/present actors without moving gameplay authority into rendering code.
 
 ## Canonical importance policy
 

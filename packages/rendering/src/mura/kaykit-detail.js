@@ -11,7 +11,7 @@ export const KAYKIT_VILLAGE_DETAIL_SOURCE=Object.freeze({
 
 function shadows(root){root.traverse?.(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=true;}});return root;}
 
-/** Shared visual-detail runtime for 叡智豊満 / Rinne. Gameplay collision and facility IDs stay authoritative elsewhere. */
+/** Shared visual-detail runtime for 宝満叡智 / Rinne. Gameplay collision and facility IDs stay authoritative elsewhere. */
 export function createKaykitVillageDetailRuntime({THREE,rootURL}){
   if(!THREE||!rootURL)throw new Error('KayKit village detail runtime requires THREE and rootURL');
   const loader=new GLTFLoader();loader.setMeshoptDecoder(MeshoptDecoder);const templates=new Map(),groups=new Set();

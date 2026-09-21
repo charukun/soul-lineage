@@ -31,7 +31,7 @@ the Workshop. No AI model client, credentials or repair service is embedded.
 7. Record diagnostics; secondary geometry/springs are a separate visual review.
 
 The pipeline is presentation-only and opt-in. Workshop connects it to the existing
-source motions. 叡智豊満 residents and 喰滅廻遊 humans still use the existing
+source motions. 宝満叡智 residents and 喰滅廻遊 humans still use the existing
 MasterCharacter production pool/modular contract; they gain the reusable rest
 descriptor, but their world simulation, hitboxes, NPC state and current pose
 callbacks are unchanged. The simulator's `readAsset` injection lets Workshop bake
