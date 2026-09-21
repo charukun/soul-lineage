@@ -15,9 +15,10 @@ const ATTACK_THRUST=new Set(['thrust','pierce','dash','bullrush','katanaThrust',
 export const INSPIRATION_MOTION_SELECTIONS=Object.freeze({
   evade:Object.freeze({sourceId:'kaykit-movement-advanced',left:'Dodge_Left',right:'Dodge_Right'}),
   combat:Object.freeze({
-    sourceId:'kaykit-combat-melee',hold:'Melee_Blocking',flinch:'Melee_Block_Hit',
-    oneHandSlice:'Melee_1H_Attack_Slice_Diagonal',oneHandSweep:'Melee_1H_Attack_Slice_Horizontal',oneHandThrust:'Melee_1H_Attack_Stab',
-    twoHandSlice:'Melee_2H_Attack_Slice',twoHandSweep:'Melee_2H_Attack_Spin',twoHandThrust:'Melee_2H_Attack_Stab',fist:'Melee_Unarmed_Attack_Punch_A'
+    sourceId:'kaykit-combat-melee',hold:'Melee_Blocking',flinch:'Melee_Block_Hit',counter:'Melee_Block_Attack',
+    oneHandChop:'Melee_1H_Attack_Chop',oneHandJumpChop:'Melee_1H_Attack_Jump_Chop',oneHandDiagonal:'Melee_1H_Attack_Slice_Diagonal',oneHandHorizontal:'Melee_1H_Attack_Slice_Horizontal',oneHandStab:'Melee_1H_Attack_Stab',
+    twoHandChop:'Melee_2H_Attack_Chop',twoHandSlice:'Melee_2H_Attack_Slice',twoHandSpin:'Melee_2H_Attack_Spin',twoHandSpinning:'Melee_2H_Attack_Spinning',twoHandStab:'Melee_2H_Attack_Stab',
+    fistKick:'Melee_Unarmed_Attack_Kick',fistPunch:'Melee_Unarmed_Attack_Punch_A'
   }),
   reaction:Object.freeze({sourceId:'kaykit-general',light:'Hit_A',heavy:'Hit_B'})
 });
@@ -38,28 +39,69 @@ const CLIPS=Object.freeze({
   evadeRight:sourceClip(INSPIRATION_MOTION_SELECTIONS.evade.sourceId,INSPIRATION_MOTION_SELECTIONS.evade.right),
   hold:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.hold),
   flinch:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.flinch),
-  oneHandSlice:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.oneHandSlice),
-  oneHandSweep:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.oneHandSweep),
-  oneHandThrust:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.oneHandThrust),
+  counter:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.counter),
+  oneHandChop:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.oneHandChop),
+  oneHandJumpChop:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.oneHandJumpChop),
+  oneHandDiagonal:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.oneHandDiagonal),
+  oneHandHorizontal:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.oneHandHorizontal),
+  oneHandStab:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.oneHandStab),
+  twoHandChop:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.twoHandChop),
   twoHandSlice:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.twoHandSlice),
-  twoHandSweep:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.twoHandSweep),
-  twoHandThrust:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.twoHandThrust),
-  fist:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.fist),
+  twoHandSpin:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.twoHandSpin),
+  twoHandSpinning:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.twoHandSpinning),
+  twoHandStab:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.twoHandStab),
+  fistKick:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.fistKick),
+  fistPunch:sourceClip(INSPIRATION_MOTION_SELECTIONS.combat.sourceId,INSPIRATION_MOTION_SELECTIONS.combat.fistPunch),
   hitA:sourceClip(INSPIRATION_MOTION_SELECTIONS.reaction.sourceId,INSPIRATION_MOTION_SELECTIONS.reaction.light),
   hitB:sourceClip(INSPIRATION_MOTION_SELECTIONS.reaction.sourceId,INSPIRATION_MOTION_SELECTIONS.reaction.heavy)
 });
 export const INSPIRATION_MOTION_CLIPS=CLIPS;
 
-export function inspirationAttackClipName(weapon='sword',steps=[]){
-  const kind=String(steps?.find(step=>step?.kind)?.kind||'slash'),twoHand=['great','axe','spear','staff'].includes(weapon);
-  if(weapon==='fist')return INSPIRATION_MOTION_SELECTIONS.combat.fist;
-  if(ATTACK_THRUST.has(kind))return twoHand?INSPIRATION_MOTION_SELECTIONS.combat.twoHandThrust:INSPIRATION_MOTION_SELECTIONS.combat.oneHandThrust;
-  if(ATTACK_SWEEP.has(kind))return twoHand?INSPIRATION_MOTION_SELECTIONS.combat.twoHandSweep:INSPIRATION_MOTION_SELECTIONS.combat.oneHandSweep;
-  return twoHand?INSPIRATION_MOTION_SELECTIONS.combat.twoHandSlice:INSPIRATION_MOTION_SELECTIONS.combat.oneHandSlice;
+const HEAVY_KINDS=new Set(['heavy','leap','meteor','uppercut','risingfist','oneinch']);
+const SPIN_KINDS=new Set(['spin','round','sweep','spearwheel','crosscut']);
+const validSteps=steps=>(Array.isArray(steps)?steps:[]).filter(step=>step?.kind&&step.kind!=='none');
+function stableMotionHash(value=''){let hash=2166136261;for(const ch of String(value)){hash^=ch.charCodeAt(0);hash=Math.imul(hash,16777619);}return hash>>>0;}
+function clipCandidates(weapon='sword',kind='slash'){
+  if(weapon==='fist')return HEAVY_KINDS.has(kind)?[CLIPS.fistKick,CLIPS.fistPunch]:[CLIPS.fistPunch,CLIPS.fistKick];
+  const twoHand=['great','axe','spear','staff'].includes(weapon);
+  if(twoHand){
+    if(ATTACK_THRUST.has(kind))return[CLIPS.twoHandStab,CLIPS.twoHandSlice];
+    if(SPIN_KINDS.has(kind))return[CLIPS.twoHandSpin,CLIPS.twoHandSpinning,CLIPS.twoHandSlice];
+    if(HEAVY_KINDS.has(kind))return[CLIPS.twoHandChop,CLIPS.twoHandSpinning,CLIPS.twoHandSlice];
+    return[CLIPS.twoHandSlice,CLIPS.twoHandChop,CLIPS.twoHandSpin];
+  }
+  if(ATTACK_THRUST.has(kind))return[CLIPS.oneHandStab,CLIPS.counter,CLIPS.oneHandJumpChop];
+  if(HEAVY_KINDS.has(kind))return[CLIPS.oneHandChop,CLIPS.oneHandJumpChop,CLIPS.oneHandDiagonal];
+  if(SPIN_KINDS.has(kind))return[CLIPS.oneHandHorizontal,CLIPS.oneHandDiagonal,CLIPS.oneHandChop];
+  if(ATTACK_SWEEP.has(kind))return[CLIPS.oneHandDiagonal,CLIPS.oneHandHorizontal,CLIPS.oneHandChop];
+  return[CLIPS.oneHandDiagonal,CLIPS.oneHandChop,CLIPS.oneHandHorizontal];
 }
-function attackClip(weapon,steps){
-  const name=inspirationAttackClipName(weapon,steps);
-  return Object.values(CLIPS).find(row=>row.name===name)||CLIPS.oneHandSlice;
+function motionCurve(value,mode=0){const t=clamp(value);if(mode===1)return 1-Math.pow(1-t,2);if(mode===2)return t*t*(2-t);return smooth(t);}
+export function inspirationMotionPlan({techniqueId='',techniqueName='',phase='ha',weapon='sword',steps=[]}={}){
+  const authored=validSteps(steps),rows=authored.length?authored:[{kind:'slash'}],kinds=rows.map(step=>String(step.kind||'slash'));
+  const identity=String(techniqueId||techniqueName||'unnamed'),seed=stableMotionHash(`${identity}|${phase}|${weapon}|${kinds.join('>')}`);
+  const segments=rows.map((step,index)=>{
+    const localHash=stableMotionHash(`${seed}|${index}|${step.kind}|${step.footwork||''}`),candidates=clipCandidates(weapon,String(step.kind||'slash')),clip=candidates[localHash%candidates.length];
+    const sampleStart=.035+((localHash>>>3)%5)*.022,sampleEnd=.84+((localHash>>>7)%5)*.03,curve=(localHash>>>11)%3;
+    return Object.freeze({kind:String(step.kind||'slash'),clip,sampleStart,sampleEnd,curve});
+  });
+  const prelude=seed%4===0?CLIPS.counter:null,impactRatio=.70+((seed>>>5)%4)*.045;
+  const signature=[seed.toString(36),prelude?.name||'direct',...segments.map(row=>`${row.kind}:${row.clip.name}:${row.sampleStart.toFixed(3)}-${row.sampleEnd.toFixed(3)}:${row.curve}`)].join('|');
+  return Object.freeze({identity,seed,phase,weapon,prelude,segments:Object.freeze(segments),impactRatio,signature});
+}
+export function inspirationAttackClipName(weapon='sword',steps=[],techniqueId='',phase='ha'){
+  return inspirationMotionPlan({techniqueId,phase,weapon,steps}).segments[0].clip.name;
+}
+function techniquePose(combat,plan,progress){
+  if(!combat||!plan?.segments?.length)return null;
+  const p=clamp(progress),preludeShare=plan.prelude?.15:0;
+  if(plan.prelude&&p<preludeShare)return sample(combat,plan.prelude,.22+.58*(p/preludeShare));
+  const strikeProgress=clamp((p-preludeShare)/Math.max(.001,1-preludeShare)),scaled=strikeProgress*plan.segments.length,index=Math.min(plan.segments.length-1,Math.floor(scaled)),local=clamp(scaled-index),segment=plan.segments[index];
+  const ratio=segment.sampleStart+(segment.sampleEnd-segment.sampleStart)*motionCurve(local,segment.curve);let pose=sample(combat,segment.clip,ratio);
+  const blendWindow=.12;
+  if(index>0&&local<blendWindow){const prior=plan.segments[index-1],priorPose=sample(combat,prior.clip,prior.sampleEnd);pose=blendInspirationPose(priorPose,pose,local/blendWindow);}
+  if(index<plan.segments.length-1&&local>1-blendWindow){const next=plan.segments[index+1],nextPose=sample(combat,next.clip,next.sampleStart);pose=blendInspirationPose(pose,nextPose,(local-(1-blendWindow))/blendWindow);}
+  return pose;
 }
 function poseQuat(values){return new Quaternion().fromArray(values).normalize();}
 export function blendInspirationPose(a,b,t=.5){
@@ -86,18 +128,19 @@ export async function createInspirationMotionLab({heroRoot,enemyRoots=[]}={}){
   const settled=await Promise.allSettled(ids.map(id=>loadPinnedMotionSource(id,{preview:true}))),sources={};
   settled.forEach((row,index)=>{if(row.status==='fulfilled')sources[ids[index]]=row.value;});
   const evade=sources[INSPIRATION_MOTION_SELECTIONS.evade.sourceId],combat=sources[INSPIRATION_MOTION_SELECTIONS.combat.sourceId],reaction=sources[INSPIRATION_MOTION_SELECTIONS.reaction.sourceId];
-  function heroPose(sequence,{side=1,weapon='sword',steps=[]}={}){
+  function heroPose(sequence,{side=1,weapon='sword',steps=[],techniqueId='',techniqueName='',phase='ha'}={}){
     if(!sequence||sequence.stage==='done'||!evade||!combat)return null;
-    const dodge=side<0?CLIPS.evadeLeft:CLIPS.evadeRight,attack=attackClip(weapon,steps),stage=sequence.stage,elapsed=Number(sequence.elapsed)||0;
+    const dodge=side<0?CLIPS.evadeLeft:CLIPS.evadeRight,plan=inspirationMotionPlan({techniqueId,techniqueName,phase,weapon,steps}),stage=sequence.stage,elapsed=Number(sequence.elapsed)||0;
     const dodgeEnd=sample(evade,dodge,.72),hold=sample(combat,CLIPS.hold,.28+((elapsed*.13)%1)*.22);
     if(stage==='premonition')return sample(evade,dodge,.08+.64*clamp((sequence.nearMiss||0)));
     if(stage==='camera')return blendInspirationPose(dodgeEnd,hold,sequence.progress);
     if(['spacing','stagger','silence'].includes(stage))return hold;
-    const strike=sample(combat,attack,.04+.92*clamp(sequence.executeProgress||0));
-    if(stage==='execute'&&(sequence.executeProgress||0)<.18)return blendInspirationPose(hold,strike,(sequence.executeProgress||0)/.18);
-    if(stage==='impact')return sample(combat,attack,.72);
-    if(stage==='reveal')return sample(combat,attack,.88+.09*sequence.progress);
-    if(stage==='afterglow')return sample(combat,attack,.97+.03*sequence.progress);
+    const strike=techniquePose(combat,plan,sequence.executeProgress||0)||hold;
+    if(stage==='execute'&&(sequence.executeProgress||0)<.16)return blendInspirationPose(hold,strike,(sequence.executeProgress||0)/.16);
+    const final=plan.segments.at(-1);
+    if(stage==='impact')return sample(combat,final.clip,Math.min(final.sampleEnd,plan.impactRatio));
+    if(stage==='reveal')return sample(combat,final.clip,Math.min(final.sampleEnd,.88+.09*sequence.progress));
+    if(stage==='afterglow')return sample(combat,final.clip,Math.min(final.sampleEnd,.96+.04*sequence.progress));
     return strike;
   }
   function enemyPose(sequence,index=0){
