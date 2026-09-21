@@ -6,7 +6,7 @@ const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
 test('all review choice grids remain five-column on phone and desktop',async()=>{
   const [shared,objects,assets,motion]=await Promise.all([
-    read('packages/shared-ui/src/review-controls.css'),
+    read('packages/shared-ui/src/review/controls.css'),
     read('apps/rinne/src/review-object-library.css'),
     read('apps/rinne/src/review-asset-library.css'),
     read('apps/rinne/src/review-motion.css'),
@@ -39,7 +39,7 @@ test('object, equipment, and model pickers use dedicated metadata thumbnails',as
 });
 
 test('remaining runtime pose thumbnails render at higher resolution',async()=>{
-  const runtime=await read('apps/rinne/src/review-runtime-thumbnail.js');
+  const runtime=await read('apps/rinne/src/review/shared/runtime-thumbnail.js');
   assert.match(runtime,/width:288,height:184/);
   assert.match(runtime,/antialias:true/);
 });

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {buildMotionReviewCatalog,classifyReviewMotion,filterMotionReviewCatalog} from '../src/review-motion-catalog.js';
-import {buildReviewMotionRegistry,canonicalMotionVariationKey,dedupeSourceMotions,motionRegistryCount} from '../src/review-motion-registry.js';
-import {MOTION_LIBRARY_ARCHIVED_SOURCES,MOTION_LIBRARY_SOURCES} from '../src/review-motion-sources.js';
+import {buildMotionReviewCatalog,classifyReviewMotion,filterMotionReviewCatalog} from '../src/review/motion/catalog.js';
+import {buildReviewMotionRegistry,canonicalMotionVariationKey,dedupeSourceMotions,motionRegistryCount} from '../src/review/motion/registry.js';
+import {MOTION_LIBRARY_ARCHIVED_SOURCES,MOTION_LIBRARY_SOURCES} from '../src/review/motion/sources.js';
 import {DEV_ASSET_ORIGIN,isThirdPartyRuntimeAssetUrl} from '@soul/assets';
 
 const clips=[

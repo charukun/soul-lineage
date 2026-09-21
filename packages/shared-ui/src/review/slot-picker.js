@@ -1,3 +1,4 @@
+import './slot-picker.css';
 import './review-slot-picker.css';
 
 let serial=0;

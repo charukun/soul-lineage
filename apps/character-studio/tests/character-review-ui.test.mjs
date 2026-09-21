@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8');
 const main = read('../index.html'), advanced = read('../advanced.html');
-const engine = read('../src/character-review.js'), shell = read('../src/character-review-main.js'), grid = read('../src/character-review-grid.js');
+const engine = read('../src/review/character/runtime.js'), shell = read('../src/review/character/main.js'), grid = read('../src/review/character/grid.js');
 const css = read('../src/character-review-main.css'), detailCss = read('../src/character-review-advanced.css');
 const vite = read('../vite.config.js');
 test('main and advanced retain every audited renderer control with unique IDs', () => {
@@ -36,7 +36,7 @@ test('both pages have bounded viewports and independent control scrolling', () =
   assert.match(detailCss, /grid-template-rows:minmax\(0,60fr\) minmax\(0,40fr\)/);
 });
 test('renderer and visible shell remain isolated from game saves and authority', () => {
-  assert.match(shell, /import '\.\/character-review\.js'/);
+  assert.match(shell, /import '\.\/runtime\.js'/);
   assert.match(shell, /createCharacterWorkspace/);
   for (const code of [engine,shell]) assert.doesNotMatch(code, /localStorage|sessionStorage|indexedDB|WebSocket|RTCPeerConnection|\.innerHTML\s*=/);
   assert.match(main, /本編・セーブ・通信には接続しません/);

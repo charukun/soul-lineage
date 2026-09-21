@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {REVIEW_EFFECT_CATALOG,REVIEW_REAL_EFFECT_COUNT} from '../src/review-effect-catalog.js';
+import {REVIEW_EFFECT_CATALOG,REVIEW_REAL_EFFECT_COUNT} from '../src/review/effects/catalog.js';
 import {REVIEW_VFX_LIBRARY_ASSETS,REVIEW_VFX_LIBRARY_EFFECTS,REVIEW_VFX_LIBRARY_COUNT} from '../src/rebuild/review-vfx-library-manifest.js';
 
 test('review catalog counts only distinct upstream VFX files as the real library',()=>{

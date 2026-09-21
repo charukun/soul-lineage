@@ -6,8 +6,8 @@ const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
 test('motion review stays the visual reference and does not consume the extracted workbench classes',async()=>{
   const [shell,workbench,motion,preview]=await Promise.all([
-    read('packages/shared-ui/src/review-shell.js'),
-    read('packages/shared-ui/src/review-workbench.css'),
+    read('packages/shared-ui/src/review/shell.js'),
+    read('packages/shared-ui/src/review/workbench.css'),
     read('apps/rinne/review-motion.html'),
     read('apps/rinne/src/review-motion-preview.css'),
   ]);

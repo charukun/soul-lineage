@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {Group} from 'three';
-import {applyMotionReviewWeaponGrip,motionReviewWeaponOption} from '../src/review-motion-equipment.js';
-import {MOTION_LIBRARY_SOURCES} from '../src/review-motion-sources.js';
-import {buildMotionReviewCatalog,reviewMotionDisplayName} from '../src/review-motion-catalog.js';
+import {applyMotionReviewWeaponGrip,motionReviewWeaponOption} from '../src/review/motion/equipment.js';
+import {MOTION_LIBRARY_SOURCES} from '../src/review/motion/sources.js';
+import {buildMotionReviewCatalog,reviewMotionDisplayName} from '../src/review/motion/catalog.js';
 
 const read=relative=>readFileSync(new URL(relative,import.meta.url),'utf8');
 const hasJapanese=value=>/[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(value);
@@ -85,8 +85,8 @@ test('motion review settings can equip a right-hand weapon without changing the 
 });
 
 test('shared stage controls portal into the motion-derived workbench host',()=>{
-  const shared=read('../../../packages/shared-ui/src/review-stage.js');
-  const workbench=read('../../../packages/shared-ui/src/review-workbench.css');
+  const shared=read('../../../packages/shared-ui/src/review/stage.js');
+  const workbench=read('../../../packages/shared-ui/src/review/workbench.css');
   const html=read('../review-motion.html');
   assert.match(shared,/stage\.dataset\.reviewStagePanelHost\?doc\.querySelector/);
   assert.match(shared,/\(panelHost\|\|root\)\.append\(panel\)/);

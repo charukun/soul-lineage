@@ -35,7 +35,7 @@ test('Visual Review and Character Studio are independent DEV apps with one canon
 test('RINNE specialist review routes are canonical and declared once',async()=>{
   const [vite,manifest,reviewConfig,rinneShell]=await Promise.all([
     read('apps/rinne/vite.config.js'),
-    read('packages/shared-ui/src/review-manifest.js'),
+    read('packages/shared-ui/src/review/manifest.js'),
     read('apps/review/src/review-lab-config.js'),
     read('apps/rinne/src/review-lab-shell.js'),
   ]);
@@ -56,14 +56,14 @@ test('RINNE specialist review routes are canonical and declared once',async()=>{
 
 test('shared review shell keeps manifest, shell, stage, and control styles separated behind one facade',async()=>{
   const [shell,stage,manifest,controls]=await Promise.all([
-    read('packages/shared-ui/src/review-shell.js'),
-    read('packages/shared-ui/src/review-stage.js'),
-    read('packages/shared-ui/src/review-manifest.js'),
-    read('packages/shared-ui/src/review-controls.css'),
+    read('packages/shared-ui/src/review/shell.js'),
+    read('packages/shared-ui/src/review/stage.js'),
+    read('packages/shared-ui/src/review/manifest.js'),
+    read('packages/shared-ui/src/review/controls.css'),
   ]);
-  assert.match(shell,/from '\.\/review-manifest\.js'/);
-  assert.match(shell,/from '\.\/review-stage\.js'/);
-  assert.match(shell,/import '\.\/review-controls\.css'/);
+  assert.match(shell,/from '\.\/manifest\.js'/);
+  assert.match(shell,/from '\.\/stage\.js'/);
+  assert.match(shell,/import '\.\/controls\.css'/);
   assert.doesNotMatch(shell,/const FILES=|function createReviewStageLifecycle|function mountReviewStageControls/);
   assert.match(stage,/export function mountReviewStageControls/);
   assert.match(stage,/export function createReviewStageLifecycle/);

@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createCharacter,YEAR_MS,BASE_APPEARANCE_PARTS} from '@soul/characters';
 import {qualitySettings,qualityIdentity,qualityProfile,qualityReport} from '../src/character-quality-state.js';
-import {createReviewCohort,reviewSettings,serializeReviewSession} from '../src/character-review-state.js';
-import {serializeWorkspace,deserializeWorkspace} from '../src/character-workspace-state.js';
+import {createReviewCohort,reviewSettings,serializeReviewSession} from '../src/review/character/state.js';
+import {serializeWorkspace,deserializeWorkspace} from '../src/review/workspace/state.js';
 const c=createCharacter({id:'test',seed:42,ageMs:22*YEAR_MS});
 test('baseline is opt-in viewing, reference Shino remains, explicit editing wins',()=>{
  assert.equal(qualityIdentity(c,0,{}),null);assert.notEqual(qualityIdentity(c,1,{}),null);

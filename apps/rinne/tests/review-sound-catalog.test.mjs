@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {RINNE_SOUND_REVIEW_LIBRARY,filterSoundReviewLibrary,soundReviewCounts} from '../src/review-sound-catalog.js';
+import {RINNE_SOUND_REVIEW_LIBRARY,filterSoundReviewLibrary,soundReviewCounts} from '../src/review/sound/catalog.js';
 
 const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 

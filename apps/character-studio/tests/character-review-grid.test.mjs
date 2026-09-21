@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync, statSync } from 'node:fs';
 
 const read = name => readFileSync(new URL(`../src/${name}`, import.meta.url), 'utf8');
-const code = read('character-review-grid.js');
+const code = read('review/character/grid.js');
 const css = read('character-review-grid.css');
-const main = read('character-review-main.js');
-const review = read('character-review.js');
+const main = read('review/character/main.js');
+const review = read('review/character/runtime.js');
 const { readCharacterModels, gridFocusIndex, installCharacterReviewGrid } = await import(
   `data:text/javascript;base64,${Buffer.from(code.replace("import './character-review-grid.css';", '')).toString('base64')}`
 );
