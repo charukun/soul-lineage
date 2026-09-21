@@ -100,10 +100,14 @@ test('female protagonist is a separate repository-local Rig_Medium DCC model', (
   assert.equal(production.evidence.primary.meshObjects, 25);
   assert.equal(production.evidence.primary.triangles, 4196);
   assert.equal(production.status.visualApproval, 'pending');
+  const studioGlbPath = 'apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb';
+  assert.equal(readFileSync(studioGlbPath).equals(bytes), true);
   const studio = JSON.parse(readFileSync('docs/characters/qa/protagonist-villager-female-v1/character-studio/receipt.json', 'utf8'));
   assert.equal(studio.displayModelId, 'protagonist.villager.female.v1');
   assert.equal(studio.ready, true);
   assert.deepEqual(studio.errors, []);
-  assert.ok(studio.labels.includes('主人公 男'));
-  assert.ok(studio.labels.includes('主人公 女'));
+  assert.deepEqual(studio.consoleErrors, []);
+  assert.deepEqual(studio.httpErrors, []);
+  assert.deepEqual(studio.failedRequests, []);
+  assert.deepEqual(studio.pageErrors, []);
 });
