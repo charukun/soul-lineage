@@ -27,7 +27,6 @@
   <link rel="stylesheet" href="./src/reincarnation-surfaces.css">
   <link rel="stylesheet" href="./src/reincarnation-interface-v2.css">
   <link rel="stylesheet" href="./src/title-rich.css">
-  <link rel="stylesheet" href="./src/rinne-world-ui.css">
 </head>
 <body>
 <main id="app" data-screen="loading">
@@ -55,7 +54,7 @@
     <span class="title-skip-hint" aria-hidden="true">タップでスキップ</span>
     <p id="boot-status" class="boot-status" role="status" aria-live="polite">世界を準備しています</p>
     <button id="title-retry" type="button" hidden>もう一度</button>
-    <footer><span id="build-label" hidden>LOCAL</span><span>百年転生</span></footer>
+    <footer><span id="build-label">UI 4.0.0 · LOCAL</span><span>百年転生</span></footer>
   </section>
 
   <section id="game-screen" class="game-screen is-loading" data-world-tone="village" aria-busy="true" aria-label="百年転生 本編">
@@ -80,17 +79,14 @@
         <button id="boot-retry" class="primary loading-retry" type="button" hidden><strong>もう一度</strong><small>世界を開き直す</small></button>
       </div>
     </div>
-    <header class="hud-top">
-      <button id="back-title" class="icon-button" type="button" aria-label="タイトルへ戻る">‹</button>
-      <button id="open-coop-game" class="icon-button" type="button" hidden>友達</button>
-      <div class="life-chip ornate"><span id="generation">1代目</span><strong id="age">0歳</strong></div>
-      <div class="bars ornate"><label><span>息</span><i><b id="stamina-bar"></b></i></label></div>
-      <div class="clock-rate ornate"><span>時</span><button id="clock-rate" type="button" value="1" aria-label="世界時計の速さ 1倍。押すと変更">1×</button></div>
+    <header class="hud-top rinne-hud-v4">
+      <button id="back-title" class="icon-button rinne-back-seal" type="button" aria-label="タイトルへ戻る">‹</button>
+      <button id="open-coop-game" class="icon-button rinne-coop-seal" type="button" hidden>友</button>
+      <div class="life-chip ornate rinne-life-sigil"><img src="./title-assets/crest.svg" alt="" aria-hidden="true"><div><span id="generation">1代目</span><strong id="age">0歳</strong></div></div>
+      <div class="bars ornate rinne-breath-thread"><label><span>息</span><i><b id="stamina-bar"></b></i></label></div>
+      <div class="clock-rate ornate rinne-time-seal"><span>時</span><button id="clock-rate" type="button" value="1" aria-label="世界時計の速さ 1倍。押すと変更">1×</button></div>
     </header>
-    <aside class="objective-card ornate">
-      <div class="objective-meta"><span id="life-stage">1/6 誕生</span><small id="objective-badge">自立 4歳</small></div>
-      <strong id="objective">村を知る</strong>
-    </aside>
+    <aside class="objective-card ornate rinne-objective-v4"><i class="objective-rune" aria-hidden="true">◇</i><div><div class="objective-meta"><span id="life-stage">1/6 誕生</span><small id="objective-badge">自立 4歳</small></div><strong id="objective">村を知る</strong></div></aside>
     <div id="dialogue" class="dialogue ornate" hidden><span id="speaker">母</span><p id="dialogue-text"></p></div>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     <button id="move-hint" class="move-hint" type="button" aria-label="動きかた。押すと移動操作の説明を表示します">スワイプで移動</button>
