@@ -1,6 +1,14 @@
 {
-  "mode": "browser",
+  "mode": "transform",
   "sourceSha": "8e86ecde9e5cb328130bdc275835d6e997112f55",
-  "beforeSha": "d350d6eb22229da12aa1e90c8bd62bd9feb4cbad",
-  "phase": "p2"
+  "purpose": "Close owned attacks at encounter end and prevent same-frame post-victory combat updates; preserve native-off behavior.",
+  "files": [{
+    "path": "apps/review/src/nocturne/runtime.js",
+    "baseBlob": "6a792398ad9d80c4a0ac9a3835e45784b9c7e8ce",
+    "expectedBlob": "28bb5187a1cbced2bfdc1c05cece8c4f2935b75d",
+    "replacements": [
+      {"before": "function ending(win){game.phase=", "after": "function ending(win){if(rules)for(const a of actors){rules.cancel(a,a.attack?.action);a.attack=null;}game.phase="},
+      {"before": "  if(!battle)continue;", "after": "  if(!battle||(rules&&game.phase!=='battle'))continue;"}
+    ]
+  }]
 }

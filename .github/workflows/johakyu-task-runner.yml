@@ -26,7 +26,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const task=JSON.parse(fs.readFileSync('control/.task-start/johakyu-task.json','utf8'));
-          if(!/^[0-9a-f]{40}$/.test(task.sourceSha)||!['snapshot','lockfile','browser'].includes(task.mode))throw Error('Invalid task input');
+          if(!/^[0-9a-f]{40}$/.test(task.sourceSha)||!['snapshot','lockfile','browser','transform'].includes(task.mode))throw Error('Invalid task input');
           if(task.mode==='browser'&&(!/^[0-9a-f]{40}$/.test(task.beforeSha)||task.phase!=='p2'))throw Error('Invalid browser input');
           fs.appendFileSync(process.env.GITHUB_OUTPUT,`source=${task.sourceSha}\nmode=${task.mode}\nbefore=${task.beforeSha||''}\nphase=${task.phase||''}\n`);
           NODE
@@ -58,6 +58,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node ../control/.task-start/johakyu-lockfile.mjs ../control/.task-start/johakyu-task.json
+      - name: Materialize reviewed source transformation
+        if: steps.plan.outputs.mode == 'transform'
+        working-directory: work
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node ../control/.task-start/johakyu-source-transform.mjs ../control/.task-start/johakyu-task.json
       - name: Build immutable Before
         if: steps.plan.outputs.mode == 'browser'
         working-directory: before
