@@ -15,6 +15,10 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
       - name: Install Blender headless runtime
         shell: bash
         run: |
@@ -36,6 +40,8 @@ jobs:
             --python scripts/blender/inspect-protagonist-villager-female-v1.py -- \
             --out generated/female-visual-round
       - name: Render generated GLB in Character Studio
+        env:
+          APP_ENV: dev
         shell: bash
         run: |
           set -euxo pipefail
