@@ -14,7 +14,6 @@
     "./media-lifecycle": "./src/media-lifecycle.js",
     "./review-shell": "./src/review-shell.js",
     "./boot-gate": "./src/boot-gate.js",
-    "./boot-brand": "./src/boot-brand.js",
     "./johakyu-observation": "./src/johakyu-observation.js",
     "./review-navigation": "./src/review-navigation.js",
     "./review-thumbnail": "./src/review-thumbnail.js",

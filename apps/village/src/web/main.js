@@ -7,7 +7,7 @@ import {installSceneInput,installCatalogDrag,installCatalogDrop} from './pointer
 import {Simulation} from '../game/simulation.js';
 import {PlayerResidenceBridge} from '../game/bridge.js';
 import {createWebPlatform} from '@soul/platform-web';
-import {rinneCrestUrl} from '@soul/assets';
+import {sharedEmblemUrl} from '@soul/assets';
 import {createApp} from '../app.js';
 import {createSaveStore} from '../game/save-store.js';
 const $=id=>document.getElementById(id==='scene'?'game':id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -22,7 +22,7 @@ window.__VILLAGE_BOOT__={recover:()=>store.recover(),canRecover:()=>store.blocke
 const canvas=$('scene');
 Object.assign(canvas.dataset,{app:info.app,commit:info.commit,environment:info.environment,platform:platform.id,contentVersion:String(foundation.contentVersion),gameWorld:'hoshitsugi.life-and-guard.v5'});
 document.title=`星継ぎの庭 | ${info.environment.toUpperCase()}`;
-$('emblem').src=rinneCrestUrl;
+$('emblem').src=sharedEmblemUrl;
 onProgress(35,'保存した村を確かめています。');
 const saved=await store.load();
 const world=new World(saved||undefined);publishLayout();
