@@ -1,11 +1,11 @@
 # 百年転生 — 3ゲーム共通開発基盤
 
-`charukun/soul-lineage` は「百年転生」（旧名：魂の系譜）・叡智豊満・魔物側ゲームのmonorepoです。魔物側の `apps/demon` は「喰滅廻遊」の単独狩りを実装しています。百年転生と村の入口は現在のdevelopの雛形を維持しています。認証・実プレイヤー対戦・共有村サーバーは未接続です。魔物側の実装範囲と残作業は [魔物ゲーム統合](docs/demon/INTEGRATION.md) を参照してください。
+`charukun/soul-lineage` は「百年転生」（旧名：魂の系譜）・宝満叡智・魔物側ゲームのmonorepoです。魔物側の `apps/demon` は「喰滅廻遊」の単独狩りを実装しています。百年転生と村の入口は現在のdevelopの雛形を維持しています。認証・実プレイヤー対戦・共有村サーバーは未接続です。魔物側の実装範囲と残作業は [魔物ゲーム統合](docs/demon/INTEGRATION.md) を参照してください。
 
 | ゲーム | ソース | DEV URL | 将来のProductionパス |
 | --- | --- | --- | --- |
 | 百年転生 | `apps/rinne` | https://charukun.github.io/soul-lineage/dev/rinne/ | `/prod/rinne/` |
-| 叡智豊満 | `apps/village` | https://charukun.github.io/soul-lineage/dev/village/ | `/prod/village/` |
+| 宝満叡智 | `apps/village` | https://charukun.github.io/soul-lineage/dev/village/ | `/prod/village/` |
 | 魔王軍ゲーム | `apps/demon` | https://charukun.github.io/soul-lineage/dev/demon/ | `/prod/demon/` |
 
 既存 `/dev/` は百年転生へ転送します。現在の `/prod/` はmainの既存実装を維持します。mainへ各appを昇格すると、対応するProductionパスを自動検出します。URLは公開・ログイン不要です。
@@ -14,7 +14,7 @@
 
 ## 開発・独立build
 
-百年転生本編への仕様導入は [血脈の系譜からのゲーム仕様抽出・適用差分](docs/rinne/BLOODLINE_GAMEPLAY_SPEC.md) を参照してください。血脈の系譜のコードは移植せず、現行優先の独自実装です。出生・生活・前線・救助・転生と叡智豊満の配置接続は [本編と共有世界](docs/rinne/MAIN_GAME.md) を参照してください。
+百年転生本編への仕様導入は [血脈の系譜からのゲーム仕様抽出・適用差分](docs/rinne/BLOODLINE_GAMEPLAY_SPEC.md) を参照してください。血脈の系譜のコードは移植せず、現行優先の独自実装です。出生・生活・前線・救助・転生と宝満叡智の配置接続は [本編と共有世界](docs/rinne/MAIN_GAME.md) を参照してください。
 
 Node.js 24 / npm 11、npm workspacesと既存のViteを使用します。
 
@@ -51,7 +51,7 @@ npm run affected -- origin/develop HEAD
 
 ゲーム本体は `apps/<app>/src/app.js` または `src/game/` に置き、Platform APIを直接呼びません。`src/main.js` は各Platformの起動・表示を接続する場所です。アプリ間の直接importとpackageからappへの依存をcheckで禁止します。
 
-共通の雛形は `packages/world/data/villages/foundation.json`。叡智豊満本編の共通地形・カタログ・初期配置は `packages/world/src/mura/`、描画モデルと地形は `packages/rendering/src/mura/` が正本です。メートル・右手系Y-up・安定したentity ID / asset ID / schemaVersion / revisionを使用します。配信する初期world templateと、ユーザーが変更した保存データを分離してください。共有packageは同一データ参照を提供しますが、サーバー間同期や共有ユーザー状態を自動的に実装するものではありません。
+共通の雛形は `packages/world/data/villages/foundation.json`。宝満叡智本編の共通地形・カタログ・初期配置は `packages/world/src/mura/`、描画モデルと地形は `packages/rendering/src/mura/` が正本です。メートル・右手系Y-up・安定したentity ID / asset ID / schemaVersion / revisionを使用します。配信する初期world templateと、ユーザーが変更した保存データを分離してください。共有packageは同一データ参照を提供しますが、サーバー間同期や共有ユーザー状態を自動的に実装するものではありません。
 
 ## CI/CD
 

@@ -51,7 +51,7 @@ COM/support/semantic data comes from the actual Workshop actor and authored slas
 
 The previous shared consumers are now part of explicit boot paths:
 
-- 叡智豊満 loads `mura-master-characters.js` after the village boot, then wraps final actor sync with `mura-motion-crowd.js`
+- 宝満叡智 loads `mura-master-characters.js` after the village boot, then wraps final actor sync with `mura-motion-crowd.js`
 - 喰滅廻遊 loads `master-humans.js` and `motion-crowd.js` before the game creates `NightView`
 - Rinne exports `HumanoidRuntime` from the final operational layer
 

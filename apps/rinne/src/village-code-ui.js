@@ -12,13 +12,13 @@ function sync(){
   connected.textContent=layout?`接続中 · ${layout.name}`:'';
   reset.hidden=!active;
   if(!layout&&active){channel.clearAuthorization();status.textContent='共有村が見つかりません。風待ちの里を使います。';}
-  else status.textContent=layout?'この村の配置と室内家具を次回の人生世界に使います。':'叡智豊満に表示された村コードを入力すると、その村へ切り替わります。';
+  else status.textContent=layout?'この村の配置と室内家具を次回の人生世界に使います。':'宝満叡智に表示された村コードを入力すると、その村へ切り替わります。';
 }
 
 open?.addEventListener('click',()=>{input.value='';sync();dialog.showModal();requestAnimationFrame(()=>input.focus());});
 document.getElementById('close-village-code')?.addEventListener('click',()=>dialog.close());
 apply?.addEventListener('click',()=>{
-  if(!channel.authorize(input.value)){status.textContent='村コードが一致しません。叡智豊満の設定から最新コードを確認してください。';input.select();return;}
+  if(!channel.authorize(input.value)){status.textContent='村コードが一致しません。宝満叡智の設定から最新コードを確認してください。';input.select();return;}
   const layout=channel.read();
   if(!layout){channel.clearAuthorization();status.textContent='村データを読み込めませんでした。風待ちの里を継続します。';return;}
   status.textContent=`${layout.name}へ切り替えます。`;

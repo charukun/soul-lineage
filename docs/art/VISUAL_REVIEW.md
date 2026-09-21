@@ -56,7 +56,7 @@ Human characters that represent the same shared-world character foundation must 
 
 The Lab must let a reviewer keep the subject fixed while changing review dimensions instead of forcing navigation between unrelated pages. At minimum the review flow exposes:
 
-- app context: Rinne / 叡智豊満 / 喰滅廻遊;
+- app context: Rinne / 宝満叡智 / 喰滅廻遊;
 - model or deterministic individual, role and age;
 - fixed front / three-quarter / side / back / face views plus app-normal camera distance;
 - motion selection, play/pause, speed, loop, frame/time scrub and one-frame stepping where the source supports it;

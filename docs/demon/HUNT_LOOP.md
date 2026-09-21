@@ -35,4 +35,4 @@
 
 ## 変更しない境界
 
-百年転生、叡智豊満、共有Tidebreakの序破急/間合い/接触判定、オンラインauthority、入村IDの再訪防止、main/Productionは変更しない。ReadyはDEV公開や実機品質確認を意味しない。
+百年転生、宝満叡智、共有Tidebreakの序破急/間合い/接触判定、オンラインauthority、入村IDの再訪防止、main/Productionは変更しない。ReadyはDEV公開や実機品質確認を意味しない。

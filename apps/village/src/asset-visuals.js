@@ -93,7 +93,7 @@ function visualCandidate(kind, fallback, view) {
   if (!candidate) return fallback;
   const root = new T.Group();
   const fallbackNode = fallback?.clone?.(true) || fallback;
-  root.name = `叡智豊満_${kind}`;
+  root.name = `宝満叡智_${kind}`;
   root.userData.assetSource = SOURCE;
   root.userData.assetCandidate = candidate.file;
   root.userData.assetUrl = candidateUrl(candidate.file);
@@ -110,7 +110,7 @@ function visualCandidate(kind, fallback, view) {
   }).catch(error => {
     root.userData.assetLoaded = false;
     root.userData.assetError = error?.message || String(error);
-    console.warn(`[叡智豊満] local visual asset failed: ${kind}`, error);
+    console.warn(`[宝満叡智] local visual asset failed: ${kind}`, error);
   });
   return root;
 }
@@ -120,7 +120,7 @@ View.prototype.getProp = function getPropWithAssetCandidate(kind) {
   return visualCandidate(kind, originalGetProp.call(this, kind), this);
 };
 
-window.__叡智豊満_ASSETS__ = Object.freeze({
+window.__宝満叡智_ASSETS__ = Object.freeze({
   source: SOURCE,
   root: LOCAL_ROOT,
   candidates: CANDIDATES,

@@ -1,8 +1,8 @@
-# 叡智豊満 audio handoff
+# 宝満叡智 audio handoff
 
 Soundtrack collection: `三界の調べ` (`rinne-three-worlds-150-v2`).
 
-Runtime playback/UI uses the repository-wide `@soul/shared-ui/music` adapter. 叡智豊満 starts `v01` on the first user interaction in DEV and then exposes the shared 150-track music room. Do not add a second app-local `<audio>` player because that would allow duplicate playback.
+Runtime playback/UI uses the repository-wide `@soul/shared-ui/music` adapter. 宝満叡智 starts `v01` on the first user interaction in DEV and then exposes the shared 150-track music room. Do not add a second app-local `<audio>` player because that would allow duplicate playback.
 
 Expected village set: `v01`..`v48`. Shared tracks remain available from the music room.
 Expected deploy root: `audio/three-worlds-150/`.

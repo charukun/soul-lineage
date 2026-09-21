@@ -6,7 +6,7 @@ Peer-hosted共通世界のAuthorityとHost Migrationは、復元可能な完全c
 
 ## 目的
 
-叡智豊満 Hostは通常約2秒ごとにcheckpointを更新する。毎回full snapshotを全peerへ送らず、最初の完全checkpoint以降は変更分だけを送る。packet lossや一時切断でrevisionを取り逃したpeerは、保持している最後のrevisionから追いつく。
+宝満叡智 Hostは通常約2秒ごとにcheckpointを更新する。毎回full snapshotを全peerへ送らず、最初の完全checkpoint以降は変更分だけを送る。packet lossや一時切断でrevisionを取り逃したpeerは、保持している最後のrevisionから追いつく。
 
 ## Protocol
 
