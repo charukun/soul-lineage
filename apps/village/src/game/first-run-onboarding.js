@@ -1,4 +1,4 @@
-export const FIRST_RUN_AUTOPLAY_VERSION=3;
+export const FIRST_RUN_AUTOPLAY_VERSION=4;
 const RESET_REPLAY_KEY='soul.village.first-run-after-reset.v1';
 
 function current(state){
@@ -26,8 +26,8 @@ export function consumeFirstRunAutoplayAfterReset(environment,storage=globalThis
 
 export function shouldRunFirstRunAutoplay(state,{freshLoad=false}={}){
  const raw=state?.onboarding?.firstRunAutoplay;
- // Older guides could be marked complete while placement controls did not match
- // the direct-touch contract. Replay v3 once, then persist the corrected marker.
+ // Older guides may have completed after the moving-finger demo was replaced.
+ // Replay v4 once so existing saves see the restored animated guide.
  if(raw?.seen&&raw.version!==FIRST_RUN_AUTOPLAY_VERSION)return true;
  const status=current(state);
  return !status.seen&&(freshLoad||status.started);
