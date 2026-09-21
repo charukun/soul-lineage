@@ -8,6 +8,7 @@ import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import { PROTAGONIST_VILLAGER_MODEL } from '@soul/characters';
 import {applyReviewCombatMotion} from './review-battle-hero-motion.js';
+import {hideEmbeddedCombatProps} from './review-battle-equipment.js';
 import {
   RINNE_EQUIPMENT_REVIEW_CATALOG,
   REVIEW_EQUIPMENT_CATEGORY_LABELS,
@@ -72,9 +73,7 @@ function findNode(root, wanted) {
 }
 function disposeRoot(root){disposeReviewObject(root);}
 function hideNativeAccessories(root) {
-  root?.traverse(node=>{
-    if(node.isMesh&&/\b(?:arrow|axe|blade|bow|crossbow|dagger|mace|quiver|shield|spear|staff|sword|wand|weapon)\b/i.test(String(node.name).replace(/[_\-.]+/g,' ')))node.visible=false;
-  });
+  hideEmbeddedCombatProps(root);
 }
 function modelHeight() {
   if(!modelRoot)return 1.7; const box=new THREE.Box3().setFromObject(modelRoot); const height=box.max.y-box.min.y; return Number.isFinite(height)&&height>.05?height:1.7;
@@ -90,8 +89,8 @@ function flattenScene(src) {
 }
 function slotAnchor(slot) {
   if(!modelRoot)throw new Error('先にモデルを読み込んでください');
-  if(slot==='main')return findNode(modelRoot,'handslot.r')||findNode(modelRoot,'righthand')||findNode(modelRoot,'hand.r')||findNode(modelRoot,'hand_r')||findNode(modelRoot,'righthandbone');
-  if(slot==='off')return findNode(modelRoot,'handslot.l')||findNode(modelRoot,'lefthand')||findNode(modelRoot,'hand.l')||findNode(modelRoot,'hand_l')||findNode(modelRoot,'lefthandbone');
+  if(slot==='main')return findNode(modelRoot,'hand.r')||findNode(modelRoot,'righthand')||findNode(modelRoot,'hand_r')||findNode(modelRoot,'righthandbone')||findNode(modelRoot,'handslot.r');
+  if(slot==='off')return findNode(modelRoot,'hand.l')||findNode(modelRoot,'lefthand')||findNode(modelRoot,'hand_l')||findNode(modelRoot,'lefthandbone')||findNode(modelRoot,'handslot.l');
   return findNode(modelRoot,'chest')||findNode(modelRoot,'spine');
 }
 function equipmentCacheKey(item){return item.id;}
@@ -133,8 +132,13 @@ function dedicatedHandSlot(anchor,slot){
 }
 function applyTransform(payload,item,slot,anchor,characterHeight){
   payload.position.set(0,0,0);payload.quaternion.identity();payload.scale.set(1,1,1);
-  fitObject(payload,item.targetFraction||.48,characterHeight);
-  if(!dedicatedHandSlot(anchor,slot)&&item.fallbackRotation)payload.rotation.set(...item.fallbackRotation);
+  const grip=item.grip||null;
+  if(Number.isFinite(grip?.scale))payload.scale.setScalar(grip.scale);
+  else fitObject(payload,item.targetFraction||.48,characterHeight);
+  if(Array.isArray(grip?.position))payload.position.fromArray(grip.position);
+  if(Array.isArray(grip?.quaternion))payload.quaternion.fromArray(grip.quaternion).normalize();
+  else if(Array.isArray(grip?.rotation))payload.rotation.set(...grip.rotation);
+  else if(!dedicatedHandSlot(anchor,slot)&&item.fallbackRotation)payload.rotation.set(...item.fallbackRotation);
 }
 async function setEquipment(slot,id){
   const previous=mounted.get(slot);if(previous){previous.removeFromParent();mounted.delete(slot);}

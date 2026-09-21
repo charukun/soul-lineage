@@ -15,6 +15,7 @@ const HAND_GRIPS=Object.freeze({
   '2H_Staff':Object.freeze({position:[0,0,0],quaternion:[0,1,0,0],scale:1.0773}),
   '2H_Crossbow':Object.freeze({position:[0,0,0],quaternion:[0,Math.SQRT1_2,0,Math.SQRT1_2],scale:.7204})
 });
+const FLOOR_BOX=new THREE.Box3(),FLOOR_A=new THREE.Vector3(),FLOOR_B=new THREE.Vector3();
 
 const byId=new Map(REVIEW_SKELETON_EQUIPMENT.map(row=>[row.id,row]));
 const labelById=Object.freeze({
@@ -49,7 +50,21 @@ export function applyMotionReviewWeaponGrip(root,spec){
   root.position.fromArray(grip.position);
   root.quaternion.fromArray(grip.quaternion).normalize();
   root.scale.setScalar(grip.scale);
+  root.userData.motionReviewGripPosition=grip.position.slice();
   return root;
+}
+
+export function keepMotionReviewWeaponAboveFloor(root,floorY=.015){
+  if(!root?.isObject3D||!root.parent)return 0;
+  const grip=root.userData.motionReviewGripPosition;
+  if(Array.isArray(grip)&&grip.length===3)root.position.fromArray(grip);
+  root.updateWorldMatrix(true,true);FLOOR_BOX.setFromObject(root);
+  const lift=floorY-FLOOR_BOX.min.y;
+  if(!Number.isFinite(lift)||lift<=0)return 0;
+  FLOOR_A.set(0,0,0);FLOOR_B.set(0,lift,0);
+  root.parent.worldToLocal(FLOOR_A);root.parent.worldToLocal(FLOOR_B);
+  root.position.add(FLOOR_B.sub(FLOOR_A));root.updateWorldMatrix(true,true);
+  return lift;
 }
 
 export async function loadMotionReviewWeapon(id,{loader=new GLTFLoader()}={}){

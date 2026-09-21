@@ -33,7 +33,7 @@ function buildModelOptions() {
       else studio.workspace.selectModel(model.id);
       studio.review.aim('front');
     });
-    b.dataset.characterModel = model.id; b.dataset.modelStage = model.productionStage || ''; row.append(b);
+    b.dataset.characterModel = model.id; b.dataset.modelStage = model.productionStage || ''; b.dataset.reviewLabel = concise; row.append(b);
   }
   if (simpleReview) {
     const labels = { knight: '騎士', barbarian: '蛮族', mage: '魔術師', rogue: '盗賊', 'rogue-hooded': 'フード盗賊' };
