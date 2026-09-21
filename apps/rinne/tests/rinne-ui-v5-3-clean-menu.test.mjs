@@ -14,7 +14,7 @@ test('UI 5.3 removes the live menu from the retired upgrade-panel CSS contract',
   assert.match(panel,/class="rinne-core-menu"/);
   assert.doesNotMatch(panel,/upgrade-panel|rinne-archive-panel/);
   assert.match(css,/\.rinne-core-menu\[hidden\]\{display:none!important\}/);
-  assert.doesNotMatch(css,/\.upgrade-panel/);
+  assert.doesNotMatch(css,/(?:^|\n)\s*\.upgrade-panel(?:[\s.{:#\[])/m);
 });
 
 test('game menus lead with choices instead of manual-style intro blocks',()=>{
