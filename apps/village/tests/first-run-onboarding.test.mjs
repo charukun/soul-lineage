@@ -38,15 +38,15 @@ test('completion is persisted as a one-way first-run handoff',()=>{
  markFirstRunAutoplayStarted(state);
  markFirstRunAutoplaySeen(state);
  const restored=validate(JSON.parse(JSON.stringify(state)));
- assert.deepEqual(restored.onboarding.firstRunAutoplay,{version:3,started:false,seen:true});
+ assert.deepEqual(restored.onboarding.firstRunAutoplay,{version:4,started:false,seen:true});
  assert.equal(shouldRunFirstRunAutoplay(restored,{freshLoad:false}),false);
 });
 
-test('legacy completion gets exactly one corrected direct-placement guide replay',()=>{
- for(const version of[1,2]){
+test('legacy completion gets exactly one restored moving-finger guide replay',()=>{
+ for(const version of[1,2,3]){
   const state=initial();state.onboarding={firstRunAutoplay:{version,started:false,seen:true}};
   assert.equal(shouldRunFirstRunAutoplay(state,{freshLoad:false}),true);
-  markFirstRunAutoplayStarted(state);assert.equal(state.onboarding.firstRunAutoplay.version,3);
+  markFirstRunAutoplayStarted(state);assert.equal(state.onboarding.firstRunAutoplay.version,4);
   markFirstRunAutoplaySeen(state);assert.equal(shouldRunFirstRunAutoplay(state,{freshLoad:false}),false);
  }
 });

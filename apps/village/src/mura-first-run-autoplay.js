@@ -14,7 +14,7 @@ function install(){
  const freshLoad=consumeFreshVillageLoad()||resetReplay;
  const previousGuide=village.world.state?.onboarding?.firstRunAutoplay;
  if(!shouldRunFirstRunAutoplay(village.world.state,{freshLoad}))return;
- if(previousGuide?.seen&&previousGuide.version!==3&&!village.world.state.tutorial?.completed){
+ if(previousGuide?.seen&&previousGuide.version!==4&&!village.world.state.tutorial?.completed){
   village.world.state.tutorial={...(village.world.state.tutorial||{}),dismissed:false};
  }
 
