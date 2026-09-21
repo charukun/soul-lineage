@@ -10,7 +10,7 @@ import {buildReviewMotionRegistry,motionRegistryCount,externalMotionRecords,dedu
 import {loadPinnedMotionSource,loadPinnedReviewTarget,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import {resolveReviewHumanoidDescriptor,createRigRequiredDccRoute} from './review-humanoid-calibrations.js';
 import {hideEmbeddedCombatProps} from './review-battle-equipment.js';
-import {MOTION_REVIEW_WEAPON_OPTIONS,loadMotionReviewWeapon} from './review-motion-equipment.js';
+import {MOTION_REVIEW_WEAPON_OPTIONS,keepMotionReviewWeaponAboveFloor,loadMotionReviewWeapon} from './review-motion-equipment.js';
 import './review-motion-library.css';
 import './review-motion-preview.css';
 import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
@@ -18,7 +18,6 @@ import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {createReviewSvgThumbnail} from '@soul/shared-ui/review-thumbnail';
 import {setReviewStatus} from '@soul/shared-ui/review-status';
-mountRinneReviewShell('motion');
 
 const el=id=>document.getElementById(id),canvas=el('motion-stage');
 const status=message=>{if(el('motion-status').textContent!==message)setReviewStatus(el('motion-status'),message);};
@@ -45,11 +44,12 @@ const playbackTime=()=>isExternal()?externalTime:Math.max(0,action?.time||0);
 // One selected-item explanation; no extra microcopy on every thumbnail.
 const quality=document.createElement('output');quality.id='motion-quality';quality.className='motion-quality';quality.setAttribute('aria-live','polite');
 canvas.closest('.motion-stage').append(quality);
-const compatibility=document.createElement('details');compatibility.className='motion-compatibility';
-compatibility.innerHTML='<summary>設定</summary><p>武器・腰移動・プレビュー補正を切り替えます。近似再生は素材比較用です。</p><label>武器 <select id="motion-weapon" aria-label="武器"></select></label><label>腰の移動 <select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場で再生</option><option value="free">移動も適用</option><option value="locked">腰を固定</option></select></label><label>補正 <select id="motion-constraint-policy" aria-label="プレビュー補正"><option value="raw">生の近似</option><option value="assisted">接地・接触を補助</option></select></label><pre id="motion-binding-report"></pre>';
+const compatibility=document.createElement('details');compatibility.className='motion-compatibility';compatibility.dataset.reviewStageControl='true';compatibility.open=true;
+compatibility.innerHTML='<summary>武器・表示設定</summary><p>武器・腰移動・プレビュー補正を切り替えます。近似再生は素材比較用です。</p><label>武器 <select id="motion-weapon" aria-label="武器"></select></label><label>腰の移動 <select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場で再生</option><option value="free">移動も適用</option><option value="locked">腰を固定</option></select></label><label>補正 <select id="motion-constraint-policy" aria-label="プレビュー補正"><option value="raw">生の近似</option><option value="assisted">接地・接触を補助</option></select></label><pre id="motion-binding-report"></pre>';
 el('motion-meta').closest('details').before(compatibility);
 for(const option of MOTION_REVIEW_WEAPON_OPTIONS)el('motion-weapon').add(new Option(option.label,option.id));
 el('motion-weapon').value=selectedWeapon;
+mountRinneReviewShell('motion');
 let lastReport='';
 function showCompatibility(result,source=externalSource){
   const labels={PLAYABLE:'再生可能',DEGRADED:'近似再生',RIG_REQUIRED:'骨・ウェイトの準備が必要',UNSUPPORTED:'データを確認してください',LOADING:'読み込み中',NATIVE:'原版再生'};
@@ -75,7 +75,7 @@ async function syncWeapon(){
     const loaded=await loadMotionReviewWeapon(selectedWeapon);
     if(serial!==weaponSerial||stopped||!targetAdapter){if(loaded.root)disposeReviewObject(loaded.root);return;}
     if(!loaded.root)return;
-    anchor.add(loaded.root);equippedWeapon=loaded.root;canvas.dataset.motionWeapon=loaded.option.id;
+    anchor.add(loaded.root);equippedWeapon=loaded.root;keepMotionReviewWeaponAboveFloor(equippedWeapon);canvas.dataset.motionWeapon=loaded.option.id;
   }catch(error){
     if(serial!==weaponSerial||stopped)return;
     canvas.dataset.motionWeapon='error';status('武器読込失敗: '+String(error?.message||error));
@@ -259,6 +259,7 @@ function frame(now){
       if(isExternal()&&externalSource){externalTime+=dt*speed;if(externalTime>=selectedDuration){if(loop)externalTime%=selectedDuration;else{externalTime=selectedDuration;playing=false;}}applyExternal(externalTime);}
       else if(mixer&&action)mixer.update(dt*speed);
     }
+    if(equippedWeapon)keepMotionReviewWeaponAboveFloor(equippedWeapon);
     controls.update();renderer.render(scene,camera);syncPlaybackUI();
   }catch(error){playing=false;ready=false;status('再生を停止しました: '+String(error?.message||error));syncPlaybackUI();}
 }
