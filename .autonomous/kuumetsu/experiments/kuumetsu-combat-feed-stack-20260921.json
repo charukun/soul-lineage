@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 2,
+  "id": "kuumetsu-combat-feed-stack-20260921",
+  "game": "kuumetsu",
+  "mode": "polish",
+  "kind": "gameplay",
+  "themeKey": "combat-feedback-readability",
+  "rootCauses": [
+    {
+      "key": "rapid-combat-events-share-one-slot",
+      "summary": "Combat flow prepends multiple action/hurt/status entries, but every entry is absolutely positioned at top:0, so rapid events overlap in the same visual slot.",
+      "prediction": "Assigning the newest three entries stable vertical lanes preserves chronological flow without adding enemy chrome or changing combat authority.",
+      "falsifier": "Rapid events still share one top coordinate, more than three remain visible, or combat state/authority is changed.",
+      "paths": [
+        "apps/demon/src/web/combat-readout-flow.js",
+        "apps/demon/src/web/combat-readout-flow.css",
+        "apps/demon/src/web/combat-readout-state.js"
+      ]
+    }
+  ],
+  "observation": {
+    "summary": "Iteration 2 reuses and re-observes the immutable After from iteration 1 (d6cdb2 / version 4f6925cb). The combat feed can emit action, hurt and status events within the same 2.7s window. At this revision each .combat-feed-entry is absolute top:0, so concurrent entries occupy one coordinate before animation drift.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "d6cdb2dcd4ad9a08b9bf886d74dd497fdb4b52cf",
+      "reference": "https://4f6925cb-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "versionId": "4f6925cb-6ce1-4dcd-b6fa-9c5a379453c1",
+      "observedAt": "2026-09-21T11:57:00Z",
+      "conditions": {
+        "viewport": "673x841",
+        "scenario": "same immutable hunt staging; combat feed inspection"
+      },
+      "notVerified": [
+        "physical Pixel Fold feel",
+        "browser-review payload not surfaced"
+      ]
+    },
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "d6cdb2dcd4ad9a08b9bf886d74dd497fdb4b52cf",
+        "path": "apps/demon/src/web/combat-readout-flow.js",
+        "symbol": "pushEntry",
+        "statement": "Every event is prepended and remains for 2700ms."
+      },
+      {
+        "kind": "source",
+        "revision": "d6cdb2dcd4ad9a08b9bf886d74dd497fdb4b52cf",
+        "path": "apps/demon/src/web/combat-readout-flow.css",
+        "symbol": ".combat-feed-entry",
+        "statement": "All feed entries are position:absolute with top:0."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "Chronological events are stored as multiple DOM nodes but laid out in one absolute slot.",
+    "prediction": "Bounded three-lane stacking makes rapid combat feedback readable while preserving sequence order and lightweight HUD.",
+    "falsifier": "Entries still overlap or stacking requires changing Tidebreak/combat semantics."
+  },
+  "candidates": [
+    {
+      "id": "shorter-event-duration",
+      "selected": false,
+      "reason": "Reduces collisions by discarding readable time and still allows overlap."
+    },
+    {
+      "id": "bounded-three-lane-stack",
+      "selected": true,
+      "reason": "Keeps the existing feed contract while making simultaneous recent events spatially distinct."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/demon/src/web/combat-readout-state.js",
+      "apps/demon/src/web/combat-readout-flow.js",
+      "apps/demon/src/web/combat-readout-flow.css",
+      "apps/demon/tests/combat-readout-flow.test.mjs"
+    ],
+    "summary": "Add pure bounded lane selection, assign newest three feed entries lanes, cap stale nodes, and offset lanes in CSS."
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": [
+      "apps/demon/tests/combat-readout-flow.test.mjs"
+    ],
+    "stagingAfter": "required",
+    "limitations": [
+      "Portable balance probe does not cover combat DOM layout."
+    ]
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": null,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-combat-feed-stack-20260921"
+  }
+}

@@ -1,5 +1,5 @@
 import './combat-readout-flow.css';
-import {nextCombatReadoutState} from './combat-readout-state.js';
+import {nextCombatReadoutState,combatFeedLane} from './combat-readout-state.js';
 
 function replay(el,className){
   el.classList.remove(className);
@@ -32,6 +32,10 @@ export function installCombatReadoutFlow(doc=document){
     item.dataset.kind=kind;
     item.textContent=value;
     feed.prepend(item);
+    [...feed.children].forEach((node,index)=>{
+      if(index>=3){node.remove();return;}
+      node.style.setProperty('--combat-feed-lane',String(combatFeedLane(index)));
+    });
     replay(item,'combat-feed-event');
     setTimeout(()=>item.remove(),2700);
     flow.hidden=false;

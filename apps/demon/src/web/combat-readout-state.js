@@ -21,3 +21,8 @@ export function combatDamageLine(amount=0,hp=0,maxhp=1){
   const condition=current<=0?'戦闘不能':ratio<=.2?'瀕死':ratio<=.45?'重傷':ratio<=.7?'負傷':'健在';
   return `被弾 −${damage} · 生命 ${current}/${maximum} · ${condition}`;
 }
+
+export function combatFeedLane(index=0,max=3){
+  const limit=Math.max(1,Math.floor(Number(max)||3));
+  return Math.min(limit-1,Math.max(0,Math.floor(Number(index)||0)));
+}

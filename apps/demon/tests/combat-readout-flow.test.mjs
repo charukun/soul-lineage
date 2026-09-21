@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {nextCombatReadoutState,combatDamageLine} from '../src/web/combat-readout-state.js';
+import {nextCombatReadoutState,combatDamageLine,combatFeedLane} from '../src/web/combat-readout-state.js';
 
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 
@@ -37,6 +37,11 @@ test('damage lines expose damage current life and readable condition',()=>{
   assert.equal(combatDamageLine(99,0,100),'被弾 −99 · 生命 0/100 · 戦闘不能');
 });
 
+test('rapid combat events occupy bounded readable lanes',()=>{
+  assert.deepEqual([0,1,2,3,8].map(i=>combatFeedLane(i)),[0,1,2,2,2]);
+  assert.equal(combatFeedLane(-3),0);
+});
+
 test('combat readout is a top-inserted downward feed with damage events',()=>{
   const index=read('../index.html');
   const js=read('../src/web/combat-readout-flow.js');
@@ -48,7 +53,8 @@ test('combat readout is a top-inserted downward feed with damage events',()=>{
   assert.match(js,/class="combat-feed-events"/);
   assert.match(js,/feed\.prepend\(item\)/);
   assert.match(js,/setTimeout\(\(\)=>item\.remove\(\),2700\)/);
-  assert.doesNotMatch(js,/entries\.length>6/);
+  assert.match(js,/index>=3/);
+  assert.match(js,/--combat-feed-lane/);
   assert.match(js,/doc\.addEventListener\('demon-combat-feed',onFeed\)/);
   assert.match(js,/battle\.style\.opacity==='1'/);
   assert.match(js,/nextCombatReadoutState/);
@@ -57,7 +63,8 @@ test('combat readout is a top-inserted downward feed with damage events',()=>{
   assert.match(main,/demon-combat-feed/);
   assert.match(css,/@keyframes combat-feed-event/);
   assert.match(css,/38%\{opacity:1;transform:translate\(-50%,0\)\}/);
-  assert.match(css,/translate\(-50%,34px\)/);
+  assert.match(css,/top:calc\(var\(--combat-feed-lane,0\)\*18px\)/);
+  assert.match(css,/translate\(-50%,12px\)/);
   assert.match(css,/\[data-kind="hurt"\]/);
   assert.match(css,/prefers-reduced-motion:reduce/);
 });
