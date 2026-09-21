@@ -44,13 +44,19 @@ export function initial(){return{
  defense:{nextRaid:8.5,lastRaid:-100,sequence:0,raid:null,nextWildlife:2.8,pressure:[],proposal:null},wildlife:[],connection:{mode:'local',hostEpoch:0}
 };}
 export class World{
- constructor(state=initial()){this.state=validate(state);this.history=[];this.future=[];this.listeners=new Set();this.resourceRevision=0;}
+ constructor(state=initial()){this.state=validate(state);this.history=[];this.future=[];this.listeners=new Set();this.resourceRevision=0;this.deliveryRevision=0;this.deliveryReceipts=[];}
  get objects(){return this.state.objects;} get people(){return this.state.people;}
  object(id){return this.objects.find(o=>o.id===id);} list(id=null){return id?this.object(id)?.room||[]:this.objects;}
  random(){let a=this.state.rng|0;a^=a<<13;a^=a>>>17;a^=a<<5;this.state.rng=a>>>0;return(a>>>0)/4294967296;}
  changed(){this.state.revision++;for(const f of this.listeners)f();}
  notify(text,type='life'){this.state.news.unshift({text:String(text).slice(0,250),day:this.state.clock,type});this.state.news=this.state.news.slice(0,80);}
  gain(resource,amount){if(!Object.hasOwn(RESOURCE_NAMES,resource)||!Number.isFinite(amount)||amount<=0)return false;this.state.stock[resource]=Math.min(1e6,this.state.stock[resource]+amount);this.resourceRevision++;if(!this.state.known.includes(resource)){this.state.known.push(resource);this.notify(`${RESOURCE_NAMES[resource]}を初めて手に入れました。新しい暮らしのきっかけです。`,'discovery');}return true;}
+ recordDelivery({storageId,sourceId=null,personId=null,items}={}){
+  const clean=Object.fromEntries(Object.entries(items||{}).filter(([k,n])=>Object.hasOwn(RESOURCE_NAMES,k)&&Number.isFinite(n)&&n>0));
+  if(!storageId||!Object.keys(clean).length)return null;
+  const receipt={revision:++this.deliveryRevision,storageId,sourceId,personId,items:clean,day:this.state.clock};
+  this.deliveryReceipts.unshift(receipt);this.deliveryReceipts=this.deliveryReceipts.slice(0,16);return receipt;
+ }
  discover(){for(const k of Object.keys(RESOURCE_NAMES))if(this.state.stock[k]>0&&!this.state.known.includes(k)){this.state.known.push(k);this.resourceRevision++;this.notify(`${RESOURCE_NAMES[k]}を手に入れました。`,'discovery');}}
  canAfford(cost){return Object.entries(cost||{}).every(([k,v])=>Object.hasOwn(RESOURCE_NAMES,k)&&Number.isFinite(v)&&v>=0&&this.state.stock[k]>=v);}
  spend(cost){if(!this.canAfford(cost))return false;for(const[k,v]of Object.entries(cost||{}))this.state.stock[k]-=v;this.resourceRevision++;return true;}
