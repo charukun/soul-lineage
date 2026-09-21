@@ -68,8 +68,8 @@ test('old saves without homeland fields migrate to the local village without inv
 test('contact combat is automatic and never needs an attack button',()=>{
   const s=createLife({seed:6});s.phase='living';s.ageSeconds=20*60;s.ageYears=20;s.zone='frontier';s.position={x:0,z:0};s.equipment.weapon='sword';s.knownSkills.push('basic.sword');s.skillWeights.jo={'basic.sword':100};
   const front=createFront(0,6);front.enemies[0].x=.5;front.enemies[0].z=.5;
-  let hit=false;for(let i=0;i<20;i++){const events=tickFront(s,front,.1);if(events.some(e=>e.type==='player-hit'))hit=true;}
-  assert.equal(hit,true);assert.ok(s.stamina<100);assert.ok(front.enemies[0].hp<front.enemies[0].maxHp);
+  const observed=[];let hit=false;for(let i=0;i<20;i++){const events=tickFront(s,front,.1);observed.push(...events);if(events.some(e=>e.type==='player-hit'))hit=true;}
+  assert.equal(hit,true,JSON.stringify({events:observed,combat:s.combat,stamina:s.stamina,knownSkills:s.knownSkills,equipment:s.equipment,position:s.position,enemies:front.enemies.map(({id,x,z,hp})=>({id,x,z,hp}))}));assert.ok(s.stamina<100);assert.ok(front.enemies[0].hp<front.enemies[0].maxHp);
 });
 
 test('frontier enemy progress survives save and restore',()=>{
