@@ -2,6 +2,7 @@ import { DISCOVERIES, skillEffects, skillName } from './skill-system.js';
 import { enterInteriorState, leaveInteriorState } from './interior-state.js';
 import { ensureCombatInjuryState, recoverPersistentInjuries } from './combat-injury.js';
 import { ensureInspiration, validateInspiration, advanceInspirationTime, recordLifeExperience, inspirationEffortScale, inspirationImprint, initializeBirthTalents, INSPIRATION_LIMITS } from './inspiration-state.js';
+import { familyForLife, inheritFamily } from './family-origin.js';
 
 export { DISCOVERIES, skillEffects, skillName };
 export const SAVE_SCHEMA = 2;
@@ -50,7 +51,7 @@ export function chooseBirthVillage(seed=1,villageIds=[DEFAULT_VILLAGE_ID]){
   const ids=normalizeVillageIds(villageIds);
   return ids[seed%ids.length];
 }
-export function createLife({name='旅人',seed=1,generation=1,lineage=[],homelands=[],villageIds=[DEFAULT_VILLAGE_ID],birthVillageId=null}={}){
+export function createLife({name='旅人',seed=1,generation=1,lineage=[],homelands=[],villageIds=[DEFAULT_VILLAGE_ID],birthVillageId=null,family=null}={}){
   seed=Number.isSafeInteger(seed)?seed>>>0:1;generation=Math.max(1,generation|0);
   const available=normalizeVillageIds(villageIds),unlocked=normalizeVillageIds(homelands,false);
   let village;
@@ -70,6 +71,7 @@ export function createLife({name='旅人',seed=1,generation=1,lineage=[],homelan
     combat:null,defeats:0,returns:0,history:[],lineage:Array.isArray(lineage)?clone(lineage).slice(-INSPIRATION_LIMITS.lineage):[],
     events:[{type:'born',worldSecond:0,text:`${cleanName(name)}が${village}に生まれた。`}],
   };
+  state.family=familyForLife({...state,family});
   ensureInspiration(state,{fresh:true});const gifted=initializeBirthTalents(state);
   if(gifted)state.events.unshift({type:'village-news',scope:'village',worldSecond:0,text:`${state.name}が「${gifted.axis}」に稀有な資質を持って生まれた。村にギフテッド誕生の知らせが広がった。`,tag:'ギフテッド',subjectId:state.id,communityHook:{kind:'protect-gifted-child',roles:['見守り役','師匠候補','将来の共闘仲間']}});
   ensureCombatInjuryState(state);return state;
@@ -88,6 +90,7 @@ export function validateLife(raw){
   if(!Array.isArray(state.lineage))throw Error('系譜の記録が不正です。');
   state.lineage=state.lineage.slice(-INSPIRATION_LIMITS.lineage);
   state.name=cleanName(state.name);state.ageYears=state.ageSeconds/YEAR_SECONDS;
+  state.family=familyForLife(state);
   // Migrate before injury cleanup so explicitly chosen legacy loadouts remain usable.
   validateInspiration(state);ensureCombatInjuryState(state);recoverPersistentInjuries(state);return state;
 }
@@ -115,6 +118,7 @@ export function enterBuilding(state,station){const changed=enterInteriorState(st
 export function leaveBuilding(state){const changed=leaveInteriorState(state);if(changed)pushEvent(state,'building','建物の外へ出た。');return changed;}
 export function applyEquipmentStation(state,station){
   if(!station?.equipment||state.ageYears<7||state.phase!=='living'||state.combat||state.ended)return null;
+  if(state.activity?.stationId===station.id&&state.ended)return null;
   const before=JSON.stringify(state.equipment),next={...state.equipment,...station.equipment};if(!WEAPONS[next.weapon]||!ARMORS[next.armor])return null;
   state.equipment=next;if(next.weapon!=='fist')addKnownSkill(state,WEAPONS[next.weapon].skill);if(before===JSON.stringify(next))return null;
   pushEvent(state,'equipment',`${station.label}に持ち替えた。`);return clone(next);
@@ -166,8 +170,8 @@ export function objectiveFor(state){
   if(state.ageYears<7)return '村を歩き、暮らしを知る';if(state.ageYears<15)return state.equipment.weapon==='fist'?'武具のそばへ行き、自分の得物を試す':'暮らしながら、技と装備を試す';
   if(state.zone==='village')return canDepart(state)?'港へ行けば、次の船で前線へ出る':'暮らしながら、次の出航を待つ';return state.front>=5?'魔王軍の主力を退け、帰還する':'前線を生き抜き、奥へ進む';
 }
-export function lineageRecord(state,memento=null){return {lifeId:state.id,generation:state.generation,name:state.name,age:Math.floor(state.ageYears),birthVillageId:state.birthVillageId,returnedHome:state.returns>0,memento:memento||null,defeats:state.defeats,equipment:clone(state.equipment),experiences:clone(state.experiences),skills:[...state.knownSkills],inspirationImprint:inspirationImprint(state)};}
+export function lineageRecord(state,memento=null){return {lifeId:state.id,familyId:familyForLife(state).id,generation:state.generation,name:state.name,age:Math.floor(state.ageYears),birthVillageId:state.birthVillageId,returnedHome:state.returns>0,memento:memento||null,defeats:state.defeats,equipment:clone(state.equipment),experiences:clone(state.experiences),skills:[...state.knownSkills],inspirationImprint:inspirationImprint(state)};}
 export function rebirth(state,{name=state.name,memento=null,seed=(state.seed+0x9e3779b9)>>>0,villageId=null,villageIds=[state.birthVillageId]}={}){
-  const record=lineageRecord(state,memento),next=createLife({name,seed,generation:state.generation+1,lineage:[...state.lineage,record],homelands:state.homelands,villageIds,birthVillageId:villageId});
+  const record=lineageRecord(state,memento),next=createLife({name,seed,generation:state.generation+1,lineage:[...state.lineage,record],homelands:state.homelands,villageIds,birthVillageId:villageId,family:inheritFamily(state)});
   next.lineageArchive={earlierGenerations:Math.max(0,next.generation-1-next.lineage.length)};return next;
 }

@@ -1,5 +1,5 @@
 import {createTidebreakRuntime} from '@soul/tidebreak-combat';
-import {CAUSAL_ANSWERS} from '@soul/game-data';
+import {CAUSAL_ANSWERS,generatedTechniqueNaming} from '@soul/game-data';
 import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stage.js';
 import {tidebreakWeaponFor} from './rebuild/combat.js';
 import {applyChoreographyImpact,combatBodySnapshot,strategyForState} from './rebuild/combat-choreography.js';
