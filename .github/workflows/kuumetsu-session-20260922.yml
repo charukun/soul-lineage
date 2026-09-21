@@ -1,0 +1,26 @@
+name: Temporary kuumetsu observation transport 20260922
+# Task-scoped control branch only. Never merge this workflow to develop/main.
+on:
+  push:
+    branches: [ops/kuumetsu-observe-20260922-01]
+    paths: [.github/workflows/kuumetsu-session-20260922.yml]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Dispatch canonical exact-source publication
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const sourceSha = '994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c';
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo,
+              workflow_id: 'dev-app-publish.yml',
+              ref: 'develop',
+              inputs: {app: 'demon', source_sha: sourceSha}
+            });
+            core.info(JSON.stringify({run_key: 'kuumetsu-20260922-01', phase: 'before', app: 'demon', sourceSha}));
