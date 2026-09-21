@@ -1,6 +1,5 @@
 import {applyJohakyuImpactOnce,createJohakyuBattle,createJohakyuCheckpoint,johakyuActorCapability,recoverJohakyuStamina,restoreJohakyuCheckpoint,selectReachableTarget,spendJohakyuStamina} from '@soul/johakyu-combat/domain';
 import {resolveJohakyuLocomotion,resolveJohakyuMotion} from '@soul/johakyu-combat/motion-contract';
-import {johakyuStageCapability} from '@soul/johakyu-combat/execution-capability';
 import {addTechniqueToReviewChain,compileTechniqueComposition,createReviewTechniqueComposition,reviewChainLabel,techniqueFromCombatForm} from '@soul/johakyu-combat/technique-composition';
 
 const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
@@ -159,11 +158,9 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   }
   function reactionContext(actor){const cursor=cursorFor(actor),node=nodeFor(actor,cursor);return{cursor,node};}
   function beginReaction(actor,target,kind,reason){
-    const {node}=reactionContext(actor),baseCost=KIND_COST[kind]??0,footwork=kind==='counter'?'forward':'stay';
-    const capability=johakyuStageCapability(actor,{weapon:'sword',phase:'uke',kind,footwork,charge:'none',staminaCost:baseCost});
-    if(!capability.allowed)return null;
-    const effectiveCost=Math.ceil(capability.stamina.effectiveCost*100)/100;
-    if(effectiveCost>0&&!spendJohakyuStamina(actor,effectiveCost))return null;
+    const {node}=reactionContext(actor),cost=KIND_COST[kind]??0,capability=johakyuActorCapability(actor);
+    if(!capability.canMove||(kind==='counter'&&!capability.canAttack))return null;
+    if(cost>0&&!spendJohakyuStamina(actor,cost))return null;
     const motion=resolveJohakyuMotion({weapon:'sword',kind,phase:'uke'});if(!motion.supported)return null;
     const state={reaction:true,reactionKind:kind,reason,startedAt:time,duration:REACTION_SECONDS[kind],impacted:false,outcome:null,
       id:`${battle.battleId}:${actor.id}:reaction-${kind}:attempt-${++attemptSerial}`,targetId:target.id,motion,context:node};
@@ -219,12 +216,9 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   function nextAction(actor){
     if(actor.dead||actor.incapacitated)return null;
     const target=selectTarget(battle,actor.id);if(!target)return null;
-    const cursor=cursorFor(actor),node=nodeFor(actor,cursor),cost=stageCost(node.stage),actorCapability=johakyuActorCapability(actor);
-    if(stageDamage(node.stage)>0&&!actorCapability.canAttack){readyAt.set(actor.id,time+.24);return null;}
-    const capability=johakyuStageCapability(actor,{weapon:'sword',phase:node.phase,kind:node.stage.step.kind,footwork:node.stage.step.footwork,charge:node.stage.step.charge,staminaCost:cost});
-    if(!capability.allowed){readyAt.set(actor.id,time+.28);if(actor.id==='hero')traceRow({type:'capability-block',reason:capability.reason,phase:node.phase,techniqueId:node.technique.id,stageIndex:node.stage.index});return null;}
-    const effectiveCost=Math.ceil(capability.stamina.effectiveCost*100)/100;
-    if(effectiveCost>0&&!spendJohakyuStamina(actor,effectiveCost)){readyAt.set(actor.id,time+.32);return null;}
+    const cursor=cursorFor(actor),node=nodeFor(actor,cursor),cost=stageCost(node.stage),capability=johakyuActorCapability(actor);
+    if(stageDamage(node.stage)>0&&!capability.canAttack){readyAt.set(actor.id,time+.24);return null;}
+    if(cost>0&&!spendJohakyuStamina(actor,cost)){readyAt.set(actor.id,time+.32);return null;}
     const motion=motionFor(node),duration=stageDuration(node.technique,node.stage),serial=`${cursor.cycle}:${cursor.phaseIndex}:${cursor.techniqueIndex}:${cursor.stageIndex}`;
     const state={phaseEpoch:`${cursor.cycle}:${cursor.phaseIndex}`,startedAt:time,duration,impacted:false,outcome:null,
       id:`${battle.battleId}:${actor.id}:${serial}:attempt-${++attemptSerial}`,targetId:target.id,node,motion};

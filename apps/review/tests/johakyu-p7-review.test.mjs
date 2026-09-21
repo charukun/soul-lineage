@@ -104,7 +104,7 @@ test('a real miss breaks the current chain and restarts its phase from the first
 });
 
 test('an early incoming hit breaks an unprotected chain instead of retrying a later stage',()=>{
- const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.3});let proof=null;
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',enemyLeadSeconds:.3});let proof=null;
  for(let i=0;i<1200&&!proof;i++){
    scenario.step(1/60);const trace=scenario.inspect().trace;
    const breakIndex=trace.findIndex(row=>row.type==='chain-break'&&row.reason==='hit-before-contact');
@@ -203,8 +203,8 @@ test('battle2 presentation layers hit reactions, local hit stop, two-actor frami
  assert.match(audio,/BATTLE2_SOUND_SAMPLES/);
 });
 
-test('battle2 consumes canonical stage capability instead of discarding execution constraints',()=>{
- const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');assert.match(source,/johakyuStageCapability/);assert.match(source,/effectiveCost/);assert.doesNotMatch(source,/void capability/);
+test('battle2 consumes canonical actor capability without duplicating the next injury layer',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');assert.match(source,/johakyuActorCapability/);assert.match(source,/capability\.canAttack/);assert.match(source,/capability:\{canMove:capability\.canMove,canAttack:capability\.canAttack/);assert.doesNotMatch(source,/johakyuStageCapability|void capability/);
 });
 
 test('battle2 shows the current build version from canonical build info',()=>{
