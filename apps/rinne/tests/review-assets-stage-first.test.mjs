@@ -7,18 +7,27 @@ const cssUrl = new URL('../src/review-asset-library.css', import.meta.url);
 const jsUrl = new URL('../src/review-asset-library.js', import.meta.url);
 const catalogUrl = new URL('../src/review-equipment-catalog.js', import.meta.url);
 
-test('equipment review mirrors the motion library category-to-item flow', async () => {
+test('equipment review splits weapon and armor tabs before category-to-item browsing', async () => {
   const [html,css,js,catalog] = await Promise.all([
     readFile(htmlUrl,'utf8'),readFile(cssUrl,'utf8'),readFile(jsUrl,'utf8'),readFile(catalogUrl,'utf8')
   ]);
   assert.match(html,/EQUIPMENT LIBRARY/);
+  assert.match(html,/id="asset-equipment-tabs"/);
+  assert.match(html,/data-equipment-section="weapon"[\s\S]*>武器</);
+  assert.match(html,/data-equipment-section="armor"[\s\S]*>防具</);
   assert.match(html,/id="asset-filters"/);
+  assert.match(html,/id="asset-recommended-toggle"/);
   assert.match(html,/id="asset-grid-summary"/);
   assert.match(html,/id="asset-item-count"/);
-  assert.match(js,/filterEquipmentReviewCatalog\(equipmentFilter\)/);
-  assert.match(js,/REVIEW_EQUIPMENT_CATEGORY_ORDER/);
+  assert.match(js,/const EQUIPMENT_TABS=Object\.freeze/);
+  assert.match(js,/weapon:Object\.freeze\(\{label:'武器'/);
+  assert.match(js,/armor:Object\.freeze\(\{label:'防具'/);
+  assert.match(js,/equipmentSection='weapon',equipmentFilter='all',equipmentRecommendedOnly=true/);
+  assert.doesNotMatch(js,/REVIEW_EQUIPMENT_CATEGORY_ORDER/);
+  assert.doesNotMatch(js,/filterEquipmentReviewCatalog/);
   assert.doesNotMatch(js,/const WEAPON_TYPES = Object\.freeze/);
-  for(const label of ['おすすめ','刀剣','斧','長柄','遠距離','盾']) assert.match(catalog,new RegExp(label));
+  for(const label of ['刀剣','斧','長柄','遠距離','盾','頭','胴','腕','脚','背中']) assert.match(catalog,new RegExp(label));
+  assert.match(css,/\.asset-equipment-tabs\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css,/\.asset-weapon-types\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
 });
 
