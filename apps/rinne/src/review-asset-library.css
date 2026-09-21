@@ -281,3 +281,23 @@ body.asset-model-picker-open{overflow:hidden}
   .asset-model-section h2{font-size:10px;color:#8f9b95}
   .asset-model-trigger{min-height:38px;padding:6px 9px}
 }
+
+
+/* Protagonist weapon-type picker replaces review-only skeleton body selection. */
+.asset-weapon-section{gap:8px}
+.asset-weapon-types{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:5px}
+.asset-weapon-types .review-choice-card{
+  min-width:0;min-height:74px;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:4px;
+  padding:6px 4px;border:1px solid #35413c;border-radius:10px;background:#101715;color:#cbd4cf;
+  font-size:9px;font-weight:750;overflow:hidden
+}
+.asset-weapon-types .review-choice-card[aria-selected="true"]{
+  border-color:#d7c58b;background:#29271f;color:#fff1c8;box-shadow:inset 0 -2px #d7c58b
+}
+.asset-weapon-types .review-choice-card>span{
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center
+}
+@media(max-width:520px){
+  .asset-weapon-types{gap:4px}
+  .asset-weapon-types .review-choice-card{min-height:64px;padding:4px 2px;font-size:8px}
+}
