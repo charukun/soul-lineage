@@ -53,11 +53,11 @@ test('adopted protagonist runtime bytes and DCC evidence are repository-local', 
 });
 
 test('motion review keeps explicit model selection rather than silently forcing the protagonist', () => {
-  const source = readFileSync('apps/rinne/src/motion-review-entrypoint.js', 'utf8');
-  assert.match(source, /characterModel/);
-  assert.match(source, /workspace\?\.selectModel\(requestedModel\)/);
+  const source = readFileSync('apps/rinne/src/review-motion.js', 'utf8');
+  assert.match(source, /const REVIEW_MODELS=KAYKIT_MODELS/);
+  assert.match(source, /data-motion-model/);
+  assert.match(source, /loadModel\(model\)/);
   assert.doesNotMatch(source, /PROTAGONIST_VILLAGER_MODEL_ID/);
-  assert.match(source, /30秒演舞/);
 });
 
 
