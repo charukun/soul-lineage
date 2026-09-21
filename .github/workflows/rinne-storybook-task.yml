@@ -1,0 +1,35 @@
+name: Task-scoped RINNE approved UI workbench
+on:
+  push:
+    branches: [feat/rinne-approved-storybook-20260922]
+    paths: [.storybook-task-input.json]
+permissions:
+  contents: write
+jobs:
+  work:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Materialize approved conversation artwork
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/rinne-storybook-materialize.py
+      - name: Compare and refine approved UI
+        if: hashFiles('.storybook-compare-enabled') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          node scripts/rinne-storybook-compare.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rinne-storybook-${{ github.sha }}
+          path: .storybook-evidence/
+          if-no-files-found: ignore
+          retention-days: 14
