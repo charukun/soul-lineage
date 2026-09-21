@@ -6,6 +6,7 @@ const read = name => readFileSync(new URL(`../src/${name}`, import.meta.url), 'u
 const code = read('character-review-grid.js');
 const css = read('character-review-grid.css');
 const auto = read('review-slot-auto.js');
+const workspace = read('character-workspace.js');
 const { REVIEW_SECTIONS, readCharacterReviewGroups, gridFocusIndex, installCharacterReviewGrid } = await import(
   `data:text/javascript;base64,${Buffer.from(code.replace("import './character-review-grid.css';", '')).toString('base64')}`
 );
@@ -75,6 +76,10 @@ test('keyboard navigation matches five columns and skips disabled cells safely',
   assert.equal(gridFocusIndex(items, 1, 'Enter'), 1);
 });
 
+test('procedural reference-sheet model attachment is absent from the active Character Studio runtime', () => {
+  assert.doesNotMatch(workspace, /attachReferenceCharacterController|referenceControllers/);
+});
+
 test('installation is character-only and idempotent before querying or changing the legacy UI', () => {
   assert.equal(installCharacterReviewGrid({ body: { dataset: { reviewMode: 'motion' } } }, {}), false);
   assert.equal(installCharacterReviewGrid({ body: { dataset: { reviewMode: 'character' } }, getElementById: () => ({}) }, {}), false);
@@ -125,4 +130,6 @@ test('model browsing is the primary review surface and detailed editing is secon
   assert.match(css, /\.character-model-review-actions\s*\{[^}]*grid-template-columns:\.72fr 1fr 1fr \.72fr/);
   assert.match(css, /\.character-review-details-summary/);
   assert.match(css, /\.character-model-list\{display:none!important\}/);
+  assert.match(css, /\.character-model-card-icon\{display:none!important\}/);
+  assert.match(css, /grid-template-rows:minmax\(250px,38%\) minmax\(0,62%\)/);
 });
