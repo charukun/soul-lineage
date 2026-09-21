@@ -8,7 +8,7 @@ permissions:
 jobs:
   reproduce:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
@@ -20,9 +20,20 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium
-      - name: Reproduce on public DEV
+      - run: npm run build:rinne
+      - name: Start exact-head preview
+        run: |
+          npm run preview --workspace @soul/rinne > /tmp/rinne-preview.log 2>&1 &
+          echo $! > /tmp/rinne-preview.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:5273/review-battle.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/rinne-preview.log
+          exit 1
+      - name: Reproduce exact-head inspiration path
         env:
-          TARGET_URL: https://soul-lineage-rinne-dev.c-okamoto.workers.dev/review-battle
+          TARGET_URL: http://127.0.0.1:5273/review-battle.html
         run: node apps/rinne/tests/inspiration-freeze-browser.mjs
       - uses: actions/upload-artifact@v4
         if: always()

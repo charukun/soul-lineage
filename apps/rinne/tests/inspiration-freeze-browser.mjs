@@ -31,16 +31,8 @@ try{
   await page.evaluate(()=>{globalThis.__inspirationProbeOriginalRandom=Math.random;Math.random=()=>0;});
   result.afterBoost=await state();
 
-  let trigger='spontaneous';
-  try{
-    await page.waitForFunction(()=>document.querySelector('.stage')?.dataset.inspirationCinematic==='true',null,{timeout:6000});
-  }catch{
-    result.beforeFallback=await state();
-    trigger='chain-preview-fallback';
-    await page.locator('[data-chain-preview]').first().evaluate(button=>button.click());
-    await page.waitForFunction(()=>document.querySelector('.stage')?.dataset.inspirationCinematic==='true',null,{timeout:6000});
-  }
-  result.trigger=trigger;
+  await page.waitForFunction(()=>document.querySelector('.stage')?.dataset.inspirationCinematic==='true',null,{timeout:15000});
+  result.trigger='spontaneous';
   const start=await state();
   const before=await page.locator('#battle-canvas').screenshot({path:out+'/inspiration-start.png'});
   await page.waitForTimeout(1200);
