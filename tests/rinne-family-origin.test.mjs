@@ -41,7 +41,7 @@ test('canonical validation rejects fabricated choices, unsafe identity and malfo
     assert.throws(() => createFamily({...answers, ethosId:value}, 'family-test'));
     assert.throws(() => createFamily({...answers, traditionId:value}, 'family-test'));
   }
-  for (const patch of [{id:'<script>'}, {schemaVersion:2}, {origin:'guessed'}, {contributions:{}}, {archivedGenerations:-1}, {archivedGenerations:Infinity}]) assert.throws(() => validateFamily({...family(), ...patch}));
+  for (const patch of [{id:'<script>'}, {schemaVersion:99}, {origin:'guessed'}, {contributions:{}}, {archivedGenerations:-1}, {archivedGenerations:Infinity}]) assert.throws(() => validateFamily({...family(), ...patch}));
   assert.throws(() => validateFamily({...family(), contributions:[{lifeId:'life-1', generation:1, name:'a', returns:0, defeats:0, skills:Array(9).fill('skill.step')}]}));
   assert.equal(validateFamily({...family(), attackBonus:999}).attackBonus, undefined);
 });

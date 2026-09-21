@@ -4,7 +4,7 @@ import { DISCOVERIES, skillEffects, skillName } from './skill-system.js';
 import { enterInteriorState, leaveInteriorState } from './interior-state.js';
 import { ensureCombatInjuryState, recoverPersistentInjuries } from './combat-injury.js';
 import { ensureInspiration, validateInspiration, advanceInspirationTime, recordLifeExperience, inspirationEffortScale, inspirationImprint, initializeBirthTalents, INSPIRATION_LIMITS } from './inspiration-state.js';
-import { familyForLife, inheritFamily } from './family-origin.js';
+import { familyForLife, inheritFamily, settleFamily } from './family-origin.js';
 
 export { DISCOVERIES, skillEffects, skillName };
 export const SAVE_SCHEMA = 2;
@@ -73,7 +73,7 @@ export function createLife({name='旅人',seed=1,generation=1,lineage=[],homelan
     combat:null,defeats:0,returns:0,history:[],lineage:Array.isArray(lineage)?clone(lineage).slice(-INSPIRATION_LIMITS.lineage):[],
     events:[{type:'born',worldSecond:0,text:`${cleanName(name)}が${village}に生まれた。`}],
   };
-  state.family=familyForLife({...state,family});
+  state.family=settleFamily(familyForLife({...state,family}),village,{generation:state.generation,lifeId:state.id});
   ensureInspiration(state,{fresh:true});const gifted=initializeBirthTalents(state);
   if(gifted)state.events.unshift({type:'village-news',scope:'village',worldSecond:0,text:`${state.name}が「${gifted.axis}」に稀有な資質を持って生まれた。村にギフテッド誕生の知らせが広がった。`,tag:'ギフテッド',subjectId:state.id,communityHook:{kind:'protect-gifted-child',roles:['見守り役','師匠候補','将来の共闘仲間']}});
   ensureCombatInjuryState(state);return state;
@@ -167,6 +167,6 @@ export function objectiveFor(state){
 }
 export function lineageRecord(state,memento=null){return {lifeId:state.id,familyId:familyForLife(state).id,generation:state.generation,name:state.name,age:Math.floor(state.ageYears),birthVillageId:state.birthVillageId,returnedHome:state.returns>0,memento:memento||null,defeats:state.defeats,equipment:clone(state.equipment),experiences:clone(state.experiences),skills:[...state.knownSkills],inspirationImprint:inspirationImprint(state)};}
 export function rebirth(state,{name=state.name,memento=null,seed=(state.seed+0x9e3779b9)>>>0,villageId=null,villageIds=[state.birthVillageId]}={}){
-  const record=lineageRecord(state,memento),next=createLife({name,seed,generation:state.generation+1,lineage:[...state.lineage,record],homelands:state.homelands,villageIds,birthVillageId:villageId,family:inheritFamily(state)});
+  const record=lineageRecord(state,memento),family=inheritFamily(state),next=createLife({name,seed,generation:state.generation+1,lineage:[...state.lineage,record],homelands:state.homelands,villageIds,birthVillageId:villageId,family});
   next.lineageArchive={earlierGenerations:Math.max(0,next.generation-1-next.lineage.length)};return next;
 }
