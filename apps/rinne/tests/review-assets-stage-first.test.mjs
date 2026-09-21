@@ -115,7 +115,7 @@ test('equipment library exposes armor categories and body slots', async () => {
   for(const armor of ['helmet','chestplate','bracers','greaves','mantle'])assert.match(catalog,new RegExp(`'${armor}'`));
   assert.match(js,/const EQUIPMENT_SLOTS=Object\.freeze\(\['main','off','head','body','arms','legs','back'\]\)/);
   assert.match(js,/function runtimeArmor\(item\)/);
-  assert.match(js,/lowerarm\.\\\$\{side\}/);
-  assert.match(js,/lowerleg\.\\\$\{side\}/);
+  assert.ok(js.includes('lowerarm.'+'${'+'side}'));
+  assert.ok(js.includes('lowerleg.'+'${'+'side}'));
   assert.match(js,/attachArmorRoots\(roots,characterHeight\)/);
 });
