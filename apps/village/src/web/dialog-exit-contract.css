@@ -1,0 +1,68 @@
+/*
+ * Exit contract for every blocking village dialog.
+ * The body may grow, but an escape control must remain reachable without
+ * scrolling an entire modal off-screen.
+ */
+#dialog[open]{
+  display:grid;
+  grid-template-rows:minmax(0,1fr) auto;
+  width:min(470px,calc(100vw - 30px));
+  max-height:calc(100dvh - 28px);
+  overflow:hidden;
+}
+#dialogContent{
+  min-height:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-gutter:stable;
+  padding-right:2px;
+}
+#dialog .dialogNavigation{
+  position:relative;
+  z-index:2;
+  flex:none;
+  margin:10px -2px -2px;
+  padding:9px 0 2px;
+  background:linear-gradient(180deg,rgba(237,232,215,.82),rgba(237,232,215,.98) 32%);
+}
+#dialog .dialogNavigation .dialogClose{
+  min-width:96px;
+}
+
+/* Online can contain long connection diagnostics. Keep its return control pinned. */
+#onlineDialog[open]{
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  max-height:calc(100dvh - 28px);
+  overflow:hidden;
+}
+#onlineDialog>main{
+  min-height:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+#onlineDialog>form{
+  position:relative;
+  z-index:2;
+  margin:8px 0 0;
+  padding-top:8px;
+  border-top:1px dashed rgba(95,74,48,.34);
+  background:rgba(237,232,215,.96);
+}
+#onlineDialog>form button{width:100%;}
+
+/* Recovery is intentionally simple, but small/landscape screens must never clip its choices. */
+#recoverDialog[open]{
+  max-height:calc(100dvh - 28px);
+  overflow:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+
+@media(max-height:540px){
+  #dialog[open],#onlineDialog[open],#recoverDialog[open]{
+    max-height:calc(100dvh - 16px);
+  }
+}
