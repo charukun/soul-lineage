@@ -23,7 +23,7 @@ const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
 let strategyA='balanced',strategyB='patient',strategyVariant='A',reviewSeed=6197,reviewInjury='none',reviewHeroBody=null,reviewEnemyBody=null,bodyHud=null;
 let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),bulbTimer=0,pendingInspirationTimer=0,sequenceTimer=0;
-const INSPIRATION_BULB_HOLD_MS=550;
+const INSPIRATION_BULB_HOLD_MS=220;
 const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
 let techniqueComposition=createReviewTechniqueComposition(),compositionWeapon='';
 // Shared with Demon and Rinne gameplay: one swipe parser owns drag, deadzone and terminal flick semantics after develop reconciliation.
@@ -65,13 +65,14 @@ function hideReviewSign(){const sign=q('battle-sign');if(sign)sign.hidden=true;}
 function showReviewSign(){hideReviewSign();}
 function handleInspirationCue(cue,payload={}){
   const banner=q('battle-inspiration');
-  if(cue==='spark'){inspirationSequenceActive=true;hideInspirationBanner();hideReviewSign();showInspirationBulb();battleSfx.inspiration('spark');return;}
+  if(cue==='spark'){inspirationSequenceActive=true;hideInspirationBanner();hideReviewSign();return;}
   if(cue==='camera'){battleSfx.inspiration('camera');return;}
   if(cue==='spacing'){battleSfx.inspiration('anticipation');return;}
-  if(cue==='stagger'){battleSfx.inspiration('stagger');return;}
-  if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}
+  if(cue==='stagger'){showInspirationBulb();battleSfx.inspiration('spark');return;}
   if(cue==='execute'){battleSfx.inspiration('execute');return;}
-  if(cue==='done'){inspirationSequenceActive=false;hideInspirationBulb();setTimeout(hideInspirationBanner,280);}
+  if(cue==='impact'){battleSfx.impact({guard:false,power:1});return;}
+  if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}
+  if(cue==='done'){inspirationSequenceActive=false;hideInspirationBulb();setTimeout(hideInspirationBanner,180);}
 }
 
 function syncModelLabels(){if(q('enemy-name'))q('enemy-name').textContent='スケルトン';}
@@ -168,7 +169,7 @@ function activateInsight(technique,replay=false,phase='ha'){
 }
 function maybeInspire(phase){
   if(!phase||phase===lastInspirationPhase||inspirationSequenceActive||pendingInspirationTimer)return;lastInspirationPhase=phase;const chance=inspirationMode==='boost'?.82:.16;
-  if(Math.random()<chance){const technique=weightedTechnique(phase);if(technique){showReviewSign(technique);pendingInspirationTimer=setTimeout(()=>{pendingInspirationTimer=0;activateInsight(technique,false,phase);},620);}}
+  if(Math.random()<chance){const technique=weightedTechnique(phase);if(technique){showReviewSign(technique);pendingInspirationTimer=setTimeout(()=>{pendingInspirationTimer=0;activateInsight(technique,false,phase);},180);}}
 }
 
 function syncBattle(dt){
