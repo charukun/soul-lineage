@@ -1,0 +1,87 @@
+name: Temporary Asset Native Verification 20260921
+run-name: Native asset verification ${{ github.sha }}
+on:
+  push:
+    branches: ['work/asset-library-expansion-20260921']
+    paths: ['.github/workflows/asset-curation-native-20260921.yml']
+permissions:
+  contents: write
+concurrency:
+  group: asset-curation-native-20260921
+  cancel-in-progress: false
+jobs:
+  native:
+    if: ${{ contains(github.event.head_commit.message, '[asset-native]') && github.ref == 'refs/heads/work/asset-library-expansion-20260921' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Reconcile work branch and current develop
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'work/asset-library-expansion-20260921'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch --no-tags --depth=256 origin develop:refs/remotes/origin/develop "$GITHUB_REF_NAME:refs/remotes/origin/$GITHUB_REF_NAME"
+          test "$(git rev-parse "origin/$GITHUB_REF_NAME")" = "$GITHUB_SHA"
+          git switch -c "$GITHUB_REF_NAME"
+          git merge --no-edit origin/develop
+      - name: Add curated entries to existing catalogs without removing prior entries
+        shell: python
+        run: |
+          from pathlib import Path
+          def link(path, import_line, anchor, replacement):
+            p=Path(path); text=p.read_text()
+            if import_line in text:
+              assert replacement in text, 'Partial catalog integration: '+path
+              return
+            assert text.count(anchor)==1, 'Catalog anchor changed: '+path
+            p.write_text(import_line+'\n'+text.replace(anchor,replacement,1))
+          link('apps/rinne/src/review-object-catalog.js', "import {CURATED_REVIEW_OBJECTS} from './review-curated-library.js';", 'export const RINNE_OBJECT_REVIEW_CATALOG=Object.freeze([', 'export const RINNE_OBJECT_REVIEW_CATALOG=Object.freeze([\n  ...CURATED_REVIEW_OBJECTS,')
+          link('apps/rinne/src/review-sound-catalog.js', "import {CURATED_REVIEW_SOUNDS} from './review-curated-library.js';", '[...sfx,...kenneySfx,...kenneyExpansionSfx,...bgm]', '[...sfx,...kenneySfx,...kenneyExpansionSfx,...CURATED_REVIEW_SOUNDS,...bgm]')
+          p=Path('apps/rinne/src/review-object-library.css'); text=p.read_text()
+          if '/* Curated asset controls */' not in text:
+            p.write_text(text+'\n/* Curated asset controls */\n#object-search{display:block;width:100%;min-width:0;margin-block:.4rem .7rem;}\n#object-result-count{display:block;margin-block:.4rem;}\n#object-animation{min-width:0;margin-block:.7rem;}\n#object-animation[hidden]{display:none;}\n#object-clip{max-width:100%;min-width:0;}\n.object-thumbnail:is(img){object-fit:contain;}\n')
+      - name: Commit the exact source tested by the native probe
+        run: |
+          set -euo pipefail
+          node scripts/assets/curated-catalog.mjs
+          git add -- apps/rinne/src/review-object-catalog.js apps/rinne/src/review-sound-catalog.js apps/rinne/src/review-object-library.css packages/assets/generated/curated-library.json
+          if ! git diff --cached --quiet; then git commit -m 'feat(assets): link compact curated descriptors into existing review catalogs'; fi
+          git diff --exit-code
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Check specialist source syntax
+        run: |
+          node --check packages/assets/src/curated-library.js
+          node --check apps/rinne/src/review-object-library.js
+          node --check scripts/browser/curated-asset-probe-runtime.js
+          node --check scripts/browser/curated-assets.mjs
+      - name: Parse and render every authored model, animate every native clip, decode every audio asset
+        run: node scripts/browser/curated-assets.mjs --generate
+      - name: Activate only assets with complete native evidence
+        run: node scripts/assets/curated-catalog.mjs --activate .deploy-state/asset-curation-evidence/native-receipt.json
+      - name: Commit derivative thumbnails and active provenance to work branch only
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'work/asset-library-expansion-20260921'
+          git add -- apps/review/public/library packages/assets/generated/curated-library.json
+          git commit -m 'feat(assets): activate native-verified curated assets with authored thumbnails'
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
+          printf 'Native-verified work head: `%s`\n' "$(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve task-specific browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-native-evidence-${{ github.sha }}
+          path: .deploy-state/asset-curation-evidence/
+          if-no-files-found: warn
+          retention-days: 14
