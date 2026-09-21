@@ -8,8 +8,6 @@ export const REVIEW_DEV=Object.freeze({
   characters:'https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/',
 });
 
-export const reviewRoute=(base,path='')=>new URL(path,base).href;
-
 export const REVIEW_ROUTES=Object.freeze({
   ...createReviewRoutes({rinneBase:REVIEW_DEV.rinne,charactersBase:REVIEW_DEV.characters}),
   battle2:new URL('./battle2',location.href).href,
