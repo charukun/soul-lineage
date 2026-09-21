@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,stat} from 'node:fs/promises';
 
 const htmlUrl = new URL('../review-assets.html', import.meta.url);
 const cssUrl = new URL('../src/review-asset-library.css', import.meta.url);
@@ -43,14 +43,15 @@ test('equipment slots are status-only and preview remains character-first on pho
 });
 
 
-test('direct weapon selection uses protagonist native accessories before review-only fetch', async () => {
+test('direct weapon selection loads materialized RINNE-owned equipment assets', async () => {
   const js = await readFile(jsUrl,'utf8');
-  assert.match(js, /const nativeMounted = new Map\(\)/);
-  assert.match(js, /const nativeName=slot!==['"]back['"]\?ACCESSORY_NODES\[spec\.family\]\?\.\[side\]:null/);
-  assert.match(js, /native\.visible=true/);
-  assert.match(js, /nativeMounted\.set\(slot,native\)/);
-  const nativeReturn=js.indexOf('nativeMounted.set(slot,native)');
-  const networkLoad=js.indexOf('loader.loadAsync(reviewEquipmentUrl(spec))');
-  assert.ok(nativeReturn>=0 && networkLoad>nativeReturn);
-  for (const family of ['1H_Sword','1H_Axe','2H_Staff','2H_Crossbow']) assert.ok(js.includes(family));
+  assert.doesNotMatch(js, /nativeMounted|native\.visible=true/);
+  assert.match(js, /loader\.loadAsync\(reviewEquipmentUrl\(spec\)\)/);
+  for (const file of ['Skeleton_Blade','Skeleton_Axe','Skeleton_Staff','Skeleton_Crossbow']) {
+    const gltf=new URL(`../public/asset-review/equipment/${file}.gltf`,import.meta.url);
+    const bin=new URL(`../public/asset-review/equipment/${file}.bin`,import.meta.url);
+    assert.ok((await stat(gltf)).size>0,`${file}.gltf must be materialized`);
+    assert.ok((await stat(bin)).size>0,`${file}.bin must be materialized`);
+  }
+  assert.ok((await stat(new URL('../public/asset-review/equipment/skeleton_texture.png',import.meta.url))).size>0);
 });

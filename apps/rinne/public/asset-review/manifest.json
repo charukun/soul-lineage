@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "scope": "rinne-equipment-review",
+  "repository": "KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0",
+  "revision": "15b62b9bad122f72926c10fb14d622c73819fa54",
+  "license": "CC0-1.0",
+  "runtimeOrigin": "self-hosted RINNE Cloudflare Static Assets",
+  "files": [
+    {
+      "file": "Skeleton_Blade.gltf",
+      "byteLength": 3047,
+      "gitBlobSha": "4ebd36b31663c00936b6270c15b6af751b5be091",
+      "sha256": "682a1df2eecb93dea35de628d6b93ca40d1b83586422356f3c1956741f2abf76"
+    },
+    {
+      "file": "Skeleton_Blade.bin",
+      "byteLength": 20056,
+      "gitBlobSha": "98fa74bb4ecca0d474d8f992d10cbd7e55f18106",
+      "sha256": "ccf4f6642130d11650400fa649669ccdb784280eef235fac3a12a197cbc7debe"
+    },
+    {
+      "file": "Skeleton_Axe.gltf",
+      "byteLength": 3045,
+      "gitBlobSha": "79d77edd260b727980571b4b2836f942e0b31d3d",
+      "sha256": "44c8b65942cbb573c99dc14c2a188fad8c47e29ad9764d27b47e6f57bb7e4ebd"
+    },
+    {
+      "file": "Skeleton_Axe.bin",
+      "byteLength": 25348,
+      "gitBlobSha": "609e545071b90bfff0472719ae5229e0d206be68",
+      "sha256": "f994f9e1b3297961a2b27120adb81ccc61ef7a901586b584fa53fdba8b962cc7"
+    },
+    {
+      "file": "Skeleton_Staff.gltf",
+      "byteLength": 3057,
+      "gitBlobSha": "d0cff560383244e2ebbc4a593c0afb890082a514",
+      "sha256": "6bb554fef0889dc9e1a69a71ddae793a772fc18eea059ded61be4f8157fd2f04"
+    },
+    {
+      "file": "Skeleton_Staff.bin",
+      "byteLength": 69244,
+      "gitBlobSha": "5fc8906eb543a7e056e712993326a678456d4397",
+      "sha256": "2b91a59316cea919b2a8b3d94ab85e3b5faa9fdb607a9ab633a6bb6d1e6bbf2f"
+    },
+    {
+      "file": "Skeleton_Crossbow.gltf",
+      "byteLength": 3052,
+      "gitBlobSha": "11b414738856ae5611437373fcb4369ae6b90dca",
+      "sha256": "8b7b8adbc33d2b9921637735d3f319b86a98b8bab9dbbce022541cc732e415ce"
+    },
+    {
+      "file": "Skeleton_Crossbow.bin",
+      "byteLength": 28624,
+      "gitBlobSha": "6820e64878016c9564cee6962db4e35277cd7c2a",
+      "sha256": "dfe637f4d112fcfa515a6f8c921034bb017c68896751cceb8119675c157fa1f8"
+    },
+    {
+      "file": "skeleton_texture.png",
+      "byteLength": 17037,
+      "gitBlobSha": "00bf24bd5fd17937e08fd90f819a7bc69de432b8",
+      "sha256": "15741a25c53e04fa9bf3beac3bc0de442359404b1ff9be863b892cb551ad3657"
+    }
+  ]
+}
