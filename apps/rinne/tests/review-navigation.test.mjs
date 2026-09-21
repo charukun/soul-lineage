@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {REVIEW_NAVIGATION_FALLBACK,canReturnToPreviousReview} from '../../packages/shared-ui/src/review-navigation.js';
+import {REVIEW_NAVIGATION_FALLBACK,canReturnToPreviousReview} from '../../../packages/shared-ui/src/review-navigation.js';
 
 const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
