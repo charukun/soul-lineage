@@ -7,3 +7,5 @@ export function createDrivenBattleRuntime(options){
   if(!driver)throw Error('Canonical presentation port is unavailable');
   return driver;
 }
+
+export {techniquePresentationRevision,resolveTechniquePresentation,techniquePresentationEffectIds} from './technique-presentation.js';
