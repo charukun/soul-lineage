@@ -19,9 +19,6 @@ jobs:
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --ipc=host
     steps:
       - name: Checkout isolated browser control plane
         uses: actions/checkout@v6
@@ -41,6 +38,8 @@ jobs:
           node -e "const c=require('./.browser-review/command.json'); if(!/^https:\/\//.test(c.url||'')) process.exit(2)"
       - name: Install repository dependencies without lifecycle hooks
         run: npm ci --ignore-scripts
+      - name: Install isolated Chromium
+        run: npx playwright install --with-deps chromium
       - name: Execute generic browser review
         run: node scripts/browser/review-control.mjs .browser-review/command.json
       - name: Upload evidence
