@@ -10,7 +10,8 @@
     "./choreography": "./src/choreography.js",
     "./stamina": "./src/stamina.js",
     "./motion-contract": "./src/motion-contract.js",
-    "./technique-composition": "./src/technique-composition.js"
+    "./technique-composition": "./src/technique-composition.js",
+    "./execution-capability": "./src/execution-capability.js"
   },
   "dependencies": {
     "@soul/game-data": "*"
