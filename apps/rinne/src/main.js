@@ -49,7 +49,8 @@ const titleCinematic=createTitleCinematicController({
 });
 function beginTitleCinematic(){
   if(window.__SOUL_BRAND_BOOT_PENDING__)return;
-  if(hasSave){titleCinematic.pause();titleCinematic.setPhase('idle');return;}
+  // A saved family changes the landing title, never the opening film.
+  // Only returning from active gameplay uses the controller's existing landing shortcut.
   titleCinematic.begin();
 }
 const onBrandEnter=()=>{unlockTitleAudio();beginTitleCinematic();};
