@@ -52,6 +52,19 @@ test('motion stage starts farther away and selected motion caption stays top-lef
 });
 
 
+test('motion gear opens downward with compact controls and collapsed diagnostics',()=>{
+  const source=read('../src/review-motion.js');
+  const preview=read('../src/review-motion-preview.css');
+  assert.match(source,/createElement\('section'\).*motion-compatibility/);
+  assert.match(source,/motion-setting-grid/);
+  assert.match(source,/接地補正/);
+  assert.match(source,/補正なし/);
+  assert.match(source,/motion-diagnostics/);
+  assert.match(source,/<summary>技術詳細<\/summary>/);
+  assert.match(preview,/\.motion-review \.review-stage-controls\{top:52px!important;bottom:auto!important\}/);
+  assert.match(preview,/\.motion-review \.review-stage-controls__panel\{top:50px!important;bottom:auto!important\}/);
+});
+
 test('motion review settings can equip a right-hand weapon without changing the motion source',()=>{
   const source=read('../src/review-motion.js');
   const preview=read('../src/review-motion-preview.css');
