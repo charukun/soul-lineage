@@ -6,7 +6,7 @@ export const REVIEW_PROBES=Object.freeze([
   {id:'effects',label:'エフェクト',detail:'VFX・同期・視認性・負荷',tag:'VFX'},
   {id:'sounds',label:'サウンド',detail:'効果音・BGM・単独試聴',tag:'AUDIO'},
   {id:'battle',label:'戦闘演出',detail:'段・技・連・序破急・実演',tag:'BATTLE'},
-  {id:'battle2',label:'序破急バトルシステム',detail:'百年転生へ段階統合する新戦闘基盤',tag:'BATTLE'},
+  {id:'battle2',label:'序破急バトル',detail:'百年転生の序破急戦闘を確認',tag:'BATTLE'},
   {id:'battlebk',label:'戦闘演出bk',detail:'戦闘演出2のバックアップ',tag:'BATTLE'},
 ].map(Object.freeze));
 
