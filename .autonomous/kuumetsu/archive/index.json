@@ -1,1 +1,12 @@
-{"schemaVersion":1,"game":"kuumetsu","entries":[]}
+{
+  "schemaVersion": 1,
+  "game": "kuumetsu",
+  "entries": [
+    {
+      "id": "kuumetsu-foundation-20260920",
+      "problemKey": "durable-code-first-loop",
+      "path": "experiments/kuumetsu-foundation-20260920.json",
+      "verdict": "pending"
+    }
+  ]
+}
