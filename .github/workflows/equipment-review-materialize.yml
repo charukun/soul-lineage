@@ -50,7 +50,7 @@ jobs:
             if(!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
             const bytes=Buffer.from(await response.arrayBuffer());
             if(bytes.length!==size) throw new Error(`${file}: size ${bytes.length} != ${size}`);
-            const actualBlob=createHash('sha1').update(`blob ${bytes.length}\\0`).update(bytes).digest('hex');
+            const actualBlob=createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
             if(actualBlob!==blobSha) throw new Error(`${file}: git blob ${actualBlob} != ${blobSha}`);
             const sha256=createHash('sha256').update(bytes).digest('hex');
             await writeFile(path.join(outRoot,file),bytes);
@@ -60,7 +60,7 @@ jobs:
           const licenseResponse=await fetch(licenseUrl,{signal:AbortSignal.timeout(30000)});
           if(!licenseResponse.ok) throw new Error(`license: HTTP ${licenseResponse.status}`);
           const license=Buffer.from(await licenseResponse.arrayBuffer());
-          const licenseBlob=createHash('sha1').update(`blob ${license.length}\\0`).update(license).digest('hex');
+          const licenseBlob=createHash('sha1').update(`blob ${license.length}\0`).update(license).digest('hex');
           if(license.length!==914||licenseBlob!=='5de5a1e35003680bd6b97b4c247eed71d51a9fb7') throw new Error('license provenance mismatch');
           await mkdir('apps/rinne/public/asset-review/licenses',{recursive:true});
           await writeFile('apps/rinne/public/asset-review/licenses/KayKit-Skeletons-CC0.txt',license);
