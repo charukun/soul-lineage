@@ -92,9 +92,9 @@ export function inspirationMotionPlan({techniqueId='',techniqueName='',phase='ha
 export function inspirationAttackClipName(weapon='sword',steps=[],techniqueId='',phase='ha'){
   return inspirationMotionPlan({techniqueId,phase,weapon,steps}).segments[0].clip.name;
 }
-function techniquePose(combat,plan,progress){
+function techniquePose(combat,plan,progress,speed=1){
   if(!combat||!plan?.segments?.length)return null;
-  const p=clamp(progress),preludeShare=plan.prelude?.15:0;
+  const p=clamp(progress*Math.max(.5,Math.min(1.5,Number(speed)||1))),preludeShare=plan.prelude?.15:0;
   if(plan.prelude&&p<preludeShare)return sample(combat,plan.prelude,.22+.58*(p/preludeShare));
   const strikeProgress=clamp((p-preludeShare)/Math.max(.001,1-preludeShare)),scaled=strikeProgress*plan.segments.length,index=Math.min(plan.segments.length-1,Math.floor(scaled)),local=clamp(scaled-index),segment=plan.segments[index];
   const ratio=segment.sampleStart+(segment.sampleEnd-segment.sampleStart)*motionCurve(local,segment.curve);let pose=sample(combat,segment.clip,ratio);
@@ -128,14 +128,14 @@ export async function createInspirationMotionLab({heroRoot,enemyRoots=[]}={}){
   const settled=await Promise.allSettled(ids.map(id=>loadPinnedMotionSource(id,{preview:true}))),sources={};
   settled.forEach((row,index)=>{if(row.status==='fulfilled')sources[ids[index]]=row.value;});
   const evade=sources[INSPIRATION_MOTION_SELECTIONS.evade.sourceId],combat=sources[INSPIRATION_MOTION_SELECTIONS.combat.sourceId],reaction=sources[INSPIRATION_MOTION_SELECTIONS.reaction.sourceId];
-  function heroPose(sequence,{side=1,weapon='sword',steps=[],techniqueId='',techniqueName='',phase='ha'}={}){
+  function heroPose(sequence,{side=1,weapon='sword',steps=[],techniqueId='',techniqueName='',phase='ha',presentation=null}={}){
     if(!sequence||sequence.stage==='done'||!evade||!combat)return null;
     const dodge=side<0?CLIPS.evadeLeft:CLIPS.evadeRight,plan=inspirationMotionPlan({techniqueId,techniqueName,phase,weapon,steps}),stage=sequence.stage,elapsed=Number(sequence.elapsed)||0;
     const dodgeEnd=sample(evade,dodge,.72),hold=sample(combat,CLIPS.hold,.28+((elapsed*.13)%1)*.22);
     if(stage==='premonition')return sample(evade,dodge,.08+.64*clamp((sequence.nearMiss||0)));
     if(stage==='camera')return blendInspirationPose(dodgeEnd,hold,sequence.progress);
     if(['spacing','stagger','silence','reveal'].includes(stage))return hold;
-    const strike=techniquePose(combat,plan,sequence.executeProgress||0)||hold;
+    const strike=techniquePose(combat,plan,sequence.executeProgress||0,presentation?.motion?.speed)||hold;
     if(stage==='execute'&&(sequence.executeProgress||0)<.16)return blendInspirationPose(hold,strike,(sequence.executeProgress||0)/.16);
     const final=plan.segments.at(-1);
     if(stage==='impact')return sample(combat,final.clip,Math.min(final.sampleEnd,plan.impactRatio));
@@ -179,11 +179,11 @@ export async function createInspirationVfxLab({renderer,document,onError=()=>{}}
   return Object.freeze({
     snapshot:player.snapshot,
     frame(dt,nextAnchors){anchors=nextAnchors||anchors;player.frame(VFX_SCOPE_STATE,VFX_SCOPE_FRONT,Math.max(1/240,Math.min(.05,Number(dt)||1/60)),{level:0,reduced:false,hidden:false,anchors});},
-    insight(position,rotation={x:0,y:0,z:0}){player.presentCues([cue(INSPIRATION_VFX_SELECTIONS.insight,position,rotation,{scale:.11,lifetime:.72,priority:2,followKey:'hero'})]);},
-    trail(position,rotation={x:0,y:0,z:0}){player.presentCues([cue(INSPIRATION_VFX_SELECTIONS.trail,position,rotation,{scale:.78,lifetime:.82,priority:2,followKey:'hero'})]);},
-    hit(position,rotation={x:0,y:0,z:0}){player.presentCues([
-      cue(INSPIRATION_VFX_SELECTIONS.impact,position,rotation,{scale:1.08,lifetime:1.05,priority:3,color:[255,246,220,255]}),
-      cue(INSPIRATION_VFX_SELECTIONS.debris,position,rotation,{scale:.24,lifetime:.78,priority:2,color:[255,220,150,255]})
+    insight(position,rotation={x:0,y:0,z:0},presentation=null){player.presentCues([cue(presentation?.vfx?.anticipation||INSPIRATION_VFX_SELECTIONS.insight,position,rotation,{scale:.11*(presentation?.vfx?.scale||1),lifetime:.72,priority:2,followKey:'hero'})]);},
+    trail(position,rotation={x:0,y:0,z:0},presentation=null){player.presentCues([cue(presentation?.vfx?.trail||INSPIRATION_VFX_SELECTIONS.trail,position,rotation,{scale:.78*(presentation?.vfx?.scale||1),lifetime:.82,priority:2,followKey:'hero'})]);},
+    hit(position,rotation={x:0,y:0,z:0},presentation=null){const scale=presentation?.vfx?.scale||1;player.presentCues([
+      cue(presentation?.vfx?.impact||INSPIRATION_VFX_SELECTIONS.impact,position,rotation,{scale:1.08*scale,lifetime:1.05,priority:3,color:[255,246,220,255]}),
+      cue(presentation?.vfx?.secondary||INSPIRATION_VFX_SELECTIONS.debris,position,rotation,{scale:.24*scale,lifetime:.78,priority:2,color:[255,220,150,255]})
     ]);},
     draw(camera){player.draw(camera);},
     clear(){player.clear();},
