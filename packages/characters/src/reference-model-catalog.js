@@ -91,7 +91,7 @@ const protagonist = {
       fallbackPolicy: 'fail-closed-on-adopted-runtime-integrity-error'
     }
   },
-  note: 'KayKit Adventurers 1.0の固定revisionからKnight.glbのHead / Arm / Leg実メッシュとRig_Mediumを主人公の主軸として直接流用するDCC PRIMARY。Knight_Body固有の騎士章を削るのではなく、同じ固定CC0パックのRogue_Bodyだけを装備なし村人チュニックの胴パーツとしてRig_Mediumへ付け替える。Rogueの武器・ケープ・頭・腕・脚は持ち込まない。ユーザー確認を受けDEV runtime主人公として採用するが、visualApproval=pending / productionReady=falseの品質gateは維持する。'
+  note: 'KayKit Adventurers 1.0の固定revisionからKnight.glbのHead / Arm / Leg実メッシュとRig_Mediumを主人公の主軸として直接流用するDCC PRIMARY。Knight_Body固有の騎士章を削るのではなく、同じ固定CC0パックのRogue_Bodyだけを装備なし村人チュニックの胴パーツとしてRig_Mediumへ付け替える。Rogueの武器・ケープ・頭・腕・脚は持ち込まない。現在のDEV playable heroはモーションレビューと同一の固定KayKit Knight.glbを直接使用し、このDCC個体はCharacter Workshopの別候補として保持する。visualApproval=pending / productionReady=falseの品質gateは維持する。'
 };
 
 validateVisualIdentity(protagonist);
