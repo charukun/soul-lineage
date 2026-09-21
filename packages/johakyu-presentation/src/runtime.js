@@ -382,6 +382,7 @@ function createDrivenPort(){
  return Object.freeze({prepare:prepareDriven,present:(snapshot,dt,events)=>driver.present(snapshot,dt,events),resize,
   cameraVector(axis){const forward=new V();camera.getWorldDirection(forward);forward.y=0;forward.normalize();return new V().crossVectors(forward,new V(0,1,0)).multiplyScalar(axis.x).addScaledVector(forward,-axis.y).normalize();},
   anchor(){if(!hero)return null;return project(hero.pos.clone().add(new V(0,hero.height,0)));},
+  footAnchor(){if(!hero)return null;return project(hero.pos.clone().add(new V(0,.08,0)));},
   metrics:()=>({...metrics(),...driver.metrics(),authority:'rinne-domain'}),snapshot:()=>lastFrame,
   clear:()=>driver.reset(),dispose(){driver.dispose();destroy();}});
 }
