@@ -1,6 +1,7 @@
 const API = 'https://api.github.com/repos/charukun/soul-lineage';
 const CHUNK_SIZE = 16000;
 const REQUEST_CAP = 32;
+export const PUBLIC_REQUEST_CAP = 6;
 const LOW_REMAINING = 250;
 const RATE_HEADER_NAMES = [
   'link', 'x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-used',
@@ -81,7 +82,7 @@ export async function writeStored(storage, key, value) {
   await (storage.transaction ? storage.transaction(write) : write(storage));
 }
 
-export function createGithubClient({ storage, token = '', fetchImpl = fetch, now = Date.now, maxRequests = null } = {}) {
+export function createGithubClient({ storage, token = '', fetchImpl = fetch, now = Date.now, maxRequests = null, allowPublic = false } = {}) {
   const credential = typeof token === 'string' ? token.trim() : '';
   let requests = 0;
   let cacheHits = 0;
@@ -90,14 +91,16 @@ export function createGithubClient({ storage, token = '', fetchImpl = fetch, now
   let lastRate = null;
   let lastFailure = null;
   const touched = new Set();
-  const scope = credential ? 'authenticated' : 'auth-required';
-  const requestCap = credential ? (Number.isFinite(maxRequests) ? maxRequests : REQUEST_CAP) : 0;
+  const publicAccess = !credential && allowPublic;
+  const scope = credential ? 'authenticated' : publicAccess ? 'public' : 'auth-required';
+  const requestCap = credential ? (Number.isFinite(maxRequests) ? maxRequests : REQUEST_CAP)
+    : publicAccess ? Math.min(Number.isFinite(maxRequests) ? maxRequests : PUBLIC_REQUEST_CAP, PUBLIC_REQUEST_CAP) : 0;
   const cachedResult = (cached, headers = cached?.headers || {}) => ({ data: cached.data, response: { headers: new Headers(headers) }, cached: true });
   async function get(path, { immutable = false, maxAgeMs = 0 } = {}) {
     if (!path.startsWith('/') || path.startsWith('//') || path.includes('://')) throw new Error('Invalid GitHub repository path');
-    if (!credential) {
+    if (!credential && !publicAccess) {
       lastFailure = { kind: 'auth-required', status: null, scope: 'none', requests, maxRequests: 0, remaining: null };
-      throw Object.assign(new Error('GitHub認証tokenが必要です。未認証APIへは接続しません。'), {
+      throw Object.assign(new Error('GitHub認証tokenが必要です。通常同期は未認証APIへ接続しません。'), {
         authRequired: true, githubDiagnostic: lastFailure,
       });
     }
@@ -110,7 +113,7 @@ export function createGithubClient({ storage, token = '', fetchImpl = fetch, now
       cacheHits++;
       return cachedResult(cached);
     }
-    const backoffKey = 'ops-backoff:authenticated';
+    const backoffKey = `ops-backoff:${scope}`;
     const rawBackoff = await storage?.get(backoffKey);
     if (typeof rawBackoff === 'number') {
       // Legacy backoff did not record why a 403 happened and could contain a permission error.
@@ -136,8 +139,8 @@ export function createGithubClient({ storage, token = '', fetchImpl = fetch, now
     requests++;
     const headers = {
       accept: 'application/vnd.github+json',
-      authorization: `Bearer ${credential}`,
-      'user-agent': 'rinne-ops-board/2.3',
+      ...(credential ? { authorization: `Bearer ${credential}` } : {}),
+      'user-agent': 'rinne-ops-board/2.4',
       'x-github-api-version': '2022-11-28',
     };
     if (cached?.etag) headers['if-none-match'] = cached.etag;

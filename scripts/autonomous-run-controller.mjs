@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { workerPreviewUrl } from './staging-preview.mjs';
+import { stagingObservation, workerPreviewUrl } from './staging-preview.mjs';
 
 const SHA=/^[0-9a-f]{40}$/;
 const VERSION=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -86,6 +86,43 @@ export function bindImmutableVersion({plan,versionId,deploymentUrl}={}){
   });
 }
 
+export async function verifyImmutableVersion({
+  binding,fetchImpl=globalThis.fetch,observedAt=new Date().toISOString(),conditions={},notVerified=[]
+}={}){
+  assert.ok(binding?.immutable===true,'immutable version binding is required');
+  assert.equal(typeof fetchImpl,'function','fetch implementation is required');
+  const versionUrl=new URL('version.json',binding.reference).href;
+  const response=await fetchImpl(versionUrl,{headers:{accept:'application/json'}});
+  assert.ok(response?.ok,`version.json request failed: ${response?.status??'unknown'}`);
+  const version=await response.json();
+  const commit=exactSha(version?.commit);
+  assert.equal(commit,binding.sourceSha,`version.json.commit mismatch: expected ${binding.sourceSha}, got ${commit}`);
+  const observation=stagingObservation({
+    app:binding.app,
+    sourceSha:binding.sourceSha,
+    versionId:binding.versionId,
+    deploymentUrl:binding.reference.replace(binding.versionId.slice(0,8)+'-',''),
+    observedAt,
+    conditions,
+    notVerified,
+  });
+  return Object.freeze({
+    ...observation,
+    runKey:binding.runKey,
+    game:binding.game,
+    app:binding.app,
+    iteration:binding.iteration,
+    iterations:binding.iterations,
+    phase:binding.phase,
+    verification:Object.freeze({
+      versionUrl,
+      commit,
+      environment:version?.environment??null,
+      matched:true,
+    }),
+  });
+}
+
 export function nextIteration({state,mergeSha}={}){
   assert.ok(state&&typeof state==='object','current state is required');
   const merged=exactSha(mergeSha);
@@ -106,6 +143,10 @@ function option(args,name,fallback=null){
   const i=args.indexOf(name);
   return i>=0?args[i+1]:fallback;
 }
+function jsonOption(args,name,fallback){
+  const value=option(args,name,null);
+  return value===null?fallback:JSON.parse(value);
+}
 async function main(){
   const args=process.argv.slice(2),command=args[0];
   if(command==='plan'){
@@ -120,7 +161,7 @@ async function main(){
     process.stdout.write(JSON.stringify(plan,null,2)+'\n');
     return;
   }
-  if(command==='bind'){
+  if(command==='bind'||command==='verify'){
     const plan=isolatedPublicationPlan({
       game:option(args,'--game'),
       sourceSha:option(args,'--sha'),
@@ -129,9 +170,23 @@ async function main(){
       iterations:option(args,'--iterations','1'),
       phase:option(args,'--phase','before'),
     });
-    process.stdout.write(JSON.stringify(bindImmutableVersion({plan,versionId:option(args,'--version')}),null,2)+'\n');
+    const binding=bindImmutableVersion({
+      plan,
+      versionId:option(args,'--version'),
+      deploymentUrl:option(args,'--deployment-url',undefined),
+    });
+    if(command==='bind'){
+      process.stdout.write(JSON.stringify(binding,null,2)+'\n');
+      return;
+    }
+    const verified=await verifyImmutableVersion({
+      binding,
+      conditions:jsonOption(args,'--conditions-json',{}),
+      notVerified:jsonOption(args,'--not-verified-json',[]),
+    });
+    process.stdout.write(JSON.stringify(verified,null,2)+'\n');
     return;
   }
-  throw new Error('Usage: node scripts/autonomous-run-controller.mjs <plan|bind> --game <village|kuumetsu|rinne> --sha <40-hex> --run-key <key> --iteration <n> --iterations <n> --phase <before|after> [--version <worker-version-id>]');
+  throw new Error('Usage: node scripts/autonomous-run-controller.mjs <plan|bind|verify> --game <village|kuumetsu|rinne> --sha <40-hex> --run-key <key> --iteration <n> --iterations <n> --phase <before|after> [--version <worker-version-id>] [--deployment-url <url>] [--conditions-json <json>] [--not-verified-json <json>]');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)await main();

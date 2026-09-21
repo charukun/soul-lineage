@@ -7,10 +7,10 @@ export const FATIGUE_BREATH_ASSET=Object.freeze({
 });
 
 const profiles=Object.freeze({
-  fresh:Object.freeze({lean:0,drop:0,shoulder:0,breathHz:.24,breathLift:.004,sway:0,sweatInterval:0,audioGain:0,audioRate:1}),
-  steady:Object.freeze({lean:.018,drop:.004,shoulder:.008,breathHz:.38,breathLift:.012,sway:.003,sweatInterval:0,audioGain:0,audioRate:1}),
-  low:Object.freeze({lean:.072,drop:.018,shoulder:.026,breathHz:.62,breathLift:.026,sway:.008,sweatInterval:1.15,audioGain:.22,audioRate:.92}),
-  critical:Object.freeze({lean:.185,drop:.052,shoulder:.058,breathHz:.92,breathLift:.048,sway:.018,sweatInterval:.42,audioGain:.52,audioRate:1.08})
+  fresh:Object.freeze({sweatInterval:0,audioGain:0,audioRate:1}),
+  steady:Object.freeze({sweatInterval:0,audioGain:0,audioRate:1}),
+  low:Object.freeze({sweatInterval:1.15,audioGain:.22,audioRate:.92}),
+  critical:Object.freeze({sweatInterval:.42,audioGain:.52,audioRate:1.08})
 });
 const disabled=Object.freeze({band:'fresh',canonical:false,attackLocked:false,...profiles.fresh});
 
