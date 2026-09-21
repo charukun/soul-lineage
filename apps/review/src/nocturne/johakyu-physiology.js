@@ -3,8 +3,8 @@ import {createJohakyuBattle,createJohakyuDomainActor,applyJohakyuImpactOnce,joha
 
 /** Review-only encounter. Canonical physiology owns HP/injury/stamina; the
  * native renderer owns artwork, clips and motor timing, never a second hit. */
-export function createJohakyuPhysiologyRules({mind='balanced',loadout,initialBody={}}={}){
-  const base=createJohakyuReviewRules({mind,loadout});
+export function createJohakyuPhysiologyRules({mind='balanced',loadout,sequence=null,initialBody={}}={}){
+  const base=createJohakyuReviewRules({mind,loadout,sequence});
   let battle,actors=new Map(),events=[],epoch=0,serial=0;
   const row=actor=>{const value=actors.get(actor.object.uuid);if(!value)throw Error('Unbound physiology actor');return value;};
   function sync(actor){const entry=row(actor),body=entry.domain;actor.hp=body.hp;actor.maxHp=body.maxHp;return entry;}

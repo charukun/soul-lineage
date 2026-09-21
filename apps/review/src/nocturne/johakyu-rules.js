@@ -2,8 +2,8 @@ import {createJohakyuCursor,compileJohakyuSequence,johakyuIntent,JOHAKYU_CLIPS} 
 
 // Review encounter only. Life, equipment qualification and saving still belong
 // to RINNE. No demo HP or automatic reset is exported as a main-game command.
-export function createJohakyuReviewRules({mind='balanced',loadout}={}){
-  const sequence=compileJohakyuSequence({weapon:'sword',loadout});
+export function createJohakyuReviewRules({mind='balanced',loadout,sequence:acceptedSequence=null}={}){
+  const sequence=acceptedSequence??compileJohakyuSequence({weapon:'sword',loadout});
   let actors=new Map(),events=[],serial=0,battle=0;
   function entry(actor){
     const id=actor.object.uuid;let row=actors.get(id);

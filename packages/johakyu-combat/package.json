@@ -8,7 +8,8 @@
     "./domain": "./src/domain.js",
     "./injury": "./src/injury.js",
     "./choreography": "./src/choreography.js",
-    "./stamina": "./src/stamina.js"
+    "./stamina": "./src/stamina.js",
+    "./motion-contract": "./src/motion-contract.js"
   },
   "dependencies": {
     "@soul/game-data": "*"

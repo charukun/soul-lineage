@@ -25,7 +25,7 @@ async function boot(){
     if(disposed||own!==sequence)return;
     sound=createNocturneSound();
     const parameters=new URL(location.href).searchParams;
-    const rules=parameters.get('johakyu')==='p3'?(await import('./nocturne/johakyu-physiology.js')).createJohakyuPhysiologyRules({mind:parameters.get('mind')||'balanced'}):parameters.get('johakyu')==='p2'?(await import('./nocturne/johakyu-rules.js')).createJohakyuReviewRules({mind:parameters.get('mind')||'balanced'}):null;
+    const rules=parameters.get('johakyu')==='p4'?(await import('./nocturne/johakyu-catalog.js')).createJohakyuCatalogRules({mind:parameters.get('mind')||'balanced'}):parameters.get('johakyu')==='p3'?(await import('./nocturne/johakyu-physiology.js')).createJohakyuPhysiologyRules({mind:parameters.get('mind')||'balanced'}):parameters.get('johakyu')==='p2'?(await import('./nocturne/johakyu-rules.js')).createJohakyuReviewRules({mind:parameters.get('mind')||'balanced'}):null;
     if(disposed||own!==sequence)return;
     runtime=createBattleRuntime({world,effects,stage,sound,notify:report,signal:controller.signal,rules});
     await runtime.prepare();if(disposed||own!==sequence)return;prepared=true;report('BATTLE');
