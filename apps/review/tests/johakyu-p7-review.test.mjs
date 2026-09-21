@@ -176,7 +176,7 @@ test('shared presentation forwards authored guard/parry contacts while still sup
 });
 
 test('threat-driven reaction parry can occur outside the configured technique cursor and create a counter opportunity',()=>{
- const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5});let parry=null,counter=null,reactionFrame=null;
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5});let parry=null,counter=null,reactionFrame=null;
  for(let i=0;i<1200&&!(parry&&counter&&reactionFrame);i++){const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self);reactionFrame=reactionFrame||(hero?.action?.scope==='combat-reaction'?hero.action:null);parry=parry||r.events.find(e=>e.type==='parry'&&e.targetId==='hero'&&e.defenseScope==='combat-reaction');counter=counter||r.events.find(e=>e.type==='player-hit'&&e.sourceId==='hero'&&e.counter===true);}
  assert.ok(reactionFrame,'reaction must use a separate action scope');assert.ok(parry,'an incoming threat must be parryable between configured technique stages');assert.ok(counter,'parry must create a real counter opportunity');
  const trace=scenario.inspect().trace,parryStart=trace.find(row=>row.type==='reaction-start'&&row.actorId==='hero'&&row.reaction==='parry');
