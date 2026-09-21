@@ -12,37 +12,39 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v6
         with:
-          node-version: 22
-      - run: npm ci --ignore-scripts
-      - name: Formal ordered P1 through P4 contract evidence
+          fetch-depth: 0
+      - name: Export bounded source snapshots and merge inputs
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p /tmp/johakyu-source
-          node --test apps/review/tests/johakyu-observation.test.mjs > /tmp/johakyu-source/P1.txt
-          node --test packages/johakyu-combat/test/sequence.test.mjs apps/review/tests/johakyu-sequence.test.mjs > /tmp/johakyu-source/P2.txt
-          node --test packages/johakyu-combat/test/domain.test.mjs apps/review/tests/johakyu-physiology.test.mjs apps/rinne/tests/johakyu-physiology.test.mjs > /tmp/johakyu-source/P3.txt
-          node --test packages/johakyu-combat/test/motion-contract.test.mjs apps/review/tests/johakyu-catalog.test.mjs apps/rinne/tests/johakyu-technique-contract.test.mjs apps/rinne/tests/johakyu-contact-clock.test.mjs > /tmp/johakyu-source/P4.txt
-      - name: Native authored mesh and dependency receipt
-        run: |
+          git fetch origin develop
           python3 - <<'PY'
-          import pathlib, subprocess, json, zipfile,struct
-          manifest=json.loads(pathlib.Path('apps/review/src/nocturne/manifest.json').read_text())
-          report={}
-          for name,row in manifest['models'].items():
-            if not name.startswith(('adventurers/','skeletons/')): continue
-            data=pathlib.Path('apps/review/public/library',row['path']).read_bytes()
-            length,kind=struct.unpack_from('<II',data,12)
-            doc=json.loads(data[20:20+length]);report[name]={'nodes':[n.get('name') for n in doc.get('nodes',[])],'meshes':[m.get('name') for m in doc.get('meshes',[])]}
-          pathlib.Path('/tmp/johakyu-source/models.json').write_text(json.dumps(report,indent=2))
-          pathlib.Path('/tmp/johakyu-source/head.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD']).decode())
-          with zipfile.ZipFile('/tmp/johakyu-source/dependencies.zip','w',zipfile.ZIP_DEFLATED) as archive:
-            for p in pathlib.Path('node_modules/three').rglob('*'):
-              if p.is_file(): archive.write(p,p)
+          import pathlib, subprocess, json, zipfile
+          out=pathlib.Path('/tmp/johakyu-source')
+          def git(*args): return subprocess.check_output(['git',*args])
+          work=git('rev-parse','HEAD').decode().strip()
+          develop=git('rev-parse','origin/develop').decode().strip()
+          base=git('merge-base',work,develop).decode().strip()
+          prefixes=('apps/rinne/src/','apps/rinne/tests/','apps/review/src/','apps/review/tests/','packages/johakyu-combat/','packages/johakyu-presentation/','packages/tidebreak-combat/','packages/shared-ui/','scripts/browser/','scripts/astra/','docs/rinne/JOHAKYU_')
+          exact={'AGENTS.md','package.json','package-lock.json','apps/rinne/package.json','apps/review/package.json','apps/rinne/vite.config.js','apps/review/vite.config.js','docs/rinne/MAIN_GAME.md','docs/BROWSER_PLAYTEST_ROUTING.md','docs/BROWSER_SELF_HEALING.md','scripts/astra-focused-validation.mjs','scripts/astra-fast-dev-contract.mjs','.github/workflows/astra-work-validation.yml'}
+          changes=git('diff','--name-status',base,work).decode()
+          upstream=git('diff','--name-status',base,develop).decode()
+          changed={line.split('\t')[-1] for line in changes.splitlines()}
+          exact.update(changed)
+          with zipfile.ZipFile(out/'source-snapshots.zip','w',zipfile.ZIP_DEFLATED) as z:
+            for label,ref in [('work',work),('develop',develop),('base',base)]:
+              for path in git('ls-tree','-r','--name-only',ref).decode().splitlines():
+                if path in exact or (label!='base' and path.startswith(prefixes)):
+                  data=git('show',f'{ref}:{path}')
+                  if len(data)>1000000: continue
+                  z.writestr(f'{label}/{path}',data)
+          receipt={'work':work,'develop':develop,'mergeBase':base,'workChanges':changes,'developChanges':upstream,'workTree':git('rev-parse',work+'^{tree}').decode().strip(),'developTree':git('rev-parse',develop+'^{tree}').decode().strip()}
+          (out/'receipt.json').write_text(json.dumps(receipt,indent=2))
           PY
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: johakyu-phase-evidence-and-meshes
+          name: johakyu-current-source-recovery
           path: /tmp/johakyu-source/
           retention-days: 3
