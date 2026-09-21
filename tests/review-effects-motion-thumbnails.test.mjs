@@ -58,13 +58,15 @@ test('motion review recovers incompatible motion sources and keeps mobile contro
   assert.match(runtime,/normalizeBoneName/);
 });
 
-test('motion review starts on a rigged KayKit model instead of the unrigged Mesh2Motion reference mesh',async()=>{
-  const source=await read('apps/rinne/src/review-motion.js');
-  assert.match(source,/const REVIEW_MODELS=KAYKIT_MODELS;/);
-  assert.match(source,/let selectedModel=REVIEW_MODELS\[0\]/);
+test('motion review starts on the current DCC protagonist and keeps the shared humanoid preview wrapper',async()=>{
+  const [source,models]=await Promise.all([read('apps/rinne/src/review-motion.js'),read('apps/rinne/src/review-motion-models.js')]);
+  assert.match(source,/const REVIEW_MODELS=RINNE_MOTION_REVIEW_MODELS;/);
+  assert.match(source,/let selectedModel=RINNE_MOTION_REVIEW_DEFAULT_MODEL/);
+  assert.match(models,/PROTAGONIST_VILLAGER_MODEL/);
+  assert.match(models,/PROTAGONIST_VILLAGER_V1\.glb/);
   assert.doesNotMatch(source,/mesh2motion-review-mannequin/);
   assert.doesNotMatch(source,/loadMotionReviewModel/);
-  assert.match(source,/targetBones=kaykitHumanoidFromGLTF\(gltf\)/);
+  assert.match(source,/createHumanoidPreview\(gltf\.scene/);
 });
 
 test('motion review skips every incompatible candidate instead of stopping after one fallback',async()=>{
