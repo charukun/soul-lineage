@@ -1,4 +1,5 @@
 import './review-slot-picker.css';
+import './review-slot-picker.css';
 
 let serial=0;
 let opened=null;

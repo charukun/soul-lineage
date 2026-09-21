@@ -2,8 +2,9 @@ import './review-shell.css';
 import './review-controls.css';
 import {REVIEW_PROBES,createReviewRoutes} from './review-manifest.js';
 import {createReviewStageLifecycle,mountReviewStageControls} from './review-stage.js';
+import {bindReviewBackNavigation,canReturnToPreviousReview,REVIEW_NAVIGATION_FALLBACK} from './review-navigation.js';
 
-export {REVIEW_PROBES,createReviewRoutes,createReviewStageLifecycle,mountReviewStageControls};
+export {REVIEW_PROBES,createReviewRoutes,createReviewStageLifecycle,mountReviewStageControls,bindReviewBackNavigation,canReturnToPreviousReview,REVIEW_NAVIGATION_FALLBACK};
 
 const make=(tag,cls='',text='')=>{const node=document.createElement(tag);if(cls)node.className=cls;if(text)node.textContent=text;return node};
 
@@ -40,9 +41,10 @@ export function normalizeReviewBackButton({header=document.querySelector('.revie
   return back;
 }
 
-export function mountReviewShell({current='',routes={},homeHref='',header=document.querySelector('.review-surface__header')}={}){
+export function mountReviewShell({current='',routes={},homeHref='',historyBack=false,header=document.querySelector('.review-surface__header'),doc=document,win=window}={}){
   if(!header)return null;
-  normalizeReviewBackButton({header,href:homeHref});
+  const back=normalizeReviewBackButton({header,href:homeHref});
+  const backNavigation=historyBack?bindReviewBackNavigation(back,{fallbackHref:homeHref,doc,win}):null;
   if(header.querySelector('[data-review-switcher]'))return null;
   const active=REVIEW_PROBES.find(probe=>probe.id===current);
   const root=make('details','review-switcher');
@@ -67,6 +69,6 @@ export function mountReviewShell({current='',routes={},homeHref='',header=docume
   root.append(summary,panel);
   header.append(root);
   const outside=event=>{if(root.open&&!root.contains(event.target))root.open=false};
-  document.addEventListener('pointerdown',outside,true);
-  return{root,destroy(){document.removeEventListener('pointerdown',outside,true);root.remove()}};
+  doc.addEventListener('pointerdown',outside,true);
+  return{root,back,destroy(){doc.removeEventListener('pointerdown',outside,true);backNavigation?.destroy();root.remove()}};
 }

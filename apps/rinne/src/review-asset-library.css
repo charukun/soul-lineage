@@ -220,7 +220,6 @@ body.asset-model-picker-open{overflow:hidden}
 
 /* Catalog thumbnails are static metadata assets; all selectable catalogs stay five-column. */
 .asset-equipment-options,.model-options{grid-template-columns:repeat(5,minmax(0,1fr))!important}
-.review-static-thumbnail{display:block;width:100%;height:100%;min-height:0;max-height:62px;filter:drop-shadow(0 3px 4px #0006);pointer-events:none}
 .asset-equipment-options .review-choice-card,.model-options .review-choice-card{display:grid;grid-template-rows:minmax(0,1fr) auto;align-items:stretch;gap:3px;overflow:hidden}
 .asset-equipment-options .review-choice-card>span,.model-options .review-choice-card>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 @media(max-width:520px){.asset-equipment-options,.model-options{grid-template-columns:repeat(5,minmax(0,1fr))!important}.review-static-thumbnail{max-height:48px}}
