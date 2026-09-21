@@ -27,7 +27,7 @@ const ENEMY_COMPOSITION=buildComposition({
   jo:[['basic.sword','剣の型']],ha:[['basic.sword','剣の型']],kyu:[['basic.sword','剣の型']],
 });
 
-function actorRows(mode){const rows=[{id:'hero',side:'party',hp:125,maxHp:125,stamina:100,staminaCap:100,seed:73917,generation:4},{id:'enemy-a',side:'enemy',hp:100,maxHp:100,stamina:100,staminaCap:100,seed:8101,generation:1}];if(mode==='oneVsThree')rows.push({id:'enemy-b',side:'enemy',hp:82,maxHp:82,stamina:96,staminaCap:100,seed:8102,generation:1},{id:'enemy-c',side:'enemy',hp:108,maxHp:108,stamina:100,staminaCap:100,seed:8103,generation:1});return rows;}
+function actorRows(mode){const rows=[{id:'hero',side:'party',hp:125,maxHp:125,stamina:100,staminaCap:100,seed:73917,generation:4},{id:'enemy-a',side:'enemy',hp:mode==='duel'?150:100,maxHp:mode==='duel'?150:100,stamina:100,staminaCap:100,seed:8101,generation:1}];if(mode==='oneVsThree')rows.push({id:'enemy-b',side:'enemy',hp:82,maxHp:82,stamina:96,staminaCap:100,seed:8102,generation:1},{id:'enemy-c',side:'enemy',hp:108,maxHp:108,stamina:100,staminaCap:100,seed:8103,generation:1});return rows;}
 function bodyView(actor){return Object.fromEntries(Object.entries(actor.injuries).map(([part,row])=>{const severity=Math.min(1,Math.max(0,Number(row.severity)||0));return[part,{severity,durability:Math.round((1-severity)*100),label:PART_LABELS[part]}];}));}
 function selectTarget(battle,id){for(const candidate of TARGETS[id]){const actor=battle.actors.get(candidate);if(actor&&!actor.dead&&!actor.incapacitated)return actor;}return null;}
 function compositionFor(actor){return actor.side==='party'?HERO_COMPOSITION:ENEMY_COMPOSITION;}
@@ -109,7 +109,7 @@ export function createJohakyuP7ReviewScenario({mode='duel'}={}){
       const event=freeze({id:eventId,type:source.side==='party'?'player-hit':'enemy-hit',attackId:action.id,sourceId:source.id,targetId:target.id,damage:result.dealt,phase:action.phase,
         techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,bodyPart:result.part,bodyDurability:result.durability,blocked:false});
       events.push(event);trace.push({type:'impact',time:Number(time.toFixed(2)),...event});
-      const targetAction=actionState.get(target.id);if(targetAction&&!targetAction.impacted&&targetAction.node.stage.step.kind!=='guard'&&targetAction.node.stage.step.kind!=='parry')targetAction.interrupted=true;
+      const targetAction=actionState.get(target.id),targetProgress=targetAction?Math.max(0,(time-targetAction.startedAt)/targetAction.duration):1;if(targetAction&&targetProgress<.34&&!targetAction.impacted&&!['guard','parry','brace'].includes(targetAction.node.stage.step.kind))targetAction.interrupted=true;
     }
     if(events.length){lastEvents=events;if(trace.length>120)trace=trace.slice(-120);}
     return events;
