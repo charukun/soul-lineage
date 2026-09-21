@@ -26,7 +26,9 @@ export let MURA_ENHANCEMENTS_READY=false;
 export function loadMuraEnhancements(){
   return pending??=(async()=>{
     for(const modulePath of ORDERED_ENHANCEMENTS){
-      await import(modulePath);
+      // Vite cannot statically discover a variable dynamic import, so the built
+      // public artifact must resolve the emitted relative module path at runtime.
+      await import(/* @vite-ignore */ new URL(modulePath,import.meta.url).href);
       await yieldToBrowser();
     }
     MURA_ENHANCEMENTS_READY=true;
