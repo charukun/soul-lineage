@@ -52,6 +52,8 @@ Per-App DEV Publish は変更対象だけを公開するため、current develop
 
 GitHubイベント後の認証付きrefreshを主経路とします。ブラウザの「再読込」は保存済みPULSE snapshotを読み直す操作であり、ブラウザからGitHub APIを呼びません。
 
+Workerの再起動でメモリsnapshotが失われ、永続GitHub tokenも存在しない場合だけ、PULSE Workerは公開repositoryのGitHub APIからbounded cold-start recoveryを行います。この復旧は1回あたり最大6 request、直近40 PRまでの浅い状態に限定し、履歴全走査・変更ファイル深掘り・Rescue state取得は行いません。通常の認証付きevent refreshを置き換えず、ブラウザからGitHub APIへ直接接続もしません。`githubApi.scope=public` と `pullSync.mode=public-recovery` で復旧経路を識別できます。
+
 PULSE snapshot、GitHub APIキャッシュ、control historyはDurable Objects永続ストレージを正本にしません。Free tier上限や保存障害がPULSE全体を停止させないことを優先します。peer-world永続データは別責務です。
 
 同期失敗時は以下を守ります。
@@ -69,7 +71,7 @@ PULSE snapshot、GitHub APIキャッシュ、control historyはDurable Objects�
 - ACTIVE: Draft / Ready のopen develop PR
 - APPS: 全管理対象のDEV状態
 - ISSUES: 実際の失敗と人の確認が必要な項目
-- RECENT: merge、DEV公開、PULSE状態変化
+- RECENT: 直近Fast DEVセッションを `実装 → 検証 → Browser → merge → DEV` の5段で表示し、セッション情報がない場合だけmerge・DEV公開・PULSE状態変化を表示
 
 トップのApps Healthyは管理対象7件を母数とし、各DEV実体の `version.json` を確認できたアプリをHealthyとして数えます。ゲーム3本だけを数えません。
 
