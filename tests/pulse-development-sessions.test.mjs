@@ -53,7 +53,7 @@ test('autonomous iteration sessions expose observation through DEV as a dedicate
   assert.equal(meta.observationRecorded,true);
   assert.equal(meta.telemetry,null);
   assert.equal(session.autonomous.game,'kuumetsu');
-  assert.deepEqual(session.iterationSteps.map(step=>step.id),['observation','implementation','validation','after','merge','publish']);
+  assert.deepEqual(session.iterationSteps.map(step=>step.id),['observation','implementation','astraValidation','afterObservation','merge','devPublish']);
   assert.deepEqual(session.iterationSteps.map(step=>step.state),['done','done','done','done','done','done']);
 });
 
