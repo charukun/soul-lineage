@@ -1,0 +1,29 @@
+name: PR1222 one-time contact diagnostic
+on:
+  push:
+    branches: [feat/rinne-soul-origin-20260921]
+permissions:
+  contents: read
+jobs:
+  observe:
+    if: contains(github.event.head_commit.message, '[origin-contact-probe]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: npm ci --ignore-scripts
+      - name: Observe the pinned existing encounter without altering production sources
+        run: node scripts/one-off-origin-contact.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: origin-contact-diagnostic-${{ github.sha }}
+          path: /tmp/origin-contact-probe/
+          retention-days: 1
