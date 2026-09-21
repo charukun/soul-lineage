@@ -1,0 +1,46 @@
+{
+  "schema": "character-visual-review",
+  "version": 1,
+  "characterId": "protagonist.villager.female.v1",
+  "selectedRound": 2,
+  "rounds": [
+    {
+      "round": 1,
+      "observed": [
+        "hair still reads as a helmet mass",
+        "eyes remain block-like and forward",
+        "jaw and shoulder width remain heavy"
+      ]
+    },
+    {
+      "round": 2,
+      "observed": [
+        "top gap removed",
+        "jaw/shoulder silhouette improved",
+        "hair continuity improved"
+      ],
+      "decision": "selected"
+    },
+    {
+      "round": 3,
+      "observed": [
+        "fringe gaps increased and hairline continuity regressed"
+      ],
+      "decision": "rejected"
+    }
+  ],
+  "views": [
+    "front",
+    "three-quarter",
+    "side",
+    "back",
+    "face",
+    "pose-front",
+    "pose-side"
+  ],
+  "visualApproval": "pending",
+  "productionStage": "PRIMARY",
+  "deliveredGlbSha256": "7c422960add80f120d5dbcd91a6b74e23269b35049796f60cb1e6c4e4604d9a2",
+  "sourceBlendSha256": "ec4c09cf6a952d1a69728adc3743cad673ba7dcd7e20036bda6feba888ce4fac",
+  "byteLength": 317144
+}
