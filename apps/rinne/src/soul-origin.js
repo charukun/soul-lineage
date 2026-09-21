@@ -12,13 +12,14 @@ export function createSoulOrigin({document,storage,storageKey,onConfirm,onOpen=(
   const content=dialog.querySelector('.origin-content'),status=dialog.querySelector('.origin-status'),back=dialog.querySelector('[data-origin-back]'),next=dialog.querySelector('[data-origin-next]'),confirm=dialog.querySelector('[data-origin-confirm]');
   let draft=normalizeOriginDraft(null),expectedSave=null,busy=false,completed=false,raf=0,pointer={x:50,y:45},returnFocus=null;
   const reduced=win.matchMedia('(prefers-reduced-motion: reduce)');
-  function syncMotion(){dialog.dataset.motion=reduced.matches||!motionEnabled()?'off':'on';}
+  function clearRipples(){for(const ring of dialog.querySelectorAll('.origin-ripple'))ring.remove();}
+  function syncMotion(){dialog.dataset.motion=reduced.matches||!motionEnabled()?'off':'on';if(dialog.dataset.motion==='off')clearRipples();}
   function persist(){try{storage.setItem(draftKey,JSON.stringify(draft));}catch{status.textContent='記憶を一時保存できません。端末の保存設定をご確認ください。';}}
   function syncButtons(){
     const question=ORIGIN_QUESTIONS[draft.step],replacement=dialog.querySelector('[data-origin-replace]');
     back.hidden=draft.step===0;next.hidden=!question;confirm.hidden=Boolean(question);
     next.disabled=busy||!question||!draft.answers[question.key];back.disabled=busy;
-    confirm.disabled=busy||Boolean(replacement&&!replacement.checked);
+    confirm.disabled=busy||expectedSave===undefined||Boolean(replacement&&!replacement.checked);
     dialog.querySelector('[data-origin-close]').disabled=busy;
     for(const button of dialog.querySelectorAll('[data-origin-choice]'))button.disabled=busy;
     if(replacement)replacement.disabled=busy;
@@ -45,12 +46,12 @@ export function createSoulOrigin({document,storage,storageKey,onConfirm,onOpen=(
       }
     }
     syncButtons();heading.focus({preventScroll:true});
+    if(expectedSave===undefined)status.textContent='保存データを読めません。保存設定を確認してから、もう一度お試しください。';
   }
   function open(){
     if(dialog.open||busy)return;completed=false;returnFocus=document.activeElement;
     try{expectedSave=storage.getItem(storageKey);const raw=storage.getItem(draftKey);draft=normalizeOriginDraft(raw&&raw.length<4096?JSON.parse(raw):null);}catch{draft=normalizeOriginDraft(null);try{expectedSave=storage.getItem(storageKey);}catch{expectedSave=undefined;}}
     onOpen();syncMotion();dialog.showModal();render();
-    if(expectedSave===undefined){status.textContent='保存データを読めません。保存設定を確認してから、もう一度お試しください。';confirm.disabled=true;}
   }
   async function commit(){
     if(busy||draft.step!==ORIGIN_QUESTIONS.length||confirm.disabled)return;
@@ -85,7 +86,11 @@ export function createSoulOrigin({document,storage,storageKey,onConfirm,onOpen=(
     if(layer.querySelectorAll('.origin-ripple').length>=4)return;
     const box=dialog.getBoundingClientRect(),ring=document.createElement('i');ring.className='origin-ripple';ring.style.left=`${event.clientX-box.left}px`;ring.style.top=`${event.clientY-box.top}px`;layer.append(ring);ring.addEventListener('animationend',()=>ring.remove(),{once:true});
   }
-  function close(){win.cancelAnimationFrame(raf);raf=0;if(!completed){onCancel();returnFocus?.focus?.({preventScroll:true});}}
+  function close(){
+    win.cancelAnimationFrame(raf);raf=0;clearRipples();
+    if(!completed){onCancel();returnFocus?.focus?.({preventScroll:true});}
+    else document.querySelector('#rinneFirstRunGuide .rinneFirstRunStart')?.focus({preventScroll:true});
+  }
   dialog.addEventListener('click',click);dialog.addEventListener('change',syncButtons);dialog.addEventListener('pointermove',move,{passive:true});dialog.addEventListener('pointerdown',ripple,{passive:true});
   dialog.addEventListener('keydown',event=>event.stopPropagation());dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();});dialog.addEventListener('close',close);reduced.addEventListener?.('change',syncMotion);
   return {open,get active(){return dialog.open;},dispose(){win.cancelAnimationFrame(raf);reduced.removeEventListener?.('change',syncMotion);dialog.removeEventListener('close',close);dialog.remove();}};
