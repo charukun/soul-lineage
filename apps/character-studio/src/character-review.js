@@ -10,7 +10,7 @@ import { reviewSettings, createReviewCohort, editReviewCharacter, serializeRevie
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 
 const el = id => document.getElementById(id);
-const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null };
+const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null, displayModelId: null };
 window.masterCharacterReview = review;
 const status = (message, isError = false) => { el('status').textContent = message; el('status').dataset.error = String(isError); };
 const report = error => { const message = String(error?.message ?? error); review.errors.push(message); if (review.errors.length > 100) review.errors.shift(); status(`エラー: ${message}`, true); };
@@ -346,8 +346,22 @@ function start() {
   }
   review.loadDefaultModel = () => {
     modelRequestSequence++;
+    review.displayModelId = null;
     activeModelLabel = defaultModel.label;
     return load(defaultBytes, auditKaykitDocument, kaykitReviewRig);
+  };
+  review.loadFoundationModel = model => {
+    modelRequestSequence++;
+    review.displayModelId = model.id;
+    activeModelLabel = model.label;
+    const auditFoundationDocument = (document, _sha256, byteLength, blobSha) => {
+      const errors = [];
+      if (!String(document?.asset?.version || '').startsWith('2.')) errors.push('glTF 2.xではありません');
+      if (byteLength !== model.source.byteLength) errors.push('固定KayKit assetのbyte lengthと一致しません');
+      if (blobSha !== model.source.gitBlobSha) errors.push('固定KayKit assetのGit blob SHAと一致しません');
+      return Object.freeze({ approved: errors.length === 0, errors, modelId: model.id, license: model.license, source: model.source });
+    };
+    return load(() => modelBytes(model.runtime.url), auditFoundationDocument, kaykitReviewRig);
   };
   review.loadReferenceModel = async model => {
     const request = ++modelRequestSequence;
@@ -366,6 +380,7 @@ function start() {
         if (receipt.humanoidRig !== 'kaykit.Rig_Medium.v1') errors.push('Rig_Medium互換ではありません');
         return Object.freeze({ approved: errors.length === 0, errors, modelId: model.id, license: 'CC0-1.0 / RINNE DCC', source: receipt });
       };
+      review.displayModelId = model.id;
       activeModelLabel = model.label;
       return load(() => modelBytes(model.assetPath), auditReferenceDocument, kaykitReviewRig);
     } catch (error) {

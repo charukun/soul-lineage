@@ -80,7 +80,6 @@ export function installCharacterReviewGrid(doc = document, win = window) {
 
   let signature = '', autoSelected = false, queued = false;
   const review = () => win.characterStudio?.review;
-  const workspace = () => win.characterStudio?.workspace;
   const schedule = () => {
     if (queued) return;
     queued = true;
@@ -130,7 +129,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
       render(models);
     }
     empty.hidden = models.length > 0;
-    if (ready && !autoSelected && !workspace()?.modelId) {
+    if (ready && !autoSelected && !review()?.displayModelId) {
       const first = models.find(model => !model.disabled);
       if (first) {
         autoSelected = true;

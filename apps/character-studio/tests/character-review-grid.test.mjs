@@ -26,6 +26,8 @@ test('simple character review exposes real models only', () => {
   assert.match(main, /if \(!simpleReview\) \{\s*const generated = button\('量産モデル'/);
   assert.match(main, /主人公 男/);
   assert.match(main, /主人公 女/);
+  assert.match(main, /KAYKIT_MODELS/);
+  for (const label of ['騎士','蛮族','魔術師','盗賊','フード盗賊']) assert.match(main, new RegExp(label));
   assert.match(code, /実モデルのみ/);
   assert.doesNotMatch(code, /要修正|reviewDecision|modelVerdicts|詳細確認|stepModel/);
 });
@@ -46,7 +48,7 @@ test('camera controls are stage-local and review panel does not reserve an empty
 
 test('model source selection is the single writer and first real model becomes the initial simple-review target', () => {
   assert.match(code, /model\.source\.click\(\)/);
-  assert.match(code, /!workspace\(\)\?\.modelId/);
+  assert.match(code, /!review\(\)\?\.displayModelId/);
   assert.match(code, /autoSelected = true/);
   const models = readCharacterModels({querySelectorAll:()=>[
     source('主人公 男',{id:'protagonist.villager.v1',pressed:true}),
@@ -75,6 +77,9 @@ test('committed protagonist assets are locally available to character-studio and
     '../public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb',
     '../public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json'
   ]) assert.ok(statSync(new URL(file, import.meta.url)).size > 0, file);
+  assert.match(review, /loadFoundationModel/);
+  assert.match(review, /model\.source\.gitBlobSha/);
+  assert.match(review, /model\.runtime\.url/);
   assert.match(review, /model\.integrityPath/);
   assert.match(review, /model\.assetPath/);
   assert.match(review, /receipt\.sha256 !== sha256/);
