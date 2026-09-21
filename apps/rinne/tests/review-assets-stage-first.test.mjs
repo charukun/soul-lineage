@@ -12,9 +12,12 @@ test('equipment review is protagonist-first and weapon-type driven', async () =>
     readFile(cssUrl, 'utf8'),
     readFile(jsUrl, 'utf8'),
   ]);
-  assert.match(html, /主人公の武器種/);
+  assert.match(html, /装備箇所/);
+  assert.match(html, /武器の種類/);
   assert.doesNotMatch(html, /素体選択|素体を選択/);
   assert.match(html, /id="asset-weapon-types"/);
+  assert.match(js, /WEAPON_FAMILIES/);
+  assert.doesNotMatch(js, /const candidates=\[\{id:'',label:'なし'\}/);
   assert.match(js, /PROTAGONIST_VILLAGER_MODEL/);
   assert.match(js, /const WEAPON_TYPES = Object\.freeze\(\[/);
   for (const label of ['素手','剣','斧','杖','クロスボウ']) assert.match(js, new RegExp(`label:'${label}'`));
@@ -22,17 +25,20 @@ test('equipment review is protagonist-first and weapon-type driven', async () =>
 });
 
 test('equipment review keeps the character preview primary on phones', async () => {
-  const [html, css] = await Promise.all([
+  const [html, css, js] = await Promise.all([
     readFile(htmlUrl, 'utf8'),
     readFile(cssUrl, 'utf8'),
+    readFile(jsUrl, 'utf8'),
   ]);
   assert.match(html, /class="asset-stage-hint"/);
-  assert.match(css, /height:clamp\(440px,64dvh,680px\)/);
+  assert.match(js, /is-dismissed/);
+  assert.match(js, /idle\|stand\|breath/);
+  assert.match(css, /height:clamp\(470px,67dvh,700px\)/);
   assert.match(css, /\.asset-catalog::before/);
 });
 
 test('equipment slot copy follows the active slot', async () => {
   const js = await readFile(jsUrl, 'utf8');
-  assert.match(js, /\$\{labels\[activeAssetSlot\]\}の装備を選択/);
-  assert.match(js, /\$\{labels\[activeAssetSlot\]\}の装備を外す/);
+  assert.match(js, /\$\{labels\[activeAssetSlot\]\}の装備候補/);
+  assert.match(js, /\$\{labels\[activeAssetSlot\]\}を空ける/);
 });

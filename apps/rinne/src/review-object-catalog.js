@@ -1,3 +1,4 @@
+import {CURATED_REVIEW_OBJECTS} from './review-curated-library.js';
 import {defs} from '@soul/world/mura';
 import {projectAssetUrl} from '@soul/assets';
 import {RINNE_KENNEY_EXPANSION_OBJECTS} from './review-kenney-library.js';
@@ -25,6 +26,7 @@ const kenneyMedieval=(id,label,category,thumbnail,sourcePath,gitBlobSha,byteLeng
 });
 
 export const RINNE_OBJECT_REVIEW_CATALOG=Object.freeze([
+  ...CURATED_REVIEW_OBJECTS,
   {id:'barrel',label:'樽',category:'props',kind:'gltf',url:'/assets/vendor/kaykit-dungeon/barrel_small.gltf.glb',thumbnailUrl:thumb('barrel'),source:'KayKit Dungeon Remastered'},
   {id:'box',label:'木箱',category:'props',kind:'gltf',url:'/assets/vendor/kaykit-dungeon/box_small.gltf.glb',thumbnailUrl:thumb('box'),source:'KayKit Dungeon Remastered'},
   {id:'rubble',label:'瓦礫',category:'props',kind:'gltf',url:'/assets/vendor/kaykit-dungeon/rubble_large.gltf.glb',thumbnailUrl:thumb('rubble'),source:'KayKit Dungeon Remastered'},

@@ -68,9 +68,14 @@ test('old saves without homeland fields migrate to the local village without inv
 test('contact combat is automatic and never needs an attack button',()=>{
   const s=createLife({seed:6});s.phase='living';s.ageSeconds=20*60;s.ageYears=20;s.zone='frontier';s.position={x:0,z:0};s.equipment.weapon='sword';s.knownSkills.push('basic.sword');s.skillWeights.jo={'basic.sword':100};
   const front=createFront(0,6);front.enemies[0].x=.5;front.enemies[0].z=.5;
-  // Tidebreak caps each simulation step at 1/30s. Use real 60Hz frames so
-  // the original two-second budget is actually simulated instead of 20/30s.
-  const observed=[];let hit=false;for(let i=0;i<120;i++){const events=tickFront(s,front,1/60);observed.push(...events);if(events.some(e=>e.type==='player-hit'))hit=true;}
+  // Match the live runtime frame contract within the same two-second deadline:
+  // input state first, life clock second, then contact combat. Without refreshing
+  // input, the previous automatic step is mistaken for a held manual movement.
+  // Tidebreak also caps steps at 1/30s, so 60Hz frames avoid losing simulation time.
+  const observed=[];let hit=false;for(let i=0;i<120;i++){
+    setMoving(s,false);tickLife(s,{realDelta:1/60});
+    const events=tickFront(s,front,1/60);observed.push(...events);if(events.some(e=>e.type==='player-hit'))hit=true;
+  }
   assert.equal(hit,true,JSON.stringify({events:observed,combat:s.combat,stamina:s.stamina,knownSkills:s.knownSkills,equipment:s.equipment,position:s.position,enemies:front.enemies.map(({id,x,z,hp})=>({id,x,z,hp}))}));assert.ok(s.stamina<100);assert.ok(front.enemies[0].hp<front.enemies[0].maxHp);
 });
 

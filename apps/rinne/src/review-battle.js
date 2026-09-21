@@ -195,7 +195,7 @@ function advanceBattle(dt){
 }
 function frame(now){
   const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;const finished=Boolean(lastCore?.done);
-  if(runtime&&!finished&&!inspirationSequenceActive)advanceBattle(dt);
+  if(runtime&&!finished)advanceBattle(dt);
   const nextFinished=Boolean(lastCore?.done);if(nextFinished&&!finishedAt)finishedAt=now;else if(!nextFinished)finishedAt=0;
   if(reviewBattleLoopDue({loopEnabled,playing:true,finished:nextFinished,finishedAt,now}))resetBattle();syncBattle(dt);requestAnimationFrame(frame);
 }

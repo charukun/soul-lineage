@@ -3,13 +3,12 @@ import { qualitySettings, qualityIdentity, qualityProfile, qualityReport } from 
 import { BASE_APPEARANCE_PARTS, canonicalAppearanceParts, mergeAppearanceParts, nextAppearanceParts,
   characterReferenceModel, characterReferenceArchetype } from '@soul/characters';
 import { attachModularAppearanceController } from '@soul/rendering/master-character-modular';
-import { attachReferenceCharacterController } from '@soul/rendering/master-character-reference';
 import { createReviewCohort, editReviewCharacter, reviewSettings, serializeReviewSession } from './character-review-state.js';
 import { WORKSPACE_KEY, serializeWorkspace, deserializeWorkspace, createEditHistory } from './character-workspace-state.js';
 
 /** One isolated editor workspace shared by the simple and advanced pages. */
 export function createCharacterWorkspace(review) {
-  const profiles = new Map(), controllers = new WeakMap(), referenceControllers = new WeakMap(), history = createEditHistory();
+  const profiles = new Map(), controllers = new WeakMap(), history = createEditHistory();
   let quality = qualitySettings(), modelId = null;
   let syncing = false, restoring = false, previewId = null, generation = 0, saveMessage = 'このブラウザに保存', timer;
   const selected = () => review.records[review.settings.selected];
@@ -46,15 +45,12 @@ export function createCharacterWorkspace(review) {
         if (!controller) {
           controller = attachModularAppearanceController(actor);
           controllers.set(actor, controller);
-          referenceControllers.set(actor, attachReferenceCharacterController(actor));
           attached = true;
         }
-        const referenceController = referenceControllers.get(actor);
         const identity = selectedReference ?? (actor.id === previewId ? null : qualityIdentity(review.records[index], index, quality, profiles.get(actor.id)));
         const next = selectedReference ? selectedReference.profile : actor.id === previewId || quality.mode === 'baseline' ? BASE_APPEARANCE_PARTS : profile(actor.id);
         if (JSON.stringify(controller.identity) !== JSON.stringify(identity)) controller.setIdentity(identity);
         if (JSON.stringify(controller.profile) !== JSON.stringify(next)) controller.setProfile(next);
-        referenceController.setIdentity(selectedReference);
       }
       if (attached) review.refresh();
     } finally { syncing = false; }
