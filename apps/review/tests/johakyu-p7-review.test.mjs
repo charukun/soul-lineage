@@ -275,22 +275,19 @@ test('HUD metadata comes from the executing technique and stage',()=>{
  assert.ok(checked>120);
 });
 
-test('HUD follows the canonical self actor feet and stays terse',()=>{
+test('HUD is fixed to the screen center while preserving exchange state',()=>{
  const stage=stageSource(),css=hudCss(),html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8');
- const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
- const controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8');
- assert.match(runtime,/self\(a\)\{hero=a;selfBinding=a;\}/);assert.match(runtime,/footAnchor\(\)\{if\(!selfBinding\)return null/);
- assert.match(controller,/footAnchor:\(\)=>driven\.footAnchor/);assert.match(stage,/function positionHud\(\)/);assert.match(stage,/runtime\?\.footAnchor\?\.\(\)/);assert.match(stage,/const hudState=meta\.hudState\|\|'maai'/);assert.match(stage,/phasePanel\.dataset\.phase=hudState/);
- assert.match(stage,/hud\.style\.left/);assert.match(stage,/hud\.style\.top/);assert.doesNotMatch(html,/間合いを測っている/);
- assert.match(stage,/function shortActionName/);assert.match(stage,/line\.textContent=row\.label/);
- assert.doesNotMatch(stage,/currentNode\.textContent=.*meta\.stamina|currentNode\.textContent=.*injury/i);
+ assert.ok(!stage.includes('function positionHud')&&!stage.includes('footAnchor')&&!stage.includes('hud.style.left')&&!stage.includes('hud.style.top'));
+ assert.ok(stage.includes("hud.dataset.anchored='true'"));assert.ok(stage.includes("const hudState=meta.hudState||'maai'"));assert.ok(stage.includes('phasePanel.dataset.phase=hudState'));
+ assert.ok(css.includes('left:50%;top:50%'));assert.ok(css.includes('grid-template-columns:36px 24px 27px 24px 27px 24px 36px'));
+ assert.doesNotMatch(html,/>間合い<|>残心</);assert.ok(stage.includes('function shortActionName'));assert.ok(stage.includes('line.textContent=row.label'));
 });
 
-test('HUD centers 破 on the hero axis and spans 間合い through 残心',()=>{
+test('HUD centers 破 with symmetric exchange waveforms and no scale recentering',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),css=hudCss();
- assert.ok(html.includes('battle-sequence-hud__edge--maai')&&html.includes('間合い'));assert.ok(html.includes('battle-sequence-hud__edge--zanshin')&&html.includes('残心'));
- assert.ok(css.includes('grid-template-columns:minmax(58px,1fr) 28px 44px 28px 44px 28px minmax(58px,1fr)'));
- assert.ok(css.includes('.battle-sequence-hud__edge path{'));assert.ok(css.includes('[data-phase="maai"] .battle-sequence-hud__edge--maai'));assert.ok(css.includes('[data-phase="zanshin"] .battle-sequence-hud__edge--zanshin'));
+ assert.ok(html.includes('battle-sequence-hud__edge--maai')&&html.includes('battle-sequence-hud__edge--zanshin'));
+ assert.ok(css.includes('grid-template-columns:36px 24px 27px 24px 27px 24px 36px'));assert.ok(css.includes('width:198px'));
+ assert.doesNotMatch(css,/battle-sequence-hud__phase[^}]*transform:scale/);assert.ok(css.includes('[data-phase="maai"] .battle-sequence-hud__edge--maai'));assert.ok(css.includes('[data-phase="zanshin"] .battle-sequence-hud__edge--zanshin'));
 });
 
 test('action history remains floating text rather than a list repaint',()=>{
