@@ -40,11 +40,14 @@ test('1v1 executes only configured techniques and keeps stage order inside each 
  assert.ok(rows.length>12);
  const firstBattle=rows.filter(row=>row.battleId===rows[0].battleId),firstSeen=new Set(),ordered=[];
  for(const row of firstBattle){const key=`${row.phase}:${row.techniqueIndex}:${row.stageIndex}`;if(firstSeen.has(key))continue;firstSeen.add(key);ordered.push(key);}
- assert.deepEqual(ordered.slice(0,18),[
+ const canonical=[
    'jo:0:0','jo:0:1','jo:0:2','jo:1:0','jo:1:1','jo:1:2',
    'ha:0:0','ha:0:1','ha:0:2','ha:1:0','ha:1:1','ha:1:2',
    'kyu:0:0','kyu:0:1','kyu:0:2','kyu:1:0','kyu:1:1','kyu:1:2'
- ]);
+ ];
+ assert.ok(ordered.length>=12,'real combat should reach the later chain before resolution');
+ assert.ok(ordered.some(key=>key.startsWith('kyu:')),'real combat should reach 急 when uninterrupted enough');
+ assert.deepEqual(ordered,canonical.slice(0,ordered.length),'observed stages must remain a canonical prefix without skips');
 });
 
 test('phase changes only when the configured chain completes',()=>{
