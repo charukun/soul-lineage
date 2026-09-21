@@ -1,0 +1,78 @@
+name: Village public animation verification
+on:
+  push:
+    branches: [probe/village-public-animation-20260921]
+permissions: {contents: read}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v6
+        with: {node-version: '24', cache: npm}
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Verify published Village onboarding animation
+        env: {URL: 'https://soul-lineage-village-dev.c-okamoto.workers.dev/'}
+        run: |
+          mkdir -p test-results/public-animation
+          node --input-type=module <<'NODE'
+          import {chromium} from '@playwright/test';import fs from 'node:fs/promises';
+          const browser=await chromium.launch({headless:true});
+          const ctx=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,recordVideo:{dir:'test-results/public-animation/video',size:{width:390,height:844}}});
+          const p=await ctx.newPage(),errors=[],failed=[];
+          p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('pageerror',e=>errors.push(e.message));p.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText}));
+          const report={url:process.env.URL,errors,failed,samples:[]};
+          const enterBoot=async()=>{await p.locator('#soul-brand-boot.armed').waitFor({timeout:30000});await p.locator('#soul-brand-boot').click();await p.waitForFunction(()=>window.village&&document.querySelector('#loading')?.hidden===true,null,{timeout:60000});};
+          try{
+            await p.goto(process.env.URL,{waitUntil:'domcontentloaded',timeout:60000});await enterBoot();
+            report.commit=await p.locator('#game').getAttribute('data-commit');
+            await p.locator('#muraResetVillage').click();
+            const nav=p.waitForNavigation({waitUntil:'domcontentloaded',timeout:60000});
+            await p.locator('#muraResetConfirm [data-reset]').click();
+            await nav;
+            await enterBoot();
+            await p.locator('#muraEnterVillage').click();
+            await p.locator('#muraFirstRunGuide').waitFor({state:'visible',timeout:15000});
+            report.guideBefore={count:await p.locator('#muraFirstRunGuide').count(),finger:await p.locator('.muraFirstRunFinger').count(),stage:await p.locator('#muraFirstRunGuide').getAttribute('data-stage')};
+            await p.locator('.muraFirstRunStart').click();
+            await p.waitForFunction(()=>document.querySelector('#muraFirstRunGuide')?.dataset.stage==='build');
+            let captured=false;
+            for(let i=0;i<55;i++){
+              await p.waitForTimeout(50);
+              const s=await p.evaluate(()=>{
+                const n=document.querySelector('.muraFirstRunFinger');if(!n)return null;
+                const cs=getComputedStyle(n),r=n.getBoundingClientRect(),an=n.getAnimations().map(a=>({playState:a.playState,currentTime:a.currentTime,frames:a.effect?.getKeyframes?.().map(f=>({transform:f.transform,opacity:f.opacity}))}));
+                return{hidden:n.hidden,display:cs.display,opacity:cs.opacity,transform:cs.transform,x:r.x,y:r.y,w:r.width,h:r.height,animations:an};
+              });
+              report.samples.push(s);
+              if(!captured&&s&&!s.hidden&&s.display!=='none'&&Number(s.opacity)>0.05){captured=true;await p.screenshot({path:'test-results/public-animation/01-finger-moving.png',fullPage:true});}
+            }
+            const visible=report.samples.filter(s=>s&&!s.hidden&&s.display!=='none');
+            const transforms=[...new Set(visible.map(s=>s.transform))];
+            const boxes=[...new Set(visible.map(s=>`${s.x.toFixed(1)},${s.y.toFixed(1)}`))];
+            const active=visible.some(s=>s.animations?.some(a=>a.playState==='running'&&Number(a.currentTime)>=0));
+            report.motion={visibleSamples:visible.length,distinctTransforms:transforms.length,distinctBoxes:boxes.length,activeAnimation:active,transforms:transforms.slice(0,12),boxes:boxes.slice(0,12)};
+            await p.locator('#build').click();
+            await p.waitForFunction(()=>document.querySelector('#muraFirstRunGuide')?.dataset.stage==='catalog');
+            await p.locator('#catalog .card[data-kind="tent"]').click();
+            await p.waitForFunction(()=>['drag','place'].includes(document.querySelector('#muraFirstRunGuide')?.dataset.stage));
+            const b=await p.locator('#game').boundingBox();if(!b)throw new Error('canvas missing');
+            await p.touchscreen.tap(b.x+b.width*.58,b.y+b.height*.55);
+            await p.waitForFunction(()=>window.village.world.objects.some(o=>o.kind==='tent')&&!window.village.ui.pending,null,{timeout:10000});
+            report.placed=await p.evaluate(()=>window.village.world.objects.filter(o=>o.kind==='tent').length);
+            report.finalStage=await p.locator('#muraFirstRunGuide').getAttribute('data-stage');
+            await p.screenshot({path:'test-results/public-animation/02-placement-complete.png',fullPage:true});
+          }catch(e){report.exception=String(e)}
+          await fs.writeFile('test-results/public-animation/report.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify({commit:report.commit,guideBefore:report.guideBefore,motion:report.motion,placed:report.placed,finalStage:report.finalStage,errors,failed,exception:report.exception}));
+          await ctx.close();await browser.close();
+          const relevantErrors=errors.filter(x=>/mura-|Failed to fetch dynamically imported module|404/i.test(x));
+          const relevantFailed=failed.filter(x=>/mura-/i.test(x.url));
+          if(report.exception||report.guideBefore?.count!==1||report.guideBefore?.finger!==1||report.motion?.visibleSamples<3||!report.motion?.activeAnimation||Math.max(report.motion?.distinctTransforms||0,report.motion?.distinctBoxes||0)<2||!report.placed||report.finalStage!=='done'||relevantErrors.length||relevantFailed.length)process.exit(1);
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: village-public-animation-verification, path: test-results/public-animation/, retention-days: 7}
