@@ -6,7 +6,7 @@ import {HuntProfileStore, HuntSession} from '../src/hunt/runtime.js';
 import {createTidebreakRuntime} from '@soul/tidebreak-combat';
 import {offerVillages} from '@soul/raid/world';
 import {readProgress, chooseHunt, freshProgress, PROGRESS_KEY, huntPlan, settleProgress, bodyStats, preyValue} from '../src/hunt/balance.js';
-import {worldDetailBudget} from '../src/web/world-detail-budget.js';
+import {worldDetailBudget,titleWorldDetailBudget} from '../src/web/world-detail-budget.js';
 
 function setup() {
   const data=new Map(), storage={getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v)};
@@ -104,3 +104,17 @@ test('main boot has one HUD owner, automatic sensing, and no menu extraction exp
 
 
 test('mobile world detail budget reduces synchronous decorative generation without touching hunt rules',()=>{ const mobile=worldDetailBudget(673),full=worldDetailBudget(1440);assert.deepEqual(mobile,{forestTrees:56,edgeProps:72,tier:'mobile'});assert.deepEqual(full,{forestTrees:100,edgeProps:130,tier:'full'});assert.ok(mobile.forestTrees<full.forestTrees&&mobile.edgeProps<full.edgeProps);});
+
+
+test('title preview defers full hunt-world density until the player enters a hunt',()=>{
+  const title=titleWorldDetailBudget(673),hunt=worldDetailBudget(673),desktop=worldDetailBudget(1440);
+  assert.deepEqual(title,{forestTrees:18,edgeProps:24,graves:4,architectureEntities:4,tier:'title-mobile'});
+  assert.deepEqual(hunt,{forestTrees:56,edgeProps:72,tier:'mobile'});
+  assert.deepEqual(desktop,{forestTrees:100,edgeProps:130,tier:'full'});
+  assert.ok(title.forestTrees<hunt.forestTrees&&title.edgeProps<hunt.edgeProps);
+  const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
+  const main=read('../src/web/main.js'),view=read('../src/web/view.js');
+  assert.match(main,/view\.build\(game\.village,\{titlePreview:true\}\)/);
+  assert.match(view,/if\(!titlePreview\)for\(const n of w\.npcs\)this\.addHuman\(n\)/);
+  assert.match(view,/title&&this\.titlePreview/);
+});

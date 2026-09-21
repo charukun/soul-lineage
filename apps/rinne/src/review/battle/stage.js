@@ -166,10 +166,10 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     const mid=portrait?{behind:3.95,lateral:3.55,height:2.42}:{behind:3.65,lateral:3.55,height:2.22};
     const wideFrame=portrait?{behind:5.00,lateral:4.55,height:2.72}:{behind:4.45,lateral:4.45,height:2.48};
     let framing=mid;
-    if(stage==='camera'||stage==='silence')framing=close;
+    if(stage==='camera'||stage==='silence'||stage==='reveal')framing=close;
     else if(stage==='execute'){const release=clamp(Number(sequence?.cameraRelease)||0,0,1);framing={behind:mid.behind+(wideFrame.behind-mid.behind)*release,lateral:mid.lateral+(wideFrame.lateral-mid.lateral)*release,height:mid.height+(wideFrame.height-mid.height)*release};}
     else if(stage==='impact')framing=wideFrame;
-    else if(stage==='reveal')framing={behind:wideFrame.behind*.84+mid.behind*.16,lateral:wideFrame.lateral*.84+mid.lateral*.16,height:wideFrame.height*.84+mid.height*.16};
+    else if(stage==='settle')framing={behind:wideFrame.behind*.84+mid.behind*.16,lateral:wideFrame.lateral*.84+mid.lateral*.16,height:wideFrame.height*.84+mid.height*.16};
     const position={x:heroPoint.x-forwardX*framing.behind+sideX*framing.lateral,y:framing.height,z:heroPoint.z-forwardZ*framing.behind+sideZ*framing.lateral};
     let look;
     if(stage==='camera')look={x:hand.x,y:hand.y,z:hand.z};
@@ -207,7 +207,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
       const heroRotation={x:0,y:Number(core?.hero?.yaw)||0,z:0},enemyRotation={x:0,y:Number(core?.enemy?.yaw)||0,z:0};
       const anchors={hero:{position:{x:handPoint.x,y:handPoint.y,z:handPoint.z},rotation:heroRotation}};
       inspirationVfx.frame(dt,anchors);
-      for(const cue of ['camera','spacing','stagger','silence','execute','impact','reveal','afterglow'])if(realNow-techniquePlayback.startedAt>=REVIEW_INSPIRATION_TIMELINE[cue]&&!techniquePlayback.emitted.has(cue)){
+      for(const cue of ['camera','spacing','stagger','silence','reveal','titleEnd','execute','impact','settle','afterglow'])if(realNow-techniquePlayback.startedAt>=REVIEW_INSPIRATION_TIMELINE[cue]&&!techniquePlayback.emitted.has(cue)){
         techniquePlayback.emitted.add(cue);
         if(cue==='silence')inspirationVfx.insight(handPoint,heroRotation);
         if(cue==='execute')inspirationVfx.trail(handPoint,heroRotation);

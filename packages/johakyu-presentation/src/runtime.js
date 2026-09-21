@@ -315,7 +315,7 @@ function metrics(){return {ready:game.ready,phase:game.phase,rounds,totalKills:a
 // The main-game path never invokes start(), simulate(), damage() or a native RAF.
 // It borrows only the accepted assets, actor factory, animation mixer and VFX.
 function createDrivenPort(){
- const bindings=new Map(),coverNodes=new Map();let lastFrame=null;
+ const bindings=new Map(),coverNodes=new Map();let lastFrame=null,selfBinding=null;
  const equipmentNames=['1H_Sword','1H_Sword_Offhand','2H_Sword','Rectangle_Shield','Round_Shield','Spike_Shield'];
  const weaponMesh={fist:null,sword:'1H_Sword',great:'2H_Sword'};
  const driver=createCanonicalPresentationDriver({
@@ -330,7 +330,7 @@ function createDrivenPort(){
   },
   spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss));a.spawn=0;a.canonicalId=row.id;bindings.set(row.id,a);return a;},
   remove(a){removeActor(a);actors.splice(actors.indexOf(a),1);bindings.delete(a.canonicalId);},
-  self(a){hero=a;},
+  self(a){hero=a;selfBinding=a;},
   update(a,row,dt,{initial}){
    a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;
    const equipmentKey=row.equipment.weapon+':'+row.equipment.shield;
@@ -363,7 +363,7 @@ function createDrivenPort(){
    for(const row of obstacles){let node=coverNodes.get(row.id);if(!node){node=new THREE.Group();const rock=models.get('nature/stone_largeB').scene.clone(true),box=new THREE.Box3().setFromObject(rock),size=box.getSize(new V()),center=box.getCenter(new V());rock.scale.set(row.w/size.x,row.h/size.y,row.d/size.z);rock.position.set(-center.x*rock.scale.x,-box.min.y*rock.scale.y,-center.z*rock.scale.z);node.add(rock);scene.add(node);coverNodes.set(row.id,node);}node.position.set(row.x,0,row.z);}
    projectiles=shots.map(row=>({pos:new V(row.x,1.3,row.z),life:1}));
   },
-  clear(){particles=[];rings=[];arcs=[];numbers=[];projectiles=[];hero=null;for(const node of coverNodes.values())scene?.remove(node);coverNodes.clear();},
+  clear(){particles=[];rings=[];arcs=[];numbers=[];projectiles=[];hero=null;selfBinding=null;for(const node of coverNodes.values())scene?.remove(node);coverNodes.clear();},
   draw(snapshot,dt){
    lastFrame=snapshot;clock+=dt;game.time+=dt;game.phase=snapshot.status;game.shake=Math.max(0,game.shake-dt*.9);
    for(const p of particles){p.life-=dt;p.vel.y-=dt*6;p.pos.addScaledVector(p.vel,dt);}particles=particles.filter(p=>p.life>0);
@@ -382,7 +382,7 @@ function createDrivenPort(){
  return Object.freeze({prepare:prepareDriven,present:(snapshot,dt,events)=>driver.present(snapshot,dt,events),resize,
   cameraVector(axis){const forward=new V();camera.getWorldDirection(forward);forward.y=0;forward.normalize();return new V().crossVectors(forward,new V(0,1,0)).multiplyScalar(axis.x).addScaledVector(forward,-axis.y).normalize();},
   anchor(){if(!hero)return null;return project(hero.pos.clone().add(new V(0,hero.height,0)));},
-  footAnchor(){if(!hero)return null;return project(hero.pos.clone().add(new V(0,.08,0)));},
+  footAnchor(){if(!selfBinding)return null;return project(selfBinding.pos.clone().add(new V(0,.03,0)));},
   metrics:()=>({...metrics(),...driver.metrics(),authority:'rinne-domain'}),snapshot:()=>lastFrame,
   clear:()=>driver.reset(),dispose(){driver.dispose();destroy();}});
 }

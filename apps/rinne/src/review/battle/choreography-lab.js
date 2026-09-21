@@ -134,12 +134,12 @@ export async function createInspirationMotionLab({heroRoot,enemyRoots=[]}={}){
     const dodgeEnd=sample(evade,dodge,.72),hold=sample(combat,CLIPS.hold,.28+((elapsed*.13)%1)*.22);
     if(stage==='premonition')return sample(evade,dodge,.08+.64*clamp((sequence.nearMiss||0)));
     if(stage==='camera')return blendInspirationPose(dodgeEnd,hold,sequence.progress);
-    if(['spacing','stagger','silence'].includes(stage))return hold;
+    if(['spacing','stagger','silence','reveal'].includes(stage))return hold;
     const strike=techniquePose(combat,plan,sequence.executeProgress||0)||hold;
     if(stage==='execute'&&(sequence.executeProgress||0)<.16)return blendInspirationPose(hold,strike,(sequence.executeProgress||0)/.16);
     const final=plan.segments.at(-1);
     if(stage==='impact')return sample(combat,final.clip,Math.min(final.sampleEnd,plan.impactRatio));
-    if(stage==='reveal')return sample(combat,final.clip,Math.min(final.sampleEnd,.88+.09*sequence.progress));
+    if(stage==='settle')return sample(combat,final.clip,Math.min(final.sampleEnd,.94+.05*sequence.progress));
     if(stage==='afterglow')return sample(combat,final.clip,Math.min(final.sampleEnd,.96+.04*sequence.progress));
     return strike;
   }
@@ -147,9 +147,10 @@ export async function createInspirationMotionLab({heroRoot,enemyRoots=[]}={}){
     if(!sequence||sequence.stage==='done'||sequence.stage==='premonition'||!combat)return null;
     const stage=sequence.stage,elapsed=Number(sequence.elapsed)||0,hold=sample(combat,CLIPS.hold,.34+((elapsed*.11)%1)*.18);
     if(stage==='camera')return blendInspirationPose(sample(combat,CLIPS.flinch,.62),hold,sequence.progress);
-    if(['spacing','stagger','silence','execute'].includes(stage))return hold;
+    if(['spacing','stagger','silence','reveal','execute'].includes(stage))return hold;
     if(!reaction)return hold;
     const hit=sample(reaction,index%2?CLIPS.hitA:CLIPS.hitB,stage==='impact'?.12+.80*sequence.progress:.96);
+    if(stage==='settle')return hit;
     if(stage==='afterglow')return blendInspirationPose(hit,hold,sequence.progress);
     return hit;
   }

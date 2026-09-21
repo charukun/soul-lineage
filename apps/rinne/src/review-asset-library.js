@@ -12,9 +12,7 @@ import {hideEmbeddedCombatProps} from './review-battle-equipment.js';
 import {
   RINNE_EQUIPMENT_REVIEW_CATALOG,
   REVIEW_EQUIPMENT_CATEGORY_LABELS,
-  REVIEW_EQUIPMENT_CATEGORY_ORDER,
   equipmentReviewItem,
-  filterEquipmentReviewCatalog,
 } from './review-equipment-catalog.js';
 import './review-asset-library.css';
 mountRinneReviewShell('equipment');
@@ -42,8 +40,12 @@ const equipmentLoads = new Map();
 let stageBusyCount = 0;
 const equipmentFailures=new Map();
 const EQUIPMENT_SLOTS=Object.freeze(['main','off','head','body','arms','legs','back']);
+const EQUIPMENT_TABS=Object.freeze({
+  weapon:Object.freeze({label:'武器',filters:Object.freeze(['all','blade','axe','polearm','ranged','shield'])}),
+  armor:Object.freeze({label:'防具',filters:Object.freeze(['all','head','body','arms','legs','back'])}),
+});
 const selection = {model: PROTAGONIST_VILLAGER_MODEL.id, main:null, off:null, head:null, body:null, arms:null, legs:null, back:null};
-let activeAssetSlot='main',activeViewDirection='front',activeViewFocus='full',equipmentFilter='recommended';
+let activeAssetSlot='main',activeViewDirection='front',activeViewFocus='full',equipmentSection='weapon',equipmentFilter='all',equipmentRecommendedOnly=true;
 
 function status(message,error=false) {
   setReviewStatus(q('#asset-status'),message,{error});
@@ -305,10 +307,28 @@ function renderEquipmentInspector(){
   if(stageSlotLabel)stageSlotLabel.textContent=labels[activeAssetSlot];
   if(provenance)provenance.textContent=active?`${active.source}\n${active.provenance?.repository||''}${active.provenance?.revision?' @ '+active.provenance.revision:''}\n${active.provenance?.license||''}`:'装備を選ぶと出典を表示します。';
 }
-function visibleEquipment(){return filterEquipmentReviewCatalog(equipmentFilter);}
+function visibleEquipment(){
+  const categories=EQUIPMENT_TABS[equipmentSection].filters;
+  return RINNE_EQUIPMENT_REVIEW_CATALOG.filter(item=>categories.includes(item.category))
+    .filter(item=>equipmentFilter==='all'||item.category===equipmentFilter)
+    .filter(item=>!equipmentRecommendedOnly||item.recommended);
+}
+function renderEquipmentTabs(){
+  const root=q('#asset-equipment-tabs');if(!root)return;
+  root.replaceChildren(...Object.entries(EQUIPMENT_TABS).map(([id,tab])=>{
+    const button=document.createElement('button');button.type='button';button.textContent=tab.label;button.dataset.equipmentSection=id;
+    button.setAttribute('aria-pressed',String(id===equipmentSection));
+    button.addEventListener('click',()=>{if(id===equipmentSection)return;equipmentSection=id;equipmentFilter='all';renderSelection();});
+    return button;
+  }));
+}
+function renderRecommendedFilter(){
+  const button=q('#asset-recommended-toggle');if(!button)return;
+  button.setAttribute('aria-pressed',String(equipmentRecommendedOnly));
+}
 function renderEquipmentFilters(){
   const root=q('#asset-filters');if(!root)return;
-  root.replaceChildren(...REVIEW_EQUIPMENT_CATEGORY_ORDER.map(id=>{
+  root.replaceChildren(...EQUIPMENT_TABS[equipmentSection].filters.map(id=>{
     const button=document.createElement('button');button.type='button';button.textContent=REVIEW_EQUIPMENT_CATEGORY_LABELS[id];button.dataset.equipmentFilter=id;
     button.setAttribute('aria-pressed',String(id===equipmentFilter));button.addEventListener('click',()=>{equipmentFilter=id;renderEquipmentFilters();renderEquipmentGrid();});return button;
   }));
@@ -316,7 +336,8 @@ function renderEquipmentFilters(){
 function renderEquipmentGrid(){
   const list=q('#asset-weapon-types');if(!list)return;
   const rows=visibleEquipment();
-  q('#asset-grid-summary').textContent=`${REVIEW_EQUIPMENT_CATEGORY_LABELS[equipmentFilter]} · ${rows.length}点`;
+  const scopeLabel=equipmentFilter==='all'?EQUIPMENT_TABS[equipmentSection].label:REVIEW_EQUIPMENT_CATEGORY_LABELS[equipmentFilter];
+  q('#asset-grid-summary').textContent=`${scopeLabel}${equipmentRecommendedOnly?' · おすすめ':''} · ${rows.length}点`;
   list.replaceChildren(...rows.map(item=>{
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.equipmentId=item.id;
     button.setAttribute('aria-pressed',String(selection[item.slot]===item.id));button.dataset.previewState=equipmentFailures.has(item.id)?'error':'available';
@@ -332,10 +353,11 @@ async function selectEquipment(id){
   if(missing)await withStageBusy(equip,'装備を読み込み中…');else await equip();
   renderSelection();status(`${item.label}を装備しました`);
 }
-function renderSelection(){renderEquipmentFilters();renderEquipmentGrid();renderEquipmentInspector();}
+function renderSelection(){renderEquipmentTabs();renderRecommendedFilter();renderEquipmentFilters();renderEquipmentGrid();renderEquipmentInspector();}
 function populate() {
   const count=q('#asset-item-count');if(count)count.textContent=String(RINNE_EQUIPMENT_REVIEW_CATALOG.length);
   for(const button of document.querySelectorAll('[data-asset-focus]'))button.addEventListener('click',()=>setFocusPreset(button.dataset.assetFocus));
+  q('#asset-recommended-toggle')?.addEventListener('click',()=>{equipmentRecommendedOnly=!equipmentRecommendedOnly;renderSelection();});
   controls.addEventListener('start',()=>{assetCameraPresets.clear();q('.asset-stage-hint')?.classList.add('is-dismissed');});
   q('#asset-reset').addEventListener('click',()=>{
     for(const slot of EQUIPMENT_SLOTS)void setEquipment(slot,null);

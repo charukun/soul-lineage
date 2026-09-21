@@ -75,10 +75,11 @@ function handleInspirationCue(cue,payload={}){
   if(cue==='spacing'){battleSfx.inspiration('anticipation');return;}
   if(cue==='stagger'){battleSfx.inspiration('stagger');return;}
   if(cue==='silence'){battleSfx.inspiration('spark');return;}
+  if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='announce';battleSfx.inspiration('reveal');return;}
+  if(cue==='titleEnd'){hideInspirationBanner();return;}
   if(cue==='execute'){battleSfx.inspiration('execute');return;}
   if(cue==='impact'){battleSfx.impact({guard:false,power:1});return;}
-  if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}
-  if(cue==='done'){inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();setTimeout(hideInspirationBanner,260);}
+  if(cue==='done'){inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();hideInspirationBanner();}
 }
 
 function syncModelLabels(){if(q('enemy-name'))q('enemy-name').textContent='スケルトン';}
