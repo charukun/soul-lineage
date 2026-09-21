@@ -1,11 +1,14 @@
 name: Temporary Exact Asset Probe 20260921
-run-name: Asset browser evidence 74e0b3e7157b4d0b1f394ea75089b5be5c0696d4
+run-name: Asset browser evidence bebc521ddda6715f63bc7c55630801468cf79d1a
 on:
   push:
     branches: ['work/asset-library-expansion-20260921-probe']
     paths: ['.github/workflows/asset-exact-probe-20260921.yml']
 permissions:
   contents: read
+env:
+  APP_ENV: dev
+  APP_BRANCH: work/asset-library-expansion-20260921
 jobs:
   evidence:
     if: ${{ contains(github.event.head_commit.message, '[asset-probe]') }}
@@ -14,11 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 74e0b3e7157b4d0b1f394ea75089b5be5c0696d4
+          ref: bebc521ddda6715f63bc7c55630801468cf79d1a
           fetch-depth: 1
           persist-credentials: false
       - name: Assert immutable tested work head
-        run: test "$(git rev-parse HEAD)" = '74e0b3e7157b4d0b1f394ea75089b5be5c0696d4'
+        run: test "$(git rev-parse HEAD)" = 'bebc521ddda6715f63bc7c55630801468cf79d1a'
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
@@ -34,7 +37,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: asset-browser-evidence-74e0b3e7157b4d0b1f394ea75089b5be5c0696d4
+          name: asset-browser-evidence-bebc521ddda6715f63bc7c55630801468cf79d1a
           path: .deploy-state/asset-curation-evidence/
           if-no-files-found: warn
           retention-days: 14
