@@ -30,9 +30,9 @@ function pushAction(meta){
 }
 function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId)resetHistory(meta.battleId);positionHud();
- const phase=meta.phase,index=PHASE_INDEX[phase]??-1;phasePanel.dataset.phase=phase||'idle';phasePanel.dataset.combatSequencePhase=phase||'idle';phasePanel.dataset.comboActive=String(index>=0);
+ const hudState=meta.hudState||'maai',phase=meta.phase,index=PHASE_INDEX[hudState]??-1;phasePanel.dataset.phase=hudState;phasePanel.dataset.combatSequencePhase=hudState;phasePanel.dataset.comboActive=String(index>=0);
  for(const node of phaseNodes){const i=PHASE_INDEX[node.dataset.combatPhase];node.dataset.active=String(i===index);node.dataset.completed=String(index>=0&&i<index);}
- if(meta.actionId){currentNode.dataset.kind=phase;currentNode.textContent=techniqueStageName(meta);pushAction(meta);}
+ if(index>=0&&meta.actionId){currentNode.dataset.kind=phase;currentNode.textContent=techniqueStageName(meta);pushAction(meta);}
  else{currentNode.dataset.kind='idle';currentNode.textContent='';}
 }
 function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));}

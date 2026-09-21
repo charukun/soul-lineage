@@ -251,9 +251,19 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.0.0');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.1.0');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
+});
+
+test('HUD follows exchange initiative instead of leaving stale jo ha kyu lit while defending',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2});let sawOffense=false,sawDefense=false,sawZanshin=false;
+ for(let i=0;i<1200&&!(sawOffense&&sawDefense&&sawZanshin);i++){const r=scenario.step(1/60),meta=r.meta;
+  if(['jo','ha','kyu'].includes(meta.hudState)){sawOffense=true;assert.equal(meta.initiativeId,'hero');assert.equal(meta.exchangeMode,'pressure');}
+  if(meta.hudState==='maai'){sawDefense=true;assert.notEqual(meta.exchangeMode==='pressure'&&meta.initiativeId==='hero',true);}
+  if(meta.hudState==='zanshin'){sawZanshin=true;assert.equal(meta.exchangeMode,'zanshin');}
+ }
+ assert.ok(sawOffense,'offensive pressure must still light a jo ha kyu step');assert.ok(sawDefense,'defense/read must return to the left maai edge');assert.ok(sawZanshin,'exchange completion must light zanshin');
 });
 
 test('HUD metadata comes from the executing technique and stage',()=>{
@@ -270,7 +280,7 @@ test('HUD follows the canonical self actor feet and stays terse',()=>{
  const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
  const controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8');
  assert.match(runtime,/self\(a\)\{hero=a;selfBinding=a;\}/);assert.match(runtime,/footAnchor\(\)\{if\(!selfBinding\)return null/);
- assert.match(controller,/footAnchor:\(\)=>driven\.footAnchor/);assert.match(stage,/function positionHud\(\)/);assert.match(stage,/runtime\?\.footAnchor\?\.\(\)/);
+ assert.match(controller,/footAnchor:\(\)=>driven\.footAnchor/);assert.match(stage,/function positionHud\(\)/);assert.match(stage,/runtime\?\.footAnchor\?\.\(\)/);assert.match(stage,/const hudState=meta\.hudState\|\|'maai'/);assert.match(stage,/phasePanel\.dataset\.phase=hudState/);
  assert.match(stage,/hud\.style\.left/);assert.match(stage,/hud\.style\.top/);assert.doesNotMatch(html,/間合いを測っている/);
  assert.match(stage,/function shortActionName/);assert.match(stage,/line\.textContent=row\.label/);
  assert.doesNotMatch(stage,/currentNode\.textContent=.*meta\.stamina|currentNode\.textContent=.*injury/i);
@@ -280,7 +290,7 @@ test('HUD centers 破 on the hero axis and spans 間合い through 残心',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),css=hudCss();
  assert.ok(html.includes('battle-sequence-hud__edge--maai')&&html.includes('間合い'));assert.ok(html.includes('battle-sequence-hud__edge--zanshin')&&html.includes('残心'));
  assert.ok(css.includes('grid-template-columns:minmax(58px,1fr) 28px 44px 28px 44px 28px minmax(58px,1fr)'));
- assert.ok(css.includes('.battle-sequence-hud__edge path{'));
+ assert.ok(css.includes('.battle-sequence-hud__edge path{'));assert.ok(css.includes('[data-phase="maai"] .battle-sequence-hud__edge--maai'));assert.ok(css.includes('[data-phase="zanshin"] .battle-sequence-hud__edge--zanshin'));
 });
 
 test('action history remains floating text rather than a list repaint',()=>{
