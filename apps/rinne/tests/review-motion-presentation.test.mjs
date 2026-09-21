@@ -61,7 +61,8 @@ test('motion gear opens downward with compact controls and collapsed diagnostics
   assert.match(source,/補正なし/);
   assert.match(source,/motion-diagnostics/);
   assert.match(source,/<summary>技術詳細<\/summary>/);
-  assert.match(preview,/\.motion-review \.review-stage-controls\{top:52px!important;bottom:auto!important\}/);
+  assert.match(preview,/\.motion-review \.motion-stage\{overflow:visible;z-index:20\}/);
+  assert.match(preview,/\.motion-review \.review-stage-controls\{top:auto!important;bottom:max\(10px,env\(safe-area-inset-bottom\)\)!important\}/);
   assert.match(preview,/\.motion-review \.review-stage-controls__panel\{top:50px!important;bottom:auto!important\}/);
 });
 
