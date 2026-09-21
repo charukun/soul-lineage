@@ -1,0 +1,49 @@
+name: Temporary Female Protagonist Materialize
+on:
+  push:
+    branches: [fix/female-protagonist-visual-refinement-20260921]
+permissions:
+  contents: write
+jobs:
+  materialize:
+    if: ${{ contains(github.event.head_commit.message, '[female-materialize]') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with: {fetch-depth: 1}
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libx11-6 libxi6 libxrender1 libxfixes3 libxxf86vm1 libxkbcommon0 libsm6 libice6
+          curl -fL --retry 3 -o /tmp/blender.tar.xz https://download.blender.org/release/Blender4.0/blender-4.0.2-linux-x64.tar.xz
+          tar -C /tmp -xf /tmp/blender.tar.xz
+          echo "/tmp/blender-4.0.2-linux-x64" >> "$GITHUB_PATH"
+      - name: Generate final DCC asset
+        run: |
+          set -euxo pipefail
+          rm -rf generated/female-final
+          blender -b assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend --python scripts/blender/refine-protagonist-villager-female-v1.py -- --out generated/female-final
+          cp generated/female-final/source/ProtagonistVillagerFemaleV1.blend assets/characters/protagonist/villager-female-v1/source/
+          cp generated/female-final/export/ProtagonistVillagerFemaleV1.glb apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb
+          cp generated/female-final/export/ProtagonistVillagerFemaleV1.glb apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          glb=Path('apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb')
+          blend=Path('assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend')
+          h=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+          for target in [Path('apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json'),Path('apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json')]:
+            d=json.loads(target.read_text());d['sha256']=h(glb);d['bytes']=glb.stat().st_size;d['sourceBlendSha256']=h(blend);d['visualApproval']='pending'
+            target.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+          prod=Path('packages/characters/production/protagonist-villager-female-v1.production.json')
+          d=json.loads(prod.read_text());d['source']['dcc']['sourceSha256']=h(blend);d['status']['visualApproval']='pending';d['status']['productionReady']=False
+          d['status']['note']='Three-round fixed-view and Character Studio visual refinement completed. Rig_Medium preserved; human visual approval remains pending.'
+          prod.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+          PY
+      - name: Commit final asset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.* apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.* packages/characters/production/protagonist-villager-female-v1.production.json
+          git commit -m "art(characters): materialize visually refined female protagonist"
+          git push origin HEAD:fix/female-protagonist-visual-refinement-20260921
