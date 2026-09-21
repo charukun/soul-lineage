@@ -10,7 +10,13 @@
 <section class="review-surface__workspace">
 <div class="review-surface__stage-column"><section class="nocturne-stage review-surface__stage" data-review-surface="battle2" data-runtime="nocturne-native" data-state="BOOT">
 <canvas id="world" aria-label="序破急 canonical 自動戦闘"></canvas><canvas id="effects" aria-hidden="true"></canvas><div class="nocturne-vignette" aria-hidden="true"></div>
-<div class="battle2-p7-readout" data-p7-readout aria-label="戦闘状態"><span class="battle2-p7-phase" data-p7-phase>序</span><span class="battle2-p7-copy"><strong data-p7-summary>1v1</strong><small data-p7-detail>ST 100 · 傷 なし</small></span></div>
+<div id="battle-sequence-hud" class="battle-sequence-hud" aria-live="polite">
+<aside id="battle-phase" class="battle-sequence-hud__phase combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" data-phase="idle" aria-label="序破急の現在状態">
+<span class="battle-sequence-hud__step combat-sequence__step" data-combat-phase="jo" data-active="false">序</span><i class="battle-sequence-hud__wave combat-sequence__link" data-combat-link="jo-ha" aria-hidden="true"></i><span class="battle-sequence-hud__step combat-sequence__step" data-combat-phase="ha" data-active="false">破</span><i class="battle-sequence-hud__wave combat-sequence__link" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="battle-sequence-hud__step combat-sequence__step" data-combat-phase="kyu" data-active="false">急</span>
+</aside>
+<strong id="battle-sequence-current" class="battle-sequence-current" data-kind="idle">間合いを測っている…</strong>
+<div id="battle-sequence-history" class="battle-sequence-history" aria-label="使用した技と動作の履歴"></div>
+</div>
 <p id="battle2-status" role="status" aria-live="polite">戦闘を準備中…</p>
 </section></div>
 <section class="controls review-surface__panel review-workbench__panel-host" aria-label="戦闘人数の切替"><div class="battle-stage-switch"><div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="oneVsThree" aria-pressed="false">1v3</button></div></div></section>

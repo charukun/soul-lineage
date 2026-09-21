@@ -6,7 +6,7 @@ import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.j
 test('battle2 exposes only 1v1 and 1v3 controls and never wires inspiration',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=readFileSync(new URL('../src/nocturne-stage.js',import.meta.url),'utf8');
  assert.match(html,/<h1>序破急バトル<\/h1>/);assert.equal((html.match(/data-battle-mode=/g)||[]).length,2);assert.match(html,/data-battle-mode="duel"/);assert.match(html,/data-battle-mode="oneVsThree"/);
- assert.doesNotMatch(html+stage,/inspiration|hirameki|閃き|battle-inspire|pendingDiscoveries/i);
+ assert.doesNotMatch(html+stage,/inspiration|hirameki|閃き|battle-inspire|pendingDiscoveries/i);assert.match(html,/data-combat-phase="jo"/);assert.match(html,/data-combat-phase="ha"/);assert.match(html,/data-combat-phase="kyu"/);assert.match(html,/battle-sequence-history/);assert.match(stage,/collectActions/);assert.match(stage,/motionLabel/);
 });
 test('1v1 fixture contains exactly one hero and one enemy',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let phases=new Set(),events=0;
