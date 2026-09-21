@@ -45,10 +45,16 @@ jobs:
       # Keep the Playwright-managed browser exact while avoiding a per-run re-download.
       - name: Restore exact Playwright browser
         id: playwright-browser-cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ~/.cache/ms-playwright
           key: browser-review-${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}-chromium-headless-shell
+      - name: Request trusted cache seed on miss
+        if: steps.playwright-browser-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run browser-review-cache-seed.yml --ref main
       - name: Install exact Playwright browser on cache miss
         if: steps.playwright-browser-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps --only-shell chromium
