@@ -15,6 +15,8 @@ import '@soul/shared-ui/combat-sequence.css';
 // Final gameplay skin: keep this last so runtime-imported UI styles cannot flatten the HUD.
 import './dark-navy-hud.css';
 import './playable-core-ui.css';
+import './rinne-world-ui.css';
+import {RINNE_UI_VERSION} from './ui-version.js';
 
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
 const PAGE_SIZE=6;
@@ -26,31 +28,17 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const root=document.createElement('div');
   root.className='rinne-gameplay-upgrade';
   root.innerHTML=`
-    <section class="rinne-player-strip" data-player-info aria-label="プレイヤー情報">
-      <div class="player-identity"><strong data-name>旅人</strong><small data-state>探索</small></div>
-      <div class="player-equipment"><span>装</span><strong data-equip>素手 · 旅装</strong></div>
-      <div data-talent-tags class="player-talent-tags" aria-label="人物タグ"></div>
-    </section>
+    <section class="rinne-player-strip rinne-player-ghost" data-player-info aria-label="プレイヤー情報"><div class="player-identity"><strong data-name>旅人</strong><small data-state>探索</small></div><div class="player-equipment"><span>装</span><strong data-equip>素手 · 旅装</strong></div><div data-talent-tags class="player-talent-tags" aria-label="人物タグ"></div></section>
+    <small class="gameplay-surface-version">UI ${RINNE_UI_VERSION}</small>
     <section data-vitals class="rinne-context-vitals" hidden aria-label="息"><div data-vital-breath class="context-vital is-breath"><span>息</span><i><b data-context-stamina></b></i></div></section>
     <aside data-mind class="rinne-mind-balance" hidden aria-label="現在の意識バランス"><span class="mind-title">意識</span><div class="mind-orbit" aria-hidden="true"><i data-axis="attack"><b>攻</b></i><i data-axis="guard"><b>守</b></i><i data-axis="spacing"><b>間</b></i><i data-axis="counter"><b>返</b></i><i data-axis="mobility"><b>機</b></i><i data-axis="survival"><b>生</b></i><em></em></div><strong data-mind-state>中庸</strong></aside>
-    <div data-phase class="combat-phase-indicator combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" hidden aria-label="現在の序破急"><span class="combat-sequence__step" data-phase-id="jo" data-combat-phase="jo">序</span><i class="phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="ha" data-combat-phase="ha">破</span><i class="phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="kyu" data-combat-phase="kyu">急</span><strong data-phase-action class="combat-phase-action combat-sequence__action"></strong><div data-phase-history class="combat-phase-history combat-sequence__history" aria-label="直近のアクション" aria-live="polite"></div></div>
-    <nav class="rinne-bottom-controls" aria-label="主要操作">
-      <button data-heart class="upgrade-control is-heart" type="button"><span>心</span><small>心得</small></button>
-      <button data-techniques class="upgrade-control is-technique" type="button"><span>技</span><small>技</small></button>
-      <button data-training-strike class="upgrade-control is-practice" type="button" hidden><span>打</span><small>かかし</small></button>
-      <button data-menu class="upgrade-control is-menu" type="button" aria-expanded="false"><span>帳</span><small>メニュー</small></button>
-    </nav>
-    <aside data-quick-menu class="rinne-quick-menu" hidden aria-label="メニュー">
-      <button data-body class="quick-menu-action" type="button"><b>体</b><span>身法</span></button>
-      <button data-items class="quick-menu-action" type="button"><b>装</b><span>武具</span></button>
-      <button data-map class="quick-menu-action quick-map" type="button" aria-label="地図を開く"><span class="radar-face" aria-hidden="true"><i class="radar-ring radar-ring-outer"></i><i class="radar-ring radar-ring-inner"></i><i class="radar-cross"></i><span data-radar-places class="radar-places"></span><em data-radar-target class="radar-target" hidden></em><b data-radar-player class="radar-player"></b><u>N</u></span><span class="radar-caption"><strong data-radar-distance>--</strong><small data-radar-label>地図</small></span></button>
-      <button data-record class="quick-menu-action" type="button" aria-label="技譜と人生を開く"><b>譜</b><span>技譜・人生</span></button>
-    </aside>
+    <div data-phase class="combat-phase-indicator combat-sequence" data-combat-sequence data-combat-sequence-phase="idle" hidden aria-label="現在の序破急"><span class="combat-sequence__step" data-phase-id="jo" data-combat-phase="jo">序</span><i class="phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="ha" data-combat-phase="ha">破</span><i class="phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="kyu" data-combat-phase="kyu">急</span><strong data-phase-action class="combat-phase-action combat-sequence__action"></strong><div data-phase-history class="combat-phase-history combat-sequence__history" aria-label="直近のアクション" aria-live="polite"></div></div>
+    <nav class="rinne-bottom-controls rinne-command-sigils" aria-label="主要操作"><button data-heart class="upgrade-control is-heart" type="button"><i aria-hidden="true"></i><span>心</span><small>心得</small></button><button data-techniques class="upgrade-control is-technique" type="button"><i aria-hidden="true"></i><span>技</span><small>技</small></button><button data-training-strike class="upgrade-control is-practice" type="button" hidden><i aria-hidden="true"></i><span>打</span><small>稽古</small></button><button data-menu class="upgrade-control is-menu" type="button" aria-expanded="false"><i aria-hidden="true"></i><span>記</span><small>開く</small></button></nav>
+    <aside data-quick-menu class="rinne-quick-menu rinne-wheel-menu" hidden aria-label="メニュー"><div class="rinne-wheel-core" aria-hidden="true"><b>百</b><span>RINNE</span></div><button data-body class="quick-menu-action wheel-body" type="button"><b>体</b><span>身法</span></button><button data-items class="quick-menu-action wheel-items" type="button"><b>装</b><span>武具</span></button><button data-map class="quick-menu-action quick-map wheel-map" type="button" aria-label="地図を開く"><b>図</b><span class="radar-caption"><strong data-radar-distance>--</strong><small data-radar-label>地図</small></span><span data-radar-places class="radar-places" hidden></span><em data-radar-target class="radar-target" hidden></em><i data-radar-player class="radar-player" hidden></i></button><button data-record class="quick-menu-action wheel-record" type="button" aria-label="技譜と人生を開く"><b>譜</b><span>人生</span></button></aside>
     <button data-one-motion class="one-motion-control" type="button" hidden><b>奥</b><span><strong data-one-motion-name>奥義</strong><small>消耗大 / 隙大</small></span></button>
-    <section data-panel class="upgrade-panel" hidden><header><i class="upgrade-sheet-grip" aria-hidden="true"></i><strong data-title></strong><button data-close aria-label="閉じる">×</button></header><div data-body></div></section>
+    <section data-panel class="upgrade-panel rinne-archive-panel" hidden><header><i class="upgrade-sheet-grip" aria-hidden="true"></i><small>RINNE ARCHIVE</small><strong data-title></strong><button data-close aria-label="閉じる">×</button></header><div data-body></div></section>
     <aside data-spark class="technique-spark" role="status" aria-live="polite" hidden><div><span>閃き</span><strong data-spark-name></strong><small>技譜へ記録</small></div><button data-spark-set type="button">閉じる</button></aside>
-    <div data-rest class="upgrade-rest" hidden><span></span><strong>休憩中</strong><small>長押し中、息を整えている</small></div>
-    <div data-training class="upgrade-training" hidden><strong>稽古</strong><span data-training-name>かかし</span><small>「打」で実際に打ち込む</small></div>`;
+    <div data-rest class="upgrade-rest" hidden><span></span><strong>休憩中</strong><small>息を整えている</small></div><div data-training class="upgrade-training" hidden><strong>稽古</strong><span data-training-name>かかし</span><small>「打」で間合いを刻む</small></div>`;
   gameScreen.append(root);
 
   const dash=document.createElement('button');dash.type='button';dash.hidden=true;
