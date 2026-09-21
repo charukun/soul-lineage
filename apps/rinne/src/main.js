@@ -57,7 +57,8 @@ const onBrandEnter=()=>{unlockTitleAudio();beginTitleCinematic();};
 window.addEventListener('soul:brand-enter',onBrandEnter);
 function refreshContinue(){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
-  hasSave=Boolean(saved&&typeof saved==='object'&&!Array.isArray(saved));const button=$('continue-life');
+  hasSave=Boolean(saved&&typeof saved==='object'&&!Array.isArray(saved));const button=$('continue-life'),start=$('new-life');
+  start.hidden=hasSave;start.setAttribute('aria-hidden',String(hasSave));
   button.hidden=false;button.setAttribute('aria-disabled',String(!hasSave));button.dataset.available=String(hasSave);
   if(hasSave){
     const age=Math.max(0,Math.min(100,Math.floor(Number(saved.ageYears)||0)));
@@ -134,8 +135,8 @@ async function requestLaunch(mode){
   originOpen=true;titleCinematic.pause();enterRinneLineageAudio();
   try{
     const expectedSave=localStorage.getItem(storageKey);
-    let saved=null;try{saved=JSON.parse(expectedSave||'null');}catch{}
-    const family=await openFamilyOrigin({document,hasSave:expectedSave!==null,savedName:saved?.name,motion:motionToggle.getAttribute('aria-checked')!=='false'});
+    if(expectedSave!==null){showTitle('この一族の人生は、続きから再開できます。');return;}
+    const family=await openFamilyOrigin({document,hasSave:false,motion:motionToggle.getAttribute('aria-checked')!=='false'});
     if(family)await launch('new',null,{family,expectedSave});else showTitle();
   }catch(error){console.error(error);showTitle(`一族を開けませんでした：${error?.message||error}`);}
   finally{originOpen=false;exitRinneLineageAudio();}
