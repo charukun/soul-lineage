@@ -141,7 +141,7 @@ export class World{
   const room=muraUsableInterior(h);if(!room)return false;const hx=room.shape==='circle'?room.radius:room.halfWidth,hz=room.shape==='circle'?room.radius:room.halfDepth;
   for(const rot of[0,Math.PI/2])for(let z=-hz+.35;z<=hz-.35;z+=.7)for(let x=-hx+.35;x<=hx-.35;x+=.7){if(this.canPlace(kind,x,z,rot,h.id))continue;h.room.push({id:'f'+this.state.nextId++,kind,x,z,rot,ownerId:person.id});this.state.stats.furnished++;this.changed();return true;}return false;
  }
- tutorialStep(){if(this.state.tutorial.dismissed||this.state.tutorial.completed)return null;const index=TUTORIAL.findIndex(t=>!this.objects.some(o=>o.kind===t.kind&&ready(o)));if(index<0){this.state.tutorial.completed=true;return null;}return{...TUTORIAL[index],index};}
+ tutorialStep(){if(this.state.tutorial.dismissed||this.state.tutorial.completed)return null;const guideVersion=this.state.onboarding?.firstRunAutoplay?.version||0,steps=TUTORIAL.filter(t=>!t.version||guideVersion>=t.version),index=steps.findIndex(t=>!this.objects.some(o=>o.kind===t.kind&&ready(o)));if(index<0){this.state.tutorial.completed=true;return null;}return{...steps[index],index,total:steps.length};}
  export(){return JSON.stringify(this.state,null,2);}
  load(text){try{const next=validate(JSON.parse(text));this.state=next;this.history=[];this.future=[];this.resourceRevision++;this.changed();return{ok:true};}catch(e){return{error:'読み込めません: '+e.message};}}
 }

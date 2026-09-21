@@ -35,7 +35,7 @@ test('housing, safety and food bottlenecks point into the matching build flow',(
   assert.equal(safety.action.kind,'guardpost');
 
   const food=nextVillageGuidance(fixture({population:{people:4,openBeds:6,safety:8,food:4}}));
-  assert.equal(food.id,'food');
+  assert.equal(food.id,'food-source');
   assert.equal(food.action.kind,'wheat');
 });
 
@@ -49,22 +49,22 @@ test('idle resident turns into an actionable village voice after the authored tu
   assert.match(next.title,/ミナ.*仕事/);
   assert.equal(next.action.kind,'logging');
   assert.equal(next.action.label,'仕事場をつくる');
-  assert.match(nextVillageGoal(fixture({people:[resident]})),/仕事/);
+  assert.match(nextVillageGoal(fixture({people:[resident],objects:[{kind:'wheat'}]})),/仕事/);
 });
 
 test('work suggestion reacts to what the village already has instead of repeating one facility forever',()=>{
   const resident={name:'ミナ',role:'resident',dead:false,jobId:null};
   const next=nextVillageGuidance(fixture({
     people:[resident],
-    objects:[{kind:'logging'},{kind:'logging'}],
+    objects:[{kind:'wheat'},{kind:'logging'},{kind:'logging'}],
   }));
   assert.equal(next.action.kind,'storage');
 });
 
 test('stable villages keep a quiet contextual hint without forcing another construction',()=>{
   const resident={name:'ミナ',role:'resident',dead:false,jobId:'b-work'};
-  const next=nextVillageGuidance(fixture({people:[resident]}));
+  const next=nextVillageGuidance(fixture({people:[resident],objects:[{kind:'wheat'}]}));
   assert.equal(next.id,'stable');
   assert.equal(next.action,null);
-  assert.match(nextVillageGoal(fixture({people:[resident]})),/穏やか/);
+  assert.match(nextVillageGoal(fixture({people:[resident],objects:[{kind:'wheat'}]})),/穏やか/);
 });

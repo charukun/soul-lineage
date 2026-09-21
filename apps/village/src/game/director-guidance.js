@@ -61,6 +61,15 @@ export function nextVillageGuidance(world){
       buildAction(world,'guardpost','守りをつくる'),
     );
   }
+  const hasFoodSource=world.objects?.some(object=>defs[object.kind]?.produce?.food);
+  if(!hasFoodSource){
+    return guidance(
+      'food-source',
+      '食べものを生む場所が、まだない……',
+      '開拓の四人と、これから来る住人のために畑を用意したい。',
+      buildAction(world,'wheat','畑をつくる'),
+    );
+  }
   if(population.food<=population.people){
     return guidance(
       'food',
