@@ -13,7 +13,7 @@ const stations=[
  {id:'port-prayer',label:'港',x:166,z:0,activity:'voyage',port:true},
 ];
 function life(age=5){const s=createLife({seed:71});s.phase='living';s.ageYears=age;s.ageSeconds=age*60;s.resting=false;return s;}
-function complete(state,station){for(let i=0;i<34;i++)tickLife(state,{realDelta:.25,lifeDelta:0,station});}
+function complete(state,station){for(let i=0;i<32;i++)tickLife(state,{realDelta:.25,lifeDelta:0,station});}
 
 test('early play route deliberately creates distinct life evidence before combat',()=>{
  const state=life(5);assert.match(guidanceFor({state,stations}).objective,/空き家/);
