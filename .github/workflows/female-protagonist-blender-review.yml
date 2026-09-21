@@ -30,14 +30,20 @@ jobs:
           blender --background assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend \
             --python scripts/blender/polish-protagonist-villager-female-v1-r1.py -- \
             --out generated/female-protagonist/round1
-      - name: Render round 1 fixed views
+      - name: Build round 2
         run: |
+          rm -rf generated/female-protagonist/round2
           blender --background generated/female-protagonist/round1/source/ProtagonistVillagerFemaleV1.blend \
+            --python scripts/blender/polish-protagonist-villager-female-v1-r2.py -- \
+            --out generated/female-protagonist/round2
+      - name: Render round 2 fixed views
+        run: |
+          blender --background generated/female-protagonist/round2/source/ProtagonistVillagerFemaleV1.blend \
             --python scripts/blender/inspect-protagonist-villager-female-v1.py -- \
-            --out generated/female-protagonist/round1/review
-      - name: Upload round 1 evidence
+            --out generated/female-protagonist/round2/review
+      - name: Upload round 2 evidence
         uses: actions/upload-artifact@v4
         with:
-          name: female-protagonist-round1-${{ github.sha }}
-          path: generated/female-protagonist/round1/
+          name: female-protagonist-round2-${{ github.sha }}
+          path: generated/female-protagonist/round2/
           if-no-files-found: error
