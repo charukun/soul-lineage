@@ -2,6 +2,7 @@ import { DISCOVERIES, skillEffects, skillName } from './skill-system.js';
 import { enterInteriorState, leaveInteriorState } from './interior-state.js';
 import { ensureCombatInjuryState, recoverPersistentInjuries } from './combat-injury.js';
 import { ensureInspiration, validateInspiration, advanceInspirationTime, recordLifeExperience, inspirationEffortScale, inspirationImprint, INSPIRATION_LIMITS } from './inspiration-state.js';
+import { normalizeClanOrigin, familyPracticeLabel } from './clan-origin.js';
 
 export { DISCOVERIES, skillEffects, skillName };
 export const SAVE_SCHEMA = 2;
@@ -50,7 +51,7 @@ export function chooseBirthVillage(seed=1,villageIds=[DEFAULT_VILLAGE_ID]){
   const ids=normalizeVillageIds(villageIds);
   return ids[seed%ids.length];
 }
-export function createLife({name='旅人',seed=1,generation=1,lineage=[],homelands=[],villageIds=[DEFAULT_VILLAGE_ID],birthVillageId=null}={}){
+export function createLife({name='旅人',seed=1,generation=1,lineage=[],homelands=[],villageIds=[DEFAULT_VILLAGE_ID],birthVillageId=null,clanOrigin=null}={}){
   seed=Number.isSafeInteger(seed)?seed>>>0:1;generation=Math.max(1,generation|0);
   const available=normalizeVillageIds(villageIds),unlocked=normalizeVillageIds(homelands,false);
   let village;
@@ -62,7 +63,7 @@ export function createLife({name='旅人',seed=1,generation=1,lineage=[],homelan
     village=birthVillageId;
   }else village=chooseBirthVillage(seed,available);
   const state={
-    schemaVersion:SAVE_SCHEMA,id:nowId(seed),name:cleanName(name),seed,generation,
+    schemaVersion:SAVE_SCHEMA,id:nowId(seed),name:cleanName(name),seed,generation,clanOrigin:normalizeClanOrigin(clanOrigin),
     phase:'birth',zone:'village',front:0,lastDepartureCycle:2,ended:false,birthVillageId:village,homelands:unlocked,
     ageSeconds:0,ageYears:0,clockRate:1,position:{x:-7,z:-1},yaw:Math.PI,moving:false,resting:true,idleSeconds:0,interior:null,
     hp:100,maxHp:100,stamina:100,staminaCap:100,lastSpendSeconds:999,combatStrategy:'balanced',equipment:{weapon:'fist',armor:'cloth',shield:false},
@@ -79,7 +80,7 @@ export function validateLife(raw){
   if(!raw.position||!Number.isFinite(raw.position.x)||!Number.isFinite(raw.position.z))throw Error('位置データが不正です。');
   if(!WEAPONS[raw.equipment?.weapon]||!ARMORS[raw.equipment?.armor]||typeof raw.equipment.shield!=='boolean')throw Error('装備データが不正です。');
   if(!Array.isArray(raw.knownSkills)||raw.knownSkills.length>256||!raw.experiences||typeof raw.experiences!=='object')throw Error('人生データが不正です。');
-  const state=clone(raw);state.birthVillageId??=DEFAULT_VILLAGE_ID;state.homelands??=[];state.interior??=null;state.combatStrategy??='balanced';
+  const state=clone(raw);state.birthVillageId??=DEFAULT_VILLAGE_ID;state.homelands??=[];state.interior??=null;state.combatStrategy??='balanced';state.clanOrigin=normalizeClanOrigin(state.clanOrigin);
   if(!validVillageId(state.birthVillageId))throw Error('出生村IDが不正です。');
   if(!Array.isArray(state.homelands)||state.homelands.length>64||new Set(state.homelands).size!==state.homelands.length||state.homelands.some(id=>!validVillageId(id)))throw Error('故郷の記録が不正です。');
   if(state.interior!==null){const row=state.interior,p=row?.returnPosition;if(!row||typeof row.buildingId!=='string'||!row.buildingId||row.buildingId.length>100||!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))throw Error('建物内の位置データが不正です。');state.interior={buildingId:row.buildingId,returnPosition:{x:p.x,z:p.z}};}
@@ -106,7 +107,7 @@ export function acceptDiscoveries(state){if(Array.isArray(state.pendingDiscoveri
 export function startAutomaticActivity(state,station){
   if(!station?.activity||state.ageYears<4||state.phase!=='living'||state.combat||state.ended)return false;
   if(state.activity?.stationId===station.id)return false;
-  state.activity={stationId:station.id,kind:station.activity,label:station.actionLabel||EXPERIENCES[station.activity]||station.label,elapsed:0};state.resting=false;pushEvent(state,'activity',`${state.activity.label}を始めた。`);return true;
+  state.activity={stationId:station.id,kind:station.activity,label:familyPracticeLabel(state,station.activity)||station.actionLabel||EXPERIENCES[station.activity]||station.label,elapsed:0};state.resting=false;pushEvent(state,'activity',`${state.activity.label}を始めた。`);return true;
 }
 export function stopAutomaticActivity(state,reason='move'){if(!state.activity)return false;if(reason==='move')pushEvent(state,'activity','歩き出した。');state.activity=null;return true;}
 export function enterBuilding(state,station){const changed=enterInteriorState(state,station);if(changed)pushEvent(state,'building',`${station.label}へ入った。`);return changed;}
@@ -164,8 +165,8 @@ export function objectiveFor(state){
   if(state.ageYears<7)return '村を歩き、暮らしを知る';if(state.ageYears<15)return state.equipment.weapon==='fist'?'武具のそばへ行き、自分の得物を試す':'暮らしながら、技と装備を試す';
   if(state.zone==='village')return canDepart(state)?'港へ行けば、次の船で前線へ出る':'暮らしながら、次の出航を待つ';return state.front>=5?'魔王軍の主力を退け、帰還する':'前線を生き抜き、奥へ進む';
 }
-export function lineageRecord(state,memento=null){return {lifeId:state.id,generation:state.generation,name:state.name,age:Math.floor(state.ageYears),birthVillageId:state.birthVillageId,returnedHome:state.returns>0,memento:memento||null,defeats:state.defeats,equipment:clone(state.equipment),experiences:clone(state.experiences),skills:[...state.knownSkills],inspirationImprint:inspirationImprint(state)};}
+export function lineageRecord(state,memento=null){return {lifeId:state.id,generation:state.generation,name:state.name,age:Math.floor(state.ageYears),birthVillageId:state.birthVillageId,clanOrigin:normalizeClanOrigin(state.clanOrigin),returnedHome:state.returns>0,memento:memento||null,defeats:state.defeats,equipment:clone(state.equipment),experiences:clone(state.experiences),skills:[...state.knownSkills],inspirationImprint:inspirationImprint(state)};}
 export function rebirth(state,{name=state.name,memento=null,seed=(state.seed+0x9e3779b9)>>>0,villageId=null,villageIds=[state.birthVillageId]}={}){
-  const record=lineageRecord(state,memento),next=createLife({name,seed,generation:state.generation+1,lineage:[...state.lineage,record],homelands:state.homelands,villageIds,birthVillageId:villageId});
+  const record=lineageRecord(state,memento),next=createLife({name,seed,generation:state.generation+1,lineage:[...state.lineage,record],homelands:state.homelands,villageIds,birthVillageId:villageId,clanOrigin:state.clanOrigin});
   next.lineageArchive={earlierGenerations:Math.max(0,next.generation-1-next.lineage.length)};return next;
 }
