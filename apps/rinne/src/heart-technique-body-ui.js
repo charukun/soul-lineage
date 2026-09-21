@@ -128,7 +128,7 @@ function renderTechnique(model,focusId=null){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='technique';model.tracker.consume('technique');if(focusId)model.focusSkill=focusId;
   const combos=state.combatLoadout.technique.combos;if(!model.comboId||!combos.some(row=>row.id===model.comboId))model.comboId=state.combatLoadout.technique.activeComboId;const combo=comboById(state,model.comboId);
   model.ui.title.textContent='技 · 序破急';model.ui.body.innerHTML='';
-  model.ui.body.append(intro('三手で連技を組む','上段の序・破・急から編集先を選び、下段の技一覧から差し替える。'),renderComboContext(model,state,combo));
+  model.ui.body.append(renderComboContext(model,state,combo));
   const slots=topSlotRow();for(const [phase,label] of PHASES)slots.append(phaseSlot(model,state,combo,phase,label));model.ui.body.append(slots);
   const one=document.createElement('button');one.type='button';one.className='one-motion-card';one.dataset.active=String(model.techniqueTarget==='oneMotion');one.innerHTML='<div><span>手動奥義</span><strong></strong><small>戦闘態勢中のみ · 消耗と隙が大きい</small></div><b>選択</b>';one.querySelector('strong').textContent=state.combatLoadout.technique.oneMotion?techniqueName(state.combatLoadout.technique.oneMotion):'未設定';one.onclick=()=>{model.techniqueTarget='oneMotion';model.audio.ui();renderTechnique(model);};
   const ids=learnedTechniqueSkills(state,{oneMotion:model.techniqueTarget==='oneMotion'});
@@ -143,7 +143,7 @@ function renderTechnique(model,focusId=null){
 }
 function renderBody(model){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='body';model.bodyKind=model.bodyKind||'stance';model.ui.title.textContent='体 · 身法';model.ui.body.innerHTML='';
-  model.ui.body.append(intro('身体の三要素','構え・戦法・残心を上段で選び、下段から身につけた型へ差し替える。'));
+  const lead=document.createElement('p');lead.className='rinne-menu-lead';lead.textContent='いまの身体に合う型を選ぶ';model.ui.body.append(lead);
   const kinds=[['stance','構え','戦闘態勢の形'],['style','戦法','間合いと動き'],['zanshin','残心','攻撃後の戻り']],slots=topSlotRow();
   for(const [kind,label,meta] of kinds){
     const option=unlockedBodyOptions(state,kind).find(row=>row.id===state.combatLoadout.body[kind]);

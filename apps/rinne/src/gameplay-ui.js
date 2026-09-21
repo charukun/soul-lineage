@@ -16,6 +16,7 @@ import '@soul/shared-ui/combat-sequence.css';
 import './dark-navy-hud.css';
 import './playable-core-ui.css';
 import './rinne-world-ui.css';
+import './rinne-core-menu.css';
 import {RINNE_UI_VERSION} from './ui-version.js';
 
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
@@ -57,7 +58,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     </aside>
 
     <button data-one-motion class="one-motion-control" type="button" hidden><b>奥</b><span><strong data-one-motion-name>奥義</strong><small>消耗大 / 隙大</small></span></button>
-    <section data-panel class="upgrade-panel rinne-archive-panel" hidden><header><small>旅の手帳</small><strong data-title></strong><button data-close aria-label="閉じる">×</button></header><div data-body></div></section>
+    <section data-panel class="rinne-core-menu" hidden aria-modal="true" aria-label="旅人の手帳"><header class="rinne-core-menu-head"><span class="rinne-core-menu-mark" aria-hidden="true">✦</span><div><small>旅人の手帳</small><strong data-title></strong></div><button data-close aria-label="閉じる">×</button></header><div data-body class="rinne-core-menu-body"></div></section>
     <aside data-spark class="technique-spark" role="status" aria-live="polite" hidden><div><span>ひらめいた！</span><strong data-spark-name></strong><small>技として覚えた</small></div><button data-spark-set type="button">うれしい</button></aside>
     <div data-rest class="upgrade-rest" hidden><span></span><strong>ひとやすみ</strong><small>息を整えている</small></div>
     <div data-training class="upgrade-training" hidden><strong>かかし</strong><span data-training-name>稽古</span><small>近づくと稽古できる</small></div>`;
@@ -138,7 +139,6 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   }
   function inventory(){
     ensureProgression(state);ui.title.textContent='装 · 武具';ui.body.innerHTML='';
-    const intro=document.createElement('div');intro.className='loadout-intro';intro.innerHTML='<strong>身につける武具</strong><small>武器・防具・盾から編集先を選び、所持している装備へ差し替える。</small>';ui.body.append(intro);
     const kinds=[['weapon','武器'],['armor','防具'],['shield','盾']],slots=document.createElement('section');slots.className='loadout-slot-row';
     for(const [kind,label] of kinds){const config=inventoryConfig(kind),button=document.createElement('button');button.type='button';button.className='loadout-slot';button.dataset.selected=String(inventoryKind===kind);button.dataset.choiceGlyph=kind==='weapon'?'武':kind==='armor'?'鎧':'盾';button.innerHTML='<span></span><strong></strong><small></small>';button.querySelector('span').textContent=label;button.querySelector('strong').textContent=config.label(config.active);button.querySelector('small').textContent=inventoryKind===kind?'選択先':config.meta;decorateSelectionDetail(button,{kicker:`${label}の装着枠`,title:config.label(config.active),summary:config.meta,status:inventoryKind===kind?'選択先':'装備中'});button.onclick=()=>{inventoryKind=kind;inventoryPages[kind]=inventoryPages[kind]||0;audio.ui();inventory();};slots.append(button);}
     ui.body.append(slots);
