@@ -71,7 +71,8 @@ jobs:
           const page=await browser.newPage({viewport:{width:792,height:1536},deviceScaleFactor:1});
           await page.goto('http://127.0.0.1:5277/',{waitUntil:'networkidle'});
           await page.waitForFunction(()=>window.masterCharacterReview?.ready===true,{timeout:30000});
-          await page.locator('[data-character-model="protagonist.villager.female.v1"]').click();
+          await page.waitForSelector('#character-review-picker [data-model-key="protagonist.villager.female.v1"]',{state:'visible',timeout:30000});
+          await page.locator('#character-review-picker [data-model-key="protagonist.villager.female.v1"]').click();
           await page.waitForFunction(()=>window.masterCharacterReview?.displayModelId==='protagonist.villager.female.v1'&&window.masterCharacterReview?.ready===true,{timeout:30000});
           await page.waitForTimeout(700);
           await page.screenshot({path:'generated/female-visual-round/character-studio.png',fullPage:true});
