@@ -5,6 +5,888 @@
   "immutable": true,
   "files": [
     {
+      "path": "audio/kenney-impact-additions/footstep-carpet-000/c64a4350aadf86ba396525053c3f43dafc1ecf00.ogg",
+      "bytes": 8434,
+      "gitBlobSha": "c64a4350aadf86ba396525053c3f43dafc1ecf00",
+      "sha256": "0147b7bd6ceb6c5be76ae769a6f5e210118bdce8de3d5d73a9690e5f5f727f4d"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-carpet-001/302019ba39d6fb82e1e024a6484bc045f8fcb907.ogg",
+      "bytes": 8492,
+      "gitBlobSha": "302019ba39d6fb82e1e024a6484bc045f8fcb907",
+      "sha256": "a79861f48e7fdd25bee64fc628ee818e44f95c5cdd862f47f7360726b20c371d"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-carpet-003/943c30d1365152c80a4567e1d16c23ef6138924a.ogg",
+      "bytes": 8382,
+      "gitBlobSha": "943c30d1365152c80a4567e1d16c23ef6138924a",
+      "sha256": "14465fb482a2612e224f2495c392b1c4e4389daa08a433cf4628b38197154992"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-concrete-000/5ed9feb2353bad02f9cf94c81b6477575e0211df.ogg",
+      "bytes": 7889,
+      "gitBlobSha": "5ed9feb2353bad02f9cf94c81b6477575e0211df",
+      "sha256": "ee489cc4cb6162e2bfa3d9b5bbc46f1e8f099c9bff5d82b6698d72f45702d894"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-concrete-001/be663276d32e6471e810e1a83477a6500954224d.ogg",
+      "bytes": 8389,
+      "gitBlobSha": "be663276d32e6471e810e1a83477a6500954224d",
+      "sha256": "39bbc258801438aaee1fcd908ddd68abbcf6246729d586293011593551a47688"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-concrete-002/ede94d16a17e1368e5494b552e866e3f13a7e330.ogg",
+      "bytes": 8336,
+      "gitBlobSha": "ede94d16a17e1368e5494b552e866e3f13a7e330",
+      "sha256": "4526b8b9812680241c24370deee1758aa3dcaf017ae8118e77bac5602f859224"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-concrete-003/2e897edd5fb51deeadf7a32a10fe194cfa46a921.ogg",
+      "bytes": 7886,
+      "gitBlobSha": "2e897edd5fb51deeadf7a32a10fe194cfa46a921",
+      "sha256": "c8cf9a719aff28da446c54e02bb70ae68f14c52d719ec408a2c171f0b5f386ce"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-concrete-004/7706f6d844d4ace8acb59dd9509b0d4d6285c258.ogg",
+      "bytes": 7993,
+      "gitBlobSha": "7706f6d844d4ace8acb59dd9509b0d4d6285c258",
+      "sha256": "54aab47746b8a546feb9f077047941d07ebb259900e8faf5d530e98bbbb68fbc"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-grass-000/a7e0fce2b7daca990afb9a9db099cb7b148fcfb9.ogg",
+      "bytes": 10371,
+      "gitBlobSha": "a7e0fce2b7daca990afb9a9db099cb7b148fcfb9",
+      "sha256": "de44d80f152915fc43aee6fbd7f5d26b921c392fec15ed7520f675712be53d2b"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-grass-001/e4ef827d493c824b016d717406d59991daf5de38.ogg",
+      "bytes": 10394,
+      "gitBlobSha": "e4ef827d493c824b016d717406d59991daf5de38",
+      "sha256": "a0bc739d8b49c2e255c6ab0069aef2ae93bb2591121cee18eef2b03a1abee02a"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-grass-002/cd0f03d3bbe3134129c9d203ac0ebf0b9d0524fe.ogg",
+      "bytes": 10359,
+      "gitBlobSha": "cd0f03d3bbe3134129c9d203ac0ebf0b9d0524fe",
+      "sha256": "7db0b66cf043a155fd3d7177716366c141681f2d0a530930e75d5d5cf6c0c440"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-grass-003/0e6eb47731409ce0941562aed0fe24ea3321c4cd.ogg",
+      "bytes": 10210,
+      "gitBlobSha": "0e6eb47731409ce0941562aed0fe24ea3321c4cd",
+      "sha256": "ee3c60f827ea73909bbcffe46e4537282b8147cc3402d94189a37108323d0348"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-grass-004/3471d2e8af6683c132976e0a68fc3a43997b6d32.ogg",
+      "bytes": 9881,
+      "gitBlobSha": "3471d2e8af6683c132976e0a68fc3a43997b6d32",
+      "sha256": "ccec0cba2c7bf537d817347d89f784c6519eaa3e538c8d8b266d2691ad72f574"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-snow-000/dfd7beff707d4b1ce540656ab361a388ab846286.ogg",
+      "bytes": 9961,
+      "gitBlobSha": "dfd7beff707d4b1ce540656ab361a388ab846286",
+      "sha256": "54127a174ba5091a9f5981be49af84e95fdbc08d4be2224154d5404d98b8e9dd"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-snow-001/454fd2636cc4c27cd36541894e88af9bbb0fec7f.ogg",
+      "bytes": 9875,
+      "gitBlobSha": "454fd2636cc4c27cd36541894e88af9bbb0fec7f",
+      "sha256": "8b76a08535492f55db5a57f929d75a387480bc764ce143e1bc8add83fde586de"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-snow-002/1f5a6dea463c81021fa7bda124aca295abb96abe.ogg",
+      "bytes": 9775,
+      "gitBlobSha": "1f5a6dea463c81021fa7bda124aca295abb96abe",
+      "sha256": "bbda48db3b6e72d2c640d742f083a52d649f823f2bd9d47cbc36a7dc16ea3967"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-snow-003/2a2af78bc71309c63f2f43fdd114bd018aa49e47.ogg",
+      "bytes": 9941,
+      "gitBlobSha": "2a2af78bc71309c63f2f43fdd114bd018aa49e47",
+      "sha256": "70e1fbaff5fe147ec7c230f05070ea3105e44666b90101d5c458322cd53ad47e"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-snow-004/c3b67cedc558dd2bbf18260f944e7a8a25033027.ogg",
+      "bytes": 9711,
+      "gitBlobSha": "c3b67cedc558dd2bbf18260f944e7a8a25033027",
+      "sha256": "995b2ecc4c7ae84a433dcadc203d82c139f06ac62de04afe2065587f3f080288"
+    },
+    {
+      "path": "audio/kenney-impact-additions/footstep-wood-004/cf9f5f16f78381b1f2ed12fc2966d35359ddf8e4.ogg",
+      "bytes": 7880,
+      "gitBlobSha": "cf9f5f16f78381b1f2ed12fc2966d35359ddf8e4",
+      "sha256": "f9120bf3c1e14cee61032e94fbdaac87ad13383658f5b18ce23ca1149cb83eb3"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactbell-heavy-002/4dfb1afe2f4abc25f354c5ff9a1580abc69924f5.ogg",
+      "bytes": 11333,
+      "gitBlobSha": "4dfb1afe2f4abc25f354c5ff9a1580abc69924f5",
+      "sha256": "5433bb18b0ebd45dd539f2867296a59f023465dc0c17cde19b20fb97b5687ac5"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactbell-heavy-003/7a682e437d5d9a4592da4a64cbf363b7b88b90b9.ogg",
+      "bytes": 11510,
+      "gitBlobSha": "7a682e437d5d9a4592da4a64cbf363b7b88b90b9",
+      "sha256": "2fc3a5f9e04f5076977ea9ba11cb2686b364ec7eba1a829928ee73156215f1c9"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactbell-heavy-004/a778ffc47688361bf8ece9879c3d6f6ebbcbdaf9.ogg",
+      "bytes": 8610,
+      "gitBlobSha": "a778ffc47688361bf8ece9879c3d6f6ebbcbdaf9",
+      "sha256": "0cc7c7bb6fd32bf69ec9eca9f17d22c58a064a8bab5b4f404d0297473116cf6c"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactgeneric-light-002/cc74cefb78fcb52f660f500c47c8e43cb627923f.ogg",
+      "bytes": 7876,
+      "gitBlobSha": "cc74cefb78fcb52f660f500c47c8e43cb627923f",
+      "sha256": "5a768fd3a6a37ab0643378e98f8873765110125a8525e45df6c5b8e6a2947415"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactgeneric-light-003/c9bd9cf5ee2ccd681b8dbcceb962dca5bdb219cf.ogg",
+      "bytes": 7873,
+      "gitBlobSha": "c9bd9cf5ee2ccd681b8dbcceb962dca5bdb219cf",
+      "sha256": "318582b411933cf3f4fdb2f6106491e7945211a75ed7ecca9f4e8ddd7863e762"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactgeneric-light-004/679af7e9e22900e8fc69177fbbde89355c167c72.ogg",
+      "bytes": 7828,
+      "gitBlobSha": "679af7e9e22900e8fc69177fbbde89355c167c72",
+      "sha256": "aed9a95ff83d1809211e957663bb3fa6fdfa02023531abbe838375580cf81780"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-heavy-001/1ebc11629f0f7c5fdf10d58962b369b3b1fdb1ce.ogg",
+      "bytes": 11027,
+      "gitBlobSha": "1ebc11629f0f7c5fdf10d58962b369b3b1fdb1ce",
+      "sha256": "776d617d0596e54b49b3cb6a2c88670db93b7c9a2a047730e77b2c657828d139"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-heavy-002/ad73f833d4317b91c1da32624d3055d362c09d15.ogg",
+      "bytes": 9742,
+      "gitBlobSha": "ad73f833d4317b91c1da32624d3055d362c09d15",
+      "sha256": "6e5b9453e28fc865c5ff8a87986131d6787ccab36766936a72f15476c8fa70af"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-heavy-003/82dda0a6e70a5e83eab8f146079b4b2a1eb5343b.ogg",
+      "bytes": 9037,
+      "gitBlobSha": "82dda0a6e70a5e83eab8f146079b4b2a1eb5343b",
+      "sha256": "0af0148e87302e2dd3b13b2e1faf0c8b4978b82dae46b9c82188ee7afca601d6"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-heavy-004/e45a1759c63b750f67989e065396a75889b32ea9.ogg",
+      "bytes": 10381,
+      "gitBlobSha": "e45a1759c63b750f67989e065396a75889b32ea9",
+      "sha256": "e182d4ae2c82665f0ea93fb7e1a1367eb27a23cc3778b3e0a51bc4cc664242c5"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-light-000/b6609a2abe5d393155ce90c3b2aa74b71cdeff19.ogg",
+      "bytes": 8607,
+      "gitBlobSha": "b6609a2abe5d393155ce90c3b2aa74b71cdeff19",
+      "sha256": "518b3ca93556b42d330d20334cf6bad51d3b371bd3cf7b731f34ead41b5a0112"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-light-001/fdd9477bc49e37e81e888b130a83ae70f06ebb8b.ogg",
+      "bytes": 8625,
+      "gitBlobSha": "fdd9477bc49e37e81e888b130a83ae70f06ebb8b",
+      "sha256": "40bd734d148e6b9fd3e72883e1ae289278fbc94027e4c43dceaf31df428e136a"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-light-002/c378780bea6490d52dac756f86b9ac2f2bb1dd44.ogg",
+      "bytes": 8643,
+      "gitBlobSha": "c378780bea6490d52dac756f86b9ac2f2bb1dd44",
+      "sha256": "1893814a6ac478e652624e4342b00bbd8690e442d5d3e042f11ac5019faa9f70"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-light-003/9d66f8aaf88ada2a84fbe70ef7c51d39cfabadc5.ogg",
+      "bytes": 8699,
+      "gitBlobSha": "9d66f8aaf88ada2a84fbe70ef7c51d39cfabadc5",
+      "sha256": "2a80cf5619ebbebbacdad212d85813f08af889343eaba91f0156081dc3945bc4"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-light-004/a24e9a172b0d426c49839b5282f9ba70cf59a85e.ogg",
+      "bytes": 8722,
+      "gitBlobSha": "a24e9a172b0d426c49839b5282f9ba70cf59a85e",
+      "sha256": "aff091a74c44a7d8ba67674c93f70a0e48981730bcaa10d92621ccd0ca105d37"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-medium-000/bce8c28ec19a01798f5a71e9ec4c38a09c29ca75.ogg",
+      "bytes": 10481,
+      "gitBlobSha": "bce8c28ec19a01798f5a71e9ec4c38a09c29ca75",
+      "sha256": "bfea5b9c5b0084be5ba2635cd3bec1a43bd3d74f7eb964e1c43121352819e5ea"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-medium-001/0f23d553e95ce1fb2fb6e86a074d1b9b3d82e84c.ogg",
+      "bytes": 10686,
+      "gitBlobSha": "0f23d553e95ce1fb2fb6e86a074d1b9b3d82e84c",
+      "sha256": "99d8547b5cc5c7caff732d88c89951b8affd46b7f72a6dfae76fe57bd0bdddfd"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-medium-002/abcb16b381bb7ad268deb95670a9587a065fa1ed.ogg",
+      "bytes": 10422,
+      "gitBlobSha": "abcb16b381bb7ad268deb95670a9587a065fa1ed",
+      "sha256": "86a36b7f56b80fb243a8c8c491ce6c0ad16750eb9ccb112daa7b13c75d73c771"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-medium-003/46772877a1f9e1e4609381adc5c9d5a8d27c5d3d.ogg",
+      "bytes": 10677,
+      "gitBlobSha": "46772877a1f9e1e4609381adc5c9d5a8d27c5d3d",
+      "sha256": "b0d027d2bee0d1dddeb0ec287ebbd984f47552b74abe6efd5f22421781bc4dba"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactglass-medium-004/17353cfd1370160c7d6e99df19eaa27271f27f23.ogg",
+      "bytes": 10478,
+      "gitBlobSha": "17353cfd1370160c7d6e99df19eaa27271f27f23",
+      "sha256": "7747834354edff7912a6682c12ce2ae9c03f506bfb50793722b58dee5c8dc72a"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-heavy-001/78107d989963a0668528c93fa7f3964cb3c0e71f.ogg",
+      "bytes": 9360,
+      "gitBlobSha": "78107d989963a0668528c93fa7f3964cb3c0e71f",
+      "sha256": "42fb0b4519f1f875ef29a80aa99b13f2b49af34829be2bfd474f5ea8c3df1590"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-heavy-002/4e1053cad3e3aa16694ffefad1789b3343373aa0.ogg",
+      "bytes": 7715,
+      "gitBlobSha": "4e1053cad3e3aa16694ffefad1789b3343373aa0",
+      "sha256": "f21166aa5d63c1c4420d4425326b202e1a27e223c5ea0344de67079b6b08977e"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-heavy-003/432a448562fe7edb6031272096fafc408e070a83.ogg",
+      "bytes": 8290,
+      "gitBlobSha": "432a448562fe7edb6031272096fafc408e070a83",
+      "sha256": "e051f148ecdae9684995302f7d0befff6389538363fc4ff59e0abe5fbd51a55f"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-heavy-004/bdb83ee48a84eac9765169d6389e7e6fb2420026.ogg",
+      "bytes": 7869,
+      "gitBlobSha": "bdb83ee48a84eac9765169d6389e7e6fb2420026",
+      "sha256": "090cfc7268960aa934f6d1a88267e9ba8be664a43fa615e395c3b224ffd39e0a"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-light-001/37118e480a61325dbcb0e86420a6d2b08bb6c365.ogg",
+      "bytes": 9048,
+      "gitBlobSha": "37118e480a61325dbcb0e86420a6d2b08bb6c365",
+      "sha256": "f092b75cc53083af839dc72e245d6b0daea6cd417a9abf707c67d91348483bce"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-light-002/848f95e1c57850923b41af8184743b9d30a7d2e0.ogg",
+      "bytes": 8885,
+      "gitBlobSha": "848f95e1c57850923b41af8184743b9d30a7d2e0",
+      "sha256": "0d9cc7901cbd5cea390cfff2c2efdfc9bffe14b21e169ad56f25211ee66bd48a"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-light-003/955a3b1536de1b807d8abd2ac47a575f7ba219de.ogg",
+      "bytes": 11104,
+      "gitBlobSha": "955a3b1536de1b807d8abd2ac47a575f7ba219de",
+      "sha256": "55b5aaf50e2420baa7d1a13d33b5bef173f782e4116d2217865cb70ad395a550"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-light-004/839fa259a89a61ab54502095dc250154caea5ee7.ogg",
+      "bytes": 8756,
+      "gitBlobSha": "839fa259a89a61ab54502095dc250154caea5ee7",
+      "sha256": "0d9d386ceea1ddec86946556f71f181794f7e961bd0a62c9a1fd1c0b291346ba"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-medium-000/dfd59dbad0308a5896c90d05782de04644f9baf7.ogg",
+      "bytes": 9198,
+      "gitBlobSha": "dfd59dbad0308a5896c90d05782de04644f9baf7",
+      "sha256": "6ce05d1a4788a73182b1345fcbb067c7a8d7ff2c173d8e2273b20cc79b084c54"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-medium-001/7bd74d07e980996b16138cf02025e8b6d6fcae58.ogg",
+      "bytes": 8232,
+      "gitBlobSha": "7bd74d07e980996b16138cf02025e8b6d6fcae58",
+      "sha256": "a0c2a9fe43640e64ae07ce57b9b69db0def2d02dd6a2f1bffaafa638eb269d79"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-medium-002/29f99bf71271ed4d5edc062cf0aa0bac77dbf246.ogg",
+      "bytes": 7938,
+      "gitBlobSha": "29f99bf71271ed4d5edc062cf0aa0bac77dbf246",
+      "sha256": "4521cd5e9be5b2f3f23eae725860c2a1501afcdb883939589a1c5cb07602a6bd"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-medium-003/98e9ba64dc3491e709e87278c280dfd9a945f106.ogg",
+      "bytes": 9045,
+      "gitBlobSha": "98e9ba64dc3491e709e87278c280dfd9a945f106",
+      "sha256": "f536a89cc2cb0f7861c6323ad8845905061d8e8f9dfa19e31f088a91e22e7364"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmetal-medium-004/abd025f5329c89a55ad464bd63d7934909019aa3.ogg",
+      "bytes": 7825,
+      "gitBlobSha": "abd025f5329c89a55ad464bd63d7934909019aa3",
+      "sha256": "beccb93ee68aabc917fefb7d00ca529e4c01e6e3f8a01865a3766ec0a935d39e"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmining-000/b76cddbeadd5d5cf2404b9ff800c4b7e8161f9cb.ogg",
+      "bytes": 14116,
+      "gitBlobSha": "b76cddbeadd5d5cf2404b9ff800c4b7e8161f9cb",
+      "sha256": "9110431df3df7eec39a9850bd0564575d4f2453444ab34b454452d31e7878e42"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmining-001/f6d832d23b5307728c6fc727fdd4ed5c974209e6.ogg",
+      "bytes": 13562,
+      "gitBlobSha": "f6d832d23b5307728c6fc727fdd4ed5c974209e6",
+      "sha256": "3a4c3a0d14a84740bb494f5a86ec2428affec263d8412935fd9a620db3cbd0a0"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmining-002/c0e2f9e098b2fd3c87d233c6b5710c6df4f85220.ogg",
+      "bytes": 13316,
+      "gitBlobSha": "c0e2f9e098b2fd3c87d233c6b5710c6df4f85220",
+      "sha256": "db595729fe32658bcc9d8dad37a57801e68b015cefe1d2d1c0ec47c41571e235"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmining-003/8df0858efdf5deff49b7c86108a410a4c9814dad.ogg",
+      "bytes": 14241,
+      "gitBlobSha": "8df0858efdf5deff49b7c86108a410a4c9814dad",
+      "sha256": "b11024637a2ac3c551bb7b5afd8d4c9269a7fe96f250ba0c1c510360ff5ecced"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactmining-004/c04da729bcba0253505ec39da7eaa45405494ccd.ogg",
+      "bytes": 13749,
+      "gitBlobSha": "c04da729bcba0253505ec39da7eaa45405494ccd",
+      "sha256": "0c169cdfc2e821fa9231c10761964e1be43e4b611de20bd5f15c1f0cb85ec2fa"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplank-medium-000/2a08afd59851e68dcf0de3835cab5b271344e858.ogg",
+      "bytes": 14097,
+      "gitBlobSha": "2a08afd59851e68dcf0de3835cab5b271344e858",
+      "sha256": "b3ebc3441ac65db4276ddb771ac4819ebcc04346b5fc9e7244bdca37b9bf01ae"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplank-medium-001/4464385af2125d7f408866cabd887957185b0ff2.ogg",
+      "bytes": 14163,
+      "gitBlobSha": "4464385af2125d7f408866cabd887957185b0ff2",
+      "sha256": "6666c0d6a91a832fce2f816d6bd2127b8d417c1a5e21814b8df42770deada89a"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplank-medium-002/1116fd1122a7b80b0356e5dcfaf514501374d99f.ogg",
+      "bytes": 14394,
+      "gitBlobSha": "1116fd1122a7b80b0356e5dcfaf514501374d99f",
+      "sha256": "5ea9af72eea353c4661f072281ed2c8867e84c439f8a9a83b583f7501d8cc141"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplank-medium-003/f246e4d20a18a526389ba92727cdbdc0e0b3d550.ogg",
+      "bytes": 14219,
+      "gitBlobSha": "f246e4d20a18a526389ba92727cdbdc0e0b3d550",
+      "sha256": "06ee018f57307c4da78103d34e616045e6a7ef2a60aa9ca681293f6c3be5092d"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplank-medium-004/0618291bbca0c342b29677b19fb4adb149c29738.ogg",
+      "bytes": 14165,
+      "gitBlobSha": "0618291bbca0c342b29677b19fb4adb149c29738",
+      "sha256": "29eb0131d8f5bf2f0b1af816e0635146c738d48d980ea09775ebda8e70155169"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-heavy-000/dc0983a98c3a31058dfe541bde9fb1643464e263.ogg",
+      "bytes": 12113,
+      "gitBlobSha": "dc0983a98c3a31058dfe541bde9fb1643464e263",
+      "sha256": "fdd4ac88bd87b59a937fccd19f16db87466cbf17c808c2834387ec064cc5df8a"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-heavy-001/93fc147f05bc0bebe36991e08251badd2daacde3.ogg",
+      "bytes": 10794,
+      "gitBlobSha": "93fc147f05bc0bebe36991e08251badd2daacde3",
+      "sha256": "b03ff55eb5e6b5a552fcc4e33b62ef9ce074691c4d062a4b4b105028a4d3d8c7"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-heavy-002/35b3031dfd84901ee124ca0346da5599da2d8b04.ogg",
+      "bytes": 12269,
+      "gitBlobSha": "35b3031dfd84901ee124ca0346da5599da2d8b04",
+      "sha256": "abf4e3fe8f4dcfc2e9a79cc19f0edf11b065cb0489c3ee2a26a8dd36a10f5a14"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-heavy-003/fb2ecad8ae84b9cebabeec44cd2945ce1b3f4b5f.ogg",
+      "bytes": 10571,
+      "gitBlobSha": "fb2ecad8ae84b9cebabeec44cd2945ce1b3f4b5f",
+      "sha256": "6abf11dd99e267472b45992584e8aeadce3cef8201157ef6703b2829aad90636"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-heavy-004/9b67b6bc58006d70520380a2cd891def716c6ea7.ogg",
+      "bytes": 13173,
+      "gitBlobSha": "9b67b6bc58006d70520380a2cd891def716c6ea7",
+      "sha256": "e084a8e80784425d1657e60308efb9aa1065477071a2256df3a4e82948ac57d1"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-light-000/c330d8ccf42831e49340f6765b7c96a83c09415c.ogg",
+      "bytes": 12555,
+      "gitBlobSha": "c330d8ccf42831e49340f6765b7c96a83c09415c",
+      "sha256": "9b9b74d46c2d55562d5909ddaf38f8ca9fefcfb8cd5a6c4851ae2909d97d91fe"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-light-001/7686060d6a204c610bfdb088a7bfaa046780331f.ogg",
+      "bytes": 13811,
+      "gitBlobSha": "7686060d6a204c610bfdb088a7bfaa046780331f",
+      "sha256": "da834fac377bc3edd090361506f9fb0c2e40c2a28a50642d11fd5cf6824db857"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-light-002/fcf07a8cf9057e241fcc4d6e1d71965201217108.ogg",
+      "bytes": 12013,
+      "gitBlobSha": "fcf07a8cf9057e241fcc4d6e1d71965201217108",
+      "sha256": "b141ca67122273f0717b63515f68c48bd257d55fb5026f798962f714d96fae47"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-light-003/7cc822a779923c0d039c5b1e2f599e71214fea6c.ogg",
+      "bytes": 12707,
+      "gitBlobSha": "7cc822a779923c0d039c5b1e2f599e71214fea6c",
+      "sha256": "ba86537246ed072fa3e8dc2f306c106bf0b1b9af2860bac53aa54ab65ae1c23b"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-light-004/3b8cb611afae01f5c49a238cd5dc9111e16fbd26.ogg",
+      "bytes": 14009,
+      "gitBlobSha": "3b8cb611afae01f5c49a238cd5dc9111e16fbd26",
+      "sha256": "9e76c5aed7a65777756271dfa82b036ed4683ab293c8280e0831d33606f186de"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-medium-000/306093e9db9aceb053e7dff9df2c0885ca2f3b62.ogg",
+      "bytes": 13002,
+      "gitBlobSha": "306093e9db9aceb053e7dff9df2c0885ca2f3b62",
+      "sha256": "624d79a78bd856a67b9ac192aed3801f9e1415bbc4110a689762645bf4d6377a"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-medium-001/d54748ac2f5c9f74a9f83a362948f1b4b716d939.ogg",
+      "bytes": 13572,
+      "gitBlobSha": "d54748ac2f5c9f74a9f83a362948f1b4b716d939",
+      "sha256": "2ccb481f4a44c968540196e63d7b18738723e74d3c2e02127b4a92a816f716d4"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-medium-002/c8d666fe4be78595b3d9f1ddb9fc2d02d4e41772.ogg",
+      "bytes": 12331,
+      "gitBlobSha": "c8d666fe4be78595b3d9f1ddb9fc2d02d4e41772",
+      "sha256": "312ba6ff1979ad11d4fc5fb3ccf40562e59c3843a468dfb642484c3f9fd770f8"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-medium-003/482c4808ec10e8760bce2782f7f203f3c5e8d659.ogg",
+      "bytes": 13697,
+      "gitBlobSha": "482c4808ec10e8760bce2782f7f203f3c5e8d659",
+      "sha256": "541c5943aa8965d18d16030732bc61180ae24d34573fec86466e26f5ea24725d"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactplate-medium-004/f039e352bd3b3fae95be46ffc68f9074b5012d2c.ogg",
+      "bytes": 12884,
+      "gitBlobSha": "f039e352bd3b3fae95be46ffc68f9074b5012d2c",
+      "sha256": "30e724ad660d0ca68f8279441e8702184b1ce6172b9cedda96a1b37149b524c7"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactpunch-heavy-000/3652758419055a15ac923813ee618acedbecb73f.ogg",
+      "bytes": 13698,
+      "gitBlobSha": "3652758419055a15ac923813ee618acedbecb73f",
+      "sha256": "ff099bdcaffcb13f13c932a2a02de0885089523908cb5f965fec977508e73c7c"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactpunch-heavy-001/7a6fe4a1bc0fea6e51e3ef721fee11040689342d.ogg",
+      "bytes": 12942,
+      "gitBlobSha": "7a6fe4a1bc0fea6e51e3ef721fee11040689342d",
+      "sha256": "dd3cb705f4628ee74bf7b53f21f564bbc157923ce9d23a44345d8180d462cdd5"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactpunch-heavy-002/cc9f2387513794a39b748ee95d90f79556bfaec1.ogg",
+      "bytes": 11106,
+      "gitBlobSha": "cc9f2387513794a39b748ee95d90f79556bfaec1",
+      "sha256": "e4644c152f34d7430abf1d053725b7c7c90f9e32a8b21b1f89e6f719b8969a79"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactpunch-heavy-003/e3e6a39a6c64739d2d03d8a8d3458abd842f8d90.ogg",
+      "bytes": 12110,
+      "gitBlobSha": "e3e6a39a6c64739d2d03d8a8d3458abd842f8d90",
+      "sha256": "688d327fe487e4106beb38051d56885ec09b0d742f72f55f791d5719553dda88"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactpunch-heavy-004/d6bc4904e1132666b014d60fc8032e1fb55999cc.ogg",
+      "bytes": 12533,
+      "gitBlobSha": "d6bc4904e1132666b014d60fc8032e1fb55999cc",
+      "sha256": "2f6add56716dad3f686cccbd1f2590c9e60c88f81c86ffb54a69ca0ce17a4d80"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactpunch-medium-000/e95463baeb44672012539290084d4c703967aec9.ogg",
+      "bytes": 10881,
+      "gitBlobSha": "e95463baeb44672012539290084d4c703967aec9",
+      "sha256": "c85dd74a77526a792109926ce0698f131f6de988627351504072c7f6c5ce19da"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactpunch-medium-001/34ffb554c6640f4e44e88ea5c8af3afec46f3769.ogg",
+      "bytes": 10782,
+      "gitBlobSha": "34ffb554c6640f4e44e88ea5c8af3afec46f3769",
+      "sha256": "d47307d8bf17d3db0e4fdc781c06af80413c28be97172ae52ff24f29a681fe89"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactpunch-medium-002/5afab976706fb7374300351cb390c05872d34435.ogg",
+      "bytes": 12480,
+      "gitBlobSha": "5afab976706fb7374300351cb390c05872d34435",
+      "sha256": "d0145950499835bc3e77ebc556e14667278a671811ebc421fa631efae6b01903"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactpunch-medium-003/ed6ffd91a7a1fbcadc929ede3cbee46f2cddb508.ogg",
+      "bytes": 11590,
+      "gitBlobSha": "ed6ffd91a7a1fbcadc929ede3cbee46f2cddb508",
+      "sha256": "7504b65f5a26e31ad075aa4699226a4000f0a0d10b7d4d0add16bd7565bd65b8"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactpunch-medium-004/1cf5c342d3f387d5842cf768dc69b302b1d72e31.ogg",
+      "bytes": 12113,
+      "gitBlobSha": "1cf5c342d3f387d5842cf768dc69b302b1d72e31",
+      "sha256": "fea5246cd91fb06fb31cea94e9f9e8a91cdfb11b5f94b19a8c207ec466cf21e9"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactsoft-heavy-000/0f7ced6a4a832e4cb95715ef3c7e544a2b049b10.ogg",
+      "bytes": 8651,
+      "gitBlobSha": "0f7ced6a4a832e4cb95715ef3c7e544a2b049b10",
+      "sha256": "5103f2616bd97a74daef0c0dd801873a334a92120a787467d131826e4a8a2650"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactsoft-heavy-001/b2be7fbb5fea890b24caa4bb4a8928403dc23eb8.ogg",
+      "bytes": 8770,
+      "gitBlobSha": "b2be7fbb5fea890b24caa4bb4a8928403dc23eb8",
+      "sha256": "2b36cd469413095d397f46370b84cea5e362e0719b53defe9898696947e141ff"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactsoft-heavy-002/4a0968140d0e0516be65bc28a24c0f5780e512a3.ogg",
+      "bytes": 8830,
+      "gitBlobSha": "4a0968140d0e0516be65bc28a24c0f5780e512a3",
+      "sha256": "79f3fb671aed42551c7e7d0035388011a763046bd0f33c97d19d7c4356e71f20"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactsoft-heavy-003/33fd479f15646155dd9c9db2c186f64b7a0cb639.ogg",
+      "bytes": 8746,
+      "gitBlobSha": "33fd479f15646155dd9c9db2c186f64b7a0cb639",
+      "sha256": "528eabe0e19ae223d716e4e0ea6b00bc113c4b5b058267217d09a3e379945857"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactsoft-heavy-004/b8adc54e182a11c260ccbc92b90a3971a346e482.ogg",
+      "bytes": 8559,
+      "gitBlobSha": "b8adc54e182a11c260ccbc92b90a3971a346e482",
+      "sha256": "537c9cbb06c4cc261ea1f3231ae11cc17748b909ab51efb7cbc83c7ab85b1edf"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactsoft-medium-000/9b4eb05f7a7b2b3742b5c84ff938a2505c77cfca.ogg",
+      "bytes": 7432,
+      "gitBlobSha": "9b4eb05f7a7b2b3742b5c84ff938a2505c77cfca",
+      "sha256": "976b7a3ff7f6181a72704836a225a3fce938b1058a574b66801f17a4d61dce06"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactsoft-medium-001/6680e1a4f4e2bf2c94f7ccc203ebfe65241b1b9a.ogg",
+      "bytes": 7587,
+      "gitBlobSha": "6680e1a4f4e2bf2c94f7ccc203ebfe65241b1b9a",
+      "sha256": "df5f98f7dd01e974a97cb1282ba73323314910aa66888fc823b840089e4694be"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactsoft-medium-002/0f77933a61101689419b3421c6466d8c36c4d17e.ogg",
+      "bytes": 7439,
+      "gitBlobSha": "0f77933a61101689419b3421c6466d8c36c4d17e",
+      "sha256": "3c1fce0d7b26e958f4887ffd9edc2d087dc477e81147750e79422ca1535cfa5a"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactsoft-medium-003/371160fc2687a9545de3e8ca591dc0ace15fb867.ogg",
+      "bytes": 7473,
+      "gitBlobSha": "371160fc2687a9545de3e8ca591dc0ace15fb867",
+      "sha256": "8229c8d60baf48762f1747c2bfad95e319cdf82491fae4bcf7b76a884f625837"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactsoft-medium-004/f76e0c4ec065427801e22fb2f91ab5a75e6f04d9.ogg",
+      "bytes": 7519,
+      "gitBlobSha": "f76e0c4ec065427801e22fb2f91ab5a75e6f04d9",
+      "sha256": "3b2d3d29f728d4509dd9470ac4c62f86fcd81c969d9528fce66bdc2ed8c3dd1d"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impacttin-medium-000/c19c2cf42cc6eb127f272e36321127912aeec69d.ogg",
+      "bytes": 8590,
+      "gitBlobSha": "c19c2cf42cc6eb127f272e36321127912aeec69d",
+      "sha256": "d9b398f10c8243b824b865a325c4a763c00906415f842679e885163414ca4a27"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impacttin-medium-001/ea5e2897d5951855a16b18e0755a58fa92ffcbc9.ogg",
+      "bytes": 8684,
+      "gitBlobSha": "ea5e2897d5951855a16b18e0755a58fa92ffcbc9",
+      "sha256": "a9eb8fb614c98ad06f7745a5e1dffc9ec06588d59db51c5f103883fac306b4e8"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impacttin-medium-002/cd57fe67852a9cc38fce0a1dcdafb98c50fc1299.ogg",
+      "bytes": 8237,
+      "gitBlobSha": "cd57fe67852a9cc38fce0a1dcdafb98c50fc1299",
+      "sha256": "dd35b1c05242fa0bd43f97e82e98b9199c8061d715b02be2f3d6a18f2d0696be"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impacttin-medium-003/baa93ec6c4efe6ffff943627ee40c6161c131a8a.ogg",
+      "bytes": 8622,
+      "gitBlobSha": "baa93ec6c4efe6ffff943627ee40c6161c131a8a",
+      "sha256": "9b75b88297228dc41ecaa7ae7acf7c632a59e4abfe20c21bd6c2a9ba0b76a928"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impacttin-medium-004/44ad57ec45a34fb90ebadf47e5eeeba8b30ce228.ogg",
+      "bytes": 8443,
+      "gitBlobSha": "44ad57ec45a34fb90ebadf47e5eeeba8b30ce228",
+      "sha256": "b57bcb4b8189fe711d728dfec9bff26b8275b9737aa5de13c6d6b4f1acbd9af6"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-heavy-001/ced48ae3308394c5e39192fd628cb630a71e44b5.ogg",
+      "bytes": 8320,
+      "gitBlobSha": "ced48ae3308394c5e39192fd628cb630a71e44b5",
+      "sha256": "b4903bfff0e231a5a7aee41a39f421dbcc11f73bf2be234a4cf4905ae629c314"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-heavy-002/464841b0d37b8b0aa24a81bace0ff5eb885bee0a.ogg",
+      "bytes": 8227,
+      "gitBlobSha": "464841b0d37b8b0aa24a81bace0ff5eb885bee0a",
+      "sha256": "3a5f5db40939e48700c70249bd04148ef1b409f435814b2abb26c2500421debd"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-heavy-003/0f5d577063a44ebdcc3b31507686f473e0c068cf.ogg",
+      "bytes": 8262,
+      "gitBlobSha": "0f5d577063a44ebdcc3b31507686f473e0c068cf",
+      "sha256": "3465bc412f5c4e16b5222b6c6637ed70b520f907b27ec7ecb27f531950f34838"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-heavy-004/7b23e0fed913abef6c5133a1530c130eac19a36a.ogg",
+      "bytes": 8334,
+      "gitBlobSha": "7b23e0fed913abef6c5133a1530c130eac19a36a",
+      "sha256": "1f6123aa2e82c9d2bf11847a6e82ea0fec2fa3f85bca28f7bce812cd05698d42"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-light-001/a95373324ce1bbc0de6714a355f79b3fd18a3fad.ogg",
+      "bytes": 8454,
+      "gitBlobSha": "a95373324ce1bbc0de6714a355f79b3fd18a3fad",
+      "sha256": "f2945c60d4c8bc939c7d9e73df7c3b620e4788c863b9e8628262f63664349386"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-light-002/75986ff0d067e258d6315465d056faa31a1b377c.ogg",
+      "bytes": 8447,
+      "gitBlobSha": "75986ff0d067e258d6315465d056faa31a1b377c",
+      "sha256": "64d181339ecb33c7781f04f18036d6d8625176834e0b1d9d752a28390d89f91b"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-light-003/e2b5bdf3065bb1fda9374cabb329ac20f0245ef2.ogg",
+      "bytes": 8462,
+      "gitBlobSha": "e2b5bdf3065bb1fda9374cabb329ac20f0245ef2",
+      "sha256": "d4e3acdadfe7f63dd06d96efb443058dcb914b43f117ed8ed078c740c71ccf6a"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-light-004/afeeceb54918ea05c09e17b90ec8cf4dd0facc32.ogg",
+      "bytes": 8476,
+      "gitBlobSha": "afeeceb54918ea05c09e17b90ec8cf4dd0facc32",
+      "sha256": "506caa98d6dbca245fb922853b16471412458a7b9a88423b0adc17916caf4582"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-medium-000/09bece6a6d1d5cb967d2aa8f49b652b45dbcb5db.ogg",
+      "bytes": 8656,
+      "gitBlobSha": "09bece6a6d1d5cb967d2aa8f49b652b45dbcb5db",
+      "sha256": "1b3ac1595f7315cdb50df25865fb73a1e34ac0bd94f9c675f010a22652697825"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-medium-001/505b8976f5f58151371c5d55ef7bd7876046db97.ogg",
+      "bytes": 8636,
+      "gitBlobSha": "505b8976f5f58151371c5d55ef7bd7876046db97",
+      "sha256": "2e41f88be0f1f3697d52d9403126939974d96d78fbea358f7d556deda25eb4a5"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-medium-002/6be58dae2513c9493866dbf7ed08834a2048dbc8.ogg",
+      "bytes": 8688,
+      "gitBlobSha": "6be58dae2513c9493866dbf7ed08834a2048dbc8",
+      "sha256": "d8ed153af39b7715ccc66683dacb9334a102a64c9c3ec95646bbfed717925f55"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-medium-003/05b842e37eee86c98b94ac30c3cd32c311cb0f58.ogg",
+      "bytes": 8679,
+      "gitBlobSha": "05b842e37eee86c98b94ac30c3cd32c311cb0f58",
+      "sha256": "c0d3617b286e71d8c94ae2da684e19e0019a4260c5debf64e79f5cd5aed3c773"
+    },
+    {
+      "path": "audio/kenney-impact-additions/impactwood-medium-004/015b2fe1d371045fa55bb771faef51bc26627810.ogg",
+      "bytes": 8562,
+      "gitBlobSha": "015b2fe1d371045fa55bb771faef51bc26627810",
+      "sha256": "5e680008257e62c410b88a983f3a44896c7a8e71403c4f27c72509d38c658fb5"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/bookflip3/45831e7c8fd025b8994617d4a84d16f5c4cc5f65.ogg",
+      "bytes": 11112,
+      "gitBlobSha": "45831e7c8fd025b8994617d4a84d16f5c4cc5f65",
+      "sha256": "e29574ea5187f582c6cc3dfaceb0ee9aee3978e7013554bfbad63a67aee8ad0c"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/bookplace2/e6255dc05e80b1c1865c629213384d64f79bd2ac.ogg",
+      "bytes": 13219,
+      "gitBlobSha": "e6255dc05e80b1c1865c629213384d64f79bd2ac",
+      "sha256": "7616b0da866cda26158e52e8b02cfef935c2cd069c5a483735487eacc13193e1"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/bookplace3/40cca96010f50e33c9559debd44297796cf2912b.ogg",
+      "bytes": 11604,
+      "gitBlobSha": "40cca96010f50e33c9559debd44297796cf2912b",
+      "sha256": "11d2e6635cb19cb0896d7861f73d7804448d98dd455b11b01e38baa0a964c743"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/chop/01086b3493f9061c9d73b46ffafb5df9ae04be18.ogg",
+      "bytes": 11406,
+      "gitBlobSha": "01086b3493f9061c9d73b46ffafb5df9ae04be18",
+      "sha256": "41095dffee1ff2d0715c4eadd82ae7846dfd4d67327088a69848a9bd2e08db1b"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/cloth3/1f55671d746b028b8d35d0610923d19ecf2fa2ef.ogg",
+      "bytes": 14469,
+      "gitBlobSha": "1f55671d746b028b8d35d0610923d19ecf2fa2ef",
+      "sha256": "05c08d8093545dd18cd057da71cb36377469bfa2b9487098000c99844e599631"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/cloth4/61e65f61f22394d7d05ab9505ac3761648f7f54a.ogg",
+      "bytes": 13080,
+      "gitBlobSha": "61e65f61f22394d7d05ab9505ac3761648f7f54a",
+      "sha256": "319705aab5795c4c514cb7c62e0611926011ec9566f50525350e32863e47c29b"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/clothbelt/ba23494dbdb8a5b15dbff2b1ab0fbc22a9b26dd9.ogg",
+      "bytes": 23498,
+      "gitBlobSha": "ba23494dbdb8a5b15dbff2b1ab0fbc22a9b26dd9",
+      "sha256": "ae53b7c3a69c4258e4aeac46884d4c56d807d74eac1dc6b38ff99bdf58df4217"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/clothbelt2/5b0d50cf33fa17773dc1e38109105e14c22dd3a9.ogg",
+      "bytes": 22046,
+      "gitBlobSha": "5b0d50cf33fa17773dc1e38109105e14c22dd3a9",
+      "sha256": "0478e09c1e86af49d56a4e7b399c38025cdf66d78517219327be50c27c8512c7"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/creak1/9abe48cacfc8b8ed6ea9a0d5201262b149f5e9be.ogg",
+      "bytes": 17798,
+      "gitBlobSha": "9abe48cacfc8b8ed6ea9a0d5201262b149f5e9be",
+      "sha256": "fa75b1d17d327d7e0001d249d468493b59f3865b00a2582c21f7da2287728728"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/creak2/4eee695d15479bb58ec00de0ccbecb17abe2b790.ogg",
+      "bytes": 21049,
+      "gitBlobSha": "4eee695d15479bb58ec00de0ccbecb17abe2b790",
+      "sha256": "6b243b41df9a3752aeccae987cb8fadd92ce6b29fdc38f781e809c2c661ff92b"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/creak3/212d74b1886ac7fb7359296f1cab18cf2416915d.ogg",
+      "bytes": 12445,
+      "gitBlobSha": "212d74b1886ac7fb7359296f1cab18cf2416915d",
+      "sha256": "be677e6970e830fa4a8e3b20de596c3818466c4d341cd341186cff77616d9399"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/doorclose-2/5d9a1c4158b634543fbc33ad65786b4646a9da93.ogg",
+      "bytes": 19610,
+      "gitBlobSha": "5d9a1c4158b634543fbc33ad65786b4646a9da93",
+      "sha256": "757acb720051ac22624d8d3520283f29132a30f82e1763c01fca31cd4d90c964"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/doorclose-3/179e6ee9907098f8a8eda37cb7d07ae1827e82c4.ogg",
+      "bytes": 22928,
+      "gitBlobSha": "179e6ee9907098f8a8eda37cb7d07ae1827e82c4",
+      "sha256": "c5612dc5ed837f9f88e1ef5f12e20d16f8f336128798c4dc6cf5bc609c8b84de"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/doorclose-4/98d8a2d55b28d6062d68dc10ab34561c54a465ac.ogg",
+      "bytes": 18941,
+      "gitBlobSha": "98d8a2d55b28d6062d68dc10ab34561c54a465ac",
+      "sha256": "a0b40a11ffd7fc8c521085bcda1fafd7bf10d8e058beb72815754a3bcebb7319"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/dooropen-2/6fd531d5d52d9720a090475f434bc130d15d3fc2.ogg",
+      "bytes": 32292,
+      "gitBlobSha": "6fd531d5d52d9720a090475f434bc130d15d3fc2",
+      "sha256": "378471f21245119d19d55b5c78bfffc72cf614da8781915d6903f13527cd5f50"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/drawknife2/d697095013ad891cb3c331fe92db139045a035f3.ogg",
+      "bytes": 14428,
+      "gitBlobSha": "d697095013ad891cb3c331fe92db139045a035f3",
+      "sha256": "25a80a53df0c40b086048f0a8036fa80f3ca5c535f9f2d8e37c061ea8ae5c53e"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/drawknife3/a8c75df1e9f36528e77f1c595e5b10dd798056cc.ogg",
+      "bytes": 14759,
+      "gitBlobSha": "a8c75df1e9f36528e77f1c595e5b10dd798056cc",
+      "sha256": "3cc931cadecae73c620c74716175f7d0fc92457919342efd7ca404de5c5f3201"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/dropleather/98664812bd9007e66d47f91af3a2bbbaac943152.ogg",
+      "bytes": 13727,
+      "gitBlobSha": "98664812bd9007e66d47f91af3a2bbbaac943152",
+      "sha256": "1d4d88b55a72654af8c1239ad45117848126bc5121acdfe4b544bc3fb913f840"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/footstep04/adbedf91af38d9e4fde9ee5cba5ac2535d33502d.ogg",
+      "bytes": 13346,
+      "gitBlobSha": "adbedf91af38d9e4fde9ee5cba5ac2535d33502d",
+      "sha256": "d5fc12c4eb2df153957c4726309297c5c5228c79b5a97c562e6ffdd0b7e4829b"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/footstep05/0f074e5448aaaa8b9a833959651ac41cac6e24b8.ogg",
+      "bytes": 12331,
+      "gitBlobSha": "0f074e5448aaaa8b9a833959651ac41cac6e24b8",
+      "sha256": "e9ff320f5b9645d9cd846437e393430d2c3454f6a3ffe94e44d876a9a4bbcf30"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/footstep06/2dd88d38e1275bc0a94b1ed95588f641379d2f8f.ogg",
+      "bytes": 11928,
+      "gitBlobSha": "2dd88d38e1275bc0a94b1ed95588f641379d2f8f",
+      "sha256": "b75f55f2f7a3d1632039156379081e13204b2d4ea36461ff68c925adb55c9e2c"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/footstep07/24aae7e950b6c892f801b6b98c53630245a56cd9.ogg",
+      "bytes": 12307,
+      "gitBlobSha": "24aae7e950b6c892f801b6b98c53630245a56cd9",
+      "sha256": "2dda1fba263333e355aacdda60b9f29209caff9103cbcc55e6a51841778d5a6e"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/footstep08/a4f4ec4cc94face0abe11174952d76449e2ed6ab.ogg",
+      "bytes": 11285,
+      "gitBlobSha": "a4f4ec4cc94face0abe11174952d76449e2ed6ab",
+      "sha256": "13820ad5e005e9d68f13d8c959732361f8967593dd2b56ef2a3c37ac8f59ccc2"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/footstep09/037bc586cbf743a81b5adc89979aa589a3512db2.ogg",
+      "bytes": 11397,
+      "gitBlobSha": "037bc586cbf743a81b5adc89979aa589a3512db2",
+      "sha256": "6c1802510968a40efa6eab1c25f49b35542dab6b329a6ce21c3b96f548457658"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/handlecoins2/2fc23b11fcc07f3cbdc5c0a328e21520480d1ad4.ogg",
+      "bytes": 15098,
+      "gitBlobSha": "2fc23b11fcc07f3cbdc5c0a328e21520480d1ad4",
+      "sha256": "32d79ea56ff22e6d74c4dd541674c95f5adbcff01300b9f99694627e3e9fdbfe"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/handlesmallleather/67e0a745b6f0f5eefa9945f1f37efd254f545682.ogg",
+      "bytes": 12517,
+      "gitBlobSha": "67e0a745b6f0f5eefa9945f1f37efd254f545682",
+      "sha256": "37fde28abdd317a47e0c02d5ce9a33201a93833b97fa43b40d7b38dffc3bc949"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/handlesmallleather2/c013ec53464b3de6278ea8c79694e725d7430775.ogg",
+      "bytes": 12052,
+      "gitBlobSha": "c013ec53464b3de6278ea8c79694e725d7430775",
+      "sha256": "19d30666fb3b53cb68c120c87e102ed4f784cd278ee1c746a8d43d3493253f85"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/knifeslice2/e283ae9a78cf42b09a930b044f3edc748c0317e8.ogg",
+      "bytes": 17131,
+      "gitBlobSha": "e283ae9a78cf42b09a930b044f3edc748c0317e8",
+      "sha256": "35c95edd8622b87f12f09190e3e3ac46472014e8ec0a749956fdcad6244031ef"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/metalclick/b5b20ca5594aac747e56cf4c081a1734ddabbd55.ogg",
+      "bytes": 15651,
+      "gitBlobSha": "b5b20ca5594aac747e56cf4c081a1734ddabbd55",
+      "sha256": "a510eee39fd16aadb47944198a32f333c03b9f839b2da119eb4c449796d27bb6"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/metallatch/fba202fb4241f491af632378c67a44b197d1359a.ogg",
+      "bytes": 12241,
+      "gitBlobSha": "fba202fb4241f491af632378c67a44b197d1359a",
+      "sha256": "ea762526168b6ebeeefeb5a620be2b95a8da53e71ba8d7a2b736560ee00011d0"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/metalpot2/bffd6dc5f1eaceacc75f4b6ecf6830bfc5ea1e07.ogg",
+      "bytes": 24505,
+      "gitBlobSha": "bffd6dc5f1eaceacc75f4b6ecf6830bfc5ea1e07",
+      "sha256": "87d7a3a041ef483bbf94352c69cd05943dcc9a7423568cd589087fca5b9e5594"
+    },
+    {
+      "path": "audio/kenney-rpg-additions/metalpot3/7bc96ae39a2af7ebc50c61936e3937a7a553ce9c.ogg",
+      "bytes": 25176,
+      "gitBlobSha": "7bc96ae39a2af7ebc50c61936e3937a7a553ce9c",
+      "sha256": "af68ee8c2ae8cfe2df1462a304a2f23c5b8819eb250df8154992bbdf7bb9b482"
+    },
+    {
       "path": "audio/kenney/coins/cd157f8c9b7bd50ef95772a0d02547c82ec6d36d.ogg",
       "bytes": 27426,
       "gitBlobSha": "cd157f8c9b7bd50ef95772a0d02547c82ec6d36d"
@@ -241,6 +1123,36 @@
       "sha256": "7399c6db48fa15ca1db483f7d7480499f57d46ea4dde76e8e99c7dfd670dc616"
     },
     {
+      "path": "licenses/kaykit-dungeon-additions-CC0.txt",
+      "bytes": 829,
+      "gitBlobSha": "686cf4ee3931b75d4ecfac6308f9d3287553748c",
+      "sha256": "c5f17abf619731f57f6bbff450f6484214605c13aa96bb75bbcfc70930941ff7"
+    },
+    {
+      "path": "licenses/kaykit-medieval-hexagon-CC0.txt",
+      "bytes": 1027,
+      "gitBlobSha": "db3b53b5425c48afc0f606bfc0de84e51d834e95",
+      "sha256": "881e50d3629fba90629bedc65e9e6f47cfab3609598c296dcb7f70ea83174360"
+    },
+    {
+      "path": "licenses/kenney-impact-additions-CC0.txt",
+      "bytes": 608,
+      "gitBlobSha": "4890fe524751b66f08c31ceeeb8074b50445c461",
+      "sha256": "b49aa9c56b04528b95913de13e506a0f7c5e807b9925db9bfef86af1f91120db"
+    },
+    {
+      "path": "licenses/kenney-rpg-additions-CC0.txt",
+      "bytes": 546,
+      "gitBlobSha": "1286db6bb595b2b9799ff77a49d04bb6f2d648f3",
+      "sha256": "1c49e3765bdbe7ad84b664c69b8e85d518655e7403eb48984dc80a0a0c5ceda4"
+    },
+    {
+      "path": "licenses/quaternius-cute-monsters-CC0.txt",
+      "bytes": 550,
+      "gitBlobSha": "c639d69bc4ac45f19a9b684663e74c60f1b13888",
+      "sha256": "cf15868a089dbc422f33bb4be09795d456aa93d664ff901e0422706f69b82f54"
+    },
+    {
       "path": "model/gobkit/goblin-runt/f7700d62b6252f14601743f156049ef3b8454f96.glb",
       "bytes": 170752,
       "gitBlobSha": "f7700d62b6252f14601743f156049ef3b8454f96"
@@ -264,6 +1176,2346 @@
       "path": "model/gobkit/night-bat/766de4372d17206835c491f80f6b0db367ca0012.glb",
       "bytes": 63308,
       "gitBlobSha": "766de4372d17206835c491f80f6b0db367ca0012"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-blue/0137c7ba67ee729a570c95b262aca3094b509a85.glb",
+      "bytes": 24216,
+      "gitBlobSha": "0137c7ba67ee729a570c95b262aca3094b509a85",
+      "sha256": "219995a647a17a506770f998b2194e882e3c078753cebe37e608e2b65ed14d5a"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-brown/148a91721cd255ec63e8e1c60fc9e834b315eb8d.glb",
+      "bytes": 24216,
+      "gitBlobSha": "148a91721cd255ec63e8e1c60fc9e834b315eb8d",
+      "sha256": "6816034529fdd13cad2be29d04f07e16d811baca80a8dd0da0cb588bb2f002fb"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-green/f3a9d1c787085c774c4c0555a6916ce55c4e9f07.glb",
+      "bytes": 24216,
+      "gitBlobSha": "f3a9d1c787085c774c4c0555a6916ce55c4e9f07",
+      "sha256": "afe5f8742a7877c233d63573a18186ebda191e74c56fe856bc7699454a655c01"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patterna-blue/099f1bb033b21d8b7f04a4fab170b632e549cd20.glb",
+      "bytes": 25164,
+      "gitBlobSha": "099f1bb033b21d8b7f04a4fab170b632e549cd20",
+      "sha256": "041c272b889fad4ae82d1b73817fe988759cb16129183a86fe5560e123eab75d"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patterna-brown/5c6145ee933e277c1531d8a315265d8aa456b02e.glb",
+      "bytes": 25168,
+      "gitBlobSha": "5c6145ee933e277c1531d8a315265d8aa456b02e",
+      "sha256": "b490fcf566eaec5a44e6de5c11b270edb0e27f7867add51786af112665fcbb7d"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patterna-green/0c29db5f0f31e0adef86b08ce5488bd65633d4bf.glb",
+      "bytes": 25168,
+      "gitBlobSha": "0c29db5f0f31e0adef86b08ce5488bd65633d4bf",
+      "sha256": "cad4bf2a5f99466e19eb8e81b3e28c1eb4992f2fc62cfc0948f823d8d3e6b50d"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patterna-red/e7185427cdfadf0c560b162bd5147acba99d8174.glb",
+      "bytes": 25164,
+      "gitBlobSha": "e7185427cdfadf0c560b162bd5147acba99d8174",
+      "sha256": "64243b0a8110bbc6e5a02f5c0acbe447dc7ea65319123319c402dd26486dad25"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patterna-white/8d449062747bb71788cd40a849c700f905fdbc99.glb",
+      "bytes": 25168,
+      "gitBlobSha": "8d449062747bb71788cd40a849c700f905fdbc99",
+      "sha256": "454033751167233238f9f3f86180d9dc0c1664ef2a09cf1a0316600c59973b12"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patterna-yellow/f134bdbdb0439c53c1c79b69313f4d7e9f6a7a32.glb",
+      "bytes": 25168,
+      "gitBlobSha": "f134bdbdb0439c53c1c79b69313f4d7e9f6a7a32",
+      "sha256": "d7453be77a67a5ef5c5d6fc4b7caa04b71e5683f61f620881f4935421a40e5c8"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternb-blue/6c3e364454cd882307bf2cf94e9d51c363c1f58e.glb",
+      "bytes": 24224,
+      "gitBlobSha": "6c3e364454cd882307bf2cf94e9d51c363c1f58e",
+      "sha256": "a86be2d4bc01207ab694b614a9bb9e358ed498467a8e8bcd695c838be0f4f88a"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternb-brown/17cc1375af176669d1a57470f460077a287d8d94.glb",
+      "bytes": 24228,
+      "gitBlobSha": "17cc1375af176669d1a57470f460077a287d8d94",
+      "sha256": "b25ff242f83d84398465697e7ec6854bdc4e2328845c0bb87af5592417f7ffd6"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternb-green/080d68db8472ddf2a7b72a042c98c2d9e9ed3f74.glb",
+      "bytes": 24228,
+      "gitBlobSha": "080d68db8472ddf2a7b72a042c98c2d9e9ed3f74",
+      "sha256": "dd15fdabf9898c607f9264d6a29a050756d7cc1dda30435786151ee19a0dcbd3"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternb-red/cf2987ed7854775be4ed7075d7529005c1320b43.glb",
+      "bytes": 24224,
+      "gitBlobSha": "cf2987ed7854775be4ed7075d7529005c1320b43",
+      "sha256": "d54d454c079a52ac88175c7c9e2c56b753a7e885b4b3873e93e47d3f01c3e4d2"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternb-white/be2071a15b498c6dc59272e6a0dd367573d4866e.glb",
+      "bytes": 24228,
+      "gitBlobSha": "be2071a15b498c6dc59272e6a0dd367573d4866e",
+      "sha256": "ecb5623fb4e5e9a016dbb416066844f670a091dfde3cb6b329cfd4036b5e3fc8"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternb-yellow/3cb2080f6dcdee7a6844242ee773e98a95e71a05.glb",
+      "bytes": 24228,
+      "gitBlobSha": "3cb2080f6dcdee7a6844242ee773e98a95e71a05",
+      "sha256": "733cda437b13d6fb17d3b1e0b846d9bff5cdafdb72a9ad7bedde39ea93dc4000"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternc-blue/c273c9d101b96ff476f3df4bc19df13c0dcb3004.glb",
+      "bytes": 24224,
+      "gitBlobSha": "c273c9d101b96ff476f3df4bc19df13c0dcb3004",
+      "sha256": "708e80ab01f2135a902d83c8b275eb2301220f288ea3b2d0ee652252e23d2306"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternc-brown/809ac1e7610de760d0968ac7c509c6563a566443.glb",
+      "bytes": 24228,
+      "gitBlobSha": "809ac1e7610de760d0968ac7c509c6563a566443",
+      "sha256": "6a1b7a2e33d25924a5b78e43deafc86de0aa340dce69361ca22a3296f6551cd3"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternc-green/beba2a40cdf81db0ed94a88b15150ee403d1ca3e.glb",
+      "bytes": 24228,
+      "gitBlobSha": "beba2a40cdf81db0ed94a88b15150ee403d1ca3e",
+      "sha256": "f5ee50979c1c855359c4e8a7da5c78ccc935b07f1031c74ffd6575d2548ddf36"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternc-red/c1b65e8fd25d062f96e6abdb2ad04c83eeebdf8f.glb",
+      "bytes": 24224,
+      "gitBlobSha": "c1b65e8fd25d062f96e6abdb2ad04c83eeebdf8f",
+      "sha256": "ee729f974b6c37c4e0844e2ee6782447dfe3b2b800022ac9407b81a3ac7503de"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternc-white/8eeaeda4f6f0566dfa5b70110ada43930bb55d47.glb",
+      "bytes": 24228,
+      "gitBlobSha": "8eeaeda4f6f0566dfa5b70110ada43930bb55d47",
+      "sha256": "db19b1b52c3ae53b1002dc0207cc1a7343838b8663ccd3c2323553bef0b1170c"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-patternc-yellow/a07366d745f4dc3561a2a91e331e0c30efa1cc0b.glb",
+      "bytes": 24228,
+      "gitBlobSha": "a07366d745f4dc3561a2a91e331e0c30efa1cc0b",
+      "sha256": "84c480eb8f6075f6ecc612afaf00abbd04da0bc77936849e41ce6976024827dc"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-red/aa438c0140ed09f613e3334264d0df58e83f0575.glb",
+      "bytes": 24216,
+      "gitBlobSha": "aa438c0140ed09f613e3334264d0df58e83f0575",
+      "sha256": "c69c6eaffc834d6dcc7d19f8fd87145af4323265755588bf5bde85d71e0e3ff3"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-shield-blue/ee9cb3f4575ba011fd5d0e3279458c80cbf7e151.glb",
+      "bytes": 55104,
+      "gitBlobSha": "ee9cb3f4575ba011fd5d0e3279458c80cbf7e151",
+      "sha256": "27fc58e296e15ce180f212be6998677ab191b5055d194d2b062c95ce8c7acef7"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-shield-brown/03140b1cdc7f506a00a2eff3f5ba0da6a63d2b18.glb",
+      "bytes": 55104,
+      "gitBlobSha": "03140b1cdc7f506a00a2eff3f5ba0da6a63d2b18",
+      "sha256": "ae99b5de6be19de25dbbd88444361820aa25b07084a4785cd8271130983eb81a"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-shield-green/ab301a74ea7f14d8ad750c910bfbb6d2437fb79f.glb",
+      "bytes": 55104,
+      "gitBlobSha": "ab301a74ea7f14d8ad750c910bfbb6d2437fb79f",
+      "sha256": "6d6363e9dc4ee70a666b7d7cb51bfc1d2cdfaf159d756dd3d3cf7e9ce50d5165"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-shield-white/5d10e0a1e8350d262bc0b55d2c17ea2cd362548d.glb",
+      "bytes": 55104,
+      "gitBlobSha": "5d10e0a1e8350d262bc0b55d2c17ea2cd362548d",
+      "sha256": "4725c1bdf14676848a119e5c735452c310f4def897b0a63cce1e9961f67a7196"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-shield-yellow/33e6736303d96b2751af818a27e28ba7d9871f67.glb",
+      "bytes": 55104,
+      "gitBlobSha": "33e6736303d96b2751af818a27e28ba7d9871f67",
+      "sha256": "fd66956f2934e2082d78e19fb6d33d5ca898f372eef27a5c7f77d82eda7e3a0a"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-thin-blue/703c989f82ee958d8c2c834f520655ff7ecc65af.glb",
+      "bytes": 23084,
+      "gitBlobSha": "703c989f82ee958d8c2c834f520655ff7ecc65af",
+      "sha256": "e22a1381c5832a6cc3019c2b62d5406cee8a470b4bd2e53110e29231fcd18637"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-thin-brown/f421673ff067b5e62f393a5a6d165671e3bf652f.glb",
+      "bytes": 23084,
+      "gitBlobSha": "f421673ff067b5e62f393a5a6d165671e3bf652f",
+      "sha256": "b3706a8606ae595cfce78a85923251a998e3262f340c2c666e7b20e38e68e4fe"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-thin-green/ce8357fc9405e374aeb872f63ebe6138a5613369.glb",
+      "bytes": 23084,
+      "gitBlobSha": "ce8357fc9405e374aeb872f63ebe6138a5613369",
+      "sha256": "ed8b70ac9ddb68edcabd619725fa17dd556dc84e7a3929727cb99e5a993a3935"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-thin-red/f7472d75b951d65b1aecb0ba156707cb0ee4e71c.glb",
+      "bytes": 23080,
+      "gitBlobSha": "f7472d75b951d65b1aecb0ba156707cb0ee4e71c",
+      "sha256": "1a96a91574f6ef233dc11286eb66f9f9502ef3c52a425199109f1469d1fb310a"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-thin-white/895a0368e2360631ad4d764675ff75405b3ac45f.glb",
+      "bytes": 23084,
+      "gitBlobSha": "895a0368e2360631ad4d764675ff75405b3ac45f",
+      "sha256": "4fe473d9a70121007595f09f41844ba93e98ef902746aeebc855ff4530655039"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-thin-yellow/50297c70c9d03e5470587ac83306dfb5a6f892ab.glb",
+      "bytes": 23084,
+      "gitBlobSha": "50297c70c9d03e5470587ac83306dfb5a6f892ab",
+      "sha256": "0ea08b5b279e186d2f1e088c3a5f600273afa8af12beea016a4e8dd4d450b842"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-triple-blue/37144eeb5a85d2115e9b20f43b6e61dfad79d264.glb",
+      "bytes": 36232,
+      "gitBlobSha": "37144eeb5a85d2115e9b20f43b6e61dfad79d264",
+      "sha256": "58e9a9625c99b199e7ae3f387e1594915a4d6091b0e93da0d0b2ac18aeb691bc"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-triple-brown/1d1cadb6ebd279f38859672b70ec5ea4f1aa956a.glb",
+      "bytes": 36232,
+      "gitBlobSha": "1d1cadb6ebd279f38859672b70ec5ea4f1aa956a",
+      "sha256": "f730632e9bda0ed986bd5a91beb0982ab09e484d212da6d693e48bdf9f4e0dce"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-triple-green/d9a6f69546eb79ce074d86093a610b2c57e71099.glb",
+      "bytes": 36232,
+      "gitBlobSha": "d9a6f69546eb79ce074d86093a610b2c57e71099",
+      "sha256": "bf26044f82b3e7394cc9e65d708238c5f41d3d85807c79e7843ade17bfb15208"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-triple-red/6cae20d93e8dd5f092aa73369adcfcccc0aae297.glb",
+      "bytes": 36232,
+      "gitBlobSha": "6cae20d93e8dd5f092aa73369adcfcccc0aae297",
+      "sha256": "39a41d11c12ec80629d322107de803a6bc21a4da94b7d4ba5183ee863a877f7e"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-triple-white/67896b834ed8a2d312f41f5dbc71ab2154bc99f8.glb",
+      "bytes": 36232,
+      "gitBlobSha": "67896b834ed8a2d312f41f5dbc71ab2154bc99f8",
+      "sha256": "20d15eb69062aa730cc85c18f4e46ced729f5e0697bbaa67e6c000aa795bd023"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-triple-yellow/f8fbca4bfe1997b2015eb2f31fffc47582a7ef19.glb",
+      "bytes": 36236,
+      "gitBlobSha": "f8fbca4bfe1997b2015eb2f31fffc47582a7ef19",
+      "sha256": "cdc8eab3dc0446cb76c8023a398a78e3d67791df3dbb592c64236bba8c063e11"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-white/f00bf0406287f0f60ace025e75484d592265a19b.glb",
+      "bytes": 24216,
+      "gitBlobSha": "f00bf0406287f0f60ace025e75484d592265a19b",
+      "sha256": "832a4db9e6f08209fc4841eec94de8f75adfd7ae259128bf797ce2f137c8169a"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/banner-yellow/78041b68129c9e97a43475a47670761fbc52496e.glb",
+      "bytes": 24220,
+      "gitBlobSha": "78041b68129c9e97a43475a47670761fbc52496e",
+      "sha256": "ec1ad80ad34be1b98c9a324ec58a17d188234789606e4bf1cf2fd06e28e3faaa"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/barrel-large/7a88d9bcca79d21b2033a1681b71577fe06e8717.glb",
+      "bytes": 44292,
+      "gitBlobSha": "7a88d9bcca79d21b2033a1681b71577fe06e8717",
+      "sha256": "9fae6a79056241baf253fe9272dc7a7ddb174e1caf153eb5013c58a596722148"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/barrel-small-stack/8e34afa28ef8a9a3b8124e1c8bf961b61eb093e9.glb",
+      "bytes": 98092,
+      "gitBlobSha": "8e34afa28ef8a9a3b8124e1c8bf961b61eb093e9",
+      "sha256": "c23dc73a11c5a57ed33cb8a9df99f2b2793517341c5d62c6e50b0150652e8e99"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/barrier-colum-half/0c15ea789019fc85dbc8ce00612387a6fcbcae31.glb",
+      "bytes": 23196,
+      "gitBlobSha": "0c15ea789019fc85dbc8ce00612387a6fcbcae31",
+      "sha256": "d3d10b059026738acae27feb4385609370a72bfef7a5f4eb2e3304c750b67a7d"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/barrier-column/30776b706d4f8d63424963ba8007ad68b5ada28b.glb",
+      "bytes": 24856,
+      "gitBlobSha": "30776b706d4f8d63424963ba8007ad68b5ada28b",
+      "sha256": "aa65dd217a0a1e4d208800023ca93bd6ee6311db20c368142c34861541e914ba"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/barrier-corner/9222c56f87c3db72f5f254fddd36dd43276b14fd.glb",
+      "bytes": 26116,
+      "gitBlobSha": "9222c56f87c3db72f5f254fddd36dd43276b14fd",
+      "sha256": "b78a21661f4acd0d76176cf0dc11fcfc3f5bd8a2de72d251f1551497aa78598c"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/barrier-half/72bd5f54a44954101d907973c334a562f623921a.glb",
+      "bytes": 19948,
+      "gitBlobSha": "72bd5f54a44954101d907973c334a562f623921a",
+      "sha256": "cc4c5641e641c54bc1e7ca7851f9b2d82080ff8f3d0cc334d59e6f1f38245236"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/barrier/94b189369d0685e9e054eaed18c2bd5dd5be4bb6.glb",
+      "bytes": 23292,
+      "gitBlobSha": "94b189369d0685e9e054eaed18c2bd5dd5be4bb6",
+      "sha256": "2c6a1b89de1c87778c7ae9afc17fa9eabc4aa4148f3b8748f062b5c8ec7f6c00"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/bed-floor/101a79b7702e3ee957fe751c39315a5ddae8917b.glb",
+      "bytes": 25496,
+      "gitBlobSha": "101a79b7702e3ee957fe751c39315a5ddae8917b",
+      "sha256": "85540803ba0ba9666470d54e3033dcdb36815be12bca77f2166b850a46e3adab"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/bed-frame/bcc4963a64c1d0bb378f46bee70c4a456f6d1151.glb",
+      "bytes": 30688,
+      "gitBlobSha": "bcc4963a64c1d0bb378f46bee70c4a456f6d1151",
+      "sha256": "37a9c963005b9db56df45518ed1d47bb37c8441f1207cf9079b0651458906d43"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/bottle-a-brown/34209142a8f15d1e205e753a9f42e754ba92d51f.glb",
+      "bytes": 26140,
+      "gitBlobSha": "34209142a8f15d1e205e753a9f42e754ba92d51f",
+      "sha256": "14180809d494fdd48fd3771e02c36a076e8e729b5efb3bea18e1e157d1c11874"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/bottle-a-green/7c65aca05a0e82a64c70c62b51c7053b209ad9f3.glb",
+      "bytes": 26460,
+      "gitBlobSha": "7c65aca05a0e82a64c70c62b51c7053b209ad9f3",
+      "sha256": "32759c64c6e8fe5634753134748f4b759b698aafb1245b8ed9fe62afe390faa5"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/bottle-a-labeled-brown/1863eccff4c7e0eb0360f7e9c3608dcc9c6c5825.glb",
+      "bytes": 26276,
+      "gitBlobSha": "1863eccff4c7e0eb0360f7e9c3608dcc9c6c5825",
+      "sha256": "ba3c6fa3b50b26b7acbbc5112248a8e31a3b9dc64ec51c8e150852dfd7d2b24c"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/bottle-a-labeled-green/aae096063cddd74853eba75d3c33577533c7ab98.glb",
+      "bytes": 26596,
+      "gitBlobSha": "aae096063cddd74853eba75d3c33577533c7ab98",
+      "sha256": "48cd6a367b14d305e78f575ac2d16a524bf9d371282cf7efb3270071a7ef02fd"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/bottle-b-brown/51dd2ddf235e28e6061a607aecab85baff47401b.glb",
+      "bytes": 26140,
+      "gitBlobSha": "51dd2ddf235e28e6061a607aecab85baff47401b",
+      "sha256": "930b73e80da06d0c7deb03067029472e6208705bd84375a1dc45893c8914a8dc"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/bottle-b-green/7300b1c563d7a3bf1e2106e66c03d2dd605b4769.glb",
+      "bytes": 26460,
+      "gitBlobSha": "7300b1c563d7a3bf1e2106e66c03d2dd605b4769",
+      "sha256": "dd509e40346972ca15dd77c89ebf50f582346acf7587f2a40bae48c6704ca8af"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/bottle-c-brown/503269db1444bbea700c2ae2e50c0aa6d09c46ad.glb",
+      "bytes": 26140,
+      "gitBlobSha": "503269db1444bbea700c2ae2e50c0aa6d09c46ad",
+      "sha256": "5b68d7b4eaee5af15aea7fd02a09f196a6a88d94af3140767cd718571d1c7183"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/bottle-c-green/9d48472db8feb38e87df780266b4a6f03d31488e.glb",
+      "bytes": 26460,
+      "gitBlobSha": "9d48472db8feb38e87df780266b4a6f03d31488e",
+      "sha256": "f5a58323b1ea2443d52e6bfb28a8e33326f573dd975fe8d9f9f59a45ab8eff00"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/box-large/ba2666dcffae6e59f6c36e592d84f0732f369b07.glb",
+      "bytes": 28740,
+      "gitBlobSha": "ba2666dcffae6e59f6c36e592d84f0732f369b07",
+      "sha256": "6dacda267f04769f8ebbb7e991885785054923ea3d5eb19e833768a911d5b661"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/box-stacked/e12a56efed1ea39a661acdad207eb5b038908d3a.glb",
+      "bytes": 146968,
+      "gitBlobSha": "e12a56efed1ea39a661acdad207eb5b038908d3a",
+      "sha256": "c9035de1145d1cee058941abc4bc9ea7b039c98e94c56712cb5e9626a3d18017"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/candle-melted/13a9de780e6ba98107356c3ba09cdad7d1560fd0.glb",
+      "bytes": 20788,
+      "gitBlobSha": "13a9de780e6ba98107356c3ba09cdad7d1560fd0",
+      "sha256": "96654d7824c13594f933cd6aed87f5b3bcc5f2fcc4cd90ae0ce736cfec64ef4e"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/candle-thin-lit/cfe90d36ea351e2463e2783f37f23f5be83a6d60.glb",
+      "bytes": 22652,
+      "gitBlobSha": "cfe90d36ea351e2463e2783f37f23f5be83a6d60",
+      "sha256": "51fc37946dd39d2291db45aee87fa8c890946b234036f0a32beb17cb2120cac9"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/candle-thin/fc09366b908acc1420a7565e374fb67ef92f653b.glb",
+      "bytes": 20788,
+      "gitBlobSha": "fc09366b908acc1420a7565e374fb67ef92f653b",
+      "sha256": "76a3f0c92e9e0990229e480aceba0cb33865f9ae874f2bae5404445ceba9a8e5"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/candle/a991df53d0560d1d9ed787cd324cb499afd0bffa.glb",
+      "bytes": 20784,
+      "gitBlobSha": "a991df53d0560d1d9ed787cd324cb499afd0bffa",
+      "sha256": "0c1dfc1e792ed64193a166f4c39ed301f00277703041063daa847c3d4526b9bb"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/coin-stack-medium/8d371ebea5090dff9a6229dc34d5044b5786d546.glb",
+      "bytes": 63996,
+      "gitBlobSha": "8d371ebea5090dff9a6229dc34d5044b5786d546",
+      "sha256": "a6b3f67cf395820c75fafb09337009be7faf1d6a9de93a3f77cfc04c565374b2"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/coin-stack-small/0a07fbd0b1890e19ee42db256a472941f1dcfd22.glb",
+      "bytes": 38404,
+      "gitBlobSha": "0a07fbd0b1890e19ee42db256a472941f1dcfd22",
+      "sha256": "b7395adb0c3f8d392f42f483d667af672232a25de4e0cdb23c58fca8bab1dd8f"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/coin/f7cdef3c8bf9d08b6a5c644b049a0bb7e98cd8af.glb",
+      "bytes": 21776,
+      "gitBlobSha": "f7cdef3c8bf9d08b6a5c644b049a0bb7e98cd8af",
+      "sha256": "97d3abdd239d8fa365b14957f7bf45c892aad9d211b3c3b47b4b2311bf947297"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/column/a4b5779f50f006cb49524742d489b49ae2249c66.glb",
+      "bytes": 20260,
+      "gitBlobSha": "a4b5779f50f006cb49524742d489b49ae2249c66",
+      "sha256": "761adf0fcc1a86ab1c42740b7a8ad340d73982f94257e7892b2c7998f98c304e"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-dirt-large-rocky/280dd6f91bef8de1f60b1d5cab0e887bd1c43635.glb",
+      "bytes": 30216,
+      "gitBlobSha": "280dd6f91bef8de1f60b1d5cab0e887bd1c43635",
+      "sha256": "f83d503c0ab16aaaa48b4e1680a2aaf7f975a63e376b6dc8e48032c702521d8f"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-dirt-large/9e0cd900a8fe185ab171279d075e374ce2549c2c.glb",
+      "bytes": 24620,
+      "gitBlobSha": "9e0cd900a8fe185ab171279d075e374ce2549c2c",
+      "sha256": "48cc8018237fbdca3f7fccef95c93ef32e877d8fc59f481b9369fed71fec895b"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-dirt-small-a/afcbbd09911899007abb4d7fd270e3c9fc8265e4.glb",
+      "bytes": 20460,
+      "gitBlobSha": "afcbbd09911899007abb4d7fd270e3c9fc8265e4",
+      "sha256": "b5be9118f0b66b8e429569c7095d5be003c526f6f61ebe8061dcaf4b67b37f00"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-dirt-small-b/675a471b7699f60408f3dfe237f217b74d49e98e.glb",
+      "bytes": 19536,
+      "gitBlobSha": "675a471b7699f60408f3dfe237f217b74d49e98e",
+      "sha256": "d1bb865686cfc0e96e4949eca6cd0235a00267a8a8cdf09b1c390e1df836c789"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-dirt-small-c/8a2cc6ab4c949f60646dd68d3b258e04bd242530.glb",
+      "bytes": 19484,
+      "gitBlobSha": "8a2cc6ab4c949f60646dd68d3b258e04bd242530",
+      "sha256": "f2b54702111a5f7e9d9dd808849f7f15c713b885c7fb405503835179acfafc7f"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-dirt-small-corner/a07fcc4c20c9298ca1ef43cbc4529075a5e06877.glb",
+      "bytes": 20752,
+      "gitBlobSha": "a07fcc4c20c9298ca1ef43cbc4529075a5e06877",
+      "sha256": "0e14444fd83c1c622c87ab033676638d10b7cbbbc26af49da9cfe1873bb93a9b"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-dirt-small-d/82a0e7ff143079f168662e554ca62165c875c5fb.glb",
+      "bytes": 18476,
+      "gitBlobSha": "82a0e7ff143079f168662e554ca62165c875c5fb",
+      "sha256": "bb2a50fbb828c09d425b0abc55517d59b4c79550a82f3bd340d323e0e925bf54"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-dirt-small-weeds/ba39f5f8ce3ba75c94229165d865eb3fd10bc271.glb",
+      "bytes": 41224,
+      "gitBlobSha": "ba39f5f8ce3ba75c94229165d865eb3fd10bc271",
+      "sha256": "cbee93076f46232eac8ab07f5c10e8b733941d8615e524b9ee34c1758ba3e1d4"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-foundation-allsides/7d9366690a13d07c199db97014f6f6025f5ce261.glb",
+      "bytes": 44944,
+      "gitBlobSha": "7d9366690a13d07c199db97014f6f6025f5ce261",
+      "sha256": "5b167b3f5fbc0d8a61c5681d028590e78f27f15ff3da3e171ba9c898ed051408"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-foundation-corner/d0c8b22bb2b94b415dfb42618661d9790f96dd2d.glb",
+      "bytes": 31996,
+      "gitBlobSha": "d0c8b22bb2b94b415dfb42618661d9790f96dd2d",
+      "sha256": "30eea50f41b2859b0dd5707e5ff0dd039ce81ad9f42824dae40f958f8336cbf4"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-foundation-diagonal-corner/9dbb542d2b32d5104f43cca311c1c84f28d65bb1.glb",
+      "bytes": 25024,
+      "gitBlobSha": "9dbb542d2b32d5104f43cca311c1c84f28d65bb1",
+      "sha256": "5b9d59c64d8b80272bdd7a59056ac4f6217455b1a7c79b0a93a5f63a568c2e11"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-foundation-front-and-back/6408b2cc5b4a9871d26ca7a7c5d1da21010b831e.glb",
+      "bytes": 32004,
+      "gitBlobSha": "6408b2cc5b4a9871d26ca7a7c5d1da21010b831e",
+      "sha256": "ee3d2bc07fe46ebd7e41a35c1c09608959e0fe888a0d317d19f7f3390e9bd478"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-foundation-front-and-sides/eb7113865bb5f58af0f74bf65a165bff5a6df2b7.glb",
+      "bytes": 38480,
+      "gitBlobSha": "eb7113865bb5f58af0f74bf65a165bff5a6df2b7",
+      "sha256": "8a1bf932d7e5c317c87ae6262c6cc8540f41dcdb163cfee525bc77669d72b1b1"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-foundation-front/4a699d17ff33a8d27715f02491069c6ed066cadb.glb",
+      "bytes": 25516,
+      "gitBlobSha": "4a699d17ff33a8d27715f02491069c6ed066cadb",
+      "sha256": "06e985c0fb17d4ffa69c2a057aef362d304df30f5711a32c3960e5d2fd56eed1"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-big-grate-open/4d55430ad3fefc7e191be1ae3723e8f27788e73d.glb",
+      "bytes": 35740,
+      "gitBlobSha": "4d55430ad3fefc7e191be1ae3723e8f27788e73d",
+      "sha256": "96d1e7a6b519ebe614e66342e0e43b3689017c339f586c5e783d9edf7631e7df"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-big-grate/56ff3f57b0130ecf695fdce200b94d1505b4a638.glb",
+      "bytes": 36296,
+      "gitBlobSha": "56ff3f57b0130ecf695fdce200b94d1505b4a638",
+      "sha256": "6c393b10cb00ad69177f58d1b30af05f3c7f350bc331508529ef6323ff9efae3"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-big-spikes/e4ea4b93de249a365238787b06cf9f7b4c19106f.glb",
+      "bytes": 80644,
+      "gitBlobSha": "e4ea4b93de249a365238787b06cf9f7b4c19106f",
+      "sha256": "7a4e94decf860b64456a45cc1c2d7bb26f0b3ca75824ccf2c4d0addee088d9ad"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-extralarge-grates-open/7128b35434da075db290ae61c229cad55057fd8d.glb",
+      "bytes": 65852,
+      "gitBlobSha": "7128b35434da075db290ae61c229cad55057fd8d",
+      "sha256": "290b96cf681822ad7479895ee08b75b1a6a5e30c2a709fdec63e98abab7c17dc"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-extralarge-grates/e094df83cc4b2b7b093a82b41cb8919189e8197b.glb",
+      "bytes": 66408,
+      "gitBlobSha": "e094df83cc4b2b7b093a82b41cb8919189e8197b",
+      "sha256": "a80a67e26133b3e06fb479fc2bb6efa136f1d67aadacbd93ef2c2d1238f75dec"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-grate-open/47be004921dd27c7a47928f3beb4fc4c3a40e08f.glb",
+      "bytes": 26564,
+      "gitBlobSha": "47be004921dd27c7a47928f3beb4fc4c3a40e08f",
+      "sha256": "3f717d847f906c67cb23790e43274dd4e13b04863eefabd28014247f1aed2fec"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-grate/762bf0120896fc3a77ddd19921bd21a7fcdbe442.glb",
+      "bytes": 26700,
+      "gitBlobSha": "762bf0120896fc3a77ddd19921bd21a7fcdbe442",
+      "sha256": "d39a8c32aa995458eb758ebc9bebe140e81c56a9e5bf52e0f85bf6df0eb7dce0"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-large-rocks/5c1379a202cb5caf95eee3b114d44036fd68481b.glb",
+      "bytes": 38384,
+      "gitBlobSha": "5c1379a202cb5caf95eee3b114d44036fd68481b",
+      "sha256": "fb06b1e9ca7a5d14f6757119490c4b3c077a30e31ef580da6925b6657f14c14d"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-large/953468a2f75ae10a673f7f064ccea4b088628f53.glb",
+      "bytes": 28100,
+      "gitBlobSha": "953468a2f75ae10a673f7f064ccea4b088628f53",
+      "sha256": "5b6bbbc683f6729d094732056f157a928435de97ec3cf94c341c7465907fe17b"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-small-broken-a/11bcf371ced6a99a8011fce08b9d180af8946c62.glb",
+      "bytes": 22132,
+      "gitBlobSha": "11bcf371ced6a99a8011fce08b9d180af8946c62",
+      "sha256": "d1acc3407f941623b3b01ec9a1751c36a5ca82bb14721fc8f28e5559317edad4"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-small-broken-b/73f41f5fda92230bf85dd5f45b7eb915bb3d033f.glb",
+      "bytes": 21608,
+      "gitBlobSha": "73f41f5fda92230bf85dd5f45b7eb915bb3d033f",
+      "sha256": "0ef8ee472371df027f7035726f913335f3d82df531004329f3c8bce77fcce1d5"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-small-corner/623395cdd35866ea08e8ff0b6b7f2f1ae5e3b304.glb",
+      "bytes": 18868,
+      "gitBlobSha": "623395cdd35866ea08e8ff0b6b7f2f1ae5e3b304",
+      "sha256": "f88d027a88652e7c510fa8428380d88779cbbcdb377d1e9f12855dcbdbee38d6"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-small-decorated/47e9eebb55f0cd6f10c02419ba361adca39fb81d.glb",
+      "bytes": 40812,
+      "gitBlobSha": "47e9eebb55f0cd6f10c02419ba361adca39fb81d",
+      "sha256": "4dd8a74dc00c2272957938f1612c730e06bfddca7a9d9cdc6f316594d4a0f3cf"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-small-weeds-a/ac5027c60929782304feaa6266ae2abae4ee6552.glb",
+      "bytes": 44020,
+      "gitBlobSha": "ac5027c60929782304feaa6266ae2abae4ee6552",
+      "sha256": "95fcb7701819428da04318aafbd9410b994217424d1453844ba3e6f1f91a28f3"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-small-weeds-b/58bd57d3e3ceadd488f402d1ab80b261ff1a7990.glb",
+      "bytes": 42368,
+      "gitBlobSha": "58bd57d3e3ceadd488f402d1ab80b261ff1a7990",
+      "sha256": "cfbe329aeea2faf66295be40a8e4fbb9a59870849ee7318b3b52d12899622f69"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-tile-small/18fd07c66d68c040f3f24f0095fc63334307d865.glb",
+      "bytes": 20740,
+      "gitBlobSha": "18fd07c66d68c040f3f24f0095fc63334307d865",
+      "sha256": "645f02c82d1fa15e3e1daa7892b70c8a9d44f44d0e520d76ae6afd08633c5b34"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-wood-large-dark/613aa0855869461836c3b6c12fcb45aee070e9a1.glb",
+      "bytes": 35616,
+      "gitBlobSha": "613aa0855869461836c3b6c12fcb45aee070e9a1",
+      "sha256": "be6a700b4d089d79da7d45ce80451cadced9a61763b6b0e49c4023488a75e3f5"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-wood-large/8a883f18915f071f9057a46a21844140019ed968.glb",
+      "bytes": 35612,
+      "gitBlobSha": "8a883f18915f071f9057a46a21844140019ed968",
+      "sha256": "d22eb1c1fb6ab434e8c9599ecb2cd00c2e34a713783603ba7a3e2cbb1611709d"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-wood-small-dark/f7be70fada296323dac415f66e22ab33ab0c5184.glb",
+      "bytes": 22160,
+      "gitBlobSha": "f7be70fada296323dac415f66e22ab33ab0c5184",
+      "sha256": "81eceb7289c6f4717458a2ed7b32e8ee353fdccdca138ff996a4e0dd98e1f12b"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/floor-wood-small/be492dd1ebdf53501b6c59cbea3f70d164b74c3a.glb",
+      "bytes": 22156,
+      "gitBlobSha": "be492dd1ebdf53501b6c59cbea3f70d164b74c3a",
+      "sha256": "9e11192df05527eb112128cc06515be4a3a350b765ce974666c7b1c37715aa63"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/keg/47a84fa90788c644a022c2394fe16c2b4e912706.glb",
+      "bytes": 59912,
+      "gitBlobSha": "47a84fa90788c644a022c2394fe16c2b4e912706",
+      "sha256": "cc620e27439ab8dbbf93b1c4bd94d1d634798757c0314b2c9f12bb445afd0f51"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/key/4686f074eb25d66451c537084ebda255d4954c38.glb",
+      "bytes": 24432,
+      "gitBlobSha": "4686f074eb25d66451c537084ebda255d4954c38",
+      "sha256": "e9ea072e6e5f8b1f049677f62144d9ae1dcc1cfd2252aec54b42bec29d518dff"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/keyring/02a14d0685f4fcbc52ab8dabab667f9eeacd65f4.glb",
+      "bytes": 49100,
+      "gitBlobSha": "02a14d0685f4fcbc52ab8dabab667f9eeacd65f4",
+      "sha256": "0313e8cf5a13000d15e0d37d8656b501c63ac7d44b0c46ee30c36a6c1bbe0481"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/pillar-decorated/7eda56c427e1824bca02b03f1eca93696302a1aa.glb",
+      "bytes": 62460,
+      "gitBlobSha": "7eda56c427e1824bca02b03f1eca93696302a1aa",
+      "sha256": "eecf7d454a1b6767a113e2490cb1536134abea0b57329a50cf2250d3ed8e2f65"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/pillar/3b228d747c4ef1f9552743880906fc647dabcec3.glb",
+      "bytes": 25552,
+      "gitBlobSha": "3b228d747c4ef1f9552743880906fc647dabcec3",
+      "sha256": "e31da496461921475384c62ce761cd23924892bd6f32aeea68bd913545caee33"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/plate-food-a/365d534238607d303750485bb0f1d412ce93b0ae.glb",
+      "bytes": 41236,
+      "gitBlobSha": "365d534238607d303750485bb0f1d412ce93b0ae",
+      "sha256": "4549db448834c615e753f65327d01b8f55b9d20d915e004c8a0da123cb76e86e"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/plate-food-b/da81a50020073d6bb52c8e0810c0caf0e4629b47.glb",
+      "bytes": 31980,
+      "gitBlobSha": "da81a50020073d6bb52c8e0810c0caf0e4629b47",
+      "sha256": "b3ca88e56eeab02e969c38a25bb7dedb34989a401afb7aee44a408f37937701c"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/plate-small/0e6c0c9f1387ac2061b13589142cdd74b49eec3d.glb",
+      "bytes": 22892,
+      "gitBlobSha": "0e6c0c9f1387ac2061b13589142cdd74b49eec3d",
+      "sha256": "4c76a077618c02f87dcd8b8a53c708983ac5cdbe7082a8d61dc4085db27a0181"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/plate-stack/f32ccc4df733e18ea1a98076e2b5d02e4ede5be5.glb",
+      "bytes": 35728,
+      "gitBlobSha": "f32ccc4df733e18ea1a98076e2b5d02e4ede5be5",
+      "sha256": "bd872e234a18896f6e9634e9509efc5bf59fdd1b6cf6e36d74530e8239024387"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/plate/8dcec4f8789eb6b9811b36b884f7b3a210c511ca.glb",
+      "bytes": 22884,
+      "gitBlobSha": "8dcec4f8789eb6b9811b36b884f7b3a210c511ca",
+      "sha256": "c4c0e52b75a8f283e724f9e7695870f8fad7b608e0f67c90db0c1781406d3f38"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/rubble-half/4a4c48135629764469ab6570a2f118cb92df532c.glb",
+      "bytes": 38836,
+      "gitBlobSha": "4a4c48135629764469ab6570a2f118cb92df532c",
+      "sha256": "7514ccbda643c13d5a782579e4f01ee6402eec5519590d3f048d396cdaedec24"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/shelf-small-candles/8d4603c8fbeb547052f11458b82e0e7afb49700f.glb",
+      "bytes": 30036,
+      "gitBlobSha": "8d4603c8fbeb547052f11458b82e0e7afb49700f",
+      "sha256": "d6f6a809c1e4635b143fd3c6e790331aa049d625abd390429c1e5887f77cbb96"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/shelf-small/b4af23b46dfc2a2d4df987902c5dbe0b3ba44068.glb",
+      "bytes": 20932,
+      "gitBlobSha": "b4af23b46dfc2a2d4df987902c5dbe0b3ba44068",
+      "sha256": "270615f38648d2ab9d5d67e390a97929a07d6df81b7a7e131c8d73a6d2767078"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/shelves/fea1c9db748f01bf7d6000bfee95e8da49dfa6f2.glb",
+      "bytes": 26996,
+      "gitBlobSha": "fea1c9db748f01bf7d6000bfee95e8da49dfa6f2",
+      "sha256": "8df148ae0f4909512295302491f2b40dc3ae84d072f2cacdfd929c7848d7062e"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/stairs-narrow/437acb175139f64577632409083debdc9eb76559.glb",
+      "bytes": 43372,
+      "gitBlobSha": "437acb175139f64577632409083debdc9eb76559",
+      "sha256": "eded1b8c0347216ef82a9bf56f680bb2063fd6ff56e06b3516a380b1ccb622a8"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/stairs-wall-left/4afe3002f27a7226b1e95f9382cc3ce4f7b9d6cd.glb",
+      "bytes": 57640,
+      "gitBlobSha": "4afe3002f27a7226b1e95f9382cc3ce4f7b9d6cd",
+      "sha256": "19abdf58225d5219337c3fbb4be95111babee30f91634ccd3197ad8856c28a24"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/stairs-wall-right/e461d579d4c71b98e0cdfe3eca65c24f11d280ad.glb",
+      "bytes": 57704,
+      "gitBlobSha": "e461d579d4c71b98e0cdfe3eca65c24f11d280ad",
+      "sha256": "3bab03b9b17622fe8d56b962685b28b747807d028a5db9bdc066d7358f3b484b"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/stairs-walled/1b7da3c55996a77ede474fadcc93c1bb06aea41b.glb",
+      "bytes": 72072,
+      "gitBlobSha": "1b7da3c55996a77ede474fadcc93c1bb06aea41b",
+      "sha256": "1ebdaebab2d79cfb717ebfc4ccf889c0a5a391d7f847281d849f5171b8bce658"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/stairs-wide/71189ad7b883e8a9a218280c79d843b887dd68b8.glb",
+      "bytes": 43372,
+      "gitBlobSha": "71189ad7b883e8a9a218280c79d843b887dd68b8",
+      "sha256": "f3301f11a6bb6d9e64fbe625fbc2f0b61ba4f7e1de1ceba348d53c93325d4754"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/stairs-wood-decorated/86f0e8d90c81ed0192aed0fd031cae652afeb22f.glb",
+      "bytes": 171080,
+      "gitBlobSha": "86f0e8d90c81ed0192aed0fd031cae652afeb22f",
+      "sha256": "41c86378edb2951add637d9beb52cb97b6d5adf6c02e59ed3aa5a89cef1228d9"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/stairs-wood/1852cd6ec6994479d0a3f25090943c51ab35297c.glb",
+      "bytes": 34632,
+      "gitBlobSha": "1852cd6ec6994479d0a3f25090943c51ab35297c",
+      "sha256": "3b2cf5c08aec60ea7b217e1c499885d803419dc39a2968e8da0da5e725adb140"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/stairs/e780d3d62d3fb62055ded1f0c7aaf0e917f60e32.glb",
+      "bytes": 43368,
+      "gitBlobSha": "e780d3d62d3fb62055ded1f0c7aaf0e917f60e32",
+      "sha256": "5ba16e5d919aaa8958435c4b73c1f8a94c98febeacf716faa1359f24e6b27d70"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/stool/cbac1e0ebbafad7dbc9761fbbeedc3cef801eb3e.glb",
+      "bytes": 28528,
+      "gitBlobSha": "cbac1e0ebbafad7dbc9761fbbeedc3cef801eb3e",
+      "sha256": "f9170499ea599e6283d35be600150d2171d9a7af1ae0e8a1ccbe98ef29b71d8e"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/sword-shield-broken/b57c464a5df15977290178adb48efdc78e296a8c.glb",
+      "bytes": 39980,
+      "gitBlobSha": "b57c464a5df15977290178adb48efdc78e296a8c",
+      "sha256": "5a056d05102aaa0fb91e7a9f0e88775f90bba5397309c9da5e3c51c2238c85f8"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/sword-shield-gold/7d67e13d2a5a25f5a037b8852c760f2b6496b25c.glb",
+      "bytes": 47768,
+      "gitBlobSha": "7d67e13d2a5a25f5a037b8852c760f2b6496b25c",
+      "sha256": "7b7dd709bd6a24e9e2913da2ebc1fd64ca318e22fbef66f0e8cf14b79adae9aa"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/sword-shield/156a15e16804239ca065d4d8777b638fd731b8fc.glb",
+      "bytes": 47764,
+      "gitBlobSha": "156a15e16804239ca065d4d8777b638fd731b8fc",
+      "sha256": "4dc33b156a166b2c47cf3ac0344f9462946e952ee8c12945bbe6aedddf63af72"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/table-long-broken/44d32429481bf2147274ceb13780188652399987.glb",
+      "bytes": 55192,
+      "gitBlobSha": "44d32429481bf2147274ceb13780188652399987",
+      "sha256": "956c9a916acd537eb2f488050eaa1e88f0c163e328528e472b29dd5801790d76"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/table-long-decorated-a/ad1b253c1e159203c260fa8568109a1dd5ee49f2.glb",
+      "bytes": 120792,
+      "gitBlobSha": "ad1b253c1e159203c260fa8568109a1dd5ee49f2",
+      "sha256": "47564d874e79f04212c05487d88ac8cbe9bb50b1865a8eeb1178bcb711aa444d"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/table-long-decorated-c/9b93de01ade71d23061213f087e7ffbc8e5de3d2.glb",
+      "bytes": 231608,
+      "gitBlobSha": "9b93de01ade71d23061213f087e7ffbc8e5de3d2",
+      "sha256": "bc67bce5b700ef2be4008349856f11d5d494807d20b68e079650db646af0b26b"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/table-long-tablecloth-decorated-a/58d3970efa2e715f606423489e39bf0d2823202f.glb",
+      "bytes": 124064,
+      "gitBlobSha": "58d3970efa2e715f606423489e39bf0d2823202f",
+      "sha256": "43becc5ada637e494e617e5abdb13f15b53054d3581679162e3098d8fc0d5376"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/table-long-tablecloth/8219a1e10e44edba8fefc9073140c1389c5522a5.glb",
+      "bytes": 38400,
+      "gitBlobSha": "8219a1e10e44edba8fefc9073140c1389c5522a5",
+      "sha256": "d8fcb3f2d1d7a6d95d5150cbe257fd3c65da0a8a44ea43fa60982d1a8c065cd3"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/table-medium-broken/ff80a3a3452bbb0c47fe4f3c4cc0fae7cc7b0bed.glb",
+      "bytes": 35184,
+      "gitBlobSha": "ff80a3a3452bbb0c47fe4f3c4cc0fae7cc7b0bed",
+      "sha256": "fcf67e154506c8b4aaeb39f4a288c49351d2630fb19b86d73836dc0c1a54837f"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/table-medium-decorated-a/7f03c5737c14557db5ceaf8fcb032011482490f1.glb",
+      "bytes": 82588,
+      "gitBlobSha": "7f03c5737c14557db5ceaf8fcb032011482490f1",
+      "sha256": "dc5beae322011acbce5c3dccb3c5cbaffae9757ad67d6ab0cf574c11b7ce014c"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/table-medium-tablecloth-decorated-b/0042fd20542e33f8a00ecea6eeb5d889814d2020.glb",
+      "bytes": 83916,
+      "gitBlobSha": "0042fd20542e33f8a00ecea6eeb5d889814d2020",
+      "sha256": "5f8d91096f1748a5f5991b7dacfa90ad205219616cb25312d2640b12f3e521e4"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/table-medium-tablecloth/82101b7616647a5c5a95db7b0e0052c05a0d56c3.glb",
+      "bytes": 35160,
+      "gitBlobSha": "82101b7616647a5c5a95db7b0e0052c05a0d56c3",
+      "sha256": "8beb36b54c407c6d34b8025a053fa0fc8100b0a0ad4eaa448859c3bc9c6d34ec"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/table-small-decorated-a/b9cc0649c28efca90df08cfd0ab1dbc8310bffe8.glb",
+      "bytes": 67672,
+      "gitBlobSha": "b9cc0649c28efca90df08cfd0ab1dbc8310bffe8",
+      "sha256": "8b079b22cc25ae79241ab29f94d3118d0214eadfa2c5711da88852ffdd554223"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/table-small-decorated-b/f02a130be03fdf5776de80412dcba4e2aa9c29a1.glb",
+      "bytes": 105068,
+      "gitBlobSha": "f02a130be03fdf5776de80412dcba4e2aa9c29a1",
+      "sha256": "7ef39cdd7a04fb30279415a7fb62e98e6d4fdce1256d5857b81cbc3c56dce63e"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/torch-mounted/5c3892703d75e029192aa63b9cbfb1c1f11efa01.glb",
+      "bytes": 33220,
+      "gitBlobSha": "5c3892703d75e029192aa63b9cbfb1c1f11efa01",
+      "sha256": "a617c159e02932db48ca81ec46f1f100acc8904fb6ece43e919d2f93c13950e9"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/torch/5fcf9a8ab8818adf2630e5260c50589593855da2.glb",
+      "bytes": 29380,
+      "gitBlobSha": "5fcf9a8ab8818adf2630e5260c50589593855da2",
+      "sha256": "608089ae00c5d5b51adbe702a689677b3fef0b29641030a44401188ce108a316"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/trunk-large-a/0b1beabe9a3813bf1a0dc929c894ea8de1523fdd.glb",
+      "bytes": 30180,
+      "gitBlobSha": "0b1beabe9a3813bf1a0dc929c894ea8de1523fdd",
+      "sha256": "fb915dc521a92708dfe548922cfb09af23392a83a356e65c837cfbc406f237a9"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/trunk-large-b/01bb3fb0a1b9cb22c5c9a79e5cca9c8c2ff169fd.glb",
+      "bytes": 30180,
+      "gitBlobSha": "01bb3fb0a1b9cb22c5c9a79e5cca9c8c2ff169fd",
+      "sha256": "a17bd58b49ced3cc2f84f4790fc8a4431b1a67335b0596c35baced8043104ced"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/trunk-large-c/983821f3d6ff7a1dd44e25cdfda1e5bf97038113.glb",
+      "bytes": 30180,
+      "gitBlobSha": "983821f3d6ff7a1dd44e25cdfda1e5bf97038113",
+      "sha256": "31e9eab566e64a13c1f56c19ef886b1f9027f5ba80096e7a3934eabfa0cba367"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/trunk-medium-a/642868e66eef1ed09f6d207761b5a3856a362186.glb",
+      "bytes": 26420,
+      "gitBlobSha": "642868e66eef1ed09f6d207761b5a3856a362186",
+      "sha256": "a2da1198744578ade2560ccadd79201fa996a820832c520241747dce9167bbaf"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/trunk-medium-b/579a5046ccd9bd1f41d01b351a7a7d782587461d.glb",
+      "bytes": 26420,
+      "gitBlobSha": "579a5046ccd9bd1f41d01b351a7a7d782587461d",
+      "sha256": "4d0da78c351495995aa5192df7f64c37a486f4fdd23b59f2f173a97f720def57"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/trunk-medium-c/daca478d8d5df61e87292d5349541c5ce0a316a2.glb",
+      "bytes": 26420,
+      "gitBlobSha": "daca478d8d5df61e87292d5349541c5ce0a316a2",
+      "sha256": "0de29c00c448699613dd8aa043fd06d7e0571fac9c744342f9e251be7056e3e7"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/trunk-small-a/869fa48ef5c9fdf302b1f037632bbc8b5fb92709.glb",
+      "bytes": 30184,
+      "gitBlobSha": "869fa48ef5c9fdf302b1f037632bbc8b5fb92709",
+      "sha256": "de40320413c5503c8139eedbb0c773d967c0d27aede51848a479cc6001c29140"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/trunk-small-b/fa54b78ab58449537f53ff2775046550c7d56a64.glb",
+      "bytes": 30184,
+      "gitBlobSha": "fa54b78ab58449537f53ff2775046550c7d56a64",
+      "sha256": "ec2df6aa8cba65abe325c807d26c19c4e187252023d088b3bbac034816f56265"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/trunk-small-c/23618e67fe89e0bf03fd3b0167bba91c22d03fcc.glb",
+      "bytes": 30184,
+      "gitBlobSha": "23618e67fe89e0bf03fd3b0167bba91c22d03fcc",
+      "sha256": "70b420c69fdbb34efb67f2e192afb3d138e79dfbce15424efbe890831d96ce2c"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-arched/d049ace889b606edb5d638b9996aeb580f095387.glb",
+      "bytes": 69124,
+      "gitBlobSha": "d049ace889b606edb5d638b9996aeb580f095387",
+      "sha256": "916a7d81b8d6ebddb069440a0f9ecb14c9c2a1e5cd7769acf2218d630bd56cb8"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-archedwindow-gated-scaffold/f594bb45a8995226d1564e947b96bf58774b1b2b.glb",
+      "bytes": 60988,
+      "gitBlobSha": "f594bb45a8995226d1564e947b96bf58774b1b2b",
+      "sha256": "789a1dad5b3a0a88e06b30ad5c4573625ce46ea25bcede171a36f7d8bb6c387b"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-archedwindow-gated/5ebea6d493f274297edc16b571e6acc738f28442.glb",
+      "bytes": 64752,
+      "gitBlobSha": "5ebea6d493f274297edc16b571e6acc738f28442",
+      "sha256": "4edf28602a00b2666a9044322eeae170fe1dd606dfae7846ecda357f1b9eb266"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-archedwindow-open/14621d09869ab624bbfdd63e251cd55a0fa58097.glb",
+      "bytes": 58028,
+      "gitBlobSha": "14621d09869ab624bbfdd63e251cd55a0fa58097",
+      "sha256": "8c75cb77edc51c94b91c5625828391fb56c70bf31e2235cf5abf718eae0d842a"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-broken/c67687c36ed383eed5708580cd7c80977f6ace3f.glb",
+      "bytes": 69276,
+      "gitBlobSha": "c67687c36ed383eed5708580cd7c80977f6ace3f",
+      "sha256": "ee7598ef2b88aaeb7b61e46d5f1da1a059de3860b080b38b7a507ca2f461302c"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-corner-gated/d83efd31ce75306473647086960a6fd68bbdc410.glb",
+      "bytes": 51132,
+      "gitBlobSha": "d83efd31ce75306473647086960a6fd68bbdc410",
+      "sha256": "289cd2fb7a23c4fecdfe7832d505f33b168dc6114c106a2945ea7b5d2e1318bc"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-corner-scaffold/5da5a21a38050f499da59620630c6c4fa33109c5.glb",
+      "bytes": 54200,
+      "gitBlobSha": "5da5a21a38050f499da59620630c6c4fa33109c5",
+      "sha256": "f22cbfb585b70c86c7a894cb76834a4ead8b8d51b05f012fef9481348577a275"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-corner-small/ead9031578d6b8e322dbf3d8c1eaf2a9911a11d3.glb",
+      "bytes": 33640,
+      "gitBlobSha": "ead9031578d6b8e322dbf3d8c1eaf2a9911a11d3",
+      "sha256": "6bcdc78db453a397cdb08a23e5b731be85e3f98767014f0266e240eb9bcafcc2"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-corner/e594aa8ebfedf0bb92ebc5d1603cd4a18ef3f637.glb",
+      "bytes": 49212,
+      "gitBlobSha": "e594aa8ebfedf0bb92ebc5d1603cd4a18ef3f637",
+      "sha256": "3c8cbcbf3abf78c9dc49f440b152340ef681fee9cccf9ca6ed27b6670a34eb81"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-cracked/13440aaa23012aa42554c683e92b5c31ed319352.glb",
+      "bytes": 138396,
+      "gitBlobSha": "13440aaa23012aa42554c683e92b5c31ed319352",
+      "sha256": "344fb9a709a51b7f04131fded75a5ad38e829d74fcf1784d848f3df0703f804c"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-crossing/bcf02be1a5f5c10d2e70f4eae8fce87638bb0677.glb",
+      "bytes": 66856,
+      "gitBlobSha": "bcf02be1a5f5c10d2e70f4eae8fce87638bb0677",
+      "sha256": "ec4d4efc6dccc2ac74c26977797df4f50926329e67dfb7a56bce7bc2466695ab"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-doorway-scaffold/0ca509f6b36e82c4eb7591f947f149cc4f786782.glb",
+      "bytes": 109416,
+      "gitBlobSha": "0ca509f6b36e82c4eb7591f947f149cc4f786782",
+      "sha256": "0fb7b7c22561f7c4e4a6585488e38d2a5a2811befaad3548f3e24ac6358f379a"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-doorway-sides/e28414d3af5121e8cd0ae28bb1044f2c3146aa84.glb",
+      "bytes": 97364,
+      "gitBlobSha": "e28414d3af5121e8cd0ae28bb1044f2c3146aa84",
+      "sha256": "f4afefbedb7efc5bf5638a61b9ba1ed6be7badddf4f82603c81a7597f01e4a13"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-doorway-tsplit/30a615633e315972a0062f16bf5efef65a47f590.glb",
+      "bytes": 93124,
+      "gitBlobSha": "30a615633e315972a0062f16bf5efef65a47f590",
+      "sha256": "3b4b06994a42ef8eb4dd510d31745e1f449b0ba1675f89ea913bf89dde87c6cc"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-doorway/bce214e25088ec62599bde0c18569b2d26a22e7a.glb",
+      "bytes": 100596,
+      "gitBlobSha": "bce214e25088ec62599bde0c18569b2d26a22e7a",
+      "sha256": "2be5369a2d1d1d8795150b2156d8343b3e37620d78de256cb03276c54ea70c97"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-endcap/f386e524ac41ff002d4a5e1efa97696054b54a4c.glb",
+      "bytes": 33708,
+      "gitBlobSha": "f386e524ac41ff002d4a5e1efa97696054b54a4c",
+      "sha256": "e9d0fee6895f402d4777f7aa92455b56b5bd506877a654a8027a67a185010e23"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-gated/9213fa89f7e78d86271d159d8f5a0e1db0d0c86c.glb",
+      "bytes": 46364,
+      "gitBlobSha": "9213fa89f7e78d86271d159d8f5a0e1db0d0c86c",
+      "sha256": "68e766c2b4eb05c4bf2c0fcd908ea5dc5192dda56cfdd5d56b7cbf446063220c"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-half-endcap-sloped/cfc1c5ec8d4b41e2f6e418424ce79b696cb1e54c.glb",
+      "bytes": 33368,
+      "gitBlobSha": "cfc1c5ec8d4b41e2f6e418424ce79b696cb1e54c",
+      "sha256": "4767600ac8aa3ae0792fb115e1a2d90fb8f09d65db554dfda2953324d38e1e65"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-half-endcap/561bf077664a969c748baed5c965d03113a70d18.glb",
+      "bytes": 36724,
+      "gitBlobSha": "561bf077664a969c748baed5c965d03113a70d18",
+      "sha256": "069744023318847ea7beb1e7af8111d5c7465f2d2d4cc080a8e805156e9c90d4"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-half/e1bfabe58ee53c21b6a18ad37fa04c496c07cb1d.glb",
+      "bytes": 36840,
+      "gitBlobSha": "e1bfabe58ee53c21b6a18ad37fa04c496c07cb1d",
+      "sha256": "9e65c438f55d96cbcd554489bf2dec236feb575a8192c709d3bf6886599339a8"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-open-scaffold/207531fa1fc257932e4ce76eaf1f2c644a6f978f.glb",
+      "bytes": 29908,
+      "gitBlobSha": "207531fa1fc257932e4ce76eaf1f2c644a6f978f",
+      "sha256": "1f0b0e2312984d213ab3eb558095587684af101c57aa30e112a65f4e98040b6f"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-pillar/6f50b79deb38f243f9a87893f01dea839e1d1558.glb",
+      "bytes": 55156,
+      "gitBlobSha": "6f50b79deb38f243f9a87893f01dea839e1d1558",
+      "sha256": "f85030386f9f183bbc03a0817a1967a40758f24828295ed2a1c88d4c004eb5eb"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-scaffold/f6dcff62b13a66f903c5829bb8ddc8922b3be3ef.glb",
+      "bytes": 59436,
+      "gitBlobSha": "f6dcff62b13a66f903c5829bb8ddc8922b3be3ef",
+      "sha256": "9a241ac982f2d6f63dc2eb3ec28fcb97291abf682336fb479a40d225f163663f"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-shelves/a9c0c666da9a5b1815fd47d8529bbf14907fb3e7.glb",
+      "bytes": 122244,
+      "gitBlobSha": "a9c0c666da9a5b1815fd47d8529bbf14907fb3e7",
+      "sha256": "8c794dfbc320af9f18c9d04d555fb1e8dce3c4cb4c2b4de01ddd2b95d1f85e9c"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-sloped/471dbfbd45001f364a590d643c96fe10da686528.glb",
+      "bytes": 35964,
+      "gitBlobSha": "471dbfbd45001f364a590d643c96fe10da686528",
+      "sha256": "4aa19fdb27d301abaa05d7e7c2433d9b51ac01499611aeb8691eee5f3efe40e0"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-tsplit-sloped/c9328473824e5c786a87eab67f93e100dc2cef0b.glb",
+      "bytes": 57224,
+      "gitBlobSha": "c9328473824e5c786a87eab67f93e100dc2cef0b",
+      "sha256": "0893b08b1d360c64d523d55192a347a2070eba7a13f20e2b2fc353def9e41aee"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-tsplit/0c6477b8a502e1ad760477e1ed5e1a873d79cf43.glb",
+      "bytes": 60080,
+      "gitBlobSha": "0c6477b8a502e1ad760477e1ed5e1a873d79cf43",
+      "sha256": "a93b661ce2ebeff9aa349d727922cee2107c64b0ab69a02326ce1b5cb8e65d44"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-window-closed-scaffold/da5ac723366fe2f3215277132705fb8b86a92c30.glb",
+      "bytes": 66508,
+      "gitBlobSha": "da5ac723366fe2f3215277132705fb8b86a92c30",
+      "sha256": "12a9a3fa65b41a4717a78a3a7333310bf5fce71881fe0814faabeccccbeec527"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-window-closed/7b8894bef4f7ed0ab958ae4d0455701e9cea100e.glb",
+      "bytes": 61460,
+      "gitBlobSha": "7b8894bef4f7ed0ab958ae4d0455701e9cea100e",
+      "sha256": "c20ce2a7db1430810774caeb337b8d3d94af936ca0fea5be8b063a28695686e5"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-window-open-scaffold/85c498d0ea37d368dd40fe1f88289bbf229b1625.glb",
+      "bytes": 62308,
+      "gitBlobSha": "85c498d0ea37d368dd40fe1f88289bbf229b1625",
+      "sha256": "980fe3450713d3f586862c135a231e236b0b27a11e4b84b3395bb8e1a87d171b"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall-window-open/b3f82fabb6a6ee3e876d6e6c1d4956aceeca2c64.glb",
+      "bytes": 57256,
+      "gitBlobSha": "b3f82fabb6a6ee3e876d6e6c1d4956aceeca2c64",
+      "sha256": "7cb4804e55bd90a4c61198b6b9c557ccb87c485b13dfad4b184c9b6d8632438f"
+    },
+    {
+      "path": "model/kaykit-dungeon-additions/wall/5bb502fe4392ee9813760794b583acbfa71814a3.glb",
+      "bytes": 53132,
+      "gitBlobSha": "5bb502fe4392ee9813760794b583acbfa71814a3",
+      "sha256": "f2f343a7bdf2d45947e3f354494e16095a923485e05637e3804e3b81ce11d921"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/barrel/910b90bd6aa4addf482905e7d3e45d7a5fc0e3fb.glb",
+      "bytes": 32724,
+      "gitBlobSha": "910b90bd6aa4addf482905e7d3e45d7a5fc0e3fb",
+      "sha256": "7329cbf7efb3dd87f1c9354094622ee662a6798aee9b360e3eb3a7214bbd855f"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/bucket-empty/8b8f5610e4b714bcdf15da0c087769c68f9a2901.glb",
+      "bytes": 24156,
+      "gitBlobSha": "8b8f5610e4b714bcdf15da0c087769c68f9a2901",
+      "sha256": "6ac46a12110b8fec9bfd9dd81be65e82944990fd72a64bb3923b9f07f3715efe"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/bucket-water/8e710c9f7f8f0440a36a348d306306b8fee7d6a7.glb",
+      "bytes": 24156,
+      "gitBlobSha": "8e710c9f7f8f0440a36a348d306306b8fee7d6a7",
+      "sha256": "089452ec0fec193048c701cf90a7df35402175d2e3b52637d6e564314275a86b"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-archeryrange-blue/9c13253784a7562814b78899005649ff95d730b7.glb",
+      "bytes": 219572,
+      "gitBlobSha": "9c13253784a7562814b78899005649ff95d730b7",
+      "sha256": "c14c7929b815c7431747f979236e804d8b3ce30f400521919e78a92e33bec40b"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-archeryrange-green/040b43ab59ab2592cdaed93e361ea488dc3256f5.glb",
+      "bytes": 219572,
+      "gitBlobSha": "040b43ab59ab2592cdaed93e361ea488dc3256f5",
+      "sha256": "64d0fb8989ac2fad9695965b1093092d8bce15dd12c36193f74a0eb99222ccec"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-archeryrange-red/8ab2f18e60dbbe9f4a6f660818253cff735c5c86.glb",
+      "bytes": 219568,
+      "gitBlobSha": "8ab2f18e60dbbe9f4a6f660818253cff735c5c86",
+      "sha256": "6e03a40e2dcfa1ec328d523f2b20b2e66b1f1cb249f69cfe2f636ec0b5671717"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-archeryrange-yellow/0c0721c215838378f6507d04906b3a8520ef2a93.glb",
+      "bytes": 219576,
+      "gitBlobSha": "0c0721c215838378f6507d04906b3a8520ef2a93",
+      "sha256": "cc9cb1704ced4d37a91a0a94a89d390e4bb20501191af43c51944d165ade9040"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-barracks-blue/fac45762b14bdbfff837465b4924a1fd13fd0434.glb",
+      "bytes": 246868,
+      "gitBlobSha": "fac45762b14bdbfff837465b4924a1fd13fd0434",
+      "sha256": "85ae0aeede8528c9e2695aeaa3292ff2acd997ebb8a365edfbeee79da2cff631"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-barracks-green/a43968ac1b1ee13bf6409f357f8d9e5a7f1f8292.glb",
+      "bytes": 246868,
+      "gitBlobSha": "a43968ac1b1ee13bf6409f357f8d9e5a7f1f8292",
+      "sha256": "1b695a1c3126f29be61ec7d2e691632c3bc77029098c493a25731281078932be"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-barracks-red/a6ef4ecc1cf2935ad9e73d4543a640508992e237.glb",
+      "bytes": 246864,
+      "gitBlobSha": "a6ef4ecc1cf2935ad9e73d4543a640508992e237",
+      "sha256": "ed9ba0c4180e8222013a8f9edb1be1a454028fb6f340e52cd3b33b73d61f5341"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-barracks-yellow/8c822fabb6b7038d3377c2ab0db5866e2bf3ff04.glb",
+      "bytes": 246872,
+      "gitBlobSha": "8c822fabb6b7038d3377c2ab0db5866e2bf3ff04",
+      "sha256": "6de8196b705fe765757e5081d23a0d0cf153fe131799140c1ad155fbc2002782"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-blacksmith-blue/a04e3fe00fd4a3337b5bde974a27f922456423f2.glb",
+      "bytes": 140252,
+      "gitBlobSha": "a04e3fe00fd4a3337b5bde974a27f922456423f2",
+      "sha256": "6c1c30458a9d55c5dc93dd61d32ba76a81c629720261644b1672f3e27d387d8d"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-blacksmith-green/a9a3a32d8458e020dc92bf7e84ecb4b44e6ef37b.glb",
+      "bytes": 140252,
+      "gitBlobSha": "a9a3a32d8458e020dc92bf7e84ecb4b44e6ef37b",
+      "sha256": "90cc94f8144c4561979887c2a3fe4f68b083f981fcb67ce47a1a24e22ae1f797"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-blacksmith-red/6d5246dad2c6bf05904c683990a98e4afd417a7d.glb",
+      "bytes": 140248,
+      "gitBlobSha": "6d5246dad2c6bf05904c683990a98e4afd417a7d",
+      "sha256": "402d3eb8516d58dae4b74140ad70d275bee7c33c34241de28f33dfc72b4c84f3"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-blacksmith-yellow/4d861cdd0aa399d02e86673b2b62b3a1a4ad4523.glb",
+      "bytes": 140256,
+      "gitBlobSha": "4d861cdd0aa399d02e86673b2b62b3a1a4ad4523",
+      "sha256": "7a7424968d2608f0af5ee7e95d9248d4b5f5436ea778e8442e08354c09189df0"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-bridge-a/da266004332c6a726bead53593b4ed89f7008205.glb",
+      "bytes": 42732,
+      "gitBlobSha": "da266004332c6a726bead53593b4ed89f7008205",
+      "sha256": "dd3d089b51aa49262be6a13ac5fbdff6fcfa492619426eb3d25018f4023679f9"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-bridge-b/d448e6ab924d27f54414f901c426f5c16a2850a3.glb",
+      "bytes": 42732,
+      "gitBlobSha": "d448e6ab924d27f54414f901c426f5c16a2850a3",
+      "sha256": "3de41bcd3aef1a4a4079f5fabfd30500a63de12b7e2b8c359385e2e6e98cd627"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-castle-blue/1c33f024ce9355c9d44d5076db968eb19e6370ad.glb",
+      "bytes": 334920,
+      "gitBlobSha": "1c33f024ce9355c9d44d5076db968eb19e6370ad",
+      "sha256": "6df0ccb7d4f181316de8781e84d4654d5c8c8a3c0261b27e7a3865090ee29a0c"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-castle-green/3ea8b8956f1da684978f34e8de0c3a762c5e4509.glb",
+      "bytes": 334920,
+      "gitBlobSha": "3ea8b8956f1da684978f34e8de0c3a762c5e4509",
+      "sha256": "0b054e173ad0f42fcfa184b774a1a6fbfed260f639839c4dc380579e94c2db85"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-castle-red/593f4e07f836aef261397b18dbf502a147850445.glb",
+      "bytes": 334916,
+      "gitBlobSha": "593f4e07f836aef261397b18dbf502a147850445",
+      "sha256": "26dabf6c04aaaf211629a0aafd3e0093d5d50a37dfbbdc975e6f2fcc5862a9ba"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-castle-yellow/679c583d2fabe7d6dd0a8816b4192de6c2daf84a.glb",
+      "bytes": 334924,
+      "gitBlobSha": "679c583d2fabe7d6dd0a8816b4192de6c2daf84a",
+      "sha256": "c0de41072bf85a7daa8f68a38c61fce7432c2e69de55660853eb4aa1dc5e6e1f"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-church-blue/1b0bfeab47578ac38272d1a4d665034ed947b216.glb",
+      "bytes": 106940,
+      "gitBlobSha": "1b0bfeab47578ac38272d1a4d665034ed947b216",
+      "sha256": "8a9df14bba4e32b0e6b34033a35e83060542c2cc84d0b9b0cc604dc5cb56106d"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-church-green/d874883870e3bbbab549d6d0cfc9757e902e973b.glb",
+      "bytes": 106944,
+      "gitBlobSha": "d874883870e3bbbab549d6d0cfc9757e902e973b",
+      "sha256": "0fa067ba790985f68f486074e35819ce46c4b2e4596302ab5918e6123ddc3f37"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-church-red/5ef1b5e73a280af3dde0c34d0ee033197695c342.glb",
+      "bytes": 106940,
+      "gitBlobSha": "5ef1b5e73a280af3dde0c34d0ee033197695c342",
+      "sha256": "9af82a1ed4439e65e10bbe038aa3be61100c264adec853d8e8d6bdcc6453d0fc"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-church-yellow/d387be5119d3dd66c0de22dafae1ce7593432450.glb",
+      "bytes": 106944,
+      "gitBlobSha": "d387be5119d3dd66c0de22dafae1ce7593432450",
+      "sha256": "f2c28579c9f42e06e0bf809bbace4f9a03ae23b86c3b71c08cb65c5295a00932"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-destroyed/6e3d16ce62e5e4a8415122783e318c2922546cb0.glb",
+      "bytes": 73880,
+      "gitBlobSha": "6e3d16ce62e5e4a8415122783e318c2922546cb0",
+      "sha256": "f02481591f82101ada6ea35164830ce6ce243dcabaf82e1cef858ab41f5adfc0"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-dirt/d2d4da366c744b4903e501e4b7fa056127f8dac9.glb",
+      "bytes": 24536,
+      "gitBlobSha": "d2d4da366c744b4903e501e4b7fa056127f8dac9",
+      "sha256": "79fdac84bb951823dfe47506026de546d42b0bfd6a8a93b42d8114d5ae5cb67c"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-grain/c1f4957f0a24962d87cd61e2b3106152fd89bc16.glb",
+      "bytes": 30796,
+      "gitBlobSha": "c1f4957f0a24962d87cd61e2b3106152fd89bc16",
+      "sha256": "b6c8dbd130b257c17c0f0fe1bad32d48693b403a62c6a4f572e010bee78a7c53"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-home-a-blue/7a89b42ded9b43ed8dbcd10469643fee32f2d7d1.glb",
+      "bytes": 72552,
+      "gitBlobSha": "7a89b42ded9b43ed8dbcd10469643fee32f2d7d1",
+      "sha256": "3d2207b965106bc44b3b79acdc0631c3bd601882e03b6b1106bac9e12b329592"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-home-a-green/7d576b3e76bf5b0dbc156927696d2f6a37dceb04.glb",
+      "bytes": 72556,
+      "gitBlobSha": "7d576b3e76bf5b0dbc156927696d2f6a37dceb04",
+      "sha256": "e21fc6f14d27e6fbc4a0c2301361fc26fe6abd7ba6cf5540e7b5ca5dd7af2f75"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-home-a-red/f8f8d22137155dc92556aa707cebf5b55b5949df.glb",
+      "bytes": 72552,
+      "gitBlobSha": "f8f8d22137155dc92556aa707cebf5b55b5949df",
+      "sha256": "c665f47be4e82ad5b6d93db5fbd054e2445a969b9068d07ef4241cb6ed4aae98"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-home-a-yellow/185e3c70555509cd4da63826adb17215a94196cf.glb",
+      "bytes": 72556,
+      "gitBlobSha": "185e3c70555509cd4da63826adb17215a94196cf",
+      "sha256": "e201b540765e6c60f9b3f29511b8c67999160f6a3ea1246482952e07f7b093f9"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-home-b-blue/9ec697bab226f4c64c10fff113dc31b07833cf0e.glb",
+      "bytes": 99324,
+      "gitBlobSha": "9ec697bab226f4c64c10fff113dc31b07833cf0e",
+      "sha256": "b0685c1a2a259708e2d52b45e00093ea51069ea7bdb5efe548cfb72f5d47a73c"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-home-b-green/b977174b556b0f76d2650d5ace7f1839a30a0184.glb",
+      "bytes": 99328,
+      "gitBlobSha": "b977174b556b0f76d2650d5ace7f1839a30a0184",
+      "sha256": "8c377a1e377520a1ea153ac02efefaef31c596d216bcd6428f49ea274edd41f2"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-home-b-red/365a47c0dd13ae9ca0123e177a9fbee35947b8f2.glb",
+      "bytes": 99324,
+      "gitBlobSha": "365a47c0dd13ae9ca0123e177a9fbee35947b8f2",
+      "sha256": "b5bd51cf0bc85af6b8e899934625086606f85a5cbd1c9cb2ff0658cb5e6fca73"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-home-b-yellow/e020e40a756f2ed1db5f149d49a7457eaa75171c.glb",
+      "bytes": 99328,
+      "gitBlobSha": "e020e40a756f2ed1db5f149d49a7457eaa75171c",
+      "sha256": "9614298bd601e3a1c08c7524d32a0e2fac2535fe84c72b77bd06a5498613fa44"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-lumbermill-blue/47ffbc2b14cf8a560639b2e6d70436d58c1a78a0.glb",
+      "bytes": 185344,
+      "gitBlobSha": "47ffbc2b14cf8a560639b2e6d70436d58c1a78a0",
+      "sha256": "2f4f332473c424cf51e0af83d890c52aaa8609e4f3917005c1099ffb23ee9e4c"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-lumbermill-green/3ed8dd47f8792ec4111f27828cefaac47c1ae39c.glb",
+      "bytes": 185348,
+      "gitBlobSha": "3ed8dd47f8792ec4111f27828cefaac47c1ae39c",
+      "sha256": "8d0cf5c3ca360a52ddee02f5492cf39605656202fd1b050e3ff1cd4265f9719e"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-lumbermill-red/b09032fb0067c781c0e27d427cc77a525a21cd1a.glb",
+      "bytes": 185336,
+      "gitBlobSha": "b09032fb0067c781c0e27d427cc77a525a21cd1a",
+      "sha256": "7d191997d9119fdfc5f15c781a412e756e47f98f5c255ca00b7bc8564eac6513"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-lumbermill-yellow/3f25c23a288258492ab5306df51ac9d53f2bf71c.glb",
+      "bytes": 185356,
+      "gitBlobSha": "3f25c23a288258492ab5306df51ac9d53f2bf71c",
+      "sha256": "91a18550c2b6288d34b56bc82fe10e15353ee1047ce2f494bd609241df83068c"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-market-blue/9e28493a75fef3a7064f7e7911a8cf12492d3627.glb",
+      "bytes": 169368,
+      "gitBlobSha": "9e28493a75fef3a7064f7e7911a8cf12492d3627",
+      "sha256": "6855192e966551c8c868dea1fbc686252f86ce293f0433b5af898eafb6cb4042"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-market-green/8fcacd5f56c84438f18c8e80655b315f2195d1fb.glb",
+      "bytes": 169368,
+      "gitBlobSha": "8fcacd5f56c84438f18c8e80655b315f2195d1fb",
+      "sha256": "47869f3ecf22d41b2a488c31f84c1f090fc27fff03f77fe5b31ecb8fe05341ca"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-market-red/a310e3bbd2338c0bcaa13bfc3a0e18db42560a78.glb",
+      "bytes": 169364,
+      "gitBlobSha": "a310e3bbd2338c0bcaa13bfc3a0e18db42560a78",
+      "sha256": "ae7c2eb41fb92a3bd44319ab95b074d13bd94a664ecef899dbddb5d8d3acaaad"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-market-yellow/0fb01b5df34fb9e6a454c227d51b8ddbb43ca1af.glb",
+      "bytes": 169372,
+      "gitBlobSha": "0fb01b5df34fb9e6a454c227d51b8ddbb43ca1af",
+      "sha256": "88f5811180327c0c4e0d5f1b5d016db7caeee0a0c198e5a18e5fd2e49737144b"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-mine-blue/f4163a474b1eaa120ffe62bc041740330aab3862.glb",
+      "bytes": 83220,
+      "gitBlobSha": "f4163a474b1eaa120ffe62bc041740330aab3862",
+      "sha256": "0fe76928b73b64557c3674a035760d0e403bde1c98097c4ece3bc81a464aa407"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-mine-green/e0f2baa946be2c84d97362de481a00be758931d9.glb",
+      "bytes": 83224,
+      "gitBlobSha": "e0f2baa946be2c84d97362de481a00be758931d9",
+      "sha256": "087800693022b15dcad8fff044be147bf10d0cebcbc8e1f447f8a55ca6d16eaa"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-mine-red/12ca821950ad41ec42292b94f82452e95e9c85f8.glb",
+      "bytes": 83220,
+      "gitBlobSha": "12ca821950ad41ec42292b94f82452e95e9c85f8",
+      "sha256": "9f75bade3bb5dea0022c6adc320361f4bfb4205d92cae5a6e8a172e7ada6bd08"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-mine-yellow/c58da519ca94297453c857d31015c49790e06b61.glb",
+      "bytes": 83224,
+      "gitBlobSha": "c58da519ca94297453c857d31015c49790e06b61",
+      "sha256": "60cc44a2a307c3e76017a65cfaf90c76536ee6b6f01eaa3be00b7d0da906e859"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-scaffolding/85d509fa807f97abcceea7cd9b0b8b6ecb3c60d6.glb",
+      "bytes": 182744,
+      "gitBlobSha": "85d509fa807f97abcceea7cd9b0b8b6ecb3c60d6",
+      "sha256": "d5d466e025c6f847ec75d455a57d647daa599c7f4d47481d78fe6ca1f2413d00"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-stage-a/aa7e281061c207458e5ba2d1c9b05c30938baf8e.glb",
+      "bytes": 58988,
+      "gitBlobSha": "aa7e281061c207458e5ba2d1c9b05c30938baf8e",
+      "sha256": "5e14fb04410547ee1b0f457a8bdf6f4df9736691dee5ee56a5e83cd95a211f88"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-stage-b/7d6d16ad72e30abd7bfefdc173f01aecf030c537.glb",
+      "bytes": 66512,
+      "gitBlobSha": "7d6d16ad72e30abd7bfefdc173f01aecf030c537",
+      "sha256": "a5caa7caa6b6541e1f552606a675775aa0c7dc05be83cd3fc20779a405e879af"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-stage-c/469eacdff1fc9f2f09282a1f4909bed87dbd538d.glb",
+      "bytes": 86104,
+      "gitBlobSha": "469eacdff1fc9f2f09282a1f4909bed87dbd538d",
+      "sha256": "89026a8224db3c6c90f149b2d4c997689799e8e16b4665bd58d2e78d838eee9d"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tavern-blue/c88bfb41d0cea6ad0145eb7fff60f6bbd49940c4.glb",
+      "bytes": 188056,
+      "gitBlobSha": "c88bfb41d0cea6ad0145eb7fff60f6bbd49940c4",
+      "sha256": "88be45c5d543784eb00936a53c09b8ad210d204aea8e2cc51b17fd085ec49d3f"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tavern-green/434e8a14838f48ab972b5016eb8ed2f6e7263cc0.glb",
+      "bytes": 188060,
+      "gitBlobSha": "434e8a14838f48ab972b5016eb8ed2f6e7263cc0",
+      "sha256": "2c0eb123538b50128469dc582ee461c1fe22aac621a1de741c575487e5944269"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tavern-red/e881d483bd01be3a818a370a06c21d2ae6e23949.glb",
+      "bytes": 188056,
+      "gitBlobSha": "e881d483bd01be3a818a370a06c21d2ae6e23949",
+      "sha256": "685b364fc0f1b9421908086dbe4fd7fdc08136f89856fabdc06fb609f6325575"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tavern-yellow/a7a79a8cf32b41d6bc42775cf14c34c040cf343d.glb",
+      "bytes": 188060,
+      "gitBlobSha": "a7a79a8cf32b41d6bc42775cf14c34c040cf343d",
+      "sha256": "4a8200bf7be75fc023bd25fe5dad8359c589b5b36680605712f8d89456ce61a1"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-a-blue/e499c0d8e48a8be4146f716bbeb1f56bbbacda78.glb",
+      "bytes": 130880,
+      "gitBlobSha": "e499c0d8e48a8be4146f716bbeb1f56bbbacda78",
+      "sha256": "2a170b85a7d553f23aa81f91d451c23307774ac73dbb97771ef5cc27bbce902d"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-a-green/f62d2034c255a232cae24b806f1e84a1a06419bd.glb",
+      "bytes": 130884,
+      "gitBlobSha": "f62d2034c255a232cae24b806f1e84a1a06419bd",
+      "sha256": "a11c5ef31ed60b72a82653d37f249b768632cc805188c536a971f2b9eebc246a"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-a-red/d4bace4e1157841d5270e6a6fbb3d8120b7781dc.glb",
+      "bytes": 130876,
+      "gitBlobSha": "d4bace4e1157841d5270e6a6fbb3d8120b7781dc",
+      "sha256": "50e60ba42e5ebba903ff538178c550fb31f12741d6b9166edd3772cc546a94d1"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-a-yellow/365b66ecca473169a841af9ba06adca5f5453ec5.glb",
+      "bytes": 130888,
+      "gitBlobSha": "365b66ecca473169a841af9ba06adca5f5453ec5",
+      "sha256": "91fe276240ba41c0ce77565a03e310f9e66b79710dab3718d758957f56060097"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-b-blue/29b08a7a53e008d287c43798642880d98c42f5a8.glb",
+      "bytes": 148976,
+      "gitBlobSha": "29b08a7a53e008d287c43798642880d98c42f5a8",
+      "sha256": "d1a6890209f06c2a57ef77b09dcffff013b1574c1bd5b925cab63a30493434d3"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-b-green/882bfcf13526498580d25697f1562f670c18635e.glb",
+      "bytes": 148980,
+      "gitBlobSha": "882bfcf13526498580d25697f1562f670c18635e",
+      "sha256": "d159e3b2fcd25630c9ef3c0ea371a2cd4d828825ffb9ec3d43311bad457f1515"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-b-red/5b1d1bb7db5f74c5f2c0a34bc4aef4ce531a2916.glb",
+      "bytes": 148972,
+      "gitBlobSha": "5b1d1bb7db5f74c5f2c0a34bc4aef4ce531a2916",
+      "sha256": "105673b44053d581cac8c17a6f2b32fb3834526ceeff2357a3143145c06ec159"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-b-yellow/dff598bef3e51997e1f1b4730e2ece82df8373c1.glb",
+      "bytes": 148984,
+      "gitBlobSha": "dff598bef3e51997e1f1b4730e2ece82df8373c1",
+      "sha256": "2d4c513d43e8a9384eff5c49a877e7fdbfc8f4c03a4bd9e380fe18358f9df637"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-base-blue/96b70b061e08ed59b522bf939aa72127c6526568.glb",
+      "bytes": 98884,
+      "gitBlobSha": "96b70b061e08ed59b522bf939aa72127c6526568",
+      "sha256": "74277ac44c9a9e10bfd8c03e3d4c4fdf3c637541ecbd196a60288f65e4b2fbbb"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-base-green/13ed8b532235411900359cb163a9edda9beb9bba.glb",
+      "bytes": 98884,
+      "gitBlobSha": "13ed8b532235411900359cb163a9edda9beb9bba",
+      "sha256": "2cb0c7632ca045eb9fc19dd30e431f6cd5cda6ff2d52607cef828efb4c437570"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-base-red/d9708e7bc8184c51ea1d95f936d36a9f19d98fd8.glb",
+      "bytes": 98880,
+      "gitBlobSha": "d9708e7bc8184c51ea1d95f936d36a9f19d98fd8",
+      "sha256": "4691894e47196ae8e08bba980b3a8f1f0db32c3bb01900056f1ae803acd1caf4"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-base-yellow/1087ff8b5091b73879092cb8e03aeb1d23688acf.glb",
+      "bytes": 98888,
+      "gitBlobSha": "1087ff8b5091b73879092cb8e03aeb1d23688acf",
+      "sha256": "4dc8f82387c4ed08c2026d585988d6e207aa06f3bf4998558bdcb18e5dad4bc9"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-catapult-blue/d098971d8d742c5eb117acec87e805dcf5909c62.glb",
+      "bytes": 164152,
+      "gitBlobSha": "d098971d8d742c5eb117acec87e805dcf5909c62",
+      "sha256": "df2c66511fa89d38385adea566e3dbc64cf94e7d2c9322a9833461fdcce77b02"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-catapult-green/2c2df08aad6c01d825fe8c3125856d37d616d50a.glb",
+      "bytes": 164156,
+      "gitBlobSha": "2c2df08aad6c01d825fe8c3125856d37d616d50a",
+      "sha256": "a18f651dc5de18c6bd904eb1c726bb4650641d95a89fd9542505d838046ae95e"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-catapult-red/927aebe94a29e68d21ba0903ea6e53fdc21f5baa.glb",
+      "bytes": 164144,
+      "gitBlobSha": "927aebe94a29e68d21ba0903ea6e53fdc21f5baa",
+      "sha256": "9b652209c8bfa4ee843eb00152cc09d7f35045e8d322818f55756a543fd25b76"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-tower-catapult-yellow/4dad61dd04c7f2969af878e13adb58d9648f3e04.glb",
+      "bytes": 164164,
+      "gitBlobSha": "4dad61dd04c7f2969af878e13adb58d9648f3e04",
+      "sha256": "8cdb6bc55636dacdb65f4976632fcd21986d9bf61b674b8ccc4a86e30381775d"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-watermill-blue/221589e9414cad471e24f93f917038edb61a78b0.glb",
+      "bytes": 129464,
+      "gitBlobSha": "221589e9414cad471e24f93f917038edb61a78b0",
+      "sha256": "457d9c7530a7a84a1c02e1d525352abc4255872660966b31e12d9ec055748658"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-watermill-green/b8dbb5f73c7f3f6d725dadc2d93dc262f70e49f4.glb",
+      "bytes": 129468,
+      "gitBlobSha": "b8dbb5f73c7f3f6d725dadc2d93dc262f70e49f4",
+      "sha256": "e4f5032ad4fa5c2f3c8947cd35960286495addf1773e9c689600259cb292e3f5"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-watermill-red/e807de10de02b027c387f1957f8341c6e9006ce3.glb",
+      "bytes": 129460,
+      "gitBlobSha": "e807de10de02b027c387f1957f8341c6e9006ce3",
+      "sha256": "868659ba76f188edf79136f3397c153f1279f1df996563e0810da9404fda8426"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-watermill-yellow/b953a2a18c7b9b96f111d26d1e4e79f43126403e.glb",
+      "bytes": 129472,
+      "gitBlobSha": "b953a2a18c7b9b96f111d26d1e4e79f43126403e",
+      "sha256": "6dc276c1f4269491b2ae40b80c9b64b62f8bfb09aa46e29f17f6f1e9b9edd2b4"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-well-blue/ec7febd142977bda033c2ea439089f881eae6a5d.glb",
+      "bytes": 59540,
+      "gitBlobSha": "ec7febd142977bda033c2ea439089f881eae6a5d",
+      "sha256": "8e081b24d59eb3d51f61f759b7ccd656229cc594ff0e0a5f05be43d4d3590c43"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-well-green/7c5be8cc477d7bcfd8594956ce9644cd154b23ad.glb",
+      "bytes": 59540,
+      "gitBlobSha": "7c5be8cc477d7bcfd8594956ce9644cd154b23ad",
+      "sha256": "9d3ef0ab1d9763612049cc51df51fdd6e996db558699f2e2676bcc93e1dc2bf6"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-well-red/f8bb8cb28e5c6455a92fc5612a04dc4dcea8eba3.glb",
+      "bytes": 59536,
+      "gitBlobSha": "f8bb8cb28e5c6455a92fc5612a04dc4dcea8eba3",
+      "sha256": "811f6054c1a933ccb21c69fa60908df654b5029a9822c159c4409d1cc21788ad"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-well-yellow/64f0e8e9ceaf675d7a06be778f04534225673d35.glb",
+      "bytes": 59544,
+      "gitBlobSha": "64f0e8e9ceaf675d7a06be778f04534225673d35",
+      "sha256": "bf8969b76273ab533b127d2a8baeec0b65ccbf4cf2d967fea5bb4e3ed78619a4"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-windmill-blue/26ee4ae516fb342213ddd0a9734b6441d069112a.glb",
+      "bytes": 160684,
+      "gitBlobSha": "26ee4ae516fb342213ddd0a9734b6441d069112a",
+      "sha256": "56e0b1920bd43b4df28854e608194d08036d498c6001e21651421acb1494089d"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-windmill-green/b1f43d6f2222779b0998d8ff4725fc8ac2780f45.glb",
+      "bytes": 160688,
+      "gitBlobSha": "b1f43d6f2222779b0998d8ff4725fc8ac2780f45",
+      "sha256": "4989885606227b114ae03793693d829c988c88eefafd2c2f089f0285a94b584c"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-windmill-red/10f3494c166c853a7e07d80e66b75f47bdff7d2d.glb",
+      "bytes": 160676,
+      "gitBlobSha": "10f3494c166c853a7e07d80e66b75f47bdff7d2d",
+      "sha256": "23cf7ed9a3b09cee436bf26261ebf5876c685c1cc942e223da88c0755f3a0448"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/building-windmill-yellow/5f9d0ef361751ffeb4a69185260c13f3c981ef27.glb",
+      "bytes": 160696,
+      "gitBlobSha": "5f9d0ef361751ffeb4a69185260c13f3c981ef27",
+      "sha256": "b16942b09db89de4f912a7c4ceefec7f4045f7f0b2259870cca3b895ffe6cea0"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/cloud-big/b756263ad1fd5c135458e8275e2b9b6bf8dc516e.glb",
+      "bytes": 32016,
+      "gitBlobSha": "b756263ad1fd5c135458e8275e2b9b6bf8dc516e",
+      "sha256": "80034328fb8c73364db35dc09ac02f7edc5cc683ed0e575a85852de2c2af75c9"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/cloud-small/9cf2488f967fc8ba5ca4ca154eed6aa24f6bcd45.glb",
+      "bytes": 25288,
+      "gitBlobSha": "9cf2488f967fc8ba5ca4ca154eed6aa24f6bcd45",
+      "sha256": "b8391d4c383c1c51bd1ea9d2c4fcb153a1c3de653f00fddc75471a07047af8a1"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/crate-a-big/bc5aac6a72c797629d26fa8851f711ad2e613ae4.glb",
+      "bytes": 24180,
+      "gitBlobSha": "bc5aac6a72c797629d26fa8851f711ad2e613ae4",
+      "sha256": "5c61ea33b4129f804683e9d3d989607b224d4a035016138d196b339655f352dc"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/crate-a-small/2ce9a513641fcb957670b15b06886e5b51d4e357.glb",
+      "bytes": 24180,
+      "gitBlobSha": "2ce9a513641fcb957670b15b06886e5b51d4e357",
+      "sha256": "b063c71d3652b1f5b2c84bba887fdf0f56ac18e0bed7533c1ff7fb796e473bc4"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/crate-b-big/d6c0982add1aae8f5643b2cd6f657e1f423faed4.glb",
+      "bytes": 24180,
+      "gitBlobSha": "d6c0982add1aae8f5643b2cd6f657e1f423faed4",
+      "sha256": "f4770ca623fa223cc6e3529c6ad022660e1d467b79dc580786814a98e0ac5a4e"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/crate-b-small/fa6a39786200d098e286332bad5d5a85fb798b7a.glb",
+      "bytes": 24180,
+      "gitBlobSha": "fa6a39786200d098e286332bad5d5a85fb798b7a",
+      "sha256": "6142e5b1aa36208a09843e842105c79db8528b2b051a0177922ae2743909ac76"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/crate-long-a/c1b9d2d3e17ff216552721a83f0b0928f9723857.glb",
+      "bytes": 31368,
+      "gitBlobSha": "c1b9d2d3e17ff216552721a83f0b0928f9723857",
+      "sha256": "4ce3cb39e52feb5e7f1103c0ba2b6d74e6d1628678cadf565a9a812b124ebccf"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/crate-long-b/ff60bcaefb532355e74f66ffe06675b8c5e75f46.glb",
+      "bytes": 31368,
+      "gitBlobSha": "ff60bcaefb532355e74f66ffe06675b8c5e75f46",
+      "sha256": "ce090a41c3aa8800ca966364ac87080cfd245c562a87ae658072a0234ae67528"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/crate-long-c/3c30a56efe1adaae90b009a197fa44ad85919893.glb",
+      "bytes": 27524,
+      "gitBlobSha": "3c30a56efe1adaae90b009a197fa44ad85919893",
+      "sha256": "aade00c19bf2f593610e90a7695a7ef8d07a728d6b0606a4bd23d571ec064a46"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/crate-long-empty/501a9e169ac69181c1aa77373c519ed19dcbc3ef.glb",
+      "bytes": 19844,
+      "gitBlobSha": "501a9e169ac69181c1aa77373c519ed19dcbc3ef",
+      "sha256": "0ce85612cfa69854b3500b7476a4344cfb5558ade24bf5ffbc6c77c94eb24101"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/crate-open/b8848a610cb58ac61ee95a7255e91b9aaf3efce3.glb",
+      "bytes": 29236,
+      "gitBlobSha": "b8848a610cb58ac61ee95a7255e91b9aaf3efce3",
+      "sha256": "885a59c885f5fa63762d57bdd14924b6a46cdc2a964ee452cf5069fe5048661b"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/fence-stone-straight-gate/43b97bf410c0edb91183caef659cb8d11f12eed9.glb",
+      "bytes": 34224,
+      "gitBlobSha": "43b97bf410c0edb91183caef659cb8d11f12eed9",
+      "sha256": "d448f345f234dc3deac5b0043684076c61d13611a8ab963b63494427dc4a5d46"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/fence-stone-straight/6259b549ee03d7e0ca88248adc00a59e0e87b62a.glb",
+      "bytes": 30992,
+      "gitBlobSha": "6259b549ee03d7e0ca88248adc00a59e0e87b62a",
+      "sha256": "81cde6625a291f3652eb742f43b4a959302e4d9928eb999223c3c77cc79de5af"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/fence-wood-straight-gate/f2310f75ec7da5a235ac25e37b6320d95d1d2b69.glb",
+      "bytes": 37496,
+      "gitBlobSha": "f2310f75ec7da5a235ac25e37b6320d95d1d2b69",
+      "sha256": "f98b4b00eac269bedf080c9d6b3b5450eccf1355c103da046ba315546af484d2"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/fence-wood-straight/a3b050ffbb8e3454faf481cbed4dab6096638eb7.glb",
+      "bytes": 32208,
+      "gitBlobSha": "a3b050ffbb8e3454faf481cbed4dab6096638eb7",
+      "sha256": "b0d2c3b8aaeb9d11e13c796ed57af6d646ffe6cb63c18464655e5b1803343489"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/flag-blue/da7412be472ab0560d0a58b181b53117107ca94c.glb",
+      "bytes": 19612,
+      "gitBlobSha": "da7412be472ab0560d0a58b181b53117107ca94c",
+      "sha256": "032c519609204e46fbadd2ed836006c36ed345a1e8888378a09aaac500deb88f"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/flag-green/6e2124de1acdf41cb379396f2184056cc3a9d162.glb",
+      "bytes": 19616,
+      "gitBlobSha": "6e2124de1acdf41cb379396f2184056cc3a9d162",
+      "sha256": "556d0558a3bef12cf4b8520cd17487d98fd9e6584757d38c910d5e45eda1675d"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/flag-red/94467788fe70e41854308f934d9659d97e26ecae.glb",
+      "bytes": 19612,
+      "gitBlobSha": "94467788fe70e41854308f934d9659d97e26ecae",
+      "sha256": "e1657fccf47d5b768730a6fb02eef3ce82ac4a8d717fcee976c6f036cd0f7391"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/flag-yellow/bbef08482b0b6ab561f3126cc4da68bb49d1495d.glb",
+      "bytes": 19616,
+      "gitBlobSha": "bbef08482b0b6ab561f3126cc4da68bb49d1495d",
+      "sha256": "103b43448e80da28bc6c2fb913ab2cb3f8e29e424cabc109db3e769b0e935019"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-coast-a-waterless/ef7bc906ce7b74bdd357b1915124b4552de0fc1e.glb",
+      "bytes": 22600,
+      "gitBlobSha": "ef7bc906ce7b74bdd357b1915124b4552de0fc1e",
+      "sha256": "03d0195515ded9ed5c7108e365074b07c2ac53d40fc131f23fe9d0f0fbb48719"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-coast-a/53ae387c16acf268294a012baff5d29ddf46a8db.glb",
+      "bytes": 22856,
+      "gitBlobSha": "53ae387c16acf268294a012baff5d29ddf46a8db",
+      "sha256": "195854af8c5ddbe3f0be360e87e2128b2e048b8cf175d3b12d409a95e04c0ee1"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-coast-b-waterless/68ef16c93bf2283e234cce6b854e3df264c02f0b.glb",
+      "bytes": 22676,
+      "gitBlobSha": "68ef16c93bf2283e234cce6b854e3df264c02f0b",
+      "sha256": "42586fe3fba84277de4303d886b500093d5bea051fc439c7222cca2d0d599607"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-coast-b/b8bfae681aff3df1814535d999838eda3a27a42b.glb",
+      "bytes": 22524,
+      "gitBlobSha": "b8bfae681aff3df1814535d999838eda3a27a42b",
+      "sha256": "083abf52a43d41a6fcc6685a685a8c4184d244979875e17ceed940c61b369102"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-coast-c-waterless/cb6e4dfa2875232289c551faf0903694475723b5.glb",
+      "bytes": 22484,
+      "gitBlobSha": "cb6e4dfa2875232289c551faf0903694475723b5",
+      "sha256": "7c0859b7b8dba42ff863a88942aec8740aaf477722b13abb8b33ffa6d3c89750"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-coast-c/62e3e5892657124b2719f10a9e94441d30a122ca.glb",
+      "bytes": 22636,
+      "gitBlobSha": "62e3e5892657124b2719f10a9e94441d30a122ca",
+      "sha256": "e69eee53784f6f0b2113bbb27cabd0f9cc66beb58e0957c41e41cde0fd6a9ad5"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-coast-d-waterless/19a46d37075aeaa553e0a2e58e5e0348d1ae7974.glb",
+      "bytes": 21724,
+      "gitBlobSha": "19a46d37075aeaa553e0a2e58e5e0348d1ae7974",
+      "sha256": "1c6333f907563beeb1b5be7b6cd8bbb05615f0eedaa32cb1b0d16a8f6af0f082"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-coast-d/ac41e97958466151f3d68d8687727e4c8f7aefdd.glb",
+      "bytes": 21936,
+      "gitBlobSha": "ac41e97958466151f3d68d8687727e4c8f7aefdd",
+      "sha256": "697b5d87d6989c9f9dc2583ceacb4a859df92887dbd688c432306bbb2c13a535"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-coast-e-waterless/5e6d627cff47cc6213c1d121b4bb7b1a387b469b.glb",
+      "bytes": 21424,
+      "gitBlobSha": "5e6d627cff47cc6213c1d121b4bb7b1a387b469b",
+      "sha256": "7e88636dddae59677db254928b87ea14603d14a4a5f8de40e80cbdefc4467ac9"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-coast-e/f81bdaab2c30e80b58b5e0606aeed08b4db538a2.glb",
+      "bytes": 21404,
+      "gitBlobSha": "f81bdaab2c30e80b58b5e0606aeed08b4db538a2",
+      "sha256": "1e2a95a9c35721cbe4b24a22dbaff0d9e0e8f90e2c90939a093f6c822cf69e37"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-grass-bottom/9daef93d164740209a09119c4ad9a52f27123965.glb",
+      "bytes": 18396,
+      "gitBlobSha": "9daef93d164740209a09119c4ad9a52f27123965",
+      "sha256": "287d161a44520af935511716247d481bf485b5d08655a71d37b9b2647017d3d0"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-grass-sloped-high/53d13ba5e1aedbdf5a12b38c7a86cb297ed977ed.glb",
+      "bytes": 19208,
+      "gitBlobSha": "53d13ba5e1aedbdf5a12b38c7a86cb297ed977ed",
+      "sha256": "77e2b2867479352ced710bb441d2181e0cfb446a3ca892cb86647c1f7c56892c"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-grass-sloped-low/6ee4a7ac3ad241bc1701f7aafb54ad52cd36d1f8.glb",
+      "bytes": 19144,
+      "gitBlobSha": "6ee4a7ac3ad241bc1701f7aafb54ad52cd36d1f8",
+      "sha256": "ec81fb885a5379f5cd8a7f975ccdb690edb0c62ab60cdf5ffcdf34ca0e92bb41"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-grass/eb74b55d2f51d79adbbc327b37409d7a72c4a392.glb",
+      "bytes": 19548,
+      "gitBlobSha": "eb74b55d2f51d79adbbc327b37409d7a72c4a392",
+      "sha256": "b3ff7cba101eb15c3ae15925f187efc1cc7fef5bf3194cfd963f57a6ab073d4b"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-a-curvy-waterless/cf28995f1986973b5b625ba2deebf9f491612ec0.glb",
+      "bytes": 24316,
+      "gitBlobSha": "cf28995f1986973b5b625ba2deebf9f491612ec0",
+      "sha256": "f4669797b36e0b5deceaa5b4453d780390815e9c1d41f2ef50b8a7ad09dbf344"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-a-curvy/e3bc90e7cb9159b86aadf5be2e408bb9fd757f85.glb",
+      "bytes": 26236,
+      "gitBlobSha": "e3bc90e7cb9159b86aadf5be2e408bb9fd757f85",
+      "sha256": "87ac3e5b7b94d12485cbe7bc26e839da1e23dbf58293c7d22120e601f3131355"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-a-waterless/ff2f05918e7d87f5b124c7253dc2245192eed01c.glb",
+      "bytes": 20652,
+      "gitBlobSha": "ff2f05918e7d87f5b124c7253dc2245192eed01c",
+      "sha256": "8d73b32f2f473420f9c24a5580d3bd8eed12f2e47a886f279c3f41f17a69e450"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-a/388ed2687b1d9d12f672c4c2c5da38a0d1fdd60b.glb",
+      "bytes": 21872,
+      "gitBlobSha": "388ed2687b1d9d12f672c4c2c5da38a0d1fdd60b",
+      "sha256": "a01493310c48622b300b976c2ca8becf292b66fdd322d8bcc9eeef3fd32ef479"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-b-waterless/0fcba2776bf43bb99431d5a58313333427b93ccf.glb",
+      "bytes": 23912,
+      "gitBlobSha": "0fcba2776bf43bb99431d5a58313333427b93ccf",
+      "sha256": "40e4686eb0834372409bf94743d20a3048381536282bf65d40e928cb925b612b"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-b/e2e7827242a6a396697cc109d1f487e79bcb0923.glb",
+      "bytes": 25604,
+      "gitBlobSha": "e2e7827242a6a396697cc109d1f487e79bcb0923",
+      "sha256": "4040e044426e7fd0f333e482609106be2625b279b9676583341eb815a20de586"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-c-waterless/4867b18db09f3e283951dc20d287d401adaac8b7.glb",
+      "bytes": 23596,
+      "gitBlobSha": "4867b18db09f3e283951dc20d287d401adaac8b7",
+      "sha256": "ef0ec77edb76432c57a695d542afcbd7eddf1424023022cc6ca16b0f87297862"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-c/65535d4a9716e71deafd0b4a6a0f25d1655484ae.glb",
+      "bytes": 25604,
+      "gitBlobSha": "65535d4a9716e71deafd0b4a6a0f25d1655484ae",
+      "sha256": "3182b61088369ca258b7327ff6b3bbeb149166eba6b1c2dc10b4d6844646dd9a"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-crossing-a-waterless/ea2c4caf7ae98bb90f79670afe503e729d49ef0b.glb",
+      "bytes": 23812,
+      "gitBlobSha": "ea2c4caf7ae98bb90f79670afe503e729d49ef0b",
+      "sha256": "7c5c05832d25c87b6424f8618cf907edfd87ae2478ed7ab993e2f230331253b6"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-crossing-a/095c5d842308c6865576cad86b7e047965f26829.glb",
+      "bytes": 25180,
+      "gitBlobSha": "095c5d842308c6865576cad86b7e047965f26829",
+      "sha256": "1e1bf77515bffb0806ce38b02d26e0b74c4940d5dbf2bf7de50d151457465580"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-crossing-b-waterless/905581023e7388f6b5b3d9b61bbff73df2b7d5be.glb",
+      "bytes": 23812,
+      "gitBlobSha": "905581023e7388f6b5b3d9b61bbff73df2b7d5be",
+      "sha256": "54eeca0a54bad87fd61e9060fbea7cf6d18a160cb9b98bc2683704995943f25a"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-crossing-b/169070111c5490fb3848424e46035e4a0e0be1a1.glb",
+      "bytes": 25180,
+      "gitBlobSha": "169070111c5490fb3848424e46035e4a0e0be1a1",
+      "sha256": "4917044676653d61cea4f53ab7f0cf257dbeb76e068241789d399770ab7ba0d9"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-d-waterless/6e6ecf9029d5389a208afd9c53fb008a32ad9883.glb",
+      "bytes": 24764,
+      "gitBlobSha": "6e6ecf9029d5389a208afd9c53fb008a32ad9883",
+      "sha256": "7b4b4ed0a6d36abf498b5f11108d662fd5aa95d422c1185f1c50a3b5a2b38b65"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-d/c6bb612b6f2cad54027855ae4bacd7beb8422d90.glb",
+      "bytes": 27248,
+      "gitBlobSha": "c6bb612b6f2cad54027855ae4bacd7beb8422d90",
+      "sha256": "bcae050d20aab7d74ce161ac80f925d149a610a710e030d5d62451a24466c03a"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-e-waterless/0aba93daed9c0e3b43b02f8ed20637bc3fe1f37f.glb",
+      "bytes": 23372,
+      "gitBlobSha": "0aba93daed9c0e3b43b02f8ed20637bc3fe1f37f",
+      "sha256": "35713ea626b146ee8c00a87599a653e135208bc25bd9a8cae15ca96c94673bcd"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-e/87fca81d9d868154f747fb0bc777f44e02111b93.glb",
+      "bytes": 25996,
+      "gitBlobSha": "87fca81d9d868154f747fb0bc777f44e02111b93",
+      "sha256": "d659a3b3b00a8bfc58b513f309b7117e073e07ce5c62de696a75a8f23c0ab7f6"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-f-waterless/c5409a205d17b580ef050550369b88cc5092d90e.glb",
+      "bytes": 23372,
+      "gitBlobSha": "c5409a205d17b580ef050550369b88cc5092d90e",
+      "sha256": "1234f390299d377cc33219af854c241207c1b99c28bd375efb6d0eeb0dc6d4e8"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-f/996e9dea0ce0defd498ccaad9185f49f845ac35d.glb",
+      "bytes": 25996,
+      "gitBlobSha": "996e9dea0ce0defd498ccaad9185f49f845ac35d",
+      "sha256": "fcf6c84c6a35ba0b6b48054e8435230c5eb3bb4dba4dda007d18e6f28c514ef5"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-g-waterless/30f9d657934c625982dd9cb52a65aada4a3a56f4.glb",
+      "bytes": 25204,
+      "gitBlobSha": "30f9d657934c625982dd9cb52a65aada4a3a56f4",
+      "sha256": "6db40a62644cace54e99e0b8835053bbce393c77dfd0c3965e956062d0cea18c"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-g/0848eef1efb31d73558e96e71d8f975b0441b631.glb",
+      "bytes": 27952,
+      "gitBlobSha": "0848eef1efb31d73558e96e71d8f975b0441b631",
+      "sha256": "bac70793a0cac6670a7969a7b1f96d5496077650b6929be3d2bc90e1a3d7e8d9"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-h-waterless/a7433e8d36cbf95ba35edce3310d9824cdb74348.glb",
+      "bytes": 26088,
+      "gitBlobSha": "a7433e8d36cbf95ba35edce3310d9824cdb74348",
+      "sha256": "4baddc316443944209706842c443434f88c5587a6584fe922029a9d530716c28"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-h/b2e3bddd1a91c48ede9f8a8fca5888609c4d38f9.glb",
+      "bytes": 29492,
+      "gitBlobSha": "b2e3bddd1a91c48ede9f8a8fca5888609c4d38f9",
+      "sha256": "db605a6910dec3379fba075f2494f6fa8bbeba3fef55a7ea1ec179b8ff2edadf"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-i-waterless/7baf3598f042aee9ec6f7dda3508860e5a074268.glb",
+      "bytes": 26120,
+      "gitBlobSha": "7baf3598f042aee9ec6f7dda3508860e5a074268",
+      "sha256": "d8b949bcc3cdd4faed318c3f0d368887ddf66ea962facfcdff77929efbaad373"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-i/9db383af8ea2eecab8cca856106775737318e698.glb",
+      "bytes": 29524,
+      "gitBlobSha": "9db383af8ea2eecab8cca856106775737318e698",
+      "sha256": "a9fb82785472876240cd0e3aecfbbf9601c3a74496e202c8606740e0d1bd2279"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-j-waterless/d76d3b50fcfd48435076868b79afc84a6159e8f3.glb",
+      "bytes": 24696,
+      "gitBlobSha": "d76d3b50fcfd48435076868b79afc84a6159e8f3",
+      "sha256": "5fa237dec52dcde004d98862a7067ad8b5a6f07d79c86afb173b1c19d782401e"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-j/a60c370c9be9d576d73eb34ff829b392b09a69df.glb",
+      "bytes": 28192,
+      "gitBlobSha": "a60c370c9be9d576d73eb34ff829b392b09a69df",
+      "sha256": "c791ced854e221b0ae4fa30f7a1a3870cd4d299c235ec87909e3bea5fcb06f22"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-k-waterless/cc34d104fb233fa5d93df52711634f836c981ada.glb",
+      "bytes": 27412,
+      "gitBlobSha": "cc34d104fb233fa5d93df52711634f836c981ada",
+      "sha256": "7ff860de39b94c466413e65b719147935ea2fb9c618bba7e2f699836d57d3e5b"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-k/e4abad941852d643e1199a7a4129b09f12abebfe.glb",
+      "bytes": 31728,
+      "gitBlobSha": "e4abad941852d643e1199a7a4129b09f12abebfe",
+      "sha256": "c509cf26dce543f7a066c2ff37889800e987fa3bcc0d7f100efd0b7f3358bc5c"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-l-waterless/1118ddf46333e94fdc9a3ed9e80b0b3d332d20a5.glb",
+      "bytes": 28736,
+      "gitBlobSha": "1118ddf46333e94fdc9a3ed9e80b0b3d332d20a5",
+      "sha256": "ca178bc19d1756282f7dc3fe9a84cc0c1a4c23fa4a8391cd3d2967a2bb2918b2"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-river-l/65edd20310303ee1748cbd71713ae005b06e90ba.glb",
+      "bytes": 34280,
+      "gitBlobSha": "65edd20310303ee1748cbd71713ae005b06e90ba",
+      "sha256": "6a858f73064e034980d0083a09ec15d06d58ca2ace6fd1231c6e33703eb3dbdf"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-a-sloped-high/c3d914f88992ea04dc086f102517a07a039ca043.glb",
+      "bytes": 22672,
+      "gitBlobSha": "c3d914f88992ea04dc086f102517a07a039ca043",
+      "sha256": "5a346cd27dd97b7ea0e29564b4636fa741c560e5074c6c19029f6312183c9387"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-a-sloped-low/54f982ac2c645848960a4e0a5738addc55e3c57f.glb",
+      "bytes": 22776,
+      "gitBlobSha": "54f982ac2c645848960a4e0a5738addc55e3c57f",
+      "sha256": "802249e902455d6f01a378e810c4e342c2a16019450a233135c52b98cdfbc8e4"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-a/e5d69e16583b4cb321a49f26ccd56a27d736cb3b.glb",
+      "bytes": 20828,
+      "gitBlobSha": "e5d69e16583b4cb321a49f26ccd56a27d736cb3b",
+      "sha256": "f90146e62ae8b80ce96b198a34287f11a92948170ab44f7c0d42f4bc5fbcede3"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-b/b0fa6c5716065f9916b9c940d12fed8cf6bc58f1.glb",
+      "bytes": 23428,
+      "gitBlobSha": "b0fa6c5716065f9916b9c940d12fed8cf6bc58f1",
+      "sha256": "dc2ecc9c06c55b029bdf84853cfee19311618d3711e8064d740a5600845fd249"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-c/a0399dbba457298edcc0c661ea8b9d7268706b71.glb",
+      "bytes": 23720,
+      "gitBlobSha": "a0399dbba457298edcc0c661ea8b9d7268706b71",
+      "sha256": "88f17d92ae709634ee70961238f6d77d798728588448e574e8fbc6701c14a08f"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-d/8f246c7eacc39608845d31f9fee4068338e7862b.glb",
+      "bytes": 25344,
+      "gitBlobSha": "8f246c7eacc39608845d31f9fee4068338e7862b",
+      "sha256": "760c5e2d89d63b1f93033ccd3c8b078b9bc03515661f8d287196f286a20a256f"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-e/c4e84ef4001d8977933665774499e46ad9556b9b.glb",
+      "bytes": 24432,
+      "gitBlobSha": "c4e84ef4001d8977933665774499e46ad9556b9b",
+      "sha256": "66b56e4e0f288bfa0a270fbc793402d6c511beb8a692323f959bfcb9090879c9"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-f/9e446f45b9d5d64115e377f58ab91ea070626066.glb",
+      "bytes": 24432,
+      "gitBlobSha": "9e446f45b9d5d64115e377f58ab91ea070626066",
+      "sha256": "16c3ae01d234b1549d209f4b604e07a7fe7ea580d89583f5901140fa7d4dd58f"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-g/6fdb8c8e76601a270434fc09c5b69fad492d5265.glb",
+      "bytes": 25016,
+      "gitBlobSha": "6fdb8c8e76601a270434fc09c5b69fad492d5265",
+      "sha256": "8b6356c29dc32cbd7437ffc1986f90d3d0cfa372e6be02bbd059654113bcaf22"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-h/234a6e40c8cd969e3ea8c1a335b15ac77c1aa31e.glb",
+      "bytes": 27160,
+      "gitBlobSha": "234a6e40c8cd969e3ea8c1a335b15ac77c1aa31e",
+      "sha256": "32f36af636334a49a546a1b6540c07ae304d1e6b27e7cec52311761bd58e5eb0"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-i/f3c59b51926943c077481536fc912bc37549e453.glb",
+      "bytes": 27064,
+      "gitBlobSha": "f3c59b51926943c077481536fc912bc37549e453",
+      "sha256": "b4744f2665deaf9f6da5ee7df6fb617bd075e3d55ddc249d756a8c7d409af3b6"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-j/8cb99b3063369e318e9aa193bfbe11389d2b04fb.glb",
+      "bytes": 25860,
+      "gitBlobSha": "8cb99b3063369e318e9aa193bfbe11389d2b04fb",
+      "sha256": "fdd810bd730727e42668d6349c2adae857077e0fe32bced3c292126e5a853e3d"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-k/b30c305c9eed7dab3c283746b6fcb5154e7a0f7d.glb",
+      "bytes": 28524,
+      "gitBlobSha": "b30c305c9eed7dab3c283746b6fcb5154e7a0f7d",
+      "sha256": "f2ef68117bf561cb448717bc03880659d4b20e4bb165cf205eaec2fa0b931df9"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-l/6caa3756c64ce75e201e0bbed6ca7206915fb45e.glb",
+      "bytes": 30612,
+      "gitBlobSha": "6caa3756c64ce75e201e0bbed6ca7206915fb45e",
+      "sha256": "6a44aa8e0b9bee70464540fb2613e9de9059093bf2d20283891ee0377ce01617"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-road-m/6200524b8e526dfb8e8f50f8a474e67b23d58693.glb",
+      "bytes": 21908,
+      "gitBlobSha": "6200524b8e526dfb8e8f50f8a474e67b23d58693",
+      "sha256": "a44e437c9b575b6abeb6e9646e82370baa6c0b387e980197cd7eaa6dc4688b40"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hex-water/c74a88b712e271094be2cace78c41012253eb2fe.glb",
+      "bytes": 18596,
+      "gitBlobSha": "c74a88b712e271094be2cace78c41012253eb2fe",
+      "sha256": "4b40a91f6aef7026632d2fe70bdcb948c7395f9926bc0de23e179fc3455473fe"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hill-single-a/75425cd2fd8d472badb652b6d5f24c9229b58eac.glb",
+      "bytes": 20360,
+      "gitBlobSha": "75425cd2fd8d472badb652b6d5f24c9229b58eac",
+      "sha256": "327e0baf06cf7ff602b32222e14af8ede2da59471cbca5fd39195672f8cc83f7"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hill-single-b/aa18587977cc68b32834707b6e1415ddb4b2bcc6.glb",
+      "bytes": 20424,
+      "gitBlobSha": "aa18587977cc68b32834707b6e1415ddb4b2bcc6",
+      "sha256": "13e1e98fd9f771025f5bc5139a8805d111a33ae8dad426bc966eb466e8e659a2"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hill-single-c/6228cd3c6a794dd04d1d9d23929c936d883fde84.glb",
+      "bytes": 20456,
+      "gitBlobSha": "6228cd3c6a794dd04d1d9d23929c936d883fde84",
+      "sha256": "1430453fafbfc4a568fa3c793e83ccc14906118673df509a4c4aa610f1d3eca3"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hills-a-trees/365c1a423d3cdaa95e53704d894f675b1627c342.glb",
+      "bytes": 48208,
+      "gitBlobSha": "365c1a423d3cdaa95e53704d894f675b1627c342",
+      "sha256": "00cd544c80eb5561427b2e493b4288c3054d6f8ec3e96a8e8abc0090637dc464"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hills-a/a9865ebe14b35d0ec5250dab9b8b0ae4dc5d95c9.glb",
+      "bytes": 39224,
+      "gitBlobSha": "a9865ebe14b35d0ec5250dab9b8b0ae4dc5d95c9",
+      "sha256": "792a89f6444576314c9787808300c88586bf1fe9f33e580f47f711e128b88d0c"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hills-b-trees/7ebf0eccd489a5ddbe365d664001d8281c5e915e.glb",
+      "bytes": 42400,
+      "gitBlobSha": "7ebf0eccd489a5ddbe365d664001d8281c5e915e",
+      "sha256": "1347d88aba474050a1f4520ca4aa87c5e1b5b3cd8061f06fd82cd1a7821d17d9"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hills-b/6968a84a999f68fc43032426acb85d9df1cbad81.glb",
+      "bytes": 30428,
+      "gitBlobSha": "6968a84a999f68fc43032426acb85d9df1cbad81",
+      "sha256": "425e4331a4643ac24c99501cdb874360a79ac5e43693a13a8025ff890e68ffb0"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hills-c-trees/a532956eef87a084923943779c91a975c26a8146.glb",
+      "bytes": 56564,
+      "gitBlobSha": "a532956eef87a084923943779c91a975c26a8146",
+      "sha256": "21b7847c579d495bf21d851ac28c7e7ba05fbbd1b14525abe6905b9ccbcc9b84"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/hills-c/72aa885b97c3fa2d52ec252bb27e136332964e14.glb",
+      "bytes": 31556,
+      "gitBlobSha": "72aa885b97c3fa2d52ec252bb27e136332964e14",
+      "sha256": "a6a0aee165111679c6b9c1f2021c93c2dcdd2515fbf51c7920de1d40917f3280"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/mountain-a-grass-trees/619ded9e7a59718852526aa2d3a1e13a93a16692.glb",
+      "bytes": 44516,
+      "gitBlobSha": "619ded9e7a59718852526aa2d3a1e13a93a16692",
+      "sha256": "902d922cc0deb26ac25badffd9aafc71590740d625b26c7d28b2f6064daa3e80"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/mountain-a-grass/16633b989089cb78b9bfb61f1c30a2ee2e79c355.glb",
+      "bytes": 32544,
+      "gitBlobSha": "16633b989089cb78b9bfb61f1c30a2ee2e79c355",
+      "sha256": "dc69402eef12d6d7059a65dbfafe224e7adccfa8a50bef191cb088be70aa1432"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/mountain-a/bd0282ea38fc310b7e3194d2482d1be563557b86.glb",
+      "bytes": 24800,
+      "gitBlobSha": "bd0282ea38fc310b7e3194d2482d1be563557b86",
+      "sha256": "46755e39f1629f15058b5c6c90be519f970564b8a4ad3a8336c4998c8d1cbac3"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/mountain-b-grass-trees/056e7b08d3fad023242f4a795a33a2288d6a9428.glb",
+      "bytes": 50372,
+      "gitBlobSha": "056e7b08d3fad023242f4a795a33a2288d6a9428",
+      "sha256": "2be02f3165d1985790b223b409e420200f1ff62dbddf019eeabff9b29c3ddfc0"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/mountain-b-grass/88d80688ac6e02512dd8d690a5f4acb11c20edaf.glb",
+      "bytes": 32416,
+      "gitBlobSha": "88d80688ac6e02512dd8d690a5f4acb11c20edaf",
+      "sha256": "632cc05ca3f87eecb1c96a13288ff078b6e7379becc05d4f3a08a11d0b2419d0"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/mountain-b/a431e4b33a2cb4dccdf7d7518addd371de679958.glb",
+      "bytes": 24804,
+      "gitBlobSha": "a431e4b33a2cb4dccdf7d7518addd371de679958",
+      "sha256": "7664bbaab8f4cd65427ffc4454c1a42de837dbfed119c8ccdcbf7f1ecda0365a"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/mountain-c-grass-trees/e77a0e7c387166e19e58f1721b713e10bb7699db.glb",
+      "bytes": 60552,
+      "gitBlobSha": "e77a0e7c387166e19e58f1721b713e10bb7699db",
+      "sha256": "0c818950e53b693ef37a35750b9257054e30ce7d8a5e18f8349e738a643c7746"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/mountain-c-grass/8200cf0cbd846bf8a4092b078af597bf65226b34.glb",
+      "bytes": 42596,
+      "gitBlobSha": "8200cf0cbd846bf8a4092b078af597bf65226b34",
+      "sha256": "97e9dbf9dfee27a162644fb41611e76316129b59eb227f7ee1cdd4b1c90bd7cc"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/mountain-c/523a1c105db36d0604d407c8654ae93413df2ef1.glb",
+      "bytes": 29892,
+      "gitBlobSha": "523a1c105db36d0604d407c8654ae93413df2ef1",
+      "sha256": "55184305475218e4d5f69a499fb72b415217bd365d8a0ca834fabba3421ed139"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/pallet/f43a3be73ba9b72c0e370c8f92d9be81bec075b2.glb",
+      "bytes": 22188,
+      "gitBlobSha": "f43a3be73ba9b72c0e370c8f92d9be81bec075b2",
+      "sha256": "cecb961d03b2c0d753a494af3a7480c4e6f599c140ce4b055eea09e28abd0935"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/projectile-catapult/0ca7d07a900c60244667574a9e0a7771bf1e310a.glb",
+      "bytes": 29460,
+      "gitBlobSha": "0ca7d07a900c60244667574a9e0a7771bf1e310a",
+      "sha256": "ebcebc0c9a467f2999baf8fac3b48f4e4212694544f7d15fcfa22e55234fd5fe"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/rock-single-b/b3edff0760b3e01088fbae75afbd14c42c827829.glb",
+      "bytes": 18800,
+      "gitBlobSha": "b3edff0760b3e01088fbae75afbd14c42c827829",
+      "sha256": "e74e2536509b01d82d353d029d4775084608743b19a0887faac763ccc189070a"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/rock-single-d/7624c11413277b9f34494cd10804779c46eb9b6d.glb",
+      "bytes": 18520,
+      "gitBlobSha": "7624c11413277b9f34494cd10804779c46eb9b6d",
+      "sha256": "6294a29febc2c86b507324c2711d863af3823a5fec627e129f6460b9c1704ba6"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/rock-single-e/fbff1f3b11d7f9b1bd0dce1239d58dca0ab5543c.glb",
+      "bytes": 21480,
+      "gitBlobSha": "fbff1f3b11d7f9b1bd0dce1239d58dca0ab5543c",
+      "sha256": "3e8638ffa860e5d087c424fdb27858db09d62eefd1014090bd17ffcb190a8a10"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/tree-single-a-cut/bf443fbfddd742863853bab8035cd760afadc0b8.glb",
+      "bytes": 18232,
+      "gitBlobSha": "bf443fbfddd742863853bab8035cd760afadc0b8",
+      "sha256": "c36e39d7dad450e018bc108154785f100fc2f8081cec7f160a7b8c640cdc2124"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/tree-single-b-cut/416b0a25bbd52a95304129eceb262c656227f10d.glb",
+      "bytes": 18976,
+      "gitBlobSha": "416b0a25bbd52a95304129eceb262c656227f10d",
+      "sha256": "48a83f90ed7e3561b92b7b14efa0867bb6da7a27254d35d8a2ff11251e7cb87e"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/trees-a-cut/a217f29c334a50df5fa345b63405c0255697d8d9.glb",
+      "bytes": 36184,
+      "gitBlobSha": "a217f29c334a50df5fa345b63405c0255697d8d9",
+      "sha256": "30012e6ed0cfaadcf5419d8ceb017e39af0ddb63b7c77db31f74dda86755bec9"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/trees-a-large/63ab0f92e6406346f02d8a65ad45646815f1532f.glb",
+      "bytes": 74212,
+      "gitBlobSha": "63ab0f92e6406346f02d8a65ad45646815f1532f",
+      "sha256": "b2d84f7de42939c1819600449e58cce82270c87407c4e8d409572e50e4c39ad7"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/trees-a-medium/99e4f3253baa948ae569926c392bf96a5dc61f56.glb",
+      "bytes": 48868,
+      "gitBlobSha": "99e4f3253baa948ae569926c392bf96a5dc61f56",
+      "sha256": "f2baf607e0b2ec9ba96e0fb86d9763e9f647be333267e5f0ffd1096629914678"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/trees-a-small/afd05899365c1816b10b8d1703257641d6e29af4.glb",
+      "bytes": 45692,
+      "gitBlobSha": "afd05899365c1816b10b8d1703257641d6e29af4",
+      "sha256": "ab25605a11fe93f3e603b0f704e2bc65891b17dbd6a4bddb92a515e77eb7e727"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/trees-b-cut/096b8c744b2066cc177e8ea91d7d75d217a93593.glb",
+      "bytes": 29908,
+      "gitBlobSha": "096b8c744b2066cc177e8ea91d7d75d217a93593",
+      "sha256": "4c961fdf2fae5bd78019212a9904c29c2a1651817f754ce4e447381845cd31f2"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/trees-b-large/4cd047099bd86ab98d51349b3734e9b50d9cd873.glb",
+      "bytes": 69148,
+      "gitBlobSha": "4cd047099bd86ab98d51349b3734e9b50d9cd873",
+      "sha256": "5b49ec3b99bd7ff64d19f46166e3a39cb0b0875ad58ace0859217c100b9f6745"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/trees-b-medium/092dcd98d604ab492253a0eb9294840ba4453f0b.glb",
+      "bytes": 54284,
+      "gitBlobSha": "092dcd98d604ab492253a0eb9294840ba4453f0b",
+      "sha256": "73aea3e1f0235e2f188d41784bb2fe2521da233a228c914a2f46d7c630ba4bae"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/trees-b-small/b6881af61c05de7b2642881327e778cacb7fb39f.glb",
+      "bytes": 39348,
+      "gitBlobSha": "b6881af61c05de7b2642881327e778cacb7fb39f",
+      "sha256": "65c66d9b7ee36460c880ffd1224bcf256adba0b029878643d96c87b9d0ff18c6"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/wall-corner-a-gate/ffc474b287a14dd0a88a2cf3f652123965b5d11b.glb",
+      "bytes": 64712,
+      "gitBlobSha": "ffc474b287a14dd0a88a2cf3f652123965b5d11b",
+      "sha256": "671faf073586c03190847fecd13b5e3765224786bff88df089fc9b83e68d4086"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/wall-corner-a-inside/ab99f103d2fefebbec1de462404c34271cc77ff8.glb",
+      "bytes": 38528,
+      "gitBlobSha": "ab99f103d2fefebbec1de462404c34271cc77ff8",
+      "sha256": "7fe0a74a61176aca497caad289ab2f3dba7eaf86d6166d8b1d6fc968882baed1"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/wall-corner-a-outside/55f17221de3e4b4532bdbb6522f1d6da3b3e45fa.glb",
+      "bytes": 41964,
+      "gitBlobSha": "55f17221de3e4b4532bdbb6522f1d6da3b3e45fa",
+      "sha256": "88f62c6d6f603ce2195968822f9b4fe427013c60c53ee0c53678efc84f7cebbb"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/wall-corner-b-inside/75a128803d5a584b993c1533f7cbb7d9bbd41493.glb",
+      "bytes": 33848,
+      "gitBlobSha": "75a128803d5a584b993c1533f7cbb7d9bbd41493",
+      "sha256": "24f46a8eab2e786480e84198b41cfef9b9a3c3d4ec09afef74d6ba0b63f60a17"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/wall-corner-b-outside/6de64eab9ca2977261d70e1903b4ef84c5fd146a.glb",
+      "bytes": 39932,
+      "gitBlobSha": "6de64eab9ca2977261d70e1903b4ef84c5fd146a",
+      "sha256": "215d5dff11262d330ad65bfbec67b05d086ca07ab1085a0b024b591ccc7da88e"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/wall-straight-gate/2d3368eb51b61245e3105e7c1cbfe9bbd371af01.glb",
+      "bytes": 66192,
+      "gitBlobSha": "2d3368eb51b61245e3105e7c1cbfe9bbd371af01",
+      "sha256": "3cd304c88a0ecdd6689ecd4e25233f2d17a6d53c707b8549a8620e718b14737a"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/wall-straight/493bfe3f0df0d0fcad99c21b6eeea813b6dd145c.glb",
+      "bytes": 48220,
+      "gitBlobSha": "493bfe3f0df0d0fcad99c21b6eeea813b6dd145c",
+      "sha256": "8d29ab925f714295f9b306bf1a5950b95a4244e4a0a663b01bf6b5fe1f697428"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/waterlily-a/c7d79c4368aef719108b776d1b2002cf61ebddb1.glb",
+      "bytes": 19768,
+      "gitBlobSha": "c7d79c4368aef719108b776d1b2002cf61ebddb1",
+      "sha256": "21d1937e73dcecbc35badfd8024c556d58187d6d061dc3aa09d3734a41965c25"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/waterlily-b/adbbb0edacb2502e48911d8d11d4a71e4c5562b5.glb",
+      "bytes": 19992,
+      "gitBlobSha": "adbbb0edacb2502e48911d8d11d4a71e4c5562b5",
+      "sha256": "43955f631a98e5962c48086783f8b9a9a953150026efdc600d0b71e93a4b4c8f"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/waterplant-a/444a4d6c1f8af7a8fc699c8197fcc4e58b949d72.glb",
+      "bytes": 20160,
+      "gitBlobSha": "444a4d6c1f8af7a8fc699c8197fcc4e58b949d72",
+      "sha256": "d2e4a92fdb24fa40e6f683f1ba9177c2087c5ee5fc05670fddc553bc260b7676"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/waterplant-b/b9fc505cefdab3fb893a65e19641a7a4ccf763ae.glb",
+      "bytes": 22984,
+      "gitBlobSha": "b9fc505cefdab3fb893a65e19641a7a4ccf763ae",
+      "sha256": "0f424ab36f94ffd47b3de661bd761cebe42171bb9d17ce61f16940ed373529d1"
+    },
+    {
+      "path": "model/kaykit-medieval-hexagon/waterplant-c/3ceb2154bde44c9773caceafdf665b72051e1ec4.glb",
+      "bytes": 29032,
+      "gitBlobSha": "3ceb2154bde44c9773caceafdf665b72051e1ec4",
+      "sha256": "f229616e2b019ec547648df7d77176c18e2f73d84179d49dff5752ea03013f35"
     },
     {
       "path": "model/kenney/fantasy-town/237dd649c97f7ba9902c3f3eb61f9da81cd9d8cd.glb",
@@ -450,6 +3702,120 @@
       "bytes": 15184,
       "gitBlobSha": "c7fce10ea01fea9aa705d8d160cbd2899d4f3e11",
       "sha256": "f0f4eec72f18722dee56f799c6045953835a91856929dff6fb71331602b12c2e"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/bat/7cc55145f364094e9741e7281683a05416f2258b.glb",
+      "bytes": 338856,
+      "gitBlobSha": "7cc55145f364094e9741e7281683a05416f2258b",
+      "sha256": "91342400fe45211fb520ec2b8ce9b8bba8f97998891733689b00249023898ee4"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/bee/d34ed8b4637996ec5fcca08711fdcb6f76df3a2d.glb",
+      "bytes": 302224,
+      "gitBlobSha": "d34ed8b4637996ec5fcca08711fdcb6f76df3a2d",
+      "sha256": "40b934ddb173e3c1b7c09dbbec8d03419863e08196e42695ae708d225e99e56d"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/cactus/dd0141de93e3c8bd9e829b8ea48c756f0f98b9f9.glb",
+      "bytes": 399144,
+      "gitBlobSha": "dd0141de93e3c8bd9e829b8ea48c756f0f98b9f9",
+      "sha256": "b0ccda7b56d8c568d4129212cbff2457345fc23500b2d5cc516573d2b7252eea"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/chicken/8a0cd85e7c279e4452a5e3fc78edfd5ba68ea1fb.glb",
+      "bytes": 348260,
+      "gitBlobSha": "8a0cd85e7c279e4452a5e3fc78edfd5ba68ea1fb",
+      "sha256": "38572d3125e4ef82ce06ebad87ed734176d78e44990a0f70298c46aa8d7fe3a3"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/crab/b4f5fa903c8833c8e24f53521535a2d4306a9a24.glb",
+      "bytes": 372408,
+      "gitBlobSha": "b4f5fa903c8833c8e24f53521535a2d4306a9a24",
+      "sha256": "308de5e2711fcff960b72bdce71ed71ddceb9268957fc6190252148bff1474d1"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/cthulhu/a81077c0e3f012c2e27ebae6c404797be3dfc873.glb",
+      "bytes": 372908,
+      "gitBlobSha": "a81077c0e3f012c2e27ebae6c404797be3dfc873",
+      "sha256": "3e71a5520d4b972ee8c736502eeb6beb7f521d06ca63abb6fb9732ac6add9899"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/cyclops/bb497c34107815584650c472ffe2fad7dfba9a70.glb",
+      "bytes": 374356,
+      "gitBlobSha": "bb497c34107815584650c472ffe2fad7dfba9a70",
+      "sha256": "54c5071b94bd7e95922ea895fa4f41db4bc34b6bf63c484580ddde05e6b7380e"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/deer/4d41f55bef29456ffde88e202f387696e87b9ff1.glb",
+      "bytes": 365228,
+      "gitBlobSha": "4d41f55bef29456ffde88e202f387696e87b9ff1",
+      "sha256": "f8a42615b40bc24c4b552d88cc026b9978f3230fc9400e61b94e779b114c5fb5"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/demon/ca5c634619a0f982e05897936a2e68fab577245e.glb",
+      "bytes": 379116,
+      "gitBlobSha": "ca5c634619a0f982e05897936a2e68fab577245e",
+      "sha256": "0090f403062136607b48ac0a5921c3fad7c8f89ab2c3a5a355cf4d48dd65e37c"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/ghost/d81d56a5e1543cd8d8d6adc7a1e13ce6885f43cd.glb",
+      "bytes": 288400,
+      "gitBlobSha": "d81d56a5e1543cd8d8d6adc7a1e13ce6885f43cd",
+      "sha256": "4b73eefc407fe67345b02183114adbfe704bb22d03bb92441dde1932f3313b08"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/greendemon/5a7aeee9729618a819819d3ec3052efb43407969.glb",
+      "bytes": 369148,
+      "gitBlobSha": "5a7aeee9729618a819819d3ec3052efb43407969",
+      "sha256": "e840fcad5a0b6534c7546c6ef32639bd1fad2fa0880d7ef981adfc680a7c28b5"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/mushroom/c21688816e739a88b913134c94c8d8728ddcf579.glb",
+      "bytes": 270164,
+      "gitBlobSha": "c21688816e739a88b913134c94c8d8728ddcf579",
+      "sha256": "9ad7ea60ed34a2d8290815a1873e8a1c5c4c814f864801f0537512cef9311acb"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/panda/d31f6239ac125fe9ebf00d34c536643133c61036.glb",
+      "bytes": 335148,
+      "gitBlobSha": "d31f6239ac125fe9ebf00d34c536643133c61036",
+      "sha256": "ab15e5d241277fa460d57787833d796198698137cb7c4fbff6b9a91d42719445"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/penguin/ae79056d4bf6458224e16126a07b7d1139ad09b9.glb",
+      "bytes": 274716,
+      "gitBlobSha": "ae79056d4bf6458224e16126a07b7d1139ad09b9",
+      "sha256": "64e585b97eeaeca265e344760d98c23a40d92a7eb0b9850447313c0dc291b08a"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/pig/f5fa9e77cbe6e7b75deef691c9446363fb2e7444.glb",
+      "bytes": 329284,
+      "gitBlobSha": "f5fa9e77cbe6e7b75deef691c9446363fb2e7444",
+      "sha256": "90f280b5c0d9d8c9a4caa046dc0227b34adfe3f72283659adbb58fc448c092a4"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/skull/4476d52d2327849e020af3eb99687d4800ef5b10.glb",
+      "bytes": 391484,
+      "gitBlobSha": "4476d52d2327849e020af3eb99687d4800ef5b10",
+      "sha256": "0b8d8df91bde5404fd150491e6bcaa304c5ee9b3c4c064f187e14918063e69a0"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/tree/43cb88c37849a231d509f847af9a87dc4d27002d.glb",
+      "bytes": 402776,
+      "gitBlobSha": "43cb88c37849a231d509f847af9a87dc4d27002d",
+      "sha256": "a07772874d88ff27fba5687cdff3669afce20458270029e2ed61f670de3c430b"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/yellowdragon/85abb6bc7fee8ef29451194625202cb97e98938c.glb",
+      "bytes": 421472,
+      "gitBlobSha": "85abb6bc7fee8ef29451194625202cb97e98938c",
+      "sha256": "381ab17e78df07e803054323954db93440e407228c07c89454cd9f6367a64b69"
+    },
+    {
+      "path": "model/quaternius-cute-monsters/yeti/2e706c1a2764ee2620e1fc59195941e28ab6b9c0.glb",
+      "bytes": 338080,
+      "gitBlobSha": "2e706c1a2764ee2620e1fc59195941e28ab6b9c0",
+      "sha256": "1ad270feaffde220be673178d4d3086de768d7cfd50765584906526336b07517"
     },
     {
       "path": "motion/cmu-parkour-cartwheel/ebbefcc997700a381bf4b5bc09a8c457de6ce5bd.bvh",
