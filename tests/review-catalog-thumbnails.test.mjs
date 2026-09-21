@@ -31,8 +31,8 @@ test('object, equipment, and model pickers use dedicated metadata thumbnails',as
   assert.match(characterMeta,/thumbnailUrl: reviewThumbnailUrl\(`kaykit\.\$\{id\}\.v1`\)/);
   assert.match(assetView,/createStaticThumbnail\(type\.thumbnail\|\|spec\?\.thumbnailUrl\|\|/);
   assert.doesNotMatch(assetView,/createRuntimeThumbnail|scheduleRuntimeThumbnail/);
-  assert.match(motionView,/thumbnailUrl:'\.\/review\/catalog-thumbnails\.svg#mesh2motion-review-mannequin'/);
-  assert.match(motionView,/createStaticThumbnail\(model\.thumbnailUrl,model\.label\)/);
+  assert.match(motionView,/RINNE_MOTION_REVIEW_DEFAULT_MODEL,RINNE_MOTION_REVIEW_MODELS/);
+  assert.match(motionView,/if\(model\.thumbnailUrl\)return createStaticThumbnail\(model\.thumbnailUrl,model\.label\)/);
   for(const id of ['review-skeleton-warrior','review-skeleton-rogue','review-skeleton-mage','review-skeleton-minion','skeleton-blade','skeleton-axe','skeleton-staff','skeleton-crossbow','skeleton-shield-large-a','skeleton-shield-large-b','skeleton-shield-small-a','skeleton-shield-small-b','skeleton-quiver','mesh2motion-review-mannequin','kaykit.knight.v1','kaykit.barbarian.v1','kaykit.mage.v1','kaykit.rogue.v1','kaykit.rogue-hooded.v1']){
     assert.match(sprite,new RegExp(`<symbol id=["']${id.replace(/[.*+?^$()|[\]\\]/g,'\\$&')}["']`),`missing thumbnail symbol: ${id}`);
   }
