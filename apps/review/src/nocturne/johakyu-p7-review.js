@@ -305,7 +305,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   function applyContacts(actions){
     const events=[];
     for(const [id,action] of actions){
-      if(!action||!action.motion.offense||action.progress<(action.motion.contactProgress??.5))continue;
+      if(!action||!action.motion.offense||action.progress<.46)continue;
       const state=combatState(id);if(!state||state.impacted)continue;state.impacted=true;
       const source=battle.actors.get(id),target=battle.actors.get(action.targetId);if(!source||!target)continue;
       const damage=state.reactionKind==='counter'?KIND_DAMAGE.counter:stageDamage(state.node.stage);if(!(damage>0))continue;
