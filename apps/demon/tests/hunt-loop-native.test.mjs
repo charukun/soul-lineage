@@ -84,4 +84,10 @@ test('main boot has one HUD owner, automatic sensing, and no menu extraction exp
   assert.doesNotMatch(main,/new FeastHud|firstHuntGuide\(/);
   assert.doesNotMatch(boot,/installFirstHuntDirector\(/);
   assert.doesNotMatch(html,/src="\.\/src\/web\/movement-only-play\.js"/);
+  assert.equal(bootGate.includes('\\n#'),false,'brand gate CSS must use real newlines before selectors');
+  assert.match(bootGate,/\.scorpion\{[^}]*opacity:1/,'brand identity must be visible before animation can advance');
+  assert.match(bootGate,/\.bolts\{[^}]*opacity:1/);
+  assert.match(bootGate,/\.wordmark\{[^}]*opacity:1/);
+  assert.doesNotMatch(bootGate,/@keyframes pa(?:Scorpion|Bolts)\{0%\{opacity:0/,'brand animation must not blank the first paint');
+  for(const token of ['@keyframes paLoaderIn','@keyframes paLoadPulse','@keyframes paTouchIn','.armed .touch']) assert.ok(bootGate.includes(token));
 });

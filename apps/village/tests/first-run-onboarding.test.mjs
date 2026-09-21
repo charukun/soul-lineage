@@ -38,8 +38,18 @@ test('completion is persisted as a one-way first-run handoff',()=>{
  markFirstRunAutoplayStarted(state);
  markFirstRunAutoplaySeen(state);
  const restored=validate(JSON.parse(JSON.stringify(state)));
- assert.deepEqual(restored.onboarding.firstRunAutoplay,{version:1,started:false,seen:true});
+ assert.deepEqual(restored.onboarding.firstRunAutoplay,{version:2,started:false,seen:true});
  assert.equal(shouldRunFirstRunAutoplay(restored,{freshLoad:false}),false);
+});
+
+test('legacy v1 completion gets exactly one corrected placement-guide replay',()=>{
+ const state=initial();
+ state.onboarding={firstRunAutoplay:{version:1,started:false,seen:true}};
+ assert.equal(shouldRunFirstRunAutoplay(state,{freshLoad:false}),true);
+ markFirstRunAutoplayStarted(state);
+ assert.equal(state.onboarding.firstRunAutoplay.version,2);
+ markFirstRunAutoplaySeen(state);
+ assert.equal(shouldRunFirstRunAutoplay(state,{freshLoad:false}),false);
 });
 
 test('title reset replay request survives one reload and is environment scoped',()=>{

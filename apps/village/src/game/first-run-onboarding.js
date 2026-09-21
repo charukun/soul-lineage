@@ -1,4 +1,4 @@
-export const FIRST_RUN_AUTOPLAY_VERSION=1;
+export const FIRST_RUN_AUTOPLAY_VERSION=2;
 const RESET_REPLAY_KEY='soul.village.first-run-after-reset.v1';
 
 function current(state){
@@ -25,6 +25,10 @@ export function consumeFirstRunAutoplayAfterReset(environment,storage=globalThis
 }
 
 export function shouldRunFirstRunAutoplay(state,{freshLoad=false}={}){
+ const raw=state?.onboarding?.firstRunAutoplay;
+ // v1 could be marked complete while placement controls no longer matched the guide.
+ // Replay the corrected v2 guide once for those saves, then persist the v2 marker.
+ if(raw?.version===1&&raw.seen)return true;
  const status=current(state);
  return !status.seen&&(freshLoad||status.started);
 }
