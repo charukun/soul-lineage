@@ -38,15 +38,15 @@ test('completion is persisted as a one-way first-run handoff',()=>{
  markFirstRunAutoplayStarted(state);
  markFirstRunAutoplaySeen(state);
  const restored=validate(JSON.parse(JSON.stringify(state)));
- assert.deepEqual(restored.onboarding.firstRunAutoplay,{version:4,started:false,seen:true});
+ assert.deepEqual(restored.onboarding.firstRunAutoplay,{version:5,started:false,seen:true});
  assert.equal(shouldRunFirstRunAutoplay(restored,{freshLoad:false}),false);
 });
 
-test('legacy completion gets exactly one restored moving-finger guide replay',()=>{
+test('pre-v4 legacy completion gets one restored guide replay',()=>{
  for(const version of[1,2,3]){
   const state=initial();state.onboarding={firstRunAutoplay:{version,started:false,seen:true}};
   assert.equal(shouldRunFirstRunAutoplay(state,{freshLoad:false}),true);
-  markFirstRunAutoplayStarted(state);assert.equal(state.onboarding.firstRunAutoplay.version,4);
+  markFirstRunAutoplayStarted(state);assert.equal(state.onboarding.firstRunAutoplay.version,5);
   markFirstRunAutoplaySeen(state);assert.equal(shouldRunFirstRunAutoplay(state,{freshLoad:false}),false);
  }
 });
@@ -62,9 +62,9 @@ test('title reset replay request survives one reload and is environment scoped',
 test('title reset replay never takes the interrupted placement recovery shortcut',()=>{
  const state=initial();
  markFirstRunAutoplayStarted(state);
- assert.equal(shouldRecoverFirstRunAutoplay(state,{resetReplay:false,guidePlaced:true}),true);
+ assert.equal(shouldRecoverFirstRunAutoplay(state,{resetReplay:false,foundingComplete:true}),true);
  assert.equal(shouldRecoverFirstRunAutoplay(state,{resetReplay:true,guidePlaced:true}),false);
- assert.equal(shouldRecoverFirstRunAutoplay(state,{resetReplay:false,guidePlaced:false}),false);
+ assert.equal(shouldRecoverFirstRunAutoplay(state,{resetReplay:false,foundingComplete:false}),false);
  markFirstRunAutoplaySeen(state);
  assert.equal(shouldRecoverFirstRunAutoplay(state,{resetReplay:false,guidePlaced:true}),false);
 });

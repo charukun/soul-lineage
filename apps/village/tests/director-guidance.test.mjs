@@ -35,7 +35,7 @@ test('housing, safety and food bottlenecks point into the matching build flow',(
   assert.equal(safety.action.kind,'guardpost');
 
   const food=nextVillageGuidance(fixture({population:{people:4,openBeds:6,safety:8,food:4}}));
-  assert.equal(food.id,'food');
+  assert.equal(food.id,'food-source');
   assert.equal(food.action.kind,'wheat');
 });
 
@@ -63,8 +63,8 @@ test('work suggestion reacts to what the village already has instead of repeatin
 
 test('stable villages keep a quiet contextual hint without forcing another construction',()=>{
   const resident={name:'ミナ',role:'resident',dead:false,jobId:'b-work'};
-  const next=nextVillageGuidance(fixture({people:[resident]}));
+  const next=nextVillageGuidance(fixture({people:[resident],objects:[{kind:'wheat'}]}));
   assert.equal(next.id,'stable');
   assert.equal(next.action,null);
-  assert.match(nextVillageGoal(fixture({people:[resident]})),/穏やか/);
+  assert.match(nextVillageGoal(fixture({people:[resident],objects:[{kind:'wheat'}]})),/穏やか/);
 });
