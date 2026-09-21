@@ -1,5 +1,6 @@
 import {createCanonicalPresentationDriver} from './driver.js';
 import {resolveFatiguePresentation} from './fatigue.js';
+import {sampleFatigueMotion} from './fatigue-motion.js';
 import {createBattleObservation} from '@soul/shared-ui/johakyu-observation';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -53,6 +54,7 @@ function collectFatigueRig(root){
   const raw=String(node.name||'').toLowerCase(),name=raw.replace(/[^a-z0-9]/g,'');let kind=null;
   if(/spine|chest/.test(name))kind='spine';
   else if(/shoulder|clavicle/.test(name))kind='shoulder';
+  else if(/upperarm/.test(name))kind='arm';
   else if(/neck|head/.test(name))kind='head';
   if(kind)rows.push({node,kind,side:/left|(^|[._-])l($|[._-])/.test(raw)?-1:1,x:0,z:0});
  });
@@ -73,23 +75,26 @@ function applyFatigue(a,row,dt){
  if(a.fatigueBand!==profile.band||a.fatigueLocked!==profile.attackLocked){
   a.fatigueBand=profile.band;a.fatigueLocked=profile.attackLocked;a.fatigueSince=clock;a.sweatClock=0;
  }
- const phase=Math.max(0,clock-a.fatigueSince)*TAU*profile.breathHz,inhale=(Math.sin(phase)+1)*.5;
- const blend=row.action?.motion?.offense ? .32 : 1;
- a.posture.rotation.x=profile.lean*blend+profile.breathLift*(inhale-.5)*.12;
- a.posture.rotation.z=Math.sin(phase*.5)*profile.sway*blend;
- a.posture.position.y=-profile.drop*blend+profile.breathLift*inhale*.08;
- a.posture.position.z=profile.lean*.08*blend;
- a.posture.scale.set(1,1+profile.breathLift*inhale*.055,1);
+ const sampled=sampleFatigueMotion(profile.band,Math.max(0,clock-a.fatigueSince));
+ const gain=1-Math.exp(-Math.max(0,dt)*9),target={rootLean:sampled.rootLean,rootDrop:sampled.rootDrop,rootSway:sampled.rootSway,chestPitch:sampled.chestPitch,shoulderRoll:sampled.shoulderRoll,headPitch:sampled.headPitch,armDrop:sampled.armDrop,breath:sampled.breath};
+ for(const key of Object.keys(target))a.fatiguePose[key]=lerp(a.fatiguePose[key]||0,target[key],gain);
+ const pose=a.fatiguePose,blend=row.action?.motion?.offense ? .28 : 1;
+ a.posture.rotation.x=pose.rootLean*blend;
+ a.posture.rotation.z=pose.rootSway*blend;
+ a.posture.position.y=-pose.rootDrop*blend+pose.breath*.004;
+ a.posture.position.z=pose.rootLean*.08*blend;
+ a.posture.scale.set(1,1+pose.breath*.0036,1);
  for(const item of a.fatigueRig){
   let x=0,z=0;
-  if(item.kind==='spine')x=(profile.lean*.16+profile.breathLift*(inhale-.5)*.22)*blend;
-  else if(item.kind==='shoulder')z=item.side*profile.shoulder*(.38+.62*inhale)*blend;
-  else if(item.kind==='head')x=-profile.lean*.11*blend;
+  if(item.kind==='spine')x=pose.chestPitch*blend;
+  else if(item.kind==='shoulder')z=item.side*pose.shoulderRoll*blend;
+  else if(item.kind==='arm')z=item.side*pose.armDrop*blend;
+  else if(item.kind==='head')x=pose.headPitch*blend;
   item.node.rotation.x+=x;item.node.rotation.z+=z;item.x=x;item.z=z;
  }
  emitFatigueSweat(a,profile,dt);
  sound.fatigue?.(a.canonicalId,{active:a.kind==='hero'&&profile.audioGain>0&&!row.dead&&!row.downed,gain:profile.audioGain,rate:profile.audioRate,x:a.pos.x,z:a.pos.z});
- a.fatiguePresentation={band:profile.band,attackLocked:profile.attackLocked,breath:Number(inhale.toFixed(3)),rigNodes:a.fatigueRig.length};
+ a.fatiguePresentation={band:profile.band,attackLocked:profile.attackLocked,motionId:sampled.motionId,poseLabel:sampled.poseLabel,breath:Number(pose.breath.toFixed(3)),rigNodes:a.fatigueRig.length};
 }
 function actor(kind,position,boss=false){
  const key=kind==='hero'?'adventurers/Knight':kind==='mage'?'skeletons/Skeleton_Mage':kind==='minion'?'skeletons/Skeleton_Minion':'skeletons/Skeleton_Warrior';
@@ -109,7 +114,7 @@ function actor(kind,position,boss=false){
   const next=list.map(m=>{const n=m.clone();n.roughness=.74;n.metalness=.08;n.emissive=new THREE.Color('#000000');if(/Eyes/.test(o.name)){n.emissive.set(kind==='mage'?'#b870f1':'#c97450');n.emissiveIntensity=1.2;}mats.push({mat:n,base:n.emissive.clone(),power:n.emissiveIntensity});return n;});
   o.material=Array.isArray(o.material)?next:next[0];
  }});
- const a={kind,boss,root,posture,fatigueRig:collectFatigueRig(root),fatigueBand:'fresh',fatigueLocked:false,fatigueSince:0,sweatClock:0,fatiguePresentation:null,object:container,pos:container.position,height,hp:kind==='hero'?220:boss?620:38+game.wave*8,maxHp:kind==='hero'?220:boss?620:38+game.wave*8,mixer:new THREE.AnimationMixer(root),clips:new Map(asset.animations.map(c=>[c.name,c])),action:null,actionName:'',attack:null,cd:randRange(.4,1.3),dead:false,deathTime:0,flash:0,showHp:0,mats,damage:kind==='hero'?27:boss?18:kind==='mage'?10:7,speed:kind==='hero'?2.7:boss?1.2:kind==='mage'?1.1:1.55,attackSpeed:1,combo:0,spawn:kind==='hero'?0:.7,trail:[],reaction:null,reactionSerial:0,presentationActionId:null,presentationProgress:0,swingKey:null,stepClock:0};
+ const a={kind,boss,root,posture,fatigueRig:collectFatigueRig(root),fatigueBand:'fresh',fatigueLocked:false,fatigueSince:0,sweatClock:0,fatiguePose:{rootLean:0,rootDrop:0,rootSway:0,chestPitch:0,shoulderRoll:0,headPitch:0,armDrop:0,breath:0},fatiguePresentation:null,object:container,pos:container.position,height,hp:kind==='hero'?220:boss?620:38+game.wave*8,maxHp:kind==='hero'?220:boss?620:38+game.wave*8,mixer:new THREE.AnimationMixer(root),clips:new Map(asset.animations.map(c=>[c.name,c])),action:null,actionName:'',attack:null,cd:randRange(.4,1.3),dead:false,deathTime:0,flash:0,showHp:0,mats,damage:kind==='hero'?27:boss?18:kind==='mage'?10:7,speed:kind==='hero'?2.7:boss?1.2:kind==='mage'?1.1:1.55,attackSpeed:1,combo:0,spawn:kind==='hero'?0:.7,trail:[],reaction:null,reactionSerial:0,presentationActionId:null,presentationProgress:0,swingKey:null,stepClock:0};
  actors.push(a);play(a,'Idle');if(kind!=='hero'){ring(a.pos,1.1,'#bf7dcb',.6);play(a,'Spawn_Ground_Skeletons',true,.8);}return a;
 }
 function play(a,name,once=false,duration=0){
