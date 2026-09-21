@@ -183,13 +183,13 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   }
   function markOpenControl(type){ui.heart.dataset.active=String(type==='heart');ui.techniques.dataset.active=String(type==='technique');ui.bodyButton.dataset.active=String(type==='body');ui.items.dataset.active=String(type==='items');ui.map.dataset.active=String(type==='map');ui.record.dataset.active=String(type==='record');}
   function open(type,{skillId=null,silent=false}={}){
-    if(!state)return;closeQuickMenu();selectionDetail.close();ui.panel.hidden=false;ui.panel.dataset.type=type;markOpenControl(type);
+    if(!state)return;closeQuickMenu();selectionDetail.close();ui.panel.hidden=false;ui.panel.dataset.type=type;root.dataset.panelOpen='true';gameScreen.dataset.archiveOpen='true';markOpenControl(type);
     if(type==='heart')loadoutUI.renderHeart(skillId);else if(type==='technique')loadoutUI.renderTechnique(skillId);else if(type==='body')loadoutUI.renderBody();else if(type==='items')inventory();else if(type==='record')record();else map();
     if(!silent)audio.ui();
   }
-  function close(){selectionDetail.close();ui.panel.hidden=true;delete ui.panel.dataset.type;ui.panel.style.removeProperty('--loadout-sheet-drag');delete ui.panel.dataset.dragging;markOpenControl('');audio.ui();}
+  function close(){selectionDetail.close();ui.panel.hidden=true;delete ui.panel.dataset.type;delete root.dataset.panelOpen;delete gameScreen.dataset.archiveOpen;ui.panel.style.removeProperty('--loadout-sheet-drag');delete ui.panel.dataset.dragging;markOpenControl('');audio.ui();}
   function toggle(type,options={}){if(!ui.panel.hidden&&ui.panel.dataset.type===type){close();return;}open(type,options);}
-  function bindState(next){state=next;const lifeChanged=tracker.bindState(next);if(lifeChanged){loadoutUI.reset();recordPage=0;recordSection='life';inventoryPages={weapon:0,armor:0,shield:0};if(!ui.panel.hidden){ui.panel.hidden=true;delete ui.panel.dataset.type;markOpenControl('');}}}
+  function bindState(next){state=next;const lifeChanged=tracker.bindState(next);if(lifeChanged){loadoutUI.reset();recordPage=0;recordSection='life';inventoryPages={weapon:0,armor:0,shield:0};if(!ui.panel.hidden){ui.panel.hidden=true;delete ui.panel.dataset.type;delete root.dataset.panelOpen;delete gameScreen.dataset.archiveOpen;markOpenControl('');}}}
   function refresh(){if(ui.panel.hidden||!state)return;open(ui.panel.dataset.type||'items',{silent:true});}
   function setGuidance(next){guidance=next;updateRadar();if(!ui.panel.hidden&&ui.panel.dataset.type==='map')map();}
   function syncContextVitalsVisibility(){ui.vitals.hidden=!(contextVitalsWanted&&contextAnchorVisible);}
