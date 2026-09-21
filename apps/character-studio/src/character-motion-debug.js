@@ -11,7 +11,7 @@ const controls=document.createElement('div');controls.id='motion-debug-controls'
 for(const [key,label] of Object.entries(labels)){const item=document.createElement('label');Object.assign(item.style,{display:'inline-flex',alignItems:'center',gap:'3px',padding:'2px 4px',font:'10px/1.2 system-ui,sans-serif',color:'#eef4ef'});const input=document.createElement('input');input.type='checkbox';input.checked=enabled[key];input.dataset.motionDebug=key;input.addEventListener('change',()=>enabled[key]=input.checked);item.append(input,document.createTextNode(label));controls.append(item);}
 overlay.hidden=true;badge.hidden=true;controls.hidden=true;
 if(host){if(getComputedStyle(host).position==='static')host.style.position='relative';host.append(overlay,badge,controls);}
-void import(/* @vite-ignore */ new URL('./simulator/src/authored-slash.js',location.href).href).then(mod=>{slash={seconds:mod.SLASH_SECONDS,timing:mod.SLASH_TIMING};}).catch(()=>{});
+// The legacy authored-slash source is not distributed by Character Studio. Keep the optional semantic slash overlay disabled instead of issuing a guaranteed 404 on every model review.
 
 const world=(actor,name)=>actor?.bones?.[name]?.getWorldPosition(new T.Vector3())??null;
 function project(camera,p,width,height){if(!p)return null;const v=new T.Vector3(p.x,p.y,p.z).project(camera);if(!Number.isFinite(v.x+v.y+v.z)||v.z<-1||v.z>1)return null;return{x:(v.x*.5+.5)*width,y:(-.5*v.y+.5)*height};}

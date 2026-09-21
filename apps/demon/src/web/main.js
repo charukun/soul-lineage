@@ -74,7 +74,7 @@ function newSession(v) {
     learn(role, move) { const first = store.learn(role, move); refresh(); return first; },
     finish(status, n) { store.finish(v.id, status, n, game.huntReceipt); refresh(); }
   });
-  view.build(game.village,{deferDecoration:true}); view.snapCamera(game.player);
+  view.build(game.village); view.snapCamera(game.player);
 }
 async function claimAndEnter(v) {
   if (entering) return;

@@ -9,12 +9,12 @@
   "scene": {
     "unitSystem": "METRIC",
     "scaleLength": 1.0,
-    "meshObjects": 13,
+    "meshObjects": 25,
     "armatures": 1,
-    "vertices": 3897,
-    "triangles": 4596,
-    "materials": 7,
-    "uvMeshCount": 13,
+    "vertices": 3477,
+    "triangles": 4196,
+    "materials": 9,
+    "uvMeshCount": 25,
     "shapeKeys": [],
     "bones": 41
   },
