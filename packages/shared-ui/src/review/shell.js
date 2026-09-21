@@ -1,9 +1,9 @@
-import './review-shell.css';
-import './review-controls.css';
-import './review-workbench.css';
-import {REVIEW_PROBES,createReviewRoutes} from './review-manifest.js';
-import {createReviewStageLifecycle,mountReviewStageControls} from './review-stage.js';
-import {bindReviewBackNavigation,canReturnToPreviousReview,REVIEW_NAVIGATION_FALLBACK} from './review-navigation.js';
+import './shell.css';
+import './controls.css';
+import './workbench.css';
+import {REVIEW_PROBES,createReviewRoutes} from './manifest.js';
+import {createReviewStageLifecycle,mountReviewStageControls} from './stage.js';
+import {bindReviewBackNavigation,canReturnToPreviousReview,REVIEW_NAVIGATION_FALLBACK} from './navigation.js';
 
 export {REVIEW_PROBES,createReviewRoutes,createReviewStageLifecycle,mountReviewStageControls,bindReviewBackNavigation,canReturnToPreviousReview,REVIEW_NAVIGATION_FALLBACK};
 
