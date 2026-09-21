@@ -1,7 +1,5 @@
 import {prepareRinneTitleAudio} from './gameplay-audio.js';
 import {openBrandBootGate} from '@soul/shared-ui/boot-gate';
-import {applyBootBrand} from '@soul/shared-ui/boot-brand';
-import {rinneCrestUrl} from '@soul/assets';
 
 const RINNE_STEPS=[
   ['世界のしくみを呼び出しています',.20],
@@ -10,7 +8,7 @@ const RINNE_STEPS=[
   ['旅人を迎えています',.88],
 ];
 
-const bootGate=openBrandBootGate({
+await openBrandBootGate({
   app:'rinne',
   load:async report=>{
     report(.08);
@@ -39,5 +37,3 @@ const bootGate=openBrandBootGate({
     await prepareRinneTitleAudio();
   },
 });
-applyBootBrand({markUrl:rinneCrestUrl,wordmark:'百年転生'});
-await bootGate;
