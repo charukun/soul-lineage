@@ -92,7 +92,7 @@ async function randomHunt(route = 'mission') {
   try { refresh(); const v = chooseHunt(offerVillages(store), profile, route); await claimAndEnter(v); }
   catch (e) { showError(e.message || String(e)); }
 }
-function lineage() { refresh(); sheet('転生史', '身体に残ったもの', renderLineage(profile), 'lineage'); }
+function lineage() { refresh(); sheet('転生史', '身体に残ったもの', renderLineage(profile, {hunt: mode === 'hunt' ? game : null}), 'lineage'); }
 function help() {
   if (!$('sheet').hidden) { closeSheet(); paused = false; }
   guide.show({
