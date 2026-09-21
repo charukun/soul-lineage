@@ -1,6 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="116" fill="#253229"/>
-  <path d="M108 258c38-68 91-103 148-103s110 35 148 103c-38 68-91 103-148 103s-110-35-148-103Z" fill="none" stroke="#f1ead8" stroke-width="34" stroke-linejoin="round"/>
-  <circle cx="256" cy="258" r="54" fill="#c98b56"/>
-  <path d="M256 311c-3 35-22 60-53 76M256 311c3 35 22 60 53 76" fill="none" stroke="#f1ead8" stroke-width="24" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">宝満叡智</title>
+  <desc id="desc">宝珠を抱く山と、麓に重なる暮らしの段を描いた紋章</desc>
+  <defs>
+    <linearGradient id="bg" x1="78" y1="42" x2="438" y2="474" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#49604b"/><stop offset="1" stop-color="#1d3028"/>
+    </linearGradient>
+    <linearGradient id="jewel" x1="292" y1="126" x2="350" y2="207" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f5d990"/><stop offset=".52" stop-color="#d8a957"/><stop offset="1" stop-color="#a86e31"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="#1b2c25"/>
+  <rect x="30" y="30" width="452" height="452" rx="112" fill="url(#bg)" stroke="#6f806a" stroke-width="8"/>
+  <circle cx="256" cy="258" r="170" fill="none" stroke="#efe5cf" stroke-width="18" opacity=".96"/>
+  <path d="M111 318 202 207l54 61 67-96 79 146" fill="none" stroke="#f2e8d2" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M151 350c42-20 77-24 105-8 28-16 63-12 105 8M171 385c34-13 63-14 85-3 22-11 51-10 85 3" fill="none" stroke="#cdb88a" stroke-width="17" stroke-linecap="round"/>
+  <circle cx="323" cy="172" r="34" fill="url(#jewel)" stroke="#fff0cf" stroke-width="9"/>
+  <path d="M323 150v44M301 172h44" stroke="#fff8e9" stroke-width="7" stroke-linecap="round"/>
+  <path d="M323 119v13M323 212v13M270 172h13M363 172h13" stroke="#d9b96f" stroke-width="6" stroke-linecap="round"/>
 </svg>

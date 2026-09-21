@@ -1,6 +1,8 @@
 import {openBrandBootGate} from '@soul/shared-ui/boot-gate';
+import {applyBootBrand} from '@soul/shared-ui/boot-brand';
+import {rinneCrestUrl} from '@soul/assets';
 
-await openBrandBootGate({
+const bootGate=openBrandBootGate({
   app:'village',
   load:async report=>{
     const progress=document.getElementById('progress');
@@ -14,3 +16,5 @@ await openBrandBootGate({
     if((Number(progress?.value)||0)<(Number(progress?.max)||100))throw new Error('village boot incomplete');
   },
 });
+applyBootBrand({markUrl:rinneCrestUrl,wordmark:'百年転生'});
+await bootGate;
