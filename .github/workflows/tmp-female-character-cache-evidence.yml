@@ -1,0 +1,74 @@
+name: Temporary Female Character Studio Cache Evidence
+on:
+  push:
+    branches:
+      - fix/character-studio-female-cache-20260921
+permissions:
+  contents: read
+jobs:
+  evidence:
+    if: ${{ contains(github.event.head_commit.message, '[female-cache-evidence]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build Character Studio
+        env:
+          APP_ENV: dev
+        run: npm run build --workspace @soul/character-studio
+      - name: Verify female model cache identity and visible hair
+        shell: bash
+        run: |
+          set -euxo pipefail
+          npm run preview --workspace @soul/character-studio >/tmp/character-studio-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill $PREVIEW_PID || true' EXIT
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:5277/ >/dev/null && break; sleep 1; done
+          npx playwright install chromium
+          mkdir -p evidence/female-cache
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import { writeFileSync } from 'node:fs';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:792,height:1536},deviceScaleFactor:1});
+          const requests=[];
+          page.on('request',request=>{if(request.url().includes('PROTAGONIST_VILLAGER_FEMALE_V1.glb'))requests.push(request.url());});
+          await page.goto('http://127.0.0.1:5277/',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.masterCharacterReview?.ready===true,{timeout:30000});
+          const female=page.locator('#character-review-picker [data-model-key="protagonist.villager.female.v1"]');
+          await female.waitFor({state:'visible',timeout:30000});
+          const labels=await page.locator('#character-review-picker .character-model-card-label').allTextContents();
+          if(!labels.includes('主人公 男')||!labels.includes('主人公 女'))throw new Error('sex labels missing: '+JSON.stringify(labels));
+          await female.click();
+          await page.waitForFunction(()=>window.masterCharacterReview?.ready===true&&window.masterCharacterReview?.displayModelId==='protagonist.villager.female.v1',{timeout:30000});
+          await page.waitForTimeout(1500);
+          const diagnostic=await page.evaluate(()=>{
+            const actor=window.masterCharacterReview?.actors?.[0];
+            const meshes=[];
+            actor?.root?.traverse?.(node=>{if(node.isMesh)meshes.push({name:node.name,visible:node.visible,material:Array.isArray(node.material)?node.material.map(m=>m?.name):node.material?.name||''});});
+            const hair=meshes.filter(row=>/^RINNE_Female(?:Bob|Bang_|FringeBase|SideLock_)/.test(row.name));
+            return {displayModelId:window.masterCharacterReview?.displayModelId??null,ready:Boolean(window.masterCharacterReview?.ready),errors:[...(window.masterCharacterReview?.errors||[])],hair,meshes:meshes.map(row=>row.name)};
+          });
+          const femaleRequests=requests.filter(url=>url.includes('PROTAGONIST_VILLAGER_FEMALE_V1.glb'));
+          const cacheBound=femaleRequests.some(url=>url.includes('sha256=06de3a20266316b5ce1f75b88ca7434916d13c2f161036c29649f06f6b44c78c'));
+          if(!cacheBound)throw new Error('female GLB request is not hash-bound: '+JSON.stringify(femaleRequests));
+          if(!diagnostic.hair.length||!diagnostic.hair.some(row=>row.visible))throw new Error('female hair meshes are not visible: '+JSON.stringify(diagnostic.hair));
+          if(diagnostic.errors.length)throw new Error('Character Studio errors: '+JSON.stringify(diagnostic.errors));
+          writeFileSync('evidence/female-cache/diagnostic.json',JSON.stringify({...diagnostic,labels,femaleRequests},null,2)+'\n');
+          await page.screenshot({path:'evidence/female-cache/character-studio-female.png',fullPage:true});
+          await browser.close();
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: female-character-cache-evidence-${{ github.sha }}
+          path: evidence/female-cache
+          retention-days: 5
