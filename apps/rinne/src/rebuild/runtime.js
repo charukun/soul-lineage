@@ -138,6 +138,8 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     if(event.type==='activity-start')toast(event.station.actionLabel||event.station.label);
     if(event.type==='activity-complete')toast('経験が残った');
     if(event.type==='skills'&&event.ids.length)toast(`閃き · ${(event.names||event.ids).slice(0,2).join('・')}`);
+    if(event.type==='village-news'&&event.text)toast(`村報 · ${event.text}`);
+    if(event.villageAnnouncement)toast(`村報 · ${event.villageAnnouncement}`);
     if(event.type==='birthday'&&[7,15,50,80].includes(event.age))toast(`${event.age}歳`);
     if(event.type==='life-end')endLife();
     if(event.type==='player-hit')gameScreen.classList.add('strike-mark');
@@ -225,7 +227,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   document.addEventListener('visibilitychange',visibility);
   window.addEventListener('pagehide',pagehide);
   if(front)view.syncFront(front);else view.syncFront(null);view.renderState(state,.016);birth.afterRender(.016,{carrierMoving:false});syncUI();uiElapsed=0;loading.hidden=true;canvas.dataset.runtime='active';
-  armMovementHint();showBirthIntro();firstRunGuide=coop?null:startRinneFirstRunGuide({root:gameScreen.querySelector('.rinne-gameplay-upgrade'),gameScreen,canvas,getState:()=>state,environment:host.environment,mode});raf=requestAnimationFrame(frame);void save();
+  armMovementHint();showBirthIntro();const birthNews=state.events?.find(event=>event.type==='village-news'&&event.worldSecond===0);if(birthNews&&state.ageYears<.2)toast(`村報 · ${birthNews.text}`);firstRunGuide=coop?null:startRinneFirstRunGuide({root:gameScreen.querySelector('.rinne-gameplay-upgrade'),gameScreen,canvas,getState:()=>state,environment:host.environment,mode});raf=requestAnimationFrame(frame);void save();
 
   function dispose(){
     if(!active)return;active=false;host.active=false;firstRunGuide?.dispose?.();firstRunGuide=null;view.clearCombatEffects?.();cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();unsubscribeWorld();

@@ -10,7 +10,8 @@ export const COOP_PROTOCOL='rinne-coop-dev-2';
 const clone=value=>structuredClone(value),identifier=value=>typeof value==='string'&&/^[\w:.-]{1,120}$/.test(value);
 const seedOf=text=>{let n=2166136261;for(const c of text)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;};
 const speed=age=>age<4?1.2:age<7?2.15:age<65?4.15:Math.max(2.3,4.15-(age-65)*.035);
-const visibleLife=s=>({id:s.id,name:s.name,seed:s.seed,birthVillageId:s.birthVillageId,ageSeconds:s.ageSeconds,ageYears:s.ageYears,phase:s.phase,zone:s.zone,front:s.front,position:clone(s.position),yaw:s.yaw,moving:s.moving,equipment:clone(s.equipment),vfxSkills:equippedVfxSkillIds(s),combat:Boolean(s.combat),combatPose:s.combat?.tidebreakPose?clone(s.combat.tidebreakPose):null,combatIntent:s.combat?.bodyIntent||null,rangedCombat:s.rangedCombat?clone(s.rangedCombat):null,ended:s.ended});
+const socialHooks=s=>{const talents=s.inspiration?.talents||[],hooks=[];if(talents.includes('gifted'))hooks.push({kind:'protect-gifted-child',label:'ギフテッド',roles:['見守り役','師匠候補','将来の共闘仲間']});if(talents.includes('prodigy'))hooks.push({kind:'rally-around-prodigy',label:'天賦の才',roles:['師匠','稽古仲間','共闘仲間']});return hooks;};
+const visibleLife=s=>({id:s.id,name:s.name,seed:s.seed,birthVillageId:s.birthVillageId,ageSeconds:s.ageSeconds,ageYears:s.ageYears,phase:s.phase,zone:s.zone,front:s.front,position:clone(s.position),yaw:s.yaw,moving:s.moving,equipment:clone(s.equipment),vfxSkills:equippedVfxSkillIds(s),talents:[...(s.inspiration?.talents||[])],socialHooks:socialHooks(s),combat:Boolean(s.combat),combatPose:s.combat?.tidebreakPose?clone(s.combat.tidebreakPose):null,combatIntent:s.combat?.bodyIntent||null,rangedCombat:s.rangedCombat?clone(s.rangedCombat):null,ended:s.ended});
 
 export class CoopWorld {
   constructor({worldId,ownerId,name,layout,saved=null}){
@@ -25,13 +26,20 @@ export class CoopWorld {
       this.data=clone(saved);this.data.epoch++;this.setRate(ownerId,saved.clockRate);
     }else this.addPlayer(ownerId,name,'owner');
   }
+  broadcastVillageNews(sourceId,event){
+    if(!event)return;const source=this.data.players[sourceId]?.life,village=source?.birthVillageId;if(!village)return;
+    const news={type:'village-news',scope:'village',sourceId,subjectId:event.subjectId||source.id,tag:event.tag||'',text:event.text||event.villageAnnouncement||'',communityHook:event.communityHook||null};
+    for(const [id,row] of Object.entries(this.data.players)){if(row.life.birthVillageId!==village)continue;const list=this.events.get(id)||[];this.events.set(id,[...list,clone(news)].slice(-100));}
+  }
   addPlayer(id,name,token){
     if(!identifier(id)||Object.hasOwn(this.data.players,id)||Object.keys(this.data.players).length>=COOP_LIMIT)throw Error('この村にはこれ以上参加できません。');
     const life=createLife({name,seed:seedOf(`${this.data.worldId}:${id}`),villageIds:[this.layout.id]});
     const slot=Object.keys(this.data.players).length,radius=1.6+Math.floor(slot/6)*.7;
     if(slot)life.position={x:life.position.x+Math.cos(slot*2.4)*radius,z:life.position.z+Math.sin(slot*2.4)*radius};
     life.id=`${id}:1`;life.position=safeMuraPosition(this.layout,life.position);life.clockRate=this.data.clockRate;
-    this.data.players[id]={life,token,portDwell:0};this.dirtyHistory=true;return life;
+    this.data.players[id]={life,token,portDwell:0};this.events.set(id,[]);
+    const bornNews=life.events?.find(event=>event.type==='village-news'&&event.scope==='village');if(bornNews)this.broadcastVillageNews(id,bornNews);
+    this.dirtyHistory=true;return life;
   }
   setRate(id,rate){if(id!==this.data.ownerId)throw Error('世界時計は村を開いた人が操作します。');for(const row of Object.values(this.data.players))setClockRate(row.life,rate);this.data.clockRate=Number(rate);}
   acceptInput(id,input){
@@ -40,7 +48,9 @@ export class CoopWorld {
     this.inputs.set(id,{seq:input.seq,x:input.x,z:input.z,until:this.data.tick+10});return true;
   }
   clearInput(id){this.inputs.delete(id);}
-  rebirth(id,villageId){const row=this.data.players[id];if(!row||!row.life.ended)return false;row.life=rebirth(row.life,{villageId:villageId||null,villageIds:[this.layout.id]});row.life.id=`${id}:${row.life.generation}`;row.life.clockRate=this.data.clockRate;row.life.position=safeMuraPosition(this.layout,row.life.position);row.portDwell=0;this.dirtyHistory=true;return true;}
+  rebirth(id,villageId){const row=this.data.players[id];if(!row||!row.life.ended)return false;row.life=rebirth(row.life,{villageId:villageId||null,villageIds:[this.layout.id]});row.life.id=`${id}:${row.life.generation}`;row.life.clockRate=this.data.clockRate;row.life.position=safeMuraPosition(this.layout,row.life.position);row.portDwell=0;this.events.set(id,[]);
+    const bornNews=row.life.events?.find(event=>event.type==='village-news'&&event.scope==='village');if(bornNews)this.broadcastVillageNews(id,bornNews);
+    this.dirtyHistory=true;return true;}
   advance(dt=.05,{blocked=new Set()}={}){
     if(!Number.isFinite(dt)||dt<=0||dt>.05)throw Error('共有時計の刻みが不正です。');
     this.data.tick++;this.data.worldSeconds+=dt*this.data.clockRate;
@@ -55,7 +65,9 @@ export class CoopWorld {
       }
       row.carrierMoving=moved&&life.phase==='birth';setMoving(life,moved&&life.phase!=='birth',life.yaw);
       const station=life.zone==='village'?nearestStation(this.stations,life.position):null;
-      this.events.set(id,[...(this.events.get(id)||[]),...tickLife(life,{realDelta:dt,station})].slice(-100));if(!beforeEnded&&life.ended)this.dirtyHistory=true;
+      const lifeEvents=tickLife(life,{realDelta:dt,station});this.events.set(id,[...(this.events.get(id)||[]),...lifeEvents].slice(-100));
+      for(const event of lifeEvents)if(event?.villageAnnouncement)this.broadcastVillageNews(id,{...event,text:event.villageAnnouncement,tag:event.prodigy?'天賦の才':'',communityHook:event.prodigy?{kind:'rally-around-prodigy',roles:['師匠','稽古仲間','共闘仲間']}:null});
+      if(!beforeEnded&&life.ended)this.dirtyHistory=true;
       if(station?.port&&canDepart(life)&&!moved){row.portDwell+=dt;if(row.portDwell>=1.5){
         if(!rows.some(([,r])=>r.life.zone==='frontier'))this.data.fronts={};
         if(depart(life)){this.events.get(id).push({type:'depart'});row.portDwell=0;}
@@ -67,7 +79,8 @@ export class CoopWorld {
       const front=this.data.fronts[stage]??=createFront(stage,seedOf(this.data.worldId));
       const events=tickSharedFront(fighters.map(([,r])=>r.life),front,dt);
       for(const [id,row]of fighters){
-        const life=row.life;this.events.get(id).push(...(events.get(life.id)||[]));
+        const life=row.life,frontEvents=events.get(life.id)||[];this.events.get(id).push(...frontEvents);
+        for(const event of frontEvents)if(event?.villageAnnouncement)this.broadcastVillageNews(id,{...event,text:event.villageAnnouncement,tag:event.prodigy?'天賦の才':'',communityHook:event.prodigy?{kind:'rally-around-prodigy',roles:['師匠','稽古仲間','共闘仲間']}:null});
         if(life.zone==='village'){life.position=safeMuraPosition(this.layout,{x:0,z:0});continue;}
         if(front.cleared&&life.position.z<=-5.85&&stage<5)advanceFront(life);
         else if(front.cleared&&stage===5&&life.position.z>=4.8&&returnHome(life))life.position=safeMuraPosition(this.layout,{x:166,z:0});
