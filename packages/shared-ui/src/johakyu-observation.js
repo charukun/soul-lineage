@@ -11,6 +11,14 @@ const finite=(value,name,min=-Infinity)=>{
 };
 const phase=value=>value===null?null:phases.has(value)?value:(()=>{throw new TypeError('Invalid phase');})();
 const freeze=Object.freeze;
+const bodyParts=['head','torso','leftArm','rightArm','leftLeg','rightLeg'];
+function physiology(actor,authority){
+  if(authority==='native-demo')return {stamina:null,body:null};
+  let stamina=null,body=null;
+  if(actor.stamina!=null){const value=finite(actor.stamina.value,'stamina',0),cap=finite(actor.stamina.cap,'stamina cap',1);if(value>100||cap>100)throw new TypeError('Invalid stamina');stamina=freeze({value,cap});}
+  if(actor.body!=null)body=freeze(Object.fromEntries(bodyParts.map(part=>{const row=actor.body[part],severity=finite(row?.severity,'body severity',0),durability=finite(row?.durability,'body durability',0);if(severity>1||durability!==Math.round((1-severity)*100))throw new TypeError('Inconsistent body durability');return [part,freeze({severity,durability,stage:text(row.stage,'body stage'),label:text(row.label,'body label')})];})));
+  return {stamina,body};
+}
 
 /** Copy a simulation-owned frame. No renderer, command, clock or storage ports. */
 export function createBattleObservation({authority,battleId,timeSeconds,status,actors,events=[]}){
@@ -30,7 +38,7 @@ export function createBattleObservation({authority,battleId,timeSeconds,status,a
     return freeze({id,side:actor.side,position,hp,maxHp,dead:actor.dead,
       phase:executionPhase,animation:actor.animation===null?null:text(actor.animation,'animation'),
       // Null means not connected. Do not derive game rules from demo HP or clips.
-      stamina:null,body:null,techniqueId:authority==='native-demo'?null:actor.techniqueId==null?null:text(actor.techniqueId,'techniqueId')});
+      ...physiology(actor,authority),incapacitated:actor.incapacitated===true,techniqueId:authority==='native-demo'?null:actor.techniqueId==null?null:text(actor.techniqueId,'techniqueId')});
   });
   const eventIds=new Set();
   const impacts=events.map(event=>{
@@ -39,7 +47,7 @@ export function createBattleObservation({authority,battleId,timeSeconds,status,a
     const sourceId=text(event.sourceId,'sourceId'),targetId=text(event.targetId,'targetId');
     if(sourceId===targetId||!ids.has(sourceId)||!ids.has(targetId))throw new TypeError('Unknown impact actor');
     return freeze({id,type:'impact',attackId:text(event.attackId,'attackId'),sourceId,targetId,
-      phase:phase(event.phase),techniqueId:event.techniqueId==null?null:text(event.techniqueId,'techniqueId'),damage:finite(event.damage,'damage',0)});
+      phase:phase(event.phase),techniqueId:event.techniqueId==null?null:text(event.techniqueId,'techniqueId'),damage:finite(event.damage,'damage',0),...(event.bodyPart==null?{}:{bodyPart:bodyParts.includes(event.bodyPart)?event.bodyPart:(()=>{throw new TypeError('Invalid hit body part');})(),bodyDurability:finite(event.bodyDurability,'hit body durability',0)})});
   });
   return freeze({schemaVersion:1,authority,readOnly:true,battleId,
     clock:freeze({owner:authority,seconds:timeSeconds}),status,

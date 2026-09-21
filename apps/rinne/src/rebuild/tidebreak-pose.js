@@ -28,5 +28,5 @@ export function applyTidebreakPose(bones,frame){
 }
 
 export function tidebreakFrameFromSnapshot(actor,{targetId=null,intent='attack',sector='front'}={}){
-  if(!actor)return null;return{attack:actor.attack||null,progress:clamp(safe(actor.progress),0,1),slot:actor.slot||null,skill:actor.skill||null,guarding:Boolean(actor.guarding),stun:safe(actor.stun),pose:actor.pose||null,targetId,intent,sector};
+  if(!actor)return null;return{execution:actor.execution?structuredClone(actor.execution):null,weapon:actor.weapon||null,attack:actor.attack||null,progress:clamp(safe(actor.progress),0,1),slot:actor.slot||null,skill:actor.skill||null,guarding:Boolean(actor.guarding),stun:safe(actor.stun),pose:actor.pose||null,targetId,intent,sector};
 }

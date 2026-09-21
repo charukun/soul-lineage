@@ -5,7 +5,7 @@ import {simulation} from './helpers/johakyu-simulation.mjs';
 import {createJohakyuReviewRules} from '../src/nocturne/johakyu-rules.js';
 
 test('ended review encounters have no live attack or phase beneath victory/death animation',()=>{
-  const source=readFileSync(new URL('../src/nocturne/runtime.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
   const engine=simulation(source,{rules:createJohakyuReviewRules()});engine.init();
   let endings=0;
   for(let tick=0;tick<7200;tick++){

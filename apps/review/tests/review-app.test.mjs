@@ -22,7 +22,7 @@ test('Lab separates review probes and keeps delivered runtime routes canonical',
 });
 
 test('battle2 has native canvases, no hidden UI shim, no HUD drawing or gameplay controls',()=>{
-  const source=read('src/main.js'),page=read('battle2.html'),runtime=read('src/nocturne/runtime.js'),boot=read('src/nocturne-stage.js'),vite=read('vite.config.js');
+  const source=read('src/main.js'),page=read('battle2.html'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),boot=read('src/nocturne-stage.js'),vite=read('vite.config.js');
   assert.match(source,/battle2:new URL\('\.\/battle2',location\.href\)\.href/);
   assert.match(page,/data-review-surface="battle2"/);assert.match(page,/data-runtime="nocturne-native"/);
   for(const id of ['world','effects'])assert.match(page,new RegExp('<canvas id="'+id+'"'));

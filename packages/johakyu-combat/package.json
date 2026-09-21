@@ -5,7 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.js",
-    "./domain": "./src/domain.js"
+    "./domain": "./src/domain.js",
+    "./injury": "./src/injury.js",
+    "./choreography": "./src/choreography.js",
+    "./stamina": "./src/stamina.js",
+    "./motion-contract": "./src/motion-contract.js"
   },
   "dependencies": {
     "@soul/game-data": "*"
