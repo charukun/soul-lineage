@@ -30,7 +30,7 @@ test('equipment catalog aggregates existing weapon sources instead of a fixed fi
   assert.match(catalog,/kaykit-sword-1h/);
   assert.match(catalog,/kaykit-shield-badge/);
   assert.match(catalog,/item\.category==='weapons'/);
-  assert.match(catalog,/weapon==='spear'/);
+  assert.match(catalog,/spear\|staff\|槍\|杖/);
 });
 
 test('equipment review preserves camera unless the user chooses a camera preset', async () => {
