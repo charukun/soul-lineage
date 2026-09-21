@@ -66,11 +66,12 @@ PULSE snapshot、GitHub APIキャッシュ、control historyはDurable Objects�
 
 ## 6. トップ画面
 
-トップは ACTIVE / APPS / ISSUES / RECENT の4区画です。
+トップは ACTIVE / ITERATIONS / APPS / ISSUES / RECENT の5区画です。
 
 - ACTIVE: Draft / Ready のopen develop PR
+- ITERATIONS: 自律改善PRを `観測 → 実装 → 検証 → After → merge → DEV` の6段で表示
 - APPS: 全管理対象のDEV状態
-- ISSUES: 実際の失敗と人の確認が必要な項目
+- ISSUES: 実際の失敗と人の確認が必要な項目。各異常から、現在GitHub状態を再確認して同じPRで修復するためのAIプロンプトをコピーできる
 - RECENT: 直近Fast DEVセッションを `実装 → 検証 → Browser → merge → DEV` の5段で表示し、セッション情報がない場合だけmerge・DEV公開・PULSE状態変化を表示
 
 トップのApps Healthyは管理対象7件を母数とし、各DEV実体の `version.json` を確認できたアプリをHealthyとして数えます。ゲーム3本だけを数えません。
