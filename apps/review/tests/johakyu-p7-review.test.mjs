@@ -48,7 +48,7 @@ test('HUD follows the rendered hero feet and uses only short action text',()=>{
  const stage=stageSource(),css=hudCss(),html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8');
  const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
  const controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8');
- assert.match(runtime,/footAnchor\(\)\{if\(!hero\)return null;return project\(hero\.pos\.clone\(\)\.add\(new V\(0,\.08,0\)\)\);\}/);
+ assert.match(runtime,/self\(a\)\{hero=a;selfBinding=a;\}/);assert.match(runtime,/footAnchor\(\)\{if\(!selfBinding\)return null;return project\(selfBinding\.pos\.clone\(\)\.add\(new V\(0,\.03,0\)\)\);\}/);assert.doesNotMatch(runtime,/footAnchor\(\)\{if\(!hero/);
  assert.match(controller,/footAnchor:\(\)=>driven\.footAnchor/);assert.match(stage,/function positionHud\(\)/);assert.match(stage,/runtime\?\.footAnchor\?\.\(\)/);
  assert.match(stage,/hud\.style\.left/);assert.match(stage,/hud\.style\.top/);assert.match(css,/\.battle-sequence-hud\{[^}]*top:50%/);
  assert.doesNotMatch(html,/間合いを測っている/);
@@ -63,6 +63,23 @@ test('action history remains floating text that fades itself, not a web-style li
  assert.doesNotMatch(stage,/historyNode\.replaceChildren\(\.\.\.history\.map/);
  assert.match(css,/\.battle-sequence-history__float\{/);assert.match(css,/position:absolute/);assert.match(css,/johakyu-text-drift 3\.7s/);assert.match(css,/@keyframes johakyu-text-drift/);
  assert.doesNotMatch(css,/battle-sequence-history__float[^}]*background:/);
+});
+
+
+test('1v1 visibly separates quiet jo, dense ha and decisive kyu',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel'}),seen=new Set(),starts={jo:[],ha:[],kyu:[]},dist={jo:[],ha:[],kyu:[]},damage={jo:[],ha:[],kyu:[]};
+ for(let i=0;i<1100;i++){
+   const r=scenario.step(1/60),phase=r.meta.flowPhase,hero=r.frame.actors.find(a=>a.self),enemy=r.frame.actors.find(a=>a.side==='enemy'&&!a.dead&&!a.downed);
+   if(hero?.action&&!seen.has(hero.action.id)){seen.add(hero.action.id);starts[phase].push(i/60);}
+   if(hero&&enemy)dist[phase].push(Math.hypot(hero.position.x-enemy.position.x,hero.position.z-enemy.position.z));
+   for(const event of r.events)if(event.sourceId==='hero')damage[event.phase].push(event.damage);
+ }
+ const avg=rows=>rows.reduce((a,b)=>a+b,0)/Math.max(1,rows.length),gap=rows=>avg(rows.slice(1).map((v,i)=>v-rows[i]));
+ for(const phase of ['jo','ha','kyu'])assert.ok(starts[phase].length>=2,phase+' actions');
+ assert.ok(gap(starts.jo)>gap(starts.ha)+.25,'jo must breathe more than ha');
+ assert.ok(avg(dist.jo)>avg(dist.ha)+.3,'jo must keep visibly more distance');
+ assert.ok(avg(dist.ha)>avg(dist.kyu)+.15,'kyu must close decisively');
+ assert.ok(avg(damage.kyu)>avg(damage.ha)*1.7,'kyu impacts must feel materially more decisive');
 });
 
 test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});
