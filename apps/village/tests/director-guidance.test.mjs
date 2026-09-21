@@ -49,14 +49,14 @@ test('idle resident turns into an actionable village voice after the authored tu
   assert.match(next.title,/ミナ.*仕事/);
   assert.equal(next.action.kind,'logging');
   assert.equal(next.action.label,'仕事場をつくる');
-  assert.match(nextVillageGoal(fixture({people:[resident]})),/仕事/);
+  assert.match(nextVillageGoal(fixture({people:[resident],objects:[{kind:'wheat'}]})),/仕事/);
 });
 
 test('work suggestion reacts to what the village already has instead of repeating one facility forever',()=>{
   const resident={name:'ミナ',role:'resident',dead:false,jobId:null};
   const next=nextVillageGuidance(fixture({
     people:[resident],
-    objects:[{kind:'logging'},{kind:'logging'}],
+    objects:[{kind:'wheat'},{kind:'logging'},{kind:'logging'}],
   }));
   assert.equal(next.action.kind,'storage');
 });
