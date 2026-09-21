@@ -50,9 +50,9 @@
         "source-protagonist-kaykit-parts"
       ],
       "auditPath": "docs/characters/qa/protagonist-villager-female-v1/blender-audit.json",
-      "meshObjects": 13,
-      "triangles": 4596,
-      "materials": 7
+      "meshObjects": 25,
+      "triangles": 4128,
+      "materials": 9
     }
   },
   "status": {
@@ -60,6 +60,6 @@
     "productionReady": false,
     "licensePolicy": "allowed-cc0",
     "distributionEligible": true,
-    "note": "Three-round fixed-view and Character Studio visual refinement completed. Rig_Medium preserved; human visual approval remains pending."
+    "note": "Three fixed-view + Character Studio visual refinement rounds completed. Rig_Medium preserved; explicit human visual approval, deformation/motion polish and device performance remain pending."
   }
 }
