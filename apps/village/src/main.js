@@ -61,29 +61,31 @@ try {
   disposeResidentAging=installResidentAging(village);
   const {installSharedVillageSpeech}=await import('./shared-speech-bubbles.js');
   disposeSpeech=installSharedVillageSpeech(village);
-  // Preserve the single enhancement graph introduced on develop. Retired
-  // entries are side-effect-free compatibility modules after consolidation.
   const {installInterface}=await import('./web/interface.js');
   installInterface(window.village);
-  await import('./mura-entry-polish.js');
   let postEntryEnhancements=null;
   const yieldEntryPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
   const yieldBrowserTurn=()=>new Promise(resolve=>setTimeout(resolve,0));
   const loadPostEntryEnhancements=()=>postEntryEnhancements??=(async()=>{
-    // Let the entry click paint and become interactive before starting optional
-    // post-entry work. Heavy modules then cooperate with the browser between
-    // ordered stages instead of monopolizing the first playable task.
+    canvas.dataset.enhancements='loading';
+    // Preserve the ordered enhancement graph and yield the first playable paint.
     await yieldEntryPaint();
     const {loadMuraEnhancements}=await import('./mura-enhancements.js');
     await loadMuraEnhancements();
-    // Character runtime metadata wraps the final syncActor chain so later
-    // presentation enhancers cannot replace the shared semantic state adapter.
     await yieldBrowserTurn();
     await import('./character-runtime-integration.js');
     await yieldBrowserTurn();
     await import('./mura-village-visual-language.js');
-  })();
+    canvas.dataset.enhancements='ready';
+  })().catch(error=>{
+    canvas.dataset.enhancements='error';
+    console.error(error);
+    reportError(error);
+  });
+  // Register before entry creation: returning players can enter synchronously.
   window.addEventListener('village:entered',()=>{void loadPostEntryEnhancements();},{once:true});
+  await import('./mura-entry-polish.js');
+  if(!village.ui.entryOpen)void loadPostEntryEnhancements();
   if(serviceEnvironment!=='prod'){
     const speedButton=document.createElement('button'),speeds=[1,5,20];
     speedButton.id='muraDebugTimeAccel';speedButton.type='button';speedButton.dataset.debugControl='time-accel';speedButton.title='クリックで 1× / 5× / 20×';
@@ -94,7 +96,8 @@ try {
   clearTimeout(watchdog);
   finished = true;
   progress.value = 100;
-  loading.hidden = true;
+  loading.hidden = false;
+  if(canvas.dataset.enhancements!=='error')loading.hidden=true;
 } catch (error) {
   console.error(error);
   reportError(error);

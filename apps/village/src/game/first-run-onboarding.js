@@ -7,14 +7,15 @@ function current(state){
   ?{started:!!value.started,seen:!!value.seen}
   :{started:false,seen:false};
 }
-
 function resetReplayKey(environment){return `${RESET_REPLAY_KEY}.${environment||'unknown'}`;}
-
 export function requestFirstRunAutoplayAfterReset(environment,storage=globalThis.sessionStorage){
  try{storage?.setItem(resetReplayKey(environment),'1');return !!storage;}
  catch{return false;}
 }
-
+export function hasFirstRunAutoplayAfterReset(environment,storage=globalThis.sessionStorage){
+ try{return storage?.getItem(resetReplayKey(environment))==='1';}
+ catch{return false;}
+}
 export function consumeFirstRunAutoplayAfterReset(environment,storage=globalThis.sessionStorage){
  try{
   if(!storage)return false;
@@ -23,26 +24,22 @@ export function consumeFirstRunAutoplayAfterReset(environment,storage=globalThis
   return requested;
  }catch{return false;}
 }
-
-export function shouldRunFirstRunAutoplay(state,{freshLoad=false}={}){
+export function shouldRunFirstRunAutoplay(state,{freshLoad=false,resetReplay=false}={}){
+ // An explicit successful reset outranks an old completion marker.
+ if(resetReplay)return true;
  const raw=state?.onboarding?.firstRunAutoplay;
- // Older guides may have completed after the moving-finger demo was replaced.
- // Replay v4 once so existing saves see the restored animated guide.
  if(raw?.seen&&raw.version!==FIRST_RUN_AUTOPLAY_VERSION)return true;
  const status=current(state);
  return !status.seen&&(freshLoad||status.started);
 }
-
 export function shouldRecoverFirstRunAutoplay(state,{resetReplay=false,guidePlaced=false}={}){
  const status=current(state);
  return !resetReplay&&status.started&&!status.seen&&guidePlaced;
 }
-
 export function markFirstRunAutoplayStarted(state){
  state.onboarding={...(state.onboarding||{}),firstRunAutoplay:{version:FIRST_RUN_AUTOPLAY_VERSION,started:true,seen:false}};
  return state.onboarding.firstRunAutoplay;
 }
-
 export function markFirstRunAutoplaySeen(state){
  state.onboarding={...(state.onboarding||{}),firstRunAutoplay:{version:FIRST_RUN_AUTOPLAY_VERSION,started:false,seen:true}};
  return state.onboarding.firstRunAutoplay;
