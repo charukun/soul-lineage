@@ -85,7 +85,7 @@ function executionCapability(state,session,next){
   const execution=next.hero.execution;if(!execution)return null;
   const step=executionStage(session,execution)||{},base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,phase=execution.phase||next.hero.slot||'jo';
   const effort=causalTechnique(session,next.hero)?.row.effort||1,cost=session.secondary?0:base.stamina*(phase==='kyu'?1.25:phase==='ha'?1.08:1)*effort;
-  return johakyuStageCapability(state,{weapon:execution.weapon||tidebreakWeaponFor(state.equipment.weapon),phase,kind:execution.kind||step.kind||'ready',footwork:step.footwork||'stay',charge:execution.charge||step.charge||'none',staminaCost:cost});
+  return johakyuStageCapability(state,{weapon:execution.weapon||tidebreakWeaponFor(state.equipment.weapon),phase,kind:step.kind||execution.kind||'ready',footwork:step.footwork||'stay',charge:step.charge||execution.charge||'none',staminaCost:cost});
 }
 function chargeAttackStamina(state,session,next,events){
   const execution=next.hero.execution,key=execution?String(execution.attackId):null;let paid=true;
@@ -94,8 +94,8 @@ function chargeAttackStamina(state,session,next,events){
     if(capability&&!capability.allowed){
       paid=false;session.invalid=true;
       const remaining=(capability.reason==='arm-injury'||capability.reason==='leg-injury') ? .85 : .45;
-      if(state.combat){state.combat.executionBlock={reason:capability.reason,remaining,phase:execution.phase||next.hero.slot||'jo',kind:execution.kind||null,stageIndex:execution.stepIndex??null};state.combat.attackCooldown=Math.max(Number(state.combat.attackCooldown)||0,remaining);}
-      events.push({type:'execution-blocked',reason:capability.reason,phase:execution.phase||next.hero.slot||'jo',kind:execution.kind||null,stageIndex:execution.stepIndex??null,targetId:session.targetId,engine:'tidebreak',authority:'rinne-domain'});
+      if(state.combat){state.combat.executionBlock={reason:capability.reason,remaining,phase:execution.phase||next.hero.slot||'jo',kind:capability.kind||execution.kind||null,stageIndex:execution.stepIndex??null};state.combat.attackCooldown=Math.max(Number(state.combat.attackCooldown)||0,remaining);}
+      events.push({type:'execution-blocked',reason:capability.reason,phase:execution.phase||next.hero.slot||'jo',kind:capability.kind||execution.kind||null,stageIndex:execution.stepIndex??null,targetId:session.targetId,engine:'tidebreak',authority:'rinne-domain'});
     }else if(!session.secondary){
       const cost=capability?.stamina?.effectiveCost??0;paid=spendStamina(state,cost);
       if(!paid){state.stamina=0;session.invalid=true;events.push({type:'execution-blocked',reason:'stamina',phase:execution.phase||next.hero.slot||'jo',kind:execution.kind||null,stageIndex:execution.stepIndex??null,targetId:session.targetId,engine:'tidebreak',authority:'rinne-domain'});}
