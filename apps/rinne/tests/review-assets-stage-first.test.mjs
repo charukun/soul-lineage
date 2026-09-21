@@ -111,7 +111,7 @@ test('equipment review hides embedded combat props and applies calibrated hand g
 test('equipment library exposes armor categories and body slots', async () => {
   const [html,js,catalog]=await Promise.all([readFile(htmlUrl,'utf8'),readFile(jsUrl,'utf8'),readFile(catalogUrl,'utf8')]);
   for(const id of ['head','body','arms','legs','back'])assert.match(html,new RegExp(`asset-current-${id}`));
-  for(const label of ['頭','胴','腕','脚','背中'])assert.match(catalog,new RegExp(`${label}:'`));
+  for(const [key,label] of [['head','頭'],['body','胴'],['arms','腕'],['legs','脚'],['back','背中']])assert.match(catalog,new RegExp(`${key}:'${label}'`));
   for(const armor of ['helmet','chestplate','bracers','greaves','mantle'])assert.match(catalog,new RegExp(`'${armor}'`));
   assert.match(js,/const EQUIPMENT_SLOTS=Object\.freeze\(\['main','off','head','body','arms','legs','back'\]\)/);
   assert.match(js,/function runtimeArmor\(item\)/);
