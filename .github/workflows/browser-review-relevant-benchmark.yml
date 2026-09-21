@@ -1,0 +1,104 @@
+name: Browser Review Relevant Benchmark
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  REVIEW_URL: https://762f30c0-soul-lineage-demon-dev.c-okamoto.workers.dev/
+
+jobs:
+  baseline:
+    if: github.event.pull_request.number == 1329
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: browser-review/control
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Install current Chromium payload
+        run: npx playwright install --with-deps chromium
+      - name: Run real Browser Review
+        run: |
+          mkdir -p .browser-review
+          node -e "require('fs').writeFileSync('.browser-review/command.json',JSON.stringify({url:process.env.REVIEW_URL,viewport:{width:673,height:841},deviceScaleFactor:1,video:true,actions:[{op:'wait',ms:500,label:'settle'}]}))"
+          node scripts/browser/review-control.mjs .browser-review/command.json
+
+  only-shell:
+    if: github.event.pull_request.number == 1329
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: browser-review/control
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Install headless shell only
+        run: npx playwright install --with-deps --only-shell chromium
+      - name: Run real Browser Review
+        run: |
+          mkdir -p .browser-review
+          node -e "require('fs').writeFileSync('.browser-review/command.json',JSON.stringify({url:process.env.REVIEW_URL,viewport:{width:673,height:841},deviceScaleFactor:1,video:true,actions:[{op:'wait',ms:500,label:'settle'}]}))"
+          node scripts/browser/review-control.mjs .browser-review/command.json
+
+  cache-seed:
+    if: github.event.pull_request.number == 1329
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: browser-review/control
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: browser-review-bench-pw163-${{ github.run_id }}
+      - name: Install current Chromium payload
+        run: npx playwright install --with-deps chromium
+
+  cache-hit:
+    if: github.event.pull_request.number == 1329
+    needs: cache-seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: browser-review/control
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: browser-review-bench-pw163-${{ github.run_id }}
+      - name: Install OS deps only
+        run: npx playwright install-deps chromium
+      - name: Run real Browser Review from restored browser cache
+        run: |
+          mkdir -p .browser-review
+          node -e "require('fs').writeFileSync('.browser-review/command.json',JSON.stringify({url:process.env.REVIEW_URL,viewport:{width:673,height:841},deviceScaleFactor:1,video:true,actions:[{op:'wait',ms:500,label:'settle'}]}))"
+          node scripts/browser/review-control.mjs .browser-review/command.json
