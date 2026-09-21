@@ -23,7 +23,7 @@ export function reviewTechniqueDefinition(id,{weapon='sword',phase='jo'}={}){
   return supported?technique:null;
 }
 export function createCanonicalReviewComposition({weapon='sword'}={}){
-  const ids={jo:[`basic.${weapon}`,'action.feint'],ha:['action.guard-step','action.counter','action.flow'],kyu:['action.lunge','action.finish']};
+  const ids={jo:[`basic.${weapon}`,'action.feint'],ha:['action.guard-step','action.counter','action.flow'],kyu:['action.lunge','action.precision']};
   return Object.freeze(Object.fromEntries(REVIEW_TECHNIQUE_PHASES.map(phase=>[phase,Object.freeze(ids[phase].map(id=>reviewTechniqueDefinition(id,{weapon,phase})).filter(Boolean).slice(0,MAX_REVIEW_CHAIN))])));
 }
 export function reviewTechniqueStageLabel(technique,index){return Object.freeze({phaseLabel:null,technique:technique.name,stage:index+1,stageLabel:`${index+1}段`,step:technique.steps[index]??null});}
