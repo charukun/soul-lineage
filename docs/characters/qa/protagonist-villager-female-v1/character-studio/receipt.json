@@ -1,0 +1,18 @@
+{
+  "displayModelId": "protagonist.villager.female.v1",
+  "ready": true,
+  "errors": [],
+  "labels": [
+    "主人公 男",
+    "主人公 女",
+    "騎士",
+    "蛮族",
+    "魔術師",
+    "盗賊",
+    "フード盗賊"
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "success": true
+}
