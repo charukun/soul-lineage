@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initial,validate} from '../src/game/core.js';
+import {unlocked} from '../src/game/catalog.js';
 import {consumeFirstRunAutoplayAfterReset,markFirstRunAutoplaySeen,markFirstRunAutoplayStarted,requestFirstRunAutoplayAfterReset,shouldRecoverFirstRunAutoplay,shouldRunFirstRunAutoplay} from '../src/game/first-run-onboarding.js';
 
 function memoryStorage(){
@@ -11,6 +12,14 @@ function memoryStorage(){
   removeItem:key=>values.delete(key),
  };
 }
+
+test('founding guide keeps the carpenter workshop selectable before the first wood tick',()=>{
+ const state=initial();
+ state.onboarding={firstRunAutoplay:{version:5,started:true,seen:false}};
+ assert.equal(unlocked(state,'carpenter'),true);
+ state.onboarding.firstRunAutoplay.seen=true;
+ assert.equal(unlocked(state,'carpenter'),false);
+});
 
 test('existing unmarked villages never receive the first-run autoplay',()=>{
  const state=initial();
