@@ -10,7 +10,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {loadNocturneAssets,withTimeout} from './assets.js';
 import {buildNocturneEnvironment} from './environment.js';
 
-export function createBattleRuntime({world,effects,stage,sound,notify,signal}){
+export function createBattleRuntime({world,effects,stage,sound,notify,signal,rules=null}){
 const V=THREE.Vector3,TAU=Math.PI*2;let disposed=false,rounds=0,allKills=0,renderedDeaths=0;
 const clamp = THREE.MathUtils.clamp, lerp = THREE.MathUtils.lerp;
 let seed = 73917;
@@ -70,7 +70,7 @@ function play(a,name,once=false,duration=0){
  const next=a.mixer.clipAction(clip);next.reset();next.enabled=true;next.setEffectiveWeight(1);next.setEffectiveTimeScale(duration?clip.duration/duration:1);next.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);next.clampWhenFinished=once;
  if(a.action&&a.action!==next)a.action.fadeOut(.13);next.fadeIn(.12).play();a.action=next;a.actionName=name;record('animation',{kind:a.kind,name,once});
 }
-function removeActor(a){a.mixer.stopAllAction();a.mixer.uncacheRoot(a.root);scene.remove(a.object);for(const {mat} of a.mats)mat.dispose();}
+function removeActor(a){rules?.release(a);a.mixer.stopAllAction();a.mixer.uncacheRoot(a.root);scene.remove(a.object);for(const {mat} of a.mats)mat.dispose();}
 function face(a,target,dt){const yaw=Math.atan2(target.x-a.pos.x,target.z-a.pos.z);const delta=Math.atan2(Math.sin(yaw-a.object.rotation.y),Math.cos(yaw-a.object.rotation.y));a.object.rotation.y+=delta*Math.min(1,dt*12);}
 function move(a,target,dt,mult=1){
  const d=new V().subVectors(target,a.pos);d.y=0;const distance=d.length();if(distance<.08)return false;face(a,target,dt);d.multiplyScalar(Math.min(distance,a.speed*dt*mult)/distance);a.pos.add(d);const r=Math.hypot(a.pos.x,a.pos.z);if(r>8.75)a.pos.multiplyScalar(8.75/r);play(a,a.kind==='hero'?'Running_A':'Walking_D_Skeletons');return true;
@@ -78,17 +78,20 @@ function move(a,target,dt,mult=1){
 
 
 
-function startAttack(a,target){
+function startAttack(a,target,options={}){
  a.combo++;let duration=(a.kind==='hero'?.88:1.22)*(a.kind==='hero'?styles[game.stance].rate/a.attackSpeed:1);
  const heavy=a.kind==='hero'&&a.combo%3===0,big=a.boss&&a.combo%3===0;if(big)duration=1.6;
- const name=a.kind==='mage'?'Spellcast_Shoot':big?'2H_Melee_Attack_Chop':heavy?'1H_Melee_Attack_Slice_Horizontal':a.combo%2?'1H_Melee_Attack_Slice_Diagonal':'1H_Melee_Attack_Chop';
- a.attack={time:0,duration,target,hit:false,heavy,big};play(a,name,true,duration);a.trail=[];if(big)ring(a.pos,3.3,'#d45358',1.2,true);
+ const action=rules?.begin(a,options)??null;
+ if(action)record('johakyu-action',{actorId:a.object.uuid,kind:a.kind,attackId:action.id,phase:action.phase,techniqueId:action.techniqueId,motion:action.clip});
+ const name=action?.clip??(a.kind==='mage'?'Spellcast_Shoot':big?'2H_Melee_Attack_Chop':heavy?'1H_Melee_Attack_Slice_Horizontal':a.combo%2?'1H_Melee_Attack_Slice_Diagonal':'1H_Melee_Attack_Chop');
+ a.attack={time:0,duration,target,hit:false,heavy:rules?false:heavy,big:rules?false:big,...(rules?{action}: {})};play(a,name,true,duration);a.trail=[];if(big)ring(a.pos,3.3,'#d45358',1.2,true);
 }
 function stepAttack(a,dt){
  const atk=a.attack;atk.time+=dt;if(!atk.target.dead)face(a,atk.target.pos,dt);
  if(atk.time>=atk.duration*.43&&!atk.hit){
   atk.hit=true;
-  if(a.kind==='mage'){
+  if(atk.action&&!atk.action.offense){/* Defensive/ready steps never deal damage. */}
+  else if(a.kind==='mage'){
    const direction=new V().subVectors(hero.pos,a.pos).normalize();projectiles.push({pos:a.pos.clone().add(new V(0,1.5,0)),vel:direction.multiplyScalar(6),life:2.3,damage:a.damage});sound.note(610,.17,'sine',.14);
   }else if(a.kind==='hero'){
    const reach=atk.heavy?3.25:2.35;arc(a.pos,reach,a.object.rotation.y,atk.heavy?2.8:1.9,'#f7cf80',.32);let hits=0;
@@ -102,11 +105,14 @@ function stepAttack(a,dt){
    ring(a.pos,3.4,'#e47b5c',.5);burst(a.pos,30,'#da9365');if(hero.pos.distanceTo(a.pos)<3.5)damage(hero,a.damage*1.7,a);game.shake=.18;sound.hit(true);
   }else if(!hero.dead&&hero.pos.distanceTo(a.pos)<2.35){damage(hero,a.damage,a);arc(a.pos,1.9,a.object.rotation.y,1.5,'#c98a83',.2);sound.hit();}
  }
- if(atk.time>=atk.duration){a.attack=null;a.cd=a.kind==='hero'?.10:a.kind==='mage'?1.4:a.boss?.55:randRange(.65,1.2);play(a,'Idle');}
+ if(atk.time>=atk.duration){rules?.complete(a,atk.action);a.attack=null;a.cd=a.kind==='hero'?.10:a.kind==='mage'?1.4:a.boss?.55:randRange(.65,1.2);play(a,'Idle');}
 }
 function damage(target,amount,source,critical=false){
  if(target.dead)return;
  if(target.kind==='hero')amount=Math.max(1,Math.round(amount*styles[game.stance].defense));
+ if(rules)amount=Math.max(1,Math.round(amount*rules.damageScale(target)));
+ rules?.impact(source,target,Math.min(target.hp,amount),source.attack?.action);
+ if(rules&&source.attack?.action)record('johakyu-impact',{attackId:source.attack.action.id,sourceId:source.object.uuid,targetId:target.object.uuid,phase:source.attack.action.phase,damage:Math.min(target.hp,amount)});
  target.hp=Math.max(0,target.hp-amount);target.flash=.15;target.showHp=3;
  const away=new V().subVectors(target.pos,source.pos).setY(0).normalize();if(target.kind!=='hero')target.pos.addScaledVector(away,.16);
  const color=target.kind==='hero'?'#dc8c80':critical?'#fff1b8':'#dfd7bd';
@@ -114,10 +120,10 @@ function damage(target,amount,source,critical=false){
  burst(target.pos.clone().add(new V(0,1.1,0)),critical?16:7,target.kind==='hero'?'#c98171':'#e8bf75');
  if(target.kind==='hero')game.received+=amount;else game.damage+=amount;
  if(target.hp<=0){
-  target.dead=true;target.attack=null;target.deathTime=0;play(target,target.kind==='hero'?'Death_A':'Death_C_Skeletons',true,1.3);
+  rules?.cancel(target,target.attack?.action);target.dead=true;target.attack=null;target.deathTime=0;play(target,target.kind==='hero'?'Death_A':'Death_C_Skeletons',true,1.3);
   if(target.kind==='hero'){record('defeat');game.phase='defeat-delay';game.endingDelay=1.6;}
   else{
-   game.kills++;allKills++;game.energy=clamp(game.energy+9,0,100);hero.hp=Math.min(hero.maxHp,hero.hp+2.5);record('kill',{kind:target.kind,boss:target.boss,kills:game.kills});
+   game.kills++;allKills++;game.energy=clamp(game.energy+9,0,100);if(!rules)hero.hp=Math.min(hero.maxHp,hero.hp+2.5);record('kill',{kind:target.kind,boss:target.boss,kills:game.kills});
    for(let i=0;i<5;i++)particles.push({pos:target.pos.clone().add(new V(0,.8,0)),vel:new V(randRange(-1,1),randRange(1,2),randRange(-1,1)),life:1.4,max:1.4,color:'#c2e0be',size:2,soul:true});
   }
  }
@@ -140,16 +146,16 @@ function castBurst(){
 function spawnEnemy(){
  const a=rand()*TAU,r=randRange(6.8,8.5),kind=game.wave>1&&game.spawned%4===3?'mage':game.spawned%3===0?'warrior':'minion';
  const boss=game.wave===5&&game.spawned===game.waveCount-1;
- const unit=actor(boss?'warrior':kind,new V(Math.cos(a)*r,0,Math.sin(a)*r),boss);
+ const unit=actor(rules?'warrior':boss?'warrior':kind,new V(Math.cos(a)*r,0,Math.sin(a)*r),boss);rules?.attach(unit);
  if(boss){game.boss=unit;record('boss-spawn');}
  game.spawned++;record('spawn',{kind:unit.kind,boss});
 }
-function wave(){game.wave++;game.waveCount=[0,6,8,10,12,10][game.wave];game.spawned=0;game.spawnTimer=.8;game.phase='battle';record('wave',{wave:game.wave});notify('BATTLE');}
+function wave(){game.wave++;game.waveCount=rules?1:[0,6,8,10,12,10][game.wave];game.spawned=0;game.spawnTimer=.8;game.phase='battle';record('wave',{wave:game.wave});notify('BATTLE');}
 function toast(){} // Combat cue only; no text HUD in this stage.
 function start(){
  for(const a of actors)removeActor(a);actors=[];particles=[];projectiles=[];arcs=[];rings=[];numbers=[];
- rounds++;Object.assign(game,{phase:'battle',time:0,wave:0,kills:0,damage:0,received:0,bursts:0,energy:0,level:1,moveTarget:null,moveTime:0,boss:null,shake:0,hitstop:0,resetSeconds:0});
- hero=actor('hero',new V(0,0,2.5));hero.object.rotation.y=Math.PI;cameraTarget.copy(hero.pos).multiplyScalar(.15);wave();record('start',{round:rounds});
+ rules?.reset();rounds++;Object.assign(game,{phase:'battle',time:0,wave:0,kills:0,damage:0,received:0,bursts:0,energy:0,level:1,moveTarget:null,moveTime:0,boss:null,shake:0,hitstop:0,resetSeconds:0});
+ hero=actor('hero',new V(0,0,2.5));rules?.attach(hero);hero.object.rotation.y=Math.PI;cameraTarget.copy(hero.pos).multiplyScalar(.15);wave();record('start',{round:rounds});
 }
 function chooseUpgrade(choice){
  if(game.phase!=='upgrade')return;
@@ -160,6 +166,7 @@ function chooseUpgrade(choice){
 function ending(win){game.phase=win?'victory':'defeat';game.resetSeconds=3.2;notify('RESETTING');record(win?'victory':'defeat');if(win)play(hero,'Cheer');}
 
 function simulate(dt){
+ rules?.beginStep();
  if((game.phase==='victory'||game.phase==='defeat')&&(game.resetSeconds-=dt)<=0)start();
  const battle=game.phase==='battle';
  if(battle){
@@ -167,11 +174,11 @@ function simulate(dt){
   const alive=actors.filter(a=>a.kind!=='hero'&&!a.dead);
   if(game.spawned<game.waveCount&&game.spawnTimer<=0&&alive.length<7){spawnEnemy();game.spawnTimer=game.spawned<3?.5:1.8;}
   if(game.spawned===game.waveCount&&!actors.some(a=>a.kind!=='hero'&&!a.dead)){
-   if(game.wave===5)ending(true);
+   if(game.wave===(rules?1:5))ending(true);
    else{game.phase='upgrade';game.upgradeTime=3.2;play(hero,'Idle');record('wave-clear',{wave:game.wave});}
   }
-  if(game.energy>=100&&!hero.dead)castBurst();
-  if(game.stance==='guard')hero.hp=Math.min(hero.maxHp,hero.hp+dt*.9);game.moveTime-=dt;
+  if(!rules&&game.energy>=100&&!hero.dead)castBurst();
+  if(!rules&&game.stance==='guard')hero.hp=Math.min(hero.maxHp,hero.hp+dt*.9);game.moveTime-=dt;
  }
  if(game.phase==='upgrade'){
   game.upgradeTime-=dt;
@@ -185,7 +192,20 @@ function simulate(dt){
   for(const {mat,base,power} of a.mats){mat.emissive.copy(a.flash>0?new THREE.Color('#ffe7c4'):base);mat.emissiveIntensity=a.flash>0?1.7:power;}
   if(!battle)continue;
   if(a.spawn>0){a.spawn-=dt;continue;}
+  rules?.step(a,dt);
+  if(rules?.reaction(a)){play(a,rules.reaction(a).mode==='parry'?'Block_Hit':'Blocking');continue;}
   if(a.attack){stepAttack(a,dt);continue;}a.cd-=dt;
+  if(rules){
+   const target=a.kind==='hero'?actors.filter(e=>e.kind!=='hero'&&!e.dead&&e.spawn<=0).sort((x,y)=>x.pos.distanceToSquared(a.pos)-y.pos.distanceToSquared(a.pos))[0]:hero.dead?null:hero;
+   if(!target){play(a,'Idle');continue;}
+   const intent=rules.intent(a,target);face(a,target.pos,dt);
+   if(intent.mode==='approach')move(a,target.pos,dt);
+   else if(intent.mode==='space'){const back=a.pos.clone().add(new V().subVectors(a.pos,target.pos).normalize().multiplyScalar(2));move(a,back,dt,.6);}
+   else if(intent.mode==='guard'||intent.mode==='parry')play(a,intent.mode==='parry'?'Block_Hit':'Blocking');
+   else if(intent.mode==='wait'||a.cd>0)play(a,'Idle');
+   else startAttack(a,target,{counter:intent.mode==='counter'});
+   continue;
+  }
   if(a.kind==='hero'){
    const target=actors.filter(e=>e.kind!=='hero'&&!e.dead&&e.spawn<=0).sort((a,b)=>a.pos.distanceToSquared(hero.pos)-b.pos.distanceToSquared(hero.pos))[0];
    if(game.moveTarget&&game.moveTime>0&&hero.pos.distanceTo(game.moveTarget)>.25){move(a,game.moveTarget,dt);continue;}
@@ -292,8 +312,8 @@ function metrics(){return {ready:game.ready,phase:game.phase,rounds,totalKills:a
 function inspectActors(){return actors.map(a=>({kind:a.kind,hp:a.hp,dead:a.dead,deathTime:a.deathTime,position:a.pos.toArray(),animation:a.actionName,animationTime:a.action?.time||0,attack:a.attack?.time||0}));}
 function inspectBattle(bootEpoch){
  if(!game.ready||disposed)return null;
- return createBattleObservation({authority:'native-demo',battleId:`battle2:${bootEpoch}:${rounds}`,timeSeconds:game.time,status:game.phase,
-  actors:actors.map(a=>({id:a.object.uuid,side:a.kind==='hero'?'hero':'enemy',position:a.pos.toArray(),hp:a.hp,maxHp:a.maxHp,dead:a.dead,phase:null,animation:a.actionName})),events:[]});
+ return createBattleObservation({authority:rules?'johakyu-review':'native-demo',battleId:`battle2:${bootEpoch}:${rounds}`,timeSeconds:game.time,status:game.phase,
+  actors:actors.map(a=>({id:a.object.uuid,side:a.kind==='hero'?'hero':'enemy',position:a.pos.toArray(),hp:a.hp,maxHp:a.maxHp,dead:a.dead,phase:rules?.inspect(a).phase??null,techniqueId:rules?.inspect(a).techniqueId??null,animation:a.actionName})),events:rules?.snapshot().events??[]});
 }
 function advance(seconds){if(!game.ready||disposed||!Number.isFinite(seconds)||seconds<=0||seconds>30)throw Error('Invalid evidence advancement');for(let i=0;i<Math.ceil(seconds*60);i++){simulate(1/60);clock+=1/60;}draw();return metrics();}
 function destroy(){

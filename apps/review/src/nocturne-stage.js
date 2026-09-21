@@ -23,7 +23,11 @@ async function boot(){
   try{
     const [{createBattleRuntime},{createNocturneSound}]=await Promise.all([import('./nocturne/runtime.js'),import('./nocturne/audio.js')]);
     if(disposed||own!==sequence)return;
-    sound=createNocturneSound();runtime=createBattleRuntime({world,effects,stage,sound,notify:report,signal:controller.signal});
+    sound=createNocturneSound();
+    const parameters=new URL(location.href).searchParams;
+    const rules=parameters.get('johakyu')==='p2'?(await import('./nocturne/johakyu-rules.js')).createJohakyuReviewRules({mind:parameters.get('mind')||'balanced'}):null;
+    if(disposed||own!==sequence)return;
+    runtime=createBattleRuntime({world,effects,stage,sound,notify:report,signal:controller.signal,rules});
     await runtime.prepare();if(disposed||own!==sequence)return;prepared=true;report('BATTLE');
   }catch(error){if(!disposed&&own===sequence){controller.abort(error);runtime?.fail(error);failed(error);}}
 }

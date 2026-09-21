@@ -6,39 +6,51 @@ import {readFile,writeFile,mkdir,stat} from 'node:fs/promises';
 import {resolve,extname,sep} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {assertBattle2Frame,exerciseBattle2Switcher} from './battle2-shell-evidence.mjs';
-const root=resolve('dist/review'),out=resolve('.battle2-evidence');await mkdir(out,{recursive:true});
-const report={sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),scenarios:[],passed:false};
+const root=resolve('dist/review'),out=resolve(process.env.BATTLE2_EVIDENCE_DIR||'.battle2-evidence');await mkdir(out,{recursive:true});
+const mode=process.env.JOHAKYU_MODE||'native';assert.ok(['native','p2'].includes(mode),'Unknown review mode');
+const query=mode==='native'?'evidence=1':'evidence=1&johakyu=p2';
+const report={sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),mode,before:[],scenarios:[],passed:false};
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.glb':'model/gltf-binary','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.woff2':'font/woff2'};
-const server=createServer(async(req,res)=>{
+function serveRoot(base){return createServer(async(req,res)=>{
   try{
     let path=decodeURIComponent(new URL(req.url,'http://localhost').pathname);if(path==='/')path='/index.html';if(path==='/battle2')path='/battle2.html';
-    const file=resolve(root,'.'+path);if(!file.startsWith(root+sep))throw Error('Invalid path');const info=await stat(file);if(!info.isFile())throw Error('Not a file');
+    const file=resolve(base,'.'+path);if(!file.startsWith(base+sep))throw Error('Invalid path');const info=await stat(file);if(!info.isFile())throw Error('Not a file');
     res.setHeader('Content-Type',mime[extname(file)]||'application/octet-stream');res.end(await readFile(file));
   }catch{res.statusCode=404;res.end('Not found');}
-});
+});}
+const server=serveRoot(root);let baselineServer;
 await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;
 const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
 async function snapshot(page){return page.evaluate(()=>({state:window.__BATTLE2__?.state,error:window.__BATTLE2__?.lastError,metrics:window.__BATTLE2__?.metrics,actors:window.__BATTLE2__?.actors,trace:window.__BATTLE2__?.trace}));}
 try{
-  // Public Before is observation only; After is the exact local artifact from the hosted checkout.
-  const before=await browser.newContext({viewport:{width:412,height:915}}),bp=await before.newPage(),errors=[];
-  bp.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  try{
-    await bp.goto('https://soul-lineage-review-dev.c-okamoto.workers.dev/battle2',{waitUntil:'domcontentloaded',timeout:30000});
-    await bp.waitForFunction(()=>document.getElementById('fatal-detail')?.textContent||window.__BATTLE2__?.state==='BATTLE'||window.__NOCTURNE__?.metrics?.ready,{},{timeout:25000}).catch(()=>{});
-    const observed=await bp.evaluate(()=>({url:location.href,title:document.title,error:document.getElementById('fatal-detail')?.textContent,metrics:window.__NOCTURNE__?.metrics||window.__BATTLE2__?.metrics}));
-    await writeFile(out+'/before-browser.json',JSON.stringify({observed,errors},null,2));await bp.screenshot({path:out+'/before-mobile.png'});
-  }catch(error){await writeFile(out+'/before-browser.json',JSON.stringify({error:error.message,errors},null,2));}
-  await before.close();
+  // A mutable DEV page is not a baseline. An optional Before is built from an
+  // independently pinned checkout and must identify the exact requested SHA.
+  if(process.env.BEFORE_ROOT){
+    assert.match(process.env.BEFORE_SOURCE_SHA||'',/^[0-9a-f]{40}$/);
+    baselineServer=serveRoot(resolve(process.env.BEFORE_ROOT));await new Promise(r=>baselineServer.listen(0,'127.0.0.1',r));
+    const beforeOrigin='http://127.0.0.1:'+baselineServer.address().port;
+    for(const [name,viewport] of [['desktop',{width:1280,height:800}],['mobile',{width:412,height:915}]]){
+      const context=await browser.newContext({viewport,deviceScaleFactor:1}),page=await context.newPage(),errors=[];
+      page.on('pageerror',e=>errors.push(e.message));
+      await page.goto(beforeOrigin+'/battle2?evidence=1',{waitUntil:'domcontentloaded'});
+      await page.waitForFunction(()=>window.__BATTLE2__?.state==='BATTLE',{},{timeout:60000});
+      assert.equal(await page.evaluate(()=>window.__BATTLE2__.sourceSha),process.env.BEFORE_SOURCE_SHA);
+      await page.evaluate(()=>window.__BATTLE2__.advance(8));
+      const observed=await snapshot(page);assert.equal(errors.length,0);assert.ok(observed.metrics.drawCalls>0);
+      report.before.push({sourceSha:process.env.BEFORE_SOURCE_SHA,name,viewport,seed:73917,advanceSeconds:8,observed,errors});
+      await page.screenshot({path:out+'/before-'+name+'.png'});await context.close();
+    }
+  }else if(mode!=='native')throw Error('Johakyu acceptance requires a pinned Before checkout');
   for(const [name,viewport] of [['desktop',{width:1280,height:800}],['mobile',{width:412,height:915}]]){
-    const context=await browser.newContext({viewport,deviceScaleFactor:1,hasTouch:name==='mobile'});await context.tracing.start({screenshots:true,snapshots:true});
+    const context=await browser.newContext({viewport,deviceScaleFactor:1,hasTouch:name==='mobile',recordVideo:{dir:out+'/videos',size:viewport}});await context.tracing.start({screenshots:true,snapshots:true});
     const page=await context.newPage(),errors=[],requests=[],failed=[];
     page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
     page.on('request',r=>{if(/^https?:/.test(r.url()))requests.push(r.url());});page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()}));
     const result={name,viewport,errors,requests,failed};report.scenarios.push(result);
     try{
-      await page.goto(origin+'/battle2?evidence=1',{waitUntil:'domcontentloaded'});
+      await page.goto(origin+'/battle2?'+query,{waitUntil:'domcontentloaded'});
       await page.waitForFunction(()=>window.__BATTLE2__?.state==='BATTLE',{},{timeout:60000});
+      assert.equal(await page.evaluate(()=>window.__BATTLE2__.sourceSha),report.sourceSha);
       result.initial=await snapshot(page);assert.equal(result.initial.metrics.models,28);assert.equal(result.initial.metrics.webgl2,true);
       assert.equal(await page.locator('button,input,select,iframe,dialog,[data-runtime-support]').count(),0);
       result.frame=await assertBattle2Frame(page);
@@ -46,6 +58,13 @@ try{
       result.combat=await snapshot(page);assert.ok(result.combat.metrics.totalKills>0);assert.ok(result.combat.metrics.drawCalls>0&&result.combat.metrics.triangles>0);assert.ok(result.combat.metrics.activeAnimations>0);
       assert.ok(result.combat.trace.some(e=>e.type==='animation'&&e.name==='Death_C_Skeletons'));
       await page.screenshot({path:out+'/'+name+'-combat.png'});
+      if(mode==='p2'){
+        await page.waitForFunction(()=>['jo','ha','kyu'].every(phase=>window.__BATTLE2__.trace.some(e=>e.type==='johakyu-action'&&e.kind==='hero'&&e.phase===phase)),{},{timeout:90000});
+        result.johakyu=await page.evaluate(()=>({observation:window.__BATTLE2__.observation,trace:window.__BATTLE2__.trace}));
+        assert.equal(result.johakyu.observation.authority,'johakyu-review');
+        assert.ok(result.johakyu.trace.some(e=>e.type==='johakyu-impact'&&e.sourceId!==e.targetId&&e.damage>0));
+        await page.screenshot({path:out+'/'+name+'-johakyu.png'});
+      }
       await page.mouse.click(viewport.width/2,viewport.height/2);
       await page.waitForFunction(()=>window.__BATTLE2__.metrics.audio.unlocked&&window.__BATTLE2__.metrics.audio.notes>0,{},{timeout:45000});
       result.audio=await page.evaluate(()=>window.__BATTLE2__.metrics.audio);
@@ -82,4 +101,4 @@ try{
   report.scenarios.push({name:'missing-asset',attempts,observed:failure,passed:true});await page.screenshot({path:out+'/missing-asset.png'});await broken.close();
   report.passed=true;
 }catch(error){report.error=error.stack||error.message;process.exitCode=1;}
-finally{await writeFile(out+'/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify({sourceSha:report.sourceSha,passed:report.passed,error:report.error,scenarios:report.scenarios.map(s=>({name:s.name,passed:s.passed,metrics:s.combat?.metrics,replayRounds:s.replay?.snapshot.metrics.rounds,frame:s.frame,resizedFrame:s.resizedFrame,compactFrame:s.compactFrame,menu:s.menu,backNavigation:s.backNavigation}))},null,2));await browser.close();await new Promise(r=>server.close(r));}
+finally{await writeFile(out+'/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify({sourceSha:report.sourceSha,passed:report.passed,error:report.error,scenarios:report.scenarios.map(s=>({name:s.name,passed:s.passed,metrics:s.combat?.metrics,replayRounds:s.replay?.snapshot.metrics.rounds,frame:s.frame,resizedFrame:s.resizedFrame,compactFrame:s.compactFrame,menu:s.menu,backNavigation:s.backNavigation}))},null,2));await browser.close();await new Promise(r=>server.close(r));if(baselineServer)await new Promise(r=>baselineServer.close(r));}
