@@ -107,6 +107,18 @@ ACTIVEとITERATIONSは同じ視覚言語で進捗を読めるようにする。�
 ACTIVEはFast DEVの `実装 → 検証 → Browser → merge → DEV`、ITERATIONSは自律iterationの代表stepを同じrendererで表示する。状態の意味は共通化するが、存在しないstepや未計測時間を推測して埋めない。
 
 
+
+### 一覧カードの視線設計
+
+ACTIVEとITERATIONSの一覧カードは、スマートフォンで `現在地 → タスク名 → 対象/時刻 → mini progress` の順に認識できる情報階層にする。
+
+- タスク名は一覧の主情報として十分な文字サイズを確保し、1行固定で潰さず最大2行まで許容する。
+- 現在stepは小さなmetadataへ埋めず、`NOW / ISSUE / DONE` とstep名・経過時間を独立したcurrent bandとして強調する。
+- SHA、再検証回数、対象、更新時刻はcurrent bandやタイトルより弱い補助情報とする。
+- mini progressは現在地を補助するsparklineとし、current pointだけを強調する。グラフ自体がタイトルや現在地より目立たないこと。
+- 一覧行同士はカードとして十分に分離しつつ、内部余白は情報群ごとに意味のあるまとまりを作る。無意味な均等余白で縦長にしない。
+
+
 ## 7. PULSE公開成功
 
 PULSEのstatic assetが配られただけでは正常とは扱いません。
