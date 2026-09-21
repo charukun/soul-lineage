@@ -5,7 +5,9 @@ import {staminaPolicyFor} from './stamina.js';
 const freeze=Object.freeze,FUNCTIONAL_SEVERITY=.68;
 const ONE_LEG_FOOTWORK=new Set(['forward','retreat']);
 const TWO_LEG_FOOTWORK=new Set(['chase','rush','sideL','sideR','orbitL','orbitR','cross','spiral']);
+const TWO_HANDED_WEAPONS=new Set(['great','spear','axe','staff']);
 const committedCharge=charge=>charge==='deep'||charge==='focus';
+export function johakyuWeaponRequiresTwoHands(weapon){return TWO_HANDED_WEAPONS.has(weapon);}
 
 function probeActor(actor){
   if(!actor||typeof actor!=='object')throw new TypeError('Actor required');
@@ -42,14 +44,14 @@ function reasonFor({outcome,stamina,motion,armDemand,legDemand,functionalArms,fu
  * Pure execution decision for one canonical stage. It never spends stamina or
  * mutates the actor; callers remain authoritative for clocks and state changes.
  */
-export function johakyuStageCapability(actor,{weapon='sword',phase='jo',kind='ready',footwork='stay',charge='none',staminaCost=0,requiresTwoHands=false}={}){
+export function johakyuStageCapability(actor,{weapon='sword',phase='jo',kind='ready',footwork='stay',charge='none',staminaCost=0,requiresTwoHands=null}={}){
   if(!Number.isFinite(staminaCost)||staminaCost<0)throw new TypeError('Invalid stage stamina cost');
   const probe=probeActor(actor),outcome=combatBodyOutcome(probe),stamina=staminaPolicyFor(probe),motion=resolveJohakyuMotion({weapon,kind,charge,phase});
   const body=outcome.body,functionalArms=['leftArm','rightArm'].filter(part=>functional(body,part)).length,functionalLegs=['leftLeg','rightLeg'].filter(part=>functional(body,part)).length;
-  const armDemand=motion.supported&&motion.offense?(requiresTwoHands?2:1):0,legDemand=footworkLegDemand(footwork),committed=committedCharge(charge);
+  const twoHanded=requiresTwoHands==null?johakyuWeaponRequiresTwoHands(weapon):Boolean(requiresTwoHands),armDemand=motion.supported&&motion.offense?(twoHanded?2:1):0,legDemand=footworkLegDemand(footwork),committed=committedCharge(charge);
   const staminaScale=Math.max(.42,Number(outcome.staminaScale)||1),effectiveCost=staminaCost/staminaScale,available=Math.max(0,Number(probe.stamina)||0);
   const reason=reasonFor({outcome,stamina,motion,armDemand,legDemand,functionalArms,functionalLegs,effectiveCost,available,committed});
-  return freeze({allowed:!reason,reason,weapon,phase,kind,footwork,charge,offense:Boolean(motion.supported&&motion.offense),
+  return freeze({allowed:!reason,reason,weapon,phase,kind,footwork,charge,offense:Boolean(motion.supported&&motion.offense),equipment:freeze({requiresTwoHands:twoHanded}),
     stamina:freeze({...stamina,available,baseCost:staminaCost,effectiveCost}),body:freeze({functionalArms,functionalLegs,armDemand,legDemand,
       attackScale:outcome.attackScale,movementScale:outcome.movementScale,judgmentScale:outcome.judgmentScale,staminaScale:outcome.staminaScale,
       compromised:outcome.compromised,severity:outcome.severity})});
@@ -60,7 +62,7 @@ export function johakyuStageCapability(actor,{weapon='sword',phase='jo',kind='re
  * snapshot. Accepted costs are simulated locally so continuation can fail
  * before callers mutate authoritative state.
  */
-export function johakyuTechniqueCapability(actor,{stages=[],fromStage=0,weapon='sword',phase='jo',requiresTwoHands=false}={}){
+export function johakyuTechniqueCapability(actor,{stages=[],fromStage=0,weapon='sword',phase='jo',requiresTwoHands=null}={}){
   if(!Array.isArray(stages)||!stages.length)return freeze({canStart:false,canContinue:false,blockedStageIndex:0,reason:'empty-technique',stages:freeze([])});
   if(!Number.isInteger(fromStage)||fromStage<0||fromStage>=stages.length)throw new RangeError('Invalid technique stage index');
   let stamina=Number(actor?.stamina??0),blockedStageIndex=null,reason=null;const rows=[];
