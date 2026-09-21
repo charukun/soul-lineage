@@ -1,0 +1,40 @@
+name: Temporary Exact Asset Probe 20260921
+run-name: Asset browser evidence 74e0b3e7157b4d0b1f394ea75089b5be5c0696d4
+on:
+  push:
+    branches: ['work/asset-library-expansion-20260921-probe']
+    paths: ['.github/workflows/asset-exact-probe-20260921.yml']
+permissions:
+  contents: read
+jobs:
+  evidence:
+    if: ${{ contains(github.event.head_commit.message, '[asset-probe]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 74e0b3e7157b4d0b1f394ea75089b5be5c0696d4
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Assert immutable tested work head
+        run: test "$(git rev-parse HEAD)" = '74e0b3e7157b4d0b1f394ea75089b5be5c0696d4'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --test tests/curated-asset-library.test.mjs tests/review-object-library-self-hosted.test.mjs
+      - run: npm run build --workspace @soul/rinne
+      - run: npm run build --workspace @soul/review
+      - run: npx playwright install --with-deps chromium
+      - name: Verify real review interaction and existing retarget VFX audio
+        run: node scripts/browser/curated-assets.mjs --ui-only
+      - name: Preserve only task-specific browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-browser-evidence-74e0b3e7157b4d0b1f394ea75089b5be5c0696d4
+          path: .deploy-state/asset-curation-evidence/
+          if-no-files-found: warn
+          retention-days: 14
