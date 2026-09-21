@@ -1,4 +1,4 @@
-import { INSPIRATION_QUESTIONS, inspirationTechniqueName, isInspirationAttribute, resolveInspirationAnswer } from '@soul/game-data';
+import { INSPIRATION_QUESTIONS, inspirationTechniqueName, isInspirationAttribute, resolveInspirationAnswer, isGeneratedTechniqueId, generatedTechniqueNaming } from '@soul/game-data';
 
 /** Persistence, migration and lineage compression are separate from live learning decisions. */
 export const INSPIRATION_VERSION=1;
@@ -54,7 +54,9 @@ export function validateInspiration(state){
   for(const trace of s.traces){if(!trace||typeof trace.id!=='string'||traceIds.has(trace.id)||!Array.isArray(trace.motifs)||trace.motifs.length>6||trace.motifs.some(m=>!MOTIFS.includes(m)))throw Error('経験の由来が不正です。');traceIds.add(trace.id);for(const key of ['id','kind','text','place','key','semanticKey','sourceId','sourceName','relation'])trace[key]=safe(trace[key]);finiteField(trace.age,0,100,'経験年齢');}
   for(const [id,row] of Object.entries(s.records)){
     const definition=answer(id);if(!definition||row?.answerId!==id||!Array.isArray(row.provenance)||row.provenance.length>6)throw Error('技の由来が不正です。');
-    boundedArray(row.contexts,INSPIRATION_LIMITS.contexts,'定着');row.contexts=unique(row.contexts.map(safe));row.name=inspirationTechniqueName(definition);
+    boundedArray(row.contexts,INSPIRATION_LIMITS.contexts,'定着');row.contexts=unique(row.contexts.map(safe));
+    if(isGeneratedTechniqueId(id)){const naming=generatedTechniqueNaming(definition,{seed:state.seed??0,motifs:unique([...(definition.motifs||[]),...s.heritage.map(h=>h.motif)]),specialEffects:definition.specialEffects||[]});row.name=naming.displayName;row.naming={style:naming.style,grade:naming.grade,baseName:naming.baseName,signature:naming.signature};}
+    else{row.name=inspirationTechniqueName(definition);delete row.naming;}
     row.family=definition.family;row.kind=definition.kind;row.motifs=[...definition.motifs];row.archived=Boolean(row.archived);row.stable=Boolean(row.stable);if(row.effectAttribute!=null&&!isInspirationAttribute(row.effectAttribute))delete row.effectAttribute;finiteField(row.age,0,100,'会得年齢');
     row.provenance=row.provenance.map(p=>({type:safe(p.type),text:safe(p.text),traceId:safe(p.traceId),sourceLifeId:safe(p.sourceLifeId)}));
     if(row.combo)row.combo=Object.fromEntries(['jo','ha','kyu'].map(p=>[p,typeof row.combo[p]==='string'&&(BASIC.test(row.combo[p])||answer(row.combo[p]))?row.combo[p]:'basic.fist']));
