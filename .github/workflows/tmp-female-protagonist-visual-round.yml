@@ -56,7 +56,7 @@ jobs:
           for target in [Path('apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json'),Path('apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json')]:
             receipt=json.loads(target.read_text())
             receipt['sha256']=h(model); receipt['bytes']=model.stat().st_size; receipt['sourceBlendSha256']=h(blend)
-            target.write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\\n')
+            target.write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+chr(10))
           PY
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build --workspace @soul/character-studio
@@ -84,7 +84,7 @@ jobs:
           writeFileSync('generated/female-visual-round/character-studio-diagnostic.json',JSON.stringify(diagnostic,null,2)+'\\n');
           await page.screenshot({path:'generated/female-visual-round/character-studio.png',fullPage:true});
           await browser.close();
-          if(!diagnostic.ready) throw new Error('Character Studio model load failed: '+JSON.stringify(diagnostic));
+          if(!diagnostic.ready || diagnostic.displayModelId!=='protagonist.villager.female.v1' || diagnostic.errors.length) throw new Error('Character Studio model load failed: '+JSON.stringify(diagnostic));
           NODE
       - uses: actions/upload-artifact@v4
         if: always()
