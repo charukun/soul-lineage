@@ -19,6 +19,8 @@ test('Workers DEV is the only automatic develop publication path and keeps PULSE
   assert.doesNotMatch(workflow,/ops-board\.yml|PULSE/);
   assert.doesNotMatch(workflow,/branches: \[main\]/);
   assert.match(text('scripts/distribution-plan.mjs'),/PULSE_APP='pulse'/);
+  assert.match(text('scripts/distribution-plan.mjs'),/autonomous-iteration-telemetry/);
+  assert.match(text('scripts/build-target.mjs'),/autonomous-iteration-telemetry\.mjs/);
   assert.match(text('scripts/notify-fast-dev.mjs'),/refreshPulseState/);
 });
 

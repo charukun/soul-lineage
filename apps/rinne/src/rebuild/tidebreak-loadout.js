@@ -4,6 +4,8 @@ import { activeCombo, comboById, ensureCombatLoadout, techniqueName } from '../c
 import { CAUSAL_ANSWER_BY_ID } from '@soul/game-data';
 import { inspirationRecipe } from './inspiration-state.js';
 import { applySkillComponents, directionalDefenseFor, staminaPolicyFor, tidebreakMindVectorFor, tidebreakMindsetFromVector } from './combat-tactics.js';
+import {johakyuTechniqueCapability,johakyuWeaponRequiresTwoHands} from '@soul/johakyu-combat/execution-capability';
+import {WEAPONS,ARMORS} from './domain.js';
 
 function phaseRecipe(state,phase,weapon,combo,target){
   let skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`;
@@ -17,6 +19,57 @@ function phaseRecipe(state,phase,weapon,combo,target){
   if(CAUSAL_ANSWER_BY_ID[skill]?.steps.length)skill=`basic.${state.equipment.weapon}`;
   const raw=applySkillComponents(state,skill,phase,formForSkill(skill,state.equipment.weapon)),kinds=raw.kinds.map(kind=>adaptKind(kind,weapon));
   return{id:`rinne-${phase}-${skill}`,name:techniqueName(skill,state),type:'normal',weapon,element:'steel',rhythm:raw.rhythm,tempo:raw.tempo,aura:'none',steps:kinds.map((kind,index)=>({kind,footwork:raw.feet[index]||'forward',charge:raw.charges[index]||'none'}))};
+}
+const PHASE_COST_SCALE=Object.freeze({jo:1,ha:1.08,kyu:1.25});
+function recipeCapability(state,phase,recipe,skill){
+  const base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,armor=ARMORS[state.equipment.armor]||ARMORS.cloth,effort=Number(CAUSAL_ANSWER_BY_ID[skill]?.effort)||1,cost=base.stamina*(PHASE_COST_SCALE[phase]||1)*effort/Math.max(.5,Number(armor.staminaScale)||1);
+  const stages=recipe.steps.filter(step=>step?.kind&&step.kind!=='none').map(step=>({...step,weapon:recipe.weapon,phase,staminaCost:cost}));
+  if(!stages.length)return Object.freeze({canStart:false,canContinue:false,blockedStageIndex:0,reason:'empty-technique',stages:Object.freeze([])});
+  return johakyuTechniqueCapability(state,{weapon:recipe.weapon,phase,stages,requiresTwoHands:johakyuWeaponRequiresTwoHands(recipe.weapon)});
+}
+const COUNTER_KINDS=new Set(['parry','counter']);
+const GUARD_KINDS=new Set(['guard','brace']);
+const EVADE_KINDS=new Set(['slip','retreat']);
+const CLOSING_FEET=new Set(['forward','chase','rush','cross','spiral']);
+const SPACING_FEET=new Set(['retreat','sideL','sideR','orbitL','orbitR']);
+const NON_OFFENSE_KINDS=new Set(['none','ready','guard','brace','parry','slip','retreat']);
+function recipeSituationScore(state,recipe,target){
+  const steps=recipe.steps.filter(step=>step?.kind&&step.kind!=='none'),mind=tidebreakMindVectorFor(state),base=WEAPONS[state.equipment.weapon]||WEAPONS.fist;
+  const count=set=>steps.reduce((n,step)=>n+Number(set.has(step.kind)||set.has(step.footwork)),0);
+  const counter=count(COUNTER_KINDS),guard=count(GUARD_KINDS),evade=count(EVADE_KINDS),closing=count(CLOSING_FEET),spacing=count(SPACING_FEET),offense=steps.filter(step=>!NON_OFFENSE_KINDS.has(step.kind)).length;
+  const distance=Number.isFinite(target?.x)&&Number.isFinite(target?.z)?Math.hypot(target.x-state.position.x,target.z-state.position.z):null;
+  const committed=Number(target?.attackWindow)>0,ready=Number(target?.cooldown)<=.12;
+  let score=0;
+  if(committed){
+    score+=counter*(8+12*mind.counter)+guard*(4+9*mind.guard)+evade*(2+7*mind.mobility);
+    score-=Math.max(0,offense-counter)*Math.max(0,3-2*mind.attack);
+  }else if(ready){
+    score+=counter*(3+6*mind.counter)+guard*(2+4*mind.guard)+spacing*(1+3*mind.spacing);
+  }
+  if(distance!==null){
+    const far=distance>base.reach+.55,crowded=distance<Math.max(.72,base.reach*.68);
+    if(far){score+=closing*(6+4*mind.attack)-spacing*4;}
+    else if(crowded){score+=spacing*(5+5*mind.spacing)+counter*(2+3*mind.counter)-closing*3;}
+    else score+=offense*(1.5+2.5*mind.attack)+counter*mind.counter*1.5;
+  }
+  return Number(score.toFixed(3));
+}
+function configuredComboScore(combo,index,{phase,preferredId,activeId}){
+  return (combo.id===preferredId?12:0)+(combo.favored?.[phase]?4:0)+(combo.id===activeId?2:0)-index*.001;
+}
+export function selectCapableTidebreakCombo(state,{phase='jo',comboId=state?.combat?.comboId,target=null}={}){
+  if(!['jo','ha','kyu'].includes(phase))throw new RangeError('Invalid capability selection phase');
+  const loadout=ensureCombatLoadout(state),weapon=tidebreakWeaponFor(state.equipment.weapon),activeId=loadout.technique.activeComboId,attempts=[],candidates=[];
+  for(const [index,combo] of loadout.technique.combos.entries()){
+    const skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`,recipe=phaseRecipe(state,phase,weapon,combo,target),capability=recipeCapability(state,phase,recipe,skill);
+    const configuredScore=configuredComboScore(combo,index,{phase,preferredId:comboId,activeId}),situationScore=recipeSituationScore(state,recipe,target),score=configuredScore+situationScore;
+    const attempt=Object.freeze({comboId:combo.id,techniqueId:skill,reason:capability.reason,canStart:capability.canStart,canContinue:capability.canContinue,configuredScore,situationScore,score});
+    attempts.push(attempt);if(capability.canContinue)candidates.push({combo,skill,capability,score,index});
+  }
+  candidates.sort((a,b)=>b.score-a.score||a.index-b.index);
+  const chosen=candidates[0];
+  if(chosen)return Object.freeze({ok:true,comboId:chosen.combo.id,techniqueId:chosen.skill,adapted:chosen.combo.id!==comboId,capability:chosen.capability,attempts:Object.freeze(attempts)});
+  return Object.freeze({ok:false,comboId:null,techniqueId:null,adapted:false,reason:attempts.find(row=>row.comboId===comboId)?.reason||attempts[0]?.reason||'no-capable-technique',attempts:Object.freeze(attempts)});
 }
 function reactionRecipe(state,weapon,target){const defense=target?directionalDefenseFor(state,target):{receive:'basic'},receive=defense.receive,counter=['backcounter','turncounter','thrustcounter','rising'].includes(receive);return{id:`rinne-uke-${receive}`,name:'受け',type:'reaction',weapon,element:'steel',rhythm:'flow',tempo:1,aura:'none',receive,steps:[{kind:counter?adaptKind('thrust',weapon):receive==='none'?'ready':'brace',footwork:counter?'chase':'stay',charge:'none'},{kind:counter?'guard':'retreat',footwork:'retreat',charge:'none'},{kind:'ready',footwork:'stay',charge:'none'}]};}
 export function tidebreakLoadoutFor(state,comboId=state?.combat?.comboId,target=null){ensureCombatLoadout(state);const weapon=tidebreakWeaponFor(state.equipment.weapon),combo=comboById(state,comboId)||activeCombo(state);return{jo:phaseRecipe(state,'jo',weapon,combo,target),ha:phaseRecipe(state,'ha',weapon,combo,target),kyu:phaseRecipe(state,'kyu',weapon,combo,target),uke:reactionRecipe(state,weapon,target)};}

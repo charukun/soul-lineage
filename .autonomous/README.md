@@ -2,6 +2,16 @@
 
 対象は `village` → `apps/village`（星継ぎの庭）、`kuumetsu` → `apps/demon`（喰滅廻遊）、`rinne` → `apps/rinne`（百年転生）。正本は現在の `develop`、`AGENTS.md`、GitHub状態です。
 
+## 外骨格原則
+
+`.autonomous` は自律開発そのものの永久仕様ではなく、**現在のモデル/ツールに足りない能力だけを外から補う着脱可能な外骨格**です。Observation First、Dense Iteration、experiment schema、focused test、GitHub Actions、immutable staging、browser evidence、receipt、telemetry、freshness/reconcile を含め、現在存在する機構を将来も残す前提にしません。
+
+現在requiredな機構は、現在の契約下では最後まで実行します。ただし「required-currently」と「永久に必要」を混同しません。新しいモデル/ツールが同等以上の結果をより直接に成立させるなら、testやCIを含む既存工程を削除・置換することは正当な進化です。通常タスク中にAI自身が勝手にgateを省略するのではなく、framework変更として明示的に契約を縮退させます。
+
+新しいscaffoldを追加するときは、何の能力不足を補うか、何へ依存するか、どの状態になれば外せるかを明示し、無関係なscaffold同士を癒着させません。同じ品質・安全性・プレイヤー成果を得られるなら、外骨格は少ないほどよいものとして扱います。最終的に外骨格がゼロになる状態も正常です。
+
+詳細は `.autonomous/EXOSKELETON.md`、機械可読な現行inventoryは `.autonomous/exoskeleton.json` を正本とします。
+
 ## iteration の基本形
 
 1 iteration = 1 **player-experience theme**。themeは「見つけた最小の不具合」ではなく、プレイヤーが達成できていない判断・理解・成長・操作・反応のまとまりとして切る。1 theme の中で複数root cause・複数修正を扱うのが通常形です。たとえば「撤退判断を成立させる」というthemeの中で、警戒度・負傷・持ち帰り量・帰還報酬・UI接続をまとめて直す。禁止するのは無関係なついで修正であり、修正数そのものではありません。
@@ -109,6 +119,32 @@ The controller contract is:
 `scripts/autonomous-run-controller.mjs` plans these coordinates and binds Cloudflare version IDs. It rejects mutable source coordinates and carries one `run_key` across all requested iterations.
 
 This controller adds no persistent Actions workload and does not alter Fast DEV, exact-head Astra validation, freshness, Ready, develop merge, or Production gates.
+
+
+
+## Iteration telemetry
+
+PULSEへ自律改善の進行を正確に出すため、すべての新規iterationは `runKey + iteration` で一意なtelemetry recordを持ちます。1セッション1iterationでも、同一セッション3iterationsでも、複数セッション並行でも同じ契約です。
+
+正規stepは次の10個です。
+
+`observation → investigation → implementation → causalValidation → astraValidation → afterObservation → verdict → freshness → merge → devPublish`
+
+telemetryは `scripts/autonomous-iteration-telemetry.mjs` を正本とし、各stepに `startedAt / completedAt / durationMs / state` を持ちます。時刻は実行runtimeまたはtoolが返した実時刻を使い、推測値を記録しません。step境界では前stepを完了して同一時刻から次stepを開始します。
+
+iteration開始時、immutable Before取得より前にtelemetryを初期化します。Draft PR作成前のtelemetryはそのセッション内で保持し、PR作成後に `autonomous-iteration-telemetry:v1` markerとしてPR bodyへbindします。以後はstep境界ごとに同じmarkerだけを更新し、PR本文の人間向け説明を消しません。
+
+theme決定後は `theme / themeKey / rootCauses`、実装後は `improvementSummary / changes / changedPaths`、検証・完了時は `validatedHead / verdict / mergeSha` を同じrecordへ追記します。telemetryは観測UI用の記録であり、experiment v3 / receipt / GitHub Actions / merge freshnessの正本を置き換えません。
+
+`scripts/autonomous-run-controller.mjs` は以下も提供します。
+
+```sh
+node scripts/autonomous-run-controller.mjs telemetry-init --game kuumetsu --sha <source-sha> --run-key <run-key> --iteration 1 --iterations 3 --at <iso-time>
+node scripts/autonomous-run-controller.mjs telemetry-advance --telemetry-json '<json>' --from observation --to investigation --at <iso-time> --patch-json '<json>'
+node scripts/autonomous-run-controller.mjs telemetry-marker --telemetry-json '<json>'
+```
+
+DEV publication完了は従来どおり待機しません。merge後の `devPublish` はPULSEが実際のPer-App DEV Publish runと照合して補完できます。
 
 
 ## Iteration fast path

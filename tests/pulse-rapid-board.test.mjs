@@ -19,10 +19,20 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /state\?\.developmentSessions/);
   assert.match(script, /rapid-session-flow/);
   assert.match(script, /renderIterations/);
+  assert.match(script, /activeSessions/);
+  assert.match(script, /renderProgressMini/);
+  assert.match(script, /renderSession\(session,\{graph:true\}\)/);
+  assert.match(script, /renderSession\(session,\{iteration:true,graph:true\}\)/);
   assert.match(script, /iterationSteps/);
   assert.match(script, /buildIssueRepairPrompt/);
   assert.match(script, /navigator\.clipboard/);
   assert.match(script, /修復プロンプトをコピー/);
+  assert.match(script, /iterations\.html#iteration=/);
+  assert.match(script, /NOW/);
+  assert.match(script, /再検証/);
+  assert.match(script, /iterationRank/);
+  assert.match(script, /Run ·/);
+  assert.match(script, /対象未記録/);
   assert.doesNotMatch(script, /api\.github\.com|innerHTML/);
 });
 

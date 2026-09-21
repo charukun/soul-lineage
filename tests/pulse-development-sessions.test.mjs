@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { autonomousIterationMeta, buildDevelopmentSessions, fastDevRunKind } from '../ops-board/development-sessions.mjs';
+import { autonomousIterationMeta, buildAutonomousIterations, buildDevelopmentSessions, fastDevRunKind } from '../ops-board/development-sessions.mjs';
+import { advanceIterationTelemetry, createIterationTelemetry, patchIterationTelemetry, upsertIterationTelemetry } from '../scripts/autonomous-iteration-telemetry.mjs';
 
 const head='a'.repeat(40),merge='b'.repeat(40);
 const pr={number:42,title:'PULSE visual flow',body:'Browser-Playtest: demon',state:'closed',draft:false,merged_at:'2026-09-22T00:05:00Z',updated_at:'2026-09-22T00:05:00Z',html_url:'https://github.com/charukun/soul-lineage/pull/42',merge_commit_sha:merge,head:{ref:'feat/pulse',sha:head},base:{ref:'develop'},targetApps:[{id:'ops-board',label:'開発状況ボード'}]};
@@ -29,6 +30,8 @@ test('required browser evidence remains visibly waiting and failed exact-head va
   assert.equal(session.steps.find(step=>step.id==='validation').state,'problem');
   assert.equal(session.steps.find(step=>step.id==='browser').state,'waiting');
   assert.equal(session.steps.find(step=>step.id==='merge').state,'waiting');
+  assert.equal(session.lastFailure.runId,5);
+  assert.equal(session.lastFailure.conclusion,'failure');
 });
 
 test('run classifier stays independent from dynamic workflow display titles',()=>{
@@ -45,8 +48,63 @@ test('autonomous iteration sessions expose observation through DEV as a dedicate
     run(4,'Per-App DEV Publish',merge,'success',{head_branch:'develop'}),
   ];
   const [session]=buildDevelopmentSessions([auto],runs);
-  assert.deepEqual(autonomousIterationMeta(auto),{kind:'autonomous',game:'kuumetsu',number:4,observationRecorded:true});
+  const meta=autonomousIterationMeta(auto);
+  assert.equal(meta.kind,'autonomous');
+  assert.equal(meta.game,'kuumetsu');
+  assert.equal(meta.number,4);
+  assert.equal(meta.observationRecorded,true);
+  assert.equal(meta.telemetry,null);
   assert.equal(session.autonomous.game,'kuumetsu');
-  assert.deepEqual(session.iterationSteps.map(step=>step.id),['observation','implementation','validation','after','merge','publish']);
+  assert.deepEqual(session.iterationSteps.map(step=>step.id),['observation','implementation','astraValidation','afterObservation','merge','devPublish']);
   assert.deepEqual(session.iterationSteps.map(step=>step.state),['done','done','done','done','done','done']);
+});
+
+
+test('recorded telemetry makes runKey and per-step durations authoritative for parallel iteration cards',()=>{
+  let telemetry=createIterationTelemetry({
+    runKey:'session-three',game:'kuumetsu',iteration:2,iterations:3,sourceSha:head,
+    startedAt:'2026-09-22T03:00:00Z',
+  });
+  telemetry=advanceIterationTelemetry(telemetry,{from:'observation',to:'investigation',at:'2026-09-22T03:00:10Z'});
+  telemetry=advanceIterationTelemetry(telemetry,{from:'investigation',to:'implementation',at:'2026-09-22T03:00:22Z',patch:{theme:'risk reward clarity'}});
+  telemetry=patchIterationTelemetry(telemetry,{prNumber:77,improvementSummary:'retreat value is now legible'});
+  const recorded={...pr,number:77,title:'Kuumetsu iteration 2: risk reward clarity',state:'open',draft:true,merged_at:null,merge_commit_sha:null,
+    body:upsertIterationTelemetry('Autonomous iteration\nBrowser-Playtest: demon',telemetry),
+    targetApps:[{id:'demon',label:'喰滅廻遊'}],
+  };
+  const [item]=buildAutonomousIterations([recorded],[],{limit:10});
+  assert.equal(item.id,'session-three:2');
+  assert.equal(item.runKey,'session-three');
+  assert.equal(item.iteration,2);
+  assert.equal(item.iterations,3);
+  assert.equal(item.theme,'risk reward clarity');
+  assert.equal(item.improvementSummary,'retreat value is now legible');
+  assert.equal(item.currentStep,'implementation');
+  assert.equal(item.steps.find(step=>step.id==='observation').durationMs,10000);
+  assert.equal(item.steps.find(step=>step.id==='investigation').durationMs,12000);
+  assert.equal(item.steps.find(step=>step.id==='astraValidation').durationMs,null);
+  assert.equal(item.telemetry,'recorded');
+});
+
+
+test('autonomous iteration ordering prioritizes problem, running, publishing, then complete',()=>{
+  const make=(number,{state='open',draft=true,mergedAt=null,mergeSha=null,updated='2026-09-22T04:00:00Z'}={})=>({
+    ...pr,number,state,draft,merged_at:mergedAt,merge_commit_sha:mergeSha,updated_at:updated,
+    title:'Kuumetsu autonomous iteration '+number,
+    body:'Autonomous iteration '+number+'\nBrowser-Playtest: not-required',
+    head:{ref:'feat/iteration-'+number,sha:String(number).padStart(40,'0')},
+    targetApps:[{id:'demon',label:'喰滅廻遊'}],
+  });
+  const problem=make(91,{state:'open',draft:false,updated:'2026-09-22T04:04:00Z'});
+  const running=make(92,{state:'open',draft:true,updated:'2026-09-22T04:03:00Z'});
+  const publishing=make(93,{state:'closed',draft:false,mergedAt:'2026-09-22T04:02:00Z',mergeSha:'9'.repeat(40),updated:'2026-09-22T04:02:00Z'});
+  const complete=make(94,{state:'closed',draft:false,mergedAt:'2026-09-22T04:01:00Z',mergeSha:'8'.repeat(40),updated:'2026-09-22T04:01:00Z'});
+  const runs=[
+    run(6,'Astra final-head validation feat/iteration-91',problem.head.sha,'failure',{head_branch:problem.head.ref}),
+    run(7,'Per-App DEV Publish',complete.merge_commit_sha,'success',{head_branch:'develop'}),
+  ];
+  const items=buildAutonomousIterations([complete,publishing,running,problem],runs,{limit:10});
+  assert.deepEqual(items.map(item=>item.pr.number),[91,92,93,94]);
+  assert.deepEqual(items.map(item=>item.status),['problem','running','publishing','complete']);
+  assert.equal(items[0].lastFailure.runId,6);
 });

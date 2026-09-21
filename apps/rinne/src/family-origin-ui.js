@@ -29,9 +29,9 @@ export function openFamilyOrigin({document = globalThis.document, hasSave = fals
       <div class="family-motes"></div>
       <div class="family-ripples"></div>
     </div>
-    <div class="family-ritual-brand" aria-hidden="true"><img src="./title-assets/crest.svg" alt=""><span>R I N N E</span></div>
+    <div class="family-ritual-brand" aria-hidden="true"><i>✦</i><span>R I N N E</span></div>
     <div class="family-story-shell">
-      <small class="family-surface-version">UI 4.0.0</small>
+      <small class="family-surface-version">UI ${RINNE_UI_VERSION}</small>
       <button type="button" class="family-story-back" data-origin-back aria-label="ひとつ前へ">‹</button>
       <button type="button" class="family-story-close" data-origin-cancel aria-label="やめる">×</button>
       <main class="family-origin-content"></main>
@@ -80,7 +80,7 @@ export function openFamilyOrigin({document = globalThis.document, hasSave = fals
       const presence = node(document, 'button', 'family-memory-presence'); presence.type = 'button'; presence.dataset.answer = choice.id; presence.dataset.memoryCurrent = 'true';
       presence.setAttribute('aria-label', `${choice.label}。触れて選ぶ。左右キーまたはスワイプで別の記憶。`);
       presence.setAttribute('aria-pressed', String(journey.snapshot().answers[activeQuestion.key] === choice.id));
-      presence.innerHTML = `<span class="family-memory-relic" aria-hidden="true"><i></i><em></em><b>${MEMORY_MARKS[choice.id]||'縁'}</b><u></u></span><span class="family-memory-echo">${MEMORY_ECHO[choice.id]||''}</span><span class="family-memory-label">${choice.label}</span>`;
+      presence.innerHTML = `<span class="family-memory-relic" aria-hidden="true"><i></i><em></em><b>${MEMORY_MARKS[choice.id]||'縁'}</b><u></u></span><span class="family-memory-echo">${MEMORY_ECHO[choice.id]||''}</span><span class="family-memory-label">${choice.label}</span><small class="family-memory-hint">左右にスワイプ · タップで選ぶ</small>`;
       const focusSound = () => playRinneLineageAudio('focus', memoryIndex);
       presence.addEventListener('pointerenter', focusSound, {passive:true}); presence.addEventListener('focus', focusSound);
       presence.addEventListener('click', () => {

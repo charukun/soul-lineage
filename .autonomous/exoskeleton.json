@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "doctrine": "capability-gap-exoskeleton",
+  "zeroScaffoldingIsValid": true,
+  "rules": [
+    "No current autonomous mechanism is presumed permanent.",
+    "Every scaffold must compensate for a named current capability or operational gap.",
+    "Every scaffold must stay detachable and declare dependencies plus a detachment condition.",
+    "When native model/tool capability provides equal or better outcomes, prefer removing or replacing the scaffold.",
+    "Current required scaffolds remain mandatory until an explicit framework contract change removes them."
+  ],
+  "modules": [
+    {
+      "id": "observation-first",
+      "state": "required-currently",
+      "removable": true,
+      "compensatesFor": "Current models can anchor on easy-to-find source defects before establishing the real player-facing problem.",
+      "detachWhen": "A model-native workflow reliably grounds improvement selection in the live player experience without forced observation ordering.",
+      "dependencies": []
+    },
+    {
+      "id": "dense-iteration",
+      "state": "required-currently",
+      "removable": true,
+      "compensatesFor": "Current models often collapse an experience problem into one convenient micro-fix or pad scope with unrelated edits.",
+      "detachWhen": "Model-native planning consistently chooses coherent experience-sized scope without minimum work-item rules.",
+      "dependencies": [
+        "observation-first"
+      ]
+    },
+    {
+      "id": "experiment-schema",
+      "state": "required-currently",
+      "removable": true,
+      "compensatesFor": "Current autonomous runs need explicit hypotheses, falsifiers, scope, and evidence mapping to avoid untraceable changes and repeated failed ideas.",
+      "detachWhen": "The model/runtime maintains equivalent causal memory and decision traceability natively without repository experiment records.",
+      "dependencies": [
+        "observation-first"
+      ]
+    },
+    {
+      "id": "focused-tests",
+      "state": "required-currently",
+      "removable": true,
+      "compensatesFor": "Current implementation models can introduce causal regressions that are cheaper to detect with targeted executable assertions.",
+      "detachWhen": "Model-native or direct runtime evaluation establishes changed behavior and regression safety at equal or better reliability without separate tests.",
+      "dependencies": []
+    },
+    {
+      "id": "exact-head-actions-validation",
+      "state": "required-currently",
+      "removable": true,
+      "compensatesFor": "Current chat/tool execution cannot be assumed to validate the exact repository head in a reproducible hosted environment.",
+      "detachWhen": "The execution model natively provides trustworthy exact-source execution and validation receipts without a separate hosted CI pass.",
+      "dependencies": [
+        "focused-tests"
+      ]
+    },
+    {
+      "id": "immutable-staging",
+      "state": "required-currently",
+      "removable": true,
+      "compensatesFor": "Mutable DEV surfaces can drift between observation and evaluation, breaking causal identity.",
+      "detachWhen": "The model/runtime observes and evaluates a source-addressed game state natively so mutable deployment identity cannot contaminate evidence.",
+      "dependencies": []
+    },
+    {
+      "id": "browser-after-evidence",
+      "state": "required-currently",
+      "removable": true,
+      "compensatesFor": "Current code/test success does not reliably establish the resulting player-facing experience for visual and interactive changes.",
+      "detachWhen": "The model/runtime directly perceives and judges the resulting player experience with sufficient reliability as part of implementation itself.",
+      "dependencies": [
+        "immutable-staging"
+      ]
+    },
+    {
+      "id": "receipts-history",
+      "state": "required-currently",
+      "removable": true,
+      "compensatesFor": "Current sessions are ephemeral and can repeat failed approaches or lose validated outcome provenance.",
+      "detachWhen": "Long-lived model/runtime memory and repository state provide equivalent reliable learning/provenance without explicit receipts or experiment history.",
+      "dependencies": [
+        "experiment-schema"
+      ]
+    },
+    {
+      "id": "iteration-telemetry",
+      "state": "required-currently",
+      "removable": true,
+      "compensatesFor": "Current external observers need explicit progress state because autonomous execution is opaque and sessions can stop unexpectedly.",
+      "detachWhen": "Execution progress and recovery state are natively observable and durable without repository/chat telemetry records.",
+      "dependencies": []
+    },
+    {
+      "id": "freshness-reconcile",
+      "state": "required-currently",
+      "removable": true,
+      "compensatesFor": "Concurrent repository changes can invalidate a previously validated head or overlap its affected scope.",
+      "detachWhen": "The model/repository runtime natively maintains transactional source consistency across concurrent changes without explicit freshness choreography.",
+      "dependencies": [
+        "exact-head-actions-validation"
+      ]
+    }
+  ]
+}

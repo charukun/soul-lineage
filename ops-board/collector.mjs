@@ -6,7 +6,7 @@ import { syncPullSnapshot } from './pull-snapshot.mjs';
 import { enrichTargets, actionProblems } from './review-model.mjs';
 import { FAILED_CONCLUSIONS, estimatePublicationDuration } from './public/health.mjs';
 import { collectRescue, rescueView } from './rescue.mjs';
-import { buildDevelopmentSessions } from './development-sessions.mjs';
+import { buildAutonomousIterations, buildDevelopmentSessions } from './development-sessions.mjs';
 const RUNNING = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
 const PUBLIC_RECOVERY_PULL_LIMIT = 40;
 const stamp = () => new Date().toISOString();
@@ -155,6 +155,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     const targets = await enrichTargets(allPulls, client, storage, targetLimit);
     const pullRequests = splitPulls(targets.pulls);
     const developmentSessions = buildDevelopmentSessions(targets.pulls, runs);
+    const autonomousIterations = buildAutonomousIterations(targets.pulls, runs);
     const failures = actionProblems(runs, allPulls, { verifiedDevelopSha: deliveryVerified ? developSha : null });
     const now = stamp();
     return { schemaVersion: 2, repository: REPOSITORY, generatedAt: now, lastAttemptAt: now, startedAt, syncStatus: 'ok',
@@ -165,7 +166,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
       githubFailure: null,
       pullSync: { mode: pullSync.mode, pages: pullSync.pages, complete: pullSync.complete, watermark: pullSync.watermark, fullAt: pullSync.fullAt },
       pullRequests: { ...pullRequests, total: allPulls.length, truncated: !pullSync.complete, targetLookup: { ready: targets.ready, pending: targets.pending, unavailable: targets.unavailable, attempted: targets.attempted } },
-      developmentSessions,
+      developmentSessions, autonomousIterations,
       applications, applicationsUpdatedAt: now, applicationsSource: 'per-app DEV status + live version probe + public manifest', environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
       integration: { ...integration, queue: integrationQueue, latestRun: runView(latestDevelopRun), deployWaiting: dev.deployQueue?.pulls || [],
         recovering: Boolean(recoveryFrom), recoveryFrom: runView(recoveryFrom), deliveryEstimate,

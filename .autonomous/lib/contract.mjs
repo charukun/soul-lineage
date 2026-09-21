@@ -14,6 +14,24 @@ const need = (condition, message) => { if (!condition) fail(message); };
 const text = value => typeof value === 'string' && value.trim().length > 0;
 export const json = path => JSON.parse(readFileSync(path, 'utf8'));
 export const git = (root, args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }).trim();
+export function loadExoskeleton(root) {
+  const manifest = json(resolve(root, '.autonomous', 'exoskeleton.json'));
+  need(manifest?.schemaVersion === 1 && manifest.doctrine === 'capability-gap-exoskeleton', 'invalid exoskeleton manifest identity');
+  need(manifest.zeroScaffoldingIsValid === true, 'exoskeleton must permit zero-scaffolding endpoint');
+  need(Array.isArray(manifest.rules) && manifest.rules.length >= 4 && manifest.rules.every(text), 'exoskeleton rules required');
+  need(Array.isArray(manifest.modules) && manifest.modules.length > 0, 'exoskeleton modules required');
+  const ids = new Set();
+  for (const module of manifest.modules) {
+    need(ID.test(module?.id || '') && !ids.has(module.id), 'exoskeleton module id must be unique');
+    ids.add(module.id);
+    need(module.removable === true, `exoskeleton module must be detachable: ${module.id}`);
+    need(['required-currently','optional-currently','retired'].includes(module.state), `invalid exoskeleton module state: ${module.id}`);
+    need(text(module.compensatesFor) && text(module.detachWhen), `exoskeleton module gap/detach condition required: ${module.id}`);
+    need(Array.isArray(module.dependencies) && module.dependencies.every(text), `exoskeleton module dependencies required: ${module.id}`);
+  }
+  for (const module of manifest.modules) for (const dependency of module.dependencies) need(ids.has(dependency), `unknown exoskeleton dependency: ${module.id} -> ${dependency}`);
+  return manifest;
+}
 export function gameId(game) { need(Object.hasOwn(GAMES, game), `unknown game: ${game}`); return game; }
 export function safePath(path) {
   need(text(path) && !path.startsWith('/') && !path.includes('\\') && !path.split('/').some(p => p === '..' || p === '.' || p === ''), 'unsafe repository path');
@@ -160,6 +178,7 @@ export function validateReceipt(receipt) {
 }
 export function loadContext(root, game) {
   gameId(game);
+  const exoskeleton = loadExoskeleton(root);
   const base = resolve(root, '.autonomous', game), index = json(resolve(base, 'experiment-history.json'));
   need(index.schemaVersion === 1 && index.game === game && Array.isArray(index.recent) && index.recent.length <= RECENT_LIMIT, 'invalid bounded history index');
   need(index.archive?.path === 'archive/index.json' && Number.isSafeInteger(index.archive.count) && index.archive.count >= 0, 'invalid archive pointer');
@@ -173,7 +192,7 @@ export function loadContext(root, game) {
     else need(recordThemeKey(record) === entry.themeKey, 'theme index mismatch');
   }
   for (const file of ['charter.md', 'protected-rules.md', 'observations.md', 'hypotheses.md']) need(existsSync(resolve(base, file)), `missing ${game}/${file}`);
-  return { game, app: GAMES[game], readFirst: ['AGENTS.md', '.autonomous/README.md', '.autonomous/protected-rules.md', ...['charter.md', 'protected-rules.md', 'observations.md', 'hypotheses.md', 'experiment-history.json'].map(p => `.autonomous/${game}/${p}`)], ...index,
+  return { game, app: GAMES[game], exoskeleton, readFirst: ['AGENTS.md', '.autonomous/README.md', '.autonomous/EXOSKELETON.md', '.autonomous/protected-rules.md', ...['charter.md', 'protected-rules.md', 'observations.md', 'hypotheses.md', 'experiment-history.json'].map(p => `.autonomous/${game}/${p}`)], ...index,
     receiptRule: 'Resolve pending records through their PR receipt marker and live GitHub status; never infer merged from this index.' };
 }
 export function receiptPath(game,id) { gameId(game); need(ID.test(id || ''), 'receipt id'); return `.autonomous/${game}/receipts/${id}.json`; }
