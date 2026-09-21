@@ -92,3 +92,17 @@ test('equipment preview uses reviewed humanoid idle stance and padded FOV-aware 
   assert.match(js,/find\(clip=>\/idle\|stand\|breath\/i\.test/);
   assert.doesNotMatch(js,/find\(clip=>!\/t\[-_ \]\?pose/);
 });
+
+
+test('equipment review hides embedded combat props and applies calibrated hand grips', async () => {
+  const [js,catalog]=await Promise.all([readFile(jsUrl,'utf8'),readFile(catalogUrl,'utf8')]);
+  assert.match(js,/import \{hideEmbeddedCombatProps\} from '\.\/review-battle-equipment\.js'/);
+  assert.match(js,/hideEmbeddedCombatProps\(root\)/);
+  assert.match(js,/if\(slot==='main'\)return findNode\(modelRoot,'hand\.r'\)[\s\S]*findNode\(modelRoot,'handslot\.r'\)/);
+  assert.match(js,/if\(slot==='off'\)return findNode\(modelRoot,'hand\.l'\)[\s\S]*findNode\(modelRoot,'handslot\.l'\)/);
+  assert.match(js,/item\.grip/);
+  assert.match(catalog,/const SKELETON_HAND_GRIPS/);
+  assert.match(catalog,/1H_Sword/);
+  assert.match(catalog,/2H_Crossbow/);
+  assert.match(catalog,/rotation:Object\.freeze\(\[0,0,-Math\.PI\/2\]\)/);
+});
