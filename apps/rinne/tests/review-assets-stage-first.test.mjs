@@ -5,29 +5,38 @@ import {readFile,stat} from 'node:fs/promises';
 const htmlUrl = new URL('../review-assets.html', import.meta.url);
 const cssUrl = new URL('../src/review-asset-library.css', import.meta.url);
 const jsUrl = new URL('../src/review-asset-library.js', import.meta.url);
+const catalogUrl = new URL('../src/review-equipment-catalog.js', import.meta.url);
 
-test('equipment review equips the selected weapon type directly', async () => {
-  const [html, css, js] = await Promise.all([
-    readFile(htmlUrl, 'utf8'),
-    readFile(cssUrl, 'utf8'),
-    readFile(jsUrl, 'utf8'),
+test('equipment review mirrors the motion library category-to-item flow', async () => {
+  const [html,css,js,catalog] = await Promise.all([
+    readFile(htmlUrl,'utf8'),readFile(cssUrl,'utf8'),readFile(jsUrl,'utf8'),readFile(catalogUrl,'utf8')
   ]);
-  assert.match(html, /装備箇所/);
-  assert.match(html, /武器の種類/);
-  assert.doesNotMatch(html, /右手の装備候補|装備候補/);
-  assert.doesNotMatch(html, /asset-equipment-options|asset-clear-slot/);
-  assert.match(js, /const equip=\(\)=>setEquipment\('main',type\.equipment\)/);
-  assert.match(js, /\$\{type\.label\}を装備しました/);
-  assert.doesNotMatch(js, /setFocusPreset\('main'\)/);
-  assert.doesNotMatch(js, /data-asset-slot[^\n]+setFocusPreset/);
-  for (const label of ['素手','剣','斧','杖','クロスボウ']) assert.match(js, new RegExp(`label:'${label}'`));
-  assert.match(css, /\.asset-weapon-types\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
+  assert.match(html,/EQUIPMENT LIBRARY/);
+  assert.match(html,/id="asset-filters"/);
+  assert.match(html,/id="asset-grid-summary"/);
+  assert.match(html,/id="asset-item-count"/);
+  assert.match(js,/filterEquipmentReviewCatalog\(equipmentFilter\)/);
+  assert.match(js,/REVIEW_EQUIPMENT_CATEGORY_ORDER/);
+  assert.doesNotMatch(js,/const WEAPON_TYPES = Object\.freeze/);
+  for(const label of ['おすすめ','刀剣','斧','長柄','遠距離','盾']) assert.match(catalog,new RegExp(label));
+  assert.match(css,/\.asset-weapon-types\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
+});
+
+test('equipment catalog aggregates existing weapon sources instead of a fixed five-item list', async () => {
+  const catalog=await readFile(catalogUrl,'utf8');
+  assert.match(catalog,/REVIEW_SKELETON_EQUIPMENT/);
+  assert.match(catalog,/RINNE_OBJECT_REVIEW_CATALOG/);
+  assert.match(catalog,/kaykit-dagger/);
+  assert.match(catalog,/kaykit-sword-1h/);
+  assert.match(catalog,/kaykit-shield-badge/);
+  assert.match(catalog,/item\.category==='weapons'/);
+  assert.match(catalog,/spear\|staff\|槍\|杖/);
 });
 
 test('equipment review preserves camera unless the user chooses a camera preset', async () => {
   const [html, js] = await Promise.all([readFile(htmlUrl,'utf8'),readFile(jsUrl,'utf8')]);
   assert.match(html, /data-asset-camera="front"/);
-  assert.match(js, /button\.dataset\.assetCamera/);
+  assert.match(js, /createReviewCameraPresetController/);
   assert.doesNotMatch(js, /selectWeaponType[\s\S]{0,700}setFocusPreset/);
   assert.doesNotMatch(js, /\[data-asset-slot\][\s\S]{0,240}setFocusPreset/);
 });
@@ -49,9 +58,9 @@ test('direct weapon selection preloads materialized assets and reuses them on sw
   assert.match(js,/const equipmentCache = new Map\(\)/);
   assert.match(js,/async function prepareWeaponLibrary\(\)/);
   assert.match(js,/renderer\.compileAsync|renderer\.compile\(scene,camera\)/);
-  assert.match(js,/const payload=await prepareEquipment\(slot,spec\)/);
-  assert.doesNotMatch(js,/async function setEquipment[\s\S]{0,900}loader\.loadAsync\(reviewEquipmentUrl\(spec\)\)/);
-  assert.match(js,/loader\.loadAsync\(reviewEquipmentUrl\(spec\)\)/);
+  assert.match(js,/const characterHeight=modelHeight\(\),payload=await prepareEquipment\(item\)/);
+  assert.doesNotMatch(js,/async function setEquipment[\s\S]{0,900}loader\.loadAsync/);
+  assert.match(js,/loader\.loadAsync\(new URL\(item\.url,location\.href\)\.href\)/);
   for (const file of ['Skeleton_Blade','Skeleton_Axe','Skeleton_Staff','Skeleton_Crossbow']) {
     const gltf=new URL(`../public/asset-review/equipment/${file}.gltf`,import.meta.url);
     const bin=new URL(`../public/asset-review/equipment/${file}.bin`,import.meta.url);
@@ -62,13 +71,12 @@ test('direct weapon selection preloads materialized assets and reuses them on sw
 });
 
 
-test('held weapons use the protagonist hand sockets instead of skeleton-model grip offsets', async () => {
+test('catalog equipment follows protagonist hand sockets', async () => {
   const js=await readFile(jsUrl,'utf8');
   assert.match(js,/function dedicatedHandSlot\(anchor,slot\)/);
   assert.match(js,/handslot\.l/);
   assert.match(js,/handslot\.r/);
-  assert.match(js,/if\(dedicatedHandSlot\(anchor,slot\)\)\{[\s\S]*fitObject\(payload,spec\.targetFraction,characterHeight\);[\s\S]*return;/);
-  assert.match(js,/const characterHeight=modelHeight\(\);[\s\S]*anchor\.add\(payload\);[\s\S]*applyTransform\(payload,spec,slot,anchor,characterHeight\)/);
+  assert.match(js,/const characterHeight=modelHeight\(\),payload=await prepareEquipment\(item\);[\s\S]*anchor\.add\(payload\);[\s\S]*applyTransform\(payload,item,slot,anchor,characterHeight\)/);
 });
 
 
