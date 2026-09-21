@@ -1,24 +1,12 @@
+import {normalizeCombatStrategy,strategyForState} from '@soul/game-data/combat-strategy';
+export {COMBAT_STRATEGY_PRESETS,normalizeCombatStrategy,strategyForState} from '@soul/game-data/combat-strategy';
 import {ensureCombatInjuryState,injuryEffects} from './combat-injury.js';
 
 const clamp=(n,lo=0,hi=1)=>Math.min(hi,Math.max(lo,Number(n)||0));
 export const COMBAT_BODY_PARTS=Object.freeze(['head','torso','leftArm','rightArm','leftLeg','rightLeg']);
 export const COMBAT_BODY_LABELS=Object.freeze({head:'頭',torso:'胴',leftArm:'左腕',rightArm:'右腕',leftLeg:'左脚',rightLeg:'右脚'});
-export const COMBAT_STRATEGY_PRESETS=Object.freeze({
-  balanced:Object.freeze({attack:.52,guard:.52,spacing:.52,counter:.42,mobility:.48,survival:.42}),
-  aggressive:Object.freeze({attack:.9,guard:.28,spacing:.34,counter:.28,mobility:.58,survival:.22}),
-  patient:Object.freeze({attack:.28,guard:.66,spacing:.76,counter:.84,mobility:.38,survival:.52}),
-  counter:Object.freeze({attack:.4,guard:.72,spacing:.56,counter:.95,mobility:.52,survival:.46}),
-  evasive:Object.freeze({attack:.34,guard:.4,spacing:.78,counter:.54,mobility:.94,survival:.5})
-});
 const hash01=value=>{const text=String(value);let hash=2166136261;for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}return(hash>>>0)/4294967295;};
 const stageFor=severity=>severity>=.9?'機能不全':severity>=.68?'重傷':severity>=.42?'負傷':severity>=.18?'軽傷':'正常';
-export function normalizeCombatStrategy(value='balanced'){
-  if(typeof value==='string')return Object.freeze({...COMBAT_STRATEGY_PRESETS[value]||COMBAT_STRATEGY_PRESETS.balanced});
-  const fallback=COMBAT_STRATEGY_PRESETS.balanced,out={};
-  for(const key of Object.keys(fallback))out[key]=clamp(value?.[key]??fallback[key]);
-  return Object.freeze(out);
-}
-export function strategyForState(state){return normalizeCombatStrategy(state?.combatStrategy);}
 export function combatBodySnapshot(state){
   ensureCombatInjuryState(state);
   return Object.freeze(Object.fromEntries(COMBAT_BODY_PARTS.map(part=>{const severity=clamp(state.injuries?.[part]?.severity);return[part,Object.freeze({severity,durability:Math.round((1-severity)*100),stage:stageFor(severity),label:COMBAT_BODY_LABELS[part]})];})));

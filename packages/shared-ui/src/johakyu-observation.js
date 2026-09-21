@@ -1,5 +1,5 @@
 // Data boundary only. The simulation owns identity, time, randomness and impacts.
-const authorities=new Set(['native-demo','rinne-domain']);
+const authorities=new Set(['native-demo','johakyu-review','rinne-domain']);
 const phases=new Set(['jo','ha','kyu']);
 const text=(value,name)=>{
   if(typeof value!=='string'||!value.length||value.length>200)throw new TypeError(`Invalid ${name}`);
@@ -30,16 +30,16 @@ export function createBattleObservation({authority,battleId,timeSeconds,status,a
     return freeze({id,side:actor.side,position,hp,maxHp,dead:actor.dead,
       phase:executionPhase,animation:actor.animation===null?null:text(actor.animation,'animation'),
       // Null means not connected. Do not derive game rules from demo HP or clips.
-      stamina:null,body:null,techniqueId:null});
+      stamina:null,body:null,techniqueId:authority==='native-demo'?null:actor.techniqueId==null?null:text(actor.techniqueId,'techniqueId')});
   });
   const eventIds=new Set();
   const impacts=events.map(event=>{
-    if(authority!=='rinne-domain'||event.type!=='impact')throw new TypeError('Unsupported semantic event');
+    if(authority==='native-demo'||event.type!=='impact')throw new TypeError('Unsupported semantic event');
     const id=text(event.id,'event id');if(eventIds.has(id))throw new TypeError('Duplicate event id');eventIds.add(id);
     const sourceId=text(event.sourceId,'sourceId'),targetId=text(event.targetId,'targetId');
     if(sourceId===targetId||!ids.has(sourceId)||!ids.has(targetId))throw new TypeError('Unknown impact actor');
     return freeze({id,type:'impact',attackId:text(event.attackId,'attackId'),sourceId,targetId,
-      phase:phase(event.phase),techniqueId:text(event.techniqueId,'techniqueId'),damage:finite(event.damage,'damage',0)});
+      phase:phase(event.phase),techniqueId:event.techniqueId==null?null:text(event.techniqueId,'techniqueId'),damage:finite(event.damage,'damage',0)});
   });
   return freeze({schemaVersion:1,authority,readOnly:true,battleId,
     clock:freeze({owner:authority,seconds:timeSeconds}),status,

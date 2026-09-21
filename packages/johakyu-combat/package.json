@@ -1,0 +1,13 @@
+{
+  "name": "@soul/johakyu-combat",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./domain": "./src/domain.js"
+  },
+  "dependencies": {
+    "@soul/game-data": "*"
+  }
+}

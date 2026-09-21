@@ -1,17 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLife} from '../src/rebuild/domain.js';
-import {ensureCombatLoadout} from '../src/combat-loadout.js';
+import {ensureCombatLoadout,setHeartActive,setBodyChoice} from '../src/combat-loadout.js';
 import {
   applySkillComponents,chooseEnemyAttention,directionalDefenseFor,noteEnemyThreat,resolveBodyIntent,
   staminaPolicyFor,tidebreakMindVectorFor,tidebreakMindsetFromVector
 } from '../src/rebuild/combat-tactics.js';
 
 function life(seed=9){const state=createLife({seed});state.phase='living';state.ageYears=20;state.ageSeconds=1200;state.position={x:0,z:0};state.yaw=0;state.equipment.weapon='sword';state.knownSkills.push('basic.sword');ensureCombatLoadout(state);return state;}
+// This fixture represents a validated pre-inspiration save. Knowing a support
+// skill is separate from explicitly equipping it in the three heart slots.
+function equippedLegacy(state,skills){state.inspiration.legacySkills.push(...skills);state.knownSkills.push(...skills);state.combatLoadout=null;ensureCombatLoadout(state);for(const id of skills)assert.equal(setHeartActive(state,id,true),true);return state;}
 const enemy=(id,x,z)=>({id,x,z,hp:100,maxHp:100,dead:false,cooldown:0,attackWindow:.3,threat:{}});
 
 test('continuous mind vector reacts to learned heart/body choices instead of being only a label',()=>{
-  const state=life();const base=tidebreakMindVectorFor(state);state.knownSkills.push('skill.read','skill.patience','skill.peripheral');state.combatLoadout=null;ensureCombatLoadout(state);state.combatLoadout.body.style='counter';const trained=tidebreakMindVectorFor(state);
+  const state=life();const base=tidebreakMindVectorFor(state);equippedLegacy(state,['skill.read','skill.patience','skill.peripheral']);assert.equal(setBodyChoice(state,'style','counter'),true);const trained=tidebreakMindVectorFor(state);
   assert.ok(trained.counter>base.counter);assert.ok(trained.guard>base.guard);assert.equal(typeof tidebreakMindsetFromVector(trained),'string');
 });
 
@@ -21,12 +24,12 @@ test('stamina exhaustion changes decision policy into recovery instead of allowi
 });
 
 test('rear attacks stay dangerous until awareness skills are learned',()=>{
-  const raw=life(11),rear=enemy('rear',0,-1);const before=directionalDefenseFor(raw,rear);raw.knownSkills.push('skill.danger','skill.peripheral','skill.flow-step');raw.combatLoadout=null;ensureCombatLoadout(raw);const after=directionalDefenseFor(raw,rear);
+  const raw=life(11),rear=enemy('rear',0,-1);const before=directionalDefenseFor(raw,rear);equippedLegacy(raw,['skill.danger','skill.peripheral','skill.flow-step']);const after=directionalDefenseFor(raw,rear);
   assert.equal(before.sector,'back');assert.ok(before.damageScale>1);assert.ok(after.awareness>before.awareness);assert.ok(after.damageScale<before.damageScale);
 });
 
 test('learned support skills alter Tidebreak recipe components directly',()=>{
-  const state=life(12),base={kinds:['slash','heavy','ready'],feet:['forward','forward','stay'],charges:['none','none','none'],rhythm:'flow',tempo:1};state.knownSkills.push('skill.flow-step','skill.focus','skill.tempo');state.combatLoadout=null;ensureCombatLoadout(state);const result=applySkillComponents(state,'action.finish','kyu',base);
+  const state=life(12),base={kinds:['slash','heavy','ready'],feet:['forward','forward','stay'],charges:['none','none','none'],rhythm:'flow',tempo:1};equippedLegacy(state,['skill.flow-step','skill.focus','skill.tempo']);const result=applySkillComponents(state,'action.finish','kyu',base);
   assert.notDeepEqual(result.feet,base.feet);assert.notDeepEqual(result.charges,base.charges);assert.equal(result.rhythm,'sharp');
 });
 

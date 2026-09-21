@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./combat-forms": "./src/combat-forms.js",
+    "./combat-strategy": "./src/combat-strategy.js"
   },
   "scripts": {
     "test": "node --test ./test/*.test.mjs"
