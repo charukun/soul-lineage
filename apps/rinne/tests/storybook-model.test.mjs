@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createLife} from '../src/rebuild/domain.js';
+import {buildStorybookModel,BOOK_BODY,bookReadOnlyReason} from '../src/storybook-model.js';
+import {ensureCombatLoadout,setHeartSlot} from '../src/combat-loadout.js';
+import {ensureInspiration} from '../src/rebuild/inspiration-state.js';
+import {SUPPORT_SKILLS} from '../src/rebuild/skill-system.js';
+
+function fixture(age=20){const s=createLife({seed:491});s.phase='living';s.ageYears=age;s.ageSeconds=age*60;ensureInspiration(s);s.inspiration.legacySkills=SUPPORT_SKILLS.slice(0,9).map(v=>v.id);s.knownSkills=[...new Set([...s.knownSkills,...s.inspiration.legacySkills])];ensureCombatLoadout(s);return s;}
+test('each approved page keeps its canonical settings and no fictional slots',()=>{const s=fixture();assert.deepEqual(buildStorybookModel(s,'heart').slots.map(v=>v.key),[0,1,2]);assert.deepEqual(buildStorybookModel(s,'technique').slots.map(v=>v.key),['jo','ha','kyu']);assert.deepEqual(buildStorybookModel(s,'body').slots.map(v=>v.key),['stance','style','zanshin']);assert.deepEqual(buildStorybookModel(s,'items').slots.map(v=>v.key),['weapon','armor','shield']);});
+test('preview data does not change a chosen heart slot',()=>{const s=fixture();setHeartSlot(s,0,SUPPORT_SKILLS[0].id);const before=JSON.stringify(s.combatLoadout);const m=buildStorybookModel(s,'heart',{query:'',filter:'learned'});assert.equal(JSON.stringify(s.combatLoadout),before);assert.ok(m.allRows.some(v=>v.id===SUPPORT_SKILLS[0].id));assert.equal(m.slots[0].id,SUPPORT_SKILLS[0].id);assert.ok(Math.abs(m.mind.reduce((a,v)=>a+v.value,0)-1)<.001);});
+test('body options come from the existing stance style zanshin catalog',()=>{const s=fixture(),m=buildStorybookModel(s,'body');assert.equal(m.allRows.length,BOOK_BODY.reduce((n,[,,rows])=>n+rows.length,0));for(const r of m.allRows){assert.ok(BOOK_BODY.some(([k,,rows])=>k===r.category&&rows.some(v=>v.id===r.choice)));assert.ok(r.facts.every(v=>Number.isFinite(v.raw)));}});
+test('newborn equipment is inspectable but not made equipable',()=>{const s=fixture(0),m=buildStorybookModel(s,'items');assert.equal(m.slots.length,3);assert.ok(m.allRows.every(v=>v.availability.usable===false));assert.ok(m.allRows.every(v=>!Object.hasOwn(v,'level')&&!Object.hasOwn(v,'rarity')&&!Object.hasOwn(v,'durability')));});
+test('combat, ended lives and shared sessions remain read only',()=>{const s=fixture();assert.equal(bookReadOnlyReason(s),'');s.combat={};assert.ok(bookReadOnlyReason(s));s.combat=null;assert.ok(bookReadOnlyReason(s,{coop:true}));s.ended=true;assert.ok(bookReadOnlyReason(s));});
