@@ -1,20 +1,9 @@
-:root{color-scheme:dark;background:#0a0f0e;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-*{box-sizing:border-box}
-html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#0a0f0e}
-/* Same shared frame as battle review, but without its gameplay control panel.
-   Explicit owner-scoped rows override the shared two-pane phone/landscape defaults. */
-main.battle2-review.review-surface>.review-surface__workspace{
-  grid-template-columns:minmax(0,1fr)!important;
-  grid-template-rows:minmax(0,1fr)!important;
-}
-.nocturne-stage{position:relative;min-width:0;min-height:0;overflow:hidden;background:#0b2424}
-.nocturne-stage canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
-#world{z-index:0;touch-action:none}
-#effects{z-index:1;pointer-events:none}
-.nocturne-vignette{position:absolute;z-index:2;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 48%,transparent 42%,rgba(3,12,12,.22) 76%,rgba(2,7,7,.56) 100%)}
-#battle2-status{position:absolute;z-index:3;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;width:min(85%,480px);padding:14px 18px;color:#e5ece4;background:#071c19e6;font:14px/1.7 system-ui,sans-serif;text-align:center;overflow-wrap:anywhere;pointer-events:none}
-#battle2-status[role=alert]{color:#f5d5c7}
-/* Match the Lab choice-grid contract without changing other review surfaces. */
-.battle2-review .review-switcher__grid{grid-template-columns:repeat(5,minmax(0,1fr))}
-.battle2-review .review-probe-card{padding:7px 4px;overflow-wrap:anywhere}
-[hidden]{display:none!important}
+:root{color-scheme:dark;background:#0b1110;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#ece9df}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#0b1110}
+.battle2-review{height:100dvh;display:grid;grid-template-rows:44px minmax(0,1fr) auto;overflow:hidden}
+.battle-bar{display:flex;align-items:center;padding-inline:max(10px,env(safe-area-inset-left)) max(10px,env(safe-area-inset-right));border-bottom:1px solid #29322f;background:#0d1211}
+main.battle2-review.review-surface>.review-surface__workspace{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) auto!important;min-height:0}
+.nocturne-stage{position:relative;min-width:0;min-height:0;overflow:hidden;background:#0b2424}.nocturne-stage canvas{position:absolute;inset:0;display:block;width:100%;height:100%}#world{z-index:0;touch-action:none}#effects{z-index:1;pointer-events:none}.nocturne-vignette{position:absolute;z-index:2;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 48%,transparent 42%,rgba(3,12,12,.22) 76%,rgba(2,7,7,.56) 100%)}
+#battle2-status{position:absolute;z-index:4;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;width:min(85%,480px);padding:14px 18px;color:#e5ece4;background:#071c19e6;font:14px/1.7 system-ui,sans-serif;text-align:center;overflow-wrap:anywhere;pointer-events:none}#battle2-status[role=alert]{color:#f5d5c7}
+.controls{display:flex;justify-content:center;padding:8px max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));border-top:1px solid #29322f;background:#0d1211f5}.battle-stage-switch{width:min(300px,100%)}.battle-mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:5px}.battle-mode-switch button{border:1px solid #39413e;border-radius:9px;background:#171d1b;color:#c9d0cc;padding:9px 12px;font:700 12px/1 system-ui,sans-serif}.battle-mode-switch button[aria-pressed="true"]{border-color:#c7b77a;background:#ded5b9;color:#111714}
+.battle2-review .review-switcher__grid{grid-template-columns:repeat(5,minmax(0,1fr))}.battle2-review .review-probe-card{padding:7px 4px;overflow-wrap:anywhere}[hidden]{display:none!important}

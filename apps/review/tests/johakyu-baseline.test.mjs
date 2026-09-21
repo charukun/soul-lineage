@@ -61,13 +61,18 @@ test('P2 does not upgrade, replace or remove any original dependency',()=>{
 
 test('the new name changes only page labels and its shared review catalog entry',()=>{
   const html=read('apps/review/battle2.html'),shared=read('packages/shared-ui/src/review-shell.js');
-  assert.match(html,/<title>Visual Review｜序破急バトルシステム<\/title>/);
-  assert.match(html,/<h1>序破急バトルシステム<\/h1>/);
-  assert.match(html,/aria-label="序破急バトルシステムレビュー"/);
+  assert.match(html,/<title>Visual Review｜序破急バトル<\/title>/);
+  assert.match(html,/<h1>序破急バトル<\/h1>/);
+  assert.match(html,/aria-label="序破急バトルレビュー"/);
   assert.match(html,/data-review-surface="battle2"/);
-  assert.match(shared,/id:'battle2',label:'序破急バトルシステム',detail:'百年転生へ段階統合する新戦闘基盤'/);
-  assert.equal(blobHash(html.replaceAll(baseline.name,baseline.previousName)),baseline.renameOnlyBlobs['apps/review/battle2.html']);
-  const normalized=originalSharedJs(shared).replaceAll(baseline.name,baseline.previousName).replace('百年転生へ段階統合する新戦闘基盤','ノクターン自動戦闘・演出基盤');
+  assert.match(shared,/id:'battle2',label:'序破急バトル',detail:'百年転生の序破急戦闘を確認'/);
+  const p7Readout='\n        <div class="battle2-p7-readout" data-p7-readout hidden aria-label="P7戦闘状態">\n          <span class="battle2-p7-phase" data-p7-phase>序</span>\n          <span class="battle2-p7-copy"><strong data-p7-summary>P7 本編契約 · 2対3</strong><small data-p7-detail>ST 100 · 傷 なし</small></span>\n        </div>';
+  const p7Normalized=html
+    .replace('\n<link rel="stylesheet" href="./src/nocturne/johakyu-p7-readout.css">','')
+    .replace(p7Readout,'')
+    .replace('aria-label="序破急 canonical 自動戦闘"','aria-label="NOCTURNE 自動戦闘"');
+  assert.equal(blobHash(p7Normalized.replaceAll(baseline.name,baseline.previousName)),baseline.renameOnlyBlobs['apps/review/battle2.html']);
+  const normalized=originalSharedJs(shared).replaceAll(baseline.name,baseline.previousName).replace('百年転生の序破急戦闘を確認','ノクターン自動戦闘・演出基盤');
   assert.equal(blobHash(normalized),baseline.renameOnlyBlobs['packages/shared-ui/src/review-shell.js']);
 });
 

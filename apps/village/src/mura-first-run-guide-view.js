@@ -1,10 +1,11 @@
 const STAGES={
- welcome:{number:0,title:'テントをひとつ置こう',text:'光る場所だけ追えばOK。',cue:''},
+ arrival:{number:0,title:'新しい土地へ',text:'村長、護衛、木こり、大工の四人が村をつくる場所へ向かっています。',cue:''},
+ welcome:{number:0,title:'最初の拠点をつくろう',text:'光る場所だけ追えばOK。',cue:''},
  build:{number:1,title:'「つくる」をタップ',text:'',cue:''},
  catalog:{number:2,title:'「空きテント」をタップ',text:'',cue:''},
  drag:{number:3,title:'指で場所を動かす',text:'',cue:''},
  place:{number:4,title:'ここでタップ',text:'',cue:''},
- done:{number:4,title:'置けた。',text:'これで村づくりを始められます。',cue:''},
+ done:{number:4,title:'開村。',text:'ここから先は、村の気配を見ながら育てていきます。',cue:''},
 };
 
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -27,9 +28,9 @@ function createLayer(hidden){
  return layer;
 }
 
-function targetFor(stage,canvas){
+function targetFor(stage,canvas,kind){
  if(stage==='build')return document.getElementById('build');
- if(stage==='catalog')return document.querySelector('#catalog .card[data-kind="tent"]');
+ if(stage==='catalog')return document.querySelector(`#catalog .card[data-kind="${CSS.escape(kind||'tent')}"]`);
  return stage==='drag'||stage==='place'?canvas:null;
 }
 
@@ -152,7 +153,7 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
   finger:layer.querySelector('.muraFirstRunFinger'),ripple:layer.querySelector('.muraFirstRunRipple'),dragStart:layer.querySelector('.muraFirstRunDragStart'),dragEnd:layer.querySelector('.muraFirstRunDragEnd'),
  };
  const demoNodes=[nodes.finger,nodes.ripple,nodes.dragStart,nodes.dragEnd];
- let stage='welcome',target=null,lastFocus=null,demoTimer=0,hintTimer=0,acceptTimer=0,demoVersion=0,destroyed=false;
+ let stage='welcome',target=null,lastFocus=null,demoTimer=0,hintTimer=0,acceptTimer=0,demoVersion=0,destroyed=false,stepInfo={kind:'tent',label:'空きテント',index:1,total:1,text:''};
 
  function clearTarget(){
   target?.classList?.remove('mura-first-run-target');
@@ -161,7 +162,7 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
  }
  function updateTarget({transition=false}={}){
   clearTarget();
-  target=targetFor(stage,canvas);
+  target=targetFor(stage,canvas,stepInfo.kind);
   if(!target){nodes.spotlight.hidden=true;lastFocus=null;placeCoach(nodes.card,stage,null);return;}
   if(target===canvas)document.body.classList.add('mura-first-run-canvas-target');
   else{target.classList.add('mura-first-run-target');if(stage==='catalog')target.scrollIntoView({block:'nearest',inline:'nearest'});}
@@ -181,12 +182,12 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
  async function playDemo({immediate=false}={}){
   cancelDemo();
   const version=demoVersion;
-  if(stage==='welcome'||stage==='done'||destroyed)return;
+  if(stage==='arrival'||stage==='welcome'||stage==='done'||destroyed)return;
   updateTarget();
   await wait(immediate?90:timing.read);
   if(destroyed||version!==demoVersion)return;
   if(stage==='drag')await animateDrag({finger:nodes.finger,start:nodes.dragStart,end:nodes.dragEnd,canvas,timing,reduced});
-  else await animateTap({finger:nodes.finger,ripple:nodes.ripple,element:targetFor(stage,canvas),canvas,timing,reduced});
+  else await animateTap({finger:nodes.finger,ripple:nodes.ripple,element:targetFor(stage,canvas,stepInfo.kind),canvas,timing,reduced});
   if(version===demoVersion)hideDemo(demoNodes);
  }
  function scheduleDemo(){
@@ -198,13 +199,14 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
   if(destroyed)return;
   stage=next;
   layer.dataset.stage=next;
-  layer.dataset.mode=next==='welcome'||next==='done'?'card':'coach';
+  layer.dataset.mode=next==='arrival'||next==='welcome'||next==='done'?'card':'coach';
   const config=STAGES[next];
-  nodes.title.textContent=config.title;
-  nodes.text.textContent=message||config.text;
+  const dynamicTitle=next==='welcome'?stepInfo.label+'をつくる':next==='catalog'?`「${stepInfo.label}」をタップ`:next==='drag'?'場所を決める':next==='place'?'ここに置く':config.title;
+  nodes.title.textContent=dynamicTitle;
+  nodes.text.textContent=message||((next==='welcome'&&stepInfo.text)?stepInfo.text:config.text);
   nodes.cue.textContent=config.cue;
   nodes.cue.removeAttribute('data-state');
-  setProgress(nodes.progress,nodes.step,next,config.number);
+  if(next==='arrival'){nodes.progress.style.setProperty('--mura-first-run-progress','0%');nodes.step.textContent='到着';}else if(next==='done'){nodes.progress.style.setProperty('--mura-first-run-progress','100%');nodes.step.textContent='完了';}else{const total=Math.max(1,stepInfo.total),index=Math.max(1,stepInfo.index);nodes.progress.style.setProperty('--mura-first-run-progress',`${Math.min(100,index/total*100)}%`);nodes.step.textContent=`${index} / ${total}`;}
   nodes.start.hidden=next!=='welcome';
   nodes.finish.hidden=next!=='done';
   nodes.replay.hidden=true;
@@ -233,12 +235,13 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
   layer.classList.add('mura-first-run-accepted');
   acceptTimer=setTimeout(()=>{if(!destroyed&&stage===next){layer.classList.remove('mura-first-run-accepted');nodes.cue.removeAttribute('data-state');nodes.cue.hidden=true;scheduleDemo();}},duration);
  }
- function show(){
+ function show(initialStage='welcome'){
   layer.hidden=false;
   document.body.classList.add('mura-first-run-active');
-  setStage('welcome');
-  nodes.start.focus({preventScroll:true});
+  setStage(initialStage);
+  if(initialStage==='welcome')nodes.start.focus({preventScroll:true});
  }
+ function setStep(step){stepInfo={kind:step.kind,label:step.label||step.title||step.kind,index:(step.index||0)+1,total:step.total||1,text:step.text||''};layer.dataset.kind=stepInfo.kind;}
  function destroy(){
   destroyed=true;
   cancelDemo();
@@ -251,5 +254,5 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
  function refreshTarget(){updateTarget();}
 
  setStage('welcome');
- return{layer,controls:{replay:nodes.replay,start:nodes.start,finish:nodes.finish,skip:nodes.skip},get stage(){return stage;},show,setStage,setHint,accept,playDemo,refreshTarget,destroy};
+ return{layer,controls:{replay:nodes.replay,start:nodes.start,finish:nodes.finish,skip:nodes.skip},get stage(){return stage;},show,setStep,setStage,setHint,accept,playDemo,refreshTarget,destroy};
 }

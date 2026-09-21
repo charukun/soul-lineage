@@ -3,9 +3,11 @@ export const RESOURCE_NAMES={wood:'丸太',stone:'石',plank:'板材',clay:'粘�
 export const MATERIALS={base:{label:'標準',color:0xe2cfa7},timber:{label:'木造',color:0xba926e},stone:{label:'石造',color:0xaeb8b3},earth:{label:'土壁',color:0xccaf89}};
 const f=(id,label,w,d,extra={})=>({id,label,w,d,floors:1,roof:0x8f9b82,capacity:0,jobs:2,building:true,category:'仕事',cost:{},unlock:[],trait:'住人の暮らしを支える場所',...extra});
 export const BUILDINGS=[
- f('mayor','村長のテント',5,6,{shape:'tent',roof:0xc29268,capacity:1,jobs:0,reserved:true,category:'非表示',interiorClass:'compact',doorWidth:1.5,trait:'あなたの分身が暮らす家。仕事、食事、団らんにも参加します。'}),
- f('campfire','焚き火',3.5,3.5,{shape:'fire',open:true,jobs:0,category:'非表示',trait:'村の集いの中心。食事、団らん、夜の語らいの場所です。'}),
- f('guardhome','専属護衛のテント',5,6,{shape:'tent',roof:0x698eaa,capacity:1,jobs:0,reserved:true,category:'非表示',interiorClass:'compact',doorWidth:1.5,trait:'専属護衛アルドの住まい。護衛は村長に同行し、近くの住人も守ります。'}),
+ f('mayor','村長のテント',5,6,{shape:'tent',roof:0xc29268,capacity:1,jobs:0,reserved:true,category:'住まい',tutorialOnly:true,interiorClass:'compact',doorWidth:1.5,trait:'あなたの分身が暮らす家。仕事、食事、団らんにも参加します。'}),
+ f('campfire','焚き火',3.5,3.5,{shape:'fire',open:true,jobs:0,category:'住まい',tutorialOnly:true,trait:'村の集いの中心。食事、団らん、夜の語らいの場所です。'}),
+ f('guardhome','専属護衛のテント',5,6,{shape:'tent',roof:0x698eaa,capacity:1,jobs:0,reserved:true,category:'住まい',tutorialOnly:true,interiorClass:'compact',doorWidth:1.5,trait:'専属護衛アルドの住まい。護衛は村長に同行し、近くの住人も守ります。'}),
+ f('loggerhome','木こりのテント',5,6,{shape:'tent',roof:0x82956f,capacity:1,jobs:0,reserved:true,category:'住まい',tutorialOnly:true,interiorClass:'compact',doorWidth:1.5,trait:'開拓に帯同した木こりの住まい。'}),
+ f('carpenterhome','大工のテント',5,6,{shape:'tent',roof:0xa18468,capacity:1,jobs:0,reserved:true,category:'住まい',tutorialOnly:true,interiorClass:'compact',doorWidth:1.5,trait:'開拓に帯同した大工の住まい。'}),
  f('tent','空きテント',5,6,{shape:'tent',capacity:2,jobs:0,category:'住まい',roof:0x93a6a1,interiorClass:'compact',doorWidth:1.5,trait:'旅人2人の住まい。食事と守りに余裕があれば住み着きます。'}),
  f('storage','資材置き場',8,8,{shape:'yard',jobs:1,effect:'storage',trait:'共有倉庫。保管上限+300。増築ごとにさらに+300。'}),
  f('logging','伐採場',9,9,{shape:'yard',produce:{wood:5,seed:1},terrain:'forest',roof:0xa5a57e,trait:'近くの林から丸太と種を集めます。作業の動線が小径になります。'}),
@@ -41,7 +43,7 @@ export const BUILDINGS=[
  f('furniture','家具屋',9,8,{cost:{wood:18,plank:22,stone:6},unlock:['plank','cloth'],input:{plank:2},produce:{furnishing:2},effect:'furniture',roof:0x8e9daa,trait:'板から家具材を作ります。住人が部屋を飾る楽しみを支えます。'})
 ];
 const VISUAL_ASSET_GROUPS=Object.freeze({
- yurt:new Set(['mayor','guardhome','tent']),
+ yurt:new Set(['mayor','guardhome','loggerhome','carpenterhome','tent']),
  housing:new Set(['home','lodge','clanManor']),
  acquired:new Set(['campfire','storage','logging','quarry','carpenter','wheat','clay','market','guardpost','watchtower','barracks','chapel','harbor','smith','dojo','school','clinic','farm','fishpond','hunting','orchard','inn','diner','restaurant','weapons','armor','jeweler','tools','tavern','furniture'])
 });
@@ -73,7 +75,7 @@ export const FURNITURE=[
 ].map(o=>({...o,category:'家具',furniture:true}));
 export const defs={};for(const o of [...GARDEN,...FURNITURE,...BUILDINGS])defs[o.id]={...defs[o.id],...o};
 // Keep garden costs/unlocks even where the room catalog shares an asset id.
-export function unlocked(state,kind,room=false){if(room)return FURNITURE.some(d=>d.id===kind);const d=defs[kind];return !!d&&d.category!=='非表示'&&(d.unlock||[]).every(k=>state.known.includes(k));}
+export function unlocked(state,kind,room=false){if(room)return FURNITURE.some(d=>d.id===kind);const d=defs[kind];if(!d||d.category==='非表示')return false;const guide=state?.onboarding?.firstRunAutoplay;if(d.tutorialOnly&&!(guide?.version>=5&&!guide.seen))return false;return(d.unlock||[]).every(k=>state.known.includes(k));}
 export function recipe(kind,variant='base'){
  const d=defs[kind];if(!d)return {};
  if(!d.variants||variant==='base')return {...d.cost};
@@ -87,9 +89,13 @@ export function materialOptions(state,kind){const d=defs[kind];const variants=d?
 export const capacityOf=o=>(defs[o.kind].capacity||0)+(defs[o.kind].capacity&&!defs[o.kind].reserved?Math.max(0,(o.level||1)-1)*(defs[o.kind].clanOnly?2:1):0);
 export const jobsOf=o=>(defs[o.kind].jobs||0)+(defs[o.kind].jobs?Math.max(0,(o.level||1)-1):0);
 export const TUTORIAL=[
- {kind:'tent',title:'空きテントをひとつ',text:'旅人の住まいを用意しましょう。護衛の家とは別に置きます。',at:[-12,8]},
- {kind:'logging',title:'林のそばに伐採場',text:'丸太が届くと、木工所や詰所が利用可能になります。',at:[-20,-15]},
- {kind:'wheat',title:'豊かな土に小麦畑',text:'育った小麦は、住人たちの食事になります。',at:[-6,-24]},
- {kind:'carpenter',title:'丸太を板材に',text:'木工所を置くと、建てられるものが少しずつ増えます。',at:[8,-18]},
- {kind:'guardpost',title:'詰所で守りを広げる',text:'警備職がつくと、新しい住人を安心して迎えられます。',at:[-5,16]}
+ {kind:'mayor',version:5,title:'まず、村長の寝床を',text:'ここを村の始まりにします。村長のテントを置きましょう。',at:[-7,-5]},
+ {kind:'guardhome',version:5,title:'護衛にも寝床を',text:'村長のそばを守るアルドのテントを用意します。',at:[4,-6]},
+ {kind:'loggerhome',version:5,title:'木こりのテント',text:'森を拓く木こりの寝床を用意します。',at:[-15,2]},
+ {kind:'carpenterhome',version:5,title:'大工のテント',text:'建物を支える大工の寝床も用意します。',at:[12,3]},
+ {kind:'campfire',version:5,title:'四人が集まる焚き火',text:'夜に戻れる村の中心をつくります。',at:[2,8]},
+ {kind:'storage',version:5,title:'資材を置く場所',text:'集めた木や石を置ける資材置き場をつくります。',at:[12,-12]},
+ {kind:'tent',version:5,title:'次の住人のためのテント',text:'新しい仲間を迎えられる空きテントをひとつ用意します。',at:[-10,12]},
+ {kind:'logging',version:5,title:'木こりの仕事場',text:'林のそばに伐採場をつくり、丸太を集められるようにします。',at:[-20,-15]},
+ {kind:'carpenter',version:5,title:'大工の仕事場',text:'集めた丸太を板材へ変える木工所をつくります。',at:[8,-18]}
 ];
