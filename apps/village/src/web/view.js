@@ -133,14 +133,14 @@ export class View{
  syncActor(p,time,monster=false){const signature=(p.role||'resident')+':'+(p.species||'')+':'+monster;let n=this.actorNodes.get(p.id);if(n&&n.userData.signature!==signature){this.removeActor(p.id);n=null;}
   if(!n){n=this.makePerson(Math.floor(p.seed||0)%5,monster,p.role,p.species);n.userData.monster=monster;n.userData.personId=p.id;n.userData.signature=signature;this.actorNodes.set(p.id,n);this.actors.add(n);}
   n.position.set(p.x,0,p.z);n.visible=!p.dead&&(!p.hidden||this.world.people.includes(p));n.rotation.y=p.angle||0;
-  const a=p.moving?Math.sin(time*(p.species==='rabbit'?11:7.5)+(p.seed||0))*.46:Math.sin(time*1.6+(p.seed||0))*.025;
-  n.userData.legs.forEach((leg,i)=>leg.rotation.x=i%2?-a:a);n.userData.body.position.y=p.moving?Math.abs(Math.sin(time*7.5+(p.seed||0)))*.035:Math.sin(time*1.4+(p.seed||0))*.016;
+  const relaxing=p.task==='relax',pace=p.species==='rabbit'?11:p.species==='dog'?9:7.5,a=p.moving?Math.sin(time*pace+(p.seed||0))*.46:Math.sin(time*1.6+(p.seed||0))*.025;
+  n.userData.legs.forEach((leg,i)=>leg.rotation.x=relaxing?(i%2?-.62:.62):i%2?-a:a);n.userData.body.position.y=relaxing?-.24:p.moving?Math.abs(Math.sin(time*7.5+(p.seed||0)))*.035:Math.sin(time*1.4+(p.seed||0))*.016;
   n.userData.body.rotation.z=p.downed?.9:p.task==='work'?Math.sin(time*3)*.09:0;
   n.userData.body.rotation.x=p.task==='work'?Math.sin(time*3)*.12:0;
   if(p.species==='rabbit'&&p.moving)n.userData.body.position.y=Math.abs(Math.sin(time*7+(p.seed||0)))*.22;
   if(p.task==='defending')n.userData.body.rotation.y=Math.sin(time*9)*.23;else n.userData.body.rotation.y=0;
   const carried=p.cargo?'resource-cargo':p.carry||null;
-  if(n.userData.carry!==carried){if(n.userData.parcel)n.remove(n.userData.parcel);n.userData.carry=carried;if(carried){const resource=carried==='resource-cargo',parcel=new T.Mesh(new T.BoxGeometry(resource ? .92 : .8,resource ? .64 : .55,resource ? .72 : .65),mat(resource?0x9b794f:0xc3ad83));parcel.position.set(0,1,.52);n.add(parcel);n.userData.parcel=parcel;}}
+  if(n.userData.carry!==carried){if(n.userData.parcel)n.remove(n.userData.parcel);n.userData.carry=carried;if(carried){const resource=carried==='resource-cargo',dog=p.species==='dog';let parcel;if(resource&&dog){parcel=new T.Group();for(const x of[-.38,.38]){const bag=new T.Mesh(new T.BoxGeometry(.34,.34,.48),mat(0x8f714f));bag.position.set(x,.84,-.02);parcel.add(bag);}const strap=new T.Mesh(new T.BoxGeometry(.72,.07,.18),mat(0x5f4936));strap.position.set(0,.98,-.02);parcel.add(strap);}else{parcel=new T.Mesh(new T.BoxGeometry(resource ? .92 : .8,resource ? .64 : .55,resource ? .72 : .65),mat(resource?0x9b794f:0xc3ad83));parcel.position.set(0,1,.52);}n.add(parcel);n.userData.parcel=parcel;}}
  }
  removeActor(id){const n=this.actorNodes.get(id);if(n){this.actors.remove(n);this.actorNodes.delete(id);}}
  resize(){const r=this.canvas.getBoundingClientRect();this.w=r.width;this.h=r.height;this.renderer.setSize(r.width,r.height,false);this.rt?.setSize(Math.round(r.width*Math.min(devicePixelRatio||1,1.5)*this.renderScale),Math.round(r.height*Math.min(devicePixelRatio||1,1.5)*this.renderScale));this.blurMaterial?.uniforms.resolution.value.set(this.rt.width,this.rt.height);this.updateCamera();}

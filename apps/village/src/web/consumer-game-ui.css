@@ -240,20 +240,18 @@ button:focus-visible{
 .muraConstructionBar{border-radius:3px;border:1px solid rgba(93,72,47,.45);background:#eadbc0e8;box-shadow:0 2px 0 rgba(83,64,43,.4)}
 #muraDeliveryLayer{position:fixed;inset:0;z-index:34;pointer-events:none;overflow:hidden}
 .muraDeliveryReceipt{
-  position:absolute;min-width:126px;max-width:min(230px,70vw);padding:6px 8px 7px;transform:translate(-50%,-100%);
-  border:1px solid rgba(103,78,47,.58);border-radius:3px;background-image:var(--village-fibre),linear-gradient(180deg,rgba(251,241,211,.97),rgba(221,202,160,.96));
-  box-shadow:inset 0 1px rgba(255,255,255,.55),0 2px 0 rgba(83,64,43,.42),0 7px 14px rgba(39,48,35,.16);
-  color:#465142;text-align:center;animation:muraDeliveryRise 2.8s ease-out both;will-change:transform,opacity;
+  position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;padding:0;transform:translate(-50%,-100%);
+  color:#465142;filter:drop-shadow(0 1px 1px rgba(249,242,219,.9)) drop-shadow(0 1px 1px rgba(42,51,38,.28));
+  animation:muraDeliveryRise 1.9s ease-out both;will-change:transform,opacity;
 }
-.muraDeliveryReceipt small{display:block;margin-bottom:4px;font-size:7px;font-weight:800;letter-spacing:.12em;color:#796b53}
-.muraDeliveryItems{display:flex;flex-wrap:wrap;justify-content:center;gap:3px 8px}
-.muraDeliveryItem{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
-.muraDeliveryItem .muraHudIcon{width:17px;height:17px}.muraDeliveryItem .muraHudIcon svg{width:12px;height:12px}
-.muraDeliveryItem b{font-size:9px;font-weight:850;font-variant-numeric:tabular-nums}
+.muraDeliveryItem{display:inline-flex;align-items:center;gap:1px;white-space:nowrap}
+.muraDeliveryItem .muraHudIcon{width:14px;height:14px;border:0;background:rgba(238,229,204,.72);box-shadow:none}
+.muraDeliveryItem .muraHudIcon svg{width:10px;height:10px}
+.muraDeliveryItem b{font-size:9px;line-height:1;font-weight:850;font-variant-numeric:tabular-nums}
 @keyframes muraDeliveryRise{
-  0%{opacity:0;transform:translate(-50%,calc(-100% + 8px)) scale(.96)}
-  12%,72%{opacity:1;transform:translate(-50%,-100%) scale(1)}
-  100%{opacity:0;transform:translate(-50%,calc(-100% - 15px)) scale(.99)}
+  0%{opacity:0;transform:translate(-50%,calc(-100% + 3px)) scale(.96)}
+  18%,68%{opacity:1;transform:translate(-50%,-100%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,calc(-100% - 8px)) scale(.98)}
 }
 
 /* Menus are finite game pages. Consumer-facing pages never become mini web pages. */

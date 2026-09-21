@@ -41,7 +41,7 @@ export function initial(){return{
  clock:.36,time:8.64,stock:Object.fromEntries(Object.keys(RESOURCE_NAMES).map(k=>[k,0])),known:[],traffic:{},
  settings:{speed:1,tilt:.85,quality:1},stats:{arrivals:0,produced:0,meals:0,purchases:0,furnished:0,ships:0,raids:0,defeated:0,rescues:0,losses:0,upgrades:0,moments:0},
  news:[],moments:[],memorial:[],tutorial:{dismissed:false,completed:false},merchant:{present:false,cycle:-1},voyage:{lastCycle:0,phase:'away',progress:0},seenRaidIds:[],
- defense:{nextRaid:8.5,lastRaid:-100,sequence:0,raid:null,nextWildlife:2.8,pressure:[],proposal:null},wildlife:[],connection:{mode:'local',hostEpoch:0}
+ logistics:{nextId:1,pending:[],active:null},defense:{nextRaid:8.5,lastRaid:-100,sequence:0,raid:null,nextWildlife:2.8,pressure:[],proposal:null},wildlife:[],connection:{mode:'local',hostEpoch:0}
 };}
 export class World{
  constructor(state=initial()){this.state=validate(state);this.history=[];this.future=[];this.listeners=new Set();this.resourceRevision=0;this.deliveryRevision=0;this.deliveryReceipts=[];}
@@ -56,6 +56,14 @@ export class World{
   if(!storageId||!Object.keys(clean).length)return null;
   const receipt={revision:++this.deliveryRevision,storageId,sourceId,personId,items:clean,day:this.state.clock};
   this.deliveryReceipts.unshift(receipt);this.deliveryReceipts=this.deliveryReceipts.slice(0,16);return receipt;
+ }
+ queueDelivery(sourceId,items){
+  const clean=Object.fromEntries(Object.entries(items||{}).filter(([k,n])=>Object.hasOwn(RESOURCE_NAMES,k)&&Number.isFinite(n)&&n>0));
+  if(!Object.keys(clean).length)return null;
+  const logistics=this.state.logistics,pending=logistics.pending,existing=pending.find(r=>r.sourceId===sourceId);
+  if(existing){for(const[k,n]of Object.entries(clean))existing.items[k]=Math.min(1e6,(existing.items[k]||0)+n);return existing;}
+  if(pending.length>=80)return null;
+  const record={id:logistics.nextId++,sourceId:typeof sourceId==='string'?sourceId:null,items:clean,day:this.state.clock};pending.push(record);return record;
  }
  discover(){for(const k of Object.keys(RESOURCE_NAMES))if(this.state.stock[k]>0&&!this.state.known.includes(k)){this.state.known.push(k);this.resourceRevision++;this.notify(`${RESOURCE_NAMES[k]}を手に入れました。`,'discovery');}}
  canAfford(cost){return Object.entries(cost||{}).every(([k,v])=>Object.hasOwn(RESOURCE_NAMES,k)&&Number.isFinite(v)&&v>=0&&this.state.stock[k]>=v);}
@@ -171,13 +179,19 @@ export function validate(input){
   if(!host&&defs[o.kind].building){if(!Array.isArray(o.room)||o.room.length>600||!['planned','building','built'].includes(o.phase))throw Error('建物の情報が不正です');o.level=clamp(Math.floor(Number(o.level)||1),1,3);o.material=Object.hasOwn(MATERIALS,o.material)?o.material:'base';o.progress=clamp(Number(o.progress)||0,0,1);o.recipe=recipe(o.kind,o.material);
    if(o.upgrade){if(!finite(o.upgrade.progress)||o.upgrade.progress<0||o.upgrade.progress>1||o.upgrade.target!==o.level+1||o.level>=3)throw Error('増築データが不正です');}o.room.forEach(f=>check(f,o));}};
  s.objects.forEach(o=>check(o));if(!s.objects.some(o=>o.kind==='campfire')||!s.objects.some(o=>o.kind==='mayor')||!s.objects.some(o=>o.kind==='guardhome'))throw Error('村のはじまりの施設がありません');
+ const cleanDeliveryItems=items=>Object.fromEntries(Object.entries(items||{}).filter(([k,n])=>Object.hasOwn(RESOURCE_NAMES,k)&&finite(n)&&n>0&&n<=1e6));
+ const cleanDelivery=record=>{if(!record||typeof record!=='object')return null;const items=cleanDeliveryItems(record.items);if(!Object.keys(items).length)return null;return{id:Number.isInteger(record.id)&&record.id>0?record.id:0,sourceId:typeof record.sourceId==='string'&&ids.has(record.sourceId)?record.sourceId:null,items,day:finite(record.day)?record.day:s.clock};};
+ const pending=(Array.isArray(s.logistics?.pending)?s.logistics.pending:[]).map(cleanDelivery).filter(Boolean).slice(0,80),active=cleanDelivery(s.logistics?.active);
+ const highest=Math.max(0,...pending.map(r=>r.id),active?.id||0);s.logistics={nextId:Math.max(Number.isInteger(s.logistics?.nextId)?s.logistics.nextId:1,highest+1),pending,active};
  for(const p of s.people){if(!p||typeof p.id!=='string'||p.id.length>80||ids.has(p.id)||typeof p.name!=='string'||p.name.length>40||![p.x,p.z].every(finite)||Math.abs(p.x)>LIMIT||Math.abs(p.z)>LIMIT||!s.objects.some(o=>o.id===p.homeId&&defs[o.kind].capacity))throw Error('住人の情報が不正です');ids.add(p.id);p.path=[];p.task='idle';p.timer=0;p.insideId=null;p.role=p.role||'resident';delete p.jobAssignedAt;delete p.snackUntil;delete p.attackPulse;
   if(!['mayor','guard','ranger','resident','player'].includes(p.role))throw Error('役割が不正です');
   if(!['local-npc','avatar-npc','local-player-demo','rinne-player'].includes(p.source))p.source='local-npc';
   if(defs[s.objects.find(o=>o.id===p.homeId).kind].clanOnly&&!isPlayer(p))throw Error('一族専用の住まいにNPCは入居できません');
   for(const[k,v]of Object.entries({hunger:80,purse:0,health:100,happiness:70,skill:0}))p[k]=finite(p[k])?clamp(p[k],0,k==='purse'?200:100):v;
   if(p.downed&&(!finite(p.downed.left)||p.downed.left<=0||p.downed.left>90||!['wildlife','monster'].includes(p.downed.source)))throw Error('負傷者の情報が不正です');
-  const home=s.objects.find(o=>o.id===p.homeId);if(p.carry&&(!FURNITURE.some(f=>f.id===p.carry)||!muraFurnitureFits(home,p.carry)))p.carry=null;p.memories=(Array.isArray(p.memories)?p.memories:[]).filter(n=>typeof n.text==='string').slice(0,6);p.bubble=null;
+  const home=s.objects.find(o=>o.id===p.homeId);if(p.carry&&(!FURNITURE.some(f=>f.id===p.carry)||!muraFurnitureFits(home,p.carry)))p.carry=null;
+  const legacyCargo=cleanDeliveryItems(p.cargo?.items);if(Object.keys(legacyCargo).length&&s.logistics.pending.length<80)s.logistics.pending.push({id:s.logistics.nextId++,sourceId:typeof p.cargo?.sourceId==='string'&&ids.has(p.cargo.sourceId)?p.cargo.sourceId:null,items:legacyCargo,day:s.clock});
+  delete p.cargo;delete p.cargoRetry;delete p.deliveryCount;p.memories=(Array.isArray(p.memories)?p.memories:[]).filter(n=>typeof n.text==='string').slice(0,6);p.bubble=null;
  }
  if(!finite(s.clock)||s.clock<0||s.clock>1e8)throw Error('世界時計が不正です');
  if(!s.stock||Object.keys(RESOURCE_NAMES).some(k=>!finite(s.stock[k])||s.stock[k]<0||s.stock[k]>1e7))throw Error('資材の情報が不正です');
