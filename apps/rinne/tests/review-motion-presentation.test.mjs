@@ -30,7 +30,7 @@ test('all registered motion names render as Japanese display labels',()=>{
 });
 
 test('motion review uses Japanese names in stage, cards and legacy selector',()=>{
-  const source=read('../src/review-motion.js');
+  const source=read('../src/review/motion/entrypoint.js');
   assert.match(source,/row\.displayName\|\|reviewMotionDisplayName/);
   assert.match(source,/record\.displayName\|\|reviewMotionDisplayName/);
   assert.match(source,/new Option\(reviewMotionDisplayName\(c\.name,i\)/);
@@ -39,9 +39,9 @@ test('motion review uses Japanese names in stage, cards and legacy selector',()=
 });
 
 test('motion stage starts farther away and selected motion caption stays top-left',()=>{
-  const source=read('../src/review-motion.js');
-  const css=read('../src/review-motion.css');
-  const preview=read('../src/review-motion-preview.css');
+  const source=read('../src/review/motion/entrypoint.js');
+  const css=read('../src/review/motion/index.css');
+  const preview=read('../src/review/motion/preview.css');
   const html=read('../review-motion.html');
   assert.match(source,/padding:1\.75,minDistance:1,maxDistance:12/);
   assert.match(source,/controls\.minDistance=1/);
@@ -53,9 +53,9 @@ test('motion stage starts farther away and selected motion caption stays top-lef
 
 
 test('motion gear opens in the reference motion library with compact controls and collapsed diagnostics',()=>{
-  const source=read('../src/review-motion.js');
+  const source=read('../src/review/motion/entrypoint.js');
   const html=read('../review-motion.html');
-  const preview=read('../src/review-motion-preview.css');
+  const preview=read('../src/review/motion/preview.css');
   assert.match(source,/createElement\('section'\).*motion-compatibility/);
   assert.match(source,/motion-setting-grid/);
   assert.match(source,/接地補正/);
@@ -69,8 +69,8 @@ test('motion gear opens in the reference motion library with compact controls an
 });
 
 test('motion review settings can equip a right-hand weapon without changing the motion source',()=>{
-  const source=read('../src/review-motion.js');
-  const preview=read('../src/review-motion-preview.css');
+  const source=read('../src/review/motion/entrypoint.js');
+  const preview=read('../src/review/motion/preview.css');
   assert.match(source,/id="motion-weapon"/);
   assert.match(source,/MOTION_REVIEW_WEAPON_OPTIONS/);
   assert.match(source,/loadMotionReviewWeapon/);

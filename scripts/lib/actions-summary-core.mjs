@@ -6,6 +6,7 @@ import {
   devGlobalBuildPath,
   toolingPath,
 } from '../workspaces.mjs';
+import { workerPreviewUrl } from '../staging-preview.mjs';
 
 const statusRank=new Map([['error',5],['failure',4],['pending',3],['success',2],['expected',1]]);
 const HEAVY_TEST_PATTERNS=[
@@ -235,6 +236,11 @@ export function devPublishReceipts(runs=[],statuses=[]){
       const version=firstMatch(lines,/(?:Current\s+)?Version\s+ID\s*[:=]\s*([a-z0-9-]{8,})/i)?.[1]||null;
       const immutable=firstMatch(lines,/(https:\/\/\S*(?:version|preview)\S*workers\.dev\S*)/i)?.[1]||null;
       const url=firstMatch(lines,/(https:\/\/[^\s]+\.workers\.dev\/?)/i)?.[1]||null;
+      let derivedImmutable=null;
+      if(!immutable&&version){
+        try{derivedImmutable=workerPreviewUrl({app,versionId:version,deploymentUrl:url||undefined});}
+        catch{}
+      }
       const devStatus=statusByContext(statuses,'dev/'+app);
       const verify=(job.steps||[]).find(step=>/Diagnose public app source/i.test(step.name));
       rows.push({
@@ -244,9 +250,11 @@ export function devPublishReceipts(runs=[],statuses=[]){
         run_id:run.run_id,
         job_id:job.id,
         worker_version_id:version,
-        immutable_preview_url:immutable,
+        immutable_preview_url:immutable||derivedImmutable,
+        immutable_preview_source:immutable?'log':derivedImmutable?'derived-from-version-id':null,
         latest_url:devStatus?.target_url&&/workers\.dev/.test(devStatus.target_url)?devStatus.target_url:url,
         version_verification:verify?.conclusion||null,
+        immutable_source_verification:'use autonomous-run-controller verify against version.json.commit',
         publish_result:job.conclusion||run.conclusion||null,
         status:compactStatus(devStatus),
       });
@@ -307,6 +315,20 @@ function workflowSummary(runs,type){
   };
 }
 
+export function mergeWindowToken({validatedHead,developSha,prHead}={}){
+  const clean=value=>typeof value==='string'&&/^[0-9a-f]{40}$/i.test(value)?value.toLowerCase():null;
+  const head=clean(validatedHead),develop=clean(developSha),current=clean(prHead);
+  return Object.freeze({
+    validated_head:head,
+    observed_develop_sha:develop,
+    current_pr_head:current,
+    token:head&&develop&&current&&head===current?`${head}:${develop}`:null,
+    armed:Boolean(head&&develop&&current&&head===current),
+    reread_after_ready_required:true,
+    rule:'Re-read develop after Ready. Merge only while the PR head and develop SHA still equal this token; otherwise recompute freshness before merging.',
+  });
+}
+
 export function buildActionsSummary(input){
   const statuses=input.statuses||[];
   const contract=statusByContext(statuses,'astra/fast-dev-contract');
@@ -358,6 +380,19 @@ export function buildActionsSummary(input){
     related_dev_publish_run_ids:[...new Set(receipts.map(row=>row.run_id))],
     evidence_links:evidenceLinks,
   }:null;
+  const drift=input.freshness||{};
+  const validationEntry={
+    develop_drift_detected:Boolean(drift.latest_develop_sha&&drift.validation_base_sha&&drift.latest_develop_sha!==drift.validation_base_sha&&!drift.develop_contained_in_head),
+    reconcile_before_validation:Boolean(drift.reconcile_required),
+    independent_drift:Boolean(drift.independent_drift),
+    action:drift.reconcile_required?'reconcile-before-final-validation':drift.independent_drift?'validate-current-head-and-let-freshness-reuse':'validate-current-head',
+    note:'Advisory before arming [astra-validate]; canonical astra/merge-freshness remains authoritative after hosted validation.',
+  };
+  const mergeWindow=mergeWindowToken({
+    validatedHead,
+    developSha:input.freshness?.latest_develop_sha||pr?.base?.sha||null,
+    prHead:pr?.head?.sha||null,
+  });
   const ready={
     validation:focused?.state||null,
     fast_dev_contract:contract?.state||null,
@@ -397,6 +432,8 @@ export function buildActionsSummary(input){
     build:{result:builds.length?(builds.every(row=>['success','skipped'].includes(row.conclusion))?'success':'failure'):null,steps:builds},
     failure_digest:failures,
     freshness:input.freshness,
+    validation_entry:validationEntry,
+    merge_window:mergeWindow,
     exact_head_gate:exactHead,
     affected_test_planner:input.test_plan,
     pr_ready_snapshot:ready,

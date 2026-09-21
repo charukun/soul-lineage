@@ -1,6 +1,7 @@
 import { subscribe } from './view-state.js';
 import { ageLabel, FAILED_CONCLUSIONS } from './health.mjs';
 import { eventDrivenAlerts } from './freshness.mjs';
+import { buildIssueRepairPrompt } from './issue-repair-prompt.js';
 
 const $ = selector => document.querySelector(selector);
 const el = (tag, className = '', text = null) => {
@@ -68,6 +69,27 @@ function externalLink(text, href, className = '') {
     node.rel = 'noreferrer';
   }
   return node;
+}
+
+async function copyText(text) {
+  if (!text) return false;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    const area=el('textarea','rapid-copy-fallback');
+    area.value=text;
+    area.setAttribute('aria-hidden','true');
+    document.body.append(area);
+    area.focus();
+    area.select();
+    const copied=Boolean(document.execCommand?.('copy'));
+    area.remove();
+    return copied;
+  } catch {
+    return false;
+  }
 }
 
 function renderActive(state) {
@@ -200,15 +222,27 @@ function renderIssues(state, error) {
   }
   for (const item of issues.slice(0, 2)) {
     const href = safeHref(item.url);
-    const row = el(href ? 'a' : 'article', 'rapid-issue-row ' + (item.tone || 'warning'));
-    if (href) {
-      row.href = href;
-      row.target = '_blank';
-      row.rel = 'noreferrer';
-    }
-    row.append(el('strong', '', item.title || '確認が必要です'));
+    const row = el('article', 'rapid-issue-row ' + (item.tone || 'warning'));
+    const title = href ? externalLink(item.title || '確認が必要です', href, 'rapid-issue-title') : el('strong', 'rapid-issue-title', item.title || '確認が必要です');
+    row.append(title);
     const detail = [item.detail, item.since ? relative(item.since) : null].filter(Boolean).join(' · ');
-    if (detail) row.append(el('span', '', detail));
+    if (detail) row.append(el('span', 'rapid-issue-detail', detail));
+    const actions=el('div','rapid-issue-actions');
+    if(href)actions.append(externalLink('詳細 ↗',href,'rapid-issue-open'));
+    const copy=el('button','rapid-repair-copy','修復プロンプトをコピー');
+    copy.type='button';
+    copy.setAttribute('aria-label',(item.title||'異常')+'の修復プロンプトをコピー');
+    const status=el('span','rapid-repair-copy-status','');
+    status.setAttribute('role','status');
+    copy.addEventListener('click',async()=>{
+      const prompt=buildIssueRepairPrompt(item,state);
+      const copied=await copyText(prompt);
+      status.textContent=copied?'コピー済み':'コピーできません';
+      copy.textContent=copied?'コピー済み':'再試行';
+      setTimeout(()=>{copy.textContent='修復プロンプトをコピー';status.textContent='';},1600);
+    });
+    actions.append(copy,status);
+    row.append(actions);
     root.append(row);
   }
   if (issues.length > 2) root.append(el('p', 'rapid-more-note', 'ほか ' + (issues.length - 2) + '件'));
@@ -256,13 +290,65 @@ function collectRecent(state) {
     })
     .slice(0, 3);
 }
+const sessionStepView=state=>({
+  done:['完了','ok'],running:['進行','progress'],problem:['問題','danger'],waiting:['待ち','warning'],skipped:['対象外','muted']
+})[state]||['確認','muted'];
+
+const iterationGameLabel=game=>({kuumetsu:'喰滅廻遊',rinne:'百年転生',village:'村づくり'})[game]||'自律改善';
+
+function renderSession(session,{iteration=false}={}) {
+  const row=el('article','rapid-session-row '+(session.status||'active')+(iteration?' rapid-iteration-row':''));
+  const head=el('div','rapid-session-head');
+  const prHref=safeHref(session.pr?.url);
+  const titlePrefix=iteration?(iterationGameLabel(session.autonomous?.game)+(session.autonomous?.number?' · Iteration '+session.autonomous.number:'')):'#'+(session.pr?.number||'?');
+  const title=el(prHref?'a':'strong','rapid-session-title',titlePrefix+' · '+(session.title||'開発セッション'));
+  if(prHref){title.href=prHref;title.target='_blank';title.rel='noreferrer';}
+  const target=(session.targets||[]).map(item=>item.label).join(' / ')||'対象確認中';
+  head.append(title,el('time','',relative(session.updatedAt)));
+  const meta=el('div','rapid-session-meta');
+  meta.append(el('span','',target));
+  if(session.validatedExactHead)meta.append(el('code','',String(session.validatedExactHead).slice(0,8)));
+  if(session.repairAttempts)meta.append(el('span','rapid-session-repair','repair '+session.repairAttempts));
+  const phases=iteration?(session.iterationSteps||session.steps||[]):(session.steps||[]);
+  const flow=el('div','rapid-session-flow'+(iteration?' rapid-iteration-flow':''));
+  for(const phase of phases){
+    const view=sessionStepView(phase.state),href=safeHref(phase.url);
+    const node=el(href?'a':'span','rapid-session-step '+view[1]);
+    if(href){node.href=href;node.target='_blank';node.rel='noreferrer';}
+    node.title=phase.label+': '+view[0];
+    node.append(el('i',''),el('b','',phase.label));
+    flow.append(node);
+  }
+  row.append(head,meta,flow);
+  return row;
+}
+
+function renderIterations(state){
+  const root=$('#rapid-iteration-list'),count=$('#rapid-iteration-count');
+  if(!root||!count)return;
+  const iterations=(state?.developmentSessions||[]).filter(session=>session.autonomous).slice(0,3);
+  root.replaceChildren();
+  count.textContent=iterations.length?iterations.length+'件':'0件';
+  if(!iterations.length){
+    root.append(el('p','rapid-empty','直近の自律イテレーションはありません'));
+    return;
+  }
+  iterations.forEach(session=>root.append(renderSession(session,{iteration:true})));
+}
+
 function renderRecent(state) {
   const root = $('#rapid-recent-list');
   const count = $('#rapid-recent-count');
   if (!root || !count) return;
+  const sessions=(state?.developmentSessions||[]).slice(0,3);
+  root.replaceChildren();
+  if(sessions.length){
+    count.textContent='最新'+sessions.length+'件';
+    sessions.forEach(session=>root.append(renderSession(session)));
+    return;
+  }
   const events = collectRecent(state);
   count.textContent = events.length ? '最新' + events.length + '件' : '0件';
-  root.replaceChildren();
   if (!events.length) {
     root.append(el('p', 'rapid-empty', '直近イベントはまだありません'));
     return;
@@ -307,6 +393,7 @@ function render(state, error) {
     return;
   }
   renderActive(state);
+  renderIterations(state);
   renderApps(state);
   const issues = renderIssues(state, error);
   renderRecent(state);
