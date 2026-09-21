@@ -101,5 +101,5 @@ export const TUTORIAL=[
  {kind:'logging',version:5,title:'木こりの仕事場',text:'林のそばに伐採場をつくり、丸太を集められるようにします。',at:[-20,-15]},
  {kind:'carpenter',version:5,title:'大工の仕事場',text:'集めた丸太を板材へ変える木工所をつくります。',at:[8,-18]},
  {kind:'logseat',version:5,title:'仕事の合間の腰掛け',text:'丸太の椅子をひとつ置いて、仕事だけではない村の居場所をつくります。',at:[3,14]},
- {kind:'logtable',version:5,title:'くつろぎの卓を',text:'椅子の近くに丸太のテーブルを置きましょう。そろうと住人がここでひと休みするようになります。',at:[6,14]}
+ {kind:'logtable',version:5,title:'くつろぎの卓を',text:'椅子の近くに丸太のテーブルを置きましょう。そろうと住人がここでくつろぐようになります。',at:[6,14]}
 ];
