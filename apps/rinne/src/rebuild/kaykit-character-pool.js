@@ -1,4 +1,4 @@
-import { KAYKIT_DEFAULT_MODEL_ID, KAYKIT_MODELS, selectKaykitModel } from '@soul/characters';
+import { KAYKIT_DEFAULT_MODEL_ID, KAYKIT_MODELS, createCharacterModelWrapper, selectKaykitModel } from '@soul/characters';
 import { GLTFLoader } from '@soul/rendering';
 import { createMasterCharacterPool } from '@soul/rendering/master-character';
 import { createManifestationEffect, createProgressiveManifestation } from '@soul/rendering/progressive-manifestation';
@@ -23,9 +23,10 @@ function playManifestation(actor,profile='human'){
 }
 
 function actorHandle(slot){
-  return Object.freeze({
-    get id(){return slot.actor.id;},get root(){return slot.actor.root;},get visual(){return slot.actor.visual;},get bones(){return slot.actor.bones;},get attachments(){return slot.actor.attachments;},get motionRest(){return slot.actor.motionRest;},
-    setClip:(...args)=>slot.actor.setClip(...args),sample:(...args)=>slot.actor.sample(...args),attachWeapon:(...args)=>slot.actor.attachWeapon(...args),detachWeapon:(...args)=>slot.actor.detachWeapon(...args),updateAttachments:(...args)=>slot.actor.updateAttachments(...args),setVisible:(...args)=>slot.actor.setVisible(...args),reset:(...args)=>slot.actor.reset(...args)
+  return createCharacterModelWrapper({
+    actor:()=>slot.actor,
+    adapter:RINNE_CHARACTER_RUNTIME,
+    modelId:()=>slot.activeModel
   });
 }
 

@@ -1,3 +1,4 @@
+import { createCharacterModelWrapper } from '@soul/characters';
 import { GLTFLoader } from '@soul/rendering';
 import { createMasterCharacterPool } from '@soul/rendering/master-character';
 import { kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
@@ -64,7 +65,11 @@ export async function createProtagonistCharacterPool(renderer) {
       spawn(id) {
         const actor = inner.spawn(id);
         stamp(actor, template.integrity);
-        return actor;
+        return createCharacterModelWrapper({
+          actor,
+          adapter: RINNE_CHARACTER_RUNTIME,
+          modelId: RINNE_PROTAGONIST_MODEL_ID
+        });
       },
       despawn(id) { return inner.despawn(id); },
       stats() { return inner.stats(); },

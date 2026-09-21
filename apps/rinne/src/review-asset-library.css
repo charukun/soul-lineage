@@ -333,3 +333,12 @@ body.asset-model-picker-open{overflow:hidden}
   .asset-stage-hint{top:43px}
   .asset-catalog{padding-bottom:max(28px,env(safe-area-inset-bottom))}
 }
+
+/* Direct weapon selection: slot row is status only; no secondary candidate catalogue. */
+.asset-slot-statuses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.asset-slot-statuses>div{
+  min-width:0;min-height:50px;display:grid;gap:4px;text-align:left;padding:7px 9px;
+  border:1px solid #35413c;border-radius:10px;background:#101715;color:#d6ddd9
+}
+.asset-slot-statuses>div small{color:#7f8d86;font-size:8px;font-weight:750}
+.asset-slot-statuses>div strong{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
