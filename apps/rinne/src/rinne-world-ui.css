@@ -119,3 +119,169 @@ dialog.family-home-dialog{position:fixed!important;inset:0!important;width:100vw
   .family-story-prompt{font-size:24px!important;margin-bottom:6px!important}.family-memory-stage{height:215px!important}.family-memory-relic{width:105px!important;height:105px!important}.family-memory-relic b{font-size:34px!important}
 }
 @media(prefers-reduced-motion:reduce){.family-depth-ring,.family-memory-presence{animation:none!important}}
+
+
+/* ============================================================
+   RINNE UI 5.1.0
+   Research takeaways applied without changing the game concept:
+   - Shironeko: clear one-hand action targets, world remains readable.
+   - Infinity Nikki: primary abilities remain directly accessible; size/position are tuned for mobile.
+   百年転生 invariant: 心 / 技 / 打 / 記 remain four persistent primary controls.
+   ============================================================ */
+:root{
+  --r51-heart:#e9a6a4;
+  --r51-tech:#91c9dc;
+  --r51-train:#edba69;
+  --r51-book:#99bea1;
+  --r51-cream:#fff3d6;
+  --r51-paper:#fff8e8;
+  --r51-wood:#72513a;
+  --r51-ink:#4d3c32;
+}
+
+/* Four-button gameplay contract */
+#game-screen .rinne-gameplay-upgrade .rinne-primary-four{
+  position:absolute!important;z-index:48!important;left:50%!important;right:auto!important;
+  bottom:max(13px,calc(env(safe-area-inset-bottom) + 8px))!important;
+  transform:translateX(-50%)!important;display:grid!important;grid-template-columns:repeat(4,52px)!important;
+  gap:10px!important;width:auto!important;padding:0!important;border:0!important;background:transparent!important;
+  box-shadow:none!important;backdrop-filter:none!important;opacity:1!important;pointer-events:auto!important
+}
+#game-screen .rinne-primary-four .upgrade-control{
+  --r51-button:#d7c091;position:relative!important;display:grid!important;grid-template-rows:44px 14px!important;
+  place-items:center!important;width:52px!important;height:60px!important;min-width:52px!important;min-height:60px!important;
+  padding:0!important;border:0!important;border-radius:0!important;clip-path:none!important;background:transparent!important;
+  box-shadow:none!important;color:#fff!important;overflow:visible!important
+}
+#game-screen .rinne-primary-four .upgrade-control>i{
+  position:relative!important;display:grid!important;place-items:center!important;width:44px!important;height:44px!important;
+  border:3px solid rgba(255,244,216,.94)!important;border-radius:50%!important;
+  background:
+    radial-gradient(circle at 36% 25%,rgba(255,255,255,.58) 0 7%,transparent 8%),
+    linear-gradient(180deg,color-mix(in srgb,var(--r51-button) 91%,#fff 9%),color-mix(in srgb,var(--r51-button) 78%,#79533d 22%))!important;
+  color:#fff8e8!important;font-family:var(--font-rinne-display)!important;font-size:17px!important;font-style:normal!important;font-weight:700!important;
+  text-shadow:0 2px 3px rgba(84,55,39,.55)!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.36),0 3px 0 color-mix(in srgb,var(--r51-button) 58%,#684631 42%),0 7px 12px rgba(37,40,31,.18)!important;
+  transition:transform .14s ease,filter .14s ease
+}
+#game-screen .rinne-primary-four .upgrade-control>i::after{
+  content:"";position:absolute;inset:5px;border:1px solid rgba(255,248,226,.34);border-radius:50%;pointer-events:none
+}
+#game-screen .rinne-primary-four .upgrade-control>span{
+  margin:0!important;align-self:end!important;color:#fff2d3!important;font-size:8px!important;line-height:1!important;
+  font-weight:800!important;text-shadow:0 1px 4px rgba(53,47,34,.78)!important
+}
+#game-screen .rinne-primary-four .is-heart{--r51-button:var(--r51-heart)}
+#game-screen .rinne-primary-four .is-technique{--r51-button:var(--r51-tech)}
+#game-screen .rinne-primary-four .is-practice{--r51-button:var(--r51-train)}
+#game-screen .rinne-primary-four .is-menu{--r51-button:var(--r51-book)}
+#game-screen .rinne-primary-four .upgrade-control:active>i,
+#game-screen .rinne-primary-four .upgrade-control[data-active="true"]>i{transform:translateY(2px) scale(.96);filter:saturate(1.12) brightness(1.03)}
+#game-screen .rinne-primary-four .is-practice[data-ready="false"]>i{filter:saturate(.52) brightness(.83);opacity:.72}
+#game-screen .rinne-primary-four .is-practice[data-ready="true"]>i{box-shadow:inset 0 2px rgba(255,255,255,.4),0 3px 0 #966735,0 0 0 4px rgba(255,214,127,.14),0 8px 15px rgba(42,40,29,.22)!important}
+#game-screen .rinne-primary-four .upgrade-control:disabled{opacity:.42!important}
+
+/* The four stay visible during dialogue and menu/panel transitions. */
+#game-screen:has(#dialogue:not([hidden])) .rinne-primary-four{opacity:.72!important;pointer-events:auto!important;transform:translateX(-50%) scale(.96)!important}
+#game-screen[data-archive-open="true"] .rinne-primary-four,
+.rinne-gameplay-upgrade[data-panel-open="true"] .rinne-primary-four{opacity:1!important;pointer-events:auto!important}
+
+/* 記 opens only secondary systems. It never replaces 心/技/打. */
+#game-screen .rinne-secondary-sheet{
+  position:absolute!important;z-index:60!important;left:50%!important;right:auto!important;
+  bottom:max(84px,calc(env(safe-area-inset-bottom) + 77px))!important;transform:translateX(-50%)!important;
+  width:min(274px,calc(100vw - 24px))!important;height:auto!important;padding:10px!important;
+  border:2px solid rgba(115,82,51,.48)!important;border-radius:20px!important;clip-path:none!important;
+  background:linear-gradient(180deg,rgba(255,251,239,.985),rgba(245,225,190,.985))!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.65),0 3px 0 rgba(87,62,43,.28),0 12px 25px rgba(34,39,31,.16)!important
+}
+#game-screen .rinne-secondary-sheet::after{
+  content:"";position:absolute;right:31px;bottom:-8px;width:14px;height:14px;background:#f5e1bc;
+  border-right:2px solid rgba(115,82,51,.38);border-bottom:2px solid rgba(115,82,51,.38);transform:rotate(45deg)
+}
+#game-screen .rinne-secondary-sheet>header{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px 8px;border-bottom:1px dashed rgba(120,86,54,.24)}
+#game-screen .rinne-secondary-sheet>header span{color:#594438;font-size:11px;font-weight:850}
+#game-screen .rinne-secondary-sheet>header small{color:#99816d;font-size:8px}
+.rinne-secondary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;padding-top:8px}
+#game-screen .rinne-secondary-sheet .quick-menu-action{
+  position:relative!important;display:grid!important;grid-template-columns:34px 1fr!important;grid-template-rows:auto auto!important;
+  align-items:center!important;text-align:left!important;width:auto!important;height:auto!important;min-height:54px!important;
+  padding:7px 8px!important;border:0!important;border-radius:14px!important;background:rgba(255,253,247,.58)!important;
+  box-shadow:inset 0 0 0 1px rgba(119,86,55,.12)!important;color:#554239!important
+}
+#game-screen .rinne-secondary-sheet .quick-menu-action>b{
+  grid-row:1/3;display:grid!important;place-items:center!important;width:30px!important;height:30px!important;border:0!important;border-radius:50%!important;
+  background:var(--secondary,#c9b7dd)!important;color:#554139!important;font-family:var(--font-rinne-display)!important;font-size:13px!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.33)!important
+}
+#game-screen .rinne-secondary-sheet .quick-menu-action>span{color:#554239!important;font-size:10px!important;font-weight:800!important}
+#game-screen .rinne-secondary-sheet .quick-menu-action>small{color:#978373!important;font-size:7px!important}
+#game-screen .rinne-secondary-sheet .is-body{--secondary:#c9b7dd}
+#game-screen .rinne-secondary-sheet .is-items{--secondary:#e5ba7d}
+#game-screen .rinne-secondary-sheet .is-map{--secondary:#a8ccb2}
+#game-screen .rinne-secondary-sheet .is-record{--secondary:#efb1aa}
+#game-screen .rinne-secondary-sheet .quick-map strong{display:none!important}
+
+/* Journal panel leaves the four primary controls as persistent navigation. */
+#game-screen .rinne-gameplay-upgrade .upgrade-panel.rinne-archive-panel:not([hidden]){
+  bottom:max(78px,calc(env(safe-area-inset-bottom) + 70px))!important;height:auto!important;max-height:none!important;
+  border-radius:22px 22px 0 0!important;box-shadow:0 -7px 24px rgba(41,38,29,.19),inset 0 0 0 1px rgba(119,83,48,.10)!important
+}
+#game-screen .rinne-gameplay-upgrade .rinne-archive-panel>header{
+  min-height:62px!important;padding:calc(env(safe-area-inset-top) + 4px) 17px 8px 21px!important;
+  background:linear-gradient(180deg,#aacbac,#88ad8f)!important
+}
+#game-screen .rinne-gameplay-upgrade .rinne-archive-panel>[data-body]{
+  padding-bottom:24px!important
+}
+
+/* Dialogue stays warm but does not monopolize the bottom controls. */
+#game-screen .dialogue.ornate{
+  bottom:max(88px,calc(env(safe-area-inset-bottom) + 79px))!important;
+  width:min(520px,calc(100vw - 24px))!important;padding:10px 14px 11px!important;
+  border-radius:18px 18px 18px 8px!important
+}
+
+/* Ritual: small lineage signature, compact memory charm, no giant title crest. */
+.family-ritual-brand{top:calc(env(safe-area-inset-top) + 14px)!important;display:flex!important;align-items:center!important;gap:7px!important;opacity:.72!important}
+.family-ritual-brand i{display:grid;place-items:center;width:22px;height:22px;border:1px solid rgba(255,235,190,.42);border-radius:50%;color:#f5d99d;font-size:9px;font-style:normal;background:rgba(21,66,70,.34)}
+.family-ritual-brand span{font-size:7px!important;letter-spacing:.34em!important;text-indent:0!important}
+.family-story-prompt{margin-top:14px!important;font-size:clamp(25px,5.7vw,36px)!important}
+.family-memory-stage{height:clamp(300px,46vh,430px)!important}
+.family-memory-presence{min-height:265px!important}
+.family-memory-relic{width:112px!important;height:112px!important;margin-bottom:13px!important}
+.family-memory-relic em{inset:32px!important}
+.family-memory-relic b{font-size:35px!important}
+.family-memory-echo{margin-bottom:6px!important;font-size:9px!important}
+.family-memory-label{font-size:clamp(14px,3.2vw,18px)!important}
+.family-memory-hint{display:block;margin-top:10px;color:rgba(219,233,218,.46);font-size:7px;letter-spacing:.08em}
+
+/* Family home: more storybook, less dashboard. */
+.family-home-current-v5{
+  border-color:rgba(255,239,207,.72)!important;border-radius:22px!important;
+  background:repeating-linear-gradient(7deg,rgba(117,80,47,.025) 0 1px,transparent 1px 6px),linear-gradient(180deg,rgba(255,250,235,.96),rgba(244,226,190,.96))!important
+}
+.family-home-current-head{padding:11px 10px 8px!important}
+.family-home-stats-v5{padding:7px 3px 8px!important}
+.family-home-actions-v5 button{
+  min-height:47px!important;border-radius:18px!important;background:linear-gradient(180deg,#fff4d1,#edc477)!important
+}
+.family-home-history-wrap{border-top-style:dashed!important}
+
+/* Hide stale v5 hub styles by class contract, not by removing the secondary menu. */
+.rinne-explore-controls,.rinne-function-hub{display:none!important}
+
+@media(max-width:620px){
+  #game-screen .rinne-gameplay-upgrade .rinne-primary-four{grid-template-columns:repeat(4,50px)!important;gap:7px!important}
+  #game-screen .rinne-primary-four .upgrade-control{width:50px!important;min-width:50px!important}
+  #game-screen .rinne-primary-four .upgrade-control>i{width:42px!important;height:42px!important}
+  #game-screen .rinne-secondary-sheet{width:min(262px,calc(100vw - 18px))!important}
+  #game-screen .rinne-gameplay-upgrade .upgrade-panel.rinne-archive-panel:not([hidden]){
+    bottom:max(73px,calc(env(safe-area-inset-bottom) + 65px))!important
+  }
+}
+@media(max-width:360px){
+  #game-screen .rinne-gameplay-upgrade .rinne-primary-four{grid-template-columns:repeat(4,47px)!important;gap:4px!important}
+  #game-screen .rinne-primary-four .upgrade-control{width:47px!important;min-width:47px!important}
+  #game-screen .rinne-primary-four .upgrade-control>i{width:40px!important;height:40px!important}
+}
