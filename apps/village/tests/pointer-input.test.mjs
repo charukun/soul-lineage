@@ -3,16 +3,16 @@ import assert from 'node:assert/strict';
 import {installSceneInput} from '../src/web/pointer-input.js';
 
 function fixture(pending=null){
- const canvas=new EventTarget(),ui={pending,drawer:false},calls={pan:[],zoom:[],tap:[]};let now=0,id=0;const frames=new Map();
- const view={pan:(x,y)=>calls.pan.push([x,y]),zoom:f=>calls.zoom.push(f),updateCamera(){},yaw:0};
- const input=installSceneInput(canvas,{view,ui,tap:(x,y)=>calls.tap.push([x,y]),activity(){},now:()=>now,raf:fn=>{frames.set(++id,fn);return id;},caf:i=>frames.delete(i)});
+ const canvas=new EventTarget(),ui={pending,drawer:false},calls={pan:[],zoom:[],tap:[],preview:[]};let now=0,id=0;const frames=new Map();
+ const view={pan:(x,y)=>calls.pan.push([x,y]),zoom:f=>calls.zoom.push(f),ground:(x,y)=>({x:x/10,z:y/10}),updateCamera(){},yaw:0};
+ const input=installSceneInput(canvas,{view,ui,tap:(x,y)=>calls.tap.push([x,y]),preview:(x,z)=>calls.preview.push([x,z]),activity(){},now:()=>now,raf:fn=>{frames.set(++id,fn);return id;},caf:i=>frames.delete(i)});
  const send=(type,x=100,y=100,pointerId=1)=>{now+=16;const e=new Event(type,{cancelable:true});Object.assign(e,{clientX:x,clientY:y,pointerId,button:0});canvas.dispatchEvent(e);};
  return{ui,calls,input,send,frames,advance(){now+=16;const f=[...frames.values()][0];frames.clear();f?.(now);}};
 }
-test('placement drag and release preserve the candidate and never dispatch a tap',()=>{
+test('placement drag previews under the finger and release never dispatches a placement tap',()=>{
  const pending={kind:'chair',x:7,z:-3,rot:1.2,roomId:'b1'},f=fixture(pending),before={...pending};
  f.send('pointerdown');f.send('pointermove',130,125);f.send('pointermove',170,155);f.send('pointerup',170,155);
- assert.deepEqual(pending,before);assert.equal(f.calls.tap.length,0);assert.equal(f.calls.pan.length,2);assert.equal(f.frames.size,0);assert.equal(f.input.pointers.size,0);f.input.dispose();
+ assert.deepEqual(pending,before);assert.deepEqual(f.calls.preview,[[13,12.5],[17,15.5]]);assert.equal(f.calls.tap.length,0);assert.equal(f.calls.pan.length,0);assert.equal(f.frames.size,0);assert.equal(f.input.pointers.size,0);f.input.dispose();
 });
 test('a short tap chooses a candidate once; cancellation is never a tap',()=>{
  const f=fixture({kind:'chair'});f.send('pointerdown',101,102);f.send('pointerup',102,103);assert.deepEqual(f.calls.tap,[[102,103]]);

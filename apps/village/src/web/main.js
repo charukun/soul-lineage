@@ -195,7 +195,7 @@ function showJournalPage(requestedPage=0){
 }
 function showHelpPage(requestedPage=0){
  const pages=[
-  {title:'建築と内装',body:'<p>「つくる」で種類を選び、候補をページで切り替えます。施設や家具を選んだら地面をタップして位置を決め、「配置」で確定します。「取消」は候補だけを取り消します。</p><p>完成した施設を選ぶと内装へ入れます。村長として家具の配置・移動・削除ができ、一族の邸宅は一族プレイヤー専用です。</p>'},
+  {title:'建築と内装',body:'<p>「つくる」で種類を選び、候補をページで切り替えます。施設や家具を選んだら1本指で置きたい場所へ動かし、短くタップしてその場に配置します。下の「配置」ボタンでも確定でき、「取消」は候補だけを取り消します。</p><p>完成した施設を選ぶと内装へ入れます。村長として家具の配置・移動・削除ができ、一族の邸宅は一族プレイヤー専用です。</p>'},
   {title:'村人の暮らし',body:'<p>最初は空きテント、林のそばの伐採場、肥沃な土の小麦畑を用意しましょう。案内を押すと必要な施設候補へ直接移動します。</p><p>食事・警備・住まいに余裕があると住民が増えます。住民をタップすると詳細と観察方向を選べます。「俯瞰」で村の視点へ戻れます。</p>'},
   {title:'操作と保存',body:'<p>指でなぞると視点移動、二本指で拡大・縮小と回転ができます。村情報・年代記・建築候補はスクロールせず、タブとページ送りで切り替えます。</p><p>村はこの端末に自動保存されます。タイトルへ戻っても続きから再開でき、初期化時は現在の村を退避してから新しい村へ戻ります。</p>'}
  ],page=Math.min(Math.max(0,requestedPage),pages.length-1),item=pages[page];
@@ -239,12 +239,12 @@ function personDialog(id){
 }
 function tap(x,y){
  if(ui.entryOpen)return;
- if(ui.pending){const p=view.ground(x,y);if(p)previewAt(p.x,p.z);return;}
+ if(ui.pending){const p=view.ground(x,y);if(p){previewAt(p.x,p.z);confirmPlacement();}return;}
  closeDrawer();const person=view.pickPerson(x,y);if(person){personDialog(person);return;}
  const id=view.pick(x,y);if(id){if(world.object(id)){if(view.roomId&&id!==view.roomId)exitRoom();selection(id,null);}else selection(id,view.roomId);return;}deselect();
 }
-const input=installSceneInput(canvas,{view,ui,tap,activity}),pointers=input.pointers;
-installCatalogDrop({ui,view,preview:previewAt,activity,cancel:cancelPlacement});
+const input=installSceneInput(canvas,{view,ui,tap,preview:previewAt,activity}),pointers=input.pointers;
+installCatalogDrop({ui,view,preview:previewAt,commit:confirmPlacement,activity,cancel:cancelPlacement});
 $('tutorialAction').onclick=()=>{
  const step=world.tutorialStep();if(!step)return;
  if(!unlocked(world.state,step.kind)){toast('丸太が届くのを待ちましょう');return;}
