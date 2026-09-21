@@ -52,18 +52,19 @@ test('motion stage starts farther away and selected motion caption stays top-lef
 });
 
 
-test('motion gear opens downward with compact controls and collapsed diagnostics',()=>{
+test('motion gear opens in the shared lower workbench with compact controls and collapsed diagnostics',()=>{
   const source=read('../src/review-motion.js');
-  const preview=read('../src/review-motion-preview.css');
+  const html=read('../review-motion.html');
+  const workbench=read('../../../packages/shared-ui/src/review-workbench.css');
   assert.match(source,/createElement\('section'\).*motion-compatibility/);
   assert.match(source,/motion-setting-grid/);
   assert.match(source,/接地補正/);
   assert.match(source,/補正なし/);
   assert.match(source,/motion-diagnostics/);
   assert.match(source,/<summary>技術詳細<\/summary>/);
-  assert.match(source,/reviewStagePanelHost='\.motion-library-primary'/);
-  assert.match(preview,/\.motion-review \.motion-library-primary\{position:relative\}/);
-  assert.match(preview,/\.motion-review \.motion-library-primary>\.review-stage-controls__panel\{position:absolute!important;top:8px!important;right:8px!important/);
+  assert.match(html,/data-review-stage-panel-host="\.motion-library-primary"/);
+  assert.match(html,/motion-library-primary review-workbench__library review-workbench__panel-host/);
+  assert.match(workbench,/\.review-workbench__panel-host>\.review-stage-controls__panel\{position:absolute!important;top:8px!important;right:8px!important/);
 });
 
 test('motion review settings can equip a right-hand weapon without changing the motion source',()=>{
@@ -82,10 +83,15 @@ test('motion review settings can equip a right-hand weapon without changing the 
   }
 });
 
-test('shared stage controls can portal the panel away from the gear button',()=>{
+test('shared stage controls portal into the motion-derived workbench host',()=>{
   const shared=read('../../../packages/shared-ui/src/review-stage.js');
+  const workbench=read('../../../packages/shared-ui/src/review-workbench.css');
+  const html=read('../review-motion.html');
   assert.match(shared,/stage\.dataset\.reviewStagePanelHost\?doc\.querySelector/);
   assert.match(shared,/\(panelHost\|\|root\)\.append\(panel\)/);
   assert.match(shared,/!root\.contains\(event\.target\)&&!panel\.contains\(event\.target\)/);
   assert.match(shared,/panel\.remove\(\)/);
+  assert.match(workbench,/\.review-workbench__panel-host>\.review-stage-controls__panel/);
+  assert.match(html,/data-review-stage-panel-host="\.motion-library-primary"/);
+  assert.match(html,/motion-library-primary review-workbench__library review-workbench__panel-host/);
 });
