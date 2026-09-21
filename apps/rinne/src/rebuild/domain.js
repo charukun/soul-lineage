@@ -74,8 +74,8 @@ export function createLife({name='旅人',seed=1,generation=1,lineage=[],homelan
     events:[{type:'born',worldSecond:0,text:`${cleanName(name)}が${village}に生まれた。`}],
   };
   state.family=settleFamily(familyForLife({...state,family}),village,{generation:state.generation,lifeId:state.id});
-  ensureInspiration(state,{fresh:true});const gifted=initializeBirthTalents(state);
-  if(gifted)state.events.unshift({type:'village-news',scope:'village',worldSecond:0,text:`${state.name}が「${gifted.axis}」に稀有な資質を持って生まれた。村にギフテッド誕生の知らせが広がった。`,tag:'ギフテッド',subjectId:state.id,communityHook:{kind:'protect-gifted-child',roles:['見守り役','師匠候補','将来の共闘仲間']}});
+  ensureInspiration(state,{fresh:true});const tenyo=initializeBirthTalents(state);
+  if(tenyo)state.events.unshift({type:'village-news',scope:'village',worldSecond:0,text:`${state.name}が「${tenyo.axis}」に稀有な資質を持って生まれた。村に「天与」の子の知らせが広がった。`,tag:'天与',subjectId:state.id,communityHook:{kind:'protect-tenyo-child',roles:['見守り役','師匠候補','将来の共闘仲間']}});
   ensureCombatInjuryState(state);return state;
 }
 export function validateLife(raw){
