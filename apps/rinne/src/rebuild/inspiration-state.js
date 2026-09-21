@@ -1,4 +1,4 @@
-import { CAUSAL_ANSWERS, INSPIRATION_QUESTIONS, inspirationTechniqueName, inspirationCombatAnswerPool, resolveInspirationAnswer } from '@soul/game-data';
+import { CAUSAL_ANSWERS, INSPIRATION_QUESTIONS, inspirationTechniqueName, inspirationCombatAnswerPool, resolveInspirationAnswer, isGeneratedTechniqueId, generatedTechniqueNaming } from '@soul/game-data';
 import { INSPIRATION_LIMITS, MOTIFS, ensureInspiration, synchronizeKnownSkills } from './inspiration-persistence.js';
 import { faithProfile } from './skill-system.js';
 export { INSPIRATION_VERSION, INSPIRATION_LIMITS, ensureInspiration, synchronizeKnownSkills, validateInspiration, inspirationImprint } from './inspiration-persistence.js';
@@ -61,6 +61,10 @@ function materialProof(s,row){
   for(const group of row.materials){const traces=s.traces.filter(trace=>trace.motifs.some(m=>group.includes(m)));if(!traces.length)return null;found.push(traces.find(t=>!found.some(f=>identity(f)===identity(t)))||traces.at(-1));}
   if(unique(found.map(identity)).length<2)return null;return unique(found).slice(0,4);
 }
+function generatedNamingFor(state,row){
+  const s=ensureInspiration(state),motifs=unique([...(row?.motifs||[]),...s.heritage.map(h=>h.motif)]);
+  return generatedTechniqueNaming(row,{seed:state.seed??0,motifs,specialEffects:row?.specialEffects||[]});
+}
 function candidateScore(state,row,context){
   const s=ensureInspiration(state),mind=context.mind||{},body=s.body;let score=1;
   for(const [key,value]of Object.entries(row.intent))score+=(Number(mind[key])||0)*value;
@@ -100,7 +104,9 @@ function enforceActiveLimit(state){
 }
 function commitAnswer(state,candidate,context={}){
   const s=ensureInspiration(state),row=answer(candidate.id);if(!row||own(s.records,row.id)||state.ended||state.down||Object.keys(s.records).length>=INSPIRATION_LIMITS.records)return null;
-  const record={answerId:row.id,family:row.family,name:inspirationTechniqueName(row),age:clamp(state.ageYears,0,100),kind:row.kind,stable:false,archived:false,contexts:[useContextKey(state,context)],provenance:provenanceFor(state,candidate,context),motifs:[...row.motifs]};
+  const naming=isGeneratedTechniqueId(row.id)?generatedNamingFor(state,row):null;
+  const record={answerId:row.id,family:row.family,name:naming?.displayName||inspirationTechniqueName(row),age:clamp(state.ageYears,0,100),kind:row.kind,stable:false,archived:false,contexts:[useContextKey(state,context)],provenance:provenanceFor(state,candidate,context),motifs:[...row.motifs]};
+  if(naming)record.naming={style:naming.style,grade:naming.grade,baseName:naming.baseName,signature:naming.signature};
   if(['technique','variant'].includes(row.kind)){const effectAttribute=chooseInspirationEffectAttribute(state,row.id);if(effectAttribute)record.effectAttribute=effectAttribute;}
   if(row.kind==='link'&&context.combo)record.combo={...context.combo};
   s.records[row.id]=record;s.lastNamed=s.clock;s.revision++;enforceActiveLimit(state);synchronizeKnownSkills(state);
@@ -157,7 +163,7 @@ export function prepareCombatInspiration(state,context={},dt=0){
   if(s.pending){const p=s.pending;p.elapsed+=Math.max(0,Number(dt)||0);p.context={...p.context,...context};const pose=state.combat?.tidebreakPose,finished=p.committed&&pose&&pose.skill!==p.runtimeName;if(state.ended||state.down||p.failed||p.elapsed>INSPIRATION_LIMITS.attemptSeconds||p.targetId!==context.targetId||finished)s.pending=null;else return p;}
   if(state.ended||state.down||state.attacking||Number(state.ageYears)<7||!context.targetId)return null;
   for(const q of context.questions||[])recordCombatQuestion(state,q,context);updateInspirationSigns(state,context);if(s.clock-s.lastNamed<INSPIRATION_LIMITS.namedGap)return null;
-  const candidate=inspirationCandidates(state,{...context,window:'combat'})[0];if(!candidate)return null;s.pending={...candidate,targetId:context.targetId,elapsed:0,committed:false,armed:false,started:false,cursor:0,contact:false,failed:false,runtimeName:inspirationTechniqueName(answer(candidate.id)),context:{...context}};return s.pending;
+  const candidate=inspirationCandidates(state,{...context,window:'combat'})[0];if(!candidate)return null;s.pending={...candidate,targetId:context.targetId,elapsed:0,committed:false,armed:false,started:false,cursor:0,contact:false,failed:false,runtimeName:isGeneratedTechniqueId(candidate.id)?generatedNamingFor(state,answer(candidate.id)).displayName:inspirationTechniqueName(answer(candidate.id)),context:{...context}};return s.pending;
 }
 export function inspirationRecipe(state,id,phase,targetId=null,context=null){
   const s=ensureInspiration(state),p=s.pending,usingPending=p&&p.targetId===targetId,chosen=usingPending?p.id:id,row=answer(chosen);
@@ -196,6 +202,6 @@ export function recordCombatAnswers(state,context={},events=[]){
   }
   if(state.ended||state.down)s.pending=null;s.execution=null;updateInspirationSigns(state,context);return result;
 }
-export function inspirationName(state,id,fallback=id){const row=answer(id);return row?inspirationTechniqueName(row):fallback;}
+export function inspirationName(state,id,fallback=id){const row=answer(id);if(!row)return fallback;if(isGeneratedTechniqueId(id))return generatedNamingFor(state,row).displayName;return inspirationTechniqueName(row);}
 export function archiveInspiration(state,id,archived=true){const s=ensureInspiration(state),r=s.records[id];if(!r||(archived&&equippedIds(state).has(id)))return false;r.archived=Boolean(archived);s.revision++;if(!archived)enforceActiveLimit(state);return r.archived===Boolean(archived);}
 export function inspirationSummary(state){const s=ensureInspiration(state),families=unique(Object.values(s.records).map(r=>r.family));return {families:families.length,records:Object.keys(s.records).length,signs:updateInspirationSigns(state),heritage:s.heritage,body:s.body,faith:faithProfile(state),legacy:s.legacySkills.length};}
