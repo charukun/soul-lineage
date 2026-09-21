@@ -402,7 +402,7 @@ main.battle-review.review-surface .camera-zoom button{
       </aside>
       <strong id="battle-sequence-current" class="battle-sequence-current" data-kind="idle">間合いを測っている…</strong>
     </div>
-    <div class="camera-zoom" role="group" aria-label="カメラズーム"><button id="camera-zoom-out" type="button" aria-label="カメラをズームアウト">−</button><button id="camera-zoom-in" type="button" aria-label="カメラをズームイン">＋</button></div>
+    <div class="camera-zoom" data-review-stage-control role="group" aria-label="カメラズーム"><button id="camera-zoom-out" type="button" aria-label="カメラをズームアウト">−</button><button id="camera-zoom-in" type="button" aria-label="カメラをズームイン">＋</button></div>
     <div id="battle-technique-composition" class="technique-composition" aria-label="段・技・連・序破急の構成"></div>
     <section id="battle-inspiration-history" class="inspiration-history" aria-label="閃いた技の履歴" hidden>
       <header><div><span>閃き履歴</span><strong>この戦闘で閃いた技</strong></div><button id="battle-history-close" type="button" aria-label="閃き履歴を閉じる">閉じる</button></header>
@@ -415,7 +415,7 @@ main.battle-review.review-surface .camera-zoom button{
     <div class="battle-stage-switch" aria-label="戦闘人数の切替"><div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="one-v-three" aria-pressed="false">1v3</button></div></div>
     <div class="battle-shortcuts">
       <button id="battle-history-open" class="battle-history-open" type="button">閃き履歴 <span id="battle-history-count">0</span></button>
-    <details class="review-settings">
+    <details class="review-settings" data-review-stage-control>
       <summary>設定 <small>モデル・人数・カメラ</small></summary>
       <div class="review-settings-body">
         <div class="pickers">

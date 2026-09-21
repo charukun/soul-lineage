@@ -20,8 +20,8 @@
     <div class="sound-focus">
       <div class="sound-focus-head"><div><small id="sound-kind">SFX</small><strong id="sound-title">選択してください</strong><span id="sound-category">—</span></div><code id="sound-id">—</code></div>
       <div class="sound-pulse" id="sound-pulse" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <div class="sound-time"><output id="sound-current">0:00</output><input id="sound-seek" type="range" min="0" max="1" step="0.001" value="0" aria-label="再生位置"><output id="sound-duration">0:00</output></div>
-      <div class="sound-actions">
+      <div class="sound-time" data-review-stage-control><output id="sound-current">0:00</output><input id="sound-seek" type="range" min="0" max="1" step="0.001" value="0" aria-label="再生位置"><output id="sound-duration">0:00</output></div>
+      <div class="sound-actions" data-review-stage-control>
         <button id="sound-play" class="primary" type="button">▶ 再生</button><button id="sound-restart" type="button">最初から</button>
         <label>音量 <input id="sound-volume" type="range" min="0" max="1" step="0.01" value="0.72"></label>
         <label class="loop-toggle"><input id="sound-loop" type="checkbox"> ループ</label>
