@@ -95,3 +95,22 @@ test('main boot has one HUD owner, automatic sensing, and no menu extraction exp
   assert.match(feastHud,/setAttribute\('aria-label','次に狙う力 /);
   assert.doesNotMatch(feastHud,/objective\.querySelector\('small'\)\.textContent='次に狙う力'/,'feast guidance must not overwrite the mission objective');
 });
+
+
+test('hunt entry decoration is bounded and yields before the first batch',async()=>{
+  const {decorationBatchPlan,scheduleDecorationBatches}=await import('../src/web/build-schedule.js');
+  const plan=decorationBatchPlan({forestCount:100,edgeCount:130,batchSize:20});
+  assert.equal(plan.filter(x=>x.kind==='forest').reduce((n,x)=>n+x.end-x.start,0),100);
+  assert.equal(plan.filter(x=>x.kind==='edge').reduce((n,x)=>n+x.end-x.start,0),130);
+  assert.ok(plan.every(x=>x.end-x.start<=20));
+  const pending=[],ran=[];
+  const cancel=scheduleDecorationBatches([()=>ran.push(1),()=>ran.push(2)],{schedule:fn=>(pending.push(fn),pending.length),cancel:()=>{}});
+  assert.equal(ran.length,0,'entry task must not execute decoration synchronously');
+  pending.shift()();assert.equal(ran.length,0,'first animation frame is reserved for the hunt core to paint');
+  pending.shift()();assert.deepEqual(ran,[1]);
+  pending.shift()();assert.deepEqual(ran,[1,2]);
+  cancel();
+  const main=readFileSync(new URL('../src/web/main.js',import.meta.url),'utf8'),view=readFileSync(new URL('../src/web/view.js',import.meta.url),'utf8');
+  assert.match(main,/view\.build\(game\.village,\{deferDecoration:true\}\)/);
+  assert.match(view,/decorationBatchPlan\(/);assert.match(view,/scheduleDecorationBatches\(/);
+});

@@ -112,7 +112,7 @@
   },
   "receipt": {
     "repository": "charukun/soul-lineage",
-    "pullRequest": null,
+    "pullRequest": 1310,
     "marker": "autonomous-receipt:kuumetsu:kuumetsu-hunt-entry-frame-budget-20260921"
   }
 }
