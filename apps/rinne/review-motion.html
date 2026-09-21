@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="./src/review-motion.css">
 </head>
 <body>
-<main class="motion-review review-surface">
+<main class="motion-review review-surface review-workbench">
   <header class="review-surface__header">
     <div class="review-surface__title">
       <a class="motion-back review-surface__back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a>
@@ -21,17 +21,17 @@
   </header>
   <section class="review-surface__workspace">
   <div class="review-surface__stage-column">
-  <section class="motion-stage review-surface__stage" aria-label="モーション表示">
+  <section class="motion-stage review-surface__stage" data-review-stage-panel-host=".motion-library-primary" aria-label="モーション表示">
     <canvas id="motion-stage" aria-label="主人公モデルのモーション。ドラッグで回転、ピンチで拡大"></canvas>
-    <div class="motion-stage-caption" aria-live="polite">
+    <div class="motion-stage-caption review-workbench__stage-caption" aria-live="polite">
       <strong id="motion-selected">モーション準備中</strong>
       <small id="motion-source">pinned CC0</small>
     </div>
-    <div class="motion-stage-status">
+    <div class="motion-stage-status review-workbench__stage-status">
       <output id="motion-status" role="status" aria-live="polite">モーションを読み込んでいます。</output>
       <progress id="motion-load" max="1" value="0" aria-label="モデル読込状況"></progress>
     </div>
-    <div class="motion-camera-strip" data-review-stage-control aria-label="表示方向">
+    <div class="motion-camera-strip review-workbench__camera" data-review-stage-control aria-label="表示方向">
       <button type="button" data-motion-camera="front" aria-pressed="false">正面</button>
       <button type="button" data-motion-camera="three-quarter" aria-pressed="true">斜め</button>
       <button type="button" data-motion-camera="side" aria-pressed="false">横</button>
@@ -42,17 +42,17 @@
 
   <section class="motion-controls review-surface__panel" aria-label="モーション選択と再生">
 
-    <section class="motion-library motion-library-primary" aria-label="モーションを選ぶ">
-      <div class="motion-library-head">
-        <div><span class="control-label">MOTION LIBRARY</span><strong>モーションを選ぶ</strong></div>
+    <section class="motion-library motion-library-primary review-workbench__library review-workbench__panel-host" aria-label="モーションを選ぶ">
+      <div class="motion-library-head review-workbench__library-head">
+        <div><span class="control-label review-workbench__kicker">MOTION LIBRARY</span><strong>モーションを選ぶ</strong></div>
         <small>カテゴリ → 動き</small>
       </div>
-      <div id="motion-filters" class="motion-filters review-filter-tabs" role="group" aria-label="モーション分類"></div>
-      <div id="motion-grid-summary" class="motion-grid-title">候補一覧</div>
+      <div id="motion-filters" class="motion-filters review-filter-tabs review-workbench__filters" role="group" aria-label="モーション分類"></div>
+      <div id="motion-grid-summary" class="motion-grid-title review-workbench__grid-title">候補一覧</div>
       <div id="motion-grid" class="motion-grid review-choice-grid" role="group" aria-label="モーション候補"></div>
     </section>
 
-    <div class="motion-playback" aria-label="再生コントロール">
+    <div class="motion-playback review-workbench__transport" aria-label="再生コントロール">
       <button id="motion-restart" type="button" aria-label="最初から">↺</button>
       <button id="motion-play" class="primary" type="button">▶ 再生</button>
       <label class="speed-control"><span>速度</span>
@@ -66,7 +66,7 @@
       <label class="loop-toggle"><input id="motion-loop" type="checkbox" checked> ループ</label>
     </div>
 
-    <div class="motion-timeline">
+    <div class="motion-timeline review-workbench__timeline">
       <button id="motion-prev-frame" type="button" aria-label="1フレーム戻す">‹ 1F</button>
       <input id="motion-time" class="motion-time" type="range" min="0" max="1" step="0.0001" value="0" aria-label="モーション時刻">
       <button id="motion-next-frame" type="button" aria-label="1フレーム進む">1F ›</button>

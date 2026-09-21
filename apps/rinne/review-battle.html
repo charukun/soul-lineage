@@ -20,7 +20,7 @@
   </header>
   <section class="review-surface__workspace">
   <div class="review-surface__stage-column">
-  <section class="stage review-surface__stage">
+  <section class="stage review-surface__stage" data-review-stage-panel-host=".controls.review-surface__panel">
     <canvas id="battle-canvas" aria-label="実モデルで動くTidebreak自動戦闘"></canvas>
     <aside id="battle-body-hud" class="combat-body-hud-host" aria-label="プレイヤー身体部位HUD"></aside>
     <output id="battle-model-status" class="model-status" role="status">モデル準備中</output>
@@ -46,7 +46,7 @@
     </section>
   </section>
   </div>
-  <section class="controls review-surface__panel">
+  <section class="controls review-surface__panel review-workbench__panel-host">
     <div class="inspiration-mode" role="group" aria-label="閃き確認モード"><button type="button" data-inspiration-mode="normal" aria-pressed="true">通常</button><button type="button" data-inspiration-mode="boost" aria-pressed="false">閃き 高確率</button></div>
     <div class="battle-stage-switch" aria-label="戦闘人数の切替"><div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="one-v-three" aria-pressed="false">1v3</button></div></div>
     <div class="battle-shortcuts">

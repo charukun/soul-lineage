@@ -6,24 +6,27 @@
 <link rel="icon" href="./review-favicon.svg?v=1" type="image/svg+xml"><title>Visual Review｜物体</title>
 </head>
 <body>
-<main class="object-review review-surface">
+<main class="object-review review-surface review-workbench">
 <header class="object-topbar review-surface__header"><div class="review-surface__title"><a class="object-back review-surface__back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a><div><span class="review-surface__eyebrow">RINNE RUNTIME PROBE</span><h1>物体</h1></div></div></header>
 <section class="review-surface__workspace">
 <div class="review-surface__stage-column">
-<section class="object-stage review-surface__stage" aria-label="ワールド物体のプレビュー">
+<section class="object-stage review-surface__stage" data-review-stage-panel-host=".object-library" aria-label="ワールド物体のプレビュー">
 <div class="object-canvas-wrap"><canvas id="object-stage"></canvas></div>
+<div class="object-stage-caption review-workbench__stage-caption" aria-live="polite"><strong id="object-selected">読み込み中</strong><small id="object-selected-source">RINNE runtime asset</small></div>
+<div class="object-camera-strip review-workbench__camera" data-review-stage-control aria-label="表示方向"><button type="button" data-object-camera="front" aria-pressed="false">正面</button><button type="button" data-object-camera="three-quarter" aria-pressed="false">斜め</button><button type="button" data-object-camera="side" aria-pressed="false">横</button><button type="button" data-object-camera="back" aria-pressed="false">背面</button><button type="button" data-object-camera="top" aria-pressed="false">上</button><button type="button" data-object-camera="full" aria-pressed="true">全体</button></div>
 </section>
 </div>
 <aside class="object-controls review-surface__panel">
-<header class="object-heading">
-<p>RINNEが配信するワールド物体を単体で確認します。</p>
-<small>ドラッグ: 回転　ピンチ: 拡大</small>
+<section class="object-library review-workbench__library review-workbench__panel-host" aria-label="物体を選ぶ">
+<header class="object-heading review-workbench__library-head">
+<div><span class="review-workbench__kicker">OBJECT LIBRARY</span><strong>物体を選ぶ</strong></div>
+<small>カテゴリ → 物体</small>
 </header>
-<h2>カテゴリ</h2>
-<div id="object-categories" class="object-categories review-filter-tabs" role="group" aria-label="物体カテゴリ"></div>
-<h2>物体</h2>
+<div id="object-categories" class="object-categories review-filter-tabs review-workbench__filters" role="group" aria-label="物体カテゴリ"></div>
+<div class="review-workbench__grid-title">候補一覧</div>
 <div id="object-options" class="object-options review-choice-grid" role="group" aria-label="ワールド物体"></div>
-<output id="object-status" class="object-status" role="status" aria-live="polite">読み込み中…</output>
+<output id="object-status" class="object-status review-workbench__status" role="status" aria-live="polite">読み込み中…</output>
+</section>
 <details class="object-details review-surface__meta"><summary>素材情報</summary><p id="object-provenance" class="object-provenance"></p></details>
 </aside>
 </section>
