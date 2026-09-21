@@ -49,6 +49,7 @@ compatibility.innerHTML='<div class="motion-setting-grid"><label><span>武器</s
 el('motion-meta').closest('details').before(compatibility);
 for(const option of MOTION_REVIEW_WEAPON_OPTIONS)el('motion-weapon').add(new Option(option.label,option.id));
 el('motion-weapon').value=selectedWeapon;
+canvas.closest('.motion-stage').dataset.reviewStagePanelHost='.motion-library-primary';
 mountRinneReviewShell('motion');
 let lastReport='';
 function showCompatibility(result,source=externalSource){
@@ -171,7 +172,7 @@ async function loadReviewModelForThumbnail(model){
 }
 function renderMotionGrid(){
   const root=el('motion-grid'),model=selectedModel,rows=filterMotionReviewCatalog(catalog,filter);root.replaceChildren();
-  if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty review-workbench__empty';empty.textContent=targetAdapter?'この分類のモーションはありません。':'モデルを準備しています。';root.append(empty);return;}
+  if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty';empty.textContent=targetAdapter?'この分類のモーションはありません。':'モデルを準備しています。';root.append(empty);return;}
   for(const record of rows){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionIdentity=record.sourceIdentity;button.dataset.recommended=String(record.recommended);
     const label=record.displayName||reviewMotionDisplayName(record.name,record.index),thumbnail=createRuntimeThumbnail(label);button.setAttribute('aria-label',label);button.title=label;button.append(thumbnail);

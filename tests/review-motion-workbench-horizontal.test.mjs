@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 
 const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
-test('motion review is the shared workbench reference surface',async()=>{
+test('motion review stays the visual reference and does not consume the extracted workbench classes',async()=>{
   const [shell,workbench,motion,preview]=await Promise.all([
     read('packages/shared-ui/src/review-shell.js'),
     read('packages/shared-ui/src/review-workbench.css'),
@@ -12,10 +12,11 @@ test('motion review is the shared workbench reference surface',async()=>{
     read('apps/rinne/src/review-motion-preview.css'),
   ]);
   assert.match(shell,/import '\.\/review-workbench\.css'/);
-  for(const token of ['review-workbench__library','review-workbench__library-head','review-workbench__filters','review-workbench__stage-caption','review-workbench__stage-status','review-workbench__transport','review-workbench__timeline','review-workbench__panel-host'])assert.match(workbench,new RegExp('\\.'+token));
-  for(const token of ['review-workbench__library','review-workbench__library-head','review-workbench__filters','review-workbench__stage-caption','review-workbench__stage-status','review-workbench__transport','review-workbench__timeline','review-workbench__panel-host'])assert.match(motion,new RegExp(token));
+  assert.match(workbench,/\.review-workbench__library/);
+  assert.match(motion,/motion-library motion-library-primary/);
   assert.match(motion,/data-review-stage-panel-host="\.motion-library-primary"/);
-  assert.doesNotMatch(preview,/motion-library-primary>\.review-stage-controls__panel/);
+  assert.doesNotMatch(motion,/review-workbench__/);
+  assert.match(preview,/motion-library-primary>\.review-stage-controls__panel/);
 });
 
 test('catalog review surfaces use the motion-derived library grammar',async()=>{

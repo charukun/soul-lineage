@@ -94,4 +94,9 @@ test('main boot has one HUD owner, automatic sensing, and no menu extraction exp
   assert.match(feastHud,/prey\.power/,'next-prey guidance must carry power in its own tracker');
   assert.match(feastHud,/setAttribute\('aria-label','次に狙う力 /);
   assert.doesNotMatch(feastHud,/objective\.querySelector\('small'\)\.textContent='次に狙う力'/,'feast guidance must not overwrite the mission objective');
+  const flow=read('../src/web/hunt-flow-ui.js'),hud=read('../src/web/hunt-minimal-hud.css');
+  assert.match(flow,/haulNode\.hidden = game\.carried <= 0 && !ready/,'zero-stake haul must not compete with prey progress');
+  assert.match(flow,/pressureNode\.hidden = risk\.level <= 0/,'quiet pressure must stay latent');
+  assert.match(flow,/this\.bag\.dataset\.pressure = String\(risk\.level\)/,'risk level must drive the visual hierarchy');
+  assert.match(hud,/hunt-bag\[data-pressure="3"\]/,'high pressure must have a distinct HUD treatment');
 });
