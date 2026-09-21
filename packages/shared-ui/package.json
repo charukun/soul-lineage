@@ -18,7 +18,9 @@
     "./review-navigation": "./src/review/navigation.js",
     "./review-thumbnail": "./src/review/thumbnail.js",
     "./review-status": "./src/review/status.js",
-    "./review-slot-picker": "./src/review/slot-picker.js"
+    "./review-slot-picker": "./src/review/slot-picker.js",
+    "./review-auto-install": "./src/review/auto-install.js",
+    "./review-load-controller": "./src/review/load-controller.js"
   },
   "dependencies": {
     "@soul/audio": "*"
