@@ -29,8 +29,7 @@ test('object, equipment, and model pickers use dedicated metadata thumbnails',as
   ]);
   assert.match(assetMeta,/thumbnailUrl: reviewThumbnailUrl\(id\)/);
   assert.match(characterMeta,/thumbnailUrl: reviewThumbnailUrl\(`kaykit\.\$\{id\}\.v1`\)/);
-  assert.match(assetView,/createStaticThumbnail\(item\.thumbnailUrl\|\|/);
-  assert.match(assetView,/createStaticThumbnail\(model\.thumbnailUrl,model\.label\)/);
+  assert.match(assetView,/createStaticThumbnail\(type\.thumbnail\|\|spec\?\.thumbnailUrl\|\|/);
   assert.doesNotMatch(assetView,/createRuntimeThumbnail|scheduleRuntimeThumbnail/);
   assert.match(motionView,/thumbnailUrl:'\.\/review\/catalog-thumbnails\.svg#mesh2motion-review-mannequin'/);
   assert.match(motionView,/createStaticThumbnail\(model\.thumbnailUrl,model\.label\)/);

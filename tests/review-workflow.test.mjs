@@ -21,8 +21,11 @@ test('Visual Review and Character Studio are independent DEV apps with one canon
   assert.match(studioWrangler,/soul-lineage-character-studio-dev/);
   assert.match(reviewConfig,/charactersBase:REVIEW_DEV\.characters/);
   assert.match(reviewConfig,/soul-lineage-character-studio-dev\.c-okamoto\.workers\.dev/);
-  assert.match(applications,/fastDevTarget\('character-studio'/);
-  assert.match(applications,/fastDevTarget\('review'/);
+  const catalog=await read('scripts/application-catalog.mjs');
+  assert.match(catalog,/id:'character-studio', deployApp:'character-studio'/);
+  assert.match(catalog,/id:'visual-review', deployApp:'review'/);
+  assert.match(applications,/PULSE_SURFACES/);
+  assert.match(applications,/fastDevTarget\(surface\.deployApp/);
   assert.doesNotMatch(applications,/rinneDevToolTarget|dev\/rinne\/review\.html|dev\/rinne\/characters\.html/);
   assert.match(bridge,/data-review-bridge/);
   assert.match(bridge,/soul-lineage-review-dev\.c-okamoto\.workers\.dev/);
