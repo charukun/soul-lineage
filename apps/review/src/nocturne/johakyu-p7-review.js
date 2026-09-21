@@ -155,7 +155,9 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   function nextAction(actor){
     if(actor.dead||actor.incapacitated)return null;
     const target=selectTarget(battle,actor.id);if(!target)return null;
-    const cursor=cursorFor(actor),node=nodeFor(actor,cursor),cost=stageCost(node.stage);
+    const cursor=cursorFor(actor),node=nodeFor(actor,cursor),cost=stageCost(node.stage),capability=johakyuActorCapability(actor);
+    // Canonical stamina capability owns the offense gate. The review does not derive a second threshold.
+    if(stageDamage(node.stage)>0&&!capability.canAttack){readyAt.set(actor.id,time+.24);return null;}
     if(cost>0&&!spendJohakyuStamina(actor,cost)){readyAt.set(actor.id,time+.32);return null;}
     const motion=motionFor(node),duration=stageDuration(node.technique,node.stage),serial=`${cursor.cycle}:${cursor.phaseIndex}:${cursor.techniqueIndex}:${cursor.stageIndex}`;
     const state={phaseEpoch:`${cursor.cycle}:${cursor.phaseIndex}`,startedAt:time,duration,impacted:false,outcome:null,
@@ -253,7 +255,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   function facingYaw(actor){const target=selectTarget(battle,actor.id);if(!target)return LAYOUT[actor.id]?.yaw??0;const from=positionOf(positions,actor),to=positionOf(positions,target);return Math.atan2(to.x-from.x,to.z-from.z);}
   function locomotionFor(actor){const maneuver=activeManeuver(actor);if(!maneuver)return null;if(maneuver.footwork!=='retreat')return Object.freeze({kind:maneuver.footwork,clip:null});const motion=resolveJohakyuMotion({weapon:'sword',kind:'retreat',phase:'enemy'});return motion.supported?Object.freeze({kind:'retreat',clip:motion.clip}):null;}
   function frame(actions){
-    const actors=[...battle.actors.values()].map(actor=>{const action=actions.get(actor.id)??null,maneuver=!action?activeManeuver(actor):null,capability=johakyuActorCapability(actor);void capability;return{id:actor.id,side:actor.side,self:actor.id==='hero',kind:actor.side==='party'?'hero':'enemy',boss:actor.id==='enemy-c',position:positionFor(actor),yaw:facingYaw(actor),hp:actor.hp,maxHp:actor.maxHp,body:bodyView(actor),stamina:{value:actor.stamina,cap:actor.staminaCap},equipment:{weapon:'sword',armor:actor.side==='party'?'heavy':'cloth',shield:false},moving:Boolean(action&&action.footwork!=='stay'||maneuver),locomotion:!action?locomotionFor(actor):null,resting:false,dead:actor.dead,downed:actor.incapacitated,hit:false,ageYears:actor.side==='party'?28:0,action};});
+    const actors=[...battle.actors.values()].map(actor=>{const action=actions.get(actor.id)??null,maneuver=!action?activeManeuver(actor):null,capability=johakyuActorCapability(actor);return{id:actor.id,side:actor.side,self:actor.id==='hero',kind:actor.side==='party'?'hero':'enemy',boss:actor.id==='enemy-c',position:positionFor(actor),yaw:facingYaw(actor),hp:actor.hp,maxHp:actor.maxHp,body:bodyView(actor),stamina:{value:actor.stamina,cap:actor.staminaCap},capability:{canMove:capability.canMove,canAttack:capability.canAttack,stamina:capability.stamina},equipment:{weapon:'sword',armor:actor.side==='party'?'heavy':'cloth',shield:false},moving:Boolean(action&&action.footwork!=='stay'||maneuver),locomotion:!action?locomotionFor(actor):null,resting:false,dead:actor.dead,downed:actor.incapacitated,hit:false,ageYears:actor.side==='party'?28:0,action};});
     return freeze({version:1,authority:'rinne-domain',reviewFixture:'p7-technique-composition',reviewMode:mode,battleId:battle.battleId,epoch,revision,status:battle.result?'won':'battle',actors,obstacles:[],projectiles:[],result:battle.result??{cleared:false,defeats:0,returns:resumes}});
   }
   function meta(frameValue){
