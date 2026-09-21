@@ -41,7 +41,8 @@ const equipmentCache = new Map();
 const equipmentLoads = new Map();
 let stageBusyCount = 0;
 const equipmentFailures=new Map();
-const selection = {model: PROTAGONIST_VILLAGER_MODEL.id, main:null, off:null, back:null};
+const EQUIPMENT_SLOTS=Object.freeze(['main','off','head','body','arms','legs','back']);
+const selection = {model: PROTAGONIST_VILLAGER_MODEL.id, main:null, off:null, head:null, body:null, arms:null, legs:null, back:null};
 let activeAssetSlot='main',activeViewDirection='front',activeViewFocus='full',equipmentFilter='recommended';
 
 function status(message,error=false) {
@@ -91,7 +92,56 @@ function slotAnchor(slot) {
   if(!modelRoot)throw new Error('先にモデルを読み込んでください');
   if(slot==='main')return findNode(modelRoot,'hand.r')||findNode(modelRoot,'righthand')||findNode(modelRoot,'hand_r')||findNode(modelRoot,'righthandbone')||findNode(modelRoot,'handslot.r');
   if(slot==='off')return findNode(modelRoot,'hand.l')||findNode(modelRoot,'lefthand')||findNode(modelRoot,'hand_l')||findNode(modelRoot,'lefthandbone')||findNode(modelRoot,'handslot.l');
+  if(slot==='head')return findNode(modelRoot,'head');
+  if(slot==='body'||slot==='arms'||slot==='back')return findNode(modelRoot,'chest')||findNode(modelRoot,'spine');
+  if(slot==='legs')return findNode(modelRoot,'hips');
   return findNode(modelRoot,'chest')||findNode(modelRoot,'spine');
+}
+const mountedRoots=value=>Array.isArray(value)?value:(value?[value]:[]);
+function detachMounted(slot){
+  for(const root of mountedRoots(mounted.get(slot)))root.removeFromParent();
+  mounted.delete(slot);
+}
+function armorMaterial(kind='metal'){
+  if(kind==='cloth')return new THREE.MeshStandardMaterial({color:0x516056,roughness:.88,metalness:.02,side:THREE.DoubleSide});
+  if(kind==='leather')return new THREE.MeshStandardMaterial({color:0x5a3f2e,roughness:.82,metalness:.02});
+  return new THREE.MeshStandardMaterial({color:0x9aa39f,roughness:.32,metalness:.68});
+}
+function armorPiece(anchor,geometry,material,{position=[0,0,0],rotation=[0,0,0],scale=.2}={}){
+  const root=new THREE.Group(),mesh=new THREE.Mesh(geometry,material);
+  mesh.castShadow=mesh.receiveShadow=true;root.add(mesh);
+  root.userData.armorAnchor=anchor;root.userData.armorPosition=position;root.userData.armorRotation=rotation;root.userData.armorScale=scale;
+  return root;
+}
+function runtimeArmor(item){
+  const metal=armorMaterial('metal'),cloth=armorMaterial('cloth'),roots=[];
+  if(item.armor==='helmet'){
+    const shell=new THREE.Group();
+    const dome=new THREE.Mesh(new THREE.SphereGeometry(.5,16,10,0,Math.PI*2,0,Math.PI*.64),metal);
+    const brow=new THREE.Mesh(new THREE.TorusGeometry(.42,.055,5,18),metal);brow.rotation.x=Math.PI/2;brow.position.y=-.03;
+    shell.add(dome,brow);shell.userData.armorAnchor='head';shell.userData.armorPosition=[0,.10,0];shell.userData.armorRotation=[0,0,0];shell.userData.armorScale=.24;roots.push(shell);
+  }else if(item.armor==='chestplate'){
+    roots.push(armorPiece('chest',new THREE.BoxGeometry(.82,.72,.30),metal,{position:[0,-.12,.03],scale:.34}));
+  }else if(item.armor==='bracers'){
+    for(const side of ['l','r'])roots.push(armorPiece(`lowerarm.${side}`,new THREE.CylinderGeometry(.25,.29,.82,10),metal,{position:[0,.09,0],scale:.16}));
+  }else if(item.armor==='greaves'){
+    for(const side of ['l','r'])roots.push(armorPiece(`lowerleg.${side}`,new THREE.CylinderGeometry(.28,.32,.86,10),metal,{position:[0,.06,0],scale:.18}));
+  }else if(item.armor==='mantle'){
+    const mantle=armorPiece('chest',new THREE.BoxGeometry(.78,1.10,.055),cloth,{position:[0,-.24,-.15],rotation:[-.08,0,0],scale:.38});
+    roots.push(mantle);
+  }
+  for(const root of roots)root.name=`ReviewArmor:${item.id}`;
+  return roots;
+}
+function attachArmorRoots(roots,characterHeight){
+  for(const root of roots){
+    const anchor=findNode(modelRoot,root.userData.armorAnchor)||slotAnchor('body');
+    if(!anchor)throw new Error('防具用の骨が見つかりません');
+    anchor.add(root);
+    root.position.fromArray(root.userData.armorPosition||[0,0,0]);
+    root.rotation.set(...(root.userData.armorRotation||[0,0,0]));
+    root.scale.setScalar(characterHeight*(root.userData.armorScale||.2));
+  }
 }
 function equipmentCacheKey(item){return item.id;}
 function runtimeWeapon(item){
@@ -116,12 +166,15 @@ async function prepareEquipment(item){
   const request=(async()=>{
     let payload;
     if(item.kind==='runtime')payload=runtimeWeapon(item);
+    else if(item.kind==='runtime-armor')payload=runtimeArmor(item);
     else{
       const gltf=await loader.loadAsync(new URL(item.url,location.href).href);
       payload=flattenScene(gltf.scene);
     }
-    payload.name=`ReviewEquipment:${item.id}`;
-    payload.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;}});
+    for(const root of mountedRoots(payload)){
+      root.name=root.name||`ReviewEquipment:${item.id}`;
+      root.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;}});
+    }
     equipmentCache.set(key,payload);return payload;
   })().catch(error=>{equipmentFailures.set(item.id,String(error?.message||error));throw error;}).finally(()=>equipmentLoads.delete(key));
   equipmentLoads.set(key,request);return request;
@@ -141,22 +194,27 @@ function applyTransform(payload,item,slot,anchor,characterHeight){
   else if(!dedicatedHandSlot(anchor,slot)&&item.fallbackRotation)payload.rotation.set(...item.fallbackRotation);
 }
 async function setEquipment(slot,id){
-  const previous=mounted.get(slot);if(previous){previous.removeFromParent();mounted.delete(slot);}
+  detachMounted(slot);
   selection[slot]=id||null;
   if(!id)return;
   const item=equipmentReviewItem(id);if(!item||item.slot!==slot)throw new Error(`装備できない組み合わせ: ${slot}/${id}`);
-  const anchor=slotAnchor(slot);if(!anchor)throw new Error(`${slot} 装備用の骨/slotが見つかりません`);
-  const characterHeight=modelHeight(),payload=await prepareEquipment(item);payload.removeFromParent();anchor.add(payload);
-  applyTransform(payload,item,slot,anchor,characterHeight);mounted.set(slot,payload);equipmentFailures.delete(item.id);
+  const characterHeight=modelHeight(),payload=await prepareEquipment(item);
+  if(item.kind==='runtime-armor'){
+    const roots=mountedRoots(payload);for(const root of roots)root.removeFromParent();attachArmorRoots(roots,characterHeight);mounted.set(slot,roots);
+  }else{
+    const anchor=slotAnchor(slot);if(!anchor)throw new Error(`${slot} 装備用の骨/slotが見つかりません`);
+    payload.removeFromParent();anchor.add(payload);applyTransform(payload,item,slot,anchor,characterHeight);mounted.set(slot,payload);
+  }
+  equipmentFailures.delete(item.id);
 }
 async function reapplyEquipment(){
-  const wanted={main:selection.main,off:selection.off,back:selection.back};
-  for(const slot of ['main','off','back']){selection[slot]=null;await setEquipment(slot,wanted[slot]);}
+  const wanted=Object.fromEntries(EQUIPMENT_SLOTS.map(slot=>[slot,selection[slot]]));
+  for(const slot of EQUIPMENT_SLOTS){selection[slot]=null;await setEquipment(slot,wanted[slot]);}
 }
 async function prepareWeaponLibrary(){
   const rows=RINNE_EQUIPMENT_REVIEW_CATALOG;
   const settled=await Promise.allSettled(rows.map(item=>prepareEquipment(item)));
-  const payloads=settled.flatMap((result,index)=>result.status==='fulfilled'?[result.value]:[]);
+  const payloads=settled.flatMap(result=>result.status==='fulfilled'?mountedRoots(result.value):[]);
   const warmup=new THREE.Group();warmup.name='ReviewEquipmentWarmup';warmup.position.y=-1000;
   for(const payload of payloads){payload.removeFromParent();warmup.add(payload);}scene.add(warmup);
   try{if(typeof renderer.compileAsync==='function')await renderer.compileAsync(scene,camera);else renderer.compile(scene,camera);}
@@ -229,7 +287,7 @@ function applyPresentationPose(root){
 }
 async function loadModel() {
   const sequence=++loadSequence; selection.model=PROTAGONIST_VILLAGER_MODEL.id; status('主人公モデルを読み込み中…');
-  for(const root of mounted.values())root.removeFromParent();mounted.clear(); if(modelRoot)disposeRoot(modelRoot); modelRoot=null; mixer?.stopAllAction();mixer=null;
+  for(const value of mounted.values())for(const root of mountedRoots(value))root.removeFromParent();mounted.clear(); if(modelRoot)disposeRoot(modelRoot); modelRoot=null; mixer?.stopAllAction();mixer=null;
   const gltf=await loader.loadAsync(protagonistModelUrl); if(sequence!==loadSequence){disposeRoot(gltf.scene);return;}
   modelRoot=gltf.scene; modelRoot.name='ReviewModel:Protagonist'; modelRoot.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}}); scene.add(modelRoot); hideNativeAccessories(modelRoot);
   modelRoot.updateMatrixWorld(true); const box=new THREE.Box3().setFromObject(modelRoot),center=box.getCenter(new THREE.Vector3()); modelRoot.position.x-=center.x;modelRoot.position.z-=center.z;modelRoot.position.y-=box.min.y;modelRoot.updateMatrixWorld(true);
@@ -240,8 +298,8 @@ async function loadModel() {
 function equipmentLabel(id){return equipmentReviewItem(id)?.label||'空き';}
 function activeEquipment(){return equipmentReviewItem(selection[activeAssetSlot]);}
 function renderEquipmentInspector(){
-  const labels={main:'右手',off:'左手',back:'背中'};
-  for(const slot of ['main','off','back']){const current=q(`#asset-current-${slot}`);if(current)current.textContent=equipmentLabel(selection[slot]);}
+  const labels={main:'右手',off:'左手',head:'頭',body:'胴',arms:'腕',legs:'脚',back:'背中'};
+  for(const slot of EQUIPMENT_SLOTS){const current=q(`#asset-current-${slot}`);if(current)current.textContent=equipmentLabel(selection[slot]);}
   const active=activeEquipment(),summary=q('#asset-combination'),stageSlotLabel=q('#asset-stage-slot-label'),provenance=q('#asset-provenance');
   if(summary)summary.textContent=active?.label||(activeAssetSlot==='main'?'素手':'空き');
   if(stageSlotLabel)stageSlotLabel.textContent=labels[activeAssetSlot];
@@ -280,7 +338,7 @@ function populate() {
   for(const button of document.querySelectorAll('[data-asset-focus]'))button.addEventListener('click',()=>setFocusPreset(button.dataset.assetFocus));
   controls.addEventListener('start',()=>{assetCameraPresets.clear();q('.asset-stage-hint')?.classList.add('is-dismissed');});
   q('#asset-reset').addEventListener('click',()=>{
-    for(const slot of ['main','off','back'])void setEquipment(slot,null);
+    for(const slot of EQUIPMENT_SLOTS)void setEquipment(slot,null);
     activeAssetSlot='main';queueMicrotask(renderSelection);
   });
   canvas.addEventListener('pointerdown',()=>q('.asset-stage-hint')?.classList.add('is-dismissed'),{once:true,passive:true});
@@ -296,4 +354,4 @@ async function initialize(){
   renderEquipmentGrid();
 }
 initialize().catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);stageLifecycle.destroy();assetCameraPresets.destroy();controls.dispose();for(const root of equipmentCache.values())disposeRoot(root);equipmentCache.clear();mounted.clear();disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);stageLifecycle.destroy();assetCameraPresets.destroy();controls.dispose();for(const value of equipmentCache.values())for(const root of mountedRoots(value))disposeRoot(root);equipmentCache.clear();mounted.clear();disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});

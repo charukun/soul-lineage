@@ -31,8 +31,13 @@ export const REVIEW_EQUIPMENT_CATEGORY_LABELS=freeze({
   polearm:'長柄',
   ranged:'遠距離',
   shield:'盾',
+  head:'頭',
+  body:'胴',
+  arms:'腕',
+  legs:'脚',
+  back:'背中',
 });
-export const REVIEW_EQUIPMENT_CATEGORY_ORDER=freeze(['all','recommended','blade','axe','polearm','ranged','shield']);
+export const REVIEW_EQUIPMENT_CATEGORY_ORDER=freeze(['all','recommended','blade','axe','polearm','ranged','shield','head','body','arms','legs','back']);
 
 const skeletonCategory=family=>{
   if(/Sword/i.test(family))return 'blade';
@@ -96,7 +101,20 @@ const objectRows=RINNE_OBJECT_REVIEW_CATALOG
     });
   });
 
-const rows=[...skeletonRows,...kaykitBattleRows,...objectRows];
+const armorRows=[
+  ['rinne-iron-helmet','鉄兜','head','helmet','armor-helmet'],
+  ['rinne-iron-chestplate','胸甲','body','chestplate','armor-chest'],
+  ['rinne-iron-bracers','籠手','arms','bracers','armor-arms'],
+  ['rinne-iron-greaves','脚甲','legs','greaves','armor-legs'],
+  ['rinne-traveller-mantle','旅人マント','back','mantle','armor-mantle'],
+].map(([id,label,category,armor,thumbnail])=>freeze({
+  id,label,category,slot:category,kind:'runtime-armor',armor,
+  thumbnailUrl:`./review/catalog-thumbnails.svg#${thumbnail}`,
+  source:'RINNE runtime wardrobe',recommended:true,
+  provenance:freeze({repository:'charukun/soul-lineage',revision:'develop',license:'project-authored'})
+}));
+
+const rows=[...skeletonRows,...kaykitBattleRows,...objectRows,...armorRows];
 const seen=new Set();
 export const RINNE_EQUIPMENT_REVIEW_CATALOG=freeze(rows.filter(row=>{
   if(seen.has(row.id))return false;seen.add(row.id);return true;
