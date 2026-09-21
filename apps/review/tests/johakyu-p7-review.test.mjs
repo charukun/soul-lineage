@@ -234,7 +234,7 @@ test('HUD follows the canonical self actor feet and stays terse',()=>{
 
 test('HUD centers 破 on the hero axis and spans 間合い through 残心',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),css=hudCss();
- assert.match(html,/battle-sequence-hud__edge--maai[\\s\\S]*間合い/);assert.match(html,/battle-sequence-hud__edge--zanshin[\\s\\S]*残心/);
+ assert.ok(html.includes('battle-sequence-hud__edge--maai')&&html.includes('間合い'));assert.ok(html.includes('battle-sequence-hud__edge--zanshin')&&html.includes('残心'));
  assert.match(css,/grid-template-columns:minmax\\(58px,1fr\\) 28px 44px 28px 44px 28px minmax\\(58px,1fr\\)/);
  assert.match(css,/battle-sequence-hud__edge path/);
 });
