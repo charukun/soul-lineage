@@ -1,46 +1,79 @@
 name: Temporary kuumetsu observation transport 20260922
-# Task-scoped control branch only. Never merge into develop/main.
+# Task-scoped branch only; never merge into develop/main.
 on:
   push:
     branches: [ops/kuumetsu-observe-20260922-01]
     paths: [.github/workflows/kuumetsu-session-20260922.yml]
 permissions:
-  contents: read
+  contents: write
   actions: read
 jobs:
-  observe:
+  materialize:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c
+          ref: 3d60b896c08d298bc8a12dd02fab93722022835e
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium > /tmp/browser-install.log 2>&1
-      - name: Load task-scoped native observer
+      - name: Apply exact task patch and bind the existing Draft PR
         uses: actions/github-script@v8
         with:
           script: |
-            const fs=require('fs');
-            const r=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-session-observe.mjs',ref:context.sha});
-            const original=Buffer.from(r.data.content,'base64').toString();
-            const anchor="if(await gate.isVisible()){await tap('#soul-brand-boot');";
-            if(!original.includes(anchor))throw new Error('observer patch anchor missing');
-            const source=original.replace(anchor,"if(await gate.isVisible()){await page.locator('#soul-brand-boot.armed').waitFor({state:'visible'});await tap('#soul-brand-boot');");
-            fs.writeFileSync('session-observe.mjs',source);
-      - name: Immutable native Before
-        env:
-          SOURCE_SHA: 994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c
-          PREVIEW_URL: https://a349204c-soul-lineage-demon-dev.c-okamoto.workers.dev/
-        run: mkdir -p session-evidence && cp session-observe.mjs session-evidence/observer.mjs && node session-observe.mjs > session-evidence/browser.log 2>&1
+            const fs=require('fs'),cp=require('child_process'),path=require('path'),{pathToFileURL}=require('url');
+            const patch=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-live-lineage.patch',ref:context.sha});
+            fs.writeFileSync('/tmp/lineage.patch',Buffer.from(patch.data.content,'base64'));
+            cp.execFileSync('git',['apply','--check','/tmp/lineage.patch']);
+            cp.execFileSync('git',['apply','/tmp/lineage.patch']);
+            const file='.autonomous/kuumetsu/experiments/kuumetsu-live-lineage-20260922.json';
+            const record=JSON.parse(fs.readFileSync(file));record.receipt.pullRequest=1345;
+            const contract=await import(pathToFileURL(path.resolve('.autonomous/lib/contract.mjs')).href);
+            contract.validateRecord(record);fs.unlinkSync(file);contract.appendRecord(process.cwd(),record);
+      - name: Causal native preflight and baseline counterfactual
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs=require('fs'),cp=require('child_process'),crypto=require('crypto');
+            fs.mkdirSync('session-evidence',{recursive:true});
+            const target='apps/demon/src/web/lineage.js',candidate=fs.readFileSync(target);
+            const baseline=await github.rest.repos.getContent({...context.repo,path:target,ref:'994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c'});
+            let negative;
+            try{
+              fs.writeFileSync(target,Buffer.from(baseline.data.content,'base64'));
+              negative=cp.spawnSync(process.execPath,['--test','--test-name-pattern=real consumption','apps/demon/tests/hunt-loop-native.test.mjs'],{encoding:'utf8'});
+              fs.writeFileSync('session-evidence/counterfactual.log',negative.stdout+negative.stderr);
+              if(negative.status===0||!negative.stdout.includes('active two-meal lineage must display the native session contribution'))throw new Error('Counterfactual failed for the wrong reason or did not fail');
+            }finally{fs.writeFileSync(target,candidate);}
+            const positive=cp.spawnSync(process.execPath,['--test','apps/demon/tests/hunt-loop-native.test.mjs'],{encoding:'utf8'});
+            fs.writeFileSync('session-evidence/native-preflight.log',positive.stdout+positive.stderr);
+            if(positive.status!==0)throw new Error('Native candidate preflight failed');
+            fs.writeFileSync('session-evidence/causal.json',JSON.stringify({preflightOnly:true,baseline:'994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c',parent:'3d60b896c08d298bc8a12dd02fab93722022835e',counterfactual:{exitCode:negative.status,expectedAssertion:true},candidate:{exitCode:positive.status,tests:5},rendererSha256:crypto.createHash('sha256').update(candidate).digest('hex')},null,2));
+      - name: Store immutable blobs for Connector tree construction
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs=require('fs'),cp=require('child_process'),crypto=require('crypto'),path=require('path');
+            const paths=cp.execFileSync('git',['diff','--name-only'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+            const allowed=['apps/demon/src/web/lineage.js','apps/demon/src/web/main.js','apps/demon/src/web/ominous-shell.css','apps/demon/tests/hunt-loop-native.test.mjs','.autonomous/kuumetsu/experiments/kuumetsu-live-lineage-20260922.json','.autonomous/kuumetsu/experiment-history.json','.autonomous/kuumetsu/archive/index.json'];
+            if(JSON.stringify([...paths].sort())!==JSON.stringify([...allowed].sort()))throw new Error('Materialization scope mismatch');
+            const elements=[];
+            for(const p of paths){
+              const bytes=fs.readFileSync(p),r=await github.rest.git.createBlob({...context.repo,content:bytes.toString('base64'),encoding:'base64'});
+              const expected=crypto.createHash('sha1').update(Buffer.from(`blob ${bytes.length}\0`)).update(bytes).digest('hex');
+              if(r.data.sha!==expected)throw new Error('Git blob identity mismatch');
+              elements.push({path:p,mode:'100644',type:'blob',sha:r.data.sha,byteLength:bytes.length});
+              fs.mkdirSync(path.dirname('session-evidence/source/'+p),{recursive:true});fs.writeFileSync('session-evidence/source/'+p,bytes);
+            }
+            const manifest={parent:'3d60b896c08d298bc8a12dd02fab93722022835e',baseTree:'b1fdcfd80ad7cc6cb30edc2aba571251c10b177d',elements,headMoved:false};
+            fs.writeFileSync('session-evidence/prepared-blobs.json',JSON.stringify(manifest,null,2));core.info('PREPARED_BLOBS '+JSON.stringify(manifest));
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-before-native-armed-994f61b
+          name: kuumetsu-lineage-prepared-1345
           path: session-evidence
           retention-days: 14
