@@ -351,12 +351,18 @@ function createDrivenPort(){
    a.flash=Math.max(0,a.flash-dt);for(const {mat,base,power} of a.mats){mat.emissive.copy(a.flash>0?new THREE.Color('#ffe7c4'):base);mat.emissiveIntensity=a.flash>0?1.7:power;}
   },
   impact(event,source,target){
+   if(['guard','parry'].includes(event.type)){
+    const parry=event.type==='parry';burst(target.pos,parry?12:8,parry?'#ffe2a0':'#d9c486');
+    if(source)arc(source.pos,2.1,source.object.rotation.y,parry?2.4:1.5,'#f7cf80',.24);
+    sound.hit(true);game.shake=parry?.065:.035;
+    record('canonical-defense',{type:event.type,attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId});return;
+   }
    if(!['player-hit','enemy-hit','finisher'].includes(event.type))return;
-   target.flash=.15;const heavy=event.phase==='kyu'||event.type==='finisher';
+   target.flash=.15;const heavy=event.phase==='kyu'||event.type==='finisher'||event.counter;
    burst(target.pos,heavy?16:8,source?.kind==='hero'?'#f7cf80':'#dc8c80');
    if(source)arc(source.pos,2.35,source.object.rotation.y,heavy?2.8:1.9,'#f7cf80',.32);
    sound.hit(heavy);game.shake=heavy?.12:.045;
-   record('canonical-impact',{attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,bodyPart:event.bodyPart});
+   record('canonical-impact',{attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,bodyPart:event.bodyPart,counter:Boolean(event.counter)});
   },
   environment(obstacles,shots){
    const ids=new Set(obstacles.map(row=>row.id));for(const [id,node] of coverNodes)if(!ids.has(id)){scene.remove(node);coverNodes.delete(id);}
