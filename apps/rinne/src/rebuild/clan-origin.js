@@ -73,5 +73,5 @@ export function clanFamilyLine(state,kind='welcome') {
 }
 export function familyPracticeLabel(state,kind) {
   const clan=clanPresentation(state?.clanOrigin);
-  return clan&&['train','practice'].includes(kind)?`${clan.practice}を${state.ageYears<7?'見学する':'稽古する'}`:null;
+  return clan&&['train','practice'].includes(kind)?`${clan.practice}${state.ageYears<7?'の見学':'の稽古'}`:null;
 }

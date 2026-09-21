@@ -5,6 +5,7 @@ import {createLife,serializeLife,LIFE_SECONDS} from '../src/rebuild/domain.js';
 import {createFront} from '../src/rebuild/combat.js';
 import {buildStations} from '../src/rebuild/locations.js';
 import {defaultMuraLayout} from '@soul/world/mura';
+import {verifySoulOriginPrelude,verifySoulOriginContinue} from './soul-origin.browser.mjs';
 
 const text=async locator=>(await locator.textContent()||'').trim();
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -42,12 +43,16 @@ export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=f
     await page.locator('#title-screen').waitFor({state:'visible'});assert.equal(await page.locator('#game').getAttribute('data-runtime'),'prepared');
     await expectNonEmpty(page.locator('.title-copy'),'title copy');assert.equal(await page.locator('.crest').count(),1);key=await saveKey();
 
-    // Birth: the world, mother-led tour and real movement input must all work.
-    await page.locator('#new-life').click();await waitGame();await expectTone('village');
+    // First-life questions must lead into, not replace, the existing birth tutorial.
+    await page.locator('#new-life').click();await verifySoulOriginPrelude(page,output,key,errors);await waitGame();await expectTone('village');
+    await page.locator('#rinneFirstRunGuide').waitFor({state:'visible'});assert.equal(await page.locator('#game').getAttribute('data-first-run-tutorial'),'running');
+    await page.locator('.rinneFirstRunSkip').click();assert.equal(await page.locator('#game').getAttribute('data-first-run-tutorial'),'skipped');
     assert.match(await text(page.locator('#life-stage')),/誕生/);await expectNonEmpty(page.locator('#objective'),'birth objective');await expectNonEmpty(page.locator('#objective-badge'),'birth objective badge');
     assert.equal(await page.locator('#game-screen').getAttribute('data-birth-tour'),'true');assert.equal(await page.locator('.objective-card').isHidden(),true,'birth tour must teach through the world instead of the objective card');
-    await page.locator('#dialogue').waitFor({state:'visible'});await expectNonEmpty(page.locator('#dialogue-text'),'birth dialogue');await expectNonEmpty(page.locator('#move-hint'),'movement hint');
+    const motherSpeech=page.locator('.soul-speech-bubble[data-person-id="Mother"]:visible').first();await motherSpeech.waitFor({state:'visible'});await expectNonEmpty(motherSpeech,'birth dialogue');await expectNonEmpty(page.locator('#move-hint'),'movement hint');
     const canvas=page.locator('#game'),box=await canvas.boundingBox();assert.ok(box);await page.mouse.move(box.x+box.width*.48,box.y+box.height*.62);await page.mouse.down();await page.mouse.move(box.x+box.width*.64,box.y+box.height*.52,{steps:6});await sleep(450);await page.mouse.up();assert.equal(await page.locator('#move-hint').isHidden(),true,'movement input should dismiss the first-use hint');
+    await verifySoulOriginContinue(page,key);await waitGame();
+    await page.locator('[data-record]').click();await page.locator('.clan-memory').waitFor({state:'visible'});assert.match(await text(page.locator('.clan-memory')),/水鏡の一族/);assert.match(await text(page.locator('.clan-memory')),/刀の家伝/);await page.screenshot({path:join(output,'origin-05-lineage.png')});await page.locator('.upgrade-panel [data-close]').click();
 
     // Growth: accelerated world time must leave the birth tour and enter normal play.
     for(let i=0;i<3;i++)await page.locator('#clock-rate').click();assert.equal(await page.locator('#clock-rate').evaluate(node=>node.value),'20');
@@ -80,7 +85,7 @@ export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=f
     const departure=stateAt(15,43);departure.equipment.weapon='sword';departure.knownSkills.push('basic.sword');departure.position={x:port.x,z:port.z};departure.lastDepartureCycle=2;await load(departure);assert.match(await text(page.locator('#life-stage')),/出立/);await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('第1前線'),null,{timeout:5000});await expectTone('frontier');await page.screenshot({path:join(output,'03-frontier-arrival.png')});
 
     // Combat: contact combat must resolve a nearby enemy without a manual attack button.
-    const battle=stateAt(20,44);battle.zone='frontier';battle.front=0;battle.lastDepartureCycle=4;battle.position={x:0,z:0};battle.equipment.weapon='sword';battle.knownSkills.push('basic.sword');battle.skillWeights.jo={'basic.sword':100};const battleFront=createFront(0,battle.seed);battleFront.enemies.forEach((enemy,index)=>{enemy.x=index===0?.55:5+index*.35;enemy.z=index===0?.35:-4.8;});battle.frontState=battleFront;await load(battle);await expectTone('frontier');await page.waitForFunction(()=>document.getElementById('toast')?.textContent.includes('撃破'),null,{timeout:7000});
+    const battle=stateAt(20,44);battle.zone='frontier';battle.front=0;battle.lastDepartureCycle=4;battle.position={x:0,z:0};battle.equipment.weapon='sword';battle.knownSkills.push('basic.sword');battle.skillWeights.jo={'basic.sword':100};const battleFront=createFront(0,44);battleFront.enemies.forEach((enemy,index)=>{enemy.x=index===0?.55:5+index*.35;enemy.z=index===0?.35:-4.8;});battle.frontState=battleFront;await load(battle);await expectTone('frontier');await page.waitForFunction(()=>document.getElementById('toast')?.textContent.includes('撃破'),null,{timeout:7000});
 
     // Cleared fronts must accept ordinary movement and advance the campaign.
     const cleared=stateAt(25,45);cleared.zone='frontier';cleared.front=0;cleared.lastDepartureCycle=5;cleared.position={x:0,z:-5.55};cleared.equipment.weapon='sword';const clearFront=createFront(0,cleared.seed);for(const enemy of clearFront.enemies){enemy.hp=0;enemy.dead=true;}clearFront.cleared=true;cleared.frontState=clearFront;await load(cleared);await expectTone('frontier');await page.keyboard.down('ArrowUp');await sleep(650);await page.keyboard.up('ArrowUp');await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('第2前線'),null,{timeout:4000});
@@ -92,7 +97,10 @@ export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=f
     const downed=stateAt(30,47);downed.zone='frontier';downed.front=1;downed.lastDepartureCycle=6;downed.position={x:0,z:0};downed.down={elapsed:39.2};downed.hp=0;downed.frontState=createFront(1,downed.seed);await load(downed);await expectTone('frontier');assert.match(await text(page.locator('#objective-badge')),/秒/);await page.waitForFunction(()=>!document.getElementById('life-stage')?.textContent.includes('救助'),null,{timeout:4000});await expectTone('home').catch(async()=>expectTone('village'));
 
     // Lifespan end must expose a valid rebirth choice and start a fresh generation.
-    const old=stateAt(99.99,48);old.ageSeconds=LIFE_SECONDS-.35;old.ageYears=old.ageSeconds/60;old.clockRate=20;old.lastDepartureCycle=20;old.equipment={weapon:'spear',armor:'light',shield:true};old.knownSkills.push('basic.spear','skill.step');old.defeats=12;old.returns=3;await load(old);await page.locator('.life-end-dialog[open]').waitFor({state:'visible',timeout:5000});await page.waitForFunction(()=>document.getElementById('game-screen')?.dataset.worldTone==='rebirth');await expectTone('rebirth');assert.match(await text(page.locator('.life-end-summary')),/12/);assert.match(await text(page.locator('.life-end-help')),/0歳/);assert.ok(await page.locator('.rinne-choice-list .rinne-choice').count()>0);await page.screenshot({path:join(output,'05-life-end.png')});await page.locator('#rebirth').click();await page.waitForFunction(()=>document.getElementById('generation')?.textContent?.includes('2代目'),null,{timeout:5000});await expectTone('village');assert.match(await text(page.locator('#life-stage')),/誕生/);assert.match(await text(page.locator('#toast')),/2代目.*0歳/);await page.screenshot({path:join(output,'06-rebirth.png')});
+    const old=stateAt(99.99,48);old.clanOrigin={version:1,culture:'wa',ethos:'discern',art:'katana'};old.ageSeconds=LIFE_SECONDS-.35;old.ageYears=old.ageSeconds/60;old.clockRate=20;old.lastDepartureCycle=20;old.equipment={weapon:'spear',armor:'light',shield:true};old.knownSkills.push('basic.spear','skill.step');old.defeats=12;old.returns=3;await load(old);await page.locator('.life-end-dialog[open]').waitFor({state:'visible',timeout:5000});await page.waitForFunction(()=>document.getElementById('game-screen')?.dataset.worldTone==='rebirth');await expectTone('rebirth');assert.match(await text(page.locator('.life-end-summary')),/12/);assert.ok(await page.locator('.rinne-choice-list .rinne-choice').count()>0);await page.screenshot({path:join(output,'05-life-end.png')});
+    while(await page.locator('.life-end-nav button').last().isVisible())await page.locator('.life-end-nav button').last().click();
+    await page.locator('#rebirth').click();await page.waitForFunction(()=>document.getElementById('generation')?.textContent?.includes('2代目'),null,{timeout:5000});await expectTone('village');assert.match(await text(page.locator('#life-stage')),/誕生/);assert.match(await text(page.locator('#toast')),/2代目.*0歳/);await page.screenshot({path:join(output,'06-rebirth.png')});
+    const reborn=JSON.parse(await page.evaluate(key=>localStorage.getItem(key),key));assert.deepEqual(reborn.clanOrigin,old.clanOrigin);assert.equal(reborn.generation,2);assert.ok(reborn.ageSeconds<60);assert.deepEqual(reborn.equipment,{weapon:'fist',armor:'cloth',shield:false});
 
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
   } finally {await context.close();}

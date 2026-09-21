@@ -5,7 +5,7 @@ import {tidebreakWeaponFor} from './rebuild/combat.js';
 import {applyChoreographyImpact,combatBodySnapshot,strategyForState} from './rebuild/combat-choreography.js';
 import {createCombatBodyHud} from './combat-body-hud.js';
 import {tidebreakMindsetFromVector} from './rebuild/combat-tactics.js';
-import {advanceReviewFinisher,createReviewFinisher,reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
+import {advanceReviewFinisher,createReviewFinisher,reviewBattleLoopDue,reviewBattlePhaseState,reviewInspirationModeState} from './review-battle-state.js';
 import {REVIEW_INSPIRATION_TIMELINE,generatedReviewInspirationCandidates,pickGeneratedReviewInspiration,pickReviewInspiration} from './review-battle-inspiration.js';
 import {addTechniqueToReviewChain,createReviewTechniqueComposition,flattenReviewTechniqueChain,reviewChainLabel,reviewTechniqueStages} from './review-technique-composition.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
@@ -212,7 +212,7 @@ q('battle-technique-composition')?.addEventListener('click',event=>{const button
 
 for(const button of document.querySelectorAll('[data-battle-mode]'))button.addEventListener('click',()=>{encounterMode=button.dataset.battleMode==='one-v-three'?'one-v-three':'duel';for(const item of document.querySelectorAll('[data-battle-mode]'))item.setAttribute('aria-pressed',String(item===button));resetBattle();});
 for(const button of document.querySelectorAll('[data-battle-skin]'))button.addEventListener('click',()=>{cameraSystem=button.dataset.battleSkin==='jinku'?'demon':'rinne';phasePanel.dataset.skin=button.dataset.battleSkin;for(const item of document.querySelectorAll('[data-battle-skin]'))item.setAttribute('aria-pressed',String(item===button));});
-for(const button of document.querySelectorAll('[data-inspiration-mode]'))button.addEventListener('click',()=>{inspirationMode=button.dataset.inspirationMode==='boost'?'boost':'normal';lastInspirationPhase='';for(const item of document.querySelectorAll('[data-inspiration-mode]'))item.setAttribute('aria-pressed',String(item===button));document.body.dataset.inspirationMode=inspirationMode;});
+for(const button of document.querySelectorAll('[data-inspiration-mode]'))button.addEventListener('click',()=>{const next=reviewInspirationModeState(button.dataset.inspirationMode,lastInspirationPhase);inspirationMode=next.mode;lastInspirationPhase=next.lastPhase;for(const item of document.querySelectorAll('[data-inspiration-mode]'))item.setAttribute('aria-pressed',String(item===button));document.body.dataset.inspirationMode=inspirationMode;});
 weaponSelect?.addEventListener('change',()=>{selectedWeapon=weaponSelect.value;lastInspirationPhase='';document.body.dataset.weapon=selectedWeapon;resetBattle();});
 q('battle-strategy-a')?.addEventListener('change',event=>{strategyA=event.target.value;strategyVariant='A';q('battle-ab-toggle').textContent='A';resetBattle();});
 q('battle-strategy-b')?.addEventListener('change',event=>{strategyB=event.target.value;strategyVariant='B';q('battle-ab-toggle').textContent='B';resetBattle();});

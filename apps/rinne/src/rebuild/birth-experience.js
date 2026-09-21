@@ -3,6 +3,7 @@ import {createSpeechBubbles} from '@soul/shared-ui/speech-bubbles';
 import {createActorStatus} from './actor-status.js';
 import {birthTourPace,createBirthTour} from './birth-tour.js';
 import {nearestStation} from './locations.js';
+import {clanFamilyLine} from './clan-origin.js';
 
 const STEER=Object.freeze([0,.42,-.42,.82,-.82,1.2,-1.2]);
 const magnitude=axis=>Math.hypot(axis?.x||0,axis?.y||0);
@@ -11,6 +12,7 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
   const tour=createBirthTour(stations),pace=birthTourPace(stations),status=createActorStatus({document,canvas,view,actorName:'Player'}),mother=view.scene.getObjectByName('Mother');
   const speech=createSpeechBubbles({document,layer:document.getElementById('actor-status-layer'),duration:5000,maxVisible:3}),speechPoint=new view.THREE.Vector3();
   let introTimer=0,introRemaining=0,stuck=0,motionTime=0,carrierSpeed=0,speechSequence=0;
+  const familyMemories=new Set();
 
   const active=()=>{const state=getState();return state?.zone==='village'&&!state?.down&&!state?.ended&&state?.phase==='birth';};
   const tutorialActive=()=>document.body?.classList?.contains('rinne-first-run-active')===true;
@@ -26,7 +28,11 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
     for(const offset of STEER){const angle=base+offset;if(move({x:Math.sin(angle),z:Math.cos(angle)},pace.autoSpeed,dt))return true;}
     return false;
   }
-  function speakStation(station){const line=tour.observe(station);if(line)say(line);}
+  function speakStation(station){
+    const line=tour.observe(station);if(!line)return;
+    const kind=station?.activity,kin=['train','forge','maintain'].includes(kind)&&!familyMemories.has(kind)?clanFamilyLine(getState(),kind):'';
+    if(kin)familyMemories.add(kind);say(kin?`${line} ${kin}`:line);
+  }
   function syncSpeech(){
     speech.sync({resolve:()=>{
       const actor=view.scene.getObjectByName('Mother');if(!actor)return null;
@@ -61,7 +67,7 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
     status.sync();syncSpeech();
   }
   function showIntro(){
-    if(!active())return;tour.reset();stuck=0;carrierSpeed=0;introRemaining=2.5;gameScreen.dataset.birthTour='true';status.show('抱っこされている…');
+    if(!active())return;tour.reset();familyMemories.clear();stuck=0;carrierSpeed=0;introRemaining=2.5;gameScreen.dataset.birthTour='true';status.show('抱っこされている…');
     clearTimeout(introTimer);introTimer=setTimeout(()=>{const state=getState(),line=muraSharedLine('first-outing');if(active()&&line)say(`${state.name}、${line}`);},650);
   }
   function release(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;view.setCarrierMotion?.({active:false,moving:false,speed:0});gameScreen.dataset.birthTour='false';status.show('自分の足で歩けるようになった');const line=muraSharedLine('walk-alone');if(line)say(line);}

@@ -178,6 +178,8 @@ for (const app of apps) {
       // The current Rinne entry is a title screen. Start the real 100-year-life runtime before
       // applying the common canvas/WebGL gate instead of probing the retired simulator launcher.
       await page.locator('#new-life').click();
+      const {completeSoulOrigin}=await import('../../apps/rinne/tests/soul-origin.browser.mjs');
+      await completeSoulOrigin(page);
       await page.locator('#game-screen').waitFor({ state: 'visible', timeout: 45000 });
       await page.locator('#loading-card').waitFor({ state: 'hidden', timeout: 45000 });
     }

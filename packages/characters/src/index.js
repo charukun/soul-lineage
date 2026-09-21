@@ -15,7 +15,9 @@ import {
   CHARACTER_REFERENCE_MODEL_VERSION,
   CHARACTER_REFERENCE_MODELS as REGISTERED_REFERENCE_MODELS,
   PROTAGONIST_VILLAGER_MODEL,
-  PROTAGONIST_VILLAGER_MODEL_ID
+  PROTAGONIST_VILLAGER_MODEL_ID,
+  PROTAGONIST_VILLAGER_FEMALE_MODEL,
+  PROTAGONIST_VILLAGER_FEMALE_MODEL_ID
 } from './reference-model-catalog.js';
 
 // Shared character descriptors. App gameplay remains outside this package.
@@ -65,7 +67,7 @@ export function characterReferenceModel(id) {
   if (!model) throw new Error(`Character reference model is retired or unavailable: ${id}`);
   return model;
 }
-export { CHARACTER_REFERENCE_MODEL_VERSION, PROTAGONIST_VILLAGER_MODEL, PROTAGONIST_VILLAGER_MODEL_ID };
+export { CHARACTER_REFERENCE_MODEL_VERSION, PROTAGONIST_VILLAGER_MODEL, PROTAGONIST_VILLAGER_MODEL_ID, PROTAGONIST_VILLAGER_FEMALE_MODEL, PROTAGONIST_VILLAGER_FEMALE_MODEL_ID };
 
 export * from './master-character.js';
 export * from './kaykit-foundation.js';

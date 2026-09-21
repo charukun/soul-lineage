@@ -1,7 +1,7 @@
 import { DISCOVERIES, skillEffects, skillName } from './skill-system.js';
 import { enterInteriorState, leaveInteriorState } from './interior-state.js';
 import { ensureCombatInjuryState, recoverPersistentInjuries } from './combat-injury.js';
-import { ensureInspiration, validateInspiration, advanceInspirationTime, recordLifeExperience, inspirationEffortScale, inspirationImprint, INSPIRATION_LIMITS } from './inspiration-state.js';
+import { ensureInspiration, validateInspiration, advanceInspirationTime, recordLifeExperience, inspirationEffortScale, inspirationImprint, initializeBirthTalents, INSPIRATION_LIMITS } from './inspiration-state.js';
 import { normalizeClanOrigin, familyPracticeLabel } from './clan-origin.js';
 
 export { DISCOVERIES, skillEffects, skillName };
@@ -71,7 +71,9 @@ export function createLife({name='旅人',seed=1,generation=1,lineage=[],homelan
     combat:null,defeats:0,returns:0,history:[],lineage:Array.isArray(lineage)?clone(lineage).slice(-INSPIRATION_LIMITS.lineage):[],
     events:[{type:'born',worldSecond:0,text:`${cleanName(name)}が${village}に生まれた。`}],
   };
-  ensureInspiration(state,{fresh:true});ensureCombatInjuryState(state);return state;
+  ensureInspiration(state,{fresh:true});const gifted=initializeBirthTalents(state);
+  if(gifted)state.events.unshift({type:'village-news',scope:'village',worldSecond:0,text:`${state.name}が「${gifted.axis}」に稀有な資質を持って生まれた。村にギフテッド誕生の知らせが広がった。`,tag:'ギフテッド',subjectId:state.id,communityHook:{kind:'protect-gifted-child',roles:['見守り役','師匠候補','将来の共闘仲間']}});
+  ensureCombatInjuryState(state);return state;
 }
 export function validateLife(raw){
   if(!raw||raw.schemaVersion!==SAVE_SCHEMA)throw Error('保存データの形式が違います。');
