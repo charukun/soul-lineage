@@ -1,0 +1,156 @@
+--- a/apps/demon/src/web/lineage.js
++++ b/apps/demon/src/web/lineage.js
+@@ -15,12 +15,33 @@
+   }).join('')}</div>`;
+ }
+ 
+-function lifeCard(entry,current=false){
++// A live hunt has not reached ProfileStore.finish yet. Project it only at the
++// read side; never persist this sum or treat carried loot as extracted rewards.
++function activeHuntProgress(profile,hunt){
++  const current=profile.currentLife,sessionLife=hunt?.profile?.currentLife;
++  const id=hunt?.village?.id;
++  if(!hunt||hunt.finished!==false||!current||!sessionLife||
++    hunt.profile.id!==profile.id||sessionLife.number!==current.number||sessionLife.bornAt!==current.bornAt||
++    typeof id!=='string'||!Object.hasOwn(profile.visits||{},id))return null;
++  const visit=profile.visits[id];
++  if(visit.villageId!==id||visit.status!=='entered')return null;
++  const {eaten,carried}=hunt;
++  if(![current.eaten,eaten,carried].every(n=>Number.isSafeInteger(n)&&n>=0)||
++    !Number.isSafeInteger(current.eaten+eaten))return null;
++  return {eaten,carried,total:current.eaten+eaten};
++}
++
++function lifeCard(entry,current=false,active=null){
+   const powers=current?entry.powers||[]:entry.knownPowers||entry.powers||[];
+   const moves=current?entry.moves||[]:entry.knownMoves||entry.moves||[];
+   return `<article class="life-card ${current?'current-life':''}">
+     <header><span>第${entry.number}生</span><b>${current?'生存中':'喰われた夜'}</b></header>
+-    <div class="life-metrics"><span>狩夜 <b>${entry.hunts||0}</b></span><span>捕食 <b>${entry.eaten||0}</b></span><span>交戦 <b>${entry.battles||0}</b></span></div>
++    <div class="life-metrics"><span>狩夜 <b>${entry.hunts||0}</b></span><span>捕食 <b>${active?active.total:entry.eaten||0}</b></span><span>交戦 <b>${entry.battles||0}</b></span></div>
++    ${active?`<div class="lineage-live">
++      <p>今回の狩り <b>捕食 ${active.eaten}</b></p>
++      <p>終了した狩り ${entry.eaten} ＋ 今回 ${active.eaten}</p>
++      <p>未確保の戦利品 <b>${active.carried}</b> · 帰還で確保</p>
++    </div>`:''}
+     <small>${fmt(entry.bornAt)}${current?' から':' 〜 '+fmt(entry.endedAt)}</small>
+     ${!current&&entry.form&&FORMS[entry.form]?`<p>${esc(FORMS[entry.form].name)}として倒れた。</p>`:''}
+     <h3>喰らった特能</h3>${chips(powers,'power')}
+@@ -28,7 +49,7 @@
+   </article>`;
+ }
+ 
+-export function renderLineage(profile){
++export function renderLineage(profile,{hunt=null}={}){
+   const current=profile.currentLife||{number:(profile.lives?.length||0)+1,bornAt:Date.now(),hunts:0,eaten:0,battles:0,powers:[],moves:[]};
+   const history=(profile.lives||[]).slice().reverse();
+   const learned=Object.entries(profile.adaptations||{}).sort((a,b)=>(b[1].encounters||0)-(a[1].encounters||0));
+@@ -37,7 +58,7 @@
+       <span>転生 ${current.number}</span><span>特能 ${profile.unlocked?.length||0}</span><span>写し ${new Set(learned.flatMap(([,a])=>a.moves||[])).size}</span>
+     </div>
+     <p class="lineage-lead">死ねば身体は生まれ直す。喰らった特能と、戦いで写した動きは次の生へ沈殿する。</p>
+-    ${lifeCard(current,true)}
++    ${lifeCard(current,true,activeHuntProgress(profile,hunt))}
+     <section class="adaptation-ledger"><h3>戦いの癖</h3>${learned.length?learned.map(([role,a])=>{
+       const prey=PREY[role];
+       return `<div class="adaptation-row"><b>${esc(prey?.name||role)}</b><span>交戦 ${a.encounters}</span><small>${(a.moves||[]).map(m=>esc(moveNames[m]||m)).join(' · ')||'観察中'}</small></div>`;
+--- a/apps/demon/src/web/main.js
++++ b/apps/demon/src/web/main.js
+@@ -92,7 +92,7 @@
+   try { refresh(); const v = chooseHunt(offerVillages(store), profile, route); await claimAndEnter(v); }
+   catch (e) { showError(e.message || String(e)); }
+ }
+-function lineage() { refresh(); sheet('転生史', '身体に残ったもの', renderLineage(profile), 'lineage'); }
++function lineage() { refresh(); sheet('転生史', '身体に残ったもの', renderLineage(profile, {hunt: mode === 'hunt' ? game : null}), 'lineage'); }
+ function help() {
+   if (!$('sheet').hidden) { closeSheet(); paused = false; }
+   guide.show({
+--- a/apps/demon/src/web/ominous-shell.css
++++ b/apps/demon/src/web/ominous-shell.css
+@@ -51,3 +51,7 @@
+ #online-box{background:radial-gradient(circle at 10% 5%,#4a17142e,transparent 26%),linear-gradient(145deg,#17100f,#090707);color:#d8cbb7;border:0;clip-path:polygon(1% 3%,97% 0,100% 92%,94% 100%,3% 97%,0 40%);box-shadow:0 30px 90px #000c,inset 0 0 0 1px #76513f55}
+ #online-box::backdrop{background:#020101dc}
+ #online-box textarea{background:#0d0808;color:#d8cbb7;border:0;border-left:2px solid #71302a;box-shadow:inset 0 0 18px #000}
++
++/* Current-hunt progress belongs to the life card, not the settled reward ledger. */
++.lineage-live{margin:12px 0;padding:10px 12px;border-left:2px solid #a28555;background:#b6925010;color:#d8c8b0;font-size:11px;line-height:1.65}
++.lineage-live p{margin:0}.lineage-live p+p{margin-top:3px}.lineage-live b{color:#f0dfb9;font-weight:500}
+--- a/apps/demon/tests/hunt-loop-native.test.mjs
++++ b/apps/demon/tests/hunt-loop-native.test.mjs
+@@ -6,6 +6,7 @@
+ import {createTidebreakRuntime} from '@soul/tidebreak-combat';
+ import {offerVillages} from '@soul/raid/world';
+ import {readProgress, chooseHunt, freshProgress, PROGRESS_KEY, huntPlan, settleProgress, bodyStats, preyValue} from '../src/hunt/balance.js';
++import {renderLineage} from '../src/web/lineage.js';
+ import {worldDetailBudget,titleWorldDetailBudget} from '../src/web/world-detail-budget.js';
+ 
+ function setup() {
+@@ -45,7 +46,38 @@
+   game.consume(game.village.npcs[0]);game.consume(game.village.npcs[1]);
+   const haul=game.carried;assert.ok(haul>=4);assert.equal(readProgress(store.read()).essence,0);
+   assert.equal(game.goalReady(),true);assert.ok(game.player.growthScale<.8);
++  // Regression: two real meals used to remain invisible in the current life.
++  // Rendering must not move the existing finish-time counters or bank any loot.
++  const liveProfile=store.read(),beforeRender=JSON.stringify(liveProfile);
++  const beforeStorage=store.storage.getItem('kurai.nighthunt.v2');
++  const beforeSession={eaten:game.eaten,carried:game.carried,finished:game.finished,profile:JSON.stringify(game.profile)};
++  const live=renderLineage(liveProfile,{hunt:game});
++  assert.match(live,/<span>捕食 <b>2<\/b><\/span>/,'active two-meal lineage must display the native session contribution');
++  assert.match(live,/今回の狩り <b>捕食 2/);
++  assert.match(live,/終了した狩り 0 ＋ 今回 2/);
++  assert.match(live,new RegExp(`未確保の戦利品 <b>${haul}</b> · 帰還で確保`));
++  assert.equal(liveProfile.currentLife.eaten,0,'ended-hunt counter stays authoritative');
++  assert.equal(JSON.stringify(liveProfile),beforeRender);
++  assert.equal(store.storage.getItem('kurai.nighthunt.v2'),beforeStorage,'view is never a writer');
++  assert.deepEqual({eaten:game.eaten,carried:game.carried,finished:game.finished,profile:JSON.stringify(game.profile)},beforeSession);
++  assert.doesNotMatch(renderLineage(liveProfile),/lineage-live/,'title/legacy callers have no live context');
++  const noProjection=hunt=>assert.doesNotMatch(renderLineage(liveProfile,{hunt}),/lineage-live/);
++  noProjection({...game,finished:true});
++  noProjection({...game,village:{id:'unknown-visit'}});
++  noProjection({...game,profile:{...liveProfile,id:'another-player'}});
++  noProjection({...game,profile:{...liveProfile,currentLife:{...liveProfile.currentLife,number:99}}});
++  noProjection({...game,profile:{...liveProfile,currentLife:{...liveProfile.currentLife,bornAt:999}}});
++  for(const bad of [-1,NaN,Infinity,1.5,Number.MAX_SAFE_INTEGER+1,'2']){
++    noProjection({...game,eaten:bad});noProjection({...game,carried:bad});
++  }
++  assert.doesNotMatch(renderLineage({...liveProfile,currentLife:{...liveProfile.currentLife,eaten:Number.MAX_SAFE_INTEGER}},{hunt:game}),/lineage-live/);
++  const legacy={...liveProfile};delete legacy.currentLife;
++  assert.doesNotMatch(renderLineage(legacy,{hunt:game}),/lineage-live/);
+   Object.assign(game.player,game.village.entry);game.escapeHold=1.7;game.finish('escaped');
++  const settled=renderLineage(store.read(),{hunt:game});
++  assert.match(settled,/<span>捕食 <b>2<\/b><\/span>/);
++  assert.doesNotMatch(settled,/lineage-live/,'finished session cannot count the same meals twice');
++  assert.doesNotMatch(renderLineage(store.read(),{hunt:{...game,finished:false}}),/lineage-live/,'closed visit rejects stale live context');
+   assert.equal(readProgress(store.read()).essence,haul+6);assert.equal(readProgress(store.read()).chapter,1);
+   assert.equal(store.upgrade('fang'),true);const kept=readProgress(store.read()).essence;
+   const oldLife=store.read().currentLife.number;game=enter();assert.equal(game.huntStats().techniqueSpeed,109);
+@@ -53,6 +85,21 @@
+   assert.equal(readProgress(store.read()).essence,kept);assert.equal(readProgress(store.read()).upgrades.fang,1);
+   assert.equal(store.read().currentLife.number,oldLife+1);assert.ok(store.read().unlocked.includes('traveller'));
+   assert.equal(readProgress(store.read()).lastResult.lost,game.carried);
++  const reborn=renderLineage(store.read(),{hunt:game});
++  assert.doesNotMatch(reborn,/lineage-live/,'defeated life must not project into its successor');
++  const currentCard=reborn.split('<section class="adaptation-ledger">')[0];
++  assert.match(currentCard,/<span>捕食 <b>0<\/b><\/span>/);
++  assert.equal(store.read().lives.at(-1).eaten,3,'past-life meals remain recorded exactly once');
++  for(const end of ['abandoned','interrupted']){
++    const other=setup(),unfinished=other.enter();unfinished.consume(unfinished.village.npcs[0]);
++    if(end==='abandoned')unfinished.finish('abandoned');else other.store.abandonInterrupted();
++    const closed=other.store.read(),bytes=other.store.storage.getItem('kurai.nighthunt.v2');
++    assert.doesNotMatch(renderLineage(closed,{hunt:unfinished}),/lineage-live/);
++    assert.equal(closed.currentLife.eaten,end==='abandoned'?1:0,'existing end/interruption semantics are unchanged');
++    assert.equal(other.store.storage.getItem('kurai.nighthunt.v2'),bytes);
++    assert.equal(readProgress(closed).essence,0,'a menu or interrupted hunt does not bank rewards');
++  }
++
+   // Keep app regression tests inside the workspace; root tooling owns version comparison.
+   for(const [species,meals] of [['night-bat',4],['night-creature',2],['grave-ogre',3]]){
+     for(const condition of ['verifiedReturn','unverifiedReturn','defeat','forageReturn']){
+@@ -80,6 +127,7 @@
+ test('main boot has one HUD owner, automatic sensing, and no menu extraction exploit',()=>{
+   const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
+   const main=read('../src/web/main.js'), boot=read('../src/main.js'), brandStart=read('../src/brand-start.js'), bootGate=read('../../../packages/shared-ui/src/boot-gate.js'), html=read('../index.html');
++  assert.match(main,/renderLineage\(profile, \{hunt: mode === 'hunt' \? game : null\}\)/,'only the active gameplay caller projects live meals');
+   assert.match(main,/new HuntFlowUi/);assert.match(main,/game\.huntReceipt/);
+   assert.match(main,/game\.scentCooldown <= 0/);assert.match(main,/game\.finish\('abandoned'\)/);
+   assert.doesNotMatch(main,/new FeastHud|firstHuntGuide\(/);
