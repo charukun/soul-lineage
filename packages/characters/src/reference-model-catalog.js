@@ -132,12 +132,12 @@ const femaleProtagonist = {
       implementedModularParts: [
         'protagonist-villager-v1-base',
         'female-silhouette-dcc-pass',
-        'female-bob-braid-hair',
-        'female-village-waist-cloth'
+        'female-authored-head-face',
+        'female-bob-large-mass-hair'
       ]
     }
   },
-  note: '既存主人公のKayKit Rig_Medium互換DCC sourceを正本として、肩/腰/脚のシルエット、ボブ＋後ろ髪、村人腰布と配色を女主人公向けに再構成した別実モデル。操作・モーション・武器ソケット・当たり判定契約は共通。PRIMARYでありvisualApproval / RUNTIME_READYは未昇格。'
+  note: '既存主人公のKayKit Rig_Medium互換DCC sourceを正本として、頭部・顔をRINNE-owned形状へ置換し、ボブの大形状、前髪、肩・腕・胴体シルエットを固定ビューとCharacter Studio実表示の3ラウンドで再構成した別実モデル。操作・モーション・武器ソケット・当たり判定契約は共通。PRIMARYでありvisualApproval / RUNTIME_READYは未昇格。'
 };
 validateVisualIdentity(femaleProtagonist);
 export const PROTAGONIST_VILLAGER_FEMALE_MODEL = deepFreeze(femaleProtagonist);
