@@ -1,0 +1,29 @@
+name: Johakyu exact develop reconciliation
+on:
+  push:
+    branches: ['work/johakyu-p3-p7-20260921']
+    paths: ['.github/workflows/johakyu-session-reconcile.yml']
+permissions:
+  contents: write
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 64
+      - name: Merge exact develop without conflict overrides
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch --no-tags --depth=64 origin 063b31b39820f635f8686c27f88589914fe984a0
+          git merge --no-ff --no-edit 063b31b39820f635f8686c27f88589914fe984a0
+          git rm .github/workflows/johakyu-session-reconcile.yml
+          git commit -m 'chore(johakyu): remove reconciliation runner before exact-head validation'
+          git diff --check
+          git push origin HEAD:work/johakyu-p3-p7-20260921
+          git rev-parse HEAD
