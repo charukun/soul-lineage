@@ -318,7 +318,8 @@ export function buildActionsSummary(input){
   const failures=failureDigest(input.runs||[]);
   const receipts=devPublishReceipts(input.runs||[],statuses);
   const browser=browserEvidenceSummary(input.runs||[],artifacts);
-  const validationSha=input.validation_sha||input.sha;\n  const validatedHead=focused?.state==='success'?validationSha:null;
+  const validationSha=input.validation_sha||input.sha;
+  const validatedHead=focused?.state==='success'?validationSha:null;
   const exactHead={
     validated_exact_head:validatedHead,
     current_pr_head:pr?.head?.sha||null,
