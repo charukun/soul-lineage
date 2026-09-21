@@ -7,49 +7,116 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  render-round:
+  materialize-reviewed-round:
     if: ${{ !contains(github.event.head_commit.message, '[skip-female-review]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
           lfs: true
+          fetch-depth: 1
       - name: Install Blender
         run: |
           sudo apt-get update
           sudo apt-get install -y blender libegl1 libgl1-mesa-dri mesa-utils
           blender --version
-      - name: Build round 1
+      - name: Rebuild reviewed round 2
         run: |
-          rm -rf generated/female-protagonist/round1
+          rm -rf generated/female-protagonist
+          mkdir -p generated/female-protagonist/round1 generated/female-protagonist/round2
           blender --background assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend \
             --python scripts/blender/polish-protagonist-villager-female-v1-r1.py -- \
             --out generated/female-protagonist/round1
-      - name: Build round 2
-        run: |
-          rm -rf generated/female-protagonist/round2
           blender --background generated/female-protagonist/round1/source/ProtagonistVillagerFemaleV1.blend \
             --python scripts/blender/polish-protagonist-villager-female-v1-r2.py -- \
             --out generated/female-protagonist/round2
-      - name: Build round 3
+          mkdir -p generated/female-protagonist/round2/export
+          blender --background generated/female-protagonist/round2/source/ProtagonistVillagerFemaleV1.blend --python-expr \
+            "import bpy; a=[o for o in bpy.context.scene.objects if o.type=='ARMATURE'][0]; bpy.ops.object.select_all(action='DESELECT'); a.select_set(True); [o.select_set(True) for o in bpy.context.scene.objects if o.type=='MESH' and o.name.lower() not in {'plane','ground'}]; bpy.context.view_layer.objects.active=a; bpy.ops.export_scene.gltf(filepath='generated/female-protagonist/round2/export/ProtagonistVillagerFemaleV1.glb',export_format='GLB',use_selection=True,export_skins=True,export_animations=False,export_yup=True)"
+          test -s generated/female-protagonist/round2/export/ProtagonistVillagerFemaleV1.glb
+      - name: Produce Blender evidence
         run: |
-          rm -rf generated/female-protagonist/round3
           blender --background generated/female-protagonist/round2/source/ProtagonistVillagerFemaleV1.blend \
-            --python scripts/blender/polish-protagonist-villager-female-v1-r3.py -- \
-            --out generated/female-protagonist/round3
-      - name: Render round 3 fixed views
-        run: |
-          blender --background generated/female-protagonist/round3/source/ProtagonistVillagerFemaleV1.blend \
             --python scripts/blender/inspect-protagonist-villager-female-v1.py -- \
-            --out generated/female-protagonist/round3/review
-      - name: Upload round 3 evidence
+            --out generated/female-protagonist/round2/review
+          blender --background generated/female-protagonist/round2/source/ProtagonistVillagerFemaleV1.blend \
+            --python scripts/blender/render-protagonist-villager-female-v1-deformation.py -- \
+            --out generated/female-protagonist/round2/review
+          blender --background generated/female-protagonist/round2/source/ProtagonistVillagerFemaleV1.blend \
+            --python scripts/blender/character-production-audit.py -- \
+            --character-id protagonist.villager.female.v1 \
+            --out generated/female-protagonist/round2/blender-audit.json
+      - name: Materialize reviewed candidate
+        run: |
+          cp generated/female-protagonist/round2/source/ProtagonistVillagerFemaleV1.blend assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend
+          cp generated/female-protagonist/round2/export/ProtagonistVillagerFemaleV1.glb apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb
+          cp generated/female-protagonist/round2/export/ProtagonistVillagerFemaleV1.glb apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb
+          cp generated/female-protagonist/round2/review/front.png docs/characters/qa/protagonist-villager-female-v1/front.png
+          cp generated/female-protagonist/round2/review/three-quarter.png docs/characters/qa/protagonist-villager-female-v1/three-quarter.png
+          cp generated/female-protagonist/round2/review/side.png docs/characters/qa/protagonist-villager-female-v1/side.png
+          cp generated/female-protagonist/round2/review/back.png docs/characters/qa/protagonist-villager-female-v1/back.png
+          cp generated/female-protagonist/round2/review/face.png docs/characters/qa/protagonist-villager-female-v1/face.png
+          cp generated/female-protagonist/round2/review/pose-front.png docs/characters/qa/protagonist-villager-female-v1/pose-front.png
+          cp generated/female-protagonist/round2/review/pose-side.png docs/characters/qa/protagonist-villager-female-v1/pose-side.png
+          cp generated/female-protagonist/round2/review/inspection.json docs/characters/qa/protagonist-villager-female-v1/inspection.json
+          cp generated/female-protagonist/round2/blender-audit.json docs/characters/qa/protagonist-villager-female-v1/blender-audit.json
+      - name: Synchronize integrity and production evidence
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          blend=Path('assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend')
+          glb=Path('apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb')
+          audit=json.loads(Path('docs/characters/qa/protagonist-villager-female-v1/blender-audit.json').read_text())
+          bh=hashlib.sha256(blend.read_bytes()).hexdigest(); gh=hashlib.sha256(glb.read_bytes()).hexdigest(); size=glb.stat().st_size
+          for path in [Path('apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json'),Path('apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json')]:
+              d=json.loads(path.read_text()); d['sha256']=gh; d['bytes']=size; d['sourceBlendSha256']=bh; d['productionStage']='PRIMARY'; d['visualApproval']='pending'
+              d['license']['surfaceAuthorship']='RINNE-authored DCC female variant on the pinned CC0 KayKit Rig_Medium foundation; head/face, bob hair masses, fringe, shoulders/arms/torso silhouette are repository-authored modifications reviewed from fixed Blender renders.'
+              path.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+          pp=Path('packages/characters/production/protagonist-villager-female-v1.production.json'); p=json.loads(pp.read_text())
+          p['source']['dcc']['version']=audit['dcc']['version'];p['source']['dcc']['sourceSha256']=bh
+          p['evidence']['blockout']['views']=['front','side','back','three-quarter','face']
+          p['evidence']['primary']['auditPath']='docs/characters/qa/protagonist-villager-female-v1/blender-audit.json'
+          p['evidence']['primary']['meshObjects']=audit['scene']['meshObjects'];p['evidence']['primary']['triangles']=audit['scene']['triangles'];p['evidence']['primary']['materials']=audit['scene']['materials']
+          p['status']['visualApproval']='pending';p['status']['productionReady']=False
+          p['status']['note']='Three Blender fixed-view review rounds completed; round 2 selected after round 3 regressed fringe continuity. Face close-up plus deformation pose evidence retained. Rig_Medium 41-bone contract preserved; explicit human visual approval, full motion polish and device performance remain pending.'
+          pp.write_text(json.dumps(p,ensure_ascii=False,indent=2)+'\n')
+          review={
+            'schema':'character-visual-review','version':1,'characterId':'protagonist.villager.female.v1','selectedRound':2,
+            'rounds':[
+              {'round':1,'observed':['hair still reads as a helmet mass','eyes remain block-like and forward','jaw and shoulder width remain heavy']},
+              {'round':2,'observed':['top gap removed','jaw/shoulder silhouette improved','hair continuity improved'],'decision':'selected'},
+              {'round':3,'observed':['fringe gaps increased and hairline continuity regressed'],'decision':'rejected'}
+            ],
+            'views':['front','three-quarter','side','back','face','pose-front','pose-side'],
+            'visualApproval':'pending','productionStage':'PRIMARY','deliveredGlbSha256':gh,'sourceBlendSha256':bh,'byteLength':size
+          }
+          Path('docs/characters/qa/protagonist-villager-female-v1/visual-review.json').write_text(json.dumps(review,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps({'blendSha256':bh,'glbSha256':gh,'byteLength':size,'audit':audit['scene']},indent=2))
+          PY
+      - name: Commit generated canonical assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend \
+            apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb \
+            apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json \
+            apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb \
+            apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json \
+            packages/characters/production/protagonist-villager-female-v1.production.json \
+            docs/characters/qa/protagonist-villager-female-v1
+          git commit -m "feat: materialize visually reviewed female protagonist [skip-female-review]"
+          git push origin HEAD:work/female-protagonist-blender-refinement-20260921
+      - name: Upload materialization evidence
         uses: actions/upload-artifact@v4
         with:
-          name: female-protagonist-round3-${{ github.sha }}
-          path: generated/female-protagonist/round3/
+          name: female-protagonist-materialized-${{ github.sha }}
+          path: |
+            generated/female-protagonist/round2/
+            docs/characters/qa/protagonist-villager-female-v1/
           if-no-files-found: error
