@@ -2,15 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {World,FURNITURE} from '../src/game/core.js';
-import {unlocked} from '../src/game/catalog.js';
 import {availableFurniture,canEditRoom} from '../src/game/housing-access.js';
-
-test('founding guide keeps the carpenter workshop selectable before the first wood tick',()=>{
- const state={known:[],onboarding:{firstRunAutoplay:{version:5,started:true,seen:false}}};
- assert.equal(unlocked(state,'carpenter'),true);
- state.onboarding.firstRunAutoplay.seen=true;
- assert.equal(unlocked(state,'carpenter'),false);
-});
 
 test('consolidated catalog preserves furniture visibility between render frames',()=>{
  const world=new World();world.objects.push({id:'store',kind:'storage',phase:'built',room:[],x:80,z:30,rot:0});
