@@ -5,7 +5,6 @@ import {createReviewCameraPresetController,createReviewRenderer,disposeReviewObj
 import {createReviewSvgThumbnail} from '@soul/shared-ui/review-thumbnail';
 import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
-import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
 import {mountRinneReviewShell} from '../shared/lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import { PROTAGONIST_VILLAGER_MODEL } from '@soul/characters';
