@@ -1,0 +1,8 @@
+{
+  "head": "b78c03a16f7bfea74ac579665fb569b7bcd04884",
+  "roundsExecuted": 0,
+  "rounds": [],
+  "errors": [],
+  "error": "Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'map')\n    at selectedDetail (http://127.0.0.1:4173/src/storybook-ui.js:51:438)\n    at render (http://127.0.0.1:4173/src/storybook-ui.js:61:2601)\n    at ui.open (http://127.0.0.1:4173/src/storybook-ui.js:74:196)\n    at eval (eval at evaluate (:311:30), <anonymous>:1:25)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+  "stack": "page.evaluate: TypeError: Cannot read properties of undefined (reading 'map')\n    at selectedDetail (http://127.0.0.1:4173/src/storybook-ui.js:51:438)\n    at render (http://127.0.0.1:4173/src/storybook-ui.js:61:2601)\n    at ui.open (http://127.0.0.1:4173/src/storybook-ui.js:74:196)\n    at eval (eval at evaluate (:311:30), <anonymous>:1:25)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at select (/home/runner/work/soul-lineage/soul-lineage/scripts/rinne-storybook-compare.mjs:40:37)\n    at /home/runner/work/soul-lineage/soul-lineage/scripts/rinne-storybook-compare.mjs:49:31"
+}
