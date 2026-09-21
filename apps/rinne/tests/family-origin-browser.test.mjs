@@ -43,16 +43,17 @@ test('family ritual starts after Start without replacing the title, then resumes
     await page.goto('http://127.0.0.1:5173/',{waitUntil:'domcontentloaded'});await ready();assert.equal(await rawSave(),null);await titleIsCanonical();await shot('00-title-untouched');
     await page.locator('#new-life').click();await stage(0);
     assert.equal(await page.locator('.family-origin').getAttribute('data-motion'),'off');
-    assert.equal(await page.locator('.family-origin').getAttribute('data-scene'),'ritual');
+    assert.equal(await page.locator('.family-origin').getAttribute('data-scene'),'deepwater');
     assert.equal(await page.locator('.family-memory-orb').count(),3);
     assert.equal(await page.locator('.family-memory-choice').count(),0,'retired flat-card selector must not exist');
-    assert.equal(await page.locator('.family-ritual-world').count(),1);
-    assert.equal(await page.locator('.family-ancestral-gate').count(),1);
-    assert.equal(await page.locator('.family-water-horizon').count(),1);
+    assert.equal(await page.locator('.family-deepwater').count(),1);
+    assert.equal(await page.locator('.family-story-prompt').textContent(),'どこへ帰る？');
+    assert.equal(await page.locator('.family-ancestral-gate').count(),0);
+    assert.equal(await page.locator('.family-ritual-progress').count(),0);
     const overflow=await page.locator('.family-origin').evaluate(dialog=>({scroll:dialog.scrollWidth,width:dialog.clientWidth}));assert.ok(overflow.scroll<=overflow.width+1,'mobile ritual overflows horizontally');
     await shot('01-ritual-mobile');
     await page.locator('[data-answer="wa"]').click();await stage(1);await page.locator('[data-origin-back]').click();await stage(0);assert.equal(await page.locator('[data-answer="wa"]').getAttribute('aria-pressed'),'true');
-    await page.keyboard.press('Escape');assert.equal(await page.locator('.family-origin').count(),0);assert.equal(await rawSave(),null);await titleIsCanonical();checks.push('ritual exists only after Start; back and Escape preserve the untouched title and empty save');
+    await page.keyboard.press('Escape');assert.equal(await page.locator('.family-origin').count(),0);assert.equal(await rawSave(),null);await titleIsCanonical();checks.push('deep-water story exists only after Start; back and Escape preserve the untouched title and empty save');
 
     await page.locator('#new-life').click();await chooseFamilyOrigin(page,{capture:shot});
     await page.waitForFunction(()=>document.querySelector('#game-screen')?.dataset.runtime==='active',null,{timeout:30000});
@@ -64,10 +65,10 @@ test('family ritual starts after Start without replacing the title, then resumes
     await page.locator('#back-title').click();await ready();await titleIsCanonical();await shot('05-title-still-untouched');checks.push('returning to title keeps the original title surface rather than family artwork');
 
     const beforeCancel=await rawSave();await page.locator('#new-life').click();await stage(0);
-    await page.setViewportSize({width:844,height:390});const box=await page.locator('[data-answer="forest"]').boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=844,'landscape memory orb stays inside screen');
+    await page.setViewportSize({width:844,height:390});const box=await page.locator('[data-answer="forest"]').boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=844,'landscape memory stays inside screen');
     await page.locator('[data-answer="forest"]').click();await stage(1);await page.locator('[data-answer="seek"]').click();await stage(2);await page.locator('[data-answer="staff"]').click();await stage(3);
-    assert.equal(await page.locator('[data-origin-confirm]').isDisabled(),true,'replacement requires explicit acknowledgement');await page.locator('.family-replace-oath').click();assert.equal(await page.locator('[data-replace-family]').isChecked(),true);assert.equal(await page.locator('[data-origin-confirm]').isEnabled(),true);
-    await page.locator('[data-origin-cancel]').click();assert.equal(await rawSave(),beforeCancel);checks.push('landscape ritual and acknowledged replacement can be cancelled without touching the saved life');
+    assert.equal(await page.locator('[data-origin-confirm]').isDisabled(),true,'replacement requires explicit acknowledgement');await page.locator('.family-story-replace').click();assert.equal(await page.locator('[data-replace-family]').isChecked(),true);assert.equal(await page.locator('[data-origin-confirm]').isEnabled(),true);
+    await page.locator('[data-origin-cancel]').click();assert.equal(await rawSave(),beforeCancel);checks.push('landscape story and acknowledged replacement can be cancelled without touching the saved life');
 
     await page.setViewportSize({width:390,height:844});await page.reload({waitUntil:'domcontentloaded'});await ready();await titleIsCanonical();await page.locator('#continue-life').click();await page.waitForFunction(()=>document.querySelector('#game-screen')?.dataset.runtime==='active',null,{timeout:30000});assert.equal(await page.locator('.family-origin').count(),0);
     await page.locator('#back-title').click();await ready();await titleIsCanonical();const continued=await readSave();assert.equal(continued.id,first.id);assert.deepEqual(continued.family,first.family);assert.equal(continued.generation,first.generation);assert.ok(continued.ageSeconds>=first.ageSeconds);checks.push('Continue bypasses the ritual and resumes the same person, family and generation');

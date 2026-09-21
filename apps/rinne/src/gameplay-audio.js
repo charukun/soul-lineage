@@ -60,11 +60,12 @@ export function createRinneAudio(){
   function lineage(kind,index=0){
     if(disposed||backgrounded||pageHidden())return;
     const now=globalThis.performance?.now?.()??Date.now();
-    if(kind==='focus'){if(now-lineageFocusAt<90)return;lineageFocusAt=now;tone(620+Math.max(0,index)*64,.05,.007,'triangle');return;}
-    if(kind==='choose'){tone(190+Math.max(0,index)*28,.12,.014,'sine');tone(420+Math.max(0,index)*56,.11,.012,'triangle',.045);return;}
-    if(kind==='back'||kind==='cancel'){tone(310,.08,.009,'triangle');tone(220,.1,.007,'sine',.045);return;}
-    if(kind==='confirm'){titleGainTo(TITLE_MUSIC_GAIN*.16,.08);tone(58,.42,.02,'sine');tone(196,.18,.018,'triangle',.025);tone(392,.22,.014,'triangle',.11);tone(588,.3,.012,'sine',.18);return;}
-    if(kind==='enter'){tone(110,.2,.008,'sine');tone(330,.14,.006,'triangle',.08);}
+    if(kind==='focus'){if(now-lineageFocusAt<120)return;lineageFocusAt=now;tone(280+Math.max(0,index)*42,.08,.0045,'sine');return;}
+    if(kind==='choose'){tone(92+Math.max(0,index)*9,.2,.012,'sine');tone(184+Math.max(0,index)*18,.16,.008,'triangle',.05);return;}
+    if(kind==='back'||kind==='cancel'){tone(196,.1,.006,'triangle');tone(110,.16,.006,'sine',.04);return;}
+    if(kind==='confirm'){titleGainTo(TITLE_MUSIC_GAIN*.12,.12);tone(42,.7,.025,'sine');tone(110,.42,.017,'sine',.04);tone(220,.34,.012,'triangle',.14);tone(440,.38,.009,'sine',.3);return;}
+    if(kind==='loading'){tone(65.41,.55,.008,'sine');tone(130.81,.35,.0045,'triangle',.16);return;}
+    if(kind==='enter'){tone(55,.35,.009,'sine');tone(110,.24,.005,'triangle',.1);}
   }
 
   async function prepareTitle(){
