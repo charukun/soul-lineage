@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import {createReviewCameraPresetController,createReviewRenderer,disposeReviewObject} from '@soul/rendering';
+import {createReviewSvgThumbnail} from '@soul/shared-ui/review-thumbnail';
+import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {
@@ -13,17 +16,13 @@ import './review-asset-library.css';
 mountRinneReviewShell('equipment');
 
 const q = selector => document.querySelector(selector);
-function createStaticThumbnail(url,label=''){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('review-static-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-label',label);svg.setAttribute('role','img');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href',url);svg.append(use);return svg;}
+const createStaticThumbnail=(url,label='')=>createReviewSvgThumbnail(url,{label});
 const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const loader = new GLTFLoader();
 const reviewEquipmentUrl = spec => spec.runtime.url;
 const protagonistModelUrl = PROTAGONIST_VILLAGER_MODEL.assetPath;
 const canvas = q('#asset-stage');
-const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+const renderer = createReviewRenderer(canvas,{exposure:1.15});
 const scene = new THREE.Scene(); scene.background = new THREE.Color('#111716');
 const camera = new THREE.PerspectiveCamera(38, 1, .01, 80);
 const controls = new OrbitControls(camera, canvas); controls.enableDamping = true; controls.minDistance = .3; controls.maxDistance = 18;
@@ -75,8 +74,7 @@ const ACCESSORY_NODES = Object.freeze({
 });
 
 function status(message,error=false) {
-  q('#asset-status').textContent=message;
-  q('#asset-status').dataset.error=String(error);
+  setReviewStatus(q('#asset-status'),message,{error});
   const indicator=q('#asset-load-state');
   if(indicator){
     const loading=!error&&/読み込み中|モデルを読み込んで|準備中/.test(message);
@@ -102,12 +100,7 @@ function findNode(root, wanted) {
   root?.traverse(node => { const name=normalize(node.name); if(!exact && name===target) exact=node; else if(!suffix && name.endsWith(target)) suffix=node; });
   return exact || suffix;
 }
-function disposeRoot(root) {
-  if (!root) return;
-  const geometries=new Set(),materials=new Set(),textures=new Set();
-  root.traverse(node=>{if(node.geometry)geometries.add(node.geometry);for(const material of Array.isArray(node.material)?node.material:node.material?[node.material]:[]){materials.add(material);for(const value of Object.values(material))if(value?.isTexture)textures.add(value);}});
-  root.removeFromParent(); geometries.forEach(v=>v.dispose?.()); materials.forEach(v=>v.dispose?.()); textures.forEach(v=>v.dispose?.());
-}
+function disposeRoot(root){disposeReviewObject(root);}
 function hideNativeAccessories(root) {
   const names=new Set(Object.values(ACCESSORY_NODES).flatMap(row=>Object.values(row)));
   for(const name of names){const node=findNode(root,name);if(node)node.visible=false;}
@@ -221,10 +214,15 @@ function applyViewPreset() {
   if(activeViewFocus==='full'&&activeViewDirection==='left')camera.position.x=center.x-distance;
   if(activeViewFocus==='full'&&(activeViewDirection==='right'||activeViewDirection==='side'))camera.position.x=center.x+distance;
   controls.update();
-  for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed',String(button.dataset.assetCamera===activeViewDirection));
   for(const button of document.querySelectorAll('[data-asset-focus]'))button.setAttribute('aria-pressed',String(button.dataset.assetFocus===activeViewFocus));
 }
-function setCameraPreset(preset='front'){activeViewDirection=preset;applyViewPreset();}
+const assetCameraPresets=createReviewCameraPresetController({
+  selector:'[data-asset-camera]',
+  datasetKey:'assetCamera',
+  initialPreset:'front',
+  applyPreset:preset=>{activeViewDirection=preset;applyViewPreset();},
+});
+function setCameraPreset(preset='front'){assetCameraPresets.set(preset);}
 function setFocusPreset(focus='full'){activeViewFocus=focus;applyViewPreset();}
 function frameModel(){activeViewFocus='full';applyViewPreset();}
 function applyPresentationPose(root){
@@ -292,10 +290,9 @@ function populate() {
   for(const slot of ['main','off','back']){
     const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>status('装備を表示しています')).catch(error=>status(error.message,true)));
   }
-  for(const button of document.querySelectorAll('[data-asset-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.assetCamera));
   for(const button of document.querySelectorAll('[data-asset-focus]'))button.addEventListener('click',()=>setFocusPreset(button.dataset.assetFocus));
   for(const slot of ['main','off','back'])q(`#slot-${slot}`)?.addEventListener('change',renderSelection);
-  controls.addEventListener('start',()=>{for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed','false');q('.asset-stage-hint')?.classList.add('is-dismissed');});
+  controls.addEventListener('start',()=>{assetCameraPresets.clear();q('.asset-stage-hint')?.classList.add('is-dismissed');});
   q('#asset-reset').addEventListener('click',()=>{
     for(const slot of ['main','off','back']){q(`#slot-${slot}`).value='';void setEquipment(slot,null);}
     selection.weaponType='none';activeAssetSlot='main';frameModel();queueMicrotask(()=>renderSelection({syncWeaponType:false}));
@@ -313,4 +310,4 @@ async function initialize(){
   weaponLibraryBusy=false;renderWeaponTypes();
 }
 initialize().catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);stageLifecycle.destroy();controls.dispose();for(const root of equipmentCache.values())disposeRoot(root);equipmentCache.clear();mounted.clear();disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);stageLifecycle.destroy();assetCameraPresets.destroy();controls.dispose();for(const root of equipmentCache.values())disposeRoot(root);equipmentCache.clear();mounted.clear();disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
