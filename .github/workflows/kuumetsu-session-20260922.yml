@@ -1,5 +1,5 @@
 name: Temporary kuumetsu observation transport 20260922
-# Task-scoped control branch only. Never merge into develop/main.
+# Task-scoped control branch only. Never merge into develop/main. Native gate-aware attempt.
 on:
   push:
     branches: [ops/kuumetsu-observe-20260922-01]
@@ -37,6 +37,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-before-native-994f61b
+          name: kuumetsu-before-native-v2-994f61b
           path: session-evidence
           retention-days: 14
