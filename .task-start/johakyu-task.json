@@ -1,13 +1,6 @@
 {
-  "mode": "lockfile",
-  "sourceSha": "d350d6eb22229da12aa1e90c8bd62bd9feb4cbad",
-  "baseBlob": "deb4da43774a1c068abd8aff53113ee3270c79bc",
-  "expectedBlob": "9b17eacece591f88f1eeab89283951ba1c837784",
-  "dependency": {
-    "app": "apps/review",
-    "name": "@soul/johakyu-combat",
-    "packagePath": "packages/johakyu-combat",
-    "version": "0.1.0",
-    "dependencies": {"@soul/game-data": "*"}
-  }
+  "mode": "browser",
+  "sourceSha": "8e86ecde9e5cb328130bdc275835d6e997112f55",
+  "beforeSha": "d350d6eb22229da12aa1e90c8bd62bd9feb4cbad",
+  "phase": "p2"
 }

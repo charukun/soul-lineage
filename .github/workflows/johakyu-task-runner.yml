@@ -11,7 +11,7 @@ concurrency:
 jobs:
   task:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Read task control
         uses: actions/checkout@v6
@@ -26,14 +26,23 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const task=JSON.parse(fs.readFileSync('control/.task-start/johakyu-task.json','utf8'));
-          if(!/^[0-9a-f]{40}$/.test(task.sourceSha)||!['snapshot','lockfile'].includes(task.mode))throw Error('Invalid task input');
-          fs.appendFileSync(process.env.GITHUB_OUTPUT,`source=${task.sourceSha}\nmode=${task.mode}\n`);
+          if(!/^[0-9a-f]{40}$/.test(task.sourceSha)||!['snapshot','lockfile','browser'].includes(task.mode))throw Error('Invalid task input');
+          if(task.mode==='browser'&&(!/^[0-9a-f]{40}$/.test(task.beforeSha)||task.phase!=='p2'))throw Error('Invalid browser input');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`source=${task.sourceSha}\nmode=${task.mode}\nbefore=${task.beforeSha||''}\nphase=${task.phase||''}\n`);
           NODE
       - name: Checkout pinned repository source
         uses: actions/checkout@v6
         with:
           ref: ${{ steps.plan.outputs.source }}
           path: work
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout immutable Before
+        if: steps.plan.outputs.mode == 'browser'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.plan.outputs.before }}
+          path: before
           persist-credentials: false
           fetch-depth: 1
       - uses: actions/setup-node@v6
@@ -49,10 +58,53 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node ../control/.task-start/johakyu-lockfile.mjs ../control/.task-start/johakyu-task.json
+      - name: Build immutable Before
+        if: steps.plan.outputs.mode == 'browser'
+        working-directory: before
+        env:
+          APP_ENV: dev
+        run: |
+          test "$(git rev-parse HEAD)" = '${{ steps.plan.outputs.before }}'
+          npm ci --ignore-scripts
+          npm run build:review
+      - name: Build exact-head After
+        if: steps.plan.outputs.mode == 'browser'
+        working-directory: work
+        env:
+          APP_ENV: dev
+        run: |
+          test "$(git rev-parse HEAD)" = '${{ steps.plan.outputs.source }}'
+          npm ci --ignore-scripts
+          npm run build:review
+          npm exec -- playwright install --with-deps chromium
+      - name: Existing browser playtest with pinned Before and After
+        if: steps.plan.outputs.mode == 'browser'
+        working-directory: work
+        env:
+          JOHAKYU_MODE: ${{ steps.plan.outputs.phase }}
+          BEFORE_SOURCE_SHA: ${{ steps.plan.outputs.before }}
+          BEFORE_ROOT: ../before/dist/review
+        run: node apps/review/scripts/nocturne-browser.mjs
+      - name: Record browser execution identity
+        if: always() && steps.plan.outputs.mode == 'browser'
+        working-directory: work
+        env:
+          CONTROL_SHA: ${{ github.sha }}
+          SOURCE_SHA: ${{ steps.plan.outputs.source }}
+          BEFORE_SHA: ${{ steps.plan.outputs.before }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import{execFileSync}from'node:child_process';
+          fs.mkdirSync('.battle2-evidence',{recursive:true});
+          fs.writeFileSync('.battle2-evidence/execution.json',JSON.stringify({controlSha:process.env.CONTROL_SHA,sourceSha:process.env.SOURCE_SHA,beforeSha:process.env.BEFORE_SHA,checkedOut:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),runId:process.env.GITHUB_RUN_ID,renderer:'headless Chromium ANGLE SwiftShader',physicalDevice:false},null,2)+'\n');
+          NODE
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: johakyu-task-${{ steps.plan.outputs.mode }}-${{ steps.plan.outputs.source }}
-          path: work/.task-output/
+          path: |
+            work/.task-output/
+            work/.battle2-evidence/
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error
