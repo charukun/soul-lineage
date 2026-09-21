@@ -1,10 +1,10 @@
 const STAGES={
- welcome:{number:0,title:'最初のテントを、一緒に置く。',text:'4つの操作だけ。あなたが動かしたときだけ、次へ進みます。',cue:'4ステップ'},
+ welcome:{number:0,title:'最初のテントを、一緒に置く。',text:'3つだけ。つくる → テント → 好きな場所に置く。',cue:'3ステップ'},
  build:{number:1,title:'① つくる',text:'画面下の「つくる」を1回タップ。',cue:'下のボタン'},
  catalog:{number:2,title:'② 空きテント',text:'光っている「空きテント」を1回タップ。',cue:'光っている住まい'},
- drag:{number:3,title:'③ 場所を動かす',text:'1本指で画面をなぞり、テントを置きたい場所へ。',cue:'1本指でなぞる'},
- place:{number:4,title:'④ ここに置く',text:'場所がよければ、画面を短く1回タップ。',cue:'短くタップ'},
- done:{number:4,title:'置けました。',text:'基本操作はこれで完了。必要なときだけ「つくる」から村を増やせます。',cue:'完了'},
+ drag:{number:3,title:'③ 好きな場所に置く',text:'空いている場所を短くタップ。位置を見ながら動かしたいときは、指でなぞって離せばその場に置けます。',cue:'タップ / ドラッグ'},
+ place:{number:3,title:'③ 好きな場所に置く',text:'空いている場所を短くタップするか、指で動かして離します。',cue:'タップ / ドラッグ'},
+ done:{number:3,title:'置けました。',text:'基本操作はこれで完了。必要なときだけ「つくる」から村を増やせます。',cue:'完了'},
 };
 
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -53,11 +53,11 @@ function placeTrail(node,start,end){
 }
 
 function setProgress(progress,step,stage,number){
- const value=stage==='done'?4:number;
- const percent=Math.max(0,Math.min(100,value/4*100));
+ const value=stage==='done'?3:number;
+ const percent=Math.max(0,Math.min(100,value/3*100));
  progress.style.setProperty('--mura-first-run-progress',`${percent}%`);
- progress.setAttribute('aria-label',stage==='done'?'4 / 4 · 完了':number?`${number} / 4`:'導入');
- step.textContent=stage==='welcome'?'4ステップ':stage==='done'?'完了':`${number} / 4`;
+ progress.setAttribute('aria-label',stage==='done'?'3 / 3 · 完了':number?`${number} / 3`:'導入');
+ step.textContent=stage==='welcome'?'3ステップ':stage==='done'?'完了':`${number} / 3`;
 }
 
 function stopDemo(nodes){

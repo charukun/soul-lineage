@@ -1,5 +1,5 @@
 /** The scene's only gesture owner. Placement follows one-finger drag; a short tap commits through the normal tap path. */
-export function installSceneInput(canvas, {view, ui, tap, preview = () => {}, activity = () => {},
+export function installSceneInput(canvas, {view, ui, tap, preview = () => {}, commit = () => false, activity = () => {},
   raf = requestAnimationFrame, caf = cancelAnimationFrame, now = () => performance.now()}) {
   const pointers = new Map();
   const abort = new AbortController();
@@ -52,7 +52,10 @@ export function installSceneInput(canvas, {view, ui, tap, preview = () => {}, ac
   const finish = (e, cancelled=false) => {
     const p=pointers.get(e.pointerId);if(!p)return;
     pointers.delete(e.pointerId);
-    if(!cancelled&&!p.drag&&!p.multi&&Math.hypot(e.clientX-p.sx,e.clientY-p.sy)<7)tap(e.clientX,e.clientY);
+    if(!cancelled&&!p.multi){
+      if(!p.drag&&Math.hypot(e.clientX-p.sx,e.clientY-p.sy)<7)tap(e.clientX,e.clientY);
+      else if(p.drag&&ui.pending&&!ui.pending.error)commit();
+    }
     if(!cancelled&&p.drag&&!p.multi&&!pointers.size&&!ui.pending&&!ui.drawer&&Math.hypot(vx,vy)>.045){lastCoast=now();coast=raf(coasting);}
     else stop();
     if(canvas.hasPointerCapture?.(e.pointerId))canvas.releasePointerCapture(e.pointerId);
