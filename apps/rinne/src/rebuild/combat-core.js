@@ -40,11 +40,20 @@ function combatSignature(state,target,front,{secondary=false,enemyCanHit=true}={
 }
 function createSession(state,target,front,signature,{secondary=false,enemyCanHit=true}={}){
   const weapon=tidebreakWeaponFor(state.equipment.weapon),loadout=secondary?defensiveLoadoutFor(state,target):tidebreakLoadoutFor(state,state?.combat?.comboId,target),mindset=tidebreakMindsetFor(state),hScale=heroHpScale(state),eScale=enemyHpScale(state),foeWeapon=enemyWeapon(front,target),runtime=createTidebreakRuntime({seed:hashSeed(`${state.seed}:${state.generation}:${target.id}:${secondary?'threat':'primary'}:${enemyCanHit?'aggro':'ignore'}`),weapon});
-  const snapshot=runtime.configure({weapon,enemyWeapon:foeWeapon,enemyStyle:enemyStyle(front,target),enemyLoadout:enemyCanHit?undefined:passiveEnemyLoadout(foeWeapon),loadout,mindset,hp:Math.max(.001,state.hp/hScale),maxhp:Math.max(.001,state.maxHp/hScale),enemyHp:Math.max(.001,target.hp/eScale),positions:{hero:{x:state.position.x,z:state.position.z,yaw:state.yaw},enemy:{x:target.x,z:target.z,yaw:target.yaw}}});
+  const snapshot=runtime.configure({encounterReady:true,weapon,enemyWeapon:foeWeapon,enemyStyle:enemyStyle(front,target),enemyLoadout:enemyCanHit?undefined:passiveEnemyLoadout(foeWeapon),loadout,mindset,hp:Math.max(.001,state.hp/hScale),maxhp:Math.max(.001,state.maxHp/hScale),enemyHp:Math.max(.001,target.hp/eScale),positions:{hero:{x:state.position.x,z:state.position.z,yaw:state.yaw},enemy:{x:target.x,z:target.z,yaw:target.yaw}}});
   const session={runtime,loadout,targetId:target.id,signature,secondary,enemyCanHit,heroHpScale:hScale,enemyHpScale:eScale,last:snapshot,lastAttackKey:snapshot.hero.attack?`${snapshot.hero.slot||''}:${snapshot.hero.attack}`:null,oneMotionArmed:null,invalid:false,rotateAfterKyu:false};sessionMap(state).set(target.id,session);return session;
 }
 function sessionDrift(session,state,target){const h=session.last?.hero,e=session.last?.enemy;if(!h||!e)return Infinity;return Math.max(Math.hypot(h.x-state.position.x,h.z-state.position.z),Math.hypot(e.x-target.x,e.z-target.z));}
-function sessionFor(state,target,front,options={}){const signature=combatSignature(state,target,front,options),existing=sessionMap(state).get(target.id);return !existing||existing.signature!==signature||existing.secondary!==Boolean(options.secondary)||existing.enemyCanHit!==Boolean(options.enemyCanHit)||existing.invalid||sessionDrift(existing,state,target)>1.15?createSession(state,target,front,signature,options):existing;}
+function sessionFor(state,target,front,options={}){
+  const signature=combatSignature(state,target,front,options),existing=sessionMap(state).get(target.id),next=JSON.parse(signature),prior=existing?JSON.parse(existing.signature):null;
+  const hardChanged=prior&&['weapon','armor','shield','enemyWeapon','enemyStyle'].some(key=>prior[key]!==next[key]);
+  if(!existing||hardChanged||existing.invalid||sessionDrift(existing,state,target)>1.15)return createSession(state,target,front,signature,options);
+  if(existing.signature!==signature){
+    existing.runtime.setPolicy({loadout:next.loadout,mindset:next.mind,enemyLoadout:next.enemyCanHit?null:passiveEnemyLoadout(next.enemyWeapon)});
+    existing.signature=signature;existing.loadout=next.loadout;existing.secondary=Boolean(options.secondary);existing.enemyCanHit=Boolean(options.enemyCanHit);
+  }
+  return existing;
+}
 function clearSession(state,targetId=null){const map=SESSIONS.get(state);if(!map)return;if(targetId!==null){map.delete(targetId);if(!map.size)SESSIONS.delete(state);}else SESSIONS.delete(state);}
 function pruneSessions(state,keep){const map=SESSIONS.get(state);if(!map)return;for(const id of map.keys())if(!keep.has(id))map.delete(id);if(!map.size)SESSIONS.delete(state);}
 function nearestEnemy(position,enemies){let best=null,bestDistance=Infinity;for(const enemy of enemies){const d=dist(position,enemy);if(d<bestDistance){best=enemy;bestDistance=d;}}return{enemy:best,distance:bestDistance};}
@@ -97,7 +106,7 @@ function applyTidebreakStep(state,target,front,dt,events,{primary=false,bodyAuth
   if(heroBody?.outcome.incapacitated&&!state.ended&&!state.down){const fatalChance=heroBody.outcome.fatal?1:frontierFatalityChance(state),fatalRoll=hash01(`${state.seed}:${target.id}:fatal:${front.stage}:${Math.floor(state.ageSeconds)}:${state.defeats}`);clearSession(state);if(fatalRoll<fatalChance){endLifeEarly(state,`第${front.stage+1}前線の戦い`);events.push({type:'life-end',cause:'combat',fatalChance,engine:'tidebreak'});}else{state.down={elapsed:0,rescueSeconds:40,frontier:true};state.combat=null;events.push({type:'downed',fatalChance,engine:'tidebreak'});}}
   if(target.dead){clearSession(state,target.id);if(primary&&state.combat?.targetId===target.id)state.combat=null;}
 }
-export function tickFront(state,front,dt,{advanceEnemies=true,allowedEnemyIds=null,advanceFormation=true,heroPositionAuthority=true,enemyPositionAuthority=true,attentionStates=null,sharedParticipantCount=1}={}){
+function tickFrontStep(state,front,dt,{advanceEnemies=true,allowedEnemyIds=null,advanceFormation=true,heroPositionAuthority=true,enemyPositionAuthority=true,attentionStates=null,sharedParticipantCount=1}={}){
   const events=[];if(state.inspiration)state.inspiration.execution=null;
   if(state.combat?.oneMotionRecovery>0){state.combat.oneMotionRecovery=Math.max(0,state.combat.oneMotionRecovery-dt);state.combat.attackCooldown=state.combat.oneMotionRecovery;state.combat.zanshinSeconds=Math.max(0,(state.combat.zanshinSeconds||0)-dt);}
   if(state.zone!=='frontier'||state.ended)return events;if(advanceEnemies)advanceEnemyClock(front,dt);const remaining=front.enemies.filter(enemy=>!enemy.dead);if(!remaining.length){front.cleared=true;if(advanceEnemies)front.clearSeconds+=dt;state.finisher=null;state.combat=null;state.attacking=false;clearSession(state);return[{type:'front-cleared',stage:front.stage,engine:'tidebreak'}];}if(advanceFinisher(state,front,dt,events))return events;if(maybeStartFinisher(state,front,events)){advanceFinisher(state,front,0,events);return events;}const allLiving=remaining.filter(enemy=>!enemy.downed);refreshAttention(allLiving,attentionStates||[state]);
@@ -112,4 +121,21 @@ export function tickFront(state,front,dt,{advanceEnemies=true,allowedEnemyIds=nu
   const keep=new Set(threats.map(enemy=>enemy.id));if(state.combat?.targetId)keep.add(state.combat.targetId);pruneSessions(state,keep);if(state.combat)state.combat.threatIds=[...keep];if(front.enemies.every(enemy=>enemy.dead)){front.cleared=true;if(advanceEnemies)front.clearSeconds+=dt;state.finisher=null;state.combat=null;state.attacking=false;clearSession(state);}return events;
 }
 /** Shared frontier is many-to-many. Attention changes enemy intent, never participation rights. */
-export function tickSharedFront(states,front,dt){const ordered=[...states].sort((a,b)=>a.id.localeCompare(b.id)),events=new Map();if(!ordered.length)return events;if(ordered.length===1){events.set(ordered[0].id,tickFront(ordered[0],front,dt));return events;}advanceEnemyClock(front,dt);const eligible=ordered.filter(state=>!state.down&&!state.ended),living=front.enemies.filter(row=>!row.dead);refreshAttention(living,eligible);advanceSharedEnemyFormation(eligible,living,dt,front.stage);for(const state of ordered)events.set(state.id,tickFront(state,front,dt,{advanceEnemies:false,advanceFormation:false,heroPositionAuthority:true,enemyPositionAuthority:false,attentionStates:eligible,sharedParticipantCount:eligible.length}));if(front.enemies.every(enemy=>enemy.dead)){front.cleared=true;front.clearSeconds+=dt;}return events;}
+function tickSharedFrontStep(states,front,dt){const ordered=[...states].sort((a,b)=>a.id.localeCompare(b.id)),events=new Map();if(!ordered.length)return events;if(ordered.length===1){events.set(ordered[0].id,tickFront(ordered[0],front,dt));return events;}advanceEnemyClock(front,dt);const eligible=ordered.filter(state=>!state.down&&!state.ended),living=front.enemies.filter(row=>!row.dead);refreshAttention(living,eligible);advanceSharedEnemyFormation(eligible,living,dt,front.stage);for(const state of ordered)events.set(state.id,tickFront(state,front,dt,{advanceEnemies:false,advanceFormation:false,heroPositionAuthority:true,enemyPositionAuthority:false,attentionStates:eligible,sharedParticipantCount:eligible.length}));if(front.enemies.every(enemy=>enemy.dead)){front.cleared=true;front.clearSeconds+=dt;}return events;}
+
+// Tidebreak caps one motor step at 1/30 s. Subdivide real time here instead of
+// silently discarding elapsed time on lower-rate clients or server ticks.
+function realSteps(dt){
+  if(!Number.isFinite(dt)||dt<0||dt>.25)throw new RangeError('Invalid combat real-time delta');
+  return dt>0?Math.ceil(dt/(1/60)):0;
+}
+export function tickFront(state,front,dt,options={}){
+  const count=realSteps(dt),events=[];
+  for(let i=0;i<count;i++)events.push(...tickFrontStep(state,front,dt/count,options));
+  return events;
+}
+export function tickSharedFront(states,front,dt){
+  const count=realSteps(dt),events=new Map(states.map(state=>[state.id,[]]));
+  for(let i=0;i<count;i++)for(const [id,rows] of tickSharedFrontStep(states,front,dt/count))events.get(id).push(...rows);
+  return events;
+}

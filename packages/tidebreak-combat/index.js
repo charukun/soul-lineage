@@ -3506,19 +3506,40 @@ addLog=(text,type='')=>ports.onLog?.({text,type});loadStorage();
 replaceActor=()=>{};equippedWeapon=ports.weapon||'fist';for(const k of ATTACK_KEYS)loadout[k].weapon=equippedWeapon;sharedFacade.resetFeel();resetScene(true);
 const snapshotActor=a=>sharedFacade.snapshotActor(a);
 function syncActors(v={}){sharedFacade.syncActor(hero,v.hero);const rows=Array.isArray(v.enemies)?v.enemies:v.enemy?[v.enemy]:[];for(let i=0;i<Math.min(rows.length,enemies.length);i++)sharedFacade.syncActor(enemies[i],rows[i]);return state();}
+// Update the next canonical selection without recreating actors, consuming RNG,
+// resetting attack instances, or replaying the standalone demonstration intro.
+function setPolicy(v={}){
+ const set=v.loadout;
+ if(set){
+  for(const k of ATTACK_KEYS)if(set[k]){
+   const recipe=normalizeRecipe({...set[k],weapon:equippedWeapon});
+   attackPools[k]=[recipe,emptyRecipe(k),emptyRecipe(k)];draftPools[k]=copy(attackPools[k]);candidateIndex[k]=0;attackWeights[k]=[100,0,0];
+  }
+  bindPools();
+  if(set.uke){const recipe=normalizeRecipe({...set.uke,weapon:equippedWeapon});if(recipe.type!=='reaction')throw Error('Canonical reaction must be a reaction recipe');loadout.uke=copy(recipe);defensePools.uke=[recipe];}
+ }
+ if(v.mindset&&Object.hasOwn(MINDS,v.mindset)){mindset=fixedMindset=v.mindset;defensePools.mind=[mindset];if(hero)hero.mindCandidate=0;}
+ if(Object.hasOwn(v,'enemyLoadout')&&enemies[0]){if(v.enemyLoadout)enemies[0].sharedLoadout=copy(v.enemyLoadout);else delete enemies[0].sharedLoadout;}
+ battleMode=defenseMode=tempoMode='fixed';return state();
+}
 function configure(v={}){
  world.colliders=(v.colliders||[]).map(c=>({...c}));equippedWeapon=Object.hasOwn(WEAPONS,v.weapon)?v.weapon:'fist';enemyStyle=v.enemyStyle||'balanced';opponent=sharedFacade.opponent(v.opponent);sharedFacade.setHeroPassive(v.heroPassive);
  const set=v.loadout;if(set)for(const k of ATTACK_KEYS)if(set[k])loadout[k]=normalizeRecipe({...set[k],weapon:equippedWeapon});for(const k of ATTACK_KEYS)loadout[k].weapon=equippedWeapon;
  drafts=copy(loadout);poolReady=false;initPools();if(v.mindset&&Object.hasOwn(MINDS,v.mindset)){mindset=v.mindset;fixedMindset=v.mindset;}sharedFacade.resetFeel();resetScene(true);
  hero.weapon=equippedWeapon;hero.hp=v.hp??240;hero.maxhp=v.maxhp??hero.hp;const rows=Array.isArray(v.enemies)?v.enemies:[];
  for(let i=0;i<enemies.length;i++){const e=enemies[i],row=rows[i]||{},fallback=i===0?v.enemyWeapon:null;if(Object.hasOwn(WEAPONS,row.weapon))e.weapon=row.weapon;else if(Object.hasOwn(WEAPONS,fallback))e.weapon=fallback;const hp=row.hp??(Array.isArray(v.enemyHp)?v.enemyHp[i]:v.enemyHp)??100;e.hp=hp;e.maxhp=row.maxhp??hp;const pos=v.positions?.enemies?.[i]||(i===0?v.positions?.enemy:null);if(pos){Object.assign(e,pos);e.home=[e.x,e.z];initFeet(e);}const shared=row.loadout||(i===0?v.enemyLoadout:null);if(shared)e.sharedLoadout=copy(shared);}
- if(v.positions?.hero){Object.assign(hero,v.positions.hero);hero.home=[hero.x,hero.z];initFeet(hero);}return state();
+ if(v.positions?.hero){Object.assign(hero,v.positions.hero);hero.home=[hero.x,hero.z];initFeet(hero);}
+ // A canonical encounter has already entered combat. Do not replay the demo's
+ // sheath/draw introduction every time the host refreshes a policy session.
+ setPolicy(v);
+ if(v.encounterReady===true)for(const actor of [hero,...enemies]){actor.combatReady=true;actor.combatBlend=1;actor.weaponDraw=1;actor.weaponTransition=null;}
+ return state();
 }
 const enemyChoiceOriginal=chooseEnemyRecipe;
 chooseEnemyRecipe=a=>{if(a.sharedLoadout){const k=ATTACK_KEYS[(a.attackCount||0)%3];if(a.sharedLoadout[k])return normalizeRecipe({...a.sharedLoadout[k],weapon:a.weapon});}return enemyChoiceOriginal(a);};
 function state(){const rows=enemies.map(snapshotActor);return{hero:snapshotActor(hero),enemy:rows[0]||null,enemies:rows,time,stats:copy(stats),contacts:copy(lastContacts),...sharedFacade.impactState(),feel:sharedFacade.feel(hitstop),done:hero.dead||rows.every(row=>row.dead)};}
 return {
- configure,
+ configure,setPolicy,
  step(dt=1/60){sharedFacade.beginStep();if(!hero.dead&&!enemies.every(e=>e.dead))update(dt);return state();},
  input(x,y,amount,cameraAngle=0){manual.dx=x;manual.dy=y;manual.amount=clamp(amount,0,1);camAngle=cameraAngle;},
  syncActors,state,weaponSpec:weapon=>sharedFacade.weaponSpec(weapon),weaponSpecs:sharedFacade.weaponSpecs,
