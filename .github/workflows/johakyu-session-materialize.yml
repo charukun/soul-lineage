@@ -1,0 +1,40 @@
+name: Johakyu session materialization
+on:
+  push:
+    branches: ['work/johakyu-p3-p7-20260921']
+    paths: ['.github/workflows/johakyu-session-materialize.yml']
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Materialize task source without asset binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/johakyu-source
+          git rev-parse HEAD > /tmp/johakyu-source/SOURCE_SHA
+          python3 - <<'PY'
+          import subprocess, tarfile, pathlib
+          paths = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          suffixes = {'.js','.mjs','.cjs','.json','.ts','.tsx','.css','.html','.md','.yml','.yaml'}
+          roots = ('apps/review/','apps/rinne/','packages/','scripts/','docs/rinne/','.github/workflows/')
+          exact = {'AGENTS.md','package.json','package-lock.json','docs/DEVELOPMENT.md','docs/DEVELOP_MERGE.md','docs/BROWSER_PLAYTEST_ROUTING.md','docs/BROWSER_SELF_HEALING.md','docs/DISTRIBUTION_ARCHITECTURE.md'}
+          selected = [p for p in paths if p and (p in exact or (p.startswith(roots) and pathlib.Path(p).suffix in suffixes)) and '/node_modules/' not in p and pathlib.Path(p).is_file()]
+          with tarfile.open('/tmp/johakyu-source/source.tar.gz','w:gz') as archive:
+              for p in selected: archive.add(p,arcname=p,recursive=False)
+          pathlib.Path('/tmp/johakyu-source/SOURCE_FILES.txt').write_text('\n'.join(selected)+'\n')
+          print(f'Materialized {len(selected)} tracked task source files from exact checkout.')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: johakyu-task-source-${{ github.sha }}
+          path: /tmp/johakyu-source/
+          retention-days: 1
