@@ -8,11 +8,8 @@ let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=f
 let state='BOOT',lastError=null;
 function report(next,detail=''){if(disposed)return;if(next==='BATTLE'&&!prepared)return;state=next;stage.dataset.state=next;if(next==='ERROR'){lastError=String(detail);stage.dataset.error=lastError;status.hidden=false;status.setAttribute('role','alert');status.textContent='戦闘を読み込めませんでした。'+lastError+' 再読み込みで再試行できます。';}else{status.setAttribute('role','status');status.hidden=next==='BATTLE'||next==='RESETTING';status.textContent=next==='ASSET_LOADING'?'戦闘を読み込み中… '+detail:'戦闘を準備中…';}}
 const motionLabel=kind=>MOVE_LABEL[kind]||kind||'動作';
-function shortActionName(meta){
- const raw=String(meta?.actionName||'').trim(),prefix=meta?.phase?PHASE_LABEL[meta.phase]+'・':'';
- const clean=prefix&&raw.startsWith(prefix)?raw.slice(prefix.length):raw;
- return clean||motionLabel(meta?.actionMotion);
-}
+function shortActionName(meta){return String(meta?.techniqueName||meta?.actionName||motionLabel(meta?.actionMotion)||'').trim();}
+function techniqueStageName(meta){const name=shortActionName(meta),stage=Number.isInteger(meta?.stageIndex)?`${meta.stageIndex+1}段`:'';return [name,stage].filter(Boolean).join(' · ');}
 function positionHud(){
  const anchor=runtime?.footAnchor?.();if(!anchor){hud.dataset.anchored='false';return;}
  hud.dataset.anchored='true';hud.style.left=`${anchor.x}px`;hud.style.top=`${anchor.y}px`;
@@ -26,13 +23,13 @@ function spawnActionText(row){
 }
 function pushAction(meta){
  if(!meta?.actionId||seenActions.has(meta.actionId))return;
- seenActions.add(meta.actionId);const row={phase:meta.phase,label:shortActionName(meta)};history.unshift(row);if(history.length>8)history.length=8;spawnActionText(row);
+ seenActions.add(meta.actionId);const row={phase:meta.phase,label:techniqueStageName(meta)};history.unshift(row);if(history.length>8)history.length=8;spawnActionText(row);
 }
 function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId)resetHistory(meta.battleId);positionHud();
  const phase=meta.phase,index=PHASE_INDEX[phase]??-1;phasePanel.dataset.phase=phase||'idle';phasePanel.dataset.combatSequencePhase=phase||'idle';phasePanel.dataset.comboActive=String(index>=0);
  for(const node of phaseNodes){const i=PHASE_INDEX[node.dataset.combatPhase];node.dataset.active=String(i===index);node.dataset.completed=String(index>=0&&i<index);}
- if(meta.actionId){currentNode.dataset.kind=phase;currentNode.textContent=shortActionName(meta);pushAction(meta);}
+ if(meta.actionId){currentNode.dataset.kind=phase;currentNode.textContent=techniqueStageName(meta);pushAction(meta);}
  else{currentNode.dataset.kind='idle';currentNode.textContent='';}
 }
 function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));}
