@@ -26,7 +26,8 @@ export function createCanonicalPresentationDriver(port){
     if(!changed)for(const event of events){
       if(!event?.id||seen.has(event.id))continue;
       seen.add(event.id);if(seen.size>512)seen.delete(seen.values().next().value);
-      if(event.blocked||(['player-hit','enemy-hit'].includes(event.type)&&!(event.damage>0)))continue;
+      const defenseEvent=event.type==='guard'||event.type==='parry';
+      if((event.blocked&&!defenseEvent)||(['player-hit','enemy-hit'].includes(event.type)&&!(event.damage>0)))continue;
       const target=actors.get(event.targetId),source=actors.get(event.sourceId);
       if(!target||(['player-hit','enemy-hit'].includes(event.type)&&!source))continue;
       port.impact?.(event,source,target);
