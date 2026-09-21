@@ -19,7 +19,7 @@ function shellHarness({hasHeader=true,duplicate=false}={}){
 test('battle2 nests native canvases inside the shared battle review frame',()=>{
   const html=read('battle2.html'),css=read('src/battle2.css');
   assert.match(html,/<main class="battle2-review review-surface"/);
-  assert.match(html,/<header class="battle-bar review-surface__header">[\s\S]*?review-surface__back[\s\S]*?<h1>序破急バトルシステム<\/h1>[\s\S]*?<\/header>/);
+  assert.match(html,/<header class="battle-bar review-surface__header">[\s\S]*?review-surface__back[\s\S]*?<h1>序破急バトル<\/h1>[\s\S]*?<\/header>/);
   assert.match(html,/<section class="review-surface__workspace"[^>]*>\s*<div class="review-surface__stage-column">\s*<section class="nocturne-stage review-surface__stage"[^>]*data-review-surface="battle2"/);
   assert.equal((html.match(/<canvas\b/g)||[]).length,2);
   assert.match(html,/src="\.\/src\/battle2-shell\.js"/);assert.match(html,/src="\.\/src\/nocturne-stage\.js"/);
