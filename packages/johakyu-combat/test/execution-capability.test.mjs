@@ -33,5 +33,5 @@ test('execution capability turns canonical stamina and six-part injury into stag
     {kind:'counter',footwork:'stay',staminaCost:8},
     {kind:'thrust',footwork:'chase',staminaCost:8},
   ]});
-  assert.equal(sequence.canStart,true);assert.equal(sequence.canContinue,false);assert.equal(sequence.blockedStageIndex,2);assert.equal(sequence.reason,'stamina');
+  assert.equal(sequence.canStart,true);assert.equal(sequence.canContinue,false);assert.equal(sequence.blockedStageIndex,2);assert.equal(sequence.reason,'stamina-policy');
 });
