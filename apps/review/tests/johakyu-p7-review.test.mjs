@@ -13,9 +13,10 @@ test('battle2 remains 1v1 or 1v3 only and does not connect inspiration',()=>{
 });
 
 test('review technique definitions are derived from canonical combat forms',()=>{
- const basic=reviewTechniqueDefinition('basic.sword'),counter=reviewTechniqueDefinition('action.counter');
+ const basic=reviewTechniqueDefinition('basic.sword',{phase:'jo'}),counter=reviewTechniqueDefinition('action.counter',{phase:'ha'});
  assert.deepEqual(basic.steps.map(s=>s.kind),BASIC_FORMS.sword.kinds);assert.deepEqual(basic.steps.map(s=>s.footwork),BASIC_FORMS.sword.feet);
  assert.deepEqual(counter.steps.map(s=>s.kind),ACTION_FORMS['action.counter'].kinds);assert.deepEqual(counter.steps.map(s=>s.footwork),ACTION_FORMS['action.counter'].feet);
+ assert.equal(reviewTechniqueDefinition('action.flow',{phase:'ha'}),null,'unauthored crosscut must fail closed instead of receiving a fake motion');
 });
 
 test('composition is stage -> technique -> chain -> jo/ha/kyu and never hardcodes phase behavior',()=>{
