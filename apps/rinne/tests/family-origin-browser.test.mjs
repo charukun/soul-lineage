@@ -66,7 +66,7 @@ test('family ritual starts after Start without replacing the title, then resumes
     const beforeCancel=await rawSave();await page.locator('#new-life').click();await stage(0);
     await page.setViewportSize({width:844,height:390});const box=await page.locator('[data-answer="forest"]').boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=844,'landscape memory orb stays inside screen');
     await page.locator('[data-answer="forest"]').click();await stage(1);await page.locator('[data-answer="seek"]').click();await stage(2);await page.locator('[data-answer="staff"]').click();await stage(3);
-    assert.equal(await page.locator('[data-origin-confirm]').isDisabled(),true,'replacement requires explicit acknowledgement');await page.locator('[data-replace-family]').check();assert.equal(await page.locator('[data-origin-confirm]').isEnabled(),true);
+    assert.equal(await page.locator('[data-origin-confirm]').isDisabled(),true,'replacement requires explicit acknowledgement');await page.locator('.family-replace-oath').click();assert.equal(await page.locator('[data-replace-family]').isChecked(),true);assert.equal(await page.locator('[data-origin-confirm]').isEnabled(),true);
     await page.locator('[data-origin-cancel]').click();assert.equal(await rawSave(),beforeCancel);checks.push('landscape ritual and acknowledged replacement can be cancelled without touching the saved life');
 
     await page.setViewportSize({width:390,height:844});await page.reload({waitUntil:'domcontentloaded'});await ready();await titleIsCanonical();await page.locator('#continue-life').click();await page.waitForFunction(()=>document.querySelector('#game-screen')?.dataset.runtime==='active',null,{timeout:30000});assert.equal(await page.locator('.family-origin').count(),0);
