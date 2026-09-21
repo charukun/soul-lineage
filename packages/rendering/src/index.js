@@ -59,3 +59,5 @@ export { auditStaticBatchOpportunities, batchStaticMeshes } from './instance-atl
 export { auditStaticWorldBatchOpportunities, batchStaticWorldMeshes, createStaticBatchController } from './static-world-batch.js';
 export { auditSceneBudget, createRenderingBudgetSnapshot } from './scene-budget.js';
 export { createMiniatureFocus, miniatureFocusBand, miniatureFocusBudget } from './miniature-focus.js';
+
+export {createReviewRenderer,measureReviewSubject,normalizeReviewSubject,positionReviewCamera} from './review-preview-stage.js';

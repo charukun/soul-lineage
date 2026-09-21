@@ -8,6 +8,7 @@ import { kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
 import { reviewSettings, createReviewCohort, editReviewCharacter, serializeReviewSession, deserializeReviewSession,
   reviewGlbDocument, MAX_MODEL_BYTES, MAX_SESSION_BYTES } from './character-review-state.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
+import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
 
 const el = id => document.getElementById(id);
 const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null, displayModelId: null };
@@ -82,9 +83,7 @@ function createCharacterStageLifecycle({canvas,renderer,camera,scene,onResize}) 
 }
 
 function start() {
-  const canvas = el('stage'), renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5)); renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2;
+  const canvas = el('stage'), renderer = createReviewRenderer(canvas,{exposure:1.2});
   renderer.debug.onShaderError = () => { throw new Error('モデルのシェーダーをコンパイルできませんでした'); };
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(38, 1, .01, 120);
   const orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true; orbit.minDistance = .18; orbit.maxDistance = 45;
@@ -100,6 +99,7 @@ function start() {
   let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, loadSequence = 0, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
   let activeModelLabel = defaultModel.label;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
+  const simpleModelReview = document.body.classList.contains('simple-review');
   let motionQA = null;
   const events = new AbortController(), on = (target, type, handler) => target.addEventListener(type, handler, { signal: events.signal });
   const guard = handler => event => { try { handler(event); } catch (error) { report(error); syncUI(); } };
@@ -152,6 +152,12 @@ function start() {
     cameraPreset = preset;
     if (motionQA?.active) { motionQA.aim(preset === 'side' ? 'left' : ['front','back'].includes(preset) ? preset : 'front'); return; }
     const actor = actors[settings.selected]; if (!actor) return;
+    if (simpleModelReview) {
+      const sharedPreset=preset==='overview'?'three-quarter':preset;
+      camera.fov=38;camera.updateProjectionMatrix();
+      positionReviewCamera({camera,controls:orbit,root:actor.root,preset:sharedPreset,padding:1.14,minDistance:.35,maxDistance:18});
+      resetMeasure();return;
+    }
     let target, distance;
     orbit.maxDistance = ['village','demon'].includes(preset) ? 120 : 45;
     camera.fov = preset === 'demon' ? 42 : 38;
@@ -228,7 +234,7 @@ function start() {
   }
   function refreshLooks() {
     appearances = records.slice(0, settings.count).map(appearanceForCharacter);
-    actors.forEach((actor, i) => { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); applyExpressions(actor, i); });
+    if (!simpleModelReview) actors.forEach((actor, i) => { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); applyExpressions(actor, i); });
     syncUI(); resetMeasure();
   }
   function rebuild() {
@@ -328,11 +334,11 @@ function start() {
       actors.forEach((actor, i) => {
         const policy = plan.get(actor.id); if (actor.root.visible) drawnActors++;
         if (!settings.paused) {
-          if (schedules[i].advance(dt, policy.animationHz) !== null) { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); }
+          if (!simpleModelReview && schedules[i].advance(dt, policy.animationHz) !== null) { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); }
           if (settings.rotate) actor.root.rotation.y = elapsed * .22;
-          if (policy.visible) applyExpressions(actor, i);
+          if (!simpleModelReview && policy.visible) applyExpressions(actor, i);
         }
-        const enabled = policy.visible && (settings.springs === 'all' || settings.springs === 'auto' && policy.springBones);
+        const enabled = !simpleModelReview && policy.visible && (settings.springs === 'all' || settings.springs === 'auto' && policy.springBones);
         if (enabled && actor.secondaryJointCount) physicsActors++;
         if (!settings.paused) actor.updateSecondary(dt, enabled && !motionQA?.active);
       });
