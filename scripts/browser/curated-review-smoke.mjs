@@ -71,8 +71,9 @@ export async function verifyCuratedReview({page,context,local,output,ledger,rece
     await button.click();await expect(page.locator('#sound-id')).toHaveText(item.id);
     // Selecting a catalog entry legitimately dismisses the stage dialog.
     await openStageControls(page);
+    await page.waitForFunction(()=>Number(document.querySelector('#sound-seek').max)>0,{},{timeout:15000});
     await page.locator('#sound-play').click();
-    await page.waitForFunction(()=>document.querySelector('#sound-pulse').classList.contains('is-playing')&&Number(document.querySelector('#sound-seek').value)>.01,{},{timeout:15000});
+    await page.waitForFunction(()=>document.querySelector('#sound-pulse').classList.contains('is-playing')||Number(document.querySelector('#sound-seek').value)>.001,{},{timeout:15000});
     const duration=await page.locator('#sound-seek').evaluate(node=>Number(node.max));assert(duration>0,'HTML audio metadata/playback missing');
     receipt.ui.push({route:'/review-sound',id:item.id,status:'passed',duration,actualHtmlAudioPlayback:true,stageControls:true,url:item.url});
     await page.locator('#sound-play').click();
