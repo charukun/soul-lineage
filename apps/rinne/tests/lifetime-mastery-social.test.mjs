@@ -6,10 +6,10 @@ import { createLife, rebirth } from '../src/rebuild/domain.js';
 import { CoopWorld } from '../src/rebuild/coop-world.js';
 import { evaluateSuiAwakening, inspirationMasteryProfile, inspirationRuleEffectsFor, validateInspiration } from '../src/rebuild/inspiration-state.js';
 
-function maturedState(age,{gifted=false}={}){
+function maturedState(age,{tenyo=false}={}){
   const state=createLife({name:'試験者',seed:7});
   state.ageYears=age;state.ageSeconds=age*60;state.phase='living';
-  state.inspiration.talents=gifted?['gifted']:[];
+  state.inspiration.talents=tenyo?['tenyo']:[];
   state.inspiration.heritage=[
     {motif:'precision',strength:1,depth:1,sourceLifeId:'a',sourceName:'先代',generation:1,relation:'lineage'},
     {motif:'advance',strength:1,depth:1,sourceLifeId:'b',sourceName:'先々代',generation:1,relation:'lineage'},
@@ -34,41 +34,41 @@ test('young genius path remains possible instead of being age-locked',()=>{
   const row=generatedTechniqueCandidates({weapon:'spear',phase:'ha'}).find(item=>item.steps.length===3);
   let found=null;
   for(let seed=1;seed<=1000;seed++){
-    const state=maturedState(17,{gifted:true});state.seed=seed;
+    const state=maturedState(17,{tenyo:true});state.seed=seed;
     const effects=inspirationRuleEffectsFor(state,row);
     if(effects.some(effect=>effect.rarity==='singular')){found={seed,effects};break;}
   }
-  assert.ok(found,'a gifted 17-year-old should retain a rare deterministic ultimate path');
+  assert.ok(found,'a tenyo 17-year-old should retain a rare deterministic ultimate path');
   assert.equal(found.effects[0].impact,'rule');
   assert.ok(found.effects[0].unlockCondition);
 });
 
-test('congenital gifted birth is rare, deterministic and emits village news with a social hook',()=>{
-  let gifted=null;
+test('congenital tenyo birth is rare, deterministic and emits village news with a social hook',()=>{
+  let tenyo=null;
   for(let seed=1;seed<=5000;seed++){
     const state=createLife({name:'星子',seed});
-    if(state.inspiration.talents.includes('gifted')){gifted=state;break;}
+    if(state.inspiration.talents.includes('tenyo')){tenyo=state;break;}
   }
-  assert.ok(gifted,'at least one deterministic gifted seed should exist in a broad sample');
-  const news=gifted.events.find(event=>event.type==='village-news'&&event.tag==='ギフテッド');
+  assert.ok(tenyo,'at least one deterministic tenyo seed should exist in a broad sample');
+  const news=tenyo.events.find(event=>event.type==='village-news'&&event.tag==='天与');
   assert.ok(news);
-  assert.match(news.text,/ギフテッド/);
-  assert.equal(news.communityHook.kind,'protect-gifted-child');
+  assert.match(news.text,/天与/);
+  assert.equal(news.communityHook.kind,'protect-tenyo-child');
   assert.ok(news.communityHook.roles.includes('師匠候補'));
 });
 
 test('co-op village news and peer visibility expose community hooks to other players',()=>{
   const room=new CoopWorld({worldId:'social-hooks',ownerId:'owner',name:'親',layout:defaultMuraLayout()});
   room.addPlayer('friend','友','token');
-  room.data.players.owner.life.inspiration.talents=['gifted','prodigy'];
-  room.broadcastVillageNews('owner',{text:'若き才能が村に現れた。',tag:'天賦の才',communityHook:{kind:'rally-around-prodigy',roles:['師匠','共闘仲間']}});
+  room.data.players.owner.life.inspiration.talents=['tenyo','sui'];
+  room.broadcastVillageNews('owner',{text:'若き才能が村に現れた。',tag:'彗',communityHook:{kind:'rally-around-sui',roles:['師匠','共闘仲間']}});
   const friend=room.view('friend');
   assert.ok(friend.events.some(event=>event.type==='village-news'&&event.text.includes('若き才能')));
   const ownerPeer=friend.peers.find(peer=>peer.playerId==='owner');
-  assert.ok(ownerPeer.talents.includes('gifted'));
-  assert.ok(ownerPeer.talents.includes('prodigy'));
-  assert.ok(ownerPeer.socialHooks.some(hook=>hook.kind==='protect-gifted-child'));
-  assert.ok(ownerPeer.socialHooks.some(hook=>hook.kind==='rally-around-prodigy'));
+  assert.ok(ownerPeer.talents.includes('tenyo'));
+  assert.ok(ownerPeer.talents.includes('sui'));
+  assert.ok(ownerPeer.socialHooks.some(hook=>hook.kind==='protect-tenyo-child'));
+  assert.ok(ownerPeer.socialHooks.some(hook=>hook.kind==='rally-around-sui'));
 });
 
 
@@ -93,4 +93,17 @@ test('彗 is a rare deterministic mid-life awakening, boosts mastery, survives s
   assert.ok(awakened.state.inspiration.talents.includes('sui'));
   const next=rebirth(awakened.state,{name:'次代'});
   assert.ok(!next.inspiration.talents.includes('sui'));
+});
+
+
+test('legacy gifted and prodigy saves migrate to 天与 and 彗 without duplicate public talent concepts',()=>{
+  const state=createLife({name:'旧記録',seed:9});
+  state.inspiration.talents=['gifted','prodigy'];
+  state.inspiration.talentDetails={gifted:{label:'ギフテッド',axis:'観察眼'},prodigy:{label:'天賦の才',earnedAge:15}};
+  validateInspiration(state);
+  assert.deepEqual(state.inspiration.talents.sort(),['sui','tenyo']);
+  assert.equal(state.inspiration.talentDetails.tenyo.label,'天与');
+  assert.equal(state.inspiration.talentDetails.sui.label,'彗');
+  assert.equal(state.inspiration.talentDetails.gifted,undefined);
+  assert.equal(state.inspiration.talentDetails.prodigy,undefined);
 });

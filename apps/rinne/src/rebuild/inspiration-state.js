@@ -41,7 +41,7 @@ export function inspirationMasteryProfile(state,row=null){
   const mastery=clamp(ageMaturity*.38+stableMastery*.22+contextMastery*.14+lineageMastery*.12+adaptation*.1+continuity*.04+suiMastery*.12);
   const secretChance=clamp(.015+mastery*.34+(age>=40?.06:0),.015,.48);
   let ultimateChance=clamp(.001+Math.pow(mastery,2)*.105+(age>=45?.035:0)+(age>=60?.025:0),.001,.18);
-  if(age<30)ultimateChance*=s.talents?.includes('gifted') ? .34 : .12;else if(age<40)ultimateChance*=.42;
+  if(age<30)ultimateChance*=s.talents?.includes('tenyo') ? .34 : .12;else if(age<40)ultimateChance*=.42;
   return Object.freeze({age,mastery,ageMaturity,stableMastery,contextMastery,lineageMastery,adaptation,continuity,suiMastery,secretChance,ultimateChance});
 }
 const GENERATED_RULE_EFFECTS=Object.freeze({
@@ -59,26 +59,27 @@ function recordRuleEffects(state,id){return Array.isArray(state?.inspiration?.re
 function hasRuleEffect(state,id,effectId){return recordRuleEffects(state,id).some(effect=>effect?.id===effectId&&effect?.impact==='rule');}
 export function initializeBirthTalents(state){
   const s=ensureInspiration(state);s.talents??=[];s.talentDetails??={};
-  if(s.talents.includes('gifted'))return s.talentDetails.gifted||null;
+  if(s.talents.includes('tenyo'))return s.talentDetails.tenyo||null;
   const lineageDepth=Math.min(12,Array.isArray(state.lineage)?state.lineage.length:0),heritageStrength=(s.heritage||[]).reduce((sum,item)=>sum+clamp(item.strength),0);
   const chance=clamp(.008+lineageDepth*.0012+heritageStrength*.0035,.008,.035);
-  if(unit(state.seed??0,'birth-gifted')>=chance)return null;
-  const axes=['技覚','身体感覚','観察眼','間合い感覚','継承感応'],axis=axes[Math.floor(unit(state.seed??0,'birth-gifted-axis')*axes.length)%axes.length];
-  const detail={id:'gifted',label:'ギフテッド',axis,bornAge:0,chance:Number(chance.toFixed(4))};
-  s.talents.push('gifted');s.talentDetails.gifted=detail;s.revision++;return detail;
+  if(unit(state.seed??0,'birth-tenyo')>=chance)return null;
+  const axes=['技覚','身体感覚','観察眼','間合い感覚','継承感応'],axis=axes[Math.floor(unit(state.seed??0,'birth-tenyo-axis')*axes.length)%axes.length];
+  const detail={id:'tenyo',label:'天与',axis,bornAge:0,chance:Number(chance.toFixed(4))};
+  s.talents.push('tenyo');s.talentDetails.tenyo=detail;s.revision++;return detail;
 }
 function addTalent(state,id,detail={}){
   const s=ensureInspiration(state);s.talents??=[];s.talentDetails??={};if(!s.talents.includes(id))s.talents.push(id);s.talentDetails[id]={...(s.talentDetails[id]||{}),...detail,id};s.revision++;
 }
-export function evaluateSuiAwakening(state,{id='',name='',motifs=[]}={}){
+export function evaluateSuiAwakening(state,{id='',name='',motifs=[],force=false,origin='life'}={}){
   const s=ensureInspiration(state),age=clamp(Number(state.ageYears)||0,0,100);
-  if(age<12||s.talents?.includes('sui')||s.traces.length<6)return null;
-  const diversity=unique(s.traces.map(trace=>trace.kind)).length;if(diversity<3)return null;
-  const chance=clamp(.018+Math.min(.045,s.traces.length*.0025)+Math.min(.03,diversity*.008)+(age>=30?.015:0),.018,.12);
-  if(unit(state.seed??0,`sui:${id}:${Math.floor(age)}:${s.serial}`)>=chance)return null;
+  if(s.talents?.includes('sui'))return null;
+  if(!force&&(age<12||s.traces.length<6))return null;
+  const diversity=unique(s.traces.map(trace=>trace.kind)).length;if(!force&&diversity<3)return null;
+  const chance=force?1:clamp(.018+Math.min(.045,s.traces.length*.0025)+Math.min(.03,diversity*.008)+(age>=30?.015:0),.018,.12);
+  if(!force&&unit(state.seed??0,`sui:${id}:${Math.floor(age)}:${s.serial}`)>=chance)return null;
   const motif=motifs.find(value=>MOTIFS.includes(value))||'observation',axis=SUI_MOTIF_LABELS[motif]||'才覚';
-  const detail={label:'彗',axis,motif,awakenedAge:age,techniqueId:safe(id),techniqueName:safe(name),chance:Number(chance.toFixed(4))};
-  addTalent(state,'sui',detail);state.events??=[];state.events.unshift({type:'village-news',scope:'village',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${state.name||'旅人'}に「彗」が現れた。${name?`${name}を境に、`:''}${axis}の才覚が一段跳ねた。`,tag:'彗',subjectId:state.id});state.events.length=Math.min(state.events.length,80);return detail;
+  const detail={label:'彗',axis,motif,origin,awakenedAge:age,techniqueId:safe(id),techniqueName:safe(name),chance:Number(chance.toFixed(4))};
+  addTalent(state,'sui',detail);state.events??=[];state.events.unshift({type:'village-news',scope:'village',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${state.name||'旅人'}に「彗」が現れた。${name?`${name}を境に、`:''}${axis}の才覚が一段跳ねた。`,tag:'彗',subjectId:state.id,communityHook:{kind:'rally-around-sui',roles:['師匠','稽古仲間','共闘仲間']}});state.events.length=Math.min(state.events.length,80);return detail;
 }
 function sourceKind(kind){return ['practice','repeat','balance','breathe','focus','fall','distance'].includes(kind)?'practice':['observe','train','study','read','forge'].includes(kind)?'observation':'life';}
 
@@ -166,15 +167,14 @@ function commitAnswer(state,candidate,context={}){
   const naming=isGeneratedTechniqueId(row.id)?generatedNamingFor(state,row,specialEffects):null;
   const record={answerId:row.id,family:row.family,name:naming?.displayName||inspirationTechniqueName(row),age:clamp(state.ageYears,0,100),kind:row.kind,stable:false,archived:false,contexts:[useContextKey(state,context)],provenance:provenanceFor(state,candidate,context),motifs:[...row.motifs],specialEffects:specialEffects.map(effect=>({...effect}))};
   if(naming)record.naming={style:naming.style,grade:naming.grade,baseName:naming.baseName,signature:naming.signature};
-  const prodigy=Boolean(naming?.grade==='ultimate'&&record.age<=17);
-  if(prodigy)addTalent(state,'prodigy',{label:'天賦の才',earnedAge:record.age,techniqueId:row.id,techniqueName:record.name});
+  const youngSui=Boolean(naming?.grade==='ultimate'&&record.age<=17);
   if(['technique','variant'].includes(row.kind)){const effectAttribute=chooseInspirationEffectAttribute(state,row.id);if(effectAttribute)record.effectAttribute=effectAttribute;}
   if(row.kind==='link'&&context.combo)record.combo={...context.combo};
   s.records[row.id]=record;s.lastNamed=s.clock;s.revision++;enforceActiveLimit(state);synchronizeKnownSkills(state);
-  const sui=evaluateSuiAwakening(state,{id:row.id,name:record.name,motifs:row.motifs});
-  const villageAnnouncement=prodigy?`${state.name||'若き達人'}が${Math.floor(record.age)}歳で${record.name}を閃いた。天賦の才が村に知れ渡った。`:null;
-  const event={type:'inspiration',id:row.id,name:record.name,kind:row.kind,family:row.family,age:record.age,provenance:record.provenance,effectAttribute:record.effectAttribute||null,grade:naming?.grade||'normal',prodigy,sui:Boolean(sui),suiDetail:sui,villageAnnouncement};
-  state.events??=[];state.events.unshift({type:prodigy?'village-news':'inspiration',scope:prodigy?'village':'self',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:villageAnnouncement||`${record.name}を閃いた。`,inspirationId:row.id,tag:prodigy?'天賦の才':'',subjectId:state.id,communityHook:prodigy?{kind:'rally-around-prodigy',roles:['師匠','稽古仲間','共闘仲間']}:null});state.events.length=Math.min(state.events.length,80);return event;
+  const sui=evaluateSuiAwakening(state,{id:row.id,name:record.name,motifs:row.motifs,force:youngSui,origin:youngSui?'young-ultimate':'life'});
+  const villageAnnouncement=sui?`${state.name||'旅人'}に「彗」が現れた。`:null;
+  const event={type:'inspiration',id:row.id,name:record.name,kind:row.kind,family:row.family,age:record.age,provenance:record.provenance,effectAttribute:record.effectAttribute||null,grade:naming?.grade||'normal',sui:Boolean(sui),suiDetail:sui,villageAnnouncement};
+  state.events??=[];state.events.unshift({type:'inspiration',scope:'self',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${record.name}を閃いた。`,inspirationId:row.id,subjectId:state.id});state.events.length=Math.min(state.events.length,80);return event;
 }
 export function recordLifeExperience(state,kind,context={}){
   if(state.ended||state.down||Number(state.ageYears)<4||!own(ACTIVITY_MOTIFS,kind))return [];
