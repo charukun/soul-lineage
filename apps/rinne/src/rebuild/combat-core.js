@@ -1,6 +1,6 @@
 import { createTidebreakRuntime } from '@soul/tidebreak-combat';
 import { resolveInspirationAnswer } from '@soul/game-data';
-import {johakyuStageCapability} from '@soul/johakyu-combat/execution-capability';
+import {johakyuStageCapability,johakyuWeaponRequiresTwoHands} from '@soul/johakyu-combat/execution-capability';
 import {executedTechniqueId,readJohakyuTechniqueTruth} from './johakyu-technique-contract.js';
 import { WEAPONS, ARMORS, endLifeEarly, spendStamina, skillEffects } from './domain.js';
 import { beginCombatState } from './combat-loadout-runtime.js';
@@ -83,9 +83,9 @@ function executionStage(session,execution){
 }
 function executionCapability(state,session,next){
   const execution=next.hero.execution;if(!execution)return null;
-  const step=executionStage(session,execution)||{},base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,rawPhase=execution.phase||next.hero.slot||'jo',phase=rawPhase==='mind'?'uke':(['jo','ha','kyu','uke','one','finisher','enemy'].includes(rawPhase)?rawPhase:(state.combat?.phase||'jo'));
-  const effort=causalTechnique(session,next.hero)?.row.effort||1,cost=session.secondary?0:base.stamina*(phase==='kyu'?1.25:phase==='ha'?1.08:1)*effort;
-  return johakyuStageCapability(state,{weapon:execution.weapon||tidebreakWeaponFor(state.equipment.weapon),phase,kind:step.kind||execution.kind||'ready',footwork:step.footwork||'stay',charge:step.charge||execution.charge||'none',staminaCost:cost});
+  const step=executionStage(session,execution)||{},base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,armor=ARMORS[state.equipment.armor]||ARMORS.cloth,rawPhase=execution.phase||next.hero.slot||'jo',phase=rawPhase==='mind'?'uke':(['jo','ha','kyu','uke','one','finisher','enemy'].includes(rawPhase)?rawPhase:(state.combat?.phase||'jo'));
+  const effort=causalTechnique(session,next.hero)?.row.effort||1,cost=session.secondary?0:base.stamina*(phase==='kyu'?1.25:phase==='ha'?1.08:1)*effort/Math.max(.5,Number(armor.staminaScale)||1),weapon=execution.weapon||tidebreakWeaponFor(state.equipment.weapon);
+  return johakyuStageCapability(state,{weapon,phase,kind:step.kind||execution.kind||'ready',footwork:step.footwork||'stay',charge:step.charge||execution.charge||'none',staminaCost:cost,requiresTwoHands:johakyuWeaponRequiresTwoHands(weapon)});
 }
 function chargeAttackStamina(state,session,next,events){
   const execution=next.hero.execution,key=execution?String(execution.attackId):null;let paid=true;
