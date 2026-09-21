@@ -17,9 +17,9 @@ export function openBrandBootGate({app='rinne',load=null}={}){
 #${ID}{position:fixed;inset:0;z-index:2147483000;width:100%;height:100dvh;border:0;padding:0;margin:0;background:#fff;color:#111;display:grid;place-items:center;overflow:hidden;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #${ID} .brand{position:relative;width:min(84vw,560px);display:grid;justify-items:center;gap:clamp(14px,2.4vh,24px);transform:translateY(-4vh)}
 #${ID} .mark{width:min(78vw,500px);aspect-ratio:1270/860;overflow:visible}
-#${ID} .scorpion{fill:#111;fill-rule:evenodd;opacity:0;transform-origin:50% 58%;transform:translateY(20px) scale(.78) rotate(-2deg)}
-#${ID} .bolts{fill:#ffc400;fill-rule:evenodd;opacity:0;transform-origin:50% 50%;transform:scale(.82)}
-#${ID} .wordmark{font:700 clamp(27px,7vw,47px)/1 Arial,Helvetica,sans-serif;letter-spacing:.22em;text-indent:.22em;white-space:nowrap;opacity:0;transform:translateY(8px)}
+#${ID} .scorpion{fill:#111;fill-rule:evenodd;opacity:1;transform-origin:50% 58%;transform:translateY(20px) scale(.78) rotate(-2deg)}
+#${ID} .bolts{fill:#ffc400;fill-rule:evenodd;opacity:1;transform-origin:50% 50%;transform:scale(.82)}
+#${ID} .wordmark{font:700 clamp(27px,7vw,47px)/1 Arial,Helvetica,sans-serif;letter-spacing:.22em;text-indent:.22em;white-space:nowrap;opacity:1;transform:translateY(8px)}
 #${ID} .loader{position:absolute;left:50%;bottom:max(10vh,62px);width:112px;display:grid;gap:9px;transform:translateX(-50%);opacity:0;animation:paLoaderIn .35s ease .7s forwards}
 #${ID} .loader-track{height:2px;width:100%;background:#1112;overflow:hidden;border-radius:99px}
 #${ID} .loader-fill{display:block;width:100%;height:100%;background:#ffc400;transform:scaleX(.04);transform-origin:left center;transition:transform .22s ease-out}
@@ -36,8 +36,8 @@ export function openBrandBootGate({app='rinne',load=null}={}){
 #${ID}.armed .touch-dot{animation:paBreathe 1.8s ease-in-out .5s infinite}
 #${ID}.leave{opacity:0;transition:opacity .28s ease}
 #${ID}.leave .brand{transform:translateY(-4vh) scale(.985);transition:transform .28s ease}
-@keyframes paScorpion{0%{opacity:0;transform:translateY(20px) scale(.78) rotate(-2deg)}68%{opacity:1;transform:translateY(-3px) scale(1.035) rotate(.8deg)}84%{transform:translateY(1px) scale(.985) rotate(0)}100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
-@keyframes paBolts{0%{opacity:0;transform:scale(.82)}70%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+@keyframes paScorpion{0%{opacity:1;transform:translateY(20px) scale(.78) rotate(-2deg)}68%{opacity:1;transform:translateY(-3px) scale(1.035) rotate(.8deg)}84%{transform:translateY(1px) scale(.985) rotate(0)}100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
+@keyframes paBolts{0%{opacity:1;transform:scale(.82)}70%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
 @keyframes paWord{to{opacity:1;transform:translateY(0)}}
 @keyframes paLoaderIn{to{opacity:1}}
 @keyframes paLoadPulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:.75;transform:scale(1)}}
