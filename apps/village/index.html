@@ -19,4 +19,4 @@
 window.addEventListener('error',function(event){if(event.target&&event.target.tagName==='SCRIPT'&&!window.village){document.getElementById('loadText').textContent='起動用ファイルを取得できませんでした。通信状態を確認して再試行してください。';document.getElementById('retry').hidden=false;document.getElementById('game').dataset.renderer='error';}},true);
 document.getElementById('retry').onclick=function(){location.reload();};
 </script>
-<script type="module" src="./src/brand-start.js"></script><script type="module" src="./src/web/facility-upgrade-ui.js"></script></body></html>
+<script type="module" src="./src/main.js"></script><script type="module" src="./src/web/facility-upgrade-ui.js"></script></body></html>
