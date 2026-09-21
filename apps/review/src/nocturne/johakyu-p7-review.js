@@ -142,8 +142,9 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
       if(distance>COUNTER_PRESS_DISTANCE){setManeuver(actor,target,{reason:'counter-press',footwork:'chase',seconds:.5,stopDistance:COUNTER_PRESS_DISTANCE});return false;}
       maneuvers.delete(actor.id);return true;
     }
-    if(stageDamage(node.stage)>0&&distance>ENGAGE_DISTANCE){
-      setManeuver(actor,target,{reason:'engage-range',footwork:distance>3.05?'chase':'forward',seconds:.85,stopDistance:ENGAGE_DISTANCE});return false;
+    const attackFootwork=node.stage.step.footwork,launchDistance=['rush','chase','forward'].includes(attackFootwork)?2.72:['cross','spiral'].includes(attackFootwork)?2.64:ENGAGE_DISTANCE;
+    if(stageDamage(node.stage)>0&&distance>launchDistance){
+      setManeuver(actor,target,{reason:'engage-range',footwork:distance>3.05?'chase':'forward',seconds:.85,stopDistance:launchDistance});return false;
     }
     return true;
   }
@@ -219,14 +220,13 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
       const targetState=actionState.get(target.id),targetProgress=targetState?Math.max(0,(time-targetState.startedAt)/targetState.duration):1,defense=defenseContact(targetState,targetProgress);
       if(defense){
         const parried=defense==='parry';state.outcome=parried?'parried':'blocked';
-        if(parried){
-          state.interrupted='parried';targetState.outcome='parry';counterWindows.set(target.id,{against:source.id,until:time+1.35});
-          setRecovery(source,'parried',target.id,RECOVERY_SECONDS.parried);setManeuver(source,target,{reason:'parried-recoil',footwork:'retreat',seconds:.64,stopDistance:DISENGAGE_DISTANCE});
-        }else{
-          targetState.outcome='guard';setRecovery(source,'blocked',target.id,RECOVERY_SECONDS.blocked);setManeuver(source,target,{reason:'guard-recoil',footwork:'retreat',seconds:.48,stopDistance:2.54});
-        }
+        if(parried){state.interrupted='parried';targetState.outcome='parry';counterWindows.set(target.id,{against:source.id,until:time+1.35});}
+        else targetState.outcome='guard';
         const event=freeze({id:`${action.id}:${source.id}:${target.id}:${defense}`,type:parried?'parry':'guard',attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,damage:0,blocked:true,parried,techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,defenseTechniqueId:targetState.node.technique.id,defenseTechniqueName:targetState.node.technique.name,defenseStageIndex:targetState.node.stage.index,contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH});
-        events.push(event);traceRow({...event});continue;
+        events.push(event);traceRow({...event});
+        if(parried){setRecovery(source,'parried',target.id,RECOVERY_SECONDS.parried);setManeuver(source,target,{reason:'parried-recoil',footwork:'retreat',seconds:.64,stopDistance:DISENGAGE_DISTANCE});}
+        else{setRecovery(source,'blocked',target.id,RECOVERY_SECONDS.blocked);setManeuver(source,target,{reason:'guard-recoil',footwork:'retreat',seconds:.48,stopDistance:2.54});}
+        continue;
       }
       const counterWindow=counterWindows.get(source.id),countered=state.node.stage.step.kind==='counter'&&counterWindow?.against===target.id&&time<=counterWindow.until;
       const dealtDamage=countered?Math.round(damage*1.18):damage;
@@ -236,14 +236,14 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
         techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH,bodyPart:result.part,bodyDurability:result.durability,blocked:false});
       events.push(event);traceRow({...event});
       const targetAction=actionState.get(target.id),incomingProgress=targetAction?Math.max(0,(time-targetAction.startedAt)/targetAction.duration):1;
-      const recoveryReason=countered?'countered':'hit',recoverySeconds=countered?RECOVERY_SECONDS.countered:RECOVERY_SECONDS.hit;
-      setRecovery(target,recoveryReason,source.id,recoverySeconds);
       if(countered){
+        setRecovery(target,'countered',source.id,RECOVERY_SECONDS.countered);
         if(targetAction&&!['guard','parry','brace'].includes(targetAction.node.stage.step.kind))targetAction.interrupted='countered';
         setManeuver(target,source,{reason:'countered-withdrawal',footwork:'retreat',seconds:.72,stopDistance:DISENGAGE_DISTANCE});
-      }else if(!targetAction||incomingProgress<.34){
-        setManeuver(target,source,{reason:'hit-withdrawal',footwork:'retreat',seconds:.36,stopDistance:2.46});
-        if(targetAction&&!targetAction.impacted&&!['guard','parry','brace'].includes(targetAction.node.stage.step.kind))targetAction.interrupted='hit-before-contact';
+      }else if(targetAction&&incomingProgress<.34&&!targetAction.impacted&&!['guard','parry','brace'].includes(targetAction.node.stage.step.kind)){
+        targetAction.interrupted='hit-before-contact';setManeuver(target,source,{reason:'hit-withdrawal',footwork:'retreat',seconds:.34,stopDistance:2.44});
+      }else if(!targetAction){
+        setRecovery(target,'hit',source.id,.2);setManeuver(target,source,{reason:'hit-withdrawal',footwork:'retreat',seconds:.28,stopDistance:2.4});
       }
     }
     if(events.length){lastEvents=events;if(trace.length>120)trace=trace.slice(-120);}
