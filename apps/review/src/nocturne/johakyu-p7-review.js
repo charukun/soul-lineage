@@ -142,7 +142,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
       if(distance>COUNTER_PRESS_DISTANCE){setManeuver(actor,target,{reason:'counter-press',footwork:'chase',seconds:.5,stopDistance:COUNTER_PRESS_DISTANCE});return false;}
       maneuvers.delete(actor.id);return true;
     }
-    const attackFootwork=node.stage.step.footwork,launchDistance=attackFootwork==='cross'?3.16:attackFootwork==='spiral'?2.82:['rush','chase','forward'].includes(attackFootwork)?2.72:ENGAGE_DISTANCE;
+    const attackFootwork=node.stage.step.footwork,launchDistance=attackFootwork==='cross'?3.16:attackFootwork==='spiral'?2.82:attackFootwork==='rush'?2.76:attackFootwork==='chase'?2.64:attackFootwork==='forward'?2.55:ENGAGE_DISTANCE;
     if(stageDamage(node.stage)>0&&distance>launchDistance){
       setManeuver(actor,target,{reason:'engage-range',footwork:distance>3.05?'chase':'forward',seconds:.85,stopDistance:launchDistance});return false;
     }
