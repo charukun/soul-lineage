@@ -15,7 +15,7 @@ test('family story still starts only after Start and never owns the title',async
 
 test('deep water story shows one memory at a time instead of a three-up choice grid',async()=>{
   const [ui,css]=await Promise.all([read('../src/family-origin-ui.js'),read('../src/family-origin.css')]);
-  assert.match(ui,/dialog\.dataset\.scene = 'deepwater'/);
+  assert.match(ui,/dialog\.dataset\.scene = 'deepwater-single'/);
   assert.match(ui,/STORY_PROMPTS = Object\.freeze\(\['どこへ帰る？','何が、残っている？','その手に、何がある？'\]\)/);
   assert.doesNotMatch(ui,/土地の記憶|家の言葉|受け継ぐもの/);
   assert.doesNotMatch(ui,/遠い水底から|声は姿を持たない|次の生へ流れ着く/);
