@@ -93,7 +93,7 @@ function chargeAttackStamina(state,session,next,events){
     const capability=executionCapability(state,session,next);
     if(capability&&!capability.allowed){
       paid=false;session.invalid=true;
-      const remaining=capability.reason==='arm-injury'||capability.reason==='leg-injury'?.85:.45;
+      const remaining=(capability.reason==='arm-injury'||capability.reason==='leg-injury') ? .85 : .45;
       if(state.combat){state.combat.executionBlock={reason:capability.reason,remaining,phase:execution.phase||next.hero.slot||'jo',kind:execution.kind||null,stageIndex:execution.stepIndex??null};state.combat.attackCooldown=Math.max(Number(state.combat.attackCooldown)||0,remaining);}
       events.push({type:'execution-blocked',reason:capability.reason,phase:execution.phase||next.hero.slot||'jo',kind:execution.kind||null,stageIndex:execution.stepIndex??null,targetId:session.targetId,engine:'tidebreak',authority:'rinne-domain'});
     }else if(!session.secondary){
