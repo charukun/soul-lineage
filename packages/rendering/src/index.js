@@ -60,4 +60,4 @@ export { auditStaticWorldBatchOpportunities, batchStaticWorldMeshes, createStati
 export { auditSceneBudget, createRenderingBudgetSnapshot } from './scene-budget.js';
 export { createMiniatureFocus, miniatureFocusBand, miniatureFocusBudget } from './miniature-focus.js';
 
-export {createReviewRenderer,measureReviewSubject,normalizeReviewSubject,positionReviewCamera} from './review-preview-stage.js';
+export {createReviewRenderer,createReviewCameraPresetController,disposeReviewObject,measureReviewSubject,normalizeReviewSubject,positionReviewCamera} from './review-preview-stage.js';

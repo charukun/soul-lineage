@@ -10,6 +10,7 @@ import './review-effects.css';
 import {createRuntimeThumbnail,captureRuntimeThumbnail} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
+import {createReviewRenderer} from '@soul/rendering';
 mountRinneReviewShell('effects');
 
 const q=id=>document.getElementById(id);
@@ -22,8 +23,7 @@ const REVIEW_CONTEXTS=Object.freeze({
   storm:Object.freeze({label:'MULTI TARGET',secondary:true,area:2.05,source:[-.95,1.16,.06],impact:[1.55,1.08,.24]}),
 });
 
-const canvas=q('fx-stage'),renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
+const canvas=q('fx-stage'),renderer=createReviewRenderer(canvas,{exposure:1.1});
 const scene=new THREE.Scene();scene.background=new THREE.Color('#090d0d');scene.fog=new THREE.Fog('#090d0d',10,24);
 const camera=new THREE.PerspectiveCamera(42,1,.05,60);camera.position.set(4.8,3.2,6.2);
 const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.target.set(0,1,0);controls.minDistance=3;controls.maxDistance=14;
