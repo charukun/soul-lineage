@@ -1,0 +1,47 @@
+name: Johakyu task source checkout
+on:
+  push:
+    branches: ['work/johakyu-p3-p7-20260921']
+    paths: ['.github/workflows/johakyu-resume-source.yml']
+permissions:
+  contents: write
+jobs:
+  source:
+    if: contains(github.event.head_commit.message, '[johakyu-resume-source]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconcile current develop without conflict overrides
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch --no-tags origin develop
+          git merge --no-edit origin/develop
+          git push origin HEAD:work/johakyu-p3-p7-20260921
+      - name: Export focused source for task authoring
+        run: |
+          mkdir -p /tmp/johakyu-source
+          python3 - <<'PY'
+          import pathlib, subprocess, json, zipfile
+          root=pathlib.Path('.')
+          paths=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          prefixes=('apps/rinne/','apps/review/','packages/','scripts/','docs/rinne/','.github/')
+          extensions={'.js','.mjs','.cjs','.ts','.tsx','.json','.html','.css','.md','.yml','.yaml','.toml','.txt','.lock'}
+          with zipfile.ZipFile('/tmp/johakyu-source/source.zip','w',zipfile.ZIP_DEFLATED) as archive:
+            for name in paths:
+              p=root/name
+              if not name or not p.is_file() or p.suffix not in extensions: continue
+              if not name.startswith(prefixes) and '/' in name: continue
+              if '/public/' in name and p.suffix not in {'.json','.js','.html','.css'}: continue
+              if p.stat().st_size>3000000: continue
+              archive.write(p,name)
+            archive.writestr('CHECKOUT.json',json.dumps({'head':subprocess.check_output(['git','rev-parse','HEAD']).decode().strip(),'develop':subprocess.check_output(['git','rev-parse','origin/develop']).decode().strip(),'files':paths},ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: johakyu-task-source
+          path: /tmp/johakyu-source/source.zip
+          retention-days: 3
