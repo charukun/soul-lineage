@@ -38,6 +38,7 @@ export function answerAvailability(state,id,{context=null,ignoreResources=false}
   if(action&&Number(state.ageYears)<7)return {usable:false,reason:'武具と実戦の身体操作は7歳から'};
   const severity=part=>clamp(state.injuries?.[part]?.severity),arms=Math.max(severity('leftArm'),severity('rightArm')),legs=Math.max(severity('leftLeg'),severity('rightLeg'));
   if(action&&((row.limbs==='twoArms'&&arms>.76)||(row.limbs==='legs'&&legs>.65)||severity('rightArm')>.92))return {usable:false,reason:'負傷した部位を休ませる必要がある'};
+  if(context?.distanceBand&&row.entryBands?.length&&!row.entryBands.includes(context.distanceBand))return {usable:false,reason:'今の間合いからは、この入りへつながらない'};
   if(context&&row.space==='retreat'&&context.retreatBlocked)return {usable:false,reason:'引く足の余地がない'};
   if(context&&row.space==='side'&&context.sideBlocked)return {usable:false,reason:'横へ動く余地がない'};
   const base={fist:5,sword:9,dagger:6,great:16,spear:11,axe:14,staff:10,bow:10}[weapon]||9;
