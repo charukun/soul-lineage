@@ -1,4 +1,5 @@
 name: Browser Review Relevant Benchmark
+# temporary measurement only
 
 on:
   pull_request:
