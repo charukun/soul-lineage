@@ -143,5 +143,5 @@ test('runtime integration keeps Continue strict and commits a confirmed family b
   assert.match(runtime, /villageIds:\[layout\.id\],family/);
   assert.ok(runtime.indexOf("if(!coop&&mode==='new')await platform.storage.write") < runtime.indexOf('let active=true'));
   assert.match(main, /await openFamilyOrigin/); assert.match(main, /family:origin\.family/);
-  assert.match(main, /renderFamilyTitle\(title/);
+  assert.doesNotMatch(main, /renderFamilyTitle/); assert.match(main, /enterRinneLineageAudio/); assert.match(main, /exitRinneLineageAudio/);
 });
