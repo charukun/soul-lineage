@@ -43,12 +43,23 @@ export async function fetchCuratedAssetBytes(assetOrId,{environment='dev',signal
   const url=projectAssetUrl(asset.runtimePath,{environment});
   const response=await fetchImpl(url,{signal,redirect:'error',credentials:'omit'});
   if(!response.ok)throw new Error(`Asset load failed (${response.status}): ${asset.id}`);
-  const declared=response.headers.get('content-length');
-  if(declared!==null&&Number(declared)!==asset.byteLength){await response.body?.cancel();throw new Error(`Asset byteLength mismatch: ${asset.id}`);}
-  const bytes=await response.arrayBuffer();
-  if(bytes.byteLength!==asset.byteLength)throw new Error(`Asset byteLength mismatch: ${asset.id}`);
+  const declared=response.headers.get('content-length'),encoding=response.headers.get('content-encoding');
+  // Content-Length can describe the compressed transfer; the decoded stream is always bounded.
+  if(declared!==null&&(!encoding||encoding==='identity')&&Number(declared)!==asset.byteLength){await response.body?.cancel();throw new Error(`Asset byteLength mismatch: ${asset.id}`);}
+  const bytes=new Uint8Array(asset.byteLength);let offset=0;
+  if(response.body){
+    const reader=response.body.getReader();
+    try{
+      for(;;){
+        const {done,value}=await reader.read();if(done)break;
+        if(offset+value.byteLength>bytes.length){await reader.cancel();throw new Error(`Asset byteLength mismatch: ${asset.id}`);}
+        bytes.set(value,offset);offset+=value.byteLength;
+      }
+    }finally{reader.releaseLock();}
+  }
+  if(offset!==asset.byteLength)throw new Error(`Asset byteLength mismatch: ${asset.id}`);
   const actual=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),value=>value.toString(16).padStart(2,'0')).join('');
   if(actual!==asset.sha256)throw new Error(`Asset SHA-256 mismatch: ${asset.id}`);
   if(signal?.aborted)throw signal.reason||new DOMException('Aborted','AbortError');
-  return bytes;
+  return bytes.buffer;
 }
