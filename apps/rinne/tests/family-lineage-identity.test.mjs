@@ -72,6 +72,7 @@ test('title and death flow share the family home without hiding new life',()=>{
   const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
   const familyUi=readFileSync(new URL('../src/family-origin-ui.js',import.meta.url),'utf8');
   const runtime=readFileSync(new URL('../src/rebuild/runtime.js',import.meta.url),'utf8');
+  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
   assert.match(main,/start\.hidden=false/);
   assert.match(main,/openFamilyOrigin\(\{document,hasSave:expectedSave!==null/);
   assert.match(main,/openFamilyHome\(\{document,state:saved,source:'title'/);
@@ -79,5 +80,7 @@ test('title and death flow share the family home without hiding new life',()=>{
   assert.match(runtime,/if\(onLifeHome&&!familyHomePending\)/);
   assert.match(runtime,/await rebirthCurrent\(null\)/);
   assert.match(familyUi,/export function openFamilyHome/);
-  assert.match(familyUi,/data\.familyAction = action/);
+  assert.match(familyUi,/dataset\.familyAction = action/);
+  assert.match(html,/id="new-life"[^>]*>はじめから<\/button>/);
+  assert.match(html,/id="continue-life"[^>]*>続きから<\/button>/);
 });
