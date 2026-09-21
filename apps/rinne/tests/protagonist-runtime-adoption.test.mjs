@@ -55,7 +55,7 @@ test('playable Knight adoption is fail-closed and keeps gameplay-owned equipment
   assert.match(pool, /byte length mismatch/);
   assert.match(pool, /Git blob SHA-1 mismatch/);
   assert.match(pool, /hideEmbeddedCombatProps/);
-  assert.match(pool, /kaykit\/\)/);
+  assert.match(pool, /simulator\/assets\/kaykit\//);
   assert.doesNotMatch(pool, /PROTAGONIST_VILLAGER_V1|SHINO_review|Sendagaya|fallbackModelId/);
   assert.match(stage, /createProtagonistCharacterPool/);
   assert.match(stage, /heroPool:protagonist\.pool/);
