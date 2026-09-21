@@ -225,9 +225,9 @@ export function openFamilyHome({document = globalThis.document, state, source = 
     const item = node(document, 'span', ''); item.append(node(document,'i','',mark),node(document,'b','',String(value)),node(document,'small','',label)); stats.append(item);
   }
   current.append(stats);
-  const historyWrap = node(document,'section','family-home-history-wrap');
-  const historyHead = node(document,'div','family-home-history-head');
-  historyHead.append(node(document,'span','','LINEAGE'),node(document,'h3','family-home-history-title','この家の歩み'));
+  const historyWrap = node(document,'details','family-home-history-wrap');
+  const historyHead = node(document,'summary','family-home-history-head');
+  historyHead.append(node(document,'span','','LINEAGE'),node(document,'strong','family-home-history-title','この家の歩みを見る'),node(document,'i','','⌄'));
   const records = node(document, 'ol', 'family-contributions family-home-history');
   for (const record of family.contributions.slice(-5)) records.append(node(document, 'li', '', `${record.generation}代目  ${record.name}　凱旋${record.returns}回　遺した技${record.skills.length}つ`));
   if (!family.contributions.length) records.append(node(document, 'li', 'family-home-empty', 'まだ名のない最初の一歩。ここから百年の記録が始まる。'));
@@ -242,7 +242,7 @@ export function openFamilyHome({document = globalThis.document, state, source = 
     else actions.append(actionButton('continue','この人生を続ける',true));
     if (source === 'death') actions.append(actionButton('title','タイトルへ'));
   } else actions.append(actionButton('close','世界へ戻る',true));
-  shell.append(closeButton,version,eyebrow,crest,heading,tradition,memory,current,historyWrap,actions);
+  shell.append(closeButton,version,eyebrow,crest,heading,tradition,memory,current,actions,historyWrap);
   dialog.append(world,shell); document.body.append(dialog);
   return new Promise(resolve => {
     let settled = false;
