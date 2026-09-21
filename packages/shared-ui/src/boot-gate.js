@@ -19,7 +19,12 @@ export function openBrandBootGate({app='rinne',load=null}={}){
 #${ID} .scorpion{fill:#111;fill-rule:evenodd;opacity:0;transform-origin:50% 58%;transform:translateY(20px) scale(.78) rotate(-2deg)}
 #${ID} .bolts{fill:#ffc400;fill-rule:evenodd;opacity:0;transform-origin:50% 50%;transform:scale(.82)}
 #${ID} .wordmark{font:700 clamp(27px,7vw,47px)/1 Arial,Helvetica,sans-serif;letter-spacing:.22em;text-indent:.22em;white-space:nowrap;opacity:0;transform:translateY(8px)}
-#${ID} .loader{position:absolute;left:50%;bottom:max(10vh,62px);width:112px;display:grid;gap:9px;transform:translateX(-50%);opacity:0;animation:paLoaderIn .35s ease .7s forwards}\n#${ID} .loader-track{height:2px;width:100%;background:#1112;overflow:hidden;border-radius:99px}\n#${ID} .loader-fill{display:block;width:100%;height:100%;background:#ffc400;transform:scaleX(.04);transform-origin:left center;transition:transform .22s ease-out}\n#${ID} .loader-dot{justify-self:center;width:3px;height:3px;border-radius:50%;background:#1116;animation:paLoadPulse 1s ease-in-out infinite}\n#${ID}.ready .loader{opacity:0;transform:translate(-50%,6px);transition:opacity .2s ease,transform .2s ease}\n#${ID} .touch{position:absolute;left:50%;bottom:max(9vh,54px);display:grid;justify-items:center;gap:10px;transform:translate(-50%,14px);opacity:0;color:#111;pointer-events:none}
+#${ID} .loader{position:absolute;left:50%;bottom:max(10vh,62px);width:112px;display:grid;gap:9px;transform:translateX(-50%);opacity:0;animation:paLoaderIn .35s ease .7s forwards}
+#${ID} .loader-track{height:2px;width:100%;background:#1112;overflow:hidden;border-radius:99px}
+#${ID} .loader-fill{display:block;width:100%;height:100%;background:#ffc400;transform:scaleX(.04);transform-origin:left center;transition:transform .22s ease-out}
+#${ID} .loader-dot{justify-self:center;width:3px;height:3px;border-radius:50%;background:#1116;animation:paLoadPulse 1s ease-in-out infinite}
+#${ID}.ready .loader{opacity:0;transform:translate(-50%,6px);transition:opacity .2s ease,transform .2s ease}
+#${ID} .touch{position:absolute;left:50%;bottom:max(9vh,54px);display:grid;justify-items:center;gap:10px;transform:translate(-50%,14px);opacity:0;color:#111;pointer-events:none}
 #${ID} .touch-dot{width:42px;height:42px;border:1.5px solid #111;border-radius:50%;position:relative}
 #${ID} .touch-dot::after{content:"";position:absolute;inset:50% auto auto 50%;width:5px;height:5px;border-radius:50%;background:#ffc400;transform:translate(-50%,-50%)}
 #${ID} .touch-label{font:600 10px/1 Arial,Helvetica,sans-serif;letter-spacing:.3em;text-indent:.3em}
@@ -33,7 +38,9 @@ export function openBrandBootGate({app='rinne',load=null}={}){
 @keyframes paScorpion{0%{opacity:0;transform:translateY(20px) scale(.78) rotate(-2deg)}68%{opacity:1;transform:translateY(-3px) scale(1.035) rotate(.8deg)}84%{transform:translateY(1px) scale(.985) rotate(0)}100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
 @keyframes paBolts{0%{opacity:0;transform:scale(.82)}70%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
 @keyframes paWord{to{opacity:1;transform:translateY(0)}}
-@keyframes paLoaderIn{to{opacity:1}}\n@keyframes paLoadPulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:.75;transform:scale(1)}}\n@keyframes paTouchIn{to{opacity:.72;transform:translate(-50%,0)}}
+@keyframes paLoaderIn{to{opacity:1}}
+@keyframes paLoadPulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:.75;transform:scale(1)}}
+@keyframes paTouchIn{to{opacity:.72;transform:translate(-50%,0)}}
 @keyframes paBreathe{0%,100%{transform:scale(.94);opacity:.62}50%{transform:scale(1.04);opacity:1}}
 @media(prefers-reduced-motion:reduce){#${ID} .scorpion,#${ID} .bolts,#${ID} .wordmark,#${ID} .loader,#${ID} .touch,#${ID} .touch-dot{animation:none!important;opacity:1;transform:none}#${ID} .loader,#${ID} .touch{transform:translate(-50%,0)}}
 `;

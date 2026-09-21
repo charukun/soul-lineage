@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 2,
+  "id": "kuumetsu-brand-boot-css-integrity-20260921",
+  "game": "kuumetsu",
+  "mode": "polish",
+  "kind": "gameplay",
+  "themeKey": "brand-boot-visual-integrity",
+  "rootCauses": [
+    {
+      "key": "boot-css-literal-newline-escape",
+      "summary": "The shared brand boot stylesheet contains literal backslash-n text between loader and animation rules, causing CSS parsing to break after the progress bar rule.",
+      "prediction": "Replacing the literal escape text with real source newlines keeps the logo/wordmark animation, loader, ready transition and TAP rules in one valid stylesheet.",
+      "falsifier": "The source still contains literal backslash-n before selectors or the animation/touch rules are no longer present.",
+      "paths": [
+        "packages/shared-ui/src/boot-gate.js"
+      ]
+    },
+    {
+      "key": "brand-hidden-during-load",
+      "summary": "Immutable demon staging shows a white field and thin progress line while the scorpion mark and PARALYZE AREA wordmark remain invisible during boot.",
+      "prediction": "Same-condition staging after the CSS repair shows the branded mark/wordmark during loading and preserves progress/TAP handoff.",
+      "falsifier": "The fixed staging still renders only the progress line or loses loader/TAP feedback.",
+      "paths": [
+        "packages/shared-ui/src/boot-gate.js",
+        "apps/demon/src/brand-start.js"
+      ]
+    }
+  ],
+  "observation": {
+    "summary": "Current immutable demon staging reaches version.json for exact develop but visually collapses to a blank white field with only the thin loader visible. Source inspection identifies literal backslash-n tokens inside the shared boot stylesheet immediately before animation rules.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "c03aa2e48a4a8cb9383a848c65ec401c26bda208",
+      "reference": "https://7e3e2c24-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "observedAt": "2026-09-21T00:52:21Z",
+      "conditions": {
+        "scenario": "cold open with ?review=1, no user input before first screenshot",
+        "device": "GitHub hosted Chromium / SwiftShader",
+        "viewport": "673x841"
+      },
+      "notVerified": [
+        "Physical Pixel Fold appearance",
+        "Post-TAP hunt interaction in the failed baseline run"
+      ]
+    },
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "c03aa2e48a4a8cb9383a848c65ec401c26bda208",
+        "path": "packages/shared-ui/src/boot-gate.js",
+        "symbol": "openBrandBootGate style.textContent",
+        "statement": "Seven literal backslash-n sequences are embedded in the CSS template between loader/animation selectors, while logo and wordmark begin at opacity zero and depend on later keyframes."
+      },
+      {
+        "kind": "source",
+        "revision": "c03aa2e48a4a8cb9383a848c65ec401c26bda208",
+        "path": "apps/demon/src/brand-start.js",
+        "symbol": "openBrandBootGate load integration",
+        "statement": "Demon intentionally runs application load under the shared brand gate, so the shared stylesheet directly controls what the player sees throughout boot."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "The new progress-loader edit inserted escaped newline text into CSS source instead of real newlines, invalidating later animation rules and hiding the intended brand while load continues.",
+    "prediction": "A source-only newline repair plus regression assertion restores branded loading without changing readiness scheduling, audio unlock, gameplay bootstrap, or hunt systems.",
+    "falsifier": "Focused native assertion fails, boot scheduling changes, or fixed staging still shows the blank loader-only state."
+  },
+  "candidates": [
+    {
+      "id": "repair-css-source-boundaries",
+      "selected": true,
+      "reason": "Fixes the exact parser defect while preserving the current brand design, readiness-aware load contract, and all gameplay code."
+    },
+    {
+      "id": "replace-brand-gate-with-static-loader",
+      "selected": false,
+      "reason": "Would discard approved animation/identity and mask the parser defect instead of repairing it."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "packages/shared-ui/src/boot-gate.js",
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "summary": "Replace literal backslash-n tokens in the boot-gate stylesheet with real newlines and extend the existing demon native boot regression to reject this parser-breaking form."
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": [
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "stagingAfter": "required",
+    "limitations": [
+      "Native assertion proves stylesheet source integrity, not cross-browser visual fidelity.",
+      "After staging will verify player-visible brand restoration; physical-device timing remains unmeasured."
+    ]
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": null,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-brand-boot-css-integrity-20260921"
+  }
+}
