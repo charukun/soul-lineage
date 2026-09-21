@@ -65,6 +65,8 @@ PR #1203。`develop` を正本とし、既存の素材・ゲームキャラク�
 
 ブラウザの公開前検証は、自前Asset OriginのURLをexact-headの実体で応答させる。これは第三者runtime取得ではなく、未公開headの素材を実際に読み込むためのtransportであり、Cloudflare DEVへの公開完了を主張する証拠ではない。画面・trace・receiptのみをtask artifactに保存する。Pixel Fold実機のFPS測定や全素材のProduction美術承認はこのnative検証に含めない。
 
+最終merge-owning validationは、直前に取り込んだdevelopを祖先に持つheadで実行する。
+
 ## 手動保守
 
 以下は必要時だけ明示実行する。build、Fast DEV、常時CIには組み込まない。
