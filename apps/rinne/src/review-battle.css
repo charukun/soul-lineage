@@ -421,3 +421,33 @@ main.battle-review.review-surface .camera-zoom button{
 .battle-inspiration[data-sequence="reveal"] .battle-inspiration-mark{font-size:35px!important;text-shadow:0 0 9px rgba(255,235,174,.74),0 0 26px rgba(227,199,127,.34)!important}
 .battle-inspiration[data-sequence="reveal"] strong{font-size:19px!important;line-height:1.05!important}
 @media(max-width:520px){.battle-inspiration[data-sequence="reveal"] .battle-inspiration-mark{font-size:31px!important}.battle-inspiration[data-sequence="reveal"] strong{font-size:17px!important}}
+
+/* Name-first inspiration showcase: announce the technique, then let choreography own the screen. */
+.stage[data-inspiration-beat] > :is(.phase-panel,.combat-body-hud-host,.note,.model-status,.battle-sequence-hud,.technique-composition,.technique-loadout,.camera-zoom){
+  opacity:0!important;
+  pointer-events:none!important;
+  transition:opacity .32s ease,filter .32s ease!important;
+}
+.stage[data-inspiration-beat="afterglow"] > :is(.phase-panel,.combat-body-hud-host,.note,.model-status,.battle-sequence-hud,.technique-composition,.technique-loadout,.camera-zoom){
+  opacity:calc(var(--inspiration-progress,0)*.88)!important;
+  filter:saturate(calc(.6 + var(--inspiration-progress,0)*.4)) brightness(calc(.82 + var(--inspiration-progress,0)*.18))!important;
+}
+.battle-inspiration[data-sequence="announce"]{
+  max-width:min(360px,78vw)!important;
+  column-gap:10px!important;
+  animation:hirameki-name .34s cubic-bezier(.14,.78,.18,1) both!important;
+}
+.battle-inspiration[data-sequence="announce"] .battle-inspiration-mark{
+  font-size:36px!important;
+  text-shadow:0 0 10px rgba(255,239,188,.82),0 0 30px rgba(227,199,127,.38)!important;
+}
+.battle-inspiration[data-sequence="announce"] strong{
+  font-size:21px!important;
+  line-height:1.04!important;
+  letter-spacing:.055em!important;
+}
+@media(max-width:520px){
+  .battle-inspiration[data-sequence="announce"] .battle-inspiration-mark{font-size:31px!important}
+  .battle-inspiration[data-sequence="announce"] strong{font-size:18px!important}
+}
+

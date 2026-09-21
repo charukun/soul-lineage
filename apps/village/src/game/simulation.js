@@ -24,16 +24,16 @@ export class Navigation{
 const ROLE_NAMES={mayor:'村長',guard:'護衛',resident:'村人',player:'一族プレイヤー'};
 const FAVORITES=['焚き火の語らい','花を眺める','木陰でひと休み','釣り','部屋を飾る','読書','朝の散歩'];
 export class Simulation{
- constructor(world){this.world=world;this.nav=new Navigation(world);this.elapsed=0;this.arrivalTimer=6;this.assignmentTimer=0;this.constructionTimer=0;this.decayTimer=0;this.momentTimer=18;this.trafficRevision=1;this.extras=[];this.merchantExtra=null;this.dog=null;this.onEvent=()=>{};this.refresh();}
+ constructor(world){this.world=world;this.nav=new Navigation(world);this.elapsed=0;this.arrivalTimer=6;this.assignmentTimer=0;this.constructionTimer=0;this.decayTimer=0;this.momentTimer=18;this.trafficRevision=1;this.extras=[];this.merchantExtra=null;this.dog=null;this.dogVisible=false;this.onEvent=()=>{};this.refresh();}
  get raid(){return this.world.state.defense.raid;}
  set raid(value){this.world.state.defense.raid=value;}
- refresh(){this.trafficRevision++;this.nav.revision=-1;this.merchantExtra=null;
+ refresh(){this.trafficRevision++;this.nav.revision=-1;this.merchantExtra=null;this.dogVisible=false;
   for(const p of this.world.people){p.hunger??=85;p.purse??=0;p.task??='idle';p.timer??=0;p.path??=[];p.health??=100;p.skill??=0;p.happiness??=75;p.favorite??=FAVORITES[this.world.people.indexOf(p)%FAVORITES.length];p.memories??=[];p.seed??=this.world.random()*20;}
   const mayor=this.world.people.find(p=>p.role==='mayor'),home=mayor&&this.world.object(mayor.homeId),start=home?entry(home):mayor||{x:0,z:0};
   this.dog={id:'mayor-dog',name:'村長の犬',species:'dog',role:'pet',x:start.x+1.4,z:start.z+.7,seed:17,angle:.4,moving:false,path:[],repath:0,status:'村長のそばでのんびりしている',cargo:this.world.state.logistics.active?.items||null};
   this.syncExtras();if(!this.world.state.wildlife.length)this.seedWildlife();
  }
- syncExtras(){this.extras=[this.dog,...(this.merchantExtra?[this.merchantExtra]:[])].filter(Boolean);}
+ syncExtras(){this.extras=[...(this.dogVisible&&this.dog?[this.dog]:[]),...(this.merchantExtra?[this.merchantExtra]:[])];}
  random(){return this.world.random();}
  inTransit(resource){const logistics=this.world.state.logistics,queued=[...(logistics.pending||[]),...(logistics.active?[logistics.active]:[])];return queued.reduce((sum,r)=>sum+(Number(r.items?.[resource])||0),0);}
  nearestStorage(p){return this.world.objects.filter(o=>ready(o)&&defs[o.kind].effect==='storage').sort((a,b)=>dist(a,p)-dist(b,p))[0]||null;}
@@ -155,6 +155,7 @@ export class Simulation{
   if(present){const e=entry(m);this.merchantExtra={id:'merchant',name:'旅商人',x:e.x+2,z:e.z,seed:13,angle:-.5,moving:false,role:'merchant',status:'旅の品物を並べる'};}else this.merchantExtra=null;this.syncExtras();
  }
  dogStep(dt){const w=this.world,s=w.state,log=s.logistics,dog=this.dog,mayor=w.people.find(p=>p.role==='mayor');if(!dog||!mayor)return;
+  if(!this.dogVisible){this.dogVisible=true;this.syncExtras();}
   dog.cargo=log.active?.items||null;
   if(this.raid?.phase){const safe={x:mayor.x+1.5,z:mayor.z+1.2};dog.status='村長のそばで危険が過ぎるのを待つ';if(dist(dog,safe)>2.5)this.threatMotion(dog,safe,dt,3.8);else dog.moving=false;return;}
   if(log.active){const storage=this.nearestStorage(dog);if(!storage){const wait={x:mayor.x+2,z:mayor.z+1};dog.status='資材置き場ができるのを待っている';if(dist(dog,wait)>3)this.threatMotion(dog,wait,dt,3.2);else dog.moving=false;return;}

@@ -68,14 +68,10 @@ function rusticProp(kind,seed=1){
  return g;
 }
 function dog(){
- const g=new T.Group(),body=new T.Group();g.add(body);const fur=residentMaterial(0xa98561),dark=residentMaterial(0x59463a),cream=residentMaterial(0xd7c39e),legs=[];
- const torso=residentMesh(body,residentGeometry.detail,0xa98561,0,.72,0,.68,.48,1.05);torso.rotation.x=0;
- residentMesh(body,residentGeometry.head,0xa98561,0,.93,.63,.76,.68,.82);residentMesh(body,residentGeometry.detail,0xd7c39e,0,.82,.91,.35,.25,.28);
- for(const x of[-.22,.22]){const ear=residentMesh(body,residentGeometry.hair,0x59463a,x,1.22,.57,.42,.6,.34);ear.rotation.z=x<0?.18:-.18;}
- for(const x of[-.27,.27])for(const z of[-.35,.35]){const joint=new T.Group();joint.position.set(x,.52,z);body.add(joint);residentMesh(joint,residentGeometry.limb,0xa98561,0,-.22,0,.075,.44,.075);legs.push(joint);}
- const tail=residentMesh(body,residentGeometry.limb,0xa98561,0,.79,-.68,.09,.72,.09);tail.rotation.x=-.95;tail.rotation.z=.24;
- residentMesh(body,residentGeometry.detail,0x59463a,0,.89,1.12,.08,.07,.06);for(const x of[-.12,.12])residentMesh(body,residentGeometry.detail,0x383631,x,1.0,.91,.026,.026,.018);
- g.scale.setScalar(.82);g.userData.legs=legs;g.userData.body=body;g.userData.species='dog';return g;
+ const g=baseAnimal('wolf');
+ g.scale.multiplyScalar(.72);
+ g.userData.species='dog';
+ return g;
 }
 function prop(kind,seed=1){return rusticProp(kind,seed);}
 function animal(species='deer'){return species==='dog'?dog():baseAnimal(species);}

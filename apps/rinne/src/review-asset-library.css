@@ -367,21 +367,36 @@ body.asset-model-picker-open{overflow:hidden}
 .asset-library-head>div{display:grid;gap:2px}
 .asset-library-head strong{font-size:13px}
 .asset-library-head small,.asset-grid-title{color:#7f8d86;font-size:9px}
-.asset-filters{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.asset-equipment-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:3px;border:1px solid #2f3b36;border-radius:11px;background:#0c1210}
+.asset-equipment-tabs button{
+  min-height:34px;padding:6px 10px;border:1px solid transparent;border-radius:8px;
+  background:transparent;color:#929f98;font-size:10px;font-weight:800;letter-spacing:.03em
+}
+.asset-equipment-tabs button[aria-pressed="true"]{border-color:#c7b77f;background:#29271f;color:#fff1c8;box-shadow:inset 0 -2px #d7c58b}
+.asset-filter-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px}
+.asset-filters{min-width:0;display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
 .asset-filters::-webkit-scrollbar{display:none}
 .asset-filters button{
   flex:0 0 auto;min-height:30px;padding:5px 9px;border:1px solid #34413b;border-radius:999px;
   background:#101715;color:#aeb9b3;font-size:9px;font-weight:750
 }
 .asset-filters button[aria-pressed="true"]{border-color:#c7b77f;background:#29271f;color:#fff1c8}
+.asset-recommended-toggle{
+  flex:0 0 auto;min-height:30px;padding:5px 9px;border:1px solid #34413b;border-radius:9px;
+  background:#101715;color:#aeb9b3;font-size:9px;font-weight:800;white-space:nowrap
+}
+.asset-recommended-toggle[aria-pressed="true"]{border-color:#c7b77f;background:#29271f;color:#fff1c8}
 .asset-weapon-types .review-choice-card[data-preview-state="error"]{border-color:#9a635c!important;opacity:.68}
 .asset-equipped-summary{padding-top:10px!important;border-top:1px solid var(--line-soft)}
 .asset-provenance-shell{margin-top:2px}
 #asset-provenance{white-space:pre-wrap}
 @media(max-width:520px){
   .asset-library-head strong{font-size:12px}
+  .asset-equipment-tabs{gap:4px;padding:2px}
+  .asset-equipment-tabs button{min-height:32px;padding:5px 8px;font-size:9px}
+  .asset-filter-row{gap:4px}
   .asset-filters{gap:4px}
-  .asset-filters button{min-height:28px;padding:4px 8px;font-size:8px}
+  .asset-filters button,.asset-recommended-toggle{min-height:28px;padding:4px 8px;font-size:8px}
 }
 
 /* Armor slots extend the equipment library without changing the five-column candidate grid. */

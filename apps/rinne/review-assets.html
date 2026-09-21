@@ -44,9 +44,16 @@
       <section class="asset-section asset-equipment-section asset-library review-workbench__library review-workbench__panel-host" aria-labelledby="asset-library-title">
         <div class="asset-library-head review-workbench__library-head">
           <div><span class="control-label review-workbench__kicker">EQUIPMENT LIBRARY</span><strong id="asset-library-title">装備を選ぶ</strong></div>
-          <small>カテゴリ → 装備</small>
+          <small>種別 → カテゴリ → 装備</small>
         </div>
-        <div id="asset-filters" class="asset-filters review-filter-tabs review-workbench__filters" role="group" aria-label="装備分類"></div>
+        <div id="asset-equipment-tabs" class="asset-equipment-tabs" role="group" aria-label="装備種別">
+          <button type="button" data-equipment-section="weapon" aria-pressed="true">武器</button>
+          <button type="button" data-equipment-section="armor" aria-pressed="false">防具</button>
+        </div>
+        <div class="asset-filter-row">
+          <div id="asset-filters" class="asset-filters review-filter-tabs review-workbench__filters" role="group" aria-label="装備分類"></div>
+          <button id="asset-recommended-toggle" class="asset-recommended-toggle" type="button" aria-pressed="true" aria-label="おすすめ装備だけ表示">おすすめ</button>
+        </div>
         <div id="asset-grid-summary" class="asset-grid-title review-workbench__grid-title">候補一覧</div>
         <div id="asset-weapon-types" class="asset-weapon-types review-choice-grid" role="group" aria-label="装備候補"></div>
       </section>
