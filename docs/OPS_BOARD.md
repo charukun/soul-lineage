@@ -99,6 +99,14 @@ telemetryに実測durationがあるstepは秒数を折れ線グラフで表示�
 専用iterationsページはURL fragmentで1 iterationを直接指定でき、遷移後に対象カードを画面内へ表示する。異常iterationには、その `runKey / iteration / PR / currentStep / failed step / validated head / last failure` を参考snapshotとして含む修復プロンプトのコピー操作を出す。プロンプトは必ず現在GitHub状態とactions summaryを再確認させ、PULSE snapshotだけで修復判断を確定しない。
 
 
+
+### トップ一覧の共通進捗グラフ
+
+ACTIVEとITERATIONSは同じ視覚言語で進捗を読めるようにする。各一覧行は共通のmini progress sparklineを持ち、step順序に対する `done / running / problem / pending` を線と点で表す。mini graphは「進捗の位置」を見るためのもので、詳細な所要時間比較は `iterations.html` のduration graphへ委譲する。
+
+ACTIVEはFast DEVの `実装 → 検証 → Browser → merge → DEV`、ITERATIONSは自律iterationの代表stepを同じrendererで表示する。状態の意味は共通化するが、存在しないstepや未計測時間を推測して埋めない。
+
+
 ## 7. PULSE公開成功
 
 PULSEのstatic assetが配られただけでは正常とは扱いません。
