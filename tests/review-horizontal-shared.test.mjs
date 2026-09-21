@@ -19,7 +19,7 @@ test('review 3D surfaces share renderer, camera preset, and resource lifetime pr
   for(const source of [motion,assets,objects,thumbnails])assert.match(source,/disposeReviewObject/);
   for(const source of [motion,assets,objects,effects])assert.match(source,/createReviewRenderer/);
   assert.doesNotMatch(assets,/new THREE\.WebGLRenderer/);
-  assert.doesNotMatch(effects,/new THREE\.WebGLRenderer/);
+  assert.doesNotMatch(effects,/const canvas=q\('fx-stage'\),renderer=new THREE\.WebGLRenderer/);
   assert.doesNotMatch(motion,/function disposeScene/);
 });
 

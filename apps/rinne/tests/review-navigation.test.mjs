@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {REVIEW_NAVIGATION_FALLBACK,canReturnToPreviousReview} from '../../../packages/shared-ui/src/review-navigation.js';
+import {REVIEW_NAVIGATION_FALLBACK,canReturnToPreviousReview} from '../../packages/shared-ui/src/review-navigation.js';
 
 const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
@@ -19,7 +19,7 @@ test('RINNE specialist reviews use shared shell navigation without Vite injectio
   const [vite,rinneShell,sharedShell]=await Promise.all([
     read('vite.config.js'),
     read('src/review-lab-shell.js'),
-    read('../../../packages/shared-ui/src/review-shell.js'),
+    read('../../packages/shared-ui/src/review-shell.js'),
   ]);
   assert.doesNotMatch(vite,/reviewNavigationEntries|review-navigation\.js|transformIndexHtml/);
   assert.match(rinneShell,/historyBack:true/);
@@ -30,7 +30,7 @@ test('RINNE specialist reviews use shared shell navigation without Vite injectio
 test('stage gear discovers declarative controls instead of a per-screen selector map',async()=>{
   const [rinneShell,stage,...pages]=await Promise.all([
     read('src/review-lab-shell.js'),
-    read('../../../packages/shared-ui/src/review-stage.js'),
+    read('../../packages/shared-ui/src/review-stage.js'),
     ...['review-motion.html','review-assets.html','review-objects.html','review-effects.html','review-sound.html','review-battle.html'].map(read),
   ]);
   assert.doesNotMatch(rinneShell,/STAGE_CONTROL_GROUPS|motion-camera-strip|asset-camera-strip/);
@@ -44,8 +44,8 @@ test('stage gear discovers declarative controls instead of a per-screen selector
 test('slot picker is a shared-ui primitive and RINNE keeps only the adapter',async()=>{
   const [auto,pkg,picker]=await Promise.all([
     read('src/review-slot-auto.js'),
-    read('../../../packages/shared-ui/package.json'),
-    read('../../../packages/shared-ui/src/review-slot-picker.js'),
+    read('../../packages/shared-ui/package.json'),
+    read('../../packages/shared-ui/src/review-slot-picker.js'),
   ]);
   assert.match(auto,/@soul\/shared-ui\/review-slot-picker/);
   assert.match(pkg,/"\.\/review-slot-picker": "\.\/src\/review-slot-picker\.js"/);
