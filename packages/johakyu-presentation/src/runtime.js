@@ -326,6 +326,7 @@ function createDrivenPort(){
    const asset=models.get(key);if(!asset)return {supported:false,reason:'missing-model:'+key};
    if(row.kind!=='hero'&&row.equipment.shield)return {supported:false,reason:'unaccepted-shield-socket'};
    if(row.action&&(!row.action.legal||!row.action.motion?.supported||!asset.animations.some(clip=>clip.name===row.action.motion.clip)))return {supported:false,reason:'unaccepted-motion:'+row.action?.motion?.kind};
+   if(row.locomotion?.clip&&!asset.animations.some(clip=>clip.name===row.locomotion.clip))return {supported:false,reason:'unaccepted-locomotion:'+row.locomotion.kind};
    return {supported:true};
   },
   spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss));a.spawn=0;a.canonicalId=row.id;bindings.set(row.id,a);return a;},
@@ -341,9 +342,9 @@ function createDrivenPort(){
     if(row.equipment.shield){const shield=a.root.getObjectByName('Round_Shield');if(!shield)throw Error('Missing authored shield');shield.visible=true;}
     a.equipmentKey=equipmentKey;
    }
-   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null;
-   const clip=terminal||action?.motion.clip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
-   const key=terminal||((action?.id||clip)+':'+(action?.step??0));
+   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,locomotionClip=!action&&row.moving?row.locomotion?.clip:null;
+   const clip=terminal||action?.motion.clip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
+   const key=terminal||((action?.id||(locomotionClip?('locomotion:'+row.locomotion.kind+':'+locomotionClip):clip))+':'+(action?.step??0));
    if(a.canonicalAction!==key){play(a,clip,Boolean(terminal||action||row.hit));a.canonicalAction=key;a.deathTime=0;}
    if(action&&!terminal){a.action.paused=true;a.action.time=Math.min(a.clips.get(clip).duration-.000001,Math.max(0,action.progress)*a.clips.get(clip).duration);a.mixer.update(dt);}
    else{a.action.paused=false;if(initial&&terminal)a.action.time=a.clips.get(clip).duration-.000001;a.mixer.update(dt);}

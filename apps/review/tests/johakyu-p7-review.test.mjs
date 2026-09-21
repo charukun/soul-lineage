@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.js';
+import {createCanonicalPresentationDriver} from '../../../packages/johakyu-presentation/src/driver.js';
 
 const stageSource=()=>readFileSync(new URL('../src/nocturne-stage.js',import.meta.url),'utf8');
 const hudCss=()=>readFileSync(new URL('../src/nocturne/johakyu-p7-readout.css',import.meta.url),'utf8');
@@ -126,6 +127,51 @@ test('real guard and parry resolve incoming contact before damage and parry arms
  assert.equal(parry.damage,0);assert.equal(parry.blocked,true);assert.equal(parry.parried,true);
  assert.ok(counter,'counter stage must only land from the armed parry window');
  assert.ok(counter.damage>0);assert.equal(counter.counter,true);
+});
+
+test('1v1 creates situational breathing room before re-engaging instead of permanent contact',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let minDistance=Infinity,maxDistance=0,sawMovingReset=false;
+ for(let i=0;i<900;i++){
+   const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self),enemy=r.frame.actors.find(a=>a.id==='enemy-a'),distance=Math.hypot(hero.position.x-enemy.position.x,hero.position.z-enemy.position.z);
+   minDistance=Math.min(minDistance,distance);maxDistance=Math.max(maxDistance,distance);
+   if((hero.moving&&!hero.action)||(enemy.moving&&!enemy.action))sawMovingReset=true;
+ }
+ const trace=scenario.inspect().trace,offenseStarts=trace.filter(row=>row.type==='stage-start'&&['slash','back','thrust','pierce','heavy','diagonal','sweep','counter','bash','pommel'].includes(row.kind));
+ assert.ok(trace.some(row=>row.type==='maneuver-start'&&row.reason==='engage-range'),'attack must be earned by approach');
+ assert.ok(trace.some(row=>row.type==='maneuver-start'&&['hit-withdrawal','guard-recoil','parried-recoil','countered-withdrawal','reset-angle'].includes(row.reason)),'an exchange must reshape spacing');
+ assert.ok(sawMovingReset,'between-action footwork must be visible in canonical frames');
+ assert.ok(maxDistance-minDistance>.45,`distance must breathe rather than pin: ${minDistance}..${maxDistance}`);
+ assert.ok(offenseStarts.length>3);assert.ok(offenseStarts.every(row=>row.distance<=3.161),JSON.stringify(offenseStarts.slice(0,5)));
+ assert.ok(offenseStarts.some(row=>row.distance>2.35),'step-in attacks should be allowed to begin at the edge of measure before real contact');
+ const starts=trace.filter(row=>row.type==='stage-start').map(row=>row.time),gaps=starts.slice(1).map((time,index)=>time-starts[index]);
+ assert.ok(gaps.some(gap=>gap>.3),'combat rhythm needs at least one real settle/reposition gap');
+});
+
+test('parry visibly seizes initiative, counter follows, and the countered actor withdraws before resuming',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2});let parry=null,counter=null;
+ for(let i=0;i<900&&!(parry&&counter);i++){const r=scenario.step(1/60);parry=parry||r.events.find(e=>e.type==='parry'&&e.targetId==='hero');counter=counter||r.events.find(e=>e.type==='player-hit'&&e.counter===true);}
+ assert.ok(parry);assert.ok(counter);
+ const trace=scenario.inspect().trace,parryIndex=trace.findIndex(row=>row.type==='parry'&&row.id===parry.id),counterIndex=trace.findIndex(row=>row.type==='player-hit'&&row.id===counter.id&&row.counter);
+ assert.ok(parryIndex>=0&&counterIndex>parryIndex,'counter must read after the authored parry contact');
+ const recoil=trace.slice(parryIndex,counterIndex+1).find(row=>row.type==='maneuver-start'&&row.actorId===parry.sourceId&&row.reason==='parried-recoil');
+ assert.ok(recoil);assert.equal(recoil.footwork,'retreat');
+ const withdrawal=trace.slice(counterIndex).find(row=>row.type==='maneuver-start'&&row.actorId===counter.targetId&&row.reason==='countered-withdrawal');
+ assert.ok(withdrawal);assert.equal(withdrawal.footwork,'retreat');
+ let lockedFrames=0;
+ for(let i=0;i<24;i++){const r=scenario.step(1/60),actor=r.frame.actors.find(a=>a.id===counter.targetId);if(!actor.action)lockedFrames++;}
+ assert.ok(lockedFrames>=18,'countered side must not immediately restart an attack');
+});
+
+test('shared presentation forwards authored guard/parry contacts while still suppressing blocked damage events',()=>{
+ const delivered=[],port={supports:()=>({supported:true}),spawn:row=>({id:row.id}),remove(){},update(){},impact:event=>delivered.push(event.type)};
+ const driver=createCanonicalPresentationDriver(port),base={version:1,authority:'rinne-domain',battleId:'defense',epoch:1,revision:1,actors:[{id:'hero',self:true},{id:'enemy'}],obstacles:[],projectiles:[]};
+ driver.present(base,0);
+ driver.present({...base,revision:2},1/60,[
+   {id:'parry',type:'parry',blocked:true,damage:0,sourceId:'enemy',targetId:'hero'},
+   {id:'guard',type:'guard',blocked:true,damage:0,sourceId:'enemy',targetId:'hero'},
+   {id:'blocked-hit',type:'enemy-hit',blocked:true,damage:8,sourceId:'enemy',targetId:'hero'}
+ ]);
+ assert.deepEqual(delivered,['parry','guard']);driver.dispose();
 });
 
 test('battle2 shows the current build version from canonical build info',()=>{
