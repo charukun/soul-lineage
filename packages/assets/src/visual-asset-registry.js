@@ -1,9 +1,11 @@
 import {DELENDA_XION_ROYAL_YURT} from '../generated/delenda-xion-royal-yurt.js';
+import {curatedVisualEntries} from './curated-library.js';
 
 const PRODUCTION_ORIGINS=new Set(['artist-authored','rinne-owned-dcc']);
 const LEGACY_PROCEDURAL_IDS=new Set(['mura.housing-legacy-procedural.v1']);
 const materialized=(entry)=>Object.freeze({status:'MATERIALIZED',...entry,source:Object.freeze(entry.source),runtime:entry.runtime?Object.freeze(entry.runtime):undefined});
 export const visualAssetRegistry=Object.freeze({
+ ...Object.fromEntries(curatedVisualEntries().map(([id,entry])=>[id,materialized(entry)])),
  'village.yurt.authored-royal-xion.v3':materialized({
    id:'village.yurt.authored-royal-xion.v3',type:'building',origin:'artist-authored',dimensions:Object.freeze([19.860316,13.035083,20.394502]),license:'CC-BY-SA-3.0',
    localPath:'assets/vendor/production/delenda-yurt/xion_royal_yurt.dae',licensePath:'assets/vendor/production/delenda-yurt/Contributors and License.txt',

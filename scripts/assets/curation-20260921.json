@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "id": "curation-20260921",
+  "baseSha": "8727120b1920da1650cb1a417f5bb829d0acdb56",
+  "policy": {
+    "additiveOnly": true,
+    "thirdPartyRuntime": false,
+    "maxObjectBytes": 2097152,
+    "maxCreatureBytes": 6000000,
+    "maxAudioBytes": 1048576,
+    "maxTriangles": 30000,
+    "maxTextureDimension": 2048,
+    "rejectExistingContentHashes": true,
+    "activateAfterNativeValidation": true
+  },
+  "packs": [
+    {
+      "id": "kaykit-medieval-hexagon",
+      "repository": "KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0",
+      "revision": "84fa4e91af6a88989be7c99e0891cede11f2ca38",
+      "sourcePrefix": "addons/kaykit_medieval_hexagon_pack/Assets/gltf/",
+      "extensions": [".gltf", ".glb"],
+      "kind": "object",
+      "author": "Kay Lousberg",
+      "license": "CC0-1.0",
+      "licensePath": "LICENSE.txt",
+      "originalSource": "https://kaylousberg.com/game-assets/medieval-hexagon",
+      "selectionReason": "既存KayKitの可愛さに合う中世建築、樹木、岩、地形と生活小物。公式無料版のみ。単一アトラスの軽量モデル。"
+    },
+    {
+      "id": "kaykit-dungeon-additions",
+      "repository": "KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0",
+      "revision": "b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07",
+      "sourcePrefix": "addons/kaykit_dungeon_remastered/Assets/gltf/",
+      "extensions": [".glb"],
+      "kind": "object",
+      "author": "Kay Lousberg",
+      "license": "CC0-1.0",
+      "licensePath": "LICENSE.txt",
+      "originalSource": "https://kaylousberg.itch.io/kaykit-dungeon-remastered",
+      "selectionReason": "採用済みDungeon Remasteredと同じ造形・材質の未収録建築部材、生活道具、装飾。既存の実体・source hashは除外。"
+    },
+    {
+      "id": "quaternius-cute-monsters",
+      "repository": "agentkaerf/FreeModels",
+      "revision": "db3df04d1e4714298a09510b26fb6de6645138a2",
+      "sourcePrefix": "Cute Animated Monsters - Aug 2020/glTF/",
+      "extensions": [".gltf"],
+      "excludeNames": ["Alien", "Alien_Tall"],
+      "kind": "creature",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "licenseDeclarationUrl": "https://quaternius.com/packs/cutemonsters.html",
+      "licenseLegalCodeUrl": "https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt",
+      "originalSource": "https://quaternius.com/packs/cutemonsters.html",
+      "upstreamRelease": "Cute Animated Monsters Pack / August 2020",
+      "selectionReason": "作者が公開する無料CC0パックの動物・小型ファンタジーモンスター。SF寄りのAlien二種を除外し、原版rigと全native animationを維持。取得ミラーと作者原典を区別して記録。"
+    },
+    {
+      "id": "kenney-rpg-additions",
+      "repository": "eturner58/game-assets",
+      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
+      "sourcePrefix": "kenney/Audio/RPG Audio/Audio/",
+      "extensions": [".ogg"],
+      "kind": "audio",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licensePath": "kenney/Audio/RPG Audio/License.txt",
+      "originalSource": "https://kenney.nl/assets/rpg-audio",
+      "selectionReason": "中世の生活、扉、衣擦れ、道具と武器操作。既存登録済み音源をcontent hashで除外。"
+    },
+    {
+      "id": "kenney-impact-additions",
+      "repository": "eturner58/game-assets",
+      "revision": "fc2cd355a8e7c1d8e625fd650abf64f50a1fddaa",
+      "sourcePrefix": "kenney/Audio/Impact Sounds/Audio/",
+      "extensions": [".ogg"],
+      "kind": "audio",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licensePath": "kenney/Audio/Impact Sounds/License.txt",
+      "originalSource": "https://kenney.nl/assets/impact-sounds",
+      "selectionReason": "木材、石、金属、ガラス、足音の実音源。戦闘と村生活を補完し既存音源を維持。"
+    }
+  ],
+  "excluded": [
+    {"source": "effekseer/EffectMaterials", "reason": "現在developの307件VFXライブラリに既に正式登録済み。数を増やすための重複追加はしない。"},
+    {"source": "KayKit Character Animations 1.1", "reason": "既存の固定revision motion libraryに収録済みの共有クリップは再登録しない。"},
+    {"source": "paid extras / generative 3D", "reason": "取得権限・原典の不明確な素材、無料版外の有償追加分、生成3Dは対象外。"}
+  ]
+}
