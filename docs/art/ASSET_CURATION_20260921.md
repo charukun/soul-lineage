@@ -80,3 +80,5 @@ node scripts/browser/curated-assets.mjs
 ```
 
 一時materializer/生成workflowは最終work treeから削除する。正式なmerge-owning検証は既存Astra Work ValidationとPRに結び付くexact-head browser evidenceで行う。`main` / Productionは変更しない。
+
+最終closeoutでは、同一実装treeに対してAstraのmerge-owning focused validationとimpact-aware freshnessを再確認し、独立したdevelop driftのみなら検証を再利用して同一PRをdevelopへmergeする。
