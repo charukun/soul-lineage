@@ -22,14 +22,15 @@ export function createCombatSfx({AudioCtor=globalThis.Audio,AudioContextCtor=glo
   };
   const swing=({weapon='sword',power=.6}={})=>{const heavy=['great','axe'].includes(weapon),light=['dagger','fist'].includes(weapon),clip=slash[cursor++%Math.max(1,slash.length)];return play(clip,{rate:heavy?.78:light?1.24:1,gain:.72+Math.min(.28,Math.max(0,Number(power)||0))});};
   const impact=({guard=false,power=.7}={})=>{power=Math.max(0,Math.min(1,Number(power)||0));if(guard){tone(520+power*140,.07,.045,'triangle');tone(930+power*180,.055,.025,'square',.012);return play(draw[drawCursor++%Math.max(1,draw.length)],{rate:1.08,gain:.7});}tone(82+power*46,.09,.05+.03*power,'sine');tone(150+power*70,.055,.025,'triangle',.006);return true;};
-  const inspiration=stage=>{
-    const key=String(stage||'spark');
-    if(key==='spark'){tone(740,.12,.045,'triangle');tone(1110,.16,.032,'sine',.045);return play(draw[drawCursor++%Math.max(1,draw.length)],{rate:1.28,gain:.52});}
-    if(key==='camera'){tone(420,.09,.024,'sine');return true;}
-    if(key==='anticipation'){tone(520,.11,.035,'triangle');tone(780,.12,.028,'triangle',.055);return true;}
-    if(key==='stagger'){tone(310,.08,.035,'square');return true;}
-    if(key==='reveal'){tone(660,.18,.05,'triangle');tone(990,.22,.04,'sine',.045);tone(1320,.24,.026,'sine',.095);return true;}
-    if(key==='execute'){swing({weapon:'sword',power:.9});tone(880,.1,.03,'triangle');tone(1175,.14,.024,'triangle',.09);return true;}
+  const inspiration=(stage,profile={})=>{
+    const key=String(stage||'spark'),pitch=Math.max(.72,Math.min(1.35,Number(profile?.pitch)||1)),gain=Math.max(.55,Math.min(1.25,Number(profile?.gain)||1));
+    if(key==='spark'){tone(740*pitch,.12,.045*gain,'triangle');tone(1110*pitch,.16,.032*gain,'sine',.045);return play(draw[drawCursor++%Math.max(1,draw.length)],{rate:1.28*pitch,gain:.52*gain});}
+    if(key==='camera'){tone(420*pitch,.09,.024*gain,'sine');return true;}
+    if(key==='anticipation'){tone(520*pitch,.11,.035*gain,'triangle');tone(780*pitch,.12,.028*gain,'triangle',.055);return true;}
+    if(key==='stagger'){tone(310*pitch,.08,.035*gain,'square');return true;}
+    if(key==='reveal'){tone(660*pitch,.18,.05*gain,'triangle');tone(990*pitch,.22,.04*gain,'sine',.045);tone(1320*pitch,.24,.026*gain,'sine',.095);return true;}
+    if(key==='execute'){swing({weapon:'sword',power:Math.min(1,.9*gain)});tone(880*pitch,.1,.03*gain,'triangle');tone(1175*pitch,.14,.024*gain,'triangle',.09);return true;}
+    if(key==='impact'){tone(96*pitch,.11,.07*gain,'triangle');tone(210*pitch,.07,.035*gain,'square',.01);return true;}
     return false;
   };
   return Object.freeze({

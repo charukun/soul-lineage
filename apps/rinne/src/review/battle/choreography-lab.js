@@ -6,6 +6,7 @@ import {createAuthoredEffectPlayer} from '../../rebuild/authored-effect-player.j
 import {REVIEW_AUTHORED_EFFECTS} from '../../rebuild/authored-effect-manifest.js';
 import {authoredEffectBase,createEffekseerBackend} from '../../rebuild/effekseer-loader.js';
 import {combatEffectBudget} from '../../rebuild/combat-effect-cues.js';
+import {resolveTechniquePresentation,techniquePresentationEffectIds} from '@soul/johakyu-presentation/technique-presentation';
 
 const clamp=(value,lo=0,hi=1)=>Math.max(lo,Math.min(hi,Number(value)||0));
 const smooth=value=>{const t=clamp(value);return t*t*(3-2*t);};
@@ -77,17 +78,15 @@ function clipCandidates(weapon='sword',kind='slash'){
   return[CLIPS.oneHandDiagonal,CLIPS.oneHandChop,CLIPS.oneHandHorizontal];
 }
 function motionCurve(value,mode=0){const t=clamp(value);if(mode===1)return 1-Math.pow(1-t,2);if(mode===2)return t*t*(2-t);return smooth(t);}
-export function inspirationMotionPlan({techniqueId='',techniqueName='',phase='ha',weapon='sword',steps=[]}={}){
-  const authored=validSteps(steps),rows=authored.length?authored:[{kind:'slash'}],kinds=rows.map(step=>String(step.kind||'slash'));
-  const identity=String(techniqueId||techniqueName||'unnamed'),seed=stableMotionHash(`${identity}|${phase}|${weapon}|${kinds.join('>')}`);
-  const segments=rows.map((step,index)=>{
-    const localHash=stableMotionHash(`${seed}|${index}|${step.kind}|${step.footwork||''}`),candidates=clipCandidates(weapon,String(step.kind||'slash')),clip=candidates[localHash%candidates.length];
-    const sampleStart=.035+((localHash>>>3)%5)*.022,sampleEnd=.84+((localHash>>>7)%5)*.03,curve=(localHash>>>11)%3;
-    return Object.freeze({kind:String(step.kind||'slash'),clip,sampleStart,sampleEnd,curve});
+export function inspirationMotionPlan({techniqueId='',techniqueName='',phase='ha',weapon='sword',steps=[],grade='normal'}={}){
+  const identity=String(techniqueId||techniqueName||'unnamed'),profile=resolveTechniquePresentation({techniqueId:identity,weapon,phase,steps,grade});
+  const segments=profile.motion.segments.map(segment=>{
+    const clip=CLIPS[segment.clipRole]||clipCandidates(weapon,segment.kind)[0];
+    return Object.freeze({kind:segment.kind,clip,sampleStart:segment.sampleStart,sampleEnd:segment.sampleEnd,curve:0,speed:segment.speed,blendIn:segment.blendIn,blendOut:segment.blendOut,rootMotion:segment.rootMotion});
   });
-  const prelude=seed%4===0?CLIPS.counter:null,impactRatio=.70+((seed>>>5)%4)*.045;
-  const signature=[seed.toString(36),prelude?.name||'direct',...segments.map(row=>`${row.kind}:${row.clip.name}:${row.sampleStart.toFixed(3)}-${row.sampleEnd.toFixed(3)}:${row.curve}`)].join('|');
-  return Object.freeze({identity,seed,phase,weapon,prelude,segments:Object.freeze(segments),impactRatio,signature});
+  const seed=stableMotionHash(identity+'|'+phase+'|'+weapon),prelude=profile.archetype==='counter'?CLIPS.counter:null,impactRatio=profile.contact.hitRatio;
+  const signature=['presentation-v1',identity,profile.archetype,...segments.map(row=>row.kind+':'+row.clip.name)].join('|');
+  return Object.freeze({identity,seed,phase,weapon,prelude,segments:Object.freeze(segments),impactRatio,signature,presentation:profile});
 }
 export function inspirationAttackClipName(weapon='sword',steps=[],techniqueId='',phase='ha'){
   return inspirationMotionPlan({techniqueId,phase,weapon,steps}).segments[0].clip.name;
@@ -170,7 +169,7 @@ function cue(effect,position,rotation,{scale=1,lifetime=1,priority=2,followKey=n
 }
 export async function createInspirationVfxLab({renderer,document,onError=()=>{}}={}){
   const abort=new AbortController(),mobile=Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches),player=createAuthoredEffectPlayer({mobile,onError});
-  const ids=Object.values(INSPIRATION_VFX_SELECTIONS);player.prefetch(ids.map((effect,index)=>({effect,priority:200-index})));
+  const ids=[...new Set([...Object.values(INSPIRATION_VFX_SELECTIONS),...techniquePresentationEffectIds()])];player.prefetch(ids.map((effect,index)=>({effect,priority:200-index})));
   try{
     const backend=await createEffekseerBackend({renderer,document,baseUrl:authoredEffectBase(document),signal:abort.signal,budget:combatEffectBudget(0,mobile,false),effectDefinitions:REVIEW_AUTHORED_EFFECTS,streaming:true,fallbackEffects:['slash','impact'],maxResident:8,retentionMs:20_000});
     player.attach(backend);
@@ -179,11 +178,11 @@ export async function createInspirationVfxLab({renderer,document,onError=()=>{}}
   return Object.freeze({
     snapshot:player.snapshot,
     frame(dt,nextAnchors){anchors=nextAnchors||anchors;player.frame(VFX_SCOPE_STATE,VFX_SCOPE_FRONT,Math.max(1/240,Math.min(.05,Number(dt)||1/60)),{level:0,reduced:false,hidden:false,anchors});},
-    insight(position,rotation={x:0,y:0,z:0}){player.presentCues([cue(INSPIRATION_VFX_SELECTIONS.insight,position,rotation,{scale:.11,lifetime:.72,priority:2,followKey:'hero'})]);},
-    trail(position,rotation={x:0,y:0,z:0}){player.presentCues([cue(INSPIRATION_VFX_SELECTIONS.trail,position,rotation,{scale:.78,lifetime:.82,priority:2,followKey:'hero'})]);},
-    hit(position,rotation={x:0,y:0,z:0}){player.presentCues([
-      cue(INSPIRATION_VFX_SELECTIONS.impact,position,rotation,{scale:1.08,lifetime:1.05,priority:3,color:[255,246,220,255]}),
-      cue(INSPIRATION_VFX_SELECTIONS.debris,position,rotation,{scale:.24,lifetime:.78,priority:2,color:[255,220,150,255]})
+    insight(position,rotation={x:0,y:0,z:0},presentation=null){const spec=presentation?.vfx?.insight||{effect:INSPIRATION_VFX_SELECTIONS.insight,scale:.11};player.presentCues([cue(spec.effect,position,rotation,{scale:spec.scale,lifetime:.72,priority:2,followKey:'hero'})]);},
+    trail(position,rotation={x:0,y:0,z:0},presentation=null){const spec=presentation?.vfx?.trail||{effect:INSPIRATION_VFX_SELECTIONS.trail,scale:.78};player.presentCues([cue(spec.effect,position,rotation,{scale:spec.scale,lifetime:.82,priority:2,followKey:'hero'})]);},
+    hit(position,rotation={x:0,y:0,z:0},presentation=null){const impact=presentation?.vfx?.impact||{effect:INSPIRATION_VFX_SELECTIONS.impact,scale:1.08},secondary=presentation?.vfx?.secondary||{effect:INSPIRATION_VFX_SELECTIONS.debris,scale:.24};player.presentCues([
+      cue(impact.effect,position,rotation,{scale:impact.scale,lifetime:1.05,priority:3,color:[255,246,220,255]}),
+      cue(secondary.effect,position,rotation,{scale:secondary.scale,lifetime:.78,priority:2,color:[255,220,150,255]})
     ]);},
     draw(camera){player.draw(camera);},
     clear(){player.clear();},
