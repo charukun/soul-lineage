@@ -232,6 +232,13 @@ test('HUD follows the canonical self actor feet and stays terse',()=>{
  assert.doesNotMatch(stage,/currentNode\.textContent=.*meta\.stamina|currentNode\.textContent=.*injury/i);
 });
 
+test('HUD centers 破 on the hero axis and spans 間合い through 残心',()=>{
+ const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),css=hudCss();
+ assert.ok(html.includes('battle-sequence-hud__edge--maai')&&html.includes('間合い'));assert.ok(html.includes('battle-sequence-hud__edge--zanshin')&&html.includes('残心'));
+ assert.ok(css.includes('grid-template-columns:minmax(58px,1fr) 28px 44px 28px 44px 28px minmax(58px,1fr)'));
+ assert.ok(css.includes('.battle-sequence-hud__edge path{'));
+});
+
 test('action history remains floating text rather than a list repaint',()=>{
  const stage=stageSource(),css=hudCss();
  assert.match(stage,/spawnActionText/);assert.match(stage,/historyNode\.append\(line\)/);assert.match(stage,/animationend/);assert.match(stage,/setTimeout\(remove,4200\)/);
