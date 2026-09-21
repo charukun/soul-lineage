@@ -99,10 +99,10 @@ def tapered_panel(name,top_left,top_right,bottom_right,bottom_left,depth,mat,arm
 
 def set_palette():
     colors={
-      "PROTAGONIST_SKIN":((.88,.66,.52,1),.88),
-      "PROTAGONIST_LINEN":((.78,.72,.60,1),.92),
-      "PROTAGONIST_OLIVE":((.20,.31,.23,1),.90),
-      "PROTAGONIST_LEATHER":((.19,.105,.06,1),.84),
+      "PROTAGONIST_SKIN":((.80,.55,.42,1),.88),
+      "PROTAGONIST_LINEN":((.68,.62,.52,1),.92),
+      "PROTAGONIST_OLIVE":((.115,.205,.145,1),.90),
+      "PROTAGONIST_LEATHER":((.145,.065,.035,1),.84),
     }
     for name,(color,rough) in colors.items():
         m=bpy.data.materials.get(name)
@@ -135,12 +135,12 @@ def create_head(arm,old_lo,old_hi):
     if not head_bone: raise RuntimeError("Rig_Medium head bone missing")
     center=(old_lo+old_hi)*.5
     # Keep chibi proportion but reduce the inherited square Knight skull.
-    center.z-=.055
-    skin=material("RINNE_Female_Skin",(.90,.68,.55,1),.86)
+    center.z-=.060
+    skin=material("RINNE_Female_Skin",(.80,.55,.42,1),.86)
     hair=material("RINNE_Female_Hair",(.075,.030,.018,1),.80)
     eye=material("RINNE_Female_Eye",(.035,.018,.010,1),.48)
     eye_hi=material("RINNE_Female_EyeHighlight",(.72,.46,.19,1),.42)
-    cloth=material("RINNE_Female_Cloth",(.19,.32,.24,1),.91)
+    cloth=material("RINNE_Female_Cloth",(.095,.185,.125,1),.91)
     dark=material("RINNE_Female_Dark",(.30,.075,.055,1),.78)
 
     head=closed_rings("RINNE_FemaleHead",center,[
@@ -153,7 +153,7 @@ def create_head(arm,old_lo,old_hi):
     ],14,skin,arm,"head",True)
 
     # Bob cap: open frontal wedge keeps the face readable; lower back reaches the nape.
-    gap=.92
+    gap=.72
     start=-math.pi/2+gap
     end=-math.pi/2-gap+2*math.pi
     cap=arc_shell("RINNE_FemaleBob",center,[
@@ -183,6 +183,14 @@ def create_head(arm,old_lo,old_hi):
         ]
         back=[(x,y+.055,z+.012) for x,y,z in front]
         prism(f"RINNE_FemaleBang_{idx}",front,back,hair,arm,"head")
+    fringe_front=[
+      (center.x-.285,y0+.040,center.z+.315),
+      (center.x+.285,y0+.040,center.z+.315),
+      (center.x+.255,y0+.035,center.z+.220),
+      (center.x-.255,y0+.035,center.z+.220),
+    ]
+    fringe_back=[(x,y+.055,z+.012) for x,y,z in fringe_front]
+    prism("RINNE_FemaleFringeBase",fringe_front,fringe_back,hair,arm,"head")
 
     # Side locks give an unmistakable female silhouette in front/profile.
     for side in (-1,1):
@@ -196,16 +204,16 @@ def create_head(arm,old_lo,old_hi):
         back=[(vx,vy+.085,vz+.018) for vx,vy,vz in front]
         prism("RINNE_FemaleSideLock_L" if side<0 else "RINNE_FemaleSideLock_R",front,back,hair,arm,"head")
 
-    # Eyes are larger, lower and warmer than the inherited Knight face.
+    # Eyes: softer fourteen-sided ovals with small highlights.
     for side in (-1,1):
-        ec=Vector((center.x+side*.112,center.y-.338,center.z+.015))
+        ec=Vector((center.x+side*.108,center.y-.340,center.z+.012))
         closed_rings("RINNE_FemaleEye_L" if side<0 else "RINNE_FemaleEye_R",ec,[
-          (-.044,.050,.015,0),(.0,.060,.018,0),(.044,.048,.014,0)
-        ],10,eye,arm,"head",True)
-        hc=Vector((ec.x-side*.017,ec.y-.020,ec.z+.017))
+          (-.040,.045,.013,0),(.0,.055,.016,0),(.040,.043,.012,0)
+        ],14,eye,arm,"head",True)
+        hc=Vector((ec.x-side*.015,ec.y-.018,ec.z+.016))
         closed_rings("RINNE_FemaleEyeHi_L" if side<0 else "RINNE_FemaleEyeHi_R",hc,[
-          (-.010,.014,.006,0),(.010,.014,.006,0)
-        ],8,eye_hi,arm,"head",True)
+          (-.006,.009,.004,0),(.006,.009,.004,0)
+        ],10,eye_hi,arm,"head",True)
 
     # Brows: soft outward taper and slight arch.
     for side in (-1,1):
@@ -224,14 +232,14 @@ def create_head(arm,old_lo,old_hi):
     nose_back=[(x,y+.045,z+.010) for x,y,z in nose_front]
     prism("RINNE_FemaleNose",nose_front,nose_back,skin,arm,"head",True)
 
-    # Smile as a slim custom tapered panel.
+    # Small two-plane smile, warm enough to read without a painted-on bar.
     mouth_front=[
-      (center.x-.082,center.y-.335,center.z-.132),
-      (center.x+.082,center.y-.305,center.z-.135),
-      (center.x+.060,center.y-.340,center.z-.148),
-      (center.x-.060,center.y-.310,center.z-.153),
+      (center.x-.072,center.y-.338,center.z-.132),
+      (center.x,center.y-.343,center.z-.145),
+      (center.x+.072,center.y-.338,center.z-.132),
+      (center.x,center.y-.336,center.z-.136),
     ]
-    mouth_back=[(x,y+.012,z) for x,y,z in mouth_front]
+    mouth_back=[(x,y+.010,z) for x,y,z in mouth_front]
     prism("RINNE_FemaleMouth",mouth_front,mouth_back,dark,arm,"head")
 
     # Ears are small and partly covered by side locks.
@@ -249,25 +257,27 @@ def create_overskirt(arm,cloth):
     lo,hi=object_bounds(body); cx=(lo.x+hi.x)*.5
     ztop=lo.z+(hi.z-lo.z)*.39; zbottom=max(lo.z+.005,ztop-.19)
     yfront=lo.y-.020; yback=hi.y+.018
-    # Layered short tunic tabs instead of a flat skirt board.
     panels=[
       ("RINNE_FemaleTunicFrontC",-.105,.105,-.135,.135,0.000),
       ("RINNE_FemaleTunicFrontL",-.275,-.085,-.305,-.115,.012),
       ("RINNE_FemaleTunicFrontR",.085,.275,.115,.305,-.012),
     ]
     for name,xtl,xtr,xbl,xbr,yshift in panels:
-        tapered_panel(name,
-          (cx+xtl,yfront+yshift,ztop),(cx+xtr,yfront+yshift,ztop),
-          (cx+xbr,yfront+yshift,zbottom),(cx+xbl,yfront+yshift,zbottom),
-          .024,cloth,arm,"hips")
-    back_panels=[
+        tapered_panel(name,(cx+xtl,yfront+yshift,ztop),(cx+xtr,yfront+yshift,ztop),
+          (cx+xbr,yfront+yshift,zbottom),(cx+xbl,yfront+yshift,zbottom),.024,cloth,arm,"hips")
+    for name,xtl,xtr,xbl,xbr in [
       ("RINNE_FemaleTunicBackL",-.260,-.015,-.285,-.035),
       ("RINNE_FemaleTunicBackR",.015,.260,.035,.285),
-    ]
-    for name,xtl,xtr,xbl,xbr in back_panels:
+    ]:
         front=[(cx+xtl,yback,ztop),(cx+xtr,yback,ztop),(cx+xbr,yback,zbottom),(cx+xbl,yback,zbottom)]
         back=[(x,y-.024,z) for x,y,z in front]
         prism(name,front,back,cloth,arm,"hips")
+    for side in (-1,1):
+        x=cx+side*.285
+        front=[(x,yfront+.015,ztop-.012),(x,yback-.015,ztop-.012),
+          (x+side*.025,yback-.020,zbottom+.018),(x+side*.025,yfront+.020,zbottom+.018)]
+        back=[(vx-side*.018,vy,vz) for vx,vy,vz in front]
+        prism("RINNE_FemaleTunicSide_L" if side<0 else "RINNE_FemaleTunicSide_R",front,back,cloth,arm,"hips")
 
 def export_result(out):
     src=out/"source"; exp=out/"export"; src.mkdir(parents=True,exist_ok=True); exp.mkdir(parents=True,exist_ok=True)

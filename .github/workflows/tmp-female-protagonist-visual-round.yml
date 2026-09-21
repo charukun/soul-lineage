@@ -9,7 +9,7 @@ jobs:
   render:
     if: ${{ contains(github.event.head_commit.message, '[female-visual-round]') }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v6
         with:
@@ -35,6 +35,42 @@ jobs:
           blender -b generated/female-refined/source/ProtagonistVillagerFemaleV1.blend \
             --python scripts/blender/inspect-protagonist-villager-female-v1.py -- \
             --out generated/female-visual-round
+      - name: Render generated GLB in Character Studio
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cp generated/female-refined/export/ProtagonistVillagerFemaleV1.glb apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb
+          cp generated/female-refined/export/ProtagonistVillagerFemaleV1.glb apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          model=Path('generated/female-refined/export/ProtagonistVillagerFemaleV1.glb')
+          blend=Path('generated/female-refined/source/ProtagonistVillagerFemaleV1.blend')
+          h=lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+          for target in [Path('apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json'),Path('apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json')]:
+            receipt=json.loads(target.read_text())
+            receipt['sha256']=h(model); receipt['bytes']=model.stat().st_size; receipt['sourceBlendSha256']=h(blend)
+            target.write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\\n')
+          PY
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build --workspace @soul/character-studio
+          npm run preview --workspace @soul/character-studio >/tmp/character-studio-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill $PREVIEW_PID || true' EXIT
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:5277/ >/dev/null && break; sleep 1; done
+          npx playwright install chromium
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:792,height:1536},deviceScaleFactor:1});
+          await page.goto('http://127.0.0.1:5277/',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.masterCharacterReview?.ready===true,{timeout:30000});
+          await page.locator('[data-character-model="protagonist.villager.female.v1"]').click();
+          await page.waitForFunction(()=>window.masterCharacterReview?.displayModelId==='protagonist.villager.female.v1'&&window.masterCharacterReview?.ready===true,{timeout:30000});
+          await page.waitForTimeout(700);
+          await page.screenshot({path:'generated/female-visual-round/character-studio.png',fullPage:true});
+          await browser.close();
+          NODE
       - uses: actions/upload-artifact@v4
         with:
           name: female-visual-round-${{ github.sha }}
