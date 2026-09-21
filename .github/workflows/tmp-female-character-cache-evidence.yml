@@ -28,10 +28,12 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          npm run preview --workspace @soul/character-studio >/tmp/character-studio-preview.log 2>&1 &
+          python3 -m http.server 5277 --bind 127.0.0.1 --directory dist/character-studio >/tmp/character-studio-preview.log 2>&1 &
           PREVIEW_PID=$!
           trap 'kill $PREVIEW_PID || true' EXIT
-          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:5277/ >/dev/null && break; sleep 1; done
+          READY=0
+          for i in $(seq 1 30); do if curl -fsS http://127.0.0.1:5277/ >/dev/null; then READY=1; break; fi; sleep 1; done
+          if [ "$READY" != "1" ]; then cat /tmp/character-studio-preview.log; exit 1; fi
           npx playwright install chromium
           mkdir -p evidence/female-cache
           node --input-type=module <<'NODE'
