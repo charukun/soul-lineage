@@ -55,7 +55,14 @@ export function installInterface(village){
  const stack=document.createElement('div');stack.id='muraTopStack';document.body.append(stack);
  stack.append(hud,modes,$('tutorial'));
  const progress=document.createElement('div');progress.id='muraConstructionLayer';document.body.append(progress);
- const bars=new Map();let lastTick=0,resourceSignature=null,statsSignature='',lastRoom=null,lastObserved=null,resourcePage=0,resourceKeys=[];
+ const deliveries=document.createElement('div');deliveries.id='muraDeliveryLayer';deliveries.setAttribute('aria-live','polite');deliveries.setAttribute('aria-atomic','false');document.body.append(deliveries);
+ const bars=new Map(),deliveryNodes=new Map();let lastTick=0,resourceSignature=null,statsSignature='',lastRoom=null,lastObserved=null,resourcePage=0,resourceKeys=[],shownDeliveryRevision=world.deliveryRevision||0;
+ const formatDeliveryAmount=n=>Math.abs(n-Math.round(n))<.05?String(Math.round(n)):Number(n).toFixed(1);
+ const syncDeliveries=now=>{
+  const fresh=(world.deliveryReceipts||[]).filter(r=>r.revision>shownDeliveryRevision).sort((a,b)=>a.revision-b.revision);
+  for(const receipt of fresh){const node=document.createElement('div');node.className='muraDeliveryReceipt';node.dataset.storageId=receipt.storageId;node.dataset.until=String(now+2800);node.innerHTML=`<small>資材庫へ搬入</small><div class="muraDeliveryItems">${Object.entries(receipt.items).map(([k,n])=>`<span class="muraDeliveryItem muraTone-${k}">${hudIcon(k)}<b>${RESOURCE_NAMES[k]} +${formatDeliveryAmount(n)}</b></span>`).join('')}</div>`;deliveries.append(node);deliveryNodes.set(receipt.revision,{node,receipt});shownDeliveryRevision=Math.max(shownDeliveryRevision,receipt.revision);}
+  for(const[revision,item]of deliveryNodes){const {node,receipt}=item,storage=world.object(receipt.storageId);if(now>Number(node.dataset.until)||!storage){node.remove();deliveryNodes.delete(revision);continue;}const point=view.project(storage.x,5.6,storage.z),slot=receipt.revision%3;node.hidden=ui.entryOpen||!!ui.pending||!!view.roomId||!!view.observation||point.x<62||point.x>view.w-62||point.y<70||point.y>view.h-90;node.style.left=point.x+'px';node.style.top=(point.y-slot*22)+'px';}
+ };
  const RESOURCE_PAGE_SIZE=6;
  const renderResourcePage=()=>{
   const pageCount=Math.max(1,Math.ceil(resourceKeys.length/RESOURCE_PAGE_SIZE));resourcePage=Math.min(Math.max(0,resourcePage),pageCount-1);
@@ -98,6 +105,7 @@ export function installInterface(village){
  }
  frameHooks.add((now)=>{
   if(now-lastTick>180){lastTick=now;statusTick(now);}
+  syncDeliveries(now);
   const hudBottom=hud.getBoundingClientRect().bottom;
   for(const[id,node]of bars){const o=world.object(id);if(!o)continue;const p=view.project(o.x,4.5,o.z);node.hidden=ui.entryOpen||!!ui.pending||!!view.roomId||!!view.observation||p.x<25||p.x>view.w-25||p.y<hudBottom+12||p.y>view.h-95;node.style.left=p.x+'px';node.style.top=p.y+'px';}
  });

@@ -238,6 +238,23 @@ button:focus-visible{
 }
 .speech.micro{border-radius:3px}
 .muraConstructionBar{border-radius:3px;border:1px solid rgba(93,72,47,.45);background:#eadbc0e8;box-shadow:0 2px 0 rgba(83,64,43,.4)}
+#muraDeliveryLayer{position:fixed;inset:0;z-index:34;pointer-events:none;overflow:hidden}
+.muraDeliveryReceipt{
+  position:absolute;min-width:126px;max-width:min(230px,70vw);padding:6px 8px 7px;transform:translate(-50%,-100%);
+  border:1px solid rgba(103,78,47,.58);border-radius:3px;background-image:var(--village-fibre),linear-gradient(180deg,rgba(251,241,211,.97),rgba(221,202,160,.96));
+  box-shadow:inset 0 1px rgba(255,255,255,.55),0 2px 0 rgba(83,64,43,.42),0 7px 14px rgba(39,48,35,.16);
+  color:#465142;text-align:center;animation:muraDeliveryRise 2.8s ease-out both;will-change:transform,opacity;
+}
+.muraDeliveryReceipt small{display:block;margin-bottom:4px;font-size:7px;font-weight:800;letter-spacing:.12em;color:#796b53}
+.muraDeliveryItems{display:flex;flex-wrap:wrap;justify-content:center;gap:3px 8px}
+.muraDeliveryItem{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.muraDeliveryItem .muraHudIcon{width:17px;height:17px}.muraDeliveryItem .muraHudIcon svg{width:12px;height:12px}
+.muraDeliveryItem b{font-size:9px;font-weight:850;font-variant-numeric:tabular-nums}
+@keyframes muraDeliveryRise{
+  0%{opacity:0;transform:translate(-50%,calc(-100% + 8px)) scale(.96)}
+  12%,72%{opacity:1;transform:translate(-50%,-100%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,calc(-100% - 15px)) scale(.99)}
+}
 
 /* Menus are finite game pages. Consumer-facing pages never become mini web pages. */
 dialog{
@@ -299,7 +316,7 @@ dialog .dialogClose{border:1px solid #776346;background-image:var(--village-fibr
   .muraHudTabs{gap:16px}
 }
 
-@media(prefers-reduced-motion:reduce){button{transition:none}}
+@media(prefers-reduced-motion:reduce){button{transition:none}.muraDeliveryReceipt{animation:none}}
 
 
 /* Selected facilities use a world-anchored control plaque that follows the building. */

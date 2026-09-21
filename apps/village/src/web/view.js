@@ -139,7 +139,8 @@ export class View{
   n.userData.body.rotation.x=p.task==='work'?Math.sin(time*3)*.12:0;
   if(p.species==='rabbit'&&p.moving)n.userData.body.position.y=Math.abs(Math.sin(time*7+(p.seed||0)))*.22;
   if(p.task==='defending')n.userData.body.rotation.y=Math.sin(time*9)*.23;else n.userData.body.rotation.y=0;
-  if(n.userData.carry!==p.carry){if(n.userData.parcel)n.remove(n.userData.parcel);n.userData.carry=p.carry;if(p.carry){const parcel=new T.Mesh(new T.BoxGeometry(.8,.55,.65),mat(0xc3ad83));parcel.position.set(0,1,.52);n.add(parcel);n.userData.parcel=parcel;}}
+  const carried=p.cargo?'resource-cargo':p.carry||null;
+  if(n.userData.carry!==carried){if(n.userData.parcel)n.remove(n.userData.parcel);n.userData.carry=carried;if(carried){const resource=carried==='resource-cargo',parcel=new T.Mesh(new T.BoxGeometry(resource ? .92 : .8,resource ? .64 : .55,resource ? .72 : .65),mat(resource?0x9b794f:0xc3ad83));parcel.position.set(0,1,.52);n.add(parcel);n.userData.parcel=parcel;}}
  }
  removeActor(id){const n=this.actorNodes.get(id);if(n){this.actors.remove(n);this.actorNodes.delete(id);}}
  resize(){const r=this.canvas.getBoundingClientRect();this.w=r.width;this.h=r.height;this.renderer.setSize(r.width,r.height,false);this.rt?.setSize(Math.round(r.width*Math.min(devicePixelRatio||1,1.5)*this.renderScale),Math.round(r.height*Math.min(devicePixelRatio||1,1.5)*this.renderScale));this.blurMaterial?.uniforms.resolution.value.set(this.rt.width,this.rt.height);this.updateCamera();}
