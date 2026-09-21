@@ -26,8 +26,8 @@ test('battle2 nests native canvases inside the shared battle review frame',()=>{
   assert.doesNotMatch(html,/<iframe\b|<select\b|<input\b|data-runtime-support|id="hud"/i);
   assert.equal((html.match(/<button\b/g)||[]).length,2);
   assert.equal((html.match(/review-surface__panel/g)||[]).length,1);
-  assert.match(css,/main\.battle2-review\.review-surface>\.review-surface__workspace\s*\{\s*grid-template-columns:minmax\(0,1fr\)!important;\s*grid-template-rows:minmax\(0,1fr\)!important;/);
-  assert.doesNotMatch(css,/position:\s*fixed|height:\s*100dvh/);
+  assert.match(css,/main\.battle2-review\.review-surface>\.review-surface__workspace\s*\{\s*grid-template-columns:minmax\(0,1fr\)!important;\s*grid-template-rows:minmax\(0,1fr\) auto!important;/);
+  assert.doesNotMatch(css,/position:\s*fixed/);assert.match(css,/height:\s*100dvh/);
   assert.match(css,/review-switcher__grid\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
 });
 
