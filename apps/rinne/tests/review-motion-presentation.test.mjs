@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {Group} from 'three';
+import {applyMotionReviewWeaponGrip,motionReviewWeaponOption} from '../src/review-motion-equipment.js';
 import {MOTION_LIBRARY_SOURCES} from '../src/review-motion-sources.js';
 import {buildMotionReviewCatalog,reviewMotionDisplayName} from '../src/review-motion-catalog.js';
 
@@ -44,7 +46,7 @@ test('motion stage starts farther away and selected motion caption stays top-lef
   assert.match(source,/padding:1\.75,minDistance:1,maxDistance:12/);
   assert.match(source,/controls\.minDistance=1/);
   assert.match(css,/\.motion-stage-caption\{[^}]*left:max\(16px,env\(safe-area-inset-left\)\)[^}]*top:14px[^}]*bottom:auto/);
-  assert.match(css,/@media\(max-width:620px\)[\s\S]*?\.motion-stage-caption\{left:10px;top:10px;bottom:auto/);
+  assert.match(css,/@media\(max-width:620px\)[\s\S]*?\.motion-stage-caption\{left:10px;top:10px;bottom:auto;max-width:44%\}/);
   assert.match(preview,/\.motion-quality\{position:absolute;top:10px;left:auto;right:10px/);
   assert.match(html,/aria-label="主人公モデルのモーション。ドラッグで回転、ピンチで拡大"/);
 });
@@ -60,4 +62,8 @@ test('motion review settings can equip a right-hand weapon without changing the 
   assert.match(source,/hideEmbeddedCombatProps\(gltf\.scene\)/);
   assert.match(source,/canvas\.dataset\.motionWeapon/);
   assert.match(preview,/\.motion-compatibility label\{display:flex/);
+  for(const id of ['skeleton-blade','skeleton-axe','skeleton-staff','skeleton-crossbow']){
+    const root=new Group();applyMotionReviewWeaponGrip(root,motionReviewWeaponOption(id).spec);
+    assert.equal(root.position.lengthSq(),0,id+' must seat at the right-hand anchor');
+  }
 });
