@@ -18,6 +18,10 @@ export function normalizeReviewBattlePhase(value){
   return PHASE_SET.has(value)?value:'';
 }
 
+export function reviewInspirationModeState(mode,currentPhase=''){
+  return Object.freeze({mode:mode==='boost'?'boost':'normal',lastPhase:normalizeReviewBattlePhase(currentPhase)});
+}
+
 export function reviewBattlePhaseState(core){
   const heroPhase=normalizeReviewBattlePhase(core?.hero?.slot);
   const enemyPhase=normalizeReviewBattlePhase(core?.enemy?.slot);
