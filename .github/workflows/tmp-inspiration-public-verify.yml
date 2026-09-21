@@ -1,0 +1,33 @@
+name: Temporary public DEV inspiration verification
+on:
+  push:
+    branches:
+      - 'fix/inspiration-freeze-browser-repro-20260921'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Verify public DEV spontaneous inspiration path
+        env:
+          TARGET_URL: https://soul-lineage-rinne-dev.c-okamoto.workers.dev/review-battle
+        run: node apps/rinne/tests/inspiration-freeze-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inspiration-public-dev-evidence
+          path: .tmp/inspiration-freeze-evidence
+          if-no-files-found: warn
+          retention-days: 7
