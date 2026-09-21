@@ -125,4 +125,6 @@ test('model browsing is the primary review surface and detailed editing is secon
   assert.match(css, /\.character-model-review-actions\s*\{[^}]*grid-template-columns:\.72fr 1fr 1fr \.72fr/);
   assert.match(css, /\.character-review-details-summary/);
   assert.match(css, /\.character-model-list\{display:none!important\}/);
+  assert.match(css, /\.character-model-card-icon\{display:none!important\}/);
+  assert.match(css, /grid-template-rows:minmax\(250px,38%\) minmax\(0,62%\)/);
 });

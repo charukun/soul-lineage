@@ -3,8 +3,7 @@ import {
   DEFAULT_CHARACTER_FAMILY_ID,
   KAYKIT_DEFAULT_MODEL_ID,
   KAYKIT_FAMILY_ID,
-  KAYKIT_FOUNDATION,
-  KAYKIT_RIG_ID
+  KAYKIT_FOUNDATION
 } from './kaykit-foundation.js';
 import {
   BLOCKED_RERIG_CHARACTER_IDS,
@@ -33,34 +32,13 @@ const inactiveReferenceIds = new Set([
   ...RETIRED_GENERATIVE_CHARACTER_IDS,
   ...BLOCKED_RERIG_CHARACTER_IDS
 ]);
-function activeReference(model) {
-  if (model.kind !== 'runtime-reference-model') return model;
-  return deepFreeze({
-    ...model,
-    masterId: KAYKIT_DEFAULT_MODEL_ID,
-    production: {
-      ...model.production,
-      authority: {
-        ...model.production.authority,
-        currentMaster: ['identity', 'base-mesh', 'base-rig', 'base-materials']
-      },
-      target: {
-        ...model.production.target,
-        formats: ['glb'],
-        primaryFormat: 'glb',
-        rigId: KAYKIT_RIG_ID,
-        materialProfiles: ['stylized-pbr-fallback'],
-        preserveExpressions: false,
-        preserveSpringBones: false
-      }
-    },
-    note: `${model.note} Active review/build fallback is the pinned CC0 KayKit foundation.`
-  });
-}
+// Procedural models synthesized from reference sheets are intentionally excluded
+// from every active app-facing catalog. Only committed DCC character assets may
+// appear in Character Review. Reference-sheet metadata can remain as offline
+// authoring input, but it is never exposed as a selectable runtime model.
 export const CHARACTER_REFERENCE_MODELS = deepFreeze(Object.fromEntries(
   Object.entries(REGISTERED_REFERENCE_MODELS)
-    .filter(([id]) => !inactiveReferenceIds.has(id))
-    .map(([id, model]) => [id, activeReference(model)])
+    .filter(([id, model]) => !inactiveReferenceIds.has(id) && model.kind !== 'runtime-reference-model')
 ));
 export function characterReferenceModel(id) {
   const model = CHARACTER_REFERENCE_MODELS[id];
