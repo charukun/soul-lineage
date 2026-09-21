@@ -1,3 +1,4 @@
+import './web/dialog-exit-contract.css';
 import {openBrandBootGate} from '@soul/shared-ui/boot-gate';
 
 await openBrandBootGate({
