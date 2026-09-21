@@ -8,7 +8,8 @@
     "./runtime": "./src/runtime.js",
     "./audio": "./src/audio.js",
     "./assets": "./src/assets.js",
-    "./driver": "./src/driver.js"
+    "./driver": "./src/driver.js",
+    "./technique-presentation": "./src/technique-presentation.js"
   },
   "dependencies": {
     "@soul/assets": "*",

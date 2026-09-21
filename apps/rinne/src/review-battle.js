@@ -1,5 +1,5 @@
 import {createTidebreakRuntime} from '@soul/tidebreak-combat';
-import {CAUSAL_ANSWERS,generatedTechniqueNaming} from '@soul/game-data';
+import {CAUSAL_ANSWERS,generatedTechniqueNaming,inspirationTechniqueGrade} from '@soul/game-data';
 import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stage.js';
 import {tidebreakWeaponFor} from './rebuild/combat.js';
 import {applyChoreographyImpact,combatBodySnapshot,strategyForState} from './rebuild/combat-choreography.js';
@@ -56,7 +56,7 @@ function ensureTechniqueComposition(loadout){
 }
 async function previewTechniqueChain(phase){
   if(inspirationSequenceActive)return;const chain=techniqueComposition[phase]||[],steps=flattenReviewTechniqueChain(chain);if(!steps.length)return;
-  inspirationSequenceActive=true;beginInspirationWindow();try{const stage=await ensureBattleStage();stage.triggerInspiration({id:`review-chain-${phase}`,name:reviewChainLabel(phase,chain.length),steps,phase});}catch{inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();}
+  inspirationSequenceActive=true;beginInspirationWindow();try{const stage=await ensureBattleStage();stage.triggerInspiration({id:`review-chain-${phase}`,name:reviewChainLabel(phase,chain.length),steps,phase,weapon:selectedWeapon});}catch{inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();}
 }
 function hideInspirationBanner(){const banner=q('battle-inspiration');if(!banner)return;banner.hidden=true;delete banner.dataset.burst;delete banner.dataset.sequence;}
 function hideInspirationBulb(){clearTimeout(bulbTimer);bulbTimer=0;const bulb=q('battle-lightbulb');if(bulb)bulb.hidden=true;}
@@ -71,14 +71,14 @@ function showReviewSign(){hideReviewSign();}
 function handleInspirationCue(cue,payload={}){
   const banner=q('battle-inspiration');
   if(cue==='spark'){inspirationSequenceActive=true;hideInspirationBanner();hideReviewSign();return;}
-  if(cue==='camera'){battleSfx.inspiration('camera');return;}
-  if(cue==='spacing'){battleSfx.inspiration('anticipation');return;}
-  if(cue==='stagger'){battleSfx.inspiration('stagger');return;}
-  if(cue==='silence'){battleSfx.inspiration('spark');return;}
-  if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='announce';battleSfx.inspiration('reveal');return;}
+  if(cue==='camera'){battleSfx.inspiration('camera',payload.presentation?.sfx?.prepare);return;}
+  if(cue==='spacing'){battleSfx.inspiration('anticipation',payload.presentation?.sfx?.prepare);return;}
+  if(cue==='stagger'){battleSfx.inspiration('stagger',payload.presentation?.sfx?.prepare);return;}
+  if(cue==='silence'){battleSfx.inspiration('spark',payload.presentation?.sfx?.prepare);return;}
+  if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='announce';battleSfx.inspiration('reveal',payload.presentation?.sfx?.prepare);return;}
   if(cue==='titleEnd'){hideInspirationBanner();return;}
-  if(cue==='execute'){battleSfx.inspiration('execute');return;}
-  if(cue==='impact'){battleSfx.impact({guard:false,power:1});return;}
+  if(cue==='execute'){battleSfx.inspiration('execute',payload.presentation?.sfx?.swing);return;}
+  if(cue==='impact'){battleSfx.inspiration('impact',payload.presentation?.sfx?.impact);battleSfx.impact({guard:false,power:1});return;}
   if(cue==='done'){inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();hideInspirationBanner();}
 }
 
@@ -171,7 +171,7 @@ function activateInsight(technique,replay=false,phase='ha'){
   if(!technique||inspirationSequenceActive)return;
   inspirationSequenceActive=true;
   if(!replay){learnedSlots[phase]=technique;addTechniqueToReviewChain(techniqueComposition,phase,technique);renderTechniqueComposition();}
-  beginInspirationWindow(REVIEW_INSPIRATION_TIMELINE.end);void ensureBattleStage().then(stage=>stage.triggerInspiration({id:technique.id,name:technique.name,steps:technique.steps,phase,duration:REVIEW_INSPIRATION_TIMELINE.end})).catch(()=>{inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();});
+  beginInspirationWindow(REVIEW_INSPIRATION_TIMELINE.end);void ensureBattleStage().then(stage=>stage.triggerInspiration({id:technique.id,name:technique.name,steps:technique.steps,phase,weapon:selectedWeapon,grade:inspirationTechniqueGrade(technique),duration:REVIEW_INSPIRATION_TIMELINE.end})).catch(()=>{inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();});
   if(!replay){insightHistory.unshift({technique,name:technique.name,phase,weapon:selectedWeapon,weaponLabel:weaponSelect.selectedOptions[0]?.textContent||selectedWeapon});if(insightHistory.length>8)insightHistory.length=8;renderInsightHistory();}
 }
 function maybeInspire(phase){

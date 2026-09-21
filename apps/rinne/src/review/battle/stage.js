@@ -9,6 +9,7 @@ import {REVIEW_INSPIRATION_TIMELINE,reviewInspirationSequenceFrame} from './insp
 import {createInspirationMotionLab,createInspirationVfxLab} from './choreography-lab.js';
 import {applyReviewCombatMotion} from './hero-motion.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
+import {resolveTechniquePresentation} from '@soul/johakyu-presentation/technique-presentation';
 
 export const REVIEW_BATTLE_MODELS=REVIEW_MONSTER_MODELS;
 const clamp=(value,lo,hi)=>Math.min(hi,Math.max(lo,value));
@@ -192,7 +193,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     if(frame?.position&&frame?.look&&frame.system!=='inspiration'){const dx=frame.position.x-frame.look.x,dy=frame.position.y-frame.look.y,dz=frame.position.z-frame.look.z;frame={...frame,position:{x:frame.look.x+dx*cameraZoom,y:frame.look.y+dy*cameraZoom,z:frame.look.z+dz*cameraZoom}};}
     if(impactKick>0)frame={...frame,position:{...frame.position,x:frame.position.x-Math.sin(impactYaw)*impactKick,z:frame.position.z-Math.cos(impactYaw)*impactKick}};
     cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);const blend=1-Math.exp(-step*(frame.system==='inspiration'?18:frame.finisher?16:10));camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);
-    const fovTarget=sequence&&sequence.stage!=='done'?sequence.cameraFov:40,fovBlend=1-Math.exp(-step*(sequence?.hitStop?34:18)),nextFov=camera.fov+(fovTarget-camera.fov)*fovBlend;if(Math.abs(nextFov-camera.fov)>.001){camera.fov=nextFov;camera.updateProjectionMatrix();}
+    const cameraProfile=techniquePlayback?.presentation?.camera,fovTarget=sequence&&sequence.stage!=='done'?(sequence.stage==='impact'?cameraProfile?.impactFov:sequence.stage==='execute'?cameraProfile?.executionFov:sequence.stage==='settle'||sequence.stage==='afterglow'?cameraProfile?.settleFov:cameraProfile?.anticipationFov)||sequence.cameraFov:40,fovBlend=1-Math.exp(-step*(sequence?.hitStop?34:18)),nextFov=camera.fov+(fovTarget-camera.fov)*fovBlend;if(Math.abs(nextFov-camera.fov)>.001){camera.fov=nextFov;camera.updateProjectionMatrix();}
     camera.lookAt(cameraLook);if(frame.system==='inspiration'&&frame.roll)camera.rotateZ(frame.roll);canvas.dataset.cameraFollow=followCamera?'on':'off';canvas.dataset.cameraLock=frame.lock||'scene';canvas.dataset.cameraMode=frame.finisher?'finisher':frame.system;canvas.dataset.cameraZoom=cameraZoom.toFixed(2);if(sequence&&sequence.stage!=='done')canvas.dataset.inspirationFocus=sequence.focus;else delete canvas.dataset.inspirationFocus;
   }
 
@@ -209,9 +210,9 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
       inspirationVfx.frame(dt,anchors);
       for(const cue of ['camera','spacing','stagger','silence','reveal','titleEnd','execute','impact','settle','afterglow'])if(realNow-techniquePlayback.startedAt>=REVIEW_INSPIRATION_TIMELINE[cue]&&!techniquePlayback.emitted.has(cue)){
         techniquePlayback.emitted.add(cue);
-        if(cue==='silence')inspirationVfx.insight(handPoint,heroRotation);
-        if(cue==='execute')inspirationVfx.trail(handPoint,heroRotation);
-        if(cue==='impact'){inspirationVfx.hit(inspirationEnemyPoint,enemyRotation);impactKick=Math.max(impactKick,.075);impactYaw=Number(core?.hero?.yaw)||0;}
+        if(cue==='silence')inspirationVfx.insight(handPoint,heroRotation,techniquePlayback.presentation);
+        if(cue==='execute')inspirationVfx.trail(handPoint,heroRotation,techniquePlayback.presentation);
+        if(cue==='impact'){inspirationVfx.hit(inspirationEnemyPoint,enemyRotation,techniquePlayback.presentation);impactKick=Math.max(impactKick,techniquePlayback.presentation?.camera?.shake||.075);impactYaw=Number(core?.hero?.yaw)||0;}
         onInspirationCue(cue,techniquePlayback);
       }
     }else inspirationVfx.frame(dt,null);
@@ -232,7 +233,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     zoomBy(delta=0){cameraZoom=clamp(cameraZoom+Number(delta||0),.58,1.65);return cameraZoom;},
     setZoom(value=.82){cameraZoom=clamp(Number(value)||.82,.58,1.65);return cameraZoom;},
     cameraAngle(){return Math.atan2(camera.position.x-cameraLook.x,camera.position.z-cameraLook.z);},
-    triggerInspiration({id='',name='',steps=[],phase='ha',duration=REVIEW_INSPIRATION_TIMELINE.end}={}){const now=performance.now()/1000,total=Math.max(REVIEW_INSPIRATION_TIMELINE.end,Number(duration)||0),nearMissSide=String(id||name).length%2?1:-1;techniquePlayback={id,name,steps,phase,duration:total,startedAt:now,until:now+total,nearMissSide,emitted:new Set(['spark'])};canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');onInspirationCue('spark',techniquePlayback);setTimeout(()=>canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic'),total*1000+120);},
+    triggerInspiration({id='',name='',steps=[],phase='ha',weapon='sword',grade='normal',duration=REVIEW_INSPIRATION_TIMELINE.end}={}){const now=performance.now()/1000,total=Math.max(REVIEW_INSPIRATION_TIMELINE.end,Number(duration)||0),nearMissSide=String(id||name).length%2?1:-1,presentation=resolveTechniquePresentation({techniqueId:id||name,weapon,phase,steps,grade});techniquePlayback={id,name,steps,phase,weapon,grade,presentation,duration:total,startedAt:now,until:now+total,nearMissSide,emitted:new Set(['spark'])};canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');onInspirationCue('spark',techniquePlayback);setTimeout(()=>canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic'),total*1000+120);},
     resetRound(){cameraOrbit=0;impactKick=0;lastImpactSerial=0;inspirationVfx.clear();inspirationMotion.reset();hero.presentation=null;hero.hp=null;for(const side of enemies){side.presentation=null;side.hp=null;side.hitUntil=0;}},
     sync,
     snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',encounterMode,geometry:canvas.dataset.battleGeometry||''});},
