@@ -11,6 +11,7 @@ function unlockAudio(){
 
 export function openBrandBootGate({app='rinne',load=null}={}){
   if(typeof document==='undefined'||document.getElementById(ID))return Promise.resolve();
+  window.__SOUL_BRAND_BOOT_PENDING__=true;
   const style=document.createElement('style');
   style.textContent=`
 #${ID}{position:fixed;inset:0;z-index:2147483000;width:100%;height:100dvh;border:0;padding:0;margin:0;background:#fff;color:#111;display:grid;place-items:center;overflow:hidden;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -74,7 +75,7 @@ export function openBrandBootGate({app='rinne',load=null}={}){
     const enter=()=>{
       if(done||!armed)return;
       if(failed){location.reload();return;}
-      done=true;unlockAudio();el.disabled=true;el.classList.add('leave');
+      done=true;unlockAudio();window.__SOUL_BRAND_BOOT_PENDING__=false;window.dispatchEvent(new CustomEvent('soul:brand-enter',{detail:{app}}));el.disabled=true;el.classList.add('leave');
       setTimeout(()=>{el.remove();style.remove();document.documentElement.style.overflow=old;resolve()},280);
     };
     el.addEventListener('pointerup',enter);

@@ -10,9 +10,9 @@ export const presentRinneImpactAudio=options=>activeAudio?.impact?.(options);
 export const clearRinneImpactAudio=()=>activeAudio?.clearImpact?.();
 
 export function createRinneAudio(){
-  const BASE_MUSIC_VOLUME=.2,musicURL=audioURLs.r01,music=new Audio(musicURL);music.loop=true;music.volume=BASE_MUSIC_VOLUME;music.preload='auto';
+  const BASE_MUSIC_VOLUME=.2,TITLE_MUSIC_VOLUME=.28,musicURL=audioURLs.r01,music=new Audio(musicURL);music.loop=true;music.volume=BASE_MUSIC_VOLUME;music.preload='auto';
   const doc=globalThis.document,win=globalThis.window,pageHidden=()=>Boolean(doc&&(doc.hidden||doc.visibilityState==='hidden'));
-  let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden(),duckTimer=0,musicDetached=false,musicPosition=0;
+  let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden(),duckTimer=0,musicDetached=false,musicPosition=0,brandPending=Boolean(win?.__SOUL_BRAND_BOOT_PENDING__);
 
   const contextCanResume=()=>Boolean(context&&context.state!=='running'&&context.state!=='closed');
   function detachMusic(){
@@ -31,7 +31,7 @@ export function createRinneAudio(){
     if(context?.state==='running')void context.suspend().catch(error=>{console.warn('Rinne AudioContext suspend failed',error);});
   }
   async function resumePlayback(){
-    if(disposed||backgrounded||pageHidden()||!unlocked)return false;
+    if(disposed||backgrounded||pageHidden()||!unlocked||brandPending)return false;
     if(!restoreMusicSource())return false;
     const resume=contextCanResume()?context.resume().catch(error=>{console.warn('Rinne AudioContext resume failed',error);}):Promise.resolve();
     const playback=music.paused?music.play().catch(error=>{console.warn('Rinne music start failed',error);}):Promise.resolve();
@@ -52,10 +52,16 @@ export function createRinneAudio(){
     backgrounded=false;if(unlocked)void resumePlayback();
   }
   function recoverFromGesture(){
-    if(!unlocked||disposed||backgrounded||pageHidden())return;
+    if(!unlocked||disposed||backgrounded||pageHidden()||brandPending)return;
     if(music.paused||contextCanResume())void resumePlayback();
   }
+  function onBrandEnter(){
+    if(disposed)return;brandPending=false;music.volume=TITLE_MUSIC_VOLUME;
+    try{music.currentTime=0;}catch{}
+    void unlock();
+  }
   doc?.addEventListener?.('visibilitychange',onVisibilityChange);
+  win?.addEventListener?.('soul:brand-enter',onBrandEnter);
   win?.addEventListener?.('pagehide',suspendForBackground);
   win?.addEventListener?.('pageshow',onVisibilityChange);
   const unsubscribeAudioUnlock=webAudioActivation.subscribeUnlock(()=>unlock());
@@ -81,7 +87,7 @@ export function createRinneAudio(){
     item(){tone(620,.08,.024,'triangle');setTimeout(()=>tone(840,.08,.018,'triangle'),55);},
     combat:()=>tone(128,.11,.032,'sawtooth'),rest:()=>tone(260,.14,.014),dash:()=>tone(170,.07,.022,'square'),
     step(now){if(now-lastStep<.25)return;lastStep=now;tone(92,.035,.012);},
-    dispose(){if(disposed)return;disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);win?.removeEventListener?.('pagehide',suspendForBackground);win?.removeEventListener?.('pageshow',onVisibilityChange);unsubscribeAudioUnlock();music.volume=BASE_MUSIC_VOLUME;detachMusic();void context?.close?.();context=null;}
+    dispose(){if(disposed)return;disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);win?.removeEventListener?.('pagehide',suspendForBackground);win?.removeEventListener?.('pageshow',onVisibilityChange);win?.removeEventListener?.('soul:brand-enter',onBrandEnter);unsubscribeAudioUnlock();music.volume=BASE_MUSIC_VOLUME;detachMusic();void context?.close?.();context=null;}
   };
   activeAudio=controller;
   return controller;
