@@ -3,7 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 export const REPOSITORY = 'charukun/soul-lineage';
-export const GAMES = Object.freeze({ village: 'apps/village', kuumetsu: 'apps/demon' });
+export const GAMES = Object.freeze({ village: 'apps/village', kuumetsu: 'apps/demon', rinne: 'apps/rinne' });
 export const RECENT_LIMIT = 12;
 export const MODES = Object.freeze(['hardening', 'evolution', 'polish']);
 export const CONTEXTS = Object.freeze(['astra/fast-dev-contract', 'astra/focused-validation']);
@@ -233,8 +233,8 @@ export function checkHistoryChanges(root, baseRef, headRef = 'HEAD') {
   const rows = git(root, ['diff', '--name-status', '--no-renames', base, head]).split('\n').filter(Boolean);
   for (const row of rows) {
     const [status, path] = row.split('\t');
-    if (/^\.autonomous\/(village|kuumetsu)\/experiments\/.+\.json$/.test(path)) need(status === 'A', 'past experiments cannot be edited/deleted; append a correction');
-    if (/^\.autonomous\/(village|kuumetsu)\/receipts\/.+\.json$/.test(path)) need(status === 'A', 'past receipts cannot be edited/deleted');
+    if (/^\.autonomous\/(village|kuumetsu|rinne)\/experiments\/.+\.json$/.test(path)) need(status === 'A', 'past experiments cannot be edited/deleted; append a correction');
+    if (/^\.autonomous\/(village|kuumetsu|rinne)\/receipts\/.+\.json$/.test(path)) need(status === 'A', 'past receipts cannot be edited/deleted');
     if (status === 'D' && /(?:\.test\.mjs|\/tests\/)/.test(path)) fail(`test deletion is protected: ${path}`);
   }
   for (const game of Object.keys(GAMES)) {

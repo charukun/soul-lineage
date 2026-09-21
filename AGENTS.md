@@ -81,7 +81,7 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs on
 | Task | Read |
 | --- | --- |
 | Routine implementation | `docs/DEVELOPMENT.md` |
-| Autonomous improvement: village / 喰滅廻遊, 1 or N iterations | `.autonomous/README.md`, `.autonomous/prompts/run-iteration.md`, then the selected game's charter/protected rules/recent history |
+| Autonomous improvement: village / 喰滅廻遊 / 百年転生, 1 or N iterations | `.autonomous/README.md`, `.autonomous/prompts/run-iteration.md`, then the selected game's charter/protected rules/recent history |
 | Micro Patch | `docs/MICRO_PATCH_FAST_LANE.md` |
 | develop merge / DEV publication | `docs/DEVELOP_MERGE.md` |
 | Context retrieval | `docs/CONTEXT_EFFICIENCY.md` |
@@ -92,4 +92,4 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs on
 
 Specialized character, motion, browser, distribution, and DCC source contracts still apply when that task is requested, but routine execution stays on the canonical Astra lane. Do not read them preemptively.
 
-For 「村アプリを1 iteration自律改善してください」 or 「喰滅廻遊を1 iteration自律改善してください」, use the autonomous route above (`village` / `kuumetsu` respectively). Preserve the Fast DEV ceiling and existing quality gates. Gameplay iterations start from an immutable staging observation bound to an exact source SHA; never use a mutable latest-DEV page as Before/After evidence. Browser observation is evidence discovery, not a substitute for causal/native validation. Completion still requires validated exact-head merge to develop in this session, not Ready alone.
+For 「村アプリを1 iteration自律改善してください」, 「喰滅廻遊を1 iteration自律改善してください」, or 「百年転生を1 iteration自律改善してください」, use the autonomous route above (`village` / `kuumetsu` / `rinne` respectively). Preserve the Fast DEV ceiling and existing quality gates. Gameplay iterations start from an immutable staging observation bound to an exact source SHA; never use a mutable latest-DEV page as Before/After evidence. Browser observation is evidence discovery, not a substitute for causal/native validation. Completion still requires validated exact-head merge to develop in this session, not Ready alone.

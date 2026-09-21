@@ -10,6 +10,7 @@ const PHASES=new Set(['before','after']);
 const GAMES=Object.freeze({
   village:Object.freeze({game:'village',app:'village'}),
   kuumetsu:Object.freeze({game:'kuumetsu',app:'demon'}),
+  rinne:Object.freeze({game:'rinne',app:'rinne'}),
 });
 
 export function autonomousGame(value){
@@ -131,6 +132,6 @@ async function main(){
     process.stdout.write(JSON.stringify(bindImmutableVersion({plan,versionId:option(args,'--version')}),null,2)+'\n');
     return;
   }
-  throw new Error('Usage: node scripts/autonomous-run-controller.mjs <plan|bind> --game <village|kuumetsu> --sha <40-hex> --run-key <key> --iteration <n> --iterations <n> --phase <before|after> [--version <worker-version-id>]');
+  throw new Error('Usage: node scripts/autonomous-run-controller.mjs <plan|bind> --game <village|kuumetsu|rinne> --sha <40-hex> --run-key <key> --iteration <n> --iterations <n> --phase <before|after> [--version <worker-version-id>]');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)await main();
