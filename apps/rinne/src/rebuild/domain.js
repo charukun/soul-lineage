@@ -1,3 +1,4 @@
+import {readSavedBody,readSavedTerrain,clearSavedPresentation} from './johakyu-save-contract.js';
 import {spendActionStamina,recoverActionStamina} from '@soul/johakyu-combat/stamina';
 import { DISCOVERIES, skillEffects, skillName } from './skill-system.js';
 import { enterInteriorState, leaveInteriorState } from './interior-state.js';
@@ -90,10 +91,10 @@ export function validateLife(raw){
   state.lineage=state.lineage.slice(-INSPIRATION_LIMITS.lineage);
   state.name=cleanName(state.name);state.ageYears=state.ageSeconds/YEAR_SECONDS;
   // Migrate before injury cleanup so explicitly chosen legacy loadouts remain usable.
-  validateInspiration(state);ensureCombatInjuryState(state);recoverPersistentInjuries(state);return state;
+  state.injuries=readSavedBody(state.injuries);if(state.frontState){if(!Array.isArray(state.frontState.enemies))throw Error('遭遇の保存データが不正です。');for(const enemy of state.frontState.enemies)enemy.injuries=readSavedBody(enemy.injuries);if(state.frontState.terrain)state.frontState.terrain=readSavedTerrain(state.frontState.terrain);}validateInspiration(state);ensureCombatInjuryState(state);recoverPersistentInjuries(state);return state;
 }
-export function serializeLife(state){return JSON.stringify(validateLife(state));}
-export function deserializeLife(text){if(typeof text!=='string'||text.length>250_000)throw Error('保存データが大きすぎます。');return validateLife(JSON.parse(text));}
+export function serializeLife(state){return JSON.stringify(clearSavedPresentation(validateLife(state)));}
+export function deserializeLife(text){if(typeof text!=='string'||text.length>250_000)throw Error('保存データが大きすぎます。');return clearSavedPresentation(validateLife(JSON.parse(text)));}
 export function setClockRate(state,rate){rate=Number(rate);if(!CLOCK_RATES.includes(rate))throw Error('選べない時間倍率です。');state.clockRate=rate;return state;}
 function pushEvent(state,type,text){state.events.unshift({type,worldSecond:Math.floor(state.ageSeconds),text});if(state.events.length>80)state.events.length=80;}
 function addKnownSkill(state,id){if(state.knownSkills.includes(id))return false;state.knownSkills.push(id);return true;}
@@ -150,10 +151,10 @@ export function tickLife(state,{realDelta,lifeDelta=realDelta,station=null,pause
 }
 export function departureCycle(state){return Math.floor(state.ageYears/5);}
 export function canDepart(state){return state.phase==='living'&&!state.ended&&!state.combat&&!state.interior&&state.ageYears>=15&&departureCycle(state)>state.lastDepartureCycle;}
-export function depart(state){if(!canDepart(state))return false;state.lastDepartureCycle=departureCycle(state);state.zone='frontier';state.front=0;state.position={x:0,z:5.2};state.resting=false;state.activity=null;state.interior=null;pushEvent(state,'depart','前線へ向けて出航した。');return true;}
-export function advanceFront(state){if(state.zone!=='frontier'||state.front>=5)return false;state.front++;state.position={x:0,z:5.2};state.combat=null;pushEvent(state,'front',`第${state.front+1}前線へ進んだ。`);return true;}
+export function depart(state){if(!canDepart(state))return false;state.lastDepartureCycle=departureCycle(state);state.zone='frontier';if(state.rangedCombat){state.rangedCombat.projectiles=[];state.rangedCombat.cooldown=0;}state.front=0;state.position={x:0,z:5.2};state.resting=false;state.activity=null;state.interior=null;pushEvent(state,'depart','前線へ向けて出航した。');return true;}
+export function advanceFront(state){if(state.zone!=='frontier'||state.front>=5)return false;if(state.rangedCombat){state.rangedCombat.projectiles=[];state.rangedCombat.cooldown=0;}state.front++;state.position={x:0,z:5.2};state.combat=null;pushEvent(state,'front',`第${state.front+1}前線へ進んだ。`);return true;}
 export function returnHome(state){
-  if(state.zone!=='frontier')return false;state.zone='village';state.front=0;state.position={x:166,z:0};state.combat=null;state.interior=null;state.returns++;
+  if(state.zone!=='frontier')return false;if(state.rangedCombat){state.rangedCombat.projectiles=[];state.rangedCombat.cooldown=0;}state.zone='village';state.front=0;state.position={x:166,z:0};state.combat=null;state.interior=null;state.returns++;
   const firstReturn=!state.homelands.includes(state.birthVillageId);if(firstReturn)state.homelands.push(state.birthVillageId);pushEvent(state,'return',firstReturn?'村へ帰還した。この村が一族の故郷として刻まれた。':'村へ帰還した。');return true;
 }
 export function objectiveFor(state){

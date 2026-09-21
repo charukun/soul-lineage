@@ -37,7 +37,7 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   const stations=buildStations(layout),skirmishAnchor=villageSkirmishAnchor(stations);stations.push({id:'village-skirmish',label:'村外の戦場',x:skirmishAnchor.x,z:skirmishAnchor.z,radius:2.5,danger:true});
   const canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
   await progress('景色を描いています');
-  const view=await createWorldRenderer({canvas,document,layout,stations});
+  const view=await createWorldRenderer({canvas,document,layout,stations,buildInfo});
   await progress('旅人を迎えています');
   const preview=placeState(createLife({name:'旅人',seed:0x51f15e,villageIds:[layout.id]}),layout);
   view.syncFront(null);view.syncSkirmish(null);view.renderState(preview,.016,{titlePreview:true,titleTime:0,titleIdleTime:0});canvas.dataset.runtime='prepared';
@@ -182,6 +182,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     inputElapsed+=dt;if(inputElapsed>=.05){inputElapsed=0;const direction=open&&!document.hidden&&!document.querySelector('dialog[open]')?view.cameraVector(moveAxis):{x:0,z:0};coop.input({x:direction.x*Math.min(1,Math.hypot(moveAxis.x,moveAxis.y)),z:direction.z*Math.min(1,Math.hypot(moveAxis.x,moveAxis.y))});}
     if(shared&&(shared.tick!==coopTick||shared.epoch!==coopEpoch||shared.historyRevision!==coopHistoryRevision)){
       coopHistoryRevision=shared.historyRevision;
+      if(coopEpoch!==shared.epoch)view.clearCombatEffects?.();
       coopTick=shared.tick;coopEpoch=shared.epoch;Object.assign(canvas.dataset,{coopWorld:coop.worldId,coopPlayer:coop.selfId,coopTick:String(shared.tick),coopEpoch:String(shared.epoch),coopSeconds:String(shared.worldSeconds),coopPosition:JSON.stringify(shared.me.position),coopPeers:JSON.stringify(shared.peers.map(peer=>({id:peer.playerId,position:peer.position})))});const oldId=state.id;const previousStage=front?.stage;state=shared.me;front=shared.front;
       if(oldId!==state.id){rebirthPending=false;lastChapter='';showBirthIntro();}
       if(previousStage!==front?.stage)view.syncFront(front);else view.updateFront(front);view.syncPeers(shared.peers);handleEvents(shared.events||[],`coop:${coop.worldId}:${shared.epoch}:${shared.tick}`);

@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {simulation} from './helpers/johakyu-simulation.mjs';
 import {createJohakyuReviewRules} from '../src/nocturne/johakyu-rules.js';
 import {JOHAKYU_CLIPS} from '@soul/johakyu-combat';
-const source=readFileSync(new URL('../src/nocturne/runtime.js',import.meta.url),'utf8');
+const source=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
 const manifest=JSON.parse(readFileSync(new URL('../src/nocturne/manifest.json',import.meta.url),'utf8'));
 
 function run(mind,seconds=60){

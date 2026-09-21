@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {simulation} from './helpers/johakyu-simulation.mjs';
 import {createJohakyuCatalogRules} from '../src/nocturne/johakyu-catalog.js';
-const source=readFileSync(new URL('../src/nocturne/runtime.js',import.meta.url),'utf8');
+const source=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
 test('P4 review executes registered trial clips with real canonical physiology, never a learned-skill write',()=>{
  const rules=createJohakyuCatalogRules({loadout:{ha:'action.guard-step'}}),engine=simulation(source,{rules});engine.init();
  const clips=new Set(),phases=new Set();let hits=0;

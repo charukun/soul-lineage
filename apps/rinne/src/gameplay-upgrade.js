@@ -30,6 +30,10 @@ export function installRinneGameplayUpgrade({prepared,buildInfo}={}){
     if(s.zone==='frontier')for(const r of world.pickups){const node=world.pickupNodes.get(r.id);if(s.worldPickups.includes(r.id)){if(node)node.visible=false;continue;}if(distance(s.position,r)>1.05)continue;s.worldPickups.push(r.id);if(!s.inventory.weapons.includes(r.weapon))s.inventory.weapons.push(r.weapon);if(node)node.visible=false;toast(`${WEAPON_LABELS[r.weapon]||r.weapon} を拾った`);audio.item();}
   }
   function sharedCombat(s,training,dt){
+    // Main combat already has one authoritative executor. The training display
+    // must never run a second combat timer or publish a different phase.
+    if(s.combat&&!s.combat.training){const pose=s.combat.tidebreakPose;gameScreen.dataset.sharedCombatActive='true';gameScreen.dataset.sharedCombatAttack=pose?.attack||'';s.combat.sharedPhase=s.combat.phase;return;}
+
     const practice=training?.d<2.8?{id:training.id,hp:999,distance:training.d}:null,enemy=s.combat&&s.frontState?.enemies?.find(e=>e.id===s.combat.targetId&&!e.dead),target=practice||(enemy?{...enemy,distance:distance(s.position,enemy)}:null);
     if(!target||s.down||s.ended){sharedKey='';gameScreen.dataset.sharedCombatActive='false';return;}
     const weapon=sharedWeapon(s.equipment?.weapon),key=`${s.zone}:${target.id}:${weapon}`;if(key!==sharedKey){sharedKey=key;tidebreak.configure({weapon,hp:Math.max(1,s.hp||1),maxhp:Math.max(1,s.maxHp||1),enemyHp:Math.max(1,target.hp||100),positions:{hero:{x:0,z:0,yaw:0},enemy:{x:0,z:Math.max(1.05,Math.min(3.2,target.distance||1.8)),yaw:Math.PI}}});}
@@ -39,6 +43,8 @@ export function installRinneGameplayUpgrade({prepared,buildInfo}={}){
   function restoreRestPose(){if(!restPose)return;restPose.root.position.y=restPose.y;restPose.root.rotation.x=restPose.x;for(const [b,x,z] of restPose.bones)b.rotation.set(x,b.rotation.y,z);restPose=null;}
   function syncGuidance(s){const guide=guidanceFor({state:s,stations,front:s.frontState||null}),navigation=objectiveNavigation(s,guide);let target=document.getElementById('objective-target');if(!target){target=document.createElement('small');target.id='objective-target';target.className='objective-target';document.querySelector('.objective-card')?.append(target);}if(target){target.hidden=!navigation;target.textContent=navigation?.text||'';}gameScreen.dataset.objectiveTargetId=navigation?.targetId||'';if(s.down)gameScreen.dataset.worldTone='down';ui.setGuidance({guide,navigation});}
   function syncContextAnchor(){
+    const anchor=view.combatAnchor?.();if(anchor){ui.setContextAnchor({x:anchor.x,y:anchor.y,visible:anchor.z>=-1&&anchor.z<=1});return;}
+
     const actor=view.scene.getObjectByName('Player');if(!actor||!contextAnchorPoint){ui.setContextAnchor({visible:false});return;}
     contextAnchorPoint.set(0,1.72,0);actor.localToWorld(contextAnchorPoint);contextAnchorPoint.project(view.camera);
     const width=view.viewport?.width??canvas.clientWidth,height=view.viewport?.height??canvas.clientHeight,visible=contextAnchorPoint.z>=-1&&contextAnchorPoint.z<=1&&Math.abs(contextAnchorPoint.x)<=1.08&&Math.abs(contextAnchorPoint.y)<=1.08;

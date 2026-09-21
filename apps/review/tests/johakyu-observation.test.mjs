@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {simulation} from './helpers/johakyu-simulation.mjs';
 const root=new URL('../../../',import.meta.url);
 const read=path=>readFileSync(new URL(path,root),'utf8');
-const current=read('apps/review/src/nocturne/runtime.js');
+const current=read('packages/johakyu-presentation/src/runtime.js');
 const original=read('apps/review/src/nocturne-bk/runtime.js');
 
 test('disabled and frequently read bridges preserve 120 seconds of actual combat and RNG',()=>{

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {simulation} from './helpers/johakyu-simulation.mjs';
 import {createJohakyuPhysiologyRules} from '../src/nocturne/johakyu-physiology.js';
-const source=readFileSync(new URL('../src/nocturne/runtime.js',import.meta.url),'utf8');
+const source=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
 test('actual renderer simulation applies one canonical body hit and publishes matching stamina/body',()=>{
   const rules=createJohakyuPhysiologyRules(),engine=simulation(source,{rules});engine.init();const seen=new Set();let count=0,staminaChanged=false,injured=false;
   for(let i=0;i<3600;i++){engine.step(1/60);const snapshot=engine.observe();for(const actor of snapshot.actors){assert.ok(actor.stamina);assert.equal(Object.keys(actor.body).length,6);staminaChanged ||= actor.stamina.value<100;injured ||= Object.values(actor.body).some(part=>part.severity>0);for(const part of Object.values(actor.body))assert.equal(part.durability,Math.round((1-part.severity)*100));}
