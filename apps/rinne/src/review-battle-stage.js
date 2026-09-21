@@ -162,8 +162,15 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     const enemyPoint=activeEnemies[0],dx=enemyPoint.x-heroPoint.x,dz=enemyPoint.z-heroPoint.z,len=Math.max(.01,Math.hypot(dx,dz)),forwardX=dx/len,forwardZ=dz/len,sideX=-forwardZ,sideZ=forwardX;
     const portrait=canvas.clientWidth/Math.max(1,canvas.clientHeight)<.82,progress=clamp(Number(sequence?.progress)||0,0,1),stage=sequence?.stage||'premonition';
     const hand=heroWeaponPoint(inspirationHandPoint);inspirationEnemyPoint.set(enemyPoint.x,1.02,enemyPoint.z);
-    const close=stage==='camera'||stage==='spacing'||stage==='stagger'||stage==='silence',release=stage==='execute'?clamp(Number(sequence?.cameraRelease)||0,0,1):close?0:1,closeBehind=portrait?2.85:2.55,closeLateral=portrait?2.5:2.85,closeHeight=portrait?1.95:1.72,wideBehind=portrait?4.05:3.55,wideLateral=portrait?3.65:4.15,wideHeight=portrait?2.45:2.18,behind=closeBehind+(wideBehind-closeBehind)*release,lateral=closeLateral+(wideLateral-closeLateral)*release,height=closeHeight+(wideHeight-closeHeight)*release;
-    const position={x:heroPoint.x-forwardX*behind+sideX*lateral,y:height,z:heroPoint.z-forwardZ*behind+sideZ*lateral};
+    const close=portrait?{behind:3.45,lateral:3.10,height:2.20}:{behind:3.15,lateral:3.25,height:2.02};
+    const mid=portrait?{behind:3.95,lateral:3.55,height:2.42}:{behind:3.65,lateral:3.55,height:2.22};
+    const wideFrame=portrait?{behind:5.00,lateral:4.55,height:2.72}:{behind:4.45,lateral:4.45,height:2.48};
+    let framing=mid;
+    if(stage==='camera'||stage==='silence')framing=close;
+    else if(stage==='execute'){const release=clamp(Number(sequence?.cameraRelease)||0,0,1);framing={behind:mid.behind+(wideFrame.behind-mid.behind)*release,lateral:mid.lateral+(wideFrame.lateral-mid.lateral)*release,height:mid.height+(wideFrame.height-mid.height)*release};}
+    else if(stage==='impact')framing=wideFrame;
+    else if(stage==='reveal')framing={behind:wideFrame.behind*.84+mid.behind*.16,lateral:wideFrame.lateral*.84+mid.lateral*.16,height:wideFrame.height*.84+mid.height*.16};
+    const position={x:heroPoint.x-forwardX*framing.behind+sideX*framing.lateral,y:framing.height,z:heroPoint.z-forwardZ*framing.behind+sideZ*framing.lateral};
     let look;
     if(stage==='camera')look={x:hand.x,y:hand.y,z:hand.z};
     else if(stage==='spacing')look={x:hand.x+(inspirationEnemyPoint.x-hand.x)*progress,y:hand.y+(inspirationEnemyPoint.y-hand.y)*progress,z:hand.z+(inspirationEnemyPoint.z-hand.z)*progress};

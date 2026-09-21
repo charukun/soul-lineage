@@ -132,6 +132,6 @@ export function reviewInspirationSequenceFrame(elapsed){
   const cameraRelease=stage==='execute'?smooth((progress-.56)/.44):stage==='impact'?1:stage==='reveal'?.72:stage==='afterglow'?1-progress:0;
   const hitStop=t>=m.impact&&t<m.impactRelease;
   const focus=stage==='camera'||stage==='silence'?'weapon':stage==='spacing'?'target':stage==='stagger'?'connection':stage==='execute'||stage==='impact'?'strike':'world';
-  const cameraFov=stage==='premonition'?37.5:stage==='camera'?33.5:stage==='spacing'?34.5:stage==='stagger'?33:stage==='silence'?31.5:stage==='execute'?34+cameraRelease*14:stage==='impact'?50:stage==='reveal'?43:40.5-progress*.5;
+  const cameraFov=stage==='premonition'?41:stage==='camera'?36:stage==='spacing'?41:stage==='stagger'?42:stage==='silence'?35:stage==='execute'?42+cameraRelease*7:stage==='impact'?53:stage==='reveal'?45:41-progress;
   return Object.freeze({stage,progress,elapsed:t,spacing,executeProgress,backstepProgress,nearMiss,targetStagger,strikeTravel,impactRecoil,cameraRelease,focus,hitStop,cameraFov});
 }
