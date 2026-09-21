@@ -38,6 +38,6 @@ test('equipment review keeps the character preview primary on phones', async () 
 
 test('equipment slot copy follows the active slot', async () => {
   const js = await readFile(jsUrl, 'utf8');
-  assert.match(js, /\$\{labels\[activeAssetSlot\]\}の装備を選択/);
-  assert.match(js, /\$\{labels\[activeAssetSlot\]\}の装備を外す/);
+  assert.match(js, /\$\{labels\[activeAssetSlot\]\}の装備候補/);
+  assert.match(js, /\$\{labels\[activeAssetSlot\]\}を空ける/);
 });
