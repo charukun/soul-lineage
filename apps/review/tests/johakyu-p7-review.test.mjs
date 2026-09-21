@@ -88,6 +88,22 @@ test('canonical footwork persists in world space and only reachable impacts beco
 });
 
 
+test('duel body clearance prevents mesh penetration and parry exposes a weapon-clash point',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2});let minDistance=Infinity,parry=null,parryFrame=null;
+ for(let i=0;i<900&&(!parry||i<240);i++){
+   const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self),enemy=r.frame.actors.find(a=>a.id==='enemy-a'),distance=Math.hypot(hero.position.x-enemy.position.x,hero.position.z-enemy.position.z);
+   minDistance=Math.min(minDistance,distance);
+   const event=r.events.find(e=>e.type==='parry');
+   if(event&&!parry){parry=event;parryFrame={hero:{...hero.position},enemy:{...enemy.position}};}
+ }
+ assert.ok(minDistance>=1.459,`body centers must never collapse through each other: ${minDistance}`);
+ assert.ok(parry,'duel must produce a parry');
+ assert.equal(parry.bodyClearance,1.46);assert.ok(parry.contactDistance>=parry.bodyClearance-.001);
+ assert.ok(Number.isFinite(parry.contactPoint?.x)&&Number.isFinite(parry.contactPoint?.z),'parry must expose a real clash point');
+ const midpoint={x:(parryFrame.hero.x+parryFrame.enemy.x)/2,z:(parryFrame.hero.z+parryFrame.enemy.z)/2};
+ assert.ok(Math.hypot(parry.contactPoint.x-midpoint.x,parry.contactPoint.z-midpoint.z)<.01,'clash point must sit between the two weapon bearers');
+});
+
 test('a real miss breaks the current chain and restarts its phase from the first stage',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel',duelGap:3.6});let proof=null;
  for(let i=0;i<900&&!proof;i++){
@@ -193,7 +209,7 @@ test('battle2 presentation layers hit reactions, local hit stop, two-actor frami
  const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),audio=readFileSync(new URL('../src/nocturne/audio.js',import.meta.url),'utf8'),sharedAudio=readFileSync(new URL('../../../packages/johakyu-presentation/src/audio.js',import.meta.url),'utf8');
  assert.match(runtime,/resolveFatiguePresentation/);assert.match(runtime,/applyFatigue\(a,row,dt\)/);assert.match(runtime,/reactionClip=\['head','leftArm','rightArm'\]\.includes\(event\.bodyPart\)\?'Hit_B':'Hit_A'/);
  assert.match(runtime,/game\.hitstop=Math\.max/);assert.match(runtime,/midpoint=opponent\?hero\.pos\.clone\(\)\.lerp\(opponent\.pos,\.5\)/);assert.match(runtime,/camera\.zoom=lerp/);
- assert.match(runtime,/sound\.swing\?\./);assert.match(runtime,/sound\.parry\?\./);assert.match(runtime,/sound\.impact\?\./);assert.match(sharedAudio,/createStereoPanner/);assert.match(sharedAudio,/fatigueVoices/);
+ assert.match(runtime,/sound\.swing\?\./);assert.match(runtime,/sound\.parry\?\./);assert.match(runtime,/sound\.impact\?\./);assert.match(runtime,/event\.contactPoint/);assert.match(runtime,/const parry=event\.type==='parry',point=event\.contactPoint/);assert.match(sharedAudio,/createStereoPanner/);assert.match(sharedAudio,/fatigueVoices/);
  for(const path of [
   '../public/library/audio/kenney/sword-swing/368a5d13d3b2cc9d0bf6abe86c5ba950e49aaeb4.ogg',
   '../public/library/audio/kenney/sword-metal/7c57bffa367f23199029ef8dade2643b58627e98.ogg',
