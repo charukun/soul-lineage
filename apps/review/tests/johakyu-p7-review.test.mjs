@@ -1,61 +1,97 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {BASIC_FORMS,ACTION_FORMS} from '@soul/game-data/combat-forms';
 import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.js';
-import {createCanonicalReviewComposition,reviewTechniqueDefinition} from '../src/nocturne/johakyu-technique-composition.js';
 
-const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
+const stageSource=()=>readFileSync(new URL('../src/nocturne-stage.js',import.meta.url),'utf8');
+const hudCss=()=>readFileSync(new URL('../src/nocturne/johakyu-p7-readout.css',import.meta.url),'utf8');
 
-test('battle2 remains 1v1 or 1v3 only and does not connect inspiration',()=>{
- const html=read('../battle2.html'),stage=read('../src/nocturne-stage.js');
- assert.equal((html.match(/data-battle-mode=/g)||[]).length,2);assert.doesNotMatch(html+stage,/inspiration|hirameki|閃き|battle-inspire|pendingDiscoveries/i);
+test('battle2 keeps only 1v1 and 1v3 controls and never wires inspiration',()=>{
+ const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource();
+ assert.match(html,/<h1>序破急バトル<\/h1>/);assert.equal((html.match(/data-battle-mode=/g)||[]).length,2);assert.match(html,/data-battle-mode="duel"/);assert.match(html,/data-battle-mode="oneVsThree"/);
+ assert.doesNotMatch(html+stage,/inspiration|hirameki|閃き|battle-inspire|pendingDiscoveries/i);
+ assert.match(html,/data-combat-phase="jo"/);assert.match(html,/data-combat-phase="ha"/);assert.match(html,/data-combat-phase="kyu"/);assert.match(html,/battle-sequence-history/);
 });
 
-test('review technique definitions are derived from canonical combat forms',()=>{
- const basic=reviewTechniqueDefinition('basic.sword',{phase:'jo'}),counter=reviewTechniqueDefinition('action.counter',{phase:'ha'});
- assert.deepEqual(basic.steps.map(s=>s.kind),BASIC_FORMS.sword.kinds);assert.deepEqual(basic.steps.map(s=>s.footwork),BASIC_FORMS.sword.feet);
- assert.deepEqual(counter.steps.map(s=>s.kind),ACTION_FORMS['action.counter'].kinds);assert.deepEqual(counter.steps.map(s=>s.footwork),ACTION_FORMS['action.counter'].feet);
- assert.equal(reviewTechniqueDefinition('action.flow',{phase:'ha'}),null,'unauthored crosscut must fail closed instead of receiving a fake motion');
-});
-
-test('composition is stage -> technique -> chain -> jo/ha/kyu and never hardcodes phase behavior',()=>{
- const composition=createCanonicalReviewComposition();
- assert.deepEqual(Object.keys(composition),['jo','ha','kyu']);
- for(const phase of ['jo','ha','kyu']){assert.ok(composition[phase].length>=1&&composition[phase].length<=3);for(const technique of composition[phase])assert.ok(technique.steps.length>=1&&technique.steps.length<=3);}
- const source=read('../src/nocturne/johakyu-p7-review.js');
- assert.doesNotMatch(source,/const TACTICS|opening-read|decisive-opening|quiet|exchange|decisive/);
- assert.match(source,/currentTechnique\(\)/);assert.match(source,/advanceSequence\(reason\)/);assert.match(source,/stageIndex/);assert.match(source,/techniqueIndex/);
-});
-
-test('1v1 executes every configured stage in technique order before advancing phase',()=>{
- const scenario=createJohakyuP7ReviewScenario({mode:'duel'}),starts=[];let lastId=null;
- for(let i=0;i<1800;i++){const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self),a=hero?.action;if(a&&a.id!==lastId){lastId=a.id;starts.push({phase:a.phase,techniqueId:a.techniqueId,techniqueIndex:a.techniqueIndex,stageIndex:a.stageIndex,kind:a.motion.kind});}if(starts.some(x=>x.phase==='kyu'&&x.techniqueIndex>=1&&x.stageIndex>=2))break;}
- assert.ok(starts.length>10,JSON.stringify(starts));const order={jo:0,ha:1,kyu:2};let previous=-1;
- for(const row of starts){const current=order[row.phase];assert.ok(current===previous||current===previous+1||current===0&&previous>0||previous===-1,JSON.stringify(starts));previous=current;}
- for(let i=1;i<starts.length;i++){const a=starts[i-1],b=starts[i];if(a.phase!==b.phase)continue;
-   assert.ok(b.techniqueIndex>a.techniqueIndex||b.techniqueIndex===a.techniqueIndex&&b.stageIndex===a.stageIndex+1,JSON.stringify(starts));
+test('review fixture is a real phase -> technique -> stage composition, not fixed phase tactics',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel'}),composition=scenario.composition.hero;
+ assert.deepEqual(composition.jo.map(row=>row.id),['action.feint','action.side-step']);
+ assert.deepEqual(composition.ha.map(row=>row.id),['action.guard-step','action.counter']);
+ assert.deepEqual(composition.kyu.map(row=>row.id),['action.crash','action.precision']);
+ for(const phase of ['jo','ha','kyu'])for(const technique of composition[phase]){
+   assert.equal(technique.phase,phase);assert.ok(technique.stages.length>=1&&technique.stages.length<=3);
+   technique.stages.forEach((stage,index)=>{assert.equal(stage.index,index);assert.equal(stage.phase,phase);assert.equal(stage.techniqueId,technique.id);});
  }
- for(const phase of ['jo','ha','kyu'])assert.ok(starts.filter(r=>r.phase===phase).length>=3,phase);
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');
+ assert.doesNotMatch(source,/const TACTICS=|const TEMPO=|DAMAGE=Object\.freeze\(\{jo:/);
+ assert.match(source,/compileTechniqueComposition/);assert.match(source,/techniqueFromCombatForm/);assert.match(source,/advanceCursor/);
 });
 
-test('actual impact identity carries technique, phase and stage',()=>{
- const scenario=createJohakyuP7ReviewScenario({mode:'duel'});const hits=[];
- for(let i=0;i<1200;i++){const r=scenario.step(1/60);hits.push(...r.events.filter(e=>e.type==='player-hit'));if(hits.length>=6)break;}
- assert.ok(hits.length>=4);for(const hit of hits){assert.ok(hit.techniqueId);assert.ok(hit.techniqueName);assert.ok(['jo','ha','kyu'].includes(hit.phase));assert.ok(Number.isInteger(hit.stageIndex));}
+test('1v1 executes only configured techniques and keeps stage order inside each chain',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel'}),composition=scenario.composition.hero,seen=new Set(),rows=[];
+ for(let i=0;i<1500;i++){
+   const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self),action=hero?.action;
+   if(!action||seen.has(action.id))continue;seen.add(action.id);
+   const technique=composition[action.phase][action.techniqueIndex],stage=technique?.stages[action.stageIndex];
+   assert.ok(technique,'configured technique');assert.ok(stage,'configured stage');
+   assert.equal(action.techniqueId,technique.id);assert.equal(action.name,technique.name);assert.equal(action.motion.kind,stage.kind);assert.equal(action.footwork,stage.step.footwork);
+   rows.push({battleId:r.frame.battleId,phase:action.phase,techniqueId:action.techniqueId,techniqueIndex:action.techniqueIndex,stageIndex:action.stageIndex});
+ }
+ assert.ok(rows.length>12);
+ const firstBattle=rows.filter(row=>row.battleId===rows[0].battleId),firstSeen=new Set(),ordered=[];
+ for(const row of firstBattle){const key=`${row.phase}:${row.techniqueIndex}:${row.stageIndex}`;if(firstSeen.has(key))continue;firstSeen.add(key);ordered.push(key);}
+ assert.deepEqual(ordered.slice(0,18),[
+   'jo:0:0','jo:0:1','jo:0:2','jo:1:0','jo:1:1','jo:1:2',
+   'ha:0:0','ha:0:1','ha:0:2','ha:1:0','ha:1:1','ha:1:2',
+   'kyu:0:0','kyu:0:1','kyu:0:2','kyu:1:0','kyu:1:1','kyu:1:2'
+ ]);
 });
 
-test('HUD follows self feet and displays technique name plus stage only',()=>{
- const stage=read('../src/nocturne-stage.js'),runtime=read('../../../packages/johakyu-presentation/src/runtime.js');
- assert.match(runtime,/self\(a\)\{hero=a;selfBinding=a;\}/);assert.match(runtime,/footAnchor\(\)\{if\(!selfBinding\)/);
- assert.match(stage,/techniqueStageName/);assert.match(stage,/meta\?\.techniqueName/);assert.match(stage,/\$\{meta\.stageIndex\+1\}段/);
- assert.doesNotMatch(stage,/currentNode\.textContent=.*stamina|currentNode\.textContent=.*injury/i);
+test('phase changes only when the configured chain completes',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let previous='jo',battleId='',changes=[];
+ for(let i=0;i<1500;i++){
+   const r=scenario.step(1/60),phase=r.meta.phase;
+   if(battleId===r.meta.battleId&&phase!==previous)changes.push({from:previous,to:phase,trace:r.trace?.at?.(-1)});
+   battleId=r.meta.battleId;previous=phase;
+ }
+ const trace=scenario.inspect().trace.filter(row=>row.type==='phase-change');
+ assert.ok(trace.some(row=>row.phase==='ha'&&row.reason==='configured-chain-complete'));
+ assert.ok(trace.some(row=>row.phase==='kyu'&&row.reason==='configured-chain-complete'));
+ assert.doesNotMatch(JSON.stringify(trace),/opening-read|decisive-opening|danger-window/);
 });
 
-test('1v3 uses the same hero technique composition',()=>{
- const scenario=createJohakyuP7ReviewScenario({mode:'oneVsThree'});let observed=null;
- for(let i=0;i<300;i++){const r=scenario.step(1/60);assert.equal(r.frame.actors.filter(a=>a.side==='party').length,1);assert.equal(r.frame.actors.filter(a=>a.side==='enemy').length,3);observed=observed||r.frame.actors.find(a=>a.self)?.action;}
- assert.ok(observed?.techniqueId);
+test('1v3 retains canonical impact, body and stamina state',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'oneVsThree'}),ids=new Set();let maxInjury=0,minStamina=100;
+ for(let i=0;i<900;i++){const r=scenario.step(1/60);assert.equal(r.frame.reviewMode,'oneVsThree');assert.equal(r.frame.actors.length,4);assert.equal(r.frame.actors.filter(a=>a.side==='party').length,1);assert.equal(r.frame.actors.filter(a=>a.side==='enemy').length,3);minStamina=Math.min(minStamina,r.meta.stamina);for(const a of r.frame.actors)for(const b of Object.values(a.body))maxInjury=Math.max(maxInjury,b.severity);for(const e of r.events){assert.ok(!ids.has(e.id));ids.add(e.id);assert.ok(e.techniqueId);assert.ok(e.stageLabel);}}
+ assert.ok(ids.size>0);assert.ok(maxInjury>0);assert.ok(minStamina<100);
 });
 
-test('unsupported battle counts fail closed',()=>assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/));
+test('HUD metadata comes from the executing technique and stage',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let checked=0;
+ for(let i=0;i<480;i++){const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self);if(!hero.action)continue;checked++;
+   assert.equal(r.meta.phase,hero.action.phase);assert.equal(r.meta.techniqueId,hero.action.techniqueId);assert.equal(r.meta.techniqueName,hero.action.name);
+   assert.equal(r.meta.stageIndex,hero.action.stageIndex);assert.equal(r.meta.stageLabel,hero.action.stageLabel);assert.equal(r.meta.chainLabel,hero.action.chainLabel);
+ }
+ assert.ok(checked>120);
+});
+
+test('HUD follows the canonical self actor feet and stays terse',()=>{
+ const stage=stageSource(),css=hudCss(),html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8');
+ const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ const controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8');
+ assert.match(runtime,/self\(a\)\{hero=a;selfBinding=a;\}/);assert.match(runtime,/footAnchor\(\)\{if\(!selfBinding\)return null/);
+ assert.match(controller,/footAnchor:\(\)=>driven\.footAnchor/);assert.match(stage,/function positionHud\(\)/);assert.match(stage,/runtime\?\.footAnchor\?\.\(\)/);
+ assert.match(stage,/hud\.style\.left/);assert.match(stage,/hud\.style\.top/);assert.doesNotMatch(html,/間合いを測っている/);
+ assert.match(stage,/function shortActionName/);assert.match(stage,/line\.textContent=row\.label/);
+ assert.doesNotMatch(stage,/currentNode\.textContent=.*meta\.stamina|currentNode\.textContent=.*injury/i);
+});
+
+test('action history remains floating text rather than a list repaint',()=>{
+ const stage=stageSource(),css=hudCss();
+ assert.match(stage,/spawnActionText/);assert.match(stage,/historyNode\.append\(line\)/);assert.match(stage,/animationend/);assert.match(stage,/setTimeout\(remove,4200\)/);
+ assert.doesNotMatch(stage,/historyNode\.replaceChildren\(\.\.\.history\.map/);
+ assert.match(css,/\.battle-sequence-history__float\{/);assert.match(css,/position:absolute/);assert.match(css,/johakyu-text-drift 3\.7s/);assert.match(css,/@keyframes johakyu-text-drift/);
+ assert.doesNotMatch(css,/battle-sequence-history__float[^}]*background:/);
+});
+
+test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});
