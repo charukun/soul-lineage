@@ -2,6 +2,7 @@ import { subscribe } from './view-state.js';
 import { ageLabel, FAILED_CONCLUSIONS } from './health.mjs';
 import { eventDrivenAlerts } from './freshness.mjs';
 import { buildIssueRepairPrompt } from './issue-repair-prompt.js';
+import { renderProgressMini } from './progress-mini.js';
 
 const $ = selector => document.querySelector(selector);
 const el = (tag, className = '', text = null) => {
@@ -54,6 +55,12 @@ function managedApps(state) {
 function activePulls(state) {
   return (state?.pullRequests?.normal || []).filter(pr => pr.state === 'Draft' || pr.state === 'Ready');
 }
+function activeSessions(state) {
+  const rank=status=>({problem:0,running:1,active:2,publishing:3,complete:4})[status]??5;
+  return (state?.developmentSessions || [])
+    .filter(session => session.state === 'Draft' || session.state === 'Ready')
+    .sort((a,b)=>rank(a.status)-rank(b.status)||parsedAt(b.updatedAt)-parsedAt(a.updatedAt));
+}
 function relatedPulls(state, appId) {
   return (state?.pullRequests?.normal || [])
     .filter(pr => (pr.targets || []).some(target => target.id === appId))
@@ -96,33 +103,15 @@ function renderActive(state) {
   const root = $('#rapid-active-list');
   const count = $('#rapid-active-count');
   if (!root || !count) return;
-  const pulls = activePulls(state);
-  count.textContent = pulls.length ? String(pulls.length) + '件' : '0件';
+  const sessions = activeSessions(state);
+  count.textContent = sessions.length ? String(sessions.length) + '件' : '0件';
   root.replaceChildren();
-  if (!pulls.length) {
+  if (!sessions.length) {
     root.append(el('p', 'rapid-empty rapid-empty-ok', '現在の作業中タスクはありません'));
     return;
   }
-  for (const pr of pulls.slice(0, 2)) {
-    const href = safeHref(pr.url);
-    const row = el(href ? 'a' : 'article', 'rapid-task-row');
-    if (href) {
-      row.href = href;
-      row.target = '_blank';
-      row.rel = 'noreferrer';
-    }
-    const copy = el('span', 'rapid-task-copy');
-    const title = el('strong', '', pr.title || 'PR #' + pr.number);
-    const target = (pr.targets || []).slice(0, 2).map(item => item.label).join(' / ') || '対象確認中';
-    const detail = el('span', '', target + ' · ' + (pr.detail || '作業内容を確認中'));
-    copy.append(title, detail);
-    const meta = el('span', 'rapid-task-meta');
-    const view = taskView(pr.state);
-    meta.append(el('span', 'rapid-state ' + view[1], view[0]), el('time', '', relative(pr.updatedAt)));
-    row.append(copy, meta);
-    root.append(row);
-  }
-  if (pulls.length > 2) root.append(el('p', 'rapid-more-note', 'ほか ' + (pulls.length - 2) + '件'));
+  sessions.slice(0, 2).forEach(session=>root.append(renderSession(session,{graph:true})));
+  if (sessions.length > 2) root.append(el('p', 'rapid-more-note', 'ほか ' + (sessions.length - 2) + '件'));
 }
 
 function appHistory(state, app) {
@@ -323,9 +312,10 @@ const durationLabel=ms=>{
 const iterationCurrentPhase=(session,phases=[])=>phases.find(phase=>phase.id===session.currentStep)
   ||phases.find(phase=>phase.state==='problem')
   ||phases.find(phase=>phase.state==='running')
+  ||phases.find(phase=>phase.state==='waiting'||phase.state==='pending')
   ||null;
 
-function renderSession(session,{iteration=false}={}) {
+function renderSession(session,{iteration=false,graph=false}={}) {
   const row=el(iteration?'a':'article','rapid-session-row '+(session.status||'active')+(iteration?' rapid-iteration-row':''));
   if(iteration){
     row.href=iterationHref(session);
@@ -342,13 +332,13 @@ function renderSession(session,{iteration=false}={}) {
   const allPhases=iteration?(session.iterationSteps||session.steps||[]):(session.steps||[]);
   const summaryIds=new Set(['observation','implementation','astraValidation','afterObservation','merge','devPublish']);
   const phases=iteration?allPhases.filter(phase=>summaryIds.has(phase.id)):allPhases;
-  const current=iteration?iterationCurrentPhase(session,allPhases):null;
+  const current=iterationCurrentPhase(session,allPhases);
   const meta=el('div','rapid-session-meta');
   const target=iteration
     ? iterationGameLabel(iterationGame)+(current?' · '+current.label+(current.state==='running'?'中':current.state==='problem'?'で異常':''):'')
-    : (session.targets||[]).map(item=>item.label).join(' / ')||'対象確認中';
+    : ((session.targets||[]).map(item=>item.label).join(' / ')||'対象未記録')+(current?' · '+current.label:'');
   meta.append(el('span','',target));
-  if(iteration){
+  if(iteration||graph){
     const measured=current?phaseDuration(current):null;
     const total=allPhases.map(phase=>phaseDuration(phase)).filter(Number.isFinite).reduce((sum,value)=>sum+value,0);
     const prefix=session.status==='complete'?'DONE':session.status==='problem'?'ISSUE':'NOW';
@@ -360,16 +350,25 @@ function renderSession(session,{iteration=false}={}) {
   const validated=session.validatedExactHead||session.validatedHead;
   if(validated)meta.append(el('code','',String(validated).slice(0,8)));
   if(session.repairAttempts)meta.append(el('span','rapid-session-repair','再検証 '+session.repairAttempts+'回'));
-  const flow=el('div','rapid-session-flow'+(iteration?' rapid-iteration-flow':''));
-  for(const phase of phases){
-    const view=sessionStepView(phase.state),href=!iteration?safeHref(phase.url):null;
-    const node=el(href?'a':'span','rapid-session-step '+view[1]);
-    if(href){node.href=href;node.target='_blank';node.rel='noreferrer';}
-    node.title=phase.label+': '+view[0];
-    node.append(el('i',''),el('b','',phase.label));
-    flow.append(node);
+  if(graph){
+    const mini=renderProgressMini(phases,{
+      ariaLabel:(iteration?'自律iteration':'作業中タスク')+'の工程進捗',
+      className:iteration?'iteration':'active',
+    });
+    if(mini)row.append(head,meta,mini);
+    else row.append(head,meta);
+  }else{
+    const flow=el('div','rapid-session-flow'+(iteration?' rapid-iteration-flow':''));
+    for(const phase of phases){
+      const view=sessionStepView(phase.state),href=!iteration?safeHref(phase.url):null;
+      const node=el(href?'a':'span','rapid-session-step '+view[1]);
+      if(href){node.href=href;node.target='_blank';node.rel='noreferrer';}
+      node.title=phase.label+': '+view[0];
+      node.append(el('i',''),el('b','',phase.label));
+      flow.append(node);
+    }
+    row.append(head,meta,flow);
   }
-  row.append(head,meta,flow);
   return row;
 }
 
@@ -390,7 +389,7 @@ function renderIterations(state){
     root.append(el('p','rapid-empty','直近の自律イテレーションはありません'));
     return;
   }
-  iterations.forEach(session=>root.append(renderSession(session,{iteration:true})));
+  iterations.forEach(session=>root.append(renderSession(session,{iteration:true,graph:true})));
 }
 
 function renderRecent(state) {
