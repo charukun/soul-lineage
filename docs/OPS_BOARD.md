@@ -89,6 +89,16 @@ telemetryに実測durationがあるstepは秒数を折れ線グラフで表示�
 トップ画面は最大3件の軽量サマリに留め、詳細な改修内容・step timing・並行session確認は専用ページへ委譲します。
 
 
+
+### Iteration操作性
+
+トップのITERATIONSは「一覧を見る」ための軽量面とし、1行タップで専用ページの該当iterationへ直接移動できること。各行は対象gameと現在stepを優先表示し、telemetryにgameがある場合は `対象確認中` を表示しない。
+
+並び順は異常、進行中、DEV公開中、完了の優先度とし、件数表示も総数だけでなくRunning / Issues / Doneの内訳を示す。現在stepは `NOW: <step> <elapsed>` として一目で分かる表示にする。repairAttemptsは機械語の `repair N` ではなく、実態に合わせて `再検証 N回` と表示する。
+
+専用iterationsページはURL fragmentで1 iterationを直接指定でき、遷移後に対象カードを画面内へ表示する。異常iterationには、その `runKey / iteration / PR / currentStep / failed step / validated head / last failure` を参考snapshotとして含む修復プロンプトのコピー操作を出す。プロンプトは必ず現在GitHub状態とactions summaryを再確認させ、PULSE snapshotだけで修復判断を確定しない。
+
+
 ## 7. PULSE公開成功
 
 PULSEのstatic assetが配られただけでは正常とは扱いません。
