@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  render-current:
+  render-round:
     if: ${{ !contains(github.event.head_commit.message, '[skip-female-review]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -24,15 +24,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y blender libegl1 libgl1-mesa-dri mesa-utils
           blender --version
-      - name: Render canonical female protagonist
+      - name: Build round 1
         run: |
-          mkdir -p generated/female-protagonist/current
+          rm -rf generated/female-protagonist/round1
           blender --background assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend \
+            --python scripts/blender/polish-protagonist-villager-female-v1-r1.py -- \
+            --out generated/female-protagonist/round1
+      - name: Render round 1 fixed views
+        run: |
+          blender --background generated/female-protagonist/round1/source/ProtagonistVillagerFemaleV1.blend \
             --python scripts/blender/inspect-protagonist-villager-female-v1.py -- \
-            --out generated/female-protagonist/current
-      - name: Upload fixed-view evidence
+            --out generated/female-protagonist/round1/review
+      - name: Upload round 1 evidence
         uses: actions/upload-artifact@v4
         with:
-          name: female-protagonist-current-${{ github.sha }}
-          path: generated/female-protagonist/current/
+          name: female-protagonist-round1-${{ github.sha }}
+          path: generated/female-protagonist/round1/
           if-no-files-found: error
