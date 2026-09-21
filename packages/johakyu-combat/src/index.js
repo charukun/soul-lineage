@@ -75,3 +75,5 @@ export function johakyuIntent({mind='balanced',distance,threat=false,threatProgr
   if(vector.spacing>=.7&&vector.attack<.5&&idleSeconds<.44&&!threat)return freeze({mode:'wait',vector});
   return freeze({mode:'attack',vector});
 }
+
+export * from './domain.js';
