@@ -216,9 +216,17 @@ function more(){
 function help(){showHelpPage(0);}
 function developer(){
  if(info.environment==='prod')return;
- showDialog(`<h2>開発者</h2><div class="row"><label for="muraDevSpeed">暮らしの速さ</label><select id="muraDevSpeed"><option value="0">停止</option><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select></div><div class="row"><label for="muraDevTilt">チルトシフト</label><output id="muraDevTiltValue"></output><input id="muraDevTilt" type="range" min="0.2" max="1.6" step="0.05"></div><details><summary>データの退避と検証</summary><p>自動保存とは別のJSONバックアップです。復旧・検証用に使用します。</p><button id="exportSave">バックアップ</button><button id="loadSave">復元</button><button id="demoPlayer">一族ゲスト</button><button id="onlineOpen">オンライン試験</button></details>`,{page:'developer',back:more});
+ showDialog(`<h2>開発者</h2><div class="row"><label for="muraDevSpeed">暮らしの速さ</label><select id="muraDevSpeed"><option value="0">停止</option><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select></div><div class="row"><label for="muraDevTilt">チルトシフト</label><output id="muraDevTiltValue"></output><input id="muraDevTilt" type="range" min="0.2" max="1.6" step="0.05"></div><section class="muraDevDefense"><strong>防衛テスト</strong><small>押すと閉じて、確認する場所へ移動します。</small><div class="muraDevDefenseGrid"><button id="muraDevWildlife" type="button">狼を出す</button><button id="muraDevRaidWarning" type="button">襲撃警告</button><button id="muraDevRaidNow" type="button">今すぐ襲撃</button><button id="muraDevRepeatDirection" type="button">同方向 ×2</button><button id="muraDevDamageDefense" type="button">防衛設備を破損</button></div></section><details><summary>データの退避と検証</summary><p>自動保存とは別のJSONバックアップです。復旧・検証用に使用します。</p><button id="exportSave">バックアップ</button><button id="loadSave">復元</button><button id="demoPlayer">一族ゲスト</button><button id="onlineOpen">オンライン試験</button></details>`,{page:'developer',back:more});
  const speed=$('muraDevSpeed'),tilt=$('muraDevTilt'),value=$('muraDevTiltValue');speed.value=String(world.state.settings.speed);tilt.value=String(world.state.settings.tilt);value.textContent=Number(tilt.value).toFixed(2);
  speed.onchange=()=>{world.state.settings.speed=Number(speed.value);void save();};tilt.oninput=()=>{world.state.settings.tilt=Number(tilt.value);value.textContent=Number(tilt.value).toFixed(2);};tilt.onchange=()=>void save();
+ const runDefenseTest=async kind=>{
+  try{
+   const {runDeveloperDefenseScenario}=await import('../game/developer-defense-tools.js'),result=runDeveloperDefenseScenario(kind,{world,sim});
+   if(result.error){toast(result.error);return;}
+   $('dialog').close();if(result.focus)view.focus(result.focus.x,result.focus.z,result.focus.span||30);activity();void save();toast(result.message,4200);
+  }catch(error){toast('防衛テストを開始できません：'+error.message);}
+ };
+ $('muraDevWildlife').onclick=()=>runDefenseTest('wildlife');$('muraDevRaidWarning').onclick=()=>runDefenseTest('raid-warning');$('muraDevRaidNow').onclick=()=>runDefenseTest('raid-now');$('muraDevRepeatDirection').onclick=()=>runDefenseTest('repeat-direction');$('muraDevDamageDefense').onclick=()=>runDefenseTest('damage-defense');
  $('exportSave').onclick=()=>download(world.export(),'宝満叡智-backup.json');$('loadSave').onclick=()=>$('importFile').click();$('onlineOpen').onclick=openOnline;
  $('demoPlayer').onclick=()=>{const r=bridge.upsert({id:'lineage-guest',name:'旅の一族（デモ）',clanId:'星渡りの一族'},{demo:true});if(r.error)toast(r.error);else{sim.refresh();$('dialog').close();view.focus(r.person.x,r.person.z,32);void save();}};
 }
