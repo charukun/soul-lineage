@@ -1,4 +1,5 @@
 import { subscribe } from './view-state.js';
+import { buildIterationRepairPrompt } from './issue-repair-prompt.js';
 
 const $=selector=>document.querySelector(selector);
 const el=(tag,className='',text=null)=>{
@@ -17,7 +18,7 @@ const parsed=value=>{
   return Number.isFinite(time)?time:null;
 };
 const shortSha=value=>value?String(value).slice(0,10):'—';
-const gameLabel=value=>({kuumetsu:'喰滅廻遊',rinne:'百年転生',village:'村づくり'})[value]||value||'自律改善';
+const gameLabel=value=>({kuumetsu:'喰滅廻遊',rinne:'百年転生',village:'村づくり'})[value]||value||'対象未記録';
 const stateLabel=value=>({running:'進行中',active:'進行中',publishing:'DEV公開中',problem:'異常',complete:'完了'})[value]||value||'確認中';
 const stateClass=value=>['running','active','publishing','problem','complete'].includes(value)?value:'active';
 const stepDuration=(step,now=Date.now())=>{
@@ -48,6 +49,40 @@ const niceMax=value=>{
   const nice=normalized<=1?1:normalized<=2?2:normalized<=5?5:10;
   return Math.max(10,nice*magnitude);
 };
+
+async function copyText(text){
+  if(!text)return false;
+  try{
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    const area=el('textarea','iteration-copy-fallback');
+    area.value=text;
+    area.setAttribute('aria-hidden','true');
+    document.body.append(area);
+    area.focus();
+    area.select();
+    const copied=Boolean(document.execCommand?.('copy'));
+    area.remove();
+    return copied;
+  }catch{return false;}
+}
+const requestedIterationId=()=>{
+  const raw=location.hash.startsWith('#iteration=')?location.hash.slice('#iteration='.length):'';
+  if(!raw)return null;
+  try{return decodeURIComponent(raw);}catch{return raw;}
+};
+function revealRequestedIteration(){
+  const id=requestedIterationId();
+  if(!id)return;
+  const node=[...document.querySelectorAll('[data-iteration-id]')].find(item=>item.dataset.iterationId===id);
+  if(!node)return;
+  node.classList.add('requested');
+  node.scrollIntoView({block:'start',behavior:'smooth'});
+  node.setAttribute('tabindex','-1');
+  node.focus({preventScroll:true});
+}
 
 let currentState=null;
 let gameFilter='all',statusFilter='all';
@@ -151,6 +186,7 @@ function copyPanel(iteration){
 function card(iteration){
   const article=el('article','iteration-card '+stateClass(iteration.status));
   article.dataset.iterationId=iteration.id||'';
+  article.id=iteration.id?'iteration-'+String(iteration.id).replace(/[^a-z0-9_-]+/gi,'-'):'';
   const head=el('div','iteration-card-head');
   const title=el('div');
   const line=el('div','iteration-titleline');
@@ -161,9 +197,16 @@ function card(iteration){
     el('span','iteration-state '+stateClass(iteration.status),stateLabel(iteration.status)),
   );
   title.append(line,el('h2','',iteration.theme||iteration.title||'テーマ記録待ち'));
-  const current=(iteration.steps||[]).find(step=>step.id===iteration.currentStep)||(iteration.steps||[]).find(step=>step.state==='running');
+  const current=(iteration.steps||[]).find(step=>step.id===iteration.currentStep)
+    ||(iteration.steps||[]).find(step=>step.state==='problem')
+    ||(iteration.steps||[]).find(step=>step.state==='running');
   const currentBox=el('div','iteration-current');
-  currentBox.append(el('span','','現在地'),el('strong','',current?.label||stateLabel(iteration.status)));
+  const currentDuration=current?stepDuration(current):null;
+  const currentPrefix=iteration.status==='complete'?'DONE':iteration.status==='problem'?'ISSUE':'NOW';
+  const currentText=iteration.status==='complete'
+    ? stateLabel(iteration.status)
+    : (current?.label||stateLabel(iteration.status))+(Number.isFinite(currentDuration)?' · '+formatSeconds(currentDuration):'');
+  currentBox.append(el('span','iteration-current-label',currentPrefix),el('strong','',currentText));
   head.append(title,currentBox);
   article.append(head,progress(iteration));
 
@@ -185,7 +228,23 @@ function card(iteration){
   }
   if(iteration.validatedHead)meta.append(el('span','','validated '+shortSha(iteration.validatedHead)));
   if(iteration.mergeSha)meta.append(el('span','','merge '+shortSha(iteration.mergeSha)));
-  if(iteration.repairAttempts)meta.append(el('span','','repair '+iteration.repairAttempts));
+  if(iteration.repairAttempts)meta.append(el('span','iteration-retry','再検証 '+iteration.repairAttempts+'回'));
+  if(iteration.status==='problem'){
+    const action=el('div','iteration-repair-action');
+    const copy=el('button','iteration-repair-button','修復プロンプトをコピー');
+    copy.type='button';
+    copy.setAttribute('aria-label',(iteration.title||'異常iteration')+'の修復プロンプトをコピー');
+    const status=el('span','iteration-repair-status','');
+    status.setAttribute('role','status');
+    copy.addEventListener('click',async()=>{
+      const copied=await copyText(buildIterationRepairPrompt(iteration,currentState||{}));
+      copy.textContent=copied?'コピー済み':'再試行';
+      status.textContent=copied?'新しいChatへ貼り付けできます':'自動コピーできません';
+      setTimeout(()=>{copy.textContent='修復プロンプトをコピー';status.textContent='';},1800);
+    });
+    action.append(copy,status);
+    article.append(action);
+  }
   article.append(meta);
   return article;
 }
@@ -224,10 +283,12 @@ function render(){
     return;
   }
   rows.forEach(item=>root.append(card(item)));
+  requestAnimationFrame(revealRequestedIteration);
 }
 
 $('#iteration-game-filter')?.addEventListener('change',event=>{gameFilter=event.target.value;render();});
 $('#iteration-status-filter')?.addEventListener('change',event=>{statusFilter=event.target.value;render();});
+window.addEventListener('hashchange',()=>requestAnimationFrame(revealRequestedIteration));
 subscribe((state,error)=>{
   if(state)currentState=state;
   const sync=$('#iteration-sync-state');

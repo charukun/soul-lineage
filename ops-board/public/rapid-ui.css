@@ -556,3 +556,15 @@ footer{margin-top:16px;opacity:.58}
 @media(min-width:620px){
   .rapid-health,.rapid-active,.rapid-iterations,.rapid-apps{grid-column:1/-1}
 }
+
+
+/* Iteration summary UX: direct drill-down, explicit NOW state, human-readable retries. */
+a.rapid-iteration-row{color:inherit;text-decoration:none;cursor:pointer;border-radius:8px}
+a.rapid-iteration-row:focus-visible{outline:2px solid #6da7df;outline-offset:3px}
+a.rapid-iteration-row:active{background:rgba(89,140,191,.06)}
+.rapid-iteration-now{display:inline-flex;align-items:center;min-height:18px;padding:2px 5px;border:1px solid #2d3d50;border-radius:999px;color:#9eb7d1;font-size:7px;font-weight:850;white-space:nowrap}
+.rapid-iteration-now.problem{border-color:color-mix(in srgb,var(--danger) 50%,var(--pulse-line));color:#dfa2a5}
+.rapid-iteration-now.publishing{border-color:color-mix(in srgb,var(--warning) 48%,var(--pulse-line));color:#d3b37f}
+.rapid-iteration-now.complete{border-color:color-mix(in srgb,var(--ok) 45%,var(--pulse-line));color:#9dcab0}
+.rapid-session-repair{color:#c79c61;font-weight:750}
+#rapid-iteration-count{max-width:72%;overflow:hidden;text-overflow:ellipsis}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildIssueRepairPrompt, issueRepairPayload } from '../ops-board/public/issue-repair-prompt.js';
+import { buildIssueRepairPrompt, buildIterationRepairPrompt, issueRepairPayload, iterationRepairPayload } from '../ops-board/public/issue-repair-prompt.js';
 
 const state={
   generatedAt:'2026-09-22T05:00:00+09:00',
@@ -32,4 +32,30 @@ test('issue repair prompt carries exact current evidence but requires GitHub rev
   assert.match(prompt,/後続成功等で解消済みなら再実行・再修正せず/);
   assert.match(prompt,/BEGIN_PULSE_ISSUE_DATA/);
   assert.match(prompt,/#1351/);
+});
+
+
+test('iteration repair prompt carries run identity, failed step and last failure without trusting PULSE as authority',()=>{
+  const iteration={
+    id:'kuumetsu-run:2',runKey:'kuumetsu-run',game:'kuumetsu',iteration:2,iterations:3,
+    title:'enemy reaction clarity',theme:'enemy reaction clarity',status:'problem',currentStep:'astraValidation',
+    branch:'feat/kuumetsu-2',pr:{number:1400,url:'https://github.com/charukun/soul-lineage/pull/1400'},
+    validatedHead:'b'.repeat(40),mergeSha:null,repairAttempts:2,
+    steps:[{id:'astraValidation',label:'Astra',state:'problem'}],
+    lastFailure:{workflow:'Astra final-head validation',conclusion:'failure',runId:456,url:'https://github.com/charukun/soul-lineage/actions/runs/456',headSha:'c'.repeat(40),at:'2026-09-22T06:00:00Z'},
+  };
+  const payload=iterationRepairPayload(iteration,state);
+  assert.equal(payload.iteration.runKey,'kuumetsu-run');
+  assert.equal(payload.iteration.iteration,2);
+  assert.equal(payload.iteration.failedStep,'astraValidation');
+  assert.equal(payload.iteration.lastFailure.runId,456);
+  const text=buildIterationRepairPrompt(iteration,state);
+  assert.match(text,/runKey: kuumetsu-run/);
+  assert.match(text,/iteration: 2\/3/);
+  assert.match(text,/currentStep: astraValidation/);
+  assert.match(text,/failedStep: astraValidation/);
+  assert.match(text,/actions:summary/);
+  assert.match(text,/既存branch \/ PRを維持/);
+  assert.match(text,/同じセッションでdevelopへmerge/);
+  assert.match(text,/BEGIN_PULSE_ITERATION_DATA/);
 });

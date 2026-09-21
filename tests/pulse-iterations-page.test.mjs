@@ -22,8 +22,16 @@ test('PULSE iterations is a dedicated one-card-per-iteration page with a duratio
   assert.match(js,/STEP DURATION/);
   assert.match(js,/stepDuration/);
   assert.match(js,/step\.state==='running'/);
+  assert.match(js,/buildIterationRepairPrompt/);
+  assert.match(js,/#iteration=/);
+  assert.match(js,/scrollIntoView/);
+  assert.match(js,/修復プロンプトをコピー/);
+  assert.match(js,/再検証/);
+  assert.match(js,/currentPrefix/);
   assert.match(css,/\.iteration-chart/);
   assert.match(css,/min-width:720px/);
+  assert.match(css,/\.iteration-card\.requested/);
+  assert.match(css,/\.iteration-repair-button/);
   assert.doesNotMatch(js,/api\.github\.com|innerHTML/);
 });
 

@@ -294,29 +294,75 @@ const sessionStepView=state=>({
   done:['完了','ok'],running:['進行','progress'],problem:['問題','danger'],waiting:['待ち','warning'],skipped:['対象外','muted']
 })[state]||['確認','muted'];
 
-const iterationGameLabel=game=>({kuumetsu:'喰滅廻遊',rinne:'百年転生',village:'村づくり'})[game]||'自律改善';
+const iterationGameLabel=game=>({kuumetsu:'喰滅廻遊',rinne:'百年転生',village:'村づくり'})[game]||'対象未記録';
+const iterationRank=status=>({problem:0,running:1,active:1,publishing:2,complete:3})[status]??4;
+const iterationIdentity=session=>session.id||(
+  session.runKey&&session.iteration ? session.runKey+':'+session.iteration
+    : session.pr?.number ? 'pr:'+session.pr.number : null
+);
+const iterationHref=session=>{
+  const id=iterationIdentity(session);
+  return id?'./iterations.html#iteration='+encodeURIComponent(id):'./iterations.html';
+};
+const phaseDuration=(phase,now=Date.now())=>{
+  const raw=phase?.durationMs,explicit=Number(raw);
+  if(raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(explicit)&&explicit>=0)return explicit;
+  const start=Date.parse(phase?.startedAt||''),end=Date.parse(phase?.completedAt||'');
+  if(Number.isFinite(start)&&Number.isFinite(end))return Math.max(0,end-start);
+  if(phase?.state==='running'&&Number.isFinite(start))return Math.max(0,now-start);
+  return null;
+};
+const durationLabel=ms=>{
+  if(!Number.isFinite(ms))return '';
+  const seconds=ms/1000;
+  if(seconds<10)return seconds.toFixed(1)+'s';
+  if(seconds<120)return Math.round(seconds)+'s';
+  const minutes=Math.floor(seconds/60),rest=Math.round(seconds%60);
+  return minutes+'m '+rest+'s';
+};
+const iterationCurrentPhase=(session,phases=[])=>phases.find(phase=>phase.id===session.currentStep)
+  ||phases.find(phase=>phase.state==='problem')
+  ||phases.find(phase=>phase.state==='running')
+  ||null;
 
 function renderSession(session,{iteration=false}={}) {
-  const row=el('article','rapid-session-row '+(session.status||'active')+(iteration?' rapid-iteration-row':''));
+  const row=el(iteration?'a':'article','rapid-session-row '+(session.status||'active')+(iteration?' rapid-iteration-row':''));
+  if(iteration){
+    row.href=iterationHref(session);
+    row.dataset.viewKey='iteration:'+iterationIdentity(session);
+    row.setAttribute('aria-label',(session.title||'自律改善')+'の詳細を開く');
+  }
   const head=el('div','rapid-session-head');
-  const prHref=safeHref(session.pr?.url);
+  const prHref=iteration?null:safeHref(session.pr?.url);
   const iterationGame=session.autonomous?.game||session.game,iterationNumber=session.autonomous?.number||session.iteration;
   const titlePrefix=iteration?(iterationGameLabel(iterationGame)+(iterationNumber?' · Iteration '+iterationNumber:'')):'#'+(session.pr?.number||'?');
   const title=el(prHref?'a':'strong','rapid-session-title',titlePrefix+' · '+(session.title||'開発セッション'));
   if(prHref){title.href=prHref;title.target='_blank';title.rel='noreferrer';}
-  const target=(session.targets||[]).map(item=>item.label).join(' / ')||'対象確認中';
   head.append(title,el('time','',relative(session.updatedAt)));
-  const meta=el('div','rapid-session-meta');
-  meta.append(el('span','',target));
-  const validated=session.validatedExactHead||session.validatedHead;
-  if(validated)meta.append(el('code','',String(validated).slice(0,8)));
-  if(session.repairAttempts)meta.append(el('span','rapid-session-repair','repair '+session.repairAttempts));
   const allPhases=iteration?(session.iterationSteps||session.steps||[]):(session.steps||[]);
   const summaryIds=new Set(['observation','implementation','astraValidation','afterObservation','merge','devPublish']);
   const phases=iteration?allPhases.filter(phase=>summaryIds.has(phase.id)):allPhases;
+  const current=iteration?iterationCurrentPhase(session,allPhases):null;
+  const meta=el('div','rapid-session-meta');
+  const target=iteration
+    ? iterationGameLabel(iterationGame)+(current?' · '+current.label+(current.state==='running'?'中':current.state==='problem'?'で異常':''):'')
+    : (session.targets||[]).map(item=>item.label).join(' / ')||'対象確認中';
+  meta.append(el('span','',target));
+  if(iteration){
+    const measured=current?phaseDuration(current):null;
+    const total=allPhases.map(phase=>phaseDuration(phase)).filter(Number.isFinite).reduce((sum,value)=>sum+value,0);
+    const prefix=session.status==='complete'?'DONE':session.status==='problem'?'ISSUE':'NOW';
+    const label=session.status==='complete'
+      ? prefix+(total?' · '+durationLabel(total):'')
+      : prefix+': '+(current?.label||'確認中')+(Number.isFinite(measured)?' · '+durationLabel(measured):'');
+    meta.append(el('span','rapid-iteration-now '+(session.status||'active'),label));
+  }
+  const validated=session.validatedExactHead||session.validatedHead;
+  if(validated)meta.append(el('code','',String(validated).slice(0,8)));
+  if(session.repairAttempts)meta.append(el('span','rapid-session-repair','再検証 '+session.repairAttempts+'回'));
   const flow=el('div','rapid-session-flow'+(iteration?' rapid-iteration-flow':''));
   for(const phase of phases){
-    const view=sessionStepView(phase.state),href=safeHref(phase.url);
+    const view=sessionStepView(phase.state),href=!iteration?safeHref(phase.url):null;
     const node=el(href?'a':'span','rapid-session-step '+view[1]);
     if(href){node.href=href;node.target='_blank';node.rel='noreferrer';}
     node.title=phase.label+': '+view[0];
@@ -333,9 +379,13 @@ function renderIterations(state){
   const all=Array.isArray(state?.autonomousIterations)&&state.autonomousIterations.length
     ? state.autonomousIterations
     : (state?.developmentSessions||[]).filter(session=>session.autonomous);
-  const iterations=all.slice(0,3);
+  const ordered=[...all].sort((a,b)=>iterationRank(a.status)-iterationRank(b.status)||parsedAt(b.updatedAt)-parsedAt(a.updatedAt));
+  const issues=ordered.filter(item=>item.status==='problem').length;
+  const done=ordered.filter(item=>item.status==='complete').length;
+  const running=ordered.length-issues-done;
+  const iterations=ordered.slice(0,3);
   root.replaceChildren();
-  count.textContent=all.length?all.length+'件':'0件';
+  count.textContent=ordered.length?(running+' Run · '+issues+' Issues · '+done+' Done'):'0件';
   if(!iterations.length){
     root.append(el('p','rapid-empty','直近の自律イテレーションはありません'));
     return;

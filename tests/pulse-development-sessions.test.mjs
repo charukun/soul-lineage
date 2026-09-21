@@ -30,6 +30,8 @@ test('required browser evidence remains visibly waiting and failed exact-head va
   assert.equal(session.steps.find(step=>step.id==='validation').state,'problem');
   assert.equal(session.steps.find(step=>step.id==='browser').state,'waiting');
   assert.equal(session.steps.find(step=>step.id==='merge').state,'waiting');
+  assert.equal(session.lastFailure.runId,5);
+  assert.equal(session.lastFailure.conclusion,'failure');
 });
 
 test('run classifier stays independent from dynamic workflow display titles',()=>{
@@ -82,4 +84,27 @@ test('recorded telemetry makes runKey and per-step durations authoritative for p
   assert.equal(item.steps.find(step=>step.id==='investigation').durationMs,12000);
   assert.equal(item.steps.find(step=>step.id==='astraValidation').durationMs,null);
   assert.equal(item.telemetry,'recorded');
+});
+
+
+test('autonomous iteration ordering prioritizes problem, running, publishing, then complete',()=>{
+  const make=(number,{state='open',draft=true,mergedAt=null,mergeSha=null,updated='2026-09-22T04:00:00Z'}={})=>({
+    ...pr,number,state,draft,merged_at:mergedAt,merge_commit_sha:mergeSha,updated_at:updated,
+    title:'Kuumetsu autonomous iteration '+number,
+    body:'Autonomous iteration '+number+'\nBrowser-Playtest: not-required',
+    head:{ref:'feat/iteration-'+number,sha:String(number).padStart(40,'0')},
+    targetApps:[{id:'demon',label:'喰滅廻遊'}],
+  });
+  const problem=make(91,{state:'open',draft:false,updated:'2026-09-22T04:04:00Z'});
+  const running=make(92,{state:'open',draft:true,updated:'2026-09-22T04:03:00Z'});
+  const publishing=make(93,{state:'closed',draft:false,mergedAt:'2026-09-22T04:02:00Z',mergeSha:'9'.repeat(40),updated:'2026-09-22T04:02:00Z'});
+  const complete=make(94,{state:'closed',draft:false,mergedAt:'2026-09-22T04:01:00Z',mergeSha:'8'.repeat(40),updated:'2026-09-22T04:01:00Z'});
+  const runs=[
+    run(6,'Astra final-head validation feat/iteration-91',problem.head.sha,'failure',{head_branch:problem.head.ref}),
+    run(7,'Per-App DEV Publish',complete.merge_commit_sha,'success',{head_branch:'develop'}),
+  ];
+  const items=buildAutonomousIterations([complete,publishing,running,problem],runs,{limit:10});
+  assert.deepEqual(items.map(item=>item.pr.number),[91,92,93,94]);
+  assert.deepEqual(items.map(item=>item.status),['problem','running','publishing','complete']);
+  assert.equal(items[0].lastFailure.runId,6);
 });
