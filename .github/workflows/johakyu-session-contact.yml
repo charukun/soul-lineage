@@ -13,12 +13,13 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 2
+          fetch-depth: 4
       - name: Apply exact reviewed contact patch and remove task inputs
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = '1939eb8a065d53d60b8624640b2e1c8947c6a64d'
+          git merge-base --is-ancestor 1939eb8a065d53d60b8624640b2e1c8947c6a64d HEAD
+          test -z "$(git diff --name-only 1939eb8a065d53d60b8624640b2e1c8947c6a64d HEAD -- apps/rinne/src/rebuild/combat-core.js packages/tidebreak-combat/index.js)"
           python3 - <<'PY'
           import pathlib,hashlib
           p=pathlib.Path('scripts/tasks/johakyu-p3-contact.patch')
@@ -28,7 +29,7 @@ jobs:
           PY
           git apply --unidiff-zero --check scripts/tasks/johakyu-p3-contact.patch
           git apply --unidiff-zero scripts/tasks/johakyu-p3-contact.patch
-          git rm scripts/tasks/johakyu-p3-contact.patch .github/workflows/johakyu-session-contact.yml
+          git rm -f scripts/tasks/johakyu-p3-contact.patch .github/workflows/johakyu-session-contact.yml
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
