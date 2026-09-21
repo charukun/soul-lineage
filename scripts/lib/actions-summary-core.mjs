@@ -315,6 +315,20 @@ function workflowSummary(runs,type){
   };
 }
 
+export function mergeWindowToken({validatedHead,developSha,prHead}={}){
+  const clean=value=>typeof value==='string'&&/^[0-9a-f]{40}$/i.test(value)?value.toLowerCase():null;
+  const head=clean(validatedHead),develop=clean(developSha),current=clean(prHead);
+  return Object.freeze({
+    validated_head:head,
+    observed_develop_sha:develop,
+    current_pr_head:current,
+    token:head&&develop&&current&&head===current?`${head}:${develop}`:null,
+    armed:Boolean(head&&develop&&current&&head===current),
+    reread_after_ready_required:true,
+    rule:'Re-read develop after Ready. Merge only while the PR head and develop SHA still equal this token; otherwise recompute freshness before merging.',
+  });
+}
+
 export function buildActionsSummary(input){
   const statuses=input.statuses||[];
   const contract=statusByContext(statuses,'astra/fast-dev-contract');
@@ -374,6 +388,11 @@ export function buildActionsSummary(input){
     action:drift.reconcile_required?'reconcile-before-final-validation':drift.independent_drift?'validate-current-head-and-let-freshness-reuse':'validate-current-head',
     note:'Advisory before arming [astra-validate]; canonical astra/merge-freshness remains authoritative after hosted validation.',
   };
+  const mergeWindow=mergeWindowToken({
+    validatedHead,
+    developSha:input.freshness?.latest_develop_sha||pr?.base?.sha||null,
+    prHead:pr?.head?.sha||null,
+  });
   const ready={
     validation:focused?.state||null,
     fast_dev_contract:contract?.state||null,
@@ -414,6 +433,7 @@ export function buildActionsSummary(input){
     failure_digest:failures,
     freshness:input.freshness,
     validation_entry:validationEntry,
+    merge_window:mergeWindow,
     exact_head_gate:exactHead,
     affected_test_planner:input.test_plan,
     pr_ready_snapshot:ready,

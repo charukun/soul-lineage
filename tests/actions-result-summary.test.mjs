@@ -11,6 +11,7 @@ import {
   failureDigest,
   parseValidationDirectives,
   resolveFreshness,
+  mergeWindowToken,
 } from '../scripts/lib/actions-summary-core.mjs';
 
 test('workflow and step classification stays stable',()=>{
@@ -154,4 +155,16 @@ test('summary surfaces related develop drift before final validation is armed',(
   assert.equal(summary.validation_entry.develop_drift_detected,true);
   assert.equal(summary.validation_entry.reconcile_before_validation,true);
   assert.equal(summary.validation_entry.action,'reconcile-before-final-validation');
+});
+
+
+test('merge window token binds the validated head to the develop SHA observed after Ready',()=>{
+  const head='a'.repeat(40),develop='b'.repeat(40);
+  const armed=mergeWindowToken({validatedHead:head,developSha:develop,prHead:head});
+  assert.equal(armed.armed,true);
+  assert.equal(armed.token,`${head}:${develop}`);
+  assert.equal(armed.reread_after_ready_required,true);
+  const moved=mergeWindowToken({validatedHead:head,developSha:develop,prHead:'c'.repeat(40)});
+  assert.equal(moved.armed,false);
+  assert.equal(moved.token,null);
 });
