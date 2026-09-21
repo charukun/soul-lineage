@@ -140,6 +140,13 @@ test('an early incoming hit breaks an unprotected chain instead of retrying a la
 });
 
 
+test('ordinary guard retains pressure instead of breaking the offensive chain',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let guard=null;
+ for(let i=0;i<1200&&!guard;i++){const r=scenario.step(1/60);guard=r.events.find(e=>e.type==='guard');}
+ assert.ok(guard,'duel must produce an ordinary guard');assert.equal(guard.exchangeContinuity,'retain');assert.equal(guard.exchangeMode,'pressure');
+ const trace=scenario.inspect().trace;assert.equal(trace.some(row=>row.type==='chain-break'&&row.reason==='blocked'),false,'guard must not reset a running 序破急 pressure chain');
+});
+
 test('real guard and parry resolve incoming contact before damage and parry arms a counter',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2});let parry=null,counter=null;
  for(let i=0;i<720&&!(parry&&counter);i++){
@@ -148,7 +155,7 @@ test('real guard and parry resolve incoming contact before damage and parry arms
    counter=counter||r.events.find(event=>event.type==='player-hit'&&event.counter===true);
  }
  assert.ok(parry,'authored parry stage must intercept a real incoming contact');
- assert.equal(parry.damage,0);assert.equal(parry.blocked,true);assert.equal(parry.parried,true);assert.ok(['left','right'].includes(parry.parryDirection));
+ assert.equal(parry.damage,0);assert.equal(parry.blocked,true);assert.equal(parry.parried,true);assert.equal(parry.strongParry,true);assert.equal(parry.exchangeContinuity,'reverse');assert.ok(['left','right'].includes(parry.parryDirection));
  assert.ok(counter,'counter stage must only land from the armed parry window');
  assert.ok(counter.damage>0);assert.equal(counter.counter,true);
 });
@@ -162,7 +169,7 @@ test('1v1 creates situational breathing room before re-engaging instead of perma
  }
  const trace=scenario.inspect().trace,offenseStarts=trace.filter(row=>row.type==='stage-start'&&['slash','back','thrust','pierce','heavy','diagonal','sweep','counter','bash','pommel'].includes(row.kind));
  assert.ok(trace.some(row=>row.type==='maneuver-start'&&row.reason==='engage-range'),'attack must be earned by approach');
- assert.ok(trace.some(row=>row.type==='maneuver-start'&&['hit-withdrawal','guard-recoil','parried-recoil','countered-withdrawal','reset-angle'].includes(row.reason)),'an exchange must reshape spacing');
+ assert.ok(trace.some(row=>row.type==='maneuver-start'&&['hit-withdrawal','parried-recoil','countered-withdrawal','exchange-zanshin'].includes(row.reason)),'an exchange break must reshape spacing');
  assert.ok(sawMovingReset,'between-action footwork must be visible in canonical frames');
  assert.ok(maxDistance-minDistance>.45,`distance must breathe rather than pin: ${minDistance}..${maxDistance}`);
  assert.ok(offenseStarts.length>3);assert.ok(offenseStarts.every(row=>row.distance<=3.161),JSON.stringify(offenseStarts.slice(0,5)));
@@ -174,7 +181,7 @@ test('1v1 creates situational breathing room before re-engaging instead of perma
 test('parry visibly seizes initiative, counter follows, and the countered actor withdraws before resuming',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2});let parry=null,counter=null;
  for(let i=0;i<900&&!(parry&&counter);i++){const r=scenario.step(1/60);parry=parry||r.events.find(e=>e.type==='parry'&&e.targetId==='hero');counter=counter||r.events.find(e=>e.type==='player-hit'&&e.counter===true);}
- assert.ok(parry);assert.ok(counter);
+ assert.ok(parry);assert.equal(parry.strongParry,true);assert.ok(counter);
  const trace=scenario.inspect().trace,parryIndex=trace.findIndex(row=>row.type==='parry'&&row.id===parry.id),counterIndex=trace.findIndex(row=>row.type==='player-hit'&&row.id===counter.id&&row.counter);
  assert.ok(parryIndex>=0&&counterIndex>parryIndex,'counter must read after the authored parry contact');
  const recoil=trace.slice(parryIndex,counterIndex+1).find(row=>row.type==='maneuver-start'&&row.actorId===parry.sourceId&&row.reason==='parried-recoil');
@@ -221,14 +228,14 @@ test('parry direction opens an angled counter lane instead of returning straight
 test('side and orbit spacing use authored strafe clips that exist on both combat actors',()=>{
  const expected={sideL:'Running_Strafe_Left',sideR:'Running_Strafe_Right',orbitL:'Running_Strafe_Left',orbitR:'Running_Strafe_Right',retreat:'Walking_Backwards'},manifest=JSON.parse(readFileSync(new URL('../src/nocturne/manifest.json',import.meta.url),'utf8'));
  for(const [footwork,clip] of Object.entries(expected)){const binding=resolveJohakyuLocomotion({footwork});assert.equal(binding.supported,true);assert.equal(binding.clip,clip);for(const id of ['adventurers/Knight','skeletons/Skeleton_Warrior'])assert.ok(manifest.models[id].animations.includes(clip),id+'/'+clip);}
- const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');assert.match(source,/resolveJohakyuLocomotion/);assert.match(source,/reason:'reset-angle'/);
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');assert.match(source,/resolveJohakyuLocomotion/);assert.match(source,/reason:'exchange-zanshin'/);
 });
 
 test('battle2 presentation layers hit reactions, local hit stop, two-actor framing and self-hosted positional SFX without removing fatigue',()=>{
  const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),audio=readFileSync(new URL('../src/nocturne/audio.js',import.meta.url),'utf8'),sharedAudio=readFileSync(new URL('../../../packages/johakyu-presentation/src/audio.js',import.meta.url),'utf8');
  assert.match(runtime,/resolveFatiguePresentation/);assert.match(runtime,/applyFatigue\(a,row,dt\)/);assert.match(runtime,/reactionClip=\['head','leftArm','rightArm'\]\.includes\(event\.bodyPart\)\?'Hit_B':'Hit_A'/);
  assert.match(runtime,/game\.hitstop=Math\.max/);assert.match(runtime,/midpoint=opponent\?hero\.pos\.clone\(\)\.lerp\(opponent\.pos,\.5\)/);assert.match(runtime,/camera\.zoom=lerp/);
- assert.match(runtime,/sound\.swing\?\./);assert.match(runtime,/sound\.parry\?\./);assert.match(runtime,/sound\.impact\?\./);assert.match(runtime,/event\.contactPoint/);assert.match(runtime,/bladeClashPoint/);assert.match(runtime,/function weaponAxis/);assert.match(runtime,/sampleWeaponTrace/);assert.match(runtime,/deflectionFromBladeTrace/);assert.match(runtime,/syncContactPose/);assert.match(runtime,/source\.parryRecoil=/);assert.match(runtime,/collectParryRig/);assert.match(runtime,/applyParryRecoil\(a\)/);assert.match(runtime,/contactHold/);assert.match(sharedAudio,/createStereoPanner/);assert.match(sharedAudio,/fatigueVoices/);
+ assert.match(runtime,/sound\.swing\?\./);assert.match(runtime,/sound\.parry\?\./);assert.match(runtime,/sound\.impact\?\./);assert.match(runtime,/event\.contactPoint/);assert.match(runtime,/strongParry/);assert.match(runtime,/bladeClashPoint/);assert.match(runtime,/function weaponAxis/);assert.match(runtime,/sampleWeaponTrace/);assert.match(runtime,/deflectionFromBladeTrace/);assert.match(runtime,/syncContactPose/);assert.match(runtime,/source\.parryRecoil=/);assert.match(runtime,/collectParryRig/);assert.match(runtime,/applyParryRecoil\(a\)/);assert.match(runtime,/contactHold/);assert.match(sharedAudio,/createStereoPanner/);assert.match(sharedAudio,/fatigueVoices/);
  for(const path of [
   '../public/library/audio/kenney/sword-swing/368a5d13d3b2cc9d0bf6abe86c5ba950e49aaeb4.ogg',
   '../public/library/audio/kenney/sword-metal/7c57bffa367f23199029ef8dade2643b58627e98.ogg',
