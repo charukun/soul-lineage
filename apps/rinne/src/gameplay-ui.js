@@ -41,15 +41,16 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     <nav class="rinne-bottom-controls rinne-primary-four" aria-label="主要操作">
       <button data-heart class="upgrade-control is-heart" type="button"><i aria-hidden="true">心</i><span>心得</span></button>
       <button data-techniques class="upgrade-control is-technique" type="button"><i aria-hidden="true">技</i><span>技</span></button>
-      <button data-training-strike class="upgrade-control is-practice" type="button" data-ready="false"><i aria-hidden="true">打</i><span>稽古</span></button>
-      <button data-menu class="upgrade-control is-menu" type="button" aria-expanded="false" aria-label="旅の手帳を開く"><i aria-hidden="true">記</i><span>手帳</span></button>
+      <button data-body class="upgrade-control is-body" type="button"><i aria-hidden="true">体</i><span>身法</span></button>
+      <button data-items class="upgrade-control is-items" type="button"><i aria-hidden="true">装</i><span>武具</span></button>
     </nav>
 
-    <aside data-quick-menu class="rinne-quick-menu rinne-secondary-sheet" hidden aria-label="旅の手帳">
-      <header><span>旅の手帳</span><small>身支度と記録</small></header>
+    <button data-training-strike class="rinne-context-strike" type="button" hidden><i aria-hidden="true">打</i><span>稽古</span></button>
+    <button data-menu class="rinne-record-toggle" type="button" aria-expanded="false" aria-label="地図と人生の記録を開く"><i aria-hidden="true">記</i><span>記録</span></button>
+
+    <aside data-quick-menu class="rinne-quick-menu rinne-secondary-sheet" hidden aria-label="地図と人生の記録">
+      <header><span>旅の記録</span><small>地図と一族</small></header>
       <div class="rinne-secondary-grid">
-        <button data-body class="quick-menu-action is-body" type="button"><b>体</b><span>身法</span><small>身体の使い方</small></button>
-        <button data-items class="quick-menu-action is-items" type="button"><b>装</b><span>武具</span><small>持ちもの</small></button>
         <button data-map class="quick-menu-action quick-map is-map" type="button" aria-label="地図を開く"><b>図</b><span>地図</span><small data-radar-label>村</small><strong data-radar-distance>--</strong><span data-radar-places hidden></span><em data-radar-target hidden></em><i data-radar-player hidden></i></button>
         <button data-record class="quick-menu-action is-record" type="button" aria-label="人生と系譜を開く"><b>譜</b><span>人生</span><small>一族の記録</small></button>
       </div>
@@ -238,7 +239,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   function summary(s,{dashing=false,resting=false,training=null}={}){
     state=s;speech.sync();loadoutUI.syncCombat(s);ui.name.textContent=s.name||'旅人';ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;
     const talents=s.inspiration?.talents||[],tags=[];if(talents.includes('tenyo'))tags.push('天与');if(talents.includes('sui'))tags.push('彗');ui.talentTags.replaceChildren(...tags.map(label=>{const tag=document.createElement('span');tag.textContent=label;return tag;}));ui.talentTags.hidden=!tags.length;updateRadar();
-    ui.state.textContent=s.down?'救助待ち':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;ui.trainingStrike.hidden=false;ui.trainingStrike.disabled=Boolean(s.down||s.ended);ui.trainingStrike.dataset.ready=String(engaged);ui.trainingStrike.setAttribute('aria-label',engaged?`${training.label}を打って稽古する`:'かかしの近くで稽古できる');if(engaged)ui.trainingName.textContent=training.label;updateContextVitals(s,{dashing,resting,training});updateMindBalance(s,training);
+    ui.state.textContent=s.down?'救助待ち':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;ui.trainingStrike.hidden=!engaged||s.down||s.ended;ui.trainingStrike.dataset.ready=String(engaged);if(engaged){ui.trainingName.textContent=training.label;ui.trainingStrike.setAttribute('aria-label',`${training.label}を打って稽古する`);}updateContextVitals(s,{dashing,resting,training});updateMindBalance(s,training);
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
     ui.phase.hidden=!phase;
     const rawAction=phase?(gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';
@@ -265,6 +266,6 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const observer=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes){if(!(node instanceof Element))continue;const dialog=node.matches?.('.life-end-dialog')?node:node.querySelector?.('.life-end-dialog');if(dialog)enhanceLifeEndDialog(dialog);}});observer.observe(document.body,{childList:true,subtree:true});
 
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
-  ui.menu.onclick=()=>{if(!ui.panel.hidden)close();toggleQuickMenu();};ui.heart.onclick=()=>toggle('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>toggle('technique',{skillId:tracker.firstUnseen('technique')});ui.trainingStrike.addEventListener('click',()=>{if(!ui.panel.hidden)close();},{capture:true});ui.bodyButton.onclick=()=>toggle('body');ui.items.onclick=()=>toggle('items');ui.map.onclick=()=>toggle('map');ui.record.onclick=()=>toggle('record');ui.close.onclick=close;
+  ui.menu.onclick=()=>{if(!ui.panel.hidden)close();toggleQuickMenu();};ui.heart.onclick=()=>toggle('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>toggle('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>toggle('body');ui.items.onclick=()=>toggle('items');ui.trainingStrike.addEventListener('click',()=>{closeQuickMenu();if(!ui.panel.hidden)close();},{capture:true});ui.map.onclick=()=>toggle('map');ui.record.onclick=()=>toggle('record');ui.close.onclick=close;
   return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,setContextAnchor,dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);clearTimeout(interruptTimer);observer.disconnect();gameScreen.removeEventListener('rinne:combat-feedback',onCombatFeedback);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
 }

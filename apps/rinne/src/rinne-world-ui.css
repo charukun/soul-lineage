@@ -285,3 +285,68 @@ dialog.family-home-dialog{position:fixed!important;inset:0!important;width:100vw
   #game-screen .rinne-primary-four .upgrade-control{width:47px!important;min-width:47px!important}
   #game-screen .rinne-primary-four .upgrade-control>i{width:40px!important;height:40px!important}
 }
+
+
+/* ============================================================
+   RINNE UI 5.2.0 — corrected core interaction contract.
+   心 / 技 / 体 / 装 are the permanent four.
+   打 is contextual training. 記 is auxiliary map/lineage access.
+   ============================================================ */
+#game-screen .rinne-primary-four .is-heart{--r51-button:#e9a6a4!important}
+#game-screen .rinne-primary-four .is-technique{--r51-button:#91c9dc!important}
+#game-screen .rinne-primary-four .is-body{--r51-button:#b8b0d7!important}
+#game-screen .rinne-primary-four .is-items{--r51-button:#e5b579!important}
+
+/* contextual 稽古 button only appears beside the dummy */
+.rinne-context-strike{
+  position:absolute!important;z-index:52!important;left:50%!important;
+  bottom:max(83px,calc(env(safe-area-inset-bottom) + 76px))!important;transform:translateX(-50%)!important;
+  display:grid!important;grid-template-columns:39px auto!important;align-items:center!important;gap:7px!important;
+  min-height:45px!important;padding:4px 12px 4px 5px!important;border:2px solid rgba(125,86,48,.58)!important;border-radius:22px!important;
+  background:linear-gradient(180deg,#fff1ce,#eab967)!important;color:#594231!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.5),0 3px 0 #8e6035,0 7px 14px rgba(42,40,29,.18)!important
+}
+.rinne-context-strike[hidden]{display:none!important}
+.rinne-context-strike i{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#d9984f;color:#fff7df;font-family:var(--font-rinne-display)!important;font-size:16px;font-style:normal;text-shadow:0 1px 3px #77502e}
+.rinne-context-strike span{font-size:9px;font-weight:850;color:#594231}
+
+/* 記 is auxiliary and visually subordinate to the four core buttons. */
+.rinne-record-toggle{
+  position:absolute!important;z-index:47!important;right:max(11px,env(safe-area-inset-right))!important;
+  bottom:max(18px,calc(env(safe-area-inset-bottom) + 12px))!important;
+  display:grid!important;place-items:center!important;align-content:center!important;width:42px!important;height:50px!important;padding:0!important;
+  border:0!important;background:transparent!important;color:#fff2d3!important
+}
+.rinne-record-toggle i{
+  display:grid;place-items:center;width:35px;height:35px;border:2px solid rgba(255,241,211,.75);border-radius:50%;
+  background:linear-gradient(180deg,#a8c8ad,#7fa186);color:#fff7df;font-family:var(--font-rinne-display)!important;font-style:normal;font-size:13px;
+  box-shadow:inset 0 2px rgba(255,255,255,.24),0 3px 0 #5d775f,0 6px 10px rgba(38,42,33,.15)
+}
+.rinne-record-toggle span{font-size:6px;font-weight:800;text-shadow:0 1px 3px rgba(46,45,34,.65)}
+.rinne-record-toggle[data-active="true"] i{transform:translateY(1px);filter:brightness(.95)}
+
+/* Secondary sheet now contains only map and life/lineage record. */
+#game-screen .rinne-secondary-sheet{right:max(8px,env(safe-area-inset-right))!important;left:auto!important;transform:none!important;width:min(230px,calc(100vw - 18px))!important}
+#game-screen .rinne-secondary-sheet::after{right:14px!important}
+.rinne-secondary-grid{grid-template-columns:repeat(2,1fr)!important}
+#game-screen .rinne-secondary-sheet .quick-menu-action{grid-template-columns:1fr!important;grid-template-rows:31px auto auto!important;text-align:center!important;justify-items:center!important}
+#game-screen .rinne-secondary-sheet .quick-menu-action>b{grid-row:auto!important}
+#game-screen .rinne-secondary-sheet .is-map{--secondary:#a8ccb2!important}
+#game-screen .rinne-secondary-sheet .is-record{--secondary:#efb1aa!important}
+
+/* Panels opened by 心/技/体/装 leave the four permanent navigation buttons visible. */
+#game-screen[data-archive-open="true"] .rinne-primary-four,
+.rinne-gameplay-upgrade[data-panel-open="true"] .rinne-primary-four{opacity:1!important;pointer-events:auto!important;z-index:180!important}
+#game-screen .rinne-gameplay-upgrade .upgrade-panel.rinne-archive-panel:not([hidden]){
+  bottom:max(76px,calc(env(safe-area-inset-bottom) + 68px))!important
+}
+
+/* Ensure stale hub rules cannot suppress the corrected core. */
+.rinne-primary-four{display:grid!important}
+.rinne-record-toggle{display:grid!important}
+.rinne-record-toggle[hidden]{display:none!important}
+
+@media(max-width:620px){
+  .rinne-record-toggle{right:max(7px,env(safe-area-inset-right))!important}
+  .rinne-context-strike{bottom:max(79px,calc(env(safe-area-inset-bottom) + 72px))!important}
+}
