@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "approved-ui-component-authoring",
+  "exactHead": "73697bb014874a669d49f7d524f09b5e927d99ab",
+  "referenceKind": "user-approved-original-images",
+  "roundsRequested": 0,
+  "roundsExecuted": 0,
+  "retained": 0,
+  "reverted": 0,
+  "metric": "55% blurred-reference MAE + 45% normalized layout-anchor distance; not a claim of complete pixel identity",
+  "functional": [
+    "heart-preview-and-confirm",
+    "technique-three-canonical-slots",
+    "body-three-canonical-slots",
+    "items-three-canonical-slots",
+    "no-closed-ghost-window",
+    "newborn-seven-year-gate",
+    "combat-readonly",
+    "small-viewport-core-navigation"
+  ],
+  "params": {
+    "heart": {
+      "top": 15,
+      "bottom": 13,
+      "heading": 12,
+      "loadout": 25,
+      "library": 49
+    },
+    "technique": {
+      "top": 15,
+      "bottom": 13,
+      "heading": 12,
+      "loadout": 25,
+      "library": 49
+    },
+    "body": {
+      "top": 15,
+      "bottom": 13,
+      "heading": 12,
+      "loadout": 25,
+      "library": 49
+    },
+    "items": {
+      "top": 15,
+      "bottom": 13,
+      "heading": 12,
+      "loadout": 25,
+      "library": 49
+    }
+  },
+  "rounds": [],
+  "calibrationCss": ".rb-page[data-book-page=\"heart\"]{--rb-top:15%;--rb-bottom:13%;--rb-heading:12%;--rb-loadout:25%;--rb-library-width:49%}\n.rb-page[data-book-page=\"technique\"]{--rb-top:15%;--rb-bottom:13%;--rb-heading:12%;--rb-loadout:25%;--rb-library-width:49%}\n.rb-page[data-book-page=\"body\"]{--rb-top:15%;--rb-bottom:13%;--rb-heading:12%;--rb-loadout:25%;--rb-library-width:49%}\n.rb-page[data-book-page=\"items\"]{--rb-top:15%;--rb-bottom:13%;--rb-heading:12%;--rb-loadout:25%;--rb-library-width:49%}\n",
+  "createdAt": "2026-09-21T23:32:45.450Z",
+  "scope": "Production menu controller and canonical game-state setters under isolated UI fixtures; this is not a no-injection full-life gameplay test."
+}
