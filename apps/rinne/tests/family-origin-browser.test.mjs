@@ -22,8 +22,18 @@ test('underwater family choices survive mobile game start, replacement cancel, r
     await waitForServer('http://127.0.0.1:5173/');
     browser=await chromium.launch({headless:true,executablePath:browserPath(),args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
     const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,hasTouch:true,reducedMotion:'reduce'});
-    page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
-    const ready=async()=>{await page.waitForFunction(()=>document.querySelector('#title-screen')?.dataset.ready==='true',null,{timeout:90000});await page.waitForFunction(()=>document.querySelector('#title-screen')?.dataset.intro==='idle',null,{timeout:30000});};
+    page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));page.setDefaultTimeout(15000);
+    const ready=async()=>{
+      await page.waitForFunction(()=>document.querySelector('#title-screen')?.dataset.ready==='true',null,{timeout:90000});
+      // The real brand/audio gate intentionally waits for the player's tap.
+      // Exercise that input rather than bypassing its DOM or runtime flags.
+      if(await page.locator('#soul-brand-boot').count()){
+        await page.waitForSelector('#soul-brand-boot.armed',{timeout:90000});
+        await page.locator('#soul-brand-boot').click();
+        await page.locator('#soul-brand-boot').waitFor({state:'detached'});
+      }
+      await page.waitForFunction(()=>document.querySelector('#title-screen')?.dataset.intro==='idle',null,{timeout:30000});
+    };
     const stage=async index=>page.waitForSelector(`dialog.family-origin[open][data-step="${index}"]`);
     const rawSave=()=>page.evaluate(()=>{const key=Object.keys(localStorage).find(key=>key.endsWith(':rinne:local:life-v2'));return key?localStorage.getItem(key):null;});
     const readSave=async()=>JSON.parse(await rawSave()||'null');
@@ -50,5 +60,5 @@ test('underwater family choices survive mobile game start, replacement cancel, r
     await page.setViewportSize({width:390,height:844});await page.reload({waitUntil:'domcontentloaded'});await ready();await page.locator('#continue-life').click();await page.waitForFunction(()=>document.querySelector('#game-screen')?.dataset.runtime==='active',null,{timeout:30000});assert.equal(await page.locator('.family-origin').count(),0);
     await page.locator('#back-title').click();await ready();const continued=await readSave();assert.equal(continued.id,first.id);assert.deepEqual(continued.family,first.family);assert.equal(continued.generation,first.generation);assert.ok(continued.ageSeconds>=first.ageSeconds);checks.push('reload resumes the same person, family, generation and advancing age without another questionnaire');
     assert.deepEqual(errors,[]);await writeFile(resolve(dir,'result.json'),JSON.stringify({head:process.env.GITHUB_SHA,checks,errors},null,2));console.log('RINNE_FAMILY_PLAYTEST '+JSON.stringify({head:process.env.GITHUB_SHA,checks,errors}));await context.close();
-  }catch(error){console.error(log);if(page)await shot('failure').catch(()=>{});throw error;}finally{await browser?.close();if(process.platform==='win32')server.kill('SIGTERM');else try{process.kill(-server.pid,'SIGTERM');}catch{}}
+  }catch(error){console.error(log);if(page){console.error('RINNE_FAMILY_FAILURE '+JSON.stringify({checks,errors,screen:await page.evaluate(()=>({title:document.querySelector('#title-screen')?.dataset,boot:document.querySelector('#boot-status')?.textContent})).catch(()=>null)}));await shot('failure').catch(()=>{});}throw error;}finally{await browser?.close();if(process.platform==='win32')server.kill('SIGTERM');else try{process.kill(-server.pid,'SIGTERM');}catch{}}
 });
