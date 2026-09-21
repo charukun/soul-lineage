@@ -73,12 +73,22 @@ jobs:
           await page.waitForFunction(()=>window.masterCharacterReview?.ready===true,{timeout:30000});
           await page.waitForSelector('#character-review-picker [data-model-key="protagonist.villager.female.v1"]',{state:'visible',timeout:30000});
           await page.locator('#character-review-picker [data-model-key="protagonist.villager.female.v1"]').click();
-          await page.waitForFunction(()=>window.masterCharacterReview?.displayModelId==='protagonist.villager.female.v1'&&window.masterCharacterReview?.ready===true,{timeout:30000});
-          await page.waitForTimeout(700);
+          await page.waitForFunction(()=>window.masterCharacterReview?.displayModelId==='protagonist.villager.female.v1',{timeout:15000});
+          await page.waitForTimeout(5000);
+          const diagnostic=await page.evaluate(()=>({
+            displayModelId:window.masterCharacterReview?.displayModelId??null,
+            ready:Boolean(window.masterCharacterReview?.ready),
+            errors:[...(window.masterCharacterReview?.errors||[])],
+            status:document.getElementById('status')?.textContent||''
+          }));
+          const {writeFileSync}=await import('node:fs');
+          writeFileSync('generated/female-visual-round/character-studio-diagnostic.json',JSON.stringify(diagnostic,null,2)+'\\n');
           await page.screenshot({path:'generated/female-visual-round/character-studio.png',fullPage:true});
           await browser.close();
+          if(!diagnostic.ready) throw new Error('Character Studio model load failed: '+JSON.stringify(diagnostic));
           NODE
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: female-visual-round-${{ github.sha }}
           path: |
