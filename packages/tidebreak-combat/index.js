@@ -3547,6 +3547,12 @@ function setInspirationState(value={}){
  const window=sharedFacade.setInspirationState(value);
  if(window.active&&hero){
   if(hero.attack)audio.cancelAttack(hero.attack.id);hero.attack=null;hero.run=null;hero.recovery=null;hero.pendingReceive=null;hero.pendingCounter=null;hero.plan=null;hero.flow=null;hero.reaction=null;hero.stun=0;hero.kx=hero.kz=0;hero.guarding=false;hero.cool=Math.max(hero.cool,.12);hero.invuln=Math.max(hero.invuln,.18);
+  const target=enemies.find(actor=>actor.id===window.targetId&&!actor.dead)||enemies.find(actor=>!actor.dead);
+  if(target&&!target.attack&&!target.run&&!target.recovery){
+   target.combatReady=true;target.combatBlend=1;target.weaponDraw=1;target.weaponTransition=null;target.cool=0;let opening=null;
+   for(let i=0;i<4&&!opening;i++){const candidate=chooseEnemyRecipe(target);if(candidate?.steps?.some(step=>(STRIKES[step.kind]?.damage||0)>0))opening=candidate;}
+   if(opening)startSequence(target,opening,'enemy');
+  }
  }
  applyInspirationControl();return state();
 }
@@ -3559,7 +3565,7 @@ return {
  input(x,y,amount,cameraAngle=0){manual.dx=x;manual.dy=y;manual.amount=clamp(amount,0,1);camAngle=cameraAngle;},
  syncActors,state,weaponSpec:weapon=>sharedFacade.weaponSpec(weapon),weaponSpecs:sharedFacade.weaponSpecs,
  templates:()=>copy(TEMPLATES),loadout:()=>copy(loadout),weapons:()=>Object.keys(WEAPONS),inspirationCatalog:()=>copy(WEAPON_ARTS),
- decodeNotebook:data=>copy(decodeNotebook(data,false)),exportNotebook:()=>copy(exportData()),sourceVersion:'Tidebreak 10.1 / shared-inspiration catalog / shared-contact-impact / live inspiration protection',
+ decodeNotebook:data=>copy(decodeNotebook(data,false)),exportNotebook:()=>copy(exportData()),sourceVersion:'Tidebreak 10.1 / shared-inspiration catalog / shared-contact-impact / live inspiration protection / forced near-miss opening',
  _test:{generateSkill(weapon='sword',slot='jo',automatic=true){const before=equippedWeapon;equippedWeapon=weapon;try{return copy(generateSkill(slot,automatic));}finally{equippedWeapon=before;}},hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;if(!(who==='hero'&&sharedFacade.inspirationState().active))t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}}
 };
 })();

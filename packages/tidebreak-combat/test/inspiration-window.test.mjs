@@ -10,6 +10,7 @@ test('inspiration keeps world time live while the hero is invulnerable and the t
   assert.equal(armed.inspiration.active,true);
   assert.equal(armed.hero.inspirationProtected,true);
   assert.equal(armed.enemy.inspirationStaggered,false);
+  assert.ok(armed.enemy.attack||armed.enemy.execution,'inspiration opens on a real enemy attack before the stagger');
 
   const forced=runtime._test.hit('hero',40);
   assert.equal(forced.hero.hp,hp,'direct damage is ignored during inspiration protection');
