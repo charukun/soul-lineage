@@ -10,7 +10,7 @@ const buildCommit=String(__BUILD_INFO__?.commit||'dev');if(versionNode)versionNo
 function report(next,detail=''){if(disposed)return;if(next==='BATTLE'&&!prepared)return;state=next;stage.dataset.state=next;if(next==='ERROR'){lastError=String(detail);stage.dataset.error=lastError;status.hidden=false;status.setAttribute('role','alert');status.textContent='戦闘を読み込めませんでした。'+lastError+' 再読み込みで再試行できます。';}else{status.setAttribute('role','status');status.hidden=next==='BATTLE'||next==='RESETTING';status.textContent=next==='ASSET_LOADING'?'戦闘を読み込み中… '+detail:'戦闘を準備中…';}}
 const motionLabel=kind=>MOVE_LABEL[kind]||kind||'動作';
 function shortActionName(meta){return String(meta?.techniqueName||meta?.actionName||motionLabel(meta?.actionMotion)||'').trim();}
-function techniqueStageName(meta){const name=shortActionName(meta),stage=Number.isInteger(meta?.stageIndex)?`${meta.stageIndex+1}段`:'';return [name,stage].filter(Boolean).join(' · ');}
+function techniqueStageName(meta){const name=shortActionName(meta),stage=Number.isInteger(meta?.stageIndex)&&meta.stageIndex>=0?`${meta.stageIndex+1}段`:'';return [name,stage].filter(Boolean).join(' · ');}
 function positionHud(){
  const anchor=runtime?.footAnchor?.();if(!anchor){hud.dataset.anchored='false';return;}
  hud.dataset.anchored='true';hud.style.left=`${anchor.x}px`;hud.style.top=`${anchor.y}px`;
