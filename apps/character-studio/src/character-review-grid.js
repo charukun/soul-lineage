@@ -1,7 +1,7 @@
 import './character-review-grid.css';
 
 function sourceLabel(source) {
-  return source.dataset.reviewLabel || (source.textContent || '').trim() || source.getAttribute('aria-label') || 'モデル';
+  return source.dataset.reviewLabel || source.getAttribute('aria-label') || (source.textContent || '').trim() || 'モデル';
 }
 
 export function readCharacterModels(doc, ready) {
