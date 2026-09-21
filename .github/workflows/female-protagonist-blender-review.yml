@@ -1,0 +1,38 @@
+name: Female Protagonist Blender Review
+
+on:
+  push:
+    branches:
+      - 'work/female-protagonist-blender-refinement-20260921'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-current:
+    if: ${{ !contains(github.event.head_commit.message, '[skip-female-review]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          lfs: true
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender
+          blender --version
+      - name: Render canonical female protagonist
+        run: |
+          mkdir -p generated/female-protagonist/current
+          blender --background assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend \
+            --python scripts/blender/inspect-protagonist-villager-female-v1.py -- \
+            --out generated/female-protagonist/current
+      - name: Upload fixed-view evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: female-protagonist-current-${{ github.sha }}
+          path: generated/female-protagonist/current/
+          if-no-files-found: error
