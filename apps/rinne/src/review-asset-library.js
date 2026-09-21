@@ -45,21 +45,8 @@ const WEAPON_TYPES = Object.freeze([
   {id:'staff',label:'杖',equipment:'skeleton-staff'},
   {id:'crossbow',label:'クロスボウ',equipment:'skeleton-crossbow'},
 ]);
-const WEAPON_FAMILIES = Object.freeze({
-  sword:['1H_Sword'], axe:['1H_Axe'], staff:['2H_Staff'], crossbow:['2H_Crossbow'],
-});
 const equipmentSpec = id => REVIEW_SKELETON_EQUIPMENT.find(row=>row.id===id);
-const weaponTypeForEquipment = equipmentId => {
-  const spec=equipmentSpec(equipmentId);
-  if(!spec)return 'none';
-  return Object.entries(WEAPON_FAMILIES).find(([,families])=>families.includes(spec.family))?.[0] || 'custom';
-};
-const weaponTypeLabel = () => WEAPON_TYPES.find(row=>row.id===selection.weaponType)?.label || '個別装備';
-const equipmentMatchesWeaponType = (item,typeId) => {
-  if(!item||typeId==='custom')return true;
-  const families=WEAPON_FAMILIES[typeId]; if(!families)return false;
-  return families.includes(equipmentSpec(item.id)?.family);
-};
+const weaponTypeForEquipment = equipmentId => WEAPON_TYPES.find(row=>row.equipment===equipmentId)?.id || 'none';
 
 const HAND_GRIPS = Object.freeze({
   '1H_Sword':{r:{position:[0,.555174,0],quaternion:[0,1,0,0],scale:.8876},l:{position:[0,.555174,0],quaternion:[0,0,0,1],scale:.8876}},
@@ -209,36 +196,11 @@ function modelLabel(){return '主人公';}
 function renderEquipmentInspector(){
   const labels={main:'右手',off:'左手',back:'背中'};
   for(const slot of ['main','off','back']){
-    const tab=document.querySelector(`[data-asset-slot="${slot}"]`);
-    if(tab){tab.setAttribute('aria-selected',String(slot===activeAssetSlot));tab.tabIndex=slot===activeAssetSlot?0:-1;}
     const current=q(`#asset-current-${slot}`);if(current)current.textContent=equipmentLabel(selection[slot]);
   }
   const summary=q('#asset-combination');
-  if(summary)summary.textContent=selection[activeAssetSlot]?equipmentLabel(selection[activeAssetSlot]):activeAssetSlot==='main'&&selection.weaponType==='none'?'素手':'空き';
-  const stageSlotLabel=q('#asset-stage-slot-label');if(stageSlotLabel)stageSlotLabel.textContent=labels[activeAssetSlot];
-  const weaponSection=q('#asset-weapon-section');if(weaponSection)weaponSection.hidden=activeAssetSlot!=='main';
-  const label=q('#asset-candidate-label');
-  if(label)label.textContent=activeAssetSlot==='main'&&selection.weaponType==='none'?'素手':`${labels[activeAssetSlot]}の装備候補`;
-  const clear=q('#asset-clear-slot');if(clear){clear.textContent=`${labels[activeAssetSlot]}を空ける`;clear.hidden=!selection[activeAssetSlot];}
-  const list=q('#asset-equipment-options');
-  if(!list)return;
-  list.setAttribute('aria-label',`${labels[activeAssetSlot]}装備の候補`);
-  const candidates=reviewSkeletonEquipmentForSlot(activeAssetSlot).filter(item=>activeAssetSlot!=='main'||selection.weaponType==='custom'||equipmentMatchesWeaponType(item,selection.weaponType));
-  list.hidden=activeAssetSlot==='main'&&selection.weaponType==='none';
-  list.replaceChildren(...candidates.map(item=>{
-    const button=document.createElement('button');
-    button.type='button';button.classList.add('review-choice-card');button.dataset.equipmentId=item.id;const text=document.createElement('span');text.textContent=item.label;const thumbnail=createStaticThumbnail(item.thumbnailUrl||'./review/catalog-thumbnails.svg#equipment-none',item.label);button.append(thumbnail,text);
-    const selected=selection[activeAssetSlot]===item.id;
-    button.setAttribute('role','option');button.setAttribute('aria-selected',String(selected));
-    button.addEventListener('click',()=>{
-      const select=q(`#slot-${activeAssetSlot}`);if(!select)return;
-      select.value=item.id;
-      select.dispatchEvent(new Event('change',{bubbles:true}));
-      setFocusPreset(activeAssetSlot);
-      q('.asset-stage-hint')?.classList.add('is-dismissed');
-    });
-    return button;
-  }));
+  if(summary)summary.textContent=selection.main?equipmentLabel(selection.main):'素手';
+  const stageSlotLabel=q('#asset-stage-slot-label');if(stageSlotLabel)stageSlotLabel.textContent='右手';
 }
 function renderWeaponTypes(){
   const list=q('#asset-weapon-types'); if(!list)return;
@@ -255,13 +217,11 @@ function renderWeaponTypes(){
 }
 async function selectWeaponType(typeId){
   const type=WEAPON_TYPES.find(row=>row.id===typeId); if(!type)throw new Error(`Unknown weapon type: ${typeId}`);
-  activeAssetSlot='main';selection.weaponType=type.id;
-  const mainSpec=selection.main?equipmentSpec(selection.main):null;
-  if(type.id==='none'||(mainSpec&&!equipmentMatchesWeaponType(mainSpec,type.id))){
-    const select=q('#slot-main');if(select)select.value='';
-    await setEquipment('main',null);
-  }
-  renderSelection({syncWeaponType:false});setFocusPreset('main');status(type.id==='none'?'素手を表示しています':`${type.label}の装備候補を表示しています`);
+  const select=q('#slot-main');if(select)select.value=type.equipment||'';
+  await setEquipment('main',type.equipment);
+  selection.weaponType=type.id;
+  renderSelection({syncWeaponType:false});
+  status(type.id==='none'?'素手を表示しています':`${type.label}を装備しました`);
 }
 function renderSelection({syncWeaponType=true}={}){
   if(syncWeaponType)selection.weaponType=weaponTypeForEquipment(selection.main);
@@ -271,14 +231,12 @@ function renderSelection({syncWeaponType=true}={}){
 function populate() {
   const count=q('#asset-model-count');if(count)count.textContent='主人公';
   for(const slot of ['main','off','back']){
-    const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>{setFocusPreset(slot);status('装備を表示しています');}).catch(error=>status(error.message,true)));
+    const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>status('装備を表示しています')).catch(error=>status(error.message,true)));
   }
   for(const button of document.querySelectorAll('[data-asset-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.assetCamera));
   for(const button of document.querySelectorAll('[data-asset-focus]'))button.addEventListener('click',()=>setFocusPreset(button.dataset.assetFocus));
-  for(const button of document.querySelectorAll('[data-asset-slot]'))button.addEventListener('click',()=>{activeAssetSlot=button.dataset.assetSlot;renderEquipmentInspector();setFocusPreset(activeAssetSlot);});
   for(const slot of ['main','off','back'])q(`#slot-${slot}`)?.addEventListener('change',renderSelection);
   controls.addEventListener('start',()=>{for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed','false');q('.asset-stage-hint')?.classList.add('is-dismissed');});
-  q('#asset-clear-slot')?.addEventListener('click',()=>{const select=q(`#slot-${activeAssetSlot}`);if(!select)return;select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));});
   q('#asset-reset').addEventListener('click',()=>{
     for(const slot of ['main','off','back']){q(`#slot-${slot}`).value='';void setEquipment(slot,null);}
     selection.weaponType='none';activeAssetSlot='main';frameModel();queueMicrotask(()=>renderSelection({syncWeaponType:false}));
