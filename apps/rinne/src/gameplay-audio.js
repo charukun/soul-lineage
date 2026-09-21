@@ -9,13 +9,35 @@ export const confirmRinneAudio=()=>activeAudio?.commit?.();
 export const presentRinneImpactAudio=options=>activeAudio?.impact?.(options);
 export const clearRinneImpactAudio=()=>activeAudio?.clearImpact?.();
 export const enterRinneGameplayAudio=()=>activeAudio?.enterGameplay?.();
+export const prepareRinneTitleAudio=()=>activeAudio?.prepareTitle?.()??Promise.resolve(false);
 
 export function createRinneAudio(){
-  const BASE_MUSIC_VOLUME=.2,TITLE_MUSIC_VOLUME=.82,TITLE_MUSIC_START=16.55,musicURL=audioURLs.r01,titleMusicURL=audioURLs.r06,music=new Audio(musicURL),titleMusic=new Audio(titleMusicURL);music.loop=true;music.volume=BASE_MUSIC_VOLUME;music.preload='auto';titleMusic.loop=true;titleMusic.volume=TITLE_MUSIC_VOLUME;titleMusic.preload='auto';
+  const BASE_MUSIC_VOLUME=.2,TITLE_MUSIC_VOLUME=1,TITLE_MUSIC_GAIN=1.55,TITLE_MUSIC_START=11.4,musicURL=audioURLs.r01,titleMusicURL=audioURLs.r22,music=new Audio(musicURL),titleMusic=new Audio(titleMusicURL);music.loop=true;music.volume=BASE_MUSIC_VOLUME;music.preload='auto';titleMusic.loop=true;titleMusic.volume=TITLE_MUSIC_VOLUME;titleMusic.preload='auto';titleMusic.load();
   const doc=globalThis.document,win=globalThis.window,pageHidden=()=>Boolean(doc&&(doc.hidden||doc.visibilityState==='hidden'));
-  let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden(),duckTimer=0,musicDetached=false,musicPosition=0,brandPending=Boolean(win?.__SOUL_BRAND_BOOT_PENDING__),titleMode=false;
+  let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden(),duckTimer=0,musicDetached=false,musicPosition=0,brandPending=Boolean(win?.__SOUL_BRAND_BOOT_PENDING__),titleMode=false,titleSource=null,titleGain=null,titlePrepared=false,titlePreparePromise=null;
 
   const contextCanResume=()=>Boolean(context&&context.state!=='running'&&context.state!=='closed');
+  const once=(target,event,timeout=4500)=>new Promise((resolve,reject)=>{let timer=0;const cleanup=()=>{target.removeEventListener(event,onEvent);target.removeEventListener('error',onError);clearTimeout(timer);};const onEvent=()=>{cleanup();resolve(true);};const onError=()=>{cleanup();reject(new Error(`Rinne title audio ${event} failed`));};target.addEventListener(event,onEvent,{once:true});target.addEventListener('error',onError,{once:true});timer=setTimeout(()=>{cleanup();reject(new Error(`Rinne title audio ${event} timeout`));},timeout);});
+  function ensureTitleGraph(){
+    if(!context||titleSource)return;
+    try{titleSource=context.createMediaElementSource(titleMusic);titleGain=context.createGain();titleGain.gain.value=TITLE_MUSIC_GAIN;titleSource.connect(titleGain).connect(context.destination);}catch(error){console.warn('Rinne title gain unavailable',error);}
+  }
+  async function prepareTitle(){
+    if(disposed)return false;
+    if(titlePrepared)return true;
+    if(titlePreparePromise)return titlePreparePromise;
+    titlePreparePromise=(async()=>{
+      try{
+        if(titleMusic.readyState<1)await once(titleMusic,'loadedmetadata');
+        titleMusic.pause();
+        titleMusic.currentTime=Math.min(TITLE_MUSIC_START,Math.max(0,(titleMusic.duration||TITLE_MUSIC_START+.5)-.5));
+        if(titleMusic.seeking)await once(titleMusic,'seeked');
+        if(titleMusic.readyState<3)await once(titleMusic,'canplay');
+        titlePrepared=true;return true;
+      }catch(error){console.warn('Rinne title audio prepare failed',error);return false;}
+    })();
+    return titlePreparePromise;
+  }
   function detachMusic(){
     if(musicDetached){relinquishMediaElement(music);return;}
     const state=relinquishMediaElement(music);musicPosition=state.position;musicDetached=state.hadSource;
@@ -35,7 +57,7 @@ export function createRinneAudio(){
     if(disposed||backgrounded||pageHidden()||!unlocked||brandPending)return false;
     const resume=contextCanResume()?context.resume().catch(error=>{console.warn('Rinne AudioContext resume failed',error);}):Promise.resolve();
     if(titleMode){
-      music.pause();
+      music.pause();ensureTitleGraph();
       const playback=titleMusic.paused?titleMusic.play().catch(error=>{console.warn('Rinne title music start failed',error);}):Promise.resolve();
       await Promise.allSettled([resume,playback]);
       if(disposed||backgrounded||pageHidden()){suspendForBackground();return false;}
@@ -54,6 +76,7 @@ export function createRinneAudio(){
     backgrounded=false;
     const C=globalThis.AudioContext||globalThis.webkitAudioContext;
     try{if(C&&!context)context=new C();}catch(error){console.warn('Rinne AudioContext creation failed',error);}
+    if(titleMode)ensureTitleGraph();
     return resumePlayback();
   }
   function onVisibilityChange(){
@@ -66,8 +89,8 @@ export function createRinneAudio(){
   }
   function onBrandEnter(){
     if(disposed)return;brandPending=false;titleMode=true;music.pause();titleMusic.volume=TITLE_MUSIC_VOLUME;
-    try{if(typeof titleMusic.fastSeek==='function')titleMusic.fastSeek(TITLE_MUSIC_START);else titleMusic.currentTime=TITLE_MUSIC_START;}catch{}
-    void unlock();
+    const start=()=>{try{if(!titlePrepared)titleMusic.currentTime=TITLE_MUSIC_START;}catch{}void unlock();};
+    if(titlePrepared)start();else void prepareTitle().finally(start);
   }
   function enterGameplay(){
     if(disposed)return;titleMode=false;titleMusic.pause();music.volume=BASE_MUSIC_VOLUME;
@@ -96,7 +119,7 @@ export function createRinneAudio(){
   function select(){tone(520,.045,.014,'triangle');}
   function commit(){tone(390,.055,.018,'triangle');setTimeout(()=>tone(660,.07,.016,'triangle'),48);}
   const controller={
-    unlock,select,commit,ui:select,impact,clearImpact,enterGameplay,
+    unlock,select,commit,ui:select,impact,clearImpact,enterGameplay,prepareTitle,
     item(){tone(620,.08,.024,'triangle');setTimeout(()=>tone(840,.08,.018,'triangle'),55);},
     combat:()=>tone(128,.11,.032,'sawtooth'),rest:()=>tone(260,.14,.014),dash:()=>tone(170,.07,.022,'square'),
     step(now){if(now-lastStep<.25)return;lastStep=now;tone(92,.035,.012);},
