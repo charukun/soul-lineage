@@ -1,2 +1,26 @@
-import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport {readFileSync} from 'node:fs';\n\nconst html=readFileSync(new URL('../index.html',import.meta.url),'utf8');\nconst css=readFileSync(new URL('../src/rinne-world-ui.css',import.meta.url),'utf8');\n\ntest('title-adjacent RINNE surfaces share one non-flat material language',()=>{\n  const titleIndex=html.indexOf('./src/title-rich.css');\n  const worldIndex=html.indexOf('./src/rinne-world-ui.css');\n  assert.ok(titleIndex>=0&&worldIndex>titleIndex,'unified world UI must load after the approved title skin');\n  for(const selector of ['.family-home-dialog','dialog.family-origin','.rinne-player-strip','.rinne-bottom-controls .upgrade-control','.rinne-quick-menu','.upgrade-panel','.game-screen[data-gameplay-upgrade] .objective-card']) assert.ok(css.includes(selector),selector);\n  assert.ok(css.includes('clip-path:polygon'));\n  assert.ok(css.includes('repeating-linear-gradient'));\n  assert.ok(css.includes('box-shadow:'));\n  assert.ok(!css.includes('.title-screen{')&&!css.includes('#title-screen{'),'approved title screen must not be restyled by the unification layer');
-  assert.ok(css.includes('--rinne-world-gold')&&css.includes('--rinne-world-ivory'),'shared material tokens must drive title-adjacent surfaces');\n});\n\ntest('family home, underwater ritual, and gameplay controls avoid flat rounded cards',()=>{\n  assert.ok(css.includes('.family-home-current{'));\n  assert.ok(css.includes('border-radius:0!important'));\n  assert.ok(css.includes('.family-memory-stage::before'));\n  assert.ok(css.includes('repeating-conic-gradient'));\n  assert.ok(css.includes('.rinne-bottom-controls{'));\n});\n
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const css=readFileSync(new URL('../src/rinne-world-ui.css',import.meta.url),'utf8');
+
+test('title-adjacent RINNE surfaces share one non-flat material language',()=>{
+  const titleIndex=html.indexOf('./src/title-rich.css');
+  const worldIndex=html.indexOf('./src/rinne-world-ui.css');
+  assert.ok(titleIndex>=0&&worldIndex>titleIndex,'unified world UI must load after the approved title skin');
+  for(const selector of ['.family-home-dialog','dialog.family-origin','.rinne-player-strip','.rinne-bottom-controls .upgrade-control','.rinne-quick-menu','.upgrade-panel','.game-screen[data-gameplay-upgrade] .objective-card']) assert.ok(css.includes(selector),selector);
+  assert.ok(css.includes('clip-path:polygon'));
+  assert.ok(css.includes('repeating-linear-gradient'));
+  assert.ok(css.includes('box-shadow:'));
+  assert.ok(!css.includes('.title-screen{')&&!css.includes('#title-screen{'),'approved title screen must not be restyled by the unification layer');
+  assert.ok(css.includes('--rinne-world-gold')&&css.includes('--rinne-world-ivory'),'shared material tokens must drive title-adjacent surfaces');
+});
+
+test('family home, underwater ritual, and gameplay controls avoid flat rounded cards',()=>{
+  assert.ok(css.includes('.family-home-current{'));
+  assert.ok(css.includes('border-radius:0!important'));
+  assert.ok(css.includes('.family-memory-stage::before'));
+  assert.ok(css.includes('repeating-conic-gradient'));
+  assert.ok(css.includes('.rinne-bottom-controls{'));
+});
