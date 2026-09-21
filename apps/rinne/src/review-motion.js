@@ -4,6 +4,7 @@ import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {KAYKIT_MODELS} from '@soul/characters';
 import {createHumanoidPreview} from '@soul/rendering/humanoid-preview';
 import {createHumanoidPreviewConstraints} from '@soul/rendering/humanoid-preview-constraints';
+import {createReviewRenderer,normalizeReviewSubject,positionReviewCamera} from '@soul/rendering';
 import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGORY_LABELS} from './review-motion-catalog.js';
 import {buildReviewMotionRegistry,motionRegistryCount,externalMotionRecords,dedupeSourceMotions} from './review-motion-registry.js';
 import {loadPinnedMotionSource,loadPinnedReviewTarget,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
@@ -17,9 +18,7 @@ mountRinneReviewShell('motion');
 
 const el=id=>document.getElementById(id),canvas=el('motion-stage');
 const status=message=>{if(el('motion-status').textContent!==message)el('motion-status').textContent=message;};
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
-renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
-renderer.setPixelRatio(Math.min(Number(globalThis.devicePixelRatio)||1,1.5));
+const renderer=createReviewRenderer(canvas,{exposure:1.05});
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1110);scene.fog=new THREE.Fog(0x0b1110,9,22);
 const camera=new THREE.PerspectiveCamera(38,1,.04,60),controls=new OrbitControls(camera,canvas);
 controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=.7;controls.maxDistance=12;
@@ -31,7 +30,7 @@ ground.rotation.x=-Math.PI/2;ground.position.y=-.005;scene.add(ground);
 const stage=new THREE.Group();scene.add(stage);
 const REVIEW_MODELS=KAYKIT_MODELS;
 let selectedModel=REVIEW_MODELS[0],subject=null,targetScene=null,targetAdapter=null,targetConstraints=null,targetCalibration=null,targetDccRoute=null,mixer=null,action=null,targetClips=[],catalog=[],selected=null;
-let filter='all',playing=false,speed=1,loop=true,last=performance.now(),loadSerial=0,selectSerial=0,modelHeight=1.8,cameraPreset='three-quarter';
+let filter='all',playing=false,speed=1,loop=true,last=performance.now(),loadSerial=0,selectSerial=0,cameraPreset='three-quarter';
 let externalSource=null,externalTime=0,selectedDuration=0,ready=false,rootMotion='in-place',constraintMode='raw',stopped=false;
 const motionFailures=new Map(),thumbnailModelPromises=new Map(),categoryOrder=['all','recommended','life','move','parkour','combat','reaction','other'];
 const formatName=name=>String(name).replaceAll('_',' ').replace(/\s+/g,' ').trim();
@@ -68,10 +67,8 @@ function disposeSubject(){
   subject=null;targetScene=null;targetAdapter=null;targetConstraints=null;targetCalibration=null;targetDccRoute=null;mixer=null;action=null;targetClips=[];
 }
 function setCameraPreset(id){
-  cameraPreset=id;const h=Math.max(.6,modelHeight),targetY=h*.52,d=Math.max(2.15,h*1.72);
-  const target=id==='face'?new THREE.Vector3(0,h*.79,0):new THREE.Vector3(0,targetY,0);
-  const positions={front:[0,targetY,d],'three-quarter':[d*.72,targetY,d*.72],side:[d,targetY,0],back:[0,targetY,-d],face:[0,h*.81,d*.78]};
-  camera.position.set(...(positions[id]||positions.front));controls.target.copy(target);controls.update();
+  cameraPreset=id;
+  if(subject)positionReviewCamera({camera,controls,root:subject,preset:id,padding:1.18,minDistance:.7,maxDistance:12});
   for(const b of document.querySelectorAll('[data-motion-camera]'))b.setAttribute('aria-pressed',String(b.dataset.motionCamera===id));
 }
 function syncPlaybackUI(){
@@ -188,8 +185,7 @@ async function loadModel(model){
     const gltf=await loadPinnedReviewTarget(model);
     if(serial!==loadSerial||stopped){disposeScene(gltf.scene);return;}
     const wrapper=new THREE.Group();wrapper.name='MotionReview:'+model.id;wrapper.add(gltf.scene);
-    const box=new THREE.Box3().setFromObject(gltf.scene),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
-    modelHeight=Math.max(.4,size.y);wrapper.position.set(-center.x,-box.min.y,-center.z);subject=wrapper;targetScene=gltf.scene;stage.add(subject);
+    normalizeReviewSubject(wrapper);subject=wrapper;targetScene=gltf.scene;stage.add(subject);
     targetCalibration=resolveReviewHumanoidDescriptor(model);
     targetAdapter=createHumanoidPreview(gltf.scene,{role:'target',assetHash:model.source?.gitBlobSha,basis:targetCalibration.basis,mapping:targetCalibration.mapping});
     targetConstraints=createHumanoidPreviewConstraints({root:gltf.scene,bones:targetAdapter.bones,profile:targetAdapter.profile,groundY:0});

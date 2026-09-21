@@ -86,3 +86,11 @@ test('committed protagonist assets are locally available to character-studio and
   assert.match(review, /kaykit\.Rig_Medium\.v1/);
   assert.doesNotMatch(review, /旧carrier rig依存のため退役中/);
 });
+
+test('simple review uses the shared raw-model framing path without generated body scaling', () => {
+  assert.match(review, /createReviewRenderer/);
+  assert.match(review, /positionReviewCamera/);
+  assert.match(review, /simpleModelReview/);
+  assert.match(review, /if \(!simpleModelReview\) actors\.forEach/);
+  assert.match(review, /if \(!simpleModelReview && schedules\[i\]\.advance/);
+});
