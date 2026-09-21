@@ -22,11 +22,13 @@ export function mountReviewStageControls({stage=document.querySelector('.review-
   button.setAttribute('aria-controls',panel.id);
   const title=make('strong','review-stage-controls__title',label);
   panel.append(title,...nodes);
-  root.append(panel,button);
+  const panelHost=stage.dataset.reviewStagePanelHost?doc.querySelector(stage.dataset.reviewStagePanelHost):null;
+  root.append(button);
+  (panelHost||root).append(panel);
   stage.append(root);
   const setOpen=open=>{panel.hidden=!open;root.dataset.open=String(open);button.setAttribute('aria-expanded',String(open));};
   button.addEventListener('click',event=>{event.stopPropagation();setOpen(panel.hidden)});
-  const outside=event=>{if(!panel.hidden&&!root.contains(event.target))setOpen(false)};
+  const outside=event=>{if(!panel.hidden&&!root.contains(event.target)&&!panel.contains(event.target))setOpen(false)};
   const escape=event=>{if(event.key==='Escape'&&!panel.hidden){setOpen(false);button.focus()}};
   doc.addEventListener('pointerdown',outside,true);
   doc.addEventListener('keydown',escape);
@@ -36,6 +38,7 @@ export function mountReviewStageControls({stage=document.querySelector('.review-
       doc.removeEventListener('pointerdown',outside,true);
       doc.removeEventListener('keydown',escape);
       for(const node of nodes)node.remove();
+      panel.remove();
       root.remove();
     },
   };

@@ -92,3 +92,30 @@ test('equipment preview uses reviewed humanoid idle stance and padded FOV-aware 
   assert.match(js,/find\(clip=>\/idle\|stand\|breath\/i\.test/);
   assert.doesNotMatch(js,/find\(clip=>!\/t\[-_ \]\?pose/);
 });
+
+
+test('equipment review hides embedded combat props and applies calibrated hand grips', async () => {
+  const [js,catalog]=await Promise.all([readFile(jsUrl,'utf8'),readFile(catalogUrl,'utf8')]);
+  assert.match(js,/import \{hideEmbeddedCombatProps\} from '\.\/review-battle-equipment\.js'/);
+  assert.match(js,/hideEmbeddedCombatProps\(root\)/);
+  assert.match(js,/if\(slot==='main'\)return findNode\(modelRoot,'hand\.r'\)[\s\S]*findNode\(modelRoot,'handslot\.r'\)/);
+  assert.match(js,/if\(slot==='off'\)return findNode\(modelRoot,'hand\.l'\)[\s\S]*findNode\(modelRoot,'handslot\.l'\)/);
+  assert.match(js,/item\.grip/);
+  assert.match(catalog,/const SKELETON_HAND_GRIPS/);
+  assert.match(catalog,/1H_Sword/);
+  assert.match(catalog,/2H_Crossbow/);
+  assert.match(catalog,/rotation:Object\.freeze\(\[0,0,-Math\.PI\/2\]\)/);
+});
+
+
+test('equipment library exposes armor categories and body slots', async () => {
+  const [html,js,catalog]=await Promise.all([readFile(htmlUrl,'utf8'),readFile(jsUrl,'utf8'),readFile(catalogUrl,'utf8')]);
+  for(const id of ['head','body','arms','legs','back'])assert.match(html,new RegExp(`asset-current-${id}`));
+  for(const [key,label] of [['head','頭'],['body','胴'],['arms','腕'],['legs','脚'],['back','背中']])assert.match(catalog,new RegExp(`${key}:'${label}'`));
+  for(const armor of ['helmet','chestplate','bracers','greaves','mantle'])assert.match(catalog,new RegExp(`'${armor}'`));
+  assert.match(js,/const EQUIPMENT_SLOTS=Object\.freeze\(\['main','off','head','body','arms','legs','back'\]\)/);
+  assert.match(js,/function runtimeArmor\(item\)/);
+  assert.ok(js.includes('lowerarm.'+'${'+'side}'));
+  assert.ok(js.includes('lowerleg.'+'${'+'side}'));
+  assert.match(js,/attachArmorRoots\(roots,characterHeight\)/);
+});

@@ -43,16 +43,17 @@ test('family ritual starts after Start without replacing the title, then resumes
     await page.goto('http://127.0.0.1:5173/',{waitUntil:'domcontentloaded'});await ready();assert.equal(await rawSave(),null);await titleIsCanonical();await shot('00-title-untouched');
     await page.locator('#new-life').click();await stage(0);
     assert.equal(await page.locator('.family-origin').getAttribute('data-motion'),'off');
-    assert.equal(await page.locator('.family-origin').getAttribute('data-scene'),'deepwater');
-    assert.equal(await page.locator('.family-memory-orb').count(),3);
-    assert.equal(await page.locator('.family-memory-choice').count(),0,'retired flat-card selector must not exist');
+    assert.equal(await page.locator('.family-origin').getAttribute('data-scene'),'deepwater-single');
+    assert.equal(await page.locator('[data-memory-current]').count(),1);
+    assert.equal(await page.locator('.family-memory-choice').count(),0,'retired flat-card selector must not exist');assert.equal(await page.locator('.family-story-choices').count(),0,'three-up choice grid must not exist');
     assert.equal(await page.locator('.family-deepwater').count(),1);
     assert.equal(await page.locator('.family-story-prompt').textContent(),'どこへ帰る？');
     assert.equal(await page.locator('.family-ancestral-gate').count(),0);
     assert.equal(await page.locator('.family-ritual-progress').count(),0);
     const overflow=await page.locator('.family-origin').evaluate(dialog=>({scroll:dialog.scrollWidth,width:dialog.clientWidth}));assert.ok(overflow.scroll<=overflow.width+1,'mobile ritual overflows horizontally');
     await shot('01-ritual-mobile');
-    await page.locator('[data-answer="wa"]').click();await stage(1);await page.locator('[data-origin-back]').click();await stage(0);assert.equal(await page.locator('[data-answer="wa"]').getAttribute('aria-pressed'),'true');
+    assert.equal(await page.locator('[data-memory-current]').getAttribute('data-answer'),'wa');
+    await page.locator('[data-memory-current]').click();await stage(1);await page.locator('[data-origin-back]').click();await stage(0);assert.equal(await page.locator('[data-memory-current]').getAttribute('data-answer'),'wa');assert.equal(await page.locator('[data-memory-current]').getAttribute('aria-pressed'),'true');
     await page.keyboard.press('Escape');assert.equal(await page.locator('.family-origin').count(),0);assert.equal(await rawSave(),null);await titleIsCanonical();checks.push('deep-water story exists only after Start; back and Escape preserve the untouched title and empty save');
 
     await page.locator('#new-life').click();await chooseFamilyOrigin(page,{capture:shot});
@@ -65,8 +66,11 @@ test('family ritual starts after Start without replacing the title, then resumes
     await page.locator('#back-title').click();await ready();await titleIsCanonical();await shot('05-title-still-untouched');checks.push('returning to title keeps the original title surface rather than family artwork');
 
     const beforeCancel=await rawSave();await page.locator('#new-life').click();await stage(0);
-    await page.setViewportSize({width:844,height:390});const box=await page.locator('[data-answer="forest"]').boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=844,'landscape memory stays inside screen');
-    await page.locator('[data-answer="forest"]').click();await stage(1);await page.locator('[data-answer="seek"]').click();await stage(2);await page.locator('[data-answer="staff"]').click();await stage(3);
+    await page.setViewportSize({width:844,height:390});
+    const summon=async id=>{for(let i=0;i<3;i++){const current=await page.locator('[data-memory-current]').getAttribute('data-answer');if(current===id)break;await page.keyboard.press('ArrowRight');await page.waitForFunction(previous=>document.querySelector('[data-memory-current]')?.dataset.answer!==previous,current);}assert.equal(await page.locator('[data-memory-current]').getAttribute('data-answer'),id);};
+    await summon('forest');const box=await page.locator('[data-memory-current]').boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=844,'landscape memory stays inside screen');await page.locator('[data-memory-current]').click();await stage(1);
+    await summon('seek');await page.locator('[data-memory-current]').click();await stage(2);
+    await summon('staff');await page.locator('[data-memory-current]').click();await stage(3);
     assert.equal(await page.locator('[data-origin-confirm]').isDisabled(),true,'replacement requires explicit acknowledgement');await page.locator('.family-story-replace').click();assert.equal(await page.locator('[data-replace-family]').isChecked(),true);assert.equal(await page.locator('[data-origin-confirm]').isEnabled(),true);
     await page.locator('[data-origin-cancel]').click();assert.equal(await rawSave(),beforeCancel);checks.push('landscape story and acknowledged replacement can be cancelled without touching the saved life');
 

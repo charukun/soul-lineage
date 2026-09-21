@@ -62,7 +62,7 @@ function hideInspirationBanner(){const banner=q('battle-inspiration');if(!banner
 function hideInspirationBulb(){clearTimeout(bulbTimer);bulbTimer=0;const bulb=q('battle-lightbulb');if(bulb)bulb.hidden=true;}
 function showInspirationBulb(){const bulb=q('battle-lightbulb');if(!bulb)return;clearTimeout(bulbTimer);bulb.hidden=true;void bulb.offsetWidth;bulb.hidden=false;bulbTimer=setTimeout(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS);}
 function beginInspirationWindow(duration=REVIEW_INSPIRATION_TIMELINE.end){
-  const targetId=lastCore?.enemy?.id??lastCore?.enemies?.find(enemy=>!enemy.dead)?.id??null;
+  const enemies=lastCore?.enemies||[lastCore?.enemy].filter(Boolean),target=enemies.find(enemy=>!enemy.dead&&enemy.attack)||enemies.find(enemy=>!enemy.dead),targetId=target?.id??null;
   runtime?.setInspirationState?.({active:true,targetId,duration,nearMissSeconds:REVIEW_INSPIRATION_TIMELINE.camera});
 }
 function endInspirationWindow(){runtime?.setInspirationState?.({active:false});}
@@ -74,7 +74,7 @@ function handleInspirationCue(cue,payload={}){
   if(cue==='camera'){battleSfx.inspiration('camera');return;}
   if(cue==='spacing'){battleSfx.inspiration('anticipation');return;}
   if(cue==='stagger'){battleSfx.inspiration('stagger');return;}
-  if(cue==='silence'){showInspirationBulb();battleSfx.inspiration('spark');return;}
+  if(cue==='silence'){battleSfx.inspiration('spark');return;}
   if(cue==='execute'){battleSfx.inspiration('execute');return;}
   if(cue==='impact'){battleSfx.impact({guard:false,power:1});return;}
   if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}

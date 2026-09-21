@@ -31,8 +31,8 @@ function disposeTemplate(root) {
   geometry.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); textures.forEach(t => t.dispose());
   skeletons.forEach(s => s.dispose()); images.forEach(i => i.close());
 }
-async function modelBytes(path) {
-  const response = await fetch(new URL(path, location.href), { signal: AbortSignal.timeout(60000) });
+async function modelBytes(path, fetchInit = {}) {
+  const response = await fetch(new URL(path, location.href), { ...fetchInit, signal: AbortSignal.timeout(60000) });
   if (!response.ok) throw new Error(`モデル取得 HTTP ${response.status}`);
   if (Number(response.headers.get('content-length')) > MAX_MODEL_BYTES) throw new Error('モデルが大きすぎます');
   if (!response.body) return response.arrayBuffer();
@@ -373,7 +373,7 @@ function start() {
     const request = ++modelRequestSequence;
     try {
       if (!model || model.kind !== 'dcc-character-model') throw new Error('実体のあるDCCモデルだけを表示できます');
-      const receiptResponse = await fetch(new URL(model.integrityPath, location.href), { signal: AbortSignal.timeout(15000) });
+      const receiptResponse = await fetch(new URL(model.integrityPath, location.href), { cache: 'no-store', signal: AbortSignal.timeout(15000) });
       if (!receiptResponse.ok) throw new Error(`モデル監査票 HTTP ${receiptResponse.status}`);
       const receipt = await receiptResponse.json();
       if (request !== modelRequestSequence) return;
@@ -386,9 +386,11 @@ function start() {
         if (receipt.humanoidRig !== 'kaykit.Rig_Medium.v1') errors.push('Rig_Medium互換ではありません');
         return Object.freeze({ approved: errors.length === 0, errors, modelId: model.id, license: 'CC0-1.0 / RINNE DCC', source: receipt });
       };
+      const assetUrl = new URL(model.assetPath, location.href);
+      assetUrl.searchParams.set('sha256', receipt.sha256);
       review.displayModelId = model.id;
       activeModelLabel = model.label;
-      return load(() => modelBytes(model.assetPath), auditReferenceDocument, kaykitReviewRig);
+      return load(() => modelBytes(assetUrl.href, { cache: 'no-store' }), auditReferenceDocument, kaykitReviewRig);
     } catch (error) {
       if (request === modelRequestSequence) report(error);
     }
