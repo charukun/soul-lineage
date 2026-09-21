@@ -81,3 +81,39 @@ body.mura-first-run-canvas-target #muraFirstRunGuide:before{content:"";position:
  .mura-first-run-target,#muraFirstRunGuide.mura-first-run-hint .muraFirstRunGuideCard{animation:none!important}
  .muraFirstRunGuideCard,.muraFirstRunProgress i{transition:none!important}
 }
+
+
+/* Guided-attention pass: keep the player's eyes on one actionable place at a time. */
+body.mura-first-run-active :is(#title,#idleStatus,#idleMoment,#muraHud,#muraDebugTimeAccel,#muraModeControls,#context){
+ opacity:.16!important;filter:saturate(.45) brightness(.78);transition:opacity .18s ease,filter .18s ease;pointer-events:none!important;
+}
+body.mura-first-run-active #drawer,body.mura-first-run-active #placement,body.mura-first-run-active #build{transition:opacity .18s ease,filter .18s ease}
+#muraFirstRunGuide[data-stage="build"]~#build{opacity:1}
+.muraFirstRunSpotlight{
+ position:fixed;z-index:1;pointer-events:none;border:1px solid rgba(250,229,168,.82);border-radius:18px;background:rgba(255,244,205,.025);
+ box-shadow:0 0 0 999vmax rgba(23,32,25,.42),inset 0 0 22px rgba(255,241,193,.07),0 0 28px rgba(248,224,158,.18);
+ transition:left .22s cubic-bezier(.2,.72,.26,1),top .22s cubic-bezier(.2,.72,.26,1),width .22s cubic-bezier(.2,.72,.26,1),height .22s cubic-bezier(.2,.72,.26,1),border-radius .22s ease;
+}
+#muraFirstRunGuide[data-stage="drag"] .muraFirstRunSpotlight,#muraFirstRunGuide[data-stage="place"] .muraFirstRunSpotlight{border-radius:50%}
+.muraFirstRunTrail{position:fixed;z-index:2;width:18px;height:18px;pointer-events:none;transform:translate(-50%,-50%);filter:drop-shadow(0 0 7px rgba(255,233,165,.8))}
+.muraFirstRunTrail[hidden]{display:none!important}
+.muraFirstRunTrail i{position:absolute;inset:4px;border-radius:50%;background:#ffe9a9;box-shadow:0 0 0 5px rgba(255,234,172,.12),0 0 18px rgba(255,226,145,.8)}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard{
+ top:var(--mura-coach-top,max(12px,calc(env(safe-area-inset-top) + 4px)));left:var(--mura-coach-left,50%);transform:none;
+ width:min(410px,calc(100vw - 24px));padding:11px 13px 10px;
+}
+#muraFirstRunGuide[data-stage="catalog"] .muraFirstRunGuideCard,#muraFirstRunGuide[data-stage="build"] .muraFirstRunGuideCard{width:min(360px,calc(100vw - 24px))}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard strong{font-size:15px;margin-bottom:3px}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard p{font-size:10.5px;line-height:1.42}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideFooter{margin-top:6px;min-height:34px}
+#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard button{min-height:34px}
+@media(max-width:600px){
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard{width:min(330px,calc(100vw - 16px));padding:9px 10px 8px}
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard strong{font-size:14px}
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard p{font-size:10px;line-height:1.38}
+ #muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideFooter{min-height:40px}
+}
+@media(prefers-reduced-motion:reduce){
+ body.mura-first-run-active :is(#title,#idleStatus,#idleMoment,#muraHud,#muraDebugTimeAccel,#muraModeControls,#context),.muraFirstRunSpotlight{transition:none!important}
+ .muraFirstRunTrail{display:none!important}
+}
