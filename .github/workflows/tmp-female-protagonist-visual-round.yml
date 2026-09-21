@@ -24,16 +24,23 @@ jobs:
           curl -fL --retry 3 -o /tmp/blender.tar.xz https://download.blender.org/release/Blender4.0/blender-4.0.2-linux-x64.tar.xz
           tar -C /tmp -xf /tmp/blender.tar.xz
           echo "/tmp/blender-4.0.2-linux-x64" >> "$GITHUB_PATH"
-      - name: Render current female protagonist
+      - name: Refine female protagonist
         shell: bash
         run: |
           set -euxo pipefail
-          rm -rf generated/female-visual-round
+          rm -rf generated/female-refined generated/female-visual-round
           blender -b assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend \
+            --python scripts/blender/refine-protagonist-villager-female-v1.py -- \
+            --out generated/female-refined
+          blender -b generated/female-refined/source/ProtagonistVillagerFemaleV1.blend \
             --python scripts/blender/inspect-protagonist-villager-female-v1.py -- \
             --out generated/female-visual-round
       - uses: actions/upload-artifact@v4
         with:
           name: female-visual-round-${{ github.sha }}
-          path: generated/female-visual-round/
+          path: |
+            generated/female-visual-round/
+            generated/female-refined/build.json
+            generated/female-refined/export/ProtagonistVillagerFemaleV1.glb
+            generated/female-refined/source/ProtagonistVillagerFemaleV1.blend
           retention-days: 3
