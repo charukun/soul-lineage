@@ -26,6 +26,47 @@ export function chooseInspirationEffectAttribute(state,answerId){
   for(const [attribute,score] of entries){roll-=Number(score);if(roll<=0)return attribute;}
   return entries.at(-1)?.[0]||null;
 }
+export function inspirationMasteryProfile(state,row=null){
+  const s=ensureInspiration(state),age=clamp(Number(state.ageYears)||0,0,100),records=Object.values(s.records||{});
+  const stable=records.filter(record=>record.stable).length,contextDiversity=unique(records.flatMap(record=>record.contexts||[])).length;
+  const heritageStrength=(s.heritage||[]).reduce((sum,item)=>sum+clamp(item.strength),0);
+  const ageMaturity=age<28?age/140:age<45?.2+(age-28)/17*.55:.75+Math.min(.25,(age-45)/35*.25);
+  const stableMastery=Math.min(1,stable/10),contextMastery=Math.min(1,contextDiversity/12),lineageMastery=Math.min(1,heritageStrength/4),body=s.body||{};
+  const decline=Math.max(0,1-(Number(body.endurance)||1))+Math.max(0,1-(Number(body.drive)||1))*.6;
+  const adaptation=Math.min(1,(age>=45?.35:age>=32?.15:0)+decline*.9+Math.abs((Number(body.balance)||1)-1)*.45);
+  const continuity=Math.min(1,(row?.motifs||[]).filter(motif=>(s.heritage||[]).some(h=>h.motif===motif)).length/2);
+  const mastery=clamp(ageMaturity*.38+stableMastery*.22+contextMastery*.14+lineageMastery*.12+adaptation*.1+continuity*.04);
+  const secretChance=clamp(.015+mastery*.34+(age>=40?.06:0),.015,.48);
+  let ultimateChance=clamp(.001+Math.pow(mastery,2)*.105+(age>=45?.035:0)+(age>=60?.025:0),.001,.18);
+  if(age<30)ultimateChance*=s.talents?.includes('gifted') ? .34 : .12;else if(age<40)ultimateChance*=.42;
+  return Object.freeze({age,mastery,ageMaturity,stableMastery,contextMastery,lineageMastery,adaptation,continuity,secretChance,ultimateChance});
+}
+const GENERATED_RULE_EFFECTS=Object.freeze({
+  adaptive:Object.freeze({id:'adaptive-space',label:'転位継ぎ',impact:'rule',rarity:'rare'}),
+  ultimate:Object.freeze({id:'formless-space',label:'無形転位',impact:'rule',rarity:'singular',unlockCondition:'長い人生の技の定着・異なる戦場経験・系譜または身体変化への適応が重なった時'}),
+});
+export function inspirationRuleEffectsFor(state,row){
+  if(!isGeneratedTechniqueId(row?.id))return [];
+  const profile=inspirationMasteryProfile(state,row),seed=state.seed??0;
+  if(unit(seed,`ultimate:${row.id}:${Math.floor(profile.age)}`)<profile.ultimateChance)return [{...GENERATED_RULE_EFFECTS.ultimate}];
+  if(unit(seed,`secret:${row.id}:${Math.floor(profile.age)}`)<profile.secretChance)return [{...GENERATED_RULE_EFFECTS.adaptive}];
+  return [];
+}
+function recordRuleEffects(state,id){return Array.isArray(state?.inspiration?.records?.[id]?.specialEffects)?state.inspiration.records[id].specialEffects:[];}
+function hasRuleEffect(state,id,effectId){return recordRuleEffects(state,id).some(effect=>effect?.id===effectId&&effect?.impact==='rule');}
+export function initializeBirthTalents(state){
+  const s=ensureInspiration(state);s.talents??=[];s.talentDetails??={};
+  if(s.talents.includes('gifted'))return s.talentDetails.gifted||null;
+  const lineageDepth=Math.min(12,Array.isArray(state.lineage)?state.lineage.length:0),heritageStrength=(s.heritage||[]).reduce((sum,item)=>sum+clamp(item.strength),0);
+  const chance=clamp(.008+lineageDepth*.0012+heritageStrength*.0035,.008,.035);
+  if(unit(state.seed??0,'birth-gifted')>=chance)return null;
+  const axes=['技覚','身体感覚','観察眼','間合い感覚','継承感応'],axis=axes[Math.floor(unit(state.seed??0,'birth-gifted-axis')*axes.length)%axes.length];
+  const detail={id:'gifted',label:'ギフテッド',axis,bornAge:0,chance:Number(chance.toFixed(4))};
+  s.talents.push('gifted');s.talentDetails.gifted=detail;s.revision++;return detail;
+}
+function addTalent(state,id,detail={}){
+  const s=ensureInspiration(state);s.talents??=[];s.talentDetails??={};if(!s.talents.includes(id))s.talents.push(id);s.talentDetails[id]={...(s.talentDetails[id]||{}),...detail,id};s.revision++;
+}
 function sourceKind(kind){return ['practice','repeat','balance','breathe','focus','fall','distance'].includes(kind)?'practice':['observe','train','study','read','forge'].includes(kind)?'observation':'life';}
 
 export function inspirationEffortScale(state){const s=ensureInspiration(state),age=Number(state.ageYears)||0,ageEffort=age<7?1.18:age>65?1+Math.min(.22,(age-65)*.006):1;return clamp(ageEffort/(.6+s.body.endurance*.25+s.body.drive*.15),.86,1.3);}
@@ -39,8 +80,9 @@ export function answerAvailability(state,id,{context=null,ignoreResources=false}
   const severity=part=>clamp(state.injuries?.[part]?.severity),arms=Math.max(severity('leftArm'),severity('rightArm')),legs=Math.max(severity('leftLeg'),severity('rightLeg'));
   if(action&&((row.limbs==='twoArms'&&arms>.76)||(row.limbs==='legs'&&legs>.65)||severity('rightArm')>.92))return {usable:false,reason:'負傷した部位を休ませる必要がある'};
   if(context?.distanceBand&&row.entryBands?.length&&!row.entryBands.includes(context.distanceBand))return {usable:false,reason:'今の間合いからは、この入りへつながらない'};
-  if(context&&row.space==='retreat'&&context.retreatBlocked)return {usable:false,reason:'引く足の余地がない'};
-  if(context&&row.space==='side'&&context.sideBlocked)return {usable:false,reason:'横へ動く余地がない'};
+  const adaptive=hasRuleEffect(state,id,'adaptive-space'),formless=hasRuleEffect(state,id,'formless-space');
+  if(context&&row.space==='retreat'&&context.retreatBlocked&&!formless&&!(adaptive&&!context.sideBlocked))return {usable:false,reason:'引く足の余地がない'};
+  if(context&&row.space==='side'&&context.sideBlocked&&!formless&&!(adaptive&&!context.retreatBlocked))return {usable:false,reason:'横へ動く余地がない'};
   const base={fist:5,sword:9,dagger:6,great:16,spear:11,axe:14,staff:10,bow:10}[weapon]||9;
   const cost=Math.ceil(base*1.25*inspirationEffortScale(state)*row.effort*Math.max(1,row.steps.length));
   if(action&&!ignoreResources&&Number(state.stamina)<cost)return {usable:false,reason:'一連の動きを終えるため、息を戻す必要がある',cost};
@@ -61,9 +103,9 @@ function materialProof(s,row){
   for(const group of row.materials){const traces=s.traces.filter(trace=>trace.motifs.some(m=>group.includes(m)));if(!traces.length)return null;found.push(traces.find(t=>!found.some(f=>identity(f)===identity(t)))||traces.at(-1));}
   if(unique(found.map(identity)).length<2)return null;return unique(found).slice(0,4);
 }
-function generatedNamingFor(state,row){
-  const s=ensureInspiration(state),motifs=unique([...(row?.motifs||[]),...s.heritage.map(h=>h.motif)]);
-  return generatedTechniqueNaming(row,{seed:state.seed??0,motifs,specialEffects:row?.specialEffects||[]});
+function generatedNamingFor(state,row,specialEffects=null){
+  const s=ensureInspiration(state),motifs=unique([...(row?.motifs||[]),...s.heritage.map(h=>h.motif)]),effects=Array.isArray(specialEffects)?specialEffects:(s.records?.[row?.id]?.specialEffects||row?.specialEffects||[]);
+  return generatedTechniqueNaming(row,{seed:state.seed??0,motifs,specialEffects:effects});
 }
 function candidateScore(state,row,context){
   const s=ensureInspiration(state),mind=context.mind||{},body=s.body;let score=1;
@@ -104,13 +146,18 @@ function enforceActiveLimit(state){
 }
 function commitAnswer(state,candidate,context={}){
   const s=ensureInspiration(state),row=answer(candidate.id);if(!row||own(s.records,row.id)||state.ended||state.down||Object.keys(s.records).length>=INSPIRATION_LIMITS.records)return null;
-  const naming=isGeneratedTechniqueId(row.id)?generatedNamingFor(state,row):null;
-  const record={answerId:row.id,family:row.family,name:naming?.displayName||inspirationTechniqueName(row),age:clamp(state.ageYears,0,100),kind:row.kind,stable:false,archived:false,contexts:[useContextKey(state,context)],provenance:provenanceFor(state,candidate,context),motifs:[...row.motifs]};
+  const specialEffects=Array.isArray(candidate.specialEffects)?candidate.specialEffects:inspirationRuleEffectsFor(state,row);
+  const naming=isGeneratedTechniqueId(row.id)?generatedNamingFor(state,row,specialEffects):null;
+  const record={answerId:row.id,family:row.family,name:naming?.displayName||inspirationTechniqueName(row),age:clamp(state.ageYears,0,100),kind:row.kind,stable:false,archived:false,contexts:[useContextKey(state,context)],provenance:provenanceFor(state,candidate,context),motifs:[...row.motifs],specialEffects:specialEffects.map(effect=>({...effect}))};
   if(naming)record.naming={style:naming.style,grade:naming.grade,baseName:naming.baseName,signature:naming.signature};
+  const prodigy=Boolean(naming?.grade==='ultimate'&&record.age<=17);
+  if(prodigy)addTalent(state,'prodigy',{label:'天賦の才',earnedAge:record.age,techniqueId:row.id,techniqueName:record.name});
   if(['technique','variant'].includes(row.kind)){const effectAttribute=chooseInspirationEffectAttribute(state,row.id);if(effectAttribute)record.effectAttribute=effectAttribute;}
   if(row.kind==='link'&&context.combo)record.combo={...context.combo};
   s.records[row.id]=record;s.lastNamed=s.clock;s.revision++;enforceActiveLimit(state);synchronizeKnownSkills(state);
-  const event={type:'inspiration',id:row.id,name:record.name,kind:row.kind,family:row.family,age:record.age,provenance:record.provenance,effectAttribute:record.effectAttribute||null};state.events??=[];state.events.unshift({type:'inspiration',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${record.name}を閃いた。`,inspirationId:row.id});state.events.length=Math.min(state.events.length,80);return event;
+  const villageAnnouncement=prodigy?`${state.name||'若き達人'}が${Math.floor(record.age)}歳で${record.name}を閃いた。天賦の才が村に知れ渡った。`:null;
+  const event={type:'inspiration',id:row.id,name:record.name,kind:row.kind,family:row.family,age:record.age,provenance:record.provenance,effectAttribute:record.effectAttribute||null,grade:naming?.grade||'normal',prodigy,villageAnnouncement};
+  state.events??=[];state.events.unshift({type:prodigy?'village-news':'inspiration',scope:prodigy?'village':'self',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:villageAnnouncement||`${record.name}を閃いた。`,inspirationId:row.id,tag:prodigy?'天賦の才':'',subjectId:state.id,communityHook:prodigy?{kind:'rally-around-prodigy',roles:['師匠','稽古仲間','共闘仲間']}:null});state.events.length=Math.min(state.events.length,80);return event;
 }
 export function recordLifeExperience(state,kind,context={}){
   if(state.ended||state.down||Number(state.ageYears)<4||!own(ACTIVITY_MOTIFS,kind))return [];
@@ -163,14 +210,15 @@ export function prepareCombatInspiration(state,context={},dt=0){
   if(s.pending){const p=s.pending;p.elapsed+=Math.max(0,Number(dt)||0);p.context={...p.context,...context};const pose=state.combat?.tidebreakPose,finished=p.committed&&pose&&pose.skill!==p.runtimeName;if(state.ended||state.down||p.failed||p.elapsed>INSPIRATION_LIMITS.attemptSeconds||p.targetId!==context.targetId||finished)s.pending=null;else return p;}
   if(state.ended||state.down||state.attacking||Number(state.ageYears)<7||!context.targetId)return null;
   for(const q of context.questions||[])recordCombatQuestion(state,q,context);updateInspirationSigns(state,context);if(s.clock-s.lastNamed<INSPIRATION_LIMITS.namedGap)return null;
-  const candidate=inspirationCandidates(state,{...context,window:'combat'})[0];if(!candidate)return null;s.pending={...candidate,targetId:context.targetId,elapsed:0,committed:false,armed:false,started:false,cursor:0,contact:false,failed:false,runtimeName:isGeneratedTechniqueId(candidate.id)?generatedNamingFor(state,answer(candidate.id)).displayName:inspirationTechniqueName(answer(candidate.id)),context:{...context}};return s.pending;
+  const candidate=inspirationCandidates(state,{...context,window:'combat'})[0];if(!candidate)return null;const candidateRow=answer(candidate.id),specialEffects=inspirationRuleEffectsFor(state,candidateRow);s.pending={...candidate,specialEffects,targetId:context.targetId,elapsed:0,committed:false,armed:false,started:false,cursor:0,contact:false,failed:false,runtimeName:isGeneratedTechniqueId(candidate.id)?generatedNamingFor(state,candidateRow,specialEffects).displayName:inspirationTechniqueName(candidateRow),context:{...context}};return s.pending;
 }
 export function inspirationRecipe(state,id,phase,targetId=null,context=null){
   const s=ensureInspiration(state),p=s.pending,usingPending=p&&p.targetId===targetId,chosen=usingPending?p.id:id,row=answer(chosen);
   if(!row||!row.steps.length||!['technique','variant'].includes(row.kind))return null;if(!usingPending&&!own(s.records,chosen))return null;
   if(!answerAvailability(state,chosen,{context:context||p?.context,ignoreResources:!usingPending||p.started}).usable)return null;
   if(usingPending){const preferred=row.phases.includes('jo')?'jo':row.phases[0];if(phase!==preferred)return null;p.armed=true;p.phase=phase;}
-  return {id:chosen,name:usingPending?p.runtimeName:inspirationTechniqueName(row),steps:row.steps.map(step=>({...step})),effort:row.effort,family:row.family,phaseAffinity:row.phases.includes(phase)};
+  const effects=usingPending?(p.specialEffects||[]):recordRuleEffects(state,chosen);
+  return {id:chosen,name:usingPending?p.runtimeName:(isGeneratedTechniqueId(chosen)?generatedNamingFor(state,row,effects).displayName:inspirationTechniqueName(row)),steps:row.steps.map(step=>({...step})),effort:row.effort,family:row.family,phaseAffinity:row.phases.includes(phase),specialEffects:effects.map(effect=>({...effect}))};
 }
 function rememberUse(state,id,context){const s=ensureInspiration(state),r=s.records[id];if(!r)return null;const key=useContextKey(state,context);if(r.contexts.includes(key))return null;const wasStable=Boolean(r.stable);if(r.contexts.length<INSPIRATION_LIMITS.contexts)r.contexts.push(key);r.stable=r.contexts.length>=3;s.revision++;if(wasStable||!r.stable)return null;const event={type:'inspiration-stabilized',id:r.answerId,name:r.name,kind:r.kind,family:r.family,age:clamp(state.ageYears,0,100)};state.events??=[];state.events.unshift({type:'inspiration-stabilized',worldSecond:Math.floor(Number(state.ageSeconds)||0),text:`${r.name}が身体に馴染んだ。`,inspirationId:r.answerId});state.events.length=Math.min(state.events.length,80);return event;}
 function matchesAttempt(event,p){return event.targetId===p.targetId&&event.phase===p.phase&&(event.techniqueId?event.techniqueId===p.id:event.skill===p.runtimeName);}
