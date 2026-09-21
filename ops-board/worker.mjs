@@ -165,9 +165,31 @@ export class OpsState extends DurableObject {
     })();
     return this.inflight;
   }
+  async recoverPublic(source = 'public-recovery') {
+    if (this.inflight) return this.inflight;
+    this.inflight = (async () => {
+      const previous = this.memoryState;
+      try {
+        const state = await buildState(previous, { storage:this.refreshStorage, token:'', reason:source, publicRecovery:true });
+        state.refreshReason = source;
+        state.nextRetryAt = null;
+        state.controlTower = deriveControlTower(state, previous?.controlTower);
+        this.memoryState = state;
+        await this.recordHistory(state);
+        return state;
+      } catch (error) {
+        const state = await degradedState(previous, error, { source });
+        state.controlTower = deriveControlTower(state, previous?.controlTower);
+        this.memoryState = state;
+        await this.recordHistory(state);
+        return state;
+      } finally { this.inflight = null; }
+    })();
+    return this.inflight;
+  }
   async alarm() {
-    if (!this.env.OPS_GITHUB_TOKEN) return;
-    await this.refresh('rate-limit-retry');
+    if (this.env.OPS_GITHUB_TOKEN) await this.refresh('rate-limit-retry');
+    else await this.recoverPublic('rate-limit-retry-public');
   }
 }
 function authorized(request, env) { return Boolean(env.OPS_REFRESH_TOKEN) && request.headers.get('authorization') === `Bearer ${env.OPS_REFRESH_TOKEN}`; }
@@ -209,7 +231,7 @@ export default {
         try {
           const stub = opsStateStub(env);
           let state = await stub.getState();
-          if (!state && env.OPS_GITHUB_TOKEN) state = await stub.refresh('cold-start');
+          if (!state) state = env.OPS_GITHUB_TOKEN ? await stub.refresh('cold-start') : await stub.recoverPublic('cold-start-public');
           if (!state) return json(await resilientPublicState(githubAuthError('state-read'), env, 'state-read'));
           const history = await stub.getHistory();
           let sharedWorld = null;
@@ -248,7 +270,7 @@ export default {
     } catch { return json({ error: 'state_unavailable' }, 503); }
   },
   async scheduled(controller, env, ctx) {
-    if (!env.OPS_GITHUB_TOKEN) return;
-    ctx.waitUntil(opsStateStub(env).refresh(`cron:${controller.cron}`));
+    const stub=opsStateStub(env),source=`cron:${controller.cron}`;
+    ctx.waitUntil(env.OPS_GITHUB_TOKEN ? stub.refresh(source) : stub.recoverPublic(`${source}:public`));
   },
 };
