@@ -3,7 +3,7 @@
 import {installMusicLibrary} from '@soul/shared-ui/music';
 
 const serviceEnvironment = __BUILD_INFO__.environment;
-document.title = `叡智豊満 | 百年転生 Village${serviceEnvironment === 'prod' ? '' : ` | ${serviceEnvironment.toUpperCase()}`}`;
+document.title = `宝満叡智 | 百年転生 Village${serviceEnvironment === 'prod' ? '' : ` | ${serviceEnvironment.toUpperCase()}`}`;
 if (!document.querySelector('link[rel="manifest"]')) {
   const manifest = document.createElement('link');
   manifest.rel = 'manifest';

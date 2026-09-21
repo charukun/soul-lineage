@@ -12,7 +12,7 @@ Every rendered 3D mesh is an artist-authored Quaternius download under CC0. No c
 
 The current set consists of 22 freshly acquired assets from six packs, including the detailed Female Ranger, Universal Animation Library 2, Cute Animated Monsters (August 2020), Medieval Village MegaKit, Fantasy Props MegaKit and Stylized Nature MegaKit. The animation library is used for clips only: its mannequin mesh is never added to the scene.
 
-The four excluded games are 百年転生, 喰滅廻遊, 叡智豊満 and ノクターン. Their model inventories and source references were audited at pinned develop and Nocturne snapshots. Their KayKit/Kenney assets and Quaternius Ultimate Monsters (Beholder/Chomper/Glub/Goleling) are not permitted, including differently packaged glTF/GLB versions of those models.
+The four excluded games are 百年転生, 喰滅廻遊, 宝満叡智 and ノクターン. Their model inventories and source references were audited at pinned develop and Nocturne snapshots. Their KayKit/Kenney assets and Quaternius Ultimate Monsters (Beholder/Chomper/Glub/Goleling) are not permitted, including differently packaged glTF/GLB versions of those models.
 
 `model-manifest.mjs` pins the source repository and revision. `tools/acquire.mjs` verifies original Git blob hashes and publishes SHA-256 checksums, source links and the exclusion report. Runtime tests verify that every rendered mesh uses a downloaded original geometry. Provenance is also linked from in-game credits.
 

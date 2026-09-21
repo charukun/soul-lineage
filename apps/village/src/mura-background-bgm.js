@@ -32,7 +32,7 @@ if(!AudioCtx||!audioURLs?.[TRACK]){
       const decoded=await load();if(disposed||manualOverride)return false;
       if(source){if(ctx.state==='suspended')await ctx.resume();started=true;return true;}
       const next=ctx.createBufferSource();next.buffer=decoded;next.loop=true;next.connect(gain);source=next;next.start(0);await ctx.resume();started=true;return true;
-    }catch(error){console.warn('[叡智豊満 BGM] Web Audio playback failed',error);return false;}
+    }catch(error){console.warn('[宝満叡智 BGM] Web Audio playback failed',error);return false;}
   }
   async function pause(){if(!context)return;try{await context.suspend();}catch{}started=false;}
   async function resume(){if(disposed||manualOverride||!context||!source)return false;try{await context.resume();started=true;return true;}catch{return false;}}
