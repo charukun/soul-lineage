@@ -42,5 +42,18 @@
   "productionStage": "PRIMARY",
   "deliveredGlbSha256": "7c422960add80f120d5dbcd91a6b74e23269b35049796f60cb1e6c4e4604d9a2",
   "sourceBlendSha256": "ec4c09cf6a952d1a69728adc3743cad673ba7dcd7e20036bda6feba888ce4fac",
-  "byteLength": 317144
+  "byteLength": 317144,
+  "characterStudio": {
+    "receiptPath": "docs/characters/qa/protagonist-villager-female-v1/character-studio/receipt.json",
+    "displayModelId": "protagonist.villager.female.v1",
+    "ready": true,
+    "loadErrors": 0,
+    "views": [
+      "front",
+      "side",
+      "back",
+      "face",
+      "full-body"
+    ]
+  }
 }
