@@ -12,7 +12,7 @@ const TARGETS=Object.freeze({hero:['enemy-a','enemy-b','enemy-c'],'enemy-a':['he
 const KIND_DAMAGE=Object.freeze({slash:7,back:7,thrust:8,pierce:9,heavy:14,diagonal:9,sweep:8,counter:10,bash:7,pommel:6});
 const KIND_COST=Object.freeze({slash:5,back:5,thrust:6,pierce:7,heavy:12,diagonal:7,sweep:7,counter:8,bash:6,pommel:5,guard:2,brace:2,parry:3,slip:3,retreat:2,ready:0});
 const RHYTHM_SECONDS=Object.freeze({sharp:.58,flow:.66,weight:.82,elastic:.64,seamless:.54});
-const CONTACT_REACH=2.35,BODY_CLEARANCE=1.72,MIN_SPACING=BODY_CLEARANCE,ENGAGE_DISTANCE=2.08,DISENGAGE_DISTANCE=2.72,COUNTER_PRESS_DISTANCE=2.18;
+const CONTACT_REACH=2.35,BODY_CLEARANCE=1.46,MIN_SPACING=BODY_CLEARANCE,ENGAGE_DISTANCE=2.08,DISENGAGE_DISTANCE=2.72,COUNTER_PRESS_DISTANCE=2.18;
 const RECOVERY_SECONDS=Object.freeze({miss:.62,blocked:.52,parried:.78,countered:.88,'hit-before-contact':.42,hit:.28});
 const REACTION_SECONDS=Object.freeze({guard:.42,parry:.38,counter:.52}),HEAVY_THREATS=new Set(['heavy','sweep','bash','pommel']);
 const DEFENSE_WINDOW=Object.freeze({guard:[.12,.92],brace:[.1,.96],parry:[.12,.9]});

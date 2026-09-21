@@ -96,9 +96,9 @@ test('duel body clearance prevents mesh penetration and parry exposes a weapon-c
    const event=r.events.find(e=>e.type==='parry');
    if(event&&!parry){parry=event;parryFrame={hero:{...hero.position},enemy:{...enemy.position}};}
  }
- assert.ok(minDistance>=1.719,`body centers must never collapse through each other: ${minDistance}`);
+ assert.ok(minDistance>=1.459,`body centers must never collapse through each other: ${minDistance}`);
  assert.ok(parry,'duel must produce a parry');
- assert.equal(parry.bodyClearance,1.72);assert.ok(parry.contactDistance>=parry.bodyClearance-.001);
+ assert.equal(parry.bodyClearance,1.46);assert.ok(parry.contactDistance>=parry.bodyClearance-.001);
  assert.ok(Number.isFinite(parry.contactPoint?.x)&&Number.isFinite(parry.contactPoint?.z),'parry must expose a real clash point');
  const midpoint={x:(parryFrame.hero.x+parryFrame.enemy.x)/2,z:(parryFrame.hero.z+parryFrame.enemy.z)/2};
  assert.ok(Math.hypot(parry.contactPoint.x-midpoint.x,parry.contactPoint.z-midpoint.z)<.01,'clash point must sit between the two weapon bearers');
