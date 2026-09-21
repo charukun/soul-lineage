@@ -194,7 +194,7 @@ export async function boot() {
   view = new NightView($('game')); store = new ProfileStore(storage, () => crypto.randomUUID(), () => Date.now());
   profile = store.read(); store.abandonInterrupted(); profile = store.read();
   const preview = {id:'title-only-not-entered', name:'森の向こうの灯', seed:67002, target:'arcanist', level:1, weather:'fog', source:'generated'};
-  game = new RaidSession(preview, profile, {}); view.build(game.village); await view.prepareCharacter(activeCharacter(profile).id);
+  game = new RaidSession(preview, profile, {}); view.build(game.village,{titlePreview:true}); await view.prepareCharacter(activeCharacter(profile).id);
   game.player.x = 1; game.player.z = 20; game.player.yaw = .5; view.camera.position.set(5, 3.6, 27); view.cameraLook.set(1, .95, 18); view.update(game, 0, true);
   flow = new HuntFlowUi({sheet, guide, start: randomHunt, profile: () => profile, species: () => game.monsterSpecies, toggleReturn,
     upgrade: key => safe(() => { const changed = store.upgrade(key); refresh(); return changed; })});
