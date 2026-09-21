@@ -61,6 +61,7 @@ export function createRinneAudio(){
     if(disposed||backgrounded||pageHidden())return;
     const now=globalThis.performance?.now?.()??Date.now();
     if(kind==='focus'){if(now-lineageFocusAt<120)return;lineageFocusAt=now;tone(280+Math.max(0,index)*42,.08,.0045,'sine');return;}
+    if(kind==='drift'){tone(72+Math.max(0,index)*7,.22,.004,'sine');tone(144+Math.max(0,index)*11,.18,.003,'triangle',.07);return;}
     if(kind==='choose'){tone(92+Math.max(0,index)*9,.2,.012,'sine');tone(184+Math.max(0,index)*18,.16,.008,'triangle',.05);return;}
     if(kind==='back'||kind==='cancel'){tone(196,.1,.006,'triangle');tone(110,.16,.006,'sine',.04);return;}
     if(kind==='confirm'){titleGainTo(TITLE_MUSIC_GAIN*.12,.12);tone(42,.7,.025,'sine');tone(110,.42,.017,'sine',.04);tone(220,.34,.012,'triangle',.14);tone(440,.38,.009,'sine',.3);return;}

@@ -1,14 +1,115 @@
-export function nextVillageGoal(world) {
-  if (!world || world.tutorialStep?.()) return null;
-  if (world.state?.defense?.raid?.phase === 'warning') return '襲来の気配。警備職と守りの届く範囲を確認';
+import {defs,unlocked} from './catalog.js';
+import {activeDefenseProposal} from './defense-autonomy.js';
 
-  const population = world.population();
-  const freeBeds = Math.max(0, population.openBeds - population.people);
-  if (freeBeds < 1) return '次の住人を迎えるため、寝床のある住まいを増やす';
-  if (population.safety <= population.people) return '村が広がっています。警備施設か警備職を増やす';
-  if (population.food <= population.people) return '食事の余裕が少なめ。畑や食事の場所を整える';
+const BUILD_SITES={
+  tent:[-12,8],
+  logging:[-20,-15],
+  wheat:[-6,-24],
+  guardpost:[-5,16],
+  storage:[12,-10],
+  quarry:[24,-10],
+  carpenter:[8,-18],
+};
 
-  const resident = world.people.find(person => !person.dead && !person.jobId && !['mayor','guard'].includes(person.role));
-  if (resident) return `${resident.name}の仕事先を用意して、村の生産を伸ばす`;
-  return '暮らしは安定。住民を眺めながら内装や景観を整える';
+function buildAction(world,kind,label='見にいく',at=null){
+  if(!defs[kind]||!unlocked(world.state,kind))return null;
+  return{type:'build',kind,at:at||BUILD_SITES[kind]||null,label};
+}
+
+function guidance(id,title,text,action=null){
+  return{id,label:'村の気配',title,text,action};
+}
+
+function idleResident(world){
+  return world.people.find(person=>!person.dead&&!person.jobId&&!['mayor','guard'].includes(person.role));
+}
+
+function suggestedWorkKind(world){
+  const candidates=['logging','storage','wheat','quarry','carpenter']
+    .filter(kind=>unlocked(world.state,kind))
+    .map((kind,index)=>({kind,index,count:world.objects?.filter(object=>object.kind===kind).length||0}));
+  return candidates.sort((a,b)=>a.count-b.count||a.index-b.index)[0]?.kind||null;
+}
+
+export function nextVillageGuidance(world){
+  if(!world||world.tutorialStep?.())return null;
+
+  if(world.state?.defense?.raid?.phase==='warning'){
+    return guidance(
+      'raid-warning',
+      '村の外が、少し騒がしい……',
+      '襲来に備えて、警備職と守りの届く範囲を確かめておきたい。',
+      buildAction(world,'guardpost','守りを整える'),
+    );
+  }
+
+  const population=world.population();
+  const freeBeds=Math.max(0,population.openBeds-population.people);
+  if(freeBeds<1){
+    const kind=unlocked(world.state,'home')?'home':'tent';
+    return guidance(
+      'housing',
+      '寝床を探している住人がいるようだ……',
+      '次の住人を迎える余白もない。暮らせる場所をもう少し増やしたい。',
+      buildAction(world,kind,'住まいをつくる'),
+    );
+  }
+  if(population.safety<=population.people){
+    return guidance(
+      'safety',
+      '村が広がり、守りが薄くなってきた……',
+      '人の暮らす範囲に警備の目を増やすと、次の住人も安心して来られる。',
+      buildAction(world,'guardpost','守りをつくる'),
+    );
+  }
+  const defenseProposal=activeDefenseProposal(world);
+  if(defenseProposal){
+    return guidance(
+      'defense-proposal',
+      `${defenseProposal.guardName}が${defenseProposal.side}の守りを気にしている……`,
+      `同じ方角から危険が重なった。勝手に建てず、この辺りへ${defs[defenseProposal.kind]?.label||'防衛設備'}を置く案を出している。`,
+      buildAction(world,defenseProposal.kind,'提案を見る',[defenseProposal.x,defenseProposal.z]),
+    );
+  }
+
+  const hasFoodSource=world.objects?.some(object=>defs[object.kind]?.produce?.food);
+  if(!hasFoodSource){
+    return guidance(
+      'food-source',
+      '食べものを生む場所が、まだない……',
+      '開拓の四人と、これから来る住人のために畑を用意したい。',
+      buildAction(world,'wheat','畑をつくる'),
+    );
+  }
+  if(population.food<=population.people){
+    return guidance(
+      'food',
+      '食卓が、少し寂しくなってきた……',
+      '住人が増えたぶん、食べものを生み出す場所を増やしたい。',
+      buildAction(world,'wheat','食べものを増やす'),
+    );
+  }
+
+  const resident=idleResident(world);
+  if(resident){
+    const kind=suggestedWorkKind(world);
+    const facility=kind&&defs[kind];
+    return guidance(
+      'work',
+      `${resident.name}は、仕事を欲しているようだ……`,
+      facility?`${facility.label}があれば、新しい働き口と村の生産が生まれる。`:'新しい働き口があれば、村の暮らしがもう一段動き出しそうだ。',
+      kind?buildAction(world,kind,'仕事場をつくる'):null,
+    );
+  }
+
+  return guidance(
+    'stable',
+    '村は、いま穏やかに回っている。',
+    '住人の暮らしを眺めながら、内装や景観を整える余裕がありそうだ。',
+  );
+}
+
+export function nextVillageGoal(world){
+  const next=nextVillageGuidance(world);
+  return next?`${next.title} ${next.text}`:null;
 }

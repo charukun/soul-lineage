@@ -44,8 +44,8 @@ const playbackTime=()=>isExternal()?externalTime:Math.max(0,action?.time||0);
 // One selected-item explanation; no extra microcopy on every thumbnail.
 const quality=document.createElement('output');quality.id='motion-quality';quality.className='motion-quality';quality.setAttribute('aria-live','polite');
 canvas.closest('.motion-stage').append(quality);
-const compatibility=document.createElement('details');compatibility.className='motion-compatibility';compatibility.dataset.reviewStageControl='true';compatibility.open=true;
-compatibility.innerHTML='<summary>武器・表示設定</summary><p>武器・腰移動・プレビュー補正を切り替えます。近似再生は素材比較用です。</p><label>武器 <select id="motion-weapon" aria-label="武器"></select></label><label>腰の移動 <select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場で再生</option><option value="free">移動も適用</option><option value="locked">腰を固定</option></select></label><label>補正 <select id="motion-constraint-policy" aria-label="プレビュー補正"><option value="raw">生の近似</option><option value="assisted">接地・接触を補助</option></select></label><pre id="motion-binding-report"></pre>';
+const compatibility=document.createElement('section');compatibility.className='motion-compatibility';compatibility.dataset.reviewStageControl='true';
+compatibility.innerHTML='<div class="motion-setting-grid"><label><span>武器</span><select id="motion-weapon" aria-label="武器"></select></label><label><span>腰の移動</span><select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場</option><option value="free">移動を反映</option><option value="locked">腰を固定</option></select></label><label><span>接地補正</span><select id="motion-constraint-policy" aria-label="接地補正"><option value="raw">補正なし</option><option value="assisted">接地・接触を補助</option></select></label></div><details class="motion-diagnostics"><summary>技術詳細</summary><pre id="motion-binding-report"></pre></details>';
 el('motion-meta').closest('details').before(compatibility);
 for(const option of MOTION_REVIEW_WEAPON_OPTIONS)el('motion-weapon').add(new Option(option.label,option.id));
 el('motion-weapon').value=selectedWeapon;
@@ -171,7 +171,7 @@ async function loadReviewModelForThumbnail(model){
 }
 function renderMotionGrid(){
   const root=el('motion-grid'),model=selectedModel,rows=filterMotionReviewCatalog(catalog,filter);root.replaceChildren();
-  if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty';empty.textContent=targetAdapter?'この分類のモーションはありません。':'モデルを準備しています。';root.append(empty);return;}
+  if(!rows.length){const empty=document.createElement('p');empty.className='motion-empty review-workbench__empty';empty.textContent=targetAdapter?'この分類のモーションはありません。':'モデルを準備しています。';root.append(empty);return;}
   for(const record of rows){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionIdentity=record.sourceIdentity;button.dataset.recommended=String(record.recommended);
     const label=record.displayName||reviewMotionDisplayName(record.name,record.index),thumbnail=createRuntimeThumbnail(label);button.setAttribute('aria-label',label);button.title=label;button.append(thumbnail);

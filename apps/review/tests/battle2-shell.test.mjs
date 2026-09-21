@@ -18,14 +18,16 @@ function shellHarness({hasHeader=true,duplicate=false}={}){
 
 test('battle2 nests native canvases inside the shared battle review frame',()=>{
   const html=read('battle2.html'),css=read('src/battle2.css');
-  assert.match(html,/<main class="battle2-review review-surface"/);
-  assert.match(html,/<header class="battle-bar review-surface__header">[\s\S]*?review-surface__back[\s\S]*?<h1>序破急バトルシステム<\/h1>[\s\S]*?<\/header>/);
+  assert.match(html,/<main class="battle2-review review-surface review-workbench"/);
+  assert.match(html,/<header class="battle-bar review-surface__header">[\s\S]*?review-surface__back[\s\S]*?<h1>序破急バトル<\/h1>[\s\S]*?<\/header>/);
   assert.match(html,/<section class="review-surface__workspace"[^>]*>\s*<div class="review-surface__stage-column">\s*<section class="nocturne-stage review-surface__stage"[^>]*data-review-surface="battle2"/);
   assert.equal((html.match(/<canvas\b/g)||[]).length,2);
   assert.match(html,/src="\.\/src\/battle2-shell\.js"/);assert.match(html,/src="\.\/src\/nocturne-stage\.js"/);
-  assert.doesNotMatch(html,/<iframe\b|<button\b|<select\b|<input\b|review-surface__panel|data-runtime-support|id="hud"/i);
-  assert.match(css,/main\.battle2-review\.review-surface>\.review-surface__workspace\s*\{\s*grid-template-columns:minmax\(0,1fr\)!important;\s*grid-template-rows:minmax\(0,1fr\)!important;/);
-  assert.doesNotMatch(css,/position:\s*fixed|height:\s*100dvh/);
+  assert.doesNotMatch(html,/<iframe\b|<select\b|<input\b|data-runtime-support|id="hud"/i);
+  assert.equal((html.match(/<button\b/g)||[]).length,2);
+  assert.equal((html.match(/review-surface__panel/g)||[]).length,1);
+  assert.match(css,/main\.battle2-review\.review-surface>\.review-surface__workspace\s*\{\s*grid-template-columns:minmax\(0,1fr\)!important;\s*grid-template-rows:minmax\(0,1fr\) auto!important;/);
+  assert.doesNotMatch(css,/position:\s*fixed/);assert.match(css,/height:\s*100dvh/);
   assert.match(css,/review-switcher__grid\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
 });
 

@@ -74,7 +74,7 @@ function handleInspirationCue(cue,payload={}){
   if(cue==='camera'){battleSfx.inspiration('camera');return;}
   if(cue==='spacing'){battleSfx.inspiration('anticipation');return;}
   if(cue==='stagger'){battleSfx.inspiration('stagger');return;}
-  if(cue==='silence'){showInspirationBulb();battleSfx.inspiration('spark');return;}
+  if(cue==='silence'){battleSfx.inspiration('spark');return;}
   if(cue==='execute'){battleSfx.inspiration('execute');return;}
   if(cue==='impact'){battleSfx.impact({guard:false,power:1});return;}
   if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='reveal';battleSfx.inspiration('reveal');return;}

@@ -38,7 +38,7 @@ test('stage gear discovers declarative controls instead of a per-screen selector
   assert.match(stage,/selector='\[data-review-stage-control\]'/);
   assert.match(stage,/if\(!nodes\.length\)return null/);
   const counts=pages.map(html=>(html.match(/data-review-stage-control/g)||[]).length);
-  assert.deepEqual(counts,[1,1,0,1,2,2]);
+  assert.deepEqual(counts,[1,1,1,1,2,2]);
 });
 
 test('slot picker is a shared-ui primitive and RINNE keeps only the adapter',async()=>{

@@ -120,7 +120,7 @@ function playClip(index){
 }
 async function loadObject(id){
   const item=OBJECTS.find(row=>row.id===id);if(!item)throw new Error(`Unknown review object: ${id}`);
-  const sequence=++loadSequence;selected=id;status(`${item.label} を読み込み中…`);renderSelection();
+  const sequence=++loadSequence;selected=id;status(`${item.label} を読み込み中…`);q('#object-selected').textContent=item.label;q('#object-selected-source').textContent='読み込み中…';renderSelection();
   loadAbort?.abort();loadAbort=new AbortController();const signal=loadAbort.signal;
   releaseAnimation();disposeRoot(objectRoot);objectRoot=null;
   let gltf=null,root=null;
@@ -140,7 +140,7 @@ async function loadObject(id){
       const select=q('#object-clip');select.replaceChildren(...clips.map((clip,index)=>new Option(clip.name||`Motion ${index+1}`,String(index))));
       q('#object-animation').hidden=false;playClip(Math.max(0,clips.findIndex(clip=>/idle/i.test(clip.name))));
     }
-    canvas.dataset.loadedAsset=id;status(`${item.label} · ${item.source}${clips.length?` · ${clips.length} モーション`:''}`);
+    canvas.dataset.loadedAsset=id;q('#object-selected-source').textContent=item.source+(clips.length?` · ${clips.length} モーション`:'');status(`${item.label} · ${item.source}${clips.length?` · ${clips.length} モーション`:''}`);
   }catch(error){
     if(sequence===loadSequence){releaseAnimation();disposeRoot(root);objectRoot=null;}
     else disposeRoot(root);
@@ -148,10 +148,10 @@ async function loadObject(id){
   }
 }
 function populate(){
-  const searchLabel=document.createElement('label');searchLabel.textContent='素材を探す';
+  const searchLabel=document.createElement('label');searchLabel.className='object-search review-workbench__search';searchLabel.innerHTML='<span>検索</span>';
   const search=document.createElement('input');search.id='object-search';search.type='search';search.placeholder='名前・作者・原典ファイル名';
   search.addEventListener('input',()=>{searchText=search.value;renderObjectOptions();});searchLabel.append(search);
-  const count=document.createElement('output');count.id='object-result-count';count.setAttribute('aria-live','polite');
+  const count=document.createElement('output');count.id='object-result-count';count.className='review-workbench__grid-title';count.setAttribute('aria-live','polite');
   const animation=document.createElement('fieldset');animation.id='object-animation';animation.hidden=true;
   const legend=document.createElement('legend');legend.textContent='原版モーション';
   const select=document.createElement('select');select.id='object-clip';select.setAttribute('aria-label','モーション');select.addEventListener('change',()=>playClip(Number(select.value)));
