@@ -1,0 +1,323 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:soul-lineage:autonomous:experiment:3",
+  "title": "Dense player-experience autonomous experiment plan",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "game",
+    "mode",
+    "kind",
+    "themeKey",
+    "experienceGoal",
+    "rootCauses",
+    "workItems",
+    "observation",
+    "hypothesis",
+    "candidates",
+    "implementation",
+    "evidencePlan",
+    "receipt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 3
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,95}$"
+    },
+    "game": {
+      "enum": [
+        "village",
+        "kuumetsu",
+        "rinne"
+      ]
+    },
+    "mode": {
+      "enum": [
+        "hardening",
+        "evolution",
+        "polish"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "infrastructure",
+        "gameplay",
+        "user-feedback"
+      ]
+    },
+    "themeKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "experienceGoal": {
+      "type": "object",
+      "required": [
+        "playerProblem",
+        "targetState",
+        "successSignals"
+      ],
+      "properties": {
+        "playerProblem": {
+          "type": "string",
+          "minLength": 1
+        },
+        "targetState": {
+          "type": "string",
+          "minLength": 1
+        },
+        "successSignals": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "rootCauses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "summary",
+          "prediction",
+          "falsifier",
+          "paths"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prediction": {
+            "type": "string",
+            "minLength": 1
+          },
+          "falsifier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "paths": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "workItems": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "summary",
+          "rootCauseKeys",
+          "paths",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{2,95}$"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rootCauseKeys": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "paths": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "singleFixException": {
+      "type": "object",
+      "required": [
+        "reason",
+        "evidence"
+      ],
+      "properties": {
+        "reason": {
+          "enum": [
+            "critical-regression",
+            "protected-rule-risk",
+            "observation-found-one-causal-fix"
+          ]
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "summary",
+        "evidence"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "staging": {
+          "type": "object",
+          "required": [
+            "kind",
+            "sourceSha",
+            "reference",
+            "observedAt",
+            "conditions",
+            "notVerified"
+          ],
+          "properties": {
+            "kind": {
+              "const": "immutable-staging"
+            },
+            "sourceSha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "reference": {
+              "type": "string",
+              "minLength": 1
+            },
+            "observedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "conditions": {
+              "type": "object"
+            },
+            "notVerified": {
+              "type": "array"
+            }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1
+        }
+      }
+    },
+    "hypothesis": {
+      "type": "object"
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 2
+    },
+    "implementation": {
+      "type": "object"
+    },
+    "evidencePlan": {
+      "type": "object",
+      "required": [
+        "objective",
+        "focusedTests",
+        "stagingAfter",
+        "limitations",
+        "workItemCoverage"
+      ],
+      "properties": {
+        "objective": {
+          "const": "reproducible-causality"
+        },
+        "focusedTests": {
+          "type": "array",
+          "minItems": 1
+        },
+        "stagingAfter": {
+          "enum": [
+            "required",
+            "optional",
+            "none"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1
+        },
+        "workItemCoverage": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "workItemId",
+              "evidence"
+            ],
+            "properties": {
+              "workItemId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidence": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "required": [
+        "repository",
+        "pullRequest",
+        "marker"
+      ],
+      "properties": {
+        "repository": {
+          "const": "charukun/soul-lineage"
+        },
+        "pullRequest": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "marker": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
