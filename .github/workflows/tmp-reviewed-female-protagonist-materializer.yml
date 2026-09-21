@@ -1,0 +1,139 @@
+name: Temporary Reviewed Female Protagonist Materializer
+on:
+  push:
+    branches:
+      - fix/female-protagonist-visual-refinement-20260921
+permissions:
+  contents: write
+  actions: read
+jobs:
+  materialize:
+    if: ${{ contains(github.event.head_commit.message, '[female-reviewed-materialize]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REVIEW_RUN_ID: "35585969372"
+      REVIEW_ARTIFACT: "female-visual-round-c30e5cb1d4e96386c9aa5aed467f55011ad6bb12"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Download exact reviewed model artifact
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/female-reviewed
+          mkdir -p /tmp/female-reviewed
+          gh run download "$REVIEW_RUN_ID" --repo "${GITHUB_REPOSITORY}" --name "$REVIEW_ARTIFACT" --dir /tmp/female-reviewed
+          test -s /tmp/female-reviewed/female-refined/source/ProtagonistVillagerFemaleV1.blend
+          test -s /tmp/female-reviewed/female-refined/export/ProtagonistVillagerFemaleV1.glb
+          test -s /tmp/female-reviewed/female-visual-round/character-studio.png
+          test -s /tmp/female-reviewed/female-visual-round/face.png
+      - name: Install Blender for final DCC audit
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender
+          blender --version | head -1 | grep -F "Blender 4.0.2"
+      - name: Materialize reviewed bytes and evidence
+        shell: bash
+        run: |
+          set -euxo pipefail
+          SRC=/tmp/female-reviewed/female-refined
+          EVID=/tmp/female-reviewed/female-visual-round
+          mkdir -p assets/characters/protagonist/villager-female-v1/source
+          mkdir -p apps/rinne/public/simulator/assets
+          mkdir -p apps/character-studio/public/simulator/assets
+          mkdir -p docs/characters/qa/protagonist-villager-female-v1
+          cp "$SRC/source/ProtagonistVillagerFemaleV1.blend" assets/characters/protagonist/villager-female-v1/source/
+          cp "$SRC/export/ProtagonistVillagerFemaleV1.glb" apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb
+          cp "$SRC/export/ProtagonistVillagerFemaleV1.glb" apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb
+          cp "$EVID/front.png" docs/characters/qa/protagonist-villager-female-v1/front.png
+          cp "$EVID/three-quarter.png" docs/characters/qa/protagonist-villager-female-v1/three-quarter.png
+          cp "$EVID/side.png" docs/characters/qa/protagonist-villager-female-v1/side.png
+          cp "$EVID/back.png" docs/characters/qa/protagonist-villager-female-v1/back.png
+          cp "$EVID/face.png" docs/characters/qa/protagonist-villager-female-v1/face.png
+          cp "$EVID/character-studio.png" docs/characters/qa/protagonist-villager-female-v1/character-studio.png
+          cp "$EVID/character-studio-diagnostic.json" docs/characters/qa/protagonist-villager-female-v1/character-studio-diagnostic.json
+          cp "$EVID/inspection.json" docs/characters/qa/protagonist-villager-female-v1/inspection.json
+          cp "$SRC/build.json" docs/characters/qa/protagonist-villager-female-v1/refinement-build.json
+          blender -b assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend \
+            --python scripts/blender/character-production-audit.py -- \
+            --character-id protagonist.villager.female.v1 \
+            --out docs/characters/qa/protagonist-villager-female-v1/blender-audit.json
+      - name: Synchronize integrity and production metadata
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          blend=Path("assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend")
+          glb=Path("apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb")
+          build=json.loads(Path("docs/characters/qa/protagonist-villager-female-v1/refinement-build.json").read_text())
+          audit=json.loads(Path("docs/characters/qa/protagonist-villager-female-v1/blender-audit.json").read_text())
+          diagnostic=json.loads(Path("docs/characters/qa/protagonist-villager-female-v1/character-studio-diagnostic.json").read_text())
+          sha=lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+          glb_sha=sha(glb); blend_sha=sha(blend)
+          if glb_sha != "965098813b6cef5a8f80d196742e5f6e56c5d9f0a381c16e04a70120a99cf297":
+              raise SystemExit(f"reviewed GLB hash mismatch: {glb_sha}")
+          if blend_sha != "ee437d5c322fdcfe1f9956e6c00fcdba8ecbccee5f42933485f391b08585b1c3":
+              raise SystemExit(f"reviewed blend hash mismatch: {blend_sha}")
+          if diagnostic.get("displayModelId") != "protagonist.villager.female.v1" or not diagnostic.get("ready") or diagnostic.get("errors"):
+              raise SystemExit(f"Character Studio evidence invalid: {diagnostic}")
+          receipt_path=Path("apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json")
+          receipt=json.loads(receipt_path.read_text())
+          receipt["sha256"]=glb_sha
+          receipt["bytes"]=glb.stat().st_size
+          receipt["sourceBlendSha256"]=blend_sha
+          receipt["visualApproval"]="pending"
+          receipt["license"]["surfaceAuthorship"]="RINNE-authored visual refinement of the CC0 KayKit-derived protagonist foundation: authored head/face, bob/fringe hair masses and split village-tunic tails; shared Rig_Medium and existing body skinning retained."
+          for target in [
+              receipt_path,
+              Path("apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json")
+          ]:
+              target.write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+"\n")
+
+          prod_path=Path("packages/characters/production/protagonist-villager-female-v1.production.json")
+          prod=json.loads(prod_path.read_text())
+          prod["source"]["dcc"]["sourceSha256"]=blend_sha
+          primary=prod["evidence"]["primary"]
+          primary["auditPath"]="docs/characters/qa/protagonist-villager-female-v1/blender-audit.json"
+          primary["meshObjects"]=audit["scene"]["meshObjects"]
+          primary["triangles"]=audit["scene"]["triangles"]
+          primary["materials"]=audit["scene"]["materials"]
+          primary["separateSurfaces"]=["skin","hair","clothing","source-protagonist-kaykit-parts"]
+          prod["status"]["note"]="Visually refined female protagonist reviewed in fixed front/three-quarter/side/back/face views and loaded as the delivered GLB in Character Studio. PRIMARY only; deformation, motion, polish, device performance and explicit human visual approval remain pending."
+          prod_path.write_text(json.dumps(prod,ensure_ascii=False,indent=2)+"\n")
+
+          print(json.dumps({
+              "glbSha256":glb_sha,
+              "blendSha256":blend_sha,
+              "bytes":glb.stat().st_size,
+              "meshObjects":audit["scene"]["meshObjects"],
+              "triangles":audit["scene"]["triangles"],
+              "materials":audit["scene"]["materials"],
+              "characterStudio":diagnostic,
+          },ensure_ascii=False,indent=2))
+          PY
+          node scripts/check-character-production.mjs
+      - name: Commit exact reviewed model
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend \
+            apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb \
+            apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json \
+            apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb \
+            apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json \
+            packages/characters/production/protagonist-villager-female-v1.production.json \
+            docs/characters/qa/protagonist-villager-female-v1
+          git commit -m "art(characters): materialize visually reviewed female protagonist [female-visual-generated]"
+          git push origin HEAD:fix/female-protagonist-visual-refinement-20260921
