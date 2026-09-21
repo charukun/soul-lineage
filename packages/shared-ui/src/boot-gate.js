@@ -9,7 +9,7 @@ function unlockAudio(){
   window.dispatchEvent(new CustomEvent('soul:audio-unlocked'));
 }
 
-export function openBrandBootGate({app='rinne',ready=null}={}){
+export function openBrandBootGate({app='rinne',load=null}={}){
   if(typeof document==='undefined'||document.getElementById(ID))return Promise.resolve();
   const style=document.createElement('style');
   style.textContent=`
@@ -19,7 +19,7 @@ export function openBrandBootGate({app='rinne',ready=null}={}){
 #${ID} .scorpion{fill:#111;fill-rule:evenodd;opacity:0;transform-origin:50% 58%;transform:translateY(20px) scale(.78) rotate(-2deg)}
 #${ID} .bolts{fill:#ffc400;fill-rule:evenodd;opacity:0;transform-origin:50% 50%;transform:scale(.82)}
 #${ID} .wordmark{font:700 clamp(27px,7vw,47px)/1 Arial,Helvetica,sans-serif;letter-spacing:.22em;text-indent:.22em;white-space:nowrap;opacity:0;transform:translateY(8px)}
-#${ID} .touch{position:absolute;left:50%;bottom:max(9vh,54px);display:grid;justify-items:center;gap:10px;transform:translate(-50%,14px);opacity:0;color:#111}
+#${ID} .loader{position:absolute;left:50%;bottom:max(10vh,62px);width:112px;display:grid;gap:9px;transform:translateX(-50%);opacity:0;animation:paLoaderIn .35s ease .7s forwards}\n#${ID} .loader-track{height:2px;width:100%;background:#1112;overflow:hidden;border-radius:99px}\n#${ID} .loader-fill{display:block;width:100%;height:100%;background:#ffc400;transform:scaleX(.04);transform-origin:left center;transition:transform .22s ease-out}\n#${ID} .loader-dot{justify-self:center;width:3px;height:3px;border-radius:50%;background:#1116;animation:paLoadPulse 1s ease-in-out infinite}\n#${ID}.ready .loader{opacity:0;transform:translate(-50%,6px);transition:opacity .2s ease,transform .2s ease}\n#${ID} .touch{position:absolute;left:50%;bottom:max(9vh,54px);display:grid;justify-items:center;gap:10px;transform:translate(-50%,14px);opacity:0;color:#111;pointer-events:none}
 #${ID} .touch-dot{width:42px;height:42px;border:1.5px solid #111;border-radius:50%;position:relative}
 #${ID} .touch-dot::after{content:"";position:absolute;inset:50% auto auto 50%;width:5px;height:5px;border-radius:50%;background:#ffc400;transform:translate(-50%,-50%)}
 #${ID} .touch-label{font:600 10px/1 Arial,Helvetica,sans-serif;letter-spacing:.3em;text-indent:.3em}
@@ -33,28 +33,42 @@ export function openBrandBootGate({app='rinne',ready=null}={}){
 @keyframes paScorpion{0%{opacity:0;transform:translateY(20px) scale(.78) rotate(-2deg)}68%{opacity:1;transform:translateY(-3px) scale(1.035) rotate(.8deg)}84%{transform:translateY(1px) scale(.985) rotate(0)}100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
 @keyframes paBolts{0%{opacity:0;transform:scale(.82)}70%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
 @keyframes paWord{to{opacity:1;transform:translateY(0)}}
-@keyframes paTouchIn{to{opacity:.72;transform:translate(-50%,0)}}
+@keyframes paLoaderIn{to{opacity:1}}\n@keyframes paLoadPulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:.75;transform:scale(1)}}\n@keyframes paTouchIn{to{opacity:.72;transform:translate(-50%,0)}}
 @keyframes paBreathe{0%,100%{transform:scale(.94);opacity:.62}50%{transform:scale(1.04);opacity:1}}
-@media(prefers-reduced-motion:reduce){#${ID} .scorpion,#${ID} .bolts,#${ID} .wordmark,#${ID} .touch,#${ID} .touch-dot{animation:none!important;opacity:1;transform:none}#${ID} .touch{transform:translate(-50%,0)}}
+@media(prefers-reduced-motion:reduce){#${ID} .scorpion,#${ID} .bolts,#${ID} .wordmark,#${ID} .loader,#${ID} .touch,#${ID} .touch-dot{animation:none!important;opacity:1;transform:none}#${ID} .loader,#${ID} .touch{transform:translate(-50%,0)}}
 `;
   document.head.append(style);
   const old=document.documentElement.style.overflow;
   document.documentElement.style.overflow='hidden';
   const el=document.createElement('button');
   el.id=ID;el.type='button';el.dataset.app=app;el.setAttribute('aria-label','PARALYZE AREA 起動');
-  el.innerHTML=`<span class="brand" aria-hidden="true"><svg class="mark" viewBox="0 0 1270 860"><path class="scorpion" d="${SCORPION_PATH}"/><path class="bolts" d="${BOLT_PATH}"/></svg><span class="wordmark">PARALYZE AREA</span></span><span class="touch" aria-hidden="true"><i class="touch-dot"></i><span class="touch-label">TAP</span></span>`;
+  el.innerHTML=`<span class="brand" aria-hidden="true"><svg class="mark" viewBox="0 0 1270 860"><path class="scorpion" d="${SCORPION_PATH}"/><path class="bolts" d="${BOLT_PATH}"/></svg><span class="wordmark">PARALYZE AREA</span></span><span class="loader" aria-hidden="true"><span class="loader-track"><i class="loader-fill"></i></span><i class="loader-dot"></i></span><span class="touch" aria-hidden="true"><i class="touch-dot"></i><span class="touch-label">TAP</span></span>`;
   document.body.append(el);
-  let armed=false;
+  let armed=false,failed=false,progressValue=.04;
+  const fill=el.querySelector('.loader-fill');
+  const report=value=>{
+    const next=Math.max(progressValue,Math.min(1,Number(value)||0));
+    progressValue=next;
+    if(fill)fill.style.transform=`scaleX(${Math.max(.04,next)})`;
+  };
   requestAnimationFrame(()=>el.classList.add('play'));
-  const armTimer=setTimeout(()=>{armed=true;el.classList.add('armed')},1850);
-  const readyWait=ready?Promise.resolve(ready).catch(()=>{}):Promise.resolve();
+  const introWait=new Promise(resolve=>setTimeout(resolve,1500));
+  const loadWait=load?Promise.resolve().then(()=>load(report)):Promise.resolve();
+  void Promise.all([introWait,loadWait]).then(()=>{
+    report(1);el.classList.add('ready');
+    setTimeout(()=>{armed=true;el.classList.add('armed')},240);
+  }).catch(error=>{
+    console.error(error);failed=true;el.classList.add('ready');
+    const label=el.querySelector('.touch-label');if(label)label.textContent='RETRY';
+    setTimeout(()=>{armed=true;el.classList.add('armed')},240);
+  });
   return new Promise(resolve=>{
     let done=false;
     const enter=()=>{
       if(done||!armed)return;
-      done=true;clearTimeout(armTimer);unlockAudio();el.disabled=true;el.classList.add('leave');
-      const fade=new Promise(r=>setTimeout(r,280));
-      Promise.all([fade,readyWait]).finally(()=>{el.remove();style.remove();document.documentElement.style.overflow=old;resolve()});
+      if(failed){location.reload();return;}
+      done=true;unlockAudio();el.disabled=true;el.classList.add('leave');
+      setTimeout(()=>{el.remove();style.remove();document.documentElement.style.overflow=old;resolve()},280);
     };
     el.addEventListener('pointerup',enter);
     el.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();enter()}});
