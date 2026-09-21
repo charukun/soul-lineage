@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./domain": "./src/domain.js"
   },
   "dependencies": {
     "@soul/game-data": "*"
