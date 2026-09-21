@@ -44,7 +44,20 @@ test('HUD metadata follows the actual hero motion',()=>{
  assert.ok(checked>120);
 });
 
-test('action history is floating text that fades itself, not a web-style list repaint',()=>{
+test('HUD follows the rendered hero feet and uses only short action text',()=>{
+ const stage=stageSource(),css=hudCss(),html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8');
+ const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ const controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8');
+ assert.match(runtime,/footAnchor\(\)\{if\(!hero\)return null;return project\(hero\.pos\.clone\(\)\.add\(new V\(0,\.08,0\)\)\);\}/);
+ assert.match(controller,/footAnchor:\(\)=>driven\.footAnchor/);assert.match(stage,/function positionHud\(\)/);assert.match(stage,/runtime\?\.footAnchor\?\.\(\)/);
+ assert.match(stage,/hud\.style\.left/);assert.match(stage,/hud\.style\.top/);assert.match(css,/\.battle-sequence-hud\{[^}]*top:50%/);
+ assert.doesNotMatch(html,/間合いを測っている/);
+ assert.match(stage,/function shortActionName/);assert.match(stage,/line\.textContent=row\.label/);
+ assert.doesNotMatch(stage,/line\.append\(phase,text\)|\$\{row\.name\}.*\$\{row\.move\}/);
+ assert.doesNotMatch(stage,/currentNode\.textContent=.*meta\.stamina|currentNode\.textContent=.*injury/i);
+});
+
+test('action history remains floating text that fades itself, not a web-style list repaint',()=>{
  const stage=stageSource(),css=hudCss();
  assert.match(stage,/spawnActionText/);assert.match(stage,/historyNode\.append\(line\)/);assert.match(stage,/animationend/);assert.match(stage,/setTimeout\(remove,4200\)/);
  assert.doesNotMatch(stage,/historyNode\.replaceChildren\(\.\.\.history\.map/);

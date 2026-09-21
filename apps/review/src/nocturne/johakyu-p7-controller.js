@@ -32,5 +32,6 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
   return Object.freeze({prepare,resize:driven.resize,metrics,advance,destroy,fail:destroy,
     inspectActors:()=>current?.frame.actors??scenario.inspect().frame.actors,
     inspectBattle:()=>current?.frame??scenario.inspect().frame,
+    footAnchor:()=>driven.footAnchor?.()??null,
     get trace(){return trace.slice();}});
 }
