@@ -60,9 +60,9 @@ const BAND_ORDER=Object.freeze(['inside','contact','outside']);
 
 function phaseSequences(arts,phase){
   const open=unique([...(arts.open||[]),'ready','guard']),middle=unique([...(arts.middle||[]),'guard','ready']),finish=unique(arts.finish||[]);
-  if(phase==='jo')return [...open.map(a=>[a]),...open.flatMap(a=>open.filter(b=>b!==a).map(b=>[a,b]))];
-  if(phase==='ha')return [...middle.map(a=>[a]),...open.flatMap(a=>middle.map(b=>[a,b])),...open.flatMap(a=>middle.flatMap(b=>middle.filter(c=>c!==b).map(c=>[a,b,c])))];
-  return [...finish.map(a=>[a]),...middle.flatMap(a=>finish.map(b=>[a,b])),...middle.flatMap(a=>finish.flatMap(b=>finish.filter(c=>c!==b).map(c=>[a,b,c])))];
+  if(phase==='jo')return [...open.map(a=>[a]),...open.flatMap(a=>open.map(b=>[a,b]))];
+  if(phase==='ha')return [...middle.map(a=>[a]),...open.flatMap(a=>middle.map(b=>[a,b])),...open.flatMap(a=>middle.flatMap(b=>middle.map(c=>[a,b,c])))];
+  return [...finish.map(a=>[a]),...middle.flatMap(a=>finish.map(b=>[a,b])),...middle.flatMap(a=>finish.flatMap(b=>finish.map(c=>[a,b,c])))];
 }
 function legacyPhaseSequences(arts,phase){
   const open=unique(arts.open||[]),middle=unique(arts.middle||[]),finish=unique(arts.finish||[]);
@@ -72,7 +72,7 @@ function legacyPhaseSequences(arts,phase){
 }
 function plausibleKinds(kinds){
   if(!kinds.length||kinds.length>3||kinds.some(kind=>!MOTION[kind]))return false;
-  if(kinds.some((kind,index)=>index&&kind===kinds[index-1]))return false;
+  if(kinds.some((kind,index)=>index&&kind===kinds[index-1]&&['guard','ready'].includes(kind)))return false;
   const lunges=kinds.filter(kind=>['dash','bullrush','leap','rushfist'].includes(kind)).length;
   return lunges<=1;
 }
@@ -127,6 +127,63 @@ function buildRow(weapon,steps,phases,{legacy=false}={}){
     generated:true,grammarRevision:legacy?'technique-grammar-1':techniqueGrammarRevision,tag:arts?.tag||weapon,
   });
 }
+
+const ATTACK_FAMILY=Object.freeze({
+  thrust:'thrust',pierce:'thrust',katanaThrust:'thrust',jab:'thrust',straight:'thrust',oneinch:'thrust',
+  slash:'slash',diagonal:'slash',crosscut:'slash',uppercut:'slash',katanaKesa:'slash',katanaDraw:'slash',katanaReturn:'slash',
+  heavy:'heavy',meteor:'heavy',bash:'heavy',pommel:'heavy',
+  sweep:'sweep',round:'sweep',spearwheel:'sweep',hook:'sweep',
+  bodyblow:'fist',risingfist:'fist',barrage:'fist',rushfist:'fist'
+});
+const FAMILY_LABEL=Object.freeze({thrust:'突き',slash:'斬り',heavy:'打ち',sweep:'払い',fist:'拳'});
+const SIGNATURE_KATAKANA=Object.freeze([
+  'ドラゴンドライブ','ファントムエッジ','ブレイクラッシュ','ヴォイドピアス','ルナブレイク','アストラドライブ',
+  'レイジングファング','ゼロスラスト','クロノブレイク','ナイトレイヴ'
+]);
+const SIGNATURE_JAPANESE_PREFIX=Object.freeze(['龍牙','迅雷','月影','天穿','星喰','虚空','鬼哭','蒼雷','黒曜','白閃']);
+const SIGNATURE_JAPANESE_SUFFIX=Object.freeze(['穿','閃','砕','牙','輪','返し','落とし','連','衝','断']);
+function nameHash(text){let h=2166136261;for(const ch of String(text)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+function nameUnit(seed,key){return nameHash(String(seed)+':'+key)/4294967295;}
+export function techniqueArchetypeName(row){
+  const steps=row?.steps||[],families=steps.map(step=>ATTACK_FAMILY[step.kind]).filter(Boolean);
+  if(steps.length>=2&&families.length===steps.length&&new Set(families).size===1){
+    const count=steps.length===2?'二段':steps.length===3?'三段':`${steps.length}段`;
+    return (count+(FAMILY_LABEL[families[0]]||'技')).slice(0,7);
+  }
+  if(steps.length===3&&families.length===3){
+    const dominant=[...new Set(families)].sort((a,b)=>families.filter(x=>x===b).length-families.filter(x=>x===a).length)[0];
+    if(families.filter(x=>x===dominant).length>=2)return ('三連'+(FAMILY_LABEL[dominant]||'技')).slice(0,7);
+  }
+  return String(row?.name||'').replace(/[・･]/g,'').trim().slice(0,7);
+}
+function signatureStem(row){
+  const families=(row?.steps||[]).map(step=>ATTACK_FAMILY[step.kind]).filter(Boolean);
+  const dominant=families[0]||'thrust';
+  return Object.freeze({thrust:'穿',slash:'閃',heavy:'砕',sweep:'輪',fist:'牙'})[dominant]||'閃';
+}
+export function generatedTechniqueNaming(row,{seed=0,motifs=[],specialEffects=null}={}){
+  const base=techniqueArchetypeName(row);
+  const effects=Array.isArray(specialEffects)?specialEffects:(row?.specialEffects||[]);
+  const rules=effects.filter(effect=>effect?.impact==='rule');
+  const ultimate=rules.some(effect=>effect?.rarity==='singular'&&String(effect?.unlockCondition||'').trim());
+  const grade=ultimate?'ultimate':rules.length?'secret':'normal';
+  const motifKey=[...(motifs||[])].sort().join(',');
+  const individuality=nameUnit(seed,`signature:${row?.id}:${motifKey}`);
+  const signature=rules.length>0||individuality<.14;
+  let name=base,style='archetype';
+  if(signature){
+    const kata=nameUnit(seed,`script:${row?.id}:${motifKey}`)<.32;
+    if(kata){name=SIGNATURE_KATAKANA[nameHash(`${seed}:${row?.id}:kata:${motifKey}`)%SIGNATURE_KATAKANA.length];style='katakana';}
+    else{
+      const prefix=SIGNATURE_JAPANESE_PREFIX[nameHash(`${seed}:${row?.id}:prefix:${motifKey}`)%SIGNATURE_JAPANESE_PREFIX.length];
+      const suffix=SIGNATURE_JAPANESE_SUFFIX[nameHash(`${seed}:${row?.id}:suffix:${motifKey}`)%SIGNATURE_JAPANESE_SUFFIX.length]||signatureStem(row);
+      name=(prefix+suffix).slice(0,7);style='chuunibyou';
+    }
+  }
+  const title=grade==='ultimate'?'奥義':grade==='secret'?'秘技':'';
+  return Object.freeze({baseName:base,name,displayName:title?`${title}・${name}`:name,style,grade,signature});
+}
+export function generatedTechniqueDisplayName(row,options={}){return generatedTechniqueNaming(row,options).displayName;}
 
 const V2_CACHE=new Map(),V1_CACHE=new Map();
 function legacyCandidates(weapon){

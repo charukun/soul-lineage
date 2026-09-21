@@ -26,9 +26,10 @@ test('first-run guide observes normal input instead of mutating village state di
 test('first-run guide stays non-blocking, touch-safe and reduced-motion aware',()=>{
   assert.match(style,/#muraFirstRunGuide\{[^}]*pointer-events:none/s);
   assert.match(style,/@media\(prefers-reduced-motion:reduce\)/);
-  assert.match(style,/\.muraFirstRunTouch\{[^}]*width:44px/s);
-  assert.doesNotMatch(style,/muraFirstRunFinger/);
-  assert.doesNotMatch(view,/muraFirstRunFinger/);
+  assert.match(style,/\.muraFirstRunFinger\{/);
+  assert.match(view,/muraFirstRunFinger/);
+  assert.match(view,/animateDrag\([\s\S]*finger/);
+  assert.doesNotMatch(style,/\.muraFirstRunTouch\{/);
   assert.doesNotMatch(style,/aria-modal/);
 });
 

@@ -182,7 +182,8 @@ function renderEquipmentInspector(){
   }
   const summary=q('#asset-combination');
   if(summary)summary.textContent=`${modelLabel()} · 右 ${equipmentLabel(selection.main)} · 左 ${equipmentLabel(selection.off)} · 背 ${equipmentLabel(selection.back)}`;
-  const label=q('#asset-candidate-label');if(label)label.textContent=`${labels[activeAssetSlot]}の候補`;
+  const label=q('#asset-candidate-label');if(label)label.textContent=`${labels[activeAssetSlot]}の装備を選択`;
+  const clear=q('#asset-clear-slot');if(clear)clear.textContent=`${labels[activeAssetSlot]}の装備を外す`;
   const list=q('#asset-equipment-options');
   if(!list)return;
   list.setAttribute('aria-label',`${labels[activeAssetSlot]}装備の候補`);

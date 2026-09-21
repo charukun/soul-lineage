@@ -56,9 +56,7 @@ function handlePlacementButton(ctx,event,button){
  const stage=ctx.guide.stage;
  if(stage!=='drag'&&stage!=='place')return false;
  if(button.id==='cancelPlace'){
-  event.preventDefault();event.stopImmediatePropagation();
-  const message=stage==='drag'?'まだ置かずに、1本指で少し大きくなぞります。':'今回はボタンではなく、画面を短くタップして置きます。';
-  ctx.guide.setHint(message);void ctx.guide.playDemo({immediate:true});
+  requestAnimationFrame(()=>requestAnimationFrame(()=>verifyPlacement(ctx)));
   return true;
  }
  if(button.id==='muraCancelPlacement'){
@@ -93,36 +91,27 @@ function onPointerMove(ctx,event){
  gesture.max=Math.max(gesture.max,distance(gesture.start,gesture.last));
 }
 
-function handleDragRelease(ctx,event,gesture){
- if(!gesture.multi&&gesture.max>=DRAG_DISTANCE&&ctx.active&&ctx.guide.stage==='drag'&&ctx.ui.pending?.kind===GUIDE_KIND){
-  accept(ctx,'place','いい位置なら、画面を短く1回タップ。');
-  return;
- }
- if(gesture.multi||!ctx.active||ctx.guide.stage!=='drag')return;
- if(gesture.max<TAP_DISTANCE){
-  event.preventDefault();event.stopImmediatePropagation();
-  ctx.guide.setHint('指をつけたまま、もう少し大きくなぞってください。');
- }else ctx.guide.setHint('動かし方は合っています。もう少しだけ大きくなぞります。');
- void ctx.guide.playDemo({immediate:true});
+function handlePlacementRelease(ctx,gesture){
+ if(gesture.multi||!ctx.active||(ctx.guide.stage!=='drag'&&ctx.guide.stage!=='place'))return;
+ requestAnimationFrame(()=>requestAnimationFrame(()=>verifyPlacement(ctx)));
 }
 
 function verifyPlacement(ctx){
- if(!ctx.active||ctx.guide.stage!=='place')return;
+ if(!ctx.active||(ctx.guide.stage!=='drag'&&ctx.guide.stage!=='place'))return;
  const placed=ctx.world.objects.some(object=>object.kind===GUIDE_KIND);
  if(placed&&!ctx.ui.pending){ctx.guide.setStage('done');return;}
  if(ctx.ui.pending?.error){
   ctx.guide.setHint(`そこには置けません。「${ctx.ui.pending.error}」なので、少し場所をずらしてから短くタップ。`,3800);
   return;
  }
- ctx.guide.setHint('画面を短く1回タップすると、いまの候補位置へ置けます。');
+ ctx.guide.setHint('空いている場所を短くタップするか、テントを指で動かして離すと置けます。');
 }
 
 function onPointerFinish(ctx,event){
  const gesture=ctx.gesture;
  if(!gesture||event.pointerId!==gesture.id)return;
  ctx.gesture=null;
- if(gesture.stage==='drag'){handleDragRelease(ctx,event,gesture);return;}
- if(gesture.stage==='place'&&!gesture.multi&&gesture.max<TAP_DISTANCE&&ctx.active&&ctx.guide.stage==='place')requestAnimationFrame(()=>requestAnimationFrame(()=>verifyPlacement(ctx)));
+ if(gesture.stage==='drag'||gesture.stage==='place')handlePlacementRelease(ctx,gesture);
 }
 
 function removeListeners(ctx){

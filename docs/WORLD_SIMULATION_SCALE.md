@@ -10,7 +10,7 @@ Stack order: Stylized target -> GPU/performance -> runtime resilience -> shared-
 
 `@soul/world/spatial-index` is the common broad-phase for nearby entity/object lookups. It uses a uniform grid and supports incremental frame updates, tagged radius queries and nearest lookup. Hot callers can provide their own output array through `queryRadiusInto()` so repeated proximity checks do not allocate a new array every frame.
 
-叡智豊満 uses this for nearby guard, wildlife target, raid target and nearby defensive-building lookup instead of repeatedly filtering/sorting the full population/object list.
+宝満叡智 uses this for nearby guard, wildlife target, raid target and nearby defensive-building lookup instead of repeatedly filtering/sorting the full population/object list.
 
 ## Crowd navigation / Flow Field
 
@@ -79,7 +79,7 @@ Audio LOD from the previous shared-world phase remains responsible for deciding 
 
 ## Incremental persistence
 
-叡智豊満 retains the canonical full snapshot but adds an append-only journal:
+宝満叡智 retains the canonical full snapshot but adds an append-only journal:
 
 - the base snapshot remains a complete recoverable save;
 - subsequent saves store incremental operations, including ID-addressed entity patches;

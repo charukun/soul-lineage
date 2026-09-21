@@ -1,7 +1,7 @@
 import {nextVillageGoal} from './game/director-guidance.js';
 
 const village=window.village;
-if(!village)throw new Error('叡智豊満 director polish requires a booted village');
+if(!village)throw new Error('宝満叡智 director polish requires a booted village');
 const {world,view}=village;
 const $=id=>document.getElementById(id);
 const shortestAngle=(from,to)=>Math.atan2(Math.sin(to-from),Math.cos(to-from));

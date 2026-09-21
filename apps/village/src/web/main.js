@@ -206,7 +206,7 @@ function more(){
  showDialog(`<h2>設定</h2><div class="settingsGrid"><button id="musicOpen">音楽</button><button id="photo">写真</button><button id="journal">出来事</button><button id="help">ヘルプ</button><button id="onlineOpen">オンライン</button><button class="muraTitleAction" id="muraTitleAction">タイトル</button>${info.environment!=='prod'?'<button id="muraDeveloperOpen">開発者</button>':''}</div><p class="muted">${storageOK?'自動保存しています。':'保存できません。開発者ページからバックアップできます。'}</p>`,{page:'settings'});
  $('onlineOpen').onclick=openOnline;
  $('musicOpen').onclick=()=>{$('dialog').close();window.__SOUL_MUSIC__?.open();};
- $('photo').onclick=()=>{view.render(elapsed,0);const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='叡智豊満.png';a.click();};
+ $('photo').onclick=()=>{view.render(elapsed,0);const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='宝満叡智.png';a.click();};
  $('journal').onclick=()=>showJournalPage(0);
  $('help').onclick=help;
  $('muraTitleAction').onclick=async()=>{const b=$('muraTitleAction');b.disabled=true;if(!await save()){b.disabled=false;toast('保存に失敗しました。タイトルには戻りません。');return;}cancelPlacement();closeDrawer();deselect();view.endObservation();$('dialog').close();window.__MURA_ENTRY_POLISH__.open();};
@@ -218,7 +218,7 @@ function developer(){
  showDialog(`<h2>開発者</h2><div class="row"><label for="muraDevSpeed">暮らしの速さ</label><select id="muraDevSpeed"><option value="0">停止</option><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select></div><div class="row"><label for="muraDevTilt">チルトシフト</label><output id="muraDevTiltValue"></output><input id="muraDevTilt" type="range" min="0.2" max="1.6" step="0.05"></div><details><summary>データの退避と検証</summary><p>自動保存とは別のJSONバックアップです。復旧・検証用に使用します。</p><button id="exportSave">バックアップ</button><button id="loadSave">復元</button><button id="demoPlayer">一族ゲスト</button><button id="onlineOpen">オンライン試験</button></details>`,{page:'developer',back:more});
  const speed=$('muraDevSpeed'),tilt=$('muraDevTilt'),value=$('muraDevTiltValue');speed.value=String(world.state.settings.speed);tilt.value=String(world.state.settings.tilt);value.textContent=Number(tilt.value).toFixed(2);
  speed.onchange=()=>{world.state.settings.speed=Number(speed.value);void save();};tilt.oninput=()=>{world.state.settings.tilt=Number(tilt.value);value.textContent=Number(tilt.value).toFixed(2);};tilt.onchange=()=>void save();
- $('exportSave').onclick=()=>download(world.export(),'叡智豊満-backup.json');$('loadSave').onclick=()=>$('importFile').click();$('onlineOpen').onclick=openOnline;
+ $('exportSave').onclick=()=>download(world.export(),'宝満叡智-backup.json');$('loadSave').onclick=()=>$('importFile').click();$('onlineOpen').onclick=openOnline;
  $('demoPlayer').onclick=()=>{const r=bridge.upsert({id:'lineage-guest',name:'旅の一族（デモ）',clanId:'星渡りの一族'},{demo:true});if(r.error)toast(r.error);else{sim.refresh();$('dialog').close();view.focus(r.person.x,r.person.z,32);void save();}};
 }
 $('importFile').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>8e6){toast('保存ファイルが大きすぎます');return;}const r=world.load(await file.text());if(r.error)toast(r.error);else{sim.refresh();view.roomId=null;view.followId=null;$('leaveRoom').hidden=true;view.rebuild();deselect();cancelPlacement();closeDrawer();save();toast('村を読み込みました');if($('dialog').open)$('dialog').close();}e.target.value='';};
@@ -243,7 +243,7 @@ function tap(x,y){
  closeDrawer();const person=view.pickPerson(x,y);if(person){personDialog(person);return;}
  const id=view.pick(x,y);if(id){if(world.object(id)){if(view.roomId&&id!==view.roomId)exitRoom();selection(id,null);}else selection(id,view.roomId);return;}deselect();
 }
-const input=installSceneInput(canvas,{view,ui,tap,preview:previewAt,activity}),pointers=input.pointers;
+const input=installSceneInput(canvas,{view,ui,tap,preview:previewAt,commit:confirmPlacement,activity}),pointers=input.pointers;
 installCatalogDrop({ui,view,preview:previewAt,commit:confirmPlacement,activity,cancel:cancelPlacement});
 $('tutorialAction').onclick=()=>{
  const step=world.tutorialStep();if(!step)return;

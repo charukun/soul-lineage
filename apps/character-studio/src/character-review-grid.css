@@ -179,3 +179,275 @@ body.simple-review.character-grid-ready .load-indicator[data-state="error"]{disp
     max-height:calc(100% - 16px)!important;
   }
 }
+
+/* Mobile character review: stage-first, compact controls, no side rail. */
+.character-review-slots,
+.character-review-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:5px;
+}
+.character-review-slots{margin:0}
+.character-review-slot{position:relative;min-width:0;min-height:42px;padding:5px 4px}
+.character-review-grid .character-review-option{
+  position:relative;
+  min-width:0;
+  min-height:58px;
+  padding:5px 3px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:3px;
+}
+.character-review-tools{display:grid;grid-template-columns:minmax(0,1fr);gap:5px}
+.character-review-tools [data-review-action="quality-mark"]{min-height:38px}
+
+@media (max-width:760px) and (orientation:portrait){
+  body.simple-review.character-grid-ready .review-surface__header{
+    min-height:50px!important;
+    padding:4px 10px!important;
+  }
+  body.simple-review.character-grid-ready .review-surface__title{gap:8px!important}
+  body.simple-review.character-grid-ready .review-surface__title h1{font-size:18px!important;line-height:1.15!important}
+  body.simple-review.character-grid-ready .review-surface__workspace{
+    grid-template-rows:minmax(0,50%) minmax(0,50%)!important;
+    gap:0!important;
+  }
+  body.simple-review.character-grid-ready .review-surface__stage{
+    border-radius:8px 8px 0 0!important;
+  }
+  body.simple-review.character-grid-ready .character-review-camera-dock{
+    left:50%!important;
+    right:auto!important;
+    top:auto!important;
+    bottom:8px!important;
+    width:min(330px,calc(100% - 24px))!important;
+    max-width:none!important;
+    transform:translateX(-50%)!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    grid-template-rows:34px!important;
+    padding:4px!important;
+    gap:3px!important;
+    border-radius:10px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-camera-dock button{
+    min-width:0!important;
+    height:34px!important;
+    min-height:34px!important;
+    padding:2px 2px!important;
+    font-size:9px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-picker{
+    min-height:0!important;
+    height:100%!important;
+    overflow:hidden!important;
+    grid-template-rows:auto auto auto minmax(0,1fr) auto!important;
+    gap:4px!important;
+    padding:6px 8px max(6px,env(safe-area-inset-bottom))!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker{
+    grid-template-columns:74px minmax(0,1fr)!important;
+    gap:6px!important;
+    padding:0 0 5px!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker-heading strong{font-size:9px!important}
+  body.simple-review.character-grid-ready .character-model-list{
+    min-height:34px!important;
+    height:34px!important;
+    padding:4px 30px 4px 9px!important;
+    border-radius:8px!important;
+    font-size:11px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-criteria{display:none!important}
+  body.simple-review.character-grid-ready .character-review-slots{
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    gap:3px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-slots .character-review-slot{
+    min-height:38px!important;
+    padding:4px 2px!important;
+    border-radius:7px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-slots .character-review-slot small{font-size:7px!important}
+  body.simple-review.character-grid-ready .character-review-slots .character-review-slot strong{font-size:8px!important}
+  body.simple-review.character-grid-ready .character-review-current{
+    min-height:15px!important;
+    padding:0 1px!important;
+    font-size:8px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-current::before{content:none!important}
+  body.simple-review.character-grid-ready .character-review-candidates{
+    min-height:0!important;
+    overflow:auto!important;
+    padding:0 0 3px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-grid{
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    gap:3px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-grid .character-review-option{
+    min-height:52px!important;
+    padding:3px 2px!important;
+    border-radius:7px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-mark{
+    width:22px!important;
+    height:22px!important;
+    font-size:12px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-option-label{
+    font-size:8px!important;
+    line-height:1.15!important;
+  }
+  body.simple-review.character-grid-ready .character-review-tools{
+    position:sticky;
+    bottom:0;
+    grid-template-columns:minmax(0,1fr)!important;
+    padding-top:3px;
+    background:#0b1110;
+  }
+  body.simple-review.character-grid-ready .character-review-tools button{
+    min-height:36px!important;
+    height:36px!important;
+    border-radius:8px!important;
+    font-size:9px!important;
+  }
+}
+
+/* Review decisions are organized by reviewer intent: target, scope, candidate, verdict. */
+.character-review-picker{
+  grid-template-rows:auto auto auto auto minmax(0,1fr) auto;
+}
+.character-model-picker{
+  grid-template-columns:auto minmax(0,1fr) minmax(116px,auto);
+}
+.character-model-picker .character-review-target-pager{
+  position:static!important;
+  inset:auto!important;
+  transform:none!important;
+  display:grid!important;
+  grid-template-columns:30px minmax(0,1fr) 30px!important;
+  align-items:center;
+  width:100%;
+  max-width:180px;
+  height:36px;
+  margin:0;
+  border:1px solid #303b37;
+  border-radius:9px;
+  background:#101714;
+  box-shadow:none;
+  overflow:hidden;
+}
+.character-model-picker .character-review-target-pager button{
+  width:30px!important;
+  min-width:30px!important;
+  min-height:34px!important;
+  height:34px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  font-size:16px!important;
+}
+.character-model-picker .character-review-target-pager span{
+  min-width:0;
+  padding:0 3px;
+  font-size:8px;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.character-review-section-tabs{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:4px;
+  padding:1px 0;
+}
+.character-review-section{
+  min-height:40px;
+  padding:5px 8px;
+  border-color:#303b37;
+  background:#101714;
+  color:#aeb8b3;
+  font-size:11px;
+  font-weight:750;
+}
+.character-review-section[aria-selected="true"]{
+  border-color:#d7c58b;
+  background:#242217;
+  color:#fff1cb;
+}
+.character-review-slots{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.character-review-slot[hidden]{display:none!important}
+.character-review-current::before{content:none}
+.character-review-tools{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.character-review-decision{
+  min-height:42px!important;
+  font-size:12px!important;
+  font-weight:800;
+}
+.character-review-decision--ok[aria-pressed="true"]{
+  border-color:#6f8f79!important;
+  background:#1d2a22!important;
+  color:#e7f2e9!important;
+}
+.character-review-decision--fix[aria-pressed="true"]{
+  border-color:#a28b56!important;
+  background:#332a19!important;
+  color:#fff0c7!important;
+}
+
+@media(max-width:760px) and (orientation:portrait){
+  body.simple-review.character-grid-ready .character-review-picker{
+    grid-template-rows:auto auto auto auto minmax(0,1fr) auto!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker{
+    grid-template-columns:64px minmax(0,1fr) 98px!important;
+    gap:5px!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker .character-review-target-pager{
+    max-width:none!important;
+    height:34px!important;
+    grid-template-columns:27px minmax(0,1fr) 27px!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker .character-review-target-pager button{
+    width:27px!important;
+    min-width:27px!important;
+    min-height:32px!important;
+    height:32px!important;
+  }
+  body.simple-review.character-grid-ready .character-model-picker .character-review-target-pager span{
+    font-size:7px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-section-tabs{
+    gap:3px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-section{
+    min-height:34px!important;
+    height:34px!important;
+    padding:3px 4px!important;
+    font-size:10px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-slots{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:3px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-slots .character-review-slot{
+    min-height:34px!important;
+    height:34px!important;
+    padding:3px 2px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-tools{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:5px!important;
+  }
+  body.simple-review.character-grid-ready .character-review-tools button{
+    min-height:38px!important;
+    height:38px!important;
+    font-size:11px!important;
+  }
+}

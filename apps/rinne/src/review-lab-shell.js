@@ -1,3 +1,16 @@
-import {createReviewRoutes,mountReviewShell} from '@soul/shared-ui/review-shell';
+import {createReviewRoutes,mountReviewShell,mountReviewStageControls} from '@soul/shared-ui/review-shell';
 const routes=createReviewRoutes({rinneBase:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',charactersBase:'https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/'});
-export function mountRinneReviewShell(current){const mounted=mountReviewShell({current,routes,homeHref:'https://soul-lineage-review-dev.c-okamoto.workers.dev/'});if(mounted)window.addEventListener('pagehide',()=>mounted.destroy(),{once:true});return mounted}
+const STAGE_CONTROL_GROUPS=Object.freeze({
+  motion:[],
+  effects:['.catalog-shell > .controls'],
+  sounds:['.sound-time','.sound-actions'],
+  equipment:['.asset-camera-strip'],
+  objects:['.object-camera-strip','.object-camera-controls'],
+  battle:['.camera-zoom','.controls .review-settings']
+});
+export function mountRinneReviewShell(current){
+  const mounted=mountReviewShell({current,routes,homeHref:'https://soul-lineage-review-dev.c-okamoto.workers.dev/'});
+  const stageControls=mountReviewStageControls({groups:STAGE_CONTROL_GROUPS[current]||[],label:'表示・再生コントロール'});
+  if(mounted||stageControls)window.addEventListener('pagehide',()=>{stageControls?.destroy();mounted?.destroy();},{once:true});
+  return mounted;
+}
