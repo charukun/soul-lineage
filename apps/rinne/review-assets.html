@@ -33,9 +33,16 @@
     </div>
 
     <aside class="asset-catalog review-surface__panel" aria-label="装備レビュー操作">
-      <section class="asset-section asset-equipment-section asset-primary-selection" aria-labelledby="asset-equipment-title">
+      <section class="asset-section asset-weapon-section asset-primary-selection" aria-labelledby="asset-weapon-title">
         <div class="asset-primary-head">
-          <h2 id="asset-equipment-title">装備</h2>
+          <h2 id="asset-weapon-title">主人公の武器種</h2>
+        </div>
+        <div id="asset-weapon-types" class="asset-weapon-types review-choice-grid" role="listbox" aria-label="主人公の武器種"></div>
+      </section>
+
+      <section class="asset-section asset-equipment-section" aria-labelledby="asset-equipment-title">
+        <div class="asset-primary-head">
+          <h2 id="asset-equipment-title">詳細装備</h2>
           <button id="asset-reset" class="asset-reset" type="button">全解除</button>
         </div>
         <div id="asset-slot-tabs" class="asset-slot-tabs review-slot-tabs" style="--review-slot-columns:3" role="tablist" aria-label="装備スロット">
@@ -55,28 +62,11 @@
         </div>
       </section>
 
-      <section class="asset-section asset-model-section" aria-labelledby="asset-model-title">
-        <h2 id="asset-model-title">素体選択</h2>
-        <button id="asset-model-trigger" class="asset-model-trigger" type="button" aria-haspopup="dialog" aria-controls="asset-model-picker" aria-expanded="false">
-          <strong id="asset-model-current">読み込み中</strong><span aria-hidden="true">⌄</span>
-        </button>
-      </section>
-
       <output id="asset-status" class="asset-status" role="status" aria-live="polite">モデルを読み込んでいます。</output>
 
     </aside>
   </section>
 
-  <div id="asset-model-picker" class="asset-model-picker" hidden role="dialog" aria-modal="true" aria-labelledby="asset-model-picker-title">
-    <button class="asset-model-picker-backdrop" type="button" data-model-picker-close aria-label="素体選択を閉じる"></button>
-    <section class="asset-model-picker-sheet">
-      <div class="asset-model-picker-head">
-        <h2 id="asset-model-picker-title">素体を選択</h2>
-        <button type="button" class="asset-model-picker-close" data-model-picker-close aria-label="閉じる">×</button>
-      </div>
-      <div id="model-options" class="model-options review-choice-grid" role="listbox" aria-label="検証モデル"></div>
-    </section>
-  </div>
 </main>
 <script type="module" src="./src/review-asset-library.js"></script>
 </body>

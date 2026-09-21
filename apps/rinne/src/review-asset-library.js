@@ -5,10 +5,10 @@ import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {
   REVIEW_SKELETON_SOURCE,
-  REVIEW_SKELETON_MODELS,
   REVIEW_SKELETON_EQUIPMENT,
   reviewSkeletonEquipmentForSlot,
 } from '@soul/assets';
+import { PROTAGONIST_VILLAGER_MODEL } from '@soul/characters';
 import './review-asset-library.css';
 mountRinneReviewShell('equipment');
 
@@ -16,9 +16,8 @@ const q = selector => document.querySelector(selector);
 function createStaticThumbnail(url,label=''){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('review-static-thumbnail');svg.setAttribute('viewBox','0 0 160 160');svg.setAttribute('aria-label',label);svg.setAttribute('role','img');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href',url);svg.append(use);return svg;}
 const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const loader = new GLTFLoader();
-const reviewRawRoot = `https://raw.githubusercontent.com/${REVIEW_SKELETON_SOURCE.repository}/${REVIEW_SKELETON_SOURCE.commit}/`;
-const reviewModelUrl = model => new URL(model.source.path, reviewRawRoot).href;
-const reviewEquipmentUrl = spec => new URL(`${REVIEW_SKELETON_SOURCE.equipmentRoot}${spec.file}.gltf`, reviewRawRoot).href;
+const reviewEquipmentUrl = spec => spec.runtime.url;
+const protagonistModelUrl = PROTAGONIST_VILLAGER_MODEL.assetPath;
 const canvas = q('#asset-stage');
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
@@ -36,8 +35,18 @@ ground.rotation.x = -Math.PI/2; ground.position.y = -.006; scene.add(ground);
 
 let modelRoot = null, mixer = null, frameId = 0, loadSequence = 0;
 const mounted = new Map();
-const selection = {model: REVIEW_SKELETON_MODELS[0].id, main:null, off:null, back:null};
+const selection = {model: PROTAGONIST_VILLAGER_MODEL.id, weaponType:'none', main:null, off:null, back:null};
 let activeAssetSlot='main',activeViewDirection='front',activeViewFocus='full';
+
+const WEAPON_TYPES = Object.freeze([
+  {id:'none',label:'素手',equipment:null,thumbnail:'./review/catalog-thumbnails.svg#equipment-none'},
+  {id:'sword',label:'剣',equipment:'skeleton-blade'},
+  {id:'axe',label:'斧',equipment:'skeleton-axe'},
+  {id:'staff',label:'杖',equipment:'skeleton-staff'},
+  {id:'crossbow',label:'クロスボウ',equipment:'skeleton-crossbow'},
+]);
+const weaponTypeForEquipment = equipmentId => WEAPON_TYPES.find(row=>row.equipment===equipmentId)?.id || 'custom';
+const weaponTypeLabel = () => WEAPON_TYPES.find(row=>row.id===selection.weaponType)?.label || '個別装備';
 
 const HAND_GRIPS = Object.freeze({
   '1H_Sword':{r:{position:[0,.555174,0],quaternion:[0,1,0,0],scale:.8876},l:{position:[0,.555174,0],quaternion:[0,0,0,1],scale:.8876}},
@@ -100,8 +109,8 @@ function flattenScene(src) {
 }
 function slotAnchor(slot) {
   if(!modelRoot)throw new Error('先にモデルを読み込んでください');
-  if(slot==='main')return findNode(modelRoot,'handslot.r')||findNode(modelRoot,'righthand')||findNode(modelRoot,'hand.r');
-  if(slot==='off')return findNode(modelRoot,'handslot.l')||findNode(modelRoot,'lefthand')||findNode(modelRoot,'hand.l');
+  if(slot==='main')return findNode(modelRoot,'handslot.r')||findNode(modelRoot,'righthand')||findNode(modelRoot,'hand.r')||findNode(modelRoot,'hand_r')||findNode(modelRoot,'righthandbone');
+  if(slot==='off')return findNode(modelRoot,'handslot.l')||findNode(modelRoot,'lefthand')||findNode(modelRoot,'hand.l')||findNode(modelRoot,'hand_l')||findNode(modelRoot,'lefthandbone');
   return findNode(modelRoot,'chest')||findNode(modelRoot,'spine');
 }
 function applyTransform(payload,spec,slot) {
@@ -162,17 +171,17 @@ function applyViewPreset() {
 function setCameraPreset(preset='front'){activeViewDirection=preset;applyViewPreset();}
 function setFocusPreset(focus='full'){activeViewFocus=focus;applyViewPreset();}
 function frameModel(){activeViewFocus='full';applyViewPreset();}
-async function loadModel(id) {
-  const model=REVIEW_SKELETON_MODELS.find(row=>row.id===id); if(!model)throw new Error(`Unknown review model: ${id}`); const sequence=++loadSequence; selection.model=id; status(`${model.label} を読み込み中…`);
+async function loadModel() {
+  const sequence=++loadSequence; selection.model=PROTAGONIST_VILLAGER_MODEL.id; status('主人公モデルを読み込み中…');
   for(const root of mounted.values())disposeRoot(root);mounted.clear(); if(modelRoot)disposeRoot(modelRoot); modelRoot=null; mixer?.stopAllAction();mixer=null;
-  const gltf=await loader.loadAsync(reviewModelUrl(model)); if(sequence!==loadSequence){disposeRoot(gltf.scene);return;}
-  modelRoot=gltf.scene; modelRoot.name=`ReviewModel:${model.id}`; modelRoot.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}}); scene.add(modelRoot); hideNativeAccessories(modelRoot);
+  const gltf=await loader.loadAsync(protagonistModelUrl); if(sequence!==loadSequence){disposeRoot(gltf.scene);return;}
+  modelRoot=gltf.scene; modelRoot.name='ReviewModel:Protagonist'; modelRoot.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}}); scene.add(modelRoot); hideNativeAccessories(modelRoot);
   modelRoot.updateMatrixWorld(true); const box=new THREE.Box3().setFromObject(modelRoot),center=box.getCenter(new THREE.Vector3()); modelRoot.position.x-=center.x;modelRoot.position.z-=center.z;modelRoot.position.y-=box.min.y;modelRoot.updateMatrixWorld(true);
   if(gltf.animations?.length){mixer=new THREE.AnimationMixer(modelRoot);mixer.clipAction(gltf.animations[0]).play();}
-  await reapplyEquipment(); frameModel(); status(`${model.label} · KayKit Skeletons CC0 · review-only`); renderSelection();
+  await reapplyEquipment(); frameModel(); status(`主人公 · 武器種 ${weaponTypeLabel()}`); renderSelection();
 }
 function equipmentLabel(id){return REVIEW_SKELETON_EQUIPMENT.find(row=>row.id===id)?.label||'なし';}
-function modelLabel(){return REVIEW_SKELETON_MODELS.find(row=>row.id===selection.model)?.label||selection.model;}
+function modelLabel(){return '主人公';}
 function renderEquipmentInspector(){
   const labels={main:'右手',off:'左手',back:'背中'};
   for(const slot of ['main','off','back']){
@@ -181,7 +190,7 @@ function renderEquipmentInspector(){
     const current=q(`#asset-current-${slot}`);if(current)current.textContent=equipmentLabel(selection[slot]);
   }
   const summary=q('#asset-combination');
-  if(summary)summary.textContent=`${modelLabel()} · 右 ${equipmentLabel(selection.main)} · 左 ${equipmentLabel(selection.off)} · 背 ${equipmentLabel(selection.back)}`;
+  if(summary)summary.textContent=`${modelLabel()} · 武器種 ${weaponTypeLabel()} · 右 ${equipmentLabel(selection.main)} · 左 ${equipmentLabel(selection.off)} · 背 ${equipmentLabel(selection.back)}`;
   const label=q('#asset-candidate-label');if(label)label.textContent=`${labels[activeAssetSlot]}の装備を選択`;
   const clear=q('#asset-clear-slot');if(clear)clear.textContent=`${labels[activeAssetSlot]}の装備を外す`;
   const list=q('#asset-equipment-options');
@@ -201,42 +210,41 @@ function renderEquipmentInspector(){
     return button;
   }));
 }
+function renderWeaponTypes(){
+  const list=q('#asset-weapon-types'); if(!list)return;
+  list.replaceChildren(...WEAPON_TYPES.map(type=>{
+    const button=document.createElement('button');
+    button.type='button';button.classList.add('review-choice-card');button.dataset.weaponType=type.id;
+    button.setAttribute('role','option');button.setAttribute('aria-selected',String(type.id===selection.weaponType));
+    const text=document.createElement('span');text.textContent=type.label;
+    const spec=type.equipment?REVIEW_SKELETON_EQUIPMENT.find(row=>row.id===type.equipment):null;
+    button.append(createStaticThumbnail(type.thumbnail||spec?.thumbnailUrl||'./review/catalog-thumbnails.svg#equipment-none',type.label),text);
+    button.addEventListener('click',()=>selectWeaponType(type.id).catch(error=>status(error.message,true)));
+    return button;
+  }));
+}
+async function selectWeaponType(typeId){
+  const type=WEAPON_TYPES.find(row=>row.id===typeId); if(!type)throw new Error(`Unknown weapon type: ${typeId}`);
+  for(const slot of ['main','off','back']){const select=q(`#slot-${slot}`);if(select)select.value='';await setEquipment(slot,null);}
+  selection.weaponType=type.id;
+  if(type.equipment){const select=q('#slot-main');if(select)select.value=type.equipment;await setEquipment('main',type.equipment);}
+  activeAssetSlot='main';renderSelection();frameModel();status(`主人公 · 武器種 ${type.label}`);
+}
 function renderSelection(){
-  const options=q('#model-options');
-  for(const button of options?.querySelectorAll('button')||[]){
-    const selected=button.dataset.model===selection.model;
-    button.setAttribute('aria-pressed',String(selected));
-    button.setAttribute('aria-selected',String(selected));
-  }
-  const current=q('#asset-model-current');if(current)current.textContent=modelLabel();
+  selection.weaponType = selection.off||selection.back ? 'custom' : weaponTypeForEquipment(selection.main);
+  renderWeaponTypes();
   renderEquipmentInspector();
 }
-function setModelPickerOpen(open,{restoreFocus=false}={}){
-  const picker=q('#asset-model-picker'),trigger=q('#asset-model-trigger');
-  if(!picker||!trigger)return;
-  picker.hidden=!open;trigger.setAttribute('aria-expanded',String(open));
-  document.body.classList.toggle('asset-model-picker-open',open);
-  if(open){
-    const selected=picker.querySelector('.model-options button[aria-selected="true"]')||picker.querySelector('.model-options button');
-    queueMicrotask(()=>selected?.focus());
-  }else if(restoreFocus)queueMicrotask(()=>trigger.focus());
-}
-function openModelPicker(){setModelPickerOpen(true);}
-function closeModelPicker(restoreFocus=false){setModelPickerOpen(false,{restoreFocus});}
 function populate() {
-  const count=q('#asset-model-count');if(count)count.textContent=`MODELS ${REVIEW_SKELETON_MODELS.length}`;
-  q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.model=model.id;button.setAttribute('role','option');const text=document.createElement('span');text.textContent=model.label;const thumbnail=createStaticThumbnail(model.thumbnailUrl,model.label);button.append(thumbnail,text);button.addEventListener('click',()=>{closeModelPicker();loadModel(model.id).catch(error=>status(error.message,true));});return button;}));
+  const count=q('#asset-model-count');if(count)count.textContent='主人公';
   for(const slot of ['main','off','back']){
     const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>status('装備プレビューを更新しました。')).catch(error=>status(error.message,true)));
   }
   for(const button of document.querySelectorAll('[data-asset-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.assetCamera));
   for(const button of document.querySelectorAll('[data-asset-focus]'))button.addEventListener('click',()=>setFocusPreset(button.dataset.assetFocus));
   for(const button of document.querySelectorAll('[data-asset-slot]'))button.addEventListener('click',()=>{activeAssetSlot=button.dataset.assetSlot;renderEquipmentInspector();});
-  for(const slot of ['main','off','back'])q(`#slot-${slot}`)?.addEventListener('change',renderEquipmentInspector);
+  for(const slot of ['main','off','back'])q(`#slot-${slot}`)?.addEventListener('change',renderSelection);
   controls.addEventListener('start',()=>{for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed','false');});
-  q('#asset-model-trigger')?.addEventListener('click',openModelPicker);
-  for(const button of document.querySelectorAll('[data-model-picker-close]'))button.addEventListener('click',()=>closeModelPicker(true));
-  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!q('#asset-model-picker')?.hidden)closeModelPicker(true);});
   q('#asset-clear-slot')?.addEventListener('click',()=>{const select=q(`#slot-${activeAssetSlot}`);if(!select)return;select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));});
   q('#asset-reset').addEventListener('click',()=>{
     for(const slot of ['main','off','back']){q(`#slot-${slot}`).value='';void setEquipment(slot,null);}
@@ -246,5 +254,5 @@ function populate() {
 }
 const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();},render:()=>renderer.render(scene,camera)});
 let last=performance.now();function frame(now){const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;controls.update();mixer?.update(dt);renderer.render(scene,camera);frameId=requestAnimationFrame(frame);}frameId=requestAnimationFrame(frame);
-populate();loadModel(selection.model).catch(error=>status(error.message,true));
+populate();loadModel().catch(error=>status(error.message,true));
 window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);stageLifecycle.destroy();controls.dispose();for(const root of mounted.values())disposeRoot(root);disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
