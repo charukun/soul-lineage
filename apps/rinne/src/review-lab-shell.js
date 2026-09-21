@@ -1,7 +1,7 @@
 import {createReviewRoutes,mountReviewShell,mountReviewStageControls} from '@soul/shared-ui/review-shell';
 const routes=createReviewRoutes({rinneBase:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',charactersBase:'https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/'});
 const STAGE_CONTROL_GROUPS=Object.freeze({
-  motion:['.motion-playback','.motion-timeline'],
+  motion:[],
   effects:['.catalog-shell > .controls'],
   sounds:['.sound-time','.sound-actions'],
   equipment:['.asset-camera-strip'],
