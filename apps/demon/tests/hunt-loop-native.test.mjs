@@ -6,6 +6,7 @@ import {HuntProfileStore, HuntSession} from '../src/hunt/runtime.js';
 import {createTidebreakRuntime} from '@soul/tidebreak-combat';
 import {offerVillages} from '@soul/raid/world';
 import {readProgress, chooseHunt, freshProgress, PROGRESS_KEY, huntPlan, settleProgress, bodyStats, preyValue} from '../src/hunt/balance.js';
+import {worldDetailBudget} from '../src/web/world-detail-budget.js';
 
 function setup() {
   const data=new Map(), storage={getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v)};
@@ -100,3 +101,6 @@ test('main boot has one HUD owner, automatic sensing, and no menu extraction exp
   assert.match(flow,/this\.bag\.dataset\.pressure = String\(risk\.level\)/,'risk level must drive the visual hierarchy');
   assert.match(hud,/hunt-bag\[data-pressure="3"\]/,'high pressure must have a distinct HUD treatment');
 });
+
+
+test('mobile world detail budget reduces synchronous decorative generation without touching hunt rules',()=>{ const mobile=worldDetailBudget(673),full=worldDetailBudget(1440);assert.deepEqual(mobile,{forestTrees:56,edgeProps:72,tier:'mobile'});assert.deepEqual(full,{forestTrees:100,edgeProps:130,tier:'full'});assert.ok(mobile.forestTrees<full.forestTrees&&mobile.edgeProps<full.edgeProps);});
