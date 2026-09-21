@@ -30,8 +30,16 @@ async function finishFirstRunGuide(page, expect) {
   await expect(guide).toHaveAttribute('data-stage','drag');
   await expect(page.locator('#placement')).toBeVisible();
 
-  // Direct tap is a complete placement gesture; no preparatory drag is required.
+  // Historical placement feel: drag only moves the candidate, release keeps it pending,
+  // then a short tap commits at the displayed location.
   await expect.poll(()=>page.evaluate(()=>window.village.ui.pending?.error||null)).toBe(null);
+  const beforeDrag=await page.evaluate(()=>({...window.village.ui.pending}));
+  await dragPlacement(page,54,34);
+  await expect(guide).toHaveAttribute('data-stage','place');
+  const afterDrag=await page.evaluate(()=>window.village.ui.pending?({...window.village.ui.pending}):null);
+  expect(afterDrag).not.toBeNull();
+  expect(Math.hypot(afterDrag.x-beforeDrag.x,afterDrag.z-beforeDrag.z)).toBeGreaterThan(.01);
+  expect(await page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
   await tapPlacement(page);
   await expect(guide).toHaveAttribute('data-stage','done');
   await expect.poll(()=>page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(true);
