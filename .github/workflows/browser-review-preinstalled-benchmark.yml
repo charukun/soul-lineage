@@ -7,9 +7,6 @@ on:
 permissions:
   contents: read
 
-env:
-  REVIEW_URL: https://762f30c0-soul-lineage-demon-dev.c-okamoto.workers.dev/
-
 jobs:
   preinstalled-chrome:
     if: github.event.pull_request.number == 1329
@@ -36,13 +33,17 @@ jobs:
           s=s.replace("chromium.launch({headless:true,args:", "chromium.launch({channel:'chrome',headless:true,args:");
           fs.writeFileSync(p,s);
           NODE
-      - name: Run real Browser Review without Playwright browser install
+      - name: Run exact real Browser Review scenario
+        env:
+          COMMAND_JSON: >-
+            {"url":"https://762f30c0-soul-lineage-demon-dev.c-okamoto.workers.dev/","viewport":{"width":673,"height":841},"deviceScaleFactor":1,"video":true,"actions":[{"op":"evaluate","expression":"fetch('/version.json',{cache:'no-store'}).then(r=>r.json())","label":"version","screenshot":false},{"op":"wait","ms":1000},{"op":"clickText","text":"TAP","exact":true,"afterMs":800,"label":"tap-title"},{"op":"evaluate","expression":"({text:(document.body?.innerText||'').slice(0,6000),snapshot:window.__NIGHT_HUNT__?.snapshot?.()})","label":"title-after","screenshot":true},{"op":"evaluate","expression":"document.getElementById('begin')?.click(); true","afterMs":1800,"label":"enter-hunt"},{"op":"evaluate","expression":"({text:(document.body?.innerText||'').slice(0,6000),snapshot:window.__NIGHT_HUNT__?.snapshot?.()})","label":"hunt-after","screenshot":true}]}
         run: |
           mkdir -p .browser-review
-          node -e "require('fs').writeFileSync('.browser-review/command.json',JSON.stringify({url:process.env.REVIEW_URL,viewport:{width:673,height:841},deviceScaleFactor:1,video:true,actions:[{op:'wait',ms:500,label:'settle'}]}))"
+          printf '%s' "$COMMAND_JSON" > .browser-review/command.json
           node scripts/browser/review-control.mjs .browser-review/command.json
       - name: Check evidence
         run: |
           test -f test-results/browser-review/review.json
           test -n "$(find test-results/browser-review -maxdepth 1 -name '*.webm' -print -quit)"
+          node -e "const r=require('./test-results/browser-review/review.json'); if(!r.metrics?.webgl) process.exit(2); if(r.pageErrors?.length) process.exit(3)"
           find test-results/browser-review -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
