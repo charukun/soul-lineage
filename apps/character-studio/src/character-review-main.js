@@ -1,6 +1,6 @@
 import './character-review.js';
 import './character-art-qa.js';
-import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, YEAR_MS, createCharacterModelBuildRequest } from '@soul/characters';
+import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, KAYKIT_MODELS, YEAR_MS, createCharacterModelBuildRequest } from '@soul/characters';
 import { createCharacterWorkspace, downloadWorkspace } from './character-workspace.js';
 import {createReviewRoutes,mountReviewShell} from '@soul/shared-ui/review-shell';
 const reviewShell=mountReviewShell({current:'characters',routes:createReviewRoutes({rinneBase:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',charactersBase:location.href}),homeHref:'https://soul-lineage-review-dev.c-okamoto.workers.dev/'});
@@ -27,8 +27,20 @@ function buildModelOptions() {
   }
   for (const model of Object.values(CHARACTER_REFERENCE_MODELS)) {
     const concise = model.id === 'protagonist.villager.v1' ? '主人公 男' : model.id === 'protagonist.villager.female.v1' ? '主人公 女' : model.label;
-    const b = button(concise, () => { studio.workspace.configure({ view: 'single' }); studio.workspace.selectModel(model.id); studio.review.aim('front'); });
+    const b = button(concise, () => {
+      studio.workspace.configure({ view: 'single' });
+      if (simpleReview) void studio.review.loadReferenceModel(model);
+      else studio.workspace.selectModel(model.id);
+      studio.review.aim('front');
+    });
     b.dataset.characterModel = model.id; b.dataset.modelStage = model.productionStage || ''; row.append(b);
+  }
+  if (simpleReview) {
+    const labels = { knight: '騎士', barbarian: '蛮族', mage: '魔術師', rogue: '盗賊', 'rogue-hooded': 'フード盗賊' };
+    for (const model of KAYKIT_MODELS) {
+      const b = button(labels[model.key] || model.label, () => { void studio.review.loadFoundationModel(model); studio.review.aim('front'); });
+      b.dataset.characterModel = model.id; b.dataset.modelStage = 'CC0'; row.append(b);
+    }
   }
   if (!simpleReview) {
     const buildRequest = button('モデル生成仕様JSON', () => {
@@ -78,7 +90,8 @@ function render() {
     : `個体 ${settings.selected + 1} / ${settings.count} · ${record.ageMs / YEAR_MS}歳`;
   el('selection-summary').textContent = `${modelLabel ? `${modelLabel} · ` : ''}個体 ${String(settings.selected + 1).padStart(2, '0')} · ${record.ageMs / YEAR_MS}歳`;
   const p = w.getProfile();
-  for (const b of document.querySelectorAll('[data-character-model]')) b.setAttribute('aria-pressed', String(b.dataset.characterModel === (w.modelId ?? '')));
+  const selectedModelId = document.body.classList.contains('simple-review') ? (review.displayModelId ?? '') : (w.modelId ?? '');
+  for (const b of document.querySelectorAll('[data-character-model]')) b.setAttribute('aria-pressed', String(b.dataset.characterModel === selectedModelId));
   const buildRequest = document.querySelector('[data-character-build-request]');
   if (buildRequest) buildRequest.disabled = !w.model;
   if (el('character-model-note')) el('character-model-note').textContent = w.model
