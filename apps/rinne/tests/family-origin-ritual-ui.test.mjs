@@ -21,7 +21,7 @@ test('deep water story shows one memory at a time instead of a three-up choice g
   assert.doesNotMatch(ui,/遠い水底から|声は姿を持たない|次の生へ流れ着く/);
   assert.match(ui,/family-story-question/);
   assert.match(ui,/family-memory-stage/);
-  assert.match(ui,/data\.memoryCurrent = 'true'/);
+  assert.match(ui,/presence\.dataset\.memoryCurrent = 'true'/);
   assert.match(ui,/function cycleMemory\(delta, source='input'\)/);
   assert.match(ui,/event\.key === 'ArrowRight'/);
   assert.match(ui,/event\.key === 'ArrowLeft'/);
