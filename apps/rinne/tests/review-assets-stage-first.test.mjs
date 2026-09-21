@@ -36,7 +36,7 @@ test('equipment catalog aggregates existing weapon sources instead of a fixed fi
 test('equipment review preserves camera unless the user chooses a camera preset', async () => {
   const [html, js] = await Promise.all([readFile(htmlUrl,'utf8'),readFile(jsUrl,'utf8')]);
   assert.match(html, /data-asset-camera="front"/);
-  assert.match(js, /button\.dataset\.assetCamera/);
+  assert.match(js, /createReviewCameraPresetController/);
   assert.doesNotMatch(js, /selectWeaponType[\s\S]{0,700}setFocusPreset/);
   assert.doesNotMatch(js, /\[data-asset-slot\][\s\S]{0,240}setFocusPreset/);
 });
