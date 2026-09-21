@@ -1,5 +1,5 @@
 import { installRinneGameplayUpgrade } from './gameplay-upgrade.js';
-import { confirmRinneAudio, selectRinneAudio, unlockRinneAudio } from './gameplay-audio.js';
+import { confirmRinneAudio, enterRinneGameplayAudio, selectRinneAudio, unlockRinneAudio } from './gameplay-audio.js';
 import { createTitleCinematicController } from './title-cinematic.js';
 import './native-ui-polish.js';
 const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'百年転生',app:'rinne',environment:'local',commit:'UNBUILT'};
@@ -128,7 +128,7 @@ function requestLaunch(mode){
 async function launch(mode,coop=null){
   if(runtime)throw Error('いったんタイトルへ戻ってから参加してください。');
   if(!coop&&coopMenu?.session)await coopMenu.leave();
-  if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';titleCinematic.pause();title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.removeAttribute('aria-hidden');loading.hidden=true;
+  if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';titleCinematic.pause();enterRinneGameplayAudio();title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.removeAttribute('aria-hidden');loading.hidden=true;
   try{
     runtime=await runtimeModule.startRuntime({mode,buildInfo:info,name:$('life-name').value,prepared,coop,onExit:()=>exitGame(coop)});
     $('open-coop-game').hidden=!coop;villageDialog.close();game.dataset.runtime='active';launching=false;
