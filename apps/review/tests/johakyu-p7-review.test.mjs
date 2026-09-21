@@ -95,7 +95,7 @@ test('a real miss breaks the current chain and restarts its phase from the first
    if(restart)proof={broken:trace[breakIndex],restart};
  }
  assert.ok(proof,'miss must produce a chain break followed by a restart');
- assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,0);assert.equal(proof.restart.stageIndex,0);
+ assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,proof.broken.techniqueIndex);assert.equal(proof.restart.stageIndex,0);
 });
 
 test('an early incoming hit breaks an unprotected chain instead of retrying a later stage',()=>{
@@ -108,7 +108,7 @@ test('an early incoming hit breaks an unprotected chain instead of retrying a la
    if(restart)proof={broken:trace[breakIndex],restart};
  }
  assert.ok(proof,'early real contact must break the chain');
- assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,0);assert.equal(proof.restart.stageIndex,0);
+ assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,proof.broken.techniqueIndex);assert.equal(proof.restart.stageIndex,0);
 });
 
 test('HUD metadata comes from the executing technique and stage',()=>{

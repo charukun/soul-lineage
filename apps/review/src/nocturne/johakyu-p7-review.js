@@ -106,10 +106,10 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=1.9,enemyLead
     return state;
   }
   function breakChain(actor,state,reason){
-    const cursor=cursorFor(actor),node=nodeFor(actor,cursor);
-    cursor.techniqueIndex=0;cursor.stageIndex=0;
+    const cursor=cursorFor(actor),node=nodeFor(actor,cursor),techniqueIndex=cursor.techniqueIndex;
+    cursor.stageIndex=0;
     actionState.delete(actor.id);readyAt.set(actor.id,time+.24);
-    if(actor.id==='hero')trace.push({type:'chain-break',time:Number(time.toFixed(2)),reason,phase:node.phase,techniqueId:state.node.technique.id,stageIndex:state.node.stage.index,restartTechniqueIndex:0,restartStageIndex:0});
+    if(actor.id==='hero')trace.push({type:'chain-break',time:Number(time.toFixed(2)),reason,phase:node.phase,techniqueId:state.node.technique.id,techniqueIndex,stageIndex:state.node.stage.index,restartTechniqueIndex:techniqueIndex,restartStageIndex:0});
   }
   function finishAction(actor,state,{interrupted=false}={}){
     actionState.delete(actor.id);
