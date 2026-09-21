@@ -32,3 +32,27 @@ test('combat choice fails closed so tactics can recover when no configured techn
   assert.equal(choice.ok,false);assert.equal(choice.comboId,null);assert.equal(choice.reason,'incapacitated');
   assert.equal(choice.attempts.every(row=>row.canContinue===false),true);
 });
+
+function equipmentState({weapon='sword',armor='cloth',stamina=100}={}){
+  const s=createLife({seed:231});Object.assign(s,{phase:'living',ageSeconds:1200,ageYears:20,zone:'frontier',position:{x:0,z:0},stamina,staminaCap:100});
+  s.equipment.weapon=weapon;s.equipment.armor=armor;s.knownSkills.push('basic.'+weapon);
+  s.combatLoadout={heart:{active:[]},technique:{activeComboId:'combo-1',combos:[{id:'combo-1',name:'装備試験',slots:{jo:'basic.'+weapon,ha:'basic.'+weapon,kyu:'basic.'+weapon},favored:{}}],oneMotion:null},body:{stance:'seigan',style:'balanced',zanshin:'still'}};
+  ensureCombatLoadout(s);s.combat={targetId:'foe',phase:'jo',comboId:'combo-1',comboCursor:0,attackCooldown:0};return s;
+}
+
+test('two-handed weapons require both functional arms while one-handed sword remains usable',()=>{
+  const great=equipmentState({weapon:'great'});great.injuries.leftArm={severity:.82,at:great.ageSeconds};great.injuries.rightArm={severity:.1,at:great.ageSeconds};
+  const blocked=resolveCapabilityTechniqueChoice(great,{id:'foe'});
+  assert.equal(blocked.ok,false);assert.equal(blocked.reason,'arm-injury');assert.equal(blocked.attempts[0].canContinue,false);
+  const sword=equipmentState({weapon:'sword'});sword.injuries.leftArm={severity:.82,at:sword.ageSeconds};sword.injuries.rightArm={severity:.1,at:sword.ageSeconds};
+  const allowed=resolveCapabilityTechniqueChoice(sword,{id:'foe'});
+  assert.equal(allowed.ok,true);assert.equal(allowed.capability.stages[0].equipment.requiresTwoHands,false);
+});
+
+test('armor stamina scale changes whether the configured technique can be completed',()=>{
+  const cloth=equipmentState({weapon:'sword',armor:'cloth',stamina:34}),heavy=equipmentState({weapon:'sword',armor:'heavy',stamina:34});
+  const lightChoice=resolveCapabilityTechniqueChoice(cloth,{id:'foe'}),heavyChoice=resolveCapabilityTechniqueChoice(heavy,{id:'foe'});
+  assert.equal(lightChoice.ok,true);
+  assert.equal(heavyChoice.ok,false);assert.equal(heavyChoice.reason,'stamina-policy');
+  assert.ok(heavyChoice.attempts[0].canContinue===false);
+});

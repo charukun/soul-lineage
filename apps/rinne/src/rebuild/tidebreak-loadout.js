@@ -4,8 +4,8 @@ import { activeCombo, comboById, ensureCombatLoadout, techniqueName } from '../c
 import { CAUSAL_ANSWER_BY_ID } from '@soul/game-data';
 import { inspirationRecipe } from './inspiration-state.js';
 import { applySkillComponents, directionalDefenseFor, staminaPolicyFor, tidebreakMindVectorFor, tidebreakMindsetFromVector } from './combat-tactics.js';
-import {johakyuTechniqueCapability} from '@soul/johakyu-combat/execution-capability';
-import {WEAPONS} from './domain.js';
+import {johakyuTechniqueCapability,johakyuWeaponRequiresTwoHands} from '@soul/johakyu-combat/execution-capability';
+import {WEAPONS,ARMORS} from './domain.js';
 
 function phaseRecipe(state,phase,weapon,combo,target){
   let skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`;
@@ -22,10 +22,10 @@ function phaseRecipe(state,phase,weapon,combo,target){
 }
 const PHASE_COST_SCALE=Object.freeze({jo:1,ha:1.08,kyu:1.25});
 function recipeCapability(state,phase,recipe,skill){
-  const base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,effort=Number(CAUSAL_ANSWER_BY_ID[skill]?.effort)||1,cost=base.stamina*(PHASE_COST_SCALE[phase]||1)*effort;
+  const base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,armor=ARMORS[state.equipment.armor]||ARMORS.cloth,effort=Number(CAUSAL_ANSWER_BY_ID[skill]?.effort)||1,cost=base.stamina*(PHASE_COST_SCALE[phase]||1)*effort/Math.max(.5,Number(armor.staminaScale)||1);
   const stages=recipe.steps.filter(step=>step?.kind&&step.kind!=='none').map(step=>({...step,weapon:recipe.weapon,phase,staminaCost:cost}));
   if(!stages.length)return Object.freeze({canStart:false,canContinue:false,blockedStageIndex:0,reason:'empty-technique',stages:Object.freeze([])});
-  return johakyuTechniqueCapability(state,{weapon:recipe.weapon,phase,stages});
+  return johakyuTechniqueCapability(state,{weapon:recipe.weapon,phase,stages,requiresTwoHands:johakyuWeaponRequiresTwoHands(recipe.weapon)});
 }
 function capabilityComboOrder(state,phase,preferredId){
   const loadout=ensureCombatLoadout(state),activeId=loadout.technique.activeComboId;
