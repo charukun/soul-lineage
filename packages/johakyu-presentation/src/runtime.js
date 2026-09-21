@@ -21,7 +21,7 @@ const randRange = (a,b) => a + (b-a)*rand();
 
 const trace = [];
 function record(type,data={}) { trace.push({type,time:Math.round(game.time*100)/100,...data}); if(trace.length>160)trace.shift(); }
-const game = {phase:'loading',time:0,wave:0,spawned:0,waveCount:0,spawnTimer:0,kills:0,damage:0,received:0,bursts:0,stance:'balanced',speed:1,energy:0,level:1,upgradeTime:0,banner:0,toast:0,shake:0,hitstop:0,ready:false,pausedFrom:'battle',high:stage.clientWidth>720,moveTarget:null,moveTime:0};
+const game = {phase:'loading',time:0,wave:0,spawned:0,waveCount:0,spawnTimer:0,kills:0,damage:0,received:0,bursts:0,stance:'balanced',speed:1,energy:0,level:1,upgradeTime:0,banner:0,toast:0,shake:0,hitstop:0,cameraPunch:0,cameraImpulseX:0,cameraImpulseZ:0,ready:false,pausedFrom:'battle',high:stage.clientWidth>720,moveTarget:null,moveTime:0};
 let scene,camera,renderer,composer,sun,heroLight,hero,manifest,clock=0,previous=0,frameCount=0,frameTime=0,fps=0,intro=0;
 let W=Math.max(1,stage.clientWidth),H=Math.max(1,stage.clientHeight),dpr=Math.min(devicePixelRatio,1.5),models=new Map(),actors=[],projectiles=[],particles=[],rings=[],arcs=[],numbers=[],torches=[],loadedBytes=0;
 const usedModels=new Set(),environmentMeshes=[],cameraTarget=new V(),tmp=new V(),ndc=new THREE.Vector2(),ray=new THREE.Raycaster(),groundPlane=new THREE.Plane(new V(0,1,0),0);
@@ -109,7 +109,7 @@ function actor(kind,position,boss=false){
   const next=list.map(m=>{const n=m.clone();n.roughness=.74;n.metalness=.08;n.emissive=new THREE.Color('#000000');if(/Eyes/.test(o.name)){n.emissive.set(kind==='mage'?'#b870f1':'#c97450');n.emissiveIntensity=1.2;}mats.push({mat:n,base:n.emissive.clone(),power:n.emissiveIntensity});return n;});
   o.material=Array.isArray(o.material)?next:next[0];
  }});
- const a={kind,boss,root,posture,fatigueRig:collectFatigueRig(root),fatigueBand:'fresh',fatigueLocked:false,fatigueSince:0,sweatClock:0,fatiguePresentation:null,object:container,pos:container.position,height,hp:kind==='hero'?220:boss?620:38+game.wave*8,maxHp:kind==='hero'?220:boss?620:38+game.wave*8,mixer:new THREE.AnimationMixer(root),clips:new Map(asset.animations.map(c=>[c.name,c])),action:null,actionName:'',attack:null,cd:randRange(.4,1.3),dead:false,deathTime:0,flash:0,showHp:0,mats,damage:kind==='hero'?27:boss?18:kind==='mage'?10:7,speed:kind==='hero'?2.7:boss?1.2:kind==='mage'?1.1:1.55,attackSpeed:1,combo:0,spawn:kind==='hero'?0:.7,trail:[]};
+ const a={kind,boss,root,posture,fatigueRig:collectFatigueRig(root),fatigueBand:'fresh',fatigueLocked:false,fatigueSince:0,sweatClock:0,fatiguePresentation:null,object:container,pos:container.position,height,hp:kind==='hero'?220:boss?620:38+game.wave*8,maxHp:kind==='hero'?220:boss?620:38+game.wave*8,mixer:new THREE.AnimationMixer(root),clips:new Map(asset.animations.map(c=>[c.name,c])),action:null,actionName:'',attack:null,cd:randRange(.4,1.3),dead:false,deathTime:0,flash:0,showHp:0,mats,damage:kind==='hero'?27:boss?18:kind==='mage'?10:7,speed:kind==='hero'?2.7:boss?1.2:kind==='mage'?1.1:1.55,attackSpeed:1,combo:0,spawn:kind==='hero'?0:.7,trail:[],reaction:null,reactionSerial:0,presentationActionId:null,presentationProgress:0,swingKey:null,stepClock:0};
  actors.push(a);play(a,'Idle');if(kind!=='hero'){ring(a.pos,1.1,'#bf7dcb',.6);play(a,'Spawn_Ground_Skeletons',true,.8);}return a;
 }
 function play(a,name,once=false,duration=0){
@@ -121,6 +121,14 @@ function removeActor(a){rules?.release(a);sound.fatigue?.(a.canonicalId,{active:
 function face(a,target,dt){const yaw=Math.atan2(target.x-a.pos.x,target.z-a.pos.z);const delta=Math.atan2(Math.sin(yaw-a.object.rotation.y),Math.cos(yaw-a.object.rotation.y));a.object.rotation.y+=delta*Math.min(1,dt*12);}
 function move(a,target,dt,mult=1){
  const d=new V().subVectors(target,a.pos);d.y=0;const distance=d.length();if(distance<.08)return false;face(a,target,dt);d.multiplyScalar(Math.min(distance,a.speed*dt*mult)/distance);a.pos.add(d);const r=Math.hypot(a.pos.x,a.pos.z);if(r>8.75)a.pos.multiplyScalar(8.75/r);play(a,a.kind==='hero'?'Running_A':'Walking_D_Skeletons');return true;
+}
+function spatialPan(pos){
+ if(!camera||!pos)return 0;const forward=new V();camera.getWorldDirection(forward);forward.y=0;if(forward.lengthSq()<.001)return 0;forward.normalize();
+ const right=new V().crossVectors(forward,new V(0,1,0)).normalize(),delta=new V().subVectors(pos,cameraTarget);return clamp(delta.dot(right)/5.5,-.9,.9);
+}
+function kickCamera(source,target,power){
+ if(!source||!target)return;const direction=new V().subVectors(target.pos,source.pos);direction.y=0;if(direction.lengthSq()<.001)return;direction.normalize();
+ game.cameraImpulseX+=direction.x*power;game.cameraImpulseZ+=direction.z*power;
 }
 
 
@@ -203,7 +211,7 @@ function wave(){game.wave++;game.waveCount=rules?1:[0,6,8,10,12,10][game.wave];g
 function toast(){} // Combat cue only; no text HUD in this stage.
 function start(){
  for(const a of actors)removeActor(a);actors=[];particles=[];projectiles=[];arcs=[];rings=[];numbers=[];
- rules?.reset();rounds++;Object.assign(game,{phase:'battle',time:0,wave:0,kills:0,damage:0,received:0,bursts:0,energy:0,level:1,moveTarget:null,moveTime:0,boss:null,shake:0,hitstop:0,resetSeconds:0});
+ rules?.reset();rounds++;Object.assign(game,{phase:'battle',time:0,wave:0,kills:0,damage:0,received:0,bursts:0,energy:0,level:1,moveTarget:null,moveTime:0,boss:null,shake:0,hitstop:0,cameraPunch:0,cameraImpulseX:0,cameraImpulseZ:0,resetSeconds:0});
  hero=actor('hero',new V(0,0,2.5));rules?.attach(hero);hero.object.rotation.y=Math.PI;cameraTarget.copy(hero.pos).multiplyScalar(.15);wave();record('start',{round:rounds});
 }
 function chooseUpgrade(choice){
@@ -328,11 +336,15 @@ function drawEffects(){
 
 function renderCamera(dt){
  if(!hero)return;intro+=dt;const isTitle=game.phase==='title';
- const follow=W/H<.8?.9:.4;
- const desired=isTitle?new V(-2,.6,0):hero.pos.clone().multiplyScalar(follow).add(new V(0,.65,-.4));cameraTarget.lerp(desired,1-Math.exp(-dt*3.4));
+ const opponent=actors.filter(a=>a!==hero&&!a.dead).sort((a,b)=>a.pos.distanceToSquared(hero.pos)-b.pos.distanceToSquared(hero.pos))[0]??null;
+ const spread=opponent?hero.pos.distanceTo(opponent.pos):0,midpoint=opponent?hero.pos.clone().lerp(opponent.pos,.5):hero.pos.clone();
+ const desired=isTitle?new V(-2,.6,0):midpoint.add(new V(0,.65,-.35));cameraTarget.lerp(desired,1-Math.exp(-dt*3.8));
+ const desiredZoom=isTitle?1:clamp((W/H<.8?1.02:1.08)-Math.max(0,spread-1.8)*.055+game.cameraPunch,.82,1.12);
+ camera.zoom=lerp(camera.zoom,desiredZoom,1-Math.exp(-dt*7));camera.updateProjectionMatrix();
  const baseAngle=isTitle?.62+Math.sin(intro*.045)*.08:.65,approach=isTitle?1+Math.max(0,1-intro/7)*.32:1;
- camera.position.set(cameraTarget.x+Math.sin(baseAngle)*23*approach,cameraTarget.y+22*approach,cameraTarget.z+Math.cos(baseAngle)*23*approach);
- if(game.shake>0){camera.position.x+=Math.sin(clock*93)*game.shake;camera.position.y+=Math.cos(clock*84)*game.shake*.6;}
+ camera.position.set(cameraTarget.x+Math.sin(baseAngle)*23*approach+game.cameraImpulseX,cameraTarget.y+22*approach,cameraTarget.z+Math.cos(baseAngle)*23*approach+game.cameraImpulseZ);
+ if(game.shake>0){camera.position.x+=Math.sin(clock*93)*game.shake;camera.position.y+=Math.cos(clock*84)*game.shake*.5;}
+ game.cameraImpulseX*=Math.exp(-dt*13);game.cameraImpulseZ*=Math.exp(-dt*13);game.cameraPunch=Math.max(0,game.cameraPunch-dt*.34);
  camera.lookAt(cameraTarget);camera.updateMatrixWorld();heroLight.position.copy(hero.pos).add(new V(0,3.5,0));for(const t of torches)t.light.intensity=30+Math.sin(clock*7+t.seed)*5;
 }
 
@@ -379,7 +391,7 @@ function createDrivenPort(){
   remove(a){removeActor(a);actors.splice(actors.indexOf(a),1);bindings.delete(a.canonicalId);},
   self(a){hero=a;selfBinding=a;},
   update(a,row,dt,{initial}){
-   a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;clearFatigueRig(a);
+   a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;clearFatigueRig(a);if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-dt);if(a.reaction.remaining<=0)a.reaction=null;}
    const equipmentKey=row.equipment.weapon+':'+row.equipment.shield;
    if(a.equipmentKey!==equipmentKey){
     for(const name of equipmentNames){const node=a.root.getObjectByName(name);if(node)node.visible=false;}
@@ -388,29 +400,37 @@ function createDrivenPort(){
     if(row.equipment.shield){const shield=a.root.getObjectByName('Round_Shield');if(!shield)throw Error('Missing authored shield');shield.visible=true;}
     a.equipmentKey=equipmentKey;
    }
-   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,locomotionClip=!action&&row.moving?row.locomotion?.clip:null;
-   const clip=terminal||action?.motion.clip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
-   const key=terminal||((action?.id||(locomotionClip?('locomotion:'+row.locomotion.kind+':'+locomotionClip):clip))+':'+(action?.step??0));
-   if(a.canonicalAction!==key){play(a,clip,Boolean(terminal||action||row.hit));a.canonicalAction=key;a.deathTime=0;}
-   if(action&&!terminal){a.action.paused=true;a.action.time=Math.min(a.clips.get(clip).duration-.000001,Math.max(0,action.progress)*a.clips.get(clip).duration);a.mixer.update(dt);}
-   else{a.action.paused=false;if(initial&&terminal)a.action.time=a.clips.get(clip).duration-.000001;a.mixer.update(dt);}
+   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,reactionClip=!terminal?a.reaction?.clip:null,locomotionClip=!action&&row.moving?row.locomotion?.clip:null;
+   const clip=terminal||reactionClip||action?.motion.clip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
+   const key=terminal||(reactionClip?('reaction:'+a.reaction.serial+':'+reactionClip):((action?.id||(locomotionClip?('locomotion:'+row.locomotion.kind+':'+locomotionClip):clip))+':'+(action?.step??0)));
+   if(a.canonicalAction!==key){play(a,clip,Boolean(terminal||reactionClip||action||row.hit));a.canonicalAction=key;a.deathTime=0;}
+   if(reactionClip&&!terminal){a.action.paused=false;a.mixer.update(dt*(game.hitstop>0?.08:1));}
+   else if(action&&!terminal){
+    const canonicalProgress=Math.max(0,action.progress);if(a.presentationActionId!==action.id){a.presentationActionId=action.id;a.presentationProgress=canonicalProgress;}
+    if(game.hitstop<=0)a.presentationProgress=canonicalProgress;a.action.paused=true;a.action.time=Math.min(a.clips.get(clip).duration-.000001,a.presentationProgress*a.clips.get(clip).duration);a.mixer.update(game.hitstop>0?0:dt);
+    if(action.motion?.offense&&canonicalProgress>=.14&&a.swingKey!==action.id){a.swingKey=action.id;sound.swing?.({pan:spatialPan(a.pos)});}
+   }else{
+    a.presentationActionId=null;a.action.paused=false;if(initial&&terminal)a.action.time=a.clips.get(clip).duration-.000001;a.mixer.update(dt);
+    if(row.moving&&!terminal){a.stepClock-=dt;if(a.stepClock<=0){a.stepClock=.34;sound.footstep?.({pan:spatialPan(a.pos),rate:a.kind==='hero'?1.04:.94});}}else a.stepClock=0;
+   }
    applyFatigue(a,row,dt);
    if(terminal)a.deathTime+=dt;
    a.flash=Math.max(0,a.flash-dt);for(const {mat,base,power} of a.mats){mat.emissive.copy(a.flash>0?new THREE.Color('#ffe7c4'):base);mat.emissiveIntensity=a.flash>0?1.7:power;}
   },
   impact(event,source,target){
    if(['guard','parry'].includes(event.type)){
-    const parry=event.type==='parry';burst(target.pos,parry?12:8,parry?'#ffe2a0':'#d9c486');
+    const parry=event.type==='parry',pan=spatialPan(target.pos);burst(target.pos,parry?12:8,parry?'#ffe2a0':'#d9c486');
     if(source)arc(source.pos,2.1,source.object.rotation.y,parry?2.4:1.5,'#f7cf80',.24);
-    sound.hit(true);game.shake=parry?.065:.035;
+    if(parry)sound.parry?.({pan});else sound.guard?.({pan});game.hitstop=Math.max(game.hitstop,parry?.052:.032);game.cameraPunch=Math.max(game.cameraPunch,parry?.025:.012);game.shake=parry?.025:.012;kickCamera(source,target,parry?.14:.07);
     record('canonical-defense',{type:event.type,attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId});return;
    }
    if(!['player-hit','enemy-hit','finisher'].includes(event.type))return;
-   target.flash=.15;const heavy=event.phase==='kyu'||event.type==='finisher'||event.counter;
+   target.flash=.15;const heavy=event.phase==='kyu'||event.type==='finisher'||event.counter,pan=spatialPan(target.pos),reactionClip=['head','leftArm','rightArm'].includes(event.bodyPart)?'Hit_B':'Hit_A';
+   target.reaction={clip:reactionClip,remaining:event.counter?.3:heavy?.24:.18,serial:++target.reactionSerial};
    burst(target.pos,heavy?16:8,source?.kind==='hero'?'#f7cf80':'#dc8c80');
    if(source)arc(source.pos,2.35,source.object.rotation.y,heavy?2.8:1.9,'#f7cf80',.32);
-   sound.hit(heavy);game.shake=heavy?.12:.045;
-   record('canonical-impact',{attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,bodyPart:event.bodyPart,counter:Boolean(event.counter)});
+   sound.impact?.({pan,heavy,counter:Boolean(event.counter)});game.hitstop=Math.max(game.hitstop,event.counter?.072:heavy?.052:.028);game.cameraPunch=Math.max(game.cameraPunch,event.counter?.04:heavy?.026:.012);game.shake=heavy?.035:.014;kickCamera(source,target,event.counter?.2:heavy?.14:.08);
+   record('canonical-impact',{attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,bodyPart:event.bodyPart,counter:Boolean(event.counter),reactionClip});
   },
   environment(obstacles,shots){
    const ids=new Set(obstacles.map(row=>row.id));for(const [id,node] of coverNodes)if(!ids.has(id)){scene.remove(node);coverNodes.delete(id);}
@@ -419,7 +439,7 @@ function createDrivenPort(){
   },
   clear(){particles=[];rings=[];arcs=[];numbers=[];projectiles=[];hero=null;selfBinding=null;for(const node of coverNodes.values())scene?.remove(node);coverNodes.clear();},
   draw(snapshot,dt){
-   lastFrame=snapshot;clock+=dt;game.time+=dt;game.phase=snapshot.status;game.shake=Math.max(0,game.shake-dt*.9);
+   lastFrame=snapshot;clock+=dt;game.time+=dt;game.phase=snapshot.status;game.shake=Math.max(0,game.shake-dt*.9);game.hitstop=Math.max(0,game.hitstop-dt);
    for(const p of particles){p.life-=dt;p.vel.y-=dt*6;p.pos.addScaledVector(p.vel,dt);}particles=particles.filter(p=>p.life>0);
    for(const row of [...rings,...arcs])row.life-=dt;rings=rings.filter(row=>row.life>0);arcs=arcs.filter(row=>row.life>0);draw(dt);
   }
