@@ -9,7 +9,7 @@ function unlockAudio(){
   window.dispatchEvent(new CustomEvent('soul:audio-unlocked'));
 }
 
-export function openBrandBootGate({app='rinne',load=null}={}){
+export function openBrandBootGate({load=null}={}){
   if(typeof document==='undefined'||document.getElementById(ID))return Promise.resolve();
   window.__SOUL_BRAND_BOOT_PENDING__=true;
   const style=document.createElement('style');
@@ -49,7 +49,7 @@ export function openBrandBootGate({app='rinne',load=null}={}){
   const old=document.documentElement.style.overflow;
   document.documentElement.style.overflow='hidden';
   const el=document.createElement('button');
-  el.id=ID;el.type='button';el.dataset.app=app;el.setAttribute('aria-label','PARALYZE AREA 起動');
+  el.id=ID;el.type='button';el.setAttribute('aria-label','PARALYZE AREA 起動');
   el.innerHTML=`<span class="brand" aria-hidden="true"><svg class="mark" viewBox="0 0 1270 860"><path class="scorpion" d="${SCORPION_PATH}"/><path class="bolts" d="${BOLT_PATH}"/></svg><span class="wordmark">PARALYZE AREA</span></span><span class="loader" aria-hidden="true"><span class="loader-track"><i class="loader-fill"></i></span><i class="loader-dot"></i></span><span class="touch" aria-hidden="true"><i class="touch-dot"></i><span class="touch-label">TAP</span></span>`;
   document.body.append(el);
   let armed=false,failed=false,progressValue=.04;
@@ -75,7 +75,7 @@ export function openBrandBootGate({app='rinne',load=null}={}){
     const enter=()=>{
       if(done||!armed)return;
       if(failed){location.reload();return;}
-      done=true;unlockAudio();window.__SOUL_BRAND_BOOT_PENDING__=false;window.dispatchEvent(new CustomEvent('soul:brand-enter',{detail:{app}}));el.disabled=true;el.classList.add('leave');
+      done=true;unlockAudio();window.__SOUL_BRAND_BOOT_PENDING__=false;window.dispatchEvent(new CustomEvent('soul:brand-enter'));el.disabled=true;el.classList.add('leave');
       setTimeout(()=>{el.remove();style.remove();document.documentElement.style.overflow=old;resolve()},280);
     };
     el.addEventListener('pointerup',enter);
