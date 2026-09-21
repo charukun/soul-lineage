@@ -256,13 +256,48 @@ function collectRecent(state) {
     })
     .slice(0, 3);
 }
+const sessionStepView=state=>({
+  done:['完了','ok'],running:['進行','progress'],problem:['問題','danger'],waiting:['待ち','warning'],skipped:['対象外','muted']
+})[state]||['確認','muted'];
+
+function renderSession(session) {
+  const row=el('article','rapid-session-row '+(session.status||'active'));
+  const head=el('div','rapid-session-head');
+  const prHref=safeHref(session.pr?.url);
+  const title=el(prHref?'a':'strong','rapid-session-title','#'+(session.pr?.number||'?')+' '+(session.title||'開発セッション'));
+  if(prHref){title.href=prHref;title.target='_blank';title.rel='noreferrer';}
+  const target=(session.targets||[]).map(item=>item.label).join(' / ')||'対象確認中';
+  head.append(title,el('time','',relative(session.updatedAt)));
+  const meta=el('div','rapid-session-meta');
+  meta.append(el('span','',target));
+  if(session.validatedExactHead)meta.append(el('code','',String(session.validatedExactHead).slice(0,8)));
+  if(session.repairAttempts)meta.append(el('span','rapid-session-repair','repair '+session.repairAttempts));
+  const flow=el('div','rapid-session-flow');
+  for(const phase of session.steps||[]){
+    const view=sessionStepView(phase.state),href=safeHref(phase.url);
+    const node=el(href?'a':'span','rapid-session-step '+view[1]);
+    if(href){node.href=href;node.target='_blank';node.rel='noreferrer';}
+    node.title=phase.label+': '+view[0];
+    node.append(el('i',''),el('b','',phase.label));
+    flow.append(node);
+  }
+  row.append(head,meta,flow);
+  return row;
+}
+
 function renderRecent(state) {
   const root = $('#rapid-recent-list');
   const count = $('#rapid-recent-count');
   if (!root || !count) return;
+  const sessions=(state?.developmentSessions||[]).slice(0,3);
+  root.replaceChildren();
+  if(sessions.length){
+    count.textContent='最新'+sessions.length+'件';
+    sessions.forEach(session=>root.append(renderSession(session)));
+    return;
+  }
   const events = collectRecent(state);
   count.textContent = events.length ? '最新' + events.length + '件' : '0件';
-  root.replaceChildren();
   if (!events.length) {
     root.append(el('p', 'rapid-empty', '直近イベントはまだありません'));
     return;

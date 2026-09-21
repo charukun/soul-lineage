@@ -5,8 +5,10 @@ import { createGithubClient } from './github-client.mjs';
 import { syncPullSnapshot } from './pull-snapshot.mjs';
 import { enrichTargets, actionProblems } from './review-model.mjs';
 import { FAILED_CONCLUSIONS, estimatePublicationDuration } from './public/health.mjs';
-import { collectRescue } from './rescue.mjs';
+import { collectRescue, rescueView } from './rescue.mjs';
+import { buildDevelopmentSessions } from './development-sessions.mjs';
 const RUNNING = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
+const PUBLIC_RECOVERY_PULL_LIMIT = 40;
 const stamp = () => new Date().toISOString();
 function runView(run) {
   return run ? { id: run.id, workflow: run.name, status: run.status, conclusion: run.conclusion, branch: run.head_branch, sha: run.head_sha,
@@ -75,9 +77,21 @@ async function previewEnvironment(candidate, branches, previous, client) {
     publicStatus, latestRun: runView(latest), source: 'GitHub Actions + commit status' };
   return withHistory(env, prior, client);
 }
-export async function buildState(previous = null, { storage, token = '', fetchImpl = fetch, reason = 'manual' } = {}) {
+async function publicRecoveryPullSnapshot(client) {
+  const { data } = await client.get('/pulls?state=all&base=develop&sort=updated&direction=desc&per_page='+PUBLIC_RECOVERY_PULL_LIMIT, { maxAgeMs: 30_000 });
+  const pulls = Array.isArray(data) ? data : [];
+  return {
+    pulls,
+    complete:false,
+    mode:'public-recovery',
+    pages:1,
+    watermark:pulls[0]?.updated_at || pulls[0]?.created_at || null,
+    fullAt:null,
+  };
+}
+export async function buildState(previous = null, { storage, token = '', fetchImpl = fetch, reason = 'manual', publicRecovery = false } = {}) {
   const startedAt = stamp();
-  const client = createGithubClient({ storage, token, fetchImpl });
+  const client = createGithubClient({ storage, token, fetchImpl, allowPublic:publicRecovery, maxRequests:publicRecovery ? 6 : null });
   try {
     const manifestUrl = new URL('deployment-manifest.json', PAGES_ROOT); manifestUrl.searchParams.set('ops', Date.now());
     const response = await fetchImpl(manifestUrl, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
@@ -87,7 +101,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     const branchesResult = await client.get('/branches?per_page=100', { maxAgeMs: 30_000 });
     const branches = new Map((branchesResult.data || []).map(branch => [branch.name, branch]));
     const developSha = branches.get('develop')?.commit?.sha || null;
-    const pullSync = await syncPullSnapshot(client, storage);
+    const pullSync = publicRecovery ? await publicRecoveryPullSnapshot(client) : await syncPullSnapshot(client, storage);
     const allPulls = pullSync.pulls;
     const { data: actions } = await client.get('/actions/runs?per_page=100', { maxAgeMs: 30_000 });
     const runs = Array.isArray(actions?.workflow_runs) ? actions.workflow_runs : [];
@@ -102,10 +116,10 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     let staging = environmentFromManifest('staging', manifest, publishedCommit(manifest, 'staging').commit, null);
     staging = await withHistory(staging, previousById.get('staging'), client);
     staging.source = 'Pinned validation release / published manifest';
-    dev.deployQueue = await compareQueue(dev.deployedCommit, dev.branchCommit, client);
-    prod.deployQueue = await compareQueue(prod.deployedCommit, prod.branchCommit, client);
+    dev.deployQueue = publicRecovery ? deploymentQueue(null) : await compareQueue(dev.deployedCommit, dev.branchCommit, client);
+    prod.deployQueue = publicRecovery ? deploymentQueue(null) : await compareQueue(prod.deployedCommit, prod.branchCommit, client);
     let developStatusPayload = null;
-    if (developSha && client.scope !== 'public' && client.deepAllowed) {
+    if (developSha && ((client.scope !== 'public' && client.deepAllowed) || publicRecovery)) {
       developStatusPayload = (await client.get(`/commits/${developSha}/status`, { maxAgeMs: 30_000 })).data;
     }
     const liveDevVersions = await probeFastDevVersions({ fetchImpl });
@@ -113,7 +127,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     for (const candidate of previewCandidates(runs)) { const env = await previewEnvironment(candidate, branches, previous, client); if (env) previews.push(env); }
     const applications = buildApplications(manifest, [dev, staging, prod, ...previews], runs, { developSha, statuses: developStatusPayload?.statuses || [], liveVersions: liveDevVersions });
 
-    const integrationRescue = await collectRescue(client, previous?.integrationRescue);
+    const integrationRescue = publicRecovery ? (previous?.integrationRescue || rescueView(null)) : await collectRescue(client, previous?.integrationRescue);
     const plan = integrationRescue?.flowControl?.reconciliation || null;
     const openPulls = allPulls.filter(pr => pr.state === 'open').sort((a, b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
     const baseIntegrationQueue = openPulls.map(pr => classifyPull(pr, runs, developRuns));
@@ -140,16 +154,18 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     const targetLimit = client.deepAllowed && token ? 4 : 0;
     const targets = await enrichTargets(allPulls, client, storage, targetLimit);
     const pullRequests = splitPulls(targets.pulls);
+    const developmentSessions = buildDevelopmentSessions(targets.pulls, runs);
     const failures = actionProblems(runs, allPulls, { verifiedDevelopSha: deliveryVerified ? developSha : null });
     const now = stamp();
     return { schemaVersion: 2, repository: REPOSITORY, generatedAt: now, lastAttemptAt: now, startedAt, syncStatus: 'ok',
-      syncSource: 'GitHub API incremental snapshot + published deployment manifests/statuses', syncReason: reason,
+      syncSource: publicRecovery ? 'bounded public GitHub cold-start recovery + live version probes' : 'GitHub API incremental snapshot + published deployment manifests/statuses', syncReason: reason,
       githubRateRemaining: client.remaining,
       githubApi: { scope: client.scope, requests: client.requests, cacheHits: client.cacheHits, maxRequests: client.maxRequests,
         remaining: client.remaining, rate: client.rate, deepEnrichment: client.deepAllowed && token ? 'enabled' : 'deferred' },
       githubFailure: null,
       pullSync: { mode: pullSync.mode, pages: pullSync.pages, complete: pullSync.complete, watermark: pullSync.watermark, fullAt: pullSync.fullAt },
       pullRequests: { ...pullRequests, total: allPulls.length, truncated: !pullSync.complete, targetLookup: { ready: targets.ready, pending: targets.pending, unavailable: targets.unavailable, attempted: targets.attempted } },
+      developmentSessions,
       applications, applicationsUpdatedAt: now, applicationsSource: 'per-app DEV status + live version probe + public manifest', environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
       integration: { ...integration, queue: integrationQueue, latestRun: runView(latestDevelopRun), deployWaiting: dev.deployQueue?.pulls || [],
         recovering: Boolean(recoveryFrom), recoveryFrom: runView(recoveryFrom), deliveryEstimate,

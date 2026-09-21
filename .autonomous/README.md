@@ -107,3 +107,16 @@ The controller contract is:
 `scripts/autonomous-run-controller.mjs` plans these coordinates and binds Cloudflare version IDs. It rejects mutable source coordinates and carries one `run_key` across all requested iterations.
 
 This controller adds no persistent Actions workload and does not alter Fast DEV, exact-head Astra validation, freshness, Ready, develop merge, or Production gates.
+
+
+## Iteration fast path
+
+自律iterationの制御は、品質gateを増やさず次の3種類の情報を同じrun座標へ集約する。
+
+- staging identity: exact `sourceSha`、Worker `versionId`、immutable preview、`version.json.commit` 一致。
+- evidence relations: 固定の期待値ではなく、同一state内のauthoritative値どうしの関係（例: 表示値 = persisted + live、未確保表示 = session carried、view前後のprofile不変）を検証する。
+- merge state: `npm run actions:summary` のexact-head / validation / freshness / artifactsを最初に読み、validation前に関連develop driftが見えている場合は先にreconcileする。独立driftは既存freshness gateへ委ねる。
+
+`scripts/autonomous-run-controller.mjs verify` はversion previewの`version.json`を取得してsource SHAを照合し、experimentへそのまま保存できるverified observation JSONを返す。`scripts/autonomous-evidence.mjs` はbrowser evidence JSONに対してsame-state relationを評価する。どちらも既存のDEV publish / browser lane / Astra validationを呼び替えたり弱めたりせず、証拠を標準化するCLIである。
+
+Browser runnerのimage/container最適化は描画特性を変え得るため、このfast pathの一部として自動置換しない。renderer identityを保ったまま起動コストが下がることを別Evidenceで示せる場合だけ採用する。

@@ -16,6 +16,8 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /eventDrivenAlerts/);
   assert.match(script, /state\?\.history\?\.publications/);
   assert.match(script, /state\?\.controlTower\?\.timeline/);
+  assert.match(script, /state\?\.developmentSessions/);
+  assert.match(script, /rapid-session-flow/);
   assert.doesNotMatch(script, /api\.github\.com|innerHTML/);
 });
 

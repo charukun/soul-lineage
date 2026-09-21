@@ -1,8 +1,1 @@
-.motion-clip-count{position:absolute;z-index:3;right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));display:grid;justify-items:end;gap:1px;padding:8px 11px;border:1px solid #657169;border-radius:9px;background:#101a16e8;color:#ead7a0;font-variant-numeric:tabular-nums;box-shadow:0 8px 18px #0004}
-.motion-clip-count span{font-size:8px;line-height:1;font-weight:800;letter-spacing:.12em}
-.motion-clip-count strong{font-size:18px;line-height:1.1}
-.motion-meta p{white-space:pre-wrap;overflow-wrap:anywhere}
-.motion-meta a{color:#d5c18b}
-.motion-legacy{margin:10px 0;font-size:11px;color:#aeb9b4}
-.motion-legacy select{display:block;max-width:100%;margin-top:8px;padding:8px;background:#151d1a;border:1px solid #39433f}
-@media(max-width:620px){.motion-clip-count{top:max(8px,env(safe-area-inset-top));right:8px;padding:7px 9px}.motion-clip-count strong{font-size:16px}}
+@import './review/motion/library.css';
