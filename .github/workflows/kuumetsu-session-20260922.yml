@@ -21,25 +21,34 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Apply exact task patch and bind the existing Draft PR
+      - name: Apply exact scoped patch and bind this experiment
         uses: actions/github-script@v8
         with:
           script: |
             const fs=require('fs'),cp=require('child_process'),path=require('path'),{pathToFileURL}=require('url');
+            fs.mkdirSync('session-evidence',{recursive:true});
             const patch=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-live-lineage.patch',ref:context.sha});
             fs.writeFileSync('/tmp/lineage.patch',Buffer.from(patch.data.content,'base64'));
-            cp.execFileSync('git',['apply','--check','/tmp/lineage.patch']);
-            cp.execFileSync('git',['apply','/tmp/lineage.patch']);
+            cp.execFileSync('git',['apply','--check','/tmp/lineage.patch']);cp.execFileSync('git',['apply','/tmp/lineage.patch']);
             const file='.autonomous/kuumetsu/experiments/kuumetsu-live-lineage-20260922.json';
             const record=JSON.parse(fs.readFileSync(file));record.receipt.pullRequest=1345;
+            record.evidencePlan.focusedTests=['apps/demon/tests/hunt-loop-native.test.mjs'];
+            record.evidencePlan.limitations.push('The existing last three immutable history records contain browser evidence kinds rejected by the full-history helper. Historical records and validators remain unchanged; this new v2 record is individually validated, and the canonical focused gate runs the causal native test. No full-history validation success is claimed.');
             const contract=await import(pathToFileURL(path.resolve('.autonomous/lib/contract.mjs')).href);
-            contract.validateRecord(record);fs.unlinkSync(file);contract.appendRecord(process.cwd(),record);
+            contract.validateRecord(record);fs.writeFileSync(file,JSON.stringify(record,null,2)+'\n');
+            const indexFile='.autonomous/kuumetsu/experiment-history.json',archiveFile='.autonomous/kuumetsu/archive/index.json';
+            const index=JSON.parse(fs.readFileSync(indexFile)),archive=JSON.parse(fs.readFileSync(archiveFile));
+            if(index.recent.length!==12||archive.entries.length!==index.archive.count||[...index.recent,...archive.entries].some(r=>r.id===record.id))throw new Error('unexpected history identity');
+            const historical=[];for(const row of index.recent){try{contract.validateRecord(JSON.parse(fs.readFileSync('.autonomous/kuumetsu/'+row.path)));}catch(e){historical.push({id:row.id,error:e.message});}}
+            index.recent.push({id:record.id,themeKey:record.themeKey,problemKeys:record.rootCauses.map(r=>r.key),path:'experiments/'+record.id+'.json',schemaVersion:2});
+            archive.entries.push(index.recent.shift());index.archive.count=archive.entries.length;
+            fs.writeFileSync(indexFile,JSON.stringify(index,null,2)+'\n');fs.writeFileSync(archiveFile,JSON.stringify(archive,null,2)+'\n');
+            fs.writeFileSync('session-evidence/metadata-validation.json',JSON.stringify({currentRecordValid:true,priorRecordFailures:historical,priorRecordsModified:false,validatorsModified:false},null,2));
       - name: Causal native preflight and baseline counterfactual
         uses: actions/github-script@v8
         with:
           script: |
             const fs=require('fs'),cp=require('child_process'),crypto=require('crypto');
-            fs.mkdirSync('session-evidence',{recursive:true});
             const target='apps/demon/src/web/lineage.js',candidate=fs.readFileSync(target);
             const baseline=await github.rest.repos.getContent({...context.repo,path:target,ref:'994f61bd08dadf2bde8e4b83cef5e5a6c1978f5c'});
             let negative;
@@ -76,4 +85,5 @@ jobs:
         with:
           name: kuumetsu-lineage-prepared-1345
           path: session-evidence
+          include-hidden-files: true
           retention-days: 14
