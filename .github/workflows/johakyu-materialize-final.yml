@@ -4,73 +4,25 @@ on:
     branches: ['work/johakyu-p3-p7-20260921']
     paths: ['.github/workflows/johakyu-materialize-final.yml']
 permissions:
-  contents: write
+  contents: read
 jobs:
   materialize:
     if: contains(github.event.head_commit.message, '[johakyu-materialize-final]')
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - name: Materialize reconciled P5-P7 implementation and arm exact-head validation
+      - name: Recover partial new-file patch for exact continuation
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "Astra"
-          git config user.email "actions@users.noreply.github.com"
-          cat .astra/johakyu-final.part1 .astra/johakyu-final.part2 .astra/johakyu-final.part3 .astra/johakyu-final.part4 | base64 -d | gzip -d > /tmp/johakyu-final.patch
-          echo "2b1daa50617bad38c721cb1401b1375661b9629ed84d4956e8b8095e487fd927  /tmp/johakyu-final.patch" | sha256sum -c -
-          git apply --check /tmp/johakyu-final.patch
-          git apply /tmp/johakyu-final.patch
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('apps/rinne/src/rebuild/johakyu-world-renderer.js')
-          s=p.read_text()
-          s=s.replace('/** Explicit DEV candidate. The accepted legacy renderer remains the default. */','/** Accepted DEV presentation. Legacy remains an immediate rollback option. */')
-          s=s.replace("let preference='legacy',runtime=null","let preference='johakyu',runtime=null")
-          s=s.replace("try{if(localStorage.getItem(storageKey)==='johakyu')preference='johakyu';}catch{}","try{const saved=localStorage.getItem(storageKey);if(saved==='legacy'||saved==='johakyu')preference=saved;}catch{}")
-          s=s.replace("['johakyu','序破急（検証中）']","['johakyu','序破急']")
-          p.write_text(s)
-          PY
-          mkdir -p docs/rinne
-          cat > docs/rinne/JOHAKYU_P5_ACCEPTANCE.md <<'EOF'
-          # P5 acceptance
-          Canonical encounter projection carries every enemy and ally with stable actor IDs. Main-game contact remains authoritative: blocked contacts do not damage, duplicate attack/target contacts are idempotent, and presentation observation cannot mutate targeting, injuries, stamina, movement, or outcome. The demo wave loop is not used by the main game.
-          EOF
-          cat > docs/rinne/JOHAKYU_P6_ACCEPTANCE.md <<'EOF'
-          # P6 acceptance
-          Life/front save data persists canonical enemy HP, downed/incapacitated state and six-part injuries, while transient pose/VFX/projectile replay state is excluded or cleared. Rebirth resets combat wounds/equipment while preserving homeland lineage state. World clock rate does not scale presentation animation time.
-          EOF
-          cat > docs/rinne/JOHAKYU_P7_ACCEPTANCE.md <<'EOF'
-          # P7 acceptance
-          On DEV/local/staging, 序破急 presentation is the default accepted battle renderer with an explicit legacy rollback selector and automatic legacy fallback for unsupported equipment/motion or load failure. Production is not changed by this integration gate. Long-session and roster-bounds tests protect actor/event cleanup; exact-head browser evidence is routed separately through the repository Browser-Playtest lane. Physical Pixel Fold FPS is not claimed by hosted validation.
-          EOF
-          rm -f .astra/johakyu-final.part1 .astra/johakyu-final.part2 .astra/johakyu-final.part3 .astra/johakyu-final.part4
-          rm -f .github/workflows/johakyu-materialize-final.yml
-          git add -A
-          git commit -m "feat(johakyu): integrate P5-P7 canonical battle presentation"
-          git fetch --no-tags origin develop:refs/remotes/origin/develop
-          git merge --no-edit origin/develop
-          git commit --allow-empty -F - <<'EOF'
-          feat(johakyu): validate P1-P7 integrated battle head [astra-validate]
-
-          Astra-Test: apps/review/tests/johakyu-observation.test.mjs
-          Astra-Test: packages/johakyu-combat/test/sequence.test.mjs
-          Astra-Test: apps/review/tests/johakyu-sequence.test.mjs
-          Astra-Test: packages/johakyu-combat/test/domain.test.mjs
-          Astra-Test: apps/review/tests/johakyu-physiology.test.mjs
-          Astra-Test: apps/rinne/tests/johakyu-physiology.test.mjs
-          Astra-Test: packages/johakyu-combat/test/motion-contract.test.mjs
-          Astra-Test: apps/review/tests/johakyu-catalog.test.mjs
-          Astra-Test: apps/rinne/tests/johakyu-technique-contract.test.mjs
-          Astra-Test: apps/rinne/tests/johakyu-contact-clock.test.mjs
-          Astra-Test: packages/johakyu-presentation/test/driver.test.mjs
-          Astra-Test: apps/rinne/tests/johakyu-main-integration.test.mjs
-          Astra-Test: apps/rinne/tests/combat-evolution.test.mjs
-          Astra-Test: apps/rinne/tests/rebuild-domain.test.mjs
-          Astra-Build: review
-          Astra-Build: rinne
-          EOF
-          git push origin HEAD:work/johakyu-p3-p7-20260921
+          mkdir -p /tmp/johakyu-partial
+          cat .astra/johakyu-newfiles.part1 .astra/johakyu-newfiles.part2 | base64 -d > /tmp/johakyu-partial/newfiles.partial.gz
+          gzip -dc /tmp/johakyu-partial/newfiles.partial.gz > /tmp/johakyu-partial/newfiles.partial.patch 2>/tmp/johakyu-partial/gzip.err || true
+          wc -c /tmp/johakyu-partial/newfiles.partial.patch
+          head -80 /tmp/johakyu-partial/newfiles.partial.patch
+      - uses: actions/upload-artifact@v4
+        with:
+          name: johakyu-partial-newfiles
+          path: /tmp/johakyu-partial/
+          retention-days: 1
