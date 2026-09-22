@@ -3,6 +3,7 @@ import { ageLabel, FAILED_CONCLUSIONS } from './health.mjs';
 import { eventDrivenAlerts } from './freshness.mjs';
 import { buildIssueRepairPrompt } from './issue-repair-prompt.js';
 import { renderProgressMini, tickProgressDurations } from './progress-mini.js';
+import { renderIterationSummary } from './iteration-summary.js';
 
 const $ = selector => document.querySelector(selector);
 const el = (tag, className = '', text = null) => {
@@ -401,24 +402,7 @@ function renderSession(session,{iteration=false,graph=false}={}) {
 }
 
 function renderIterations(state){
-  const root=$('#rapid-iteration-list'),count=$('#rapid-iteration-count');
-  if(!root||!count)return;
-  const allRaw=Array.isArray(state?.autonomousIterations)&&state.autonomousIterations.length
-    ? state.autonomousIterations
-    : (state?.developmentSessions||[]).filter(session=>session.autonomous);
-  const all=allRaw.filter(session=>autonomousGameIds.has(iterationGameId(session)));
-  const ordered=[...all].sort((a,b)=>iterationRank(a.status)-iterationRank(b.status)||parsedAt(b.updatedAt)-parsedAt(a.updatedAt));
-  const issues=ordered.filter(item=>item.status==='problem').length;
-  const done=ordered.filter(item=>item.status==='complete').length;
-  const running=ordered.length-issues-done;
-  const iterations=ordered.slice(0,3);
-  root.replaceChildren();
-  count.textContent=ordered.length?(running+' Run · '+issues+' Issues · '+done+' Done'):'0件';
-  if(!iterations.length){
-    root.append(el('p','rapid-empty','直近の自律イテレーションはありません'));
-    return;
-  }
-  iterations.forEach(session=>root.append(renderSession(session,{iteration:true,graph:true})));
+  renderIterationSummary(state);
 }
 
 function renderRecent(state) {

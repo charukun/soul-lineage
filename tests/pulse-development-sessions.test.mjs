@@ -87,7 +87,7 @@ test('recorded telemetry makes runKey and per-step durations authoritative for p
 });
 
 
-test('autonomous iteration ordering prioritizes problem, running, publishing, then complete',()=>{
+test('autonomous iteration ordering prioritizes problems, unobserved work, then merged work independently of publication',()=>{
   const make=(number,{state='open',draft=true,mergedAt=null,mergeSha=null,updated='2026-09-22T04:00:00Z'}={})=>({
     ...pr,number,state,draft,merged_at:mergedAt,merge_commit_sha:mergeSha,updated_at:updated,
     title:'Kuumetsu autonomous iteration '+number,
@@ -105,8 +105,10 @@ test('autonomous iteration ordering prioritizes problem, running, publishing, th
   ];
   const items=buildAutonomousIterations([complete,publishing,running,problem],runs,{limit:10});
   assert.deepEqual(items.map(item=>item.pr.number),[91,92,93,94]);
-  assert.deepEqual(items.map(item=>item.status),['problem','running','publishing','complete']);
+  assert.deepEqual(items.map(item=>item.status),['problem','waiting','complete','complete']);
   assert.equal(items[0].lastFailure.runId,6);
+  assert.equal(items[2].publication.state,'unknown');
+  assert.equal(items[3].publication.state,'done');
 });
 
 
