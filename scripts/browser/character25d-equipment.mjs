@@ -16,10 +16,10 @@ const distance=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
 async function server(app,port){const process=spawn('node',[resolve('node_modules/vite/bin/vite.js'),'--host','127.0.0.1','--port',String(port),'--strictPort'],{cwd:resolve('apps',app),stdio:'inherit',env:{...globalThis.process.env,APP_ENV:'dev'}});servers.push(process);for(let i=0;i<100;i++){try{const r=await fetch(`http://127.0.0.1:${port}/`);if(r.ok)return;}catch{}if(process.exitCode!==null)throw Error(app+' server exited');await delay(250);}throw Error(app+' server timeout');}
 function observe(page){page.on('pageerror',e=>receipt.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')receipt.errors.push(m.text());});}
 async function sample(canvas,tag,attribute='data-actor-snapshot'){
-  const snapshot=JSON.parse(await canvas.getAttribute(attribute));assert.ok(snapshot.actualGrip,tag+' has a weapon');
+  const snapshot=JSON.parse(await canvas.getAttribute(attribute));receipt.samples.push({tag,...snapshot});assert.ok(snapshot.actualGrip,tag+' has a weapon');
   assert.ok(distance(snapshot.hand,snapshot.actualGrip)<.0001,tag+' grip separates');
   if(snapshot.twoHanded)assert.ok(distance(snapshot.offhand,snapshot.secondaryGrip)<.025,tag+' second grip separates');
-  receipt.samples.push({tag,...snapshot});return snapshot;
+  return snapshot;
 }
 try{
   await server('review',5176);await server('rinne',5173);
@@ -32,6 +32,8 @@ try{
   const canvas=page.locator('.hybrid25d-stage canvas');
   await expect(canvas).toHaveAttribute('data-actor-action','idle',{timeout:60000});
   await page.locator('.hybrid25d-stage').scrollIntoViewIfNeeded();
+  for(const key of ['sheet','front','side','back']){const src=await page.locator(`[data-result="${key}"] img`).getAttribute('src');if(src)writeFileSync(resolve(output,`prepared-${key}.png`),Buffer.from(src.split(',')[1],'base64'));}
+  await page.screenshot({path:resolve(output,'forge.png'),fullPage:true});
   for(const view of ['front','quarter','side','back']){
     await page.locator(`[data-view="${view}"]`).click();await delay(250);
     await sample(canvas,`sword-${view}`);await canvas.screenshot({path:resolve(output,`sword-${view}.png`)});

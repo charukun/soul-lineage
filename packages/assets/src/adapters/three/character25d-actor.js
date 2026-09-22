@@ -53,7 +53,7 @@ export function createCharacter25dRig(THREE,{height=1.72,width=.92}={}){
   return {root,rig,bones,sockets,skeleton,rest,solveHand,reset,height,width};
 }
 
-function skinGeometry(THREE,rig,flip=false){
+function skinGeometry(THREE,rig,flip=false,sideView=null){
   const {width:w,height:h,bones,skeleton}=rig,g=new THREE.PlaneGeometry(w,h,36,56);
   g.translate(0,h*.5,0);
   const indices=[],weights=[],index=name=>skeleton.bones.indexOf(bones[name]);
@@ -62,7 +62,10 @@ function skinGeometry(THREE,rig,flip=false){
   for(let i=0;i<pos.count;i++){
     const x=pos.getX(i)/w,y=pos.getY(i)/h,side=(x<0)!==flip?'right':'left';
     if(y>.71){add('torso','head',smooth((y-.71)/.10));}
-    else if(y>.33&&y<.65&&Math.abs(x)>.21){
+    else if(sideView&&y>.34&&y<.66&&Math.abs(x)<.26){
+      const part=y>.51?sideView+'UpperArm':y>.405?sideView+'LowerArm':sideView+'Hand';
+      add('torso',part,smooth((.30-Math.abs(x))/.10));
+    }else if(!sideView&&y>.33&&y<.65&&Math.abs(x)>.21){
       const arm=smooth((Math.abs(x)-.21)/.055);
       const part=y>.51?side+'UpperArm':y>.405?side+'LowerArm':side+'Hand';
       add('torso',part,arm);
@@ -87,7 +90,7 @@ export async function createCharacter25dActor(THREE,bundle,{shadow=false,equipme
   const mesh=new THREE.SkinnedMesh(skinGeometry(THREE,rig),material);mesh.name='Character25D.Appearance';mesh.frustumCulled=false;rig.rig.add(mesh);object.updateMatrixWorld(true);mesh.bind(rig.skeleton);
   let contact=null;
   if(shadow){contact=new THREE.Mesh(new THREE.CircleGeometry(width*.32,24),new THREE.MeshBasicMaterial({color:0x050706,transparent:true,opacity:.28,depthWrite:false}));contact.rotation.x=-Math.PI/2;contact.scale.y=.6;contact.position.y=.012;object.add(contact);}
-  let weapon=null,shield=null,loadout={},profile=null,time=0,actionTime=0,action='idle',previewAction=null,previewDirection=null,disposed=false,relative=0,view='front',sourceView='front',secondary=0,lastYaw=0,backGeometry=false;
+  let weapon=null,shield=null,loadout={},profile=null,time=0,actionTime=0,action='idle',previewAction=null,previewDirection=null,disposed=false,relative=0,view='front',sourceView='front',secondary=0,lastYaw=0,geometryKey='';
   const point=new THREE.Vector3(),target=new THREE.Vector3(),rotation=new THREE.Quaternion(),yAxis=new THREE.Vector3(0,1,0);
   function setEquipment(next){
     const resolved=resolveRinneEquipment(next);
@@ -119,16 +122,17 @@ export async function createCharacter25dActor(THREE,bundle,{shadow=false,equipme
     const mirror=sourceView==='side'&&relative<0;
     material.map.repeat.x=mirror?-1:1;material.map.offset.x=mirror?1:0;
     const source=bundle.assets[views[sourceView]],viewWidth=h*source.width/source.height;
-    const back=view==='back',flip=back?-1:1;
-    if(backGeometry!==back){mesh.geometry.dispose();mesh.geometry=skinGeometry(THREE,rig,back);backGeometry=back;}
+    const back=view==='back',flip=back?-1:1,sideView=sourceView==='side'?(relative>=0?'right':'left'):null;
+    const nextGeometryKey=`${back}:${sideView}`;
+    if(geometryKey!==nextGeometryKey){mesh.geometry.dispose();mesh.geometry=skinGeometry(THREE,rig,back,sideView);geometryKey=nextGeometryKey;}
     const positions=mesh.geometry.attributes.position;
     for(let i=0;i<positions.count;i++)positions.setX(i,((i%37)/36-.5)*viewWidth);
     positions.needsUpdate=true;
     rig.reset();
     for(const [name,sign]of [['right',-1],['left',1]]){
-      bones[name+'UpperArm'].position.x=sign*viewWidth*.28*flip;
-      bones[name+'LowerArm'].position.x=sign*viewWidth*.025*flip;
-      bones[name+'Hand'].position.x=sign*viewWidth*.025*flip;
+      bones[name+'UpperArm'].position.x=sideView?viewWidth*.02*(mirror?-1:1):sign*viewWidth*.28*flip;
+      bones[name+'LowerArm'].position.x=sideView?-viewWidth*.05*(mirror?-1:1):sign*viewWidth*.025*flip;
+      bones[name+'Hand'].position.x=sideView?-viewWidth*.05*(mirror?-1:1):sign*viewWidth*.025*flip;
       bones[name+'UpperLeg'].position.x=sign*viewWidth*.14*flip;
     }
     object.updateMatrixWorld(true);rig.skeleton.calculateInverses();
@@ -137,27 +141,35 @@ export async function createCharacter25dActor(THREE,bundle,{shadow=false,equipme
     const attack=action==='attack'?Math.sin(clamp(actionTime/.65,0,1)*Math.PI):0;
     const recoil=action==='hit'?Math.sin(clamp(actionTime/.4,0,1)*Math.PI):0;
     const rest=action==='rest'?1:0;
-    bones.torso.position.y=locomotion?Math.abs(stride)*.035:-rest*h*.07;
+    bones.torso.position.y=locomotion?Math.abs(stride)*.035:-rest*h*.044;
     bones.torso.rotation.z=recoil*.09;
     bones.head.rotation.z=Math.sin(time*1.8)*.008-recoil*.035;
     secondary+=(stride*.075+attack*.04-secondary)*(1-Math.exp(-8*dt));bones.head.rotation.y=secondary;
-    bones.rightUpperLeg.rotation.x=stride;bones.leftUpperLeg.rotation.x=-stride;
+    bones.rightUpperLeg.rotation.x=stride-rest*.55;bones.leftUpperLeg.rotation.x=-stride-rest*.55;
     bones.rightUpperLeg.rotation.z=stride*.14;bones.leftUpperLeg.rotation.z=-stride*.14;
-    bones.rightLowerLeg.rotation.x=Math.max(0,-stride)*.65;bones.leftLowerLeg.rotation.x=Math.max(0,stride)*.65;
+    bones.rightLowerLeg.rotation.x=Math.max(0,-stride)*.65+rest*1.1;bones.leftLowerLeg.rotation.x=Math.max(0,stride)*.65+rest*1.1;
     // Natural front/back hand order, changing through turn and the attack arc.
     const facing=Math.cos(relative),side=Math.sin(relative),two=Boolean(profile?.twoHanded);
     for(const [name,sign]of [['right',-1],['left',1]]){
       const upper=bones[name+'UpperArm'];upper.position.z=-sign*width*.18*side;
       const carry=two?viewWidth*.12:viewWidth*.32;
-      const x=(sign*carry+(name==='right'?attack*viewWidth*.10:0))*flip;
+      const x=sideView?-viewWidth*.08*(mirror?-1:1):(sign*carry+(name==='right'?attack*viewWidth*.10:0))*flip;
       const z=-sign*carry*side+(.045+attack*.15)*(Math.cos(relative));
       target.set(x,h*((two?.61:.39)+attack*.04+rest*.035)+stride*sign*.018,z);
       rotation.setFromAxisAngle(yAxis,-relative);
       rotation.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),name==='right'?(-.18+attack*1.65):.12));
+      if(two&&name==='right'){
+        // Keep the primary wrist in the intersection of both arms' reach
+        // spheres, with the asset's rotated support offset included.
+        const support=new THREE.Vector3(...profile.supportGrip).sub(new THREE.Vector3(...profile.grip)).multiplyScalar(profile.scale).applyQuaternion(new THREE.Quaternion().fromArray(profile.rotation)).applyQuaternion(rotation);
+        const other=bones.leftUpperArm.position.clone();other.z=width*.18*-side;
+        const centers=[upper.position,other.sub(support)],reach=h*.24-.002;
+        for(let pass=0;pass<12;pass++)for(const center of centers){const offset=target.clone().sub(center);if(offset.length()>reach)target.copy(center).add(offset.setLength(reach));}
+      }
       rig.solveHand(name,target,rotation);
     }
     if(two){
-      object.updateMatrixWorld(true);sockets.secondaryGripTarget.getWorldPosition(target);rig.rig.worldToLocal(target);
+      object.updateMatrixWorld(true);sockets.secondaryGripTarget.getWorldPosition(target);bones.torso.worldToLocal(target);
       rig.solveHand('left',target,bones.rightHand.quaternion);
     }
     material.color.setHex(action==='hit'?0xffdddd:0xffffff);

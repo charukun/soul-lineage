@@ -72,10 +72,16 @@ function chooseThree(candidates,width,height){
   for(let a=0;a<list.length;a++)for(let b=a+1;b<list.length;b++)for(let c=b+1;c<list.length;c++){
     const trio=[list[a],list[b],list[c]].sort((p,q)=>p.x-q.x),heights=trio.map(item=>item.height),bottoms=trio.map(item=>item.y+item.height);
     const ratio=Math.min(...heights)/Math.max(...heights),bottomSpread=(Math.max(...bottoms)-Math.min(...bottoms))/height;
-    if(ratio<.62||bottomSpread>.19||trio.some((item,index)=>index&&overlap(item,trio[index-1])>.18))continue;
+    if(ratio<.84||bottomSpread>.08||trio.some((item,index)=>index&&overlap(item,trio[index-1])>.18))continue;
+    // A turnaround has a narrower profile between similarly sized front/back
+    // figures. Three colorways or two front poses must not become side/back art.
+    const aspect=trio.map(item=>item.width/item.height),outer=(aspect[0]+aspect[2])*.5;
+    if(aspect[1]>outer*.8)continue;
+    const gaps=[trio[1].x-trio[0].x,trio[2].x-trio[1].x];
+    if(Math.min(...gaps)/Math.max(...gaps)<.6)continue;
     const span=(trio[2].x+trio[2].width-trio[0].x)/width;
     if(span<.2)continue;
-    const score=trio.reduce((sum,item)=>sum+item.score,0)+ratio*2-bottomSpread*5;
+    const score=trio.reduce((sum,item)=>sum+item.score,0)+ratio*8-bottomSpread*8+(1-aspect[1]/outer)*3;
     if(!best||score>best.score)best={score,trio};
   }
   if(best)return best.trio;

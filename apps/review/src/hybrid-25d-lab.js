@@ -105,13 +105,13 @@ function createHybridPreview(canvas,onStatus){
     modelReady=true;onStatus('ready','3Dモデル読込済み · 2D画像を選ぶと同一空間で比較できます');
   },undefined,error=>{console.error(error);onStatus('error','3Dモデルを読み込めませんでした。2.5D側だけでも操作できます')});
 
-  let billboard=true,idleMotion=true,arrangement='split';let raf=0;const clock=new THREE.Clock();
+  let billboard=true,idleMotion=true,arrangement='actor';let raf=0;const clock=new THREE.Clock();
   let motion='idle',motionEnd=0,yaw=0,travel=1,shieldEnabled=true,weaponId='sword',lastObservation=0;
   const keys=new Set(),inputAbort=new AbortController();canvas.tabIndex=0;
   canvas.addEventListener('keydown',event=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','Shift',' '].includes(event.key)){event.preventDefault();keys.add(event.key);if(event.key===' ')startMotion('attack');}},{signal:inputAbort.signal});
   addEventListener('keyup',event=>keys.delete(event.key),{signal:inputAbort.signal});
   canvas.addEventListener('blur',()=>keys.clear(),{signal:inputAbort.signal});
-  function startMotion(value){motion=value;motionEnd=['attack','hit'].includes(value)?performance.now()+(value==='attack'?700:450):0;if(value==='turn')yaw+=Math.PI*.5;}
+  function startMotion(value){motion=value;motionEnd=['attack','hit'].includes(value)?(value==='attack'?.7:.45):0;if(value==='turn')yaw+=Math.PI*.5;}
 
   const resize=()=>{const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};
   const fitCard=texture=>{
@@ -126,7 +126,7 @@ function createHybridPreview(canvas,onStatus){
     if(billboard){const dx=camera.position.x-cardGroup.position.x,dz=camera.position.z-cardGroup.position.z;cardGroup.rotation.y=Math.atan2(dx,dz)}else cardGroup.rotation.y=0;
     controls.update();
     if(spriteActor){
-      if(motionEnd&&performance.now()>motionEnd){motion='idle';motionEnd=0;}
+      if(motionEnd){motionEnd-=delta;if(motionEnd<=0){motion='idle';motionEnd=0;}}
       const dx=Number(keys.has('d')||keys.has('ArrowRight'))-Number(keys.has('a')||keys.has('ArrowLeft'));
       const dz=Number(keys.has('s')||keys.has('ArrowDown'))-Number(keys.has('w')||keys.has('ArrowUp'));
       const manual=!!(dx||dz),moving=manual||['walk','run'].includes(motion),run=keys.has('Shift')||motion==='run';
@@ -150,7 +150,7 @@ function createHybridPreview(canvas,onStatus){
     async setCharacter(bundle){
       const revision=++imageRevision,next=await createCharacter25dActor(THREE,bundle,{shadow:true,equipment:{weapon:weaponId,shield:shieldEnabled}});
       if(destroyed||revision!==imageRevision){next.dispose();return;}
-      spriteActor?.dispose();spriteActor=next;next.object.position.copy(cardGroup.position);scene.add(next.object);card.visible=false;next.setOpacity(arrangement==='overlay'?.74:1);
+      spriteActor?.dispose();spriteActor=next;next.object.position.set(0,0,0);modelGroup.visible=false;arrangement='actor';scene.add(next.object);card.visible=false;next.setOpacity(arrangement==='overlay'?.74:1);
     },
     clearCharacter(){imageRevision++;spriteActor?.dispose();spriteActor=null;card.visible=true;},
     setSpritePreview(action,direction){spriteActor?.setPreview(action,direction);},
@@ -171,13 +171,13 @@ function createHybridPreview(canvas,onStatus){
     setProxy(value){proxy.visible=Boolean(value)},
     setIdle(value){idleMotion=Boolean(value)},
     setArrangement(value){
-      arrangement=value==='overlay'?'overlay':'split';
+      arrangement=['actor','overlay','split'].includes(value)?value:'actor';modelGroup.visible=arrangement!=='actor';
       if(arrangement==='overlay'){modelGroup.position.set(-.12,0,-.12);cardGroup.position.set(.12,0,.12);cardMaterial.opacity=.74}
       else{modelGroup.position.set(-1.2,0,0);cardGroup.position.set(1.2,0,0);cardMaterial.opacity=1}
       cardMaterial.transparent=true;spriteActor?.setOpacity(cardMaterial.opacity);
     },
     setView(name){
-      const angle=VIEW_PRESETS[name]??VIEW_PRESETS.quarter;const radius=5.7;camera.position.set(Math.sin(angle)*radius,2.55,Math.cos(angle)*radius);controls.target.set(0,.85,0);controls.update();
+      const angle=VIEW_PRESETS[name]??VIEW_PRESETS.quarter;const radius=4.3,x=spriteActor?.object.position.x||0,z=spriteActor?.object.position.z||0;camera.position.set(x+Math.sin(angle)*radius,1.9,z+Math.cos(angle)*radius);controls.target.set(x,.85,z);controls.update();
     },
     getState(){return{modelReady,billboard,idleMotion,arrangement,spriteStatus:spriteActor?.getStatus()||null}},
     destroy(){if(destroyed)return;destroyed=true;imageRevision++;spriteActor?.dispose();cancelAnimationFrame(raf);inputAbort.abort();controls.dispose();renderer.dispose();groundTexture.dispose();ground.geometry.dispose();disposeMaterial(ground.material);grid.geometry.dispose();disposeMaterial(grid.material);card.geometry.dispose();disposeMaterial(card.material);shadow.geometry.dispose();disposeMaterial(shadow.material);proxy.geometry.dispose();disposeMaterial(proxy.material);if(modelRoot)modelRoot.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)})}
@@ -200,7 +200,7 @@ export function mountHybrid25dLab(){
           <button data-motion="idle">Idle</button><button data-motion="walk">Walk</button><button data-motion="run">Run</button><button data-motion="attack">Attack</button><button data-motion="turn">Turn</button><button data-motion="hit">Hit</button><button data-motion="rest">Rest</button>
         </div>
         <div class="character25d-movement" aria-label="移動"><button data-move="ArrowLeft">左へ</button><button data-move="ArrowUp">奥へ</button><button data-move="ArrowDown">手前へ</button><button data-move="ArrowRight">右へ</button></div>
-        <div class="hybrid25d-arrange"><button type="button" data-arrange="split" aria-pressed="true">並べる</button><button type="button" data-arrange="overlay" aria-pressed="false">重ね比較</button></div>
+        <div class="hybrid25d-arrange"><button type="button" data-arrange="actor" aria-pressed="true">Actorだけ</button><button type="button" data-arrange="split" aria-pressed="false">3Dと比較</button><button type="button" data-arrange="overlay" aria-pressed="false">重ね比較</button></div>
         <div class="hybrid25d-views" aria-label="camera presets"><button type="button" data-view="front">正面</button><button type="button" data-view="quarter">斜め</button><button type="button" data-view="side">横</button><button type="button" data-view="back">背面</button></div>
         <output class="hybrid25d-status" data-status data-stage="loading">3Dモデルを読み込み中</output>
         <p class="hybrid25d-note">剣・盾はRINNE主人公と同じ3Dモデルです。歩行・攻撃中の握りと前後関係を確認できます。</p>
