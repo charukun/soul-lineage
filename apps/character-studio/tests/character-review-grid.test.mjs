@@ -4,11 +4,11 @@ import { readFileSync, statSync } from 'node:fs';
 
 const read = name => readFileSync(new URL(`../src/${name}`, import.meta.url), 'utf8');
 const code = read('review/character/grid.js');
-const css = read('character-review-grid.css');
+const css = read('review/character/grid.css');
 const main = read('review/character/main.js');
 const review = read('review/character/runtime.js');
 const { readCharacterModels, gridFocusIndex, installCharacterReviewGrid } = await import(
-  `data:text/javascript;base64,${Buffer.from(code.replace("import './character-review-grid.css';", '')).toString('base64')}`
+  `data:text/javascript;base64,${Buffer.from(code.replace("import './grid.css';", '')).toString('base64')}`
 );
 
 function source(label, { id='model', pressed=false, disabled=false, stage='PRIMARY' } = {}) {
