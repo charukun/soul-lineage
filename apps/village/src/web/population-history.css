@@ -1,0 +1,33 @@
+.muraPopulationHistory{
+  width:min(720px,calc(100vw - 28px));max-height:min(78dvh,650px);padding:0;overflow:hidden;
+  border:2px solid #826b49;border-radius:0;
+  clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);
+  background-image:var(--village-fibre),linear-gradient(145deg,#f1e6cc,#d4c09a);color:#2e332b;
+  box-shadow:inset 0 0 0 3px rgba(255,250,232,.32),0 4px 0 #66533f,0 24px 65px rgba(31,45,32,.3);
+}
+.muraPopulationHistory::backdrop{background:rgba(16,18,13,.52);backdrop-filter:blur(2px)}
+.muraPopulationHistory>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 18px 8px;border-bottom:1px dashed rgba(88,68,44,.28)}
+.muraPopulationHistory h2{margin:2px 0 0;font-size:1.35rem;letter-spacing:.05em}
+.muraPopulationHistory header small{opacity:.62;letter-spacing:.18em}
+.populationHistoryBack{min-height:40px;padding:0 14px}
+.populationHistorySummary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;padding:7px 16px 9px;border-bottom:1px dashed rgba(88,68,44,.22)}
+.populationHistorySummary span{display:grid;gap:1px;padding:6px 5px;border:0;border-right:1px dashed rgba(72,66,51,.22);border-radius:0;background:none;text-align:center}
+.populationHistorySummary span:last-child{border-right:0}
+.populationHistorySummary small{font-size:.66rem;opacity:.62}.populationHistorySummary b{font-size:1.02rem;font-variant-numeric:tabular-nums}
+.populationChartWrap{margin:5px 12px 0;padding:3px 5px 0;border:1px dashed rgba(72,66,51,.22);border-radius:0;background:rgba(255,248,225,.12);overflow:hidden}
+.populationChart{display:block;width:100%;height:auto;min-height:185px}
+.populationGrid{stroke:currentColor;stroke-opacity:.09;stroke-width:1}.populationAxis{fill:currentColor;fill-opacity:.58;font-size:12px;font-family:inherit}
+.populationLine{fill:none;stroke:#50684e;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.populationBirthBar{fill:#7a915f}.populationLossBar{fill:#8a645c}.populationEventBaseline{stroke:currentColor;stroke-opacity:.17;stroke-width:1}
+.populationLegend{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;padding:8px 18px 2px;font-size:.74rem}
+.populationLegend span{display:inline-flex;align-items:center;gap:6px}.populationLegend span::before{content:'';display:inline-block;width:17px;height:3px;background:currentColor}
+.populationLegendPopulation::before{background:#50684e!important}.populationLegendBirth::before{background:#7a915f!important}.populationLegendLoss::before{background:#8a645c!important}
+.populationHistoryNote{margin:6px 18px 9px;font-size:.72rem;line-height:1.45;text-align:center;opacity:.65}
+.muraPopulationHistory>form{display:flex;justify-content:flex-end;padding:0 18px 12px}.muraPopulationHistory>form button{min-width:92px}
+@media(max-width:560px){
+ .muraPopulationHistory{width:calc(100vw - 12px);max-height:min(82dvh,600px)}
+ .muraPopulationHistory>header{padding:12px 12px 6px}.muraPopulationHistory h2{font-size:1.18rem}
+ .populationHistorySummary{grid-template-columns:repeat(5,minmax(0,1fr));padding:6px 8px 8px}.populationHistorySummary span{padding:5px 2px}.populationHistorySummary small{font-size:.58rem}.populationHistorySummary b{font-size:.92rem}
+ .populationChartWrap{margin:4px 6px 0;padding:2px}.populationChart{min-height:145px}
+ .populationLegend{gap:9px;padding:6px 10px 1px;font-size:.68rem}.populationHistoryNote{margin:4px 10px 7px;font-size:.66rem}
+ .muraPopulationHistory>form{padding:0 10px 10px}
+}

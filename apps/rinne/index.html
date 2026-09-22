@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#08111f">
+  <meta name="description" content="百年転生。暮らし、戦い、遺し、また生まれる。">
+  <title>百年転生</title>
+  <link rel="icon" href="./favicon.svg?v=2" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./src/rebuild/app.css">
+  <link rel="stylesheet" href="./src/rebuild/pop.css">
+  <link rel="stylesheet" href="./src/rebuild/birth-tour.css">
+  <link rel="stylesheet" href="./src/consumer-game-ui.css">
+  <link rel="stylesheet" href="./src/rebuild/button-help.css">
+  <link rel="stylesheet" href="./src/title-screen.css">
+  
+  <link rel="stylesheet" href="./src/title-loading-screen.css">
+  <link rel="stylesheet" href="./src/life-confirm.css">
+  <link rel="stylesheet" href="./src/native-ui-polish.css">
+  <link rel="stylesheet" href="./src/consumer-game-surfaces.css">
+  <link rel="stylesheet" href="./src/village-code.css">
+  <link rel="stylesheet" href="./src/typography.css">
+  <link rel="stylesheet" href="./src/gameplay-ui-contract.css">
+  <link rel="stylesheet" href="./src/gameplay-record-alignment.css">
+  <link rel="stylesheet" href="./src/reincarnation-hud.css">
+  <link rel="stylesheet" href="./src/reincarnation-surfaces.css">
+  <link rel="stylesheet" href="./src/reincarnation-interface-v2.css">
+  <link rel="stylesheet" href="./src/title-rich.css">
+</head>
+<body>
+<main id="app" data-screen="loading">
+  <section id="title-screen" class="title-screen" data-motion="on" data-intro="pending" data-media="pending" aria-labelledby="title-mark" tabindex="0" hidden>
+    <div class="title-world" aria-hidden="true">
+      <div class="title-cinematic-media">
+        <video id="title-cinematic-video" class="title-cinematic-video" preload="none" poster="./title-assets/cinematic/landing.webp" muted playsinline disablepictureinpicture></video>
+      </div>
+      <img class="title-world-base" src="./title-assets/cinematic/landing.webp" alt="" fetchpriority="high">
+    </div>
+    <div class="title-lockup">
+      <img class="crest" src="./title-assets/crest.svg" alt="">
+      <p class="eyebrow">A LIFE, THEN ANOTHER</p>
+      <h1 id="title-mark">百年転生</h1>
+      <p class="subtitle" aria-hidden="true">RINNE</p>
+      <p class="title-copy">一人の人生が終わっても、<br>世界と血は続く。</p>
+    </div>
+    <nav class="title-actions" aria-label="タイトルメニュー" inert aria-hidden="true">
+      <input id="life-name" type="hidden" value="旅人">
+      <button id="new-life" class="title-command" data-selected="true" type="button" aria-label="百年転生を最初から始める">はじめから</button>
+      <button id="continue-life" class="title-command" type="button" aria-disabled="true">続きから</button>
+      <button id="open-village-code" class="title-command" type="button">村コード</button>
+      <button id="open-settings" class="title-command" type="button">設定</button>
+    </nav>
+    <span class="title-skip-hint" aria-hidden="true">タップでスキップ</span>
+    <p id="boot-status" class="boot-status" role="status" aria-live="polite">世界を準備しています</p>
+    <button id="title-retry" type="button" hidden>もう一度</button>
+    <footer><span id="build-label">UI 5.3.0 · LOCAL</span><span>百年転生</span></footer>
+  </section>
+
+  <section id="game-screen" class="game-screen is-loading" data-world-tone="village" aria-busy="true" aria-label="百年転生 本編">
+    <canvas id="game" aria-label="村と旅人の世界"></canvas>
+    <div class="world-vignette" aria-hidden="true"></div>
+    <div id="actor-status-layer" class="actor-status-layer" aria-hidden="true"></div>
+    <div id="chapter-mark" class="chapter-mark" hidden aria-hidden="true"><span>百年転生</span><strong id="chapter-title"></strong><i></i></div>
+    <div id="loading-card" class="loading-card" aria-live="polite" data-loading-step="1">
+      <div class="loading-live-world" aria-hidden="true">
+        <div class="loading-light"></div>
+        <div class="loading-mist loading-mist-far"></div>
+        <div class="loading-mist loading-mist-near"></div>
+        <div class="loading-orbit"><i></i><i></i><b></b></div>
+      </div>
+      <div class="loading-panel">
+        <div class="loading-emblem" aria-hidden="true"><span></span><i></i></div>
+        <strong id="loading-title">世界をつくっています</strong>
+        <small id="loading-message">世界のしくみを呼び出しています</small>
+        <div id="loading-progress" class="loading-progress" role="progressbar" aria-label="世界生成の進捗" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1"><i id="loading-progress-bar"></i></div>
+        <small id="loading-progress-meta" class="loading-progress-meta">1 / 4 · 仕組み</small>
+        <div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <button id="boot-retry" class="primary loading-retry" type="button" hidden><strong>もう一度</strong><small>世界を開き直す</small></button>
+      </div>
+    </div>
+    <header class="hud-top rinne-hud-v4">
+      <button id="back-title" class="icon-button rinne-back-seal" type="button" aria-label="タイトルへ戻る">‹</button>
+      <button id="open-coop-game" class="icon-button rinne-coop-seal" type="button" hidden>友</button>
+      <div class="life-chip ornate rinne-life-sigil"><img src="./title-assets/crest.svg" alt="" aria-hidden="true"><div><span id="generation">1代目</span><strong id="age">0歳</strong></div></div>
+      <div class="bars ornate rinne-breath-thread"><label><span>息</span><i><b id="stamina-bar"></b></i></label></div>
+      <div class="clock-rate ornate rinne-time-seal"><span>時</span><button id="clock-rate" type="button" value="1" aria-label="世界時計の速さ 1倍。押すと変更">1×</button></div>
+    </header>
+    <aside class="objective-card ornate rinne-objective-v4"><i class="objective-rune" aria-hidden="true">◇</i><div><div class="objective-meta"><span id="life-stage">1/6 誕生</span><small id="objective-badge">自立 4歳</small></div><strong id="objective">村を知る</strong></div></aside>
+    <div id="dialogue" class="dialogue ornate" hidden><span id="speaker">母</span><p id="dialogue-text"></p></div>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <button id="move-hint" class="move-hint" type="button" aria-label="動きかた。押すと移動操作の説明を表示します">スワイプで移動</button>
+    <p id="coop-people" aria-live="polite"></p>
+    <div id="coop-darkness" hidden role="status"><p>世界は闇に包まれています</p><span>村とのつながりを待っています</span><button id="coop-leave" type="button">タイトルへ</button></div>
+  </section>
+</main>
+<dialog id="village-code-dialog" class="village-code-dialog" aria-labelledby="village-code-title">
+  <section class="village-code-panel">
+    <div class="village-code-head"><h2 id="village-code-title">村コード</h2><button id="close-village-code" class="village-code-close" type="button" aria-label="村コードを閉じる">×</button></div>
+    <p id="village-code-connected" class="village-code-connected" hidden></p>
+    <label>宝満叡智のコード<input id="village-code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="MURA-XXXX-XXXX"></label>
+    <p id="village-code-status" class="village-code-status" role="status" aria-live="polite">村コードを入力した時だけ、その村へ切り替わります。</p>
+    <div class="village-code-actions"><button id="village-code-apply" type="button">この村へ行く</button><button id="village-code-reset" type="button" hidden>風待ちの里へ戻る</button></div>
+  </section>
+</dialog>
+<dialog id="village-dialog" aria-labelledby="village-dialog-title">
+  <form method="dialog"><button id="close-village" type="button" aria-label="友達との接続を閉じる">閉じる</button></form>
+  <h2 id="village-dialog-title">友達と遊ぶ</h2>
+  <div id="village-panel"></div>
+</dialog>
+<dialog id="title-settings-dialog" class="title-settings-dialog" aria-labelledby="title-settings-title">
+  <form method="dialog">
+    <button id="close-settings" class="dialog-close" type="submit" aria-label="設定を閉じる">×</button>
+    <h2 id="title-settings-title">設定</h2>
+    <div class="setting-row"><span>背景演出<small>オープニング映像とタイトル背景の再生</small></span><button id="title-motion-toggle" class="setting-switch" type="button" role="switch" aria-checked="true"><span class="setting-switch-state">入</span></button></div>
+  </form>
+</dialog>
+<noscript>百年転生を開くにはJavaScriptを有効にしてください。</noscript>
+<script type="module" src="./src/loading-screen.js"></script>
+<script type="module" src="./src/brand-start.js"></script>
+<script type="module" src="./src/village-code-ui.js"></script>
+</body>
+</html>

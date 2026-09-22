@@ -1,0 +1,32 @@
+{
+  "name": "@soul/shared-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./style.css": "./src/style.css",
+    "./music": "./src/music.js",
+    "./world-darkness": "./src/world-darkness.js",
+    "./speech-bubbles": "./src/speech-bubbles.js",
+    "./combat-sequence": "./src/combat-sequence.js",
+    "./combat-sequence.css": "./src/combat-sequence.css",
+    "./rinne-primary-four": "./src/rinne-primary-four.js",
+    "./rinne-primary-four.css": "./src/rinne-primary-four.css",
+    "./rinne-loadout-menu": "./src/rinne-loadout-menu.js",
+    "./rinne-loadout-menu.css": "./src/rinne-loadout-menu.css",
+    "./media-lifecycle": "./src/media-lifecycle.js",
+    "./review-shell": "./src/review/shell.js",
+    "./boot-gate": "./src/boot-gate.js",
+    "./johakyu-observation": "./src/johakyu-observation.js",
+    "./review-navigation": "./src/review/navigation.js",
+    "./review-thumbnail": "./src/review/thumbnail.js",
+    "./review-status": "./src/review/status.js",
+    "./review-slot-picker": "./src/review/slot-picker.js",
+    "./review-auto-install": "./src/review/auto-install.js",
+    "./review-load-controller": "./src/review/load-controller.js"
+  },
+  "dependencies": {
+    "@soul/audio": "*"
+  }
+}

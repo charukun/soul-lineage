@@ -1,0 +1,1 @@
+export function createReviewLoadController(){let generation=0;const begin=()=>Object.freeze({generation:++generation});const isCurrent=token=>Boolean(token)&&token.generation===generation;const invalidate=()=>{generation++;};return Object.freeze({begin,isCurrent,invalidate,get generation(){return generation;}});}

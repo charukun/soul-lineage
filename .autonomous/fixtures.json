@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "seeds": [
+    11,
+    30,
+    49
+  ],
+  "coverage": {
+    "village": [
+      "native yearly population pressure",
+      "housing/food/adult counterfactuals",
+      "native cohort aging"
+    ],
+    "kuumetsu": [
+      "native verified extraction versus unverified return and defeat",
+      "mission/forage progression",
+      "permanent HP/tempo/movement parameters",
+      "legacy upgrade alternatives"
+    ],
+    "rinne": [
+      "native life clock progression",
+      "age-stage appearance mapping",
+      "world-speed effect on age clock"
+    ]
+  },
+  "notCovered": {
+    "village": [
+      "full Simulation.update loop",
+      "dialogue/quest reachability",
+      "inventory/equipment/lineage integration",
+      "rendering, input feel and player enjoyment"
+    ],
+    "kuumetsu": [
+      "full battle win rate/duration/damage distribution",
+      "enemy/target/skill selection and status effects",
+      "party formations (not established in current solo hunt)",
+      "browser persistence, rendering, input feel and player enjoyment"
+    ],
+    "rinne": [
+      "full birth/life/combat/rebirth loop",
+      "equipment/guidance/save authority",
+      "rendering, input feel and player enjoyment"
+    ]
+  }
+}

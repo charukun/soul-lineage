@@ -1,0 +1,155 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { World, initial } from '../src/game/core.js';
+import { createSaveStore, consumeFreshVillageLoad, SAVE_KEY } from '../src/game/save-store.js';
+const JOURNAL_KEY=`${SAVE_KEY}.journal.v1`,COMPACT_KEY=`${SAVE_KEY}.compact.v1`;
+function fixture(initialEntries = []) {
+  const data = new Map(initialEntries);
+  const platform = { clock: { now: () => 123456 }, storage: {
+    read: async key => data.get(key) ?? null,
+    write: async (key, value) => { data.set(key, value); },
+    remove: async key => { data.delete(key); },
+  }};
+  return { data, platform, store: createSaveStore(platform) };
+}
+test('empty slot and envelope round-trip preserve gameplay', async () => {
+  const f=fixture(); assert.equal(await f.store.load(), null);
+  const world=new World(); world.gain('wood',42); await f.store.save(world);
+  const raw=JSON.parse(f.data.get(SAVE_KEY));
+  assert.equal(raw.gameId,'village');assert.equal(raw.playerId,'local');assert.equal(raw.updatedAt,123456);
+  const loaded=await f.store.load();assert.equal(loaded.stock.wood,42);assert.equal(loaded.people.length,2);
+});
+test('invalid saved data is not replaced by a fresh village', async () => {
+  const f=fixture([[SAVE_KEY,'{broken']]);
+  await assert.rejects(f.store.load(),/上書きしていません/);
+  await assert.rejects(f.store.save(new World()));
+  assert.equal(f.data.get(SAVE_KEY),'{broken');assert.equal(f.store.blocked,true);
+});
+test('a corrupt compact shadow cannot hide a valid canonical base snapshot', async()=>{
+ const f=fixture(),w=new World();w.gain('wood',3);await f.store.save(w);f.data.set(COMPACT_KEY,'{broken');const fresh=createSaveStore(f.platform),loaded=await fresh.load();assert.equal(loaded.stock.wood,initial().stock.wood+3);assert.equal(fresh.blocked,false);
+});
+test('a valid compact shadow can recover when the canonical base copy is corrupt', async()=>{
+ const f=fixture(),w=new World();w.gain('wood',4);await f.store.save(w);const full=f.data.get(SAVE_KEY);f.data.set(COMPACT_KEY,full);f.data.set(SAVE_KEY,'{broken');const fresh=createSaveStore(f.platform),loaded=await fresh.load();assert.equal(loaded.stock.wood,initial().stock.wood+4);assert.equal(fresh.blocked,false);
+});
+test('foreign game/player and unknown envelope schema fail closed', async () => {
+  for (const patch of [{gameId:'demon'},{playerId:'another-player'},{schemaVersion:99},{revision:-1}]) {
+    const raw=JSON.stringify({schemaVersion:1,gameId:'village',playerId:'local',revision:1,updatedAt:123456,payload:initial(),...patch});
+    const f=fixture([[SAVE_KEY,raw]]);await assert.rejects(f.store.load());assert.equal(f.data.get(SAVE_KEY),raw);
+  }
+});
+test('queued async writes cannot regress gameplay and second revision is journaled', async () => {
+  const f=fixture();let finish;let calls=0;
+  f.platform.storage.write=async (key,value)=>{
+    if(++calls===1)await new Promise(resolve=>{finish=resolve;});f.data.set(key,value);
+  };
+  const w=new World();const first=f.store.save(w);w.gain('wood',7);const second=f.store.save(w);w.gain('wood',9);
+  while(!finish)await new Promise(resolve=>setImmediate(resolve));finish();await Promise.all([first,second]);
+  const base=JSON.parse(f.data.get(SAVE_KEY)),journal=JSON.parse(f.data.get(JOURNAL_KEY));
+  assert.equal(base.revision,1);assert.equal(journal.baseRevision,1);assert.equal(journal.entries.at(-1).revision,2);
+  const loaded=await f.store.load();assert.equal(loaded.stock.wood,7);assert.equal(f.store.diagnostics().revision,2);
+});
+test('no-op saves do not create a revision gap', async()=>{
+ const f=fixture(),w=new World();await f.store.save(w);await f.store.save(w);assert.equal(f.store.diagnostics().revision,1);w.gain('wood',1);await f.store.save(w);assert.equal(f.store.diagnostics().revision,2);const fresh=createSaveStore(f.platform),loaded=await fresh.load();assert.equal(loaded.stock.wood,initial().stock.wood+1);assert.equal(fresh.diagnostics().revision,2);
+});
+test('a failed write is observable and does not poison later saves', async () => {
+  const f=fixture();const original=f.platform.storage.write;f.platform.storage.write=async ()=>{throw Error('quota');};
+  await assert.rejects(f.store.save(new World()),/quota/);assert.ok(f.store.error);
+  f.platform.storage.write=original;await f.store.save(new World());assert.equal(f.store.error,null);
+});
+test('recovery keeps the original unless a backup was successfully written', async () => {
+  const f=fixture([[SAVE_KEY,'bad-json']]);await assert.rejects(f.store.load());
+  const original=f.platform.storage.write;f.platform.storage.write=async ()=>{throw Error('quota');};
+  await assert.rejects(f.store.recover(),/quota/);assert.equal(f.data.get(SAVE_KEY),'bad-json');
+  f.platform.storage.write=original;await f.store.recover();assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.base`),'bad-json');
+  assert.equal(f.data.has(SAVE_KEY),false);assert.equal(f.store.blocked,false);
+});
+test('unscoped legacy saves are never read automatically across environments', async () => {
+  const f=fixture([['rinne-village-living-v5',JSON.stringify(initial())]]);
+  assert.equal(await f.store.load(),null);await f.store.save(new World());
+  assert.ok(f.data.has('rinne-village-living-v5'));assert.ok(f.data.has(SAVE_KEY));
+});
+test('existing v4 migration remains available through explicit JSON import', () => {
+  const state=initial();state.version=4;state.objects=state.objects.filter(o=>o.kind!=='guardhome');state.people=[];
+  const w=new World();assert.deepEqual(w.load(JSON.stringify(state)),{ok:true});
+  assert.equal(w.state.version,5);assert.ok(w.people.some(p=>p.id==='guard-npc'));
+});
+
+test('the real Web platform keeps DEV saves separate from Production', async () => {
+  const { createWebPlatform } = await import('@soul/platform-web');
+  const old = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  const values = new Map([['soul:v1:prod:village:local:living-v5', 'production-save']]);
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: key => values.delete(key),
+  }});
+  try {
+    const platform = createWebPlatform({ gameId: 'village', environment: 'dev', playerId: 'local' });
+    const store = createSaveStore(platform);
+    assert.equal(await store.load(), null);
+    await store.save(new World());
+    assert.ok(values.has('soul:v1:dev:village:local:living-v5'));
+    assert.equal(values.get('soul:v1:prod:village:local:living-v5'), 'production-save');
+  } finally {
+    if (old) Object.defineProperty(globalThis, 'localStorage', old);
+    else delete globalThis.localStorage;
+  }
+});
+
+test('first-run signal distinguishes empty saves from journal and shadow recovery', async()=>{
+  const f=fixture();assert.equal(await f.store.load(),null);
+  assert.equal(consumeFreshVillageLoad(),true);assert.equal(consumeFreshVillageLoad(),false);
+  const world=new World();await f.store.save(world);world.gain('wood',4);await f.store.save(world);
+  await f.store.load();assert.equal(consumeFreshVillageLoad(),false);
+  f.data.set(COMPACT_KEY,f.data.get(SAVE_KEY));f.data.delete(SAVE_KEY);
+  await f.store.load();assert.equal(consumeFreshVillageLoad(),false);
+});
+test('orphan journal is protected and cannot be mistaken for a first-run village', async()=>{
+  const f=fixture([[JOURNAL_KEY,JSON.stringify({version:1,baseRevision:1,entries:[]})]]);
+  await assert.rejects(f.store.load());assert.equal(consumeFreshVillageLoad(),false);
+  await assert.rejects(f.store.save(new World()));assert.equal(f.data.has(JOURNAL_KEY),true);
+});
+test('recovery preserves earlier backups when the clock has not advanced', async()=>{
+  const f=fixture([[SAVE_KEY,'first'],[JOURNAL_KEY,'journal-1'],[COMPACT_KEY,'shadow-1']]);
+  await f.store.recover();f.data.set(SAVE_KEY,'second');f.data.set(JOURNAL_KEY,'journal-2');
+  await f.store.recover();
+  assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.base`),'first');
+  assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.journal`),'journal-1');
+  assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.compact`),'shadow-1');
+  assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.1.base`),'second');
+  assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.1.journal`),'journal-2');
+});
+test('a journal backup failure preserves all original persistence parts', async()=>{
+  const f=fixture([[SAVE_KEY,'base'],[JOURNAL_KEY,'journal'],[COMPACT_KEY,'shadow']]);
+  const write=f.platform.storage.write;
+  f.platform.storage.write=async(key,value)=>{if(key.endsWith('.journal'))throw Error('backup quota');await write(key,value);};
+  await assert.rejects(f.store.recover(),/backup quota/);
+  assert.equal(f.data.get(SAVE_KEY),'base');assert.equal(f.data.get(JOURNAL_KEY),'journal');assert.equal(f.data.get(COMPACT_KEY),'shadow');
+});
+
+test('save reload preserves reordered people and an entity inserted before existing entities',async()=>{
+ const f=fixture(),world=new World();await f.store.save(world);
+ world.state.people.reverse();
+ const inserted={...structuredClone(world.people[0]),id:'journal-first-resident'};
+ world.state.people.unshift(inserted);
+ const expected=world.people.map(person=>person.id);
+ await f.store.save(world);
+ const loaded=await createSaveStore(f.platform).load();
+ assert.deepEqual(loaded.people.map(person=>person.id),expected);
+});
+
+test('a successful save after interrupted compaction supersedes every stale shadow',async()=>{
+ for(const failedKey of [COMPACT_KEY,SAVE_KEY,JOURNAL_KEY]) {
+  const f=fixture(),world=new World();await f.store.save(world);
+  world.state.debugBlob='x'.repeat(910000);world.gain('wood',5);
+  const write=f.platform.storage.write;
+  f.platform.storage.write=async(key,value)=>{if(key===failedKey)throw Error('compaction quota');await write(key,value);};
+  await assert.rejects(f.store.save(world),/compaction quota/);
+  delete world.state.debugBlob;world.gain('wood',2);
+  f.platform.storage.write=write;
+  await f.store.save(world);
+  const restored=await createSaveStore(f.platform).load();
+  assert.equal(restored.stock.wood,7,failedKey);
+  assert.equal(Object.hasOwn(restored,'debugBlob'),false,failedKey);
+ }
+});

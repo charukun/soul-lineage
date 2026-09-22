@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "marker": "autonomous-receipt:<game>:<experiment-id>",
+  "repository": "charukun/soul-lineage",
+  "experimentId": "<id>",
+  "game": "<game>",
+  "pullRequest": 123,
+  "validatedHead": "<exact SHA>",
+  "validationBase": "<exact SHA>",
+  "run": {"id":123,"url":"https://github.com/charukun/soul-lineage/actions/runs/123","conclusion":"success"},
+  "nativeEvidence": {"before":"<compact causal evidence>","after":"<same-condition causal evidence>","comparison":"<result and limits>"},
+  "staging": {
+    "before": {"kind":"immutable-staging","sourceSha":"<SHA>","reference":"<artifact/url>","observedAt":"<ISO time>","conditions":{}},
+    "after": {"kind":"immutable-staging","sourceSha":"<SHA>","reference":"<artifact/url>","observedAt":"<ISO time>","conditions":{}}
+  },
+  "verdict": "supported",
+  "learning": {"summary":"<causal conclusion>","failedApproaches":[],"doNotRetry":[],"unresolved":[],"next":[]},
+  "merge": {"state":"merged","sha":"<merge SHA>"},
+  "notVerified": []
+}

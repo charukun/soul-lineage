@@ -1,0 +1,103 @@
+/* Stable frame, with a single page turner at the bottom of each task. */
+body[data-page-ui] #settingsDialog{inset:0;margin:auto;width:min(760px,calc(100vw - 16px));height:calc(100dvh - 16px);max-height:900px;padding:0;overflow:hidden}
+body[data-page-ui] #settingsDialog .notebook{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+body[data-page-ui] #settingsDialog .modal-heading{flex:none;min-height:56px;padding:7px 12px;align-items:center}
+body[data-page-ui] .modal-heading .eyebrow{display:none}
+body[data-page-ui] .modal-heading h1{margin:0;font-size:22px}
+body[data-page-ui] #settingsDialog .notebook-top{display:none}
+body[data-page-ui] #settingsDialog .tabs{display:flex;gap:5px;flex:none;padding:6px 10px;margin:0;overflow:hidden}
+body[data-page-ui] #settingsDialog .tabs .tab{flex:1;min-width:0;min-height:44px;padding:4px 2px;font-size:11px;white-space:nowrap}
+body[data-page-ui] #settingsDialog .notebook-scroll{min-height:0;flex:1;padding:8px 12px;overflow:hidden;scrollbar-gutter:auto}
+body[data-page-ui] .notebook-scroll>[data-panel]{height:100%;min-height:0;min-width:0;margin:0;max-width:none}
+body[data-page-ui] #settingsDialog .modal-footer{flex:none;min-height:44px;padding:5px 12px;display:flex;align-items:center;justify-content:space-between}
+body[data-page-ui] #settingsDialog .modal-footer button{height:44px;padding:5px 12px}
+body[data-page-ui] .modal-heading #helpBtn{min-width:44px;height:44px;padding:4px;font-size:18px}
+body[data-page-ui] .book-flex-body{flex:1;min-height:0;min-width:0}
+body[data-page-ui] :is(#panel-saved,#panel-compose):not([hidden]){display:flex;flex-direction:column;gap:8px;overflow:hidden}
+body[data-page-ui] #panel-compose :is(#skillCompose,#mindCompose,#bodyCompose):not([hidden]){display:flex!important;flex:1;min-height:0;height:0;width:100%;max-width:none;margin:0;padding:0;border:0;background:none;align-items:stretch;gap:0}
+body[data-page-ui] .page-book>.book-viewport,body[data-page-ui] .page-book>.book-pages{width:100%;box-sizing:border-box}
+body[data-page-ui] #panel-compose .creator-nav{flex:none;gap:5px;margin:0;display:flex}
+body[data-page-ui] #panel-compose .creator-nav button{min-height:44px;padding:4px;flex:1;display:flex;align-items:center;justify-content:center;gap:5px}
+body[data-page-ui] #panel-compose .creator-nav small{display:none}
+body[data-page-ui] #panel-compose .creator-nav b{font-size:16px}body[data-page-ui] #panel-compose .creator-nav span{font-size:11px}
+body[data-page-ui] .notebook .book-pages select{font-size:13px;min-height:44px;background:linear-gradient(#635037,#33251b)}
+body[data-page-ui] .notebook [data-book-unit]{max-width:100%}
+body[data-page-ui] .notebook :is(.form-block,.range-label,.select-label){margin-top:0;margin-bottom:0}
+body[data-page-ui] .notebook :is(.matrix-cell,.defense-cell){width:100%;min-height:74px;padding:9px 12px;text-align:left}
+body[data-page-ui] .matrix-cell .cell-top{float:right;margin-left:9px}
+body[data-page-ui] .matrix-cell .art-jp{font-size:14px}body[data-page-ui] .matrix-cell .art-en{font-size:9px}
+body[data-page-ui] .matrix-cell .cell-summary{font-size:11px;line-height:1.45}
+body[data-page-ui] .ratio-pie{height:114px;width:114px;align-self:center;flex:none}
+body[data-page-ui] .ratio-values label{width:100%;display:grid;grid-template-columns:26px minmax(0,1fr);align-items:center;padding:2px 8px;border:1px solid #b29c6444;background:linear-gradient(#5a4c3033,#1f211522)}
+body[data-page-ui] .ratio-values input{min-height:44px;width:100%;font-size:15px!important}
+body[data-page-ui] .equipment-portrait{padding:12px;display:grid;grid-template-columns:80px minmax(0,1fr);gap:5px 12px;align-items:center;text-align:left}
+body[data-page-ui] #humanoidPortrait{grid-row:1/4;width:80px;height:100px;object-fit:cover;margin:0;border:1px solid #c0a069}
+body[data-page-ui] .equipment-portrait>svg{display:none}
+body[data-page-ui] .equipment-portrait strong{font-size:16px;overflow-wrap:anywhere;margin:0}
+body[data-page-ui] .equipment-portrait p{margin:0;font-size:11px;line-height:1.5}
+body[data-page-ui] .weapon-icon-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+body[data-page-ui] .weapon-choice{min-height:82px;padding:8px 4px}
+body[data-page-ui] .weapon-choice svg{height:28px;width:28px;margin:0}
+body[data-page-ui] .weapon-choice span{font-size:11px}
+body[data-page-ui] .weapon-choice small{font-size:9px;min-height:14px}
+body[data-page-ui] .equipment-title{margin:0 0 8px;font-size:16px}
+body[data-page-ui] :is(.note-box,.mind-description,.mind-guide){font-size:12px;line-height:1.65;padding:8px}
+body[data-page-ui] .book-catalog-controls{flex:none;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
+body[data-page-ui] .book-catalog-controls>label{grid-column:1/-1}
+body[data-page-ui] #catalogFilters{margin:0;gap:4px;flex-wrap:nowrap}
+body[data-page-ui] #catalogFilters button{padding:4px 7px;min-height:44px;font-size:11px;border-radius:4px}
+body[data-page-ui] #catalogCount{font-size:10px;line-height:1.5;margin:0;max-width:90px}
+body[data-page-ui] .catalog-card{padding:10px;border:1px solid #ad925b66;border-bottom:3px solid #1f190d;border-radius:4px;background:linear-gradient(130deg,#51442e,#28291c)}
+body[data-page-ui] .catalog-card p{font-size:11px;line-height:1.5;margin:5px 0;white-space:pre-line}
+body[data-page-ui] .catalog-card .art-jp{font-size:14px}body[data-page-ui] .catalog-card .art-en{font-size:9px}
+body[data-page-ui] .catalog-actions{margin-top:6px;gap:6px}body[data-page-ui] .catalog-actions button{min-height:44px;padding:4px 8px}
+body[data-page-ui] .craft-action{padding:8px;background:linear-gradient(#50432c,#272a1c);border:1px solid #ad945a66}
+body[data-page-ui] .craft-action-title{margin-bottom:6px}
+body[data-page-ui] .craft-action .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0}
+body[data-page-ui] .rich-select{min-height:44px;padding:6px 22px 6px 8px}
+body[data-page-ui] .rich-select .art-en{font-size:9px}
+body[data-page-ui] .creator-card .identity-row{gap:8px}
+body[data-page-ui] .creator-card .equip-actions{margin:0}
+body[data-page-ui] .creator-auto-name{min-height:44px;display:flex;align-items:center;gap:8px;font-size:12px}
+body[data-page-ui] .creator-auto-name input{min-height:20px!important;width:22px;height:22px}
+body[data-page-ui] .creator-name-preview{font-size:14px}
+body[data-page-ui] .book-dialog[open]{display:flex;flex-direction:column;gap:10px;width:min(560px,calc(100vw - 20px));height:calc(100dvh - 24px);max-height:720px;overflow:hidden;inset:0;margin:auto;padding:14px}
+body[data-page-ui] .book-dialog>:is(.camera-title,.life-dialog-head,h2){margin:0;flex:none}
+body[data-page-ui] .book-dialog>:is(#closeHelp,#lifeResume,#cameraHome){flex:none;min-height:44px;margin:0}
+body[data-page-ui] .book-dialog h2{font-size:22px;margin:0}
+body[data-page-ui] .book-dialog .life-kicker{display:none}
+body[data-page-ui] .book-dialog .life-age-display{margin:0;font-size:18px}body[data-page-ui] .life-age-display strong{font-size:28px}
+body[data-page-ui] .book-dialog p{font-size:12px;line-height:1.7}
+body[data-page-ui] #cameraDialog .range-label{display:flex;align-items:center;gap:12px;min-height:44px;margin:0}
+body[data-page-ui] #cameraDialog input[type=range]{min-height:44px;flex:1;min-width:0}
+body[data-page-ui] #cameraDragPad{min-height:78px;height:78px;flex:none}
+body[data-page-ui] #catalogPicker[open]{display:flex;flex-direction:column;gap:8px;height:calc(100dvh - 20px);width:min(650px,calc(100vw - 20px));max-height:820px;margin:auto;padding:12px;inset:0;overflow:hidden}
+body[data-page-ui] #catalogPicker .picker-head{padding:0;flex:none;gap:8px;min-height:44px}
+body[data-page-ui] #catalogPicker .picker-head .eyebrow{display:none}
+body[data-page-ui] #pickerTitle{font-size:18px;margin:0}body[data-page-ui] #pickerSubtitle{font-size:11px;margin:3px 0 0}
+body[data-page-ui] #pickerClose{height:44px;min-width:44px;padding:4px}
+body[data-page-ui] #catalogPicker .picker-search{margin:0;flex:none}
+body[data-page-ui] #pickerQuery{height:44px;min-height:44px;font-size:14px}
+body[data-page-ui] #pickerItems{padding:0;overflow:visible}
+body[data-page-ui] .picker-option{padding:8px 10px;min-height:60px;width:100%}
+body[data-page-ui] .picker-option p{font-size:11px;line-height:1.4;margin:5px 0 0;white-space:pre-line}
+body[data-page-ui] .picker-footer{padding:0;font-size:10px;line-height:1.4;flex:none}
+@media(max-height:480px){
+ body[data-page-ui] #settingsDialog .modal-heading{min-height:46px;padding:2px 10px}
+ body[data-page-ui] #settingsDialog .modal-heading h1{font-size:18px}
+ body[data-page-ui] #settingsDialog .notebook-scroll{padding:5px 10px}
+ body[data-page-ui] #settingsDialog .tabs{padding:3px 10px}
+ body[data-page-ui] #settingsDialog .modal-footer{display:none}
+ body[data-page-ui] .book-dialog{padding:10px!important}
+ body[data-page-ui] .book-catalog-controls{grid-template-columns:minmax(140px,1fr) auto;gap:5px}
+ body[data-page-ui] .book-catalog-controls>label{grid-column:auto}
+ body[data-page-ui] #catalogCount{display:none}
+ body[data-page-ui] .catalog-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 14px}
+ body[data-page-ui] .catalog-card>p{grid-column:1;white-space:normal;margin:0}
+ body[data-page-ui] .catalog-card>.fineprint{grid-column:1}
+ body[data-page-ui] .catalog-card>.catalog-actions{grid-column:2;grid-row:1/4;display:flex;align-items:center;margin:0}
+ body[data-page-ui] .equipment-portrait{min-height:0;padding:6px}
+ body[data-page-ui] #humanoidPortrait{height:70px;width:56px}
+ body[data-page-ui] .weapon-icon-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+ body[data-page-ui] #panel-compose .creator-nav span{display:none}
+}

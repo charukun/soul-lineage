@@ -1,0 +1,19 @@
+#skill-name.combat-action-source{position:absolute!important;width:1px!important;height:1px!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+#combat-action-flow{position:relative;display:block;width:min(86vw,390px);min-height:58px;margin:7px auto 0;pointer-events:none;overflow:visible;text-align:center;text-shadow:0 2px 8px #000}
+#combat-action-flow[hidden]{display:none}
+.combat-feed{position:relative;height:58px}
+.combat-feed-baseline{position:absolute;left:50%;top:0;transform:translateX(-50%);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#aeb5aa;font-size:11px;line-height:1.45;letter-spacing:.12em;opacity:.58}
+.combat-feed-events{position:absolute;inset:0;overflow:visible}
+.combat-feed-entry{position:absolute;left:50%;top:0;display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;line-height:1.45;letter-spacing:.12em;color:#e6dcc2;opacity:0;will-change:transform,opacity,filter}
+.combat-feed-entry[data-kind="hurt"]{color:#e7a09a;font-variant-numeric:tabular-nums;text-shadow:0 0 9px #7f241f99,0 2px 8px #000}
+.combat-feed-entry[data-kind="down"]{color:#e0c08b}
+.combat-feed-entry[data-kind="status"]{color:#9fb9ad}
+.combat-feed-event{animation:combat-feed-event 2.6s cubic-bezier(.18,.72,.25,1) both}
+.phases{gap:0!important}.phases span{margin:0 4px}
+.phases i{display:block!important;width:34px!important;height:18px!important;background:currentColor!important;color:#6e7770;opacity:.42;clip-path:polygon(0 48%,18% 48%,27% 30%,36% 72%,46% 10%,57% 86%,67% 40%,76% 51%,100% 51%,100% 57%,77% 57%,68% 48%,57% 100%,46% 29%,37% 90%,26% 44%,21% 57%,0 57%)}
+.phases i.combat-phase-pulse-once{color:#e0b36f;animation:combat-phase-pulse-once .58s cubic-bezier(.2,.75,.25,1) 1 both;filter:drop-shadow(0 0 5px #c6975c99)}
+.phases span.combat-phase-impact-once{animation:combat-phase-impact-once .5s ease-out 1 both}
+@keyframes combat-feed-event{0%{opacity:0;transform:translate(-50%,-7px);filter:blur(1.4px)}8%{opacity:1;transform:translate(-50%,0);filter:blur(0)}38%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,34px)}}
+@keyframes combat-phase-pulse-once{0%{transform:scaleY(.72);opacity:.42}18%{transform:scaleY(1.42);opacity:1}42%{transform:scaleY(.82);opacity:.72}66%{transform:scaleY(1.12);opacity:.62}100%{transform:scaleY(1);opacity:.42}}
+@keyframes combat-phase-impact-once{0%{filter:brightness(1)}28%{filter:brightness(1.7);text-shadow:0 0 12px #d4a56d}100%{filter:brightness(1)}}
+@media(prefers-reduced-motion:reduce){.combat-feed-event,.phases i,.phases span{animation:none!important}.combat-feed-entry{display:none!important}}

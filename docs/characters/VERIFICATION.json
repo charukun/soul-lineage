@@ -1,0 +1,10 @@
+{
+  "baseDevelop": "69ea1f714e6c07bea079884ab7ebc0088f0feaa9",
+  "date": "2026-09-11",
+  "localEnvironment": {"node": "22.16.0", "three": "0.185.1", "origin": "Existing Lifecycle Library vendor modules, not npm ci"},
+  "repositoryEnvironment": {"node": "24", "three": "0.186.0", "localNpmCi": "not-run"},
+  "unitTests": {"passed":27,"failed":0,"skipped":0},
+  "actualAssetCpu": {"passed":true,"sha256":"83843ade7dbdfaacc9d601bda099fcb5757527e339b9c5deb223a2c2f5eb28ca","characters":30,"ages":[0,7,22,55,85,90],"humanoidBones":54,"sharedGeometries":16,"actorMaterials":480,"textures":"stubbed","gpu":"not-tested"},
+  "browser": {"status":"blocked-before-page-execution","error":"net::ERR_BLOCKED_BY_ADMINISTRATOR","visualAcceptance":false},
+  "productionGates": {"sourceAudit":"passed","gameplayIntegration":"not-connected","newGarmentGeometry":"not-implemented","realPeerTransport":"not-connected","pixelFold30Performance":"not-measured","desktop30Performance":"not-measured","startProduction":false}
+}

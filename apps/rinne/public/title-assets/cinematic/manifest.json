@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "revision": "drone-r2",
+  "movie": "./title-assets/cinematic/opening-drone-r2.mp4",
+  "webm": null,
+  "poster": "./title-assets/cinematic/landing-drone-r2.webp",
+  "width": 1920,
+  "height": 1080,
+  "fps": 24,
+  "duration": 6,
+  "titleLandingTime": 6,
+  "firstVisitSkipTime": 1.8,
+  "returnVisitSkipTime": 0,
+  "livingLoop": null,
+  "maxWebBytes": 8388608,
+  "audio": {
+    "autoplayMuted": true
+  },
+  "provenance": "PROVENANCE.json",
+  "portraitFraming": [
+    {
+      "time": 0,
+      "x": 44
+    },
+    {
+      "time": 2.8333333333333335,
+      "x": 50
+    }
+  ]
+}

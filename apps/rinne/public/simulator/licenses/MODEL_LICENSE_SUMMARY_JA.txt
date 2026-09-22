@@ -1,0 +1,22 @@
+Character Model License Policy / キャラクターモデル利用方針
+更新日: 2026-09-17
+
+製品・DEV配布で新規利用できるキャラクターモデルは次のどちらかに限定します。
+1. RINNEがモデル・リグ・テクスチャ・埋込データまで保有する完全自作資産
+2. CC0-1.0の第三者資産で、取得元と固定revisionを検証できるもの
+
+現在の外部キャラクター基盤:
+KayKit Character Pack Adventures 1.0
+License: CC0-1.0
+固定revision・取得元・対象ファイルは KAYKIT_FOUNDATION_SOURCE.txt および repository の docs/characters/KAYKIT_FOUNDATION.md を参照してください。
+
+廃止済み:
+- VRoid AvatarSample A/B/C
+- Sendagaya_Shino review model
+- つくよみちゃん Type A review model
+
+上記は商用利用自体が可能なものを含みますが、モデル固有の利用条件が残るため、百年転生のactive runtime / review candidate / Production配布から除外しました。
+
+また、RINNE自作の表面形状であっても Sendagaya_Shino carrier rig を保持するDCC出力はProduction対象外です。CC0またはRINNE所有rigへ再リグし、provenanceを更新するまでRUNTIME_READYへ昇格できません。
+
+正本: docs/characters/CHARACTER_LICENSE_POLICY.md

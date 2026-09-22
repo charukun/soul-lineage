@@ -1,0 +1,36 @@
+{
+  "sourceResolution": "1280x720; 1080p output is an upscale, not native generation",
+  "editFps": 24,
+  "duration": 6,
+  "speedChanges": false,
+  "shots": [
+    {
+      "file": "FPV_drone_flying_through_village_20260920022116.mp4",
+      "sourceStart": 0.8333333333333334,
+      "duration": 0.7916666666666666,
+      "role": "mother",
+      "sha256": "46aee672d62e74557be6e443e7d5ab0adbdf58f2fa829e5da69f4a9fde7fbcb6"
+    },
+    {
+      "file": "Man_performing_sword_parry_20260920022802.mp4",
+      "sourceStart": 0,
+      "duration": 1.0833333333333333,
+      "role": "battle",
+      "sha256": "1389e819312f181e2816880dced4a781581f98ebb186c9a60aef0e1e2f7736ce"
+    },
+    {
+      "file": "Elderly_villager_resting_on_bench_20260920023125.mp4",
+      "sourceStart": 0.125,
+      "duration": 0.9583333333333334,
+      "role": "elder",
+      "sha256": "6d85c93f3530adad7801bca56a4a6d43e1e3acb140b2c8c796a5a33f1008f9cc"
+    },
+    {
+      "file": "Mother_and_newborn_drone_ascent_20260920023012.mp4",
+      "sourceStart": 0,
+      "duration": 3.1666666666666665,
+      "role": "rebirth",
+      "sha256": "eddd1d7ec8fa95c731967504854f7656ae873ca4d49f6b8f3ff2064f077054b6"
+    }
+  ]
+}

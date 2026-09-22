@@ -1,0 +1,44 @@
+/* Motion-derived Visual Review workbench primitives.
+   Motion remains the reference surface; specialist reviews opt into the same visual grammar. */
+.review-workbench__library{min-width:0;display:grid;gap:8px;margin:0;padding:10px;border:1px solid #3b4032;border-radius:12px;background:#121912}
+.review-workbench__library-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;min-width:0}
+.review-workbench__library-head>div{min-width:0;display:grid;gap:2px}
+.review-workbench__library-head strong{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.review-workbench__library-head>small{color:#7f8a84;font-size:9px;white-space:nowrap}
+.review-workbench__kicker{display:block;color:#8d997f;font-size:8px;font-weight:800;letter-spacing:.14em}
+.review-workbench__filters{display:flex;gap:5px;margin-top:6px;overflow-x:auto;padding:0 0 5px;scrollbar-width:none}
+.review-workbench__filters::-webkit-scrollbar{display:none}
+.review-workbench__filters>button{flex:0 0 auto;min-height:30px;padding:4px 11px;border:1px solid #39433f;border-radius:999px;background:#151d1a;color:#aeb9b3;font-size:9px;font-weight:700}
+.review-workbench__filters>button[aria-pressed="true"],.review-workbench__filters>button[aria-selected="true"]{border-color:#c9b36f;background:#2b281c;color:#fff3c9}
+.review-workbench__grid-title{margin:1px 2px -1px;color:#7e8a84;font-size:8px;font-weight:800;letter-spacing:.12em}
+.review-workbench__search{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;min-width:0;padding:0 10px;border:1px solid #34403c;border-radius:10px;background:#0b1110;color:#87958f;font-size:10px}
+.review-workbench__search:focus-within{border-color:#736d5a}
+.review-workbench__search input{min-width:0;height:36px;border:0;outline:0;background:transparent;color:#ece8dd;font:inherit}
+.review-workbench__search input::placeholder{color:#65716c}
+.review-workbench__empty{grid-column:1/-1;margin:0;padding:14px;color:#9aa49f;text-align:center;font-size:11px}
+.review-workbench__stage-caption{position:absolute;z-index:2;left:max(16px,env(safe-area-inset-left));top:14px;bottom:auto;display:grid;gap:2px;max-width:min(70%,520px);padding:8px 10px;border-radius:8px;background:#0b1110b8;backdrop-filter:blur(8px);pointer-events:none}
+.review-workbench__stage-caption strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;letter-spacing:.01em}
+.review-workbench__stage-caption small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#9ba7a1;font-size:9px}
+.review-workbench__stage-status{position:absolute;z-index:2;left:16px;right:16px;bottom:12px;display:flex;align-items:center;gap:10px;color:#87938d;font-size:9px;pointer-events:none}
+.review-workbench__stage-status output{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.review-workbench__stage-status progress{margin-left:auto;width:92px;height:4px}
+.review-workbench__camera{display:grid;grid-template-columns:repeat(auto-fit,minmax(56px,1fr));gap:5px}
+.review-workbench__camera>button{min-height:32px;padding:5px 8px;border:1px solid #39433f;border-radius:999px;background:#151d1a;color:#b9c3bd;font-size:9px;font-weight:700}
+.review-workbench__camera>button[aria-pressed="true"]{border-color:#7f8b84;background:#242c28;color:#f3eee2}
+.review-workbench__transport{display:grid;grid-template-columns:46px minmax(110px,1fr) auto auto;align-items:center;gap:6px;padding:8px;border:1px solid #2b3530;border-radius:12px;background:#0d1311}
+.review-workbench__transport button{min-height:38px;border:1px solid #39433f;border-radius:9px;background:#151d1a;color:#e8e5dc}
+.review-workbench__transport button.primary{border-color:#8c7f53;background:#2a281e;color:#fff1c9;font-weight:700}
+.review-workbench__timeline{display:grid;grid-template-columns:52px minmax(0,1fr) 52px auto;align-items:center;gap:7px;margin-top:8px}
+.review-workbench__panel-host{position:relative}
+.review-workbench__panel-host>.review-stage-controls__panel{position:absolute!important;top:8px!important;right:8px!important;bottom:auto!important;width:min(330px,calc(100% - 16px))!important;max-height:calc(100% - 16px)!important;z-index:30}
+@media(max-width:520px){
+.review-workbench__library{padding:9px 8px}
+.review-workbench__library-head>small,.review-workbench__grid-title{display:none}
+.review-workbench__filters{gap:4px;padding-bottom:4px}
+.review-workbench__filters>button{min-height:28px;padding:4px 8px;font-size:8px}
+.review-workbench__stage-caption{left:10px;top:10px;bottom:auto;max-width:44%;padding:6px 8px;background:#0b1110d8}
+.review-workbench__stage-status{left:10px;right:10px;bottom:6px}
+.review-workbench__transport{grid-template-columns:40px minmax(0,1fr) 66px auto;padding:6px}
+.review-workbench__timeline{grid-template-columns:40px minmax(0,1fr) 40px}
+.review-workbench__panel-host>.review-stage-controls__panel{top:6px!important;right:6px!important;width:calc(100% - 12px)!important;max-height:min(46dvh,320px)!important}
+}

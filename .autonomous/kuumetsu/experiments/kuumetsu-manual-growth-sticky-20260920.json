@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "kuumetsu-manual-growth-sticky-20260920",
+  "game": "kuumetsu",
+  "kind": "gameplay",
+  "problemKey": "manual-growth-mode-reset-on-return",
+  "observation": {
+    "summary": "buyUpgrade explicitly opts the profile into legacy/manual growth with autoGrowth=false, but every successful extraction unconditionally resets autoGrowth=true.",
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "8188178f1c8693313c4065127f49bd863e1dd2a8",
+        "path": "apps/demon/src/hunt/balance.js",
+        "symbol": "buyUpgrade / settleProgress",
+        "statement": "buyUpgrade writes autoGrowth=false; settleProgress later overwrites it with true whenever extracted is true."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "Successful-return settlement treats automatic growth activation as a required write even though undefined already activates default automatic growth after the first return.",
+    "prediction": "Removing the unconditional true write preserves default automatic growth for normal profiles while keeping explicit manual mode across successful returns.",
+    "falsifier": "Fresh/default profiles stop gaining automatic growth, or a manual profile is still switched back after extraction."
+  },
+  "candidates": [
+    {
+      "id": "preserve-explicit-manual-mode",
+      "selected": true,
+      "reason": "Undefined already means automatic mode; no write is needed except the legacy false opt-out."
+    },
+    {
+      "id": "re-enable-after-every-return",
+      "selected": false,
+      "reason": "Erases the explicit state created by buyUpgrade and makes manual mode non-durable."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/demon/src/hunt/balance.js",
+      "apps/demon/tests/app.test.mjs"
+    ],
+    "summary": "Stop successful extraction from overwriting explicit manual growth mode; assert with a lightweight pure balance path inside the existing app test case."
+  },
+  "comparison": {
+    "objective": "reproducible-causality",
+    "verdict": "pending",
+    "before": {
+      "revision": "8188178f1c8693313c4065127f49bd863e1dd2a8",
+      "summary": "buyUpgrade sets false, then settleProgress sets true on the next verified return."
+    },
+    "after": null,
+    "limitations": [
+      "Progression-mode persistence only; no combat simulation, visuals, or win-rate claim."
+    ]
+  },
+  "validation": {
+    "state": "awaiting-exact-head-receipt",
+    "focusedTests": [
+      "tests/develop-completion-contract.test.mjs",
+      "apps/demon/tests/app.test.mjs"
+    ],
+    "receipt": {
+      "repository": "charukun/soul-lineage",
+      "pullRequest": 1124,
+      "marker": "autonomous-receipt:kuumetsu:kuumetsu-manual-growth-sticky-20260920"
+    }
+  },
+  "learning": {
+    "summary": "Pending hosted evidence.",
+    "failedApproaches": [],
+    "doNotRetry": [],
+    "unresolved": [],
+    "next": [
+      "After merge, keep future iterations on similarly narrow native boundaries unless combat evidence is explicitly needed."
+    ]
+  }
+}

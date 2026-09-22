@@ -1,0 +1,28 @@
+{
+  "name": "@soul/assets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./sprite25d": "./src/sprite25d-manifest.js",
+    "./sprite25d/browser": "./src/adapters/browser/sprite25d-assets.js",
+    "./sprite25d/three": "./src/adapters/three/sprite25d-actor.js",
+    "./character25d": "./src/character25d-schema.js",
+    "./character25d/rig": "./src/character25d-rig.js",
+    "./character25d/motion": "./src/character25d-motion.js",
+    "./character25d/proxy": "./src/character25d-proxy.js",
+    "./character25d/browser": "./src/adapters/browser/character25d-compiler.js",
+    "./character25d/three": "./src/adapters/three/character25d-actor.js",
+    "./equipment/three": "./src/adapters/three/runtime-equipment.js",
+    "./character-sprite-set": "./src/character-sprite-set.js",
+    "./character-sprite-set/playback": "./src/character-sprite-playback.js",
+    "./character-sprite-set/sandbox": "./src/character-sprite-sandbox.js",
+    "./character-sprite-set/browser": "./src/adapters/browser/character-sprite-set.js",
+    "./character-sprite-set/three": "./src/adapters/three/character-sprite-set.js",
+    "./character-create-forge": "./src/character-create-forge/contract.js",
+    "./character-create-forge/three": "./src/character-create-forge/actor.js"
+  },
+  "dependencies": {}
+}
+

@@ -1,0 +1,300 @@
+/* RINNE UI 5.0.0
+   Reference principles:
+   - Exploration-first: secondary systems live behind one function hub.
+   - Character/world-first: HUD retreats during dialogue and full-screen journals.
+   - Cute fantasy: warm cream, mint, peach, sky-blue, wood, leaves and stitched-paper shapes.
+   - No imitation of any one game; these are product-level interaction principles. */
+:root{
+  --r5-cream:#fff5dd;
+  --r5-milk:#fffaf0;
+  --r5-peach:#f2b6ad;
+  --r5-sky:#a8d7e7;
+  --r5-mint:#aed2b3;
+  --r5-honey:#edc06e;
+  --r5-lilac:#cbb9df;
+  --r5-wood:#75573f;
+  --r5-wood-dark:#4b382d;
+  --r5-ink:#4c4036;
+  --r5-water:#0e4551;
+}
+@keyframes r5-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes r5-turn{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes r5-pop{0%{transform:scale(.86);opacity:0}70%{transform:scale(1.04);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes r5-glow{0%,100%{filter:drop-shadow(0 0 5px rgba(255,224,156,.18))}50%{filter:drop-shadow(0 0 15px rgba(255,224,156,.42))}}
+[hidden]{display:none!important}
+.family-surface-version,.gameplay-surface-version{position:absolute;z-index:200;color:rgba(255,247,225,.66);font:700 8px/1 system-ui,sans-serif;letter-spacing:.09em;text-shadow:0 1px 4px rgba(49,42,34,.52);pointer-events:none}
+.family-surface-version{left:max(14px,env(safe-area-inset-left));bottom:max(10px,env(safe-area-inset-bottom))}
+.gameplay-surface-version{right:max(8px,env(safe-area-inset-right));bottom:max(5px,env(safe-area-inset-bottom))}
+
+/* Water-memory scene: keep the logo small and let the chosen memory own the center. */
+dialog.family-origin{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#082b36!important;overflow:hidden!important;color:var(--r5-cream)!important}
+dialog.family-origin::backdrop{background:#082b36!important}
+.family-deepwater{position:absolute!important;inset:0!important;background:radial-gradient(ellipse at 50% -8%,rgba(186,232,225,.36),transparent 31%),radial-gradient(circle at 20% 46%,rgba(169,214,229,.13),transparent 25%),radial-gradient(circle at 83% 68%,rgba(203,184,224,.11),transparent 24%),linear-gradient(180deg,#17606b,#0d4754 34%,#092f3b 69%,#061a23)!important}
+.family-deepwater::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 52%,transparent 0 34%,rgba(5,29,36,.14) 57%,rgba(3,18,25,.57) 100%)}
+.family-ritual-brand{position:absolute!important;z-index:8!important;left:50%!important;top:calc(env(safe-area-inset-top) + 15px)!important;transform:translateX(-50%)!important;display:grid!important;justify-items:center!important;gap:2px!important;opacity:.74!important;pointer-events:none!important}
+.family-ritual-brand img{display:block!important;width:44px!important;height:44px!important;max-width:44px!important;max-height:44px!important;object-fit:contain!important;filter:sepia(.12) saturate(.7) brightness(1.34)!important}
+.family-ritual-brand span{font:600 6px/1 system-ui,sans-serif!important;letter-spacing:.46em!important;text-indent:.46em!important;color:#f6e9c8!important}
+.family-depth-ring{position:absolute;left:50%;top:55%;border:1px solid rgba(222,237,212,.095)!important;border-radius:50%;transform:translate(-50%,-50%)}
+.family-depth-ring-a{width:min(88vw,620px)!important;height:min(88vw,620px)!important;animation:r5-turn 86s linear infinite}.family-depth-ring-b{width:min(64vw,460px)!important;height:min(64vw,460px)!important;border-style:dashed!important;animation:r5-turn 57s linear reverse infinite}.family-depth-ring-c{width:min(43vw,310px)!important;height:min(43vw,310px)!important;animation:r5-turn 39s linear infinite}
+.family-story-shell{position:relative!important;z-index:10!important;min-height:100dvh!important}.family-origin-content{min-height:100dvh!important;padding:calc(env(safe-area-inset-top) + 84px) 18px calc(env(safe-area-inset-bottom) + 42px)!important}
+.family-story-back,.family-story-close{position:absolute!important;top:calc(env(safe-area-inset-top) + 15px)!important;width:42px!important;height:42px!important;border:2px solid rgba(255,240,205,.28)!important;border-radius:50%!important;background:rgba(18,63,70,.47)!important;color:#fff0d0!important;box-shadow:0 4px 12px rgba(4,24,29,.18)!important}
+.family-story-back{left:max(12px,env(safe-area-inset-left))!important}.family-story-close{right:max(12px,env(safe-area-inset-right))!important}
+.family-story-prompt{margin:0 0 18px!important;color:#fff0cf!important;font-family:var(--font-rinne-display)!important;font-size:clamp(27px,6vw,39px)!important;font-weight:500!important;letter-spacing:.09em!important;text-shadow:0 3px 13px rgba(6,34,40,.74)!important}
+.family-story-prompt::after{content:"";display:block;width:96px;height:2px;margin:13px auto 0;border-radius:2px;background:linear-gradient(90deg,transparent,#efd08b,transparent)}
+.family-memory-stage{height:clamp(330px,53vh,520px)!important;display:grid!important;place-items:center!important}.family-memory-stage::before,.family-memory-stage::after{content:none!important}
+.family-memory-presence{width:min(88vw,470px)!important;min-height:300px!important;padding:0!important;border:0!important;background:transparent!important;color:#fff0cf!important;display:grid!important;place-items:center!important;align-content:center!important;animation:family-memory-arrive 1.05s cubic-bezier(.18,.74,.24,1) forwards!important}
+.family-memory-relic{position:relative!important;width:128px!important;height:128px!important;margin-bottom:18px!important;border-radius:50%!important;animation:r5-float 4.6s ease-in-out 1.05s infinite!important;background:radial-gradient(circle at 40% 34%,rgba(255,255,247,.68) 0 7%,rgba(255,242,207,.22) 8% 54%,rgba(83,126,119,.20) 55% 66%,transparent 67%)!important;filter:drop-shadow(0 10px 15px rgba(4,25,30,.24))}
+.family-memory-relic::before{content:"";position:absolute;inset:6px;border:3px solid rgba(255,247,221,.78);border-radius:50%;box-shadow:0 0 0 2px rgba(176,211,190,.56),inset 0 0 18px rgba(195,226,207,.14)}
+.family-memory-relic::after{content:"";position:absolute;inset:23px;border:1px dashed rgba(242,218,163,.5);border-radius:50%;animation:r5-turn 30s linear infinite}
+.family-memory-relic em{position:absolute!important;inset:36px!important;border-radius:50%!important;background:radial-gradient(circle at 42% 34%,#fff7df 0 9%,#b8d6c2 20%,rgba(24,72,72,.64) 68%)!important}
+.family-memory-relic b{position:relative!important;z-index:2!important;color:#fff0bd!important;font-family:var(--font-rinne-display)!important;font-size:40px!important;font-weight:500!important;text-shadow:0 2px 6px rgba(56,46,37,.56)!important}
+.family-memory-echo{margin-bottom:8px!important;color:rgba(224,237,221,.72)!important;font-size:10px!important;letter-spacing:.12em!important}.family-memory-label{color:#fff1d1!important;font-size:clamp(15px,3.4vw,19px)!important}
+.family-story-crest{width:82px!important;height:82px!important;padding:11px!important;border:3px solid rgba(255,240,204,.58)!important;border-radius:50%!important;background:rgba(30,83,86,.43)!important}.family-story-family{color:#fff1cf!important;font-size:clamp(28px,6.5vw,42px)!important}.family-story-tradition{color:#d8e4d4!important}
+
+/* Family home: no dark stat slab. Resume action stays in the first screen. */
+dialog.family-home-dialog{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#23454a!important;overflow:hidden!important;color:var(--r5-cream)!important}
+.family-home-dialog::backdrop{background:#173438!important}.family-home-worldscape{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.family-home-sky{position:absolute;inset:-4%;background:linear-gradient(180deg,rgba(255,220,161,.06),rgba(21,55,56,.20)),url('../title-assets/cinematic/landing.webp') center 47%/cover no-repeat;filter:saturate(.92) brightness(.82) contrast(.94);transform:scale(1.05)}
+.family-home-light{position:absolute;inset:0;background:radial-gradient(circle at 67% 35%,rgba(255,206,120,.22),transparent 18%),radial-gradient(circle at 26% 61%,rgba(255,231,177,.12),transparent 22%);mix-blend-mode:screen}
+.family-home-mist{position:absolute;inset:auto -10% 4%;height:34%;background:radial-gradient(ellipse at 24% 65%,rgba(255,247,222,.18),transparent 28%),radial-gradient(ellipse at 71% 50%,rgba(239,247,225,.15),transparent 32%);filter:blur(16px)}
+.family-home-vignette{position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,39,40,.26),transparent 31%,rgba(7,28,31,.05) 55%,rgba(8,30,33,.76) 100%)}
+.family-home-shell-v5{position:relative!important;z-index:3!important;display:flex!important;flex-direction:column!important;align-items:center!important;width:min(690px,100%)!important;height:100dvh!important;margin:0 auto!important;padding:calc(env(safe-area-inset-top) + 19px) 18px calc(env(safe-area-inset-bottom) + 12px)!important;overflow:auto!important;scrollbar-width:none!important;background:linear-gradient(180deg,rgba(20,60,60,.04),rgba(11,39,41,.28) 74%)!important}
+.family-home-shell-v5::-webkit-scrollbar{display:none!important}.family-home-shell-v5 .family-memory-close{position:fixed!important;z-index:8!important;right:max(16px,env(safe-area-inset-right))!important;top:calc(env(safe-area-inset-top) + 16px)!important;width:43px!important;height:43px!important;border:3px solid rgba(255,239,202,.55)!important;border-radius:50%!important;background:rgba(100,76,54,.48)!important;color:#fff1ce!important;box-shadow:inset 0 2px rgba(255,255,255,.12),0 4px 12px rgba(21,31,28,.20)!important}
+.family-home-hero{display:grid;grid-template-columns:78px 1fr;align-items:center;gap:13px;width:min(560px,100%);margin:12px 0 10px;padding:9px 0}.family-home-dialog .family-preview-crest{width:68px!important;height:68px!important;margin:0!important;padding:10px!important;border:3px solid rgba(255,239,199,.68)!important;border-radius:50%!important;background:rgba(80,95,61,.45)!important;box-shadow:0 4px 13px rgba(24,34,29,.19)!important}
+.family-home-hero-copy{text-align:left}.family-home-eyebrow{display:block;margin-bottom:3px;color:#f1cf8d!important;font-size:9px!important;font-weight:800!important;letter-spacing:.08em!important}.family-home-name{margin:0!important;color:#fff0cc!important;font-size:clamp(27px,6.2vw,38px)!important;letter-spacing:.08em!important;text-indent:0!important;text-shadow:0 3px 10px rgba(36,40,31,.55)!important}.family-home-dialog .family-preview-tradition{margin:3px 0 0!important;color:#e9dfc6!important;font-size:10px!important;letter-spacing:.05em!important;justify-content:flex-start!important}.family-home-dialog .family-preview-tradition::before,.family-home-dialog .family-preview-tradition::after{display:none!important}
+.family-home-current-v5{width:min(560px,100%)!important;padding:0!important;border:2px solid rgba(255,239,208,.62)!important;border-radius:20px!important;clip-path:none!important;background:linear-gradient(180deg,rgba(255,249,233,.93),rgba(247,230,197,.93))!important;box-shadow:inset 0 2px rgba(255,255,255,.67),0 4px 0 rgba(95,70,49,.36),0 10px 20px rgba(30,39,33,.15)!important;color:var(--r5-ink)!important;overflow:hidden!important}
+.family-home-current-v5::before,.family-home-current-v5::after{display:none!important}.family-home-current-head{padding:13px 12px 11px!important;border:0!important;text-align:center}.family-home-kicker{color:#b27a43!important;font-size:9px!important;font-weight:800!important}.family-home-current-head strong{color:#4d3d32!important;font-size:clamp(21px,5vw,28px)!important;text-shadow:none!important}.family-home-current-head p{margin:2px 0 0!important;color:#7b6d5f!important;font-size:10px!important}
+.family-home-stats-v5{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:0!important;margin:0!important;padding:9px 4px 10px!important;border-top:1px dashed rgba(120,87,51,.28)!important;background:rgba(255,251,240,.42)!important}.family-home-stats-v5 span{display:grid!important;grid-template-columns:1fr!important;justify-items:center!important;gap:1px!important;padding:0!important;border:0!important}.family-home-stats-v5 span+span{border-left:1px solid rgba(127,94,61,.16)!important}.family-home-stats-v5 i{display:grid!important;place-items:center!important;width:26px!important;height:26px!important;border-radius:50%!important;background:var(--badge,#f0bf7a)!important;color:#5a4637!important;font-size:11px!important;font-style:normal!important;box-shadow:inset 0 2px rgba(255,255,255,.31)}.family-home-stats-v5 span:nth-child(1){--badge:#f0b0a8}.family-home-stats-v5 span:nth-child(2){--badge:#a9d4e4}.family-home-stats-v5 span:nth-child(3){--badge:#edc06e}.family-home-stats-v5 span:nth-child(4){--badge:#acd0b0}.family-home-stats-v5 b{color:#584638!important;font-size:16px!important}.family-home-stats-v5 small{color:#8d7c6d!important;font-size:8px!important}
+.family-home-actions-v5{display:flex!important;width:min(520px,100%)!important;gap:10px!important;margin:13px 0 9px!important}.family-home-actions-v5 button{flex:1!important;min-width:0!important;min-height:50px!important;border:2px solid #9e7346!important;border-radius:18px!important;clip-path:none!important;background:linear-gradient(180deg,#fff3cf,#eac277)!important;color:#513d30!important;box-shadow:inset 0 2px rgba(255,255,255,.55),0 3px 0 #79583b,0 8px 15px rgba(32,39,33,.15)!important;font-size:12px!important;font-weight:800!important}.family-home-actions-v5 button i{color:#9e6a37!important}
+.family-home-memory{max-width:34em;margin:5px 0 8px!important;color:rgba(245,235,215,.78)!important;font-size:10px!important;line-height:1.65!important;text-align:center!important}.family-home-history-wrap{width:min(530px,100%);margin:0!important;border-top:1px solid rgba(255,231,183,.22)}.family-home-history-head{display:grid!important;grid-template-columns:auto 1fr auto!important;align-items:center!important;gap:9px!important;padding:10px 3px!important;list-style:none!important;cursor:pointer!important}.family-home-history-head::-webkit-details-marker{display:none}.family-home-history-head b{color:#f1d193!important;font-size:11px!important}.family-home-history-head span{color:#c9bfa8!important;font-size:8px!important}.family-home-history-head i{color:#f0cc87!important;font-style:normal!important;transition:transform .2s}.family-home-history-wrap[open] .family-home-history-head i{transform:rotate(180deg)}.family-home-history{margin:0!important;padding:0 0 7px 18px!important}.family-home-history li{padding:5px 0!important;border:0!important;color:#ddd3bd!important;font-size:9px!important}
+
+/* Exploration HUD: world first. */
+.rinne-player-ghost{display:none!important}
+.game-screen .hud-top.rinne-hud-v4{position:absolute!important;left:max(10px,env(safe-area-inset-left))!important;right:max(10px,env(safe-area-inset-right))!important;top:max(10px,env(safe-area-inset-top))!important;display:flex!important;align-items:center!important;gap:6px!important;width:auto!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;pointer-events:none}.game-screen .hud-top.rinne-hud-v4>*{pointer-events:auto}
+.rinne-back-seal{width:35px!important;height:35px!important;border:2px solid rgba(255,240,210,.72)!important;border-radius:50%!important;background:rgba(91,70,54,.62)!important;color:#fff2d3!important;box-shadow:0 3px 8px rgba(34,36,29,.15)!important}
+.rinne-coop-seal{display:none!important}
+.rinne-life-sigil{display:grid!important;grid-template-columns:30px auto!important;align-items:center!important;gap:5px!important;width:auto!important;min-width:0!important;padding:4px 9px 4px 5px!important;border:2px solid rgba(121,88,54,.52)!important;border-radius:14px!important;clip-path:none!important;background:linear-gradient(180deg,rgba(255,247,226,.94),rgba(238,213,169,.94))!important;box-shadow:inset 0 2px rgba(255,255,255,.56),0 3px 0 rgba(83,59,41,.36),0 6px 11px rgba(36,39,31,.12)!important}.rinne-life-sigil img{width:27px!important;height:27px!important;filter:sepia(.3) saturate(.7) brightness(.72)!important}.rinne-life-sigil>div{display:grid!important;text-shadow:none!important}.rinne-life-sigil span{color:#9a6c3f!important;font-size:8px!important}.rinne-life-sigil strong{color:#4d3e34!important;font-size:14px!important}
+.rinne-breath-thread{flex:1!important;max-width:120px!important;margin-left:2px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}.rinne-breath-thread label{display:grid!important;grid-template-columns:14px 1fr!important;align-items:center!important;gap:4px!important}.rinne-breath-thread label>span{color:#fff0cc!important;font-size:8px!important;text-shadow:0 1px 4px rgba(49,43,32,.6)!important}.rinne-breath-thread i{height:4px!important;border:1px solid rgba(255,242,216,.58)!important;border-radius:6px!important;background:rgba(50,61,48,.38)!important;overflow:hidden!important}.rinne-breath-thread b{border-radius:6px!important;background:linear-gradient(90deg,#8dc6aa,#d8dda5)!important}
+.rinne-time-seal{margin-left:auto!important;width:39px!important;height:34px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}.rinne-time-seal>span{display:none!important}.rinne-time-seal button{width:100%!important;height:100%!important;border:2px solid rgba(255,240,209,.62)!important;border-radius:50%!important;background:rgba(88,69,53,.54)!important;color:#fff1d0!important;font-size:9px!important}
+.game-screen[data-gameplay-upgrade] .rinne-objective-v4{right:max(12px,env(safe-area-inset-right))!important;top:max(57px,calc(env(safe-area-inset-top) + 50px))!important;width:min(195px,51vw)!important;padding:7px 10px!important;border:2px solid rgba(139,98,50,.48)!important;border-radius:13px 13px 13px 5px!important;clip-path:none!important;background:linear-gradient(180deg,rgba(255,245,218,.94),rgba(234,207,159,.94))!important;box-shadow:inset 0 2px rgba(255,255,255,.44),0 3px 0 rgba(89,62,40,.34),0 7px 14px rgba(36,40,31,.12)!important;color:#544235!important}.rinne-objective-v4 .objective-rune{color:#cc8a53!important;font-size:15px!important}.rinne-objective-v4 .objective-meta span{color:#9e7047!important;font-size:7px!important}.rinne-objective-v4 .objective-meta small{color:#7c856d!important;font-size:7px!important}.rinne-objective-v4>div>strong{font-size:11px!important;color:#4b3d34!important;text-shadow:none!important}
+.game-screen .chapter-mark{top:22%!important;min-width:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#fff0cb!important;text-shadow:0 3px 13px rgba(46,44,31,.7)!important}.game-screen .chapter-mark span{font-size:6px!important;color:#edcb87!important}.game-screen .chapter-mark strong{font-size:21px!important}.game-screen .chapter-mark i{width:94px!important;background:linear-gradient(90deg,transparent,#efcf8d,transparent)!important}
+
+/* Dialogue follows Animal-Crossing-like warmth without copying its assets. */
+#game-screen .dialogue.ornate{left:50%!important;right:auto!important;bottom:max(24px,calc(env(safe-area-inset-bottom) + 16px))!important;transform:translateX(-50%)!important;width:min(560px,calc(100vw - 28px))!important;padding:11px 15px 12px 16px!important;border:2px solid rgba(121,88,58,.52)!important;border-radius:20px 20px 20px 7px!important;clip-path:none!important;background:linear-gradient(180deg,rgba(255,251,239,.98),rgba(248,231,197,.98))!important;color:#4a3f37!important;box-shadow:inset 0 2px rgba(255,255,255,.75),0 3px 0 rgba(89,64,45,.34),0 9px 18px rgba(35,40,32,.14)!important;text-shadow:none!important}
+#game-screen .dialogue.ornate::before{content:"";position:absolute;left:28px;bottom:-8px;width:15px;height:15px;background:#f8e7c6;border-right:2px solid rgba(121,88,58,.44);border-bottom:2px solid rgba(121,88,58,.44);transform:rotate(45deg)}
+#game-screen .dialogue.ornate::after{content:"✿";position:absolute;right:12px;top:8px;color:rgba(209,143,125,.46);font-size:13px}
+#game-screen .dialogue.ornate span{display:inline-block!important;margin:0 0 2px!important;padding:2px 8px!important;border-radius:10px!important;background:#eeafa7!important;color:#fffaf0!important;font-size:9px!important;font-weight:800!important}.dialogue.ornate p{margin:3px 0 0!important;color:#4a3f37!important;font-size:12px!important;line-height:1.55!important;font-weight:650!important}
+#game-screen:has(#dialogue:not([hidden])) .rinne-objective-v4,#game-screen:has(#dialogue:not([hidden])) .rinne-explore-controls,#game-screen:has(#dialogue:not([hidden])) .move-hint{opacity:0!important;pointer-events:none!important;transform:translateY(8px)!important}
+#game-screen:has(#dialogue:not([hidden])) .hud-top{opacity:.62!important}
+
+/* One persistent hub, one contextual action. */
+.rinne-explore-controls{position:absolute!important;z-index:35!important;right:max(14px,env(safe-area-inset-right))!important;bottom:max(14px,calc(env(safe-area-inset-bottom) + 8px))!important;left:auto!important;transform:none!important;display:flex!important;align-items:flex-end!important;gap:8px!important;width:auto!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+.rinne-explore-controls .upgrade-control{position:relative!important;border:0!important;clip-path:none!important;background:transparent!important;box-shadow:none!important;padding:0!important;color:inherit!important}
+.rinne-hub-button{display:grid!important;justify-items:center!important;width:58px!important;height:64px!important}.rinne-hub-button>i{position:relative!important;display:block!important;width:51px!important;height:51px!important;border:3px solid #fff0cb!important;border-radius:50%!important;background:linear-gradient(180deg,#b8d6b6,#8db392)!important;box-shadow:inset 0 2px rgba(255,255,255,.32),0 3px 0 #5d765f,0 7px 13px rgba(36,43,34,.16)!important}.rinne-hub-button>i b{position:absolute;width:12px;height:18px;border-radius:70% 30% 65% 35%;background:#fff2d3;opacity:.88}.rinne-hub-button>i b:nth-child(1){left:18px;top:6px}.rinne-hub-button>i b:nth-child(2){right:7px;top:17px;transform:rotate(90deg)}.rinne-hub-button>i b:nth-child(3){left:18px;bottom:6px;transform:rotate(180deg)}.rinne-hub-button>i b:nth-child(4){left:7px;top:17px;transform:rotate(-90deg)}.rinne-hub-button>span{margin-top:-2px!important;color:#fff1d0!important;font-size:8px!important;font-weight:800!important;text-shadow:0 1px 4px rgba(47,45,34,.6)!important}
+.rinne-context-action{display:grid!important;justify-items:center!important;width:64px!important;min-width:64px!important;height:64px!important}.rinne-context-action>i{display:grid!important;place-items:center!important;width:49px!important;height:49px!important;border:3px solid #fff0c9!important;border-radius:50%!important;background:linear-gradient(180deg,#f1c276,#d59950)!important;color:#fff8e6!important;font-family:var(--font-rinne-display)!important;font-size:19px!important;font-style:normal!important;box-shadow:inset 0 2px rgba(255,255,255,.30),0 3px 0 #906033,0 7px 12px rgba(43,42,32,.15)!important}.rinne-context-action>span{margin-top:-1px!important;color:#fff0cb!important;font-size:8px!important;font-weight:800!important;text-shadow:0 1px 4px rgba(49,43,32,.65)!important}
+
+/* Function hub: compact 2x3 menu instead of six persistent HUD buttons. */
+.rinne-function-hub{position:absolute!important;z-index:50!important;right:max(12px,env(safe-area-inset-right))!important;bottom:max(85px,calc(env(safe-area-inset-bottom) + 78px))!important;left:auto!important;width:min(300px,calc(100vw - 24px))!important;height:auto!important;padding:12px!important;border:2px solid rgba(121,88,58,.48)!important;border-radius:22px 22px 8px 22px!important;clip-path:none!important;background:linear-gradient(180deg,rgba(255,250,236,.98),rgba(243,222,184,.98))!important;box-shadow:inset 0 2px rgba(255,255,255,.66),0 4px 0 rgba(83,59,40,.30),0 13px 28px rgba(35,40,32,.17)!important;backdrop-filter:none!important;animation:r5-pop .2s ease-out}
+.rinne-function-hub::before{content:"";position:absolute;right:23px;bottom:-8px;width:15px;height:15px;background:#f3deb8;border-right:2px solid rgba(121,88,58,.40);border-bottom:2px solid rgba(121,88,58,.40);transform:rotate(45deg)}.rinne-function-hub>header{display:flex;align-items:baseline;justify-content:space-between;padding:1px 4px 8px;border-bottom:1px dashed rgba(118,85,54,.24)}.rinne-function-hub>header span{color:#594537;font-size:12px;font-weight:850}.rinne-function-hub>header small{color:#9a816c;font-size:8px}
+.rinne-function-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:9px}.rinne-function-hub .quick-menu-action{position:relative!important;width:auto!important;height:auto!important;min-height:72px!important;padding:7px 4px!important;border:0!important;border-radius:15px!important;background:rgba(255,252,242,.52)!important;box-shadow:inset 0 0 0 1px rgba(127,94,61,.12)!important;color:#554439!important;display:grid!important;grid-template-rows:31px auto auto!important;place-items:center!important;text-align:center!important}.rinne-function-hub .quick-menu-action>b{display:grid!important;place-items:center!important;width:30px!important;height:30px!important;border:0!important;border-radius:50%!important;background:var(--hub-color,#efc277)!important;color:#5a4636!important;font-size:13px!important;font-family:var(--font-rinne-display)!important;box-shadow:inset 0 2px rgba(255,255,255,.32)!important}.rinne-function-hub .quick-menu-action>span{font-size:10px!important;font-weight:800!important;color:#554439!important}.rinne-function-hub .quick-menu-action>small{font-size:7px!important;color:#9a8878!important}.rinne-function-hub .is-heart{--hub-color:#efb0a8}.rinne-function-hub .is-technique{--hub-color:#a7d4e4}.rinne-function-hub .is-body{--hub-color:#cbb9df}.rinne-function-hub .is-items{--hub-color:#e8bc7c}.rinne-function-hub .is-map{--hub-color:#abd0b2}.rinne-function-hub .is-record{--hub-color:#efc77a}.rinne-function-hub .quick-menu-action:active{transform:scale(.96)}.rinne-function-hub .quick-map strong{display:none!important}
+
+/* Full journal. Strong selector intentionally defeats legacy bottom-sheet CSS. */
+#game-screen .rinne-gameplay-upgrade .upgrade-panel.rinne-archive-panel:not([hidden]){position:fixed!important;z-index:150!important;display:flex!important;flex-direction:column!important;inset:0!important;left:0!important;right:0!important;top:0!important;bottom:0!important;width:100vw!important;max-width:none!important;height:100dvh!important;max-height:none!important;margin:0!important;padding:0!important;transform:none!important;border:0!important;border-radius:0!important;clip-path:none!important;overflow:hidden!important;background:repeating-linear-gradient(7deg,rgba(111,76,44,.023) 0 1px,transparent 1px 6px),linear-gradient(155deg,#fff4d9,#ebcc94 72%,#d4a968)!important;box-shadow:inset 10px 0 rgba(111,78,49,.12)!important}
+#game-screen .rinne-gameplay-upgrade .rinne-archive-panel>header{position:relative!important;flex:0 0 auto!important;display:grid!important;grid-template-columns:1fr auto!important;grid-template-rows:auto auto!important;min-height:68px!important;padding:calc(env(safe-area-inset-top) + 9px) 18px 9px 25px!important;border:0!important;border-bottom:2px solid rgba(108,77,46,.22)!important;border-radius:0!important;background:linear-gradient(180deg,#a9c8ae,#87ab90)!important;color:#fff7e1!important;box-shadow:0 3px 7px rgba(77,56,40,.12)!important}.rinne-archive-panel>header>small{color:#f3ead1!important;font-size:8px!important;font-weight:800!important}.rinne-archive-panel>header>strong{color:#fff9e8!important;font-size:17px!important}.rinne-archive-panel>header>[data-close]{grid-column:2;grid-row:1/3;width:40px!important;height:40px!important;border:2px solid rgba(255,246,222,.62)!important;border-radius:50%!important;background:#76987e!important;color:#fff7e3!important;box-shadow:inset 0 2px rgba(255,255,255,.13),0 2px 4px rgba(65,50,39,.14)!important}.rinne-archive-panel>[data-body]{position:relative!important;flex:1 1 auto!important;width:min(720px,100%)!important;max-height:none!important;margin:0 auto!important;padding:16px 16px calc(env(safe-area-inset-bottom) + 24px)!important;overflow:auto!important;color:#4a392d!important}
+.rinne-archive-panel :is(.loadout-intro,.loadout-library,.life-record-current,.life-record-experience,.lineage-list,.inspiration-technique-card,.inspiration-sign,.inspiration-life-trace,.inspiration-ancestor,.inspiration-body-traits,.inspiration-mind,.inspiration-heritage,.inspiration-body-options){border:0!important;border-radius:16px!important;clip-path:none!important;background:rgba(255,250,233,.48)!important;box-shadow:inset 0 1px rgba(255,255,255,.54),0 2px 5px rgba(103,74,47,.09)!important}.rinne-archive-panel button:not([data-close]){border-radius:12px!important}
+.game-screen[data-archive-open="true"]>.hud-top,.game-screen[data-archive-open="true"]>.objective-card,.game-screen[data-archive-open="true"]>.dialogue,.game-screen[data-archive-open="true"]>.chapter-mark,.game-screen[data-archive-open="true"]>.move-hint,.rinne-gameplay-upgrade[data-panel-open="true"] .rinne-explore-controls{opacity:0!important;pointer-events:none!important}
+.upgrade-training{border:2px solid rgba(130,91,55,.42)!important;border-radius:14px!important;clip-path:none!important;background:linear-gradient(180deg,rgba(255,244,217,.97),rgba(232,202,151,.97))!important;color:#584638!important;box-shadow:0 4px 11px rgba(42,43,34,.12)!important}.technique-spark{border:2px solid rgba(143,98,50,.48)!important;border-radius:19px!important;clip-path:none!important;background:linear-gradient(180deg,#fff3cf,#edcb7e)!important;color:#503e30!important;box-shadow:0 5px 14px rgba(47,44,32,.13)!important}.combat-phase-indicator{background:transparent!important;border:0!important;box-shadow:none!important;filter:drop-shadow(0 2px 6px rgba(28,32,27,.42))!important}
+
+@media(max-width:620px){
+  .family-home-shell-v5{padding:calc(env(safe-area-inset-top) + 14px) 13px calc(env(safe-area-inset-bottom) + 8px)!important}
+  .family-home-hero{grid-template-columns:67px 1fr!important;margin-top:18px!important}.family-home-dialog .family-preview-crest{width:58px!important;height:58px!important}.family-home-name{font-size:29px!important}.family-home-current-head{padding:11px 9px 9px!important}.family-home-actions-v5{margin-top:10px!important}
+  .game-screen .hud-top.rinne-hud-v4{right:auto!important;max-width:72vw!important}.rinne-time-seal{position:fixed!important;right:max(10px,env(safe-area-inset-right))!important;top:max(11px,env(safe-area-inset-top))!important}
+  .rinne-function-hub{width:min(286px,calc(100vw - 18px))!important;right:max(9px,env(safe-area-inset-right))!important}.rinne-function-grid{gap:6px!important}.rinne-function-hub .quick-menu-action{min-height:68px!important}
+}
+@media(max-width:380px){
+  .rinne-objective-v4{width:min(185px,53vw)!important}.rinne-function-hub{width:272px!important}.rinne-function-hub .quick-menu-action{min-height:64px!important}.rinne-function-grid{gap:5px!important}.family-home-actions-v5 button{font-size:11px!important}
+}
+@media(max-height:650px) and (orientation:landscape){
+  .family-home-hero{margin:3px 0!important}.family-home-current-head{padding:6px!important}.family-home-history-wrap{display:none!important}.family-home-memory{display:none!important}.family-home-actions-v5{margin:6px 0!important}
+  .family-story-prompt{font-size:24px!important;margin-bottom:6px!important}.family-memory-stage{height:215px!important}.family-memory-relic{width:105px!important;height:105px!important}.family-memory-relic b{font-size:34px!important}
+}
+@media(prefers-reduced-motion:reduce){.family-depth-ring,.family-memory-presence{animation:none!important}}
+
+
+/* ============================================================
+   RINNE UI 5.1.0
+   Research takeaways applied without changing the game concept:
+   - Shironeko: clear one-hand action targets, world remains readable.
+   - Infinity Nikki: primary abilities remain directly accessible; size/position are tuned for mobile.
+   百年転生 invariant: 心 / 技 / 打 / 記 remain four persistent primary controls.
+   ============================================================ */
+:root{
+  --r51-heart:#e9a6a4;
+  --r51-tech:#91c9dc;
+  --r51-train:#edba69;
+  --r51-book:#99bea1;
+  --r51-cream:#fff3d6;
+  --r51-paper:#fff8e8;
+  --r51-wood:#72513a;
+  --r51-ink:#4d3c32;
+}
+
+/* 心技体装の描画正本は @soul/shared-ui/rinne-primary-four.css。 */
+/* The four stay visible during dialogue and menu/panel transitions. */
+#game-screen:has(#dialogue:not([hidden])) .rinne-primary-four{opacity:.72!important;pointer-events:auto!important;transform:translateX(-50%) scale(.96)!important}
+#game-screen[data-archive-open="true"] .rinne-primary-four,
+.rinne-gameplay-upgrade[data-panel-open="true"] .rinne-primary-four{opacity:1!important;pointer-events:auto!important}
+
+/* 記 opens only secondary systems. It never replaces 心/技/打. */
+#game-screen .rinne-secondary-sheet{
+  position:absolute!important;z-index:60!important;left:50%!important;right:auto!important;
+  bottom:max(84px,calc(env(safe-area-inset-bottom) + 77px))!important;transform:translateX(-50%)!important;
+  width:min(274px,calc(100vw - 24px))!important;height:auto!important;padding:10px!important;
+  border:2px solid rgba(115,82,51,.48)!important;border-radius:20px!important;clip-path:none!important;
+  background:linear-gradient(180deg,rgba(255,251,239,.985),rgba(245,225,190,.985))!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.65),0 3px 0 rgba(87,62,43,.28),0 12px 25px rgba(34,39,31,.16)!important
+}
+#game-screen .rinne-secondary-sheet::after{
+  content:"";position:absolute;right:31px;bottom:-8px;width:14px;height:14px;background:#f5e1bc;
+  border-right:2px solid rgba(115,82,51,.38);border-bottom:2px solid rgba(115,82,51,.38);transform:rotate(45deg)
+}
+#game-screen .rinne-secondary-sheet>header{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px 8px;border-bottom:1px dashed rgba(120,86,54,.24)}
+#game-screen .rinne-secondary-sheet>header span{color:#594438;font-size:11px;font-weight:850}
+#game-screen .rinne-secondary-sheet>header small{color:#99816d;font-size:8px}
+.rinne-secondary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;padding-top:8px}
+#game-screen .rinne-secondary-sheet .quick-menu-action{
+  position:relative!important;display:grid!important;grid-template-columns:34px 1fr!important;grid-template-rows:auto auto!important;
+  align-items:center!important;text-align:left!important;width:auto!important;height:auto!important;min-height:54px!important;
+  padding:7px 8px!important;border:0!important;border-radius:14px!important;background:rgba(255,253,247,.58)!important;
+  box-shadow:inset 0 0 0 1px rgba(119,86,55,.12)!important;color:#554239!important
+}
+#game-screen .rinne-secondary-sheet .quick-menu-action>b{
+  grid-row:1/3;display:grid!important;place-items:center!important;width:30px!important;height:30px!important;border:0!important;border-radius:50%!important;
+  background:var(--secondary,#c9b7dd)!important;color:#554139!important;font-family:var(--font-rinne-display)!important;font-size:13px!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.33)!important
+}
+#game-screen .rinne-secondary-sheet .quick-menu-action>span{color:#554239!important;font-size:10px!important;font-weight:800!important}
+#game-screen .rinne-secondary-sheet .quick-menu-action>small{color:#978373!important;font-size:7px!important}
+#game-screen .rinne-secondary-sheet .is-body{--secondary:#c9b7dd}
+#game-screen .rinne-secondary-sheet .is-items{--secondary:#e5ba7d}
+#game-screen .rinne-secondary-sheet .is-map{--secondary:#a8ccb2}
+#game-screen .rinne-secondary-sheet .is-record{--secondary:#efb1aa}
+#game-screen .rinne-secondary-sheet .quick-map strong{display:none!important}
+
+/* Journal panel leaves the four primary controls as persistent navigation. */
+#game-screen .rinne-gameplay-upgrade .upgrade-panel.rinne-archive-panel:not([hidden]){
+  bottom:max(78px,calc(env(safe-area-inset-bottom) + 70px))!important;height:auto!important;max-height:none!important;
+  border-radius:22px 22px 0 0!important;box-shadow:0 -7px 24px rgba(41,38,29,.19),inset 0 0 0 1px rgba(119,83,48,.10)!important
+}
+#game-screen .rinne-gameplay-upgrade .rinne-archive-panel>header{
+  min-height:62px!important;padding:calc(env(safe-area-inset-top) + 4px) 17px 8px 21px!important;
+  background:linear-gradient(180deg,#aacbac,#88ad8f)!important
+}
+#game-screen .rinne-gameplay-upgrade .rinne-archive-panel>[data-body]{
+  padding-bottom:24px!important
+}
+
+/* Dialogue stays warm but does not monopolize the bottom controls. */
+#game-screen .dialogue.ornate{
+  bottom:max(88px,calc(env(safe-area-inset-bottom) + 79px))!important;
+  width:min(520px,calc(100vw - 24px))!important;padding:10px 14px 11px!important;
+  border-radius:18px 18px 18px 8px!important
+}
+
+/* Ritual: small lineage signature, compact memory charm, no giant title crest. */
+.family-ritual-brand{top:calc(env(safe-area-inset-top) + 14px)!important;display:flex!important;align-items:center!important;gap:7px!important;opacity:.72!important}
+.family-ritual-brand i{display:grid;place-items:center;width:22px;height:22px;border:1px solid rgba(255,235,190,.42);border-radius:50%;color:#f5d99d;font-size:9px;font-style:normal;background:rgba(21,66,70,.34)}
+.family-ritual-brand span{font-size:7px!important;letter-spacing:.34em!important;text-indent:0!important}
+.family-story-prompt{margin-top:14px!important;font-size:clamp(25px,5.7vw,36px)!important}
+.family-memory-stage{height:clamp(300px,46vh,430px)!important}
+.family-memory-presence{min-height:265px!important}
+.family-memory-relic{width:112px!important;height:112px!important;margin-bottom:13px!important}
+.family-memory-relic em{inset:32px!important}
+.family-memory-relic b{font-size:35px!important}
+.family-memory-echo{margin-bottom:6px!important;font-size:9px!important}
+.family-memory-label{font-size:clamp(14px,3.2vw,18px)!important}
+.family-memory-hint{display:block;margin-top:10px;color:rgba(219,233,218,.46);font-size:7px;letter-spacing:.08em}
+
+/* Family home: more storybook, less dashboard. */
+.family-home-current-v5{
+  border-color:rgba(255,239,207,.72)!important;border-radius:22px!important;
+  background:repeating-linear-gradient(7deg,rgba(117,80,47,.025) 0 1px,transparent 1px 6px),linear-gradient(180deg,rgba(255,250,235,.96),rgba(244,226,190,.96))!important
+}
+.family-home-current-head{padding:11px 10px 8px!important}
+.family-home-stats-v5{padding:7px 3px 8px!important}
+.family-home-actions-v5 button{
+  min-height:47px!important;border-radius:18px!important;background:linear-gradient(180deg,#fff4d1,#edc477)!important
+}
+.family-home-history-wrap{border-top-style:dashed!important}
+
+/* Hide stale v5 hub styles by class contract, not by removing the secondary menu. */
+.rinne-explore-controls,.rinne-function-hub{display:none!important}
+
+@media(max-width:620px){
+  #game-screen .rinne-secondary-sheet{width:min(262px,calc(100vw - 18px))!important}
+  #game-screen .rinne-gameplay-upgrade .upgrade-panel.rinne-archive-panel:not([hidden]){
+    bottom:max(73px,calc(env(safe-area-inset-bottom) + 65px))!important
+  }
+}
+@media(max-width:360px){
+}
+
+
+/* ============================================================
+   RINNE UI 5.2.0 — corrected core interaction contract.
+   心 / 技 / 体 / 装 are the permanent four.
+   打 is contextual training. 記 is auxiliary map/lineage access.
+   ============================================================ */
+/* contextual 稽古 button only appears beside the dummy */
+.rinne-context-strike{
+  position:absolute!important;z-index:52!important;left:50%!important;
+  bottom:max(83px,calc(env(safe-area-inset-bottom) + 76px))!important;transform:translateX(-50%)!important;
+  display:grid!important;grid-template-columns:39px auto!important;align-items:center!important;gap:7px!important;
+  min-height:45px!important;padding:4px 12px 4px 5px!important;border:2px solid rgba(125,86,48,.58)!important;border-radius:22px!important;
+  background:linear-gradient(180deg,#fff1ce,#eab967)!important;color:#594231!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.5),0 3px 0 #8e6035,0 7px 14px rgba(42,40,29,.18)!important
+}
+.rinne-context-strike[hidden]{display:none!important}
+.rinne-context-strike i{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#d9984f;color:#fff7df;font-family:var(--font-rinne-display)!important;font-size:16px;font-style:normal;text-shadow:0 1px 3px #77502e}
+.rinne-context-strike span{font-size:9px;font-weight:850;color:#594231}
+
+/* 記 is auxiliary and visually subordinate to the four core buttons. */
+.rinne-record-toggle{
+  position:absolute!important;z-index:47!important;right:max(11px,env(safe-area-inset-right))!important;
+  bottom:max(18px,calc(env(safe-area-inset-bottom) + 12px))!important;
+  display:grid!important;place-items:center!important;align-content:center!important;width:42px!important;height:50px!important;padding:0!important;
+  border:0!important;background:transparent!important;color:#fff2d3!important
+}
+.rinne-record-toggle i{
+  display:grid;place-items:center;width:35px;height:35px;border:2px solid rgba(255,241,211,.75);border-radius:50%;
+  background:linear-gradient(180deg,#a8c8ad,#7fa186);color:#fff7df;font-family:var(--font-rinne-display)!important;font-style:normal;font-size:13px;
+  box-shadow:inset 0 2px rgba(255,255,255,.24),0 3px 0 #5d775f,0 6px 10px rgba(38,42,33,.15)
+}
+.rinne-record-toggle span{font-size:6px;font-weight:800;text-shadow:0 1px 3px rgba(46,45,34,.65)}
+.rinne-record-toggle[data-active="true"] i{transform:translateY(1px);filter:brightness(.95)}
+
+/* Secondary sheet now contains only map and life/lineage record. */
+#game-screen .rinne-secondary-sheet{right:max(8px,env(safe-area-inset-right))!important;left:auto!important;transform:none!important;width:min(230px,calc(100vw - 18px))!important}
+#game-screen .rinne-secondary-sheet::after{right:14px!important}
+.rinne-secondary-grid{grid-template-columns:repeat(2,1fr)!important}
+#game-screen .rinne-secondary-sheet .quick-menu-action{grid-template-columns:1fr!important;grid-template-rows:31px auto auto!important;text-align:center!important;justify-items:center!important}
+#game-screen .rinne-secondary-sheet .quick-menu-action>b{grid-row:auto!important}
+#game-screen .rinne-secondary-sheet .is-map{--secondary:#a8ccb2!important}
+#game-screen .rinne-secondary-sheet .is-record{--secondary:#efb1aa!important}
+
+/* Panels opened by 心/技/体/装 leave the four permanent navigation buttons visible. */
+#game-screen[data-archive-open="true"] .rinne-primary-four,
+.rinne-gameplay-upgrade[data-panel-open="true"] .rinne-primary-four{opacity:1!important;pointer-events:auto!important;z-index:180!important}
+#game-screen .rinne-gameplay-upgrade .upgrade-panel.rinne-archive-panel:not([hidden]){
+  bottom:max(76px,calc(env(safe-area-inset-bottom) + 68px))!important
+}
+
+/* Ensure stale hub rules cannot suppress the corrected core. */
+.rinne-primary-four{display:grid!important}
+.rinne-record-toggle{display:grid!important}
+.rinne-record-toggle[hidden]{display:none!important}
+
+@media(max-width:620px){
+  .rinne-record-toggle{right:max(7px,env(safe-area-inset-right))!important}
+  .rinne-context-strike{bottom:max(79px,calc(env(safe-area-inset-bottom) + 72px))!important}
+}

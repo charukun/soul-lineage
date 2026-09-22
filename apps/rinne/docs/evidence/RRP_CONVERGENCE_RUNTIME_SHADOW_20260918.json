@@ -1,0 +1,204 @@
+{
+  "format": "rrp-convergence-runtime-shadow-evidence-v1",
+  "branch": "work/rrp-convergence-semantic-kernel-20260918",
+  "authoringEnvironment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "arch": "x64",
+    "workspace": "isolated repository-like workspace; no full checkout"
+  },
+  "executed": {
+    "semanticShadowFocused": {
+      "command": "node --test apps/rinne/tests/semantic-shadow.test.mjs",
+      "passed": 10,
+      "failed": 0,
+      "scope": [
+        "warm durable baseline",
+        "replaceable-state exclusion",
+        "life seal",
+        "rebirth",
+        "post-start epoch transition",
+        "guest birth",
+        "lineage divergence",
+        "history-sequence divergence",
+        "combat-ended seal",
+        "shadow failure isolation and raw byte capture"
+      ],
+      "boundBlob": "92189c58b83cd0c9e455eec686f09b6fdbc64504",
+      "note": "10/10 Node run predates the restart-persistence extension; it remains evidence for the live shadow core, combat-ended seal and raw byte instrumentation at that blob."
+    },
+    "syntax": {
+      "passed": true,
+      "files": [
+        "apps/rinne/src/coop/semantic-shadow.js",
+        "apps/rinne/src/coop/checkpoint-writer.js",
+        "apps/rinne/src/coop/performance.js",
+        "apps/rinne/tests/semantic-shadow.test.mjs"
+      ]
+    },
+    "isolatedHistoryContract": {
+      "passed": 2,
+      "failed": 0,
+      "description": "Exact current history.js body with only LIFE_SECONDS, validateLife and lineageRecord stubbed: early combat end seals and stays immutable; a living life at lifespan boundary is rejected."
+    },
+    "normalGit": {
+      "passed": false,
+      "reason": "github.com DNS resolution failed in the container"
+    },
+    "shadowCaptureAnalyzer": {
+      "command": "node --test apps/rinne/tests/rrp-convergence-shadow-capture.test.mjs",
+      "passed": 4,
+      "failed": 0,
+      "syntax": true,
+      "scope": "aligned semantic capture arrays; protected-commit-only counterfactual JSON byte comparison; fail-closed malformed samples; same-world/peer/armed-window comparability"
+    },
+    "currentRestoreProbe": {
+      "engine": "exact current semantic-shadow source evaluated in the tool V8 with explicit structuredClone/TextEncoder equivalents",
+      "blob": "9b17393f4914cbfb524b5cb899273fc15ebdc457",
+      "passed": true,
+      "checks": [
+        "restored anchor continues from history root/sequence",
+        "first post-restart epoch acquisition is journaled",
+        "stale root is rejected",
+        "coverageHint=gap remains explicit",
+        "combat-ended transition derives life-seal"
+      ],
+      "note": "Supplemental exact-source probe, not a replacement for the repository Node 24 suite."
+    },
+    "currentSyntaxProbe": {
+      "engine": "exact-source parse after stripping module import/export syntax in tool V8",
+      "passed": true,
+      "blobs": {
+        "semanticShadow": "f29fa11a10f6a3051adb5d2c33e53bcd992779c9",
+        "checkpointWriter": "67dd4728f2f5f0807c581a7c88762b454ead72ea",
+        "history": "43ad74796ea362888d9046c56e44b58cc8799974",
+        "performance": "cea5fcb9ee8c9f2ff82a532d8fa18fe6b83fc7c2",
+        "session": "98ab5dc9e71a2d96613efd3e55ee7bb2241e2b00",
+        "menu": "61c2e5646f1f1519d36d769af22535aae01ca5c3",
+        "semanticShadowTest": "a667001933efc28d3ab024a2bb37e46eb8677fd3",
+        "coopHistoryTest": "23dfcabe40ff2668f9476a302584b1704cb64506"
+      }
+    },
+    "currentRecoveryProbe": {
+      "engine": "exact current semantic-shadow source evaluated in tool V8 with explicit structuredClone/TextEncoder equivalents",
+      "blob": "9b17393f4914cbfb524b5cb899273fc15ebdc457",
+      "passed": true,
+      "checks": [
+        "participant born after an older provisional checkpoint is materialized with its resume token",
+        "ghost provisional actor is removed",
+        "protected tick/world-time floor advances recovery past the protected event",
+        "rebirth recovery replaces an old predecessor with the new life and exact lineage",
+        "rebirth receipt is restored"
+      ],
+      "observed": {
+        "birthRecoveryPlayers": [
+          "guest",
+          "owner"
+        ],
+        "rebirthLifeId": "owner:2",
+        "rebirthLineageRecords": 1,
+        "protectedTick": 10
+      }
+    },
+    "finalExactSourceProbe": {
+      "engine": "current exact Git blobs evaluated in tool V8 with explicit structuredClone/TextEncoder shims; supplemental focused revalidation, not Node 24/full workspace",
+      "semanticShadowBlob": "9b17393f4914cbfb524b5cb899273fc15ebdc457",
+      "semanticShadowChecks": 13,
+      "semanticShadowPassed": true,
+      "semanticShadowScope": [
+        "warm baseline and byte sample",
+        "replaceable-state exclusion",
+        "natural life seal",
+        "restore anchor accepted",
+        "stale restore root rejected",
+        "restart rebirth",
+        "restart epoch acquisition",
+        "combat-ended life seal",
+        "birth recovery + ghost removal + protected clock floor",
+        "lineage rewrite rejection",
+        "history-sequence mismatch rejection",
+        "coverage gap remains explicit",
+        "semantic byte samples emitted"
+      ],
+      "historyBlob": "43ad74796ea362888d9046c56e44b58cc8799974",
+      "historyChecks": 4,
+      "historyPassed": true,
+      "historyScope": [
+        "combat death seals",
+        "natural death seals",
+        "living state at lifespan boundary rejected",
+        "sealed terminal record immutable"
+      ],
+      "checkpointWriterBlob": "67dd4728f2f5f0807c581a7c88762b454ead72ea",
+      "checkpointWriterChecks": 3,
+      "checkpointWriterPassed": true,
+      "checkpointWriterScope": [
+        "previous committed checkpoint supplied to shadow",
+        "shadow divergence remains diagnostic",
+        "authoritative save still advances"
+      ],
+      "performanceBlob": "cea5fcb9ee8c9f2ff82a532d8fa18fe6b83fc7c2",
+      "performanceChecks": 3,
+      "performancePassed": true,
+      "performanceScope": [
+        "semantic payload metrics retained",
+        "zero-event samples retained for aligned windows",
+        "capture reset clears semantic window"
+      ],
+      "syntaxParse": {
+        "passed": true,
+        "scope": "semantic-shadow, checkpoint-writer, performance, history, session, menu, semantic-shadow test, coop-history test, shadow-capture analyzer and analyzer test; module syntax adapted only for parser context",
+        "note": "session export-from and analyzer import.meta were normalized only to let the V8 Function parser accept module source; this is a syntax probe, not module execution"
+      }
+    }
+  },
+  "exactGitBlobs": {
+    "apps/rinne/src/coop/semantic-shadow.js": "9b17393f4914cbfb524b5cb899273fc15ebdc457",
+    "apps/rinne/src/coop/checkpoint-writer.js": "67dd4728f2f5f0807c581a7c88762b454ead72ea",
+    "apps/rinne/src/coop/session.js": "98ab5dc9e71a2d96613efd3e55ee7bb2241e2b00",
+    "apps/rinne/src/coop/performance.js": "cea5fcb9ee8c9f2ff82a532d8fa18fe6b83fc7c2",
+    "apps/rinne/src/coop/history.js": "43ad74796ea362888d9046c56e44b58cc8799974",
+    "apps/rinne/tests/semantic-shadow.test.mjs": "6b8de08a0f41c924921ed10364b38abe8bbd8250",
+    "apps/rinne/tests/coop-history.test.mjs": "23dfcabe40ff2668f9476a302584b1704cb64506",
+    "apps/rinne/scripts/rrp-convergence/shadow-extractor.mjs": "20ab533e64c419fdaa6d076c8014dccd722e8857",
+    "apps/rinne/tests/reality-convergence-compaction-extractor.test.mjs": "f9e2d7b48aa62bb4b6a8bee73ffd2c3ecec83760",
+    "apps/rinne/scripts/rrp-convergence-shadow-capture.mjs": "f6072f71fa2f9e425ae297aaca9ef80c83244114",
+    "apps/rinne/tests/rrp-convergence-shadow-capture.test.mjs": "1c3dea28d281133b88a4b8a2ecae546f1d0b14e0",
+    "apps/rinne/src/coop/menu.js": "61c2e5646f1f1519d36d769af22535aae01ca5c3"
+  },
+  "separation": {
+    "authoritative": "existing coop-v2 checkpoint/history store",
+    "shadow": "in-memory semantic journal and diagnostics only",
+    "onDivergence": "record semanticError; do not fail an already successful authoritative save",
+    "performance": "raw capture receives checkpointBytes, journalBytes, eventCount and historyEffects",
+    "counterfactualAnalyzer": "all-state strong bytes = checkpoint JSON bytes only at samples with semanticEventCount>0; semantic/fair-known event-sourcing bytes = derived semantic journal JSON bytes. This is not actual switched-authority traffic or latency.",
+    "restartCoverage": "Diagnostic shadow state is stored under coop-shadow-v1:<worldId> only after an authoritative save. Restore requires exact authoritative envelope root + history length + world/owner identity. Missing, stale or corrupted diagnostics become coverage=gap; they never block game restore.",
+    "persistenceOrdering": "Semantic diagnostic writes are serialized in-process and awaited only during dispose; failures are reported in diagnostics and never change authoritative save success.",
+    "recoveryOverlay": "recoverCheckpointWithSemanticShadow is pure/non-authoritative. It keeps permitted same-life provisional fields, overlays protected identity/terminal facts, materializes missing post-checkpoint births/rebirths from recovery bases, removes noncanonical ghost actors, restores rebirthOps and raises tick/worldSeconds to protected floors.",
+    "confidentialRecovery": "The current reconnect token is retained only as local host recovery material; it is not public canon and must not be sent to generic validators in a stronger authority mode."
+  },
+  "runtimeBugRepair": {
+    "preChange": "co-op structural history accepted ended iff ageSeconds === LIFE_SECONDS",
+    "reachableSource": "shared combat calls endLifeEarly through combat-core/combat-evolution-runtime from CoopWorld.advance",
+    "branchRepair": "ended requires phase=ended; living requires ageSeconds<LIFE_SECONDS; early combat death can emit life-ended and rebirth from its committed predecessor"
+  },
+  "notExecuted": [
+    "full apps/rinne/tests/coop-history.test.mjs against the workspace package graph",
+    "updated full 37-test convergence proof bundle after extractor changes",
+    "context:plan/npm ci/repository-wide Node 24 gates",
+    "browser/WebRTC/physical-device matched baseline experiment",
+    "current 12-case semantic-shadow.test.mjs under Node after restart-persistence extension",
+    "full menu/session restore flow in browser",
+    "current 14-case semantic-shadow.test.mjs under Node after source-shaped recovery extension",
+    "authoritative switch to shadow recovery"
+  ],
+  "evidenceClass": "B finite local runtime-shadow evidence plus exact-source supplemental probes; physical superiority remains E and authoritative adoption of shadow recovery remains F",
+  "finalReconciliation": {
+    "develop": "76f146841bb51793e1b387cb1ecc4baee0110836",
+    "reconciledHead": "4826f95a653e550f75e9df2e0a30a84e705e4121",
+    "mergeBase": "76f146841bb51793e1b387cb1ecc4baee0110836",
+    "behindBy": 0,
+    "overlapWithDevelopDrift": [],
+    "note": "The 21 develop commits since the prior merge base changed control-plane policy/tests and two Rinne CSS files, with no overlap with this PR's changed paths. Runtime/test blobs above are unchanged by the merge-forward."
+  }
+}

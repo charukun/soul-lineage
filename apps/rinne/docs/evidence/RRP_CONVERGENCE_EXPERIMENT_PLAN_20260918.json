@@ -1,0 +1,83 @@
+{
+  "format": "rrp-convergence-physical-experiment-plan-v1",
+  "status": "planned-not-executed",
+  "purpose": "decide whether semantic journal + separate recovery materially improves current Rinne under equal guarantees; not to prove a new protocol",
+  "variants": [
+    {
+      "id": "all-state-strong",
+      "description": "strong path carries the same protected event plus the full recovery checkpoint at each canon boundary"
+    },
+    {
+      "id": "semantic-journal",
+      "description": "strong path carries protected event/delta; provisional recovery checkpoints run asynchronously at the declared RPO; protected semantic snapshots compact the journal separately"
+    },
+    {
+      "id": "fair-known-event-sourcing",
+      "description": "known event-sourcing + the same quorum/consensus service, exact same semantic event encoding, compaction and recovery RPO as semantic-journal",
+      "expected": "should match semantic-journal strong-path cost absent an implementation-quality difference"
+    }
+  ],
+  "fairnessRequirements": [
+    "same Rinne build and gameplay workload",
+    "same participants/topology and transport",
+    "same crash-fault durability target and authority mechanism",
+    "same protected semantic event set",
+    "same provisional recovery RPO and recovery test",
+    "same batching/compression/encoding opportunities",
+    "same safety hard gates; any safety violation fails regardless of speed",
+    "no pooled endpoint statistic may hide the slowest required device under the existing performance-contract rules"
+  ],
+  "existingSafetyKeys": [
+    "committedCanonRollbackEvents",
+    "duplicateIrreversibleCommits",
+    "staleAuthorityAccepts",
+    "splitBrainOpenMs",
+    "uncommittedCanonVisibleEvents",
+    "recoveryOpenWithoutMaterialEvents"
+  ],
+  "existingPrimaryMetrics": [
+    "canonCommitP95Ms",
+    "peerUplinkP95Kbps",
+    "hostUplinkP95Kbps",
+    "reliableBufferedAmountMaxBytes",
+    "presenceBufferedAmountMaxBytes",
+    "hostLossDetectionP95Ms",
+    "hostReopenP95Ms",
+    "rollbackP95Ms",
+    "frameP95Ms",
+    "connectionSuccessRate"
+  ],
+  "existingAbsoluteSloRefs": {
+    "frameP95Ms": "<=33.34ms at physical-device evidence class",
+    "hostLossDetectionP95Ms": "<=4500ms at physical-multipeer evidence class",
+    "hostReopenP95Ms": "<=6000ms at physical-multipeer evidence class"
+  },
+  "provisionalRpoSweepSeconds": [
+    0.5,
+    1,
+    2,
+    5,
+    10
+  ],
+  "startCohort": "2-3 physical peers on fixed Wi-Fi, then broader network profiles and 30-device certification separately",
+  "acceptance": [
+    "all safety keys are zero/within their existing hard semantics",
+    "semantic-journal may beat all-state-strong on strong-path bytes/latency when replaceable/recovery material is actually removed from synchronous commit",
+    "semantic-journal is not called a protocol win if fair-known-event-sourcing matches it",
+    "a provisional RPO setting is accepted only after user-visible rollback/recovery quality and bandwidth/latency are measured together",
+    "no absolute threshold is invented for metrics currently marked calibration-required",
+    "shadow counterfactual byte savings are not promoted to actual strong-path latency/network savings until semantic-journal becomes the authoritative commit payload in an experiment variant"
+  ],
+  "shadowInstrumentation": {
+    "status": "implemented-not-physically-captured",
+    "rawFields": [
+      "semanticCheckpointBytes",
+      "semanticJournalBytes",
+      "semanticEventCount",
+      "semanticHistoryEffects"
+    ],
+    "analyzer": "apps/rinne/scripts/rrp-convergence-shadow-capture.mjs",
+    "interpretation": "For each observed protected commit, compare full checkpoint JSON bytes with derived semantic-event JSON bytes. This is a counterfactual payload-size measurement only; it is not switched-authority network/latency evidence.",
+    "localValidation": "4 focused analyzer tests passed / 0 failed under Node v22.16.0"
+  }
+}

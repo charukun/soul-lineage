@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:soul-lineage:autonomous:experiment:1",
+  "title": "Code-first experiment, finalized by external exact-head receipt",
+  "type": "object",
+  "required": ["schemaVersion","id","game","kind","problemKey","observation","hypothesis","candidates","implementation","comparison","validation","learning"],
+  "$defs": {
+    "text": {"type":"string","minLength":1},
+    "sha": {"type":"string","pattern":"^[0-9a-f]{40}$"},
+    "strings": {"type":"array","items":{"$ref":"#/$defs/text"}},
+    "evidence": {
+      "type":"object","required":["kind","statement"],
+      "properties": {
+        "kind":{"enum":["source","test","simulation","user-feedback","git-tree"]},
+        "statement":{"$ref":"#/$defs/text"},"revision":{"$ref":"#/$defs/sha"},"path":{"$ref":"#/$defs/text"},"symbol":{"$ref":"#/$defs/text"},
+        "verbatim":{"$ref":"#/$defs/text"},"reference":{"$ref":"#/$defs/text"},"receivedAt":{"type":"string","format":"date-time"}
+      },
+      "allOf":[{"if":{"properties":{"kind":{"const":"user-feedback"}}},"then":{"required":["verbatim","reference","receivedAt"]},"else":{"required":["revision","path","symbol"]}}]
+    }
+  },
+  "properties": {
+    "schemaVersion":{"const":1},
+    "id":{"type":"string","pattern":"^[a-z0-9][a-z0-9-]{2,95}$"},
+    "game":{"enum":["village","kuumetsu",
+        "rinne"]},
+    "kind":{"enum":["infrastructure","gameplay","user-feedback"]},
+    "problemKey":{"$ref":"#/$defs/text"},
+    "observation":{"type":"object","required":["summary","evidence"],"properties":{"summary":{"$ref":"#/$defs/text"},"evidence":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/evidence"}}}},
+    "hypothesis":{"type":"object","required":["cause","prediction","falsifier"],"properties":{"cause":{"$ref":"#/$defs/text"},"prediction":{"$ref":"#/$defs/text"},"falsifier":{"$ref":"#/$defs/text"}}},
+    "candidates":{"type":"array","minItems":2,"contains":{"required":["selected"],"properties":{"selected":{"const":true}}},"minContains":1,"maxContains":1,"items":{"type":"object","required":["id","selected","reason"],"properties":{"id":{"$ref":"#/$defs/text"},"selected":{"type":"boolean"},"reason":{"$ref":"#/$defs/text"}}}},
+    "implementation":{"type":"object","required":["paths","summary"],"properties":{"paths":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/text"}},"summary":{"$ref":"#/$defs/text"}}},
+    "comparison":{"type":"object","required":["objective","verdict","limitations"],"properties":{"objective":{"const":"reproducible-causality"},"verdict":{"enum":["pending","supported","refuted","inconclusive"]},"limitations":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/text"}},"before":{"type":["object","null"]},"after":{"type":["object","null"]},"explanation":{"$ref":"#/$defs/text"}}},
+    "validation":{"type":"object","required":["state","focusedTests","receipt"],"properties":{"state":{"const":"awaiting-exact-head-receipt"},"focusedTests":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/text"}},"receipt":{"type":"object","required":["repository","pullRequest","marker"],"properties":{"repository":{"const":"charukun/soul-lineage"},"pullRequest":{"type":["integer","null"],"minimum":1},"marker":{"type":"string","pattern":"^autonomous-receipt:(village|kuumetsu|rinne):[a-z0-9-]+$"}}}}},
+    "learning":{"type":"object","required":["summary","failedApproaches","doNotRetry","unresolved","next"],"properties":{"summary":{"$ref":"#/$defs/text"},"failedApproaches":{"type":"array"},"doNotRetry":{"type":"array","items":{"type":"object","required":["approach","reason","reconsiderWhen"],"properties":{"approach":{"$ref":"#/$defs/text"},"reason":{"$ref":"#/$defs/text"},"reconsiderWhen":{"$ref":"#/$defs/text"}}}},"unresolved":{"$ref":"#/$defs/strings"},"next":{"$ref":"#/$defs/strings"}}}
+  }
+}

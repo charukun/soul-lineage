@@ -1,0 +1,7 @@
+/* Retained after explicit 100-round browser comparison. */
+@media (min-height:701px) and (orientation:portrait){
+.rb-page[data-book-page="heart"]{--rb-top:14.7%;--rb-bottom:14.5%;--rb-heading:13%;--rb-loadout:26%;--rb-library-width:50.45%}
+.rb-page[data-book-page="technique"]{--rb-top:15.3%;--rb-bottom:13%;--rb-heading:11.55%;--rb-loadout:24%;--rb-library-width:50.45%}
+.rb-page[data-book-page="body"]{--rb-top:14.7%;--rb-bottom:14.15%;--rb-heading:13.25%;--rb-loadout:26.45%;--rb-library-width:54.45%}
+.rb-page[data-book-page="items"]{--rb-top:15.1%;--rb-bottom:13.15%;--rb-heading:12.1%;--rb-loadout:26.45%;--rb-library-width:52.95%}
+}

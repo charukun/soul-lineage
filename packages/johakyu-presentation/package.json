@@ -1,0 +1,19 @@
+{
+  "name": "@soul/johakyu-presentation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./runtime": "./src/runtime.js",
+    "./audio": "./src/audio.js",
+    "./assets": "./src/assets.js",
+    "./driver": "./src/driver.js",
+    "./technique-presentation": "./src/technique-presentation.js"
+  },
+  "dependencies": {
+    "@soul/assets": "*",
+    "@soul/shared-ui": "*",
+    "three": "0.186.0"
+  }
+}

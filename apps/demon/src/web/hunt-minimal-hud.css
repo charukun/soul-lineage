@@ -1,0 +1,156 @@
+/* Minimal ink-wash hunt HUD.
+ * Persistent information is limited to life, hunt progress, unsecured haul and pause.
+ * Return guidance and combat detail appear only when the game state needs them.
+ */
+body.hunt-loop #hud{
+  --ink-hud-paper:rgba(235,228,213,.94);
+  --ink-hud-paper-soft:rgba(235,228,213,.76);
+  --ink-hud-ink:#171310;
+  --ink-hud-dim:#60564c;
+  --ink-hud-blood:#9b2923;
+  --ink-hud-bone:#efe5d2;
+  background:linear-gradient(180deg,rgba(8,7,6,.16),transparent 18%,transparent 82%,rgba(8,7,6,.12))!important;
+}
+body.hunt-loop #hud::before{
+  content:"";position:absolute;z-index:0;left:0;right:0;top:0;
+  height:calc(70px + env(safe-area-inset-top));
+  background:
+    repeating-linear-gradient(101deg,rgba(55,43,32,.025) 0 1px,transparent 1px 7px),
+    linear-gradient(180deg,var(--ink-hud-paper),rgba(225,216,198,.87));
+  clip-path:polygon(0 0,100% 0,100% 82%,94% 88%,86% 83%,75% 91%,64% 84%,51% 90%,38% 84%,26% 91%,14% 83%,5% 89%,0 84%);
+  box-shadow:0 9px 24px rgba(0,0,0,.13);
+  pointer-events:none;
+}
+body.hunt-loop #hud header{position:absolute;inset:0;display:block;padding:0!important;z-index:2}
+body.hunt-loop #hud .location,
+body.hunt-loop #hud .life>span,
+body.hunt-loop #hud #life-text,
+body.hunt-loop #hud .danger span,
+body.hunt-loop #hud #first-hunt-guide,
+body.hunt-loop #hud #scent,
+body.hunt-loop #hud #memory,
+body.hunt-loop #hud #dash-stop,
+body.hunt-loop #hud .footer-status,
+body.hunt-loop #hud .controls{display:none!important}
+
+body.hunt-loop #hud .life{
+  position:absolute;top:calc(17px + env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));
+  width:min(132px,34vw)!important;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;
+  color:var(--ink-hud-ink);
+}
+body.hunt-loop #hud .life::before{content:"命";font-size:17px;line-height:1;font-weight:700;letter-spacing:.05em;color:var(--ink-hud-ink)}
+body.hunt-loop #hud .life-track{
+  width:100%;height:7px!important;max-width:none!important;margin:0!important;transform:none!important;
+  background:linear-gradient(90deg,rgba(24,20,17,.2),rgba(24,20,17,.58));
+  clip-path:polygon(0 15%,93% 0,100% 42%,96% 100%,4% 86%);
+  box-shadow:none!important;
+}
+body.hunt-loop #hud #life-fill{
+  background:linear-gradient(90deg,#771c1b,#b63a30)!important;
+  box-shadow:none!important;transition:width .15s;
+}
+body.hunt-loop #hud #pause{
+  position:absolute;top:calc(8px + env(safe-area-inset-top));right:max(9px,env(safe-area-inset-right));
+  width:44px;height:44px;display:grid;place-items:center;padding:0!important;
+  border:1px solid rgba(23,19,16,.34)!important;border-radius:50%;clip-path:none!important;
+  background:rgba(240,233,218,.78)!important;color:var(--ink-hud-ink)!important;
+  font-size:18px;opacity:.9;box-shadow:none!important;
+}
+
+body.hunt-loop #hud #objective{
+  display:block!important;position:absolute;z-index:2;top:calc(14px + env(safe-area-inset-top));left:54%;right:auto!important;
+  width:min(205px,50vw)!important;max-width:none!important;transform:translateX(-50%);
+  padding:0!important;margin:0!important;border:0!important;background:none!important;box-shadow:none!important;pointer-events:none;
+}
+body.hunt-loop #hud #objective>small,
+body.hunt-loop #hud #objective>span,
+body.hunt-loop #hud .hunt-action{display:none!important}
+body.hunt-loop .hunt-bag{
+  display:flex!important;align-items:center;justify-content:center;gap:10px;margin:0!important;
+  color:var(--ink-hud-ink)!important;font-size:clamp(10px,2.9vw,13px)!important;font-weight:600;line-height:1.25;
+  letter-spacing:.04em;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+body.hunt-loop .hunt-goal::before{content:"◆";margin-right:5px;color:var(--ink-hud-blood);font-size:.72em}
+body.hunt-loop .hunt-haul::before{content:"◇";margin-right:5px;color:var(--ink-hud-blood);font-size:.78em}
+body.hunt-loop .hunt-bag progress{
+  position:absolute;left:4px;right:4px;bottom:-9px;width:calc(100% - 8px)!important;height:2px!important;margin:0!important;
+  border:0!important;appearance:none;background:rgba(24,20,17,.14)!important;
+}
+body.hunt-loop .hunt-bag progress::-webkit-progress-bar{background:rgba(24,20,17,.14)!important}
+body.hunt-loop .hunt-bag progress::-webkit-progress-value{background:var(--ink-hud-blood)!important}
+body.hunt-loop .hunt-bag progress::-moz-progress-bar{background:var(--ink-hud-blood)!important}
+body.hunt-loop #hud[data-hunt-state="combat"] #objective{opacity:.45}
+
+body.hunt-loop #hud #return-hint{
+  display:flex!important;align-items:center;gap:7px;left:auto!important;right:max(12px,env(safe-area-inset-right))!important;
+  top:calc(76px + env(safe-area-inset-top));bottom:auto!important;width:auto!important;max-width:min(72vw,270px)!important;
+  padding:8px 12px 8px 10px;background:rgba(13,11,10,.88);color:var(--ink-hud-bone)!important;text-align:right!important;
+  font-size:12px!important;line-height:1.2!important;letter-spacing:.04em!important;
+  clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 10px) 100%,0 100%,0 7px);
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.28));
+}
+body.hunt-loop #hud #return-hint[hidden]{display:none!important}
+body.hunt-loop #return-hint>b{margin:0!important;font-size:18px!important;line-height:1!important;color:var(--ink-hud-bone)!important}
+body.hunt-loop .hunt-return-copy{display:inline-flex;align-items:baseline;gap:10px;white-space:nowrap}
+body.hunt-loop .hunt-return-copy strong{font-weight:600;color:#d67261;font-variant-numeric:tabular-nums}
+
+body.hunt-loop #hud #battle{
+  left:0!important;right:0!important;bottom:calc(165px + env(safe-area-inset-bottom))!important;
+  width:100%!important;padding:0!important;text-align:center!important;
+  background:none!important;clip-path:none!important;filter:none!important;pointer-events:none;
+}
+body.hunt-loop #hud .phases{justify-content:center!important;margin-top:0!important}
+body.hunt-loop #hud .phases span{
+  min-width:0!important;min-height:0!important;margin:0 4px!important;display:block!important;
+  color:#78857c!important;font:400 16px/1.1 "Yu Mincho","Hiragino Mincho ProN","Noto Serif CJK JP",serif!important;
+  letter-spacing:normal!important;text-shadow:0 2px 8px #000!important;
+}
+body.hunt-loop #hud .phases span.active{
+  color:#ffe5b3!important;text-shadow:0 0 9px #b48856,0 0 16px #b4885688!important;
+}
+body.hunt-loop #hud .phases i{color:#6e7770!important}
+body.hunt-loop #combat-action-flow{place-items:center!important;text-align:center!important;margin-top:7px!important}
+body.hunt-loop .combat-action-current{color:#e6dcc2!important;max-width:min(78vw,360px)!important}
+body.hunt-loop .combat-action-history{
+  left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(80vw,360px)!important;
+}
+body.hunt-loop .combat-action-history span{left:50%!important;right:auto!important;transform:translateX(-50%)!important}
+body.hunt-loop .combat-action-history-exit{animation-name:combat-action-history-exit!important}
+
+body.hunt-loop #hud #swipe-hint{
+  display:block!important;left:max(8px,env(safe-area-inset-left))!important;right:auto!important;
+  bottom:max(8px,env(safe-area-inset-bottom))!important;width:44px;height:44px;padding:0;font-size:0!important;
+  opacity:.24;color:var(--ink-hud-bone)!important;background:rgba(11,9,8,.4);border:0;border-radius:50%;
+}
+body.hunt-loop #hud #swipe-hint::before{content:"？";font-size:13px;line-height:44px}
+body.hunt-loop #hud #toast{
+  top:25%!important;max-width:min(330px,82vw)!important;padding:9px 14px!important;
+  background:linear-gradient(90deg,transparent,rgba(12,10,9,.88) 16%,rgba(12,10,9,.88) 84%,transparent)!important;
+  color:#eadfc9!important;font-size:11px!important;
+}
+
+@media(max-width:390px){
+  body.hunt-loop #hud .life{width:min(112px,31vw)!important;gap:6px}
+  body.hunt-loop #hud .life::before{font-size:15px}
+  body.hunt-loop #hud #objective{left:53%;width:min(178px,49vw)!important}
+  body.hunt-loop .hunt-bag{gap:7px!important;font-size:10px!important}
+}
+@media(max-height:650px) and (orientation:landscape){
+  body.hunt-loop #hud::before{height:calc(58px + env(safe-area-inset-top))}
+  body.hunt-loop #hud .life{top:calc(12px + env(safe-area-inset-top))}
+  body.hunt-loop #hud #objective{top:calc(10px + env(safe-area-inset-top))}
+  body.hunt-loop #hud #pause{top:calc(5px + env(safe-area-inset-top))}
+  body.hunt-loop #hud #return-hint{top:calc(62px + env(safe-area-inset-top))}
+  body.hunt-loop #hud #battle{bottom:calc(143px + env(safe-area-inset-bottom))!important}
+}
+@media(prefers-reduced-motion:reduce){
+  body.hunt-loop .combat-action-history-exit{animation:none!important;opacity:.22}
+}
+
+/* Observation-first hierarchy: the quiet opening is prey-first; stake and danger earn visual weight only when real. */
+body.hunt-loop .hunt-bag{gap:8px!important}
+body.hunt-loop .hunt-goal{font-size:1.08em;font-weight:800;letter-spacing:.08em}
+body.hunt-loop .hunt-haul,body.hunt-loop .hunt-pressure{padding:3px 6px;border-left:1px solid rgba(23,19,16,.18);font-size:.86em;font-weight:650}
+body.hunt-loop .hunt-haul[hidden],body.hunt-loop .hunt-pressure[hidden]{display:none!important}
+body.hunt-loop .hunt-bag[data-pressure="2"] .hunt-pressure,body.hunt-loop .hunt-bag[data-pressure="3"] .hunt-pressure{color:#7e211d;background:rgba(155,41,35,.08)}
+body.hunt-loop .hunt-bag[data-pressure="3"] .hunt-pressure{font-weight:900;box-shadow:inset 0 -2px #9b2923}

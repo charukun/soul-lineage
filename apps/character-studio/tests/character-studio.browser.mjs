@@ -1,0 +1,240 @@
+import assert from 'node:assert/strict';
+import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+export async function verifyCharacterStudioPortrait(browser, baseURL, output) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage(), errors = [], network = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('requestfailed', request => network.push({ url: request.url(), failure: request.failure()?.errorText }));
+  const snapshot = label => page.evaluate(label => {
+    const selectors = [
+      '.review-surface','.review-surface__header','.review-surface__workspace','.stage-shell',
+      '.review-surface__stage-column','.review-surface__stage-column--composite','.canvas-wrap',
+      '.review-surface__stage','canvas#stage','.stage-actions','.stage-status','.editor-dock',
+      '.review-controls','.character-review-camera-dock','#retry'
+    ];
+    const nodes = {};
+    for (const selector of selectors) {
+      const node = document.querySelector(selector);
+      if (!node) { nodes[selector] = null; continue; }
+      const rect = node.getBoundingClientRect(), style = getComputedStyle(node);
+      nodes[selector] = {
+        parent: node.parentElement ? (node.parentElement.id ? '#'+node.parentElement.id : node.parentElement.className || node.parentElement.tagName) : null,
+        offsetTop: node.offsetTop, offsetHeight: node.offsetHeight, clientHeight: node.clientHeight,
+        rect: { top:rect.top,bottom:rect.bottom,left:rect.left,right:rect.right,width:rect.width,height:rect.height },
+        style: {
+          display:style.display,position:style.position,height:style.height,minHeight:style.minHeight,maxHeight:style.maxHeight,
+          gridTemplateRows:style.gridTemplateRows,gridRow:style.gridRow,overflow:style.overflow,overflowX:style.overflowX,overflowY:style.overflowY
+        }
+      };
+    }
+    const canvas=document.querySelector('#stage'), gl=canvas?.getContext('webgl2');
+    return {
+      label, viewport:{width:innerWidth,height:innerHeight,devicePixelRatio},
+      nodes,
+      visibleCameraButtons:[...document.querySelectorAll('.character-review-camera-dock button')].filter(button=>{
+        const style=getComputedStyle(button); return style.display!=='none'&&!button.hidden&&button.getBoundingClientRect().height>0;
+      }).map(button=>button.dataset.camera||button.id),
+      buffer:gl?{width:gl.drawingBufferWidth,height:gl.drawingBufferHeight}:null
+    };
+  }, label);
+  try {
+    const response=await page.goto(new URL('./index.html',baseURL).href,{waitUntil:'domcontentloaded',timeout:60000});
+    assert.equal(response.status(),200);
+    const initial=await snapshot('initial-load');
+    await page.screenshot({path:resolve(output,'studio-character-initial-load-mobile.png')});
+    await page.waitForFunction(()=>window.characterStudio?.review?.ready===true&&document.body.classList.contains('character-grid-ready'),null,{timeout:120000});
+    await page.waitForTimeout(160);
+    const ready=await snapshot('ready');
+    const stage=ready.nodes['.stage-shell'].rect, canvas=ready.nodes['canvas#stage'].rect, panel=ready.nodes['.editor-dock'].rect;
+    assert.ok(stage.height>=ready.viewport.height*.40,JSON.stringify(ready));
+    assert.ok(canvas.height>=stage.height*.90,JSON.stringify(ready));
+    assert.ok(stage.top<ready.viewport.height*.15,JSON.stringify(ready));
+    assert.ok(panel.top>=stage.bottom-2,JSON.stringify(ready));
+    assert.deepEqual(ready.visibleCameraButtons,['front','side','back','face','frame-model']);
+    const rail=ready.nodes['.character-review-camera-dock'].rect;
+    assert.ok(rail.top>=stage.top&&rail.bottom<=stage.bottom,JSON.stringify(ready));
+    assert.ok(ready.buffer?.width>0&&ready.buffer?.height>0,JSON.stringify(ready));
+    const back=page.locator('.review-surface__back[data-review-back]');
+    assert.equal(await back.textContent(),'‹ 戻る');
+    const resizeEvidence=[];
+    for(const [width,height] of [[844,390],[412,892],[390,844]]){
+      await page.setViewportSize({width,height});await page.waitForTimeout(180);
+      const resized=await snapshot(`resize-${width}x${height}`);
+      const resizedStage=resized.nodes['.stage-shell'].rect,resizedCanvas=resized.nodes['canvas#stage'].rect;
+      assert.ok(resizedStage.width>0&&resizedStage.height>0,JSON.stringify(resized));
+      assert.ok(resizedCanvas.width>0&&resizedCanvas.height>0,JSON.stringify(resized));
+      assert.ok(resized.buffer?.width>1&&resized.buffer?.height>1,JSON.stringify(resized));
+      assert.deepEqual(resized.visibleCameraButtons,['front','side','back','face','frame-model']);
+      resizeEvidence.push(resized);
+    }
+    await page.screenshot({path:resolve(output,'studio-character-ready-mobile.png')});
+    for(const [name,selector] of [['front','[data-camera="front"]'],['overview','#frame-model'],['face','[data-camera="face"]']]){
+      await page.locator(`.character-review-camera-dock ${selector}`).click();
+      await page.waitForTimeout(120);
+      await page.screenshot({path:resolve(output,`studio-character-${name}-mobile.png`)});
+    }
+    const select=page.locator('.character-model-list');
+    if(await select.count()&&await select.locator('option').count()>1){
+      const initialValue=await select.inputValue(),nextValue=await select.locator('option').nth(1).getAttribute('value');
+      if(nextValue!==null){await select.selectOption(nextValue);await page.waitForTimeout(160);await select.selectOption(initialValue);await page.waitForFunction(()=>window.characterStudio?.review?.ready===true,null,{timeout:120000});}
+    }
+    await page.screenshot({path:resolve(output,'studio-character-model-switch-mobile.png')});
+    const final=await snapshot('model-switch');
+    writeFileSync(resolve(output,'studio-character-portrait.json'),JSON.stringify({success:true,initial,ready,resizeEvidence,final,errors,network},null,2));
+    return {initial,ready,resizeEvidence,final,errors,network};
+  } catch(error) {
+    await page.screenshot({path:resolve(output,'studio-character-portrait-failure.png')}).catch(()=>{});
+    throw error;
+  } finally { await context.close(); }
+}
+
+
+/** Focused real-asset test called by the existing affected browser lane. */
+export async function verifyCharacterStudio(browser, baseURL, output) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
+  const page = await context.newPage(), errors = [], network = [], checks = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('requestfailed', request => network.push({ url: request.url(), failure: request.failure()?.errorText }));
+  const state = () => page.evaluate(() => ({
+    profile: window.characterStudio.workspace.getProfile(), selected: window.characterStudio.review.settings.selected,
+    records: window.characterStudio.review.records, view: window.characterStudio.review.settings.view
+  }));
+  async function ready() {
+    await page.waitForFunction(() => window.characterStudio?.review?.ready === true && window.characterStudio?.workspace, null, { timeout: 120000 });
+  }
+  async function bounds() {
+    return page.evaluate(() => {
+      const r = document.querySelector('#stage').getBoundingClientRect();
+      return { x:r.x,y:r.y,w:r.width,h:r.height,b:r.bottom, viewport:[innerWidth,innerHeight], document:[document.documentElement.scrollWidth,document.documentElement.scrollHeight] };
+    });
+  }
+  async function captureComparison(count) {
+    await page.locator(`[data-count="${count}"]`).click();
+    await page.waitForFunction(expected => {
+      const review = window.characterStudio.review;
+      return expected === 1
+        ? review.settings.view === 'single'
+        : review.settings.view === 'crowd' && review.settings.count === expected && review.actors.length === expected;
+    }, count);
+    await page.waitForTimeout(120);
+    const current = await state();
+    assert.equal(current.profile.hair,'bob');
+    const report = await page.locator('#quality-report').textContent();
+    if (count === 1) {
+      assert.match(await page.locator('#subject').textContent(), /^1体表示/);
+      assert.match(report, /量産 0体 \+ 基準 1体/);
+    }
+    await page.screenshot({path:resolve(output,`studio-compare-${count}-mobile.png`)});
+    checks.push({name:`${count}-person deterministic comparison rendered`,report});
+    return current;
+  }
+  try {
+    const response = await page.goto(new URL('./index.html', baseURL).href, {waitUntil:'domcontentloaded',timeout:60000});
+    assert.equal(response.status(),200); await ready();
+    await page.waitForFunction(()=>document.body.classList.contains('workshop-ux-ready'));
+    assert.equal(await page.locator('.mode-tabs [data-workshop-intent]').count(),3);
+    assert.equal((await state()).view,'single');
+    const gpu = await page.locator('#stage').evaluate(canvas => { const gl=canvas.getContext('webgl2'); return gl&&!gl.isContextLost() ? { version:gl.getParameter(gl.VERSION),width:gl.drawingBufferWidth,height:gl.drawingBufferHeight } : null; });
+    assert.ok(gpu?.version.includes('WebGL 2.0')); assert.ok(gpu.width>0 && gpu.height>0);
+    checks.push({name:'audited Shino WebGL scene',gpu});
+    await page.locator('#pause').evaluate(node=>node.click());
+    await page.locator('[data-slot="hair"]').click();
+    await page.locator('[data-modular-value="bob"]').click();
+    assert.equal((await state()).profile.hair,'bob');
+    const bobVisible = await page.evaluate(() => {
+      const actor=window.characterStudio.review.actors[0], part=actor.visual.getObjectByName('hair:bob');
+      return part?.visible && part.children.every(mesh=>mesh.material.visible);
+    });
+    assert.equal(bobVisible,true);
+    await page.locator('#undo').click(); assert.equal((await state()).profile.hair,'original');
+    await page.locator('#redo').click(); assert.equal((await state()).profile.hair,'bob');
+    await page.locator('#original-preview').click();
+    assert.equal((await state()).profile.hair,'bob');
+    await page.locator('#original-preview').click();
+    const repeatedScale = await page.evaluate(() => {
+      const w=window.characterStudio.workspace, actor=window.characterStudio.review.actors[0];
+      w.change('body','sturdy'); const first=actor.root.scale.toArray();
+      for(let i=0;i<10;i++) {w.previewOriginal();w.previewOriginal();}
+      return {first,last:actor.root.scale.toArray()};
+    });
+    assert.deepEqual(repeatedScale.first,repeatedScale.last);
+    checks.push({name:'paused part switching, visible replacement hair, undo/redo and non-cumulative original preview'});
+    await page.screenshot({path:resolve(output,'studio-main-mobile.png')});
+    const before = await state();
+    await page.locator('[data-workshop-intent="compare"]').click();
+    await page.locator('#workshop-compare-details').evaluate(node=>node.open=true);
+    const one = await captureComparison(1); assert.deepEqual(one.records,before.records);
+    const six = await captureComparison(6); assert.deepEqual(six.records,before.records);
+    const twelve = await captureComparison(12); assert.deepEqual(twelve.records,before.records);
+    const thirty = await captureComparison(30); assert.deepEqual(thirty.records,before.records);
+    await page.screenshot({path:resolve(output,'studio-compare-mobile.png')});
+    await page.locator('#quality-context').selectOption('village');
+    await page.locator('#quality-camera').click(); await page.waitForTimeout(120);
+    await page.screenshot({path:resolve(output,'studio-village-distance-mobile.png')});
+    await page.locator('#quality-context').selectOption('demon');
+    await page.locator('#quality-camera').click(); await page.waitForTimeout(120);
+    await page.screenshot({path:resolve(output,'studio-demon-distance-mobile.png')});
+    checks.push({name:'MURAAAAAAA and demon normal-distance preview rendered'});
+    await page.locator('#quality-context').selectOption('village');
+    await page.locator('[data-individual="5"]').click();
+    await page.locator('#edit-one').click();
+    assert.equal((await state()).selected,5); assert.equal((await state()).view,'single');
+    await page.locator('[data-tab="colors"]').click();
+    await page.locator('[data-gene="eyes"][data-palette="2"]').click();
+    await page.locator('[data-age="55"]').click();
+    const colored=await state();assert.equal(colored.records[5].ageMs,55*60000);assert.deepEqual(colored.records[0],before.records[0]);
+    checks.push({name:'1/6/12/30 comparison preserves edits and targeted color/age edits stay isolated'});
+    for (const [width,height] of [[320,568],[360,640],[390,844],[412,892],[768,1024],[844,390],[1280,800]]) {
+      await page.setViewportSize({width,height}); await page.waitForTimeout(80);
+      const a=await bounds();
+      assert.ok(a.w>0 && a.h>=150 && a.x>=0 && a.x+a.w<=width+1 && a.b<=height+1,JSON.stringify(a));
+      assert.ok(a.document[0]<=width+1 && a.document[1]<=height+1,JSON.stringify(a));
+      await page.locator('.review-controls').evaluate(node=>node.scrollTop=100000);
+      const b=await bounds(); assert.equal(b.y,a.y);assert.equal(b.h,a.h);
+      await page.locator('.review-controls').evaluate(node=>node.scrollTop=0);
+      const footer=await page.locator('.editor-footer').boundingBox();assert.ok(footer.y+footer.height<=height+1);
+      checks.push({name:'bounded viewport and stationary preview',...a});
+    }
+    await page.screenshot({path:resolve(output,'studio-desktop.png')});
+    await page.setViewportSize({width:390,height:844});
+    await page.locator('#advanced-link').click(); await ready();
+    assert.equal((await state()).selected,5);
+    assert.equal(await page.evaluate(()=>window.characterStudio.workspace.getProfile(window.characterStudio.review.records[0].id).hair),'bob');
+    const advancedBefore=await bounds();
+    assert.ok(advancedBefore.y>=0 && advancedBefore.h>=150 && advancedBefore.b<=844,JSON.stringify(advancedBefore));
+    await page.locator('.controls').evaluate(node=>node.scrollTop=node.scrollHeight);
+    const advancedAfter=await bounds();assert.equal(advancedBefore.y,advancedAfter.y);assert.equal(advancedBefore.h,advancedAfter.h);
+    await page.locator('.controls details').last().evaluate(node=>node.open=true);
+    await page.locator('textarea#note').fill('工房往復の確認');
+    const downloaded = page.waitForEvent('download'); await page.locator('#export').click();
+    const download=await downloaded; assert.equal(download.suggestedFilename(),'shino-workspace.json');
+    const path=resolve(output,'studio-roundtrip.json');await download.saveAs(path);
+    await page.locator('#session-file').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{broken')});
+    assert.equal((await state()).selected,5);
+    await page.locator('#session-file').setInputFiles(path);
+    await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('顔・髪・服も引き継ぎ'));
+    const advancedFocused=await bounds();
+    assert.equal(advancedFocused.y,advancedBefore.y);assert.equal(advancedFocused.h,advancedBefore.h);
+    assert.ok(advancedFocused.b<=844 && advancedFocused.y>=0,JSON.stringify(advancedFocused));
+    await page.screenshot({path:resolve(output,'studio-advanced-mobile.png')});
+    await page.locator('.page-head a.back').click(); await ready();
+    assert.equal((await state()).selected,5); assert.equal((await state()).records[5].ageMs,55*60000);
+    await page.reload({waitUntil:'domcontentloaded'});await ready();
+    assert.equal((await state()).records[5].ageMs,55*60000);
+    assert.equal(await page.evaluate(()=>window.characterStudio.workspace.getProfile(window.characterStudio.review.records[0].id).hair),'bob');
+    checks.push({name:'advanced/main navigation, reload, JSON round-trip and invalid import retention'});
+    assert.deepEqual(errors,[]);assert.deepEqual(network,[]);
+    writeFileSync(resolve(output,'studio-browser.json'),JSON.stringify({success:true,checks,errors,network},null,2));
+    console.log('CHARACTER STUDIO BROWSER VERIFIED',JSON.stringify({checks:checks.length,errors,network}));
+    const { verifyCharacterMotionQA } = await import('./character-motion-qa.browser.mjs');
+    await verifyCharacterMotionQA(browser,baseURL,output);
+  } catch(error) {
+    await page.screenshot({path:resolve(output,'studio-failure.png')}).catch(()=>{});
+    writeFileSync(resolve(output,'studio-browser.json'),JSON.stringify({success:false,error:String(error),checks,errors,network},null,2));
+    throw error;
+  } finally {await context.close();}
+}

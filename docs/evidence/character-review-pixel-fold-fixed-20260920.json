@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "rootCause": {
+    "fixed": {
+      "rootRows": "40px 788px",
+      "headerBottom": 45,
+      "workspaceTop": 51,
+      "stageTop": 51,
+      "canvasTop": 52,
+      "canvasHeight": 448.046875,
+      "stageHeight": 451.046875,
+      "panelTop": 508.046875,
+      "rail": {
+        "top": 177.015625,
+        "bottom": 375.015625,
+        "height": 198
+      },
+      "buffer": {
+        "width": 378,
+        "height": 448
+      }
+    },
+    "legacyReproduction": {
+      "rootRows": "480.234px 347.75px",
+      "headerBottom": 45,
+      "workspaceTop": 491.234375,
+      "stageTop": 491.234375,
+      "canvasTop": 492.234375,
+      "canvasHeight": 192.703125,
+      "stageHeight": 195.703125,
+      "panelTop": 692.9375,
+      "buffer": {
+        "width": 378,
+        "height": 193
+      }
+    },
+    "blankPixels": 446.234375
+  },
+  "assertions": [
+    "stageRect.height >= viewportHeight * 0.40",
+    "canvasRect.height >= stageRect.height * 0.90",
+    "stageRect.top < viewportHeight * 0.15",
+    "panelRect.top >= stageRect.bottom - 2",
+    "camera rail contains front/side/back/face/frame-model and stays inside stage"
+  ],
+  "evidenceRun": "https://github.com/charukun/soul-lineage/actions/runs/35471007777"
+}

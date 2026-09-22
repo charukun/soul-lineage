@@ -1,0 +1,404 @@
+:root{
+  font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:#e9ece9;background:#0b1110;color-scheme:dark;
+  --bg:#0b1110;--surface:#0f1514;--surface-2:#151d1a;--line:#303b37;
+  --line-soft:#25302c;--muted:#929e98;--gold:#d7c58b;--gold-bg:#29271f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg)}
+body{background:radial-gradient(circle at 18% 0,#1b2723 0,transparent 30%),#0b1110}
+button,select{font:inherit;color:inherit}
+button{touch-action:manipulation}
+.asset-review{
+  min-height:100dvh;max-width:1440px;margin:0 auto;
+  padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));
+  display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:10px;
+}
+.review-header{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:12px;min-height:54px;
+}
+.review-title{display:flex;align-items:center;gap:10px;min-width:0}
+.review-lab-back{
+  flex:0 0 auto;display:inline-flex;align-items:center;min-height:34px;padding:5px 9px;
+  border:1px solid #3b4943;border-radius:999px;background:#111816;color:#d8ded9;
+  text-decoration:none;font-size:10px;font-weight:700;
+}
+.eyebrow{margin:0 0 4px;color:#8f9d97;font-size:10px;font-weight:750;letter-spacing:.15em}
+.review-header h1{margin:0;font-size:clamp(21px,4vw,30px);line-height:1}
+.review-header-stats{display:grid;justify-items:end;gap:5px;min-width:132px}
+#asset-model-count{
+  padding:5px 8px;border:1px solid #59655f;border-radius:999px;background:#111816;color:#d7c58b;
+  font:800 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;white-space:nowrap;
+}
+.asset-load-state{display:flex;align-items:center;gap:6px;color:#aab5af;font-size:10px}
+.asset-load-state span{width:7px;height:7px;border-radius:50%;background:#738079;box-shadow:0 0 0 3px #73807920}
+.asset-load-state[data-state="ready"] span{background:#bfae74;box-shadow:0 0 0 3px #bfae7420}
+.asset-load-state[data-state="error"]{color:#ffc5bd}.asset-load-state[data-state="error"] span{background:#d86f63}
+
+.asset-workspace{
+  min-height:0;display:grid;grid-template-columns:minmax(0,1.65fr) minmax(340px,.85fr);gap:10px;
+}
+.asset-preview-pane{min-height:0}
+.asset-stage-shell{
+  position:relative;width:100%;height:100%;min-height:520px;overflow:hidden;
+  border:1px solid #313c38;border-radius:14px;background:#090d0d;
+  box-shadow:inset 0 0 90px #0009;
+}
+#asset-stage{display:block;width:100%;height:100%;min-height:520px;touch-action:none}
+.asset-stage-slot{
+  position:absolute;z-index:2;left:12px;top:12px;display:grid;gap:3px;max-width:min(68%,520px);
+  padding:10px 12px;border:1px solid #657169;border-radius:12px;
+  background:linear-gradient(145deg,#26322ded,#141d1acc);
+  box-shadow:inset 3px 0 #c6b277,0 8px 22px #0005;backdrop-filter:blur(10px);pointer-events:none;
+}
+.asset-stage-kicker{color:#c8b77f!important;font-size:8px!important;font-weight:800;letter-spacing:.12em}
+.asset-stage-slot strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f2eee3;font-size:14px;font-weight:800}
+.asset-stage-slot small{color:#aab5af;font-size:9px}
+.asset-view-tools{
+  position:absolute;z-index:3;left:50%;bottom:10px;transform:translateX(-50%);
+  width:min(94%,560px);display:grid;gap:5px;padding:7px 8px;border:1px solid #3b4640;border-radius:12px;
+  background:#0a100ee8;box-shadow:0 14px 34px #0008;backdrop-filter:blur(10px);
+}
+.asset-view-group{display:grid;grid-template-columns:36px minmax(0,1fr);align-items:center;gap:6px}
+.asset-view-group>span{color:#829088;font-size:8px;font-weight:800;letter-spacing:.12em}
+.asset-camera-strip,.asset-focus-strip{display:grid;gap:4px}
+.asset-camera-strip,.asset-focus-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
+.asset-camera-strip button,.asset-focus-strip button{
+  min-height:30px;padding:4px 6px;border:1px solid #39433f;border-radius:999px;
+  background:#0c1411dd;color:#bcc6c0;font-size:9px;font-weight:700;
+}
+.asset-camera-strip button[aria-pressed="true"],.asset-focus-strip button[aria-pressed="true"]{
+  border-color:#c9b36f;background:#2b281c;color:#fff3c9;
+}
+
+.asset-catalog{
+  min-height:0;padding:11px;border:1px solid #2d3734;border-radius:14px;background:#0f1514;
+  display:grid;align-content:start;gap:12px;overflow:auto;overscroll-behavior:contain;
+}
+.asset-purpose{padding-bottom:12px;border-bottom:1px solid var(--line-soft)}
+.asset-purpose>span,.catalog-kicker{color:#84918b;font-size:8px;font-weight:800;letter-spacing:.14em}
+.asset-purpose h2{margin:5px 0 6px;font-size:15px}
+.asset-purpose p{margin:0;color:#9ba7a1;font-size:11px;line-height:1.6}
+.asset-check-grid{
+  margin-top:9px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;
+  border:1px solid #27322e;border-radius:11px;overflow:hidden;background:#27322e;
+}
+.asset-check-grid div{min-width:0;padding:9px 10px;background:#101715}
+.asset-check-grid b{display:block;font-size:10px;color:#d9dedb}
+.asset-check-grid small{display:block;margin-top:3px;color:#7e8b85;font-size:8px;line-height:1.35}
+.asset-section{display:grid;gap:7px}
+.asset-section+.asset-section{padding-top:12px;border-top:1px solid var(--line-soft)}
+.asset-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.asset-section-head h2{margin:3px 0 0;font-size:13px}
+.asset-section-head>small{color:#7f8c86;font-size:9px}
+.model-options{gap:5px}
+.model-options button{
+  min-width:0;min-height:42px;padding:7px 8px;border:1px solid #35413c;border-radius:10px;
+  background:#101715;color:#d6ddd9;font-size:10px;font-weight:700;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.model-options button[aria-pressed="true"]{
+  border-color:#c7b77f;background:#25231c;color:#fff1c8;box-shadow:inset 3px 0 #d7c58b;
+}
+.asset-reset{
+  min-height:30px;padding:5px 9px;border:1px solid #3b4943;border-radius:9px;
+  background:#151d1a;color:#cfd6d2;font-size:9px;font-weight:700;
+}
+
+.asset-slot-tabs>button{
+  min-width:0;min-height:54px;display:grid;gap:4px;text-align:left;padding:8px 9px;
+  border:1px solid #35413c;border-radius:10px;background:#101715;color:#d6ddd9;
+}
+.asset-slot-tabs>button small{color:#7f8d86;font-size:8px;font-weight:750}
+.asset-slot-tabs>button strong{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asset-slot-tabs>button[aria-selected="true"]{
+  border-color:#c7b77f;background:#25231c;color:#fff1c8;box-shadow:inset 0 -2px #d7c58b;
+}
+.asset-slot-tabs>button[aria-selected="true"] small{color:#c8b77f}
+.asset-candidate-head{display:flex;justify-content:space-between;gap:10px;margin-top:2px}
+.asset-candidate-head span{color:#b9c3bd;font-size:9px;font-weight:750}
+.asset-candidate-head small{color:#718078;font-size:8px}
+.asset-equipment-options{gap:5px;padding-bottom:2px;
+}
+.asset-equipment-options button{
+  min-width:0;min-height:46px;padding:6px 7px;border:1px solid #35413c;border-radius:10px;
+  background:#101715;color:#cbd4cf;font-size:9px;font-weight:650;overflow-wrap:anywhere;
+}
+.asset-equipment-options button[aria-selected="true"]{
+  border-color:#c7b77f;background:#25231c;color:#fff1c8;box-shadow:inset 3px 0 #d7c58b;
+}
+.asset-status{
+  display:none;padding:8px 9px;border:1px solid #593833;border-radius:10px;
+  background:#241715;color:#ffc5bd;font-size:10px;white-space:pre-wrap;
+}
+.asset-status[data-error="true"]{display:block}
+.asset-provenance-shell{
+  border:1px solid #2d3734;border-radius:11px;background:#101615;color:#9eaaa4;font-size:11px;
+}
+.asset-provenance-shell summary{padding:9px 11px;color:#d7d3c8;cursor:pointer}
+.asset-provenance-shell p{margin:0;padding:0 11px 10px;line-height:1.55}
+.asset-provenance{overflow-wrap:anywhere}
+button:focus-visible,.review-lab-back:focus-visible{outline:2px solid #e2cd95;outline-offset:2px}
+
+@media(max-width:860px){
+  .asset-review{padding:9px}
+  .asset-workspace{grid-template-columns:1fr}
+  .asset-preview-pane{height:min(54dvh,620px);min-height:360px}
+  .asset-stage-shell,#asset-stage{min-height:360px}
+  .asset-catalog{overflow:visible}
+}
+@media(max-width:520px){
+  .review-header{align-items:flex-start}
+  .review-header-stats{min-width:112px}
+  #asset-model-count{font-size:8px}
+  .asset-preview-pane{height:50dvh;min-height:330px}
+  .asset-stage-shell,#asset-stage{min-height:330px}
+  .asset-stage-slot{left:9px;top:9px;max-width:calc(100% - 18px);padding:8px 10px}
+  .asset-stage-slot strong{font-size:11px}
+  .asset-view-tools{bottom:8px;width:calc(100% - 16px);padding:6px}
+  .asset-view-group{grid-template-columns:32px minmax(0,1fr);gap:4px}
+  .asset-camera-strip button,.asset-focus-strip button{min-height:29px;padding:3px 2px;font-size:8px}
+  .asset-check-grid{grid-template-columns:1fr 1fr}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* Compact equipment review: stage-first mobile layout with a five-column slot-driven model picker on phone widths; reconciled with current review visuals. */
+body.asset-model-picker-open{overflow:hidden}
+.review-header{align-items:center}
+.asset-primary-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.asset-primary-head h2,.asset-model-section h2{margin:0;font-size:13px}
+.asset-stage-slot{border-radius:999px;padding:8px 11px}
+.asset-stage-cameras{
+  position:absolute;z-index:3;left:50%;bottom:10px;transform:translateX(-50%);
+  width:min(92%,520px);padding:6px;border:1px solid #3b4640;border-radius:999px;
+  background:#0a100ee8;box-shadow:0 14px 34px #0008;backdrop-filter:blur(10px)
+}
+.asset-model-section{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px}
+.asset-model-trigger{
+  min-width:0;min-height:48px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;
+  padding:8px 11px;border:1px solid #c7b77f;border-radius:12px;background:#25231c;color:#fff1c8;text-align:left
+}
+.asset-model-trigger strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.asset-model-trigger span{font-size:15px}
+.asset-model-picker{position:fixed;z-index:1200;inset:0;display:grid;align-items:end}
+.asset-model-picker[hidden]{display:none!important}
+.asset-model-picker-backdrop{position:absolute;inset:0;border:0;background:#0009}
+.asset-model-picker-sheet{
+  position:relative;z-index:1;width:min(100%,760px);max-height:min(68dvh,640px);margin-inline:auto;overflow:auto;
+  padding:12px 12px max(14px,env(safe-area-inset-bottom));border:1px solid #394640;border-bottom:0;
+  border-radius:18px 18px 0 0;background:#0d1312;box-shadow:0 -20px 60px #000b
+}
+.asset-model-picker-sheet::before{content:"";display:block;width:42px;height:4px;margin:0 auto 10px;border-radius:999px;background:#55625c}
+.asset-model-picker-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.asset-model-picker-head h2{margin:0;font-size:16px}
+.asset-model-picker-close{width:36px;height:36px;border:1px solid #3b4943;border-radius:50%;background:#111816;color:#e4e8e5;font-size:21px;line-height:1}
+.model-options button{min-height:58px;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:860px){
+  .asset-preview-pane{height:min(58dvh,680px);min-height:390px}
+  .asset-stage-shell,#asset-stage{min-height:390px}
+}
+@media(max-width:520px){
+  .asset-preview-pane{height:56dvh;min-height:380px}
+  .asset-stage-shell,#asset-stage{min-height:380px}
+  .asset-stage-cameras{bottom:8px;width:calc(100% - 16px);padding:5px;gap:4px}
+  .asset-camera-strip button{min-height:32px;padding:4px 2px;font-size:9px}
+  .asset-model-section{grid-template-columns:1fr;gap:7px}
+  .asset-model-trigger{min-height:44px}
+  .model-options{gap:5px}
+  .model-options button{min-height:56px;padding:5px 3px;font-size:8px}
+}
+
+/* Runtime-thumbnail picker guard: keep five-column model cards inside one scrollable sheet. */
+.asset-model-picker-sheet{overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.asset-model-picker .model-options{min-height:0;overflow-y:auto;overscroll-behavior:contain;align-content:start;grid-auto-rows:82px;contain:layout paint}
+.asset-model-picker .model-options .review-choice-card{height:82px!important;min-height:82px!important;max-height:82px!important}
+@media(max-width:520px){
+  .asset-model-picker-sheet{max-height:min(64dvh,520px);padding:10px 9px max(12px,env(safe-area-inset-bottom))}
+  .asset-model-picker .model-options{grid-auto-rows:68px;gap:4px}
+  .asset-model-picker .model-options .review-choice-card{height:68px!important;min-height:68px!important;max-height:68px!important}
+}
+
+/* Catalog thumbnails are static metadata assets; all selectable catalogs stay five-column. */
+.asset-equipment-options,.model-options{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+.asset-equipment-options .review-choice-card,.model-options .review-choice-card{display:grid;grid-template-rows:minmax(0,1fr) auto;align-items:stretch;gap:3px;overflow:hidden}
+.asset-equipment-options .review-choice-card>span,.model-options .review-choice-card>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+@media(max-width:520px){.asset-equipment-options,.model-options{grid-template-columns:repeat(5,minmax(0,1fr))!important}.review-static-thumbnail{max-height:48px}}
+
+
+/* Stage-first equipment inspection: the equipped character is the primary surface. */
+.asset-stage-hint{
+  position:absolute;z-index:3;right:12px;top:12px;
+  padding:6px 9px;border:1px solid #35413c;border-radius:999px;
+  background:#0a100eb8;color:#aeb9b3;font-size:8px;font-weight:750;
+  letter-spacing:.04em;backdrop-filter:blur(8px);pointer-events:none
+}
+.asset-clear-slot{
+  min-height:34px;border:1px solid #34403b;border-radius:9px;
+  background:#121917;color:#aeb8b3;font-size:9px;font-weight:700
+}
+@media(max-width:860px){
+  .asset-workspace{gap:0}
+  .asset-preview-pane{
+    height:clamp(460px,66dvh,760px);min-height:460px;
+    position:sticky;top:0;z-index:0
+  }
+  .asset-stage-shell,#asset-stage{min-height:460px}
+  .asset-catalog{
+    position:relative;z-index:4;margin-top:-6px;padding:12px 10px max(14px,env(safe-area-inset-bottom));
+    border-radius:18px 18px 0 0;border-bottom:0;
+    box-shadow:0 -18px 48px #0008
+  }
+  .asset-catalog::before{
+    content:"";display:block;width:42px;height:4px;margin:-3px auto 4px;
+    border-radius:999px;background:#52605a
+  }
+  .asset-primary-head{min-height:30px}
+  .asset-equipment-section{gap:6px}
+  .asset-slot-tabs>button{min-height:48px;padding:6px 8px}
+  .asset-equipment-options button{min-height:44px;padding:5px}
+  .asset-model-section{opacity:.86}
+}
+@media(max-width:520px){
+  .asset-review{padding:7px 7px max(7px,env(safe-area-inset-bottom));gap:7px}
+  .review-header{min-height:45px}
+  .review-header h1{font-size:21px}
+  .asset-preview-pane{height:clamp(440px,64dvh,680px);min-height:440px}
+  .asset-stage-shell,#asset-stage{min-height:440px}
+  .asset-stage-slot{max-width:calc(100% - 18px);padding:7px 10px}
+  .asset-stage-slot strong{font-size:10px}
+  .asset-stage-hint{right:9px;top:48px;padding:5px 7px;font-size:7px}
+  .asset-stage-cameras{bottom:7px}
+  .asset-catalog{padding-top:10px;gap:9px}
+  .asset-primary-head h2{font-size:12px}
+  .asset-slot-tabs>button{min-height:50px}
+  .asset-slot-tabs>button strong{font-size:10px}
+  .asset-candidate-head{margin-top:0}
+  .asset-equipment-options{gap:4px}
+  .asset-equipment-options button{min-height:54px;padding:4px 2px;font-size:8px}
+  .asset-clear-slot{min-height:32px}
+  .asset-model-section{padding-top:9px!important;gap:5px}
+  .asset-model-section h2{font-size:10px;color:#8f9b95}
+  .asset-model-trigger{min-height:38px;padding:6px 9px}
+}
+
+
+/* Protagonist weapon-type picker replaces review-only skeleton body selection. */
+.asset-weapon-section{gap:8px}
+.asset-weapon-types{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:5px}
+.asset-weapon-types .review-choice-card{
+  min-width:0;min-height:74px;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:4px;
+  padding:6px 4px;border:1px solid #35413c;border-radius:10px;background:#101715;color:#cbd4cf;
+  font-size:9px;font-weight:750;overflow:hidden
+}
+.asset-weapon-types .review-choice-card[aria-selected="true"]{
+  border-color:#d7c58b;background:#29271f;color:#fff1c8;box-shadow:inset 0 -2px #d7c58b
+}
+.asset-weapon-types .review-choice-card>span{
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center
+}
+@media(max-width:520px){
+  .asset-weapon-types{gap:4px}
+  .asset-weapon-types .review-choice-card{min-height:64px;padding:4px 2px;font-size:8px}
+}
+
+/* Equipment usability polish: hierarchy, character-first preview, and quieter secondary actions. */
+.asset-stage-slot{max-width:min(46%,320px);gap:1px;padding:7px 10px}
+.asset-stage-slot small{color:#c8b77f;font-size:8px;font-weight:800;letter-spacing:.08em}
+.asset-stage-slot strong{font-size:12px}
+.asset-stage-hint{transition:opacity .22s ease,transform .22s ease}
+.asset-stage-hint.is-dismissed{opacity:0;transform:translateY(-4px)}
+.asset-reset{border-color:transparent;background:transparent;color:#7f8d86;padding-inline:4px}
+.asset-reset:hover,.asset-reset:focus-visible{color:#d9dfdb;border-color:#3b4943;background:#121917}
+.asset-slot-tabs>button{position:relative}
+.asset-slot-tabs>button[aria-selected="true"]{box-shadow:inset 0 -2px #bfae74,0 0 0 1px #bfae7430}
+.asset-slot-tabs>button[aria-selected="true"]::after{content:"✓";position:absolute;right:8px;top:7px;color:#d7c58b;font-size:9px;font-weight:900}
+.asset-weapon-section{display:grid;gap:6px;padding-top:4px}
+.asset-weapon-section[hidden]{display:none!important}
+.asset-candidate-head strong{font-size:10px}
+.asset-candidate-head small{color:#718078;font-size:8px}
+.asset-clear-slot{justify-self:start;min-height:28px;padding:4px 8px;border-color:transparent;background:transparent;color:#8f9b95}
+.asset-clear-slot:hover,.asset-clear-slot:focus-visible{border-color:#34403b;background:#121917;color:#d3dad6}
+.asset-equipment-options[hidden]{display:none!important}
+@media(max-width:860px){
+  .asset-preview-pane{height:clamp(500px,69dvh,780px);min-height:500px}
+  .asset-stage-shell,#asset-stage{min-height:500px}
+  .asset-catalog{padding-bottom:max(24px,env(safe-area-inset-bottom))}
+}
+@media(max-width:520px){
+  .asset-preview-pane{height:clamp(470px,67dvh,700px);min-height:470px}
+  .asset-stage-shell,#asset-stage{min-height:470px}
+  .asset-stage-slot{max-width:52%;padding:6px 9px}
+  .asset-stage-slot strong{font-size:10px}
+  .asset-stage-hint{top:43px}
+  .asset-catalog{padding-bottom:max(28px,env(safe-area-inset-bottom))}
+}
+
+/* Direct weapon selection: slot row is status only; no secondary candidate catalogue. */
+.asset-slot-statuses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.asset-slot-statuses>div{
+  min-width:0;min-height:50px;display:grid;gap:4px;text-align:left;padding:7px 9px;
+  border:1px solid #35413c;border-radius:10px;background:#101715;color:#d6ddd9
+}
+.asset-slot-statuses>div small{color:#7f8d86;font-size:8px;font-weight:750}
+.asset-slot-statuses>div strong{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+
+/* Equipment warmup: pay network/parse/shader cost once, then keep weapon swaps instant. */
+.asset-stage-loading{
+  position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid #58645e;border-radius:999px;
+  background:#0b1210e8;color:#eee8d7;box-shadow:0 10px 28px #0008;backdrop-filter:blur(10px);
+  pointer-events:none
+}
+.asset-stage-loading[hidden]{display:none!important}
+.asset-stage-loading strong{font-size:9px;letter-spacing:.02em}
+.asset-loading-spinner{
+  width:14px;height:14px;border:2px solid #6f7a74;border-top-color:#d7c58b;border-radius:50%;
+  animation:asset-loading-spin .7s linear infinite
+}
+.asset-weapon-types .review-choice-card:disabled{opacity:.5;cursor:progress}
+@keyframes asset-loading-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.asset-loading-spinner{animation:none}}
+
+
+/* Motion-library parity: category-first equipment browser backed by the shared equipment catalog. */
+.asset-library{gap:8px}
+.asset-library-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.asset-library-head>div{display:grid;gap:2px}
+.asset-library-head strong{font-size:13px}
+.asset-library-head small,.asset-grid-title{color:#7f8d86;font-size:9px}
+.asset-equipment-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:3px;border:1px solid #2f3b36;border-radius:11px;background:#0c1210}
+.asset-equipment-tabs button{
+  min-height:34px;padding:6px 10px;border:1px solid transparent;border-radius:8px;
+  background:transparent;color:#929f98;font-size:10px;font-weight:800;letter-spacing:.03em
+}
+.asset-equipment-tabs button[aria-pressed="true"]{border-color:#c7b77f;background:#29271f;color:#fff1c8;box-shadow:inset 0 -2px #d7c58b}
+.asset-filter-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px}
+.asset-filters{min-width:0;display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.asset-filters::-webkit-scrollbar{display:none}
+.asset-filters button{
+  flex:0 0 auto;min-height:30px;padding:5px 9px;border:1px solid #34413b;border-radius:999px;
+  background:#101715;color:#aeb9b3;font-size:9px;font-weight:750
+}
+.asset-filters button[aria-pressed="true"]{border-color:#c7b77f;background:#29271f;color:#fff1c8}
+.asset-recommended-toggle{
+  flex:0 0 auto;min-height:30px;padding:5px 9px;border:1px solid #34413b;border-radius:9px;
+  background:#101715;color:#aeb9b3;font-size:9px;font-weight:800;white-space:nowrap
+}
+.asset-recommended-toggle[aria-pressed="true"]{border-color:#c7b77f;background:#29271f;color:#fff1c8}
+.asset-weapon-types .review-choice-card[data-preview-state="error"]{border-color:#9a635c!important;opacity:.68}
+.asset-equipped-summary{padding-top:10px!important;border-top:1px solid var(--line-soft)}
+.asset-provenance-shell{margin-top:2px}
+#asset-provenance{white-space:pre-wrap}
+@media(max-width:520px){
+  .asset-library-head strong{font-size:12px}
+  .asset-equipment-tabs{gap:4px;padding:2px}
+  .asset-equipment-tabs button{min-height:32px;padding:5px 8px;font-size:9px}
+  .asset-filter-row{gap:4px}
+  .asset-filters{gap:4px}
+  .asset-filters button,.asset-recommended-toggle{min-height:28px;padding:4px 8px;font-size:8px}
+}
+
+/* Armor slots extend the equipment library without changing the five-column candidate grid. */
+.asset-slot-statuses{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:520px){.asset-slot-statuses{grid-template-columns:repeat(3,minmax(0,1fr))}}

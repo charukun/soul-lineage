@@ -1,0 +1,237 @@
+name: Astra Work Validation
+run-name: Astra final-head validation ${{ github.ref_name }} ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - 'feat/**'
+      - 'fix/**'
+      - 'work/**'
+      - 'dispatch/**'
+      - 'chore/**'
+      - develop
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: astra-work-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cleanup-routine-ref:
+    if: ${{ github.ref == 'refs/heads/develop' && contains(github.event.head_commit.message, '/routine/txn-') }}
+    name: Cleanup merged routine transport ref
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: write
+    steps:
+      - name: Delete merged routine head ref
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          (async()=>{
+            const api=process.env.GITHUB_API_URL, repo=process.env.GITHUB_REPOSITORY, sha=process.env.GITHUB_SHA;
+            const headers={authorization:`Bearer ${process.env.GITHUB_TOKEN}`,'accept':'application/vnd.github+json','x-github-api-version':'2022-11-28'};
+            const prs=await fetch(`${api}/repos/${repo}/commits/${sha}/pulls`,{headers});
+            if(!prs.ok)throw new Error(`associated PR lookup failed: ${prs.status} ${await prs.text()}`);
+            const rows=await prs.json();
+            const pr=rows.find(row=>row.merged_at&&row.base?.ref==='develop'&&String(row.head?.ref||'').startsWith('routine/txn-'));
+            if(!pr){console.log('No merged routine transport ref to clean.');return;}
+            const ref=String(pr.head.ref);
+            const res=await fetch(`${api}/repos/${repo}/git/refs/heads/${encodeURIComponent(ref)}`,{method:'DELETE',headers});
+            if(res.status!==204&&res.status!==422&&res.status!==404)throw new Error(`ref delete failed: ${res.status} ${await res.text()}`);
+            console.log(`Routine transport ref cleanup: ${ref} -> ${res.status}`);
+          })().catch(error=>{console.error(error);process.exit(1);});
+          NODE
+
+  focused:
+    if: ${{ contains(github.event.head_commit.message, '[astra-validate]') && contains(github.event.head_commit.message, '[astra-heavy-validation]') }}
+    name: Final-head focused validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HEAD_SHA: ${{ github.sha }}
+      APP_ENV: dev
+      ASTRA_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+    steps:
+      - name: Materialize exact work head
+        shell: bash
+        env:
+          HEAVY_VALIDATION: ${{ contains(github.event.head_commit.message, '[astra-heavy-validation]') }}
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git config gc.auto 0
+          if [[ "$HEAVY_VALIDATION" == "true" ]]; then
+            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+            git checkout --detach "$HEAD_SHA"
+          else
+            git config remote.origin.promisor true
+            git config remote.origin.partialclonefilter blob:none
+            git fetch --filter=blob:none --no-tags --depth=8 origin "$HEAD_SHA" "develop:refs/remotes/origin/develop" "${GITHUB_REF_NAME}:refs/remotes/origin/${GITHUB_REF_NAME}"
+            mapfile -t focused_paths < <(printf '%s\n' "$ASTRA_COMMIT_MESSAGE" | sed -nE 's/^Astra-(Check|Test):[[:space:]]*(.+)[[:space:]]*$/\2/p')
+            git sparse-checkout set --no-cone 'package.json' 'package-lock.json' '.github/workflows/astra-work-validation.yml' 'scripts/' "${focused_paths[@]}"
+            git checkout --detach "$HEAD_SHA"
+          fi
+      - name: Recover bounded validation ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          depth=8
+          if ! git show-ref --verify --quiet refs/remotes/origin/develop; then
+            git fetch --no-tags --depth="$depth" origin "develop:refs/remotes/origin/develop" "${GITHUB_REF_NAME}:refs/remotes/origin/${GITHUB_REF_NAME}"
+          fi
+          while ! base="$(git merge-base origin/develop HEAD 2>/dev/null)"; do
+            if [ "$depth" -ge 256 ]; then
+              echo "Unable to recover merge-base within bounded Fast DEV history." >&2
+              exit 1
+            fi
+            git fetch --no-tags --deepen="$depth" origin               "develop:refs/remotes/origin/develop"               "${GITHUB_REF_NAME}:refs/remotes/origin/${GITHUB_REF_NAME}"
+            depth=$((depth * 2))
+          done
+          echo "VALIDATION_BASE_SHA=$base" >> "$GITHUB_ENV"
+      - name: Enforce Fast DEV anti-expansion contract
+        id: contract
+        continue-on-error: true
+        shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          trusted="$RUNNER_TEMP/fast-dev-contract.mjs"
+          if [[ "$COMMIT_MESSAGE" == *"[astra-freshness-hardening]"* ]]; then
+            node scripts/fast-dev-contract.mjs origin/develop HEAD --authorized-freshness-hardening
+          elif [[ "$COMMIT_MESSAGE" == *"[astra-contract-restore]"* ]]; then
+            node scripts/fast-dev-contract.mjs origin/develop HEAD --authorized-restore
+          elif [[ "$COMMIT_MESSAGE" == *"[astra-contract-change]"* ]]; then
+            node scripts/fast-dev-contract.mjs origin/develop HEAD --authorized-contraction
+          elif git cat-file -e origin/develop:scripts/fast-dev-contract.mjs 2>/dev/null; then
+            git show origin/develop:scripts/fast-dev-contract.mjs > "$trusted"
+            node "$trusted" origin/develop HEAD
+          else
+            cp scripts/fast-dev-contract.mjs "$trusted"
+            node "$trusted" origin/develop HEAD --bootstrap
+          fi
+      - name: Record recoverable Fast DEV contract violation
+        if: steps.contract.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          (async()=>{
+          const api=process.env.GITHUB_API_URL,repo=process.env.GITHUB_REPOSITORY,sha=process.env.HEAD_SHA;
+          const target=`${process.env.GITHUB_SERVER_URL}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+          async function post(context,state,description){
+            const res=await fetch(`${api}/repos/${repo}/statuses/${sha}`,{method:'POST',headers:{
+              authorization:`Bearer ${process.env.GITHUB_TOKEN}`,'content-type':'application/json','x-github-api-version':'2022-11-28'
+            },body:JSON.stringify({context,state,description,target_url:target})});
+            if(!res.ok)throw new Error(`status ${context}: ${res.status} ${await res.text()}`);
+          }
+          await Promise.all([
+            post('astra/fast-dev-contract','error','FAST_DEV_CONTRACT_VIOLATION: repair same branch and revalidate'),
+            post('astra/focused-validation','error','Skipped: Fast DEV execution expansion must be repaired first')
+          ]);
+          })().catch(error=>{console.error(error);process.exit(1);});
+          NODE
+      - name: Resolve Astra-selected focused validation
+        id: focused-plan
+        if: steps.contract.outcome == 'success'
+        run: node scripts/astra-focused-validation.mjs plan
+      - name: Set up exact validation Node only when dependency work exists
+        if: steps.contract.outcome == 'success' && steps.focused-plan.outputs.needs_install == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies only when selected validation needs them
+        if: steps.contract.outcome == 'success' && steps.focused-plan.outputs.needs_install == 'true'
+        run: npm ci --ignore-scripts
+      - name: Run Astra-selected focused validation
+        if: steps.contract.outcome == 'success' && steps.focused-plan.outputs.has_work == 'true'
+        run: node scripts/astra-focused-validation.mjs run
+      - name: Record freshness and final-head success
+        if: success() && steps.contract.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          (async()=>{
+          const cp=require('node:child_process'),path=require('node:path'),{pathToFileURL}=require('node:url');
+          const api=process.env.GITHUB_API_URL,repo=process.env.GITHUB_REPOSITORY,sha=process.env.HEAD_SHA;
+          const target=`${process.env.GITHUB_SERVER_URL}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+          const git=(args,opts={})=>cp.execFileSync('git',args,{encoding:'utf8',...opts}).trim();
+          const isAncestor=(a,b)=>{try{cp.execFileSync('git',['merge-base','--is-ancestor',a,b],{stdio:'ignore'});return true;}catch{return false;}};
+          async function post(context,state,description){
+            const res=await fetch(`${api}/repos/${repo}/statuses/${sha}`,{method:'POST',headers:{
+              authorization:`Bearer ${process.env.GITHUB_TOKEN}`,'content-type':'application/json','x-github-api-version':'2022-11-28'
+            },body:JSON.stringify({context,state,description,target_url:target})});
+            if(!res.ok)throw new Error(`status ${context}: ${res.status} ${await res.text()}`);
+          }
+          const ws=await import(pathToFileURL(path.join(process.cwd(),'scripts/workspaces.mjs')).href),nodes=ws.graph();
+          const impact=(base,head)=>{
+            const paths=git(['diff','--no-renames','--name-only','-z',base,head]).split('\0').filter(Boolean).filter(p=>p!=='AGENTS.md');
+            const apps=ws.affectedForDev(nodes,paths),dependencyGraphChanged=paths.some(ws.workspaceManifestPath),rootBuildChanged=paths.some(ws.devGlobalBuildPath);
+            const infrastructure=dependencyGraphChanged||rootBuildChanged;
+            const packages=[...nodes.values()].filter(n=>n.group==='packages'&&paths.some(p=>p.startsWith(`${n.dir}/`)&&!p.endsWith('/README.md'))).map(n=>n.name);
+            return {apps,packages,infrastructure,controlPlane:paths.some(ws.toolingPath)&&!infrastructure,paths};
+          };
+          const observedDevelop=git(['rev-parse','origin/develop']);
+          const refResponse=await fetch(`${api}/repos/${repo}/git/ref/heads/develop`,{headers:{
+            authorization:`Bearer ${process.env.GITHUB_TOKEN}`,'x-github-api-version':'2022-11-28'
+          }});
+          if(!refResponse.ok)throw new Error(`develop ref: ${refResponse.status} ${await refResponse.text()}`);
+          const developSha=(await refResponse.json()).object.sha;
+          if(developSha!==observedDevelop)git(['fetch','--no-tags','origin','develop:refs/remotes/origin/develop']);
+          let reusable=isAncestor(developSha,sha);
+          let reason=reusable?'current-develop-contained':'';
+          if(!reusable){
+            const base=process.env.VALIDATION_BASE_SHA;
+            if(!isAncestor(base,developSha)){
+              reason='develop-history-diverged';
+            }else{
+              try{
+                git(['merge-tree','--write-tree',sha,developSha]);
+                const work=impact(base,sha), drift=impact(base,developSha);
+                const driftApps=new Set(drift.apps||[]), driftPackages=new Set(drift.packages||[]);
+                const appOverlap=(work.apps||[]).some(id=>driftApps.has(id));
+                const packageOverlap=(work.packages||[]).some(name=>driftPackages.has(name));
+                if(drift.infrastructure||drift.controlPlane) reason='develop-shared-control-changed';
+                else if(appOverlap||packageOverlap) reason='affected-scope-overlap';
+                else { reusable=true; reason='mergeable-independent-drift'; }
+              }catch{ reason='merge-conflict'; }
+            }
+          }
+          const freshnessDescription=(reusable?(reason==='current-develop-contained'?'Validated head contains current develop':'Independent develop drift; validation reusable'):`ASTRA_REVALIDATE_REQUIRED: ${reason}`).slice(0,140);
+          await Promise.all([
+            post('astra/fast-dev-contract','success','Fast DEV execution contract is clean'),
+            post('astra/merge-freshness',reusable?'success':'error',freshnessDescription),
+            post('astra/focused-validation',reusable?'success':'error',
+              reusable
+                ? (reason==='current-develop-contained'?'Astra-selected exact-head validation passed':'Astra validation reused across independent develop drift')
+                : 'Develop drift conflicts or overlaps validated impact; reconcile and revalidate')
+          ]);
+          if(!reusable)throw new Error(`ASTRA_REVALIDATE_REQUIRED: ${reason}`);
+          })().catch(error=>{console.error(error);process.exit(1);});
+          NODE
+      - name: Record final-head validation failure
+        if: failure() && steps.contract.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          (async()=>{
+          const sha=process.env.HEAD_SHA||'';
+          if(!/^[0-9a-f]{40}$/.test(sha))process.exit(0);
+          const repo=process.env.GITHUB_REPOSITORY;
+          const target=`${process.env.GITHUB_SERVER_URL}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+          const res=await fetch(`${process.env.GITHUB_API_URL}/repos/${repo}/statuses/${sha}`,{method:'POST',headers:{
+            authorization:`Bearer ${process.env.GITHUB_TOKEN}`,'content-type':'application/json','x-github-api-version':'2022-11-28'
+          },body:JSON.stringify({context:'astra/focused-validation',state:'failure',description:'Astra-selected exact-head validation failed',target_url:target})});
+          if(!res.ok)throw new Error(`status failure: ${res.status} ${await res.text()}`);
+          })().catch(error=>{console.error(error);process.exit(1);});
+          NODE

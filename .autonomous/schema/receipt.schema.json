@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:soul-lineage:autonomous:receipt:2",
+  "title": "Final autonomous iteration receipt",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "marker",
+    "repository",
+    "experimentId",
+    "game",
+    "pullRequest",
+    "validatedHead",
+    "validationBase",
+    "run",
+    "verdict",
+    "learning",
+    "merge",
+    "notVerified"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "marker": {
+      "type": "string"
+    },
+    "repository": {
+      "const": "charukun/soul-lineage"
+    },
+    "experimentId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,95}$"
+    },
+    "game": {
+      "enum": [
+        "village",
+        "kuumetsu",
+        "rinne"
+      ]
+    },
+    "pullRequest": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "validatedHead": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "validationBase": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "run": {
+      "type": "object",
+      "required": [
+        "id",
+        "url",
+        "conclusion"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conclusion": {
+          "const": "success"
+        }
+      }
+    },
+    "verdict": {
+      "enum": [
+        "supported",
+        "refuted",
+        "inconclusive"
+      ]
+    },
+    "learning": {
+      "type": "object"
+    },
+    "merge": {
+      "type": "object",
+      "required": [
+        "state",
+        "sha"
+      ],
+      "properties": {
+        "state": {
+          "const": "merged"
+        },
+        "sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "notVerified": {
+      "type": "array"
+    },
+    "staging": {
+      "type": "object"
+    }
+  }
+}

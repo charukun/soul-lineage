@@ -1,0 +1,488 @@
+/*
+ * 喰滅廻遊の説明・情報シート共通表現。
+ * front / edge / back-shadow を別層にし、本文自体は読みやすい浅い角度に留める。
+ */
+#sheet.slanted-sheet {
+  --sheet-title-size: clamp(1.42rem, 1.08rem + 1.15vw, 1.95rem);
+  --sheet-body-size: clamp(.82rem, .76rem + .28vw, .98rem);
+  --card-title-size: clamp(1rem, .9rem + .45vw, 1.28rem);
+  --card-body-size: clamp(.78rem, .73rem + .24vw, .94rem);
+  --card-note-size: clamp(.69rem, .65rem + .18vw, .81rem);
+  padding:
+    max(18px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(18px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  background:
+    radial-gradient(circle at 50% 42%, #2420175c 0 25%, transparent 58%),
+    linear-gradient(115deg, #020608e8, #080806d8 48%, #020506f0);
+  backdrop-filter: blur(5px) saturate(.72);
+}
+
+#sheet.slanted-sheet .sheet-perspective {
+  position: relative;
+  width: min(640px, 100%);
+  perspective: 1200px;
+  perspective-origin: 50% 46%;
+  transform-style: preserve-3d;
+  isolation: isolate;
+}
+
+#sheet.slanted-sheet[data-kind="help"] .sheet-perspective {
+  width: min(760px, 96vw);
+}
+
+#sheet.slanted-sheet .sheet-perspective::before,
+#sheet.slanted-sheet .sheet-perspective::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  clip-path: polygon(4.8% 0, 100% 2.6%, 95% 100%, 0 97.3%);
+  transform-origin: 50% 48%;
+}
+
+#sheet.slanted-sheet .sheet-perspective::before {
+  z-index: 0;
+  background:
+    linear-gradient(120deg, #0b0b08f2, #2d281dcf 48%, #0b0c09ed),
+    repeating-linear-gradient(13deg, transparent 0 15px, #c0aa7808 16px, transparent 17px 29px);
+  box-shadow: inset 0 0 0 1px #7567465c, inset -18px -14px 24px #0008;
+  transform: translate3d(17px, 14px, -26px) rotateY(-1.8deg) rotateX(.7deg);
+}
+
+#sheet.slanted-sheet .sheet-perspective::after {
+  z-index: -1;
+  background: #000b;
+  filter: blur(10px);
+  opacity: .78;
+  transform: translate3d(30px, 26px, -48px) scale(.97) rotateY(-2.2deg);
+}
+
+#sheet.slanted-sheet .sheet-content {
+  position: relative;
+  z-index: 2;
+  isolation: isolate;
+  width: 100%;
+  max-height: calc(100dvh - max(38px, env(safe-area-inset-top)) - max(38px, env(safe-area-inset-bottom)));
+  padding: clamp(22px, 3vw, 30px) clamp(24px, 4vw, 38px) clamp(28px, 4vw, 38px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  border: 0;
+  clip-path: polygon(4.5% 0, 100% 2.2%, 95.2% 100%, 0 97.4%);
+  background:
+    linear-gradient(100deg, #e0cda008 0 8%, transparent 8.5% 91%, #e0cda007 91.5% 100%),
+    radial-gradient(ellipse at 16% 10%, #9d8a6425 0 17%, transparent 42%),
+    radial-gradient(ellipse at 83% 88%, #332c206b 0 18%, transparent 48%),
+    repeating-linear-gradient(174deg, #d7c4960a 0 1px, transparent 1px 5px),
+    linear-gradient(137deg, #403a2eea, #20231ee9 52%, #302b22f1);
+  box-shadow:
+    inset 0 0 0 1px #cbb98b6e,
+    inset 10px 0 18px #d5c49408,
+    inset -14px -12px 28px #0505048c,
+    0 28px 70px #0008;
+  transform: rotateX(.62deg) rotateY(-1.15deg) translateZ(18px);
+  transform-origin: 50% 48%;
+  scrollbar-width: thin;
+  scrollbar-color: #887b5f #151713;
+}
+
+#sheet.slanted-sheet .sheet-content::before,
+#sheet.slanted-sheet .sheet-content::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#sheet.slanted-sheet .sheet-content::before {
+  inset: 9px 11px 10px;
+  clip-path: polygon(4.2% 0, 100% 2%, 95.4% 100%, 0 97.1%);
+  box-shadow: inset 0 0 0 1px #d2c19655, inset 0 0 30px #0405047d;
+  background:
+    linear-gradient(90deg, transparent 0 5%, #d7c69a0b 5.2% 5.5%, transparent 5.7% 94%, #d7c69a0a 94.2% 94.5%, transparent 94.7%),
+    repeating-linear-gradient(12deg, transparent 0 17px, #c5b38b09 18px, transparent 19px 31px);
+}
+
+#sheet.slanted-sheet .sheet-content::after {
+  top: 0;
+  right: 8%;
+  width: 37%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #d9c79a9c, transparent);
+  transform: rotate(1.5deg);
+  transform-origin: right center;
+}
+
+#sheet.slanted-sheet .sheet-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+#sheet.slanted-sheet .sheet-heading {
+  min-height: 50px;
+  margin: -8px -8px 0;
+  padding: 7px 10px 7px 19px;
+  clip-path: polygon(2.5% 0, 100% 5%, 96.5% 100%, 0 92%);
+  background:
+    linear-gradient(96deg, #080a08ef 0 68%, #1a1812d2 86%, transparent),
+    repeating-linear-gradient(0deg, transparent 0 4px, #d6c59a0a 5px 6px);
+  border-left: 2px solid #c0aa7b99;
+  box-shadow: 6px 7px 0 #07070466, inset 0 0 0 1px #a18e6652;
+  transform: translateZ(10px) rotateZ(-.35deg);
+}
+
+#sheet.slanted-sheet .sheet-heading small {
+  color: #d2c196;
+  font-size: clamp(.62rem, .58rem + .14vw, .72rem);
+  letter-spacing: .22em;
+  text-shadow: 0 2px 8px #000;
+}
+
+#sheet.slanted-sheet #sheet-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -5px -5px -5px 0;
+  padding: 0;
+  color: #ddd0ad;
+  font-size: 24px;
+  line-height: 1;
+  opacity: .86;
+}
+
+#sheet.slanted-sheet #sheet-close:active {
+  background: #c7b27d1f;
+}
+
+#sheet.slanted-sheet #sheet-title {
+  margin: 19px 5px 20px;
+  max-width: 24ch;
+  color: #f0e7ce;
+  font-size: var(--sheet-title-size);
+  line-height: 1.35;
+  letter-spacing: .105em;
+  text-shadow: 0 3px 18px #000c;
+}
+
+#sheet.slanted-sheet #sheet-body {
+  padding: 0 4px 4px;
+  font-size: var(--sheet-body-size);
+}
+
+#sheet.slanted-sheet :where(#sheet-title, #sheet-body, #sheet-body p, #sheet-body small, #sheet-body button, #sheet-body h3) {
+  text-wrap: pretty;
+}
+
+#sheet.slanted-sheet:lang(ja) :where(#sheet-title, #sheet-body p, #sheet-body small, #sheet-body button, #sheet-body h3) {
+  line-break: strict;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+#sheet.slanted-sheet:not(:lang(ja)) :where(#sheet-title, #sheet-body p, #sheet-body small, #sheet-body button, #sheet-body h3) {
+  letter-spacing: .01em;
+  line-break: auto;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+#sheet.slanted-sheet #sheet-body > p {
+  margin: 10px 0;
+  padding: 11px 14px 12px;
+  color: #d6d0ba;
+  line-height: 1.82;
+  border-left: 1px solid #a7966b77;
+  background: linear-gradient(93deg, #080a08a8, #16171359 72%, transparent);
+}
+
+/* 明示的な説明カード。段落数や文字列内容に依存しない。 */
+#sheet.slanted-sheet .explanation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 2vw, 18px);
+  align-items: stretch;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+#sheet.slanted-sheet .explanation-card {
+  --card-yaw: 4.2deg;
+  --card-shift: 8px;
+  --card-shadow-shift: 14px;
+  position: relative;
+  min-width: 0;
+  min-height: 148px;
+  perspective: 850px;
+  transform-style: preserve-3d;
+  isolation: isolate;
+}
+
+#sheet.slanted-sheet .explanation-card[data-depth="right"] {
+  --card-yaw: -4.2deg;
+  --card-shift: -8px;
+  --card-shadow-shift: -14px;
+}
+
+#sheet.slanted-sheet .explanation-card::before,
+#sheet.slanted-sheet .explanation-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+}
+
+#sheet.slanted-sheet .explanation-card::before {
+  z-index: 0;
+  clip-path: polygon(5% 0, 100% 4%, 94% 100%, 0 94%);
+  background: linear-gradient(132deg, #090a07f2, #211e16e8);
+  box-shadow: inset 0 0 0 1px #6e604251;
+  transform: translate3d(var(--card-shift), 9px, -18px) rotateY(var(--card-yaw));
+}
+
+#sheet.slanted-sheet .explanation-card[data-depth="right"]::before {
+  clip-path: polygon(0 4%, 95% 0, 100% 94%, 5% 100%);
+}
+
+#sheet.slanted-sheet .explanation-card::after {
+  z-index: -1;
+  background: #000a;
+  filter: blur(7px);
+  opacity: .74;
+  transform: translate3d(var(--card-shadow-shift), 16px, -34px) scale(.96);
+}
+
+#sheet.slanted-sheet .explanation-card__face {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  min-height: 148px;
+  padding: clamp(15px, 2.2vw, 20px) clamp(15px, 2.2vw, 21px) clamp(16px, 2.4vw, 22px);
+  clip-path: polygon(5% 0, 100% 4%, 94% 100%, 0 94%);
+  background:
+    radial-gradient(circle at 13% 13%, #d0bc8b18, transparent 31%),
+    repeating-linear-gradient(174deg, #cab98c09 0 1px, transparent 1px 5px),
+    linear-gradient(132deg, #1a1b16f7, #302d23ee);
+  box-shadow:
+    inset 0 0 0 1px #c0ac7a69,
+    inset -12px -10px 22px #0505047f,
+    0 8px 14px #0005;
+  transform: rotateY(var(--card-yaw)) translateZ(14px);
+  transform-origin: 50% 50%;
+}
+
+#sheet.slanted-sheet .explanation-card[data-depth="right"] .explanation-card__face {
+  clip-path: polygon(0 4%, 95% 0, 100% 94%, 5% 100%);
+}
+
+#sheet.slanted-sheet .explanation-card__heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #aa986a42;
+}
+
+#sheet.slanted-sheet .explanation-card__mark {
+  display: grid;
+  place-items: center;
+  inline-size: clamp(32px, 4.2vw, 42px);
+  block-size: clamp(32px, 4.2vw, 42px);
+  color: #d6c184;
+  font-size: clamp(1.25rem, 1.05rem + .8vw, 1.75rem);
+  line-height: 1;
+  border: 1px solid #c5b07762;
+  background: radial-gradient(circle, #a88f5322, transparent 70%);
+  text-shadow: 0 0 15px #bb9d5b5c;
+  transform: translateZ(9px);
+}
+
+#sheet.slanted-sheet .explanation-card h3 {
+  min-width: 0;
+  margin: 0;
+  color: #efe4c5;
+  font-size: var(--card-title-size);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: .075em;
+}
+
+#sheet.slanted-sheet .explanation-card__body {
+  margin: 0;
+  color: #ddd6bd;
+  font-size: var(--card-body-size);
+  line-height: 1.78;
+}
+
+#sheet.slanted-sheet .explanation-card__note {
+  display: block;
+  margin-top: 9px;
+  color: #aaa98f;
+  font-size: var(--card-note-size);
+  line-height: 1.68;
+}
+
+#sheet.slanted-sheet .inline-action,
+#sheet.slanted-sheet .route-card {
+  min-height: 44px;
+  margin: 5px 0;
+  padding: 13px 17px;
+  border: 0;
+  clip-path: polygon(1.7% 0, 100% 5%, 98.2% 100%, 0 94%);
+  background: linear-gradient(93deg, #0a0d0bd7, #25231ba9 82%, #0a0b09ae);
+  box-shadow: inset 0 0 0 1px #ae9d7459, 5px 6px 0 #05060461;
+}
+
+#sheet.slanted-sheet .inline-action:nth-of-type(even),
+#sheet.slanted-sheet .route-card:nth-of-type(even) {
+  clip-path: polygon(0 5%, 98.3% 0, 100% 94%, 1.8% 100%);
+}
+
+#sheet.slanted-sheet .inline-action:active:not(:disabled),
+#sheet.slanted-sheet .route-card:active:not(:disabled) {
+  background: linear-gradient(93deg, #171a14ec, #3a3525ca 82%, #11130fdf);
+  transform: translateY(1px);
+}
+
+#sheet.slanted-sheet .visit-row,
+#sheet.slanted-sheet .credits,
+#sheet.slanted-sheet .provenance {
+  margin: 6px 0;
+  padding: 10px 14px;
+  border: 0;
+  clip-path: polygon(1.3% 0, 100% 3%, 98.4% 100%, 0 96%);
+  background: linear-gradient(96deg, #0a0d0bbe, #29261d80 80%, transparent);
+  box-shadow: inset 0 0 0 1px #a3946d38, 4px 5px 0 #0506044f;
+}
+
+#sheet.slanted-sheet .error {
+  color: #e4b3a8 !important;
+  border-left: 2px solid #aa6755;
+}
+
+/* HUDに一瞬だけ出る次行動も同じ立体言語へ寄せる。 */
+body.hunt-loop #hud .hunt-action:not([hidden]) {
+  display: block;
+  width: fit-content;
+  max-width: min(100%, 36ch);
+  margin: 7px 0 0;
+  padding: 8px 15px 9px 13px;
+  clip-path: polygon(3% 0, 100% 7%, 96% 100%, 0 91%);
+  background:
+    repeating-linear-gradient(174deg, #c5b68a09 0 1px, transparent 1px 5px),
+    linear-gradient(94deg, #080a08ed, #302b1eb8 82%, #0c0d0ad8);
+  box-shadow: inset 0 0 0 1px #aa986d59, 7px 8px 0 #0304037a;
+  color: #e2dabd;
+  font-size: clamp(.68rem, .64rem + .18vw, .78rem);
+  line-height: 1.55;
+  letter-spacing: .04em;
+  text-shadow: 0 2px 6px #000;
+  transform: perspective(640px) rotateY(2.1deg);
+  transform-origin: left center;
+}
+
+@media (max-width: 620px) {
+  #sheet.slanted-sheet {
+    --sheet-title-size: clamp(1.3rem, 1.16rem + 1vw, 1.62rem);
+    --sheet-body-size: clamp(.8rem, .76rem + .28vw, .92rem);
+    --card-title-size: clamp(.96rem, .9rem + .42vw, 1.12rem);
+    --card-body-size: clamp(.78rem, .74rem + .22vw, .9rem);
+    --card-note-size: clamp(.68rem, .65rem + .18vw, .78rem);
+    align-items: flex-end;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-right: max(8px, env(safe-area-inset-right));
+    padding-bottom: max(9px, env(safe-area-inset-bottom));
+    padding-left: max(8px, env(safe-area-inset-left));
+  }
+
+  #sheet.slanted-sheet .sheet-perspective,
+  #sheet.slanted-sheet[data-kind="help"] .sheet-perspective {
+    width: 100%;
+    perspective: 900px;
+  }
+
+  #sheet.slanted-sheet .sheet-perspective::before {
+    transform: translate3d(8px, 9px, -16px) rotateY(-1deg);
+  }
+
+  #sheet.slanted-sheet .sheet-perspective::after {
+    transform: translate3d(13px, 15px, -28px) scale(.985);
+    filter: blur(7px);
+  }
+
+  #sheet.slanted-sheet .sheet-content {
+    width: 100%;
+    max-height: calc(100dvh - max(24px, env(safe-area-inset-top)) - max(18px, env(safe-area-inset-bottom)));
+    padding: 21px 20px 28px;
+    clip-path: polygon(2.2% 0, 100% 1.5%, 97.5% 100%, 0 98.2%);
+    transform: rotateX(.25deg) rotateY(-.55deg) translateZ(10px);
+  }
+
+  #sheet.slanted-sheet .sheet-content::before {
+    inset: 6px 7px 7px;
+  }
+
+  #sheet.slanted-sheet #sheet-title {
+    margin: 14px 3px 16px;
+    max-width: 28ch;
+  }
+
+  #sheet.slanted-sheet .explanation-grid {
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+
+  #sheet.slanted-sheet .explanation-card {
+    --card-yaw: 2.2deg;
+    --card-shift: 5px;
+    --card-shadow-shift: 9px;
+    min-height: 0;
+  }
+
+  #sheet.slanted-sheet .explanation-card[data-depth="right"] {
+    --card-yaw: -2.2deg;
+    --card-shift: -5px;
+    --card-shadow-shift: -9px;
+  }
+
+  #sheet.slanted-sheet .explanation-card__face {
+    min-height: 0;
+    transform: rotateY(var(--card-yaw)) translateZ(9px);
+  }
+}
+
+@media (max-width: 360px) {
+  #sheet.slanted-sheet .sheet-content {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  #sheet.slanted-sheet .explanation-card__face {
+    padding: 14px 14px 16px;
+  }
+
+  #sheet.slanted-sheet .explanation-card__heading {
+    gap: 8px;
+  }
+}
+
+@media (max-height: 620px) {
+  #sheet.slanted-sheet .sheet-content {
+    max-height: calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #sheet.slanted-sheet,
+  #sheet.slanted-sheet *,
+  body.hunt-loop #hud .hunt-action {
+    transition: none !important;
+  }
+}

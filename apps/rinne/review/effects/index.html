@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090d0d">
+<link rel="icon" href="./review-favicon.svg?v=1" type="image/svg+xml"><title>Visual Review｜エフェクト</title>
+<link rel="stylesheet" href="../../src/review/effects/index.css">
+</head>
+<body>
+<main class="fx-review review-surface review-workbench">
+<header class="review-header review-surface__header">
+  <div class="review-title review-surface__title"><a class="review-lab-back review-surface__back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a><div><span class="review-surface__eyebrow">RINNE RUNTIME PROBE</span><h1>エフェクト</h1><p class="review-subtitle">攻撃・被弾・属性・大技を実機比較</p></div></div>
+  <div class="review-header-stats review-surface__stats"><output id="fx-status" role="status">原本を準備中</output></div>
+</header>
+<section class="fx-workspace review-surface__workspace">
+  <div class="preview-pane review-surface__stage-column">
+    <section class="stage-shell review-surface__stage" data-review-stage-panel-host=".fx-review-library" aria-label="選択中エフェクトの実機プレビュー">
+      <canvas id="fx-stage" aria-label="人型スケールで戦闘エフェクトを確認。ドラッグで回転、ピンチで拡大"></canvas>
+      <div class="stage-selection-slot review-workbench__stage-caption" aria-live="polite"><span class="stage-selection-kicker">選択中</span><strong id="fx-selected-label">斬撃＋命中</strong><small id="fx-selected-meta">準備中</small><span id="fx-active-type">SINGLE ATTACK</span></div>
+      <div class="stage-label"><span>ATTACKER</span><span>IMPACT / AREA</span><span>PRIMARY TARGET</span></div>
+    </section>
+
+  </div>
+  <aside class="catalog-shell review-surface__panel" aria-label="エフェクト一覧">
+    <details class="controls" data-review-stage-control>
+      <summary>再生設定</summary>
+      <div class="control-panel" aria-label="エフェクト確認操作">
+        <div class="control-row">
+          <label>再生速度<select id="fx-speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label>
+          <label>負荷tier<select id="fx-tier"><option value="0">FULL</option><option value="1">MID</option><option value="2">LOW</option><option value="3">MIN</option></select></label>
+          <label class="check"><input id="fx-loop" type="checkbox" checked autocomplete="off">反復</label>
+          <label class="check"><input id="fx-reduced" type="checkbox">Reduced motion</label>
+        </div>
+        <div class="control-row actions"><button id="fx-pause" type="button">一時停止</button><button id="fx-clear" type="button">消去</button><button id="fx-camera" type="button">カメラを戻す</button></div>
+        <output id="fx-metrics">backend: loading</output>
+      </div>
+    </details>
+    <section class="fx-review-library review-workbench__library review-workbench__panel-host" aria-label="エフェクトを選ぶ">
+    <div class="review-workbench__library-head"><div><span class="review-workbench__kicker">EFFECT LIBRARY</span><strong>エフェクトを選ぶ</strong></div><small>カテゴリ → エフェクト</small></div>
+    <div id="fx-discovery-tools" class="catalog-tools" hidden>
+      <label class="search-box review-workbench__search"><span>検索</span><input id="fx-search" type="search" placeholder="名前・タグで検索" autocomplete="off"></label>
+      <div class="filter-row review-filter-tabs review-workbench__filters" role="group" aria-label="カテゴリ">
+      <button type="button" data-filter="all" aria-pressed="true">すべて</button>
+      <button type="button" data-filter="original" aria-pressed="false">原本</button>
+      <button type="button" data-filter="attack" aria-pressed="false">攻撃</button>
+      <button type="button" data-filter="impact" aria-pressed="false">被弾</button>
+      <button type="button" data-filter="support" aria-pressed="false">支援</button>
+      <button type="button" data-filter="elemental" aria-pressed="false">属性</button>
+      <button type="button" data-filter="finisher" aria-pressed="false">大技</button>
+      <button type="button" data-filter="combo" aria-pressed="false">複合</button>
+      </div>
+    </div>
+    <div class="catalog-heading review-workbench__grid-title"><span class="catalog-kicker">候補一覧</span><output id="fx-model-count" class="catalog-count" aria-label="実エフェクトモデル数">— EFFECTS</output></div>
+    <div id="fx-catalog" class="fx-catalog review-choice-grid" role="list"></div>
+    <p id="fx-empty" class="catalog-empty review-workbench__empty" hidden>一致するエフェクトはありません</p>
+    </section>
+    <details class="provenance review-surface__meta"><summary>原本・確認境界</summary><p id="fx-provenance"></p><p>この画面はゲーム本体と同じ authored effect player / Effekseer backend を使います。人型マネキンと発生点・着弾点・範囲ガイドはレビュー用の見え方だけを補助し、ダメージ判定や戦闘ルールを複製しません。</p></details>
+  </aside>
+</section>
+</main>
+<script type="module" src="../../src/review/effects/entrypoint.js"></script>
+<script type="module" src="../../src/review-slot-auto.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "sourceId": "kenney-light-masks-phase4",
+  "provider": "Kenney",
+  "license": "CC0-1.0",
+  "repository": "shorepine/kenney",
+  "commit": "3694c6879e487c108f55677be7dd2ca75b07cc3b",
+  "sourcePath": "2d/Light Masks/",
+  "files": [
+    {
+      "path": "assets/vendor/public-web/kenney-light-masks-phase4/circle_a_noise.png",
+      "sha256": "3b9fcce9ae7d9da09236bf6a6d1e583f28b077f636513393b1160500e81acd33",
+      "gitBlob": "5638b19ef3419162a96edaf336a63db4f071758a"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-light-masks-phase4/circle_a_streaks_noise.png",
+      "sha256": "2a2ba43d3499dacd1372e8ce9d7ab1c668ace786bb4fef806c9fe77dea7cde34",
+      "gitBlob": "16c5110f01ec3cc0c023c90647d50b170139e9c7"
+    }
+  ]
+}

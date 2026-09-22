@@ -1,0 +1,137 @@
+name: Deploy PROD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      full_verification:
+        description: 'Run full regression after Production publication'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Validate candidate and promote Production snapshot
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ format('{0}prod/', steps.deployment.outputs.page_url) }}
+    steps:
+      - name: Checkout Production source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          path: sources/dev
+          persist-credentials: false
+      - name: Checkout canonical main source
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          path: sources/prod
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            sources/dev/package-lock.json
+            sources/prod/package-lock.json
+      - name: Build Production without the retired Pages DEV mirror
+        id: assemble
+        env:
+          SITE_URL: https://charukun.github.io/soul-lineage/
+          PAGES_DEV_RETIRED: 'true'
+        run: node sources/dev/scripts/deploy.mjs sources/dev sources/prod _site "$SITE_URL"
+      - name: Preserve immutable distribution artifacts
+        if: steps.assemble.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution-artifacts-${{ github.sha }}
+          path: .deploy-state/artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Deduplicate identical site bytes
+        if: steps.assemble.outputs.changed == 'true'
+        run: |
+          mkdir -p .deploy-state
+          node sources/dev/scripts/site-dedupe.mjs _site | tee .deploy-state/site-dedupe.json
+      - uses: actions/configure-pages@v5
+        if: steps.assemble.outputs.changed == 'true'
+      - uses: actions/upload-pages-artifact@v4
+        if: steps.assemble.outputs.changed == 'true'
+        with:
+          path: _site
+      - name: Promote candidate to Production Pages
+        id: deployment
+        if: steps.assemble.outputs.changed == 'true'
+        uses: actions/deploy-pages@v4
+      - name: Verify public app URLs, assets and source commits
+        if: steps.assemble.outputs.changed == 'true'
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: node sources/dev/scripts/verify-live.mjs "$SITE_URL" _site
+      - name: Preserve blocking Production browser verification
+        if: steps.assemble.outputs.changed == 'true'
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site .deploy-state/changed.json
+      - name: Keep exact publication diagnostics
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-published-snapshot
+          path: |
+            _site/deployment-manifest.json
+            .deploy-state/changed.json
+            .deploy-state/site-dedupe.json
+            .deploy-state/artifacts/**/artifact.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 14
+
+  full-verification:
+    name: Optional full Production regression
+    needs: publish
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.full_verification == true && needs.publish.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Full regression
+        run: node scripts/validate.mjs full
+      - name: Record separate diagnostic result
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          RESULT: ${{ job.status }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
+              context: 'verification/full', state: process.env.RESULT === 'success' ? 'success' : 'failure',
+              description: 'Full Production regression; separate from the blocking publish checks',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });

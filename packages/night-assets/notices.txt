@@ -1,0 +1,141 @@
+# 採用アセットと出典
+
+## GitHubから新規取得し、実際に使用したもの
+
+採用元は Kay Lousberg / `KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0` です。
+
+固定commit: `b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07`
+
+| ファイル | Git blob | 使い方 |
+|---|---|---|
+| `addons/kaykit_dungeon_remastered/Assets/obj/floor_tile_small.obj` | `2d4ed18e2d4ad6bb8213618e6b5f283cc4effe4b` | 生成村の石畳。通常117インスタンス |
+| `addons/kaykit_dungeon_remastered/Assets/obj/banner_blue.obj` | `1306d527258a549e6b202d00aaf7f8680c30248f` | 村門と礼拝所の布。通常4インスタンス |
+
+ライセンスは元Repositoryの `LICENSE.txt` で確認した CC0 です。作者表記とライセンス本文を `licenses/KAYKIT_LICENSE.txt` に収録しています。取得はGitHub接続のファイル読み取りを使用しました。
+
+保持したのは頂点と面の構成です。夜景用に再着色し、元のUV・法線・外部アトラス参照を外して法線を再計算しています。したがって同梱OBJのSHA-256を元のGit blobと同一とは表示しません。加工後ファイルのハッシュ・出典・変換内容は `assets/kaykit/manifest.json` に記録しました。変換された2種は、単体HTMLにも埋め込まれています。
+
+新規取得して実装へ採用したのはこの2種類です。候補として確認した壁や松明のファイルを、採用済みの数には含めません。
+
+## 既存プロジェクトの再利用
+
+家屋・生活小物は、ユーザーのLibraryの `Hoshitsugi_Village_Package.zip` 内にある `src/web/models.js` と `src/game/catalog.js` を再利用しました。`packages/housing/` にコピーし、import先を調整しています。描画時に夜景用の材質を適用しています。この部分を新しくGitHubから取得したモデルとは数えません。
+
+怪物、人間、木、墓石、襲撃用の門・細部は手続き型の試作モデルです。人間と怪物の高品質な外部GLBモデルは今回取得・採用できていません。音はWeb Audioによる合成音です。アニメーションとVFXの表示は、この試作のモデルとエフェクトを共通戦闘の結果・ポーズに結び付けています。
+
+描画ライブラリは既存パッケージに含まれた Three.js を再利用しています。MITライセンス本文は `licenses/THREE_NOTICES.txt` です。アバターVRMの独自ライセンスがこの人間捕食用途を許可すると推定せず、それらのモデルはこの版へ転用していません。
+
+## 参照元
+
+- https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0
+- https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/blob/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/LICENSE.txt
+
+このファイル中のURLは出典を確認するための記録です。ゲームの実行時に読み込むURLではありません。
+
+KayKit : Dungeon Remastered (1.0)
+Created/distributed by Kay Lousberg (www.kaylousberg.com)
+Creation date: 13/03/2023 09:00
+------------------------------
+License: (Creative Commons Zero, CC0)
+http://creativecommons.org/publicdomain/zero/1.0/
+This content is free to use in personal, educational and commercial projects.
+Support me by crediting Kay Lousberg, www.kaylousberg.com (this is not mandatory)
+------------------------------
+This asset pack is here thanks to all the wonderful people who support KayKit on Patreon and those who buy our EXTRA or SOURCE packs on itch.io.
+And a big, special thank you to my Super Supporters:
+- Brian McBarron
+- Silva
+------------------------------
+Patreon: http://patreon.com/kaylousberg
+Follow on Twitter for updates: http://twitter.com/KayLousberg
+
+Three.js 0.185.1
+https://github.com/mrdoob/three.js/blob/r185/LICENSE
+Copyright © 2010-2026 three.js authors
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+Rolldown runtime
+https://github.com/rolldown/rolldown/blob/main/LICENSE
+Copyright (c) 2024-present VoidZero Inc. & Contributors
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+esbuild-derived runtime helpers
+Copyright (c) 2020 Evan Wallace
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+CURRENT DISTRIBUTION: npm three 0.186.0
+The MIT License
+
+Copyright © 2010-2026 three.js authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

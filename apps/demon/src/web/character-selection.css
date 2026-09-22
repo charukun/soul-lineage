@@ -1,0 +1,20 @@
+#title-character{color:#d0bdde}
+.choosing-character #title,.choosing-character #hud,.choosing-character #labels{visibility:hidden}
+.choosing-character #sheet{background:transparent;backdrop-filter:none;pointer-events:none;align-items:flex-end}
+.choosing-character .sheet-content{pointer-events:auto;width:min(100%,620px);max-height:46dvh;padding:14px 20px max(16px,env(safe-area-inset-bottom));border-top:1px solid #77627e;background:linear-gradient(145deg,#18131eeF,#0c1012fa);box-shadow:0 -12px 50px #05050999}
+.choosing-character .sheet-heading{margin-bottom:3px}
+.choosing-character #sheet-title{font-size:23px;margin:0 0 12px}
+.character-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.character-choice{position:relative;display:grid;grid-template-columns:30px 1fr;align-items:center;gap:4px 7px;text-align:left;background:#13151a;border:1px solid #403943;color:#b9b2c0;padding:12px 10px;min-height:92px;border-radius:3px}
+.character-choice>span{grid-row:1 / 3;font-size:27px;color:#9c88b0;text-align:center}
+.character-choice strong{font-size:15px;font-weight:500;letter-spacing:.08em}
+.character-choice small{font-size:11px;line-height:1.6;color:#a29bab}
+.character-choice[aria-pressed=true]{border-color:#b29bc7;background:linear-gradient(140deg,#33283d,#17171f);color:#eee4f6;box-shadow:inset 0 0 16px #80649518}
+.character-choice:focus-visible{outline:2px solid #dfc5f2;outline-offset:3px}
+.character-actions{display:flex;align-items:center;gap:16px}
+.character-actions .primary{flex:1;margin:0;min-height:46px;padding:12px 18px;font-size:16px}
+.character-actions .primary:disabled{opacity:.45}
+#character-status{margin:9px 0;font-size:12px;color:#c2b1d0;min-height:18px;line-height:1.5}
+.character-note{font-size:11px;color:#8e8896;margin:9px 0 0;line-height:1.5}
+@media (orientation:landscape){.choosing-character #sheet{justify-content:flex-end;align-items:center}.choosing-character .sheet-content{width:42%;max-height:96dvh;border:1px solid #77627e55}.character-choices{grid-template-columns:1fr}.character-choice{min-height:72px}}
+@media (max-height:700px) and (orientation:portrait){.choosing-character .sheet-content{max-height:49dvh}.character-choice{min-height:78px;padding:8px}.choosing-character #sheet-title{font-size:20px;margin-bottom:8px}.character-note{margin-top:6px}}

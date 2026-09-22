@@ -1,0 +1,18 @@
+.reference-archetype-panel{margin:0 0 16px;padding:12px;border:1px solid rgba(220,196,147,.28);border-radius:12px;background:rgba(12,22,25,.42)}
+.reference-archetype-panel .panel-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.reference-archetype-panel .panel-heading h3{margin:0}
+.reference-archetype-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.reference-archetype-card{min-height:62px;padding:8px;display:grid;grid-template-columns:48px minmax(0,1fr);grid-template-rows:auto auto;gap:2px 8px;align-items:center;text-align:left;border-radius:10px}
+.reference-archetype-card img{grid-row:1/3;width:48px;height:48px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.16)}
+.reference-archetype-card strong{align-self:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reference-archetype-card small{align-self:start;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reference-archetype-card[aria-pressed="true"]{outline:2px solid #dcc493;outline-offset:1px;background:rgba(220,196,147,.12)}
+.reference-archetype-card.reference-free{display:flex;grid-column:1/-1;justify-content:center;min-height:44px;text-align:center}
+.reference-archetype-detail{display:grid;grid-template-columns:minmax(120px,38%) minmax(0,1fr);gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12)}
+.reference-archetype-detail>img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.14)}
+.reference-archetype-copy h3{margin:0 0 4px}.reference-archetype-meta{margin:0 0 8px;font-size:.82rem;opacity:.76}
+.reference-coverage-grid{display:grid;gap:7px}.reference-coverage{padding:8px;border-radius:9px;background:rgba(255,255,255,.045)}
+.reference-coverage h4{margin:0 0 4px;font-size:.72rem;letter-spacing:.06em}.reference-coverage ul{margin:0;padding-left:18px;font-size:.78rem;line-height:1.45}
+.reference-coverage.implemented h4{color:#b9d7bd}.reference-coverage.proposed h4{color:#e5c98f}.reference-coverage.equipment h4{color:#b8c7d7}
+@media (min-width:720px){.reference-archetype-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.reference-archetype-card.reference-free{grid-column:auto}}
+@media (max-width:420px){.reference-archetype-detail{grid-template-columns:1fr}.reference-archetype-detail>img{max-height:210px}}

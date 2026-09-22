@@ -1,0 +1,25 @@
+{
+  "schemaVersion":1,
+  "id":"village-foundation-20260920",
+  "game":"village",
+  "kind":"infrastructure",
+  "problemKey":"durable-code-first-loop",
+  "observation":{"summary":"Existing native rules/tests have no shared bounded experiment ledger and revision-bound comparable Code-First probe protocol.","evidence":[
+    {"kind":"source","revision":"c5c83902ed34ecce1ca7d3f50ac93f568dcc6945","path":"apps/village/src/game/demography.js","symbol":"planDemographicYear / advanceVirtualCohorts","statement":"Dependency-free native state rules provide a low-cost probe boundary without rewriting game logic."},
+    {"kind":"test","revision":"c5c83902ed34ecce1ca7d3f50ac93f568dcc6945","path":"apps/village/tests/demography.test.mjs","symbol":"existing regression cases","statement":"Existing assertions already protect native game behavior and can host focused causal evidence."},
+    {"kind":"git-tree","revision":"c5c83902ed34ecce1ca7d3f50ac93f568dcc6945","path":"AGENTS.md","symbol":"root tree / Fast DEV execution contract","statement":"Root tree has no .autonomous entry; existing final-head Actions and fixed Fast DEV ceiling must be reused."}
+  ]},
+  "hypothesis":{"cause":"Observations, tests and merge evidence lack a common durable experiment identity and same-condition comparison contract.","prediction":"The existing hosted validation can reconstruct both native probe reports, reject incomparable/stale evidence, and retain both games learning without browser or new Actions cases.","falsifier":"Same-input nondeterminism, silent condition mismatch, loss of historical records, or acceptance of an unvalidated/moved head."},
+  "candidates":[
+    {"id":"reuse-native-leaf-and-existing-gate","selected":true,"reason":"Uses current pure rules and focused test/build lane; no game logic or workload graph rewrite."},
+    {"id":"full-game-refactor","selected":false,"reason":"Disproportionate to available native probe boundaries; unnecessary risk to established rules."},
+    {"id":"browser-default-loop","selected":false,"reason":"Contradicts low-cost code-first iteration requirements."}
+  ],
+  "implementation":{"summary":"Add charter, evidence ledger, immutable history guard, bounded lookup, native probes/comparison and final-head receipt gate. Do not change gameplay.","paths":[".autonomous/README.md","tests/develop-completion-contract.test.mjs","apps/village/tests/demography.test.mjs"]},
+  "comparison":{"objective":"reproducible-causality","verdict":"pending","before":{"revision":"c5c83902ed34ecce1ca7d3f50ac93f568dcc6945","reference":"source/tree observation above","summary":"Native rules exist; shared code-first protocol/ledger absent."},"after":null,"limitations":["Hosted results and exact merge are recorded by PR receipt after validation, not assumed in this commit.","Initial probes cover native partial state rules, not full-game combat, visuals, feel or enjoyment."]},
+  "validation":{"state":"awaiting-exact-head-receipt","focusedTests":["tests/develop-completion-contract.test.mjs","apps/village/tests/demography.test.mjs"],"receipt":{"repository":"charukun/soul-lineage","pullRequest":1035,"marker":"autonomous-receipt:village:village-foundation-20260920"}},
+  "learning":{"summary":"Use existing native state boundaries; document coverage gaps instead of inventing gameplay defects. Await hosted receipt for measured outcomes.","failedApproaches":[],"doNotRetry":[
+    {"approach":"full-game-refactor","reason":"No evidence that whole-engine rewriting is required.","reconsiderWhen":"A narrowly measured issue proves existing native boundaries insufficient and explicit scope authorizes it."},
+    {"approach":"browser-default-loop","reason":"Normal iterations exclude costly browser execution.","reconsiderWhen":"User explicitly requests a separate browser task or existing mandatory gate requires it."}
+  ],"unresolved":["Full combat/interaction causal coverage outside the leaf probes remains unmeasured."],"next":["Inspect one existing game-system connection using charter source map and current user feedback."]}
+}

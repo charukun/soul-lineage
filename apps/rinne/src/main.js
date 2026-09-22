@@ -1,0 +1,214 @@
+import { installRinneGameplayUpgrade } from './gameplay-upgrade.js';
+import { confirmRinneAudio, enterRinneGameplayAudio, enterRinneLineageAudio, exitRinneLineageAudio, selectRinneAudio, unlockRinneAudio } from './gameplay-audio.js';
+import { createTitleCinematicController } from './title-cinematic.js';
+import {openFamilyOrigin, openFamilyHome, installFamilyMemory} from './family-origin-ui.js';
+import './family-origin.css';
+import './native-ui-polish.js';
+import './rinne-world-ui.css';
+import {RINNE_UI_VERSION} from './ui-version.js';
+const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'百年転生',app:'rinne',environment:'local',commit:'UNBUILT'};
+document.title=`百年転生${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
+const $=id=>document.getElementById(id),app=$('app'),title=$('title-screen'),game=$('game-screen'),loading=$('loading-card'),retry=$('boot-retry');
+const villageDialog=$('village-dialog'),settingsDialog=$('title-settings-dialog'),motionToggle=$('title-motion-toggle');
+$('build-label').textContent='UI '+RINNE_UI_VERSION+' · '+(info.commit==='UNBUILT'?'LOCAL':String(info.environment).toUpperCase()+' '+String(info.commit).slice(0,7));document.documentElement.dataset.rinneUiVersion=RINNE_UI_VERSION;
+const storageKey=`soul:v1:${info.environment}:rinne:local:life-v2`;
+const motionKey=`soul:v1:${info.environment}:rinne:title-motion-v1`;
+const rrpCaptureRequested=new URLSearchParams(location.search).has('rrpCapture');
+if(rrpCaptureRequested)document.documentElement.dataset.rrpCapture='true';
+const afterVisiblePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,pendingLaunchMode=null,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,originOpen=false;
+const familyMemory=installFamilyMemory({gameScreen:game,getState:()=>runtime?.snapshot()});
+
+const titleCommands=[...title.querySelectorAll('.title-command')];
+function unlockTitleAudio(){void Promise.resolve(unlockRinneAudio()).then(ok=>{titleAudioReady=Boolean(ok)||titleAudioReady;}).catch(()=>{});titleAudioReady=true;}
+function selectTitleCommand(command,{sound=true}={}){
+  if(!command)return;
+  const changed=titleSelected!==command;
+  for(const item of titleCommands)item.dataset.selected=String(item===command);
+  titleSelected=command;
+  if(changed&&sound&&titleAudioReady&&!title.hidden)selectRinneAudio();
+}
+for(const command of titleCommands){
+  command.addEventListener('focus',()=>selectTitleCommand(command));
+  command.addEventListener('pointerenter',()=>selectTitleCommand(command));
+  command.addEventListener('pointerdown',()=>{unlockTitleAudio();selectTitleCommand(command);},{passive:true});
+  command.addEventListener('click',()=>{unlockTitleAudio();confirmRinneAudio();});
+}
+title.addEventListener('pointerdown',unlockTitleAudio,{capture:true,passive:true});
+title.addEventListener('pointerup',event=>{if(titleCinematic.skip())event.preventDefault();},{capture:true});
+title.addEventListener('keydown',event=>{if(villageDialog.open||settingsDialog.open||originOpen)return;if(title.dataset.intro==='cinematic'){if((event.key==='Enter'||event.key===' ')&&titleCinematic.skip()){event.preventDefault();unlockTitleAudio();}return;}if(title.dataset.intro!=='idle'||title.dataset.ready!=='true')return;if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;unlockTitleAudio();const selected=titleCommands.findIndex(item=>item.dataset.selected==='true'),index=selected<0?0:selected;if(event.key==='Enter'){if(!titleCommands.includes(document.activeElement)){event.preventDefault();titleCommands[index].click();}return;}event.preventDefault();const delta=event.key==='ArrowDown'?1:-1,next=(index+delta+titleCommands.length)%titleCommands.length;selectTitleCommand(titleCommands[next]);titleCommands[next].focus({preventScroll:true});});
+function setTitleReady(ready,status=''){
+  title.dataset.ready=ready?'true':'false';
+  for(const command of titleCommands)command.disabled=!ready;
+  if(status!==undefined)$('boot-status').textContent=status;
+}
+const titleCinematic=createTitleCinematicController({
+  title,
+  video:$('title-cinematic-video'),
+  motionToggle,
+  motionKey,
+  getPrepared:()=>prepared,
+});
+function beginTitleCinematic(){
+  if(window.__SOUL_BRAND_BOOT_PENDING__)return;
+  // A saved family changes the landing title, never the opening film.
+  // Only returning from active gameplay uses the controller's existing landing shortcut.
+  titleCinematic.begin();
+}
+const onBrandEnter=()=>{unlockTitleAudio();beginTitleCinematic();};
+window.addEventListener('soul:brand-enter',onBrandEnter);
+function refreshContinue(){
+  let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
+  hasSave=Boolean(saved&&typeof saved==='object'&&!Array.isArray(saved));const button=$('continue-life'),start=$('new-life');
+  start.hidden=false;start.setAttribute('aria-hidden','false');
+  button.hidden=false;button.setAttribute('aria-disabled',String(!hasSave));button.dataset.available=String(hasSave);
+  if(hasSave){
+    const age=Math.max(0,Math.min(100,Math.floor(Number(saved.ageYears)||0)));
+    button.setAttribute('aria-label',`続きから ${saved.name||'旅人'} ${age}歳 ${saved.generation||1}代目`);
+  }else button.setAttribute('aria-label','続きから 保存データなし');
+}
+function setLoading(message,titleText='世界をつくっています'){
+  $('loading-title').textContent=titleText;$('loading-message').textContent=message;retry.hidden=true;loading.hidden=false;
+}
+function showTitle(status=''){
+  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;game.setAttribute('aria-hidden','true');loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($(hasSave?'continue-life':'new-life'),{sound:false});setTitleReady(Boolean(prepared),status);
+  beginTitleCinematic();
+}
+function showBootFailure(error){
+  console.error(error);booting=false;launching=false;pendingLaunchMode=null;
+  app.dataset.screen='title';title.hidden=false;game.hidden=true;loading.hidden=true;
+  setTitleReady(false,'世界を開けませんでした。もう一度お試しください。');
+  $('open-settings').disabled=false;$('title-retry').hidden=false;
+}
+function installGameplay(){gameplayUpgrade?.dispose?.();gameplayUpgrade=prepared?installRinneGameplayUpgrade({prepared,buildInfo:info}):null;titleAudioReady=false;}
+function disposePrepared(){gameplayUpgrade?.dispose?.();gameplayUpgrade=null;prepared?.dispose?.();}
+
+async function openCoopDialog(){
+  try{
+    if(!villageInstalled){
+      const {installCoopMenu}=await import('./coop/menu.js');
+      let performanceProbeFactory=null,semanticMeasurement=null;
+      if(rrpCaptureRequested){
+        const {installRrpPerformanceCapture}=await import('./coop/performance-capture.js');
+        rrpCapture=installRrpPerformanceCapture({getSession:()=>coopMenu?.session,buildInfo:info});performanceProbeFactory=rrpCapture.performanceProbeFactory;semanticMeasurement=rrpCapture.semanticMeasurement;
+      }
+      coopMenu=installCoopMenu({container:document.getElementById('village-panel'),buildInfo:info,getPrepared:()=>prepared,getName:()=>$('life-name').value,onPlay:enterCoop,performanceProbeFactory,semanticMeasurement,captureWorkload:Boolean(rrpCapture),onLeave:async()=>{villageDialog.close();if(runtime)await $('back-title').onclick();else await coopMenu.leave();}});
+      villageInstalled=true;
+    }
+    if(!villageDialog.open)villageDialog.showModal();
+  }catch(error){console.error(error);$('boot-status').textContent=`村接続失敗：${error?.message||error}`;}
+}
+
+async function boot(){
+  if(booting||prepared)return;
+  booting=true;app.dataset.screen='loading';title.hidden=false;game.hidden=true;game.classList.add('is-loading');game.setAttribute('aria-busy','true');loading.hidden=true;
+  refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(false,'世界を準備しています');beginTitleCinematic();
+  try{
+    await afterVisiblePaint();
+    runtimeModule=await import('./rebuild/runtime.js');
+    prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>{$('boot-status').textContent=message;}});
+    installGameplay();
+    game.dataset.runtime='prepared';titleCinematic.onPrepared();
+    if(pendingLaunchMode){
+      const mode=pendingLaunchMode;pendingLaunchMode=null;booting=false;showTitle();await requestLaunch(mode);return;
+    }
+    showTitle();if(rrpCaptureRequested||new URLSearchParams(location.hash.slice(1)).has('rinne-coop'))void openCoopDialog();
+  }catch(error){showBootFailure(error);}
+}
+
+async function enterCoop(coop){
+  if(JSON.stringify(coop.layout)!==JSON.stringify(prepared.layout)){
+    booting=true;setLoading('友達の村を開いています');
+    try{disposePrepared();prepared=await runtimeModule.prepareRuntime({buildInfo:info,layoutOverride:coop.layout,onProgress:message=>setLoading(message)});installGameplay();}
+    catch(error){showBootFailure(error);throw error;}finally{booting=false;}
+  }
+  return launch('coop',coop);
+}
+async function exitGame(coop){
+  runtime=null;$('open-coop-game').hidden=true;
+  try{await coopMenu?.leave();if(coop){disposePrepared();prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>setLoading(message)});installGameplay();}game.dataset.runtime='prepared';showTitle();}
+  catch(error){showBootFailure(error);}
+}
+
+async function requestLaunch(mode){
+  if(mode!=='new'){await launch(mode);return;}
+  if(originOpen||launching||runtime)return;
+  if(!prepared||!runtimeModule){if(booting)pendingLaunchMode=mode;return;}
+  originOpen=true;titleCinematic.pause();enterRinneLineageAudio();
+  try{
+    const expectedSave=localStorage.getItem(storageKey);let saved=null;try{saved=expectedSave?JSON.parse(expectedSave):null;}catch{}
+    const family=await openFamilyOrigin({document,hasSave:expectedSave!==null,savedName:saved?.name||'',motion:motionToggle.getAttribute('aria-checked')!=='false'});
+    if(family)await launch('new',null,{family,expectedSave});else showTitle();
+  }catch(error){console.error(error);showTitle(`一族を開けませんでした：${error?.message||error}`);}
+  finally{originOpen=false;exitRinneLineageAudio();}
+}
+async function requestContinue(){
+  if(!hasSave){$('boot-status').textContent='続きから遊べる保存データがありません';return;}
+  if(originOpen||launching||runtime||!prepared||!runtimeModule)return;
+  const raw=localStorage.getItem(storageKey);let saved=null;try{saved=raw?JSON.parse(raw):null;}catch{}
+  if(!saved){refreshContinue();$('boot-status').textContent='保存データを読み込めませんでした';return;}
+  originOpen=true;titleCinematic.pause();enterRinneLineageAudio();
+  try{
+    const action=await openFamilyHome({document,state:saved,source:'title',mode:'resume',allowClose:true});
+    if(action==='continue'){await launch('continue');return;}
+    if(action==='rebirth'){
+      if(localStorage.getItem(storageKey)!==raw){showTitle('保存が更新されました。もう一度お選びください。');return;}
+      const {deserializeLife,serializeLife,rebirth}=await import('./rebuild/domain.js'),current=deserializeLife(raw),next=rebirth(current,{villageIds:[prepared.layout.id]});
+      localStorage.setItem(storageKey,serializeLife(next));await launch('continue');return;
+    }
+    showTitle();
+  }catch(error){console.error(error);showTitle(`一族を開けませんでした：${error?.message||error}`);}
+  finally{originOpen=false;exitRinneLineageAudio();}
+}
+async function openLifeEndFamilyHome(state){
+  const action=await openFamilyHome({document,state,source:'death',mode:'resume',allowClose:false});
+  return action==='rebirth'?'rebirth':action==='title'?'title':null;
+}
+async function launch(mode,coop=null,origin={}){
+  if(runtime)throw Error('いったんタイトルへ戻ってから参加してください。');
+  if(!coop&&coopMenu?.session)await coopMenu.leave();
+  if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';titleCinematic.pause();enterRinneGameplayAudio();title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.removeAttribute('aria-hidden');loading.hidden=true;
+  try{
+    runtime=await runtimeModule.startRuntime({mode,buildInfo:info,name:$('life-name').value,prepared,coop,onExit:()=>exitGame(coop),onLifeHome:openLifeEndFamilyHome,family:origin.family,expectedSave:origin.expectedSave});
+    $('open-coop-game').hidden=!coop;villageDialog.close();game.dataset.runtime='active';launching=false;
+  }catch(error){
+    console.error(error);runtime?.dispose?.();runtime=null;if(coop){await coopMenu?.leave().catch(console.error);disposePrepared();prepared=null;launching=false;void boot();return;}game.dataset.runtime='prepared';showTitle(`開始できませんでした：${error?.message||error}`);
+  }
+}
+
+refreshContinue();
+retry.addEventListener('click',()=>location.reload());
+$('title-retry').addEventListener('click',()=>location.reload());
+$('new-life').addEventListener('click',()=>{void requestLaunch('new');});
+$('continue-life').addEventListener('click',()=>{void requestContinue();});
+$('open-settings').addEventListener('click',()=>settingsDialog.showModal());
+motionToggle.addEventListener('click',()=>titleCinematic.setMotion(motionToggle.getAttribute('aria-checked')!=='true',true));
+titleCinematic.init();
+void boot();
+
+document.getElementById('close-village').addEventListener('click',()=>villageDialog.close());
+$('open-coop-game').addEventListener('click',()=>{void openCoopDialog();});
+$('coop-leave').addEventListener('click',()=>{$('back-title').click();});
+let movementHelpTimer=0;
+$('move-hint').addEventListener('click',()=>{
+  const held=$('move-hint').textContent.includes('母'),node=$('toast');
+  node.textContent=held?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'スワイプで移動。下の「走」を押しながら移動でダッシュ、画面長押しで休憩します。';
+  node.hidden=false;clearTimeout(movementHelpTimer);movementHelpTimer=setTimeout(()=>{node.hidden=true;},3200);
+});
+
+if(new URLSearchParams(location.search).has('villageHostLab')){
+  void (async()=>{
+    const [{installVillageHostRehearsal},{createApp},{createWebPlatform}]=await Promise.all([
+      import('./village-link.js'),import('./app.js'),import('@soul/platform-web'),
+    ]);
+    const labApp=createApp(createWebPlatform({gameId:'rinne',environment:info.environment}));
+    const canvas=document.getElementById('game');
+    let worldTimeMs=0,last=performance.now();
+    const tick=now=>{if(!window.__VILLAGE_WORLD_PAUSED__)worldTimeMs+=Math.max(0,now-last);last=now;canvas.dataset.worldTimeMs=String(Math.round(worldTimeMs));labClock=requestAnimationFrame(tick);};
+    labClock=requestAnimationFrame(tick);
+    lab=installVillageHostRehearsal({capture:()=>({worldTimeMs:Math.round(worldTimeMs),world:labApp.world,characters:[],npcs:[],randomState:null}),apply:checkpoint=>{worldTimeMs=checkpoint.worldTimeMs;canvas.dataset.worldRevision=String(checkpoint.world?.revision??'');}});
+    await lab;
+  })().catch(error=>{console.error(error);$('boot-status').textContent=`村診断失敗：${error?.message||error}`;});
+}
+
+if(import.meta.hot)import.meta.hot.dispose(()=>{familyMemory.dispose();window.removeEventListener('soul:brand-enter',onBrandEnter);titleCinematic.dispose();runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});

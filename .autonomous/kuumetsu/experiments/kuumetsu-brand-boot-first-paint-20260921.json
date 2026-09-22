@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 2,
+  "id": "kuumetsu-brand-boot-first-paint-20260921",
+  "game": "kuumetsu",
+  "mode": "polish",
+  "kind": "gameplay",
+  "themeKey": "brand-boot-visual-integrity",
+  "rootCauses": [
+    {
+      "key": "brand-first-paint-depends-on-animation-progress",
+      "summary": "The logo, lightning mark and wordmark still start at opacity zero, so a main-thread-heavy preload can leave the only painted state blank even after the CSS syntax is valid.",
+      "prediction": "Brand identity remains visible at base style and throughout the animation timeline even if animation frames are delayed.",
+      "falsifier": "Computed logo/wordmark opacity can still be zero during the boot gate.",
+      "paths": [
+        "packages/shared-ui/src/boot-gate.js"
+      ]
+    },
+    {
+      "key": "delaying-boot-would-regress-touch-readiness",
+      "summary": "Waiting for the intro animation before starting application load would restore visuals by reintroducing the serial startup delay removed in iteration 2.",
+      "prediction": "A visible base state fixes the blank gate without moving app load behind the intro timer.",
+      "falsifier": "The repair requires delaying or serializing demon application bootstrap.",
+      "paths": [
+        "packages/shared-ui/src/boot-gate.js",
+        "apps/demon/src/brand-start.js"
+      ]
+    }
+  ],
+  "observation": {
+    "summary": "The first iteration-3 repair removed malformed CSS escapes, but immutable After still showed only TAP and the progress line: computed scorpionOpacity and wordmarkOpacity remained 0. The gate was functionally ready and handed off to the hunt title, so the remaining defect is specifically first-paint visual resilience under heavy concurrent boot.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "3b50d5dabc087c704572eb0a51515839a3dfa985",
+      "reference": "https://92f50420-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "observedAt": "2026-09-21T01:02:10Z",
+      "conditions": {
+        "scenario": "cold open, 1200ms brand observation, then ready -> TAP -> hub",
+        "device": "GitHub hosted Chromium / SwiftShader",
+        "viewport": "673x841",
+        "validatedTreeEquivalentTo": "ee90c7b18cb444e1f104e3d623830192d89ee580"
+      },
+      "notVerified": [
+        "Physical Pixel Fold appearance"
+      ]
+    },
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "a68ee962a725718c83aa849478ffc52b2d8d078b",
+        "path": "packages/shared-ui/src/boot-gate.js",
+        "symbol": "brand base styles and paScorpion/paBolts keyframes",
+        "statement": "Scorpion, bolts and wordmark still use opacity:0 base styles, and scorpion/bolts keyframes explicitly begin at opacity:0."
+      },
+      {
+        "kind": "source",
+        "revision": "a68ee962a725718c83aa849478ffc52b2d8d078b",
+        "path": "apps/demon/src/brand-start.js",
+        "symbol": "openBrandBootGate load callback",
+        "statement": "Demon correctly prewarms under the gate; serializing load behind the intro would regress the previous touch-to-ready-title improvement."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "Brand identity is encoded as an animation-dependent reveal instead of a safe visible base state. Concurrent heavy boot can prevent the reveal from painting while the loader and TAP remain independently visible.",
+    "prediction": "Make identity visible by default and animate transforms without opacity-zero entry. The brand will remain readable even when animation frames are starved, while load remains concurrent.",
+    "falsifier": "Native source assertions fail, app boot becomes serialized, or immutable staging still reports zero logo/wordmark opacity."
+  },
+  "candidates": [
+    {
+      "id": "visible-base-state-animation-degrades-gracefully",
+      "selected": true,
+      "reason": "Keeps concurrent prewarm and the approved motion language while making the non-animated fallback visually complete."
+    },
+    {
+      "id": "delay-load-until-brand-intro-finishes",
+      "selected": false,
+      "reason": "Would recreate the serial wait that iteration 2 removed and make visual polish compete with hunt readiness."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "packages/shared-ui/src/boot-gate.js",
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "summary": "Make scorpion, bolts and wordmark visible in the base state, keep transform animation, and prevent animation keyframes from returning identity to opacity zero."
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": [
+      "apps/demon/tests/hunt-loop-native.test.mjs"
+    ],
+    "stagingAfter": "required",
+    "limitations": [
+      "Hosted Chromium visual evidence is not a physical Pixel Fold benchmark.",
+      "The first corrective experiment remains immutable and will receive a refuted receipt; this record is the same-theme repair."
+    ]
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": 1202,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-brand-boot-first-paint-20260921"
+  }
+}

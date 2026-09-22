@@ -1,0 +1,55 @@
+{
+  "sourceId": "kenney-mini-forest",
+  "provider": "Kenney",
+  "license": "CC0-1.0",
+  "repository": "shorepine/kenney",
+  "commit": "3694c6879e487c108f55677be7dd2ca75b07cc3b",
+  "sourcePath": "3d/mini-forest/",
+  "files": [
+    {
+      "path": "assets/vendor/public-web/kenney-mini-forest/models/bridge.glb",
+      "sha256": "cafd760fb763fe2a76ad84b469683d18209a2b2ff013b1e11516d0fd62be2a6d",
+      "gitBlob": "d38560579e662a5457e6acccfe5be19c976969da"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-mini-forest/models/fence.glb",
+      "sha256": "de55047cc1cda50dbd7a2f7a240ffc3534744aabaa5a2d91efb2fcd0f4c4b7d8",
+      "gitBlob": "d2cf3a7d23b30819fe151a38e1f07c9515fe47b9"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-mini-forest/models/ladder.glb",
+      "sha256": "77a90f50d38139223fd4cbf67d9367730872c27552637b6112b2793e79d29b94",
+      "gitBlob": "716910750151c251bd305d5dba61b22db763a2a5"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-mini-forest/models/patch-grass.glb",
+      "sha256": "bfec799fb5ee7d57baa444982378a917d40868d88773e1fec43656f9d754ebca",
+      "gitBlob": "2e69e0d3083619bcfe196a9fa4cf4ecc359c60d5"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-mini-forest/models/plant.glb",
+      "sha256": "4ce1784382a2c986b5a63cd4cf7fc41f8775148464021fc4e10d780cc7892789",
+      "gitBlob": "e926e555d51c1ba6f8f4993de7e43730ce022afe"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-mini-forest/models/rocks-high.glb",
+      "sha256": "226728a03989a1ce52ea64b55e3d9e2ff89004f7eaca9f74c2fafda7c84bbe49",
+      "gitBlob": "e4b3bdc3b4cbd421b9773d73fc0918778804212d"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-mini-forest/models/stones.glb",
+      "sha256": "f46682b8eb8110fabe17f1da8e226bd2471046a25d907e41fd43ad9695f4c397",
+      "gitBlob": "4bbbf50c0aec6e71b01c1e0c47f14a50c38a5148"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-mini-forest/models/tent.glb",
+      "sha256": "a3f6e7a1597ccbf57f5345e6647844e21f632e03c5faae9a45af7140c7371262",
+      "gitBlob": "d372b699d620c780be8970398dfe49e60ddb2b2f"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-mini-forest/models/tree.glb",
+      "sha256": "0075d5059c1ea855fecc1dba3c6262c3a01924c50b971ddde2eb8b0b5a62851a",
+      "gitBlob": "a8d0e5619df6c6239371e668bad72ac0c4c942fc"
+    }
+  ]
+}

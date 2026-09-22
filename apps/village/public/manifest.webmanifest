@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "宝満叡智",
+  "short_name": "宝満叡智",
+  "description": "暮らしと守りが、道をつくる。",
+  "lang": "ja",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#879a7a",
+  "theme_color": "#879a7a",
+  "icons": [
+    {
+      "src": "./icons/app-icon.svg?v=2",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

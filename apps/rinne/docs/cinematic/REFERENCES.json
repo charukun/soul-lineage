@@ -1,0 +1,93 @@
+{
+  "sourceDevelop": "bfdd13907c0ead69689370db5f754ce167b7bec6",
+  "references": [
+    {
+      "id": "01",
+      "packFile": "hero-three-quarter.png",
+      "repositoryPath": "docs/characters/qa/protagonist-villager-v1/three-quarter.png",
+      "kind": "actual model QA",
+      "role": "Identity in volume; garment shape"
+    },
+    {
+      "id": "02",
+      "packFile": "drone-mother.webp",
+      "repositoryPath": "apps/rinne/docs/cinematic/drone-mother.webp",
+      "kind": "generated concept keyframe",
+      "role": "Mother and infant; village depth"
+    },
+    {
+      "id": "03",
+      "packFile": "drone-battle.webp",
+      "repositoryPath": "apps/rinne/docs/cinematic/drone-battle.webp",
+      "kind": "generated concept keyframe",
+      "role": "Exact young-adult proportions and parry"
+    },
+    {
+      "id": "04",
+      "packFile": "drone-elder.webp",
+      "repositoryPath": "apps/rinne/docs/cinematic/drone-elder.webp",
+      "kind": "generated concept keyframe",
+      "role": "Elderly rest; no direct death depiction"
+    },
+    {
+      "id": "05",
+      "packFile": "drone-rebirth.webp",
+      "repositoryPath": "apps/rinne/docs/cinematic/drone-rebirth.webp",
+      "kind": "generated concept keyframe",
+      "role": "Newborn awakening and camera ascent"
+    }
+  ],
+  "previousReferences": [
+    {
+      "id": "01",
+      "packFile": "hero-front.png",
+      "repositoryPath": "docs/characters/qa/protagonist-villager-v1/front.png",
+      "kind": "actual model QA",
+      "role": "Identity: face, hair, proportions"
+    },
+    {
+      "id": "02",
+      "packFile": "hero-three-quarter.png",
+      "repositoryPath": "docs/characters/qa/protagonist-villager-v1/three-quarter.png",
+      "kind": "actual model QA",
+      "role": "Identity in volume; garment shape"
+    },
+    {
+      "id": "03",
+      "packFile": "hero-side.png",
+      "repositoryPath": "docs/characters/qa/protagonist-villager-v1/side.png",
+      "kind": "actual model QA",
+      "role": "Profile and body proportions"
+    },
+    {
+      "id": "04",
+      "packFile": "hero-back.png",
+      "repositoryPath": "docs/characters/qa/protagonist-villager-v1/back.png",
+      "kind": "actual model QA",
+      "role": "Rear hair and garment continuity"
+    },
+    {
+      "id": "05",
+      "packFile": "current-character-review.png",
+      "repositoryPath": "docs/evidence/character-review-pixel-fold-fixed-20260920.png",
+      "kind": "actual review screenshot",
+      "role": "Enemy scale and materials only; ignore UI"
+    },
+    {
+      "id": "06",
+      "packFile": "reference-board.png",
+      "repositoryPath": "apps/rinne/docs/cinematic/reference-board.webp",
+      "kind": "generated concept",
+      "role": "Age and shot roles; never animate the grid"
+    },
+    {
+      "id": "07",
+      "packFile": "landing-concept.png",
+      "repositoryPath": "apps/rinne/public/title-assets/cinematic/landing.webp",
+      "kind": "generated concept",
+      "role": "Final composition, lighting and UI negative space"
+    }
+  ],
+  "revision": "drone-r2"
+}
+

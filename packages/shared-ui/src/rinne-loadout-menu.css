@@ -1,0 +1,306 @@
+/* RINNE UI 5.3.0
+   Dedicated gameplay-menu surface. This namespace intentionally avoids .upgrade-panel
+   so retired HUD/sheet generations cannot style the live menu. */
+
+.rinne-core-menu{
+  --menu-accent:#b8b0d7;
+  position:fixed;
+  z-index:140;
+  left:max(10px,env(safe-area-inset-left));
+  right:max(10px,env(safe-area-inset-right));
+  bottom:max(104px,calc(env(safe-area-inset-bottom) + 98px));
+  display:flex;
+  flex-direction:column;
+  max-width:700px;
+  max-height:min(64dvh,620px);
+  margin-inline:auto;
+  overflow:hidden;
+  border:3px solid rgba(112,77,45,.68);
+  border-radius:24px 24px 18px 18px;
+  background:
+    repeating-linear-gradient(7deg,rgba(116,78,44,.022) 0 1px,transparent 1px 6px),
+    linear-gradient(165deg,#fff8e8,#efd8aa 78%);
+  color:#4b3a2e;
+  box-shadow:
+    inset 0 2px rgba(255,255,255,.64),
+    inset 0 0 0 5px rgba(132,92,55,.07),
+    0 5px 0 rgba(83,57,39,.46),
+    0 20px 44px rgba(31,35,27,.22);
+  transform:translateY(var(--loadout-sheet-drag,0px));
+}
+.rinne-core-menu[hidden]{display:none!important}
+.rinne-core-menu[data-type="heart"]{--menu-accent:#e9aaa6}
+.rinne-core-menu[data-type="technique"]{--menu-accent:#9acfe0}
+.rinne-core-menu[data-type="body"]{--menu-accent:#beb5dd}
+.rinne-core-menu[data-type="items"]{--menu-accent:#e8ba7c}
+.rinne-core-menu[data-type="map"]{--menu-accent:#a4c9ad}
+.rinne-core-menu[data-type="record"]{--menu-accent:#efb4ad}
+
+.rinne-core-menu::before{
+  content:"";
+  position:absolute;
+  inset:8px;
+  z-index:0;
+  pointer-events:none;
+  border:1px dashed rgba(112,77,45,.20);
+  border-radius:17px;
+}
+.rinne-core-menu-head{
+  position:relative;
+  z-index:3;
+  flex:0 0 auto;
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) 44px;
+  align-items:center;
+  gap:9px;
+  min-height:64px;
+  padding:9px 10px 8px 13px;
+  border-bottom:2px solid rgba(100,68,41,.24);
+  background:
+    radial-gradient(circle at 12% 10%,rgba(255,255,255,.28),transparent 22%),
+    linear-gradient(180deg,color-mix(in srgb,var(--menu-accent) 88%,#fff 12%),color-mix(in srgb,var(--menu-accent) 76%,#8f7157 24%));
+  box-shadow:inset 0 2px rgba(255,255,255,.34),0 3px 7px rgba(82,57,39,.11);
+  touch-action:none;
+}
+.rinne-core-menu-mark{
+  display:grid;
+  place-items:center;
+  width:34px;height:34px;
+  border:2px solid rgba(255,248,226,.78);
+  border-radius:50%;
+  background:rgba(255,247,221,.18);
+  color:#fff9e8;
+  font-size:15px;
+  text-shadow:0 2px 4px rgba(75,51,36,.34)
+}
+.rinne-core-menu-head>div{display:grid;gap:1px;min-width:0}
+.rinne-core-menu-head small{color:rgba(74,53,39,.64);font-size:8px;font-weight:800;letter-spacing:.08em}
+.rinne-core-menu-head strong{
+  overflow:hidden;
+  color:#4b392d;
+  font-family:var(--font-rinne-display)!important;
+  font-size:18px;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-overflow:ellipsis;
+  white-space:nowrap
+}
+.rinne-core-menu-head [data-close]{
+  display:grid;
+  place-items:center;
+  width:40px;height:40px;
+  min-width:40px;min-height:40px;
+  padding:0;
+  border:2px solid rgba(255,245,219,.72);
+  border-radius:50%;
+  background:rgba(78,57,44,.72);
+  color:#fff5d9;
+  font-size:22px;
+  box-shadow:inset 0 2px rgba(255,255,255,.11),0 3px 0 rgba(64,43,32,.38)
+}
+.rinne-core-menu-body{
+  position:relative;
+  z-index:2;
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  padding:14px 14px 18px;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch
+}
+.rinne-core-menu-body::-webkit-scrollbar{display:none}
+.rinne-menu-lead{
+  margin:0 0 10px;
+  padding:7px 10px;
+  border-radius:12px;
+  background:color-mix(in srgb,var(--menu-accent) 18%,#fff8e7 82%);
+  color:#6f5847;
+  font-size:10px;
+  font-weight:800;
+  text-align:center
+}
+
+/* Current choices are the visual center, not explanatory prose. */
+.rinne-core-menu .loadout-intro{display:none!important}
+.rinne-core-menu .loadout-slot-row{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:8px!important;
+  margin:0 0 13px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important
+}
+.rinne-core-menu .loadout-slot-cell{display:grid;gap:5px;min-width:0}
+.rinne-core-menu .loadout-slot{
+  position:relative!important;
+  display:grid!important;
+  justify-items:center!important;
+  align-content:center!important;
+  gap:3px!important;
+  min-width:0!important;
+  min-height:88px!important;
+  padding:8px 6px!important;
+  border:2px solid rgba(111,77,47,.28)!important;
+  border-radius:16px!important;
+  clip-path:none!important;
+  background:
+    radial-gradient(circle at 50% 0,rgba(255,255,255,.72),transparent 41%),
+    linear-gradient(180deg,rgba(255,252,239,.96),rgba(247,232,201,.94))!important;
+  color:#4b392d!important;
+  text-align:center!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.58),0 3px 7px rgba(87,61,39,.09)!important
+}
+.rinne-core-menu .loadout-slot[data-selected="true"]{
+  border-color:color-mix(in srgb,var(--menu-accent) 68%,#8b653f 32%)!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--menu-accent) 18%,#fffdf0 82%),#f7e5bd)!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.72),0 0 0 3px color-mix(in srgb,var(--menu-accent) 17%,transparent),0 4px 8px rgba(86,58,39,.11)!important
+}
+.rinne-core-menu .loadout-slot>.skill-sigil{width:38px!important;height:38px!important;min-width:38px!important;margin:0 auto 2px!important}
+.rinne-core-menu .loadout-slot>span{color:#94724d!important;font-size:8px!important;font-weight:800!important}
+.rinne-core-menu .loadout-slot>strong{max-width:100%;overflow:hidden;color:#443329!important;font-size:11px!important;text-overflow:ellipsis;white-space:nowrap}
+.rinne-core-menu .loadout-slot>small{max-width:100%;overflow:hidden;color:#8c7764!important;font-size:7px!important;text-overflow:ellipsis;white-space:nowrap}
+.rinne-core-menu .slot-favorite{
+  min-height:28px!important;
+  border:0!important;border-radius:12px!important;
+  background:#efe1c2!important;color:#725a45!important;
+  box-shadow:inset 0 0 0 1px rgba(111,78,48,.15)!important;font-size:7px!important
+}
+.rinne-core-menu .slot-favorite[data-active="true"]{background:#f0c982!important;color:#5d432e!important}
+
+/* Learned things look like collectible game pieces instead of spreadsheet rows. */
+.rinne-core-menu .loadout-library{
+  margin:0!important;padding:11px 0 0!important;
+  border:0!important;border-top:1px dashed rgba(111,77,47,.22)!important;
+  background:transparent!important
+}
+.rinne-core-menu .loadout-library>header{
+  display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:8px!important;
+  margin:0 2px 8px!important
+}
+.rinne-core-menu .loadout-library>header strong{color:#5b4535!important;font-size:11px!important}
+.rinne-core-menu .loadout-library>header small{max-width:58%;color:#9b8069!important;font-size:7px!important;text-align:right}
+.rinne-core-menu .loadout-grid{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  gap:5px!important
+}
+.rinne-core-menu .loadout-grid-item{
+  display:grid!important;
+  grid-template-rows:minmax(0,1fr) auto!important;
+  justify-items:center!important;
+  align-items:center!important;
+  gap:2px!important;
+  min-width:0!important;
+  min-height:0!important;
+  aspect-ratio:1/1!important;
+  padding:3px!important;
+  overflow:hidden!important;
+  border:1px solid rgba(111,77,47,.22)!important;
+  border-radius:9px!important;
+  clip-path:none!important;
+  background:linear-gradient(180deg,rgba(255,252,241,.9),rgba(244,230,202,.88))!important;
+  color:#4c3a2f!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.5),0 2px 4px rgba(90,61,39,.06)!important
+}
+.rinne-core-menu .loadout-grid-item[data-active="true"]{
+  border-color:color-mix(in srgb,var(--menu-accent) 65%,#86613f 35%)!important;
+  background:color-mix(in srgb,var(--menu-accent) 14%,#fff9e8 86%)!important
+}
+.rinne-core-menu .loadout-grid-item>.skill-sigil{width:30px!important;height:30px!important;min-width:30px!important;margin:0!important}
+.rinne-core-menu .loadout-grid-item>strong{
+  width:100%;overflow:hidden;color:#4b382c!important;font-size:7px!important;line-height:1.1!important;text-align:center;text-overflow:ellipsis;white-space:nowrap
+}
+.rinne-core-menu .loadout-grid-item>small{display:none!important}
+.rinne-core-menu .loadout-empty{
+  grid-column:1/-1;
+  margin:8px 0!important;
+  padding:22px 10px!important;
+  border-radius:14px;
+  background:rgba(255,249,232,.55);
+  color:#9a816c!important;
+  text-align:center
+}
+
+/* Technique controls are compact and tactile. */
+.rinne-core-menu .loadout-context-bar{
+  display:grid!important;
+  grid-template-columns:34px minmax(0,1fr) 34px 34px 46px 34px!important;
+  gap:5px!important;
+  margin:0 0 10px!important
+}
+.rinne-core-menu .loadout-context-bar button,
+.rinne-core-menu .panel-pager button,
+.rinne-core-menu .record-tabs button,
+.rinne-core-menu .time-rate-panel button{
+  min-height:34px!important;
+  border:0!important;border-radius:11px!important;
+  background:rgba(255,249,231,.74)!important;
+  color:#604a39!important;
+  box-shadow:inset 0 0 0 1px rgba(112,78,48,.20),0 2px 4px rgba(91,64,42,.08)!important
+}
+.rinne-core-menu .loadout-context-bar button[data-active="true"],
+.rinne-core-menu .record-tabs button[data-active="true"],
+.rinne-core-menu .time-rate-panel button[data-active="true"]{
+  background:color-mix(in srgb,var(--menu-accent) 25%,#fff7e4 75%)!important;
+  color:#4c382b!important
+}
+.rinne-core-menu .loadout-context-current strong{font-size:9px!important}
+.rinne-core-menu .loadout-context-current small{font-size:6px!important}
+.rinne-core-menu .loadout-technique-tabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;margin:1px 0 9px!important;padding:3px!important;border-radius:12px!important;background:rgba(116,83,52,.09)!important}
+.rinne-core-menu .loadout-technique-tabs button{min-height:34px!important;border:0!important;border-radius:9px!important;background:transparent!important;color:#856a51!important;font-size:9px!important;font-weight:800!important}
+.rinne-core-menu .loadout-technique-tabs button[data-active="true"]{background:#fff7e5!important;color:#4f3b2d!important;box-shadow:0 1px 4px rgba(87,61,39,.12),inset 0 0 0 1px color-mix(in srgb,var(--menu-accent) 55%,#8b6747 45%)!important}
+.rinne-core-menu .loadout-combo-list{display:grid!important;grid-template-columns:1fr!important;gap:6px!important}
+.rinne-core-menu .loadout-combo-card{display:grid!important;grid-template-columns:minmax(72px,.32fr) minmax(0,1fr)!important;align-items:center!important;gap:8px!important;width:100%!important;min-height:64px!important;padding:6px!important;border:1px solid rgba(111,77,47,.22)!important;border-radius:12px!important;background:linear-gradient(180deg,rgba(255,252,241,.92),rgba(244,230,202,.88))!important;color:#4b392d!important;text-align:left!important;box-shadow:inset 0 1px rgba(255,255,255,.52),0 2px 5px rgba(90,61,39,.07)!important}
+.rinne-core-menu .loadout-combo-card[data-active="true"]{border-color:color-mix(in srgb,var(--menu-accent) 72%,#805c3d 28%)!important;background:color-mix(in srgb,var(--menu-accent) 13%,#fff8e9 87%)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--menu-accent) 16%,transparent),inset 0 1px rgba(255,255,255,.7)!important}
+.rinne-core-menu .loadout-combo-card>header{display:grid!important;gap:2px!important;padding:0 5px!important}.rinne-core-menu .loadout-combo-card>header strong{font-size:11px!important}.rinne-core-menu .loadout-combo-card>header small{font-size:7px!important;color:#91755c!important}
+.rinne-core-menu .loadout-combo-members{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}
+.rinne-core-menu .loadout-combo-member{position:relative!important;display:grid!important;grid-template-rows:auto 27px auto!important;place-items:center!important;min-width:0!important;min-height:52px!important;padding:3px 2px!important;border:1px solid rgba(111,77,47,.18)!important;border-radius:8px!important;background:rgba(255,250,235,.72)!important;overflow:hidden!important}
+.rinne-core-menu .loadout-combo-member>b{position:absolute!important;left:3px!important;top:2px!important;color:#a08368!important;font-size:6px!important}.rinne-core-menu .loadout-combo-member>.skill-sigil{width:25px!important;height:25px!important;min-width:25px!important;margin:2px 0 0!important}.rinne-core-menu .loadout-combo-member>strong{max-width:100%!important;overflow:hidden!important;color:#5b4636!important;font-size:6.5px!important;line-height:1!important;text-overflow:ellipsis!important;white-space:nowrap!important}.rinne-core-menu .loadout-combo-member[data-empty="true"]{opacity:.38!important}
+.rinne-core-menu .loadout-combo-actions{display:flex!important;justify-content:flex-end!important;gap:5px!important;margin:5px 0 2px!important}.rinne-core-menu .loadout-combo-actions button{min-height:28px!important;padding:4px 8px!important;border:0!important;border-radius:9px!important;background:rgba(255,249,231,.74)!important;color:#604a39!important;box-shadow:inset 0 0 0 1px rgba(112,78,48,.18)!important;font-size:7px!important}
+.rinne-core-menu .one-motion-card{
+  width:100%!important;
+  margin:12px 0 0!important;
+  padding:10px 12px!important;
+  border:2px solid rgba(154,99,70,.24)!important;
+  border-radius:14px!important;
+  background:linear-gradient(135deg,#fff0d6,#e7b99f)!important;
+  color:#5d4032!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.42)!important
+}
+
+/* Map / record are compact pages in the same notebook. */
+.rinne-core-menu .record-tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px}
+.rinne-core-menu :is(.life-record-current,.life-record-experience,.record-inheritance-brief,.lineage-list,.time-rate-panel,.map-rich-shell){
+  border:0!important;border-radius:14px!important;clip-path:none!important;
+  background:rgba(255,249,234,.62)!important;
+  box-shadow:inset 0 0 0 1px rgba(113,79,48,.14)!important
+}
+.rinne-core-menu .upgrade-map{border-radius:14px!important;overflow:hidden!important}
+.rinne-core-menu .map-legend,.rinne-core-menu .map-nearby-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.rinne-core-menu .panel-pager{display:grid!important;grid-template-columns:40px 1fr 40px!important;align-items:center!important;gap:5px!important;margin-top:10px!important}
+.rinne-core-menu .panel-pager span{text-align:center;color:#846e5b;font-size:8px}
+
+@media(max-width:420px){
+  .rinne-core-menu .loadout-combo-card{grid-template-columns:64px minmax(0,1fr)!important;gap:5px!important;padding:5px!important}
+  .rinne-core-menu .loadout-combo-members{gap:3px!important}
+  .rinne-core-menu{
+    left:max(7px,env(safe-area-inset-left));
+    right:max(7px,env(safe-area-inset-right));
+    bottom:max(96px,calc(env(safe-area-inset-bottom) + 90px));
+    max-height:min(61dvh,560px)
+  }
+  .rinne-core-menu-head{min-height:58px;padding:8px 9px}
+  .rinne-core-menu-head strong{font-size:16px}
+  .rinne-core-menu-body{padding:11px 10px 14px}
+  .rinne-core-menu .loadout-slot-row{gap:6px!important}
+  .rinne-core-menu .loadout-slot{min-height:80px!important;padding-inline:4px!important}
+  .rinne-core-menu .loadout-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:3px!important}
+  .rinne-core-menu .loadout-grid-item{min-height:0!important;padding:2px!important}
+  .rinne-core-menu .loadout-grid-item>.skill-sigil{width:25px!important;height:25px!important;min-width:25px!important}
+}
+@media(max-height:610px) and (orientation:landscape){
+  .rinne-core-menu{left:78px;right:8px;bottom:8px;top:8px;max-width:none;max-height:none}
+  .rinne-core-menu .loadout-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+}
+@media(prefers-reduced-motion:reduce){.rinne-core-menu{transition:none!important}}
