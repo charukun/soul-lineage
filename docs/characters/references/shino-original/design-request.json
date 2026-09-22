@@ -1,0 +1,28 @@
+{
+  "schema": "rinne-original-character-design-request",
+  "version": 1,
+  "id": "npc.shino.original.v1",
+  "name": "しのちゃん",
+  "startedFromDevelop": "188515f3eafbd83853c06a871ca9423a396bd126",
+  "authoringBaseDevelop": "fbdcbcb48b2e59384e79155e8997a3ed11c394d1",
+  "geometryAuthority": "New RINNE-authored Blender mesh; no existing protagonist, Rogue, KayKit character geometry or retired Sendagaya_Shino data",
+  "identity": {
+    "proportion": "Petite, stylized, approximately four heads tall; not infant-like",
+    "mood": "Gentle, airy, slightly mysterious",
+    "palette": "Ivory and pale gray, silver-gray hair, large red-brown eyes, restrained charcoal details",
+    "costume": "Ghost-like hood and poncho/cape, simple readable medieval-fantasy silhouette",
+    "landmarks": ["soft silver bob", "rounded ghost hood", "red-brown eyes", "ivory cape over charcoal-trimmed tunic", "small ghost clasp", "short practical boots"]
+  },
+  "reference": {
+    "kind": "AI-generated identity concept, not DCC/runtime evidence",
+    "generationId": "c4050e46-8a39-492b-a791-1f9a887c03bf",
+    "originalSha256": "0715ec60c08bef93974a866a2b1238db945cdfa54e54e441cc707aa00104bd31",
+    "coverage": ["front", "side", "back"],
+    "retainedRegion": "Only the original three-view drawing; generated mock 3D/engine panels and invented technical specifications are excluded and are not evidence"
+  },
+  "rigPolicy": "Reuse only eligible CC0 Rig_Medium skeleton/animation compatibility; never character geometry",
+  "checksRequired": ["Blender source and GLB", "five fingers per hand", "closed opaque garment/hair surfaces", "UV and materials", "rig and existing clips", "actual Character Studio display", "hosted exact-head focused validation", "freshness", "develop merge"],
+  "productionStage": "REFERENCE",
+  "visualApproval": "pending",
+  "deviceAcceptance": "unmeasured"
+}

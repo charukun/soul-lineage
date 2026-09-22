@@ -1,0 +1,78 @@
+name: Shino original character authoring (task-scoped)
+run-name: Shino offline authoring inputs ${{ github.sha }}
+on:
+  push:
+    branches: ['work/shino-original-20260922']
+    paths: ['.github/workflows/shino-original-authoring.yml']
+permissions:
+  contents: read
+concurrency:
+  group: shino-original-authoring
+  cancel-in-progress: false
+# Gap: this character-authoring session has no networked local DCC installation.
+# Dependencies: hosted checkout, locked npm dependencies, official Blender binary.
+# Detach: delete this task-only workflow before final-head validation/merge.
+# This is an authoring data-plane operation, never an Astra validation step.
+jobs:
+  authoring-inputs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Collect immutable source and asset inventory
+        run: |
+          mkdir -p /tmp/shino-authoring/context
+          python3 - <<'PY'
+          import hashlib,json,pathlib,subprocess,zipfile
+          root=pathlib.Path.cwd()
+          files=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          inventory=[]
+          extensions={'.js','.mjs','.cjs','.json','.jsonc','.ts','.tsx','.html','.css','.md','.py','.yml','.yaml','.svg','.txt'}
+          with zipfile.ZipFile('/tmp/shino-authoring/context/source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in files:
+                  p=root/name
+                  if not name or not p.is_file(): continue
+                  if p.suffix.lower() in {'.glb','.gltf','.blend','.vrm','.fbx'}:
+                      inventory.append({'path':name,'byteLength':p.stat().st_size})
+                  if p.suffix.lower() in extensions and p.stat().st_size<4*1024*1024:
+                      z.write(p,name)
+              z.writestr('authoring-source.json',json.dumps({'sourceSha':subprocess.check_output(['git','rev-parse','HEAD']).decode().strip(),'purpose':'read-only task source acquisition; not validation'},indent=2))
+          pathlib.Path('/tmp/shino-authoring/context/asset-inventory.json').write_text(json.dumps(inventory,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shino-source-context-${{ github.sha }}
+          path: /tmp/shino-authoring/context/
+          retention-days: 3
+      - name: Acquire locked rendering dependencies
+        run: |
+          npm ci --ignore-scripts
+          tar -czf /tmp/shino-authoring/node-dependencies.tar.gz node_modules
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shino-node-dependencies-${{ github.sha }}
+          path: /tmp/shino-authoring/node-dependencies.tar.gz
+          compression-level: 0
+          retention-days: 1
+      - name: Acquire and verify official pinned Blender 4.5.14
+        run: |
+          set -euo pipefail
+          cd /tmp/shino-authoring
+          curl --fail --location --retry 3 --output blender-4.5.14-linux-x64.tar.xz https://download.blender.org/release/Blender4.5/blender-4.5.14-linux-x64.tar.xz
+          curl --fail --location --retry 3 --output blender-4.5.14.sha256 https://download.blender.org/release/Blender4.5/blender-4.5.14.sha256
+          grep 'blender-4.5.14-linux-x64.tar.xz' blender-4.5.14.sha256 | sha256sum --check --strict
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shino-blender-tool-4.5.14
+          path: |
+            /tmp/shino-authoring/blender-4.5.14-linux-x64.tar.xz
+            /tmp/shino-authoring/blender-4.5.14.sha256
+          compression-level: 0
+          retention-days: 1
