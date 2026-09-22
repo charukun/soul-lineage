@@ -1,5 +1,10 @@
 # しのちゃん 2.5D draft pipeline
 
+This document describes the retained v1 compatibility lane. New one-image uploads
+use [Character25D Rig Runtime / Character Forge](CHARACTER25D_FORGE.md): generic
+v2 identity, layered rigging, reusable motions and a moving session companion.
+The v1 format/asset gates below remain supported; the normal UI is the v2 Forge.
+
 ## Scope and acceptance
 
 Visual Review Lab -> `/review-hybrid-25d` -> 画像を1枚アップロード -> 自動抽出 -> 共存ビュー -> `RINNEで仮登場`。
