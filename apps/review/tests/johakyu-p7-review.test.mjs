@@ -260,7 +260,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.28');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.29');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -317,11 +317,12 @@ test('battle2 lamps fill left to right, fade together on interruption, and maai 
  assert.match(css,/johakyu-maai-pulse 1\.38s/);assert.match(css,/@keyframes johakyu-maai-pulse/);
 });
 
-test('phase activations hold a half-second stance, chime, and emissive cue',()=>{
- const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),stage=stageSource(),audio=readFileSync(new URL('../src/nocturne/audio.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
- assert.match(source,/PHASE_CUE_SECONDS=\.5/);assert.match(source,/clip:'Blocking'/);assert.match(source,/clip:'1H_Melee_Attack_Slice_Diagonal'/);assert.match(source,/clip:'1H_Melee_Attack_Stab'/);assert.match(source,/glow:'#ff8f32'/);assert.match(source,/glow:'#ffa447'/);assert.match(source,/glow:'#ffbb63'/);assert.match(source,/phaseCueKey:/);
- assert.match(stage,/sound\?\.phaseCue\?\./);assert.match(audio,/function phaseCue/);assert.match(audio,/sound\.parry\?\./);
- assert.match(runtime,/unaccepted-phase-cue/);assert.match(runtime,/phase-cue:/);assert.match(runtime,/cueGlow/);
+test('phase activations animate crouch brace and charge while orange glow follows the motion',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),stage=stageSource(),audio=readFileSync(new URL('../src/nocturne/audio.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),manifest=JSON.parse(readFileSync(new URL('../src/nocturne/manifest.json',import.meta.url),'utf8'));
+ assert.match(source,/PHASE_CUE_SECONDS=\.5/);assert.match(source,/clip:'Jump_Start'/);assert.match(source,/motion:'crouch'/);assert.match(source,/clip:'Blocking'/);assert.match(source,/motion:'brace'/);assert.match(source,/clip:'Spellcast_Raise'/);assert.match(source,/motion:'charge'/);assert.match(source,/poseStart:/);assert.match(source,/poseEnd:/);assert.match(source,/glow:'#ff8f32'/);assert.match(source,/glow:'#ffa447'/);assert.match(source,/glow:'#ffbb63'/);
+ for(const clip of ['Jump_Start','Blocking','Spellcast_Raise'])assert.ok(manifest.models['adventurers/Knight'].animations.includes(clip),clip);
+ assert.match(stage,/sound\?\.phaseCue\?\./);assert.match(audio,/function phaseCue/);assert.match(runtime,/cueEase=cueProgress\*cueProgress\*\(3-2\*cueProgress\)/);assert.match(runtime,/lerp\(poseStart,poseEnd,cueEase\)/);
+ assert.match(runtime,/cueEnvelope=Math\.sin\(cueProgress\*Math\.PI\)/);assert.match(runtime,/cuePulse=Math\.pow\(Math\.abs\(Math\.sin\(cueProgress\*Math\.PI\*2\)\),1\.45\)/);assert.match(runtime,/cueGlow=cueColor\?cueEnvelope\*\(\.18\+2\.25\*cuePulse\):0/);
 });
 
 test('battle2 defaults to defense, retreats on broken chains, and makes landed hits costly',()=>{
@@ -338,9 +339,9 @@ test('burst choreography gives player varied non-horizontal attacks and enemies 
  assert.match(source,/presentationClip/);assert.match(runtime,/row\.action\?\.presentationClip/);
 });
 
-test('phase cue glow visibly blinks instead of holding a steady emissive level',()=>{
+test('phase cue glow keeps two smooth surges instead of a frozen binary blink',()=>{
  const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
- assert.match(runtime,/cueBlink/);assert.match(runtime,/Math\.sin\(cueProgress\*Math\.PI\*4\)/);assert.match(runtime,/cueColor&&cueBlink/);
+ assert.doesNotMatch(runtime,/cueBlink/);assert.match(runtime,/cuePulse/);assert.match(runtime,/Math\.sin\(cueProgress\*Math\.PI\*2\)/);assert.match(runtime,/cueEnvelope/);
 });
 
 test('battle2 enemy respawn reuses the battlebk ground-spawn animation and timing',()=>{
