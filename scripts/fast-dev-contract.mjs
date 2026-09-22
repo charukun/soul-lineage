@@ -117,6 +117,8 @@ export function inspectAuthorizedFastDevContraction(base, head) {
     '.github/workflows/astra-work-validation.yml',
     'scripts/fast-dev-contract.mjs',
     'scripts/astra-focused-validation.mjs',
+    'scripts/context-plan.mjs',
+    'docs/CONTEXT_EFFICIENCY.md',
     'scripts/actions-result-summary.mjs',
     'scripts/lib/actions-summary-core.mjs',
     'tests/actions-result-summary.test.mjs',
