@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./sprite25d": "./src/sprite25d-manifest.js",
+    "./sprite25d/browser": "./src/adapters/browser/sprite25d-assets.js",
+    "./sprite25d/three": "./src/adapters/three/sprite25d-actor.js"
   },
   "dependencies": {}
 }
