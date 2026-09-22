@@ -276,7 +276,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
     if(fullReset){cursor.phaseIndex=0;cursor.techniqueIndex=0;cursor.stageIndex=0;}else cursor.stageIndex=0;actionState.delete(actor.id);
     const recoverySeconds=RECOVERY_SECONDS[reason]??.34;setRecovery(actor,reason,state.targetId,recoverySeconds);
     if(reason==='miss'&&target)setManeuver(actor,target,{reason:'miss-reset',footwork:'chase',seconds:.9,stopDistance:ENGAGE_DISTANCE});
-    traceRow({type:'chain-break',actorId:actor.id,reason,phase:node.phase,techniqueId:state.node.technique.id,techniqueIndex,stageIndex:state.node.stage.index,restartPhase:fullReset?'jo':node.phase,restartTechniqueIndex:fullReset?0:techniqueIndex,restartStageIndex:0});
+    if(actor.id==='hero'||fullReset)traceRow({type:'chain-break',actorId:actor.id,reason,phase:node.phase,techniqueId:state.node.technique.id,techniqueIndex,stageIndex:state.node.stage.index,restartPhase:fullReset?'jo':node.phase,restartTechniqueIndex:fullReset?0:techniqueIndex,restartStageIndex:0});
   }
   function finishAction(actor,state,{interrupted=false}={}){
     actionState.delete(actor.id);
