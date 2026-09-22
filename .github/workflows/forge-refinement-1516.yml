@@ -1,0 +1,108 @@
+name: Forge refinement specialist 1516
+run-name: Forge DCC 1516 prepare 852c4c0
+on:
+  push:
+    branches: [dispatch/forge-refinement-1516]
+permissions:
+  contents: write
+concurrency:
+  group: forge-refinement-1516
+  cancel-in-progress: false
+jobs:
+  specialist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      WORK_SHA: 852c4c015b6632c267dc5f7e9856c48dd0853c0d
+      PHASE: prepare
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.WORK_SHA }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Confirm exact source and install explicit task-only Blender
+        run: |
+          test "$(git rev-parse HEAD)" = "$WORK_SHA"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-pil
+          python3 -m pip install --user -r packages/assets/forge/requirements.txt
+          blender --version
+      - name: Actual package capture and bounded DCC repair
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json,os,subprocess,sys
+          from pathlib import Path
+          from PIL import Image
+          root=Path.cwd();qa=root/'docs/characters/qa/forge-side-refinement-v1';qa.mkdir(parents=True,exist_ok=True)
+          sys.path[:0]=[str(root/'packages/assets/forge'),str(root/'scripts/character-forge')]
+          from fixture import create_fixture
+          from pipeline import parser,run
+          from refinement import capture,assess
+          from common import save_json
+          ids=['forge-scout','forge-profile-probe'];sha=os.environ['WORK_SHA']
+          plan={'schemaVersion':'rinne.forge-quality-reference/v1','references':[{'id':'heroine-dawn-v1','rationale':'Existing local-repair/fixed-view finish reference only; do not transfer its identity or proportions','sourceContract':'docs/characters/qa/heroine-dawn-v1/README.md','views':{v:'docs/characters/qa/heroine-dawn-v1/runtime/'+v+'.png' for v in ('front','side','back','three-quarter')}}]}
+          planfile=qa/'quality-reference.json';save_json(planfile,plan)
+          if os.environ['PHASE']=='prepare':
+              baseline=root/'packages/assets/characters/forge/forge-scout'
+              subprocess.run(['blender','--background','--python','packages/assets/forge/blender_refinement.py','--','--model',str(baseline/'build/character.glb'),'--spec',str(baseline/'spec/reconstruction.json'),'--out',str(qa/'before-generator'),'--source-sha',sha],check=True)
+              for i,identifier in enumerate(ids):
+                  fixtures=create_fixture(root/'test-results/forge-refinement'/('input-'+str(i)))
+                  if i:
+                      side=Image.open(fixtures/'side.png');side.resize((220,360),Image.Resampling.LANCZOS).save(fixtures/'side.png')
+                  args=['--root',str(root),'--id',identifier,'--name','Forge Scout' if i==0 else '断面検証用・別体型','--provenance',str(fixtures/'provenance.json')]
+                  for v in ('front','side','back'):args+=['--'+v,str(fixtures/(v+'.png'))]
+                  if i==0:args+=['--replace']
+                  else:args+=['--base-only']
+                  result=run(parser().parse_args(args));save_json(qa/(identifier+'-generation.json'),result)
+                  result=capture(root,identifier,sha,quality_plan=planfile);save_json(qa/(identifier+'-capture.json'),result)
+                  print('FORGE_CAPTURE '+json.dumps(result))
+          elif os.environ['PHASE']=='repair':
+              for identifier in ids:
+                  assess(root,identifier,qa/(identifier+'-assessment-r00.json'))
+                  result=capture(root,identifier,sha,recipe_path=qa/(identifier+'-correction-r01.json'))
+                  save_json(qa/(identifier+'-repair.json'),result);print('FORGE_REPAIR '+json.dumps(result))
+          else:raise ValueError('Unknown task phase')
+          PY
+      - name: Materialize only authorized output blobs and tree without moving any ref
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 <<'PY'
+          import base64,hashlib,json,os,subprocess,urllib.request
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];assert repo=='charukun/soul-lineage'
+          sha=os.environ['WORK_SHA'];assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==sha
+          prefix='https://api.github.com/repos/'+repo
+          def api(path,data=None):
+              req=urllib.request.Request(prefix+path,None if data is None else json.dumps(data).encode(),headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'})
+              with urllib.request.urlopen(req,timeout=120) as r:return json.load(r)
+          roots=[Path('packages/assets/characters/forge/forge-scout'),Path('packages/assets/characters/forge/forge-profile-probe'),Path('docs/characters/qa/forge-side-refinement-v1')]
+          paths=[p for r in roots for p in r.rglob('*') if p.is_file()]+[Path('packages/assets/generated/create-forge-registry.js')]
+          entries=[]
+          for path in sorted(paths):
+              if path.is_symlink() or path.name.endswith(('.blend1','.lock','.next','.pyc')):raise ValueError('Unexpected output '+str(path))
+              data=path.read_bytes();assert len(data)<40_000_000
+              blob=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+              previous=subprocess.run(['git','rev-parse',sha+':'+str(path)],capture_output=True,text=True)
+              if previous.returncode==0 and previous.stdout.strip()==blob:continue
+              result=api('/git/blobs',{'encoding':'base64','content':base64.b64encode(data).decode()})
+              assert result['sha']==blob
+              entries.append({'path':str(path),'mode':'100644','type':'blob','sha':blob})
+          base=api('/git/commits/'+sha)['tree']['sha'];tree=api('/git/trees',{'base_tree':base,'tree':entries})['sha']
+          receipt={'sourceSha':sha,'treeSha':tree,'entries':entries,'run':os.environ['GITHUB_RUN_ID'],'refMutation':False}
+          Path('test-results/forge-refinement').mkdir(parents=True,exist_ok=True)
+          Path('test-results/forge-refinement/materialized-tree.json').write_text(json.dumps(receipt,indent=2))
+          print('FORGE_MATERIALIZED_TREE '+json.dumps(receipt))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: forge-refinement-1516-${{ env.PHASE }}-${{ env.WORK_SHA }}
+          retention-days: 14
+          path: |
+            test-results/forge-refinement
+            docs/characters/qa/forge-side-refinement-v1
+            packages/assets/characters/forge/forge-scout
+            packages/assets/characters/forge/forge-profile-probe
