@@ -49,8 +49,16 @@ test('duration renderer stays DOM-safe and plots only measured points into the l
   const source=readFileSync(new URL('../ops-board/public/progress-mini.js',import.meta.url),'utf8');
   assert.match(source,/progressStepDurationMs/);
   assert.match(source,/durationLabel/);
-  assert.match(source,/measuredCoords=coords\.filter/);
+  assert.match(source,/const segments=\[\]/);
+  assert.match(source,/if\(coord\.point\.measured\)currentSegment\.push/);
+  assert.match(source,/if\(segment\.length<2\)continue/);
   assert.match(source,/rapid-progress-guide/);
   assert.match(source,/計測 /);
   assert.doesNotMatch(source,/SCORE|innerHTML|api\.github\.com/);
+});
+
+test('duration renderer does not bridge across unmeasured gaps',()=>{
+  const source=readFileSync(new URL('../ops-board/public/progress-mini.js',import.meta.url),'utf8');
+  assert.doesNotMatch(source,/measuredCoords=coords\.filter/);
+  assert.match(source,/segments\.push\(currentSegment\)/);
 });
