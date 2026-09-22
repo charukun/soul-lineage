@@ -110,8 +110,23 @@ function renderActive(state) {
     root.append(el('p', 'rapid-empty rapid-empty-ok', '現在の作業中タスクはありません'));
     return;
   }
-  sessions.slice(0, 2).forEach(session=>root.append(renderSession(session,{graph:true})));
-  if (sessions.length > 2) root.append(el('p', 'rapid-more-note', 'ほか ' + (sessions.length - 2) + '件'));
+  sessions.slice(0,2).forEach(session=>root.append(renderSession(session,{graph:true})));
+  if(sessions.length>2){
+    const rest=sessions.slice(2);
+    const extra=el('div','rapid-active-extra');
+    extra.hidden=true;
+    rest.forEach(session=>extra.append(renderSession(session,{graph:true})));
+    const toggle=el('button','rapid-more-button','ほか '+rest.length+'件を見る');
+    toggle.type='button';
+    toggle.setAttribute('aria-expanded','false');
+    toggle.addEventListener('click',()=>{
+      const opening=extra.hidden;
+      extra.hidden=!opening;
+      toggle.setAttribute('aria-expanded',String(opening));
+      toggle.textContent=opening?'閉じる':'ほか '+rest.length+'件を見る';
+    });
+    root.append(toggle,extra);
+  }
 }
 
 function appHistory(state, app) {
