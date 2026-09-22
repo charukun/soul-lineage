@@ -88,6 +88,7 @@ packages/assets/characters/forge/<id>/
   review/references/*.png           # normalized comparison references
   review/comparisons/*.png          # exported triangle silhouette diagnostics
   review/thumbnail.png
+  review/quality-refinement.json       # model-hash-bound fixed-view DCC loop
   manifest.json
   validation-report.json
   pipeline-state.json
@@ -125,9 +126,11 @@ with a matching model hash, and cannot grant `approved`.
   This compensates minor scale/ground offsets, not large yaw/foreshortening or
   perspective differences. Never claim an optimized camera solve.
 - Geometry: closed loft volumes for head/neck/torso/pelvis/limbs/hands/feet, clothing
-  and rear hair. Front/back widths and side depth profiles drive ring positions.
-  Facial bands use side profile depth, including a nose ridge. Optional semantic
-  components support hood, hat, cape and accessories. No image billboard meshes.
+  and rear hair. Side evidence is reconstructed as independent front depth, back depth
+  and center offset, not a symmetric ellipse. Head/chest/hips/limbs/hands/feet use
+  distinct section profiles. Forehead/eye/cheek/nose/mouth/jaw/chin side bands shape
+  the whole face/cranium profile. Optional semantic components support hood, hat,
+  cape and accessories. No image billboard meshes.
 - Projection: front/side/back and optional obliques really sample their own pixels.
   Surface-normal weights blend in linear color into a per-component UV atlas with
   gutters. Opposite-side samples are marked mirrored; when no valid source exists the texel is
@@ -142,6 +145,22 @@ with a matching model hash, and cannot grant `approved`.
   hand/weapon/secondaryGripTarget/weaponHitboxAnchor/trailOrigin/heldItemAnchor
   aliases. Host still owns damage, inventory and gameplay. `cameraSubject()`
   supplies existing Camera Director/RINNE subjectProvider fields and anchors.
+
+## Quality Refinement Loop
+
+Structural generation is only the entry to review. Every generated package emits
+`review/quality-refinement.json`, bound to the exported model hash. The canonical
+manifest/registry publishes this receipt beside the model, so Visual Review Lab
+discovers Forge candidates from repository data exactly as other review surfaces do;
+no GLB path is typed into the UI.
+
+A candidate is not complete after generation or numeric validation. Review fixed
+front / side / back / three-quarter captures against the original turnaround and an
+existing approved Quality Reference, record failed regions, edit the real model in
+Blender/DCC, re-export, then capture and compare the new model hash. Repeat only
+failed regions for at most three rounds. Side review must inspect front edge, back
+edge and center/depth mismatch separately for face, chest, waist and pelvis/glute.
+Remaining failures stay explicit. The loop never grants visual approval by itself. A re-export invalidates prior visual evidence because the receipt is model-hash-bound; only evidence for the current hash may close a refinement round.
 
 ## Evidence and limitations
 

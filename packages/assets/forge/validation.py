@@ -44,6 +44,19 @@ def validate_export(spec,views,model,texture_info,out):
         render.save(out/(view+'-silhouette.png'))
         overlay=Image.merge('RGB',(reference,render,Image.new('L',(SIZE,SIZE))));overlay.save(out/(view+'-silhouette-overlay.png'))
         comparisons[view]=metric
+    depth={}
+    if 'side' in views:
+        bands={'forehead':spec['face']['forehead']['y'],'eyePlane':spec['face']['eyePlane']['y'],'cheek':spec['face']['cheek']['y'],'nose':spec['face']['nose']['y'],'mouthPlane':spec['face']['mouthPlane']['y'],'jaw':spec['face']['jaw']['y'],'chin':spec['face']['chin']['y'],'chest':spec['levels']['chest'],'waist':spec['levels']['waist'],'pelvis':spec['levels']['hip']}
+        for name,y in bands.items():
+            sample=[p for p in positions if abs(p[1]/1.6-y)<.025]
+            if not sample:continue
+            af=max(p[2] for p in sample)/1.6;ab=-min(p[2] for p in sample)/1.6
+            if name in spec['face']:rf=spec['face'][name]['forward'];rbk=spec['face'][name]['backward']
+            else:
+                key=min(spec['depthMeasurements'],key=lambda k:abs(spec['levels'].get(k,y)-y));m=spec['depthMeasurements'][key];rf=m['frontDepth'];rbk=m['backDepth']
+            fm=abs(af-rf);bm=abs(ab-rbk)
+            depth[name]={'referenceFrontDepth':rf,'referenceBackDepth':rbk,'modelFrontDepth':af,'modelBackDepth':ab,'frontMismatch':fm,'backMismatch':bm,'centerMismatch':abs((af-ab-rf+rbk)/2),'status':'needs-review' if max(fm,bm)>.035 else 'diagnostic-pass'}
+            if max(fm,bm)>.035:warnings.append('side depth mismatch at '+name)
     stats={'triangles':sum(len(idx)//3 for _,idx in meshes),'vertices':len(positions),'materials':len(doc['materials']),'textures':len(doc['textures']),
       'textureDimensions':[texture_info['dimensions']],'approximateDrawCalls':len(meshes),'glbSize':len(data)}
     if stats['triangles']>30000 or len(data)>8_000_000:warnings.append('Web candidate budget exceeded; cannot approve')
@@ -53,5 +66,5 @@ def validate_export(spec,views,model,texture_info,out):
     for view in views:
         if texture_info['sampleContributions'][view]<=0:errors.append('Ignored projection view '+view)
     return {'schemaVersion':'rinne.character-forge-validation/v1','structuralStatus':'failed' if errors else 'passed','visualStatus':'needs-human-review','reviewStatus':'review-candidate',
-      'productionReady':False,'modelSha256':digest(data),'performance':stats,'comparisons':comparisons,'errors':errors,'warnings':warnings,
-      'limitations':['Silhouette rasterization is deterministic CPU projection of delivered GLB triangles, not physical-device or perceptual acceptance','Concavity, asymmetric hidden surfaces, finger topology and foot contact remain unapproved']}
+      'productionReady':False,'modelSha256':digest(data),'performance':stats,'comparisons':comparisons,'sideDepthDiagnostics':depth,'errors':errors,'warnings':warnings,
+      'limitations':['Silhouette rasterization is deterministic CPU projection of delivered GLB triangles, not physical-device or perceptual acceptance','Numeric validation cannot complete the DCC quality refinement loop','Concavity, asymmetric hidden surfaces, finger topology and foot contact remain unapproved']}
