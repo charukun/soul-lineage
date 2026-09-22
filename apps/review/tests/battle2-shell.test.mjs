@@ -17,7 +17,7 @@ function shellHarness({hasHeader=true,duplicate=false}={}){
 }
 
 test('battle2 nests native canvases inside the shared battle review frame',()=>{
-  const html=read('battle2.html'),css=read('src/battle2.css');
+  const html=read('battle2.html'),css=read('src/battle2.css'),stage=read('src/nocturne-stage.js'),sharedStage=read('../../packages/shared-ui/src/review/stage.js'),sharedControls=read('../../packages/shared-ui/src/review/controls.css');
   assert.match(html,/<main class="battle2-review review-surface review-workbench"/);
   assert.match(html,/<header class="battle-bar review-surface__header">[\s\S]*?review-surface__back[\s\S]*?<h1>序破急バトル<\/h1>[\s\S]*?<\/header>/);
   assert.match(html,/<section class="review-surface__workspace"[^>]*>\s*<div class="review-surface__stage-column">\s*<section class="nocturne-stage review-surface__stage"[^>]*data-review-surface="battle2"/);
@@ -25,8 +25,12 @@ test('battle2 nests native canvases inside the shared battle review frame',()=>{
   assert.match(html,/src="\.\/src\/battle2-shell\.js"/);assert.match(html,/src="\.\/src\/nocturne-stage\.js"/);
   assert.doesNotMatch(html,/<iframe\b|<select\b|<input\b|data-runtime-support|id="hud"/i);
   assert.equal((html.match(/<button\b/g)||[]).length,2);
-  assert.equal((html.match(/review-surface__panel/g)||[]).length,1);
-  assert.match(css,/main\.battle2-review\.review-surface>\.review-surface__workspace\s*\{\s*grid-template-columns:minmax\(0,1fr\)!important;\s*grid-template-rows:minmax\(0,1fr\) auto!important;/);
+  assert.equal((html.match(/review-surface__panel/g)||[]).length,0);
+  assert.match(html,/data-review-stage-control data-battle-mode-control/);
+  assert.match(stage,/mountReviewStageControls/);assert.match(stage,/groups:\['\[data-battle-mode-control\]'\]/);assert.match(stage,/label:'戦闘設定'/);
+  assert.match(sharedStage,/review-stage-controls__button','⚙'/);assert.match(sharedControls,/\.review-stage-controls\{position:absolute;z-index:32;right:/);
+  assert.match(css,/main\.battle2-review\.review-surface>\.review-surface__workspace\s*\{\s*grid-template-columns:minmax\(0,1fr\)!important;\s*grid-template-rows:minmax\(0,1fr\)!important;/);
+  assert.match(css,/\.battle-stage-switch\[data-review-stage-control\]\{display:none\}/);assert.match(css,/\.review-stage-controls__panel>\.battle-stage-switch/);
   assert.doesNotMatch(css,/position:\s*fixed/);assert.match(css,/height:\s*100dvh/);
   assert.match(css,/review-switcher__grid\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
 });
