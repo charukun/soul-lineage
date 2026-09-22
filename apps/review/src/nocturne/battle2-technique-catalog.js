@@ -10,7 +10,7 @@ const PRESENTATION_CLIPS=Object.freeze({
 const LABELS=Object.freeze({'basic.sword':'剣の型','action.guard-step':'受け流し歩法','action.slip':'流し身','action.lunge':'伸び足','action.counter':'返し','action.feint':'誘い','action.flow':'連環','action.breakfall':'崩し受身','action.finish':'詰め','action.side-step':'外し歩','action.circle':'廻り込み','action.crash':'打ち崩し','action.draw':'初太刀','action.recover':'残心','action.precision':'一点通し'});
 const BASIC_LABELS=Object.freeze({sword:'剣の型',great:'大剣の型',dagger:'短剣の型',spear:'槍の型',axe:'戦斧の型',staff:'杖の型',fist:'徒手の型'});
 const formFor=id=>String(id||'').startsWith('basic.')?BASIC_FORMS[String(id).slice(6)]:ACTION_FORMS[id],ids=['basic.sword',...Object.keys(ACTION_FORMS)];
-function cloneStep(step,weapon='sword'){const rawFootwork=String(step?.footwork||'stay');return{kind:adaptKind(String(step?.kind||'ready'),weapon),footwork:rawFootwork==='back'?'retreat':rawFootwork,charge:String(step?.charge||'none')};}
+function cloneStep(step,weapon='sword',{normalizeFootwork=false}={}){const rawFootwork=String(step?.footwork||'stay');return{kind:adaptKind(String(step?.kind||'ready'),weapon),footwork:normalizeFootwork&&rawFootwork==='back'?'retreat':rawFootwork,charge:String(step?.charge||'none')};}
 function formSteps(form,weapon='sword'){return form.kinds.map((kind,index)=>cloneStep({kind,footwork:form.feet?.[index]||'stay',charge:form.charges?.[index]||'none'},weapon));}
 function techniqueLabel(id){
  const raw=String(id||'');if(raw.startsWith('basic.'))return BASIC_LABELS[raw.slice(6)]||'基本の型';
@@ -24,7 +24,7 @@ export function battle2TechniqueDefinition(id,{weapon='sword',name=null}={}){
   return Object.freeze({id:raw,name:name||techniqueLabel(raw),label:techniqueLabel(raw),meta:form.kinds.join(' / '),rhythm:form.rhythm||'flow',tempo:Number.isFinite(form.tempo)?form.tempo:1,steps:Object.freeze(steps.map(Object.freeze)),source:'combat-form'});
  }
  const answer=resolveInspirationAnswer(raw);if(!answer||!['technique','variant'].includes(answer.kind)||answer.executor||(answer.weapons?.length&&!answer.weapons.includes(weapon)))return null;
- const steps=(Array.isArray(answer.steps)?answer.steps:[]).slice(0,3).map(step=>cloneStep(step,weapon));if(!supportedSteps(steps,weapon))return null;
+ const steps=(Array.isArray(answer.steps)?answer.steps:[]).slice(0,3).map(step=>cloneStep(step,weapon,{normalizeFootwork:true}));if(!supportedSteps(steps,weapon))return null;
  const label=inspirationTechniqueName(answer);return Object.freeze({id:raw,name:name||label,label,meta:answer.mechanic||steps.map(row=>row.kind).join(' / '),rhythm:'flow',tempo:1,steps:Object.freeze(steps.map(Object.freeze)),source:'inspiration'});
 }
 function catalogRow(id){const definition=battle2TechniqueDefinition(id,{weapon:'sword'}),steps=definition?.steps||[],motions=steps.map(row=>resolveJohakyuMotion({weapon:'sword',kind:row.kind,charge:row.charge,phase:'jo'})),presentation=resolveTechniquePresentation({techniqueId:id,weapon:'sword',phase:'jo',steps});return Object.freeze({id,label:definition?.label||techniqueLabel(id),meta:definition?.meta||'',steps,motions:Object.freeze(motions),presentation,supported:Boolean(definition)&&motions.every(row=>row.supported)});}
