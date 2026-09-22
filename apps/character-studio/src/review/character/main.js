@@ -12,6 +12,10 @@ const button = (text, action) => { const b = make('button', text); b.type = 'but
 const slots = { face: '顔', hair: '髪', body: '体型', outfit: '服', accessory: '装飾' };
 const titles = { face: '顔の比率', hair: '髪型', body: '体型', outfit: '上着', accessory: 'アクセサリ' };
 const hints = { face: '現在は顔全体の比率調整です。目鼻を個別に作り変える機能ではありません。', hair: '髪は初期パーツです。細部はモデルを回して確認できます。', body: '体型の比率だけを変更します。ゲームの当たり判定は変えません。', outfit: '制服は残したまま、上に重ねる衣装を切り替えます。', accessory: '選択中の1体だけに適用されます。' };
+const characterCardThumbnails = Object.freeze({
+  'protagonist.villager.v1': './review/character-thumbnails/protagonist-villager-v1.png',
+  'protagonist.villager.female.v1': './review/character-thumbnails/protagonist-villager-female-v1.png'
+});
 const expressionLabels = { happy: '笑顔', angry: '怒り', sad: '悲しみ', relaxed: '穏やか', surprised: '驚き', neutral: '通常', blink: 'まばたき', blinkLeft: '左目', blinkRight: '右目', aa: 'あ', ih: 'い', ou: 'う', ee: 'え', oh: 'お', lookUp: '上を見る', lookDown: '下を見る', lookLeft: '左を見る', lookRight: '右を見る' };
 let studio, currentTab = 'parts', slot = 'hair', wasReady = false, individualsCount = 0, toastTimer;
 function toast(message) { el('toast').textContent = message; el('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el('toast').hidden = true; }, 2800); }
@@ -33,14 +37,16 @@ function buildModelOptions() {
       else studio.workspace.selectModel(model.id);
       studio.review.aim('front');
     });
-    b.dataset.characterModel = model.id; b.dataset.modelStage = model.productionStage || ''; b.dataset.reviewLabel = concise; row.append(b);
+    b.dataset.characterModel = model.id; b.dataset.modelStage = model.productionStage || ''; b.dataset.reviewLabel = concise;
+    if (characterCardThumbnails[model.id]) { b.dataset.thumbnailUrl = characterCardThumbnails[model.id]; b.dataset.thumbnailKind = 'image'; }
+    row.append(b);
   }
   if (simpleReview) {
     const labels = { knight: '騎士', barbarian: '蛮族', mage: '魔術師', rogue: '盗賊', 'rogue-hooded': 'フード盗賊' };
     for (const model of KAYKIT_CHARACTER_LIBRARY) {
       const b = button(labels[model.key] || model.label, () => { void studio.review.loadFoundationModel(model); studio.review.aim('front'); });
       b.dataset.characterModel = model.id; b.dataset.modelStage = model.legacyVersion ? '1.0 / CC0' : `${model.pack.includes('2.0') ? '2.0' : '1.1'} / CC0`;
-      if (model.thumbnailUrl && !model.legacyVersion) b.dataset.thumbnailUrl = model.thumbnailUrl;
+      if (model.thumbnailUrl) { b.dataset.thumbnailUrl = model.thumbnailUrl; b.dataset.thumbnailKind = model.legacyVersion ? 'svg-symbol' : 'image'; }
       b.title = `${model.label} · ${model.rigId} · ${model.productionStage}`; row.append(b);
     }
   }
