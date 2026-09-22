@@ -48,7 +48,7 @@ def tree_hash(root: Path) -> str:
 
 def load_lock() -> dict:
     lock = json.loads(LOCK.read_text())
-    for key in ("engine", "animatedCharacter"):
+    for key in ("engine", "animatedCharacter", "harness"):
         pin = lock[key]
         if not re.fullmatch(r"img2threejs/[a-z0-9-]+", pin["repository"]):
             raise ValueError("Unapproved upstream repository")
@@ -116,7 +116,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("materialize", "verify", "run"))
     parser.add_argument("--cache", type=Path, default=Path(".cache/character-forge-upstream"))
-    parser.add_argument("--key", choices=("engine", "animatedCharacter"), default="engine")
+    parser.add_argument("--key", choices=("engine", "animatedCharacter", "harness"), default="engine")
     parser.add_argument("--cwd", type=Path, default=Path.cwd())
     parser.add_argument("--entry")
     options, rest = parser.parse_known_args()
