@@ -12,8 +12,8 @@ class MemoryStorage{
 }
 const state=()=>({storage:new MemoryStorage()});
 function glb(){
-  const bytes=new ArrayBuffer(20),view=new DataView(bytes);
-  view.setUint32(0,0x46546c67,true);view.setUint32(4,2,true);view.setUint32(8,20,true);
+  const bytes=new ArrayBuffer(24),view=new DataView(bytes);
+  view.setUint32(0,0x46546c67,true);view.setUint32(4,2,true);view.setUint32(8,24,true);
   return bytes;
 }
 const request={schema:1,id:'hi3dgen-test-v1',label:'test',usage:'experimental-review',productionEligible:false,consentToPublicInference:true,images:[{path:'assets/generated/hi3dgen/inputs/test.png',view:'front',author:'test',license:'CC0-1.0',source:'test'}],provider:{id:'hi3dgen-hf',endpoint:'https://stable-x-hi3dgen.hf.space'},parameters:{seed:1,ssGuidanceStrength:3,ssSamplingSteps:10,slatGuidanceStrength:3,slatSamplingSteps:6},postprocess:{heightMeters:.45,yawDegrees:0,maxTriangles:12000}};
@@ -34,8 +34,8 @@ test('async Hi3DGen job survives request boundary and stores result',async()=>{
     assert.equal(init.status,202);assert.ok(s.storage.alarm);
     await job.alarm();
     const status=await (await job.fetch(new Request('https://internal/internal/status'))).json();
-    assert.equal(status.status,'completed');assert.equal(status.progress,100);assert.equal(status.result.byteLength,20);assert.match(status.result.sha256,/^[a-f0-9]{64}$/);
-    const result=await job.fetch(new Request('https://internal/internal/result'));assert.equal(result.status,200);assert.equal((await result.arrayBuffer()).byteLength,20);
+    assert.equal(status.status,'completed');assert.equal(status.progress,100);assert.equal(status.result.byteLength,24);assert.match(status.result.sha256,/^[a-f0-9]{64}$/);
+    const result=await job.fetch(new Request('https://internal/internal/result'));assert.equal(result.status,200);assert.equal((await result.arrayBuffer()).byteLength,24);
     assert.equal(calls.length,4);
   }finally{globalThis.fetch=original}
 });
