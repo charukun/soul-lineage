@@ -52,6 +52,19 @@ const compactStatus=row=>row?{
   target_url:row.target_url||null,updated_at:row.updated_at||null,
 }:null;
 
+export const FAST_DEV_STATUS_CONTEXTS=['astra/fast-dev-contract','astra/focused-validation','astra/merge-freshness'];
+
+export function actionsInspectionPlan(statuses=[],{full=false}={}){
+  if(full)return {mode:'full',run_id:null,reason:'explicit-full-inspection'};
+  const latest=FAST_DEV_STATUS_CONTEXTS.map(context=>statusByContext(statuses,context)).filter(Boolean);
+  const failing=latest.filter(row=>['failure','error'].includes(row.state)).sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||'')));
+  const row=failing[0]||null;
+  const match=String(row?.target_url||'').match(/\/actions\/runs\/(\d+)/);
+  return row
+    ? {mode:'failure-detail',run_id:match?Number(match[1]):null,reason:row.context+':'+row.state}
+    : {mode:'status-first',run_id:null,reason:'critical-statuses-do-not-require-deep-inspection'};
+}
+
 export function parseValidationDirectives(message=''){
   const plan={none:false,checks:[],tests:[],builds:[]};
   for(const line of String(message).split(/\r?\n/)){
@@ -407,6 +420,7 @@ export function buildActionsSummary(input){
   };
   return {
     schema:'soul-lineage.fast-dev-session.v2',
+    inspection:input.inspection||{mode:'full',run_id:null,reason:'legacy/full caller'},
     generated_at:new Date().toISOString(),
     repository:input.repo,
     commit_sha:input.sha,
