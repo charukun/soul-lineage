@@ -1,0 +1,39 @@
+name: Task RINNE Exchange Source
+on:
+  push:
+    branches: [work/rinne-exchange-boundaries-20260922]
+    paths: [.github/workflows/task-rinne-exchange-source.yml]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Package task sources without assets or credentials
+        run: |
+          python3 - <<'PY'
+          import pathlib, subprocess, tarfile
+          root=pathlib.Path('.')
+          paths=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          prefixes=('packages/','apps/rinne/src/','apps/rinne/tests/','apps/rinne/test/','apps/review/src/','apps/review/tests/','scripts/','tools/','tests/','.github/')
+          explicit={'package.json','package-lock.json','AGENTS.md','apps/rinne/package.json','apps/review/package.json','apps/review/index.html','apps/review/battle2.html','apps/rinne/docs/COMBAT_EVOLUTION.md','apps/rinne/docs/BATTLE_REVIEW_LAB.md','docs/DEVELOPMENT.md','docs/DEVELOP_MERGE.md','docs/BROWSER_PLAYTEST_ROUTING.md'}
+          extensions={'.js','.mjs','.cjs','.json','.ts','.md','.yml','.yaml','.css','.html'}
+          with tarfile.open('/tmp/rinne-exchange-sources.tar.gz','w:gz') as out:
+            for path in paths:
+              p=root/path
+              if path and p.is_file() and (path in explicit or (path.startswith(prefixes) and p.suffix in extensions)):
+                out.add(p,arcname=path)
+          PY
+          git rev-parse HEAD > /tmp/source-sha.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rinne-exchange-sources
+          path: |
+            /tmp/rinne-exchange-sources.tar.gz
+            /tmp/source-sha.txt
+          retention-days: 2
