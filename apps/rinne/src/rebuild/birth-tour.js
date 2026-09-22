@@ -1,4 +1,5 @@
 import {muraTopicLine} from '@soul/world/mura/dialogue';
+import {nextJourneyTarget} from './village-journey-navigation.js';
 
 export const BIRTH_TOUR_ORDER=Object.freeze(['garden','home','school','library','chapel','dojo','smith','clinic']);
 
@@ -34,6 +35,7 @@ export function createBirthTour(stations,{resumeDelay=1.4,dwellSeconds=3.0,arriv
   resumeDelay=Math.max(0,finite(resumeDelay,1.4));dwellSeconds=Math.max(.25,finite(dwellSeconds,3));arrivalRadius=Math.max(.25,finite(arrivalRadius,.82));
   let index=0,resumeRemaining=0,dwellRemaining=0,atStopId=null;
   const target=()=>stops.length?stops[index%stops.length]:null;
+  const travelTo=(position,stop)=>nextJourneyTarget(position,stop,stations,{consumer:'birth'});
   function advance(){if(stops.length)index=(index+1)%stops.length;atStopId=null;dwellRemaining=0;return target();}
   function reset(){index=0;resumeRemaining=0;dwellRemaining=0;atStopId=null;spoken.clear();return target();}
   function observe(station){
@@ -46,11 +48,11 @@ export function createBirthTour(stations,{resumeDelay=1.4,dwellSeconds=3.0,arriv
     if(resumeRemaining>0){resumeRemaining=Math.max(0,resumeRemaining-dt);if(resumeRemaining>0)return{mode:'paused',target:null,line:null};}
     const stop=target();if(!stop)return{mode:'idle',target:null,line:null};
     const radius=Math.max(arrivalRadius,Math.min(1.25,finite(stop.radius,1.8)*.45));
-    if(distance(position,stop)>radius){atStopId=null;dwellRemaining=0;return{mode:'travel',target:stop,line:null};}
+    if(distance(position,stop)>radius){atStopId=null;dwellRemaining=0;return{mode:'travel',target:travelTo(position,stop),line:null};}
     let line=null;
     if(atStopId!==stop.id){atStopId=stop.id;dwellRemaining=dwellSeconds;line=observe(stop);}
     else dwellRemaining=Math.max(0,dwellRemaining-dt);
-    if(dwellRemaining<=0){const arrived=stop,next=advance();return{mode:'travel',target:next,line,arrived};}
+    if(dwellRemaining<=0){const arrived=stop,next=advance();return{mode:'travel',target:travelTo(position,next),line,arrived};}
     return{mode:'dwell',target:stop,line,arrived:line?stop:null};
   }
   return{tick,observe,advance,reset,target,stops:()=>stops.slice(),spoken:()=>new Set(spoken)};
