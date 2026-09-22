@@ -1,12 +1,16 @@
-import {SPRITE_SET_DIRECTIONS,resolveSpriteSetDirection,spriteSetGrounding,spriteSetUV} from '../../character-sprite-set.js';
+import {SPRITE_SET_DIRECTIONS,assertCharacterSpriteSet,resolveSpriteSetDirection,spriteSetGrounding,spriteSetUV} from '../../character-sprite-set.js';
 import {createSpriteSetPlayback} from '../../character-sprite-playback.js';
 import {loadSpriteSetResources,isSpriteSetResources} from '../browser/character-sprite-set.js';
+const claimedResources=new WeakSet();
 
-// Owns its textures/materials/resources. External attachments remain caller-owned.
+// Owns textures/materials/resources. External attachments remain caller-owned.
+// resourceLoader is a trusted host/test dependency, never taken from the asset or transfer.
 export async function createCharacterSpriteSetActor(THREE,input,options={}){
-  const resources=isSpriteSetResources(input)?input:await loadSpriteSetResources(input,{playable:options.playable===true});
-  if(resources.disposed)throw new Error('Sprite Set resources are disposed');
-  const m=resources.manifest,playback=createSpriteSetPlayback(m),object=new THREE.Group();object.name='CharacterSpriteSet:'+m.id;
+  const loader=options.resourceLoader||loadSpriteSetResources;
+  const resources=isSpriteSetResources(input)?input:await loader(input,{playable:options.playable===true});
+  if(resources.disposed||claimedResources.has(resources))throw new Error('Sprite Set resources are disposed or already owned');
+  const m=assertCharacterSpriteSet(resources.manifest,{playable:options.playable===true});claimedResources.add(resources);
+  const playback=createSpriteSetPlayback(m),object=new THREE.Group();object.name='CharacterSpriteSet:'+m.id;object.userData.occlusionCategory=m.render.occlusionCategory||'character';
   const geometry=new THREE.PlaneGeometry(1,1),material=new THREE.MeshLambertMaterial({transparent:true,alphaTest:.04,side:THREE.DoubleSide,depthTest:true,depthWrite:true,emissive:0xffffff,emissiveIntensity:.12});
   const body=new THREE.Group(),mesh=new THREE.Mesh(geometry,material);body.name='SpriteSetBody';body.add(mesh);object.add(body);mesh.frustumCulled=false;
   const shadowGeometry=new THREE.CircleGeometry(m.render.shadowRadius||.3,24),shadowMaterial=new THREE.MeshBasicMaterial({color:0x101a15,transparent:true,opacity:.28,depthWrite:false});
@@ -33,7 +37,7 @@ export async function createCharacterSpriteSetActor(THREE,input,options={}){
     if(key!==renderKey){
       renderKey=key;const uv=spriteSetUV(m,state.action,view,state.frame),attribute=geometry.attributes.uv;
       attribute.setXY(0,uv.u0,uv.v1);attribute.setXY(1,uv.u1,uv.v1);attribute.setXY(2,uv.u0,uv.v0);attribute.setXY(3,uv.u1,uv.v0);attribute.needsUpdate=true;
-      if(material.map!==assetTextures.get(clip.asset)){material.map=assetTextures.get(clip.asset);material.needsUpdate=true;}
+      if(material.map!==assetTextures.get(clip.asset)){const firstMap=!material.map;material.map=assetTextures.get(clip.asset);if(firstMap)material.needsUpdate=true;}
       mesh.scale.set(g.width,g.height,1);mesh.position.set(g.x,g.y,0);
       const anchors={...(m.anchors||{}),...(clip.anchors?.[view]?.[state.frame]||{})};
       for(const [name,socket] of Object.entries(sockets)){
@@ -51,7 +55,7 @@ export async function createCharacterSpriteSetActor(THREE,input,options={}){
     else if(forcedView)view=forcedView;
     renderFrame();body.updateMatrixWorld(true);
   }
-  // The renderer's resolved camera wins, including a camera director update later in the same frame.
+  // Resolve against the final render camera, including later-in-frame camera director updates.
   mesh.onBeforeRender=(_renderer,_scene,camera)=>resolveView(camera);
   function update({delta=0,camera}={}){
     if(disposed)return;playback.step(delta);lastEvents=playback.drainEvents();renderFrame();resolveView(camera);
@@ -70,7 +74,7 @@ export async function createCharacterSpriteSetActor(THREE,input,options={}){
     setFacing(value){if(!Number.isFinite(value))throw new Error('Invalid facing');yaw=value;},
     setDirection(value=null){if(value!==null&&!SPRITE_SET_DIRECTIONS.includes(value))throw new Error('Invalid direction');forcedView=value;if(value)view=value;renderFrame();},
     setLift(value){if(!Number.isFinite(value)||value<0||value>12)throw new Error('Invalid visual lift');lift=value;renderFrame();},
-    setOpacity(value){opacity=Math.max(0,Math.min(1,value));renderFrame();},
+    setOpacity(value){if(!Number.isFinite(value))throw new Error('Invalid opacity');opacity=Math.max(0,Math.min(1,value));renderFrame();},
     setEquipment(slot,attachment){if(!sockets[slot])throw new Error('Unknown socket');attachments.get(slot)?.removeFromParent();attachments.delete(slot);if(attachment){sockets[slot].add(attachment);attachments.set(slot,attachment);}},
     pause(value=true){return playback.pause(value);},reset(){const result=playback.reset();renderFrame();return result;},
     snapshot(){return {...playback.snapshot(),id:m.id,schema:m.schema,view,availableViews:[...SPRITE_SET_DIRECTIONS],yaw,position:{x:object.position.x,y:object.position.y,z:object.position.z},lift,pivot:[...(m.actions[playback.snapshot().action].pivot||m.render.pivot)],worldHeight:m.render.worldHeight,textures:textures.size,decodedImages:resources.decodedCount,events:lastEvents.map(e=>({...e})),disposed};},

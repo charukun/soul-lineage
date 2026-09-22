@@ -23,7 +23,7 @@ export function createSpriteSetSandbox(actor,options={}){
     if(paused){actor.update({delta:0,camera});return;}
     elapsed+=dt;total+=dt;
     if(demo&&elapsed>=(DURATION[action]||1.2)){index=(index+1)%sequence.length;play(sequence[index]);}
-    const speed=action==='run'?3.4:action==='walk'?1.6:action==='vault'?.8:0;
+    const speed=actor.playback.snapshot().completed?0:action==='run'?3.4:action==='walk'?1.6:action==='vault'?.8:0;
     // A bounded circuit makes collisions visible without accumulating unbounded drift.
     const heading=total*.8,tx=origin.x+Math.sin(heading)*2.2,tz=origin.z+Math.cos(heading)*2.2;
     const dx=tx-proxy.position.x,dz=tz-proxy.position.z,length=Math.hypot(dx,dz);
@@ -32,11 +32,11 @@ export function createSpriteSetSandbox(actor,options={}){
     const moved=proxy.step(dt);distanceTravelled+=moved*dt;
     if(air>0||verticalSpeed>0){
       verticalSpeed-=12*dt;air=Math.max(0,air+verticalSpeed*dt);
-      if(action==='jump'&&verticalSpeed<0){actor.play('fall');action='fall';elapsed=0;}
+      if(action==='jump'&&verticalSpeed<0){actor.play('fall');action='fall';elapsed=0;if(demo)index=sequence.indexOf('fall');}
       if(air===0){verticalSpeed=0;if(!demo&&(action==='jump'||action==='fall'||action==='vault'))play('idle');}
     }
     actor.setTransform({x:proxy.position.x,y:proxy.position.y,z:proxy.position.z},proxy.yaw);
-    // Lift is relative to the collision-grounded body root; shadow remains on the sampled ground.
+    // Lift is relative to the collision-grounded body root; shadow remains on sampled ground.
     actor.setLift(air);actor.update({delta:dt,camera});
   }
   return {proxy,play,reset,update,
