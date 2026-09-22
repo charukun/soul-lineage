@@ -49,7 +49,7 @@ try{
   if(url.pathname==='/__kaykit-probe'){await route.fulfill({contentType:'text/html',body:'<!doctype html><meta charset="utf-8"><script type="module" src="/@fs/'+root+'/scripts/browser/kaykit-library-probe.js"></script>'});return;}
   await route.continue();
  });
- page=await context.newPage();page.on('pageerror',e=>receipt.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')receipt.errors.push(m.text());});
+ page=await context.newPage();page.on('pageerror',e=>receipt.errors.push(e.stack||e.message));page.on('response',r=>{if(r.status()>=400)receipt.errors.push(`HTTP ${r.status()} ${r.url()}`);});page.on('console',m=>{if(m.type()==='error')receipt.errors.push(m.text());});
  await page.goto('http://127.0.0.1:5173/__kaykit-probe');await page.waitForFunction(()=>!!window.kaykitLibraryProbe,null,{timeout:60000});
  const contact=[],poses=[];
  for(const model of catalog.models){
@@ -80,7 +80,7 @@ try{
   await page.locator('.motion-models summary').click();
   await page.waitForFunction(()=>[...document.querySelectorAll('#motion-model-grid img')].every(x=>x.complete&&x.naturalWidth>0));
   for(const model of catalog.models){
-   const button=page.locator('[data-motion-model="'+model.id+'"]');await button.scrollIntoViewIfNeeded();await button.click();
+   const button=page.locator('[data-motion-model="'+model.id+'"]');await button.click();
    await page.waitForFunction(id=>{const stage=document.querySelector('#motion-stage');return stage?.dataset.motionModel===id&&stage.dataset.motionCompatibility==='PLAYABLE';},model.id,{timeout:60000});
    receipt.ui.push({route:'/review-motion',model:model.id,status:'passed'});
   }
@@ -95,10 +95,10 @@ try{
   const columns=await page.locator('#motion-model-grid').evaluate(x=>getComputedStyle(x).gridTemplateColumns.split(/\s+/).length);assert(columns===5,'Motion mobile grid is not five columns');
   await page.screenshot({path:path.join(output,'motion-review-mobile.png')});await page.setViewportSize({width:1280,height:960});
   start=receipt.requests.length;await page.goto(studio+'/');
-  await page.waitForFunction(()=>window.characterStudio?.review?.ready&&document.querySelectorAll('.character-model-card').length>=17,null,{timeout:60000});
+  await page.waitForFunction(()=>window.characterStudio?.review?.ready&&window.characterStudio.review.displayModelId&&window.characterStudio.review.audit?.modelId===window.characterStudio.review.displayModelId&&document.querySelectorAll('.character-model-card').length>=17,null,{timeout:60000});
   assert(!receipt.requests.slice(start).some(r=>catalog.models.some(m=>r.path===m.runtime.assetPath)),'Studio eagerly loads current models');
   for(const model of catalog.models){
-   const button=page.locator('.character-model-card[data-model-key="'+model.id+'"]');await button.scrollIntoViewIfNeeded();await button.click();
+   const button=page.locator('.character-model-card[data-model-key="'+model.id+'"]');await button.click();
    await page.waitForFunction(id=>window.characterStudio?.review?.ready&&window.characterStudio.review.displayModelId===id&&window.characterStudio.review.audit?.modelId===id,model.id,{timeout:60000});
    const audit=await page.evaluate(()=>({audit:window.characterStudio.review.audit,errors:window.characterStudio.review.errors}));assert(audit.errors.length===0,'Studio model errors');
    receipt.ui.push({route:'character-studio /',model:model.id,status:'passed'});

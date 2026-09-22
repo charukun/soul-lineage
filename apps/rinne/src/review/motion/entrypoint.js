@@ -154,6 +154,7 @@ async function selectMotion(record){
 const createStaticThumbnail=(url,label='')=>createReviewSvgThumbnail(url,{label});
 function createModelThumbnail(model){
   if(model.thumbnailUrl){
+    if(model.legacyVersion)return createStaticThumbnail(model.thumbnailUrl,model.label);
     const image=document.createElement('img');image.className='review-static-thumbnail';
     image.src=model.thumbnailUrl;image.alt=model.label;image.loading='lazy';image.decoding='async';
     image.width=288;image.height=184;return image;

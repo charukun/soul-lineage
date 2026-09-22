@@ -18,6 +18,6 @@ test('approved project origin still enforces model identity and prohibits redire
 test('current model thumbnails use image elements, not cross-origin SVG symbol references',()=>{
  const src=readFileSync(new URL('../src/review/motion/entrypoint.js',import.meta.url),'utf8');
  const block=src.slice(src.indexOf('function createModelThumbnail'),src.indexOf('function renderModelGrid'));
- assert.match(block,/createElement\('img'\)/);assert.match(block,/image\.loading='lazy'/);assert.doesNotMatch(block,/createStaticThumbnail\(model\.thumbnailUrl/);
+ assert.match(block,/createElement\('img'\)/);assert.match(block,/image\.loading='lazy'/);assert.match(block,/if\(model\.legacyVersion\)return createStaticThumbnail/);
  for(const row of KAYKIT_CURRENT_MODELS)assert.match(row.thumbnailUrl,/\.webp$/);
 });

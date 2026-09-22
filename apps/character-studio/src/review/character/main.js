@@ -40,7 +40,7 @@ function buildModelOptions() {
     for (const model of KAYKIT_CHARACTER_LIBRARY) {
       const b = button(labels[model.key] || model.label, () => { void studio.review.loadFoundationModel(model); studio.review.aim('front'); });
       b.dataset.characterModel = model.id; b.dataset.modelStage = model.legacyVersion ? '1.0 / CC0' : `${model.pack.includes('2.0') ? '2.0' : '1.1'} / CC0`;
-      if (model.thumbnailUrl) b.dataset.thumbnailUrl = model.thumbnailUrl;
+      if (model.thumbnailUrl && !model.legacyVersion) b.dataset.thumbnailUrl = model.thumbnailUrl;
       b.title = `${model.label} · ${model.rigId} · ${model.productionStage}`; row.append(b);
     }
   }
