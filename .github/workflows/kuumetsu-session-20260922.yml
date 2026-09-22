@@ -1,6 +1,6 @@
 name: Temporary kuumetsu immutable observation 20260922
 # Existing task-scoped ops fallback. Never merge to develop/main.
-# Candidate staging and native play precede merge-owning validation.
+# Recheck only because shared runtime/build input overlap required reconciliation.
 on:
   push:
     branches: [ops/kuumetsu-observe-20260922-01]
@@ -9,9 +9,9 @@ permissions:
   contents: read
   actions: write
   statuses: read
-  pull-requests: write
+  pull-requests: read
 env:
-  SOURCE_SHA: 6136e17819f7476e133433a09dedef19c3bfffaf
+  SOURCE_SHA: 2f13f313d20a1e609696599ec095030b8adbd4dd
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -21,12 +21,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 6136e17819f7476e133433a09dedef19c3bfffaf
+          ref: ${{ env.SOURCE_SHA }}
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-      - name: Publish candidate through existing Per-App DEV Publish
+      - name: Publish integrated candidate through Per-App DEV Publish
         id: publish
         uses: actions/github-script@v8
         with:
@@ -60,7 +60,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-contact-candidate-publication
+          name: kuumetsu-contact-integrated-publication
           path: session-evidence
           retention-days: 14
   observe:
@@ -70,36 +70,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 6136e17819f7476e133433a09dedef19c3bfffaf
+          ref: ${{ env.SOURCE_SHA }}
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Causal preflight only, no merge-owning validation
+      - name: Causal integration preflight only
         run: |
           mkdir -p session-evidence
           node --test apps/demon/tests/combat-exchange-readout.test.mjs apps/demon/tests/devour-feedback.test.mjs > session-evidence/preflight.log 2>&1
           node --input-type=module -e "import {readFileSync} from 'node:fs';import {validateRecord} from './.autonomous/lib/contract.mjs';validateRecord(JSON.parse(readFileSync('.autonomous/kuumetsu/experiments/kuumetsu-combat-contact-ownership-20260922.json')));console.log('v3 plan valid');" >> session-evidence/preflight.log
-      - name: Retain same PR telemetry at candidate staging boundary
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const pr=(await github.rest.pulls.get({...context.repo,pull_number:1415})).data;
-            const re=/<!-- autonomous-iteration-telemetry:v1:([A-Za-z0-9_-]+) -->/;
-            const match=pr.body.match(re);if(!match)throw new Error('Existing telemetry marker missing');
-            const t=JSON.parse(Buffer.from(match[1],'base64url').toString());
-            t.prNumber=1415;t.changedPaths=['apps/demon/src/web/combat-exchange-state.js','apps/demon/src/web/combat-exchange-readout.js','apps/demon/src/web/combat-exchange-readout.css','apps/demon/src/web/hunt-flow-ui.js','apps/demon/tests/combat-exchange-readout.test.mjs'];
-            t.changes=[{id:'named-combat-vitals',summary:'交戦相手と自分の生命を表示'},{id:'attributed-contact-receipt',summary:'実接触の向き・損傷・防御を表示'}];
-            Object.assign(t.steps.implementation,{state:'done',completedAt:'2026-09-22T03:23:41.748Z',durationMs:516267});
-            Object.assign(t.steps.causalValidation,{state:'done',startedAt:'2026-09-22T03:23:41.748Z',completedAt:'2026-09-22T03:23:59.695Z',durationMs:17947,summary:'13 local pure/DOM tests; hosted scoped preflight recorded separately'});
-            Object.assign(t.steps.afterObservation,{state:'running',startedAt:'2026-09-22T03:23:59.695Z'});
-            t.currentStep='afterObservation';t.updatedAt=new Date().toISOString();
-            const marker='<!-- autonomous-iteration-telemetry:v1:'+Buffer.from(JSON.stringify(t)).toString('base64url')+' -->';
-            await github.rest.pulls.update({...context.repo,pull_number:1415,body:pr.body.replace(re,marker)});
       - run: npx playwright install --with-deps chromium > /tmp/browser-install.log 2>&1
-      - name: Reuse armed native route with read-only contact captures
+      - name: Same native route and read-only captures as candidate round
         uses: actions/github-script@v8
         with:
           script: |
@@ -111,13 +95,13 @@ jobs:
             source=source.replace('let held=false,sawCombat=false,lastEaten=0;', 'let held=false,sawCombat=false,lastEaten=0;const seenContactKinds=new Set();');
             source=source.replace('await capture(`03-play-${String(i).padStart(2,\'0\')}`,important||i%4===0);',"const kind=await page.evaluate(()=>{const r=document.querySelector('#combat-exchange-readout');return r&&!r.hidden?(r.dataset.contact+(/防御/.test(r.innerText)?'-guard':'')):'';});const newKind=kind&&!seenContactKinds.has(kind);if(kind)seenContactKinds.add(kind);await capture(`03-play-${String(i).padStart(2,'0')}`,important||i%4===0||newKind);");
             fs.writeFileSync('session-observe.mjs',source);
-      - name: Immutable candidate native play, without state injection
+      - name: Immutable integrated candidate native play
         env:
           PREVIEW_URL: ${{ needs.publish.outputs.preview }}
         run: cp session-observe.mjs session-evidence/observer.mjs && node session-observe.mjs > session-evidence/browser.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-contact-candidate-observation
+          name: kuumetsu-contact-integrated-observation
           path: session-evidence
           retention-days: 14
