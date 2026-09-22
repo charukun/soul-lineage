@@ -36,6 +36,11 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /対象未記録/);
   assert.match(script, /rapid-session-card/);
   assert.match(script, /工程時間/);
+  assert.match(script, /sessions\.slice\(2\)/);
+  assert.match(script, /rapid-more-button/);
+  assert.match(script, /aria-expanded/);
+  assert.match(script, /extra\.hidden=!opening/);
+  assert.match(script, /ほか '\+rest\.length\+'件を見る/);
   assert.doesNotMatch(script, /rapid-current-band/);
   assert.doesNotMatch(script, /api\.github\.com|innerHTML/);
 });
