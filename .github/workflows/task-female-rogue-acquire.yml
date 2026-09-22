@@ -4,30 +4,20 @@ on:
     branches: [art/female-protagonist-kaykit-rogue-20260922]
     paths: [.github/workflows/task-female-rogue-acquire.yml]
 permissions:
-  contents: write
+  contents: read
 jobs:
   observe:
     if: contains(github.event.head_commit.message, '[female-observe]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      APP_ENV: dev
+      APP_BRANCH: art/female-protagonist-kaykit-rogue-20260922
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
-      - name: Apply replacement once and commit the real source changes
-        run: |
-          set -euo pipefail
-          if ! grep -q 'protagonist-female-kaykit-rogue-original' packages/characters/src/reference-model-catalog.js; then
-            python3 scripts/task-replace-female-rogue.py
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A apps/character-studio/public/simulator/assets apps/rinne/public/simulator/assets packages/characters/src/reference-model-catalog.js packages/characters/production/protagonist-villager-female-v1.production.json assets/characters/protagonist docs/characters scripts/blender apps/character-studio/src/review/character/runtime.js apps/character-studio/tests/character-review-grid.test.mjs tests/protagonist-villager-dcc.test.mjs
-          if ! git diff --cached --quiet; then
-            git commit -m 'art: replace rejected female protagonist with unchanged official CC0 Rogue'
-            git push origin HEAD:${{ github.ref_name }}
-          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
