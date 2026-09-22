@@ -1123,6 +1123,66 @@
       "sha256": "7399c6db48fa15ca1db483f7d7480499f57d46ea4dde76e8e99c7dfd670dc616"
     },
     {
+      "path": "experimental/hi3dgen/hi3dgen-alchemy-flask-v1/0b2a9104c0205ac8baf7f42b90fc1619181173b1ff19a6fb310499bafc2144f9.glb",
+      "bytes": 218768,
+      "gitBlobSha": "5183746fb11b8a9e94848213dfe479b469cad3bc",
+      "sha256": "0b2a9104c0205ac8baf7f42b90fc1619181173b1ff19a6fb310499bafc2144f9"
+    },
+    {
+      "path": "experimental/hi3dgen/hi3dgen-alchemy-flask-v1/0b2a9104c0205ac8baf7f42b90fc1619181173b1ff19a6fb310499bafc2144f9.provenance.json",
+      "bytes": 7901,
+      "gitBlobSha": "056fb5cb05eed82560be6d2f130e75cc940435fa",
+      "sha256": "69809ad3490766870bf09e31a32e55c7aa9cbe01ef5aa80dc202c09e0eeb5f15"
+    },
+    {
+      "path": "experimental/hi3dgen/hi3dgen-alchemy-flask-v1/input/b49bc842112aa13b2a8b8ad8b06879ad05cc1c813658872018a023b4986166f0.png",
+      "bytes": 14771,
+      "gitBlobSha": "467b8a99b58e9838b9e67c5dec3c249a5507bbfd",
+      "sha256": "b49bc842112aa13b2a8b8ad8b06879ad05cc1c813658872018a023b4986166f0"
+    },
+    {
+      "path": "experimental/hi3dgen/hi3dgen-alchemy-flask-v1/input/b8f2d48d3f51493e1a557157f0c460d0a6a1941f2c67a2907ec3f9ebb36ca7f2.png",
+      "bytes": 13435,
+      "gitBlobSha": "61ae1e5081af01ea06d5f2b3d52dced6545a275c",
+      "sha256": "b8f2d48d3f51493e1a557157f0c460d0a6a1941f2c67a2907ec3f9ebb36ca7f2"
+    },
+    {
+      "path": "experimental/hi3dgen/hi3dgen-alchemy-flask-v1/licenses/6617520b6f85871e5cc9d9ead8e8283c5322bf38ddfaac5b2438d01ebeadb82e.txt",
+      "bytes": 1146,
+      "gitBlobSha": "e80e5838f745eaaa96863af860e70d95e9c4592b",
+      "sha256": "6617520b6f85871e5cc9d9ead8e8283c5322bf38ddfaac5b2438d01ebeadb82e"
+    },
+    {
+      "path": "experimental/hi3dgen/hi3dgen-alchemy-flask-v1/licenses/855166e55164e7b29dbe51d6619c68e91a026cdee241e13206eccc377288a7a8.txt",
+      "bytes": 16545,
+      "gitBlobSha": "0d1e1ae6c5b0307b75be42e58fe26cbaa4139d78",
+      "sha256": "855166e55164e7b29dbe51d6619c68e91a026cdee241e13206eccc377288a7a8"
+    },
+    {
+      "path": "experimental/hi3dgen/hi3dgen-alchemy-flask-v1/licenses/c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4.txt",
+      "bytes": 11357,
+      "gitBlobSha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "experimental/hi3dgen/hi3dgen-alchemy-flask-v1/licenses/d5c36a370d7a7beb0fbf599c7e659d2301de679ae97da38ea69c5ac3b36b44a2.txt",
+      "bytes": 328,
+      "gitBlobSha": "3219a8dd8f88d224a294f4f09289d3f1bb526ef7",
+      "sha256": "d5c36a370d7a7beb0fbf599c7e659d2301de679ae97da38ea69c5ac3b36b44a2"
+    },
+    {
+      "path": "experimental/hi3dgen/hi3dgen-alchemy-flask-v1/licenses/fa5003b0ee9fa5b9e31e1d2c757f7529b26c95661544e795e662d662a3aba9f5.txt",
+      "bytes": 136,
+      "gitBlobSha": "3c96cc0e58f27a85e5b4f25af9d29e58ee385681",
+      "sha256": "fa5003b0ee9fa5b9e31e1d2c757f7529b26c95661544e795e662d662a3aba9f5"
+    },
+    {
+      "path": "experimental/hi3dgen/hi3dgen-alchemy-flask-v1/requests/ca9e717bc1eadd12dce2ea586f2fba4487e7258e264927ad4d36b58c48977b6b.json",
+      "bytes": 798,
+      "gitBlobSha": "b7ee1c83f41e47c33ae45f437a30bec898bb1964",
+      "sha256": "ca9e717bc1eadd12dce2ea586f2fba4487e7258e264927ad4d36b58c48977b6b"
+    },
+    {
       "path": "licenses/kaykit-dungeon-additions-CC0.txt",
       "bytes": 829,
       "gitBlobSha": "686cf4ee3931b75d4ecfac6308f9d3287553748c",
