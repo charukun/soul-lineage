@@ -49,14 +49,139 @@
         "rig": "Rig_Medium",
         "animationMode": "shared-external",
         "embeddedClips": 0,
-        "status": "pending-browser-validation"
+        "status": "review-verified",
+        "evidenceHead": "d1e297d10ff2d043f91264c5299d364fb88d15b3",
+        "clips": [
+          {
+            "semantic": "idle",
+            "sourceId": "kaykit-general",
+            "name": "Idle_A",
+            "index": 6,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 0.0869784186264595,
+            "maxExtent": 2.3851233735951833,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "walk",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Walking_A",
+            "index": 8,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.6401130421579055,
+            "maxExtent": 2.380281611633921,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "run",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Running_A",
+            "index": 5,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.6788460167528885,
+            "maxExtent": 2.373338925663252,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "melee",
+            "sourceId": "kaykit-combat-melee",
+            "name": "Melee_1H_Attack_Chop",
+            "index": 0,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.2721809372744237,
+            "maxExtent": 2.4568628441703644,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "hit",
+            "sourceId": "kaykit-general",
+            "name": "Hit_A",
+            "index": 4,
+            "duration": 0.6666666865348816,
+            "samples": 17,
+            "maxDelta": 0.5178762694847617,
+            "maxExtent": 2.3855509589248514,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "death",
+            "sourceId": "kaykit-general",
+            "name": "Death_A",
+            "index": 0,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.9648320561228256,
+            "maxExtent": 2.4167643734617994,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "ranged",
+            "sourceId": "kaykit-combat-ranged",
+            "name": "Ranged_Bow_Release",
+            "index": 12,
+            "duration": 1.3333333730697632,
+            "samples": 17,
+            "maxDelta": 1.2071270475921632,
+            "maxExtent": 2.4365055680014422,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "tool",
+            "sourceId": "kaykit-tools",
+            "name": "Chop",
+            "index": 0,
+            "duration": 4.333333492279053,
+            "samples": 17,
+            "maxDelta": 1.7877551523632893,
+            "maxExtent": 2.3929295223061087,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "special",
+            "sourceId": "kaykit-special",
+            "name": "Skeletons_Taunt",
+            "index": 11,
+            "duration": 1.0333333015441895,
+            "samples": 17,
+            "maxDelta": 1.2328082814573658,
+            "maxExtent": 2.444085382712965,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "advanced",
+            "sourceId": "kaykit-movement-advanced",
+            "name": "Sneaking",
+            "index": 10,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 1.684216169773571,
+            "maxExtent": 2.2258019478622697,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "simulation",
+            "sourceId": "kaykit-simulation",
+            "name": "Waving",
+            "index": 13,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 0.9758856133276076,
+            "maxExtent": 2.4605370314593085,
+            "status": "PLAYABLE"
+          }
+        ]
       },
       "clothingStyle": "medieval-fantasy",
       "suitableRole": [
         "npc",
         "protagonist-candidate"
       ],
-      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting."
+      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.barbarian.v2/372dbe4a1fc7ea0ebd88a8f4e3474e3fd1e86c48.webp"
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -106,14 +231,139 @@
         "rig": "Rig_Medium",
         "animationMode": "shared-external",
         "embeddedClips": 0,
-        "status": "pending-browser-validation"
+        "status": "review-verified",
+        "evidenceHead": "d1e297d10ff2d043f91264c5299d364fb88d15b3",
+        "clips": [
+          {
+            "semantic": "idle",
+            "sourceId": "kaykit-general",
+            "name": "Idle_A",
+            "index": 6,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 0.0869784186264595,
+            "maxExtent": 2.530593894423396,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "walk",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Walking_A",
+            "index": 8,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.6401130421579055,
+            "maxExtent": 2.5570309266795066,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "run",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Running_A",
+            "index": 5,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.6788460167528885,
+            "maxExtent": 2.5082073329890555,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "melee",
+            "sourceId": "kaykit-combat-melee",
+            "name": "Melee_1H_Attack_Chop",
+            "index": 0,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.2721809372744237,
+            "maxExtent": 2.590825843629576,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "hit",
+            "sourceId": "kaykit-general",
+            "name": "Hit_A",
+            "index": 4,
+            "duration": 0.6666666865348816,
+            "samples": 17,
+            "maxDelta": 0.5178762694847617,
+            "maxExtent": 2.5458891362708047,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "death",
+            "sourceId": "kaykit-general",
+            "name": "Death_A",
+            "index": 0,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.9648320561228256,
+            "maxExtent": 2.5812485755657986,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "ranged",
+            "sourceId": "kaykit-combat-ranged",
+            "name": "Ranged_Bow_Release",
+            "index": 12,
+            "duration": 1.3333333730697632,
+            "samples": 17,
+            "maxDelta": 1.2071270475921632,
+            "maxExtent": 2.562184003447832,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "tool",
+            "sourceId": "kaykit-tools",
+            "name": "Chop",
+            "index": 0,
+            "duration": 4.333333492279053,
+            "samples": 17,
+            "maxDelta": 1.787755152363288,
+            "maxExtent": 2.5401843803865893,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "special",
+            "sourceId": "kaykit-special",
+            "name": "Skeletons_Taunt",
+            "index": 11,
+            "duration": 1.0333333015441895,
+            "samples": 17,
+            "maxDelta": 1.2328082814573658,
+            "maxExtent": 2.5312161431188414,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "advanced",
+            "sourceId": "kaykit-movement-advanced",
+            "name": "Sneaking",
+            "index": 10,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 1.684216169773571,
+            "maxExtent": 2.4704106391221585,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "simulation",
+            "sourceId": "kaykit-simulation",
+            "name": "Waving",
+            "index": 13,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 0.9758856227188967,
+            "maxExtent": 2.555903420636012,
+            "status": "PLAYABLE"
+          }
+        ]
       },
       "clothingStyle": "medieval-fantasy",
       "suitableRole": [
         "npc",
         "protagonist-candidate"
       ],
-      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting."
+      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.knight.v2/03f79208c641bf5c1455edea740a9a10821983c4.webp"
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -163,14 +413,139 @@
         "rig": "Rig_Medium",
         "animationMode": "shared-external",
         "embeddedClips": 0,
-        "status": "pending-browser-validation"
+        "status": "review-verified",
+        "evidenceHead": "d1e297d10ff2d043f91264c5299d364fb88d15b3",
+        "clips": [
+          {
+            "semantic": "idle",
+            "sourceId": "kaykit-general",
+            "name": "Idle_A",
+            "index": 6,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 0.0869784186264595,
+            "maxExtent": 2.6424476258424816,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "walk",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Walking_A",
+            "index": 8,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.6401130421579055,
+            "maxExtent": 2.6351772361011867,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "run",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Running_A",
+            "index": 5,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.6788460167528885,
+            "maxExtent": 2.665870954406509,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "melee",
+            "sourceId": "kaykit-combat-melee",
+            "name": "Melee_1H_Attack_Chop",
+            "index": 0,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.2721809372744237,
+            "maxExtent": 2.742404732433485,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "hit",
+            "sourceId": "kaykit-general",
+            "name": "Hit_A",
+            "index": 4,
+            "duration": 0.6666666865348816,
+            "samples": 17,
+            "maxDelta": 0.5178762694847617,
+            "maxExtent": 2.694575460470221,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "death",
+            "sourceId": "kaykit-general",
+            "name": "Death_A",
+            "index": 0,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.9648320561228256,
+            "maxExtent": 2.723696755456995,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "ranged",
+            "sourceId": "kaykit-combat-ranged",
+            "name": "Ranged_Bow_Release",
+            "index": 12,
+            "duration": 1.3333333730697632,
+            "samples": 17,
+            "maxDelta": 1.2071270475921632,
+            "maxExtent": 2.6922204032910355,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "tool",
+            "sourceId": "kaykit-tools",
+            "name": "Chop",
+            "index": 0,
+            "duration": 4.333333492279053,
+            "samples": 17,
+            "maxDelta": 1.787755152363288,
+            "maxExtent": 2.668881513875211,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "special",
+            "sourceId": "kaykit-special",
+            "name": "Skeletons_Taunt",
+            "index": 11,
+            "duration": 1.0333333015441895,
+            "samples": 17,
+            "maxDelta": 1.2328082814573658,
+            "maxExtent": 2.8167409969133295,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "advanced",
+            "sourceId": "kaykit-movement-advanced",
+            "name": "Sneaking",
+            "index": 10,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 1.684216169773571,
+            "maxExtent": 2.5562350484331597,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "simulation",
+            "sourceId": "kaykit-simulation",
+            "name": "Waving",
+            "index": 13,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 0.9758856227188967,
+            "maxExtent": 2.7173420561905375,
+            "status": "PLAYABLE"
+          }
+        ]
       },
       "clothingStyle": "medieval-fantasy",
       "suitableRole": [
         "npc",
         "protagonist-candidate"
       ],
-      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting."
+      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.mage.v2/be7d3804912d4fb97e2124f5708eebd53f19c929.webp"
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -220,14 +595,139 @@
         "rig": "Rig_Medium",
         "animationMode": "shared-external",
         "embeddedClips": 0,
-        "status": "pending-browser-validation"
+        "status": "review-verified",
+        "evidenceHead": "d1e297d10ff2d043f91264c5299d364fb88d15b3",
+        "clips": [
+          {
+            "semantic": "idle",
+            "sourceId": "kaykit-general",
+            "name": "Idle_A",
+            "index": 6,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 0.0869784186264595,
+            "maxExtent": 2.261394281031114,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "walk",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Walking_A",
+            "index": 8,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.6401130421579055,
+            "maxExtent": 2.2554326835432232,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "run",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Running_A",
+            "index": 5,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.6788460167528885,
+            "maxExtent": 2.245636884604473,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "melee",
+            "sourceId": "kaykit-combat-melee",
+            "name": "Melee_1H_Attack_Chop",
+            "index": 0,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.2721809372744237,
+            "maxExtent": 2.326563668697884,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "hit",
+            "sourceId": "kaykit-general",
+            "name": "Hit_A",
+            "index": 4,
+            "duration": 0.6666666865348816,
+            "samples": 17,
+            "maxDelta": 0.5178762694847617,
+            "maxExtent": 2.261412443983523,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "death",
+            "sourceId": "kaykit-general",
+            "name": "Death_A",
+            "index": 0,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.9648320561228256,
+            "maxExtent": 2.2927774966968744,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "ranged",
+            "sourceId": "kaykit-combat-ranged",
+            "name": "Ranged_Bow_Release",
+            "index": 12,
+            "duration": 1.3333333730697632,
+            "samples": 17,
+            "maxDelta": 1.2071270475921632,
+            "maxExtent": 2.2516815142117435,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "tool",
+            "sourceId": "kaykit-tools",
+            "name": "Chop",
+            "index": 0,
+            "duration": 4.333333492279053,
+            "samples": 17,
+            "maxDelta": 1.787755152363288,
+            "maxExtent": 2.269835861196423,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "special",
+            "sourceId": "kaykit-special",
+            "name": "Skeletons_Taunt",
+            "index": 11,
+            "duration": 1.0333333015441895,
+            "samples": 17,
+            "maxDelta": 1.2328082814573658,
+            "maxExtent": 2.353941047113121,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "advanced",
+            "sourceId": "kaykit-movement-advanced",
+            "name": "Sneaking",
+            "index": 10,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 1.684216169773571,
+            "maxExtent": 2.242593135103141,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "simulation",
+            "sourceId": "kaykit-simulation",
+            "name": "Waving",
+            "index": 13,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 0.9758856227188967,
+            "maxExtent": 2.2976767894314225,
+            "status": "PLAYABLE"
+          }
+        ]
       },
       "clothingStyle": "medieval-fantasy",
       "suitableRole": [
         "npc",
         "protagonist-candidate"
       ],
-      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting."
+      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.ranger.v2/0fe3679bdd4133f197b7d0476baf940659189a66.webp"
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -277,14 +777,139 @@
         "rig": "Rig_Medium",
         "animationMode": "shared-external",
         "embeddedClips": 0,
-        "status": "pending-browser-validation"
+        "status": "review-verified",
+        "evidenceHead": "d1e297d10ff2d043f91264c5299d364fb88d15b3",
+        "clips": [
+          {
+            "semantic": "idle",
+            "sourceId": "kaykit-general",
+            "name": "Idle_A",
+            "index": 6,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 0.0869784186264595,
+            "maxExtent": 2.16680828776999,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "walk",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Walking_A",
+            "index": 8,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.6401130421579055,
+            "maxExtent": 2.160834861438414,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "run",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Running_A",
+            "index": 5,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.6788460167528885,
+            "maxExtent": 2.147726001722982,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "melee",
+            "sourceId": "kaykit-combat-melee",
+            "name": "Melee_1H_Attack_Chop",
+            "index": 0,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.2721809372744237,
+            "maxExtent": 2.2767822783848928,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "hit",
+            "sourceId": "kaykit-general",
+            "name": "Hit_A",
+            "index": 4,
+            "duration": 0.6666666865348816,
+            "samples": 17,
+            "maxDelta": 0.5178762694847617,
+            "maxExtent": 2.1982036086938033,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "death",
+            "sourceId": "kaykit-general",
+            "name": "Death_A",
+            "index": 0,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.9648320561228256,
+            "maxExtent": 2.2143515454365494,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "ranged",
+            "sourceId": "kaykit-combat-ranged",
+            "name": "Ranged_Bow_Release",
+            "index": 12,
+            "duration": 1.3333333730697632,
+            "samples": 17,
+            "maxDelta": 1.2071270475921632,
+            "maxExtent": 2.2473388124594216,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "tool",
+            "sourceId": "kaykit-tools",
+            "name": "Chop",
+            "index": 0,
+            "duration": 4.333333492279053,
+            "samples": 17,
+            "maxDelta": 1.787755152363288,
+            "maxExtent": 2.236762289663545,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "special",
+            "sourceId": "kaykit-special",
+            "name": "Skeletons_Taunt",
+            "index": 11,
+            "duration": 1.0333333015441895,
+            "samples": 17,
+            "maxDelta": 1.2328082814573658,
+            "maxExtent": 2.2569734835466573,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "advanced",
+            "sourceId": "kaykit-movement-advanced",
+            "name": "Sneaking",
+            "index": 10,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 1.684216169773571,
+            "maxExtent": 2.2686008385415715,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "simulation",
+            "sourceId": "kaykit-simulation",
+            "name": "Waving",
+            "index": 13,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 0.9758856227188967,
+            "maxExtent": 2.2004731031877065,
+            "status": "PLAYABLE"
+          }
+        ]
       },
       "clothingStyle": "medieval-fantasy",
       "suitableRole": [
         "npc",
         "protagonist-candidate"
       ],
-      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting."
+      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.rogue.v2/dda8333a8375298bc753e7923b55e81df2dbc053.webp"
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -334,14 +959,139 @@
         "rig": "Rig_Medium",
         "animationMode": "shared-external",
         "embeddedClips": 0,
-        "status": "pending-browser-validation"
+        "status": "review-verified",
+        "evidenceHead": "d1e297d10ff2d043f91264c5299d364fb88d15b3",
+        "clips": [
+          {
+            "semantic": "idle",
+            "sourceId": "kaykit-general",
+            "name": "Idle_A",
+            "index": 6,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 0.0869784186264595,
+            "maxExtent": 2.159613993129525,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "walk",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Walking_A",
+            "index": 8,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.6401130421579055,
+            "maxExtent": 2.1534739258141777,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "run",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Running_A",
+            "index": 5,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.6788460167528885,
+            "maxExtent": 2.148260986301927,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "melee",
+            "sourceId": "kaykit-combat-melee",
+            "name": "Melee_1H_Attack_Chop",
+            "index": 0,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.2721809372744237,
+            "maxExtent": 2.2273054336817295,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "hit",
+            "sourceId": "kaykit-general",
+            "name": "Hit_A",
+            "index": 4,
+            "duration": 0.6666666865348816,
+            "samples": 17,
+            "maxDelta": 0.5178762694847617,
+            "maxExtent": 2.163968676410093,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "death",
+            "sourceId": "kaykit-general",
+            "name": "Death_A",
+            "index": 0,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.9648320561228256,
+            "maxExtent": 2.2085296904114893,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "ranged",
+            "sourceId": "kaykit-combat-ranged",
+            "name": "Ranged_Bow_Release",
+            "index": 12,
+            "duration": 1.3333333730697632,
+            "samples": 17,
+            "maxDelta": 1.2071270475921632,
+            "maxExtent": 2.173095462510643,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "tool",
+            "sourceId": "kaykit-tools",
+            "name": "Chop",
+            "index": 0,
+            "duration": 4.333333492279053,
+            "samples": 17,
+            "maxDelta": 1.787755152363288,
+            "maxExtent": 2.1680555732942497,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "special",
+            "sourceId": "kaykit-special",
+            "name": "Skeletons_Taunt",
+            "index": 11,
+            "duration": 1.0333333015441895,
+            "samples": 17,
+            "maxDelta": 1.2328082814573658,
+            "maxExtent": 2.2879023472102222,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "advanced",
+            "sourceId": "kaykit-movement-advanced",
+            "name": "Sneaking",
+            "index": 10,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 1.684216169773571,
+            "maxExtent": 2.1731390398670514,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "simulation",
+            "sourceId": "kaykit-simulation",
+            "name": "Waving",
+            "index": 13,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 0.9758856227188967,
+            "maxExtent": 2.2005638181455347,
+            "status": "PLAYABLE"
+          }
+        ]
       },
       "clothingStyle": "medieval-fantasy",
       "suitableRole": [
         "npc",
         "protagonist-candidate"
       ],
-      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting."
+      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.rogue-hooded.v2/f462ed5145cf6ee8de9faba154cfb151640984e9.webp"
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -391,13 +1141,138 @@
         "rig": "Rig_Medium",
         "animationMode": "shared-external",
         "embeddedClips": 0,
-        "status": "pending-browser-validation"
+        "status": "review-verified",
+        "evidenceHead": "d1e297d10ff2d043f91264c5299d364fb88d15b3",
+        "clips": [
+          {
+            "semantic": "idle",
+            "sourceId": "kaykit-general",
+            "name": "Idle_A",
+            "index": 6,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 0.08697841862645894,
+            "maxExtent": 2.618142063596056,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "walk",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Walking_A",
+            "index": 8,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.6401130421579055,
+            "maxExtent": 2.6144199392013165,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "run",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Running_A",
+            "index": 5,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.6788460167528885,
+            "maxExtent": 2.6381675931119206,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "melee",
+            "sourceId": "kaykit-combat-melee",
+            "name": "Melee_1H_Attack_Chop",
+            "index": 0,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.2721809372744237,
+            "maxExtent": 2.7143686804788696,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "hit",
+            "sourceId": "kaykit-general",
+            "name": "Hit_A",
+            "index": 4,
+            "duration": 0.6666666865348816,
+            "samples": 17,
+            "maxDelta": 0.5178762694847617,
+            "maxExtent": 2.6674391864186,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "death",
+            "sourceId": "kaykit-general",
+            "name": "Death_A",
+            "index": 0,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.9648320561228256,
+            "maxExtent": 2.6979911781347274,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "ranged",
+            "sourceId": "kaykit-combat-ranged",
+            "name": "Ranged_Bow_Release",
+            "index": 12,
+            "duration": 1.3333333730697632,
+            "samples": 17,
+            "maxDelta": 1.2071270475921632,
+            "maxExtent": 2.67617079825768,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "tool",
+            "sourceId": "kaykit-tools",
+            "name": "Chop",
+            "index": 0,
+            "duration": 4.333333492279053,
+            "samples": 17,
+            "maxDelta": 1.787755152363288,
+            "maxExtent": 2.6466539659835115,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "special",
+            "sourceId": "kaykit-special",
+            "name": "Skeletons_Taunt",
+            "index": 11,
+            "duration": 1.0333333015441895,
+            "samples": 17,
+            "maxDelta": 1.2328082814573689,
+            "maxExtent": 2.7864447287431444,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "advanced",
+            "sourceId": "kaykit-movement-advanced",
+            "name": "Sneaking",
+            "index": 10,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 1.684216169773571,
+            "maxExtent": 2.2154011140188725,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "simulation",
+            "sourceId": "kaykit-simulation",
+            "name": "Waving",
+            "index": 13,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 0.9758856227188967,
+            "maxExtent": 2.705010888866128,
+            "status": "PLAYABLE"
+          }
+        ]
       },
       "clothingStyle": "medieval-fantasy",
       "suitableRole": [
         "enemy"
       ],
-      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting."
+      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-mage.v1-1/805d5c491667c02c298a669679c8c13f061a915e.webp"
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -447,13 +1322,138 @@
         "rig": "Rig_Medium",
         "animationMode": "shared-external",
         "embeddedClips": 0,
-        "status": "pending-browser-validation"
+        "status": "review-verified",
+        "evidenceHead": "d1e297d10ff2d043f91264c5299d364fb88d15b3",
+        "clips": [
+          {
+            "semantic": "idle",
+            "sourceId": "kaykit-general",
+            "name": "Idle_A",
+            "index": 6,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 0.08697841862645894,
+            "maxExtent": 2.1527370324939388,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "walk",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Walking_A",
+            "index": 8,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.6401130421579055,
+            "maxExtent": 2.150279033755776,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "run",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Running_A",
+            "index": 5,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.6788460167528885,
+            "maxExtent": 2.1350071860894917,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "melee",
+            "sourceId": "kaykit-combat-melee",
+            "name": "Melee_1H_Attack_Chop",
+            "index": 0,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.2721809372744237,
+            "maxExtent": 2.2192077577291047,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "hit",
+            "sourceId": "kaykit-general",
+            "name": "Hit_A",
+            "index": 4,
+            "duration": 0.6666666865348816,
+            "samples": 17,
+            "maxDelta": 0.5178762694847617,
+            "maxExtent": 2.152852447188556,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "death",
+            "sourceId": "kaykit-general",
+            "name": "Death_A",
+            "index": 0,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.9648320561228256,
+            "maxExtent": 2.1822854852014038,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "ranged",
+            "sourceId": "kaykit-combat-ranged",
+            "name": "Ranged_Bow_Release",
+            "index": 12,
+            "duration": 1.3333333730697632,
+            "samples": 17,
+            "maxDelta": 1.2071270475921632,
+            "maxExtent": 2.1517692243446085,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "tool",
+            "sourceId": "kaykit-tools",
+            "name": "Chop",
+            "index": 0,
+            "duration": 4.333333492279053,
+            "samples": 17,
+            "maxDelta": 1.787755152363288,
+            "maxExtent": 2.1609982976050017,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "special",
+            "sourceId": "kaykit-special",
+            "name": "Skeletons_Taunt",
+            "index": 11,
+            "duration": 1.0333333015441895,
+            "samples": 17,
+            "maxDelta": 1.2328082814573689,
+            "maxExtent": 2.2518243280593353,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "advanced",
+            "sourceId": "kaykit-movement-advanced",
+            "name": "Sneaking",
+            "index": 10,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 1.684216169773571,
+            "maxExtent": 2.03455514774827,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "simulation",
+            "sourceId": "kaykit-simulation",
+            "name": "Waving",
+            "index": 13,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 0.9758856227188967,
+            "maxExtent": 2.180977841026768,
+            "status": "PLAYABLE"
+          }
+        ]
       },
       "clothingStyle": "medieval-fantasy",
       "suitableRole": [
         "enemy"
       ],
-      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting."
+      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-minion.v1-1/93766ede8940eb02370e84c4bc2eb15ff5ee925f.webp"
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -503,13 +1503,138 @@
         "rig": "Rig_Medium",
         "animationMode": "shared-external",
         "embeddedClips": 0,
-        "status": "pending-browser-validation"
+        "status": "review-verified",
+        "evidenceHead": "d1e297d10ff2d043f91264c5299d364fb88d15b3",
+        "clips": [
+          {
+            "semantic": "idle",
+            "sourceId": "kaykit-general",
+            "name": "Idle_A",
+            "index": 6,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 0.08697841862645894,
+            "maxExtent": 2.2953140658113176,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "walk",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Walking_A",
+            "index": 8,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.6401130421579055,
+            "maxExtent": 2.3343407816106376,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "run",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Running_A",
+            "index": 5,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.6788460167528885,
+            "maxExtent": 2.293857520039682,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "melee",
+            "sourceId": "kaykit-combat-melee",
+            "name": "Melee_1H_Attack_Chop",
+            "index": 0,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.2721809372744237,
+            "maxExtent": 2.397717970331189,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "hit",
+            "sourceId": "kaykit-general",
+            "name": "Hit_A",
+            "index": 4,
+            "duration": 0.6666666865348816,
+            "samples": 17,
+            "maxDelta": 0.5178762694847617,
+            "maxExtent": 2.3085386060466804,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "death",
+            "sourceId": "kaykit-general",
+            "name": "Death_A",
+            "index": 0,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.9648320561228256,
+            "maxExtent": 2.3894922984389955,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "ranged",
+            "sourceId": "kaykit-combat-ranged",
+            "name": "Ranged_Bow_Release",
+            "index": 12,
+            "duration": 1.3333333730697632,
+            "samples": 17,
+            "maxDelta": 1.2071270475921632,
+            "maxExtent": 2.3236221066650096,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "tool",
+            "sourceId": "kaykit-tools",
+            "name": "Chop",
+            "index": 0,
+            "duration": 4.333333492279053,
+            "samples": 17,
+            "maxDelta": 1.787755152363288,
+            "maxExtent": 2.304520161819936,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "special",
+            "sourceId": "kaykit-special",
+            "name": "Skeletons_Taunt",
+            "index": 11,
+            "duration": 1.0333333015441895,
+            "samples": 17,
+            "maxDelta": 1.2328082814573689,
+            "maxExtent": 2.481640055801345,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "advanced",
+            "sourceId": "kaykit-movement-advanced",
+            "name": "Sneaking",
+            "index": 10,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 1.684216169773571,
+            "maxExtent": 2.173990382335817,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "simulation",
+            "sourceId": "kaykit-simulation",
+            "name": "Waving",
+            "index": 13,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 0.9758856227188967,
+            "maxExtent": 2.374452172509203,
+            "status": "PLAYABLE"
+          }
+        ]
       },
       "clothingStyle": "medieval-fantasy",
       "suitableRole": [
         "enemy"
       ],
-      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting."
+      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-rogue.v1-1/257c786d28f2273b37b38861c3601c3713beb6fd.webp"
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -559,13 +1684,138 @@
         "rig": "Rig_Medium",
         "animationMode": "shared-external",
         "embeddedClips": 0,
-        "status": "pending-browser-validation"
+        "status": "review-verified",
+        "evidenceHead": "d1e297d10ff2d043f91264c5299d364fb88d15b3",
+        "clips": [
+          {
+            "semantic": "idle",
+            "sourceId": "kaykit-general",
+            "name": "Idle_A",
+            "index": 6,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 0.08697841862645894,
+            "maxExtent": 2.5780495536924355,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "walk",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Walking_A",
+            "index": 8,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.6401130421579055,
+            "maxExtent": 2.616853906430067,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "run",
+            "sourceId": "kaykit-movement-basic",
+            "name": "Running_A",
+            "index": 5,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.6788460167528885,
+            "maxExtent": 2.596905776541173,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "melee",
+            "sourceId": "kaykit-combat-melee",
+            "name": "Melee_1H_Attack_Chop",
+            "index": 0,
+            "duration": 1.0666667222976685,
+            "samples": 17,
+            "maxDelta": 1.2721809372744237,
+            "maxExtent": 2.7100644597938732,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "hit",
+            "sourceId": "kaykit-general",
+            "name": "Hit_A",
+            "index": 4,
+            "duration": 0.6666666865348816,
+            "samples": 17,
+            "maxDelta": 0.5178762694847617,
+            "maxExtent": 2.591160342695122,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "death",
+            "sourceId": "kaykit-general",
+            "name": "Death_A",
+            "index": 0,
+            "duration": 0.800000011920929,
+            "samples": 17,
+            "maxDelta": 1.9648320561228256,
+            "maxExtent": 2.6681779455357537,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "ranged",
+            "sourceId": "kaykit-combat-ranged",
+            "name": "Ranged_Bow_Release",
+            "index": 12,
+            "duration": 1.3333333730697632,
+            "samples": 17,
+            "maxDelta": 1.2071270475921632,
+            "maxExtent": 2.7257041506746362,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "tool",
+            "sourceId": "kaykit-tools",
+            "name": "Chop",
+            "index": 0,
+            "duration": 4.333333492279053,
+            "samples": 17,
+            "maxDelta": 1.787755152363288,
+            "maxExtent": 2.595752892316563,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "special",
+            "sourceId": "kaykit-special",
+            "name": "Skeletons_Taunt",
+            "index": 11,
+            "duration": 1.0333333015441895,
+            "samples": 17,
+            "maxDelta": 1.2328082814573689,
+            "maxExtent": 2.7437442269596057,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "advanced",
+            "sourceId": "kaykit-movement-advanced",
+            "name": "Sneaking",
+            "index": 10,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 1.684216169773571,
+            "maxExtent": 2.3538432827645526,
+            "status": "PLAYABLE"
+          },
+          {
+            "semantic": "simulation",
+            "sourceId": "kaykit-simulation",
+            "name": "Waving",
+            "index": 13,
+            "duration": 2.133333444595337,
+            "samples": 17,
+            "maxDelta": 0.9758856227188967,
+            "maxExtent": 2.5938831222437235,
+            "status": "PLAYABLE"
+          }
+        ]
       },
       "clothingStyle": "medieval-fantasy",
       "suitableRole": [
         "enemy"
       ],
-      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting."
+      "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-warrior.v1-1/f6802eb8d70b4bb8b9459e9cea3dd90f7b15f435.webp"
     }
   ],
   "packs": [

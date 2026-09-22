@@ -6681,6 +6681,66 @@
       "bytes": 4926,
       "gitBlobSha": "10b60a7492225ea3a1d3fffa7f1653a083489a8b",
       "sha256": "4fa8bf084c6770ee733c8aeb65a4328b406f17c315ebeb169c73a7c4cbf67a8d"
+    },
+    {
+      "path": "thumbnail/kaykit-current-20260922/kaykit.barbarian.v2/372dbe4a1fc7ea0ebd88a8f4e3474e3fd1e86c48.webp",
+      "bytes": 5306,
+      "sha256": "1a6e5d37949d99d0f6af7f0ba6c5916d2c743039717c6c0a18793b9691a78380",
+      "gitBlobSha": "372dbe4a1fc7ea0ebd88a8f4e3474e3fd1e86c48"
+    },
+    {
+      "path": "thumbnail/kaykit-current-20260922/kaykit.knight.v2/03f79208c641bf5c1455edea740a9a10821983c4.webp",
+      "bytes": 4940,
+      "sha256": "d17d4169c655a343aff3565de2f6d2c43783e6f0a5cf42676a496926662ab2ab",
+      "gitBlobSha": "03f79208c641bf5c1455edea740a9a10821983c4"
+    },
+    {
+      "path": "thumbnail/kaykit-current-20260922/kaykit.mage.v2/be7d3804912d4fb97e2124f5708eebd53f19c929.webp",
+      "bytes": 5036,
+      "sha256": "28a0678ef4209a3f26c60bcd19f999efd0db4ecafa65e94dae7debfd80e156bf",
+      "gitBlobSha": "be7d3804912d4fb97e2124f5708eebd53f19c929"
+    },
+    {
+      "path": "thumbnail/kaykit-current-20260922/kaykit.ranger.v2/0fe3679bdd4133f197b7d0476baf940659189a66.webp",
+      "bytes": 5414,
+      "sha256": "1453d39456ccb37f20fece519311c19eb98fde6c429b9f4bcede119bc94e0692",
+      "gitBlobSha": "0fe3679bdd4133f197b7d0476baf940659189a66"
+    },
+    {
+      "path": "thumbnail/kaykit-current-20260922/kaykit.rogue-hooded.v2/f462ed5145cf6ee8de9faba154cfb151640984e9.webp",
+      "bytes": 5094,
+      "sha256": "81900030a3d383c622d20c1b6423cd7fc5e5e6879170bd318f1b59193cdeb395",
+      "gitBlobSha": "f462ed5145cf6ee8de9faba154cfb151640984e9"
+    },
+    {
+      "path": "thumbnail/kaykit-current-20260922/kaykit.rogue.v2/dda8333a8375298bc753e7923b55e81df2dbc053.webp",
+      "bytes": 5516,
+      "sha256": "7dd377118e7e882e800ed82bf46aff96d0cf4e46ecc31eedc8f300c2843bbb9a",
+      "gitBlobSha": "dda8333a8375298bc753e7923b55e81df2dbc053"
+    },
+    {
+      "path": "thumbnail/kaykit-current-20260922/kaykit.skeleton-mage.v1-1/805d5c491667c02c298a669679c8c13f061a915e.webp",
+      "bytes": 4852,
+      "sha256": "06170c94447b20cc697eef8d0f6294d35f7b4c52ee860add9c8b4007dcd6ad38",
+      "gitBlobSha": "805d5c491667c02c298a669679c8c13f061a915e"
+    },
+    {
+      "path": "thumbnail/kaykit-current-20260922/kaykit.skeleton-minion.v1-1/93766ede8940eb02370e84c4bc2eb15ff5ee925f.webp",
+      "bytes": 5402,
+      "sha256": "d989d0f09c743562479932836dfe27d92ee81011f48fe0f7ea733be57db7ce36",
+      "gitBlobSha": "93766ede8940eb02370e84c4bc2eb15ff5ee925f"
+    },
+    {
+      "path": "thumbnail/kaykit-current-20260922/kaykit.skeleton-rogue.v1-1/257c786d28f2273b37b38861c3601c3713beb6fd.webp",
+      "bytes": 5074,
+      "sha256": "1e24e1ca9494c15422d3c2da8410953b9b57e1aa778096a34754f06be10c9682",
+      "gitBlobSha": "257c786d28f2273b37b38861c3601c3713beb6fd"
+    },
+    {
+      "path": "thumbnail/kaykit-current-20260922/kaykit.skeleton-warrior.v1-1/f6802eb8d70b4bb8b9459e9cea3dd90f7b15f435.webp",
+      "bytes": 5112,
+      "sha256": "9e304c7b490850e2e52e176b29e5dbfc9530e673d6e56840a44b292030d539a0",
+      "gitBlobSha": "f6802eb8d70b4bb8b9459e9cea3dd90f7b15f435"
     }
   ]
 }
