@@ -17,6 +17,9 @@ jobs:
   inspect:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    env:
+      APP_ENV: dev
+      PYTHONPATH: /usr/lib/python3/dist-packages
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,12 +35,23 @@ jobs:
           sudo apt-get install -y blender python3-numpy python3-pil libegl1 libegl-mesa0 libgl1-mesa-dri >> generated/heroine-opacity/apt.log 2>&1
           npm ci --ignore-scripts > generated/heroine-opacity/npm.log 2>&1
           npx playwright install --with-deps chromium > generated/heroine-opacity/chromium.log 2>&1
-      - name: Author, observe and prepare same-repository delivery tree
+      - name: Observe pinned Before in Character Studio
+        timeout-minutes: 10
+        run: bash .task-start/heroine-opacity/run.sh before
+      - name: Repair real editable mesh and materialize candidate
+        timeout-minutes: 3
+        run: bash .task-start/heroine-opacity/run.sh repair
+      - name: Render the edited Blender source
+        timeout-minutes: 6
+        run: bash .task-start/heroine-opacity/run.sh render
+      - name: Observe exact candidate from all requested angles and actions
+        timeout-minutes: 10
+        run: bash .task-start/heroine-opacity/run.sh after
+      - name: Prepare same-repository delivery tree and check asset consistency
+        timeout-minutes: 5
         env:
-          APP_ENV: dev
-          PYTHONPATH: /usr/lib/python3/dist-packages
           GH_TOKEN: ${{ github.token }}
-        run: bash .task-start/heroine-opacity/run.sh
+        run: bash .task-start/heroine-opacity/run.sh deliver
       - uses: actions/upload-artifact@v4
         if: always()
         with:
