@@ -1,4 +1,4 @@
-# Task-scoped bounded correction and re-observation. Removed before final validation.
+# Task-scoped cancellation repair and final real-output observation; removed before final validation.
 name: Task KayKit Library
 on:
   push:
@@ -19,14 +19,14 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 1
-      - name: Apply the actual-output correction
+      - name: Correct the reproduced cancellation and thumbnail defects
         run: |
           set -euo pipefail
           python3 scripts/task-kaykit-correct.py
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add apps/rinne/src/review/motion/entrypoint.js apps/rinne/src/review/motion/source-runtime.js scripts/browser/kaykit-library.mjs scripts/browser/kaykit-library-probe.js scripts/assets/kaykit-current-20260922.json scripts/assets/materialize-kaykit-current.py packages/characters/generated/kaykit-current.json apps/review/public/library/provenance/kaykit-current-20260922.json apps/review/public/library/manifest.json
-          git commit -m 'fix: render current character rasters, use real picker disclosure and record visual review'
+          git add apps/rinne/src/review/shared/runtime-thumbnail.js apps/character-studio/src/review/character/main.js apps/rinne/src/review/motion/entrypoint.js apps/rinne/tests/review-kaykit-library.test.mjs scripts/browser/kaykit-library.mjs
+          git commit -m 'fix: tolerate cancelled thumbnail jobs and preserve native raster versus SVG rendering'
           git push origin HEAD:${{ github.ref_name }}
       - uses: actions/setup-node@v4
         with:
@@ -42,8 +42,8 @@ jobs:
           npm run build --workspace @soul/rinne 2>&1 | tee .deploy-state/kaykit-library/build-rinne.log
           npm run build --workspace @soul/character-studio 2>&1 | tee .deploy-state/kaykit-library/build-studio.log
           npm run build --workspace @soul/review 2>&1 | tee .deploy-state/kaykit-library/build-review.log
-          node --test packages/characters/tests/kaykit-library.test.mjs packages/characters/tests/kaykit-foundation.test.mjs apps/character-studio/tests/character-review-grid.test.mjs apps/rinne/tests/review-motion-protagonist.test.mjs apps/rinne/tests/review-kaykit-library.test.mjs packages/rendering/tests/kaykit-rig.test.mjs packages/rendering/tests/kaykit-runtime-model.test.mjs 2>&1 | tee .deploy-state/kaykit-library/focused-tests.log
-      - name: Re-observe exact built characters and existing motions
+          node --test packages/characters/tests/kaykit-library.test.mjs packages/characters/tests/kaykit-foundation.test.mjs apps/character-studio/tests/character-review-grid.test.mjs apps/rinne/tests/review-motion-protagonist.test.mjs apps/rinne/tests/review-kaykit-library.test.mjs apps/rinne/tests/review-thumbnail-cancellation.test.mjs packages/rendering/tests/kaykit-rig.test.mjs packages/rendering/tests/kaykit-runtime-model.test.mjs 2>&1 | tee .deploy-state/kaykit-library/focused-tests.log
+      - name: Observe exact built characters and existing motions with real native UI input
         run: node scripts/browser/kaykit-library.mjs
       - uses: actions/upload-artifact@v4
         if: always()
