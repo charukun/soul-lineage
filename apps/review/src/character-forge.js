@@ -6,6 +6,7 @@ import {createCameraDirector} from '@soul/rendering/camera-director';
 import {applyCameraPresentation,actorScreenSafety} from '@soul/rendering/camera-presentation-three';
 import {createReviewStageLifecycle,mountReviewShell,mountReviewStageControls} from '@soul/shared-ui/review-shell';
 import {REVIEW_ROUTES} from './review-lab-config.js';
+import {createForgeInspectionStage} from './character-forge-stage.js';
 import {characterForgeCandidates} from '../../../packages/assets/generated/create-forge-registry.js';
 import {createCharacterPackageActor} from '../../../packages/assets/src/character-create-forge/actor.js';
 
@@ -21,9 +22,7 @@ function start(){
   const scene=new THREE.Scene();scene.background=new THREE.Color('#26332f');
   const camera=new THREE.PerspectiveCamera(6,1,.01,1000);
   const orbit=new OrbitControls(camera,canvas);orbit.enableDamping=true;orbit.minDistance=.18;orbit.maxDistance=500;
-  scene.add(new THREE.HemisphereLight('#fff6df','#557481',2.4));
-  const sun=new THREE.DirectionalLight('#ffdeb0',3);sun.position.set(-5,9,8);scene.add(sun);
-  const fill=new THREE.DirectionalLight('#8cd6ec',2);fill.position.set(8,5,-8);scene.add(fill);
+  const inspection=createForgeInspectionStage({scene,renderer});
   const director=createCameraDirector({profile:'current3d'});
   // Shared framing uses only package bounds, unaffected by debug axes/equipment.
   const frameGeometry=new THREE.BoxGeometry(1,1,1),frameMaterial=new THREE.MeshBasicMaterial();
@@ -62,6 +61,7 @@ function start(){
   function setComparison(enabled){
     comparing=Boolean(enabled);panel.dataset.comparing=String(comparing);
     scene.background.set(comparing?'#e9edef':'#26332f');
+    display();
     $('[data-forge-compare]').setAttribute('aria-pressed',String(comparing));
     $('.forge-reference-pane').hidden=!comparing;
     if(comparing){compare(['front','side','back'].includes(view)?view:referenceView);return;}
@@ -87,8 +87,10 @@ function start(){
     motionUI();updateViewUI();overlay($('[data-forge-overlay]').checked);frame(direction);
   }
   function display(){
-    actor?.setDisplay({texture:$('[data-forge-texture]').checked,wireframe:$('[data-forge-wire]').checked,
+    const shape=$('[data-forge-shape]').getAttribute('aria-pressed')==='true',wireframe=$('[data-forge-wire]').checked;
+    actor?.setDisplay({texture:!shape,wireframe,
       skeleton:$('[data-forge-skeleton]').checked,socket:$('[data-forge-sockets]').checked});
+    inspection.setDisplay({shape,wireframe,comparison:comparing});
   }
   function showInputImages(candidate){
     const names={front:'正面',front34:'前斜め',side:'側面',back34:'後斜め',back:'背面'};
@@ -113,12 +115,12 @@ function start(){
       if(hash!==candidate.manifest.model.sha256)throw new Error('GLB hash mismatch');
       const gltf=await new GLTFLoader().parseAsync(bytes,''),next=createCharacterPackageActor(THREE,gltf,candidate.manifest);
       if(!alive||token!==sequence){next.dispose();return;}
-      actor?.dispose();actor=next;entry=candidate;scene.add(actor.root,actor.helper);showInputImages(candidate);
+      inspection.release();actor?.dispose();actor=next;entry=candidate;scene.add(actor.root,actor.helper);showInputImages(candidate);
       const bounds=candidate.manifest.bounds;
       frameRoot.position.fromArray(bounds.min.map((v,i)=>(v+bounds.max[i])*.5));
       frameRoot.scale.fromArray(bounds.min.map((v,i)=>bounds.max[i]-v));frameRoot.updateMatrixWorld(true);
       $('[data-forge-animation]').replaceChildren(new Option('基準姿勢','Bind'),...candidate.manifest.animations.map(c=>new Option(motionLabels[c.name]||c.name,c.name)));
-      actor.setEquipment({weapon:$('[data-forge-equipment]').value||null});display();enable(true);compare('front');if(!comparing)setComparison(false);panel.dataset.ready='true';
+      actor.setEquipment({weapon:$('[data-forge-equipment]').value||null});inspection.bind(actor.root,candidate.manifest);display();enable(true);compare('front');if(!comparing)setComparison(false);panel.dataset.ready='true';
       for(const b of panel.querySelectorAll('[data-forge-candidate]'))b.setAttribute('aria-pressed',String(b.dataset.forgeCandidate===candidate.manifest.id));
       const mode={'single-view':'1枚から生成','multi-view':'三面図から生成','enhanced-multi-view':'5方向から生成'}[candidate.manifest.reconstructionMode];
       status(candidate.manifest.displayName+' · '+mode+' · '+(candidate.manifest.reviewStatus==='approved'?'承認済み':'確認候補・未承認'));
@@ -141,6 +143,9 @@ function start(){
   }
   panel.addEventListener('click',event=>{
     const button=event.target.closest('button');if(!button||!actor)return;
+    if(button.hasAttribute('data-forge-shape')){
+      button.setAttribute('aria-pressed',String(button.getAttribute('aria-pressed')!=='true'));display();
+    }
     if(button.hasAttribute('data-forge-compare'))setComparison(!comparing);
     if(button.dataset.forgeView)compare(button.dataset.forgeView);
     if(button.hasAttribute('data-forge-pause')){paused=!paused;actor.setPaused(paused);motionUI();}
@@ -154,8 +159,11 @@ function start(){
     if(event.target.value==='Bind'){compare(referenceView);return;}
     actor.play(event.target.value);paused=false;actor.setPaused(false);motionUI();overlay(false);
   };
-  $('[data-forge-equipment]').onchange=event=>actor?.setEquipment({weapon:event.target.value||null});
-  for(const selector of ['texture','wire','skeleton','sockets'])$('[data-forge-'+selector+']').onchange=display;
+  $('[data-forge-equipment]').onchange=event=>{
+    if(!actor)return;
+    inspection.release();actor.setEquipment({weapon:event.target.value||null});inspection.bind(actor.root,entry.manifest);display();
+  };
+  for(const selector of ['wire','skeleton','sockets'])$('[data-forge-'+selector+']').onchange=display;
   $('[data-forge-overlay]').onchange=event=>overlay(event.target.checked);
   $('[data-forge-opacity]').oninput=event=>$('.forge-comparison').style.setProperty('--forge-opacity',event.target.value);
   orbit.addEventListener('start',()=>{if(actor){turntable=false;view='free';overlay(false);updateViewUI();}});
@@ -175,7 +183,7 @@ function start(){
   if(initial)void select(initial);else status('生成候補はありません。Forgeでキャラを生成すると、ここに自動で表示されます。');
   window.addEventListener('pagehide',event=>{
     if(event.persisted)return;
-    alive=false;sequence++;loadController?.abort();cancelAnimationFrame(raf);stageLifecycle.destroy();orbit.dispose();actor?.dispose();
+    alive=false;sequence++;loadController?.abort();cancelAnimationFrame(raf);stageLifecycle.destroy();orbit.dispose();inspection.dispose();actor?.dispose();
     frameGeometry.dispose();frameMaterial.dispose();stageControls?.destroy();shell?.destroy();renderer.dispose();
   });
 }
