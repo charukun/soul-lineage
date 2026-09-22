@@ -2,7 +2,7 @@
 // Calibration uses the existing @soul/animations weaponCalibration field names.
 const profile=(id,tip,{grip=[0,.03,0],supportGrip=grip,scale=.72,twoHanded=false,category='blade',carry='side'}={})=>Object.freeze({
   version:1,id:`rinne.${id}.v1`,grip:Object.freeze(grip),supportGrip:Object.freeze(supportGrip),
-  rotation:Object.freeze([0,0,0,1]),scale,twoHanded,
+  rotation:Object.freeze([0,0,0,1]),supportRotation:Object.freeze([0,0,0,1]),scale,twoHanded,
   bladeBase:Object.freeze([0,.18,0]),bladeTip:Object.freeze([0,tip,0]),
   presentationCategory:category,occlusionMode:'socket-depth',defaultCarryPose:carry,
 });

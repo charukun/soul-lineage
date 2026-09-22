@@ -19,13 +19,13 @@ export function createCharacter25dRig(THREE,{height=1.72,width=.92}={}){
   const bones={},rest={},list=[];
   function bone(name,parent,position){const b=new THREE.Bone();b.name=name;b.position.fromArray(position);parent.add(b);bones[name]=b;rest[name]=b.position.clone();list.push(b);return b;}
   const torso=bone('torso',rig,[0,0,0]);
-  bone('head',torso,[0,height*.76,0]);
+  bone('head',torso,[0,height*.84,0]);
   for(const [side,sign] of [['right',-1],['left',1]]){
-    const shoulder=bone(side+'UpperArm',torso,[sign*width*.28,height*.63,0]);
-    const elbow=bone(side+'LowerArm',shoulder,[sign*width*.025,-height*.12,0]);
-    bone(side+'Hand',elbow,[sign*width*.025,-height*.12,0]);
-    const hip=bone(side+'UpperLeg',torso,[sign*width*.14,height*.32,0]);
-    bone(side+'LowerLeg',hip,[0,-height*.15,0]);
+    const shoulder=bone(side+'UpperArm',torso,[sign*width*.28,height*.74,0]);
+    const elbow=bone(side+'LowerArm',shoulder,[sign*width*.075,-height*.13,0]);
+    bone(side+'Hand',elbow,[sign*width*.075,-height*.13,0]);
+    const hip=bone(side+'UpperLeg',torso,[sign*width*.14,height*.43,0]);
+    bone(side+'LowerLeg',hip,[0,-height*.19,0]);
   }
   const sockets={rightHand:bones.rightHand,leftHand:bones.leftHand};sockets.offhand=sockets.leftHand;
   function socket(name,parent){const node=new THREE.Group();node.name=name;parent.add(node);sockets[name]=node;return node;}
@@ -61,15 +61,15 @@ function skinGeometry(THREE,rig,flip=false,sideView=null){
   const pos=g.attributes.position;
   for(let i=0;i<pos.count;i++){
     const x=pos.getX(i)/w,y=pos.getY(i)/h,side=(x<0)!==flip?'right':'left';
-    if(y>.71){add('torso','head',smooth((y-.71)/.10));}
-    else if(sideView&&y>.34&&y<.66&&Math.abs(x)<.26){
-      const part=y>.51?sideView+'UpperArm':y>.405?sideView+'LowerArm':sideView+'Hand';
-      add('torso',part,smooth((.30-Math.abs(x))/.10));
-    }else if(!sideView&&y>.33&&y<.65&&Math.abs(x)>.21){
-      const arm=smooth((Math.abs(x)-.21)/.055);
-      const part=y>.51?side+'UpperArm':y>.405?side+'LowerArm':side+'Hand';
+    if(y>.78){add('torso','head',smooth((y-.78)/.08));}
+    else if(sideView&&y>.43&&y<.71&&x*(sideView==='right'?1:-1)>.03){
+      const part=y>.61?sideView+'UpperArm':y>.51?sideView+'LowerArm':sideView+'Hand';
+      add('torso',part,y<.53?1:smooth((Math.abs(x)-.03)/.10));
+    }else if(!sideView&&y>.43&&y<.77&&Math.abs(x)>.24){
+      const arm=smooth((Math.abs(x)-.24)/.065);
+      const part=y>.61?side+'UpperArm':y>.51?side+'LowerArm':side+'Hand';
       add('torso',part,arm);
-    }else if(y<.33){add(side+'UpperLeg',side+'LowerLeg',1-smooth((y-.13)/.10));}
+    }else if(y<.43){add(side+'UpperLeg',side+'LowerLeg',1-smooth((y-.20)/.10));}
     else add('torso','torso',0);
   }
   g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(indices,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(weights,4));return g;
@@ -90,7 +90,7 @@ export async function createCharacter25dActor(THREE,bundle,{shadow=false,equipme
   const mesh=new THREE.SkinnedMesh(skinGeometry(THREE,rig),material);mesh.name='Character25D.Appearance';mesh.frustumCulled=false;rig.rig.add(mesh);object.updateMatrixWorld(true);mesh.bind(rig.skeleton);
   let contact=null;
   if(shadow){contact=new THREE.Mesh(new THREE.CircleGeometry(width*.32,24),new THREE.MeshBasicMaterial({color:0x050706,transparent:true,opacity:.28,depthWrite:false}));contact.rotation.x=-Math.PI/2;contact.scale.y=.6;contact.position.y=.012;object.add(contact);}
-  let weapon=null,shield=null,loadout={},profile=null,time=0,actionTime=0,action='idle',previewAction=null,previewDirection=null,disposed=false,relative=0,view='front',sourceView='front',secondary=0,lastYaw=0,geometryKey='';
+  let weapon=null,shield=null,heldItem=null,loadout={},profile=null,time=0,actionTime=0,action='idle',previewAction=null,previewDirection=null,disposed=false,relative=0,view='front',sourceView='front',secondary=0,lastYaw=0,geometryKey='';
   const point=new THREE.Vector3(),target=new THREE.Vector3(),rotation=new THREE.Quaternion(),yAxis=new THREE.Vector3(0,1,0);
   function setEquipment(next){
     const resolved=resolveRinneEquipment(next);
@@ -101,8 +101,8 @@ export async function createCharacter25dActor(THREE,bundle,{shadow=false,equipme
         sockets.secondaryGripTarget.position.fromArray(profile.supportGrip);sockets.weaponHitboxAnchor.position.fromArray(profile.bladeBase);sockets.trailOrigin.position.fromArray(profile.bladeTip);
       }
     }
-    if(resolved.shield!==loadout.shield){disposeRinneEquipment(shield);shield=null;if(resolved.shield){shield=createRinneWeapon(THREE,'shield');shield.scale.setScalar(.8);sockets.leftHand.add(shield);shield.position.set(0,0,.044);}}
-    loadout=resolved;object.userData.equipment={...resolved};
+    if(resolved.shield!==loadout.shield){disposeRinneEquipment(shield);shield=null;if(resolved.shield){shield=createRinneWeapon(THREE,'shield');const p=RINNE_EQUIPMENT_PROFILES.shield;shield.scale.setScalar(p.scale);shield.quaternion.fromArray(p.rotation);sockets.leftHand.add(shield);shield.position.fromArray(p.grip).multiplyScalar(-p.scale);}}
+    loadout=resolved;sockets.heldItemAnchor.visible=!resolved.shield&&!profile?.twoHanded;object.userData.equipment={...resolved};
   }
   setEquipment(equipment);
   function update({camera,delta=0,yaw=0,moving=false,speed=0,action:requested,attacking=false,hit=false,resting=false}={}){
@@ -126,13 +126,25 @@ export async function createCharacter25dActor(THREE,bundle,{shadow=false,equipme
     const nextGeometryKey=`${back}:${sideView}`;
     if(geometryKey!==nextGeometryKey){mesh.geometry.dispose();mesh.geometry=skinGeometry(THREE,rig,back,sideView);geometryKey=nextGeometryKey;}
     const positions=mesh.geometry.attributes.position;
-    for(let i=0;i<positions.count;i++)positions.setX(i,((i%37)/36-.5)*viewWidth);
+    for(let i=0;i<positions.count;i++){
+      const nx=(i%37)/36-.5,ny=1-Math.floor(i/37)/56;
+      positions.setX(i,nx*viewWidth);positions.setY(i,ny*h);positions.setZ(i,0);
+      const handSide=sideView||(nx*flip<0?'right':'left');
+      const holding=handSide==='right'?!!weapon:!!shield||!!profile?.twoHanded||!!heldItem;
+      const palmRegion=sideView?nx*(mirror?-1:1)>.03:Math.abs(nx)>.34;
+      if(holding&&palmRegion&&ny>.43&&ny<.50){
+        // Fold the visible fingertip strip into the palm. Its curved local
+        // depth wraps the same 3D handle rather than leaving an open flat hand.
+        positions.setY(i,(.48+(ny-.48)*.4)*h);
+        positions.setZ(i,Math.sin((ny-.43)/.07*Math.PI)*.018);
+      }
+    }
     positions.needsUpdate=true;
     rig.reset();
     for(const [name,sign]of [['right',-1],['left',1]]){
-      bones[name+'UpperArm'].position.x=sideView?viewWidth*.02*(mirror?-1:1):sign*viewWidth*.28*flip;
-      bones[name+'LowerArm'].position.x=sideView?-viewWidth*.05*(mirror?-1:1):sign*viewWidth*.025*flip;
-      bones[name+'Hand'].position.x=sideView?-viewWidth*.05*(mirror?-1:1):sign*viewWidth*.025*flip;
+      bones[name+'UpperArm'].position.x=sideView?viewWidth*.16*(mirror?-1:1):sign*viewWidth*.28*flip;
+      bones[name+'LowerArm'].position.x=sideView?-viewWidth*.04*(mirror?-1:1):sign*viewWidth*.075*flip;
+      bones[name+'Hand'].position.x=sideView?-viewWidth*.04*(mirror?-1:1):sign*viewWidth*.075*flip;
       bones[name+'UpperLeg'].position.x=sign*viewWidth*.14*flip;
     }
     object.updateMatrixWorld(true);rig.skeleton.calculateInverses();
@@ -152,35 +164,42 @@ export async function createCharacter25dActor(THREE,bundle,{shadow=false,equipme
     const facing=Math.cos(relative),side=Math.sin(relative),two=Boolean(profile?.twoHanded);
     for(const [name,sign]of [['right',-1],['left',1]]){
       const upper=bones[name+'UpperArm'];upper.position.z=-sign*width*.18*side;
-      const carry=two?viewWidth*.12:viewWidth*.32;
-      const x=sideView?-viewWidth*.08*(mirror?-1:1):(sign*carry+(name==='right'?attack*viewWidth*.10:0))*flip;
+      const carry=two?viewWidth*.12:viewWidth*.43;
+      const x=sideView?viewWidth*.08*(mirror?-1:1):(sign*carry+(name==='right'?attack*viewWidth*.10:0))*flip;
       const z=-sign*carry*side+(.045+attack*.15)*(Math.cos(relative));
-      target.set(x,h*((two?.61:.39)+attack*.04+rest*.035)+stride*sign*.018,z);
+      target.set(x,h*((two?.65:.48)+attack*.04+rest*.035)+stride*sign*.018,z);
       rotation.setFromAxisAngle(yAxis,-relative);
-      rotation.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),name==='right'?(-.18+attack*1.65):.12));
+      rotation.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),name==='right'?(.28+attack*1.2):.12));
       if(two&&name==='right'){
         // Keep the primary wrist in the intersection of both arms' reach
         // spheres, with the asset's rotated support offset included.
         const support=new THREE.Vector3(...profile.supportGrip).sub(new THREE.Vector3(...profile.grip)).multiplyScalar(profile.scale).applyQuaternion(new THREE.Quaternion().fromArray(profile.rotation)).applyQuaternion(rotation);
         const other=bones.leftUpperArm.position.clone();other.z=width*.18*-side;
-        const centers=[upper.position,other.sub(support)],reach=h*.24-.002;
+        const centers=[upper.position,other.sub(support)],reach=h*.26-.002;
         for(let pass=0;pass<12;pass++)for(const center of centers){const offset=target.clone().sub(center);if(offset.length()>reach)target.copy(center).add(offset.setLength(reach));}
       }
       rig.solveHand(name,target,rotation);
     }
     if(two){
       object.updateMatrixWorld(true);sockets.secondaryGripTarget.getWorldPosition(target);bones.torso.worldToLocal(target);
-      rig.solveHand('left',target,bones.rightHand.quaternion);
+      const supportRotation=bones.rightUpperArm.quaternion.clone().multiply(bones.rightLowerArm.quaternion).multiply(bones.rightHand.quaternion).multiply(new THREE.Quaternion().fromArray(profile.rotation)).multiply(new THREE.Quaternion().fromArray(profile.supportRotation));
+      rig.solveHand('left',target,supportRotation);
     }
     material.color.setHex(action==='hit'?0xffdddd:0xffffff);
     object.updateMatrixWorld(true);rig.skeleton.update();
     object.userData.character25d={action,view,sourceView,missingView:!views[view]&&view!=='quarter',secondary,hybrid:true};
   }
   return {object,rig,sockets,update,setEquipment,
+    // The caller owns a prop's geometry/materials; detaching returns it for reuse.
+    setHeldItem(item,calibration={grip:[0,0,0],rotation:[0,0,0,1],scale:1}){
+      const previous=heldItem;previous?.removeFromParent();heldItem=item;
+      if(item){sockets.heldItemAnchor.add(item);sockets.heldItemAnchor.quaternion.fromArray(calibration.rotation);item.scale.setScalar(calibration.scale);item.position.fromArray(calibration.grip).multiplyScalar(-calibration.scale);}
+      return previous;
+    },
     setPreview(next=null,direction=null){previewAction=next;previewDirection=direction;},
     setOpacity(value){material.opacity=clamp(value,0,1);material.transparent=value<1;},
     getStatus:()=>`${action} · ${view}${sourceView!==view?'（推定表示）':''} · ${loadout.weapon||'素手'}`,
     snapshot(){object.updateMatrixWorld(true);const world=node=>node.getWorldPosition(new THREE.Vector3()).toArray();const actualGrip=weapon?weapon.localToWorld(new THREE.Vector3(...profile.grip)).toArray():null;return {action,view,sourceView,equipment:{...loadout},position:object.position.toArray(),hand:world(sockets.rightHand),actualGrip,offhand:world(sockets.leftHand),secondaryGrip:world(sockets.secondaryGripTarget),trail:world(sockets.trailOrigin),hitbox:world(sockets.weaponHitboxAnchor),twoHanded:!!profile?.twoHanded};},
-    dispose(){if(disposed)return;disposed=true;object.removeFromParent();disposeRinneEquipment(weapon);disposeRinneEquipment(shield);mesh.geometry.dispose();material.dispose();rig.skeleton.dispose();contact?.geometry.dispose();contact?.material.dispose();for(const t of textures.values())t.dispose();textures.clear();},
+    dispose(){if(disposed)return;disposed=true;object.removeFromParent();heldItem?.removeFromParent();disposeRinneEquipment(weapon);disposeRinneEquipment(shield);mesh.geometry.dispose();material.dispose();rig.skeleton.dispose();contact?.geometry.dispose();contact?.material.dispose();for(const t of textures.values())t.dispose();textures.clear();},
   };
 }

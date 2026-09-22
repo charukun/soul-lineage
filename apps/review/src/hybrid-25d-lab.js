@@ -106,12 +106,12 @@ function createHybridPreview(canvas,onStatus){
   },undefined,error=>{console.error(error);onStatus('error','3Dモデルを読み込めませんでした。2.5D側だけでも操作できます')});
 
   let billboard=true,idleMotion=true,arrangement='actor';let raf=0;const clock=new THREE.Clock();
-  let motion='idle',motionEnd=0,yaw=0,travel=1,shieldEnabled=true,weaponId='sword',lastObservation=0;
+  let motion='idle',motionEnd=0,yaw=0,yawTarget=0,travel=1,shieldEnabled=true,weaponId='sword',lastObservation=0;
   const keys=new Set(),inputAbort=new AbortController();canvas.tabIndex=0;
   canvas.addEventListener('keydown',event=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','Shift',' '].includes(event.key)){event.preventDefault();keys.add(event.key);if(event.key===' ')startMotion('attack');}},{signal:inputAbort.signal});
   addEventListener('keyup',event=>keys.delete(event.key),{signal:inputAbort.signal});
   canvas.addEventListener('blur',()=>keys.clear(),{signal:inputAbort.signal});
-  function startMotion(value){motion=value;motionEnd=['attack','hit'].includes(value)?(value==='attack'?.7:.45):0;if(value==='turn')yaw+=Math.PI*.5;}
+  function startMotion(value){motion=value;motionEnd=['attack','hit'].includes(value)?(value==='attack'?.7:.45):0;if(value==='turn')yawTarget+=Math.PI*.5;}
 
   const resize=()=>{const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};
   const fitCard=texture=>{
@@ -134,10 +134,11 @@ function createHybridPreview(canvas,onStatus){
       if(moving){
         const x=manual?dx:travel,z=manual?dz:0,len=Math.hypot(x,z)||1;
         spriteActor.object.position.x+=x/len*speed*delta;spriteActor.object.position.z+=z/len*speed*delta;
-        yaw=Math.atan2(x,z);
+        yawTarget=Math.atan2(x,z);
         if(Math.abs(spriteActor.object.position.x)>3){spriteActor.object.position.x=Math.sign(spriteActor.object.position.x)*3;travel*=-1;}
         spriteActor.object.position.z=THREE.MathUtils.clamp(spriteActor.object.position.z,-2,2);
       }
+      yaw+=Math.atan2(Math.sin(yawTarget-yaw),Math.cos(yawTarget-yaw))*(1-Math.exp(-10*delta));
       spriteActor.update({camera,delta,yaw,moving,speed,action:['attack','hit','rest'].includes(motion)?motion:moving?(run?'run':'walk'):motion});
       canvas.dataset.actorAction=spriteActor.object.userData.character25d?.action||'';
       canvas.dataset.actorView=spriteActor.object.userData.character25d?.view||'';

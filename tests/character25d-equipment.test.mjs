@@ -48,9 +48,13 @@ test('moving, attacking, turning and hit poses preserve the same 3D grip and anc
     }
   }
   assert.ok(Math.max(...gripErrors)<1e-5,`grip error ${Math.max(...gripErrors)}`);
-  assert.ok(Math.max(...supportErrors)<.025,`support grip error ${Math.max(...supportErrors)}`);
+  assert.ok(Math.max(...supportErrors)<.01,`support grip error ${Math.max(...supportErrors)}`);
   assert.ok(distance(positions[0],positions.at(-1))>.1,'trail must follow the moving actor');
   actor.setEquipment({weapon:'fist',shield:false});assert.equal(actor.snapshot().actualGrip,null);
+  const prop=new THREE.Group();actor.setHeldItem(prop,{grip:[0,.1,0],rotation:[0,0,0,1],scale:.4});
+  assert.equal(prop.parent,actor.sockets.heldItemAnchor);assert.equal(actor.sockets.heldItemAnchor.visible,true);
+  actor.setEquipment({weapon:'spear',shield:false});assert.equal(actor.sockets.heldItemAnchor.visible,false);
+  assert.equal(actor.setHeldItem(null),prop);assert.equal(prop.parent,null);
   actor.dispose();actor.dispose();
 });
 test('view coverage is explicit and missing/back assets cannot bypass validation or pruning',()=>{

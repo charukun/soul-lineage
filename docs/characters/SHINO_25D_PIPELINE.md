@@ -56,7 +56,7 @@ Both RINNE's existing 3D protagonist and the Lab call `createRinneWeapon` from `
 | gripRotation | `rotation`, quaternion |
 | gripScale | `scale` |
 | offhandGripOffset | `supportGrip` |
-| offhandGripRotation | primary wrist orientation; neutral support orientation in the current slice |
+| offhandGripRotation | `supportRotation`, relative to the primary weapon frame |
 | twoHanded | `twoHanded`; suppresses separate shield |
 | occlusionMode | `socket-depth` |
 | defaultCarryPose | `side`, `guard`, or `two-hand` |
@@ -64,7 +64,7 @@ Both RINNE's existing 3D protagonist and the Lab call `createRinneWeapon` from `
 | hitboxOrigin | `bladeBase` |
 | presentationCategory | blade / axe / polearm / staff / shield |
 
-The profiles are structurally validated by existing `weaponCalibration`; parallel offset definitions are avoided. `rightHand -> weapon -> gripFrame` owns `secondaryGripTarget`, `weaponHitboxAnchor`, and `trailOrigin`. `leftHand` is also `offhand` and owns `heldItemAnchor`. Hitbox/trail anchors are exposed for consumers and do not introduce new combat authority. Fixed-length two-bone solves keep the offhand on the secondary grip. Body recoil, attack and locomotion apply before socket world matrices are read.
+The profiles are structurally validated by existing `weaponCalibration`; parallel offset definitions are avoided. `rightHand -> weapon -> gripFrame` owns `secondaryGripTarget`, `weaponHitboxAnchor`, and `trailOrigin`. `leftHand` is also `offhand` and owns `heldItemAnchor`. `setHeldItem` accepts a host-owned 3D prop and the same grip/rotation/scale vocabulary; detaching returns the object without disposing shared resources. Hitbox/trail anchors are exposed for consumers and do not introduce new combat authority. Fixed-length two-bone solves keep the offhand on the secondary grip. Body recoil, attack and locomotion apply before socket world matrices are read.
 
 Playground accepts real keyboard/touch movement, Idle / Walk / Run / Turn / Attack / Hit / Rest, five shared weapon choices, shield toggle, four camera views and weapon swaps during motion. Choice grids keep five columns on phones. RINNE transfer retains its one-time opener token, DEV/local opt-in, isolated verification and no debug panel or save mutation.
 

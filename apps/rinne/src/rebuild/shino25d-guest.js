@@ -73,10 +73,14 @@ export function installShino25dGuest(view,options={}){
 
     const dt=Math.min(.05,Math.max(0,Number(delta)||0)),x=Number(state.position?.x),z=Number(state.position?.z);
     const dx=x+1.15-actor.object.position.x,dz=z+.75-actor.object.position.z,distance=Math.hypot(dx,dz);
-    const speed=distance>2.5?3.4:1.3,moving=distance>.25,step=Math.min(distance,speed*dt);
-    if(moving){
-      const nx=actor.object.position.x+dx/distance*step,nz=actor.object.position.z+dz/distance*step;
-      if(!view.canMoveTo||view.canMoveTo(nx,nz,.22,'village',null))actor.object.position.set(nx,Number(state.position?.y)||0,nz);
+    const speed=distance>2.5?4.6:1.3,step=Math.min(distance,speed*dt);let moving=false;
+    if(distance>.25){
+      const ox=actor.object.position.x,oz=actor.object.position.z,nx=ox+dx/distance*step,nz=oz+dz/distance*step;
+      for(const [px,pz] of [[nx,nz],[nx,oz],[ox,nz]]){
+        if(!view.canMoveTo||view.canMoveTo(px,pz,.22,'village',null)){
+          moving=Math.hypot(px-ox,pz-oz)>.00001;actor.object.position.set(px,Number(state.position?.y)||0,pz);break;
+        }
+      }
     }
     actor.setEquipment(state.equipment?.weapon&&state.equipment.weapon!=='fist'?state.equipment:{weapon:'sword',shield:true});
     actor.update({camera:view.camera,delta:dt,yaw:moving?Math.atan2(dx,dz):Number(state.yaw)||0,moving,speed,

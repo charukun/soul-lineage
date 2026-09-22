@@ -123,8 +123,18 @@ async function transparentCrop(source,rect,bg){
   try{
     const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,...rect,0,0,rect[2],rect[3]);
     const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),removedRatio=removeBackground(pixels,bg);ctx.putImageData(pixels,0,0);
-    const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('透過素材を作成できません')),'image/png'));
-    const file=new File([blob],'character-auto-pose.png',{type:'image/png'}),asset=await importSpriteAsset(file,{kind:'reference-crop',parentSha256:source.sha256,rect:[...rect],removeBorderWhite:false,backgroundMode:'auto-edge'});
+    // Equalize directional ground/head framing using alpha bounds, without
+    // scaling or repainting source art. Preserve the exact source crop lineage.
+    let minX=canvas.width,minY=canvas.height,maxX=-1,maxY=-1;
+    for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++)if(pixels.data[(y*canvas.width+x)*4+3]>16){minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);}
+    if(maxX<minX)throw new Error('人物の輪郭を抽出できませんでした');
+    minX=Math.max(0,minX-2);minY=Math.max(0,minY-2);maxX=Math.min(canvas.width-1,maxX+2);maxY=Math.min(canvas.height-1,maxY+2);
+    const normalized=document.createElement('canvas');normalized.width=maxX-minX+1;normalized.height=maxY-minY+1;
+    normalized.getContext('2d').drawImage(canvas,minX,minY,normalized.width,normalized.height,0,0,normalized.width,normalized.height);
+    const sourceRect=[rect[0]+minX,rect[1]+minY,normalized.width,normalized.height];
+    const blob=await new Promise((resolve,reject)=>normalized.toBlob(value=>value?resolve(value):reject(new Error('透過素材を作成できません')),'image/png'));
+    normalized.width=normalized.height=1;
+    const file=new File([blob],'character-auto-pose.png',{type:'image/png'}),asset=await importSpriteAsset(file,{kind:'reference-crop',parentSha256:source.sha256,rect:sourceRect,removeBorderWhite:false,backgroundMode:'auto-edge'});
     return {asset,removedRatio};
   }finally{canvas.width=canvas.height=1;}
 }

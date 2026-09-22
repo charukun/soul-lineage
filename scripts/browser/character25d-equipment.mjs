@@ -15,10 +15,11 @@ const servers=[];let browser,context;
 const distance=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
 async function server(app,port){const process=spawn('node',[resolve('node_modules/vite/bin/vite.js'),'--host','127.0.0.1','--port',String(port),'--strictPort'],{cwd:resolve('apps',app),stdio:'inherit',env:{...globalThis.process.env,APP_ENV:'dev'}});servers.push(process);for(let i=0;i<100;i++){try{const r=await fetch(`http://127.0.0.1:${port}/`);if(r.ok)return;}catch{}if(process.exitCode!==null)throw Error(app+' server exited');await delay(250);}throw Error(app+' server timeout');}
 function observe(page){page.on('pageerror',e=>receipt.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')receipt.errors.push(m.text());});}
-async function sample(canvas,tag,attribute='data-actor-snapshot'){
+async function sample(canvas,tag,attribute='data-actor-snapshot',expectedAction=null){
+  if(expectedAction)await expect.poll(async()=>{const raw=await canvas.getAttribute(attribute);return raw?JSON.parse(raw).action:null;},{timeout:10000}).toBe(expectedAction);
   const snapshot=JSON.parse(await canvas.getAttribute(attribute));receipt.samples.push({tag,...snapshot});assert.ok(snapshot.actualGrip,tag+' has a weapon');
   assert.ok(distance(snapshot.hand,snapshot.actualGrip)<.0001,tag+' grip separates');
-  if(snapshot.twoHanded)assert.ok(distance(snapshot.offhand,snapshot.secondaryGrip)<.025,tag+' second grip separates');
+  if(snapshot.twoHanded)assert.ok(distance(snapshot.offhand,snapshot.secondaryGrip)<.01,tag+' second grip separates');
   return snapshot;
 }
 try{
@@ -36,18 +37,18 @@ try{
   await page.screenshot({path:resolve(output,'forge.png'),fullPage:true});
   for(const view of ['front','quarter','side','back']){
     await page.locator(`[data-view="${view}"]`).click();await delay(250);
-    await sample(canvas,`sword-${view}`);await canvas.screenshot({path:resolve(output,`sword-${view}.png`)});
+    await expect(canvas).toHaveAttribute('data-actor-view',view);const directional=await sample(canvas,`sword-${view}`);if(view!=='quarter')assert.equal(directional.sourceView,view,'real directional source required');await canvas.screenshot({path:resolve(output,`sword-${view}.png`)});
   }
   for(const action of ['idle','walk','run','turn','attack','hit','rest']){
     await page.locator(`[data-motion="${action}"]`).click();await delay(action==='attack'?180:250);
-    await sample(canvas,action);await canvas.screenshot({path:resolve(output,`${action}.png`)});
+    await sample(canvas,action,'data-actor-snapshot',action);await canvas.screenshot({path:resolve(output,`${action}.png`)});
   }
   await page.locator('[data-motion="idle"]').click();await canvas.focus();
   const before=await sample(canvas,'move-before');await page.keyboard.down('ArrowRight');await delay(650);await page.keyboard.up('ArrowRight');
   const after=await sample(canvas,'move-after');assert.ok(distance(before.position,after.position)>.2,'keyboard must translate actor');
   for(const weapon of ['axe','spear','great','staff','sword']){
     await page.locator(`[data-weapon="${weapon}"]`).click();await page.locator('[data-motion="walk"]').click();await delay(300);await sample(canvas,weapon+'-walk');
-    await page.locator('[data-motion="attack"]').click();await delay(200);await sample(canvas,weapon+'-attack');await canvas.screenshot({path:resolve(output,`${weapon}-attack.png`)});
+    await page.locator('[data-motion="attack"]').click();await delay(200);await sample(canvas,weapon+'-attack','data-actor-snapshot','attack');await canvas.screenshot({path:resolve(output,`${weapon}-attack.png`)});
   }
   await page.locator('[data-shield]').uncheck();await delay(200);assert.equal((await sample(canvas,'shield-off')).equipment.shield,false);
   await page.locator('[data-shield]').check();await delay(200);assert.equal((await sample(canvas,'shield-on')).equipment.shield,true);
@@ -57,19 +58,20 @@ try{
   await page.setViewportSize({width:1280,height:980});
 
   // The same real one-image draft crosses the existing opener/token bridge.
-  const popupPromise=context.waitForEvent('page');await page.locator('[data-rinne-auto]').click();const game=await popupPromise;observe(game);
+  const popupPromise=context.waitForEvent('page');await page.locator('[data-rinne-auto]').click();let game=await popupPromise;observe(game);
   await game.waitForLoadState('domcontentloaded');await expect(page.locator('[data-workshop-status]')).toContainText('転送しました',{timeout:90000});
   const dummy=buildStations(defaultMuraLayout()).find(row=>row.id==='training-dummy');
   const life=createLife({name:'Actor装備確認',seed:242,villageIds:[defaultMuraLayout().id]});life.ageYears=8;life.ageSeconds=480;life.phase='living';life.position={x:dummy.x,z:dummy.z};life.equipment.weapon='sword';life.equipment.shield=true;life.knownSkills.push('basic.sword');
-  const key=await game.locator('#build-label').textContent();const storageKey=`soul:v1:${key.split('·')[0].trim().toLowerCase()||'local'}:rinne:local:life-v2`;
+  const environment=await game.evaluate(()=>document.title.split(' | ')[1]?.toLowerCase()||'prod');assert.ok(['dev','local'].includes(environment));const storageKey=`soul:v1:${environment}:rinne:local:life-v2`;
   await game.evaluate(({key,value})=>localStorage.setItem(key,value),{key:storageKey,value:serializeLife(life)});
-  // Reload reopens a handshake; click the Lab's transfer again to send the same draft.
-  await game.reload({waitUntil:'domcontentloaded'});await page.locator('[data-rinne-auto]').click();
+  // Reopen an isolated runtime with the fixture save and a fresh transfer token.
+  await game.close();const secondPopup=context.waitForEvent('page');await page.locator('[data-rinne-auto]').click();game=await secondPopup;observe(game);
+  await game.waitForLoadState('domcontentloaded');await expect(page.locator('[data-workshop-status]')).toContainText('転送しました',{timeout:90000});
   await game.locator('#continue-life').click();await expect(game.locator('#game')).toHaveAttribute('data-runtime','active',{timeout:90000});
   const gameCanvas=game.locator('#game');await expect(gameCanvas).toHaveAttribute('data-character25d',/.+/,{timeout:30000});await delay(300);
   await sample(gameCanvas,'rinne-idle','data-character25d');await game.screenshot({path:resolve(output,'rinne-idle.png')});
-  await game.locator('[data-training-strike]').click();await delay(250);await sample(gameCanvas,'rinne-attack','data-character25d');await game.screenshot({path:resolve(output,'rinne-attack.png')});
-  await game.keyboard.down('ArrowRight');await delay(800);await game.keyboard.up('ArrowRight');await sample(gameCanvas,'rinne-walk','data-character25d');await game.screenshot({path:resolve(output,'rinne-walk.png')});
+  await game.locator('[data-training-strike]').click();await delay(250);await sample(gameCanvas,'rinne-attack','data-character25d','attack');await game.screenshot({path:resolve(output,'rinne-attack.png')});
+  await game.keyboard.down('ArrowRight');await delay(800);await game.keyboard.up('ArrowRight');await sample(gameCanvas,'rinne-walk','data-character25d','walk');await game.screenshot({path:resolve(output,'rinne-walk.png')});
   assert.equal(await game.locator('[data-shino25d-panel],.shino25d-workshop').count(),0);
   assert.deepEqual(receipt.errors,[]);receipt.success=true;
 }catch(error){receipt.failure=error.stack;console.error(error);process.exitCode=1;}
