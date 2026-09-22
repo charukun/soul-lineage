@@ -2,13 +2,14 @@ name: Temporary RINNE playtest (do not merge)
 on:
   push:
     branches: [review/rinne-playtest-20260922]
-    paths: [.github/workflows/task-rinne-playtest.yml, .review/rinne-video.mjs]
+    paths: [.github/workflows/task-rinne-playtest.yml]
 permissions:
   contents: read
+  actions: read
 jobs:
   observe:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 9
     steps:
       - uses: actions/checkout@v6
         with:
@@ -16,20 +17,27 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: rinne-native-session
+          run-id: 35684109756
+          github-token: ${{ github.token }}
+          path: prior
       - name: Prepare isolated browser tools
         run: |
           mkdir -p /tmp/rinne-review evidence
           npm install --prefix /tmp/rinne-review --ignore-scripts --no-audit --no-fund playwright@1.63.0
           /tmp/rinne-review/node_modules/.bin/playwright install --with-deps chromium
-          cp .review/rinne-video.mjs /tmp/rinne-review/observe.mjs
-      - name: Native gameplay video observation
+          cp .review/rinne-adult.mjs /tmp/rinne-review/observe.mjs
+      - name: Native adult gameplay
         env:
           EVIDENCE_DIR: ${{ github.workspace }}/evidence
+          PRIOR_STATE: ${{ github.workspace }}/prior/storage-state.json
         run: node /tmp/rinne-review/observe.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rinne-gameplay-video
+          name: rinne-adult-gameplay
           path: evidence/
           retention-days: 7
           if-no-files-found: error
