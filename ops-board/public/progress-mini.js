@@ -98,10 +98,17 @@ export function renderProgressMini(steps=[],{
       svg.append(guide);
     }
 
-    const measuredCoords=coords.filter(({point})=>point.measured);
-    if(measuredCoords.length>1){
+    const segments=[];
+    let currentSegment=[];
+    for(const coord of coords){
+      if(coord.point.measured)currentSegment.push(coord);
+      else if(currentSegment.length){segments.push(currentSegment);currentSegment=[];}
+    }
+    if(currentSegment.length)segments.push(currentSegment);
+    for(const segment of segments){
+      if(segment.length<2)continue;
       const path=documentRef.createElementNS('http://www.w3.org/2000/svg','polyline');
-      path.setAttribute('points',measuredCoords.map(({x,y})=>x.toFixed(2)+','+y.toFixed(2)).join(' '));
+      path.setAttribute('points',segment.map(({x,y})=>x.toFixed(2)+','+y.toFixed(2)).join(' '));
       path.setAttribute('class','rapid-progress-line '+model.status);
       svg.append(path);
     }

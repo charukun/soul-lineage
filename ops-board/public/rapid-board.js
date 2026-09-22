@@ -299,6 +299,14 @@ const sessionStepView=state=>({
 })[state]||['確認','muted'];
 
 const iterationGameLabel=game=>({kuumetsu:'喰滅廻遊',rinne:'百年転生',village:'村づくり'})[game]||'対象未記録';
+const autonomousGameIds=new Set(['kuumetsu','rinne','village']);
+const iterationGameId=session=>session?.autonomous?.game||session?.game||'';
+const iterationDisplayTitle=(session,gameLabel)=>{
+  const raw=String(session?.title||'自律改善').trim();
+  const prefixes=[gameLabel+'：',gameLabel+':'];
+  for(const prefix of prefixes)if(raw.startsWith(prefix))return raw.slice(prefix.length).trim();
+  return raw;
+};
 const iterationRank=status=>({problem:0,running:1,active:1,publishing:2,complete:3})[status]??4;
 const iterationIdentity=session=>session.id||(
   session.runKey&&session.iteration ? session.runKey+':'+session.iteration
@@ -343,16 +351,18 @@ function renderSession(session,{iteration=false,graph=false}={}) {
   const current=iterationCurrentPhase(session,allPhases);
   const head=el('div','rapid-session-head');
   const prHref=iteration?null:safeHref(session.pr?.url);
-  const iterationGame=session.autonomous?.game||session.game,iterationNumber=session.autonomous?.number||session.iteration;
-  const titlePrefix=iteration?(iterationGameLabel(iterationGame)+(iterationNumber?' · Iteration '+iterationNumber:'')):'#'+(session.pr?.number||'?');
-  const title=el(prHref?'a':'strong','rapid-session-title',titlePrefix+' · '+(session.title||'開発セッション'));
+  const iterationGame=iterationGameId(session),iterationNumber=session.autonomous?.number||session.iteration;
+  const gameLabel=iterationGameLabel(iterationGame);
+  const titlePrefix=iteration?(iterationNumber?'Iteration '+iterationNumber:'自律改善'):'#'+(session.pr?.number||'?');
+  const sessionTitle=iteration?iterationDisplayTitle(session,gameLabel):(session.title||'開発セッション');
+  const title=el(prHref?'a':'strong','rapid-session-title',titlePrefix+' · '+sessionTitle);
   if(prHref){title.href=prHref;title.target='_blank';title.rel='noreferrer';}
   head.append(title);
   row.append(head);
 
   const meta=el('div','rapid-session-meta');
   const target=iteration
-    ? iterationGameLabel(iterationGame)
+    ? gameLabel
     : ((session.targets||[]).map(item=>item.label).join(' / ')||'対象未記録');
   meta.append(el('span','rapid-session-target',target),el('time','',relative(session.updatedAt)));
   const validated=session.validatedExactHead||session.validatedHead;
@@ -384,9 +394,10 @@ function renderSession(session,{iteration=false,graph=false}={}) {
 function renderIterations(state){
   const root=$('#rapid-iteration-list'),count=$('#rapid-iteration-count');
   if(!root||!count)return;
-  const all=Array.isArray(state?.autonomousIterations)&&state.autonomousIterations.length
+  const allRaw=Array.isArray(state?.autonomousIterations)&&state.autonomousIterations.length
     ? state.autonomousIterations
     : (state?.developmentSessions||[]).filter(session=>session.autonomous);
+  const all=allRaw.filter(session=>autonomousGameIds.has(iterationGameId(session)));
   const ordered=[...all].sort((a,b)=>iterationRank(a.status)-iterationRank(b.status)||parsedAt(b.updatedAt)-parsedAt(a.updatedAt));
   const issues=ordered.filter(item=>item.status==='problem').length;
   const done=ordered.filter(item=>item.status==='complete').length;
