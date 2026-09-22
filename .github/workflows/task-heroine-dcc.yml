@@ -24,19 +24,23 @@ jobs:
       - name: Prepare explicit DCC tool
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y blender
+          sudo apt-get install -y blender python3-numpy
       - name: Author and inspect real model
+        env:
+          PYTHONPATH: /usr/lib/python3/dist-packages
         run: |
           mkdir -p generated/heroine-dawn
-          blender --background --python assets/characters/heroine-dawn/build.py -- --source apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb --out generated/heroine-dawn
+          cp apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb generated/heroine-dawn/Rogue-source.glb
+          blender --background --python-exit-code 1 --python assets/characters/heroine-dawn/build.py -- --source apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb --out generated/heroine-dawn
+          for f in inspection.json front.png three-quarter.png side.png back.png; do test -s generated/heroine-dawn/$f; done
       - name: Collect task source context
         if: always()
         run: |
           mkdir -p generated/heroine-dawn/context
-          git grep -l -E 'PROTAGONIST_VILLAGER_FEMALE|protagonist.villager.female|female-protagonist-rogue|sourceDisplay' -- '*.js' '*.mjs' '*.json' '*.md' > generated/heroine-dawn/context/paths.txt || true
+          git ls-files apps/character-studio apps/review/src packages/characters packages/animations packages/assets scripts/blender scripts/finalize-character-dcc.py scripts/character-dcc-request.mjs package.json package-lock.json scripts/prepare-kaykit-foundation.mjs | grep -Ev '\.(glb|vrm|blend|png|avif|jpg|jpeg|webp|gif|mp3|ogg|wav|woff2?|ttf|otf)$' > generated/heroine-dawn/context/paths.txt
+          git grep -l -E 'PROTAGONIST_VILLAGER_FEMALE|protagonist.villager.female|female-protagonist-rogue' -- 'docs/**' 'tests/**' 'apps/rinne/**' >> generated/heroine-dawn/context/paths.txt || true
+          sort -u generated/heroine-dawn/context/paths.txt -o generated/heroine-dawn/context/paths.txt
           tar -czf generated/heroine-dawn/context/source-context.tgz --files-from generated/heroine-dawn/context/paths.txt
-          cp package.json generated/heroine-dawn/context/root-package.json
-          find scripts -iname '*dcc*' -o -iname '*blender*' -o -iname '*asset*origin*' > generated/heroine-dawn/context/tool-paths.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
