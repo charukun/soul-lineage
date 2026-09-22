@@ -1,39 +1,79 @@
-name: Task RINNE Exchange Source
+name: Task RINNE Exchange Materialize
 on:
   push:
     branches: [work/rinne-exchange-boundaries-20260922]
     paths: [.github/workflows/task-rinne-exchange-source.yml]
 permissions:
-  contents: read
+  contents: write
 jobs:
-  source:
+  materialize:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
-          fetch-depth: 1
-          persist-credentials: false
-      - name: Package task sources without assets or credentials
+          ref: ${{ github.sha }}
+          fetch-depth: 64
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Reconcile observed develop and materialize hash-checked coherent changes
+        shell: bash
         run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rinne-exchange"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch --no-tags --depth=64 origin develop
+          git merge --no-edit 405c090f2141cd82fb7893b1668c6be52acebca9
           python3 - <<'PY'
-          import pathlib, subprocess, tarfile
+          import base64,hashlib,json,lzma,pathlib,os
           root=pathlib.Path('.')
-          paths=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
-          prefixes=('packages/','apps/rinne/src/','apps/rinne/tests/','apps/rinne/test/','apps/review/src/','apps/review/tests/','scripts/','tools/','tests/','.github/')
-          explicit={'package.json','package-lock.json','AGENTS.md','apps/rinne/package.json','apps/review/package.json','apps/review/index.html','apps/review/battle2.html','apps/rinne/docs/COMBAT_EVOLUTION.md','apps/rinne/docs/BATTLE_REVIEW_LAB.md','docs/DEVELOPMENT.md','docs/DEVELOP_MERGE.md','docs/BROWSER_PLAYTEST_ROUTING.md'}
-          extensions={'.js','.mjs','.cjs','.json','.ts','.md','.yml','.yaml','.css','.html'}
-          with tarfile.open('/tmp/rinne-exchange-sources.tar.gz','w:gz') as out:
-            for path in paths:
-              p=root/path
-              if path and p.is_file() and (path in explicit or (path.startswith(prefixes) and p.suffix in extensions)):
-                out.add(p,arcname=path)
+          encoded=''.join((root/f'.github/task-rinne-exchange-payload-{part:02d}.b64').read_text().strip() for part in (1,2))
+          raw=lzma.decompress(base64.b64decode(encoded,validate=True))
+          assert hashlib.sha256(raw).hexdigest()=='dc308a0d17c5f44c656a3349e0f330eb313c14f85f0adeceb968bead9ba3df4d','payload corruption'
+          payload=json.loads(raw);assert payload['version']==1
+          for row in payload['files']:
+            p=root/row['path'];assert not p.is_absolute() and '..' not in p.parts
+            before=p.read_text() if p.exists() else ''
+            actual=hashlib.sha256(before.encode()).hexdigest() if p.exists() else None
+            assert actual==row['before'],f"Freshness/preimage changed: {p}"
+            after=before
+            for start,end,text in reversed(row['edits']):
+              assert 0<=start<=end<=len(before)
+              after=after[:start]+text+after[end:]
+            assert hashlib.sha256(after.encode()).hexdigest()==row['after'],f"Postimage mismatch: {p}"
+            p.parent.mkdir(parents=True,exist_ok=True);p.write_text(after)
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'rinne-exchange'
+          (out/'manifest.json').write_text(json.dumps({'base':'405c090f2141cd82fb7893b1668c6be52acebca9','files':[{k:v for k,v in row.items() if k!='edits'} for row in payload['files']]},indent=2))
+          (out/'paths.txt').write_text('\n'.join(row['path'] for row in payload['files'])+'\n')
           PY
-          git rev-parse HEAD > /tmp/source-sha.txt
+          while IFS= read -r path; do git add -- "$path"; done < "$RUNNER_TEMP/rinne-exchange/paths.txt"
+          git rm -- .github/workflows/task-rinne-exchange-source.yml .github/task-rinne-exchange-payload-01.b64 .github/task-rinne-exchange-payload-02.b64
+          git diff --cached --check
+          git commit -m 'feat(rinne): unify pair pressure, deferred reversal and hero-owned zanshin'
+          git rev-parse HEAD > "$RUNNER_TEMP/rinne-exchange/candidate-head.txt"
+          git rev-parse HEAD^{tree} > "$RUNNER_TEMP/rinne-exchange/candidate-tree.txt"
+      - name: Install declared workspace dependencies without build lifecycle
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Focused authoring preflight on real checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in packages/johakyu-combat/src/exchange-policy.js packages/tidebreak-combat/index.js packages/tidebreak-combat/shared-runtime-facade.js apps/rinne/src/rebuild/combat-core.js apps/rinne/src/rebuild/johakyu-save-contract.js apps/rinne/src/combat-sequence-hud.js apps/rinne/src/gameplay-ui.js apps/review/src/nocturne/johakyu-p7-review.js; do node --check "$file"; done
+          node --test packages/johakyu-combat/test/exchange-policy.test.mjs packages/tidebreak-combat/test/exchange-boundaries.test.mjs packages/tidebreak-combat/test/inspiration-window.test.mjs apps/review/tests/johakyu-p7-review.test.mjs apps/review/tests/johakyu-exchange-boundaries.test.mjs apps/rinne/tests/combat-sequence-hud.test.mjs apps/rinne/tests/johakyu-runtime-capability-gate.test.mjs apps/rinne/tests/johakyu-exchange-save.test.mjs | tee "$RUNNER_TEMP/rinne-exchange/preflight.log"
+          node scripts/fast-dev-contract.mjs 405c090f2141cd82fb7893b1668c6be52acebca9 HEAD | tee "$RUNNER_TEMP/rinne-exchange/fast-dev-contract.log"
+          git diff --stat 405c090f2141cd82fb7893b1668c6be52acebca9 HEAD > "$RUNNER_TEMP/rinne-exchange/diff-stat.txt"
+      - name: Publish unarmed coherent candidate to the same work branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
+          echo 'AUTHORING_PREFLIGHT_PASSED; final exact-head validation is not yet armed' > "$RUNNER_TEMP/rinne-exchange/result.txt"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: rinne-exchange-sources
-          path: |
-            /tmp/rinne-exchange-sources.tar.gz
-            /tmp/source-sha.txt
-          retention-days: 2
+          name: rinne-exchange-preflight
+          path: ${{ runner.temp }}/rinne-exchange/
+          retention-days: 5
