@@ -25,3 +25,8 @@
 @keyframes johakyu-history-flow{0%{opacity:0;transform:translate(-50%,-6px);filter:blur(.7px)}14%{opacity:.9;transform:translate(-50%,0);filter:blur(0)}70%{opacity:.82;transform:translate(-50%,15px)}100%{opacity:0;transform:translate(-50%,34px);filter:blur(.35px)}}
 @media(max-width:680px){.battle-sequence-hud{width:min(198px,calc(100% - 16px))}.battle-sequence-history{height:38px;width:min(184px,72vw)}}
 @media(prefers-reduced-motion:reduce){.battle-sequence-history__flow{animation:none;opacity:.86;filter:none!important}.battle-sequence-hud__wave::after,.battle-sequence-hud__edge svg{animation:none!important}}
+
+.battle-exchange-cue{position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);white-space:nowrap;color:#f2dfb8;font-size:11px;font-weight:700;letter-spacing:.06em;text-shadow:0 1px 4px #101817,0 0 8px #101817}
+.battle-sequence-hud[data-exchange-intent=respond] .battle-exchange-cue{color:#bdd2dc}
+.battle-sequence-hud[data-exchange-intent=counter] .battle-exchange-cue{color:#ffe1a0}
+.battle-sequence-hud[data-exchange-intent=zanshin] .battle-exchange-cue{color:#c6d6b4}

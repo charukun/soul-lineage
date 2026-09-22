@@ -1,7 +1,7 @@
 import {applyJohakyuImpactOnce,createJohakyuBattle,createJohakyuCheckpoint,johakyuActorCapability,recoverJohakyuStamina,restoreJohakyuCheckpoint,selectReachableTarget} from '@soul/johakyu-combat/domain';
 import {resolveJohakyuLocomotion,resolveJohakyuMotion} from '@soul/johakyu-combat/motion-contract';
 import {addTechniqueToReviewChain,compileTechniqueComposition,createReviewTechniqueComposition,reviewChainLabel,techniqueFromCombatForm} from '@soul/johakyu-combat/technique-composition';
-import {johakyuExchangeIntent,isDeepJohakyuExchangeHit,classifyJohakyuParry,johakyuExchangeRestartActors,createJohakyuExchangeState,johakyuExchangeSnapshot,johakyuExchangeHudState,reduceJohakyuExchange} from '@soul/johakyu-combat/exchange-policy';
+import {johakyuExchangeIntent,isDeepJohakyuExchangeHit,classifyJohakyuParry,johakyuExchangeRestartActors,createJohakyuExchangeState,johakyuExchangeSnapshot,johakyuExchangeCue,reduceJohakyuExchange} from '@soul/johakyu-combat/exchange-policy';
 
 import {cancelJohakyuStage,johakyuStageCapability} from '@soul/johakyu-combat/execution-capability';
 import {beginReviewStage,reviewTechniqueCapability,reviewStageCanResolve} from './johakyu-p7-execution.js';
@@ -573,8 +573,9 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     const heroCursor=cursorFor(hero),cursorNode=nodeFor(hero,heroCursor),livingEnemies=[...battle.actors.values()].filter(actor=>actor.side==='enemy'&&!actor.incapacitated&&!actor.dead).length,target=selectTarget(battle,'hero');
     const exchange=target?exchangeStates.get(exchangeKey(hero,target))??null:null,exchangeView=exchange?johakyuExchangeSnapshot(exchange):null,phase=action?.phase??phaseCue?.phase??cursorNode.phase;
     const recovery=recoveries.get(hero.id),recoveringBurst=comboStyle==='burst'&&recovery?.reason==='zanshin'&&time<recovery.until;
-    const hudState=hero.dead||hero.incapacitated?'idle':battle.result||recoveringBurst?'zanshin':johakyuExchangeHudState(exchangeView,{actorId:'hero',phase:action?.phase??phaseCue?.phase??exchangeView?.lastPhase,reaction:action?.scope==='combat-reaction'||action?.scope==='combat-counter-transition'});
-    return freeze({comboStyle,recoveryRemaining:recoveringBurst?Math.max(0,recovery.until-time):0,mode,modeLabel:MODES[mode],phase,phaseLabel:PHASE_LABELS[phase],phaseCueKey:phaseCue?.key??null,phaseCuePhase:phaseCue?.phase??null,phaseCueProgress:phaseCue?.progress??null,hudState,exchangeMode:exchangeView?.mode??'read',initiativeId:exchangeView?.initiativeId??null,
+    const cue=johakyuExchangeCue(exchangeView,{actorId:'hero',phase:action?.phase??phaseCue?.phase??exchangeView?.lastPhase,reaction:action?.scope==='combat-reaction'||action?.scope==='combat-counter-transition'}),hudState=hero.dead||hero.incapacitated?'idle':battle.result||recoveringBurst?'zanshin':cue.hudState;
+    const exchangeCue=hudState==='zanshin'?'残心':cue.label,exchangeIntent=hudState==='zanshin'?'zanshin':cue.intent,exchangeHistoryKey=hudState==='zanshin'?cue.historyKey+':zanshin':cue.historyKey;
+    return freeze({comboStyle,recoveryRemaining:recoveringBurst?Math.max(0,recovery.until-time):0,mode,modeLabel:MODES[mode],phase,phaseLabel:PHASE_LABELS[phase],phaseCueKey:phaseCue?.key??null,phaseCuePhase:phaseCue?.phase??null,phaseCueProgress:phaseCue?.progress??null,hudState,exchangeCue,exchangeIntent,exchangeHistoryKey,exchangeMode:exchangeView?.mode??'read',initiativeId:exchangeView?.initiativeId??null,
       exchangeSerial:exchangeView?.serial??0,completedBy:exchangeView?.completedBy??null,actionId:action?.id??null,actionName:action?.name??null,actionMotion:action?.motion?.kind??null,techniqueId:action?.techniqueId??cursorNode.technique.id,
       techniqueName:action?.name??cursorNode.technique.name,techniqueIndex:action?.techniqueIndex??heroCursor.techniqueIndex,chainLength:action?.chainLength??cursorNode.chain.length,
       chainLabel:action?.chainLabel??reviewChainLabel(cursorNode.phase,cursorNode.chain.length),stageIndex:action?.stageIndex??heroCursor.stageIndex,stageLabel:action?.stageLabel??cursorNode.stage.label,

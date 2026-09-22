@@ -1,3 +1,4 @@
+import {readTidebreakDefenseFeedback} from './tidebreak-defense-feedback.js';
 import { createTidebreakRuntime } from '@soul/tidebreak-combat';
 import { resolveInspirationAnswer } from '@soul/game-data';
 import {chargeAttackStamina} from './combat-execution.js';
@@ -130,6 +131,7 @@ function applyTidebreakStep(state,target,front,dt,events,{primary=false,bodyAuth
   if(heroBody?.outcome.incapacitated)state.hp=0;else if(state.hp<=.001){state.hp=Math.max(1,state.maxHp*.18);session.invalid=true;}
   if(dealt>.001)events.push({type:'player-hit',targetId:target.id,techniqueId:armed?armed:executedTechniqueId(executedActor),attackId:outgoingImpact?.attackId!=null?`${session.id}:${outgoingImpact.attackId}`:null,sourceId:state.id,skill:armed?techniqueName(armed,state):(next.hero.skill||(!primary?'受け返し':session.loadout?.[slot||state.combat?.phase]?.name||techniqueName(comboById(state,state.combat?.comboId)?.slots?.[slot||state.combat?.phase],state))),phase:armed?'one':(!primary?'uke':(slot||state.combat?.phase||'jo')),damage:dealt,bodyPart:enemyBody?.part||null,bodyDurability:enemyBody?.durability??null,injuryStage:enemyBody?.stage||null,manual:Boolean(armed),impact:outgoingImpact,feel:next.feel,exchange:johakyuExchangeSnapshot(session.exchange),engine:'tidebreak'});
   if(taken>.001)events.push({type:'enemy-hit',sourceId:target.id,targetId:state.id,attackId:incomingImpact?.attackId!=null?`${session.id}:${incomingImpact.attackId}`:null,damage:taken,bodyPart:heroBody?.part||null,bodyDurability:heroBody?.durability??null,injuryStage:heroBody?.stage||null,sector:defense.sector,awareness:defense.awareness,impact:incomingImpact,feel:next.feel,exchange:johakyuExchangeSnapshot(session.exchange),engine:'tidebreak'});
+  if(executionAccepted)events.push(...readTidebreakDefenseFeedback(session,next,{openContact,enemyCanHit,paid}));
   for(const row of next.exchangeEvents||[])if(executionAccepted&&enemyCanHit&&row.type==='parry'&&row.targetId===String(next.hero.id)){
     events.push({type:'evaded',sourceId:target.id,defense:row.strong?'counter':'parry',sector:defense.sector,strongParry:Boolean(row.strong),parryStrength:row.strong?'strong':'weak',exchange:sessionExchangeSnapshot(session,row.exchange),engine:'tidebreak'});
   }
