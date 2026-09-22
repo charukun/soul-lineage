@@ -31,7 +31,7 @@ test('weapon reach owns preferred spacing and combo chains are faster with stron
 test('bounded range assist prevents the mutual no-damage deadlock when rendered contact samples are absent',()=>{
   const source=read('src/nocturne/johakyu-p7-review.js');
   assert.match(source,/visualAssist=Boolean/);assert.match(source,/weapon-range-assist/);
-  const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let hits=0,player=0,enemy=0;
+  const scenario=createJohakyuP7ReviewScenario({mode:'duel',enemyLeadSeconds:.16});let hits=0,player=0,enemy=0;
   for(let i=0;i<1500&&(!player||!enemy);i++){
     const r=scenario.step(1/60,[]);
     for(const event of r.events){if(event.type==='player-hit'){hits++;player++;}if(event.type==='enemy-hit'){hits++;enemy++;}}
