@@ -17,7 +17,7 @@
         <a class="iteration-back" href="./">← PULSE</a>
         <p class="iteration-eyebrow">改善の記録と現在地</p>
         <h1>自律改善</h1>
-        <p class="iteration-lead">何を改善し、どこまで進み、次に何を確認するか。反映結果と公開状況を分けて表示します。</p>
+        <p class="iteration-lead">改善を開始記録順に並べ、工程の流れ・所要時間・記録時刻を常に表示します。状態の説明と改修内容はその下で確認できます。</p>
       </div>
       <button id="reload" class="iteration-reload" type="button">再読込</button>
     </header>
@@ -29,7 +29,13 @@
       <div><span>実行IDの記録数</span><strong id="iteration-session-count">--</strong></div>
       <div><span>最終同期</span><strong id="iteration-updated-at">--</strong></div>
     </section>
-    <section class="iteration-toolbar" aria-label="表示フィルタ">
+    <section class="iteration-toolbar" aria-label="表示順とフィルタ">
+      <label>開始記録順
+        <select id="iteration-order">
+          <option value="newest">新しい順</option>
+          <option value="oldest">古い順</option>
+        </select>
+      </label>
       <label>ゲーム
         <select id="iteration-game-filter">
           <option value="all">すべて</option>

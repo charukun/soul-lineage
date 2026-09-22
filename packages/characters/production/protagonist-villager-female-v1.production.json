@@ -2,14 +2,15 @@
   "schema": "character-production",
   "version": 2,
   "id": "protagonist.villager.female.v1",
-  "stage": "REFERENCE",
-  "modelingMode": "imported-reviewed",
+  "stage": "PRIMARY",
+  "modelingMode": "dcc-blender",
   "license": "CC0-1.0",
   "source": {
     "referencePaths": [
-      "apps/review/public/library/provenance/female-protagonist-rogue-v1.json"
+      "assets/characters/heroine-dawn/reference.md",
+      "apps/review/public/library/provenance/heroine-dawn-v1.json"
     ],
-    "meshPath": "apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb",
+    "meshPath": "apps/review/public/library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb",
     "integrityPath": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json",
     "rigId": "kaykit.Rig_Medium.v1",
     "rigProvenance": "Official KayKit Adventurers 1.0 Rogue / Rig_Medium; revision 672074b73ba276876a19e8816ecdc5241817ab47; CC0-1.0.",
@@ -19,14 +20,57 @@
       "url": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Rogue.glb",
       "sha256": "e825437cd4d2ee9c1960b517a74a69101e33eb409ae7fa8cedc7134a998fbb7d",
       "gitBlobSha": "c8827661105eef7b2bfbef3bc676d41a47625733",
-      "conversion": "None: official original GLB retained byte-for-byte."
+      "conversion": "Actual hair/clothing/UV surface edits; original skeleton and animation streams remain byte-for-byte unchanged."
+    },
+    "dcc": {
+      "tool": "Blender",
+      "version": "4.0.2",
+      "sourcePath": "assets/characters/heroine-dawn/source/HeroineDawn.blend",
+      "sourceSha256": "7814af09c65f2fb32c62a0b889843fa4df461e5b03134ddae3aa76b8707d78ee"
     }
   },
   "evidence": {
     "reference": {
       "intentLocked": true,
-      "views": [],
-      "sourceAuditPath": "apps/review/public/library/provenance/female-protagonist-rogue-v1.json"
+      "views": [
+        "front",
+        "side",
+        "back",
+        "three-quarter",
+        "face"
+      ],
+      "sourceAuditPath": "apps/review/public/library/provenance/heroine-dawn-v1.json"
+    },
+    "blockout": {
+      "views": [
+        "front",
+        "side",
+        "back",
+        "three-quarter"
+      ],
+      "proportionsReviewed": true,
+      "silhouetteReviewed": true,
+      "reviewEvidence": "docs/characters/qa/heroine-dawn-v1/"
+    },
+    "primary": {
+      "topologyReviewed": true,
+      "uvReviewed": true,
+      "separateSurfaces": [
+        "skin",
+        "hair",
+        "clothing",
+        "source-kaykit-parts"
+      ],
+      "auditPath": "docs/characters/qa/heroine-dawn-v1/dcc-audit.json",
+      "meshObjects": 19,
+      "triangles": 6623,
+      "materials": 1
+    },
+    "runtimeObservation": {
+      "receiptPath": "docs/characters/qa/heroine-dawn-v1/runtime/receipt.json",
+      "modelSha256": "777f0c4f7f910edf85ab66011fddf961b7144a4a129212cf8a0b5a1b73937678",
+      "humanApproval": false,
+      "physicalDevicePerformance": "not-measured"
     }
   },
   "status": {
@@ -34,6 +78,6 @@
     "productionReady": false,
     "licensePolicy": "allowed-cc0",
     "distributionEligible": true,
-    "note": "Original external replacement, not an iteration of the retired authored model. Prior visual approvals and DCC evidence do not carry over. Fixed-view/runtime observation is task evidence; explicit human approval and physical-device performance acceptance remain pending."
+    "note": "Independent heroine DCC adaptation. Repository-renderer and animation probe evidence is task-scoped. Human visual approval and physical-device performance acceptance remain pending; not RUNTIME_READY."
   }
 }

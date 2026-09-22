@@ -1,0 +1,126 @@
+{
+  "schema": "rinne-heroine-dcc-audit",
+  "sourceSha256": "e825437cd4d2ee9c1960b517a74a69101e33eb409ae7fa8cedc7134a998fbb7d",
+  "bytes": 3987056,
+  "sha256": "777f0c4f7f910edf85ab66011fddf961b7144a4a129212cf8a0b5a1b73937678",
+  "gitBlobSha": "3ced3b11942d57cd82763715c7196dfd4f53141e",
+  "meshes": [
+    {
+      "name": "Rogue_ArmLeft",
+      "vertices": 440,
+      "triangles": 580
+    },
+    {
+      "name": "Rogue_ArmRight",
+      "vertices": 440,
+      "triangles": 580
+    },
+    {
+      "name": "Rogue_Body",
+      "vertices": 86,
+      "triangles": 104
+    },
+    {
+      "name": "Rogue_Head",
+      "vertices": 486,
+      "triangles": 615
+    },
+    {
+      "name": "Rogue_LegLeft",
+      "vertices": 300,
+      "triangles": 408
+    },
+    {
+      "name": "Rogue_LegRight",
+      "vertices": 300,
+      "triangles": 408
+    },
+    {
+      "name": "Heroine_Hair_RoundedBob",
+      "vertices": 1041,
+      "triangles": 2000
+    },
+    {
+      "name": "Heroine_Hair_SweptFringe",
+      "vertices": 312,
+      "triangles": 620
+    },
+    {
+      "name": "Heroine_Hair_TempleLock",
+      "vertices": 252,
+      "triangles": 500
+    },
+    {
+      "name": "Heroine_Collar_R",
+      "vertices": 14,
+      "triangles": 24
+    },
+    {
+      "name": "Heroine_Collar_L",
+      "vertices": 14,
+      "triangles": 24
+    },
+    {
+      "name": "Heroine_RoseSash",
+      "vertices": 64,
+      "triangles": 64
+    },
+    {
+      "name": "Heroine_Hair_RoseBow_R",
+      "vertices": 14,
+      "triangles": 24
+    },
+    {
+      "name": "Heroine_Hair_RoseBow_L",
+      "vertices": 14,
+      "triangles": 24
+    },
+    {
+      "name": "Heroine_Hair_RoseBow_knot",
+      "vertices": 24,
+      "triangles": 44
+    },
+    {
+      "name": "Heroine_BackWaistBow_R",
+      "vertices": 14,
+      "triangles": 24
+    },
+    {
+      "name": "Heroine_BackWaistBow_L",
+      "vertices": 14,
+      "triangles": 24
+    },
+    {
+      "name": "Heroine_BackWaistBow_knot",
+      "vertices": 24,
+      "triangles": 44
+    },
+    {
+      "name": "Heroine_VillagePinafore",
+      "vertices": 320,
+      "triangles": 512
+    }
+  ],
+  "triangles": 6623,
+  "motionClips": 76,
+  "motionStreams": "byte-for-byte unchanged",
+  "jointCount": 41,
+  "jointHierarchy": "unchanged",
+  "inverseBindMatrices": "unchanged",
+  "samplerResampling": false,
+  "removedDisplaySurface": "Rogue_Cape",
+  "visualApproval": "pending",
+  "productionReady": false,
+  "authoringTool": "4.0.2",
+  "round": 3,
+  "sourceRig": "Rig_Medium",
+  "design": "rounded chin bob / side-swept fringe / ivory collar and puff sleeves / blue village pinafore / rose sash and bows",
+  "previousModelSha256": "c44ab5a5d21cf3005ad20ae5400a45e2644dad1b55cfb528f40c1dc2f4a9c435",
+  "round1Rejected": [
+    "garment gaps after removing utility gear",
+    "angular fringe"
+  ],
+  "round2Observation": "Character Studio walking at 28 percent exposed a small inner-shorts tip at the skirt front.",
+  "round3Repair": "Actual skirt envelope expanded smoothly below the waist for walking clearance; original skin weights and all motion streams preserved.",
+  "changedGarmentVertices": 128
+}

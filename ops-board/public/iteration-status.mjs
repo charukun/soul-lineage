@@ -53,11 +53,24 @@ export function iterationTimingSteps(item = {}, state = {}) {
     return step.state === 'running' && !live ? { ...step, state:'waiting' } : step;
   });
 }
-export function iterationOverview(state = {}) {
+export function iterationStartAt(item = {}) {
+  if (time(item.startedAt)) return item.startedAt;
+  // Legacy records can establish only the earliest recorded step, not the actual start.
+  return (item.steps || item.iterationSteps || []).map(step => step.startedAt).filter(value => time(value))
+    .sort((a, b) => time(a) - time(b))[0] || null;
+}
+export function iterationOverview(state = {}, { order = 'newest' } = {}) {
   const raw = Array.isArray(state.autonomousIterations) ? state.autonomousIterations : [];
   const entries = raw.filter(item => GAME_NAMES[item.game || item.autonomous?.game]).map(item => ({ item, view:iterationPresentation(item, { syncStatus:state.syncStatus || 'unknown' }) }));
-  const rank = { problem:0, running:1, waiting:2, complete:3 };
-  entries.sort((a, b) => rank[a.view.status] - rank[b.view.status] || time(b.item.updatedAt) - time(a.item.updatedAt));
+  const direction = order === 'oldest' ? 1 : -1;
+  entries.sort((a, b) => {
+    const startA = time(iterationStartAt(a.item)), startB = time(iterationStartAt(b.item));
+    // Unknown dates stay last in either direction. Status and last-update changes never reorder history.
+    if (Boolean(startA) !== Boolean(startB)) return startA ? -1 : 1;
+    const sequence = a.item.runKey && a.item.runKey === b.item.runKey ? Number(a.item.iteration || 0) - Number(b.item.iteration || 0) : 0;
+    return direction * (startA - startB || sequence || Number(a.item.pr?.number || 0) - Number(b.item.pr?.number || 0))
+      || String(a.item.id || '').localeCompare(String(b.item.id || ''));
+  });
   const counts = { running:0, waiting:0, problem:0, complete:0, publicationProblem:0 };
   for (const { view } of entries) { counts[view.status]++; if (view.publicationProblem) counts.publicationProblem++; }
   return { entries, counts };

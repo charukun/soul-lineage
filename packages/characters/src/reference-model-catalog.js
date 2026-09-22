@@ -98,45 +98,45 @@ const protagonist = {
 validateVisualIdentity(protagonist);
 export const PROTAGONIST_VILLAGER_MODEL = deepFreeze(protagonist);
 
-// The previous authored head/hair model was explicitly rejected. This role now
-// selects the unchanged official Rogue mesh, not a new procedural approximation.
+// Independent heroine: actual Blender adaptation of the pinned CC0 KayKit base.
+// The rejected old procedural head is not restored; raw Rogue remains a separate model.
 const femaleProtagonist = {
   ...protagonist,
   id: PROTAGONIST_VILLAGER_FEMALE_MODEL_ID,
-  label: '主人公・女 / KayKit Rogue（公式CC0原形）',
+  label: '主人公・女 / 丸いボブ・青い村人服 PRIMARY',
   characterId: 'Protagonist_Villager_Female_V1',
   assetId: 'character.protagonist-villager-female.v1',
-  modelingMode: 'imported-reviewed',
-  productionStage: 'REFERENCE',
+  modelingMode: 'dcc-blender',
+  productionStage: 'PRIMARY',
   productionReady: false,
   visualApproval: 'pending',
   procedural: false,
   sourceModelId: 'kaykit.rogue.v1',
   sourceDisplay: { excludeMeshNodes: ['Knife_Offhand', '1H_Crossbow', '2H_Crossbow', 'Knife', 'Throwable'] },
   license: 'CC0-1.0',
-  assetPath: projectAssetUrl('model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb'),
+  assetPath: projectAssetUrl('model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb'),
   integrityPath: './simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json',
-  dccSourcePath: 'apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb',
-  referencePath: 'apps/review/public/library/provenance/female-protagonist-rogue-v1.json',
+  dccSourcePath: 'assets/characters/heroine-dawn/source/HeroineDawn.blend',
+  referencePath: 'apps/review/public/library/provenance/heroine-dawn-v1.json',
   referenceStyle: {
     ...protagonist.referenceStyle,
-    design: 'protagonist-female-kaykit-rogue-original'
+    design: 'protagonist-female-heroine-dawn'
   },
   production: {
     ...protagonist.production,
     authority: {
       ...protagonist.production.authority,
-      implementedModularParts: ['kaykit-rogue-original-head-body-hair-clothing'],
+      implementedModularParts: ['kaykit-face-and-limbs', 'heroine-rounded-bob-and-swept-fringe', 'ivory-collar-and-puff-sleeves', 'blue-village-pinafore', 'rose-sash-and-bows'],
       proposedParts: [],
       gameEquipment: []
     },
     requirements: {
       ...protagonist.production.requirements,
-      topology: 'kaykit-original-unmodified',
+      topology: 'kaykit-source-derived',
       sourceProvenanceRequired: true
     }
   },
-  note: '旧自作の頭部・顔・ボブ髪モデルは破棄。Kay Lousberg作 KayKit Adventurers 1.0 の公式CC0 Rogue.glbを固定revisionから取得し、原本の顔・髪・服・Rig_Medium・UV・埋込テクスチャ・モーションを無改変で採用。実体は自前Asset Originへ収録。旧IDは選択互換のためだけに維持し、旧モデルへfallbackしない。新規採用のためREFERENCE / visualApproval=pending / productionReady=falseを維持。装備所有・操作・当たり判定は変更しない。'
+  note: '固定CC0 KayKitの顔・手足とRig_Mediumを保持し、Blenderで主人公専用の短い丸ボブ・流し前髪・白い襟と袖・青い村人服を実編集。ケープ・三角スカーフ・重い革小物は撤去。76クリップのmotion streamとbind情報は原本どおり。原本Rogueや破棄済みモデルへfallbackしない。実画像・実レンダー観察は記録するが、human visualApproval=pending / productionReady=falseを維持。操作・装備所有・当たり判定は変更しない。'
 };
 validateVisualIdentity(femaleProtagonist);
 export const PROTAGONIST_VILLAGER_FEMALE_MODEL = deepFreeze(femaleProtagonist);

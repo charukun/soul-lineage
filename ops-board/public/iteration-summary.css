@@ -1,4 +1,4 @@
-/* Iteration facts take precedence over duration graphs. Scoped to this surface. */
+/* The chronological flow stays visible; status prose supplements it. */
 #rapid-iterations .rapid-section-head { align-items:center; flex-wrap:wrap; }
 #rapid-iterations .rapid-section-head h2 { font-size:18px; line-height:1.3; }
 .iteration-total { color:#a7b4c5; font-size:12px; white-space:normal; }
@@ -32,17 +32,29 @@
 .iteration-publication-problem { color:#f0b79a; font-weight:700; }
 .iteration-summary-meta { margin:9px 0 0; color:#9aabbe; font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
 .iteration-summary-open { display:block; margin-top:7px; color:#b0cbea; font-size:12px; line-height:1.5; }
-.iteration-duration-details { margin:0 14px; border-top:1px solid rgba(255,255,255,.09); }
-.iteration-duration-details>summary { display:flex; align-items:center; min-height:44px; color:#a9b9cc; font-size:12px; cursor:pointer; }
-.iteration-duration-details[open] { padding-bottom:12px; }
+.iteration-summary-timeline { margin:12px 0; min-width:0; }
 .iteration-duration-help { margin:0 0 8px; color:#a3b3c7; font-size:12px; line-height:1.55; }
 .iteration-all-link { display:flex; align-items:center; min-height:44px; color:#b0cbea; font-size:13px; text-decoration:none; }
-.iteration-summary-main:focus-visible,.iteration-duration-details>summary:focus-visible,.iteration-all-link:focus-visible { outline:2px solid #9ccdf8; outline-offset:-3px; border-radius:8px; }
+.iteration-summary-main:focus-visible,.iteration-order-control select:focus-visible,.iteration-all-link:focus-visible { outline:2px solid #9ccdf8; outline-offset:-3px; border-radius:8px; }
 .iteration-card>.iteration-readable-status { margin:12px 0; padding:12px; border:1px solid rgba(255,255,255,.12); border-radius:10px; }
 .iteration-card.waiting { border-color:#66778d; }
 .iteration-state.waiting { color:#c0cad8; }
+.iteration-chronology { display:flex; flex-wrap:wrap; gap:4px 10px; margin:6px 0; color:#b6c5d7; font-size:12px; line-height:1.6; font-variant-numeric:tabular-nums; }
+.iteration-order-control { display:flex; flex-wrap:wrap; align-items:center; gap:8px; color:#b4c0cf; font-size:12px; }
+.iteration-order-control select { min-height:44px; padding:0 12px; border:1px solid #52657d; border-radius:8px; background:#101721; color:#dde7f3; font:inherit; }
+.iteration-toolbar { flex-wrap:wrap; }
+.iteration-toolbar label { color:#b4c0cf; font-size:12px; }
+.iteration-toolbar select { min-height:44px; max-width:100%; }
+.iteration-timeline-panel h3 { color:#c5d4e5; font-size:13px; }
+.iteration-step-history { margin:8px 0 0; padding-left:24px; }
+.iteration-step-entry { padding:9px 8px; border-bottom:1px solid #263244; color:#bccbdd; font-size:12px; line-height:1.7; overflow-wrap:anywhere; }
+.iteration-step-entry::marker { color:#a3b3c7; font-variant-numeric:tabular-nums; }
+.iteration-step-entry strong { color:#e0e8f2; }
+.iteration-step-duration,.iteration-step-state { margin-left:10px; }
+.iteration-step-clock { display:block; color:#acbdd1; font-variant-numeric:tabular-nums; }
+.iteration-step-entry.running { border-left:3px solid #84b5e8; }
+.iteration-step-entry.problem { border-left:3px solid #e7a18d; }
 @media(max-width:420px) {
   .iteration-status-counts { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .iteration-summary-main { padding:12px; }
-  .iteration-duration-details { margin-inline:12px; }
 }
