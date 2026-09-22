@@ -1,64 +1,69 @@
 name: Temporary kuumetsu immutable observation 20260922
-# Session-only invocation of the canonical status-first merge summary. Never merged.
+# Reuse exact merged publication for iteration 2 Observation First. Never merge this ops branch.
 on:
   push:
     branches: [ops/kuumetsu-three-20260922-041446]
     paths: [.github/workflows/kuumetsu-session-20260922.yml]
 permissions:
   contents: read
-  statuses: read
   actions: read
   pull-requests: write
 env:
-  SOURCE_SHA: de8fb38ec943bb06ce6afd1e14fabbb585bc9bb8
-  PR_NUMBER: 1427
+  SOURCE_SHA: b7e928572a17a87cd08a3c35d7d5cf446fdd7de0
 jobs:
-  summary:
+  observe:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: de8fb38ec943bb06ce6afd1e14fabbb585bc9bb8
+          ref: b7e928572a17a87cd08a3c35d7d5cf446fdd7de0
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-      - name: Read the merge-owning statuses, without normal CI or DEV waiting
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium > /tmp/browser-install.log 2>&1
+      - name: Resolve preceding receipt and reuse exact immutable publication
         uses: actions/github-script@v8
         with:
           script: |
-            const pr=await github.rest.pulls.get({...context.repo,pull_number:Number(process.env.PR_NUMBER)});
-            if(pr.data.head.sha!==process.env.SOURCE_SHA||pr.data.base.ref!=='develop'||pr.data.state!=='open')throw Error('PR coordinate changed');
+            const fs=require('fs');fs.mkdirSync('session-evidence',{recursive:true});
+            const comment=await github.rest.issues.getComment({...context.repo,comment_id:5771545532});
+            const receipt=JSON.parse(comment.data.body.match(/```json\s*([\s\S]*?)```/)[1]);
+            if(receipt.status!=='MERGED_TO_DEVELOP'||receipt.merge.sha!==process.env.SOURCE_SHA)throw Error('Previous iteration receipt not final');
+            fs.writeFileSync('session-evidence/previous-receipt.json',JSON.stringify(receipt,null,2));
+            const pr=await github.rest.pulls.get({...context.repo,pull_number:1427});
             const marker=/<!-- autonomous-iteration-telemetry:v1:([A-Za-z0-9_-]+) -->/;
-            let body=pr.data.body;
-            if(pr.data.draft){
-              const t=JSON.parse(Buffer.from(body.match(marker)[1],'base64url').toString());
-              const adoption=await github.rest.issues.getComment({...context.repo,comment_id:5771508981});
-              const head=await github.rest.git.getCommit({...context.repo,commit_sha:process.env.SOURCE_SHA});
-              const advance=(from,to,at)=>{const s=t.steps[from];s.state='done';s.completedAt=at;s.durationMs=Date.parse(at)-Date.parse(s.startedAt);t.steps[to]={...t.steps[to],state:'running',startedAt:at};t.currentStep=to;t.updatedAt=at;};
-              if(t.currentStep==='afterObservation'){advance('afterObservation','verdict',adoption.data.created_at);advance('verdict','astraValidation',head.data.committer.date);t.verdict='supported';}
-              body=body.replace(marker,`<!-- autonomous-iteration-telemetry:v1:${Buffer.from(JSON.stringify(t)).toString('base64url')} -->`);
-              await github.rest.pulls.update({...context.repo,pull_number:pr.data.number,body});
+            const t=JSON.parse(Buffer.from(pr.data.body.match(marker)[1],'base64url').toString());
+            const advance=(from,to,at)=>{const s=t.steps[from];s.state='done';s.completedAt=at;s.durationMs=Date.parse(at)-Date.parse(s.startedAt);t.steps[to]={...t.steps[to],state:'running',startedAt:at};t.currentStep=to;t.updatedAt=at;};
+            if(t.currentStep==='astraValidation'){
+              advance('astraValidation','freshness','2026-09-22T05:11:17Z');advance('freshness','merge','2026-09-22T05:12:54.081Z');advance('merge','devPublish',receipt.merge.mergedAt);
+              t.validatedHead=receipt.validatedHead;t.mergeSha=receipt.merge.sha;t.verdict=receipt.verdict;
+              await github.rest.pulls.update({...context.repo,pull_number:1427,body:pr.data.body.replace(marker,`<!-- autonomous-iteration-telemetry:v1:${Buffer.from(JSON.stringify(t)).toString('base64url')} -->`)});
             }
-            for(let i=0;i<36;i++){
-              const response=await github.rest.repos.getCombinedStatusForRef({...context.repo,ref:process.env.SOURCE_SHA});
-              const contexts=['astra/fast-dev-contract','astra/focused-validation','astra/merge-freshness'];
-              const rows=contexts.map(c=>response.data.statuses.find(s=>s.context===c));
-              if(rows.some(s=>['failure','error'].includes(s?.state)))throw Error(JSON.stringify(rows));
-              if(rows.every(s=>s?.state==='success'))break;
-              if(!pr.data.draft||i===35)throw Error('Exact-head validation not yet successful');
-              await new Promise(r=>setTimeout(r,15000));
+            const runId=35689878982,run=await github.rest.actions.getWorkflowRun({...context.repo,run_id:runId});
+            if(run.data.head_sha!==process.env.SOURCE_SHA||run.data.conclusion!=='success')throw Error('Exact merged Before publication not reusable');
+            const jobs=await github.rest.actions.listJobsForWorkflowRun({...context.repo,run_id:runId,per_page:50});let publication=null;
+            for(const j of jobs.data.jobs){
+              if(!j.name.includes('demon'))continue;
+              const log=await github.rest.actions.downloadJobLogsForWorkflowRun({...context.repo,job_id:j.id});
+              const text=typeof log.data==='string'?log.data:Buffer.from(log.data).toString('utf8');const v=text.match(/Current Version ID:\s*([a-f0-9-]{36})/);
+              if(v&&text.includes(process.env.SOURCE_SHA)){publication={sourceSha:process.env.SOURCE_SHA,runId,runUrl:run.data.html_url,jobId:j.id,versionId:v[1],url:`https://${v[1].slice(0,8)}-soul-lineage-demon-dev.c-okamoto.workers.dev/`};break;}
             }
-      - name: Canonical merge summary, exactly once per invocation
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p session-evidence
-          npm run actions:summary -- --repo charukun/soul-lineage --sha "$SOURCE_SHA" --pr "$PR_NUMBER" --output session-evidence/actions-summary.json > session-evidence/summary.log
+            if(!publication)throw Error('Missing immutable version coordinate');
+            publication.version=await(await fetch(new URL('version.json',publication.url))).json();if(publication.version.commit!==process.env.SOURCE_SHA)throw Error('immutable identity mismatch');
+            publication.boundAt=new Date().toISOString();fs.writeFileSync('session-evidence/publication.json',JSON.stringify(publication,null,2));core.exportVariable('PREVIEW_URL',publication.url);
+            const r=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-session-observe.mjs',ref:context.sha});let source=Buffer.from(r.data.content,'base64').toString('utf8');
+            source=source.replace("if(await gate.isVisible()){await tap('#soul-brand-boot');", "if(await gate.isVisible()){await page.waitForFunction(()=>document.querySelector('#soul-brand-boot')?.classList.contains('armed'));await tap('#soul-brand-boot');");
+            source=source.replace("await capture('05-lineage');","await capture('05-lineage');await page.setViewportSize({width:360,height:841});await capture('06-lineage-narrow');");
+            fs.writeFileSync('session-observe.mjs',source);fs.writeFileSync('session-evidence/observer.mjs',source);core.info(JSON.stringify(publication));
+      - name: Iteration 2 fresh immutable Before native play
+        run: node session-observe.mjs > session-evidence/browser.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-three-20260922-041446-i1-summary-${{ github.run_attempt }}
+          name: kuumetsu-three-20260922-041446-i2-before
           path: session-evidence
           retention-days: 14
