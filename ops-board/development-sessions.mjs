@@ -97,9 +97,12 @@ function executionState({steps=[],merged=false,state='Draft',matched=[],updatedA
   return Object.freeze({...base,state:'idle',label:'IDLE',tone:'muted',detail:'GitHub上で実行中の処理なし'});
 }
 export function buildDevelopmentSessions(pulls=[],runs=[],{limit=8}={}){
-  const ordered=[...(pulls||[])].filter(pr=>pr?.state==='open'||pr?.merged_at)
-    .sort((a,b)=>at(b.updated_at||b.created_at)-at(a.updated_at||a.created_at)||Number(b.number||0)-Number(a.number||0))
-    .slice(0,Math.max(limit*3,limit));
+  const eligible=[...(pulls||[])].filter(pr=>pr?.state==='open'||pr?.merged_at)
+    .sort((a,b)=>at(b.updated_at||b.created_at)-at(a.updated_at||a.created_at)||Number(b.number||0)-Number(a.number||0));
+  const open=eligible.filter(pr=>pr?.state==='open');
+  const merged=eligible.filter(pr=>pr?.merged_at);
+  const historySlots=Math.max(0,Number(limit)||0-open.length);
+  const ordered=[...open,...merged.slice(0,historySlots)];
   const sessions=[];
   for(const pr of ordered){
     const matched=(runs||[]).filter(run=>related(run,pr));
@@ -164,7 +167,6 @@ export function buildDevelopmentSessions(pulls=[],runs=[],{limit=8}={}){
       headSha:head,mergeSha:merge,mergedAt:pr.merged_at||null,validatedExactHead:exactSuccess?.head_sha||null,browserRequired:needsBrowser,autonomous,iterationSteps,
       repairAttempts:failedAttempts,lastFailure:failureView,targets:(pr.targetApps||[]).slice(0,4).map(target=>({id:target.id,label:target.label})),execution,updatedAt,steps:Object.freeze(steps),
     }));
-    if(sessions.length>=limit)break;
   }
   return Object.freeze(sessions);
 }
