@@ -33,8 +33,8 @@ test('journal preserves favored combos and the costly manual one-motion controls
   assert.match(gameplay,/data-one-motion/);assert.match(gameplay,/消耗大 \/ 隙大/);assert.match(controls,/readonly/);assert.match(controls,/observer\.disconnect/);
 });
 
-test('body options retain stance style and zanshin while showing individual bodily tendencies',()=>{
-  assert.match(journal,/構え/);assert.match(journal,/戦法/);assert.match(journal,/残心/);assert.match(journal,/unlockedBodyOptions/);assert.match(journal,/setBodyChoice/);assert.match(journal,/この身体の傾向/);assert.match(journal,/inspiration-mind-disc/);assert.match(journal,/conic-gradient/);
+test('body options retain stance souen and zanshin while showing individual bodily tendencies',()=>{
+  assert.match(journal,/構え/);assert.match(journal,/葬焉/);assert.match(journal,/残心/);assert.doesNotMatch(journal,/戦法/);assert.match(journal,/unlockedBodyOptions/);assert.match(journal,/setBodyChoice/);assert.match(journal,/この身体の傾向/);assert.match(journal,/inspiration-mind-disc/);assert.match(journal,/conic-gradient/);
 });
 
 test('technique journal groups bounded families and exposes provenance rather than an unlock recipe grid',()=>{

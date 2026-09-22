@@ -18,8 +18,8 @@ test('heart copy says 意識 and selected heart/body choices feed combat tuning'
   const ui=read('src/nocturne/battle2-loadout.js'),source=read('src/nocturne/johakyu-p7-review.js');
   assert.match(ui,/戦闘で意識する心得/);assert.match(ui,/意識中/);assert.doesNotMatch(ui,/戦闘へ持ち込む心得/);
   for(const id of ['skill.breath','skill.observe','skill.balance','skill.focus','skill.danger'])assert.ok(source.includes(id),id);
-  for(const body of ['body.style','body.stance','body.zanshin'])assert.ok(source.includes(body),body);
-  assert.match(source,/battle2Tuning/);assert.match(source,/preferredWeaponSpacing/);
+  for(const body of ['body.stance','body.zanshin'])assert.ok(source.includes(body),body);assert.match(source,/body\?\.finisher|body\.finisher/);
+  assert.match(source,/battle2Tuning/);assert.match(source,/battle2HeartIntent/);assert.match(source,/preferredWeaponSpacing/);assert.match(ui,/構え・葬焉・残心/);assert.doesNotMatch(ui,/戦法/);
 });
 
 test('weapon reach owns preferred spacing and combo chains are faster with stronger closing footwork',()=>{
@@ -77,4 +77,11 @@ test('player portrait copies the presented canvas immediately without pixel-read
   assert.match(hud,/return draw\(source,options\)/);
   assert.match(hud,/root\.dataset\.portrait='live'/);
   assert.doesNotMatch(hud,/getImageData|requestAnimationFrame/);
+});
+
+
+test('不殺の心得はレビューでも葬焉を実行せず、ダウン敵を再起させる',()=>{
+  const scenario=createJohakyuP7ReviewScenario({mode:'duel',loadout:{heart:{active:['skill.nonlethal','skill.observe','skill.patience']},technique:{jo:'action.feint',ha:'action.guard-step',kyu:'action.crash'},body:{stance:'seigan',finisher:'kaishaku',zanshin:'still'},equipment:{weapon:'sword',shield:false}}});
+  let downed=0,recovered=0,finishers=0;for(let i=0;i<3000&&!recovered;i++){const r=scenario.step(1/60,[]);for(const row of r.meta.activity||[]){if(row.type==='enemy-downed')downed++;if(row.type==='enemy-recovered')recovered++;if(row.type==='finisher-start')finishers++;}}
+  assert.ok(downed>0,'nonlethal combat should still down an enemy');assert.ok(recovered>0,'a spared downed enemy should eventually rejoin the fight');assert.equal(finishers,0);
 });

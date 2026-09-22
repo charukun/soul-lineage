@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLife} from '../src/rebuild/domain.js';
+import {ensureCombatLoadout,setHeartActive} from '../src/combat-loadout.js';
 import {createFront,frontierFatalityChance,normalizeFront,tickFront,tickSharedFront} from '../src/rebuild/combat.js';
 
 function combatState(seed=17,id=null){
@@ -55,4 +56,17 @@ test('armor and survival skills lower frontier fatality instead of only changing
 
 test('legacy frontier saves gain tactical fields without migration failure',()=>{
   const raw=createFront(0,1);for(const row of raw.enemies){delete row.yaw;delete row.attackWindow;delete row.moving;delete row.attentionTargetId;delete row.threat;}const normalized=normalizeFront(raw,0,1);assert.ok(normalized.enemies.every(row=>Number.isFinite(row.yaw)&&row.attackWindow===0&&row.moving===false&&row.attentionTargetId===null&&typeof row.threat==='object'));
+});
+
+
+function equipNonlethal(state){state.inspiration.legacySkills.push('skill.nonlethal');state.knownSkills.push('skill.nonlethal');state.combatLoadout=null;ensureCombatLoadout(state);assert.equal(setHeartActive(state,'skill.nonlethal',true),true);}
+
+test('不殺は最後のダウンを殺害なしの前線制圧として完了する',()=>{
+  const state=combatState(91);equipNonlethal(state);const front=createFront(0,91);front.enemies.forEach((row,index)=>{row.dead=index!==0;row.downed=index===0;row.downedElapsed=index===0?.2:0;row.hp=index===0?0:row.hp;});
+  const events=tickFront(state,front,1/60);assert.equal(front.cleared,true);assert.equal(front.enemies[0].dead,false);assert.ok(events.some(row=>row.type==='front-cleared'&&row.nonlethal===true));assert.ok(!events.some(row=>row.type==='finisher-start'));
+});
+
+test('不殺で残したダウン敵は戦闘継続中なら再起する',()=>{
+  const state=combatState(92);equipNonlethal(state);const front=createFront(0,92),downed=front.enemies[0],active=front.enemies[1];front.enemies.slice(2).forEach(row=>{row.dead=true;});downed.downed=true;downed.downedElapsed=20;downed.hp=0;active.x=4.6;active.z=4.6;const events=tickFront(state,front,1/60);
+  assert.equal(downed.downed,false);assert.ok(downed.hp>0);assert.ok(events.some(row=>row.type==='enemy-recovered'&&row.targetId===downed.id));
 });

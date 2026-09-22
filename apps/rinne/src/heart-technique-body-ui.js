@@ -90,11 +90,11 @@ function renderTechnique(model,focusId=null){
 function renderBody(model){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='body';model.bodyKind=model.bodyKind||'stance';model.ui.title.textContent='体 · 身法';model.ui.body.innerHTML='';
   model.ui.body.append(createRinneMenuLead('いまの身体に合う型を選ぶ'));
-  const kinds=[['stance','構え','戦闘態勢の形'],['style','戦法','間合いと動き'],['zanshin','残心','攻撃後の戻り']],slots=topSlotRow();
+  const kinds=[['stance','構え','戦闘態勢の形'],['finisher','葬焉','ダウン後のトドメの型'],['zanshin','残心','決着後の戻り']],slots=topSlotRow();
   for(const [kind,label,meta] of kinds){
     const option=unlockedBodyOptions(state,kind).find(row=>row.id===state.combatLoadout.body[kind]);
     const button=slot(label,option?.label||'未設定',{selected:model.bodyKind===kind,icon:'stance',detail:{kicker:`${label}の装着枠`,title:option?.label||'未設定',summary:option?.description||meta,status:model.bodyKind===kind?'選択先':'装着中'},onClick:()=>{model.bodyKind=kind;model.pages.body=0;model.audio.ui();renderBody(model);}});
-    button.querySelector('small').textContent=model.bodyKind===kind?'選択先':meta;slots.append(button);
+    button.querySelector('small').textContent=kind==='finisher'&&state.combatLoadout.heart.active.includes('skill.nonlethal')?'不殺の心得中 · 実行しない':(model.bodyKind===kind?'選択先':meta);slots.append(button);
   }
   model.ui.body.append(slots);
   const rows=unlockedBodyOptions(state,model.bodyKind),current=state.combatLoadout.body[model.bodyKind],library=gridSection('習得した身体技',kinds.find(([kind])=>kind===model.bodyKind)?.[2]||'選択する');

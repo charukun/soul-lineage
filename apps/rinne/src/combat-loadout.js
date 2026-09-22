@@ -14,13 +14,13 @@ export const BODY_STANCES=Object.freeze([
   {id:'ryu',label:'流構え',description:'足を止めず角度を変える。',requiresAny:['skill.flow-step','skill.soft-step'],reachScale:1.04,turnScale:1.12,guardBonus:.01},
   {id:'kosei',label:'攻勢',description:'前へ圧を掛ける構え。',requiresAny:['skill.step','skill.resolve','skill.grip'],reachScale:1.07,turnScale:1.04,guardBonus:-.015},
 ]);
-export const BODY_STYLES=Object.freeze([
-  {id:'balanced',label:'中庸',description:'近づき過ぎず離れ過ぎない。',requiresAny:[],distanceScale:1,advanceScale:1,retreatScale:1,orbitScale:1},
-  {id:'distance',label:'間合い重視',description:'得物の先端を活かして距離を保つ。',requiresAny:['skill.distance','skill.observe'],distanceScale:1.22,advanceScale:.84,retreatScale:1.18,orbitScale:1.05},
-  {id:'counter',label:'迎撃',description:'相手の踏み込みへ合わせる。',requiresAny:['skill.read','skill.danger','skill.peripheral','skill.observe','skill.patience'],distanceScale:1.03,advanceScale:.88,retreatScale:1.08,orbitScale:1.24},
-  {id:'pressure',label:'圧迫',description:'退かず前へ詰め続ける。',requiresAny:['skill.resolve','skill.step','skill.edge','skill.grip'],distanceScale:.78,advanceScale:1.2,retreatScale:.72,orbitScale:.82},
-  {id:'flow',label:'流動',description:'正面を外し続けて崩す。',requiresAny:['skill.flow-step','skill.soft-step'],distanceScale:1.04,advanceScale:.96,retreatScale:1.04,orbitScale:1.38},
+export const BODY_FINISHERS=Object.freeze([
+  {id:'kaishaku',label:'介錯',description:'迷いなく急所を断ち、確実にトドメを刺す。',requiresAny:[],durationScale:1,impactAt:.58},
+  {id:'sokudan',label:'即断',description:'短い一手で終え、すぐ次の脅威へ意識を移す。',requiresAny:['skill.edge','skill.step','skill.resolve'],durationScale:.78,impactAt:.52},
+  {id:'kakudan',label:'確断',description:'周囲を見切ってから、崩さず確実に終える。',requiresAny:['skill.observe','skill.danger','skill.patience'],durationScale:1.08,impactAt:.6},
+  {id:'danzetsu',label:'断絶',description:'重い一撃で戦いを完全に終わらせる。',requiresAny:['skill.grip','skill.resolve'],durationScale:1.16,impactAt:.62},
 ]);
+export const NONLETHAL_HEART_ID='skill.nonlethal';
 export const BODY_ZANSHIN=Object.freeze([
   {id:'still',label:'静止残心',description:'打ち終わりを崩さず次へ備える。',requiresAny:[],recoveryScale:1,staminaRefund:0,guardBonus:0},
   {id:'breath',label:'呼吸残心',description:'一息で体勢を戻し消耗を抑える。',requiresAny:['skill.breath','skill.recovery-breath','skill.calm'],recoveryScale:.91,staminaRefund:.05,guardBonus:0},
@@ -48,7 +48,7 @@ function makeCombo(state,index=0,source=null){
   return{id,name:String(source?.name||COMBO_NAMES[index]||`第${index+1}連`).slice(0,24),slots:{jo:isAction(state,source?.slots?.jo)?source.slots.jo:phaseFromLegacy(state,'jo'),ha:isAction(state,source?.slots?.ha)?source.slots.ha:phaseFromLegacy(state,'ha'),kyu:isAction(state,source?.slots?.kyu)?source.slots.kyu:phaseFromLegacy(state,'kyu')},favored:PHASES.map(([phase])=>phase).filter(phase=>Boolean(source?.favored?.[phase]||source?.favored?.includes?.(phase))).reduce((out,phase)=>(out[phase]=true,out),{})};
 }
 function optionUnlocked(state,option){const needs=Array.isArray(option?.requiresAny)?option.requiresAny:[];if(!needs.length)return true;const available=combatCatalog(state);return needs.some(id=>available.has(id));}
-function normalizeBody(state,body={}){const pick=(list,id,fallback)=>list.some(row=>row.id===id&&optionUnlocked(state,row))?id:fallback;return{stance:pick(BODY_STANCES,body.stance,'seigan'),style:pick(BODY_STYLES,body.style,'balanced'),zanshin:pick(BODY_ZANSHIN,body.zanshin,'still')};}
+function normalizeBody(state,body={}){const pick=(list,id,fallback)=>list.some(row=>row.id===id&&optionUnlocked(state,row))?id:fallback;return{stance:pick(BODY_STANCES,body.stance,'seigan'),finisher:pick(BODY_FINISHERS,body.finisher,'kaishaku'),zanshin:pick(BODY_ZANSHIN,body.zanshin,'still')};}
 const comboSelection=id=>'combo:'+id;
 const comboSelectionId=selection=>String(selection||'').startsWith('combo:')?String(selection).slice(6):null;
 function phaseSelectionSkill(state,phase,selection){const comboId=comboSelectionId(selection),combo=comboId?state.combatLoadout?.technique?.combos?.find(row=>row.id===comboId):null,candidate=combo?.slots?.[phase]||selection;return isAction(state,candidate)&&weaponCompatible(state,candidate)?candidate:basicSkill(state);}
@@ -88,9 +88,10 @@ export function phaseSelectionLabel(state,phase){const loadout=ensureCombatLoado
 export function setPhaseSelection(state,phase,selection){const loadout=ensureCombatLoadout(state);if(!PHASES.some(([id])=>id===phase))return false;const comboId=comboSelectionId(selection),validCombo=comboId&&loadout.technique.combos.some(row=>row.id===comboId),validSkill=isAction(state,selection)&&weaponCompatible(state,selection);if(!validCombo&&!validSkill)return false;loadout.technique.phaseSelections[phase]=selection;mirrorLegacy(state);return true;}
 export function toggleFavored(state,comboId,phase){const combo=comboById(state,comboId);if(!combo||!PHASES.some(([id])=>id===phase))return false;combo.favored[phase]=!combo.favored[phase];return combo.favored[phase];}
 export function setOneMotion(state,skill){const loadout=ensureCombatLoadout(state);if(skill===null){loadout.technique.oneMotion=null;return true;}if(skillDefinition(skill)?.type!=='action'||!combatCatalog(state).has(skill)||String(skill).startsWith('spark.')||isGeneratedTechniqueId(skill))return false;loadout.technique.oneMotion=skill;return true;}
-export function setBodyChoice(state,kind,id){const loadout=ensureCombatLoadout(state),map={stance:BODY_STANCES,style:BODY_STYLES,zanshin:BODY_ZANSHIN},list=map[kind];if(!list)return false;const row=list.find(item=>item.id===id);if(!row||!optionUnlocked(state,row))return false;loadout.body[kind]=id;return true;}
-export function unlockedBodyOptions(state,kind){ensureCombatLoadout(state);const map={stance:BODY_STANCES,style:BODY_STYLES,zanshin:BODY_ZANSHIN};return(map[kind]||[]).filter(row=>optionUnlocked(state,row));}
-export function bodyRuntime(state){const loadout=ensureCombatLoadout(state),stance=BODY_STANCES.find(row=>row.id===loadout.body.stance)||BODY_STANCES[0],style=BODY_STYLES.find(row=>row.id===loadout.body.style)||BODY_STYLES[0],zanshin=BODY_ZANSHIN.find(row=>row.id===loadout.body.zanshin)||BODY_ZANSHIN[0];return{stance,style,zanshin,guardBonus:(stance.guardBonus||0)+(zanshin.guardBonus||0)};}
+export function setBodyChoice(state,kind,id){const loadout=ensureCombatLoadout(state),map={stance:BODY_STANCES,finisher:BODY_FINISHERS,zanshin:BODY_ZANSHIN},list=map[kind];if(!list)return false;const row=list.find(item=>item.id===id);if(!row||!optionUnlocked(state,row))return false;loadout.body[kind]=id;return true;}
+export function unlockedBodyOptions(state,kind){ensureCombatLoadout(state);const map={stance:BODY_STANCES,finisher:BODY_FINISHERS,zanshin:BODY_ZANSHIN};return(map[kind]||[]).filter(row=>optionUnlocked(state,row));}
+export function bodyRuntime(state){const loadout=ensureCombatLoadout(state),stance=BODY_STANCES.find(row=>row.id===loadout.body.stance)||BODY_STANCES[0],finisher=BODY_FINISHERS.find(row=>row.id===loadout.body.finisher)||BODY_FINISHERS[0],zanshin=BODY_ZANSHIN.find(row=>row.id===loadout.body.zanshin)||BODY_ZANSHIN[0];return{stance,finisher,zanshin,guardBonus:(stance.guardBonus||0)+(zanshin.guardBonus||0)};}
+export function combatFinisherRuntime(state){const loadout=ensureCombatLoadout(state),finisher=BODY_FINISHERS.find(row=>row.id===loadout.body.finisher)||BODY_FINISHERS[0],nonlethal=loadout.heart.active.includes(NONLETHAL_HEART_ID);return Object.freeze({finisher,nonlethal,execute:!nonlethal});}
 function weightedCombos(state){const loadout=ensureCombatLoadout(state),active=loadout.technique.activeComboId,ordered=[...loadout.technique.combos].sort((a,b)=>Number(b.id===active)-Number(a.id===active)),rows=[];for(const combo of ordered){const weight=1+Object.values(combo.favored||{}).filter(Boolean).length*2+(combo.id===active?2:0);for(let i=0;i<weight;i++)rows.push(combo);}return rows;}
 export function selectCombatCombo(state,combat,{advance=false}={}){const rows=weightedCombos(state);if(!rows.length)return null;if(!Number.isInteger(combat.comboCursor))combat.comboCursor=0;else if(advance)combat.comboCursor++;const combo=rows[combat.comboCursor%rows.length];combat.comboId=combo.id;return combo;}
 export function combatSkillForPhase(state,combat,phase){const loadout=ensureCombatLoadout(state),selection=loadout.technique.phaseSelections?.[phase];return phaseSelectionSkill(state,phase,selection);}

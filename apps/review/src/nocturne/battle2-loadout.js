@@ -17,12 +17,11 @@ export const BATTLE2_BODY_OPTIONS=Object.freeze({
     Object.freeze({id:'ryu',label:'流構え',meta:'角度を変え続ける'}),
     Object.freeze({id:'kosei',label:'攻勢',meta:'前へ圧を掛ける'})
   ]),
-  style:Object.freeze([
-    Object.freeze({id:'balanced',label:'中庸',meta:'標準の間合い'}),
-    Object.freeze({id:'distance',label:'間合い重視',meta:'遠めから入る'}),
-    Object.freeze({id:'counter',label:'迎撃',meta:'相手の踏み込み待ち'}),
-    Object.freeze({id:'pressure',label:'圧迫',meta:'近間へ詰める'}),
-    Object.freeze({id:'flow',label:'流動',meta:'正面を外す'})
+  finisher:Object.freeze([
+    Object.freeze({id:'kaishaku',label:'介錯',meta:'確実にトドメを刺す',durationScale:1,impactAt:.58}),
+    Object.freeze({id:'sokudan',label:'即断',meta:'短く終えて次へ移る',durationScale:.78,impactAt:.52}),
+    Object.freeze({id:'kakudan',label:'確断',meta:'周囲を見切って終える',durationScale:1.08,impactAt:.6}),
+    Object.freeze({id:'danzetsu',label:'断絶',meta:'重い一撃で終える',durationScale:1.16,impactAt:.62})
   ]),
   zanshin:Object.freeze([
     Object.freeze({id:'still',label:'静止残心',meta:'崩さず戻る'}),
@@ -34,7 +33,7 @@ export const BATTLE2_BODY_OPTIONS=Object.freeze({
 export const BATTLE2_LOADOUT_DEFAULT=Object.freeze({
   heart:Object.freeze({active:Object.freeze(['skill.observe','skill.patience','skill.edge'])}),
   technique:Object.freeze({jo:'action.feint',ha:'action.guard-step',kyu:'action.crash'}),
-  body:Object.freeze({stance:'seigan',style:'balanced',zanshin:'still'}),
+  body:Object.freeze({stance:'seigan',finisher:'kaishaku',zanshin:'still'}),
   equipment:Object.freeze({weapon:'sword',shield:false})
 });
 const HEART_IDS=new Set(BATTLE2_HEART_OPTIONS.map(row=>row.id));
@@ -47,12 +46,12 @@ export function normalizeBattle2Loadout(value={}){
   const active=[...new Set(heart.length?heart:BATTLE2_LOADOUT_DEFAULT.heart.active)];
   const technique=Object.fromEntries(PHASES.map(([phase])=>{const candidate=value?.technique?.[phase];return[phase,battle2SelectionAllowed(candidate,{weapon:value?.equipment?.weapon||'sword'})?candidate:BATTLE2_LOADOUT_DEFAULT.technique[phase]];}));
   const body={};
-  for(const kind of ['stance','style','zanshin'])body[kind]=optionIds(kind).has(value?.body?.[kind])?value.body[kind]:BATTLE2_LOADOUT_DEFAULT.body[kind];
+  for(const kind of ['stance','finisher','zanshin'])body[kind]=optionIds(kind).has(value?.body?.[kind])?value.body[kind]:BATTLE2_LOADOUT_DEFAULT.body[kind];
   const weapon=['sword','great'].includes(value?.equipment?.weapon)?value.equipment.weapon:'sword';
   return{heart:{active},technique,body,equipment:{weapon,shield:weapon==='sword'&&Boolean(value?.equipment?.shield)}};
 }
 export function battle2LoadoutKey(value){
-  const row=normalizeBattle2Loadout(value),raw=[row.heart.active.join('.'),row.technique.jo,row.technique.ha,row.technique.kyu,row.body.stance,row.body.style,row.body.zanshin,row.equipment.weapon,row.equipment.shield?'shield':'bare'].join('~');
+  const row=normalizeBattle2Loadout(value),raw=[row.heart.active.join('.'),row.technique.jo,row.technique.ha,row.technique.kyu,row.body.stance,row.body.finisher,row.body.zanshin,row.equipment.weapon,row.equipment.shield?'shield':'bare'].join('~');
   let hash=2166136261;for(let i=0;i<raw.length;i++){hash^=raw.charCodeAt(i);hash=Math.imul(hash,16777619);}
   return(hash>>>0).toString(36).padStart(7,'0').slice(-7);
 }
@@ -98,7 +97,7 @@ export function createBattle2LoadoutUI({stage,onChange=()=>{}}={}){
     const learned=battle2LearnedTechniqueRows(learnedTechniqueIds,{weapon:value.equipment.weapon});if(learned.length)appendLibrary('閃いた技','実戦で閃き、習得した技',learned.map(row=>({id:row.id,label:row.label,meta:row.meta||'閃きで習得',active:value.technique[techniqueTarget]===row.id,icon:rinneSkillSigilKind(row.id)})),id=>{value.technique[techniqueTarget]=id;emit();});
   }
 
-  function renderBody(){title.textContent='体 · 身法';body.replaceChildren(createRinneMenuLead('ゲーム仕様にある構え・戦法・残心をまとめて選ぶ'));const labels={stance:'構え',style:'戦法',zanshin:'残心'},slots=['stance','style','zanshin'].map(kind=>{const id=value.body[kind];return{id:kind,label:labels[kind],value:labelFor(BATTLE2_BODY_OPTIONS[kind],id),meta:kind===bodyTarget?'選択先':'装着中',icon:'stance'};});appendSlots(slots,bodyTarget,id=>{bodyTarget=id;renderBody();});const all=['stance','style','zanshin'].flatMap(kind=>BATTLE2_BODY_OPTIONS[kind].map(row=>({...row,kind,meta:labels[kind]+' · '+row.meta,active:value.body[kind]===row.id,icon:'stance'})));appendLibrary('身法一覧','構え・戦法・残心の関連身法をすべて表示',all,id=>{const row=all.find(item=>item.id===id);if(!row)return;bodyTarget=row.kind;value.body[row.kind]=row.id;emit();});}
+  function renderBody(){title.textContent='体 · 身法';body.replaceChildren(createRinneMenuLead('ゲーム仕様にある構え・葬焉・残心をまとめて選ぶ'));const labels={stance:'構え',finisher:'葬焉',zanshin:'残心'},nonlethal=value.heart.active.includes('skill.nonlethal'),slots=['stance','finisher','zanshin'].map(kind=>{const id=value.body[kind];return{id:kind,label:labels[kind],value:labelFor(BATTLE2_BODY_OPTIONS[kind],id),meta:kind==='finisher'&&nonlethal?'不殺の心得中 · 実行しない':(kind===bodyTarget?'選択先':'装着中'),icon:'stance'};});appendSlots(slots,bodyTarget,id=>{bodyTarget=id;renderBody();});const all=['stance','finisher','zanshin'].flatMap(kind=>BATTLE2_BODY_OPTIONS[kind].map(row=>({...row,kind,meta:labels[kind]+' · '+row.meta,active:value.body[kind]===row.id,icon:'stance'})));appendLibrary('身法一覧','構え・葬焉・残心の関連身法をすべて表示',all,id=>{const row=all.find(item=>item.id===id);if(!row)return;bodyTarget=row.kind;value.body[row.kind]=row.id;emit();});}
   function renderItems(){title.textContent='装 · 武具';body.replaceChildren(createRinneMenuLead('装備変更は次の交換から即時反映'));const weaponLabel=value.equipment.weapon==='great'?'大剣':'剣',shieldLabel=value.equipment.shield?'盾あり':'盾なし',slots=[{id:'weapon',label:'武器',value:weaponLabel,meta:equipmentTarget==='weapon'?'選択先':'装備中',icon:'blade'},{id:'shield',label:'盾',value:shieldLabel,meta:equipmentTarget==='shield'?'選択先':'装備中',icon:'guard'},{id:'armor',label:'防具',value:'重装',meta:'固定',icon:'guard'}];appendSlots(slots,equipmentTarget,id=>{if(id!=='armor'){equipmentTarget=id;renderItems();}});const rows=equipmentTarget==='shield'?[{id:'off',label:'盾なし',meta:'両手を自由に',icon:'guard',active:!value.equipment.shield},{id:'on',label:'盾あり',meta:'片手剣のみ',icon:'guard',active:value.equipment.shield}]:[{id:'sword',label:'剣',meta:'片手剣',icon:'blade',active:value.equipment.weapon==='sword'},{id:'great',label:'大剣',meta:'両手武器',icon:'blade',active:value.equipment.weapon==='great'}];appendLibrary(equipmentTarget==='shield'?'盾':'武器','レビュー用装備',rows,id=>{if(equipmentTarget==='weapon'){value.equipment.weapon=id;if(id==='great')value.equipment.shield=false;}else value.equipment.shield=id==='on'&&value.equipment.weapon==='sword';emit();});}
   function render(){
     for(const [key,node] of Object.entries(navButtons))node.dataset.active=String(section===key);

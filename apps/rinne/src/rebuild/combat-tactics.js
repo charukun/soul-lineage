@@ -1,6 +1,7 @@
 import { bodyRuntime, ensureCombatLoadout } from '../combat-loadout.js';
 import { injuryEffects } from './combat-growth.js';
-import {combatBodyOutcome,strategyForState} from './combat-choreography.js';
+import {combatBodyOutcome} from './combat-choreography.js';
+import {skillDefinition} from './skill-system.js';
 
 const clamp=(n,lo=0,hi=1)=>Math.min(hi,Math.max(lo,n));
 const TAU=Math.PI*2;
@@ -20,18 +21,25 @@ export function combatBodyPerformance(state){
   return Object.freeze({attackScale,movementScale,techniqueTempoScale:clamp(movementScale,.7,1),severity:outcome.severity,compromised:outcome.compromised});
 }
 
+const LEGACY_HEART_INTENT=Object.freeze({
+  'skill.resolve':{attack:.22},'skill.edge':{attack:.18},'skill.grip':{attack:.12},
+  'skill.distance':{spacing:.24,survival:.08},'skill.read':{counter:.22},'skill.danger':{survival:.18,guard:.08},
+  'skill.peripheral':{survival:.14,mobility:.08},'skill.flow-step':{mobility:.2},'skill.soft-step':{mobility:.16},
+  'skill.guard-sense':{guard:.2},'skill.endure':{guard:.16,survival:.1},'skill.balance':{guard:.1,mobility:.08},
+  'skill.focus':{attack:.08,counter:.06},'skill.calm':{survival:.1},'skill.breath':{survival:.08}
+});
 export function tidebreakMindVectorFor(state){
-  ensureCombatLoadout(state);const body=bodyRuntime(state),heart=activeHeartIds(state),stamina=staminaPolicyFor(state),injury=injuryEffects(state),bodyOutcome=combatBodyOutcome(state),strategy=strategyForState(state);
-  const baseline={attack:.5,guard:.46,spacing:.5,counter:.28,mobility:.42,survival:.28},v={};for(const key of Object.keys(baseline))v[key]=baseline[key]*.42+strategy[key]*.58;
-  const add=(key,value)=>{v[key]=clamp(v[key]+value);};
-  const style=body.style?.id,stance=body.stance?.id,zanshin=body.zanshin?.id;
-  if(style==='pressure'){add('attack',.28);add('spacing',-.22);add('guard',-.1);}if(style==='distance'){add('spacing',.3);add('guard',.08);add('attack',-.06);}if(style==='counter'){add('counter',.42);add('guard',.2);add('attack',-.1);}if(style==='flow'){add('mobility',.36);add('counter',.12);}if(stance==='kosei')add('attack',.16);if(stance==='chinshin'){add('guard',.19);add('mobility',-.08);}if(stance==='ryu')add('mobility',.18);
-  if(zanshin==='guard')add('guard',.14);if(zanshin==='pursuit')add('attack',.1);if(zanshin==='breath')add('survival',.1);
-  if(heart.has('skill.resolve'))add('attack',.13);if(heart.has('skill.edge')||heart.has('skill.grip'))add('attack',.09);if(heart.has('skill.distance'))add('spacing',.16);if(heart.has('skill.read'))add('counter',.2);if(heart.has('skill.patience')){add('counter',.13);add('attack',-.06);}if(heart.has('skill.danger')){add('guard',.1);add('survival',.12);}if(heart.has('skill.peripheral')){add('guard',.08);add('mobility',.12);}if(heart.has('skill.flow-step')||heart.has('skill.soft-step'))add('mobility',.18);if(heart.has('skill.guard-sense'))add('guard',.16);if(heart.has('skill.endure')||heart.has('skill.balance'))add('survival',.12);
-  add('survival',bodyOutcome.severity*.42);add('attack',-bodyOutcome.severity*.16);add('guard',stamina.guardBias);add('survival',stamina.recoveryBias*.24);add('attack',stamina.allowOffense?0:-.38);
-  // Head/torso injuries do not grant protection. They blur specialized decisions toward neutral values, making poor positioning harder to recover from.
-  for(const key of Object.keys(v))v[key]=clamp(.5+(v[key]-.5)*injury.judgmentScale);if(injury.judgmentScale<.72)add('survival',(1-injury.judgmentScale)*.16);
-  return Object.freeze(v);
+  ensureCombatLoadout(state);const body=bodyRuntime(state),heart=activeHeartIds(state),stamina=staminaPolicyFor(state),injury=injuryEffects(state);
+  const baseline={attack:.5,guard:.46,counter:.4,mobility:.48,survival:.28,spacing:.5},v={...baseline};
+  const add=(key,value)=>{if(Number.isFinite(value)&&Object.hasOwn(v,key))v[key]+=value;};
+  for(const id of heart){const authored=skillDefinition(id)?.intent||{},profile=Object.keys(authored).length?authored:(LEGACY_HEART_INTENT[id]||{});for(const [key,value]of Object.entries(profile))add(key,Number(value)*.62);}
+  const stance=body.stance?.id,zanshin=body.zanshin?.id;
+  if(stance==='chinshin'){add('guard',.12);add('survival',.07);add('mobility',-.05);}if(stance==='ryu'){add('mobility',.14);add('spacing',.04);}if(stance==='kosei'){add('attack',.12);add('spacing',-.07);}
+  if(zanshin==='breath'){add('survival',.05);add('guard',.03);}if(zanshin==='pursuit'){add('attack',.07);add('mobility',.04);}if(zanshin==='guard'){add('guard',.09);add('survival',.04);}
+  if(stamina.band==='strained'){add('attack',-.07);add('guard',.05);add('survival',.06);}if(stamina.band==='critical'){add('attack',-.22);add('counter',-.08);add('guard',.13);add('survival',.18);add('spacing',.12);}
+  const injuryLevel=injury.severity||0;if(injuryLevel>.2){add('attack',-injuryLevel*.18);add('mobility',-injuryLevel*.2);add('guard',injuryLevel*.08);add('survival',injuryLevel*.16);}
+  for(const key of Object.keys(v))v[key]=clamp(.5+(clamp(v[key],0,1)-.5)*injury.judgmentScale);if(injury.judgmentScale<.72)add('survival',(1-injury.judgmentScale)*.16);
+  return Object.freeze(Object.fromEntries(Object.keys(v).map(key=>[key,Number(clamp(v[key],0,1).toFixed(4))])));
 }
 
 const MIND_PROFILES=Object.freeze({
