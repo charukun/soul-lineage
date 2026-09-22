@@ -46,8 +46,8 @@ export async function createCharacter25DActor(THREE,bundle,options={}) {
       const asset=bundle.assets[appearance.asset];
       if(!textures.has(appearance.asset)) {const image=await loadSpriteImage(spriteAssetBlob(asset)),texture=new THREE.Texture(image);texture.colorSpace=THREE.SRGBColorSpace;texture.minFilter=texture.magFilter=THREE.LinearFilter;texture.generateMipmaps=false;texture.needsUpdate=true;textures.set(appearance.asset,texture);}
       const group=new THREE.Group();group.name='Appearance:'+name;group.scale.setScalar(scale);object.add(group);
-      const rig=makeSkeleton(group,name==='side'?.48:1),meshes=[],footSamples=[];
-      const data=buildInfluenceMeshes(bundle.rig,{bounds:appearance.bounds,width:asset.width,height:asset.height,side:name==='side'});
+      const rig=makeSkeleton(group,name==='side'?.48:name.startsWith('back')?-1:1),meshes=[],footSamples=[];
+      const data=buildInfluenceMeshes(bundle.rig,{bounds:appearance.bounds,width:asset.width,height:asset.height,side:name==='side',back:name.startsWith('back')});
       for(const layer of data) {
         const geometry=new THREE.BufferGeometry();
         geometry.setAttribute('position',new THREE.Float32BufferAttribute(layer.positions,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(layer.uvs,2));

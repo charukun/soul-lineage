@@ -69,12 +69,12 @@ export function influenceAt(x,y,rig) {
 
 // Several low-density triangle meshes share a bind skeleton and original UVs.
 // Duplicate boundary vertices receive identical weights: no detached square crops.
-export function buildInfluenceMeshes(rig,{aspect=1,bounds=[0,0,1,1],width=1,height=1,side=false}={}) {
+export function buildInfluenceMeshes(rig,{aspect=1,bounds=[0,0,1,1],width=1,height=1,side=false,back=false}={}) {
   const [left,top,right,bottom]=bounds,h=bottom-top,w=right-left,cols=20,rows=36;
   const scale=w/h,groups=Object.fromEntries(LAYER_NAMES.map(name=>[name,{name,positions:[],uvs:[],indices:[],skinIndices:[],skinWeights:[],secondary:[]} ]));
   const point=(col,row)=>({x:(col/cols-.5)*scale,y:1-row/rows,u:(left+w*col/cols)/width,v:1-(top+h*row/rows)/height});
   const vertex=(g,p)=>{
-    const normalizedX=side?p.x*1.5:p.x,weights=influenceAt(normalizedX,p.y,rig);
+    const normalizedX=side?p.x*1.5:back?-p.x:p.x,weights=influenceAt(normalizedX,p.y,rig);
     g.positions.push(p.x,p.y,0);g.uvs.push(p.u,p.v);
     for(let j=0;j<4;j++){g.skinIndices.push(weights[j]?.[0]??0);g.skinWeights.push(weights[j]?.[1]??0);}
     const lag=g.name==='hairBack'||g.name==='hairFront'?clamp((.95-p.y)/.25,0,1):g.name==='clothing'?clamp((rig.proportions.hip+.06-p.y)/.18,0,1):g.name==='accessories'?clamp((.62-p.y)/.2,0,1):0;

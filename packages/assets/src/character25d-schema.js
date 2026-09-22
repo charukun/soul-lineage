@@ -36,7 +36,7 @@ export function assertCharacter25D(bundle) {
   });
   for(const [key,lo,hi] of [['head',.72,.84],['shoulder',.61,.72],['hip',.36,.49],['width',.18,.32]])if(!finite(bundle.rig.proportions?.[key],lo,hi))fail('比率が不正です');
   if(!Array.isArray(bundle.layers)||bundle.layers.length!==LAYER_NAMES.length||bundle.layers.some((l,i)=>l.name!==LAYER_NAMES[i]||l.method!=='silhouette-influence-grid/v1'))fail('layer定義が不正です');
-  if(!bundle.appearance||APPEARANCE_VIEWS.some(v=>!Object.hasOwn(bundle.appearance,v)))fail('view枠が不足しています');
+  if(!bundle.appearance||Object.keys(bundle.appearance).length!==APPEARANCE_VIEWS.length||APPEARANCE_VIEWS.some(v=>!Object.hasOwn(bundle.appearance,v)))fail('view枠が不足しています');
   const hashes=new Set();
   for(const key of APPEARANCE_VIEWS) {
     const view=bundle.appearance[key];if(view===null)continue;

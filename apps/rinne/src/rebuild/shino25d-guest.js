@@ -7,8 +7,7 @@ import {sweepAndSlide} from './locomotion.js';
 const REVIEW_ORIGINS=new Set(['https://soul-lineage-review-dev.c-okamoto.workers.dev','https://rinne-visual-review.c-okamoto.workers.dev']);
 function trustedOrigin(origin) {
   if(REVIEW_ORIGINS.has(origin))return true;
-  const url=new URL(origin);
-  return ['localhost','127.0.0.1'].includes(location.hostname)&&url.hostname===location.hostname&&url.protocol===location.protocol&&['5176','5276'].includes(url.port);
+  try{const url=new URL(origin);return ['localhost','127.0.0.1'].includes(location.hostname)&&url.hostname===location.hostname&&url.protocol===location.protocol&&['5176','5276'].includes(url.port);}catch{return false;}
 }
 // Compatibility entrypoint name retained for the existing renderer bootstrap.
 // This render-only companion never enters NPC, combat, family or save authority.

@@ -53,9 +53,9 @@ async function transaction(mode,operation) {
   const db=await new Promise((resolve,reject)=>{const r=indexedDB.open(DATABASE,1);r.onupgradeneeded=()=>r.result.createObjectStore('drafts');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(new Error('下書きを開けません'));});
   try{return await new Promise((resolve,reject)=>{const tx=db.transaction('drafts',mode);let result;const req=operation(tx.objectStore('drafts'));req.onsuccess=()=>{result=req.result;};tx.oncomplete=()=>resolve(result);tx.onerror=tx.onabort=()=>reject(new Error('下書きを保存できません'));});}finally{db.close();}
 }
-export async function saveCharacter25DDraft(bundle){assertCharacter25D(bundle);await transaction('readwrite',s=>s.put(bundle,bundle.id));await transaction('readwrite',s=>s.put(bundle.id,'last'));}
-export async function loadCharacter25DDraft(){const id=await transaction('readonly',s=>s.get('last'));if(id){const value=await transaction('readonly',s=>s.get(id));if(value)return verifyCharacter25DBundle(value);}const old=await loadSprite25dDraft();return old?upgradeCharacter25D(old):null;}
-export async function deleteCharacter25DDraft(id){await transaction('readwrite',s=>s.delete(id));await transaction('readwrite',s=>s.delete('last'));}
+export async function saveCharacter25DDraft(bundle){assertCharacter25D(bundle);await transaction('readwrite',s=>s.put(bundle,'draft:'+bundle.id));await transaction('readwrite',s=>s.put(bundle.id,'last'));}
+export async function loadCharacter25DDraft(){const id=await transaction('readonly',s=>s.get('last'));if(id){const value=await transaction('readonly',s=>s.get('draft:'+id));if(value)return verifyCharacter25DBundle(value);}const old=await loadSprite25dDraft();return old?upgradeCharacter25D(old):null;}
+export async function deleteCharacter25DDraft(id){await transaction('readwrite',s=>s.delete('draft:'+id));await transaction('readwrite',s=>s.delete('last'));}
 export function downloadCharacter25D(bundle){assertCharacter25D(bundle);const url=URL.createObjectURL(new Blob([JSON.stringify(bundle)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=bundle.id+'.character25d.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 export async function reassociateCharacter25D(bundle,associations) {
   const next=structuredClone(bundle),old=structuredClone(bundle.appearance);

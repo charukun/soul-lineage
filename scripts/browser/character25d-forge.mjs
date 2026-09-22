@@ -3,7 +3,7 @@ import {chromium,expect} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {spawn,execFileSync} from 'node:child_process';
 import {mkdir,writeFile,readFile,readdir} from 'node:fs/promises';
-import {resolve,join} from 'node:path';
+import {resolve,join,dirname} from 'node:path';
 import {createHash} from 'node:crypto';
 import {chooseFamilyOrigin} from '../../apps/rinne/tests/family-origin.browser.mjs';
 const root=resolve(new URL('../..',import.meta.url).pathname),output=resolve(root,'test-results/character25d-forge');
@@ -14,7 +14,7 @@ const receipt={schema:1,head,status:'running',source:'docs/characters/references
 let browser,context,page,reviewVideo;
 async function start(app){let log='';const p=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--config',`apps/${app}/vite.config.js`,'--host','127.0.0.1','--port',String(ports[app]),'--strictPort'],{cwd:root,env:process.env,stdio:['ignore','pipe','pipe']});servers.push(p);p.stdout.on('data',d=>{log+=d;});p.stderr.on('data',d=>{log+=d;});logs[app]=()=>log;for(let i=0;i<120;i++){if(p.exitCode!==null)throw new Error(log);try{if((await fetch(`http://127.0.0.1:${ports[app]}/`)).ok)return;}catch{}await new Promise(r=>setTimeout(r,250));}throw new Error('Server timeout '+app+log);}
 const snapshot=()=>page.locator('.hybrid25d-stage canvas').evaluate(c=>c.character25dSnapshot?.());
-async function action(name){await page.locator('[data-motion]').selectOption(name);await page.locator('[data-play-motion]').click();await page.waitForTimeout(120);const before=await snapshot();await page.waitForTimeout(180);const after=await snapshot();assert.equal(before.action,name);assert.equal(after.action,name);assert.ok(after.time>before.time);assert.ok(after.rotations.some((v,i)=>Math.abs(v-before.rotations[i])>1e-6)||name==='rest');receipt.actions[name]={before,after};await page.locator('.hybrid25d-stage').screenshot({path:join(output,name+'.png')});}
+async function action(name){await page.locator('[data-motion]').selectOption(name);await page.locator('[data-play-motion]').click();await page.waitForTimeout(120);const before=await snapshot();await page.waitForTimeout(180);const after=await snapshot();assert.equal(before.action,name);assert.equal(after.action,name);assert.ok(after.time>before.time);assert.ok(after.rotations.some((v,i)=>Math.abs(v-before.rotations[i])>1e-6)||name==='rest');receipt.actions[name]={before,after};await page.locator('.hybrid25d-stage').screenshot({path:join(output,name+'.jpg'),type:'jpeg',quality:55});}
 try{
   await Promise.all([start('review'),start('rinne')]);
   browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader','--no-sandbox']});
@@ -26,7 +26,7 @@ try{
   await expect(page.locator('.character25d-forge')).toHaveAttribute('data-actor-ready','true',{timeout:60000});
   await page.waitForFunction(()=>document.querySelector('.hybrid25d-stage canvas')?.character25dSnapshot?.()?.transition===1);
   let first=await snapshot();assert.ok(first.bodyBones>=18&&first.layerMeshes>=6);assert.ok(first.availableViews.includes('front')&&first.availableViews.includes('side')&&first.availableViews.includes('back'),'One three-view reference must compile all views');
-  for(const name of ['front','side','back']){await page.locator(`[data-view="${name}"]`).click();await page.waitForTimeout(500);const s=await snapshot();assert.equal(s.view,name);assert.equal(s.mirror,false);receipt.views[name]=s;await page.locator('.hybrid25d-stage').screenshot({path:join(output,'view-'+name+'.png')});}
+  for(const name of ['front','side','back']){await page.locator(`[data-view="${name}"]`).click();await page.waitForTimeout(500);const s=await snapshot();assert.equal(s.view,name);assert.equal(s.mirror,false);receipt.views[name]=s;await page.locator('.hybrid25d-stage').screenshot({path:join(output,'view-'+name+'.jpg'),type:'jpeg',quality:55});}
   await page.locator('[data-view="front"]').click();await page.locator('[data-home]').click();await page.locator('[data-resume]').click();
   const beforeMove=await snapshot();await page.keyboard.down('KeyW');await page.waitForTimeout(450);const walking=await snapshot();assert.equal(walking.action,'walk');assert.ok(Math.hypot(walking.position.x-beforeMove.position.x,walking.position.z-beforeMove.position.z)>.12);
   await page.keyboard.down('ShiftLeft');await page.waitForTimeout(500);const running=await snapshot();assert.equal(running.action,'run');await page.keyboard.up('KeyW');await page.keyboard.up('ShiftLeft');await page.waitForTimeout(450);
@@ -42,14 +42,19 @@ try{
   await page.setViewportSize({width:1100,height:900});await page.locator('[data-rinne]').scrollIntoViewIfNeeded();const popupPromise=context.waitForEvent('page');await page.locator('[data-rinne]').click();const rinne=await popupPromise;observe(rinne);rinne.setDefaultTimeout(60000);
   await rinne.waitForFunction(()=>document.getElementById('game')?.character25dSnapshot?.(),null,{timeout:90000});
   await expect(rinne.locator('#title-screen')).toHaveAttribute('data-ready','true',{timeout:90000});
-  // Skip only the actual title cinematic through its normal input, never force a hidden button.
+  // Runtime readiness does not dismiss the brand gate or enable new-life.
+  await expect(rinne.locator('#soul-brand-boot')).toHaveClass(/armed/,{timeout:90000});
+  await rinne.locator('#soul-brand-boot').click();
+  await expect(rinne.locator('#soul-brand-boot')).toHaveCount(0);
+  await rinne.waitForFunction(()=>{const t=document.getElementById('title-screen');return t?.dataset.intro==='idle'||t?.dataset.skip==='ready';});
   if(await rinne.locator('#title-screen').getAttribute('data-intro')==='cinematic')await rinne.locator('#title-screen').click({position:{x:80,y:80}});
+  await expect(rinne.locator('#title-screen')).toHaveAttribute('data-intro','idle');
   await rinne.locator('#new-life').click();await chooseFamilyOrigin(rinne,{checkCancel:false});await expect(rinne.locator('#game')).toHaveAttribute('data-runtime','active',{timeout:60000});
   const guest=()=>rinne.locator('#game').evaluate(c=>c.character25dSnapshot?.());const a=await guest();await rinne.waitForTimeout(500);const b=await guest();
   const game=rinne.locator('#game'),gb=await game.boundingBox();await rinne.mouse.move(gb.x+gb.width*.48,gb.y+gb.height*.6);await rinne.mouse.down();await rinne.mouse.move(gb.x+gb.width*.65,gb.y+gb.height*.45,{steps:8});await rinne.waitForTimeout(650);await rinne.mouse.up();await rinne.waitForTimeout(300);const c=await guest();
   assert.ok(Math.hypot(c.position.x-a.position.x,c.position.z-a.position.z)>.05||Math.hypot(b.position.x-a.position.x,b.position.z-a.position.z)>.05,'Companion must move in the real game');assert.ok(c.grounded);
   assert.equal(await rinne.locator('input[type=file],.shino25d-panel,.character25d-forge,[data-rinne-auto]').count(),0,'No guest debug panel in RINNE');
-  const saves=await rinne.evaluate(()=>Object.entries(localStorage).filter(([k])=>k.includes('life-v2')).map(([key,value])=>({key,containsDraft:/rinne.character25d|sourceSha256|data:image/.test(value)})));assert.ok(saves.every(s=>!s.containsDraft));receipt.rinne={before:a,middle:b,after:c,saveIsolation:saves};await rinne.screenshot({path:join(output,'rinne.png')});
+  const saves=await rinne.evaluate(()=>Object.entries(localStorage).filter(([k])=>k.includes('life-v2')).map(([key,value])=>({key,containsDraft:/rinne.character25d|sourceSha256|data:image/.test(value)})));assert.ok(saves.every(s=>!s.containsDraft));receipt.rinne={before:a,middle:b,after:c,saveIsolation:saves};await rinne.screenshot({path:join(output,'rinne.jpg'),type:'jpeg',quality:55});
   assert.deepEqual(receipt.errors,[],'No console errors');receipt.status='passed';
 } catch(error){receipt.status='failed';receipt.failure=error.stack;throw error;}
 finally{
@@ -62,13 +67,16 @@ finally{
   // workflow or a repository asset, and never changes the validated source.
   if(reviewVideo){
     try{
-      const input=await reviewVideo.path(),mp4=join(output,'playground-motion.mp4');
-      execFileSync('ffmpeg',['-y','-i',input,'-t','36','-vf','scale=440:-2','-r','12','-an','-c:v','libx264','-preset','veryfast','-crf','36','-movflags','+faststart',mp4],{stdio:'ignore',timeout:30000});
-      const bytes=await readFile(mp4);
-      if(bytes.length<=700000)console.log('CHARACTER25D_MEDIA '+JSON.stringify({name:'playground-motion.mp4',sha256:createHash('sha256').update(bytes).digest('hex'),data:bytes.toString('base64')}));
+      const input=await reviewVideo.path(),clip=join(output,'playground-motion.webm');
+      const cache=resolve(dirname(chromium.executablePath()),'../..');
+      const ffmpeg=join(cache,(await readdir(cache)).find(name=>name.startsWith('ffmpeg-')),'ffmpeg-linux');
+      execFileSync(ffmpeg,['-y','-i',input,'-t','60','-vf','scale=440:-2','-r','12','-an','-c:v','vp8','-b:v','70k','-qmin','0','-qmax','50','-crf','30','-deadline','realtime','-speed','8','-threads','1',clip],{stdio:'ignore',timeout:30000});
+      const bytes=await readFile(clip);
+      if(bytes.length<=700000)console.log('CHARACTER25D_MEDIA '+JSON.stringify({name:'playground-motion.webm',sha256:createHash('sha256').update(bytes).digest('hex'),data:bytes.toString('base64')}));
+      else console.log('Character25D video packaging: clip exceeds receipt budget '+bytes.length);
     }catch(error){console.log('Character25D video packaging: '+error.message);}
   }
   for(const name of ['view-front','view-side','view-back','attack','hit','rinne']){
-    try{const png=join(output,name+'.png'),jpg=join(output,name+'.jpg');execFileSync('ffmpeg',['-y','-i',png,'-vf','scale=640:-2','-q:v','6',jpg],{stdio:'ignore',timeout:10000});const bytes=await readFile(jpg);if(bytes.length<90000)console.log('CHARACTER25D_MEDIA '+JSON.stringify({name:name+'.jpg',sha256:createHash('sha256').update(bytes).digest('hex'),data:bytes.toString('base64')}));}catch{}
+    try{const bytes=await readFile(join(output,name+'.jpg'));if(bytes.length<90000)console.log('CHARACTER25D_MEDIA '+JSON.stringify({name:name+'.jpg',sha256:createHash('sha256').update(bytes).digest('hex'),data:bytes.toString('base64')}));}catch{}
   }
 }
