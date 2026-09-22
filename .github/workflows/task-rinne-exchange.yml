@@ -1,0 +1,50 @@
+name: Task-scoped RINNE Exchange materializer
+on:
+  push:
+    branches: [work/astra-rinne-exchange-initiative-20260922]
+permissions:
+  contents: write
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.sha }}
+      - name: Materialize task patch when present
+        shell: bash
+        run: |
+          if test -f .task-rinne-exchange.py; then
+            python3 .task-rinne-exchange.py
+            rm .task-rinne-exchange.py .github/workflows/task-rinne-exchange.yml
+            git diff --check
+            git config user.name 'OJARU'
+            git config user.email '68882498+charukun@users.noreply.github.com'
+            git add -A
+            git commit -m 'fix(rinne): materialize coherent exchange implementation (preflight only)'
+            git push origin HEAD:work/astra-rinne-exchange-initiative-20260922
+          fi
+      - name: Export source-only task checkout
+        shell: bash
+        run: |
+          mkdir -p /tmp/rinne-exchange-source
+          python3 - <<'PY'
+          import pathlib, subprocess, tarfile
+          root=pathlib.Path('.')
+          paths=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          suffixes={'.js','.mjs','.cjs','.ts','.tsx','.jsx','.json','.html','.css','.md','.yml','.yaml'}
+          with tarfile.open('/tmp/rinne-exchange-source/source.tar.gz','w:gz') as out:
+            for name in paths:
+              p=root/name
+              if not name or not p.is_file() or p.suffix not in suffixes: continue
+              if name.startswith(('packages/','apps/rinne/','apps/review/','tests/','test/','tools/','scripts/','.github/')) or '/' not in name or name in ['docs/DEVELOPMENT.md','docs/DEVELOP_MERGE.md']:
+                out.add(p,arcname=name,recursive=False)
+          pathlib.Path('/tmp/rinne-exchange-source/head.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD']).decode())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rinne-exchange-source-${{ github.sha }}
+          path: /tmp/rinne-exchange-source
+          retention-days: 1
