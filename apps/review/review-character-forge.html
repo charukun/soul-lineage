@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1110">
+  <link rel="icon" href="./favicon.svg?v=2" type="image/svg+xml">
+  <title>Character Create Forge · Visual Review Lab</title>
+  <link rel="stylesheet" href="./src/character-forge.css">
+</head>
+<body>
+<main class="forge-page">
+  <header class="forge-header">
+    <a href="./" data-forge-home>‹ Visual Review Lab</a>
+    <h1>Character Create Forge</h1>
+    <p>三面図と生成キャラを見比べ、形と動きを確認します。</p>
+  </header>
+  <section class="forge-panel" aria-label="Character Create Forge">
+    <h2>キャラを選ぶ</h2>
+    <div class="forge-candidates" aria-label="生成候補"></div>
+    <p class="forge-status" role="status">生成候補を読み込み中…</p>
+    <div class="forge-primary">
+      <div class="forge-views" role="group" aria-label="見る方向">
+        <button type="button" data-forge-view="front" aria-pressed="true">正面</button>
+        <button type="button" data-forge-view="side" aria-pressed="false">側面</button>
+        <button type="button" data-forge-view="back" aria-pressed="false">背面</button>
+        <button type="button" data-forge-turntable aria-pressed="false">360°</button>
+      </div>
+      <div class="forge-motion">
+        <label>動き <select aria-label="動き" data-forge-animation><option value="Bind">基準姿勢</option></select></label>
+        <button type="button" data-forge-pause hidden>一時停止</button>
+      </div>
+    </div>
+    <div class="forge-comparison">
+      <figure class="forge-reference-pane">
+        <figcaption data-forge-ref-label>元の三面図 · 正面</figcaption>
+        <div class="forge-image-wrap"><img data-forge-reference alt="正規化した参照画像"><p data-forge-missing hidden>この方向の参照画像はありません。</p></div>
+      </figure>
+      <figure class="forge-model-pane">
+        <figcaption data-forge-render-label>生成3D · 正面</figcaption>
+        <div class="canvas-wrap">
+          <canvas id="forge-stage" aria-label="生成キャラの3D表示。ドラッグで回転、スクロールで拡大・縮小"></canvas>
+          <img class="forge-overlay" data-forge-overlay-image alt="重ね合わせ用の参照画像" hidden>
+        </div>
+      </figure>
+    </div>
+    <p class="forge-hint">ドラッグで回転 · スクロール／ピンチで拡大縮小 · 方向ボタンで比較位置に戻る</p>
+    <details class="forge-advanced">
+      <summary>詳細設定</summary>
+      <div class="forge-settings">
+        <fieldset><legend>比較</legend>
+          <label><input type="checkbox" data-forge-overlay>参照画像を重ねる</label>
+          <label data-forge-opacity-label hidden>参照の濃さ <input type="range" min="0" max="1" step=".05" value=".5" aria-label="比較の不透明度" data-forge-opacity></label>
+        </fieldset>
+        <fieldset><legend>3Dの表示</legend>
+          <label><input type="checkbox" data-forge-texture checked>テクスチャ</label>
+          <label><input type="checkbox" data-forge-wire>ワイヤーフレーム</label>
+          <label><input type="checkbox" data-forge-skeleton>骨格</label>
+          <label><input type="checkbox" data-forge-sockets>ソケット（装着位置）</label>
+        </fieldset>
+        <fieldset><legend>装備の確認</legend>
+          <label>武器 <select data-forge-equipment><option value="">なし</option><option value="sword">剣</option><option value="spear">槍</option></select></label>
+        </fieldset>
+      </div>
+      <details class="forge-report"><summary>出典・計測・制約</summary>
+        <a data-forge-original target="_blank" rel="noopener">原画像を見る</a>
+        <pre class="forge-readout"></pre>
+      </details>
+    </details>
+  </section>
+</main>
+<script type="module" src="./src/character-forge.js"></script>
+</body>
+</html>

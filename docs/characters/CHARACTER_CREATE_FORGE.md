@@ -10,7 +10,7 @@ receive human approval, Character Production promotion, or Production adoption.
 For 「この三面図を元にCharacter Create Forgeを使ってキャラモデルを追加して」:
 
 1. Read latest develop / AGENTS and this instruction. Check existing package id,
-   source rights, Character License Policy and the current Character View.
+   source rights, Character License Policy and the current dedicated Forge view.
 2. Place eligible original images and `provenance.json` in the source workspace.
    Prefer front/front34/side/back34/back; front/side/back is recommended. One front
    image is an explicit lower-information fallback. Do not discard supplied views.
@@ -30,7 +30,7 @@ For 「この三面図を元にCharacter Create Forgeを使ってキャラモデ
    supplies character intent, not these implementation fields.
 7. The CLI writes a package and regenerates the shared discovered registry. Commit
    those actual generated outputs. Do not add a model import or path to Review UI.
-8. Open Lab → Character → Character Create Forge. Inspect front/side/back with
+8. Open Lab → 専用ビュー → Character Create Forge (`/review-character-forge`). Inspect front/side/back with
    source images, 360°, texture off, skin deformation, animations and sockets.
    Preserve warnings and report remaining defects. Do not promote on load success.
 9. Use exact-head hosted Actions focused tests/builds and the explicit browser
@@ -57,10 +57,21 @@ evidence, never from model appearance. Metadata alone is not a rights grant.
 The fifteen stages in `packages/assets/forge/pipeline.py` delegate to separate
 modules. Python/Pillow is an offline authoring adapter. Runtime modules live in
 `packages/assets/src/character-create-forge`; the package is a shared asset route.
-The existing Lab Character View is currently hosted by `apps/character-studio`.
-Its normal canvas, renderer, OrbitControls, shared `positionReviewCamera`, and
-`@soul/rendering/camera-director` / `applyCameraPresentation` are
-reused. No second application or camera director is introduced.
+The dedicated Forge view lives in `apps/review/review-character-forge.html` and is
+linked from the Lab top page’s 専用ビュー section at `/review-character-forge`.
+Character View (`apps/character-studio`) stays separate. The dedicated view uses
+shared `createReviewRenderer`, stage lifecycle, `positionReviewCamera`, and
+`@soul/rendering/camera-director` / `applyCameraPresentation`, plus OrbitControls.
+No new camera system or cross-app import is introduced.
+
+Select a candidate, choose 正面 / 側面 / 背面 / 360°, then select a motion. The first
+candidate opens automatically; `?character=<id>` opens a specific discovered
+package. Reference and live 3D appear side by side (stacked on phones). Choosing
+a reference direction restores the neutral pose and comparison camera.
+詳細設定 starts closed and contains overlay/opacity, texture, wireframe, skeleton,
+sockets and equipment. Overlay is available for observed reference directions in
+the neutral pose; orbit, turntable and motion leave overlay mode. 原画像 and the
+full validation/provenance report are under 出典・計測・制約 inside 詳細設定.
 
 ```
 packages/assets/characters/forge/<id>/
@@ -136,8 +147,8 @@ It contains no downloaded character images; oblique fixtures are explicitly
 synthetic blends and do not assert real photographic reconstruction accuracy.
 
 `tests/character-create-forge-browser.test.mjs` is an explicit specialist scenario,
-not an unconditional routine sweep. It checks the shipped GLB in the existing
-Character View, native controls, three comparison modes, animation bone deltas,
+not an unconditional routine sweep. It follows the Lab’s dedicated-view link and checks the shipped GLB,
+closed-by-default details, native controls, three comparison modes, animation bone deltas,
 turntable/orbit/zoom, display toggles and absence of browser errors. Screenshots,
 trace, video and a head/hash-bound receipt are written to `test-results/character-create-forge`.
 
@@ -162,3 +173,4 @@ state; introduce a second camera director; weaken validation or Production gates
 Reference comparisons submit an authored cut to the shared Camera Director (now on develop via PR #1490); the package camera subject supplies bounds, head/body/focus/ground anchors. Interactive orbit remains the existing Review control. No Forge camera director is implemented.
 
 For evidence of a newly created package, run `CHARACTER_FORGE_ID=<character-id> node --test tests/character-create-forge-browser.test.mjs` on its exact head. The default id is the original synthetic fixture; the same native controls and assertions apply to other discovered packages.
+
