@@ -1,5 +1,6 @@
-import { defaultMuraLayout, muraEntry, defs, validateMuraLayout } from '@soul/world/mura';
+import { defaultMuraLayout, muraEntry, muraHasInterior, defs, validateMuraLayout } from '@soul/world/mura';
 import { createRinneBirthVillage } from './birth-village.js';
+import { refreshRinneBirthVillage, registerVillageJourney } from './village-journey.js';
 
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const built=(layout,kinds)=>layout.objects.find(o=>o.phase==='built'&&kinds.includes(o.kind));
@@ -48,7 +49,7 @@ function isBareLocalMura(layout){
 }
 export function normalizeLayout(raw){
   const validated=raw?validateMuraLayout(raw):defaultMuraLayout();
-  return ensurePlayableVillage(isBareLocalMura(validated)?createRinneBirthVillage():validated);
+  return ensurePlayableVillage(refreshRinneBirthVillage(isBareLocalMura(validated)?createRinneBirthVillage():validated));
 }
 
 function entryStation(object){
@@ -59,7 +60,7 @@ function entryStation(object){
 export function buildInteriors(layout){
   layout=normalizeLayout(layout);const rows=[];
   for(const object of layout.objects){
-    const def=defs[object.kind];if(object.phase!=='built'||!def?.building||def.open)continue;
+    const def=defs[object.kind];if(object.phase!=='built'||!muraHasInterior(object))continue;
     const room=Array.isArray(object.room)?object.room:[],stations=[];
     for(const item of room){
       const mapping=INTERIOR_ACTIVITY[item.kind];if(!mapping)continue;const [activity,label]=mapping;
@@ -113,7 +114,7 @@ export function buildStations(layout){
     stations.push(entryStation(interior.object));
     stations.push(...interior.stations);
   }
-  return stations;
+  return registerVillageJourney(layout,stations);
 }
 
 function contextMatch(station,interiorId){return interiorId?station.interiorId===interiorId:!station.interiorId;}

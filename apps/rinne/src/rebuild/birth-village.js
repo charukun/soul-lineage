@@ -1,4 +1,5 @@
 import {MURA_WORLD_SCHEMA,MURA_TERRAIN_ID,validateMuraLayout} from '@soul/world/mura';
+import {refreshRinneBirthVillage} from './village-journey.js';
 
 export const RINNE_BIRTH_VILLAGE_ID='rinne-windward-birth-v1';
 const room=(host,items)=>items.map(([kind,x,z,rot=0],index)=>({id:`${host}.room.${index}`,kind,x,z,rot,phase:'built',level:1,material:'base'}));
@@ -6,15 +7,12 @@ const building=(id,kind,x,z,rot=0,items=[])=>({id,kind,x,z,rot,phase:'built',lev
 const object=(id,kind,x,z,rot=0)=>({id,kind,x,z,rot,phase:'built',level:1,material:'base'});
 
 /**
- * RINNE-owned starting village. The spatial grammar deliberately echoes the
- * old Bloodline central square / main street without importing its code or
- * assets. Every item is a current MURA catalog entity, so RINNE and MURA keep
- * one collision/interior/furniture contract while owning different layouts.
- * The inhabited core is intentionally walkable at human scale; production
- * lots sit on the edge and the harbor remains a separate east-coast journey.
+ * Stable birth-village identity and room IDs, projected onto the current
+ * RINNE journey layout. Keep the v2 source coordinates as the exact migration
+ * baseline; custom/shared exteriors are never silently replaced.
  */
 export function createRinneBirthVillage(){
-  return validateMuraLayout({
+  return refreshRinneBirthVillage(validateMuraLayout({
     schemaVersion:MURA_WORLD_SCHEMA,
     id:RINNE_BIRTH_VILLAGE_ID,
     name:'風待ちの里',
@@ -61,5 +59,5 @@ export function createRinneBirthVillage(){
       object('birth-tree-square-west','tree',-10,13,0),
       object('birth-tree-square-east','tree',11,14,0),
     ],
-  });
+  }));
 }
