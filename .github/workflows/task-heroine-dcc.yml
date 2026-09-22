@@ -7,6 +7,7 @@ on:
       - '.github/workflows/task-heroine-dcc.yml'
 permissions:
   contents: write
+  actions: read
 concurrency:
   group: heroine-dcc-authoring
   cancel-in-progress: true
@@ -20,25 +21,33 @@ jobs:
           fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
       - name: Prepare explicit DCC tool
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y blender python3-numpy
-      - name: Author and inspect real model
+          sudo apt-get update -qq > /tmp/heroine-apt.log 2>&1
+          sudo apt-get install -y blender python3-numpy >> /tmp/heroine-apt.log 2>&1
+      - name: Retrieve inspected immutable first-pass DCC source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p generated/heroine-round1 generated/heroine-dawn
+          gh api repos/charukun/soul-lineage/actions/artifacts/10676142028/zip > /tmp/heroine-round1.zip
+          echo 'accd830154c7c954ebfad2ff3fdaab11091c0bc9dd26aa2dd2ca628e0cdd58e3  /tmp/heroine-round1.zip' | sha256sum -c
+          unzip -q /tmp/heroine-round1.zip -d generated/heroine-round1
+          echo '59e0c87ce8b419810d5541ed1e91b220982f82614322fbea8a48b12f9e4a3716  generated/heroine-round1/HeroineDawn.glb' | sha256sum -c
+      - name: Repair reviewed mesh defects and render
         env:
           PYTHONPATH: /usr/lib/python3/dist-packages
         run: |
-          mkdir -p generated/heroine-dawn
-          cp apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb generated/heroine-dawn/Rogue-source.glb
-          blender --background --python-exit-code 1 --python assets/characters/heroine-dawn/build.py -- --source apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb --out generated/heroine-dawn
-          for f in inspection.json front.png three-quarter.png side.png back.png; do test -s generated/heroine-dawn/$f; done
-      - name: Collect task source context
+          blender --background generated/heroine-round1/HeroineDawn.blend --python-exit-code 1 --python assets/characters/heroine-dawn/finalize.py -- --source apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb --out generated/heroine-dawn > generated/heroine-dawn/dcc.log 2>&1 || { tail -70 generated/heroine-dawn/dcc.log; exit 1; }
+          for f in inspection.json HeroineDawn.glb HeroineDawn.blend front.png three-quarter.png side.png back.png face.png; do test -s generated/heroine-dawn/$f; done
+          cat generated/heroine-dawn/inspection.json
+      - name: Collect targeted runtime integration context
         if: always()
         run: |
           mkdir -p generated/heroine-dawn/context
-          git ls-files apps/character-studio apps/review/src packages/characters packages/animations packages/assets scripts/blender scripts/finalize-character-dcc.py scripts/character-dcc-request.mjs package.json package-lock.json scripts/prepare-kaykit-foundation.mjs | grep -Ev '\.(glb|vrm|blend|png|avif|jpg|jpeg|webp|gif|mp3|ogg|wav|woff2?|ttf|otf)$' > generated/heroine-dawn/context/paths.txt
-          git grep -l -E 'PROTAGONIST_VILLAGER_FEMALE|protagonist.villager.female|female-protagonist-rogue' -- 'docs/**' 'tests/**' 'apps/rinne/**' >> generated/heroine-dawn/context/paths.txt || true
+          git grep -l -E 'selectKaykitModel|PROTAGONIST_VILLAGER_FEMALE|protagonist.villager.female|KAYKIT_DEFAULT_MODEL_ID' -- 'apps/rinne/**' 'packages/rendering/**' 'tests/**' > generated/heroine-dawn/context/paths.txt || true
+          git ls-files scripts/vite-app.mjs scripts/verify-build.mjs packages/rendering/src/review-camera.js >> generated/heroine-dawn/context/paths.txt
           sort -u generated/heroine-dawn/context/paths.txt -o generated/heroine-dawn/context/paths.txt
           tar -czf generated/heroine-dawn/context/source-context.tgz --files-from generated/heroine-dawn/context/paths.txt
       - uses: actions/upload-artifact@v4
