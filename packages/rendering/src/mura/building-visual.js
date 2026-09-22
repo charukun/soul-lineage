@@ -8,6 +8,28 @@ const HOUSE_TYPES=Object.freeze({
 });
 const PALETTES=Object.freeze({base:2,timber:3,stone:5,earth:0});
 
+// These are existing authored silhouettes in @soul/housing-assets. MURA keeps
+// kind/footprint/interior/collision authority; this table is presentation only.
+const FACILITY_TYPES=Object.freeze({
+  guardpost:Object.freeze({type:'roundhouse',palette:1,floors:1}),
+  watchtower:Object.freeze({type:'tallhouse',palette:1,floors:3}),
+  barracks:Object.freeze({type:'manor',palette:1,floors:2}),
+  chapel:Object.freeze({type:'tallhouse',palette:5,floors:2}),
+  smith:Object.freeze({type:'bakery',palette:0,floors:1}),
+  dojo:Object.freeze({type:'roundhouse',palette:2,floors:1}),
+  school:Object.freeze({type:'tallhouse',palette:3,floors:2}),
+  clinic:Object.freeze({type:'greenhouse',palette:2,floors:1}),
+  inn:Object.freeze({type:'manor',palette:3,floors:2}),
+  diner:Object.freeze({type:'bakery',palette:3,floors:1}),
+  restaurant:Object.freeze({type:'manor',palette:2,floors:2}),
+  weapons:Object.freeze({type:'cottage',palette:0,floors:1}),
+  armor:Object.freeze({type:'cottage',palette:1,floors:1}),
+  jeweler:Object.freeze({type:'greenhouse',palette:4,floors:1}),
+  tools:Object.freeze({type:'cottage',palette:3,floors:1}),
+  tavern:Object.freeze({type:'bakery',palette:4,floors:2}),
+  furniture:Object.freeze({type:'cottage',palette:2,floors:1})
+});
+
 export function resolveMuraHouseVisual(kind,material='base',level=1){
   const variants=HOUSE_TYPES[kind];
   if(!variants)return null;
@@ -17,6 +39,17 @@ export function resolveMuraHouseVisual(kind,material='base',level=1){
     type:variants[material]||variants.base,
     palette:PALETTES[material]??PALETTES.base,
     floors:Math.max(def?.floors||1,safeLevel)
+  });
+}
+
+export function resolveMuraFacilityVisual(kind,level=1){
+  const style=FACILITY_TYPES[kind];
+  if(!style)return null;
+  const def=defs[kind],safeLevel=Math.max(1,Math.min(3,Number(level)||1));
+  return Object.freeze({
+    type:style.type,
+    palette:style.palette,
+    floors:Math.max(style.floors||def?.floors||1,safeLevel)
   });
 }
 
@@ -37,18 +70,17 @@ function fitHouseToMuraFootprint(T,group,kind){
 }
 
 /**
- * Permanent residential MURA buildings reuse the authored house silhouettes from
- * 喰滅廻遊, fitted to the canonical metre footprint. Residential tents remain
- * shared MURA ger-style homes so every app renders the same compact round shelter.
+ * MURA owns gameplay identity and collision; authored housing assets own selected
+ * village silhouettes. Residential tents remain MURA ger-style homes.
  */
 export function createMuraBuildingVisual(T,models,kind,material='base',level=1){
-  const house=resolveMuraHouseVisual(kind,material,level);
-  if(!house)return models.building(kind,material,level);
-  const group=fitHouseToMuraFootprint(T,makeModel(house.type,house.palette,house.floors),kind);
+  const visual=resolveMuraHouseVisual(kind,material,level)||resolveMuraFacilityVisual(kind,level);
+  if(!visual)return models.building(kind,material,level);
+  const group=fitHouseToMuraFootprint(T,makeModel(visual.type,visual.palette,visual.floors),kind);
   group.userData.assetBacked=true;
   group.userData.sharedHouseVisual=true;
   group.userData.houseVisualSource='@soul/housing-assets';
-  group.userData.houseType=house.type;
+  group.userData.houseType=visual.type;
   group.userData.muraKind=kind;
   group.userData.entryVisual='housing-door';
   group.userData.localFront='+Z';
