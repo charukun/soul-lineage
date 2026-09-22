@@ -144,7 +144,8 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     canvas.dataset.titleBeat=normalized<.18?'world':normalized<.38?'life':normalized<.58?'battle':normalized<.76?'years':normalized<.90?'rebirth':'legacy';
     return normalized>=1?'title-living-still':'title-cinematic';
   }
-  const cameraControl=createSnapCameraControl({document:doc,container:canvas.parentElement,initialZoom:1,minZoom:.64,maxZoom:1.48,onChange:state=>{cameraPreference=state;canvas.dataset.cameraStep=String(state.index);canvas.dataset.cameraZoom=state.zoom.toFixed(2);}});\n  function preferredCameraOffset(source){const next=rotateCameraOffset(source,cameraPreference.yaw,cameraPreference.zoom);return manualCameraOffset.set(next.x,next.y,next.z);}
+  const cameraControl=createSnapCameraControl({document:doc,container:canvas.parentElement,initialZoom:1,minZoom:.64,maxZoom:1.48,onChange:state=>{cameraPreference=state;canvas.dataset.cameraStep=String(state.index);canvas.dataset.cameraZoom=state.zoom.toFixed(2);}});
+  function preferredCameraOffset(source){const next=rotateCameraOffset(source,cameraPreference.yaw,cameraPreference.zoom);return manualCameraOffset.set(next.x,next.y,next.z);}
   const viewport={width:1,height:1},focusPoint=new THREE.Vector3();
   function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);viewport.width=w;viewport.height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();focusEffect.resize();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
