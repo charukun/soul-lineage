@@ -1,12 +1,16 @@
+import {resolveInspirationAnswer} from '@soul/game-data';
 import {combatBodyOutcome} from './choreography.js';
 import {resolveJohakyuMotion} from './motion-contract.js';
-import {staminaPolicyFor} from './stamina.js';
+import {spendActionStamina,staminaPolicyFor} from './stamina.js';
+import {WEAPONS,ARMORS} from './equipment.js';
+export {WEAPONS,ARMORS} from './equipment.js';
 
 const freeze=Object.freeze,FUNCTIONAL_SEVERITY=.68;
 const ONE_LEG_FOOTWORK=new Set(['forward','retreat']);
 const TWO_LEG_FOOTWORK=new Set(['chase','rush','sideL','sideR','orbitL','orbitR','cross','spiral']);
 const TWO_HANDED_WEAPONS=new Set(['great','spear','axe','staff']);
 const ARM_DEFENSE_KINDS=new Set(['guard','brace','parry']);
+const PHASE_COST_SCALE=freeze({jo:1,ha:1.08,kyu:1.25});
 const committedCharge=charge=>charge==='deep'||charge==='focus';
 export function johakyuWeaponRequiresTwoHands(weapon){return TWO_HANDED_WEAPONS.has(weapon);}
 
@@ -37,14 +41,11 @@ function reasonFor({outcome,stamina,motion,armDemand,legDemand,functionalArms,fu
   if(committed&&!stamina.allowFinisher)return'commitment-stamina';
   if(functionalArms<armDemand)return'arm-injury';
   if(functionalLegs<legDemand)return'leg-injury';
-  if(available+1e-9<effectiveCost)return'stamina';
+  if(available<effectiveCost)return'stamina';
   return null;
 }
 
-/**
- * Pure execution decision for one canonical stage. It never spends stamina or
- * mutates the actor; callers remain authoritative for clocks and state changes.
- */
+/** Pure decision; the supplied cost is before the canonical injury modifier. */
 export function johakyuStageCapability(actor,{weapon='sword',phase='jo',kind='ready',footwork='stay',charge='none',staminaCost=0,requiresTwoHands=null}={}){
   if(!Number.isFinite(staminaCost)||staminaCost<0)throw new TypeError('Invalid stage stamina cost');
   const probe=probeActor(actor),outcome=combatBodyOutcome(probe),stamina=staminaPolicyFor(probe),motion=resolveJohakyuMotion({weapon,kind,charge,phase});
@@ -55,26 +56,63 @@ export function johakyuStageCapability(actor,{weapon='sword',phase='jo',kind='re
   const usesArms=motion.supported&&(motion.offense||ARM_DEFENSE_KINDS.has(kind));
   const armDemand=usesArms?(twoHanded?2:1):0,legDemand=footworkLegDemand(footwork),committed=committedCharge(charge);
   const staminaScale=Math.max(.42,Number(outcome.staminaScale)||1),effectiveCost=staminaCost/staminaScale,available=Math.max(0,Number(probe.stamina)||0);
-  const reason=reasonFor({outcome,stamina,motion,armDemand,legDemand,functionalArms,functionalLegs,effectiveCost,available,committed});
+  const reason=probe.dead||probe.incapacitated?'incapacitated':reasonFor({outcome,stamina,motion,armDemand,legDemand,functionalArms,functionalLegs,effectiveCost,available,committed});
   return freeze({allowed:!reason,reason,weapon,phase,kind,footwork,charge,offense:Boolean(motion.supported&&motion.offense),equipment:freeze({requiresTwoHands:twoHanded}),
     stamina:freeze({...stamina,available,baseCost:staminaCost,effectiveCost}),body:freeze({functionalArms,functionalLegs,armDemand,legDemand,
       attackScale:outcome.attackScale,movementScale:outcome.movementScale,judgmentScale:outcome.judgmentScale,staminaScale:outcome.staminaScale,
       compromised:outcome.compromised,severity:outcome.severity})});
 }
 
-/**
- * Evaluates the remaining stages of a technique against one stamina/body
- * snapshot. Accepted costs are simulated locally so continuation can fail
- * before callers mutate authoritative state.
- */
+/** Forecast remaining stages using the same payment (including cap fatigue),
+ * without advancing time, regenerating stamina or mutating the real actor. */
 export function johakyuTechniqueCapability(actor,{stages=[],fromStage=0,weapon='sword',phase='jo',requiresTwoHands=null}={}){
   if(!Array.isArray(stages)||!stages.length)return freeze({canStart:false,canContinue:false,blockedStageIndex:0,reason:'empty-technique',stages:freeze([])});
   if(!Number.isInteger(fromStage)||fromStage<0||fromStage>=stages.length)throw new RangeError('Invalid technique stage index');
-  let stamina=Number(actor?.stamina??0),blockedStageIndex=null,reason=null;const rows=[];
+  const probe=probeActor(actor);let blockedStageIndex=null,reason=null;const rows=[];
   for(let index=fromStage;index<stages.length;index++){
-    const stage=stages[index]||{},cap=johakyuStageCapability({...actor,stamina},{weapon:stage.weapon||weapon,phase:stage.phase||phase,kind:stage.kind,footwork:stage.footwork,charge:stage.charge,staminaCost:Number(stage.staminaCost)||0,requiresTwoHands:stage.requiresTwoHands??requiresTwoHands});
-    rows.push(freeze({index,...cap}));if(!cap.allowed){blockedStageIndex=index;reason=cap.reason;break;}stamina=Math.max(0,stamina-cap.stamina.effectiveCost);
+    const stage=stages[index]||{},cap=johakyuStageCapability(probe,{weapon:stage.weapon||weapon,phase:stage.phase||phase,kind:stage.kind,footwork:stage.footwork,charge:stage.charge,staminaCost:Number(stage.staminaCost)||0,requiresTwoHands:stage.requiresTwoHands??requiresTwoHands});
+    rows.push(freeze({index,...cap}));if(!cap.allowed){blockedStageIndex=index;reason=cap.reason;break;}
+    if(cap.stamina.effectiveCost>0)spendActionStamina(probe,cap.stamina.effectiveCost);
   }
   const canStart=rows[0]?.allowed===true,canContinue=blockedStageIndex===null;
-  return freeze({canStart,canContinue,blockedStageIndex,reason,remainingStamina:stamina,stages:freeze(rows)});
+  return freeze({canStart,canContinue,blockedStageIndex,reason,remainingStamina:probe.stamina,remainingStaminaCap:probe.staminaCap,stages:freeze(rows)});
+}
+
+/** Equipment/phase/technique/skill modifiers are applied exactly once here.
+ * Adapters supply canonical skill effects; they do not redefine equipment or
+ * injury rules. The body modifier remains owned by johakyuStageCapability. */
+export function johakyuEquippedStageRequest(actor,{weapon=actor?.equipment?.weapon||'sword',phase='jo',techniqueId=null,effort=Number(resolveInspirationAnswer(techniqueId)?.effort)||1,staminaMultiplier=1,...stage}={}){
+  if(!Number.isFinite(effort)||effort<0||!Number.isFinite(staminaMultiplier)||staminaMultiplier<0)throw new TypeError('Invalid stamina modifier');
+  const base=WEAPONS[actor?.equipment?.weapon||weapon]||WEAPONS.fist,armor=ARMORS[actor?.equipment?.armor]||ARMORS.cloth;
+  const staminaCost=base.stamina*(PHASE_COST_SCALE[phase]||1)*effort*staminaMultiplier/Math.max(.5,armor.staminaScale);
+  return {...stage,weapon:actor?.equipment?.weapon||weapon,phase,staminaCost};
+}
+export function johakyuEquippedStageCapability(actor,request={}){
+  return johakyuStageCapability(actor,johakyuEquippedStageRequest(actor,request));
+}
+export function johakyuEquippedTechniqueCapability(actor,{stages=[],fromStage=0,...request}={}){
+  const prepared=stages.map(stage=>johakyuEquippedStageRequest(actor,{...request,...stage,...(stage.step||{})}));
+  return johakyuTechniqueCapability(actor,{...request,stages:prepared,fromStage});
+}
+
+// Attempts are runtime identities, not forecasts. A failed or cancelled attempt
+// cannot become successful on a later update; a retry needs a new identity.
+const attempts=new WeakMap();
+export function beginJohakyuStage(actor,attempt,request={}){
+  if(!attempt||typeof attempt!=='object')throw new TypeError('Stage attempt required');
+  const previous=attempts.get(attempt);
+  if(previous?.actor&&previous.actor!==actor)throw new Error('Stage attempt actor changed');
+  if(previous?.cancelled)return freeze({allowed:false,reason:'interrupted',paid:0,capability:previous.receipt?.capability??null});
+  if(previous?.receipt)return previous.receipt;
+  const capability=johakyuEquippedStageCapability(actor,request),cost=capability.stamina.effectiveCost;
+  const allowed=capability.allowed&&(cost===0||spendActionStamina(actor,cost));
+  const receipt=freeze({allowed,reason:allowed?null:capability.reason||'stamina',paid:allowed?cost:0,capability});
+  attempts.set(attempt,{actor,receipt,cancelled:false});return receipt;
+}
+export function cancelJohakyuStage(attempt){
+  if(!attempt||typeof attempt!=='object')return;
+  const previous=attempts.get(attempt)||{};attempts.set(attempt,{...previous,cancelled:true});
+}
+export function johakyuStageIsActive(attempt){
+  const state=attempt&&attempts.get(attempt);return Boolean(state?.receipt?.allowed&&!state.cancelled);
 }
