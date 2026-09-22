@@ -22,7 +22,10 @@
 .battle-sequence-hud__phase[data-combo-interrupted="true"] .battle-sequence-hud__edge{opacity:.16;filter:saturate(.55);transition-duration:.9s}
 .battle-sequence-current{display:none!important}
 .battle-sequence-history{position:relative;margin-top:6px;width:min(198px,76vw);height:48px;overflow:hidden;border-top:1px solid rgba(199,161,93,.22)}
-.battle-sequence-history__flow{--log-row:0;position:absolute;left:50%;top:calc(3px + var(--log-row)*10px);max-width:190px;transform:translateX(-50%);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#eee1c5;text-shadow:0 1px 4px rgba(0,0,0,.62);font:600 9px/1.3 ui-serif,"Yu Mincho","Hiragino Mincho ProN",serif;letter-spacing:.03em;opacity:0;transition:top .16s cubic-bezier(.2,.72,.2,1);animation:johakyu-log-flow 2.4s cubic-bezier(.22,.62,.22,1) forwards}
+.battle-sequence-history__flow{--log-row:0;position:absolute;left:50%;top:calc(3px + var(--log-row)*10px);max-width:190px;transform:translateX(-50%);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#cbd5d1;text-shadow:0 1px 4px rgba(0,0,0,.62);font:600 9px/1.3 ui-serif,"Yu Mincho","Hiragino Mincho ProN",serif;letter-spacing:.03em;opacity:0;transition:top .16s cubic-bezier(.2,.72,.2,1);animation:johakyu-log-flow 2.4s cubic-bezier(.22,.62,.22,1) forwards}
+.battle-sequence-history__flow[data-perspective="self"]{color:#f1d7a0;text-shadow:0 1px 4px rgba(0,0,0,.64),0 0 7px rgba(223,168,82,.18)}
+.battle-sequence-history__flow[data-perspective="opponent"]{color:#f0a095;text-shadow:0 1px 4px rgba(0,0,0,.68),0 0 7px rgba(214,91,72,.16)}
+.battle-sequence-history__flow[data-perspective="neutral"]{color:#b9c8c3}
 .battle-sequence-history__flow[data-kind="inspiration"]{color:#ffe0a0}
 @keyframes johakyu-flow{0%{transform:translateX(0);opacity:.18}35%{opacity:.82}100%{transform:translateX(19px);opacity:.06}}
 @keyframes johakyu-maai-pulse{0%,100%{opacity:.44;transform:scale(.88,.72);filter:drop-shadow(0 0 2px rgba(216,170,93,.16))}16%{opacity:1;transform:scale(1.1,1.24);filter:drop-shadow(0 0 8px rgba(236,190,104,.58))}29%{opacity:.58;transform:scale(.95,.86);filter:drop-shadow(0 0 3px rgba(216,170,93,.24))}42%{opacity:.92;transform:scale(1.04,1.1);filter:drop-shadow(0 0 6px rgba(236,190,104,.44))}58%{opacity:.5;transform:scale(.92,.78);filter:drop-shadow(0 0 2px rgba(216,170,93,.18))}}
