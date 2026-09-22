@@ -285,9 +285,13 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     const count=defenseRhythm.get(actor.id)||0;defenseRhythm.set(actor.id,count+1);
     const staminaRatio=actor.stamina/Math.max(1,actor.staminaCap),incomingKind=stateKind(threat.state),heavy=HEAVY_THREATS.has(incomingKind);
     if(actor.side==='party'&&reviewLoadout){
-      const hearts=new Set(reviewLoadout.heart.active),stance=reviewLoadout.body.stance;
+      const hearts=new Set(reviewLoadout.heart.active),stance=reviewLoadout.body.stance,reading=hearts.has('skill.observe')||hearts.has('skill.danger');
+      // 心得 and 型 improve defensive reading, but never create permanent auto-defense.
+      // Non-heavy pressure deliberately leaves an occasional opening so the duel
+      // can exchange real damage in both directions.
+      const openingEvery=reading?3:2;if(!heavy&&count%openingEvery===openingEvery-1)return null;
       if(stance==='chinshin'||hearts.has('skill.balance')){if(heavy||threat.progress>.46)return'guard';}
-      if(stance==='ryu'||hearts.has('skill.observe')||hearts.has('skill.danger')){if(!heavy&&staminaRatio>=.28)return count%2?'slip':'parry';}
+      if(stance==='ryu'||reading){if(!heavy&&staminaRatio>=.28)return count%2?'slip':'parry';}
       if(stance==='kosei'&&!heavy&&threat.progress<.5)return'parry';
     }
     if(heavy||staminaRatio<.24||threat.progress>.54)return'guard';
@@ -339,7 +343,8 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     if(!target||time<(reactionCooldowns.get(actor.id)||0))return null;
     const node=nodeFor(actor,cursorFor(actor));if(['ready','slip','guard','brace','parry'].includes(node.stage.step.kind))return null;
     const threat=incomingThreat(actor,target);if(!threat)return null;
-    const kind=chooseDefenseReaction(actor,threat),reaction=beginReaction(actor,target,kind,'incoming-threat',{footwork:kind==='slip'?'sideL':null});
+    const kind=chooseDefenseReaction(actor,threat);if(!kind)return null;
+    const reaction=beginReaction(actor,target,kind,'incoming-threat',{footwork:kind==='slip'?'sideL':null});
     if(reaction)reactionCooldowns.set(actor.id,time+DEFENSE_COOLDOWN[kind]);
     return reaction;
   }
@@ -504,7 +509,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     // Shared pair meaning informs selection, not the domain contact executor.
     if(stageDamage(node.stage)>0&&!counterTransition&&johakyuExchangeIntent(exchangeFor(actor,target),{actorId:actor.id})==='respond'){
       const incoming=incomingThreat(actor,target);
-      if(incoming&&exchangeFor(actor,target).mode==='pressure'&&time>=(reactionCooldowns.get(actor.id)||0)){const kind=chooseDefenseReaction(actor,incoming),response=beginReaction(actor,target,kind,'opponent-pressure',{footwork:kind==='slip'?'sideL':null});if(response){reactionCooldowns.set(actor.id,time+DEFENSE_COOLDOWN[kind]);return actionView(actor,response);}}
+      if(incoming&&exchangeFor(actor,target).mode==='pressure'&&time>=(reactionCooldowns.get(actor.id)||0)){const kind=chooseDefenseReaction(actor,incoming);if(kind){const response=beginReaction(actor,target,kind,'opponent-pressure',{footwork:kind==='slip'?'sideL':null});if(response){reactionCooldowns.set(actor.id,time+DEFENSE_COOLDOWN[kind]);return actionView(actor,response);}}}
       setManeuver(actor,target,{reason:'read-pressure',footwork:actor.side==='party'?'orbitL':'orbitR',seconds:.2});return null;
     }
     if(activeManeuver(actor)&&!threat)return null;
