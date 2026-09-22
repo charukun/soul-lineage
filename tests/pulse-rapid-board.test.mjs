@@ -67,9 +67,16 @@ test('app cards include a DEV link and per-app PR history', () => {
   assert.match(script, /target\.id === appId/);
 });
 
-test('existing diagnostic surfaces remain present for drill-down', () => {
+test('legacy diagnostics are consolidated behind one PULSE diagnostic gateway', () => {
   for (const id of ['control-tower','pulls','applications','publication-history','failures']) {
     assert.match(html, new RegExp('id="' + id + '"'));
+  }
+  assert.match(html, /<details id="status-section"[^>]*>[\s\S]*?<strong>PULSE診断<\/strong>/);
+  assert.doesNotMatch(html, /class="rapid-detail-link"/);
+  assert.doesNotMatch(html, /id="detail-zone-title"|>必要なときだけ<|>運用ステータスの詳細</);
+  const gateway=html.indexOf('id="status-section"');
+  for (const id of ['tasks-section','apps-section','history-section','details-section']) {
+    assert.ok(html.indexOf('id="' + id + '"') > gateway);
   }
 });
 
