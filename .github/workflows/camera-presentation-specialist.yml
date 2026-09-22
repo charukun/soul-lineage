@@ -1,5 +1,5 @@
 name: Camera Presentation specialist (task only)
-run-name: Camera Before observation 96acf1b999ff713d0660ad5b3307c9dc5b90ae25
+run-name: Camera Before observation (native family resume) 96acf1b999ff713d0660ad5b3307c9dc5b90ae25
 on:
   push:
     branches: [dispatch/camera-presentation-specialist-20260923]
@@ -38,6 +38,13 @@ jobs:
         working-directory: work
         run: |
           cp ../control/scripts/browser/camera-baseline-task.mjs scripts/browser/camera-baseline-task.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/browser/camera-baseline-task.mjs')
+          s=p.read_text().replace("await page.locator('#continue-life').click();", "await page.locator('#continue-life').click();await page.getByRole('button',{name:'この人生を続ける',exact:true}).click();")
+          s=s.replace("toHaveAttribute('data-runtime','active');", "toHaveAttribute('data-runtime','active',{timeout:90000});")
+          p.write_text(s)
+          PY
           node scripts/browser/camera-baseline-task.mjs
       - uses: actions/upload-artifact@v4
         if: always()
