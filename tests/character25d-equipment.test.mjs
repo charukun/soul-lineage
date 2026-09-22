@@ -5,13 +5,21 @@ import {createCharacter25DDraft,CHARACTER25D_ACTIONS} from '../packages/assets/s
 import {createCharacter25DActor} from '../packages/assets/src/adapters/three/character25d-actor.js';
 import {createRinneWeapon,RINNE_EQUIPMENT_PROFILES,resolveRinneEquipment,disposeRinneEquipment} from '../packages/assets/src/adapters/three/runtime-equipment.js';
 import {weaponCalibration} from '../packages/animations/src/weapon-calibration.js';
-import {analyzeSilhouette,createHumanoidRig} from '../packages/assets/src/character25d-rig.js';
+import {analyzeSilhouette,createHumanoidRig,influenceAt} from '../packages/assets/src/character25d-rig.js';
+import {installShino25dGuest} from '../apps/rinne/src/rebuild/shino25d-guest.js';
+test('the two compatible guest bootstrap paths install only one live renderer',t=>{
+  const saved=Object.fromEntries(['window','document','location','addEventListener'].map(k=>[k,globalThis[k]]));t.after(()=>{for(const [k,v]of Object.entries(saved)){if(v===undefined)delete globalThis[k];else globalThis[k]=v;}});
+  const target=new EventTarget();globalThis.window=target;target.opener={postMessage(){}};globalThis.document=new EventTarget();globalThis.location={search:'?character25d=actor&spriteTransfer=test',hostname:'127.0.0.1',protocol:'http:'};globalThis.addEventListener=target.addEventListener.bind(target);
+  let renders=0;const view={scene:{},THREE:{},camera:{},renderState(){renders++;},dispose(){}};
+  installShino25dGuest(view,{environment:'dev'});const wrapped=view.renderState;installShino25dGuest(view,{environment:'dev'});assert.equal(view.renderState,wrapped);view.renderState({},.016);assert.equal(renders,1);view.dispose();
+});
 test('separated palms calibrate the hand pivot from original alpha, hidden hands retain the template',()=>{
   const w=80,h=120,data=new Uint8ClampedArray(w*h*4);for(let y=0;y<h;y++)for(let x=30;x<50;x++)data[(y*w+x)*4+3]=255;
   assert.deepEqual(analyzeSilhouette(data,w,h).handLandmarks,{});
   for(let y=54;y<71;y++)for(const [a,b] of [[10,17],[63,70]])for(let x=a;x<b;x++)data[(y*w+x)*4+3]=255;
   const analysis=analyzeSilhouette(data,w,h),rig=createHumanoidRig({...analysis.proportions,handLandmarks:analysis.handLandmarks}),hand=rig.bones.find(b=>b.name==='hand.R').rest;
   assert.ok(hand[0]<-.18);assert.ok(hand[1]>.4&&hand[1]<.47);
+  const hips=influenceAt(.12,.45,rig).map(([i])=>rig.bones[i].name);assert.ok(hips.every(name=>!name.includes('Arm')&&!name.startsWith('hand')),'hip pixels must not follow a weapon grip');
 });
 function draft(){const d=createCharacter25DDraft({id:'test.equipment',name:'equipment fixture'}),hash='a'.repeat(64);d.assets[hash]={sha256:hash,byteLength:8,mediaType:'image/png',width:80,height:120,name:'fixture.png',hasTransparency:true,dataUrl:'data:image/png;base64,iVBORw0KGgo=',provenance:{kind:'user-upload',author:'user-supplied-unverified',license:'unverified'}};d.references.front=d.pose=hash;for(const name of ['front','side','back'])d.appearance[name]={asset:hash,bounds:[0,0,80,120],side:'unknown',mirror:false,status:'detected-candidate'};d.provenance.sourceSha256=hash;d.provenance.sourceDimensions=[80,120];return d;}
 const distance=(a,b)=>Math.hypot(...a.map((value,i)=>value-b[i]));

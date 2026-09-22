@@ -5,6 +5,7 @@ import {verifyCharacter25DBundle} from '@soul/assets/character25d/browser';
 import {sweepAndSlide} from './locomotion.js';
 
 const REVIEW_ORIGINS=new Set(['https://soul-lineage-review-dev.c-okamoto.workers.dev','https://rinne-visual-review.c-okamoto.workers.dev']);
+const GUEST_INSTALLED=Symbol.for('rinne.character25d.guest');
 function trustedOrigin(origin) {
   if(REVIEW_ORIGINS.has(origin))return true;
   try{const url=new URL(origin);return ['localhost','127.0.0.1'].includes(location.hostname)&&url.hostname===location.hostname&&url.protocol===location.protocol&&['5176','5276'].includes(url.port);}catch{return false;}
@@ -12,15 +13,18 @@ function trustedOrigin(origin) {
 // Compatibility entrypoint name retained for the existing renderer bootstrap.
 // This render-only companion never enters NPC, combat, family or save authority.
 export function installShino25dGuest(view,options={}){
+  if(view?.[GUEST_INSTALLED])return view;
   if(!shino25dGuestEnabled(location.search,options.environment))return view;
   if(!view?.scene||!view.THREE||!view.camera)return view;
   const transferToken=new URLSearchParams(location.search).get('spriteTransfer');
   if(!transferToken||!window.opener)return view;
+  view[GUEST_INSTALLED]=true;
   const abort=new AbortController(),velocity={x:0,z:0};
   let actor=null,anchor=null,disposed=false,loading=false,received=false,lifeKey='';
+  let frames=0,lastDelta=0;
   // The opt-in guest mirrors the existing training action for presentation only.
   // It never emits a strike, damage event or equipment mutation of its own.
-  document.addEventListener('click',event=>{if(event.target.closest?.('[data-training-strike]'))actor?.play?.('attack');},{signal:abort.signal});
+  document.addEventListener('rinne:training-impact',()=>actor?.play?.('attack'),{capture:true,signal:abort.signal});
   const originalRender=view.renderState,originalDispose=view.dispose;
   async function install(bundle){
     const next=await (bundle.schema==='rinne.character25d/v2'?createCharacter25DActor(view.THREE,bundle,{
@@ -29,7 +33,7 @@ export function installShino25dGuest(view,options={}){
     }):createSprite25dActor(view.THREE,bundle,{shadow:true}));
     if(disposed){next.dispose();return;}actor?.dispose();actor=next;actor.object.visible=false;view.scene.add(actor.object);anchor=null;
     // Read-only observation boundary, only exists for this explicit session.
-    view.character25dSnapshot=()=>actor?.snapshot?.()||null;
+    view.character25dSnapshot=()=>actor?.snapshot?{...actor.snapshot(),host:{frames,lastDelta,visible:actor.object.visible}}:null;
     if(options.canvas)options.canvas.character25dSnapshot=()=>view.character25dSnapshot?.()||null;
   }
   window.addEventListener('message',event=>{
@@ -47,6 +51,7 @@ export function installShino25dGuest(view,options={}){
   ready();const handshake=setInterval(()=>{if(!received&&!disposed)ready();},750),expiry=setTimeout(()=>clearInterval(handshake),90000);
   function updateGuest(state,delta,renderOptions){
     if(!actor)return;
+    frames++;lastDelta=delta;
     const visible=state?.zone==='village'&&!state.interior&&!state.ended&&!renderOptions?.titlePreview&&(!options.canvas||options.canvas.dataset.runtime==='active');
     actor.object.visible=visible;if(!visible){anchor=null;return;}
     const player=view.scene.getObjectByName('Player');if(!player){actor.object.visible=false;return;}
@@ -62,7 +67,7 @@ export function installShino25dGuest(view,options={}){
     }
     if(actor.proxy){
       actor.setEquipment(state.equipment||{});
-      const yaw=Number(state.yaw)||0,tx=x-Math.sin(yaw)*1.15+Math.cos(yaw)*.65,tz=z-Math.cos(yaw)*1.15-Math.sin(yaw)*.65;
+      const yaw=Number(state.yaw)||0,tx=x-Math.sin(yaw)*1.15+Math.cos(yaw)*2.2,tz=z-Math.cos(yaw)*1.15-Math.sin(yaw)*2.2;
       const dx=tx-actor.proxy.position.x,dz=tz-actor.proxy.position.z,distance=Math.hypot(dx,dz),speed=distance>.5?Math.min(distance*1.8,distance>3?4.1:2.1):0;
       if(distance>18){anchor=null;actor.object.visible=false;return;}
       velocity.x=distance?dx/distance*speed:0;velocity.z=distance?dz/distance*speed:0;actor.setVelocity(velocity);
@@ -70,7 +75,7 @@ export function installShino25dGuest(view,options={}){
     }else actor.update({camera:view.camera,delta,yaw:0,moving:false});
   }
   view.renderState=function(state,delta=0,renderOptions){updateGuest(state,delta,renderOptions);return originalRender.call(this,state,delta,renderOptions);};
-  const dispose=()=>{if(disposed)return;disposed=true;abort.abort();clearInterval(handshake);clearTimeout(expiry);actor?.dispose();delete view.character25dSnapshot;if(options.canvas)delete options.canvas.character25dSnapshot;};
+  const dispose=()=>{if(disposed)return;disposed=true;abort.abort();clearInterval(handshake);clearTimeout(expiry);actor?.dispose();delete view[GUEST_INSTALLED];delete view.character25dSnapshot;if(options.canvas)delete options.canvas.character25dSnapshot;};
   view.dispose=function(...args){dispose();return originalDispose?.apply(this,args);};
   addEventListener('pagehide',dispose,{once:true,signal:abort.signal});return view;
 }

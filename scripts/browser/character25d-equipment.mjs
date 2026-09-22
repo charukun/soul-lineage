@@ -80,8 +80,8 @@ try{
   await expect(game.locator('.rinneFirstRunSkip')).toBeVisible();await game.locator('.rinneFirstRunSkip').click();await expect(game.locator('#rinneFirstRunGuide')).toHaveCount(0);
   const gameCanvas=game.locator('#game');await expect.poll(()=>gameCanvas.evaluate(c=>c.character25dSnapshot?.()?.actualGrip),{timeout:30000}).not.toBeNull();await delay(300);
   const idle=await sample(gameCanvas,'rinne-idle',null,'idle');assert.deepEqual(idle.equipment,{weapon:'sword',shield:true});await game.screenshot({path:resolve(output,'rinne-idle.png')});
-  await game.locator('[data-training-strike]').click();await delay(250);await sample(gameCanvas,'rinne-attack','data-character25d','attack');await game.screenshot({path:resolve(output,'rinne-attack.png')});
-  await game.keyboard.down('ArrowRight');await delay(700);await sample(gameCanvas,'rinne-walk',null,'walk');await game.keyboard.up('ArrowRight');await game.screenshot({path:resolve(output,'rinne-walk.png')});
+  await game.locator('[data-training-strike]').click();await delay(250);const strike=await sample(gameCanvas,'rinne-attack','data-character25d','attack');await expect.poll(()=>gameCanvas.evaluate(c=>c.character25dSnapshot().time),{timeout:10000}).toBeGreaterThan(.1);assert.equal(strike.host.visible,true);await game.screenshot({path:resolve(output,'rinne-attack.png')});
+  await game.keyboard.down('ArrowRight');await delay(700);const walking=await sample(gameCanvas,'rinne-walk',null,'walk');assert.ok(Math.hypot(walking.position.x-idle.position.x,walking.position.z-idle.position.z)>.05);assert.ok(walking.host.frames>idle.host.frames);await game.keyboard.up('ArrowRight');await game.screenshot({path:resolve(output,'rinne-walk.png')});
   assert.equal(await game.locator('[data-shino25d-panel],.shino25d-workshop,.character25d-forge,input[type=file]').count(),0);
   assert.deepEqual(receipt.errors,[]);receipt.success=true;
 }catch(error){receipt.failure=error.stack;await activePage?.screenshot({path:resolve(output,'failure.png')}).catch(()=>{});console.error(error);process.exitCode=1;}

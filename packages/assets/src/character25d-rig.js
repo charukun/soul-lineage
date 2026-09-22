@@ -13,7 +13,7 @@ export function createHumanoidRig({head=.78,shoulder=.68,hip=.43,width=.24,handL
     add('upperArm.'+side,'chest',sign*width*.57,shoulder-.015);
     add('lowerArm.'+side,'upperArm.'+side,sign*width*.73,(shoulder+hip)*.52);
     const hand=handLandmarks[side];
-    add('hand.'+side,'lowerArm.'+side,hand?sign*clamp(Math.abs(hand[0]),.10,.38):sign*width*.8,hand?clamp(hand[1],.3,.58):hip-.055);
+    add('hand.'+side,'lowerArm.'+side,hand?sign*clamp(Math.abs(hand[0]),.10,.38):sign*width*.8,hand?clamp(hand[1],.3,Math.min(.58,(shoulder+hip)*.52-.015)):hip-.055);
     add('upperLeg.'+side,'pelvis',sign*width*.3,hip-.015);
     add('lowerLeg.'+side,'upperLeg.'+side,sign*width*.34,hip*.51);
     add('foot.'+side,'lowerLeg.'+side,sign*width*.36,.025,.035);
@@ -61,14 +61,16 @@ export function layerAt(x,y,rig) {
 export function influenceAt(x,y,rig) {
   const {head,shoulder,hip,width}=rig.proportions;
   const side=x>=0?'L':'R',ax=Math.abs(x),weights=[];
+  const wristPoint=rig.bones.find(b=>b.name==='hand.'+side).rest,elbow=(shoulder+hip)*.52;
+  const wristBlend=clamp((elbow-y)/(elbow-wristPoint[1]),0,1);
+  const armEdge=width*.5*(1-wristBlend)+Math.abs(wristPoint[0])*.85*wristBlend;
   const add=(name,w)=>{if(w>0)weights.push([rig.bones.findIndex(b=>b.name===name),w]);};
   const blend=(a,b,t)=>{t=clamp(t,0,1);add(a,1-t);add(b,t);};
   if(y>=head-.055) add('head',1);
   else if(y>shoulder) blend('chest','head',(y-shoulder)/(head-.055-shoulder));
-  else if(y>hip-.075&&ax>width*.5) {
-    const elbow=(shoulder+hip)*.52;
+  else if(y>hip-.075&&ax>armEdge) {
     if(y>elbow)blend('lowerArm.'+side,'upperArm.'+side,(y-elbow)/(shoulder-elbow));
-    else {const wrist=rig.bones.find(b=>b.name==='hand.'+side).rest[1];blend('hand.'+side,'lowerArm.'+side,(y-wrist)/(elbow-wrist));}
+    else blend('hand.'+side,'lowerArm.'+side,(y-wristPoint[1])/(elbow-wristPoint[1]));
   } else if(y<hip) {
     if(y<.08) add('foot.'+side,1);
     else if(y<hip*.51)blend('foot.'+side,'lowerLeg.'+side,(y-.08)/(hip*.51-.08));
