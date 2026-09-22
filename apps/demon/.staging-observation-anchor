@@ -1,2 +1,0 @@
-Kuumetsu immutable staging publish anchor.
-This file is not imported by runtime code. It exists only so a develop push can select apps/demon for Per-App DEV Publish when workflow_dispatch is unavailable in the active control surface.

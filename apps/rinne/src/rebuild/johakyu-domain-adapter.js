@@ -1,7 +1,0 @@
-import {createJohakyuBattle,createJohakyuDomainActor,applyJohakyuImpactOnce,johakyuLifeGate,createJohakyuCheckpoint,restoreJohakyuCheckpoint} from '@soul/johakyu-combat/domain';
-import {combatBodySnapshot} from './combat-choreography.js';
-export function johakyuActorFromLife(state,id='hero'){const body=combatBodySnapshot(state);return createJohakyuDomainActor({id,side:'hero',hp:state.hp,maxHp:state.maxHp,stamina:state.stamina,staminaCap:state.staminaCap,body:Object.fromEntries(Object.entries(body).map(([k,v])=>[k,v.severity]))});}
-export function beginJohakyuEncounter(state,enemies){const gate=johakyuLifeGate(state);if(!gate.ok)throw Error('序破急戦闘を開始できません: '+gate.reason);return createJohakyuBattle({battleId:`${state.id}:front-${state.front}`,seed:state.seed,actors:[johakyuActorFromLife(state),...enemies]});}
-export function commitJohakyuImpact(state,battle,event){const result=applyJohakyuImpactOnce(battle,event),hero=battle.actors.get('hero');if(result.applied&&hero){state.hp=hero.hp;state.stamina=hero.stamina;}return result;}
-export function saveJohakyuEncounter(state,battle,encounterId,rewardsApplied=[]){return createJohakyuCheckpoint({battle,lifeId:state.id,ageSeconds:state.ageSeconds,encounterId,rewardsApplied});}
-export function resumeJohakyuEncounter(state,raw){const restored=restoreJohakyuCheckpoint(raw);if(restored.lifeId!==state.id)throw Error('別の人生の戦闘保存です。');return restored;}

@@ -1,2 +1,0 @@
-# P7 acceptance
-On DEV/local/staging, 序破急 presentation is the default accepted battle renderer with an explicit legacy rollback selector and automatic legacy fallback for unsupported equipment/motion or load failure. Production is not changed by this integration gate. Long-session and roster-bounds tests protect actor/event cleanup; exact-head browser evidence is routed separately through the repository Browser-Playtest lane. Physical Pixel Fold FPS is not claimed by hosted validation.

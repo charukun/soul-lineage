@@ -1,9 +1,0 @@
-Author: Quaternius
-Original source: https://quaternius.com/packs/cutemonsters.html
-Release: Cute Animated Monsters Pack / August 2020
-License: CC0-1.0
-License URL: https://creativecommons.org/publicdomain/zero/1.0/
-Acquisition mirror (not author): https://github.com/agentkaerf/FreeModels
-Pinned revision: db3df04d1e4714298a09510b26fb6de6645138a2
-Original author declaration HTML SHA-256: 559fab5d37aa48eb3342ded673651ec975a9e8af7515b9629af9e49e598e8207
-The artist page identifies this pack as CC0 and available for personal and commercial projects.

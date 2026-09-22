@@ -1,1 +1,0 @@
-Acceptance: integration-rescue workflow contains no stack-fast job, npm ci, validate.mjs dev, browser checks, or app tests after Fast Conflict Repair. It wakes deploy/Fast Lane after reconciliation.

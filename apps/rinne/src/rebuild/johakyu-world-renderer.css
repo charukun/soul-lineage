@@ -1,5 +1,0 @@
-.johakyu-world[hidden]{display:none}
-.johakyu-world canvas{background:transparent!important}
-.game-screen[data-battle-presentation="johakyu"]>.world-vignette,
-.game-screen[data-battle-presentation="johakyu"]>.actor-status-layer{visibility:hidden}
-#johakyu-presentation-select{min-height:44px;max-width:58%;color:inherit;background:transparent;border:1px solid currentColor;padding:4px 8px}
