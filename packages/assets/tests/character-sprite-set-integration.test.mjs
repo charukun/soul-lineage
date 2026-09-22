@@ -54,3 +54,9 @@ test('latest-develop legacy v1/v2 guest stays byte-identical behind the compatib
   const entry=readFileSync(new URL('../../../apps/rinne/src/rebuild/shino25d-guest.js',import.meta.url),'utf8');assert.match(entry,/installLegacyGuest/);assert.match(entry,/get\('spriteSet'\)===\s*'1'/);
   const guest=readFileSync(new URL('../../../apps/rinne/src/rebuild/sprite-set-guest.js',import.meta.url),'utf8');assert.doesNotMatch(guest,/localStorage|indexedDB|serializeLife/);assert.match(guest,/event\.source!==window\.opener/);assert.match(guest,/trustedSpriteSetOrigin/);
 });
+
+test('world-lighting fill uses the current sprite texture without extra allocations or white wash',async()=>{
+  const {actor,textures}=await actorFixture();
+  for(const action of Object.keys(sample.actions)){actor.play(action);actor.update({delta:.3});assert.ok(actor.mesh.material.map);assert.equal(actor.mesh.material.emissiveMap,actor.mesh.material.map);assert.equal(actor.mesh.material.emissiveIntensity,.35);}
+  assert.equal(textures.length,13);actor.dispose();assert.ok(textures.every(texture=>texture.disposals===1));
+});

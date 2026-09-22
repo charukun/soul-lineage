@@ -11,7 +11,8 @@ export async function createCharacterSpriteSetActor(THREE,input,options={}){
   if(resources.disposed||claimedResources.has(resources))throw new Error('Sprite Set resources are disposed or already owned');
   const m=assertCharacterSpriteSet(resources.manifest,{playable:options.playable===true});claimedResources.add(resources);
   const playback=createSpriteSetPlayback(m),object=new THREE.Group();object.name='CharacterSpriteSet:'+m.id;object.userData.occlusionCategory=m.render.occlusionCategory||'character';
-  const geometry=new THREE.PlaneGeometry(1,1),material=new THREE.MeshLambertMaterial({transparent:true,alphaTest:.04,side:THREE.DoubleSide,depthTest:true,depthWrite:true,emissive:0xffffff,emissiveIntensity:.12});
+  const geometry=new THREE.PlaneGeometry(1,1),material=new THREE.MeshLambertMaterial({transparent:true,alphaTest:.04,side:THREE.DoubleSide,depthTest:true,depthWrite:true,emissive:0xffffff,emissiveIntensity:.35});
+  // Keep the pre-lit artwork readable in dim world lighting: colored texture fill, never a flat white emission that washes out its colors.
   const body=new THREE.Group(),mesh=new THREE.Mesh(geometry,material);body.name='SpriteSetBody';body.add(mesh);object.add(body);mesh.frustumCulled=false;
   const shadowGeometry=new THREE.CircleGeometry(m.render.shadowRadius||.3,24),shadowMaterial=new THREE.MeshBasicMaterial({color:0x101a15,transparent:true,opacity:.28,depthWrite:false});
   const shadow=new THREE.Mesh(shadowGeometry,shadowMaterial);shadow.rotation.x=-Math.PI/2;shadow.position.set(...(m.render.shadowAnchor||[0,0,0]));shadow.position.y+=.012;object.add(shadow);
@@ -37,7 +38,7 @@ export async function createCharacterSpriteSetActor(THREE,input,options={}){
     if(key!==renderKey){
       renderKey=key;const uv=spriteSetUV(m,state.action,view,state.frame),attribute=geometry.attributes.uv;
       attribute.setXY(0,uv.u0,uv.v1);attribute.setXY(1,uv.u1,uv.v1);attribute.setXY(2,uv.u0,uv.v0);attribute.setXY(3,uv.u1,uv.v0);attribute.needsUpdate=true;
-      if(material.map!==assetTextures.get(clip.asset)){const firstMap=!material.map;material.map=assetTextures.get(clip.asset);if(firstMap)material.needsUpdate=true;}
+      if(material.map!==assetTextures.get(clip.asset)){const firstMap=!material.map;material.map=assetTextures.get(clip.asset);material.emissiveMap=material.map;if(firstMap)material.needsUpdate=true;}
       mesh.scale.set(g.width,g.height,1);mesh.position.set(g.x,g.y,0);
       const anchors={...(m.anchors||{}),...(clip.anchors?.[view]?.[state.frame]||{})};
       for(const [name,socket] of Object.entries(sockets)){
