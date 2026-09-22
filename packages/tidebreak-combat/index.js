@@ -1,4 +1,4 @@
-import {classifyJohakyuParry,johakyuExchangeRestartActors} from '@soul/johakyu-combat/exchange-policy';
+import {classifyJohakyuParry,johakyuExchangeRestartActors,johakyuExchangeIntent} from '@soul/johakyu-combat/exchange-policy';
 import {createTidebreakExchangeObserver} from './exchange-observer.js';
 import { cloneInspirationWeaponArts } from '@soul/game-data';
 import {createSharedTidebreakFacade,installSharedTidebreakWeaponProfiles,sharedPommelContact} from './shared-runtime-facade.js';
@@ -3530,6 +3530,7 @@ startSequence=function(a,recipe,slot='enemy'){
 const beginExchangeStep=beginStep;
 beginStep=function(a,...args){
  beginExchangeStep(a,...args);const run=a.run,attack=a.attack;if(!run||!attack)return;
+ if(!transitionRun(run)&&!['jo','ha','kyu','enemy'].includes(run.slot))return; // one/finisher/projectile stay outside the melee observer
  let context=exchangeRuns.get(run);
  if(!context){
   const target=exchangeActor(attack.targetId)||nearest(a);if(!target)return;
@@ -3582,7 +3583,7 @@ performCounter=function(defender,source){
 const registerHitFacade=registerHit;
 registerHit=(source,target,attack,contact)=>{
  const execution=sharedFacade.execution(source),defense=guardMode(target),pair=exchangeObserver.between(source.id,target.id);
- const parry=classifyJohakyuParry({authored:defense==='parry'&&target.attack?.targetId===source.id,counter:defense==='counter',slip:defense==='slip',responding:pair.initiativeId!==String(target.id),phase:execution?.phase,impact:{heavy:decisiveContact(target,attack),power:attack.power}});
+ const parry=classifyJohakyuParry({capable:typeof ports.canParry!=='function'||ports.canParry(target)!==false,authored:defense==='parry'&&target.attack?.targetId===source.id,counter:defense==='counter',slip:defense==='slip',responding:pair.initiativeId!==String(target.id),phase:execution?.phase,impact:{heavy:decisiveContact(target,attack),power:attack.power}});
  const context={execution,attackId:attack.id,parry,defense,reversed:false},prior=exchangeCounterContext;exchangeCounterContext=context;
  try{return sharedFacade.withHitContext(source,target,attack,()=>{
   const already=attack.damaged.has(target.id),beforeHp=target.hp,result=registerHitFacade(source,target,attack,contact);
@@ -3616,7 +3617,17 @@ function applyInspirationControl(){
 }
 const updateFacade=update;update=dt=>{const before=sharedFacade.inspirationState(),protectedHp=before.active&&hero&&!hero.dead?hero.hp:null;applyInspirationControl();updateFacade(sharedFacade.simulationDt(dt,hitstop));if(protectedHp!==null&&hero.hp<protectedHp){hero.hp=protectedHp;hero.dead=false;hero.deadTime=0;}sharedFacade.advanceInspirationState(dt);applyInspirationControl();};
 const approachFacade=approach;
-approach=function(a,dt){if(sharedFacade.shouldHoldHero(a)){a.guarding=false;a.plan=null;a.spacing=null;a.cool=Math.max(a.cool,.08);const t=nearest(a);if(t)a.yaw+=clamp(angleMotion(Math.atan2(t.x-a.x,t.z-a.z),a.yaw),-dt*5,dt*5);return;}return approachFacade(a,dt);};
+approach=function(a,dt){if(sharedFacade.shouldHoldHero(a)){a.guarding=false;a.plan=null;a.spacing=null;a.cool=Math.max(a.cool,.08);const t=nearest(a);if(t)a.yaw+=clamp(angleMotion(Math.atan2(t.x-a.x,t.z-a.z),a.yaw),-dt*5,dt*5);return;}
+ // The AI chooses a receive while THIS pair is pressing it. Native execution,
+ // active attacks and all secondary pairs still run through their usual motor.
+ const target=nearest(a),intent=johakyuExchangeIntent(pairFor(a),{actorId:String(a.id)});
+ if(target&&intent==='respond'&&!a.attack&&!a.run&&!a.reaction&&!a.recovery&&!a.parryMotion&&!a.evasion&&!a.weaponTransition){
+  a.plan=null;a.guarding=true;a.tactics.state='guard';a.tactics.age+=dt;
+  a.yaw+=clamp(angleMotion(Math.atan2(target.x-a.x,target.z-a.z),a.yaw),-dt*3.7,dt*3.7);
+  const gap=Math.hypot(target.x-a.x,target.z-a.z),ideal=WEAPONS[a.weapon].ideal+.4;
+  moveInSpacing(a,target,clamp((gap-ideal)*.35,-.2,.25),dt,true);return;
+ }
+ return approachFacade(a,dt);};
 addLog=(text,type='')=>ports.onLog?.({text,type});loadStorage();
 replaceActor=()=>{};equippedWeapon=ports.weapon||'fist';for(const k of ATTACK_KEYS)loadout[k].weapon=equippedWeapon;sharedFacade.resetFeel();resetScene(true);
 const snapshotActor=a=>sharedFacade.snapshotActor(a);

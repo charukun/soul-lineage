@@ -20,7 +20,9 @@ export function classifyJohakyuParry({authored=false,counter=false,phase:rawPhas
 export function reduceJohakyuExchange(current,event={}){
   const state=current&&MODES.has(current.mode)?current:createJohakyuExchangeState();
   const type=String(event.type||'commit'),sourceId=event.sourceId??state.initiativeId,targetId=event.targetId??state.responderId;
-  if(type==='settle')return state.mode==='zanshin'?reset(state,'zanshin-settled'):state;
+  // Even a settling callback belongs to its original pair and serial.
+  if(event.serial!=null&&event.serial!==state.serial)return state;
+  if(type==='settle')return samePair(state.pair,sourceId,targetId)&&state.mode==='zanshin'?reset(state,'zanshin-settled'):state;
   if(!sourceId||!targetId)return type==='disengage'?reset(state,type):state;
   cleanId(sourceId,'exchange source');cleanId(targetId,'exchange target');if(sourceId===targetId)throw new Error('exchange actors must differ');
   // A secondary opponent has its own pair. It never writes this pair's phase/owner.
@@ -71,7 +73,7 @@ export function johakyuExchangeSnapshot(state){
 /** Canonical slot remains truth; ownership and transition gate its visibility. */
 export function johakyuExchangeHudState(state,{actorId='hero',phase:slot=null,reaction=false}={}){
   if(reaction)return'maai';
-  if(state?.mode==='zanshin'&&state.completedBy===actorId)return'zanshin';
+  if(state?.mode==='zanshin'&&state.completedBy===actorId&&state.lastReason==='kyu-complete')return'zanshin';
   if(state?.mode!=='pressure'||state.initiativeId!==actorId)return'maai';
   const p=slot??state.lastPhase;
   return ['jo','ha','kyu'].includes(p)?p:'maai';
@@ -83,4 +85,16 @@ export function johakyuExchangeRestartActors(before,after,exchanges=[]){
   if(!before||!after||(before.mode===after.mode&&before.serial===after.serial)||!['read','reversal','zanshin'].includes(after.mode))return freeze([]);
   const decisive=['strong-parry','deep-hit','incapacitation'].includes(after.lastReason);
   return freeze(after.pair.filter(actorId=>decisive||!exchanges.some(row=>row.mode==='pressure'&&row.initiativeId===actorId&&!samePair(row.pair,...after.pair))));
+}
+
+/** Interpretation of the existing impact/body result; never applies HP, injury or cost. */
+export function isDeepJohakyuExchangeHit({damage=0,maxHp=1,impact=null,outcome=null,previousOutcome=null}={}){
+  return Boolean(outcome?.incapacitated||(previousOutcome&&outcome?.compromised&&!previousOutcome.compromised)||(!impact?.guard&&impact?.heavy)||damage/Math.max(1,maxHp)>=.16);
+}
+/** Pair-scoped AI intent only. Never an execution/contact permission or a world lock. */
+export function johakyuExchangeIntent(state,{actorId}={}){
+  if(!state||!state.pair?.includes(actorId))return'read';
+  if(state.mode==='pressure')return state.initiativeId===actorId?'pressure':'respond';
+  if(state.mode==='reversal')return state.initiativeId===actorId?'counter':'respond';
+  return state.mode==='zanshin'?'zanshin':'read';
 }

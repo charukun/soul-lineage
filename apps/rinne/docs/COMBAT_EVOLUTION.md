@@ -64,3 +64,11 @@ Tidebreakの防御を含む編成済みrecipe、attackId、実軌道・接触時
 保存時は現在combatのcursor/target/queue/pose/exchange/counter/残心を破棄し、HP・部位負傷・stamina・装備・技譜・恒久因果記録を保持する。ロードはREADから始める。live stateはserializeによって変更しない。
 
 Secondary pair completion/failure must not request a cursor restart for an actor who is still pressing in another pair. The shared restart-participant policy enforces this for native Tidebreak and the review adapter. An authored parry intent is directed at the executor's actual target lock: incidental blade contact from another opponent is a light deflection, not an invented strong reversal toward an unauthored target. Real decisive interruptions remain executor cleanup events.
+
+### 同時変更の統合と境界補修（PR #1407）
+
+PR #1399 の実イベントobserver・serial・secondary restart保護を正本として統合し、別のExchangeエンジンを重ねない。共有 `johakyuExchangeIntent` はpair内のAI選択をpress/respond/counterに分けるだけで、実行合法性・接触・他pairの参加権を制限しない。通常守勢中は既存のguard/parry/spacingを使い、反転中の被崩し側は新しい通常攻勢を先行させない。攻勢内のauthored受けの段は相手の攻撃が来なくても進行可能。
+
+`isDeepJohakyuExchangeHit` は既存impact/HP/身体結果を読む共通解釈。既に負傷しているだけで毎回の浅い接触をdeepにしない。新たなcompromised遷移、incapacitation、unguarded heavy、最大HP比16%以上を判定材料とする。reviewの小さなreach外missはdamageを与えず継続し、reach + 0.2を越える離脱はmajor missとして切る。`.46`のcanonical event triggerは変更しない。
+
+native strong parryはhostのread-only身体/stamina capabilityを問い合わせ、拒否時は実接触のweak deflectionに留める。実行前のtechnique capability拒否もdomain由来の理由・stageを表示し、現在pressureを終了する。stage確認での支払条件は従来のauthorityで維持する。古いserialや異なるpairのsettleは現在の残心を消さず、hero右波形はkyu-completeのみ。one/finisherの専用開始は通常melee observerに登録しない。
