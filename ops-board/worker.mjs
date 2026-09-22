@@ -6,6 +6,7 @@ import { degradedState } from './fallback-state.mjs';
 import { boardAlerts } from './public/health.mjs';
 import { buildApplications } from './applications.mjs';
 import { appendControlHistory, deriveControlTower, publicControlHistory } from './control-tower.mjs';
+import { stateReadRefreshMode } from './refresh-policy.mjs';
 import {
   PEER_WORLD_REGISTRY_KEY,emptyPeerWorldRegistry,createPeerWorldRoom,listPeerWorldRooms,joinPeerWorldRoom,
   readHostEvents,postPeerWorldOffer,readGuestEvents,postPeerWorldAnswer,updatePeerWorldTelemetry,
@@ -231,7 +232,13 @@ export default {
         try {
           const stub = opsStateStub(env);
           let state = await stub.getState();
-          if (!state) state = env.OPS_GITHUB_TOKEN ? await stub.refresh('cold-start') : await stub.recoverPublic('cold-start-public');
+          if (!state) {
+            state = env.OPS_GITHUB_TOKEN ? await stub.refresh('cold-start') : await stub.recoverPublic('cold-start-public');
+          } else {
+            const refreshMode = stateReadRefreshMode(state, { authenticated: Boolean(env.OPS_GITHUB_TOKEN) });
+            if (refreshMode === 'authenticated') state = await stub.refresh('state-read-stale');
+            else if (refreshMode === 'public') state = await stub.recoverPublic('state-read-stale-public');
+          }
           if (!state) return json(await resilientPublicState(githubAuthError('state-read'), env, 'state-read'));
           const history = await stub.getHistory();
           let sharedWorld = null;
