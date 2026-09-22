@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLife} from '../src/rebuild/domain.js';
 import {createVillageSkirmish,skirmishAlive,tickVillageSkirmish,villageFatalityChance,villageSkirmishAnchor} from '../src/rebuild/village-skirmish.js';
+import {ensureCombatLoadout,setHeartSlot} from '../src/combat-loadout.js';
 
 function living(seed=1){const state=createLife({seed});state.phase='living';state.ageYears=20;state.ageSeconds=1200;state.equipment.weapon='sword';state.knownSkills.push('basic.sword');return state;}
 function exposed(seed=1){
@@ -31,7 +32,7 @@ test('unprepared player can die quickly after walking into a village-edge threat
 
 test('survival build lowers fatality chance while power build raises outgoing damage',()=>{
   const base=living(51),defender=living(52),power=living(53);base.position=defender.position=power.position={x:0,z:-10};
-  defender.equipment.armor='heavy';defender.equipment.shield=true;defender.knownSkills.push('skill.balance','skill.adapt','skill.danger','skill.care');power.knownSkills.push('skill.focus','skill.edge');
+  defender.equipment.armor='heavy';defender.equipment.shield=true;defender.knownSkills.push('skill.balance','skill.adapt','skill.danger','skill.care');power.knownSkills.push('skill.focus','skill.edge');ensureCombatLoadout(power);assert.equal(setHeartSlot(power,0,'skill.focus'),true);assert.equal(setHeartSlot(power,1,'skill.edge'),true);
   assert.ok(villageFatalityChance(defender)<villageFatalityChance(base),'survival build should lower fatality chance');
   const baseBattle=exposed(51),defBattle=exposed(52),powerBattle=exposed(53);for(const battle of [baseBattle,defBattle,powerBattle])battle.hostiles.splice(1);
   tickVillageSkirmish(base,baseBattle,.1);tickVillageSkirmish(defender,defBattle,.1);tickVillageSkirmish(power,powerBattle,.1);
