@@ -24,7 +24,7 @@ try{
   for(const view of ['front','side','back']){
     await page.locator('[data-forge-view="'+view+'"]').click();await expect(page.locator('.forge-panel')).toHaveAttribute('data-view',view);
     await page.waitForFunction(()=>[...document.querySelectorAll('.forge-comparison img')].every(i=>i.complete&&i.naturalWidth>0));
-    receipt.views[view]=await snapshot();assert.equal(receipt.views[view].view,view);await capture(view,page.locator('.forge-comparison'));
+    receipt.views[view]=await snapshot();assert.equal(receipt.views[view].view,view);assert.equal(receipt.views[view].cameraPresentation.profile,'current3d');assert.equal(receipt.views[view].cameraPresentation.targetActor,'forge-scout');await capture(view,page.locator('.forge-comparison'));
   }
   await page.locator('[data-forge-overlay]').check();await page.locator('[data-forge-opacity]').fill('.35');await expect(page.locator('.forge-comparison')).toHaveAttribute('data-overlay','true');await capture('overlay',page.locator('.forge-comparison'));await page.locator('[data-forge-overlay]').uncheck();
   for(const name of ['Idle','Walk','Talk','Attack','Hit','Rest']){

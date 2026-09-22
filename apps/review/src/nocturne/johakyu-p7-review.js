@@ -7,7 +7,7 @@ import {cancelJohakyuStage,johakyuStageCapability} from '@soul/johakyu-combat/ex
 import {beginReviewStage,reviewTechniqueCapability,reviewStageCanResolve} from './johakyu-p7-execution.js';
 import {BURST_CADENCE,burstCompositionFor,burstStageDuration,burstSettleSeconds} from './johakyu-burst-cadence.js';
 import {battle2LoadoutKey,normalizeBattle2Loadout} from './battle2-loadout.js';
-import {BATTLE2_TECHNIQUE_CATALOG,battle2SelectionTechniques,battle2TechniqueLabel} from './battle2-technique-catalog.js';
+import {BATTLE2_TECHNIQUE_CATALOG,battle2SelectionTechniques,battle2TechniqueLabel,battle2TechniquePresentation} from './battle2-technique-catalog.js';
 
 const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const PHASES=Object.freeze(['jo','ha','kyu']);
@@ -59,7 +59,7 @@ function heroCompositionFor(actor,loadout){
   if(!loadout)return HERO_COMPOSITION;
   const config=normalizeBattle2Loadout(loadout),weapon=actor.equipment.weapon,rows={};
   for(const phase of PHASES){const options=HERO_TECHNIQUE_ROWS[phase],runtimeIds=battle2SelectionTechniques(config.technique[phase],{weapon});rows[phase]=runtimeIds.map(runtimeId=>runtimeId.startsWith('basic.')?[runtimeId,battle2TechniqueLabel(runtimeId)]:(HERO_TECHNIQUE_BY_ID.get(runtimeId)||options[0]));}
-  const key=weapon+':'+PHASES.map(phase=>rows[phase][0][0]).join('|');
+  const key=weapon+':'+PHASES.map(phase=>rows[phase].map(([id])=>id).join('+')).join('|');
   if(!heroLoadoutCompositions.has(key))heroLoadoutCompositions.set(key,buildComposition(rows,weapon));
   return heroLoadoutCompositions.get(key);
 };
@@ -353,12 +353,12 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
         stageIndex:-1,stageLabel:'反応',techniqueIndex:node.chain.indexOf(node.technique),chainLength:node.chain.length,chainLabel:reviewChainLabel(node.phase,node.chain.length),cycle:cursor.cycle,
         footwork:state.footwork??(state.reactionKind==='counter'?'forward':'stay'),progress,duration:state.duration,motion:state.motion,legal:true,scope:'combat-reaction',reaction:state.reactionKind,parryDirection:state.parryDirection??null};
     }
-    const {node}=state;
-    const presentationClip=actor.side==='enemy'&&stageDamage(node.stage)>0?burstPresentationClip(actor,node.phase,cursorFor(actor).cycle%3,state.motion.clip):state.motion.clip;
+    const {node}=state,presentation=actor.side==='party'?battle2TechniquePresentation(node.technique,{weapon:actor.equipment.weapon,phase:node.phase,stageIndex:node.stage.index}):null;
+    const presentationClip=presentation?.clip??(actor.side==='enemy'&&stageDamage(node.stage)>0?burstPresentationClip(actor,node.phase,cursorFor(actor).cycle%3,state.motion.clip):state.motion.clip);
     return{id:state.id,targetId:state.targetId,techniqueId:node.technique.id,name:node.technique.name,phase:node.phase,step:node.stage.index,
       stageIndex:node.stage.index,stageLabel:node.stage.label,techniqueIndex:node.chain.indexOf(node.technique),chainLength:node.chain.length,
       chainLabel:reviewChainLabel(node.phase,node.chain.length),cycle:cursorFor(actor).cycle,footwork:node.stage.step.footwork,
-      progress,duration:state.duration,motion:state.motion,presentationClip,legal:true,scope:state.transition?'combat-counter-transition':'review-technique-composition'};
+      progress,duration:state.duration,motion:state.motion,presentation,presentationClip,legal:true,scope:state.transition?'combat-counter-transition':'review-technique-composition'};
   }
   function nextAction(actor){
     if(actor.dead||actor.incapacitated)return null;
@@ -535,7 +535,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
         const exchange=updateExchange(source,target,{type:slipped?'slip':parried?'parry':'guard',phase:action.phase,strong:strongParry});state.exchangeContinuity=exchange.continuity;state.outcome=slipped?'slipped':parried?'parried':'blocked';
         targetState.outcome=slipped?'slip':parried?'parry':'guard';
         if(strongParry){state.interrupted='strong-parry';cancelJohakyuStage(state);counterWindows.set(target.id,{against:source.id,until:time+1.35,claimed:false,parryDirection});}
-        const event=freeze({id:`${action.id}:${source.id}:${target.id}:${defense}`,type:slipped?'slip':parried?'parry':'guard',attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,damage:0,blocked:true,avoided:slipped,parried,strongParry,parryStrength:parryStrength?.strength??null,parryDirection,exchangeMode:exchange.mode,exchangeContinuity:exchange.continuity,initiativeId:exchange.initiativeId,techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,defenseTechniqueId:defenseNode.technique.id,defenseTechniqueName:defenseNode.technique.name,defenseStageIndex:defenseStage,defenseScope:targetState.reaction?'combat-reaction':'review-technique-composition',defenseActionId:targetState.id,sourceContactProgress:state.motion.contactProgress??.5,defenseContactProgress:targetState.motion.contactProgress??.43,sourceBladeTrajectory:state.motion.bladeTrajectory??'neutral',sourceProgress:Number(action.progress.toFixed(3)),contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH,bodyClearance:BODY_CLEARANCE,contactPoint,contactEngine:physical?'weapon-body-sweep':'range-fallback'});
+        const event=freeze({id:`${action.id}:${source.id}:${target.id}:${defense}`,type:slipped?'slip':parried?'parry':'guard',attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,damage:0,blocked:true,avoided:slipped,parried,strongParry,parryStrength:parryStrength?.strength??null,parryDirection,exchangeMode:exchange.mode,exchangeContinuity:exchange.continuity,initiativeId:exchange.initiativeId,techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,defenseTechniqueId:defenseNode.technique.id,defenseTechniqueName:defenseNode.technique.name,defenseStageIndex:defenseStage,defenseScope:targetState.reaction?'combat-reaction':'review-technique-composition',defenseActionId:targetState.id,sourceContactProgress:state.motion.contactProgress??.5,defenseContactProgress:targetState.motion.contactProgress??.43,sourceBladeTrajectory:state.motion.bladeTrajectory??'neutral',sourceProgress:Number(action.progress.toFixed(3)),contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH,bodyClearance:BODY_CLEARANCE,contactPoint,contactEngine:physical?'weapon-body-sweep':'range-fallback',presentation:action.presentation??null});
         events.push(event);traceRow({...event});
         if(slipped){setRecovery(target,'slip',source.id,.08);continue;}
         if(strongParry){setRecovery(source,'parried',target.id,RECOVERY_SECONDS.parried);setManeuver(source,target,{reason:'parried-recoil',footwork:'retreat',seconds:.64,stopDistance:DISENGAGE_DISTANCE});}
@@ -560,7 +560,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
       const deepHit=isDeepJohakyuExchangeHit({damage:result.dealt,maxHp:target.maxHp,outcome:{incapacitated:result.incapacitated}}),exchange=updateExchange(source,target,{type:'hit',phase:action.phase,deep:deepHit});state.exchangeContinuity=exchange.continuity;
       reactionCooldowns.set(target.id,Math.max(reactionCooldowns.get(target.id)||0,time+(deepHit?.58:.38)));
       const event=freeze({id:eventId,type:source.side==='party'?'player-hit':'enemy-hit',attackId:action.id,sourceId:source.id,targetId:target.id,damage:result.dealt,phase:action.phase,counter:countered,deepHit,exchangeMode:exchange.mode,exchangeContinuity:exchange.continuity,initiativeId:exchange.initiativeId,
-        techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH,contactPoint,contactEngine:physical?'weapon-body-sweep':'range-fallback',bodyPart:result.part,bodyDurability:result.durability,blocked:false});
+        techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH,contactPoint,contactEngine:physical?'weapon-body-sweep':'range-fallback',bodyPart:result.part,bodyDurability:result.durability,blocked:false,presentation:action.presentation??null});
       events.push(event);traceRow({...event});
       const targetAction=combatState(target.id),incomingProgress=stateProgress(targetAction),targetKind=stateKind(targetAction);
       if(countered){

@@ -33,7 +33,7 @@ export function installJohakyuPresentation(view,{canvas,document,buildInfo,loadR
         for(const node of [world,effects]){Object.assign(node.style,{position:'absolute',inset:'0',width:'100%',height:'100%',pointerEvents:'none',background:'transparent'});overlay.append(node);}
         // Adjacent to the original canvas, below its existing HUD siblings.
         canvas.after(overlay);sound??=audio.createNocturneSound(document);
-        const candidate=module.createDrivenBattleRuntime({world,effects,stage:parent,sound,notify:()=>{},signal:own.signal});
+        const candidate=module.createDrivenBattleRuntime({world,effects,stage:parent,sound,notify:()=>{},signal:own.signal,cameraPresentation:view.presentationCamera});
         runtime=candidate;await candidate.prepare({assetBase:DEV_ASSET_ORIGIN});
         if(disposed||own.signal.aborted){candidate.dispose();return;}
         pending=[];epoch++;report('');

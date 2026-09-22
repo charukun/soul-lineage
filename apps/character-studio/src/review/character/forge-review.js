@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {positionReviewCamera} from '@soul/rendering';
+import {createCameraDirector} from '@soul/rendering/camera-director';
+import {applyCameraPresentation} from '@soul/rendering/camera-presentation-three';
 import {characterForgeCandidates} from '../../../../../packages/assets/generated/create-forge-registry.js';
 import {createCharacterPackageActor} from '../../../../../packages/assets/src/character-create-forge/actor.js';
 import './forge-review.css';
@@ -17,6 +19,16 @@ export function mountCharacterForgeReview(review){
   // socket markers must never change the character's comparison scale.
   const frameGeometry=new THREE.BoxGeometry(1,1,1),frameMaterial=new THREE.MeshBasicMaterial();
   const frameRoot=new THREE.Mesh(frameGeometry,frameMaterial);
+  const director=createCameraDirector({profile:'current3d'});
+  function presentReviewShot(){
+    // Exact reference captures are authored cuts; all lens/pose application
+    // flows through the same Camera Director used by RINNE.
+    director.reset();
+    const point=v=>({x:v.x,y:v.y,z:v.z});
+    const state=director.update({mode:'event',space:'character-review',actor:actor.cameraSubject(),aspect:stage.camera.aspect,
+      authoredShot:{position:point(stage.camera.position),lookTarget:point(stage.orbit.target),fov:stage.camera.fov}},0);
+    applyCameraPresentation(stage.camera,state);
+  }
   function display(){actor?.setDisplay({texture:$('[data-forge-texture]').checked,wireframe:$('[data-forge-wire]').checked,skeleton:$('[data-forge-skeleton]').checked,socket:$('[data-forge-sockets]').checked});}
   function restore(){stage.camera.fov=original.fov;stage.camera.far=original.far;stage.orbit.maxDistance=original.maxDistance;stage.camera.updateProjectionMatrix();stage.scene.background=original.background;for(const a of stage.actors())a.root.visible=true;stage.ground.visible=true;stage.marker.visible=true;}
   function deactivate(){sequence++;actor?.dispose();actor=null;entry=null;turntable=false;restore();panel.dataset.ready='false';}
@@ -24,6 +36,7 @@ export function mountCharacterForgeReview(review){
     if(!actor)return;selectedView=['side','back'].includes(view)?view:'front';actor.root.rotation.y=0;
     stage.camera.fov=1;stage.camera.far=1000;stage.orbit.maxDistance=500;stage.camera.updateProjectionMatrix();
     positionReviewCamera({camera:stage.camera,controls:stage.orbit,root:frameRoot,preset:selectedView,padding:320/288,minDistance:.1,maxDistance:500});
+    presentReviewShot();
   }
   function comparison(view){
     if(!actor)return;turntable=false;actor.neutral();aim(view);const url=entry.references[selectedView];
@@ -56,7 +69,7 @@ export function mountCharacterForgeReview(review){
   }
   for(const candidate of characterForgeCandidates){const b=document.createElement('button');b.type='button';b.dataset.forgeCandidate=candidate.manifest.id;const img=document.createElement('img');img.src=candidate.references.front;img.alt='';b.append(img,document.createTextNode(candidate.manifest.displayName));b.onclick=()=>select(candidate);$('.forge-candidates').append(b);}
   if(!characterForgeCandidates.length)status('生成候補はありません。Forge成功時に自動登録されます。');
-  panel.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.forgeView)comparison(b.dataset.forgeView);if(b.hasAttribute('data-forge-bind')){actor?.neutral();comparison(selectedView);}if(b.hasAttribute('data-forge-pause')){paused=!paused;actor?.setPaused(paused);b.textContent=paused?'再生':'一時停止';}if(b.hasAttribute('data-forge-turntable')){turntable=!turntable;angle=0;if(turntable){stage.camera.fov=38;stage.camera.updateProjectionMatrix();positionReviewCamera({camera:stage.camera,controls:stage.orbit,root:actor.root,preset:'three-quarter'});}}if(b.hasAttribute('data-forge-exit')){deactivate();review.aim('front');}});
+  panel.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.forgeView)comparison(b.dataset.forgeView);if(b.hasAttribute('data-forge-bind')){actor?.neutral();comparison(selectedView);}if(b.hasAttribute('data-forge-pause')){paused=!paused;actor?.setPaused(paused);b.textContent=paused?'再生':'一時停止';}if(b.hasAttribute('data-forge-turntable')){turntable=!turntable;angle=0;if(turntable){stage.camera.fov=38;stage.camera.updateProjectionMatrix();positionReviewCamera({camera:stage.camera,controls:stage.orbit,root:frameRoot,preset:'three-quarter'});presentReviewShot();}}if(b.hasAttribute('data-forge-exit')){deactivate();review.aim('front');}});
   $('[data-forge-animation]').onchange=e=>{actor?.play(e.target.value);paused=false;actor?.setPaused(false);};
   $('[data-forge-equipment]').onchange=e=>actor?.setEquipment({weapon:e.target.value||null});
   for(const selector of ['texture','wire','skeleton','sockets'])$('[data-forge-'+selector+']').onchange=display;
@@ -64,7 +77,7 @@ export function mountCharacterForgeReview(review){
   $('[data-forge-opacity]').oninput=e=>$('.forge-comparison').style.setProperty('--forge-opacity',e.target.value);
   const api={get active(){return Boolean(actor);},get actor(){return actor;},aim,deactivate,
     tick(dt){if(!actor)return;for(const a of stage.actors())a.root.visible=false;actor.update(dt);if(turntable){angle+=dt*.7;actor.root.rotation.y=angle;}stage.orbit.update();},
-    snapshot:()=>actor?{...actor.snapshot(),view:selectedView,turntable,angle,subject:actor.cameraSubject()}:null,
+    snapshot:()=>actor?{...actor.snapshot(),view:selectedView,turntable,angle,subject:actor.cameraSubject(),cameraPresentation:director.snapshot()}:null,
     dispose(){deactivate();frameGeometry.dispose();frameMaterial.dispose();panel.remove();}};
   review.forge=api;stage.canvas.characterForgeSnapshot=api.snapshot;
   return api;
