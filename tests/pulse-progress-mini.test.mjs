@@ -72,3 +72,11 @@ test('live elapsed ticker increments running duration labels without a network r
   tickProgressDurations(documentRef,Date.parse('2026-09-22T06:00:13Z'));
   assert.equal(nodes[0].textContent,'13s');
 });
+
+
+test('renderer keeps the source step list in scope for live labels',()=>{
+  const source=readFileSync(new URL('../ops-board/public/progress-mini.js',import.meta.url),'utf8');
+  assert.match(source,/const clean=\(Array\.isArray\(steps\)\?steps:\[\]\)\.filter/);
+  assert.match(source,/progressMiniModel\(clean,now\)/);
+  assert.match(source,/const source=clean\[point\.index\]/);
+});
