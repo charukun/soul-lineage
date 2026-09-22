@@ -6,6 +6,7 @@ const freeze=Object.freeze,FUNCTIONAL_SEVERITY=.68;
 const ONE_LEG_FOOTWORK=new Set(['forward','retreat']);
 const TWO_LEG_FOOTWORK=new Set(['chase','rush','sideL','sideR','orbitL','orbitR','cross','spiral']);
 const TWO_HANDED_WEAPONS=new Set(['great','spear','axe','staff']);
+const ARM_DEFENSE_KINDS=new Set(['guard','brace','parry']);
 const committedCharge=charge=>charge==='deep'||charge==='focus';
 export function johakyuWeaponRequiresTwoHands(weapon){return TWO_HANDED_WEAPONS.has(weapon);}
 
@@ -48,7 +49,11 @@ export function johakyuStageCapability(actor,{weapon='sword',phase='jo',kind='re
   if(!Number.isFinite(staminaCost)||staminaCost<0)throw new TypeError('Invalid stage stamina cost');
   const probe=probeActor(actor),outcome=combatBodyOutcome(probe),stamina=staminaPolicyFor(probe),motion=resolveJohakyuMotion({weapon,kind,charge,phase});
   const body=outcome.body,functionalArms=['leftArm','rightArm'].filter(part=>functional(body,part)).length,functionalLegs=['leftLeg','rightLeg'].filter(part=>functional(body,part)).length;
-  const twoHanded=requiresTwoHands==null?johakyuWeaponRequiresTwoHands(weapon):Boolean(requiresTwoHands),armDemand=motion.supported&&motion.offense?(twoHanded?2:1):0,legDemand=footworkLegDemand(footwork),committed=committedCharge(charge);
+  // Callers may require a stronger grip, but cannot invent a one-handed mode
+  // for a canonical two-handed weapon. Receiving force needs that grip too.
+  const twoHanded=johakyuWeaponRequiresTwoHands(weapon)||Boolean(requiresTwoHands);
+  const usesArms=motion.supported&&(motion.offense||ARM_DEFENSE_KINDS.has(kind));
+  const armDemand=usesArms?(twoHanded?2:1):0,legDemand=footworkLegDemand(footwork),committed=committedCharge(charge);
   const staminaScale=Math.max(.42,Number(outcome.staminaScale)||1),effectiveCost=staminaCost/staminaScale,available=Math.max(0,Number(probe.stamina)||0);
   const reason=reasonFor({outcome,stamina,motion,armDemand,legDemand,functionalArms,functionalLegs,effectiveCost,available,committed});
   return freeze({allowed:!reason,reason,weapon,phase,kind,footwork,charge,offense:Boolean(motion.supported&&motion.offense),equipment:freeze({requiresTwoHands:twoHanded}),
