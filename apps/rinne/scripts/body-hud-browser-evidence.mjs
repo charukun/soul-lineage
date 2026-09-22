@@ -45,7 +45,16 @@ async function bounds(label){
   receipt.checks.push({label,...result});
 }
 try{
-  await page.goto(new URL('/review-battle',base).href,{waitUntil:'domcontentloaded'});
+  let navigation=await page.goto(new URL('/review-battle',base).href,{waitUntil:'domcontentloaded'});
+  receipt.canonicalProbe={path:'/review-battle',status:navigation.status()};
+  if(phase==='before'&&navigation.status()===404){
+    // The baseline really shipped a broken canonical URL. Observe its actual
+    // Vite entry only as an explicitly recorded diagnostic, never as a pass
+    // for the canonical route. The candidate is not allowed this fallback.
+    receipt.route='/review/battle/';
+    navigation=await page.goto(new URL(receipt.route,base).href,{waitUntil:'domcontentloaded'});
+  }
+  assert.equal(navigation.status(),200,'Battle review must return HTTP 200');
   const start=page.getByRole('button',{name:/タップ.*開始|開始.*タップ/});
   if(await start.count()&&await start.first().isVisible())await start.first().click();
   await expect(page.locator('#battle-body-hud [data-body-part]')).toHaveCount(6,{timeout:90000});

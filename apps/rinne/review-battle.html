@@ -39,6 +39,7 @@
       <strong id="battle-sequence-current" class="battle-sequence-current" data-kind="idle">間合いを測っている…</strong>
     </div>
     <div class="camera-zoom" data-review-stage-control role="group" aria-label="カメラズーム"><button id="camera-zoom-out" type="button" aria-label="カメラをズームアウト">−</button><button id="camera-zoom-in" type="button" aria-label="カメラをズームイン">＋</button></div>
+    <div id="battle-technique-composition" class="technique-composition" aria-label="段・技・連・序破急の構成"></div>
     <section id="battle-inspiration-history" class="inspiration-history" aria-label="閃いた技の履歴" hidden>
       <header><div><span>閃き履歴</span><strong>この戦闘で閃いた技</strong></div><button id="battle-history-close" type="button" aria-label="閃き履歴を閉じる">閉じる</button></header>
       <div id="battle-inspiration-history-list" class="inspiration-history__list"></div>
@@ -53,9 +54,6 @@
     <details class="review-settings" data-review-stage-control>
       <summary>設定 <small>モデル・人数・カメラ</small></summary>
       <div class="review-settings-body">
-        <details class="body-hud-review-composition"><summary>技の構成・試演</summary>
-    <div id="battle-technique-composition" class="technique-composition" aria-label="段・技・連・序破急の構成"></div>
-        </details>
         <div class="pickers">
           <div class="hero-model-lock" aria-label="左モデルは主人公固定"><span>左モデル</span><strong>主人公</strong></div>
           <div class="hero-model-lock"><span>敵モデル</span><strong>スケルトン</strong></div><label class="weapon-picker">所持武器<select id="battle-weapon"><option value="sword">剣</option><option value="dagger">短剣</option><option value="spear">槍</option><option value="great">大剣</option><option value="axe">戦斧</option><option value="staff">杖</option><option value="fist">徒手</option></select></label>
@@ -65,7 +63,7 @@
           <label>戦略B<select id="battle-strategy-b"><option value="patient">慎重</option><option value="balanced">均衡</option><option value="aggressive">攻勢</option><option value="counter">返し</option><option value="evasive">回避</option></select></label>
           <button id="battle-ab-toggle" type="button" aria-label="戦略A/B切替">A</button>
           <label>固定Seed<input id="battle-review-seed" type="number" min="1" value="6197"></label>
-          <label>初期負傷<select id="battle-injury-preset"><option value="none">なし</option><option value="body-stages">身体HUD・全損傷段階</option><option value="head">頭重傷</option><option value="rightArm">右腕重傷</option><option value="leftArm">左腕重傷</option><option value="rightLeg">右脚重傷</option><option value="leftLeg">左脚重傷</option><option value="torso">胴重傷</option></select></label>
+          <label>初期負傷<select id="battle-injury-preset"><option value="none">なし</option><option value="rightArm">右腕重傷</option><option value="leftArm">左腕重傷</option><option value="rightLeg">右脚重傷</option><option value="leftLeg">左脚重傷</option><option value="torso">胴重傷</option></select></label>
         </div>
         <div class="review-modes">
 
