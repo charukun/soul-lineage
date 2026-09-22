@@ -3,7 +3,7 @@ import {createJohakyuP7ReviewScenario} from './johakyu-p7-review.js';
 
 export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,onMeta=()=>{},evidence=false,fixture=null,mode='duel'}){
   const driven=createDrivenBattleRuntime({world,effects,stage,sound,notify,signal});
-  const scenario=evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({mode,duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5}):createJohakyuP7ReviewScenario({mode,comboStyle:'burst',duelGap:mode==='duel'?2.18:3.15,enemyLeadSeconds:mode==='duel'?.16:0});
+  const scenario=evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({mode,duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5}):createJohakyuP7ReviewScenario({mode,comboStyle:'composed',duelGap:mode==='duel'?2.18:3.15,enemyLeadSeconds:mode==='duel'?.16:0});
   let disposed=false,ready=false,started=false,raf=0,previous=0,current=null,trace=[],lastResumes=0,lastEncounter=1;
   function render(dt){
     if(disposed)return null;

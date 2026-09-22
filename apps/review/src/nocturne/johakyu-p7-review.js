@@ -335,7 +335,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
         footwork:state.footwork??(state.reactionKind==='counter'?'forward':'stay'),progress,duration:state.duration,motion:state.motion,legal:true,scope:'combat-reaction',reaction:state.reactionKind,parryDirection:state.parryDirection??null};
     }
     const {node}=state;
-    const presentationClip=comboStyle==='burst'&&stageDamage(node.stage)>0?burstPresentationClip(actor,node.phase,node.stage.index,state.motion.clip):state.motion.clip;
+    const presentationClip=actor.side==='enemy'&&stageDamage(node.stage)>0?burstPresentationClip(actor,node.phase,cursorFor(actor).cycle%3,state.motion.clip):state.motion.clip;
     return{id:state.id,targetId:state.targetId,techniqueId:node.technique.id,name:node.technique.name,phase:node.phase,step:node.stage.index,
       stageIndex:node.stage.index,stageLabel:node.stage.label,techniqueIndex:node.chain.indexOf(node.technique),chainLength:node.chain.length,
       chainLabel:reviewChainLabel(node.phase,node.chain.length),cycle:cursorFor(actor).cycle,footwork:node.stage.step.footwork,
@@ -407,7 +407,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     const parryWhiff=state.node.stage.step.kind==='parry'&&state.outcome!=='parry'&&!ownPressure;
     const failure=interrupted||(state.outcome==='miss'&&state.exchangeContinuity!=='retain')||parryWhiff;
     if(failure){breakChain(actor,state,interrupted||state.outcome||'parry-whiff');return;}
-    if(actor.side==='enemy'&&comboStyle==='burst'&&state.motion.offense){breakChain(actor,state,'enemy-attack-reset');return;}
+    if(actor.side==='enemy'&&state.motion.offense){breakChain(actor,state,'enemy-attack-reset');return;}
     const moved=advanceCursor(actor,cursorFor(actor)),techniqueComplete=moved.before.technique.id!==moved.after.technique.id||moved.before.phase!==moved.after.phase,exchangeComplete=moved.before.phase==='kyu'&&moved.after.phase==='jo';
     if(actor.id==='hero'&&moved.before.phase!==moved.after.phase)traceRow({type:'phase-change',phase:moved.after.phase,reason:'configured-chain-complete'});
     const target=battle.actors.get(state.targetId);
