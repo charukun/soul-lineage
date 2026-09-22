@@ -156,12 +156,21 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
 
   function cursorFor(actor){let cursor=cursors.get(actor.id);if(!cursor){cursor=cursorState(comboStyle);cursors.set(actor.id,cursor);}return cursor;}
   function seedReadyWindow(delay=.24){readyAt.clear();for(const actor of battle.actors.values())readyAt.set(actor.id,time+Math.max(0,delay+(actor.side==='enemy'?.12-enemyLeadSeconds:0)));}
-  function freshBattle(){
-    battle=createJohakyuBattle({battleId:`review-p7:${mode}:${encounter}`,actors:actorRows(mode).map(row=>({...row,...actorOverrides[row.id],id:row.id,side:row.side})),seed:73917+encounter});
+  function freshBattle(carry=null){
+    const rows=actorRows(mode).map(row=>{
+      const base={...row,...actorOverrides[row.id],id:row.id,side:row.side},kept=carry?.get(row.id)?.actor;
+      return kept?{...base,...kept,id:row.id,side:row.side,dead:false,incapacitated:false}:base;
+    });
+    battle=createJohakyuBattle({battleId:`review-p7:${mode}:${encounter}`,actors:rows,seed:73917+encounter});
     actionState=new Map();reactionState=new Map();reactionCooldowns=new Map();cursors=new Map();readyAt=new Map();positions=new Map(Object.entries(LAYOUT).filter(([id])=>battle.actors.has(id)).map(([id,row])=>[id,{x:row.x,z:row.z}]));recoveries=new Map();maneuvers=new Map();counterWindows=new Map();exchangeStates=new Map();normalPending=new Set();settleAt=new Map();terminalFacings=new Map();respawnAt=null;
     cursors.set('hero',{comboStyle,phaseIndex:PHASES.indexOf(heroStartPhase),techniqueIndex:heroStartTechniqueIndex,stageIndex:0,cycle:0});
     if(mode==='duel')positions.set('enemy-a',{x:LAYOUT.hero.x,z:LAYOUT.hero.z+duelGap});
+    if(carry)for(const [id,row] of carry)if(positions.has(id)&&row.position)positions.set(id,{...row.position});
     lastEvents=[];resumed=false;revision=0;attemptSerial=0;seedReadyWindow(.34);
+  }
+  function winnerCarry(){
+    const winner=battle.result?.winner;if(!winner)return new Map();
+    return new Map([...battle.actors.values()].filter(actor=>actor.side===winner&&!actor.dead&&!actor.incapacitated).map(actor=>[actor.id,{actor:structuredClone(actor),position:{...positionOf(positions,actor)}}]));
   }
   freshBattle();
 
@@ -419,8 +428,27 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     const kind=stateKind(targetState),window=DEFENSE_WINDOW[kind];
     return window&&progress>=window[0]&&progress<=window[1]?kind:null;
   }
+  function resolveAttackClashes(actions,events){
+    const handled=new Set();
+    for(const [id,action] of actions){
+      if(!action?.motion?.offense||action.progress<.4||action.progress>.72)continue;
+      const otherAction=actions.get(action.targetId);if(!otherAction?.motion?.offense||otherAction.targetId!==id||otherAction.progress<.4||otherAction.progress>.72)continue;
+      const pair=[id,action.targetId].sort().join('::');if(handled.has(pair))continue;handled.add(pair);
+      const state=combatState(id),otherState=combatState(action.targetId);
+      if(!reviewStageCanResolve(state,action)||!reviewStageCanResolve(otherState,otherAction)||state.impacted||otherState.impacted)continue;
+      if(Math.abs(action.progress-otherAction.progress)>.18)continue;
+      const source=battle.actors.get(id),target=battle.actors.get(action.targetId);if(!source||!target||source.dead||target.dead||source.incapacitated||target.incapacitated)continue;
+      const contact=contactWindow(positions,source,target);if(!contact.reachable)continue;
+      state.impacted=true;otherState.impacted=true;state.outcome='clash';otherState.outcome='clash';
+      const event=freeze({id:`clash:${[action.id,otherAction.id].sort().join(':')}`,type:'clash',sourceId:source.id,targetId:target.id,attackId:action.id,otherAttackId:otherAction.id,damage:0,blocked:true,contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH,contactPoint:contactPointBetween(positions,source,target),sourceContactProgress:state.motion.contactProgress??.5,targetContactProgress:otherState.motion.contactProgress??.5});
+      events.push(event);traceRow({...event});
+      setRecovery(source,'clash',target.id,.22);setRecovery(target,'clash',source.id,.22);
+      setManeuver(source,target,{reason:'weapon-clash',footwork:'retreat',seconds:.38,stopDistance:2.28});
+      setManeuver(target,source,{reason:'weapon-clash',footwork:'retreat',seconds:.38,stopDistance:2.28});
+    }
+  }
   function applyContacts(actions){
-    const events=[];
+    const events=[];resolveAttackClashes(actions,events);
     for(const [id,action] of actions){
       if(battle.result)break;
       if(!action||!action.motion.offense||action.progress<.46)continue;
@@ -511,7 +539,10 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     // No timed reset of a living encounter. Keep the final impact and terminal
     // actors in this epoch long enough to play their fall before endless repop.
     if(battle.result&&respawnAt===null){respawnAt=time+RESPAWN_DELAY_SECONDS;traceRow({type:'encounter-ended',winner:battle.result.winner,respawnDelay:RESPAWN_DELAY_SECONDS});}
-    if(respawnAt!==null&&time>=respawnAt){encounter++;epoch++;time=0;freshBattle();events.length=0;traceRow({type:'encounter-reset',epoch,encounter});}
+    if(respawnAt!==null&&time>=respawnAt){
+      const carry=winnerCarry(),winner=battle.result?.winner??null;encounter++;epoch++;time=0;freshBattle(carry);events.length=0;
+      traceRow({type:'encounter-reset',epoch,encounter,winner,carried:[...carry.keys()]});
+    }
     const nextActions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)])),snapshot=frame(nextActions),review=meta(snapshot);lastFrame=snapshot;lastMeta=review;
     return freeze({frame:snapshot,events,meta:review});
   }
