@@ -1,4 +1,4 @@
-import './character-workshop-ux.js';
+import '../../character-workshop-ux.js';
 
 const CHARACTER_MODEL_QUERY = 'characterModel';
 const REVIEW_MODES = Object.freeze({
