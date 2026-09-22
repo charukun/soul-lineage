@@ -6,8 +6,8 @@ Routine implementation is Astra-driven and uses connector-native exact-source pr
 
 - Confirm latest `develop` and `AGENTS.md`.
 - Use the connected GitHub Connector to read current source and compose the final tree against the current `develop` tree without creating a routine branch yet.
-- For routine Fast DEV, validate the final bytes, create blobs/tree, create the final commit with `develop` as parent, then create the dedicated branch directly at that commit. This replaces `create branch -> commit -> update ref` with `commit -> create branch`.
-- Open the routine PR non-draft only after the final branch head exists. Draft PRs and intermediate branch moves are reserved for recovery or heavy/specialist work that genuinely needs multiple published heads.
+- For routine Fast DEV, validate the final bytes, create blobs/tree, create the final commit with `develop` as parent, then create a short-lived `routine/txn-*` branch directly at that commit. This replaces `create branch -> commit -> update ref` with `commit -> create branch`.
+- Open the routine PR non-draft only after the final branch head exists. Treat the `routine/txn-*` ref as transport-only; do not reuse it for another PR. Draft PRs and intermediate branch moves are reserved for recovery or heavy/specialist work that genuinely needs multiple published heads.
 - Validate the final source bytes before GitHub blob creation. For routine JS checks, run syntax/consistency validation against the exact final byte strings that will be sent to `create_blob`; those returned blob SHAs become the proof coordinates.
 - Routine Fast DEV does not perform staging/browser/Playwright/render/DCC/evidence observation automatically. Player-facing scope alone is not a trigger. Run those paths only for an explicit user request or an existing specialist/autonomous route that explicitly requires them.
 
@@ -21,7 +21,7 @@ When implementation is coherent:
 4. Create the dedicated branch directly at that final commit and open the PR non-draft. The create-PR response is the head-identity receipt; do not re-read PR info on the unchanged-base path.
 5. Re-read current `develop` exactly once immediately before merge. If it still equals the final commit parent, merge immediately with `expected_head_sha`. Do not separately query mergeability; the merge API is authoritative and fails closed.
 6. Only if `develop` advanced, compare the drift with the work delta by affected app/package/build/control-plane scope. Independent mergeable drift reuses the proof; conflict or overlap requires reconciliation into the same branch and a new proof.
-7. Fetch the resulting merge commit once and confirm the validated head is a parent. The develop push starts DEV publication asynchronously.
+7. Fetch the resulting merge commit once and confirm the validated head is a parent. The develop push starts DEV publication asynchronously. A non-blocking post-merge cleanup job deletes the merged `routine/txn-*` head ref; do not poll or wait for it.
 
 Heavy/specialist work is different: add `[astra-heavy-validation]` and use the hosted exact-head runner for tests, builds, browser/DCC/asset work, or any validation requiring a real repository execution environment.
 
@@ -39,7 +39,7 @@ Per-app DEV publication is impact-scoped. Known non-build documentation/control 
 
 Fast DEV is intentionally bounded. Routine feature/fix work must not make GitHub Actions do more work than the current `develop` contract.
 
-Routine Fast DEV does not invoke Actions. The authoring lane must fail closed before commit if ordinary work changes the workflow, focused runner, contract, freshness classifier, or build lifecycle. Explicit contract changes are heavy validation. Routine plans are `none` or syntax-check only; dependency installation is heavy-only.
+Routine Fast DEV does not invoke validation Actions. A tiny post-merge cleanup job is allowed only for deleting merged `routine/txn-*` transport refs and is outside the critical path. The authoring lane must fail closed before commit if ordinary work changes the workflow, focused runner, contract, freshness classifier, or build lifecycle. Explicit contract changes are heavy validation. Routine plans are `none` or syntax-check only; dependency installation is heavy-only.
 
 A routine contract violation is caught before the final Git Data write and repaired on the same branch / PR. Only an explicit user request to change the Fast DEV contract itself can authorize a contract-changing task. Such a commit includes `[astra-contract-change]` and `[astra-heavy-validation]`; the hosted runner verifies the contraction before merge.
 
