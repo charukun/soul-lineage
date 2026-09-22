@@ -8,8 +8,8 @@ import { kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
 import { reviewSettings, createReviewCohort, editReviewCharacter, serializeReviewSession, deserializeReviewSession,
   reviewGlbDocument, MAX_MODEL_BYTES, MAX_SESSION_BYTES } from './state.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
-import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
+import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
 
 const el = id => document.getElementById(id);
