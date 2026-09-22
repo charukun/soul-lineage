@@ -10,6 +10,7 @@
     "test": "node --test ./test/*.test.mjs"
   },
   "dependencies": {
-    "@soul/game-data": "0.1.0"
+    "@soul/game-data": "0.1.0",
+    "@soul/johakyu-combat": "*"
   }
 }

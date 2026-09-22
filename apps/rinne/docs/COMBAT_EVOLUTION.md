@@ -38,3 +38,29 @@
 7. main / Production、既存品質gate、ブラウザ検証経路を変更しない。
 
 Depends-On: none
+
+## Exchange / Initiative契約（2026-09-22）
+
+近接の単位は一発ではなくpair-scopedな攻勢とする。`read → normal-start → pressure（序→破→急）→ zanshin → read` が通常経路。通常guard、weak parry、浅いslip/deflection/hitは同じinitiativeを保持する。各段の空白や受けの段でもphaseを過去へ戻さない。
+
+共有 `packages/johakyu-combat/src/exchange-policy.js` は意味のreducerと主人公視点HUD投影のみを所有する。Tidebreakの `exchange-observer.js` は実行開始・段開始・実接触・sequence完了をpairごとに記録するbounded transient journalであり、実行器、当たり判定、stamina、damageを持たない。本編はこのjournalとsnapshotを読み、既存身体authorityの実行拒否・実負傷を同じobserverへ返す。使用回数や空のattack poseから急完了を推測しない。
+
+### 反転と次の序を分ける
+
+- actual strong parryは`reversal`へ移す。攻撃側の実行は既存parry motorで中断され、contact freeze、全身recoil、退き、counter windowを維持する。
+- 成功した防御者のcursorはcontact時点ではresetしない。`counter-start / counter-complete`は反転の遷移であり、`settle`だけで通常pressureにはしない。
+- 古いaction/reaction、counter、recoveryが終わった安全な次の通常選択でのみ、実行器のcursorを序へ戻す。反撃中の`mind / uke`は通常の序として表示しない。
+- Normal開始と完了にはpairのserialを用い、反転前のaction後処理が新しい攻勢を完了・再開させない。
+- strong判定は実接触、実防御intent、counter、攻撃phase/impactと身体能力に基づく。initiative owner自身が圧の途中で行う軽いinterceptionを、自分自身への攻守反転にしない。shallow slipはstrongにしない。乱数は使用しない。
+
+深い接触（既存heavy/HP比・身体結果）、major miss、実行不能、incapacitation、disengage、target invalidationはREADへ戻す。これらを攻勢完遂の残心と偽らない。通常急の全段を完了したownerだけに`completedBy`を付けて残心とし、相手の完了を主人公の右波形へ投影しない。
+
+### 境界
+
+HUDは`johakyuExchangeHudState`を本編とreviewで共有する。相手initiative、守勢、strong parry直後、counter transitionは左波形。自分の通常攻勢中だけcanonical slotを表示し、自分の急完遂のみ右波形。通常被弾のlegacy interruption animationは、継続中のpressureを消さない。
+
+Tidebreakの防御を含む編成済みrecipe、attackId、実軌道・接触時刻・target lock・world contactを維持する。stamina不足や腕/脚の機能制限は既存stage/technique capabilityで拒否し、initiativeを理由に通さない。周囲の敵のflank/support/retreat/secondary contactをpairでロックしない。projectile、finisher、因果閃きの実行・接触・支払条件は別の既存authorityを維持する。
+
+保存時は現在combatのcursor/target/queue/pose/exchange/counter/残心を破棄し、HP・部位負傷・stamina・装備・技譜・恒久因果記録を保持する。ロードはREADから始める。live stateはserializeによって変更しない。
+
+Secondary pair completion/failure must not request a cursor restart for an actor who is still pressing in another pair. The shared restart-participant policy enforces this for native Tidebreak and the review adapter. An authored parry intent is directed at the executor's actual target lock: incidental blade contact from another opponent is a light deflection, not an invented strong reversal toward an unauthored target. Real decisive interruptions remain executor cleanup events.
