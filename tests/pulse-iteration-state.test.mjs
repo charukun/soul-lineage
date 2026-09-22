@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { autonomousIterationMeta, buildAutonomousIterations, buildDevelopmentSessions } from '../ops-board/development-sessions.mjs';
 import { createIterationTelemetry } from '../scripts/autonomous-iteration-telemetry.mjs';
-import { iterationPresentation, iterationOverview, iterationTimingSteps } from '../ops-board/public/iteration-status.mjs';
+import { iterationPresentation, iterationOverview, iterationTimingSteps, iterationStartAt } from '../ops-board/public/iteration-status.mjs';
 import { progressStepDurationMs } from '../ops-board/public/progress-mini.js';
-import { renderIterationCard, renderIterationSummary } from '../ops-board/public/iteration-summary.js';
+import { renderIterationCard, renderIterationSummary, renderIterationChronology } from '../ops-board/public/iteration-summary.js';
 
 const A = 'a'.repeat(40), B = 'b'.repeat(40), C = 'c'.repeat(40);
 const start = '2026-09-22T01:00:00Z', end = '2026-09-22T01:05:00Z';
@@ -98,42 +98,47 @@ test('genuine iterations are filtered before the recent-session limit', () => {
   const rows = buildAutonomousIterations([...noise, pull({ updated_at:start })], [], { limit:1 });
   assert.equal(rows.length, 1); assert.equal(rows[0].pr.number, 1);
 });
-test('overview partition separates observed execution, waiting, failure and merged work', () => {
+test('overview keeps honest status counts independently of chronological ordering', () => {
   const rows = [item(), item(pull({ number:2 }), [run({ status:'in_progress', conclusion:null })]),
     item(pull({ number:3 }), [run({ conclusion:'failure' })]), item(pull({ number:4, state:'closed', merged_at:end }))];
   const { counts, entries } = iterationOverview({ syncStatus:'ok', autonomousIterations:rows });
   assert.deepEqual(counts, { running:1, waiting:1, problem:1, complete:1, publicationProblem:0 });
-  assert.deepEqual(entries.map(({ view }) => view.status), ['problem', 'running', 'waiting', 'complete']);
+  assert.deepEqual(entries.map(({ item }) => item.pr.number), [4, 3, 2, 1]);
+  assert.deepEqual(Object.fromEntries(entries.map(({ item, view }) => [item.pr.number, view.status])), { 1:'waiting', 2:'running', 3:'problem', 4:'complete' });
 });
 
 class Node {
-  constructor(tag) { this.tagName=tag; this.children=[]; this.dataset={}; this.attributes={}; this.style={ setProperty(){} }; this.className=''; this.open=false; this.text=''; }
+  constructor(tag) { this.tagName=tag; this.children=[]; this.dataset={}; this.attributes={}; this.style={ setProperty(){} }; this.className=''; this.open=false; this.text=''; this.events={}; }
   set textContent(value) { this.text=String(value); this.children=[]; }
   get textContent() { return this.text + this.children.map(child => child.textContent).join(''); }
   append(...nodes) { this.children.push(...nodes); }
   replaceChildren(...nodes) { this.children=nodes; this.text=''; }
   setAttribute(key,value) { this.attributes[key]=String(value); }
-  addEventListener() {}
+  addEventListener(name, handler) { this.events[name]=handler; }
+  focus() {}
 }
 const walk = node => [node, ...node.children.flatMap(walk)];
 function fakeDocument() {
   const nodes = { '#rapid-iteration-list':new Node('div'), '#rapid-iteration-count':new Node('span') };
   const head = new Node('head');
   return { head, nodes, createElement:tag=>new Node(tag), createElementNS:(_ns,tag)=>new Node(tag),
-    querySelector:selector=>nodes[selector] || (selector==='[data-iteration-readable-style]' ? head.children.find(node => 'data-iteration-readable-style' in node.attributes) : null) };
+    querySelector:selector=>nodes[selector] || (selector==='[data-iteration-readable-style]' ? head.children.find(node => 'data-iteration-readable-style' in node.attributes) : Object.values(nodes).flatMap(walk).find(node => node.id && '#' + node.id === selector)) };
 }
-test('card reads as game, improvement, status and next action before optional timing, without nested controls', () => {
+test('card keeps the graph visible before explanatory status, without nested interactive controls', () => {
   const previous = globalThis.document; globalThis.document=fakeDocument();
   try {
     const row = { ...item(), theme:'捕食の進行を表示', id:'run:test/1' };
     const card = renderIterationCard(row, { syncStatus:'ok' });
     assert.equal(card.tagName, 'article'); assert.equal(card.children[0].tagName, 'a');
-    assert.equal(card.children[0].href, './iterations.html#iteration=run%3Atest%2F1');
-    assert.match(card.children[0].textContent, /実行未確認/); assert.match(card.children[0].textContent, /次：/);
-    assert.equal(walk(card.children[0]).some(node=>['details','button','svg'].includes(node.tagName)), false);
-    assert.equal(card.children[1].tagName, 'details'); assert.equal(card.children[1].open, false);
-    assert.match(card.children[1].textContent, /完了率や品質ではありません/);
-    assert.equal(walk(card).some(node=>node.tagName==='h3'&&node.textContent==='捕食の進行を表示'), true);
+    const main = card.children[0], nodes = walk(main);
+    assert.equal(main.href, './iterations.html#iteration=run%3Atest%2F1');
+    assert.match(main.textContent, /実行未確認/);
+    assert.equal(nodes.some(node=>['details','button','select'].includes(node.tagName)), false);
+    assert.equal(walk(card).some(node=>node.tagName==='details'), false);
+    assert.equal(nodes.filter(node=>node.tagName==='svg').length, 1);
+    assert.ok(nodes.findIndex(node=>node.tagName==='svg') < nodes.findIndex(node=>node.className==='iteration-readable-status'));
+    assert.match(main.textContent, /点の高さは所要時間/);
+    assert.equal(nodes.some(node=>node.tagName==='h3'&&node.textContent==='捕食の進行を表示'), true);
   } finally { globalThis.document=previous; }
 });
 test('overview lists only three cards but explicitly exposes omitted records and honest Japanese counts', () => {
@@ -158,12 +163,82 @@ test('untrusted strings are text and iteration identifiers are encoded', () => {
     assert.match(card.children[0].href, /%22/); assert.match(card.textContent, /<img/);
   } finally { globalThis.document=previous; }
 });
-test('both surfaces use the shared meaning, expose publication evidence and preserve repair/deep links', () => {
+test('both surfaces use shared state and chronological order, preserve repair/deep links and show timing before prose', () => {
   const rapid=readFileSync(new URL('../ops-board/public/rapid-board.js', import.meta.url),'utf8');
   const detail=readFileSync(new URL('../ops-board/public/iterations.js', import.meta.url),'utf8');
   const html=readFileSync(new URL('../ops-board/public/iterations.html', import.meta.url),'utf8');
   assert.match(rapid, /import \{ renderIterationSummary \}/); assert.match(rapid, /renderIterationSummary\(state\)/);
-  assert.match(detail, /iterationOverview\(state\)/); assert.match(detail, /renderIterationStatus\(item, state\)/);
+  assert.match(detail, /iterationOverview\(state, \{ order \}\)/); assert.match(detail, /renderIterationStatus\(item, state\)/);
   assert.match(detail, /buildIterationRepairPrompt\(item, state\)/); assert.match(detail, /item.publication\?\.url/);
   assert.match(detail, /#iteration=/); assert.match(html, /iteration-waiting-count/); assert.match(html, /iteration-problem-count/);
+  assert.match(detail, /timingPanel\(item, state\), renderIterationStatus\(item, state\)/);
+  assert.match(detail, /el\('section', 'iteration-panel iteration-timeline-panel'\)/);
+  assert.match(detail, /el\('ol', 'iteration-step-history'\)/);
+  assert.match(detail, /clock\(step.startedAt\).*clock\(step.completedAt\)/);
+  assert.doesNotMatch(detail, /el\('details'|timingOpen/);
+  assert.match(html, /id="iteration-order"/); assert.match(html, /value="oldest"/);
+});
+
+test('chronology uses start rather than status or update, supports both directions and never mutates input', () => {
+  const older = Object.freeze({ ...item(), id:'old', startedAt:start, updatedAt:'2026-09-23T01:00:00Z' });
+  const newer = Object.freeze({ ...item(pull({ number:2, state:'closed', merged_at:end })), id:'new', startedAt:end, updatedAt:end });
+  const state = { syncStatus:'ok', autonomousIterations:Object.freeze([older, newer]) };
+  assert.deepEqual(iterationOverview(state).entries.map(({ item }) => item.id), ['new', 'old']);
+  assert.deepEqual(iterationOverview(state, { order:'oldest' }).entries.map(({ item }) => item.id), ['old', 'new']);
+  const changed = { ...state, autonomousIterations:[{ ...older, steps:[{ id:'merge', state:'problem' }] }, newer] };
+  assert.deepEqual(iterationOverview(changed).entries.map(({ item }) => item.id), ['new', 'old']);
+  assert.deepEqual(state.autonomousIterations.map(item => item.id), ['old', 'new']);
+});
+test('earliest recorded step is the explicit legacy fallback; update time never fabricates a start', () => {
+  assert.equal(iterationStartAt({ startedAt:start, steps:[{ startedAt:end }] }), start);
+  assert.equal(iterationStartAt({ startedAt:'invalid', steps:[{ startedAt:end }, { startedAt:start }] }), start);
+  assert.equal(iterationStartAt({ updatedAt:end, steps:[{ completedAt:end }] }), null);
+  const known={ ...item(), id:'known', startedAt:start }, unknown={ ...known, id:'unknown', startedAt:null, steps:[], updatedAt:end };
+  for (const order of ['newest', 'oldest']) {
+    assert.deepEqual(iterationOverview({ autonomousIterations:[unknown, known] }, { order }).entries.map(({ item }) => item.id), ['known', 'unknown']);
+  }
+});
+test('three sequential iterations and a parallel run retain identities in chronological order', () => {
+  const rows = [1, 2, 3].map(n => ({ ...item(), id:'run-a:'+n, runKey:'run-a', iteration:n, startedAt:`2026-09-22T0${n}:00:00Z` }));
+  rows.push({ ...rows[0], id:'run-b:1', runKey:'run-b', startedAt:'2026-09-22T02:30:00Z' });
+  assert.deepEqual(iterationOverview({ autonomousIterations:rows }, { order:'oldest' }).entries.map(({ item }) => item.id), ['run-a:1', 'run-a:2', 'run-b:1', 'run-a:3']);
+  const tied = rows.slice(0, 3).reverse().map(row => ({ ...row, startedAt:start }));
+  assert.deepEqual(iterationOverview({ autonomousIterations:tied }, { order:'oldest' }).entries.map(({ item }) => item.iteration), [1, 2, 3]);
+});
+test('chronology has machine-readable start and real merge times, without invented completion', () => {
+  const previous=globalThis.document; globalThis.document=fakeDocument();
+  try {
+    const row = renderIterationChronology({ startedAt:start, mergedAt:end });
+    assert.deepEqual(walk(row).filter(node=>node.tagName==='time').map(node=>node.dateTime), [start, end]);
+    assert.match(row.textContent, /開始/); assert.match(row.textContent, /develop反映/);
+    const legacy = renderIterationChronology({ updatedAt:end, steps:[] });
+    assert.match(legacy.textContent, /時刻未記録/); assert.doesNotMatch(legacy.textContent, /develop反映/);
+    assert.equal(walk(legacy).some(node=>node.dateTime), false);
+  } finally { globalThis.document=previous; }
+});
+test('overview order control changes the visible three records and carries order to details', () => {
+  const previous=globalThis.document; const doc=fakeDocument(); globalThis.document=doc;
+  try {
+    const rows=Array.from({ length:5 }, (_, n)=>({ ...item(), id:'row:'+n, startedAt:`2026-09-22T0${n}:00:00Z` }));
+    renderIterationSummary({ syncStatus:'ok', autonomousIterations:rows });
+    const cards = () => walk(doc.nodes['#rapid-iteration-list']).filter(node=>node.tagName==='article');
+    assert.deepEqual(cards().map(node=>node.dataset.iterationId), ['row:4', 'row:3', 'row:2']);
+    doc.querySelector('#rapid-iteration-order').events.change({ target:{ value:'oldest' } });
+    assert.deepEqual(cards().map(node=>node.dataset.iterationId), ['row:0', 'row:1', 'row:2']);
+    assert.match(cards()[0].children[0].href, /\?order=oldest#iteration=/);
+    assert.equal(doc.querySelector('#rapid-iteration-order').value, 'oldest');
+    assert.equal(walk(doc.nodes['#rapid-iteration-list']).find(node=>node.className==='iteration-all-link').href, './iterations.html?order=oldest');
+    doc.querySelector('#rapid-iteration-order').events.change({ target:{ value:'newest' } });
+  } finally { globalThis.document=previous; }
+});
+test('visible summary preserves recorded phase order and keeps After before final validation', () => {
+  const previous=globalThis.document; globalThis.document=fakeDocument();
+  try {
+    const ids=['observation','implementation','afterObservation','astraValidation','merge','devPublish'];
+    const row={ ...item(), steps:ids.map(id=>({ id, state:'done', durationMs:0 })) };
+    const card=renderIterationCard(row, { syncStatus:'ok' });
+    const labels=walk(card).filter(node=>node.className.startsWith('rapid-progress-label '));
+    assert.deepEqual(labels.map(node=>node.children[0].textContent), ['事前確認','修正','改善確認','最終検証','反映','公開']);
+    assert.equal(labels.every(node=>node.children[1].textContent==='0.0s'), true);
+  } finally { globalThis.document=previous; }
 });

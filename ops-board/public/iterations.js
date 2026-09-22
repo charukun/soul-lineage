@@ -1,7 +1,7 @@
 import { subscribe } from './view-state.js';
 import { buildIterationRepairPrompt } from './issue-repair-prompt.js';
 import { iterationOverview, iterationPresentation, iterationTimingSteps, iterationPhaseName, iterationGameName, iterationTitle } from './iteration-status.mjs';
-import { renderIterationStatus, ensureIterationStyles } from './iteration-summary.js';
+import { renderIterationStatus, renderIterationChronology, ensureIterationStyles } from './iteration-summary.js';
 import { progressStepDurationMs } from './progress-mini.js';
 
 const $ = selector => document.querySelector(selector);
@@ -18,7 +18,7 @@ const svgEl = (tag, attrs = {}) => {
 };
 const clock = value => {
   const ms = Date.parse(value || '');
-  return Number.isFinite(ms) ? new Intl.DateTimeFormat('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }).format(ms) : '未記録';
+  return Number.isFinite(ms) ? new Intl.DateTimeFormat('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' }).format(ms) : '未記録';
 };
 const duration = ms => {
   if (!Number.isFinite(ms)) return '未計測';
@@ -43,7 +43,7 @@ async function copyText(text) {
   } catch { return false; }
 }
 let currentState = null, currentError = null, gameFilter = 'all', statusFilter = 'all';
-const timingOpen = new Set();
+let order = new URLSearchParams(location.search).get('order') === 'oldest' ? 'oldest' : 'newest';
 let lastRevealed = null;
 function requestedId() {
   if (!location.hash.startsWith('#iteration=')) return null;
@@ -93,19 +93,17 @@ function createGraph(steps) {
   wrap.append(svg); return wrap;
 }
 function timingPanel(item, state) {
-  const panel = el('details', 'iteration-panel');
-  const key = item.id || 'pr:' + item.pr?.number;
-  panel.open = timingOpen.has(key);
-  panel.addEventListener('toggle', () => { if (panel.open) timingOpen.add(key); else timingOpen.delete(key); });
-  panel.append(el('summary', '', '工程・所要時間の詳細'));
-  panel.append(el('p', 'iteration-duration-help', '縦軸は所要時間です。未計測は推測せず、実行を確認できない工程の時計は進めません。'));
+  const panel = el('section', 'iteration-panel iteration-timeline-panel');
+  panel.append(el('h3', '', '工程の流れと記録時刻'));
+  panel.append(el('p', 'iteration-duration-help', '左から工程順 → 縦軸は所要時間です。下の記録は上から順に読めます。未計測は推測しません。'));
   const steps = iterationTimingSteps(item, state);
   panel.append(createGraph(steps));
-  const list = el('div', 'iteration-times');
+  const list = el('ol', 'iteration-step-history');
   const labels = { done:'完了', skipped:'対象外', running:'実行中', problem:'問題の記録', pending:'未記録', waiting:'実行未確認' };
   for (const step of steps) {
-    const node = el('div', 'iteration-time');
-    node.append(el('span', '', iterationPhaseName(step)), el('strong', '', duration(progressStepDurationMs(step))), el('span', '', labels[step.state] || '未確認'));
+    const node = el('li', 'iteration-step-entry ' + step.state);
+    node.append(el('strong', '', iterationPhaseName(step)), el('span', 'iteration-step-duration', duration(progressStepDurationMs(step))), el('span', 'iteration-step-state', labels[step.state] || '未確認'));
+    node.append(el('span', 'iteration-step-clock', '開始 ' + clock(step.startedAt) + ' → 終了 ' + clock(step.completedAt)));
     list.append(node);
   }
   panel.append(list); return panel;
@@ -135,10 +133,10 @@ function card(item, state) {
   const title = el('div'); const line = el('div', 'iteration-titleline');
   line.append(el('span', 'iteration-game', iterationGameName(item)), el('span', 'iteration-number', 'PR #' + (item.pr?.number || '?')));
   if (item.iteration) line.append(el('span', 'iteration-number', item.iteration + (item.iterations ? '/' + item.iterations : '') + '回目'));
+  line.append(el('span', 'iteration-status-badge ' + view.tone, view.label));
   title.append(line, el('h2', '', iterationTitle(item))); head.append(title);
-  article.append(head, renderIterationStatus(item, state));
-  const grid = el('div', 'iteration-grid');
-  grid.append(copyPanel(item, view), timingPanel(item, state)); article.append(grid);
+  article.append(head, renderIterationChronology(item), timingPanel(item, state), renderIterationStatus(item, state));
+  article.append(copyPanel(item, view));
   const meta = el('div', 'iteration-meta');
   meta.append(el('span', '', '最終記録 ' + clock(item.updatedAt)), el('span', '', '記録形式 ' + (item.telemetry === 'recorded' ? '実行記録' : '旧形式からの推定')));
   if (item.runKey) meta.append(el('span', '', '実行ID ' + item.runKey));
@@ -162,11 +160,11 @@ function render() {
   const root = $('#iteration-list');
   if (!currentState) { root.replaceChildren(el('div', 'iteration-empty', currentError ? '状態を取得できません。再読込してください。' : '改善記録を取得しています')); return; }
   const state = currentError ? { ...currentState, syncStatus:'degraded' } : currentState;
-  const { entries, counts } = iterationOverview(state);
+  const { entries, counts } = iterationOverview(state, { order });
   for (const key of ['running', 'waiting', 'problem', 'complete']) { const node = $('#iteration-' + key + '-count'); if (node) node.textContent = counts[key]; }
   $('#iteration-session-count').textContent = new Set(entries.map(({ item }) => item.runKey).filter(Boolean)).size;
   $('#iteration-updated-at').textContent = clock(state.generatedAt);
-  $('#iteration-sync-state').textContent = state.syncStatus === 'ok' ? '取得できた直近の改善記録です。取込済みはdevelopへの反映完了を表します。DEV公開・効果判定は別表示です。' : '最新状態は未確認です。保存された記録を表示しています。';
+  $('#iteration-sync-state').textContent = state.syncStatus === 'ok' ? '取得できた直近の改善記録を開始記録順に表示しています。日時未記録は末尾。取込済みはdevelopへの反映完了です。DEV公開・効果判定は別表示です。' : '最新状態は未確認です。保存された記録を表示しています。';
   const rows = entries.filter(({ item, view }) => (gameFilter === 'all' || item.game === gameFilter)
     && (statusFilter === 'all' || statusFilter === 'active' && view.status !== 'complete' || view.status === statusFilter));
   root.replaceChildren();
@@ -175,6 +173,8 @@ function render() {
   requestAnimationFrame(revealRequested);
 }
 ensureIterationStyles();
+$('#iteration-order').value = order;
+$('#iteration-order')?.addEventListener('change', event => { order = event.target.value === 'oldest' ? 'oldest' : 'newest'; render(); });
 $('#iteration-game-filter')?.addEventListener('change', event => { gameFilter = event.target.value; render(); });
 $('#iteration-status-filter')?.addEventListener('change', event => { statusFilter = event.target.value; render(); });
 window.addEventListener('hashchange', () => { lastRevealed = null; gameFilter = statusFilter = 'all'; $('#iteration-game-filter').value = $('#iteration-status-filter').value = 'all'; render(); });
