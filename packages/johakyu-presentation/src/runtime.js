@@ -496,6 +496,13 @@ function createDrivenPort(){
    a.flash=Math.max(0,a.flash-dt);for(const {mat,base,power} of a.mats){mat.emissive.copy(a.flash>0?new THREE.Color('#ffe7c4'):base);mat.emissiveIntensity=a.flash>0?1.7:power;}
   },
   impact(event,source,target){
+   if(event.type==='clash'){
+    const point=event.contactPoint,fallback=point?new V(point.x,Math.min(source?.height||target.height,target.height)*.58,point.z):target.pos.clone().add(new V(0,target.height*.58,0)),clash=source?bladeClashPoint(source,target,fallback):fallback,pan=spatialPan(clash);
+    syncContactPose(source,event.sourceContactProgress??.5,.04);syncContactPose(target,event.targetContactProgress??.5,.04);
+    if(source)source.parryRecoil={remaining:.18,duration:.18,side:-1};if(target)target.parryRecoil={remaining:.18,duration:.18,side:1};
+    burst(clash,12,'#fff0b8');sound.parry?.({pan,gain:.78,rate:1.04});game.hitstop=Math.max(game.hitstop,.038);game.cameraPunch=Math.max(game.cameraPunch,.012);game.shake=Math.max(game.shake,.01);kickCamera(source,target,.06);
+    record('canonical-clash',{attackId:event.attackId,otherAttackId:event.otherAttackId,sourceId:event.sourceId,targetId:event.targetId,contactPoint:point||null,contactDistance:event.contactDistance||null});return;
+   }
    if(['guard','parry'].includes(event.type)){
     const parry=event.type==='parry',strongParry=parry&&event.strongParry!==false,point=event.contactPoint;
     if(parry){syncContactPose(source,event.sourceContactProgress,strongParry?.095:.055);syncContactPose(target,event.defenseContactProgress,strongParry?.095:.055);}

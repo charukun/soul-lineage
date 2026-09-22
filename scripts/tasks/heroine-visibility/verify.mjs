@@ -2,6 +2,7 @@ import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {writeFile} from 'node:fs/promises';
 import {verifyFemaleProtagonistVisibility,heroineSavedWorkspaceFixture} from '../../../apps/character-studio/tests/female-protagonist-visibility.browser.mjs';
+// Re-run the unchanged runtime repair after following the real visible full-body control.
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 try {
  const fixture=heroineSavedWorkspaceFixture();

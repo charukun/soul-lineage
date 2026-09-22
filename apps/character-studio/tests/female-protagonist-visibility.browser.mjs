@@ -38,7 +38,10 @@ export async function verifyFemaleProtagonistVisibility(browser, baseURL, output
     await page.locator(`.character-model-card[data-model-key="${id}"]`).click();
     await page.waitForFunction(id=>window.masterCharacterReview?.ready&&window.masterCharacterReview.audit?.modelId===id,id,{timeout:90000});
   };
-  const camera=async name=>{await page.locator(`[data-camera="${name}"]`).first().click();};
+  const camera=async name=>{
+    // The simple catalog exposes overview as its native full-body button; the old technical button is hidden.
+    await page.locator(name==='overview'?'#frame-model':`[data-camera="${name}"]`).first().click();
+  };
   async function capture(name) {
     // Let the ordinary load feedback finish; never hide it or fix the model from the test.
     await page.waitForTimeout(3100);
@@ -85,6 +88,7 @@ export async function verifyFemaleProtagonistVisibility(browser, baseURL, output
     await select('protagonist.villager.female.v1');await camera('front');await capture('front');
     if(!expectBroken){
       for(const view of ['side','back','face']){await camera(view);await capture(view);}
+      await camera('overview');await capture('mobile-full-body');
       await select('kaykit.rogue.v1');await capture('rogue');
       await select('protagonist.villager.female.v1');await camera('front');await capture('reselected');
       await page.reload({waitUntil:'networkidle'});await page.waitForFunction(()=>window.masterCharacterReview?.ready&&window.characterStudio?.workspace,null,{timeout:90000});
