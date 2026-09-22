@@ -1,3 +1,4 @@
+import {resolveInspirationAnswer} from '@soul/game-data';
 import {combatBodyOutcome} from './choreography.js';
 import {resolveJohakyuMotion} from './motion-contract.js';
 import {spendActionStamina,staminaPolicyFor} from './stamina.js';
@@ -71,7 +72,7 @@ export function johakyuTechniqueCapability(actor,{stages=[],fromStage=0,weapon='
   for(let index=fromStage;index<stages.length;index++){
     const stage=stages[index]||{},cap=johakyuStageCapability(probe,{weapon:stage.weapon||weapon,phase:stage.phase||phase,kind:stage.kind,footwork:stage.footwork,charge:stage.charge,staminaCost:Number(stage.staminaCost)||0,requiresTwoHands:stage.requiresTwoHands??requiresTwoHands});
     rows.push(freeze({index,...cap}));if(!cap.allowed){blockedStageIndex=index;reason=cap.reason;break;}
-    spendActionStamina(probe,cap.stamina.effectiveCost);
+    if(cap.stamina.effectiveCost>0)spendActionStamina(probe,cap.stamina.effectiveCost);
   }
   const canStart=rows[0]?.allowed===true,canContinue=blockedStageIndex===null;
   return freeze({canStart,canContinue,blockedStageIndex,reason,remainingStamina:probe.stamina,remainingStaminaCap:probe.staminaCap,stages:freeze(rows)});
@@ -80,7 +81,7 @@ export function johakyuTechniqueCapability(actor,{stages=[],fromStage=0,weapon='
 /** Equipment/phase/technique/skill modifiers are applied exactly once here.
  * Adapters supply canonical skill effects; they do not redefine equipment or
  * injury rules. The body modifier remains owned by johakyuStageCapability. */
-export function johakyuEquippedStageRequest(actor,{weapon=actor?.equipment?.weapon||'sword',phase='jo',effort=1,staminaMultiplier=1,...stage}={}){
+export function johakyuEquippedStageRequest(actor,{weapon=actor?.equipment?.weapon||'sword',phase='jo',techniqueId=null,effort=Number(resolveInspirationAnswer(techniqueId)?.effort)||1,staminaMultiplier=1,...stage}={}){
   if(!Number.isFinite(effort)||effort<0||!Number.isFinite(staminaMultiplier)||staminaMultiplier<0)throw new TypeError('Invalid stamina modifier');
   const base=WEAPONS[actor?.equipment?.weapon||weapon]||WEAPONS.fist,armor=ARMORS[actor?.equipment?.armor]||ARMORS.cloth;
   const staminaCost=base.stamina*(PHASE_COST_SCALE[phase]||1)*effort*staminaMultiplier/Math.max(.5,armor.staminaScale);
@@ -103,9 +104,9 @@ export function beginJohakyuStage(actor,attempt,request={}){
   if(previous?.actor&&previous.actor!==actor)throw new Error('Stage attempt actor changed');
   if(previous?.cancelled)return freeze({allowed:false,reason:'interrupted',paid:0,capability:previous.receipt?.capability??null});
   if(previous?.receipt)return previous.receipt;
-  const capability=johakyuEquippedStageCapability(actor,request);
-  const allowed=capability.allowed&&spendActionStamina(actor,capability.stamina.effectiveCost);
-  const receipt=freeze({allowed,reason:allowed?null:capability.reason||'stamina',paid:allowed?capability.stamina.effectiveCost:0,capability});
+  const capability=johakyuEquippedStageCapability(actor,request),cost=capability.stamina.effectiveCost;
+  const allowed=capability.allowed&&(cost===0||spendActionStamina(actor,cost));
+  const receipt=freeze({allowed,reason:allowed?null:capability.reason||'stamina',paid:allowed?cost:0,capability});
   attempts.set(attempt,{actor,receipt,cancelled:false});return receipt;
 }
 export function cancelJohakyuStage(attempt){
