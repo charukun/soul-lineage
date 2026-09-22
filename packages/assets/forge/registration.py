@@ -19,6 +19,8 @@ def register_review(root):
     entries=[];imports=[]
     for path in sorted((root/'packages/assets/characters/forge').glob('*/manifest.json')):
         m=json.loads(path.read_text());directory=path.parent
+        # Transaction/recovery folders are never published as packages.
+        if directory.name!=m.get('id'):continue
         if m.get('validationStatus')!='passed' or m.get('reviewStatus')!='review-candidate':continue
         if digest((directory/m['model']['path']).read_bytes())!=m['model']['sha256']:raise ValueError('Model hash mismatch while registering '+m['id'])
         i=len(entries);relative='../characters/forge/'+directory.name+'/'

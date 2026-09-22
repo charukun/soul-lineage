@@ -26,6 +26,8 @@ test('Forge keeps observed views, exports real skin/clips, and registers only va
     assert.notEqual(wider.manifest.model.sha256,multi.manifest.model.sha256);
     const five=create('five',['front','front34','side','back34','back'].flatMap(v=>['--'+v,join(fixture,v+'.png')]));assert.equal(five.spec.reconstructionMode,'enhanced-multi-view');assert.ok(five.spec.textureProjection.sampleContributions.front34>0);
     assert.match(readFileSync(join(root,'packages/assets/generated/create-forge-registry.js'),'utf8'),/multi\/manifest/);
+    create('multi',['--front',join(fixture,'front.png'),'--side',join(fixture,'side.png'),'--back',join(fixture,'back.png'),'--replace']);
+    assert.doesNotMatch(readFileSync(join(root,'packages/assets/generated/create-forge-registry.js'),'utf8'),/previous/,'Atomic replace must not publish its temporary backup');
     assert.throws(()=>create('invalid',['--front',join(fixture,'front.png'),'--side',join(fixture,'side.png')]));
     assert.throws(()=>create('../escape',['--front',join(fixture,'front.png')]));
     const bytes=readFileSync(join(multi.path,'build/character.glb')),length=bytes.readUInt32LE(12),gltf=JSON.parse(bytes.subarray(20,20+length));

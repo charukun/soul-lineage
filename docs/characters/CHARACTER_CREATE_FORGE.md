@@ -58,7 +58,8 @@ The fifteen stages in `packages/assets/forge/pipeline.py` delegate to separate
 modules. Python/Pillow is an offline authoring adapter. Runtime modules live in
 `packages/assets/src/character-create-forge`; the package is a shared asset route.
 The existing Lab Character View is currently hosted by `apps/character-studio`.
-Its normal canvas, renderer, OrbitControls and shared `positionReviewCamera` are
+Its normal canvas, renderer, OrbitControls, shared `positionReviewCamera`, and
+`@soul/rendering/camera-director` / `applyCameraPresentation` are
 reused. No second application or camera director is introduced.
 
 ```
@@ -157,3 +158,5 @@ same audited package/schema and passes the same evidence, without changing games
 Prohibited: drop side/back; billboard-only geometry; fake clips; hand-register UI
 paths; infer rights; silently approve; replace Character25D; change normal game
 state; introduce a second camera director; weaken validation or Production gates.
+
+Reference comparisons submit an authored cut to the shared Camera Director (now on develop via PR #1490); the package camera subject supplies bounds, head/body/focus/ground anchors. Interactive orbit remains the existing Review control. No Forge camera director is implemented.

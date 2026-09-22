@@ -1,4 +1,5 @@
 import { Raycaster, Vector3 } from 'three';
+import { createForegroundInstanceProxies } from './foreground-instance-proxies.js';
 
 const cameraPosition = new Vector3();
 
@@ -76,9 +77,9 @@ function writeTargetPoint(targetWorld, point) {
 
 function sampleForegroundOccluders({ camera, point, occluderRoot, raycaster, direction, targetWorld, padding, matrixState }) {
   if (!camera || !point || !occluderRoot?.children?.length) return new Set();
-  if (matrixState.root !== occluderRoot) {
+  if (!matrixState.roots.has(occluderRoot)) {
     occluderRoot.updateWorldMatrix?.(true, true);
-    matrixState.root = occluderRoot;
+    matrixState.roots.add(occluderRoot);
   }
   camera.getWorldPosition(cameraPosition);
   writeTargetPoint(targetWorld, point);
@@ -92,7 +93,7 @@ function sampleForegroundOccluders({ camera, point, occluderRoot, raycaster, dir
   raycaster.far = Math.max(.01, distance - padding);
   const next = new Set();
   for (const hit of raycaster.intersectObjects(occluderRoot.children, true)) {
-    if (!hit?.object || hit.object.visible === false) continue;
+    if (!hit?.object || hit.object.visible === false || hit.object.isInstancedMesh || hit.object.userData?.occlusionFadeDisabled) continue;
     const object = topLevelOccluder(hit.object, occluderRoot);
     if (!object || object.visible === false || object.userData?.occlusionFadeDisabled) continue;
     next.add(object);
@@ -152,10 +153,10 @@ export function createForegroundOcclusionFader({
   targetPadding = .18,
 } = {}) {
   const raycaster = new Raycaster(), direction = new Vector3(), targetWorld = new Vector3();
-  const entries = new Map(), matrixState = { root: null };
+  const entries = new Map(), matrixState = { roots: new WeakSet() }, instances = createForegroundInstanceProxies();
   const fadedFactor = Math.min(.8, Math.max(.08, Number(fadedOpacity) || .28));
   const sampleEvery = Math.max(0, Number(sampleInterval) || 0), padding = Math.max(0, Number(targetPadding) || 0);
-  let activeRoots = new Set(), sampleClock = 0, sampled = false;
+  let activeRoots = new Set(), sampleClock = 0, sampled = false, occludedRatio = 0;
 
   const entryFor = object => {
     let entry = entries.get(object);
@@ -167,32 +168,66 @@ export function createForegroundOcclusionFader({
     for (const entry of entries.values()) entry.target = next.has(entry.object) ? fadedFactor : 1;
     for (const object of next) entryFor(object).target = fadedFactor;
   };
-  const snapshot = (transitioning = 0) => Object.freeze({ occluded: activeRoots.size, transitioning, tracked: entries.size });
+  const snapshot = (transitioning = 0) => Object.freeze({ occluded: activeRoots.size, transitioning, tracked: entries.size, occludedRatio, instanceProxies: instances.size });
   const clearSampling = () => { sampleClock = 0; sampled = false; };
+  const advance = delta => {
+    const transitioning = advanceFadeEntries(entries, delta, fadeSpeed, restoreSpeed);
+    for (const [object, entry] of entries) if (object.userData?.foregroundInstanceKey && entry.factor === 1 && entry.target === 1) {
+      disposeFadeEntry(entry); entries.delete(object); instances.release(object);
+    }
+    return snapshot(transitioning);
+  };
 
   return {
-    update({ camera, target: point, occluderRoot, enabled = true, dt = 0 } = {}) {
+    update({ camera, target: point, targets, occluderRoot, occluderRoots, instanceOccluders = [], enabled = true, dt = 0 } = {}) {
       const delta = Math.max(0, Number(dt) || 0);
       if (!enabled) {
-        clearSampling();
+        clearSampling(); occludedRatio = 0;
         if (activeRoots.size) updateTargets(new Set());
-        return snapshot(advanceFadeEntries(entries, delta, fadeSpeed, restoreSpeed));
+        return advance(delta);
       }
       sampleClock += delta;
       if (!sampled || sampleEvery === 0 || sampleClock >= sampleEvery) {
-        updateTargets(sampleForegroundOccluders({ camera, point, occluderRoot, raycaster, direction, targetWorld, padding, matrixState }));
+        matrixState.roots = new WeakSet();
+        const samples = (targets?.length ? targets : [point]).filter(Boolean).slice(0, 8);
+        const roots = (occluderRoots || [occluderRoot]).filter(Boolean), next = new Set();
+        let blockedSamples = 0;
+        instances.prepareSampling();
+        for (const sample of samples) {
+          let blocked = false;
+          for (const root of roots) {
+            const hits = sampleForegroundOccluders({ camera, point: sample, occluderRoot: root, raycaster, direction, targetWorld, padding, matrixState });
+            if (hits.size) blocked = true;
+            for (const object of hits) next.add(object);
+          }
+          if (camera && instanceOccluders.length) {
+            camera.getWorldPosition(cameraPosition); writeTargetPoint(targetWorld, sample);
+            direction.copy(targetWorld).sub(cameraPosition); const distance = direction.length();
+            if (distance > padding + .01) {
+              raycaster.camera = camera; raycaster.set(cameraPosition, direction.multiplyScalar(1 / distance)); raycaster.near = .01; raycaster.far = distance - padding;
+              for (const hit of raycaster.intersectObjects(instanceOccluders, false)) {
+                if (!hit.object.visible || hit.object.userData?.occlusionFadeDisabled) continue;
+                const proxy = instances.proxyFor(hit.object, hit.instanceId);
+                if (proxy) { next.add(proxy); blocked = true; }
+              }
+            }
+          }
+          if (blocked) blockedSamples++;
+        }
+        occludedRatio = samples.length ? blockedSamples / samples.length : 0;
+        updateTargets(next); instances.maskSources();
         sampled = true; sampleClock = 0;
       }
-      return snapshot(advanceFadeEntries(entries, delta, fadeSpeed, restoreSpeed));
+      return advance(delta);
     },
     revealAll() {
       activeRoots = new Set(); clearSampling();
       for (const entry of entries.values()) resetFadeEntry(entry);
-      return snapshot(0);
+      occludedRatio = 0; return advance(0);
     },
     dispose() {
       for (const entry of entries.values()) disposeFadeEntry(entry);
-      entries.clear(); activeRoots = new Set(); clearSampling(); matrixState.root = null;
+      entries.clear(); instances.dispose(); activeRoots = new Set(); occludedRatio = 0; clearSampling(); matrixState.roots = new WeakSet();
     },
     snapshot,
   };
