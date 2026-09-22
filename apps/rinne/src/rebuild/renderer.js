@@ -10,12 +10,12 @@ import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createRinneCharacterStage } from './runtime-character-stage.js';
 import { buildInteriors } from './locations.js';
 import { renderPixelRatio, targetFpsForView } from './performance.js';
-import { cameraOffsetForPosition, createCameraPositionControl } from './camera-position-control.js';
+import {createSnapCameraControl} from '@soul/rendering/snap-camera-control';
 import { rinneCombatCameraFrame } from './combat-camera.js';
 import { createRinnePresentationCamera } from './presentation-camera.js';
 import { createMiniatureFocus } from './miniature-focus.js';
 import { createMiniatureLighting, createActorContactShadows } from './miniature-lighting.js';
-import './camera-position-control.css';
+import '@soul/rendering/snap-camera-control.css';
 
 const disposeObject=root=>root?.traverse?.(o=>{if(o.geometry?.dispose)o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.dispose)m.dispose();});
 
@@ -146,7 +146,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     canvas.dataset.titleBeat=normalized<.18?'world':normalized<.38?'life':normalized<.58?'battle':normalized<.76?'years':normalized<.90?'rebirth':'legacy';
     return {position:{x:desired.x,y:desired.y,z:desired.z},lookTarget:{x:target.x,y:target.y,z:target.z},fov:nextFov,label:normalized>=1?'title-living-still':'title-cinematic'};
   }
-  const cameraControl=createCameraPositionControl({document:doc,container:canvas.parentElement,onChange:position=>{camOffset.set(...cameraOffsetForPosition(position));canvas.dataset.cameraPosition=String(Math.round(position*100));}});
+  const cameraControl=createSnapCameraControl({document:doc,container:canvas.parentElement,initialZoom:1,minZoom:.64,maxZoom:1.48,onChange:state=>{presentationCamera.setUserView({yawOffset:state.yaw,zoom:state.zoom});canvas.dataset.cameraStep=String(state.index);canvas.dataset.cameraZoom=state.zoom.toFixed(2);}});
   const viewport={width:1,height:1},focusPoint=new THREE.Vector3();
   function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);viewport.width=w;viewport.height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();focusEffect.resize();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
@@ -176,7 +176,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     const village=state.zone==='village',inside=village&&!!state.interior,titleFrame=Boolean(titlePreview&&village&&!inside),baseSpace=inside?`interior:${state.interior.buildingId}`:state.zone,space=titleFrame?'title-preview':baseSpace;
     root.visible=village&&!inside;interiorRoot.visible=inside;skirmishRoot.visible=village&&!inside;frontRoot.visible=state.zone==='frontier';scene.background=inside?indoorSky:outdoorSky;
     for(const [id,g] of interiorGroups)g.visible=inside&&id===state.interior?.buildingId;
-    const combatFrame=!titleFrame&&state.zone==='frontier'?rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat}):null;cameraControl.setCombat(!!combatFrame);canvas.dataset.combatCamera=String(!!combatFrame);canvas.dataset.worldSpace=space;canvas.dataset.villageThreats=String(skirmishRenderer.current()?.hostiles?.filter(row=>!row.dead).length||0);
+    const combatFrame=!titleFrame&&state.zone==='frontier'?rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat}):null;cameraControl.setEnabled(!titleFrame&&!inside);canvas.dataset.combatCamera=String(!!combatFrame);canvas.dataset.worldSpace=space;canvas.dataset.villageThreats=String(skirmishRenderer.current()?.hostiles?.filter(row=>!row.dead).length||0);
     const titleShot=titleFrame?applyTitlePreviewCamera(state,titleTime,titleIdleTime):null;
     const targetEnemy=combatFrame?(currentFront?.enemies||[]).find(enemy=>!enemy.dead&&enemy.id===state.combat?.targetId)||(currentFront?.enemies||[]).filter(enemy=>!enemy.dead).sort((a,b)=>Math.hypot(a.x-state.position.x,a.z-state.position.z)-Math.hypot(b.x-state.position.x,b.z-state.position.z))[0]:null;
     const cameraFrame=presentationCamera.update({state,dt,inside,titleFrame,titleShot,combatFrame,offset:camOffset,targetEnemy});
