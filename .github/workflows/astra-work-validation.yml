@@ -9,6 +9,7 @@ on:
       - 'work/**'
       - 'dispatch/**'
       - 'chore/**'
+      - develop
 
 permissions:
   contents: read
@@ -19,6 +20,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  cleanup-routine-ref:
+    if: ${{ github.ref == 'refs/heads/develop' && contains(github.event.head_commit.message, '/routine/txn-') }}
+    name: Cleanup merged routine transport ref
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: write
+    steps:
+      - name: Delete merged routine head ref
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          (async()=>{
+            const api=process.env.GITHUB_API_URL, repo=process.env.GITHUB_REPOSITORY, sha=process.env.GITHUB_SHA;
+            const headers={authorization:`Bearer ${process.env.GITHUB_TOKEN}`,'accept':'application/vnd.github+json','x-github-api-version':'2022-11-28'};
+            const prs=await fetch(`${api}/repos/${repo}/commits/${sha}/pulls`,{headers});
+            if(!prs.ok)throw new Error(`associated PR lookup failed: ${prs.status} ${await prs.text()}`);
+            const rows=await prs.json();
+            const pr=rows.find(row=>row.merged_at&&row.base?.ref==='develop'&&String(row.head?.ref||'').startsWith('routine/txn-'));
+            if(!pr){console.log('No merged routine transport ref to clean.');return;}
+            const ref=String(pr.head.ref);
+            const res=await fetch(`${api}/repos/${repo}/git/refs/heads/${encodeURIComponent(ref)}`,{method:'DELETE',headers});
+            if(res.status!==204&&res.status!==422&&res.status!==404)throw new Error(`ref delete failed: ${res.status} ${await res.text()}`);
+            console.log(`Routine transport ref cleanup: ${ref} -> ${res.status}`);
+          })().catch(error=>{console.error(error);process.exit(1);});
+          NODE
+
   focused:
     if: ${{ contains(github.event.head_commit.message, '[astra-validate]') && contains(github.event.head_commit.message, '[astra-heavy-validation]') }}
     name: Final-head focused validation
