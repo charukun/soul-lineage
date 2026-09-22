@@ -261,7 +261,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.31');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.33');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -379,14 +379,25 @@ test('battle2 technique menu exposes six combos and all sword combat forms backe
  const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8');assert.match(ui,/連技一覧/);assert.match(ui,/基本技一覧/);assert.match(ui,/BATTLE2_COMBO_PRESETS/);assert.match(ui,/BATTLE2_TECHNIQUE_CATALOG/);
 });
 
-test('序破急 slots accept either combo references or basic techniques and basic forms follow the equipped weapon',()=>{
- const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),catalog=readFileSync(new URL('../src/nocturne/battle2-technique-catalog.js',import.meta.url),'utf8');
- assert.match(ui,/value\.technique\[techniqueTarget\]=battle2ComboSelection\(id\)/);assert.match(ui,/value\.technique\[techniqueTarget\]=id/);assert.match(catalog,/battle2SelectionTechnique/);assert.match(catalog,/chosen\.startsWith\('basic\.'\)\?'basic\.'\+weapon/);assert.match(source,/battle2SelectionTechnique\(config\.technique\[phase\],phase,\{weapon\}\)/);
+test('序破急 slots accept either combo chains or basic techniques and combo cards expose their 1-3 members',()=>{
+ const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),catalog=readFileSync(new URL('../src/nocturne/battle2-technique-catalog.js',import.meta.url),'utf8'),sharedCss=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.css',import.meta.url),'utf8');
+ assert.match(ui,/loadout-technique-tabs/);assert.match(ui,/loadout-combo-card/);assert.match(ui,/loadout-combo-members/);assert.match(ui,/techniqueTab==='combo'/);assert.match(ui,/基本技一覧/);
+ assert.match(catalog,/techniques:chain/);assert.match(catalog,/battle2SelectionTechniques/);assert.match(catalog,/chosen\.slice\(0,3\)/);assert.match(source,/battle2SelectionTechniques\(config\.technique\[phase\],\{weapon\}\)/);assert.match(source,/runtimeIds\.map/);
+ assert.match(sharedCss,/\.loadout-combo-list\{display:grid!important;grid-template-columns:1fr!important/);assert.match(sharedCss,/\.loadout-combo-members\{display:grid!important;grid-template-columns:repeat\(3/);
 });
-test('physical hit tuning starts attacks in blade range and keeps rig contact tolerant',()=>{
+test('physical hit detection continuously sweeps real weapon history and has a bounded visual-contact assist',()=>{
  const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
- assert.match(source,/FIGHTING_SPACING=1\.62/);assert.match(source,/DEEP_ENTRY_SPACING=1\.5/);assert.match(source,/ENGAGE_DISTANCE=1\.82/);assert.match(source,/Math\.min\(2\.04/);assert.match(runtime,/BODY_CONTACT_SKIN=\.18/);assert.match(runtime,/Math\.abs\(progress-expected\)>\.44/);assert.match(runtime,/\.9375,1\]/);
+ assert.match(source,/FIGHTING_SPACING=1\.54/);assert.match(source,/DEEP_ENTRY_SPACING=1\.46/);assert.match(source,/ENGAGE_DISTANCE=1\.7/);assert.match(source,/Math\.min\(1\.86/);
+ assert.match(runtime,/BODY_CONTACT_SKIN=\.22/);assert.match(runtime,/BODY_CONTACT_ASSIST=\.2/);assert.match(runtime,/WEAPON_TRACE_HISTORY=5/);assert.match(runtime,/trace\?\.axis\?\?weaponAxis\(source\)/);assert.match(runtime,/history\.length>1/);assert.match(runtime,/weapon-body-sweep-assist/);
 });
+test('selected 序破急 skills own their canonical motion, effects and sound presentation',()=>{
+ const catalog=readFileSync(new URL('../src/nocturne/battle2-technique-catalog.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),contract=readFileSync(new URL('../../../packages/johakyu-presentation/src/technique-presentation.js',import.meta.url),'utf8'),manifest=JSON.parse(readFileSync(new URL('../src/nocturne/manifest.json',import.meta.url),'utf8')),clips=new Set(manifest.models['adventurers/Knight'].animations);
+ assert.match(catalog,/resolveTechniquePresentation/);assert.match(catalog,/battle2TechniquePresentation/);for(const clip of ['1H_Melee_Attack_Stab','1H_Melee_Attack_Chop','1H_Melee_Attack_Slice_Horizontal','1H_Melee_Attack_Slice_Diagonal','2H_Melee_Attack_Stab','2H_Melee_Attack_Spinning','2H_Melee_Attack_Chop','2H_Melee_Attack_Slice'])assert.ok(clips.has(clip),clip);
+ assert.match(source,/battle2TechniquePresentation\(node\.technique/);assert.match(source,/presentation,presentationClip/);assert.match(source,/rows\[phase\]\.map\(\(\[id\]\)=>id\)\.join\('\+'\)/);
+ assert.match(runtime,/emitTechniqueExecuteFx/);assert.match(runtime,/action\.presentation\?\.sfx\?\.swing/);assert.match(runtime,/presentation\?\.vfx\?\.impact/);assert.match(runtime,/sound\.impact\?\.\(\{pan,heavy,counter:Boolean\(event\.counter\),gain:/);
+ assert.match(contract,/vfx:\{insight:/);assert.match(contract,/sfx:\{prepare:/);assert.match(contract,/camera:\{preset:/);
+});
+
 test('battle2 and 百年転生 share the same captionless 心技体装 buttons and post-tap menu primitives',()=>{
  const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),stage=stageSource(),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8'),sharedFour=readFileSync(new URL('../../../packages/shared-ui/src/rinne-primary-four.js',import.meta.url),'utf8'),sharedMenu=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.js',import.meta.url),'utf8'),sharedMenuCss=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.css',import.meta.url),'utf8');
  assert.match(ui,/rinnePrimaryFourMarkup/);assert.match(ui,/rinneLoadoutPanelMarkup/);assert.match(ui,/createRinneLoadoutSlot/);assert.match(ui,/createRinneLoadoutGridItem/);assert.match(ui,/@soul\/shared-ui\/rinne-loadout-menu\.css/);
