@@ -1,7 +1,5 @@
 import {rinnePrimaryFourMarkup} from '@soul/shared-ui/rinne-primary-four';
 import {createRinneLoadoutGridItem,createRinneLoadoutGridSection,createRinneLoadoutSlot,createRinneLoadoutSlotRow,createRinneMenuLead,rinneLoadoutPanelMarkup,rinneSkillSigilKind,rinneSkillSigilMarkup} from '@soul/shared-ui/rinne-loadout-menu';
-import '@soul/shared-ui/rinne-primary-four.css';
-import '@soul/shared-ui/rinne-loadout-menu.css';
 import {BATTLE2_COMBO_PRESETS,BATTLE2_TECHNIQUE_CATALOG,battle2ComboSelection,battle2SelectionAllowed,battle2SelectionLabel,battle2TechniqueLabel} from './battle2-technique-catalog.js';
 
 const STORAGE_KEY='battle2.loadout.v1';

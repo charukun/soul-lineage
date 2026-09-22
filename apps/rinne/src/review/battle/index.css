@@ -455,3 +455,18 @@ main.battle-review.review-surface .camera-zoom button{
 /* Shared compact snap camera owns the top-left camera gesture. Keep battle loadout clear of it. */
 main.battle-review.review-surface .stage>.technique-loadout{left:60px!important}
 main.battle-review.review-surface .camera-zoom{display:none!important}
+
+
+/* Canonical /review-battle camera control: keep it visible and independent from the body HUD. */
+.battle-camera-control-host{
+  position:absolute;z-index:40;
+  top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));
+  width:46px;height:46px;pointer-events:auto;
+}
+.battle-camera-control-host>.snap-camera-control{
+  position:relative!important;left:auto!important;top:auto!important;
+  width:46px;height:46px;display:grid!important;visibility:visible!important;opacity:1!important;
+}
+.stage[data-inspiration-beat]>.battle-camera-control-host{
+  opacity:1!important;pointer-events:auto!important;filter:none!important;
+}

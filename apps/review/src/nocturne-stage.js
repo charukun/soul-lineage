@@ -1,6 +1,8 @@
 import {BATTLE2_VERSION} from './battle2-version.js';
 import {createBattle2BodyHud} from './battle2-body-hud.js';
 import {createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
+import '@soul/shared-ui/rinne-primary-four.css';
+import '@soul/shared-ui/rinne-loadout-menu.css';
 
 const stage=document.querySelector('[data-review-surface="battle2"]');
 const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects'),versionNode=document.getElementById('battle2-version'),startButton=document.getElementById('battle2-start');
