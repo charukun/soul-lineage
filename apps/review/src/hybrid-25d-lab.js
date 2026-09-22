@@ -3,6 +3,8 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import './hybrid-25d-lab.css';
 import {createSprite25dActor} from '@soul/assets/sprite25d/three';
+import {createCharacter25DActor} from '@soul/assets/character25d/three';
+import {createCharacter25DPlayground} from './character25d-playground.js';
 
 const MODEL_URL='./library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb';
 const VIEW_PRESETS=Object.freeze({
@@ -90,6 +92,8 @@ function createHybridPreview(canvas,onStatus){
   const modelGroup=new THREE.Group();modelGroup.position.set(-1.2,0,0);scene.add(modelGroup);
   const loader=new GLTFLoader();let modelRoot=null,mixer=null,modelReady=false;
   let spriteActor=null,destroyed=false,imageRevision=0;
+  const playground=createCharacter25DPlayground({THREE,scene,camera,canvas,getActor:()=>spriteActor});
+  canvas.character25dSnapshot=()=>spriteActor?.snapshot?.()||null;
   loader.load(new URL(MODEL_URL,location.href).href,gltf=>{
     if(destroyed){gltf.scene.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)});return;}
     modelRoot=gltf.scene;modelGroup.add(modelRoot);
@@ -118,17 +122,17 @@ function createHybridPreview(canvas,onStatus){
     card.position.y=(card.scale.y*.5)+(idleMotion?Math.sin(t*2.2)*.018:0);
     if(billboard){const dx=camera.position.x-cardGroup.position.x,dz=camera.position.z-cardGroup.position.z;cardGroup.rotation.y=Math.atan2(dx,dz)}else cardGroup.rotation.y=0;
     controls.update();
-    if(spriteActor){spriteActor.object.position.copy(cardGroup.position);spriteActor.update({camera,delta,billboard});}
+    if(spriteActor){if(spriteActor.proxy){playground.update(delta);}else spriteActor.object.position.copy(cardGroup.position);spriteActor.update({camera,delta,billboard});}
     renderer.render(scene,camera);raf=requestAnimationFrame(frame);
   };frame();
 
   return{
     async setCharacter(bundle){
-      const revision=++imageRevision,next=await createSprite25dActor(THREE,bundle);
+      const revision=++imageRevision,next=await (bundle.schema==='rinne.character25d/v2'?createCharacter25DActor(THREE,bundle,{canMoveTo:playground.canMoveTo,sampleGround:playground.sampleGround}):createSprite25dActor(THREE,bundle));
       if(destroyed||revision!==imageRevision){next.dispose();return;}
-      spriteActor?.dispose();spriteActor=next;scene.add(next.object);card.visible=false;next.setOpacity(arrangement==='overlay'?.74:1);
+      spriteActor?.dispose();spriteActor=next;scene.add(next.object);card.visible=false;shadow.visible=false;next.setTransform?.({x:cardGroup.position.x,y:0,z:cardGroup.position.z},0);next.setOpacity(arrangement==='overlay'?.74:1);playground.activate();
     },
-    clearCharacter(){imageRevision++;spriteActor?.dispose();spriteActor=null;card.visible=true;},
+    clearCharacter(){imageRevision++;spriteActor?.dispose();spriteActor=null;card.visible=true;shadow.visible=true;},
     setSpritePreview(action,direction){spriteActor?.setPreview(action,direction);},
     async setImage(file){
       const revision=++imageRevision,url=URL.createObjectURL(file);
@@ -140,19 +144,19 @@ function createHybridPreview(canvas,onStatus){
       }finally{URL.revokeObjectURL(url)}
     },
     setBillboard(value){billboard=Boolean(value)},
-    setProxy(value){proxy.visible=Boolean(value)},
+    setProxy(value){proxy.visible=Boolean(value)&&!spriteActor?.proxy;spriteActor?.setDebug?.(value)},
     setIdle(value){idleMotion=Boolean(value)},
     setArrangement(value){
       arrangement=value==='overlay'?'overlay':'split';
       if(arrangement==='overlay'){modelGroup.position.set(-.12,0,-.12);cardGroup.position.set(.12,0,.12);cardMaterial.opacity=.74}
       else{modelGroup.position.set(-1.2,0,0);cardGroup.position.set(1.2,0,0);cardMaterial.opacity=1}
-      cardMaterial.transparent=true;spriteActor?.setOpacity(cardMaterial.opacity);
+      cardMaterial.transparent=true;spriteActor?.setOpacity(cardMaterial.opacity);spriteActor?.setTransform?.({x:cardGroup.position.x,y:0,z:cardGroup.position.z},0);
     },
     setView(name){
       const angle=VIEW_PRESETS[name]??VIEW_PRESETS.quarter;const radius=5.7;camera.position.set(Math.sin(angle)*radius,2.55,Math.cos(angle)*radius);controls.target.set(0,.85,0);controls.update();
     },
-    getState(){return{modelReady,billboard,idleMotion,arrangement,spriteStatus:spriteActor?.getStatus()||null}},
-    destroy(){if(destroyed)return;destroyed=true;imageRevision++;spriteActor?.dispose();cancelAnimationFrame(raf);controls.dispose();renderer.dispose();groundTexture.dispose();ground.geometry.dispose();disposeMaterial(ground.material);grid.geometry.dispose();disposeMaterial(grid.material);card.geometry.dispose();disposeMaterial(card.material);shadow.geometry.dispose();disposeMaterial(shadow.material);proxy.geometry.dispose();disposeMaterial(proxy.material);if(modelRoot)modelRoot.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)})}
+    getState(){return{modelReady,billboard,idleMotion,arrangement,spriteStatus:spriteActor?.getStatus()||null,actor:spriteActor?.snapshot?.()||null}},
+    destroy(){if(destroyed)return;destroyed=true;imageRevision++;playground.dispose();delete canvas.character25dSnapshot;spriteActor?.dispose();cancelAnimationFrame(raf);controls.dispose();renderer.dispose();groundTexture.dispose();ground.geometry.dispose();disposeMaterial(ground.material);grid.geometry.dispose();disposeMaterial(grid.material);card.geometry.dispose();disposeMaterial(card.material);shadow.geometry.dispose();disposeMaterial(shadow.material);proxy.geometry.dispose();disposeMaterial(proxy.material);if(modelRoot)modelRoot.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)})}
   };
 }
 
@@ -160,16 +164,16 @@ export function mountHybrid25dLab(){
   const anchor=document.querySelector('.hi3dgen-lab')||document.querySelector('.lab-layout');if(!anchor)return;
   const section=el('section','lab-section hybrid25d-lab');
   section.innerHTML=`
-    <div class="section-head"><div><span>HYBRID RENDER TEST</span><h2>2.5D × 3D 共存ビュー</h2></div><small>same world · same camera · same scale</small></div>
+    <div class="section-head"><div><span>CHARACTER PLAYGROUND</span><h2>2.5D × 3D 共存ビュー</h2></div><small>same world · same camera · same scale</small></div>
     <div class="hybrid25d-grid">
       <div class="hybrid25d-controls">
-        <label class="hybrid25d-upload"><input type="file" accept="image/png,image/jpeg,image/webp"><b>2Dキャラ画像を選ぶ</b><span>透過PNG推奨。端末内の絵をそのまま3D空間へ置きます。</span></label>
+        <details class="character25d-legacy-render"><summary>従来表示の詳細</summary><label class="hybrid25d-upload"><input type="file" accept="image/png,image/jpeg,image/webp"><b>2Dキャラ画像を選ぶ</b><span>透過PNG推奨。端末内の絵をそのまま3D空間へ置きます。</span></label>
         <div class="hybrid25d-switches">
           <label><input type="checkbox" data-billboard checked><span>カメラ追従</span></label>
           <label><input type="checkbox" data-idle checked><span>微動（単一画像）</span></label>
           <label><input type="checkbox" data-proxy><span>3D proxy表示</span></label>
         </div>
-        <div class="hybrid25d-arrange"><button type="button" data-arrange="split" aria-pressed="true">並べる</button><button type="button" data-arrange="overlay" aria-pressed="false">重ね比較</button></div>
+        </details><div class="hybrid25d-arrange"><button type="button" data-arrange="split" aria-pressed="true">並べる</button><button type="button" data-arrange="overlay" aria-pressed="false">重ね比較</button></div>
         <div class="hybrid25d-views" aria-label="camera presets"><button type="button" data-view="front">正面</button><button type="button" data-view="quarter">斜め</button><button type="button" data-view="side">横</button><button type="button" data-view="back">背面</button></div>
         <output class="hybrid25d-status" data-status data-stage="loading">3Dモデルを読み込み中</output>
         <p class="hybrid25d-note">左が既存3D、右が2.5D。地面・カメラ・照明・接地影を共有し、混在した時の違和感を先に見ます。</p>
@@ -199,3 +203,4 @@ export function mountHybrid25dLab(){
   addEventListener('pagehide',()=>preview.destroy(),{once:true});
   return {section,preview};
 }
+

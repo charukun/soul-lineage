@@ -40,6 +40,10 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   const canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
   await progress('景色を描いています');
   const view=installLocomotionPresentation({view:await createWorldRenderer({canvas,document,layout,stations,buildInfo}),canvas,document});
+  if(['dev','local'].includes(environment)&&['actor','shino'].includes(new URLSearchParams(location.search).get('character25d'))){
+    const {installShino25dGuest}=await import('./shino25d-guest.js');
+    installShino25dGuest(view,{environment,canvas});
+  }
   await progress('旅人を迎えています');
   const preview=placeState(createLife({name:'旅人',seed:0x51f15e,villageIds:[layout.id]}),layout);
   view.syncFront(null);view.syncSkirmish(null);view.renderState(preview,.016,{titlePreview:true,titleTime:0,titleIdleTime:0});canvas.dataset.runtime='prepared';
