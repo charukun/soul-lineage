@@ -49,11 +49,19 @@
       "dependencies": []
     },
     {
-      "id": "exact-head-actions-validation",
+      "id": "connector-native-routine-proof",
       "state": "required-currently",
       "removable": true,
-      "compensatesFor": "Routine Fast DEV still needs one hosted exact-head repository-safety/freshness receipt, even when no behavioral test, build, startup check, or browser observation runs.",
-      "detachWhen": "The execution model natively provides trustworthy exact-source execution and validation receipts without a separate hosted CI pass.",
+      "compensatesFor": "Routine Fast DEV needs exact-source and concurrency safety without hosted-runner latency or redundant branch/PR state transitions. The final commit can be constructed transactionally before any branch exists, then exposed once for PR merge.",
+      "detachWhen": "GitHub or the runtime provides a single transactional create-change-and-merge primitive with equivalent exact-byte identity, concurrency safety, and review provenance.",
+      "dependencies": []
+    },
+    {
+      "id": "exact-head-actions-validation",
+      "state": "heavy-only",
+      "removable": true,
+      "compensatesFor": "Explicit heavy/specialist work still needs hosted exact-head execution for tests, builds, browser/DCC/asset processing, and contract changes; routine source-safety proof is connector-native.",
+      "detachWhen": "No remaining heavy/specialist task requires a separate hosted repository execution environment.",
       "dependencies": []
     },
     {
@@ -98,9 +106,7 @@
       "removable": true,
       "compensatesFor": "Concurrent repository changes can invalidate a previously validated head or overlap its affected scope.",
       "detachWhen": "The model/repository runtime natively maintains transactional source consistency across concurrent changes without explicit freshness choreography.",
-      "dependencies": [
-        "exact-head-actions-validation"
-      ]
+      "dependencies": []
     }
   ]
 }
