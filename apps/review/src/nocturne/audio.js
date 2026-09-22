@@ -9,4 +9,9 @@ export const BATTLE2_SOUND_SAMPLES=Object.freeze({
   footstep:'/library/audio/kenney/footstep-00/7ea335755952eb5570f72d9581d1dfce6536d6b9.ogg',
 });
 
-export function createNocturneSound(doc=document){return createSharedNocturneSound(doc,{samples:BATTLE2_SOUND_SAMPLES});}
+export function createNocturneSound(doc=document){
+  const sound=createSharedNocturneSound(doc,{samples:BATTLE2_SOUND_SAMPLES});
+  // Keep canonical stamina and the authored fatigue pose, but do not play the
+  // looped human panting sample in the battle review.
+  return Object.freeze({...sound,fatigue(){}});
+}

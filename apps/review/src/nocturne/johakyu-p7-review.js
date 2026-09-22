@@ -431,7 +431,12 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
       }
       const counterWindow=counterWindows.get(source.id),countered=(state.reactionKind==='counter'||stateKind(state)==='counter')&&counterWindow?.against===target.id&&time<=counterWindow.until;
       const dealtDamage=countered?Math.round(damage*1.18):damage;
-      const eventId=`${action.id}:${source.id}:${target.id}:impact`,result=applyJohakyuImpactOnce(battle,{eventId,attackId:action.id,sourceId:source.id,targetId:target.id,damage:dealtDamage,phase:action.phase});
+      // In the review loop, a landed 急 against an already worn-down opponent is the
+      // decisive body strike. The canonical domain still owns damage, injury and death;
+      // this only selects its existing finisher phase so encounters actually resolve.
+      const decisive=action.phase==='kyu'&&target.hp/Math.max(1,target.maxHp)<=.5;
+      const resolvedDamage=decisive?Math.max(dealtDamage,target.maxHp*.38):dealtDamage;
+      const eventId=`${action.id}:${source.id}:${target.id}:impact`,result=applyJohakyuImpactOnce(battle,{eventId,attackId:action.id,sourceId:source.id,targetId:target.id,damage:resolvedDamage,part:decisive?'torso':null,phase:decisive?'finisher':action.phase});
       if(!result.applied)continue;state.outcome='hit';if(countered)counterWindows.delete(source.id);
       const deepHit=isDeepJohakyuExchangeHit({damage:result.dealt,maxHp:target.maxHp,outcome:{incapacitated:result.incapacitated}}),exchange=updateExchange(source,target,{type:'hit',phase:action.phase,deep:deepHit});state.exchangeContinuity=exchange.continuity;
       const event=freeze({id:eventId,type:source.side==='party'?'player-hit':'enemy-hit',attackId:action.id,sourceId:source.id,targetId:target.id,damage:result.dealt,phase:action.phase,counter:countered,deepHit,exchangeMode:exchange.mode,exchangeContinuity:exchange.continuity,initiativeId:exchange.initiativeId,
