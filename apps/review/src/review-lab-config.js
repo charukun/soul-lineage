@@ -10,6 +10,7 @@ export const REVIEW_DEV=Object.freeze({
 
 export const REVIEW_ROUTES=Object.freeze({
   ...createReviewRoutes({rinneBase:REVIEW_DEV.rinne,charactersBase:REVIEW_DEV.characters}),
+  hybrid25d:new URL('./review-hybrid-25d',location.href).href,
   battle2:new URL('./battle2',location.href).href,
   battlebk:new URL('./battlebk',location.href).href,
   rinne:REVIEW_DEV.rinne,

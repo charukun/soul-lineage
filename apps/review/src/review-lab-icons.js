@@ -8,6 +8,7 @@ export const REVIEW_MENU_ICONS=Object.freeze({
   battle:'<path d="m7 4 10 16M17 4 7 20"/><path d="m5 4 4 1-2 3M19 4l-4 1 2 3"/>',
   battle2:'<circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/><path d="M7.2 12h2.6M14.2 12h2.6"/>',
   battlebk:'<path d="m6 5 5 5-5 9M18 5l-5 5 5 9"/><path d="M4 5h4M16 5h4"/>',
+  hybrid25d:'<rect x="3" y="5" width="8" height="14" rx="1.5"/><path d="m5 15 2-2 2 2M15 6l6 3.5-6 3.5-3-1.7V7.7L15 6Z"/><path d="M15 13v5m-2 1h4"/>',
   rinne:'<path d="M7 4c0 4-2 5.5-3 8 1 4 4 6.5 8 8 4-1.5 7-4 8-8-1-2.5-3-4-3-8-2 2-3.2 4-5 7-1.8-3-3-5-5-7Z"/>',
   village:'<path d="M4 11 12 4l8 7v9H4v-9Z"/><path d="M9 20v-5h6v5M8 11h.1M16 11h.1"/>',
   demon:'<path d="M12 4c4.5 0 7 2.3 7 5.8 0 4-3 7.2-7 10.2-4-3-7-6.2-7-10.2C5 6.3 7.5 4 12 4Z"/><path d="M8.8 10.5h.1M15.1 10.5h.1M9.5 15c1.6 1 3.4 1 5 0"/>',
