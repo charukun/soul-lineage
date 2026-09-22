@@ -1,0 +1,47 @@
+name: Golden Base Boy task-scoped authoring
+run-name: Golden Base Boy authoring toolkit ${{ github.sha }}
+on:
+  push:
+    branches: ['work/golden-base-boy-20260923']
+    paths: ['.github/workflows/golden-base-boy-authoring.yml']
+permissions:
+  contents: read
+jobs:
+  authoring-toolkit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: |
+            AGENTS.md
+            package.json
+            packages/assets/forge/
+            packages/assets/src/character-create-forge/
+            scripts/character-forge/
+            docs/characters/
+            docs/art/
+            tests/character-create-forge.test.mjs
+            tests/character-create-forge-browser.test.mjs
+          sparse-checkout-cone-mode: false
+      - name: Materialize pinned source and Blender for this one DCC task
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p toolkit
+          git rev-parse HEAD > toolkit/source-head.txt
+          git ls-tree -r --name-only HEAD | grep -iE '(golden|rig.*contract|character.*schema)' > toolkit/rig-paths.txt || true
+          tar -czf toolkit/forge-source.tar.gz AGENTS.md package.json packages/assets/forge packages/assets/src/character-create-forge scripts/character-forge docs/characters docs/art tests/character-create-forge.test.mjs tests/character-create-forge-browser.test.mjs
+          base=https://download.blender.org/release/Blender4.5
+          curl --fail --location --retry 2 "$base/blender-4.5.0-linux-x64.tar.xz" -o toolkit/blender-4.5.0-linux-x64.tar.xz
+          curl --fail --location --retry 2 "$base/blender-4.5.0.sha256" -o toolkit/blender-4.5.0.sha256
+          cd toolkit
+          grep 'blender-4.5.0-linux-x64.tar.xz$' blender-4.5.0.sha256 | sha256sum --check --strict
+      - uses: actions/upload-artifact@v4
+        with:
+          name: golden-base-boy-authoring-toolkit
+          path: toolkit/
+          compression-level: 0
+          retention-days: 3
