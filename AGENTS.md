@@ -31,6 +31,19 @@ Ready for review is transient, not a success terminal. Normal success is `MERGED
 
 A qualifying Micro Patch may use a lighter authoring path, but still performs one final merge-owning validation, impact-aware freshness verification, and same-task merge. Reconcile only when the freshness gate finds conflict or impact overlap. See `docs/MICRO_PATCH_FAST_LANE.md`.
 
+## Bounded observation feedback
+
+For tasks whose acceptance depends on rendered, player-facing, interactive, or generated output rather than source correctness alone, use a bounded observation loop during authoring. Typical examples are 3D/WebGL, character/DCC, animation/effects, visual or responsive UI, generated assets, and interaction feel.
+
+- After the implementation is coherent but before arming the final `[astra-validate]` head, use the existing task-specific evidence route to produce the smallest real output needed to judge the requested result.
+- Inspect that evidence and repair concrete in-scope defects before final validation. Observation is authoring feedback, not a new default CI or merge gate.
+- Keep Fast work bounded: normally one evidence round plus at most one repair/recheck round. If materially more iteration is required, use the existing specialist DCC, browser, Visual Review, or autonomous route instead of expanding Fast DEV.
+- Reuse existing review/evidence paths. A task-scoped runner path is acceptable only when no existing route can produce the needed evidence, and it must not expand the persistent Fast DEV Actions surface.
+- Keep intermediate screenshots, traces, generated outputs, and similar evidence in Actions artifacts or the existing review/evidence store by default. Do not create evidence-only bot commits each round unless the governing artifact contract requires repository materialization.
+- Do not apply this loop to routine source-only work when focused tests/checks already prove the acceptance criteria.
+- Browser automation remains opt-in under the existing browser routing contracts; this rule does not make browser playtests a default develop gate.
+- Formal merge evidence is still the existing exact-head Astra validation plus freshness gate. Observation never substitutes for causal/native validation when that validation is required.
+
 ## Connector and Actions execution
 
 - The canonical Chat execution path does not require a local clone, direct `github.com` DNS, `git push`, or Codespaces.
