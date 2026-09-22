@@ -1,9 +1,43 @@
 import {mountReviewGroup,mountReviewSelect,mountReviewSelectGrid} from '@soul/shared-ui/review-slot-picker';
-import {createReviewAutoInstaller,ensureReviewRow,installReviewStageCameraSlot,moveReviewSlot} from '@soul/shared-ui/review-auto-install';
+import {mountReviewAutoInstaller} from '@soul/shared-ui/review-auto-mount';
 const byId=id=>document.getElementById(id);
 const qs=selector=>document.querySelector(selector);
 
-function installStageCameraSlot(){if(!document.body.classList.contains('simple-review')||document.body.dataset.reviewMode==='motion')return;const cycle=byId('camera-cycle');if(cycle)cycle.hidden=true;installReviewStageCameraSlot({mountGroup:mountReviewGroup});}
+function row(id,className,parent,before=null){
+  let node=byId(id);
+  if(node||!parent)return node;
+  node=document.createElement('div');
+  node.id=id;
+  node.className=className;
+  if(before)parent.insertBefore(node,before);else parent.append(node);
+  return node;
+}
+
+function move(shell,target){if(shell&&target&&!target.contains(shell))target.append(shell);}
+
+function installStageCameraSlot(){
+  if(!document.body.classList.contains('simple-review')||document.body.dataset.reviewMode==='motion'||byId('review-stage-camera-options'))return;
+  const actions=qs('.stage-actions');
+  if(!actions)return;
+  const cameraButtons=[...actions.querySelectorAll('[data-camera="front"],[data-camera="side"],[data-camera="back"],[data-camera="face"]')];
+  if(cameraButtons.length<2)return;
+  const group=document.createElement('div');
+  group.id='review-stage-camera-options';
+  group.setAttribute('aria-label','向き');
+  cameraButtons.forEach((button,index)=>{
+    button.hidden=false;
+    button.removeAttribute('aria-hidden');
+    button.setAttribute('aria-pressed',String(index===0));
+    button.addEventListener('click',()=>cameraButtons.forEach(candidate=>candidate.setAttribute('aria-pressed',String(candidate===button))));
+    group.append(button);
+  });
+  const cycle=byId('camera-cycle');
+  if(cycle)cycle.hidden=true;
+  actions.prepend(group);
+  const shell=mountReviewGroup(group,'向き');
+  actions.classList.add('review-slot-stage-actions');
+  if(shell)actions.prepend(shell);
+}
 
 function installCharacterSlots(){
   if(!document.body.classList.contains('simple-review'))return;
@@ -15,10 +49,10 @@ function installCharacterSlots(){
     if(!basics)return;
     const motionPicker=mountReviewSelectGrid(byId('qa-motion'),'選択中の動き');
     if(motionPicker&&!basics.contains(motionPicker))basics.prepend(motionPicker);
-    const slotRow=ensureReviewRow({id:'simple-motion-slots',className:'simple-motion-slot-row',parent:basics});
-    moveReviewSlot(mountReviewSelect(byId('qa-speed'),'速度'),slotRow);
+    const slotRow=row('simple-motion-slots','simple-motion-slot-row',basics);
+    move(mountReviewSelect(byId('qa-speed'),'速度'),slotRow);
     const loop=byId('qa-loop')?.closest('label');
-    if(loop){loop.classList.add('simple-motion-loop');moveReviewSlot(loop,slotRow);}
+    if(loop){loop.classList.add('simple-motion-loop');move(loop,slotRow);}
     byId('qa-speed')?.closest('.qa-playback')?.classList.add('simple-motion-source-playback');
   }
 }
@@ -49,10 +83,10 @@ function installEffectSlots(){
   if(!byId('fx-stage')||byId('fx-catalog'))return;
   const controls=qs('.controls');
   if(!controls)return;
-  const slotRow=ensureReviewRow({id:'fx-review-slots',className:'fx-slot-row',parent:controls,before:controls.firstElementChild});
-  moveReviewSlot(mountReviewGroup(qs('.preset-grid'),'エフェクト'),slotRow);
-  moveReviewSlot(mountReviewSelect(byId('fx-speed'),'速度'),slotRow);
-  moveReviewSlot(mountReviewSelect(byId('fx-tier'),'品質'),slotRow);
+  const slotRow=row('fx-review-slots','fx-slot-row',controls,controls.firstElementChild);
+  move(mountReviewGroup(qs('.preset-grid'),'エフェクト'),slotRow);
+  move(mountReviewSelect(byId('fx-speed'),'速度'),slotRow);
+  move(mountReviewSelect(byId('fx-tier'),'品質'),slotRow);
 }
 
 function installBattleSlots(){
@@ -60,13 +94,13 @@ function installBattleSlots(){
   const settings=qs('.review-settings'),pickers=settings?.querySelector('.pickers');
   if(!settings||!pickers)return;
   pickers.classList.add('review-slot-row');
-  moveReviewSlot(mountReviewSelect(byId('battle-hero-model'),'左モデル'),pickers);
-  moveReviewSlot(mountReviewSelect(byId('battle-enemy-model'),'右モデル'),pickers);
+  move(mountReviewSelect(byId('battle-hero-model'),'左モデル'),pickers);
+  move(mountReviewSelect(byId('battle-enemy-model'),'右モデル'),pickers);
   const modes=settings.querySelector('.review-modes');
   if(modes){
     modes.hidden=false;
-    moveReviewSlot(mountReviewGroup(modes.querySelector('.battle-mode-switch'),'戦闘人数'),modes);
-    moveReviewSlot(mountReviewGroup(modes.querySelector('.skin-switch'),'カメラ / UI'),modes);
+    move(mountReviewGroup(modes.querySelector('.battle-mode-switch'),'戦闘人数'),modes);
+    move(mountReviewGroup(modes.querySelector('.skin-switch'),'カメラ / UI'),modes);
   }
 }
 
@@ -77,4 +111,4 @@ function install(){
   installBattleSlots();
 }
 
-createReviewAutoInstaller(install);
+mountReviewAutoInstaller(install);
