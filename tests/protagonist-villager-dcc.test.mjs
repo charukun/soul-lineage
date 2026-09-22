@@ -53,8 +53,11 @@ test('adopted protagonist runtime bytes and DCC evidence are repository-local', 
 });
 
 test('motion review defaults to the current game protagonist while retaining explicit model selection', () => {
-  const source = readFileSync('apps/rinne/src/review-motion.js', 'utf8');
-  const models = readFileSync('apps/rinne/src/review-motion-models.js', 'utf8');
+  const facade = readFileSync('apps/rinne/src/review-motion.js', 'utf8');
+  const source = readFileSync('apps/rinne/src/review/motion/entrypoint.js', 'utf8');
+  const models = readFileSync('apps/rinne/src/review/motion/models.js', 'utf8');
+  assert.match(facade, /import\s+['"]\.\/review\/motion\/entrypoint\.js['"]/);
+  assert.match(source, /from\s+['"]\.\/models\.js['"]/);
   assert.match(source, /RINNE_MOTION_REVIEW_MODELS/);
   assert.match(source, /selectedModel=RINNE_MOTION_REVIEW_DEFAULT_MODEL/);
   assert.match(source, /dataset\.motionModel=model\.id/);
