@@ -10,11 +10,11 @@ import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createRinneCharacterStage } from './runtime-character-stage.js';
 import { buildInteriors } from './locations.js';
 import { renderPixelRatio, targetFpsForView } from './performance.js';
-import { cameraOffsetForPosition, createCameraPositionControl } from './camera-position-control.js';
+import {createSnapCameraControl,rotateCameraOffset} from '@soul/rendering/snap-camera-control';
 import { rinneCombatCameraFrame } from './combat-camera.js';
 import { createMiniatureFocus } from './miniature-focus.js';
 import { createMiniatureLighting, createActorContactShadows } from './miniature-lighting.js';
-import './camera-position-control.css';
+import '@soul/rendering/snap-camera-control.css';
 
 const disposeObject=root=>root?.traverse?.(o=>{if(o.geometry?.dispose)o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.dispose)m.dispose();});
 
@@ -115,7 +115,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   function updateFront(front){currentFront=front||null;characterStage.updateFront(front);}
   const skirmishRenderer=createSkirmishRenderer({characterStage,skirmishRoot,mat});
 
-  const target=new THREE.Vector3(),cameraLook=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5),firstPersonForward=new THREE.Vector3();let elapsed=0,cameraLookReady=false,lastSpace='',interiorYaw=0;
+  const target=new THREE.Vector3(),cameraLook=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5),manualCameraOffset=new THREE.Vector3(),firstPersonForward=new THREE.Vector3();let elapsed=0,cameraLookReady=false,lastSpace='',interiorYaw=0,cameraPreference=Object.freeze({index:0,yaw:0,zoom:1});
   const TITLE_PREVIEW_DURATION=16;
   const titleCameraKeys=[
     {t:0,pos:[-30,17,27],look:[5,2,-5],fov:54},
@@ -144,7 +144,8 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     canvas.dataset.titleBeat=normalized<.18?'world':normalized<.38?'life':normalized<.58?'battle':normalized<.76?'years':normalized<.90?'rebirth':'legacy';
     return normalized>=1?'title-living-still':'title-cinematic';
   }
-  const cameraControl=createCameraPositionControl({document:doc,container:canvas.parentElement,onChange:position=>{camOffset.set(...cameraOffsetForPosition(position));canvas.dataset.cameraPosition=String(Math.round(position*100));}});
+  const cameraControl=createSnapCameraControl({document:doc,container:canvas.parentElement,initialZoom:1,minZoom:.64,maxZoom:1.48,onChange:state=>{cameraPreference=state;canvas.dataset.cameraStep=String(state.index);canvas.dataset.cameraZoom=state.zoom.toFixed(2);}});
+  function preferredCameraOffset(source){const next=rotateCameraOffset(source,cameraPreference.yaw,cameraPreference.zoom);return manualCameraOffset.set(next.x,next.y,next.z);}
   const viewport={width:1,height:1},focusPoint=new THREE.Vector3();
   function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);viewport.width=w;viewport.height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();focusEffect.resize();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
@@ -174,7 +175,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     const village=state.zone==='village',inside=village&&!!state.interior,titleFrame=Boolean(titlePreview&&village&&!inside),baseSpace=inside?`interior:${state.interior.buildingId}`:state.zone,space=titleFrame?'title-preview':baseSpace,spaceChanged=space!==lastSpace;lastSpace=space;
     root.visible=village&&!inside;interiorRoot.visible=inside;skirmishRoot.visible=village&&!inside;frontRoot.visible=state.zone==='frontier';scene.background=inside?indoorSky:outdoorSky;
     for(const [id,g] of interiorGroups)g.visible=inside&&id===state.interior?.buildingId;
-    const combatFrame=!titleFrame&&state.zone==='frontier'?rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat}):null;cameraControl.setCombat(!!combatFrame);canvas.dataset.combatCamera=String(!!combatFrame);canvas.dataset.worldSpace=space;canvas.dataset.villageThreats=String(skirmishRenderer.current()?.hostiles?.filter(row=>!row.dead).length||0);
+    const combatFrame=!titleFrame&&state.zone==='frontier'?rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat}):null;cameraControl.setEnabled(!titleFrame&&!inside);canvas.dataset.combatCamera=String(!!combatFrame);canvas.dataset.worldSpace=space;canvas.dataset.villageThreats=String(skirmishRenderer.current()?.hostiles?.filter(row=>!row.dead).length||0);
     if(titleFrame){
       canvas.dataset.cameraMode=applyTitlePreviewCamera(state,titleTime,titleIdleTime);
     }else if(inside){
@@ -185,8 +186,8 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     }else{
       if(Math.abs(camera.fov-43)>.01){camera.fov=43;camera.updateProjectionMatrix();}
       canvas.dataset.cameraMode=combatFrame?'combat-third-person':'third-person';
-      if(combatFrame){target.set(combatFrame.look.x,combatFrame.look.y,combatFrame.look.z);desired.set(target.x+combatFrame.offset.x,target.y+combatFrame.offset.y,target.z+combatFrame.offset.z);}
-      else{target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);}
+      if(combatFrame){target.set(combatFrame.look.x,combatFrame.look.y,combatFrame.look.z);desired.copy(target).add(preferredCameraOffset(combatFrame.offset));}
+      else{target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(preferredCameraOffset(camOffset));}
     }
     if(titleFrame){camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else if(spaceChanged){if(inside)interiorYaw=state.yaw;camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else{const step=Math.min(.05,dt||.016),positionBlend=1-Math.exp(-(inside?13.5:combatFrame?5.6:6.9)*step),lookBlend=1-Math.exp(-(inside?15:combatFrame?7.2:9.2)*step);camera.position.lerp(desired,positionBlend);if(!cameraLookReady){cameraLook.copy(target);cameraLookReady=true;}else cameraLook.lerp(target,lookBlend);}camera.lookAt(cameraLook);
     const occlusion=foregroundOcclusion.update({camera,target,occluderRoot:objects,enabled:village&&!inside,dt});canvas.dataset.occludedObjects=String(occlusion.occluded);

@@ -51,7 +51,9 @@
     "./motion-runtime": "./src/motion-runtime.js",
     "./combat-camera-frame": "./src/combat-camera-frame.js",
     "./humanoid-preview": "./src/humanoid-preview.js",
-    "./humanoid-preview-constraints": "./src/humanoid-preview-constraints.js"
+    "./humanoid-preview-constraints": "./src/humanoid-preview-constraints.js",
+    "./snap-camera-control": "./src/snap-camera-control.js",
+    "./snap-camera-control.css": "./src/snap-camera-control.css"
   },
   "dependencies": {
     "three": "0.186.0",
