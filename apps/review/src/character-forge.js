@@ -18,7 +18,7 @@ function start(){
   const shell=mountReviewShell({current:'forge',routes:REVIEW_ROUTES,homeHref:new URL('./',location.href).href});
   const stageControls=mountReviewStageControls({stage:$('.forge-stage'),groups:['.forge-camera-tools','.forge-advanced'],label:'モデルの表示設定'});
   const canvas=$('#forge-stage'),renderer=createReviewRenderer(canvas,{exposure:1.2});
-  const scene=new THREE.Scene();scene.background=new THREE.Color('#e9edef');
+  const scene=new THREE.Scene();scene.background=new THREE.Color('#26332f');
   const camera=new THREE.PerspectiveCamera(6,1,.01,1000);
   const orbit=new OrbitControls(camera,canvas);orbit.enableDamping=true;orbit.minDistance=.18;orbit.maxDistance=500;
   scene.add(new THREE.HemisphereLight('#fff6df','#557481',2.4));
@@ -61,6 +61,7 @@ function start(){
   }
   function setComparison(enabled){
     comparing=Boolean(enabled);panel.dataset.comparing=String(comparing);
+    scene.background.set(comparing?'#e9edef':'#26332f');
     $('[data-forge-compare]').setAttribute('aria-pressed',String(comparing));
     $('.forge-reference-pane').hidden=!comparing;
     if(comparing){compare(['front','side','back'].includes(view)?view:referenceView);return;}
