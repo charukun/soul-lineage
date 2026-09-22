@@ -35,3 +35,64 @@ test('execution capability turns canonical stamina and six-part injury into stag
   ]});
   assert.equal(sequence.canStart,true);assert.equal(sequence.canContinue,false);assert.equal(sequence.blockedStageIndex,2);assert.equal(sequence.reason,'stamina-policy');
 });
+
+test('weapon defense needs a functional grip in every phase, not just offensive motion',()=>{
+  const defenses=['guard','brace','parry'];
+  for(const phase of ['jo','ha','kyu','uke'])for(const kind of defenses){
+    for(const weapon of ['great','spear','axe','staff'])for(const injuredArm of ['leftArm','rightArm']){
+      const state=actor({injuries:{[injuredArm]:{severity:.68}}}),before=structuredClone(state);
+      const cap=johakyuStageCapability(state,{weapon,phase,kind,staminaCost:2});
+      assert.equal(cap.allowed,false,`${weapon}/${phase}/${kind}/${injuredArm}`);
+      assert.equal(cap.reason,'arm-injury');assert.equal(cap.offense,false);
+      assert.equal(cap.body.armDemand,2);assert.equal(cap.body.functionalArms,1);
+      assert.deepEqual(state,before,'rejected defense must not spend stamina, mutate injury or advance time');
+      assert.equal(johakyuStageCapability(actor({}),{weapon,phase,kind,staminaCost:2}).allowed,true);
+    }
+    for(const weapon of ['fist','sword','dagger'])for(const injuredArm of ['leftArm','rightArm']){
+      const state=actor({injuries:{[injuredArm]:{severity:.68}}});
+      const cap=johakyuStageCapability(state,{weapon,phase,kind,staminaCost:2});
+      assert.equal(cap.allowed,true,`${weapon}/${phase}/${kind} retains its remaining arm`);
+      assert.equal(cap.body.armDemand,1);assert.equal(cap.equipment.requiresTwoHands,false);
+    }
+  }
+});
+
+test('defensive grip preserves non-arm alternatives and cannot be weakened by a caller flag',()=>{
+  const noArms=actor({injuries:{leftArm:{severity:.72},rightArm:{severity:.74}}});
+  for(const weapon of ['fist','sword','dagger','great','spear','axe','staff']){
+    for(const kind of ['guard','brace','parry']){
+      assert.equal(johakyuStageCapability(noArms,{weapon,kind,staminaCost:1}).reason,'arm-injury');
+    }
+    for(const [kind,footwork] of [['ready','stay'],['retreat','retreat'],['slip','sideL']]){
+      const cap=johakyuStageCapability(noArms,{weapon,kind,footwork,staminaCost:1});
+      assert.equal(cap.allowed,true,`${weapon}/${kind} does not receive force through injured arms`);
+      assert.equal(cap.body.armDemand,0);
+    }
+  }
+  const oneArm=actor({injuries:{leftArm:{severity:.72}}});
+  for(const weapon of ['great','spear','axe','staff'])for(const kind of ['slash','guard','brace','parry','counter']){
+    const cap=johakyuStageCapability(oneArm,{weapon,kind,requiresTwoHands:false});
+    assert.equal(cap.reason,'arm-injury');assert.equal(cap.equipment.requiresTwoHands,true);
+  }
+  assert.equal(johakyuStageCapability(oneArm,{weapon:'sword',kind:'guard',requiresTwoHands:true}).reason,'arm-injury');
+  const tired=actor({stamina:8});
+  assert.equal(johakyuStageCapability(tired,{weapon:'great',kind:'guard',staminaCost:2}).allowed,true,'low stamina alone must not turn defense into offense');
+  assert.equal(johakyuStageCapability(tired,{weapon:'great',kind:'guard',staminaCost:9}).reason,'stamina');
+  assert.equal(johakyuStageCapability(oneArm,{weapon:'bow',kind:'guard'}).reason,'motion','unsupported weapon semantics remain fail-closed');
+});
+
+test('technique lookahead and execution recheck share the same defensive grip requirement',()=>{
+  const stages=[{kind:'ready',footwork:'stay',staminaCost:0},{kind:'parry',footwork:'stay',staminaCost:2,requiresTwoHands:false},{kind:'counter',footwork:'forward',staminaCost:6}];
+  const healthy=actor({});
+  assert.equal(johakyuTechniqueCapability(healthy,{weapon:'great',stages}).canContinue,true);
+  const wounded=actor({injuries:{rightArm:{severity:.68}}}),before=structuredClone(wounded);
+  const forecast=johakyuTechniqueCapability(wounded,{weapon:'great',stages,requiresTwoHands:false});
+  assert.equal(forecast.canStart,true);assert.equal(forecast.canContinue,false);
+  assert.equal(forecast.reason,'arm-injury');assert.equal(forecast.blockedStageIndex,1);
+  assert.equal(forecast.remainingStamina,wounded.stamina,'unexecutable defense is not paid for');
+  const continuation=johakyuTechniqueCapability(wounded,{weapon:'great',stages,fromStage:1});
+  assert.equal(continuation.canStart,false);assert.equal(continuation.blockedStageIndex,1);
+  assert.equal(johakyuStageCapability(wounded,{weapon:'great',...stages[1]}).reason,forecast.reason);
+  assert.equal(johakyuTechniqueCapability(wounded,{weapon:'sword',stages}).canContinue,true,'a one-handed loadout retains a physically available answer');
+  assert.deepEqual(wounded,before,'forecast and final gate are pure decisions');
+});
