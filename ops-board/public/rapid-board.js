@@ -27,7 +27,7 @@ const parsedAt = value => {
 const clock = value => {
   const ms = parsedAt(value);
   if (!ms) return '未記録';
-  return new Intl.DateTimeFormat('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }).format(ms);
+  return new Intl.DateTimeFormat('ja-JP', { timeZone:'Asia/Tokyo', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).format(ms) + ' JST';
 };
 const relative = value => {
   const ms = parsedAt(value);
@@ -103,9 +103,85 @@ async function copyText(text) {
   }
 }
 
+const shortSha=value=>value?String(value).slice(0,8):'未記録';
+const activityAgeTone=value=>{
+  const ms=parsedAt(value);
+  if(!ms)return 'stale';
+  const age=Math.max(0,Date.now()-ms);
+  if(age<=5*60*1000)return 'fresh';
+  if(age<=15*60*1000)return 'blue';
+  if(age<=30*60*1000)return 'yellow';
+  return 'stale';
+};
+const sessionWorkflowView=session=>{
+  const validation=(session.steps||[]).find(step=>step.id==='validation');
+  if(validation?.state==='problem'||session.lastFailure)return ['FAILED','danger'];
+  if(validation?.state==='running'||session.execution?.state==='validating')return ['VALIDATING','progress'];
+  if(session.execution?.state==='running')return ['WORKFLOW RUNNING','progress'];
+  if(validation?.state==='done')return ['SUCCESS','ok'];
+  if(session.execution?.state==='merging')return ['MERGE WAIT','warning'];
+  return [session.execution?.label||'IDLE',session.execution?.tone||'muted'];
+};
+const sessionNextWait=session=>{
+  if(session.execution?.state==='needs-user')return '次: 人の判断・権限対応待ち';
+  if(session.execution?.state==='repair'||session.lastFailure)return '次: 自動修復・再検証待ち';
+  if(['validating','running'].includes(session.execution?.state))return '次: workflow完了待ち';
+  if(session.state==='Ready')return '次: merge待ち';
+  const waiting=(session.steps||[]).find(step=>step.state==='waiting');
+  if(waiting)return '次: '+waiting.label+'待ち';
+  return '次: 実装更新 / Ready化待ち';
+};
+const sessionTimeline=session=>{
+  const events=[];
+  if(session.headSha&&session.updatedAt)events.push({at:session.updatedAt,label:'commit',detail:shortSha(session.headSha),tone:'info'});
+  for(const step of session.steps||[]){
+    if(!step.runId)continue;
+    if(step.startedAt)events.push({at:step.startedAt,label:'workflow start',detail:step.label,tone:'progress'});
+    if(step.completedAt&&step.state==='done')events.push({at:step.completedAt,label:'workflow success',detail:step.label,tone:'ok'});
+    if(step.completedAt&&step.state==='problem')events.push({at:step.completedAt,label:'workflow failed',detail:step.label,tone:'danger'});
+  }
+  if(session.state==='Ready'&&session.updatedAt)events.push({at:session.updatedAt,label:'Ready',detail:'#'+(session.pr?.number||'?'),tone:'warning'});
+  if(session.state==='Merged'&&session.mergedAt)events.push({at:session.mergedAt,label:'merge',detail:'develop',tone:'ok'});
+  const seen=new Set();
+  return events.filter(item=>parsedAt(item.at)).sort((a,b)=>parsedAt(b.at)-parsedAt(a.at)).filter(item=>{
+    const key=item.label+':'+item.at+':'+item.detail;
+    if(seen.has(key))return false;
+    seen.add(key);
+    return true;
+  }).slice(0,4);
+};
+function renderActiveCard(session){
+  const lastActivity=session.execution?.lastActivityAt||session.updatedAt;
+  const ageTone=activityAgeTone(lastActivity);
+  const running=['running','validating'].includes(session.execution?.state);
+  const card=el('article','rapid-active-card age-'+ageTone+(running?' is-running':''));
+  const head=el('div','rapid-active-card-head');
+  head.append(externalLink('#'+(session.pr?.number||'?')+' · '+(session.title||'開発セッション'),session.pr?.url,'rapid-active-title'));
+  const badges=el('div','rapid-active-badges');
+  badges.append(el('span','rapid-active-badge '+(session.state==='Ready'?'warning':'muted'),String(session.state||'Draft').toUpperCase()));
+  const workflow=sessionWorkflowView(session);
+  badges.append(el('span','rapid-active-badge '+workflow[1],workflow[0]));
+  head.append(badges);
+  card.append(head);
+  const facts=el('div','rapid-active-facts');
+  const activity=el('div','rapid-active-fact');
+  activity.append(el('span','','最終活動'),el('time','',clock(lastActivity)),el('small','',relative(lastActivity)));
+  const sha=el('div','rapid-active-fact');
+  sha.append(el('span','','HEAD'),el('code','',shortSha(session.headSha)));
+  facts.append(activity,sha);
+  card.append(facts);
+  const timeline=el('ol','rapid-active-timeline');
+  for(const item of sessionTimeline(session)){
+    const row=el('li','rapid-active-event '+item.tone);
+    row.append(el('i',''),el('time','',clock(item.at)),el('span','',item.label),el('small','',item.detail));
+    timeline.append(row);
+  }
+  if(!timeline.childElementCount)timeline.append(el('li','rapid-active-event muted','GitHub活動はまだ記録されていません'));
+  card.append(timeline,el('p','rapid-active-next',sessionNextWait(session)));
+  return card;
+}
 function renderActive(state) {
-  const root = $('#rapid-active-list');
-  const count = $('#rapid-active-count');
+  const root = $('#rapid-active-list'),count = $('#rapid-active-count');
   if (!root || !count) return;
   const sessions = activeSessions(state);
   count.textContent = sessions.length ? String(sessions.length) + '件' : '0件';
@@ -114,23 +190,7 @@ function renderActive(state) {
     root.append(el('p', 'rapid-empty rapid-empty-ok', '現在の作業中タスクはありません'));
     return;
   }
-  sessions.slice(0,2).forEach(session=>root.append(renderSession(session,{graph:true})));
-  if(sessions.length>2){
-    const rest=sessions.slice(2);
-    const extra=el('div','rapid-active-extra');
-    extra.hidden=true;
-    rest.forEach(session=>extra.append(renderSession(session,{graph:true})));
-    const toggle=el('button','rapid-more-button','ほか '+rest.length+'件を見る');
-    toggle.type='button';
-    toggle.setAttribute('aria-expanded','false');
-    toggle.addEventListener('click',()=>{
-      const opening=extra.hidden;
-      extra.hidden=!opening;
-      toggle.setAttribute('aria-expanded',String(opening));
-      toggle.textContent=opening?'閉じる':'ほか '+rest.length+'件を見る';
-    });
-    root.append(toggle,extra);
-  }
+  sessions.forEach(session=>root.append(renderActiveCard(session)));
 }
 
 function appHistory(state, app) {

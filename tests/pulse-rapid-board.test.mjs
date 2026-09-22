@@ -48,11 +48,15 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /fetch\('\/version\.json'/);
   assert.match(html, /id="pulse-version"/);
   assert.match(rapidCss, /\.pulse-version\{/);
-  assert.match(script, /sessions\.slice\(2\)/);
-  assert.match(script, /rapid-more-button/);
-  assert.match(script, /aria-expanded/);
-  assert.match(script, /extra\.hidden=!opening/);
-  assert.match(script, /ほか '\+rest\.length\+'件を見る/);
+  assert.match(script, /sessions\.forEach\(session=>root\.append\(renderActiveCard\(session\)\)\)/);
+  assert.doesNotMatch(script, /sessions\.slice\(0,2\)|rapid-active-extra|rapid-more-button/);
+  assert.match(script, /timeZone:'Asia\/Tokyo'/);
+  assert.match(script, /session\.headSha/);
+  assert.match(script, /sessionTimeline/);
+  assert.match(script, /workflow start/);
+  assert.match(script, /workflow success/);
+  assert.match(script, /workflow failed/);
+  assert.match(script, /sessionNextWait/);
   assert.doesNotMatch(script, /rapid-current-band/);
   assert.doesNotMatch(script, /api\.github\.com|innerHTML/);
 });
@@ -84,4 +88,12 @@ test('autonomous summary keeps game in metadata instead of duplicating it in the
   assert.match(script,/titlePrefix=iteration\?\(iterationNumber\?'Iteration '/);
   assert.match(script,/iterationDisplayTitle\(session,gameLabel\)/);
   assert.match(script,/\? gameLabel/);
+});
+
+test('ACTIVE uses two columns outside phone widths and exposes freshness states',()=>{
+  assert.match(rapidCss,/#rapid-active-list\{[^}]*grid-template-columns:minmax\(0,1fr\)/s);
+  assert.match(rapidCss,/@media\(min-width:600px\)\{#rapid-active-list\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\}/);
+  for(const state of ['fresh','blue','yellow','stale'])assert.match(rapidCss,new RegExp('rapid-active-card\\.age-'+state));
+  assert.match(rapidCss,/停止疑い/);
+  assert.match(rapidCss,/rapid-workflow-pulse/);
 });
