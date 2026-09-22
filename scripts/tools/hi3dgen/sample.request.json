@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "id": "hi3dgen-alchemy-flask-v1",
+  "label": "錬金術の小瓶（生成実験）",
+  "usage": "experimental-review",
+  "productionEligible": false,
+  "consentToPublicInference": true,
+  "images": [{
+    "path": "assets/generated/hi3dgen/inputs/alchemy-flask.png",
+    "view": "three-quarter",
+    "author": "RINNE original pipeline test illustration",
+    "license": "CC0-1.0",
+    "source": "scripts/tools/hi3dgen/sample.py; original 2D fixture, not a generated mesh"
+  }],
+  "provider": {"id": "hi3dgen-hf", "endpoint": "https://stable-x-hi3dgen.hf.space"},
+  "parameters": {"seed": 20260922, "ssGuidanceStrength": 3, "ssSamplingSteps": 30, "slatGuidanceStrength": 3, "slatSamplingSteps": 6},
+  "postprocess": {"heightMeters": 0.45, "yawDegrees": 0, "maxTriangles": 12000}
+}

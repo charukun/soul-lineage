@@ -44,3 +44,16 @@ test('battle2 uses the burst executor option for both sides without removing com
   const controller = readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js', import.meta.url), 'utf8');
   assert.match(controller, /createJohakyuP7ReviewScenario\(\{mode,comboStyle:'burst'\}\)/);
 });
+
+
+test('battle2 duel burst actually opens combat instead of remaining in the ready/read loop', () => {
+  const scenario=createJohakyuP7ReviewScenario({mode:'duel',comboStyle:'burst',duelGap:2.75,enemyLeadSeconds:.16});
+  let stageStart=null,contact=null;
+  for(let i=0;i<240&&!(stageStart&&contact);i++){
+    const result=scenario.step(1/60);
+    stageStart=stageStart||result.meta.activity.find(row=>row.type==='stage-start');
+    contact=contact||result.events.find(row=>['player-hit','enemy-hit','guard','parry','clash'].includes(row.type));
+  }
+  assert.ok(stageStart,'1v1 burst must begin an authored attack within four seconds');
+  assert.ok(contact,'1v1 burst must reach a real contact/defense event within four seconds');
+});

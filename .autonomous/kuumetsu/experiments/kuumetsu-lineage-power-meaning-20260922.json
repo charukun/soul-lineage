@@ -194,7 +194,7 @@
   },
   "receipt": {
     "repository": "charukun/soul-lineage",
-    "pullRequest": null,
+    "pullRequest": 1452,
     "marker": "autonomous-receipt:kuumetsu:kuumetsu-lineage-power-meaning-20260922"
   }
 }
