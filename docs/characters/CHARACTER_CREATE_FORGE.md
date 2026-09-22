@@ -160,7 +160,7 @@ existing approved Quality Reference, record failed regions, edit the real model 
 Blender/DCC, re-export, then capture and compare the new model hash. Repeat only
 failed regions for at most three rounds. Side review must inspect front edge, back
 edge and center/depth mismatch separately for face, chest, waist and pelvis/glute.
-Remaining failures stay explicit. The loop never grants visual approval by itself. A re-export invalidates prior visual evidence because the receipt is model-hash-bound.
+Remaining failures stay explicit. The loop never grants visual approval by itself. A re-export invalidates prior visual evidence because the receipt is model-hash-bound; only evidence for the current hash may close a refinement round.
 
 ## Evidence and limitations
 
