@@ -1,0 +1,42 @@
+name: Temporary kuumetsu immutable observation 20260922 02
+on:
+  push:
+    branches: [ops/kuumetsu-observe-20260922-02]
+    paths: [.github/workflows/kuumetsu-session-20260922.yml]
+permissions:
+  contents: read
+env:
+  SOURCE_SHA: 97a9eec9193ed4b6edfda988cee4fa906dec31f2
+  PREVIEW_URL: https://bf0cd3b7-soul-lineage-demon-dev.c-okamoto.workers.dev/
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 97a9eec9193ed4b6edfda988cee4fa906dec31f2
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium > /tmp/browser-install.log 2>&1
+      - name: Prepare native observer
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs=require('fs');
+            const r=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-session-observe.mjs',ref:context.sha});
+            let source=Buffer.from(r.data.content,'base64').toString('utf8');
+            source=source.replace("if(await gate.isVisible()){await tap('#soul-brand-boot');", "if(await gate.isVisible()){await page.waitForFunction(()=>document.querySelector('#soul-brand-boot')?.classList.contains('armed'));await tap('#soul-brand-boot');");
+            fs.writeFileSync('session-observe.mjs',source);
+      - name: Immutable Before native play
+        run: mkdir -p session-evidence && cp session-observe.mjs session-evidence/observer.mjs && node session-observe.mjs > session-evidence/browser.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kuumetsu-three-20260922-i1-before
+          path: session-evidence
+          retention-days: 14
