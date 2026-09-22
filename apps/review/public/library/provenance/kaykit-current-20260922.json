@@ -54,7 +54,7 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "barbarian",
-      "genderPresentation": "unspecified",
+      "genderPresentation": "masculine",
       "femaleProtagonistCandidate": false,
       "variantOf": "kaykit.barbarian.v1",
       "deduplication": "official-version-variant",
@@ -67,7 +67,8 @@
         "joints": 23,
         "animations": 0,
         "embeddedTextures": 1
-      }
+      },
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -96,7 +97,10 @@
           "oldMeshes": 15,
           "newMeshes": 9,
           "oldEmbeddedClips": 76,
-          "newEmbeddedClips": 0
+          "newEmbeddedClips": 0,
+          "geometryTextureEquivalent": false,
+          "oldGeometryFingerprint": "b024dc1396e159e40334346c201e6b1e411965cb2a90f1d4df5a4a62b481e6e2",
+          "newGeometryFingerprint": "9b3ee3c3a7b4090bf9ccce257a198758ad785e3471b1606689de77dec1fffe7f"
         }
       ],
       "inspection": {
@@ -105,7 +109,8 @@
         "joints": 23,
         "animations": 0,
         "embeddedTextures": 1
-      }
+      },
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -119,8 +124,8 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "mage",
-      "genderPresentation": "unspecified",
-      "femaleProtagonistCandidate": false,
+      "genderPresentation": "feminine",
+      "femaleProtagonistCandidate": true,
       "variantOf": "kaykit.mage.v1",
       "deduplication": "official-version-variant",
       "runtimePath": "model/66eac745c7d4360e463bf4c4e5e117e4c0c58b1e/Mage.glb",
@@ -132,7 +137,8 @@
         "joints": 23,
         "animations": 0,
         "embeddedTextures": 1
-      }
+      },
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -146,8 +152,8 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "ranger",
-      "genderPresentation": "unspecified",
-      "femaleProtagonistCandidate": true,
+      "genderPresentation": "masculine",
+      "femaleProtagonistCandidate": false,
       "variantOf": null,
       "deduplication": "new-character",
       "runtimePath": "model/8edaf04430036130c3a7fcb6767049aac3c3f3a7/Ranger.glb",
@@ -159,7 +165,8 @@
         "joints": 23,
         "animations": 0,
         "embeddedTextures": 1
-      }
+      },
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -173,7 +180,7 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "rogue",
-      "genderPresentation": "unspecified",
+      "genderPresentation": "feminine",
       "femaleProtagonistCandidate": true,
       "variantOf": "kaykit.rogue.v1",
       "deduplication": "official-version-variant",
@@ -188,7 +195,10 @@
           "oldMeshes": 12,
           "newMeshes": 7,
           "oldEmbeddedClips": 76,
-          "newEmbeddedClips": 0
+          "newEmbeddedClips": 0,
+          "geometryTextureEquivalent": false,
+          "oldGeometryFingerprint": "5641ed775ae68e2104c2ae1a9386e54c51452ee84b78fda0bef5b5022e1c181b",
+          "newGeometryFingerprint": "c2c3f8087392d023cd1748a6ac52ab2b5dcca373225b09c35c256c60fcfc2868"
         }
       ],
       "inspection": {
@@ -197,7 +207,8 @@
         "joints": 23,
         "animations": 0,
         "embeddedTextures": 1
-      }
+      },
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -211,8 +222,8 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "rogue-hooded",
-      "genderPresentation": "unspecified",
-      "femaleProtagonistCandidate": false,
+      "genderPresentation": "feminine",
+      "femaleProtagonistCandidate": true,
       "variantOf": "kaykit.rogue-hooded.v1",
       "deduplication": "official-version-variant",
       "runtimePath": "model/7063f6cbca7fd2445c9b804a9f157c11c0e7b0f2/Rogue_Hooded.glb",
@@ -224,7 +235,8 @@
         "joints": 23,
         "animations": 0,
         "embeddedTextures": 1
-      }
+      },
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -253,7 +265,11 @@
           "oldMeshes": 9,
           "newMeshes": 9,
           "oldEmbeddedClips": 95,
-          "newEmbeddedClips": 0
+          "newEmbeddedClips": 0,
+          "geometryTextureEquivalent": true,
+          "oldGeometryFingerprint": "0d4c010dbf131495db2e7519746d6de4f8e75cc765d900515e960b2b1a0de6dc",
+          "newGeometryFingerprint": "0d4c010dbf131495db2e7519746d6de4f8e75cc765d900515e960b2b1a0de6dc",
+          "note": "Same geometry/texture appearance; retained as the official small, shared-motion version, not counted as a new character. Prior animated original remains for existing consumers; not a second entry in the new current-model picker."
         }
       ],
       "inspection": {
@@ -262,7 +278,8 @@
         "joints": 23,
         "animations": 0,
         "embeddedTextures": 1
-      }
+      },
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -291,7 +308,11 @@
           "oldMeshes": 9,
           "newMeshes": 9,
           "oldEmbeddedClips": 95,
-          "newEmbeddedClips": 0
+          "newEmbeddedClips": 0,
+          "geometryTextureEquivalent": true,
+          "oldGeometryFingerprint": "61646df535ca93b1f5b408a76ebc191b6406e0125cc2048c518312adf86890ee",
+          "newGeometryFingerprint": "61646df535ca93b1f5b408a76ebc191b6406e0125cc2048c518312adf86890ee",
+          "note": "Same geometry/texture appearance; retained as the official small, shared-motion version, not counted as a new character. Prior animated original remains for existing consumers; not a second entry in the new current-model picker."
         }
       ],
       "inspection": {
@@ -300,7 +321,8 @@
         "joints": 23,
         "animations": 0,
         "embeddedTextures": 1
-      }
+      },
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -327,7 +349,8 @@
         "joints": 23,
         "animations": 0,
         "embeddedTextures": 1
-      }
+      },
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -356,7 +379,11 @@
           "oldMeshes": 10,
           "newMeshes": 10,
           "oldEmbeddedClips": 95,
-          "newEmbeddedClips": 0
+          "newEmbeddedClips": 0,
+          "geometryTextureEquivalent": true,
+          "oldGeometryFingerprint": "7d572568d61721597a9a8f4641bfdd986247fb87d7498a748469a3956f61192b",
+          "newGeometryFingerprint": "7d572568d61721597a9a8f4641bfdd986247fb87d7498a748469a3956f61192b",
+          "note": "Same geometry/texture appearance; retained as the official small, shared-motion version, not counted as a new character. Prior animated original remains for existing consumers; not a second entry in the new current-model picker."
         }
       ],
       "inspection": {
@@ -365,7 +392,8 @@
         "joints": 23,
         "animations": 0,
         "embeddedTextures": 1
-      }
+      },
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     }
   ],
   "notAcquired": [
@@ -390,5 +418,13 @@
       "reason": "Actual free archive checked: no rigged character GLB. Animated Dummy belongs to EXTRA tier."
     }
   ],
-  "readiness": "REFERENCE; external-motion/browser evidence required; not Production approval"
+  "readiness": "REFERENCE; external-motion/browser evidence required; not Production approval",
+  "visualEvidence": {
+    "runId": 35682360182,
+    "artifactId": 10676005056,
+    "sourceHead": "e731a754e83e2669a3eeaf5b5421e6cc0b4a1d7a",
+    "modelsInspected": 10,
+    "animationChecks": 110,
+    "uiStatus": "Raster thumbnail correction and UI re-observation required; see final PR receipt."
+  }
 }

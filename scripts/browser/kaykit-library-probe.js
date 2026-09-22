@@ -64,7 +64,7 @@ async function verify(id){
    result.clips.push({semantic,sourceId,name,index,duration,samples:17,maxDelta,maxExtent,status:[...statuses][0]});
    target.apply(source.sample(index,duration*.38),{mode:'preview',rootMotion:'in-place'});
    if(semantic==='idle')result.thumbnail=await thumbnail(root,model.label);
-   if(['Ranger','Rogue','Skeleton_Warrior'].includes(model.name)&&['idle','walk','run','melee','hit','death'].includes(semantic))result.poses.push({label:model.name+' / '+semantic,image:await thumbnail(root,model.label+' '+semantic)});
+   if(['Ranger','Rogue','Mage','Skeleton_Warrior'].includes(model.name)&&['idle','walk','run','melee','hit','death'].includes(semantic))result.poses.push({label:model.name+' / '+semantic,image:await thumbnail(root,model.label+' '+semantic)});
   }
   target.reset();return result;
  }finally{disposeReviewObject(root);}

@@ -38,7 +38,7 @@ export async function loadPinnedReviewTarget(model,{fetcher=fetch,baseUrl=global
   const base=new URL(baseUrl),url=new URL(model.runtime.url,base);
   const ownedLibrary=url.href.startsWith(projectAssetOrigin(runtimeEnvironment));
   if(!['http:','https:'].includes(url.protocol)||(url.origin!==base.origin&&!ownedLibrary)||isThirdPartyRuntimeAssetUrl(url.href))throw new Error('Review target must be self-hosted');
-  const response=await fetcher(url.href,{signal:AbortSignal.timeout(60000),cache:'force-cache'});
+  const response=await fetcher(url.href,{signal:AbortSignal.timeout(60000),cache:'force-cache',redirect:'error'});
   if(!response.ok)throw new Error('Review target HTTP '+response.status);
   const bytes=new Uint8Array(await response.arrayBuffer());
   if(bytes.byteLength!==source.byteLength||await gitBlobSha(bytes)!==source.gitBlobSha)throw new Error('Review target integrity mismatch');

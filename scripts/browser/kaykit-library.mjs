@@ -77,6 +77,8 @@ try{
   await page.goto(rinne+'/review-motion');await page.waitForFunction(()=>document.querySelector('#motion-stage')?.dataset.motionModel,null,{timeout:60000});
   assert(!receipt.requests.slice(start).some(r=>catalog.models.some(m=>r.path===m.runtime.assetPath)),'Unselected character payloads eagerly loaded');
   assert(await page.locator('#motion-model-grid [data-motion-model]').count()===16,'Motion model enumeration mismatch');
+  await page.locator('.motion-models summary').click();
+  await page.waitForFunction(()=>[...document.querySelectorAll('#motion-model-grid img')].every(x=>x.complete&&x.naturalWidth>0));
   for(const model of catalog.models){
    const button=page.locator('[data-motion-model="'+model.id+'"]');await button.scrollIntoViewIfNeeded();await button.click();
    await page.waitForFunction(id=>{const stage=document.querySelector('#motion-stage');return stage?.dataset.motionModel===id&&stage.dataset.motionCompatibility==='PLAYABLE';},model.id,{timeout:60000});
@@ -101,7 +103,7 @@ try{
    const audit=await page.evaluate(()=>({audit:window.characterStudio.review.audit,errors:window.characterStudio.review.errors}));assert(audit.errors.length===0,'Studio model errors');
    receipt.ui.push({route:'character-studio /',model:model.id,status:'passed'});
   }
-  for(const id of ['kaykit.ranger.v2','kaykit.rogue.v2']){
+  for(const id of ['kaykit.mage.v2','kaykit.rogue.v2']){
    await page.locator('.character-model-card[data-model-key="'+id+'"]').click();await page.waitForFunction(id=>window.characterStudio?.review?.ready&&window.characterStudio.review.audit?.modelId===id,id);
    for(const preset of ['front','side','back','face']){
     await page.locator('.character-review-camera-dock [data-camera="'+preset+'"]').click();await page.locator('#stage').scrollIntoViewIfNeeded();

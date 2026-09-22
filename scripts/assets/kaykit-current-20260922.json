@@ -50,10 +50,11 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "barbarian",
-      "genderPresentation": "unspecified",
+      "genderPresentation": "masculine",
       "femaleProtagonistCandidate": false,
       "variantOf": "kaykit.barbarian.v1",
-      "deduplication": "official-version-variant"
+      "deduplication": "official-version-variant",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -70,7 +71,8 @@
       "genderPresentation": "unspecified",
       "femaleProtagonistCandidate": false,
       "variantOf": "kaykit.knight.v1",
-      "deduplication": "official-version-variant"
+      "deduplication": "official-version-variant",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -84,10 +86,11 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "mage",
-      "genderPresentation": "unspecified",
-      "femaleProtagonistCandidate": false,
+      "genderPresentation": "feminine",
+      "femaleProtagonistCandidate": true,
       "variantOf": "kaykit.mage.v1",
-      "deduplication": "official-version-variant"
+      "deduplication": "official-version-variant",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -101,10 +104,11 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "ranger",
-      "genderPresentation": "unspecified",
-      "femaleProtagonistCandidate": true,
+      "genderPresentation": "masculine",
+      "femaleProtagonistCandidate": false,
       "variantOf": null,
-      "deduplication": "new-character"
+      "deduplication": "new-character",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -118,10 +122,11 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "rogue",
-      "genderPresentation": "unspecified",
+      "genderPresentation": "feminine",
       "femaleProtagonistCandidate": true,
       "variantOf": "kaykit.rogue.v1",
-      "deduplication": "official-version-variant"
+      "deduplication": "official-version-variant",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -135,10 +140,11 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "rogue-hooded",
-      "genderPresentation": "unspecified",
-      "femaleProtagonistCandidate": false,
+      "genderPresentation": "feminine",
+      "femaleProtagonistCandidate": true,
       "variantOf": "kaykit.rogue-hooded.v1",
-      "deduplication": "official-version-variant"
+      "deduplication": "official-version-variant",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -155,7 +161,8 @@
       "genderPresentation": "unspecified",
       "femaleProtagonistCandidate": false,
       "variantOf": "review-skeleton-mage",
-      "deduplication": "official-version-variant"
+      "deduplication": "official-version-variant",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -172,7 +179,8 @@
       "genderPresentation": "unspecified",
       "femaleProtagonistCandidate": false,
       "variantOf": "review-skeleton-minion",
-      "deduplication": "official-version-variant"
+      "deduplication": "official-version-variant",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -189,7 +197,8 @@
       "genderPresentation": "unspecified",
       "femaleProtagonistCandidate": false,
       "variantOf": "review-skeleton-rogue",
-      "deduplication": "official-version-variant"
+      "deduplication": "official-version-variant",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -206,7 +215,8 @@
       "genderPresentation": "unspecified",
       "femaleProtagonistCandidate": false,
       "variantOf": "review-skeleton-warrior",
-      "deduplication": "official-version-variant"
+      "deduplication": "official-version-variant",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     }
   ],
   "notAcquired": [

@@ -4224,9 +4224,9 @@
     },
     {
       "path": "provenance/kaykit-current-20260922.json",
-      "bytes": 15143,
-      "gitBlobSha": "b293d83cdd8bbd7bc394072b26ed3ba4f7fff891",
-      "sha256": "780b82c5ed28dc8b22b89f9acb6bf9ea46ee9cd3f9c11c465f989bbdbf9786b1"
+      "bytes": 19077,
+      "gitBlobSha": "bacd78889df8e8f8b5a1ae80fd15811764c91de7",
+      "sha256": "5e59f118903ea1bbb7d9b0db783b28ba2a8215e1707d62c910e9ca6d10240ee1"
     },
     {
       "path": "thumbnail/curation-20260921/kaykit-dungeon-additions-banner-blue/fe8e81947b17c58ec8d36f9e90a77f049fd69244.webp",

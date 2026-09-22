@@ -13,7 +13,7 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "barbarian",
-      "genderPresentation": "unspecified",
+      "genderPresentation": "masculine",
       "femaleProtagonistCandidate": false,
       "variantOf": "kaykit.barbarian.v1",
       "deduplication": "official-version-variant",
@@ -181,7 +181,8 @@
         "protagonist-candidate"
       ],
       "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
-      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.barbarian.v2/372dbe4a1fc7ea0ebd88a8f4e3474e3fd1e86c48.webp"
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.barbarian.v2/372dbe4a1fc7ea0ebd88a8f4e3474e3fd1e86c48.webp",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -363,7 +364,8 @@
         "protagonist-candidate"
       ],
       "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
-      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.knight.v2/03f79208c641bf5c1455edea740a9a10821983c4.webp"
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.knight.v2/03f79208c641bf5c1455edea740a9a10821983c4.webp",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -377,8 +379,8 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "mage",
-      "genderPresentation": "unspecified",
-      "femaleProtagonistCandidate": false,
+      "genderPresentation": "feminine",
+      "femaleProtagonistCandidate": true,
       "variantOf": "kaykit.mage.v1",
       "deduplication": "official-version-variant",
       "key": "mage.v2",
@@ -545,7 +547,8 @@
         "protagonist-candidate"
       ],
       "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
-      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.mage.v2/be7d3804912d4fb97e2124f5708eebd53f19c929.webp"
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.mage.v2/be7d3804912d4fb97e2124f5708eebd53f19c929.webp",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -559,8 +562,8 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "ranger",
-      "genderPresentation": "unspecified",
-      "femaleProtagonistCandidate": true,
+      "genderPresentation": "masculine",
+      "femaleProtagonistCandidate": false,
       "variantOf": null,
       "deduplication": "new-character",
       "key": "ranger.v2",
@@ -727,7 +730,8 @@
         "protagonist-candidate"
       ],
       "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
-      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.ranger.v2/0fe3679bdd4133f197b7d0476baf940659189a66.webp"
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.ranger.v2/0fe3679bdd4133f197b7d0476baf940659189a66.webp",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -741,7 +745,7 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "rogue",
-      "genderPresentation": "unspecified",
+      "genderPresentation": "feminine",
       "femaleProtagonistCandidate": true,
       "variantOf": "kaykit.rogue.v1",
       "deduplication": "official-version-variant",
@@ -909,7 +913,8 @@
         "protagonist-candidate"
       ],
       "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
-      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.rogue.v2/dda8333a8375298bc753e7923b55e81df2dbc053.webp"
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.rogue.v2/dda8333a8375298bc753e7923b55e81df2dbc053.webp",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-adventurers-2.0",
@@ -923,8 +928,8 @@
       "classification": "humanoid",
       "species": "human",
       "archetype": "rogue-hooded",
-      "genderPresentation": "unspecified",
-      "femaleProtagonistCandidate": false,
+      "genderPresentation": "feminine",
+      "femaleProtagonistCandidate": true,
       "variantOf": "kaykit.rogue-hooded.v1",
       "deduplication": "official-version-variant",
       "key": "rogue-hooded.v2",
@@ -1091,7 +1096,8 @@
         "protagonist-candidate"
       ],
       "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
-      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.rogue-hooded.v2/f462ed5145cf6ee8de9faba154cfb151640984e9.webp"
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.rogue-hooded.v2/f462ed5145cf6ee8de9faba154cfb151640984e9.webp",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -1272,7 +1278,8 @@
         "enemy"
       ],
       "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
-      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-mage.v1-1/805d5c491667c02c298a669679c8c13f061a915e.webp"
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-mage.v1-1/805d5c491667c02c298a669679c8c13f061a915e.webp",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -1453,7 +1460,8 @@
         "enemy"
       ],
       "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
-      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-minion.v1-1/93766ede8940eb02370e84c4bc2eb15ff5ee925f.webp"
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-minion.v1-1/93766ede8940eb02370e84c4bc2eb15ff5ee925f.webp",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -1634,7 +1642,8 @@
         "enemy"
       ],
       "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
-      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-rogue.v1-1/257c786d28f2273b37b38861c3601c3713beb6fd.webp"
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-rogue.v1-1/257c786d28f2273b37b38861c3601c3713beb6fd.webp",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     },
     {
       "pack": "kaykit-skeletons-1.1",
@@ -1815,7 +1824,8 @@
         "enemy"
       ],
       "equipmentNote": "Authored part meshes and hand sockets preserved; clothing swaps still need rig/mesh fitting.",
-      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-warrior.v1-1/f6802eb8d70b4bb8b9459e9cea3dd90f7b15f435.webp"
+      "thumbnailPath": "thumbnail/kaykit-current-20260922/kaykit.skeleton-warrior.v1-1/f6802eb8d70b4bb8b9459e9cea3dd90f7b15f435.webp",
+      "visualReviewNote": "Observed original rendered model, 2026-09-22; presentation is a visual classification, not an authored age. No protagonist selection."
     }
   ],
   "packs": [

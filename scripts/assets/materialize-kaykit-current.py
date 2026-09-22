@@ -25,6 +25,22 @@ def document(body):
     assert {'hips','spine','chest','head','upperarm.l','upperarm.r','hand.l','hand.r','foot.l','foot.r'}<=names, 'Incomplete KayKit rig'
     return doc
 
+def geometry_fingerprint(body):
+    doc=document(body); n=struct.unpack_from('<I',body,12)[0]; binary=body[28+n:]; rows=[]
+    def accessor(index):
+        a=doc['accessors'][index]; v=doc['bufferViews'][a['bufferView']]
+        sizes={5120:1,5121:1,5122:2,5123:2,5125:4,5126:4}; widths={'SCALAR':1,'VEC2':2,'VEC3':3,'VEC4':4,'MAT4':16}
+        width=sizes[a['componentType']]*widths[a['type']]; stride=v.get('byteStride',width); start=v.get('byteOffset',0)+a.get('byteOffset',0)
+        payload=b''.join(binary[start+i*stride:start+i*stride+width] for i in range(a['count']))
+        return [a['componentType'],a['type'],a['count'],digest(payload)]
+    for mesh in sorted(doc['meshes'],key=lambda m:m.get('name','')):
+        for primitive in mesh['primitives']:
+            rows.append([mesh.get('name'),{key:accessor(value) for key,value in primitive['attributes'].items() if key in ['POSITION','TEXCOORD_0']},accessor(primitive['indices'])])
+    for image in doc.get('images',[]):
+        view=doc['bufferViews'][image['bufferView']]; start=view.get('byteOffset',0)
+        rows.append(['image',digest(binary[start:start+view['byteLength']])])
+    return digest(json.dumps(rows,sort_keys=True).encode())
+
 def main(directory):
     spec=json.loads(SPEC.read_text()); manifest=json.loads((LIB/'manifest.json').read_text())
     indexed={x['path']:x for x in manifest['files']}
@@ -61,6 +77,8 @@ def main(directory):
                     od=document(old)
                     compared.append({'path':str(candidate.relative_to(LIB)), 'sha256':digest(old),
                                      'byteLength':len(old),'relation':'exact-duplicate' if old==body else 'official-version-variant',
+                                     'geometryTextureEquivalent':geometry_fingerprint(old)==geometry_fingerprint(body),
+                                     'oldGeometryFingerprint':geometry_fingerprint(old),'newGeometryFingerprint':geometry_fingerprint(body),
                                      'oldMeshes':len(od.get('meshes',[])), 'newMeshes':len(doc.get('meshes',[])),
                                      'oldEmbeddedClips':len(od.get('animations',[])), 'newEmbeddedClips':len(doc.get('animations',[]))})
                 row={**item,'key':item['id'].removeprefix('kaykit.'),'label':item['name'].replace('_',' ')+' · '+pack['version'],
