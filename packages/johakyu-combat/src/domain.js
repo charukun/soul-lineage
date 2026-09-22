@@ -16,11 +16,11 @@ function refreshBody(actor){
   if(actor.incapacitated)actor.hp=0;
   return result;
 }
-export function createJohakyuDomainActor({id,side='enemy',hp=100,maxHp=hp,stamina=100,staminaCap=100,body,injuries,dead=false,incapacitated=false,ageSeconds=0,seed=1,generation=1,equipment={weapon:'sword',armor:'cloth',shield:false}}={}){
+export function createJohakyuDomainActor({id,side='enemy',hp=100,maxHp=hp,stamina=100,staminaCap=100,body,injuries,dead=false,incapacitated=false,ageSeconds=0,seed=1,generation=1,equipment={weapon:'sword',armor:'cloth',shield:false},staminaMultiplier=1}={}){
   identity(id,'actor id');identity(side,'actor side');
-  if(!finite(maxHp,1,10000)||!finite(hp,0,maxHp)||!finite(stamina,0,100)||!finite(staminaCap,22,100)||!finite(ageSeconds))throw new TypeError('Invalid actor physiology');
+  if(!finite(maxHp,1,10000)||!finite(hp,0,maxHp)||!finite(stamina,0,100)||!finite(staminaCap,22,100)||!finite(ageSeconds)||!finite(staminaMultiplier))throw new TypeError('Invalid actor physiology');
   if(!equipment||!WEAPONS[equipment.weapon]||!ARMORS[equipment.armor])throw new TypeError('Invalid actor equipment');
-  const actor={id,side,hp,maxHp,stamina,staminaCap,dead:Boolean(dead),incapacitated:Boolean(incapacitated||hp===0),ageSeconds,seed,generation,
+  const actor={id,side,hp,maxHp,stamina,staminaCap,dead:Boolean(dead),incapacitated:Boolean(incapacitated||hp===0),ageSeconds,seed,generation,staminaMultiplier,
     equipment:{weapon:equipment.weapon,armor:equipment.armor,shield:Boolean(equipment.shield)},
     zone:'frontier',moving:false,resting:false,idleSeconds:0,lastSpendSeconds:999,combat:true,
     injuries:Object.fromEntries(BODY_PARTS.map(part=>[part,{severity:clamp(injuries?.[part]?.severity??body?.[part]??0),at:ageSeconds}]))};
@@ -66,8 +66,7 @@ export function applyJohakyuImpactOnce(battle,{eventId,attackId,sourceId,targetI
   // authority that can defeat a healthy body. Body outcome decides incapacity.
   if(injury.outcome.incapacitated)target.hp=0;
   else if(target.hp<=.001)target.hp=Math.max(1,target.maxHp*.18);
-  refreshBody(target);
-  battle.applied.add(eventId);battle.contacts.add(key);battle.revision++;
+  refreshBody(target);battle.applied.add(eventId);battle.contacts.add(key);battle.revision++;
   const living=[...battle.actors.values()].filter(a=>!a.dead&&!a.incapacitated),sides=new Set(living.map(a=>a.side));
   if(sides.size<=1)battle.result=freeze({winner:[...sides][0]??null,reason:'incapacitated'});
   return {applied:true,dealt,part:injury.part,severity:injury.severity,durability:injury.durability,incapacitated:target.incapacitated,dead:target.dead,result:battle.result};
