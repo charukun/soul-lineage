@@ -53,6 +53,9 @@ function parsePlan(source) {
       throw new Error(`Heavy DEV test is not allowed in the default Fast DEV lane: ${file}. Use a narrow focused test/check instead.`);
     }
   }
+  if (!heavyValidationExplicit && plan.tests.length > 1) {
+    throw new Error(`Routine Fast DEV accepts at most one Astra-Test file, got ${plan.tests.length}. Use Astra-Validation: none / Astra-Check, or explicitly request [astra-heavy-validation].`);
+  }
   if (!heavyValidationExplicit && plan.builds.length) {
     throw new Error('Astra-Build is not allowed in the default Fast DEV lane. Use focused tests/checks; heavy validation requires an explicit [astra-heavy-validation] request.');
   }
