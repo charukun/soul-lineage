@@ -270,123 +270,110 @@ def create_materials():
 
 def build_character(armature,names,mats):
     head=bone_head(armature,names,"head"); head_tail=bone_tail(armature,names,"head")
-    head_center=head.lerp(head_tail,0.58)
+    head_center=head.lerp(head_tail,0.56)
     spine=bone_head(armature,names,"spine"); hips=bone_head(armature,names,"hips")
     shoulder_l=bone_head(armature,names,"leftUpperArm"); shoulder_r=bone_head(armature,names,"rightUpperArm")
-    body_width=max(0.24,abs(shoulder_l.x-shoulder_r.x)*0.64)
-    head_scale=max(0.16,abs(head_tail.z-head.z)*1.28)
+    body_width=max(0.30,abs(shoulder_l.x-shoulder_r.x)*0.72)
+    head_scale=max(0.145,abs(head_tail.z-head.z)*1.12)
 
-    ellipsoid("Shino_Face",head_center+Vector((0,-0.012,0.012)),(head_scale*0.84,head_scale*0.73,head_scale*0.92),mats["skin"],armature,names["head"],32,22,0.12)
-    for side,x in (("L",-head_scale*0.30),("R",head_scale*0.30)):
-        eye_center=head_center+Vector((x,-head_scale*0.705,head_scale*0.10))
-        ellipsoid(f"Shino_Eye_{side}",eye_center,(head_scale*0.14,head_scale*0.026,head_scale*0.18),mats["eye"],armature,names["head"],20,12)
-        ellipsoid(f"Shino_Pupil_{side}",eye_center+Vector((0,-head_scale*0.025,0)),(head_scale*0.065,head_scale*0.015,head_scale*0.105),mats["eye_dark"],armature,names["head"],16,10)
-        ellipsoid(f"Shino_EyeGlow_{side}",eye_center+Vector((-head_scale*0.035,-head_scale*0.043,head_scale*0.055)),(head_scale*0.024,head_scale*0.008,head_scale*0.035),mats["ivory"],armature,names["head"],12,8)
-    tube("Shino_Mouth",[head_center+Vector((-head_scale*.08,-head_scale*.735,-head_scale*.22)),head_center+Vector((0,-head_scale*.75,-head_scale*.24)),head_center+Vector((head_scale*.08,-head_scale*.735,-head_scale*.22))],[.008,.006,.008],mats["mouth"],armature,names["head"],8)
+    ellipsoid("Shino_Face",head_center+Vector((0,-head_scale*.025,0)),(head_scale*.79,head_scale*.67,head_scale*.88),mats["skin"],armature,names["head"],36,24,0.08)
+    for side,x in (("L",-head_scale*.29),("R",head_scale*.29)):
+        eye_center=head_center+Vector((x,-head_scale*.665,head_scale*.08))
+        ellipsoid(f"Shino_Eye_{side}",eye_center,(head_scale*.14,head_scale*.026,head_scale*.18),mats["eye"],armature,names["head"],20,12)
+        ellipsoid(f"Shino_Pupil_{side}",eye_center+Vector((0,-head_scale*.028,0)),(head_scale*.060,head_scale*.012,head_scale*.098),mats["eye_dark"],armature,names["head"],14,9)
+        ellipsoid(f"Shino_EyeGlow_{side}",eye_center+Vector((-head_scale*.034,-head_scale*.043,head_scale*.052)),(head_scale*.020,head_scale*.007,head_scale*.030),mats["ivory"],armature,names["head"],10,7)
+    tube("Shino_Mouth",[head_center+Vector((-head_scale*.07,-head_scale*.68,-head_scale*.23)),head_center+Vector((0,-head_scale*.69,-head_scale*.25)),head_center+Vector((head_scale*.07,-head_scale*.68,-head_scale*.23))],[.006,.005,.006],mats["mouth"],armature,names["head"],8)
 
-    ellipsoid("Shino_HairCap",head_center+Vector((0,head_scale*.05,head_scale*.15)),(head_scale*.92,head_scale*.80,head_scale*.86),mats["hair"],armature,names["head"],30,20,0.05)
-    hair_points=[
-        (-.62,-.42,.42,-.50),(-.42,-.62,.52,-.40),(-.20,-.70,.58,-.34),(0,-.73,.62,-.31),(.20,-.70,.58,-.34),(.42,-.62,.52,-.40),(.62,-.42,.42,-.50)
-    ]
-    for i,(sx,sy,sz,ez) in enumerate(hair_points):
-        p0=head_center+Vector((sx*head_scale,sy*head_scale,sz*head_scale))
-        p1=head_center+Vector((sx*.92*head_scale,(sy-.08)*head_scale,.05*head_scale))
-        p2=head_center+Vector((sx*.84*head_scale,-.15*head_scale,ez*head_scale))
-        tube(f"Shino_HairLock_{i:02d}",[p0,p1,p2],[head_scale*.11,head_scale*.095,head_scale*.035],mats["hair_shadow" if i in {0,6} else "hair"],armature,names["head"],10)
+    ellipsoid("Shino_HairCap",head_center+Vector((0,head_scale*.10,head_scale*.16)),(head_scale*.88,head_scale*.75,head_scale*.82),mats["hair"],armature,names["head"],34,22,0.0)
+    bangs=[(-.34,.42,.20), (0,.48,.26), (.34,.42,.20)]
+    for i,(sx,sz,ez) in enumerate(bangs):
+        p0=head_center+Vector((sx*head_scale,-head_scale*.50,sz*head_scale))
+        p1=head_center+Vector((sx*.72*head_scale,-head_scale*.70,(sz-.06)*head_scale))
+        p2=head_center+Vector((sx*.55*head_scale,-head_scale*.71,ez*head_scale))
+        tube(f"Shino_Bang_{i}",[p0,p1,p2],[head_scale*.10,head_scale*.075,head_scale*.022],mats["hair"],armature,names["head"],12)
     for side,sign in (("L",-1),("R",1)):
         tube(f"Shino_SideLock_{side}",[
-            head_center+Vector((sign*head_scale*.75,-head_scale*.18,head_scale*.20)),
-            head_center+Vector((sign*head_scale*.84,-head_scale*.04,-head_scale*.15)),
-            head_center+Vector((sign*head_scale*.70,head_scale*.02,-head_scale*.58)),
-        ],[head_scale*.11,head_scale*.09,head_scale*.04],mats["hair"],armature,names["head"],10)
+            head_center+Vector((sign*head_scale*.68,-head_scale*.28,head_scale*.18)),
+            head_center+Vector((sign*head_scale*.78,-head_scale*.20,-head_scale*.10)),
+            head_center+Vector((sign*head_scale*.68,-head_scale*.06,-head_scale*.42)),
+        ],[head_scale*.10,head_scale*.075,head_scale*.026],mats["hair_shadow"],armature,names["head"],11)
 
-    hood_verts=[];hood_faces=[];u_steps=30;v_steps=10
+    hood_verts=[];hood_faces=[];u_steps=40;v_steps=13
     for v in range(v_steps+1):
-        pv=v/v_steps; polar=math.radians(28+118*pv)
+        pv=v/v_steps; polar=math.radians(18+126*pv)
         for u in range(u_steps+1):
-            pu=u/u_steps; az=math.radians(-142+284*pu)
-            radius=head_scale*(1.12+0.10*math.sin(math.pi*pv))
+            pu=u/u_steps; az=math.radians(-150+300*pu)
+            radius=head_scale*(1.02+0.055*math.sin(math.pi*pv))
             x=math.sin(polar)*math.sin(az)*radius
-            y=math.sin(polar)*math.cos(az)*radius*0.88 + head_scale*.08
-            z=math.cos(polar)*radius + head_scale*.16
+            y=math.sin(polar)*math.cos(az)*radius*.91 + head_scale*.10
+            z=math.cos(polar)*radius + head_scale*.15
             hood_verts.append(tuple(head_center+Vector((x,y,z))))
     for v in range(v_steps):
         for u in range(u_steps):
             a=v*(u_steps+1)+u;b=a+1;c=(v+1)*(u_steps+1)+u+1;d=c-1;hood_faces.append((a,b,c,d))
     hood=make_mesh("Shino_Hood",hood_verts,hood_faces,mats["ivory"],armature,names["head"])
-    sol=hood.modifiers.new("HoodThickness","SOLIDIFY");sol.thickness=head_scale*.055;sol.offset=-.20
-    bev=hood.modifiers.new("HoodSoftEdge","BEVEL");bev.width=head_scale*.018;bev.segments=2
+    sol=hood.modifiers.new("HoodThickness","SOLIDIFY");sol.thickness=head_scale*.040;sol.offset=-.25
+    bev=hood.modifiers.new("HoodSoftEdge","BEVEL");bev.width=head_scale*.014;bev.segments=2
     select_only(hood);bpy.ops.object.modifier_apply(modifier=sol.name);bpy.ops.object.modifier_apply(modifier=bev.name);smart_uv(hood)
     for side,sign in (("L",-1),("R",1)):
-        disc(f"Shino_HoodEye_{side}",head_center+Vector((sign*head_scale*.31,-head_scale*.86,head_scale*.77)),(head_scale*.10,head_scale*.16),mats["charcoal"],armature,names["head"])
-    tube("Shino_HoodMouth",[
-        head_center+Vector((-head_scale*.07,-head_scale*.88,head_scale*.61)),
-        head_center+Vector((0,-head_scale*.89,head_scale*.57)),
-        head_center+Vector((head_scale*.07,-head_scale*.88,head_scale*.61)),
-    ],[.006,.006,.006],mats["charcoal"],armature,names["head"],7)
+        ellipsoid(f"Shino_HoodMark_{side}",head_center+Vector((sign*head_scale*.26,-head_scale*.91,head_scale*.77)),(head_scale*.050,head_scale*.016,head_scale*.078),mats["charcoal"],armature,names["head"],12,8)
+    tube("Shino_HoodSmile",[head_center+Vector((-head_scale*.05,-head_scale*.92,head_scale*.64)),head_center+Vector((0,-head_scale*.93,head_scale*.60)),head_center+Vector((head_scale*.05,-head_scale*.92,head_scale*.64))],[.004,.004,.004],mats["charcoal"],armature,names["head"],7)
 
     shoulder_z=(shoulder_l.z+shoulder_r.z)*.5
-    waist_z=hips.z+abs(shoulder_z-hips.z)*.25
-    hem_z=min(bone_head(armature,names,"leftLowerLeg").z,bone_head(armature,names,"rightLowerLeg").z)+abs(hips.z-bone_head(armature,names,"leftLowerLeg").z)*.44
+    waist_z=hips.z+abs(shoulder_z-hips.z)*.28
+    knee_z=min(bone_head(armature,names,"leftLowerLeg").z,bone_head(armature,names,"rightLowerLeg").z)
+    hem_z=knee_z+abs(hips.z-knee_z)*.46
     torso_bind=lambda obj: bind_vertical(obj,armature,names["spine"],names["hips"],waist_z,max(.15,abs(shoulder_z-hips.z)*.45))
-    loft("Shino_Tunic",[
-        (shoulder_z-.04,body_width*.70,body_width*.46,0,-.006),
-        (spine.z,body_width*.67,body_width*.43,0,-.005),
-        (waist_z,body_width*.57,body_width*.38,0,-.003),
-        (hips.z-.02,body_width*.62,body_width*.43,0,0),
-    ],mats["charcoal"],armature,torso_bind,26)
-    loft("Shino_Skirt",[
-        (hips.z+.02,body_width*.62,body_width*.44,0,0),
-        ((hips.z+hem_z)*.55,body_width*.78,body_width*.52,0,.018),
-        (hem_z,body_width*1.02,body_width*.60,0,.025),
-    ],mats["ivory"],armature,lambda obj:bind_rigid(obj,armature,names["hips"]),28,math.pi/28)
-    for i,x in enumerate((-0.30,-0.15,0,0.15,0.30)):
-        center=Vector((x*body_width*2.15,-body_width*.47,hem_z-.025-abs(x)*.025))
-        ellipsoid(f"Shino_HemPearl_{i}",center,(.025,.018,.032),mats["ivory_shadow"],armature,names["hips"],12,8)
-
-    cape_top=Vector((0,0,shoulder_z+.03));cape_bottom_z=hem_z+.08
-    cape_panel("Shino_Cape_Back",cape_top+Vector((0,body_width*.31,0)),Vector((0,body_width*.40,cape_bottom_z)),body_width*.80,body_width*1.18,.018,mats["ivory_shadow"],armature,names["spine"])
-    cape_panel("Shino_Cape_Front",cape_top+Vector((0,-body_width*.31,0)),Vector((0,-body_width*.43,cape_bottom_z+.08)),body_width*.68,body_width*.96,-.018,mats["ivory"],armature,names["spine"])
-    cape_panel("Shino_Cape_Left",cape_top+Vector((-body_width*.38,0,0)),Vector((-body_width*.70,0,cape_bottom_z)),body_width*.48,body_width*.78,0,mats["ivory"],armature,names["spine"])
-    cape_panel("Shino_Cape_Right",cape_top+Vector((body_width*.38,0,0)),Vector((body_width*.70,0,cape_bottom_z)),body_width*.48,body_width*.78,0,mats["ivory"],armature,names["spine"])
-    tube("Shino_Ribbon_L",[Vector((-.03,-body_width*.54,shoulder_z-.08)),Vector((-.12,-body_width*.58,shoulder_z-.22)),Vector((-.10,-body_width*.56,shoulder_z-.34))],[.028,.022,.012],mats["ribbon"],armature,names["spine"],8)
-    tube("Shino_Ribbon_R",[Vector((.03,-body_width*.54,shoulder_z-.08)),Vector((.12,-body_width*.58,shoulder_z-.22)),Vector((.10,-body_width*.56,shoulder_z-.34))],[.028,.022,.012],mats["ribbon"],armature,names["spine"],8)
-    ellipsoid("Shino_Clasp",Vector((0,-body_width*.57,shoulder_z-.07)),(.040,.018,.050),mats["bronze"],armature,names["spine"],16,10)
+    loft("Shino_Tunic",[(shoulder_z-.02,body_width*.63,body_width*.42,0,0),(waist_z,body_width*.55,body_width*.37,0,0),(hips.z-.02,body_width*.60,body_width*.41,0,0)],mats["charcoal"],armature,torso_bind,28)
+    loft("Shino_Poncho",[
+        (shoulder_z+.055,body_width*.98,body_width*.64,0,.01),
+        (spine.z+.02,body_width*1.08,body_width*.70,0,.015),
+        (waist_z-.08,body_width*1.18,body_width*.76,0,.02),
+        (hem_z+.13,body_width*1.26,body_width*.80,0,.025),
+    ],mats["ivory"],armature,torso_bind,36,math.pi/36)
+    loft("Shino_Skirt",[(hips.z+.01,body_width*.57,body_width*.39,0,0),((hips.z+hem_z)*.50,body_width*.66,body_width*.43,0,.01),(hem_z,body_width*.78,body_width*.47,0,.015)],mats["ivory_shadow"],armature,lambda obj:bind_rigid(obj,armature,names["hips"]),30,math.pi/30)
+    tube("Shino_Trim_L",[Vector((-.035,-body_width*.67,shoulder_z-.02)),Vector((-.12,-body_width*.72,waist_z+.02)),Vector((-.055,-body_width*.75,waist_z-.14))],[.020,.017,.009],mats["ribbon"],armature,names["spine"],9)
+    tube("Shino_Trim_R",[Vector((.035,-body_width*.67,shoulder_z-.02)),Vector((.12,-body_width*.72,waist_z+.02)),Vector((.055,-body_width*.75,waist_z-.14))],[.020,.017,.009],mats["ribbon"],armature,names["spine"],9)
+    ellipsoid("Shino_Clasp",Vector((0,-body_width*.70,shoulder_z-.02)),(.033,.016,.042),mats["bronze"],armature,names["spine"],14,9)
 
     for side in ("left","right"):
         ua=f"{side}UpperArm";la=f"{side}LowerArm";hand=f"{side}Hand";ul=f"{side}UpperLeg";ll=f"{side}LowerLeg";foot=f"{side}Foot"
-        a=bone_head(armature,names,ua);b=bone_head(armature,names,la);c=bone_head(armature,names,hand)
-        tube(f"Shino_{side}_Sleeve",[a,a.lerp(b,.56),b],[.075,.068,.055],mats["ivory"],armature,names[ua],14)
-        tube(f"Shino_{side}_Forearm",[b,b.lerp(c,.68),c],[.050,.043,.036],mats["skin"],armature,names[la],12)
-        ellipsoid(f"Shino_{side}_Palm",c,(.052,.040,.060),mats["skin"],armature,names[hand],16,10)
-        sign=-1 if side=="left" else 1
-        finger_offsets=[(-.030,.0,-.010),(-.015,-.006,-.020),(0,-.008,-.022),(.015,-.005,-.019),(.030,.002,-.014)]
-        for fi,(ox,oy,oz) in enumerate(finger_offsets):
-            length=.052 if fi in {1,2,3} else .044
-            start=c+Vector((sign*ox,oy-.030,oz-.040))
-            end=start+Vector((sign*(.012 if fi==0 else .002),-.008,-length))
-            tube(f"Shino_{side}_Finger_{fi+1}",[start,start.lerp(end,.55),end],[.009,.008,.0055],mats["skin"],armature,names[hand],8)
-        p=bone_head(armature,names,ul);k=bone_head(armature,names,ll);ankle=bone_head(armature,names,foot)
-        tube(f"Shino_{side}_Thigh",[p,p.lerp(k,.55),k],[.070,.064,.053],mats["charcoal"],armature,names[ul],14)
-        tube(f"Shino_{side}_Calf",[k,k.lerp(ankle,.55),ankle],[.052,.047,.038],mats["ivory_shadow"],armature,names[ll],12)
-        rounded_box(f"Shino_{side}_Boot",ankle+Vector((0,-.045,-.018)),(.070,.105,.065),mats["boot"],armature,names[foot],.020)
-        rounded_box(f"Shino_{side}_BootCuff",ankle+Vector((0,.0,.045)),(.075,.070,.035),mats["ribbon"],armature,names[foot],.014)
+        a=bone_head(armature,names,ua);b=bone_head(armature,names,la);c=bone_head(armature,names,hand);hand_tail=bone_tail(armature,names,hand)
+        tube(f"Shino_{side}_Sleeve",[a,a.lerp(b,.58),b],[.080,.070,.055],mats["ivory"],armature,names[ua],14)
+        tube(f"Shino_{side}_Forearm",[b,b.lerp(c,.72),c],[.048,.041,.034],mats["skin"],armature,names[la],12)
+        palm_center=c.lerp(hand_tail,.45)
+        ellipsoid(f"Shino_{side}_Palm",palm_center,(.050,.037,.050),mats["skin"],armature,names[hand],16,10)
+        tangent=(hand_tail-c).normalized()
+        ref=Vector((0,0,1)) if abs(tangent.z)<.85 else Vector((0,1,0))
+        spread=tangent.cross(ref).normalized(); lift=tangent.cross(spread).normalized()
+        offsets=[-.030,-.015,0,.015,.030]
+        for fi,off in enumerate(offsets):
+            start=hand_tail + spread*off + lift*(-.006 if fi in {0,4} else 0)
+            length=.050 if fi in {1,2,3} else .042
+            direction=(tangent + spread*((fi-2)*.07) + lift*(-.06 if fi==0 else 0)).normalized()
+            end=start+direction*length
+            tube(f"Shino_{side}_Finger_{fi+1}",[start,start.lerp(end,.55),end],[.008,.007,.0048],mats["skin"],armature,names[hand],8)
+        p=bone_head(armature,names,ul);k=bone_head(armature,names,ll);ankle=bone_head(armature,names,foot);foot_tail=bone_tail(armature,names,foot)
+        tube(f"Shino_{side}_Thigh",[p,p.lerp(k,.55),k],[.068,.060,.050],mats["charcoal"],armature,names[ul],14)
+        tube(f"Shino_{side}_Calf",[k,k.lerp(ankle,.55),ankle],[.050,.044,.035],mats["ivory_shadow"],armature,names[ll],12)
+        foot_vec=(foot_tail-ankle);toe=foot_tail+foot_vec.normalized()*.055
+        tube(f"Shino_{side}_Boot",[ankle,foot_tail,toe],[.060,.066,.042],mats["boot"],armature,names[foot],14)
+        ellipsoid(f"Shino_{side}_BootCuff",ankle+Vector((0,0,.035)),(.070,.060,.035),mats["ribbon"],armature,names[foot],14,8)
 
-    bow_z=hips.z+.12
+    bow_z=hips.z+.13
     for sign in (-1,1):
-        ellipsoid(f"Shino_BackBow_{'L' if sign<0 else 'R'}",Vector((sign*.07,body_width*.52,bow_z)),(.075,.022,.050),mats["ribbon"],armature,names["hips"],16,10)
-    tube("Shino_BackBowTail_L",[Vector((-.025,body_width*.52,bow_z-.02)),Vector((-.085,body_width*.53,bow_z-.18))],[.024,.012],mats["ribbon"],armature,names["hips"],8)
-    tube("Shino_BackBowTail_R",[Vector((.025,body_width*.52,bow_z-.02)),Vector((.085,body_width*.53,bow_z-.18))],[.024,.012],mats["ribbon"],armature,names["hips"],8)
+        ellipsoid(f"Shino_BackBow_{'L' if sign<0 else 'R'}",Vector((sign*.060,body_width*.82,bow_z)),(.066,.020,.043),mats["ribbon"],armature,names["hips"],14,9)
+    tube("Shino_BackBowTail_L",[Vector((-.025,body_width*.82,bow_z-.015)),Vector((-.072,body_width*.83,bow_z-.14))],[.018,.009],mats["ribbon"],armature,names["hips"],8)
+    tube("Shino_BackBowTail_R",[Vector((.025,body_width*.82,bow_z-.015)),Vector((.072,body_width*.83,bow_z-.14))],[.018,.009],mats["ribbon"],armature,names["hips"],8)
 
 def setup_render():
     scene=bpy.context.scene
     scene.unit_settings.system="METRIC";scene.unit_settings.scale_length=1.0
-    scene.render.resolution_x=768;scene.render.resolution_y=1024;scene.render.resolution_percentage=100
-    scene.render.image_settings.file_format="PNG"
-    scene.render.film_transparent=False
-    for engine in ("BLENDER_EEVEE_NEXT","BLENDER_EEVEE","BLENDER_WORKBENCH"):
-        try: scene.render.engine=engine;break
-        except TypeError: continue
+    scene.render.resolution_x=512;scene.render.resolution_y=640;scene.render.resolution_percentage=100
+    scene.render.image_settings.file_format="PNG";scene.render.film_transparent=False
+    scene.render.engine="BLENDER_WORKBENCH"
+    scene.display.shading.light="STUDIO";scene.display.shading.color_type="MATERIAL"
+    scene.display.shading.show_shadows=True;scene.display.shading.show_cavity=True
     scene.world.color=(0.055,0.058,0.065)
 
 def look_at(obj,target):
@@ -395,12 +382,6 @@ def look_at(obj,target):
 def add_studio():
     mats=material("SHINO_STUDIO",(0.16,0.17,0.19,1),.98)
     bpy.ops.mesh.primitive_plane_add(size=8,location=(0,0,-.01));ground=bpy.context.object;ground.name="ShinoReviewGround";ground.data.materials.append(mats)
-    for name,loc,energy,size,color in [
-        ("Key",(-2.6,-3.0,4.2),950,4.2,(1.0,.90,.80)),
-        ("Fill",(3.2,-1.5,2.7),520,3.5,(.78,.86,1.0)),
-        ("Rim",(.2,3.0,3.2),760,3.0,(.78,.86,1.0)),
-    ]:
-        bpy.ops.object.light_add(type="AREA",location=loc);light=bpy.context.object;light.name=name;light.data.energy=energy;light.data.size=size;light.data.color=color;look_at(light,(0,0,1.0))
     bpy.ops.object.camera_add(location=(0,-4,1.2));cam=bpy.context.object;cam.name="ShinoReviewCamera";cam.data.type="ORTHO";bpy.context.scene.camera=cam
     return cam,ground
 
