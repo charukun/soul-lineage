@@ -34,10 +34,9 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /iterationRank/);
   assert.match(script, /Run ·/);
   assert.match(script, /対象未記録/);
-  assert.match(script, /rapid-current-band/);
-  assert.match(script, /rapid-current-flag/);
   assert.match(script, /rapid-session-card/);
-  assert.match(script, /計測合計/);
+  assert.match(script, /工程時間/);
+  assert.doesNotMatch(script, /rapid-current-band/);
   assert.doesNotMatch(script, /api\.github\.com|innerHTML/);
 });
 
@@ -54,14 +53,12 @@ test('existing diagnostic surfaces remain present for drill-down', () => {
 });
 
 
-test('mobile list hierarchy makes current location and task title primary while keeping graphs secondary',()=>{
-  assert.match(rapidCss,/\.rapid-current-band\{/);
-  assert.match(rapidCss,/\.rapid-current-copy strong\{/);
-  assert.match(rapidCss,/font-size:13\.5px/);
+test('mobile work cards make the duration timeline the primary progress readout',()=>{
   assert.match(rapidCss,/\.rapid-session-card \.rapid-session-title\{/);
   assert.match(rapidCss,/-webkit-line-clamp:2/);
-  assert.match(rapidCss,/font-size:12\.5px/);
-  assert.match(rapidCss,/\.rapid-session-card \.rapid-progress-mini svg\{height:22px/);
-  assert.match(rapidCss,/\.rapid-progress-point\.current/);
-  assert.match(rapidCss,/\.rapid-progress-label\.current/);
+  assert.match(rapidCss,/\.rapid-session-card \.rapid-progress-mini svg\{height:34px/);
+  assert.match(rapidCss,/\.rapid-progress-guide/);
+  assert.match(rapidCss,/\.rapid-progress-label small/);
+  assert.match(rapidCss,/font-variant-numeric:tabular-nums/);
+  assert.match(rapidCss,/\.rapid-progress-point\.unmeasured/);
 });
