@@ -1,76 +1,64 @@
 name: Temporary kuumetsu immutable observation 20260922
-# Existing isolated hosted fallback; required reconciled-candidate recheck, never merged.
+# Session-only invocation of the canonical status-first merge summary. Never merged.
 on:
   push:
     branches: [ops/kuumetsu-three-20260922-041446]
     paths: [.github/workflows/kuumetsu-session-20260922.yml]
 permissions:
   contents: read
-  actions: write
+  statuses: read
+  actions: read
+  pull-requests: write
 env:
-  SOURCE_SHA: 88abf037eff4cb624634b6a88dd0e68b2aacea7d
+  SOURCE_SHA: de8fb38ec943bb06ce6afd1e14fabbb585bc9bb8
+  PR_NUMBER: 1427
 jobs:
-  observe:
+  summary:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 88abf037eff4cb624634b6a88dd0e68b2aacea7d
+          ref: de8fb38ec943bb06ce6afd1e14fabbb585bc9bb8
           persist-credentials: false
-      - name: Dispatch existing exact-source demon publication
-        id: publish
-        uses: actions/github-script@v8
-        with:
-          script: |
-            core.setOutput('started_at',new Date().toISOString());
-            await github.rest.actions.createWorkflowDispatch({...context.repo,workflow_id:'dev-app-publish.yml',ref:'develop',inputs:{app:'demon',source_sha:process.env.SOURCE_SHA}});
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: mkdir -p session-evidence && node --test apps/demon/tests/hunt-stakes-state.test.mjs | tee session-evidence/causal-preflight.log
-      - run: npx playwright install --with-deps chromium > /tmp/browser-install.log 2>&1
-      - name: Bind exact reconciled publication and reuse native observer
+      - name: Read the merge-owning statuses, without normal CI or DEV waiting
         uses: actions/github-script@v8
-        env:
-          PUBLISH_STARTED_AT: ${{ steps.publish.outputs.started_at }}
         with:
           script: |
-            const fs=require('fs');
-            const started=Date.parse(process.env.PUBLISH_STARTED_AT)-1000,seen=new Set();let publication=null;
-            for(let attempt=0;attempt<40&&!publication;attempt++){
-              const runs=await github.rest.actions.listWorkflowRuns({...context.repo,workflow_id:'dev-app-publish.yml',event:'workflow_dispatch',per_page:10});
-              for(const r of runs.data.workflow_runs.filter(r=>Date.parse(r.created_at)>=started&&r.status==='completed'&&r.conclusion==='success'&&!seen.has(r.id))){
-                const jobs=await github.rest.actions.listJobsForWorkflowRun({...context.repo,run_id:r.id,per_page:50});
-                for(const j of jobs.data.jobs){
-                  const log=await github.rest.actions.downloadJobLogsForWorkflowRun({...context.repo,job_id:j.id});
-                  const text=typeof log.data==='string'?log.data:Buffer.from(log.data).toString('utf8');
-                  const version=text.match(/Current Version ID:\s*([a-f0-9-]{36})/);
-                  if(text.includes(process.env.SOURCE_SHA)&&version){publication={sourceSha:process.env.SOURCE_SHA,runId:r.id,runUrl:r.html_url,jobId:j.id,versionId:version[1],url:`https://${version[1].slice(0,8)}-soul-lineage-demon-dev.c-okamoto.workers.dev/`};break;}
-                }
-                seen.add(r.id);if(publication)break;
-              }
-              if(!publication)await new Promise(r=>setTimeout(r,15000));
+            const pr=await github.rest.pulls.get({...context.repo,pull_number:Number(process.env.PR_NUMBER)});
+            if(pr.data.head.sha!==process.env.SOURCE_SHA||pr.data.base.ref!=='develop'||pr.data.state!=='open')throw Error('PR coordinate changed');
+            const marker=/<!-- autonomous-iteration-telemetry:v1:([A-Za-z0-9_-]+) -->/;
+            let body=pr.data.body;
+            if(pr.data.draft){
+              const t=JSON.parse(Buffer.from(body.match(marker)[1],'base64url').toString());
+              const adoption=await github.rest.issues.getComment({...context.repo,comment_id:5771508981});
+              const head=await github.rest.git.getCommit({...context.repo,commit_sha:process.env.SOURCE_SHA});
+              const advance=(from,to,at)=>{const s=t.steps[from];s.state='done';s.completedAt=at;s.durationMs=Date.parse(at)-Date.parse(s.startedAt);t.steps[to]={...t.steps[to],state:'running',startedAt:at};t.currentStep=to;t.updatedAt=at;};
+              if(t.currentStep==='afterObservation'){advance('afterObservation','verdict',adoption.data.created_at);advance('verdict','astraValidation',head.data.committer.date);t.verdict='supported';}
+              body=body.replace(marker,`<!-- autonomous-iteration-telemetry:v1:${Buffer.from(JSON.stringify(t)).toString('base64url')} -->`);
+              await github.rest.pulls.update({...context.repo,pull_number:pr.data.number,body});
             }
-            if(!publication)throw Error('No exact immutable publication; retry same SHA');
-            const version=await(await fetch(new URL('version.json',publication.url))).json();
-            if(version.commit!==process.env.SOURCE_SHA)throw Error('immutable identity mismatch');
-            publication.version=version;publication.boundAt=new Date().toISOString();
-            fs.writeFileSync('session-evidence/publication.json',JSON.stringify(publication,null,2));
-            core.exportVariable('PREVIEW_URL',publication.url);core.info(JSON.stringify(publication));
-            const r=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-session-observe.mjs',ref:context.sha});
-            let source=Buffer.from(r.data.content,'base64').toString('utf8');
-            source=source.replace("if(await gate.isVisible()){await tap('#soul-brand-boot');", "if(await gate.isVisible()){await page.waitForFunction(()=>document.querySelector('#soul-brand-boot')?.classList.contains('armed'));await tap('#soul-brand-boot');");
-            source=source.replace('presentation:window.__NIGHT_HUNT__?.presentationSnapshot?.()',"presentation:window.__NIGHT_HUNT__?.presentationSnapshot?.(),geometry:Object.fromEntries(['#objective','[data-goal]','[data-haul]','span[data-pressure]','.life','#pause'].map(selector=>{const n=document.querySelector(selector),r=n?.getBoundingClientRect(),c=n&&getComputedStyle(n);return [selector,{text:n?.textContent,hidden:n?.hidden,rect:r?.toJSON(),color:c?.color,opacity:c?.opacity,clip:c?.clipPath}]}))");
-            source=source.replace('if(held)await page.mouse.up();\n if(await page.locator',"if(held)await page.mouse.up();\n await page.setViewportSize({width:360,height:841});await capture('03-narrow');await page.setViewportSize({width:673,height:841});\n if(await page.locator");
-            fs.writeFileSync('session-observe.mjs',source);fs.writeFileSync('session-evidence/observer.mjs',source);
-      - name: Required reconciled-candidate native recheck
-        run: node session-observe.mjs > session-evidence/browser.log 2>&1
+            for(let i=0;i<36;i++){
+              const response=await github.rest.repos.getCombinedStatusForRef({...context.repo,ref:process.env.SOURCE_SHA});
+              const contexts=['astra/fast-dev-contract','astra/focused-validation','astra/merge-freshness'];
+              const rows=contexts.map(c=>response.data.statuses.find(s=>s.context===c));
+              if(rows.some(s=>['failure','error'].includes(s?.state)))throw Error(JSON.stringify(rows));
+              if(rows.every(s=>s?.state==='success'))break;
+              if(!pr.data.draft||i===35)throw Error('Exact-head validation not yet successful');
+              await new Promise(r=>setTimeout(r,15000));
+            }
+      - name: Canonical merge summary, exactly once per invocation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p session-evidence
+          npm run actions:summary -- --repo charukun/soul-lineage --sha "$SOURCE_SHA" --pr "$PR_NUMBER" --output session-evidence/actions-summary.json > session-evidence/summary.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-three-20260922-041446-i1-recheck
+          name: kuumetsu-three-20260922-041446-i1-summary-${{ github.run_attempt }}
           path: session-evidence
           retention-days: 14
