@@ -29,7 +29,8 @@ const ground=new THREE.Mesh(new THREE.CircleGeometry(3.8,64),new THREE.MeshStand
 ground.rotation.x=-Math.PI/2;ground.position.y=-.006;scene.add(ground);
 const models=createMuraModels(THREE,{createCanvas:()=>document.createElement('canvas'),textileFibers:1800,textileBlotches:40});
 const CATEGORY_OPTIONS=Object.freeze([{id:'all',label:'すべて'},{id:'props',label:'小物'},{id:'outdoor',label:'屋外'},{id:'furniture',label:'家具'},{id:'training',label:'訓練'},{id:'weapons',label:'武器'},{id:'creatures',label:'魔物・動物'}]);
-let objectRoot=null,frameId=0,selected=OBJECTS[0].id,selectedCategory='all',searchText='';
+const generatedRequested=new URLSearchParams(location.search).get('generated')==='1';
+let objectRoot=null,frameId=0,selected=(generatedRequested?OBJECTS.find(item=>item.experimentalGenerated)?.id:null)||OBJECTS[0].id,selectedCategory='all',searchText='';
 const objectLoads=createReviewLoadController();
 let mixer=null,animationRoot=null,clips=[],action=null,loadAbort=null,lastFrame=0;
 
@@ -59,8 +60,8 @@ function renderSelection(){
   for(const button of q('#object-categories').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.category===selectedCategory));
 }
 function createObjectThumbnail(item){
-  if(item.curatedAssetId&&item.thumbnailUrl){
-    const image=document.createElement('img');image.className='object-thumbnail';image.src=item.thumbnailUrl;
+  if((item.curatedAssetId||item.thumbnailImageUrl)&&item.thumbnailUrl||item.thumbnailImageUrl){
+    const image=document.createElement('img');image.className='object-thumbnail';image.src=item.thumbnailImageUrl||item.thumbnailUrl;
     image.alt='';image.loading='lazy';image.decoding='async';image.width=160;image.height=160;return image;
   }
   return createReviewSvgThumbnail(item.thumbnailUrl,{className:'object-thumbnail',decorative:true});
