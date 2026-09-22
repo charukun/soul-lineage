@@ -1,4 +1,4 @@
-import { createCameraDirector } from '@soul/rendering/camera-director';
+import { createCameraDirector, CAMERA_PROFILES, cameraSubject, externalCameraShot } from '@soul/rendering/camera-director';
 import { resolveCharacterView } from '@soul/rendering/character-view-resolver';
 import { applyCameraPresentation, measureCameraSubject, actorScreenSafety, actorSilhouetteSamples, createCameraSelfVisibility } from '@soul/rendering/camera-presentation-three';
 
@@ -7,6 +7,7 @@ const weaponRadius = id => ({ spear: 1.8, great: 1.5, staff: 1.6, sword: 1.1, ax
 /** RINNE adapter: game state -> shared director. Never owns character transforms. */
 export function createRinnePresentationCamera({ camera, scene, canvas }) {
   const director = createCameraDirector({ profile: 'current3d' });
+  let profileName = 'current3d';
   let yawOffset = 0, playerView = null, shotOverride = null, subjectProvider = null, screenSafety = null;
   let subjectCache = null, boundsAge = Infinity, lastSubjectKey = '', snapshot = null, drag = null;
   const hero = scene.getObjectByName('Player'), mother = scene.getObjectByName('Mother');
@@ -34,7 +35,19 @@ export function createRinnePresentationCamera({ camera, scene, canvas }) {
     director,
     setShot(value) { shotOverride = value; },
     setSubjectProvider(provider) { if (provider !== null && typeof provider !== 'function') throw new TypeError('Subject provider must be a function'); subjectProvider = provider; },
-    setProfile: name => director.setProfile(name),
+    setProfile(name) { director.setProfile(name); profileName = name; },
+    // Alternate 3D renderers supply subjects and an authored frame, not their
+    // own director. Shared transition/view ownership survives renderer handoff.
+    presentExternal({ camera: activeCamera, actor: actorInput, target: targetInput, position, lookTarget, worldHeight, dt = 0, source = 'external3d', space = 'frontier', mode = 'combat' }) {
+      const actor = cameraSubject(actorInput), target = targetInput ? cameraSubject(targetInput) : null;
+      const authoredShot = externalCameraShot({ position, lookTarget, worldHeight, fov: CAMERA_PROFILES[profileName].fov, yawOffset });
+      const presentation = director.update({ mode, actor, target, authoredShot, aspect: activeCamera.aspect, space, screenSafety }, dt);
+      applyCameraPresentation(activeCamera, presentation);
+      playerView = resolveCharacterView({ cameraPosition: activeCamera.position, actorPosition: actor.position, actorYaw: actor.yaw, state: playerView, dt });
+      screenSafety = actorScreenSafety(activeCamera, target ? [actor, target] : [actor]);
+      snapshot = { camera: { ...presentation, screenSafety }, playerView, actor, target, actorRuntime: '3d', actorYaw: actor.yaw, yawOffset, renderer: source };
+      return presentation;
+    },
     update({ state, dt, inside, titleFrame, titleShot, combatFrame, offset, targetEnemy }) {
       boundsAge += Math.max(0, dt);
       const carried = Boolean(state.birthTour?.active || state.ageYears < 1), root = carried && mother ? mother : hero;

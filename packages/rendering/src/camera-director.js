@@ -1,5 +1,6 @@
 import { add, subtract, mix, point, length, finite, clamp, radians, orbit, orbitPosition, angleDelta, dampAngle, damping, normalizeAngle } from './camera/math.js';
 import { presentationAnchor } from './character-view-resolver.js';
+export { externalCameraShot } from './camera-external-frame.js';
 export { normalizeAngle, angleDelta } from './camera/math.js';
 
 const SAFE = Object.freeze({ pitch: Object.freeze([radians(20), radians(46)]), distance: Object.freeze([8, 48]), edgeMargin: .065 });

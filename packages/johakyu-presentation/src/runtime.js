@@ -14,7 +14,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {loadNocturneAssets,withTimeout} from './assets.js';
 import {buildNocturneEnvironment} from './environment.js';
 
-export function createBattleRuntime({world,effects,stage,sound,notify,signal,rules=null,presentationPort=null}){
+export function createBattleRuntime({world,effects,stage,sound,notify,signal,rules=null,presentationPort=null,cameraPresentation=null}){
 const V=THREE.Vector3,TAU=Math.PI*2;let disposed=false,rounds=0,allKills=0,renderedDeaths=0;
 const clamp = THREE.MathUtils.clamp, lerp = THREE.MathUtils.lerp;
 let seed = 73917;
@@ -33,12 +33,12 @@ const styles={assault:{name:'猛攻の構え',damage:1.28,rate:.84,defense:1.15}
 function resize(){
  W=Math.max(1,stage.clientWidth);H=Math.max(1,stage.clientHeight);dpr=Math.min(devicePixelRatio,game.high?1.5:1);
  renderer.setPixelRatio(dpr);renderer.setSize(W,H,false);
- const size=W/H<.8?31:23;camera.left=-size*W/H/2;camera.right=size*W/H/2;camera.top=size/2;camera.bottom=-size/2;camera.updateProjectionMatrix();
+ const size=W/H<.8?31:23;if(camera.isPerspectiveCamera)camera.aspect=W/H;else{camera.left=-size*W/H/2;camera.right=size*W/H/2;camera.top=size/2;camera.bottom=-size/2;}camera.updateProjectionMatrix();
  composer?.setPixelRatio(dpr);composer?.setSize(W,H);fx.width=Math.round(W*dpr);fx.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 function makeRenderer(){
  scene=new THREE.Scene();scene.background=new THREE.Color('#0b2424');scene.fog=new THREE.FogExp2('#173432',.021);
- camera=new THREE.OrthographicCamera(-20,20,12,-12,.1,160);
+ camera=presentationPort&&cameraPresentation?new THREE.PerspectiveCamera(40,W/H,.1,160):new THREE.OrthographicCamera(-20,20,12,-12,.1,160);
  renderer=new THREE.WebGLRenderer({canvas:world,antialias:true,powerPreference:'high-performance'});
  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
  scene.add(new THREE.HemisphereLight('#b2d3d0','#142b26',1.5));
@@ -438,7 +438,7 @@ function glow(x,y,r,color,alpha=1){
  if(r<=0)return;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'transparent');ctx.globalAlpha=alpha;ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);ctx.globalAlpha=1;
 }
 function drawEffects(){
- ctx.clearRect(0,0,W,H);const scale=H/(camera.top-camera.bottom);
+ ctx.clearRect(0,0,W,H);const scale=camera.isPerspectiveCamera?H/Math.max(.01,2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.position.distanceTo(cameraTarget)):H/(camera.top-camera.bottom);
  // Every effect here is drawn on a 2D canvas, never as modeled geometry.
  for(const t of torches){
   const p=project(new V(t.x,.6,t.z)),flicker=1+Math.sin(clock*7+t.seed)*.12;
@@ -471,12 +471,22 @@ function renderCamera(dt){
  if(!hero)return;intro+=dt;const isTitle=game.phase==='title';
  const opponent=actors.filter(a=>a!==hero&&!a.dead).sort((a,b)=>a.pos.distanceToSquared(hero.pos)-b.pos.distanceToSquared(hero.pos))[0]??null;
  const spread=opponent?hero.pos.distanceTo(opponent.pos):0,midpoint=opponent?hero.pos.clone().lerp(opponent.pos,.5):hero.pos.clone();
- const desired=isTitle?new V(-2,.6,0):midpoint.add(new V(0,.65,-.35));cameraTarget.lerp(desired,1-Math.exp(-dt*3.8));
+ const desired=isTitle?new V(-2,.6,0):midpoint.add(new V(0,.65,-.35));
  const desiredZoom=isTitle?1:clamp((W/H<.8?1.02:1.08)-Math.max(0,spread-1.8)*.055+game.cameraPunch,.82,1.12);
- camera.zoom=lerp(camera.zoom,desiredZoom,1-Math.exp(-dt*7));camera.updateProjectionMatrix();
  const baseAngle=isTitle?.62+Math.sin(intro*.045)*.08:.65,approach=isTitle?1+Math.max(0,1-intro/7)*.32:1;
- camera.position.set(cameraTarget.x+Math.sin(baseAngle)*23*approach+game.cameraImpulseX,cameraTarget.y+22*approach,cameraTarget.z+Math.cos(baseAngle)*23*approach+game.cameraImpulseZ);
- if(game.shake>0){camera.position.x+=Math.sin(clock*93)*game.shake;camera.position.y+=Math.cos(clock*84)*game.shake*.5;}
+ if(presentationPort&&cameraPresentation){
+  const subject=a=>a?{id:a.canonicalId||a.object.uuid,position:{x:a.pos.x,y:a.pos.y,z:a.pos.z},yaw:a.object.rotation.y,height:a.height,focusHeight:a.height*.58,radius:a.height*.3,weaponRadius:a.height*.65}:null;
+  const authoredPosition={x:desired.x+Math.sin(baseAngle)*23*approach+game.cameraImpulseX,y:desired.y+22*approach,z:desired.z+Math.cos(baseAngle)*23*approach+game.cameraImpulseZ};
+  if(game.shake>0){authoredPosition.x+=Math.sin(clock*93)*game.shake;authoredPosition.y+=Math.cos(clock*84)*game.shake*.5;}
+  const shot=cameraPresentation.presentExternal({camera,actor:subject(hero),target:subject(opponent),position:authoredPosition,lookTarget:desired,worldHeight:(W/H<.8?31:23)*approach/desiredZoom,dt,source:'johakyu-driven',space:'frontier',mode:'combat'});
+  cameraTarget.set(shot.lookTarget.x,shot.lookTarget.y,shot.lookTarget.z);
+ }else{
+  // Standalone/native review keeps its accepted legacy lens and composition.
+  cameraTarget.lerp(desired,1-Math.exp(-dt*3.8));
+  camera.zoom=lerp(camera.zoom,desiredZoom,1-Math.exp(-dt*7));camera.updateProjectionMatrix();
+  camera.position.set(cameraTarget.x+Math.sin(baseAngle)*23*approach+game.cameraImpulseX,cameraTarget.y+22*approach,cameraTarget.z+Math.cos(baseAngle)*23*approach+game.cameraImpulseZ);
+  if(game.shake>0){camera.position.x+=Math.sin(clock*93)*game.shake;camera.position.y+=Math.cos(clock*84)*game.shake*.5;}
+ }
  game.cameraImpulseX*=Math.exp(-dt*13);game.cameraImpulseZ*=Math.exp(-dt*13);game.cameraPunch=Math.max(0,game.cameraPunch-dt*.34);
  camera.lookAt(cameraTarget);camera.updateMatrixWorld();heroLight.position.copy(hero.pos).add(new V(0,3.5,0));for(const t of torches)t.light.intensity=30+Math.sin(clock*7+t.seed)*5;
 }
@@ -611,7 +621,7 @@ function createDrivenPort(){
   cameraVector(axis){const forward=new V();camera.getWorldDirection(forward);forward.y=0;forward.normalize();return new V().crossVectors(forward,new V(0,1,0)).multiplyScalar(axis.x).addScaledVector(forward,-axis.y).normalize();},
   anchor(){if(!hero)return null;return project(hero.pos.clone().add(new V(0,hero.height,0)));},
   footAnchor(){if(!selfBinding)return null;return project(selfBinding.pos.clone().add(new V(0,.03,0)));},
-  metrics:()=>({...metrics(),...driver.metrics(),authority:'rinne-domain'}),snapshot:()=>lastFrame,
+  metrics:()=>({...metrics(),...driver.metrics(),authority:'rinne-domain',cameraProjection:camera?.isPerspectiveCamera?'perspective':'orthographic',sharedCamera:Boolean(cameraPresentation)}),snapshot:()=>lastFrame,
   clear:()=>driver.reset(),dispose(){driver.dispose();destroy();}});
 }
 if(presentationPort)presentationPort.install(createDrivenPort());
