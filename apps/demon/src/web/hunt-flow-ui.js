@@ -1,5 +1,7 @@
 import {readProgress, huntPlan, goalText, bodyStats, automaticGrowth} from '../hunt/balance.js';
 import {PREY} from '@soul/raid/world';
+import {CombatExchangeReadout} from './combat-exchange-readout.js';
+import './combat-exchange-readout.css';
 import {devourFeedback} from './devour-feedback-state.js';
 import './devour-feedback.css';
 import './hunt-flow.css';
@@ -29,6 +31,7 @@ export class HuntFlowUi {
     this.devourCopy = Object.fromEntries(['title', 'detail', 'loot', 'action'].map(key => [key, this.devourReadout.querySelector(`[data-${key}]`)]));
     this.devourProgress = this.devourReadout.querySelector('progress');
     byId('hud').append(this.devourReadout);
+    this.combatReadout = new CombatExchangeReadout(byId('hud'));
     this.actionToken = ''; this.actionAt = 0;
     this.guideSeen = new Set();
     this.hubStatus = document.createElement('p'); this.hubStatus.className = 'hunt-hub-status';
@@ -44,6 +47,7 @@ export class HuntFlowUi {
   shouldReturn(game) { return game.pressure().returnSuggested; }
   target(game, returning) { return game.fight || game.devour || returning || this.shouldReturn(game) ? null : game.nextHuntPrey(); }
   update(game, {returning = false, overlay = false} = {}) {
+    this.combatReadout.update(game, {overlay});
     const feedback = devourFeedback(game, {overlay, prey: PREY});
     this.devourReadout.hidden = !feedback;
     if (feedback) {
