@@ -1,0 +1,4556 @@
+[
+  {
+    "id": "quaternius-rpg-characters-cleric",
+    "modelId": "character.quaternius-rpg-characters-cleric.v1",
+    "visualAssetId": "library.quaternius-rpg-characters-cleric.v1",
+    "label": "神官 · Cleric",
+    "modelName": "Cleric",
+    "kind": "character",
+    "type": "character",
+    "category": "characters",
+    "active": false,
+    "status": "MATERIALIZED",
+    "origin": "artist-authored",
+    "license": "CC0-1.0",
+    "author": "Quaternius",
+    "originalSource": "https://quaternius.com/packs/rpgcharacters.html",
+    "pack": "quaternius-rpg-characters",
+    "runtimePath": "model/quaternius-rpg-characters/cleric/aa0e750cc4c4158f7da0221109c5279f53a543a3.glb",
+    "localPath": "apps/review/public/library/model/quaternius-rpg-characters/cleric/aa0e750cc4c4158f7da0221109c5279f53a543a3.glb",
+    "licensePath": "apps/review/public/library/licenses/quaternius-rpg-characters-CC0.txt",
+    "sha256": "8c622660b4313633dabf0105d501c4c3fc9c9d676630b72873ea6c2951fa4ffb",
+    "gitBlobSha": "aa0e750cc4c4158f7da0221109c5279f53a543a3",
+    "byteLength": 1970168,
+    "source": {
+      "repository": "euuuuuuan/cairnfall-public",
+      "revision": "8ee4cfd789282c59632a9339e61564b7d6c1acfe",
+      "path": "assets/vendor/quaternius_rpg/Cleric.gltf",
+      "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Cleric.gltf",
+      "byteLength": 2985183,
+      "gitBlobSha": "dff96b9a1b40c930adb1a28139c4582003acdc98",
+      "sha256": "6497456a3fa1c151d7a6ab4f7b4c343ee416c23d9454505b950c93ea558e4601",
+      "hash": "git-blob:dff96b9a1b40c930adb1a28139c4582003acdc98"
+    },
+    "originalFileUrl": "https://drive.google.com/file/d/1LlmtVPWTRVbB5rXemboYstI5lor7I8vO/view",
+    "directOriginalByteComparison": true,
+    "inputs": [
+      {
+        "path": "assets/vendor/quaternius_rpg/Cleric.gltf",
+        "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Cleric.gltf",
+        "byteLength": 2985183,
+        "gitBlobSha": "dff96b9a1b40c930adb1a28139c4582003acdc98",
+        "sha256": "6497456a3fa1c151d7a6ab4f7b4c343ee416c23d9454505b950c93ea558e4601"
+      }
+    ],
+    "transform": "Existing materialize-curation glTF-to-GLB embedding only; authored geometry, materials, rig and clips unchanged; no decimation or retargeting",
+    "inspection": {
+      "format": "glb",
+      "vertices": 6100,
+      "triangles": 5104,
+      "meshes": 4,
+      "primitives": 4,
+      "materials": 2,
+      "skins": 1,
+      "joints": 32,
+      "animations": [
+        {
+          "index": 0,
+          "name": "Death",
+          "channels": 96,
+          "duration": 1.1666666666666667
+        },
+        {
+          "index": 1,
+          "name": "Idle",
+          "channels": 96,
+          "duration": 3.125
+        },
+        {
+          "index": 2,
+          "name": "Idle_Weapon",
+          "channels": 96,
+          "duration": 3.125
+        },
+        {
+          "index": 3,
+          "name": "PickUp",
+          "channels": 96,
+          "duration": 1.25
+        },
+        {
+          "index": 4,
+          "name": "Punch",
+          "channels": 96,
+          "duration": 0.75
+        },
+        {
+          "index": 5,
+          "name": "RecieveHit",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 6,
+          "name": "RecieveHit_Attacking",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 7,
+          "name": "Run",
+          "channels": 96,
+          "duration": 0.875
+        },
+        {
+          "index": 8,
+          "name": "Spell1",
+          "channels": 96,
+          "duration": 1.2083333333333333
+        },
+        {
+          "index": 9,
+          "name": "Staff_Attack",
+          "channels": 96,
+          "duration": 0.75
+        },
+        {
+          "index": 10,
+          "name": "Walk",
+          "channels": 96,
+          "duration": 1.25
+        }
+      ],
+      "textureDimensions": [
+        [
+          1024,
+          1024
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "externalDependencies": 0,
+      "uniqueBoneCount": 32,
+      "morphTargets": 0,
+      "meshParts": [
+        "_ncl1_29.004",
+        "_ncl1_29.003",
+        "Torus.010",
+        "_ncl1_29.005"
+      ],
+      "materialNames": [
+        "Cleric_Texture",
+        "Cleric_Staff_Texture"
+      ],
+      "scaleOrientationFeet": "glTF authored transforms preserved; viewer normalization and ground contact require browser review"
+    },
+    "rig": {
+      "id": "quaternius-rpg-characters.native",
+      "jointCount": 32,
+      "nodes": [
+        {
+          "index": 0,
+          "name": "Foot.L",
+          "children": []
+        },
+        {
+          "index": 2,
+          "name": "Head",
+          "children": [
+            1
+          ]
+        },
+        {
+          "index": 3,
+          "name": "Neck",
+          "children": [
+            2
+          ]
+        },
+        {
+          "index": 4,
+          "name": "Fist2.L",
+          "children": []
+        },
+        {
+          "index": 5,
+          "name": "Fist1.L",
+          "children": [
+            4
+          ]
+        },
+        {
+          "index": 6,
+          "name": "Fist.L",
+          "children": [
+            5
+          ]
+        },
+        {
+          "index": 7,
+          "name": "Thumb2.L",
+          "children": []
+        },
+        {
+          "index": 8,
+          "name": "Thumb1.L",
+          "children": [
+            7
+          ]
+        },
+        {
+          "index": 9,
+          "name": "LowerArm.L",
+          "children": [
+            6,
+            8
+          ]
+        },
+        {
+          "index": 10,
+          "name": "UpperArm.L",
+          "children": [
+            9
+          ]
+        },
+        {
+          "index": 11,
+          "name": "Shoulder.L",
+          "children": [
+            10
+          ]
+        },
+        {
+          "index": 12,
+          "name": "Fist2.R",
+          "children": []
+        },
+        {
+          "index": 14,
+          "name": "Weapon.R",
+          "children": [
+            13
+          ]
+        },
+        {
+          "index": 15,
+          "name": "Fist1.R",
+          "children": [
+            12,
+            14
+          ]
+        },
+        {
+          "index": 16,
+          "name": "Fist.R",
+          "children": [
+            15
+          ]
+        },
+        {
+          "index": 17,
+          "name": "Thumb2.R",
+          "children": []
+        },
+        {
+          "index": 18,
+          "name": "Thumb1.R",
+          "children": [
+            17
+          ]
+        },
+        {
+          "index": 19,
+          "name": "LowerArm.R",
+          "children": [
+            16,
+            18
+          ]
+        },
+        {
+          "index": 20,
+          "name": "UpperArm.R",
+          "children": [
+            19
+          ]
+        },
+        {
+          "index": 21,
+          "name": "Shoulder.R",
+          "children": [
+            20
+          ]
+        },
+        {
+          "index": 23,
+          "name": "Torso",
+          "children": [
+            3,
+            11,
+            21,
+            22
+          ]
+        },
+        {
+          "index": 24,
+          "name": "Abdomen",
+          "children": [
+            23
+          ]
+        },
+        {
+          "index": 25,
+          "name": "Hips",
+          "children": [
+            24
+          ]
+        },
+        {
+          "index": 26,
+          "name": "LowerLeg.L",
+          "children": []
+        },
+        {
+          "index": 27,
+          "name": "UpperLeg.L",
+          "children": [
+            26
+          ]
+        },
+        {
+          "index": 28,
+          "name": "LowerLeg.R",
+          "children": []
+        },
+        {
+          "index": 29,
+          "name": "UpperLeg.R",
+          "children": [
+            28
+          ]
+        },
+        {
+          "index": 30,
+          "name": "Body",
+          "children": [
+            25,
+            27,
+            29
+          ]
+        },
+        {
+          "index": 31,
+          "name": "PoleTarget.L",
+          "children": []
+        },
+        {
+          "index": 32,
+          "name": "Foot.R",
+          "children": []
+        },
+        {
+          "index": 33,
+          "name": "PoleTarget.R",
+          "children": []
+        },
+        {
+          "index": 34,
+          "name": "Root",
+          "children": [
+            0,
+            30,
+            31,
+            32,
+            33
+          ]
+        }
+      ],
+      "kaykitCompatibility": "not asserted",
+      "retargeted": false
+    },
+    "availableReviewClips": [
+      "Death",
+      "Idle",
+      "Idle_Weapon",
+      "PickUp",
+      "Punch",
+      "RecieveHit",
+      "RecieveHit_Attacking",
+      "Run",
+      "Spell1",
+      "Staff_Attack",
+      "Walk"
+    ],
+    "uses": [
+      "combat-profession",
+      "npc-comparison"
+    ],
+    "registrationKind": "new-model",
+    "review": {
+      "route": "/review-objects",
+      "nativeAnimationOnly": true,
+      "productionVisualApproval": false,
+      "runtimeApproval": false,
+      "browserStatus": "pending"
+    },
+    "thumbnailPath": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-cleric/0c3500b5a718faf39e7a347c0f5801eb7f3956d7.webp",
+    "thumbnailSha256": "4ebea76f2a9cdb868afde21ada88d1a860b274cab1126578f91d5ad47eaf27c7",
+    "thumbnailSource": {
+      "head": "52a441cf8e4fe56247f1afec1eeafdfaf0ad4fc9",
+      "assetSha256": "8c622660b4313633dabf0105d501c4c3fc9c9d676630b72873ea6c2951fa4ffb",
+      "render": "canonical review-objects native idle front"
+    }
+  },
+  {
+    "id": "quaternius-rpg-characters-monk",
+    "modelId": "character.quaternius-rpg-characters-monk.v1",
+    "visualAssetId": "library.quaternius-rpg-characters-monk.v1",
+    "label": "武闘家 · Monk",
+    "modelName": "Monk",
+    "kind": "character",
+    "type": "character",
+    "category": "characters",
+    "active": false,
+    "status": "MATERIALIZED",
+    "origin": "artist-authored",
+    "license": "CC0-1.0",
+    "author": "Quaternius",
+    "originalSource": "https://quaternius.com/packs/rpgcharacters.html",
+    "pack": "quaternius-rpg-characters",
+    "runtimePath": "model/quaternius-rpg-characters/monk/53340027bcb7416522980d4a71588120fbcbc330.glb",
+    "localPath": "apps/review/public/library/model/quaternius-rpg-characters/monk/53340027bcb7416522980d4a71588120fbcbc330.glb",
+    "licensePath": "apps/review/public/library/licenses/quaternius-rpg-characters-CC0.txt",
+    "sha256": "7a69faade3aa6e5efe7de2e5cbfaf32240e2b9a916c4c7f222488c19e00efd5f",
+    "gitBlobSha": "53340027bcb7416522980d4a71588120fbcbc330",
+    "byteLength": 1724004,
+    "source": {
+      "repository": "euuuuuuan/cairnfall-public",
+      "revision": "8ee4cfd789282c59632a9339e61564b7d6c1acfe",
+      "path": "assets/vendor/quaternius_rpg/Monk.gltf",
+      "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Monk.gltf",
+      "byteLength": 2655048,
+      "gitBlobSha": "a9d9405d5863c0a1559bb8b003acbd0005adb669",
+      "sha256": "085c049ebb593e0edbef9f0dd1f62fce70f668f6be7be99f3a1aa5378c83e8a2",
+      "hash": "git-blob:a9d9405d5863c0a1559bb8b003acbd0005adb669"
+    },
+    "originalFileUrl": "https://drive.google.com/file/d/1GUeuxXhHiraTNo1voRxxhV3cgzZ7dPiq/view",
+    "directOriginalByteComparison": false,
+    "inputs": [
+      {
+        "path": "assets/vendor/quaternius_rpg/Monk.gltf",
+        "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Monk.gltf",
+        "byteLength": 2655048,
+        "gitBlobSha": "a9d9405d5863c0a1559bb8b003acbd0005adb669",
+        "sha256": "085c049ebb593e0edbef9f0dd1f62fce70f668f6be7be99f3a1aa5378c83e8a2"
+      }
+    ],
+    "transform": "Existing materialize-curation glTF-to-GLB embedding only; authored geometry, materials, rig and clips unchanged; no decimation or retargeting",
+    "inspection": {
+      "format": "glb",
+      "vertices": 7198,
+      "triangles": 6714,
+      "meshes": 2,
+      "primitives": 2,
+      "materials": 1,
+      "skins": 1,
+      "joints": 32,
+      "animations": [
+        {
+          "index": 0,
+          "name": "Attack",
+          "channels": 96,
+          "duration": 0.8333333333333334
+        },
+        {
+          "index": 1,
+          "name": "Attack2",
+          "channels": 96,
+          "duration": 0.8333333333333334
+        },
+        {
+          "index": 2,
+          "name": "Death",
+          "channels": 96,
+          "duration": 1.1666666666666667
+        },
+        {
+          "index": 3,
+          "name": "Idle",
+          "channels": 96,
+          "duration": 3.125
+        },
+        {
+          "index": 4,
+          "name": "Idle_Attacking",
+          "channels": 96,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 5,
+          "name": "PickUp",
+          "channels": 96,
+          "duration": 1.25
+        },
+        {
+          "index": 6,
+          "name": "RecieveHit",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 7,
+          "name": "RecieveHit_2",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 8,
+          "name": "Roll",
+          "channels": 96,
+          "duration": 1
+        },
+        {
+          "index": 9,
+          "name": "Run",
+          "channels": 96,
+          "duration": 0.875
+        },
+        {
+          "index": 10,
+          "name": "Walk",
+          "channels": 96,
+          "duration": 1.25
+        }
+      ],
+      "textureDimensions": [
+        [
+          1024,
+          1024
+        ]
+      ],
+      "externalDependencies": 0,
+      "uniqueBoneCount": 32,
+      "morphTargets": 0,
+      "meshParts": [
+        "_ncl1_29.004",
+        "_ncl1_29.005"
+      ],
+      "materialNames": [
+        "Monk_Texture"
+      ],
+      "scaleOrientationFeet": "glTF authored transforms preserved; viewer normalization and ground contact require browser review"
+    },
+    "rig": {
+      "id": "quaternius-rpg-characters.native",
+      "jointCount": 32,
+      "nodes": [
+        {
+          "index": 0,
+          "name": "Foot.L",
+          "children": []
+        },
+        {
+          "index": 2,
+          "name": "Head",
+          "children": [
+            1
+          ]
+        },
+        {
+          "index": 3,
+          "name": "Neck",
+          "children": [
+            2
+          ]
+        },
+        {
+          "index": 4,
+          "name": "Fist2.L",
+          "children": []
+        },
+        {
+          "index": 5,
+          "name": "Fist1.L",
+          "children": [
+            4
+          ]
+        },
+        {
+          "index": 6,
+          "name": "Fist.L",
+          "children": [
+            5
+          ]
+        },
+        {
+          "index": 7,
+          "name": "Thumb2.L",
+          "children": []
+        },
+        {
+          "index": 8,
+          "name": "Thumb1.L",
+          "children": [
+            7
+          ]
+        },
+        {
+          "index": 9,
+          "name": "LowerArm.L",
+          "children": [
+            6,
+            8
+          ]
+        },
+        {
+          "index": 10,
+          "name": "UpperArm.L",
+          "children": [
+            9
+          ]
+        },
+        {
+          "index": 11,
+          "name": "Shoulder.L",
+          "children": [
+            10
+          ]
+        },
+        {
+          "index": 12,
+          "name": "Fist2.R",
+          "children": []
+        },
+        {
+          "index": 13,
+          "name": "Weapon.R",
+          "children": []
+        },
+        {
+          "index": 14,
+          "name": "Fist1.R",
+          "children": [
+            12,
+            13
+          ]
+        },
+        {
+          "index": 15,
+          "name": "Fist.R",
+          "children": [
+            14
+          ]
+        },
+        {
+          "index": 16,
+          "name": "Thumb2.R",
+          "children": []
+        },
+        {
+          "index": 17,
+          "name": "Thumb1.R",
+          "children": [
+            16
+          ]
+        },
+        {
+          "index": 18,
+          "name": "LowerArm.R",
+          "children": [
+            15,
+            17
+          ]
+        },
+        {
+          "index": 19,
+          "name": "UpperArm.R",
+          "children": [
+            18
+          ]
+        },
+        {
+          "index": 20,
+          "name": "Shoulder.R",
+          "children": [
+            19
+          ]
+        },
+        {
+          "index": 21,
+          "name": "Torso",
+          "children": [
+            3,
+            11,
+            20
+          ]
+        },
+        {
+          "index": 22,
+          "name": "Abdomen",
+          "children": [
+            21
+          ]
+        },
+        {
+          "index": 23,
+          "name": "Hips",
+          "children": [
+            22
+          ]
+        },
+        {
+          "index": 24,
+          "name": "LowerLeg.L",
+          "children": []
+        },
+        {
+          "index": 25,
+          "name": "UpperLeg.L",
+          "children": [
+            24
+          ]
+        },
+        {
+          "index": 26,
+          "name": "LowerLeg.R",
+          "children": []
+        },
+        {
+          "index": 27,
+          "name": "UpperLeg.R",
+          "children": [
+            26
+          ]
+        },
+        {
+          "index": 28,
+          "name": "Body",
+          "children": [
+            23,
+            25,
+            27
+          ]
+        },
+        {
+          "index": 29,
+          "name": "PoleTarget.L",
+          "children": []
+        },
+        {
+          "index": 30,
+          "name": "Foot.R",
+          "children": []
+        },
+        {
+          "index": 31,
+          "name": "PoleTarget.R",
+          "children": []
+        },
+        {
+          "index": 32,
+          "name": "Root",
+          "children": [
+            0,
+            28,
+            29,
+            30,
+            31
+          ]
+        }
+      ],
+      "kaykitCompatibility": "not asserted",
+      "retargeted": false
+    },
+    "availableReviewClips": [
+      "Attack",
+      "Attack2",
+      "Death",
+      "Idle",
+      "Idle_Attacking",
+      "PickUp",
+      "RecieveHit",
+      "RecieveHit_2",
+      "Roll",
+      "Run",
+      "Walk"
+    ],
+    "uses": [
+      "combat-profession",
+      "npc-comparison"
+    ],
+    "registrationKind": "new-model",
+    "review": {
+      "route": "/review-objects",
+      "nativeAnimationOnly": true,
+      "productionVisualApproval": false,
+      "runtimeApproval": false,
+      "browserStatus": "pending"
+    },
+    "thumbnailPath": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-monk/9c5b677ca5e21e017f127d78ce27f09ed8d50830.webp",
+    "thumbnailSha256": "b723c14ab14f2044260e5de9ea67e38c880499d09a5b87e6c77aa1556fa0a6ea",
+    "thumbnailSource": {
+      "head": "52a441cf8e4fe56247f1afec1eeafdfaf0ad4fc9",
+      "assetSha256": "7a69faade3aa6e5efe7de2e5cbfaf32240e2b9a916c4c7f222488c19e00efd5f",
+      "render": "canonical review-objects native idle front"
+    }
+  },
+  {
+    "id": "quaternius-rpg-characters-ranger",
+    "modelId": "character.quaternius-rpg-characters-ranger.v1",
+    "visualAssetId": "library.quaternius-rpg-characters-ranger.v1",
+    "label": "弓使い · Ranger",
+    "modelName": "Ranger",
+    "kind": "character",
+    "type": "character",
+    "category": "characters",
+    "active": false,
+    "status": "MATERIALIZED",
+    "origin": "artist-authored",
+    "license": "CC0-1.0",
+    "author": "Quaternius",
+    "originalSource": "https://quaternius.com/packs/rpgcharacters.html",
+    "pack": "quaternius-rpg-characters",
+    "runtimePath": "model/quaternius-rpg-characters/ranger/c5bdf613895ce86a6b1fa2f4466deb31cdf29482.glb",
+    "localPath": "apps/review/public/library/model/quaternius-rpg-characters/ranger/c5bdf613895ce86a6b1fa2f4466deb31cdf29482.glb",
+    "licensePath": "apps/review/public/library/licenses/quaternius-rpg-characters-CC0.txt",
+    "sha256": "40b9c5c2a06c9ef3cbcf0eaf499c8d8ead2597cb5fa00a8fffdd5717693c25f0",
+    "gitBlobSha": "c5bdf613895ce86a6b1fa2f4466deb31cdf29482",
+    "byteLength": 1900432,
+    "source": {
+      "repository": "euuuuuuan/cairnfall-public",
+      "revision": "8ee4cfd789282c59632a9339e61564b7d6c1acfe",
+      "path": "assets/vendor/quaternius_rpg/Ranger.gltf",
+      "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Ranger.gltf",
+      "byteLength": 2987934,
+      "gitBlobSha": "c5a1d1bc868ba3af1e7cd6895f40fd1f2abad8c2",
+      "sha256": "2732741d5e21c20760d7f3dd9d71812d4b796f466be1a6cba212f45483dd56ed",
+      "hash": "git-blob:c5a1d1bc868ba3af1e7cd6895f40fd1f2abad8c2"
+    },
+    "originalFileUrl": "https://drive.google.com/file/d/1e3eAO6oHYVyDNdhoNogNii5CtLQB7pLc/view",
+    "directOriginalByteComparison": false,
+    "inputs": [
+      {
+        "path": "assets/vendor/quaternius_rpg/Ranger.gltf",
+        "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Ranger.gltf",
+        "byteLength": 2987934,
+        "gitBlobSha": "c5a1d1bc868ba3af1e7cd6895f40fd1f2abad8c2",
+        "sha256": "2732741d5e21c20760d7f3dd9d71812d4b796f466be1a6cba212f45483dd56ed"
+      }
+    ],
+    "transform": "Existing materialize-curation glTF-to-GLB embedding only; authored geometry, materials, rig and clips unchanged; no decimation or retargeting",
+    "inspection": {
+      "format": "glb",
+      "vertices": 4531,
+      "triangles": 3806,
+      "meshes": 6,
+      "primitives": 6,
+      "materials": 2,
+      "skins": 1,
+      "joints": 32,
+      "animations": [
+        {
+          "index": 0,
+          "name": "Bow_Draw",
+          "channels": 96,
+          "duration": 1.25
+        },
+        {
+          "index": 1,
+          "name": "Bow_Shoot",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 2,
+          "name": "Death",
+          "channels": 96,
+          "duration": 1.1666666666666667
+        },
+        {
+          "index": 3,
+          "name": "Idle",
+          "channels": 96,
+          "duration": 3.125
+        },
+        {
+          "index": 4,
+          "name": "Idle_Attacking",
+          "channels": 96,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 5,
+          "name": "Idle_Weapon",
+          "channels": 96,
+          "duration": 3.125
+        },
+        {
+          "index": 6,
+          "name": "PickUp",
+          "channels": 96,
+          "duration": 1.25
+        },
+        {
+          "index": 7,
+          "name": "Punch",
+          "channels": 96,
+          "duration": 0.75
+        },
+        {
+          "index": 8,
+          "name": "RecieveHit",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 9,
+          "name": "RecieveHit_2",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 10,
+          "name": "Roll",
+          "channels": 96,
+          "duration": 1
+        },
+        {
+          "index": 11,
+          "name": "Run",
+          "channels": 96,
+          "duration": 0.875
+        },
+        {
+          "index": 12,
+          "name": "Run_Holding",
+          "channels": 96,
+          "duration": 0.875
+        },
+        {
+          "index": 13,
+          "name": "Walk",
+          "channels": 96,
+          "duration": 1.25
+        }
+      ],
+      "textureDimensions": [
+        [
+          1024,
+          1024
+        ]
+      ],
+      "externalDependencies": 0,
+      "uniqueBoneCount": 32,
+      "morphTargets": 0,
+      "meshParts": [
+        "Cube.003",
+        "Cube.000",
+        "Cube.002",
+        "Cylinder.008",
+        "Cube.004",
+        "Cube.001"
+      ],
+      "materialNames": [
+        "Ranger_Texture",
+        "Bow_Texture"
+      ],
+      "scaleOrientationFeet": "glTF authored transforms preserved; viewer normalization and ground contact require browser review"
+    },
+    "rig": {
+      "id": "quaternius-rpg-characters.native",
+      "jointCount": 32,
+      "nodes": [
+        {
+          "index": 0,
+          "name": "Foot.L",
+          "children": []
+        },
+        {
+          "index": 2,
+          "name": "Head",
+          "children": [
+            1
+          ]
+        },
+        {
+          "index": 3,
+          "name": "Neck",
+          "children": [
+            2
+          ]
+        },
+        {
+          "index": 4,
+          "name": "Fist2.L",
+          "children": []
+        },
+        {
+          "index": 5,
+          "name": "Fist1.L",
+          "children": [
+            4
+          ]
+        },
+        {
+          "index": 6,
+          "name": "Fist.L",
+          "children": [
+            5
+          ]
+        },
+        {
+          "index": 7,
+          "name": "Thumb2.L",
+          "children": []
+        },
+        {
+          "index": 8,
+          "name": "Thumb1.L",
+          "children": [
+            7
+          ]
+        },
+        {
+          "index": 10,
+          "name": "LowerArm.L",
+          "children": [
+            6,
+            8,
+            9
+          ]
+        },
+        {
+          "index": 11,
+          "name": "UpperArm.L",
+          "children": [
+            10
+          ]
+        },
+        {
+          "index": 12,
+          "name": "Shoulder.L",
+          "children": [
+            11
+          ]
+        },
+        {
+          "index": 13,
+          "name": "Fist2.R",
+          "children": []
+        },
+        {
+          "index": 15,
+          "name": "Weapon.R",
+          "children": [
+            14
+          ]
+        },
+        {
+          "index": 16,
+          "name": "Fist1.R",
+          "children": [
+            13,
+            15
+          ]
+        },
+        {
+          "index": 17,
+          "name": "Fist.R",
+          "children": [
+            16
+          ]
+        },
+        {
+          "index": 18,
+          "name": "Thumb2.R",
+          "children": []
+        },
+        {
+          "index": 19,
+          "name": "Thumb1.R",
+          "children": [
+            18
+          ]
+        },
+        {
+          "index": 21,
+          "name": "LowerArm.R",
+          "children": [
+            17,
+            19,
+            20
+          ]
+        },
+        {
+          "index": 22,
+          "name": "UpperArm.R",
+          "children": [
+            21
+          ]
+        },
+        {
+          "index": 23,
+          "name": "Shoulder.R",
+          "children": [
+            22
+          ]
+        },
+        {
+          "index": 24,
+          "name": "Torso",
+          "children": [
+            3,
+            12,
+            23
+          ]
+        },
+        {
+          "index": 26,
+          "name": "Abdomen",
+          "children": [
+            24,
+            25
+          ]
+        },
+        {
+          "index": 27,
+          "name": "Hips",
+          "children": [
+            26
+          ]
+        },
+        {
+          "index": 28,
+          "name": "LowerLeg.L",
+          "children": []
+        },
+        {
+          "index": 29,
+          "name": "UpperLeg.L",
+          "children": [
+            28
+          ]
+        },
+        {
+          "index": 30,
+          "name": "LowerLeg.R",
+          "children": []
+        },
+        {
+          "index": 31,
+          "name": "UpperLeg.R",
+          "children": [
+            30
+          ]
+        },
+        {
+          "index": 32,
+          "name": "Body",
+          "children": [
+            27,
+            29,
+            31
+          ]
+        },
+        {
+          "index": 33,
+          "name": "PoleTarget.L",
+          "children": []
+        },
+        {
+          "index": 34,
+          "name": "Foot.R",
+          "children": []
+        },
+        {
+          "index": 35,
+          "name": "PoleTarget.R",
+          "children": []
+        },
+        {
+          "index": 36,
+          "name": "Root",
+          "children": [
+            0,
+            32,
+            33,
+            34,
+            35
+          ]
+        }
+      ],
+      "kaykitCompatibility": "not asserted",
+      "retargeted": false
+    },
+    "availableReviewClips": [
+      "Bow_Draw",
+      "Death",
+      "Idle",
+      "Idle_Attacking",
+      "Idle_Weapon",
+      "PickUp",
+      "Punch",
+      "RecieveHit",
+      "RecieveHit_2",
+      "Roll",
+      "Run",
+      "Run_Holding",
+      "Walk"
+    ],
+    "uses": [
+      "combat-profession",
+      "npc-comparison"
+    ],
+    "registrationKind": "new-model",
+    "review": {
+      "route": "/review-objects",
+      "nativeAnimationOnly": true,
+      "productionVisualApproval": false,
+      "runtimeApproval": false,
+      "browserStatus": "pending"
+    },
+    "thumbnailPath": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-ranger/0723c86c560327662000176e9d226ec5b1eab2c6.webp",
+    "thumbnailSha256": "63c075edf41329d1f546be1f64af8e66c4ae1ce8942b474cd4a1041f3564cefb",
+    "thumbnailSource": {
+      "head": "52a441cf8e4fe56247f1afec1eeafdfaf0ad4fc9",
+      "assetSha256": "40b9c5c2a06c9ef3cbcf0eaf499c8d8ead2597cb5fa00a8fffdd5717693c25f0",
+      "render": "canonical review-objects native idle front"
+    }
+  },
+  {
+    "id": "quaternius-rpg-characters-rogue",
+    "modelId": "character.quaternius-rpg-characters-rogue.v1",
+    "visualAssetId": "library.quaternius-rpg-characters-rogue.v1",
+    "label": "盗賊 · Rogue",
+    "modelName": "Rogue",
+    "kind": "character",
+    "type": "character",
+    "category": "characters",
+    "active": false,
+    "status": "MATERIALIZED",
+    "origin": "artist-authored",
+    "license": "CC0-1.0",
+    "author": "Quaternius",
+    "originalSource": "https://quaternius.com/packs/rpgcharacters.html",
+    "pack": "quaternius-rpg-characters",
+    "runtimePath": "model/quaternius-rpg-characters/rogue/61c25160b37f7405c2a9eff4ce9c64b0cc6f4829.glb",
+    "localPath": "apps/review/public/library/model/quaternius-rpg-characters/rogue/61c25160b37f7405c2a9eff4ce9c64b0cc6f4829.glb",
+    "licensePath": "apps/review/public/library/licenses/quaternius-rpg-characters-CC0.txt",
+    "sha256": "6e6bb811d0cf6ba6d59c9630ba9517f8a11693d22b912c7b384245b778d1d04f",
+    "gitBlobSha": "61c25160b37f7405c2a9eff4ce9c64b0cc6f4829",
+    "byteLength": 1631352,
+    "source": {
+      "repository": "euuuuuuan/cairnfall-public",
+      "revision": "8ee4cfd789282c59632a9339e61564b7d6c1acfe",
+      "path": "assets/vendor/quaternius_rpg/Rogue.gltf",
+      "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Rogue.gltf",
+      "byteLength": 2568479,
+      "gitBlobSha": "57d528b5216b1db4e6d1c16ff26911c3c608507e",
+      "sha256": "5a9eaca0871cd69f554747a1d42870b3bca702ba721d941d909fc530cf18afb8",
+      "hash": "git-blob:57d528b5216b1db4e6d1c16ff26911c3c608507e"
+    },
+    "originalFileUrl": "https://drive.google.com/file/d/1mnmoERmMi_342qyS_WPioVU0pmIQvIYa/view",
+    "directOriginalByteComparison": false,
+    "inputs": [
+      {
+        "path": "assets/vendor/quaternius_rpg/Rogue.gltf",
+        "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Rogue.gltf",
+        "byteLength": 2568479,
+        "gitBlobSha": "57d528b5216b1db4e6d1c16ff26911c3c608507e",
+        "sha256": "5a9eaca0871cd69f554747a1d42870b3bca702ba721d941d909fc530cf18afb8"
+      }
+    ],
+    "transform": "Existing materialize-curation glTF-to-GLB embedding only; authored geometry, materials, rig and clips unchanged; no decimation or retargeting",
+    "inspection": {
+      "format": "glb",
+      "vertices": 2279,
+      "triangles": 2326,
+      "meshes": 8,
+      "primitives": 8,
+      "materials": 2,
+      "skins": 1,
+      "joints": 32,
+      "animations": [
+        {
+          "index": 0,
+          "name": "Attacking_Idle",
+          "channels": 96,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 1,
+          "name": "Dagger_Attack",
+          "channels": 96,
+          "duration": 0.75
+        },
+        {
+          "index": 2,
+          "name": "Dagger_Attack2",
+          "channels": 96,
+          "duration": 1.25
+        },
+        {
+          "index": 3,
+          "name": "Death",
+          "channels": 96,
+          "duration": 1.1666666666666667
+        },
+        {
+          "index": 4,
+          "name": "Idle",
+          "channels": 96,
+          "duration": 3.125
+        },
+        {
+          "index": 5,
+          "name": "PickUp",
+          "channels": 96,
+          "duration": 1.25
+        },
+        {
+          "index": 6,
+          "name": "Punch",
+          "channels": 96,
+          "duration": 0.75
+        },
+        {
+          "index": 7,
+          "name": "RecieveHit",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 8,
+          "name": "RecieveHit_2",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 9,
+          "name": "Roll",
+          "channels": 96,
+          "duration": 1
+        },
+        {
+          "index": 10,
+          "name": "Run",
+          "channels": 96,
+          "duration": 0.875
+        },
+        {
+          "index": 11,
+          "name": "Walk",
+          "channels": 96,
+          "duration": 1.25
+        }
+      ],
+      "textureDimensions": [
+        [
+          1024,
+          1024
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "externalDependencies": 0,
+      "uniqueBoneCount": 32,
+      "morphTargets": 0,
+      "meshParts": [
+        "_ncl1_29.000",
+        "_ncl1_29.006",
+        "_ncl1_29.001",
+        "_ncl1_29.003",
+        "Cylinder.004",
+        "_ncl1_29.007",
+        "_ncl1_29.002",
+        "_ncl1_29.005"
+      ],
+      "materialNames": [
+        "Rogue_Texture",
+        "Rogue_Dagger_Texture"
+      ],
+      "scaleOrientationFeet": "glTF authored transforms preserved; viewer normalization and ground contact require browser review"
+    },
+    "rig": {
+      "id": "quaternius-rpg-characters.native",
+      "jointCount": 32,
+      "nodes": [
+        {
+          "index": 1,
+          "name": "Foot.L",
+          "children": [
+            0
+          ]
+        },
+        {
+          "index": 3,
+          "name": "Head",
+          "children": [
+            2
+          ]
+        },
+        {
+          "index": 4,
+          "name": "Neck",
+          "children": [
+            3
+          ]
+        },
+        {
+          "index": 5,
+          "name": "Fist2.L",
+          "children": []
+        },
+        {
+          "index": 6,
+          "name": "Fist1.L",
+          "children": [
+            5
+          ]
+        },
+        {
+          "index": 7,
+          "name": "Fist.L",
+          "children": [
+            6
+          ]
+        },
+        {
+          "index": 8,
+          "name": "Thumb2.L",
+          "children": []
+        },
+        {
+          "index": 9,
+          "name": "Thumb1.L",
+          "children": [
+            8
+          ]
+        },
+        {
+          "index": 11,
+          "name": "LowerArm.L",
+          "children": [
+            7,
+            9,
+            10
+          ]
+        },
+        {
+          "index": 12,
+          "name": "UpperArm.L",
+          "children": [
+            11
+          ]
+        },
+        {
+          "index": 13,
+          "name": "Shoulder.L",
+          "children": [
+            12
+          ]
+        },
+        {
+          "index": 14,
+          "name": "Fist2.R",
+          "children": []
+        },
+        {
+          "index": 16,
+          "name": "Weapon.R",
+          "children": [
+            15
+          ]
+        },
+        {
+          "index": 17,
+          "name": "Fist1.R",
+          "children": [
+            14,
+            16
+          ]
+        },
+        {
+          "index": 18,
+          "name": "Fist.R",
+          "children": [
+            17
+          ]
+        },
+        {
+          "index": 19,
+          "name": "Thumb2.R",
+          "children": []
+        },
+        {
+          "index": 20,
+          "name": "Thumb1.R",
+          "children": [
+            19
+          ]
+        },
+        {
+          "index": 21,
+          "name": "LowerArm.R",
+          "children": [
+            18,
+            20
+          ]
+        },
+        {
+          "index": 22,
+          "name": "UpperArm.R",
+          "children": [
+            21
+          ]
+        },
+        {
+          "index": 23,
+          "name": "Shoulder.R",
+          "children": [
+            22
+          ]
+        },
+        {
+          "index": 24,
+          "name": "Torso",
+          "children": [
+            4,
+            13,
+            23
+          ]
+        },
+        {
+          "index": 27,
+          "name": "Abdomen",
+          "children": [
+            24,
+            25,
+            26
+          ]
+        },
+        {
+          "index": 28,
+          "name": "Hips",
+          "children": [
+            27
+          ]
+        },
+        {
+          "index": 29,
+          "name": "LowerLeg.L",
+          "children": []
+        },
+        {
+          "index": 30,
+          "name": "UpperLeg.L",
+          "children": [
+            29
+          ]
+        },
+        {
+          "index": 31,
+          "name": "LowerLeg.R",
+          "children": []
+        },
+        {
+          "index": 32,
+          "name": "UpperLeg.R",
+          "children": [
+            31
+          ]
+        },
+        {
+          "index": 33,
+          "name": "Body",
+          "children": [
+            28,
+            30,
+            32
+          ]
+        },
+        {
+          "index": 34,
+          "name": "PoleTarget.L",
+          "children": []
+        },
+        {
+          "index": 36,
+          "name": "Foot.R",
+          "children": [
+            35
+          ]
+        },
+        {
+          "index": 37,
+          "name": "PoleTarget.R",
+          "children": []
+        },
+        {
+          "index": 38,
+          "name": "Root",
+          "children": [
+            1,
+            33,
+            34,
+            36,
+            37
+          ]
+        }
+      ],
+      "kaykitCompatibility": "not asserted",
+      "retargeted": false
+    },
+    "availableReviewClips": [
+      "Attacking_Idle",
+      "Dagger_Attack",
+      "Dagger_Attack2",
+      "Death",
+      "Idle",
+      "PickUp",
+      "Punch",
+      "RecieveHit",
+      "RecieveHit_2",
+      "Roll",
+      "Run",
+      "Walk"
+    ],
+    "uses": [
+      "combat-profession",
+      "npc-comparison"
+    ],
+    "registrationKind": "new-model",
+    "review": {
+      "route": "/review-objects",
+      "nativeAnimationOnly": true,
+      "productionVisualApproval": false,
+      "runtimeApproval": false,
+      "browserStatus": "pending"
+    },
+    "thumbnailPath": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-rogue/31ef92dddd1fdcd866cc62024b4c67eba7947d2b.webp",
+    "thumbnailSha256": "a8a5eceac105b9df51308439ed5fd477b4bd21ac4ca3d0989c13808a4e5edbff",
+    "thumbnailSource": {
+      "head": "52a441cf8e4fe56247f1afec1eeafdfaf0ad4fc9",
+      "assetSha256": "6e6bb811d0cf6ba6d59c9630ba9517f8a11693d22b912c7b384245b778d1d04f",
+      "render": "canonical review-objects native idle front"
+    }
+  },
+  {
+    "id": "quaternius-rpg-characters-warrior",
+    "modelId": "character.quaternius-rpg-characters-warrior.v1",
+    "visualAssetId": "library.quaternius-rpg-characters-warrior.v1",
+    "label": "剣士 · Warrior",
+    "modelName": "Warrior",
+    "kind": "character",
+    "type": "character",
+    "category": "characters",
+    "active": false,
+    "status": "MATERIALIZED",
+    "origin": "artist-authored",
+    "license": "CC0-1.0",
+    "author": "Quaternius",
+    "originalSource": "https://quaternius.com/packs/rpgcharacters.html",
+    "pack": "quaternius-rpg-characters",
+    "runtimePath": "model/quaternius-rpg-characters/warrior/8824233c5c6800532ac2b131ecd59bc1e902b729.glb",
+    "localPath": "apps/review/public/library/model/quaternius-rpg-characters/warrior/8824233c5c6800532ac2b131ecd59bc1e902b729.glb",
+    "licensePath": "apps/review/public/library/licenses/quaternius-rpg-characters-CC0.txt",
+    "sha256": "885262d565b44e78f8c9ab33fef370e33b9342c2be1c1b3d977045d827f209a9",
+    "gitBlobSha": "8824233c5c6800532ac2b131ecd59bc1e902b729",
+    "byteLength": 1959936,
+    "source": {
+      "repository": "euuuuuuan/cairnfall-public",
+      "revision": "8ee4cfd789282c59632a9339e61564b7d6c1acfe",
+      "path": "assets/vendor/quaternius_rpg/Warrior.gltf",
+      "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Warrior.gltf",
+      "byteLength": 3035392,
+      "gitBlobSha": "7cec60131bb206e63805651890f5110b8787cccd",
+      "sha256": "2bab905ce12d279e1d099c2a8de0b1ef31c9f5e8d1959b41d24470b4f4181add",
+      "hash": "git-blob:7cec60131bb206e63805651890f5110b8787cccd"
+    },
+    "originalFileUrl": "https://drive.google.com/file/d/1oALqyqy7yVQnLh-Vs19kKg3eZgJqIgoc/view",
+    "directOriginalByteComparison": false,
+    "inputs": [
+      {
+        "path": "assets/vendor/quaternius_rpg/Warrior.gltf",
+        "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Warrior.gltf",
+        "byteLength": 3035392,
+        "gitBlobSha": "7cec60131bb206e63805651890f5110b8787cccd",
+        "sha256": "2bab905ce12d279e1d099c2a8de0b1ef31c9f5e8d1959b41d24470b4f4181add"
+      }
+    ],
+    "transform": "Existing materialize-curation glTF-to-GLB embedding only; authored geometry, materials, rig and clips unchanged; no decimation or retargeting",
+    "inspection": {
+      "format": "glb",
+      "vertices": 5846,
+      "triangles": 5402,
+      "meshes": 5,
+      "primitives": 5,
+      "materials": 2,
+      "skins": 1,
+      "joints": 32,
+      "animations": [
+        {
+          "index": 0,
+          "name": "Death",
+          "channels": 96,
+          "duration": 1.1666666666666667
+        },
+        {
+          "index": 1,
+          "name": "Idle",
+          "channels": 96,
+          "duration": 3.125
+        },
+        {
+          "index": 2,
+          "name": "Idle_Attacking",
+          "channels": 96,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 3,
+          "name": "Idle_Weapon",
+          "channels": 96,
+          "duration": 3.125
+        },
+        {
+          "index": 4,
+          "name": "PickUp",
+          "channels": 96,
+          "duration": 1.25
+        },
+        {
+          "index": 5,
+          "name": "Punch",
+          "channels": 96,
+          "duration": 0.75
+        },
+        {
+          "index": 6,
+          "name": "RecieveHit",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 7,
+          "name": "Roll",
+          "channels": 96,
+          "duration": 1
+        },
+        {
+          "index": 8,
+          "name": "Run",
+          "channels": 96,
+          "duration": 0.875
+        },
+        {
+          "index": 9,
+          "name": "Run_Weapon",
+          "channels": 96,
+          "duration": 0.875
+        },
+        {
+          "index": 10,
+          "name": "Sword_Attack",
+          "channels": 96,
+          "duration": 0.8333333333333334
+        },
+        {
+          "index": 11,
+          "name": "Sword_Attack2",
+          "channels": 96,
+          "duration": 0.8333333333333334
+        },
+        {
+          "index": 12,
+          "name": "Walk",
+          "channels": 96,
+          "duration": 1.25
+        }
+      ],
+      "textureDimensions": [
+        [
+          1024,
+          1024
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "externalDependencies": 0,
+      "uniqueBoneCount": 32,
+      "morphTargets": 0,
+      "meshParts": [
+        "_ncl1_29.005",
+        "_ncl1_29.002",
+        "_ncl1_29.000",
+        "Cylinder.001",
+        "_ncl1_29.001"
+      ],
+      "materialNames": [
+        "Warrior_Texture",
+        "Warrior_Sword_Texture"
+      ],
+      "scaleOrientationFeet": "glTF authored transforms preserved; viewer normalization and ground contact require browser review"
+    },
+    "rig": {
+      "id": "quaternius-rpg-characters.native",
+      "jointCount": 32,
+      "nodes": [
+        {
+          "index": 0,
+          "name": "Foot.L",
+          "children": []
+        },
+        {
+          "index": 2,
+          "name": "Head",
+          "children": [
+            1
+          ]
+        },
+        {
+          "index": 3,
+          "name": "Neck",
+          "children": [
+            2
+          ]
+        },
+        {
+          "index": 4,
+          "name": "Fist2.L",
+          "children": []
+        },
+        {
+          "index": 5,
+          "name": "Fist1.L",
+          "children": [
+            4
+          ]
+        },
+        {
+          "index": 6,
+          "name": "Fist.L",
+          "children": [
+            5
+          ]
+        },
+        {
+          "index": 7,
+          "name": "Thumb2.L",
+          "children": []
+        },
+        {
+          "index": 8,
+          "name": "Thumb1.L",
+          "children": [
+            7
+          ]
+        },
+        {
+          "index": 9,
+          "name": "LowerArm.L",
+          "children": [
+            6,
+            8
+          ]
+        },
+        {
+          "index": 11,
+          "name": "UpperArm.L",
+          "children": [
+            9,
+            10
+          ]
+        },
+        {
+          "index": 12,
+          "name": "Shoulder.L",
+          "children": [
+            11
+          ]
+        },
+        {
+          "index": 13,
+          "name": "Fist2.R",
+          "children": []
+        },
+        {
+          "index": 15,
+          "name": "Weapon.R",
+          "children": [
+            14
+          ]
+        },
+        {
+          "index": 16,
+          "name": "Fist1.R",
+          "children": [
+            13,
+            15
+          ]
+        },
+        {
+          "index": 17,
+          "name": "Fist.R",
+          "children": [
+            16
+          ]
+        },
+        {
+          "index": 18,
+          "name": "Thumb2.R",
+          "children": []
+        },
+        {
+          "index": 19,
+          "name": "Thumb1.R",
+          "children": [
+            18
+          ]
+        },
+        {
+          "index": 20,
+          "name": "LowerArm.R",
+          "children": [
+            17,
+            19
+          ]
+        },
+        {
+          "index": 22,
+          "name": "UpperArm.R",
+          "children": [
+            20,
+            21
+          ]
+        },
+        {
+          "index": 23,
+          "name": "Shoulder.R",
+          "children": [
+            22
+          ]
+        },
+        {
+          "index": 24,
+          "name": "Torso",
+          "children": [
+            3,
+            12,
+            23
+          ]
+        },
+        {
+          "index": 25,
+          "name": "Abdomen",
+          "children": [
+            24
+          ]
+        },
+        {
+          "index": 26,
+          "name": "Hips",
+          "children": [
+            25
+          ]
+        },
+        {
+          "index": 27,
+          "name": "LowerLeg.L",
+          "children": []
+        },
+        {
+          "index": 28,
+          "name": "UpperLeg.L",
+          "children": [
+            27
+          ]
+        },
+        {
+          "index": 29,
+          "name": "LowerLeg.R",
+          "children": []
+        },
+        {
+          "index": 30,
+          "name": "UpperLeg.R",
+          "children": [
+            29
+          ]
+        },
+        {
+          "index": 31,
+          "name": "Body",
+          "children": [
+            26,
+            28,
+            30
+          ]
+        },
+        {
+          "index": 32,
+          "name": "PoleTarget.L",
+          "children": []
+        },
+        {
+          "index": 33,
+          "name": "Foot.R",
+          "children": []
+        },
+        {
+          "index": 34,
+          "name": "PoleTarget.R",
+          "children": []
+        },
+        {
+          "index": 35,
+          "name": "Root",
+          "children": [
+            0,
+            31,
+            32,
+            33,
+            34
+          ]
+        }
+      ],
+      "kaykitCompatibility": "not asserted",
+      "retargeted": false
+    },
+    "availableReviewClips": [
+      "Death",
+      "Idle",
+      "Idle_Attacking",
+      "Idle_Weapon",
+      "PickUp",
+      "Punch",
+      "RecieveHit",
+      "Roll",
+      "Run",
+      "Run_Weapon",
+      "Sword_Attack",
+      "Sword_Attack2",
+      "Walk"
+    ],
+    "uses": [
+      "combat-profession",
+      "npc-comparison"
+    ],
+    "registrationKind": "new-model",
+    "review": {
+      "route": "/review-objects",
+      "nativeAnimationOnly": true,
+      "productionVisualApproval": false,
+      "runtimeApproval": false,
+      "browserStatus": "pending"
+    },
+    "thumbnailPath": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-warrior/58ff382fcb8f4c6b2114a78b84a2267ad16c3f8f.webp",
+    "thumbnailSha256": "f7c622e13668e67c96a50e7208618b9e059a6fcbf8b79864a171105d106512ab",
+    "thumbnailSource": {
+      "head": "52a441cf8e4fe56247f1afec1eeafdfaf0ad4fc9",
+      "assetSha256": "885262d565b44e78f8c9ab33fef370e33b9342c2be1c1b3d977045d827f209a9",
+      "render": "canonical review-objects native idle front"
+    }
+  },
+  {
+    "id": "quaternius-rpg-characters-wizard",
+    "modelId": "character.quaternius-rpg-characters-wizard.v1",
+    "visualAssetId": "library.quaternius-rpg-characters-wizard.v1",
+    "label": "魔法使い · Wizard",
+    "modelName": "Wizard",
+    "kind": "character",
+    "type": "character",
+    "category": "characters",
+    "active": false,
+    "status": "MATERIALIZED",
+    "origin": "artist-authored",
+    "license": "CC0-1.0",
+    "author": "Quaternius",
+    "originalSource": "https://quaternius.com/packs/rpgcharacters.html",
+    "pack": "quaternius-rpg-characters",
+    "runtimePath": "model/quaternius-rpg-characters/wizard/0613d91e91f5b968dcd8b4feb32d244b88d36b21.glb",
+    "localPath": "apps/review/public/library/model/quaternius-rpg-characters/wizard/0613d91e91f5b968dcd8b4feb32d244b88d36b21.glb",
+    "licensePath": "apps/review/public/library/licenses/quaternius-rpg-characters-CC0.txt",
+    "sha256": "46a26e82740a78ded5e536eab4fb85b56aa1ae5dc92ea0c531239da74e6cf06a",
+    "gitBlobSha": "0613d91e91f5b968dcd8b4feb32d244b88d36b21",
+    "byteLength": 2108476,
+    "source": {
+      "repository": "euuuuuuan/cairnfall-public",
+      "revision": "8ee4cfd789282c59632a9339e61564b7d6c1acfe",
+      "path": "assets/vendor/quaternius_rpg/Wizard.gltf",
+      "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Wizard.gltf",
+      "byteLength": 3296909,
+      "gitBlobSha": "1f7dbe0d209afaca5f9315b021ce1090eccab16d",
+      "sha256": "320de17289857db6794e4eef55101ce3427e755319a4384fb6d9d9ca5206b41b",
+      "hash": "git-blob:1f7dbe0d209afaca5f9315b021ce1090eccab16d"
+    },
+    "originalFileUrl": "https://drive.google.com/file/d/1OfEos4LtQLrMfJLpw2OdBNhbu36RtZUd/view",
+    "directOriginalByteComparison": false,
+    "inputs": [
+      {
+        "path": "assets/vendor/quaternius_rpg/Wizard.gltf",
+        "url": "https://raw.githubusercontent.com/euuuuuuan/cairnfall-public/8ee4cfd789282c59632a9339e61564b7d6c1acfe/assets/vendor/quaternius_rpg/Wizard.gltf",
+        "byteLength": 3296909,
+        "gitBlobSha": "1f7dbe0d209afaca5f9315b021ce1090eccab16d",
+        "sha256": "320de17289857db6794e4eef55101ce3427e755319a4384fb6d9d9ca5206b41b"
+      }
+    ],
+    "transform": "Existing materialize-curation glTF-to-GLB embedding only; authored geometry, materials, rig and clips unchanged; no decimation or retargeting",
+    "inspection": {
+      "format": "glb",
+      "vertices": 5413,
+      "triangles": 5376,
+      "meshes": 6,
+      "primitives": 6,
+      "materials": 2,
+      "skins": 1,
+      "joints": 32,
+      "animations": [
+        {
+          "index": 0,
+          "name": "Death",
+          "channels": 96,
+          "duration": 1.1666666666666667
+        },
+        {
+          "index": 1,
+          "name": "Idle",
+          "channels": 96,
+          "duration": 3.125
+        },
+        {
+          "index": 2,
+          "name": "Idle_Attacking",
+          "channels": 96,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 3,
+          "name": "Idle_Weapon",
+          "channels": 96,
+          "duration": 3.125
+        },
+        {
+          "index": 4,
+          "name": "PickUp",
+          "channels": 96,
+          "duration": 1.25
+        },
+        {
+          "index": 5,
+          "name": "Punch",
+          "channels": 96,
+          "duration": 0.75
+        },
+        {
+          "index": 6,
+          "name": "RecieveHit",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 7,
+          "name": "RecieveHit_2",
+          "channels": 96,
+          "duration": 0.625
+        },
+        {
+          "index": 8,
+          "name": "Roll",
+          "channels": 96,
+          "duration": 1
+        },
+        {
+          "index": 9,
+          "name": "Run",
+          "channels": 96,
+          "duration": 0.875
+        },
+        {
+          "index": 10,
+          "name": "Run_Weapon",
+          "channels": 96,
+          "duration": 0.875
+        },
+        {
+          "index": 11,
+          "name": "Spell1",
+          "channels": 96,
+          "duration": 1.2083333333333333
+        },
+        {
+          "index": 12,
+          "name": "Spell2",
+          "channels": 96,
+          "duration": 1.4583333333333333
+        },
+        {
+          "index": 13,
+          "name": "Staff_Attack",
+          "channels": 96,
+          "duration": 0.75
+        },
+        {
+          "index": 14,
+          "name": "Walk",
+          "channels": 96,
+          "duration": 1.25
+        }
+      ],
+      "textureDimensions": [
+        [
+          1024,
+          1024
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "externalDependencies": 0,
+      "uniqueBoneCount": 32,
+      "morphTargets": 0,
+      "meshParts": [
+        "_ncl1_29.006",
+        "_ncl1_29.005",
+        "_ncl1_29.002",
+        "Cylinder.000",
+        "_ncl1_29.004",
+        "_ncl1_29.001"
+      ],
+      "materialNames": [
+        "Wizard_Texture",
+        "Wizard_Staff_Texture"
+      ],
+      "scaleOrientationFeet": "glTF authored transforms preserved; viewer normalization and ground contact require browser review"
+    },
+    "rig": {
+      "id": "quaternius-rpg-characters.native",
+      "jointCount": 32,
+      "nodes": [
+        {
+          "index": 1,
+          "name": "Foot.L",
+          "children": []
+        },
+        {
+          "index": 3,
+          "name": "Head",
+          "children": [
+            2
+          ]
+        },
+        {
+          "index": 4,
+          "name": "Neck",
+          "children": [
+            3
+          ]
+        },
+        {
+          "index": 5,
+          "name": "Fist2.L",
+          "children": []
+        },
+        {
+          "index": 6,
+          "name": "Fist1.L",
+          "children": [
+            5
+          ]
+        },
+        {
+          "index": 7,
+          "name": "Fist.L",
+          "children": [
+            6
+          ]
+        },
+        {
+          "index": 8,
+          "name": "Thumb2.L",
+          "children": []
+        },
+        {
+          "index": 9,
+          "name": "Thumb1.L",
+          "children": [
+            8
+          ]
+        },
+        {
+          "index": 10,
+          "name": "LowerArm.L",
+          "children": [
+            7,
+            9
+          ]
+        },
+        {
+          "index": 12,
+          "name": "UpperArm.L",
+          "children": [
+            10,
+            11
+          ]
+        },
+        {
+          "index": 13,
+          "name": "Shoulder.L",
+          "children": [
+            12
+          ]
+        },
+        {
+          "index": 14,
+          "name": "Fist2.R",
+          "children": []
+        },
+        {
+          "index": 16,
+          "name": "Weapon.R",
+          "children": [
+            15
+          ]
+        },
+        {
+          "index": 17,
+          "name": "Fist1.R",
+          "children": [
+            14,
+            16
+          ]
+        },
+        {
+          "index": 18,
+          "name": "Fist.R",
+          "children": [
+            17
+          ]
+        },
+        {
+          "index": 19,
+          "name": "Thumb2.R",
+          "children": []
+        },
+        {
+          "index": 20,
+          "name": "Thumb1.R",
+          "children": [
+            19
+          ]
+        },
+        {
+          "index": 21,
+          "name": "LowerArm.R",
+          "children": [
+            18,
+            20
+          ]
+        },
+        {
+          "index": 23,
+          "name": "UpperArm.R",
+          "children": [
+            21,
+            22
+          ]
+        },
+        {
+          "index": 24,
+          "name": "Shoulder.R",
+          "children": [
+            23
+          ]
+        },
+        {
+          "index": 25,
+          "name": "Torso",
+          "children": [
+            4,
+            13,
+            24
+          ]
+        },
+        {
+          "index": 27,
+          "name": "Abdomen",
+          "children": [
+            25,
+            26
+          ]
+        },
+        {
+          "index": 28,
+          "name": "Hips",
+          "children": [
+            27
+          ]
+        },
+        {
+          "index": 29,
+          "name": "LowerLeg.L",
+          "children": []
+        },
+        {
+          "index": 30,
+          "name": "UpperLeg.L",
+          "children": [
+            29
+          ]
+        },
+        {
+          "index": 31,
+          "name": "LowerLeg.R",
+          "children": []
+        },
+        {
+          "index": 32,
+          "name": "UpperLeg.R",
+          "children": [
+            31
+          ]
+        },
+        {
+          "index": 33,
+          "name": "Body",
+          "children": [
+            28,
+            30,
+            32
+          ]
+        },
+        {
+          "index": 34,
+          "name": "PoleTarget.L",
+          "children": []
+        },
+        {
+          "index": 35,
+          "name": "Foot.R",
+          "children": []
+        },
+        {
+          "index": 36,
+          "name": "PoleTarget.R",
+          "children": []
+        },
+        {
+          "index": 37,
+          "name": "Root",
+          "children": [
+            1,
+            33,
+            34,
+            35,
+            36
+          ]
+        }
+      ],
+      "kaykitCompatibility": "not asserted",
+      "retargeted": false
+    },
+    "availableReviewClips": [
+      "Death",
+      "Idle",
+      "Idle_Attacking",
+      "Idle_Weapon",
+      "PickUp",
+      "Punch",
+      "RecieveHit",
+      "RecieveHit_2",
+      "Roll",
+      "Run",
+      "Run_Weapon",
+      "Spell1",
+      "Spell2",
+      "Staff_Attack",
+      "Walk"
+    ],
+    "uses": [
+      "combat-profession",
+      "npc-comparison"
+    ],
+    "registrationKind": "new-model",
+    "review": {
+      "route": "/review-objects",
+      "nativeAnimationOnly": true,
+      "productionVisualApproval": false,
+      "runtimeApproval": false,
+      "browserStatus": "pending"
+    },
+    "thumbnailPath": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-wizard/494851efef3371d77672f989aaee70962433c253.webp",
+    "thumbnailSha256": "70f2c2ee32a884e9789e4788704c732ab39136e8b9c20984620da8bb26b6c6e2",
+    "thumbnailSource": {
+      "head": "52a441cf8e4fe56247f1afec1eeafdfaf0ad4fc9",
+      "assetSha256": "46a26e82740a78ded5e536eab4fb85b56aa1ae5dc92ea0c531239da74e6cf06a",
+      "render": "canonical review-objects native idle front"
+    }
+  },
+  {
+    "id": "quaternius-modular-women-medieval",
+    "modelId": "character.quaternius-modular-women-medieval.v1",
+    "visualAssetId": "library.quaternius-modular-women-medieval.v1",
+    "label": "女冒険者 · Medieval",
+    "modelName": "Medieval",
+    "kind": "character",
+    "type": "character",
+    "category": "characters",
+    "active": false,
+    "status": "MATERIALIZED",
+    "origin": "artist-authored",
+    "license": "CC0-1.0",
+    "author": "Quaternius",
+    "originalSource": "https://quaternius.com/packs/ultimatemodularwomen.html",
+    "pack": "quaternius-modular-women",
+    "runtimePath": "model/quaternius-modular-women/medieval/6162857f949ea68a63cde80f20918c13264b9ce4.glb",
+    "localPath": "apps/review/public/library/model/quaternius-modular-women/medieval/6162857f949ea68a63cde80f20918c13264b9ce4.glb",
+    "licensePath": "apps/review/public/library/licenses/quaternius-modular-women-CC0.txt",
+    "sha256": "7ee434d9c08b524501bd9333a6f9a44ccb9a11f4e093274b6dca40f31a46ce31",
+    "gitBlobSha": "6162857f949ea68a63cde80f20918c13264b9ce4",
+    "byteLength": 1718808,
+    "source": {
+      "repository": "agentkaerf/FreeModels",
+      "revision": "db3df04d1e4714298a09510b26fb6de6645138a2",
+      "path": "Ultimate Modular Women - April 2022/Individual Characters/glTF/Medieval.gltf",
+      "url": "https://raw.githubusercontent.com/agentkaerf/FreeModels/db3df04d1e4714298a09510b26fb6de6645138a2/Ultimate%20Modular%20Women%20-%20April%202022/Individual%20Characters/glTF/Medieval.gltf",
+      "byteLength": 3206051,
+      "gitBlobSha": "96d7374e8dc248f59842df3ba632b98c10e40e8f",
+      "sha256": "32c3cd6d4e59bd1f433bc5eeca788b1430399ef15dfd2e0fb4a038a967c0c293",
+      "hash": "git-blob:96d7374e8dc248f59842df3ba632b98c10e40e8f"
+    },
+    "originalFileUrl": "https://drive.google.com/file/d/17xT8FvSs2oGKVg28vRFf_8nwsM5nF2bG/view",
+    "directOriginalByteComparison": true,
+    "inputs": [
+      {
+        "path": "Ultimate Modular Women - April 2022/Individual Characters/glTF/Medieval.gltf",
+        "url": "https://raw.githubusercontent.com/agentkaerf/FreeModels/db3df04d1e4714298a09510b26fb6de6645138a2/Ultimate%20Modular%20Women%20-%20April%202022/Individual%20Characters/glTF/Medieval.gltf",
+        "byteLength": 3206051,
+        "gitBlobSha": "96d7374e8dc248f59842df3ba632b98c10e40e8f",
+        "sha256": "32c3cd6d4e59bd1f433bc5eeca788b1430399ef15dfd2e0fb4a038a967c0c293"
+      }
+    ],
+    "transform": "Existing materialize-curation glTF-to-GLB embedding only; authored geometry, materials, rig and clips unchanged; no decimation or retargeting",
+    "inspection": {
+      "format": "glb",
+      "vertices": 14596,
+      "triangles": 7276,
+      "meshes": 5,
+      "primitives": 17,
+      "materials": 10,
+      "skins": 1,
+      "joints": 62,
+      "animations": [
+        {
+          "index": 0,
+          "name": "Death",
+          "channels": 108,
+          "duration": 1.3333333333333333
+        },
+        {
+          "index": 1,
+          "name": "Gun_Shoot",
+          "channels": 108,
+          "duration": 0.75
+        },
+        {
+          "index": 2,
+          "name": "HitRecieve",
+          "channels": 108,
+          "duration": 0.7083333333333334
+        },
+        {
+          "index": 3,
+          "name": "HitRecieve_2",
+          "channels": 108,
+          "duration": 0.7083333333333334
+        },
+        {
+          "index": 4,
+          "name": "Idle",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        },
+        {
+          "index": 5,
+          "name": "Idle_Gun",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        },
+        {
+          "index": 6,
+          "name": "Idle_Gun_Pointing",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        },
+        {
+          "index": 7,
+          "name": "Idle_Gun_Shoot",
+          "channels": 108,
+          "duration": 0.8333333333333334
+        },
+        {
+          "index": 8,
+          "name": "Idle_Neutral",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        },
+        {
+          "index": 9,
+          "name": "Idle_Sword",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        },
+        {
+          "index": 10,
+          "name": "Interact",
+          "channels": 108,
+          "duration": 1.5833333333333333
+        },
+        {
+          "index": 11,
+          "name": "Kick_Left",
+          "channels": 116,
+          "duration": 1.1666666666666667
+        },
+        {
+          "index": 12,
+          "name": "Kick_Right",
+          "channels": 116,
+          "duration": 1.1666666666666667
+        },
+        {
+          "index": 13,
+          "name": "Punch_Left",
+          "channels": 116,
+          "duration": 1.0416666666666667
+        },
+        {
+          "index": 14,
+          "name": "Punch_Right",
+          "channels": 116,
+          "duration": 1.0416666666666667
+        },
+        {
+          "index": 15,
+          "name": "Roll",
+          "channels": 116,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 16,
+          "name": "Run",
+          "channels": 116,
+          "duration": 1
+        },
+        {
+          "index": 17,
+          "name": "Run_Back",
+          "channels": 116,
+          "duration": 1.0416666666666667
+        },
+        {
+          "index": 18,
+          "name": "Run_Left",
+          "channels": 124,
+          "duration": 1
+        },
+        {
+          "index": 19,
+          "name": "Run_Right",
+          "channels": 124,
+          "duration": 1
+        },
+        {
+          "index": 20,
+          "name": "Run_Shoot",
+          "channels": 116,
+          "duration": 1.0416666666666667
+        },
+        {
+          "index": 21,
+          "name": "Sword_Slash",
+          "channels": 108,
+          "duration": 1.2916666666666667
+        },
+        {
+          "index": 22,
+          "name": "Walk",
+          "channels": 116,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 23,
+          "name": "Wave",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        }
+      ],
+      "textureDimensions": [],
+      "externalDependencies": 0,
+      "uniqueBoneCount": 62,
+      "morphTargets": 0,
+      "meshParts": [
+        "Cube.043",
+        "Cylinder",
+        "Cube.007",
+        "Cube.024",
+        "Cube.044"
+      ],
+      "materialNames": [
+        "Skin",
+        "DarkBrown",
+        "Gold",
+        "LightBrown",
+        "Black",
+        "Metal",
+        "Metal_Dark",
+        "Brown2",
+        "White",
+        "Brown"
+      ],
+      "scaleOrientationFeet": "glTF authored transforms preserved; viewer normalization and ground contact require browser review"
+    },
+    "rig": {
+      "id": "quaternius-modular-women.native",
+      "jointCount": 62,
+      "nodes": [
+        {
+          "index": 0,
+          "name": "Head",
+          "children": []
+        },
+        {
+          "index": 1,
+          "name": "Neck",
+          "children": [
+            0
+          ]
+        },
+        {
+          "index": 2,
+          "name": "Index4.L",
+          "children": []
+        },
+        {
+          "index": 3,
+          "name": "Index3.L",
+          "children": [
+            2
+          ]
+        },
+        {
+          "index": 4,
+          "name": "Index2.L",
+          "children": [
+            3
+          ]
+        },
+        {
+          "index": 5,
+          "name": "Index1.L",
+          "children": [
+            4
+          ]
+        },
+        {
+          "index": 6,
+          "name": "Middle4.L",
+          "children": []
+        },
+        {
+          "index": 7,
+          "name": "Middle3.L",
+          "children": [
+            6
+          ]
+        },
+        {
+          "index": 8,
+          "name": "Middle2.L",
+          "children": [
+            7
+          ]
+        },
+        {
+          "index": 9,
+          "name": "Middle1.L",
+          "children": [
+            8
+          ]
+        },
+        {
+          "index": 10,
+          "name": "Ring4.L",
+          "children": []
+        },
+        {
+          "index": 11,
+          "name": "Ring3.L",
+          "children": [
+            10
+          ]
+        },
+        {
+          "index": 12,
+          "name": "Ring2.L",
+          "children": [
+            11
+          ]
+        },
+        {
+          "index": 13,
+          "name": "Ring1.L",
+          "children": [
+            12
+          ]
+        },
+        {
+          "index": 14,
+          "name": "Pinky4.L",
+          "children": []
+        },
+        {
+          "index": 15,
+          "name": "Pinky3.L",
+          "children": [
+            14
+          ]
+        },
+        {
+          "index": 16,
+          "name": "Pinky2.L",
+          "children": [
+            15
+          ]
+        },
+        {
+          "index": 17,
+          "name": "Pinky1.L",
+          "children": [
+            16
+          ]
+        },
+        {
+          "index": 18,
+          "name": "Thumb3.L",
+          "children": []
+        },
+        {
+          "index": 19,
+          "name": "Thumb2.L",
+          "children": [
+            18
+          ]
+        },
+        {
+          "index": 20,
+          "name": "Thumb1.L",
+          "children": [
+            19
+          ]
+        },
+        {
+          "index": 21,
+          "name": "Wrist.L",
+          "children": [
+            5,
+            9,
+            13,
+            17,
+            20
+          ]
+        },
+        {
+          "index": 22,
+          "name": "LowerArm.L",
+          "children": [
+            21
+          ]
+        },
+        {
+          "index": 23,
+          "name": "UpperArm.L",
+          "children": [
+            22
+          ]
+        },
+        {
+          "index": 24,
+          "name": "Shoulder.L",
+          "children": [
+            23
+          ]
+        },
+        {
+          "index": 25,
+          "name": "Index4.R",
+          "children": []
+        },
+        {
+          "index": 26,
+          "name": "Index3.R",
+          "children": [
+            25
+          ]
+        },
+        {
+          "index": 27,
+          "name": "Index2.R",
+          "children": [
+            26
+          ]
+        },
+        {
+          "index": 28,
+          "name": "Index1.R",
+          "children": [
+            27
+          ]
+        },
+        {
+          "index": 29,
+          "name": "Middle4.R",
+          "children": []
+        },
+        {
+          "index": 30,
+          "name": "Middle3.R",
+          "children": [
+            29
+          ]
+        },
+        {
+          "index": 31,
+          "name": "Middle2.R",
+          "children": [
+            30
+          ]
+        },
+        {
+          "index": 33,
+          "name": "Middle1.R",
+          "children": [
+            31,
+            32
+          ]
+        },
+        {
+          "index": 34,
+          "name": "Ring4.R",
+          "children": []
+        },
+        {
+          "index": 35,
+          "name": "Ring3.R",
+          "children": [
+            34
+          ]
+        },
+        {
+          "index": 36,
+          "name": "Ring2.R",
+          "children": [
+            35
+          ]
+        },
+        {
+          "index": 37,
+          "name": "Ring1.R",
+          "children": [
+            36
+          ]
+        },
+        {
+          "index": 38,
+          "name": "Pinky4.R",
+          "children": []
+        },
+        {
+          "index": 39,
+          "name": "Pinky3.R",
+          "children": [
+            38
+          ]
+        },
+        {
+          "index": 40,
+          "name": "Pinky2.R",
+          "children": [
+            39
+          ]
+        },
+        {
+          "index": 41,
+          "name": "Pinky1.R",
+          "children": [
+            40
+          ]
+        },
+        {
+          "index": 42,
+          "name": "Thumb3.R",
+          "children": []
+        },
+        {
+          "index": 43,
+          "name": "Thumb2.R",
+          "children": [
+            42
+          ]
+        },
+        {
+          "index": 44,
+          "name": "Thumb1.R",
+          "children": [
+            43
+          ]
+        },
+        {
+          "index": 45,
+          "name": "Wrist.R",
+          "children": [
+            28,
+            33,
+            37,
+            41,
+            44
+          ]
+        },
+        {
+          "index": 46,
+          "name": "LowerArm.R",
+          "children": [
+            45
+          ]
+        },
+        {
+          "index": 47,
+          "name": "UpperArm.R",
+          "children": [
+            46
+          ]
+        },
+        {
+          "index": 48,
+          "name": "Shoulder.R",
+          "children": [
+            47
+          ]
+        },
+        {
+          "index": 49,
+          "name": "Chest",
+          "children": [
+            1,
+            24,
+            48
+          ]
+        },
+        {
+          "index": 50,
+          "name": "Torso",
+          "children": [
+            49
+          ]
+        },
+        {
+          "index": 51,
+          "name": "Abdomen",
+          "children": [
+            50
+          ]
+        },
+        {
+          "index": 52,
+          "name": "Hips",
+          "children": [
+            51
+          ]
+        },
+        {
+          "index": 53,
+          "name": "LowerLeg.L",
+          "children": []
+        },
+        {
+          "index": 54,
+          "name": "UpperLeg.L",
+          "children": [
+            53
+          ]
+        },
+        {
+          "index": 55,
+          "name": "LowerLeg.R",
+          "children": []
+        },
+        {
+          "index": 56,
+          "name": "UpperLeg.R",
+          "children": [
+            55
+          ]
+        },
+        {
+          "index": 57,
+          "name": "Body",
+          "children": [
+            52,
+            54,
+            56
+          ]
+        },
+        {
+          "index": 58,
+          "name": "Foot.L",
+          "children": []
+        },
+        {
+          "index": 59,
+          "name": "PT.L",
+          "children": []
+        },
+        {
+          "index": 60,
+          "name": "Foot.R",
+          "children": []
+        },
+        {
+          "index": 61,
+          "name": "PT.R",
+          "children": []
+        },
+        {
+          "index": 62,
+          "name": "Root",
+          "children": [
+            57,
+            58,
+            59,
+            60,
+            61
+          ]
+        }
+      ],
+      "kaykitCompatibility": "not asserted",
+      "retargeted": false
+    },
+    "availableReviewClips": [
+      "Death",
+      "HitRecieve",
+      "HitRecieve_2",
+      "Idle",
+      "Idle_Neutral",
+      "Idle_Sword",
+      "Interact",
+      "Kick_Left",
+      "Kick_Right",
+      "Punch_Left",
+      "Punch_Right",
+      "Roll",
+      "Run",
+      "Run_Back",
+      "Run_Left",
+      "Run_Right",
+      "Sword_Slash",
+      "Walk",
+      "Wave"
+    ],
+    "uses": [
+      "female-protagonist-comparison",
+      "combat-profession"
+    ],
+    "registrationKind": "new-model",
+    "review": {
+      "route": "/review-objects",
+      "nativeAnimationOnly": true,
+      "productionVisualApproval": false,
+      "runtimeApproval": false,
+      "browserStatus": "pending"
+    },
+    "thumbnailPath": "thumbnail/quaternius-characters-20260922/quaternius-modular-women-medieval/480973a1bcff08892f39cf34065db4fd7b03b271.webp",
+    "thumbnailSha256": "e25eff82eed906757596cdb25140eb626ce05da67cbc1717558e77e5e98592a3",
+    "thumbnailSource": {
+      "head": "52a441cf8e4fe56247f1afec1eeafdfaf0ad4fc9",
+      "assetSha256": "7ee434d9c08b524501bd9333a6f9a44ccb9a11f4e093274b6dca40f31a46ce31",
+      "render": "canonical review-objects native idle front"
+    }
+  },
+  {
+    "id": "quaternius-modular-women-witch",
+    "modelId": "character.quaternius-modular-women-witch.v1",
+    "visualAssetId": "library.quaternius-modular-women-witch.v1",
+    "label": "魔女 · Witch",
+    "modelName": "Witch",
+    "kind": "character",
+    "type": "character",
+    "category": "characters",
+    "active": false,
+    "status": "MATERIALIZED",
+    "origin": "artist-authored",
+    "license": "CC0-1.0",
+    "author": "Quaternius",
+    "originalSource": "https://quaternius.com/packs/ultimatemodularwomen.html",
+    "pack": "quaternius-modular-women",
+    "runtimePath": "model/quaternius-modular-women/witch/6475c0297c8837ce970f4f5e9d3f1f639dae7113.glb",
+    "localPath": "apps/review/public/library/model/quaternius-modular-women/witch/6475c0297c8837ce970f4f5e9d3f1f639dae7113.glb",
+    "licensePath": "apps/review/public/library/licenses/quaternius-modular-women-CC0.txt",
+    "sha256": "9042d106d305123724f0a133ff648b85a972b79528c0bb51ff88ee8493ae3863",
+    "gitBlobSha": "6475c0297c8837ce970f4f5e9d3f1f639dae7113",
+    "byteLength": 1722924,
+    "source": {
+      "repository": "agentkaerf/FreeModels",
+      "revision": "db3df04d1e4714298a09510b26fb6de6645138a2",
+      "path": "Ultimate Modular Women - April 2022/Individual Characters/glTF/Witch.gltf",
+      "url": "https://raw.githubusercontent.com/agentkaerf/FreeModels/db3df04d1e4714298a09510b26fb6de6645138a2/Ultimate%20Modular%20Women%20-%20April%202022/Individual%20Characters/glTF/Witch.gltf",
+      "byteLength": 3207958,
+      "gitBlobSha": "095934ebf02dbd82a0b1b73fb9e2b1cc895d8bfd",
+      "sha256": "d886c8c134a92b2013529edf7352e286ef386ca7c0f5fa3a568039d7c11b05fe",
+      "hash": "git-blob:095934ebf02dbd82a0b1b73fb9e2b1cc895d8bfd"
+    },
+    "originalFileUrl": "https://drive.google.com/file/d/1fGbeo6SdjB9EWVSNKKOxoNKdmnK8hy3d/view",
+    "directOriginalByteComparison": false,
+    "inputs": [
+      {
+        "path": "Ultimate Modular Women - April 2022/Individual Characters/glTF/Witch.gltf",
+        "url": "https://raw.githubusercontent.com/agentkaerf/FreeModels/db3df04d1e4714298a09510b26fb6de6645138a2/Ultimate%20Modular%20Women%20-%20April%202022/Individual%20Characters/glTF/Witch.gltf",
+        "byteLength": 3207958,
+        "gitBlobSha": "095934ebf02dbd82a0b1b73fb9e2b1cc895d8bfd",
+        "sha256": "d886c8c134a92b2013529edf7352e286ef386ca7c0f5fa3a568039d7c11b05fe"
+      }
+    ],
+    "transform": "Existing materialize-curation glTF-to-GLB embedding only; authored geometry, materials, rig and clips unchanged; no decimation or retargeting",
+    "inspection": {
+      "format": "glb",
+      "vertices": 13884,
+      "triangles": 6872,
+      "meshes": 4,
+      "primitives": 13,
+      "materials": 6,
+      "skins": 1,
+      "joints": 62,
+      "animations": [
+        {
+          "index": 0,
+          "name": "Death",
+          "channels": 108,
+          "duration": 1.3333333333333333
+        },
+        {
+          "index": 1,
+          "name": "Gun_Shoot",
+          "channels": 108,
+          "duration": 0.75
+        },
+        {
+          "index": 2,
+          "name": "HitRecieve",
+          "channels": 108,
+          "duration": 0.7083333333333334
+        },
+        {
+          "index": 3,
+          "name": "HitRecieve_2",
+          "channels": 108,
+          "duration": 0.7083333333333334
+        },
+        {
+          "index": 4,
+          "name": "Idle",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        },
+        {
+          "index": 5,
+          "name": "Idle_Gun",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        },
+        {
+          "index": 6,
+          "name": "Idle_Gun_Pointing",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        },
+        {
+          "index": 7,
+          "name": "Idle_Gun_Shoot",
+          "channels": 108,
+          "duration": 0.8333333333333334
+        },
+        {
+          "index": 8,
+          "name": "Idle_Neutral",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        },
+        {
+          "index": 9,
+          "name": "Idle_Sword",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        },
+        {
+          "index": 10,
+          "name": "Interact",
+          "channels": 108,
+          "duration": 1.5833333333333333
+        },
+        {
+          "index": 11,
+          "name": "Kick_Left",
+          "channels": 116,
+          "duration": 1.1666666666666667
+        },
+        {
+          "index": 12,
+          "name": "Kick_Right",
+          "channels": 116,
+          "duration": 1.1666666666666667
+        },
+        {
+          "index": 13,
+          "name": "Punch_Left",
+          "channels": 116,
+          "duration": 1.0416666666666667
+        },
+        {
+          "index": 14,
+          "name": "Punch_Right",
+          "channels": 116,
+          "duration": 1.0416666666666667
+        },
+        {
+          "index": 15,
+          "name": "Roll",
+          "channels": 116,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 16,
+          "name": "Run",
+          "channels": 116,
+          "duration": 1
+        },
+        {
+          "index": 17,
+          "name": "Run_Back",
+          "channels": 116,
+          "duration": 1.0416666666666667
+        },
+        {
+          "index": 18,
+          "name": "Run_Left",
+          "channels": 124,
+          "duration": 1
+        },
+        {
+          "index": 19,
+          "name": "Run_Right",
+          "channels": 124,
+          "duration": 1
+        },
+        {
+          "index": 20,
+          "name": "Run_Shoot",
+          "channels": 116,
+          "duration": 1.0416666666666667
+        },
+        {
+          "index": 21,
+          "name": "Sword_Slash",
+          "channels": 108,
+          "duration": 1.2916666666666667
+        },
+        {
+          "index": 22,
+          "name": "Walk",
+          "channels": 116,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 23,
+          "name": "Wave",
+          "channels": 108,
+          "duration": 2.0833333333333335
+        }
+      ],
+      "textureDimensions": [],
+      "externalDependencies": 0,
+      "uniqueBoneCount": 62,
+      "morphTargets": 0,
+      "meshParts": [
+        "Cube.040",
+        "Cube.042",
+        "Cube.014",
+        "Cube.011"
+      ],
+      "materialNames": [
+        "Skin",
+        "Brown2",
+        "Purple",
+        "Gold",
+        "Brown",
+        "Hair_Black"
+      ],
+      "scaleOrientationFeet": "glTF authored transforms preserved; viewer normalization and ground contact require browser review"
+    },
+    "rig": {
+      "id": "quaternius-modular-women.native",
+      "jointCount": 62,
+      "nodes": [
+        {
+          "index": 0,
+          "name": "Head",
+          "children": []
+        },
+        {
+          "index": 1,
+          "name": "Neck",
+          "children": [
+            0
+          ]
+        },
+        {
+          "index": 2,
+          "name": "Index4.L",
+          "children": []
+        },
+        {
+          "index": 3,
+          "name": "Index3.L",
+          "children": [
+            2
+          ]
+        },
+        {
+          "index": 4,
+          "name": "Index2.L",
+          "children": [
+            3
+          ]
+        },
+        {
+          "index": 5,
+          "name": "Index1.L",
+          "children": [
+            4
+          ]
+        },
+        {
+          "index": 6,
+          "name": "Middle4.L",
+          "children": []
+        },
+        {
+          "index": 7,
+          "name": "Middle3.L",
+          "children": [
+            6
+          ]
+        },
+        {
+          "index": 8,
+          "name": "Middle2.L",
+          "children": [
+            7
+          ]
+        },
+        {
+          "index": 9,
+          "name": "Middle1.L",
+          "children": [
+            8
+          ]
+        },
+        {
+          "index": 10,
+          "name": "Ring4.L",
+          "children": []
+        },
+        {
+          "index": 11,
+          "name": "Ring3.L",
+          "children": [
+            10
+          ]
+        },
+        {
+          "index": 12,
+          "name": "Ring2.L",
+          "children": [
+            11
+          ]
+        },
+        {
+          "index": 13,
+          "name": "Ring1.L",
+          "children": [
+            12
+          ]
+        },
+        {
+          "index": 14,
+          "name": "Pinky4.L",
+          "children": []
+        },
+        {
+          "index": 15,
+          "name": "Pinky3.L",
+          "children": [
+            14
+          ]
+        },
+        {
+          "index": 16,
+          "name": "Pinky2.L",
+          "children": [
+            15
+          ]
+        },
+        {
+          "index": 17,
+          "name": "Pinky1.L",
+          "children": [
+            16
+          ]
+        },
+        {
+          "index": 18,
+          "name": "Thumb3.L",
+          "children": []
+        },
+        {
+          "index": 19,
+          "name": "Thumb2.L",
+          "children": [
+            18
+          ]
+        },
+        {
+          "index": 20,
+          "name": "Thumb1.L",
+          "children": [
+            19
+          ]
+        },
+        {
+          "index": 21,
+          "name": "Wrist.L",
+          "children": [
+            5,
+            9,
+            13,
+            17,
+            20
+          ]
+        },
+        {
+          "index": 22,
+          "name": "LowerArm.L",
+          "children": [
+            21
+          ]
+        },
+        {
+          "index": 23,
+          "name": "UpperArm.L",
+          "children": [
+            22
+          ]
+        },
+        {
+          "index": 24,
+          "name": "Shoulder.L",
+          "children": [
+            23
+          ]
+        },
+        {
+          "index": 25,
+          "name": "Index4.R",
+          "children": []
+        },
+        {
+          "index": 26,
+          "name": "Index3.R",
+          "children": [
+            25
+          ]
+        },
+        {
+          "index": 27,
+          "name": "Index2.R",
+          "children": [
+            26
+          ]
+        },
+        {
+          "index": 28,
+          "name": "Index1.R",
+          "children": [
+            27
+          ]
+        },
+        {
+          "index": 29,
+          "name": "Middle4.R",
+          "children": []
+        },
+        {
+          "index": 30,
+          "name": "Middle3.R",
+          "children": [
+            29
+          ]
+        },
+        {
+          "index": 31,
+          "name": "Middle2.R",
+          "children": [
+            30
+          ]
+        },
+        {
+          "index": 32,
+          "name": "Middle1.R",
+          "children": [
+            31
+          ]
+        },
+        {
+          "index": 33,
+          "name": "Ring4.R",
+          "children": []
+        },
+        {
+          "index": 34,
+          "name": "Ring3.R",
+          "children": [
+            33
+          ]
+        },
+        {
+          "index": 35,
+          "name": "Ring2.R",
+          "children": [
+            34
+          ]
+        },
+        {
+          "index": 36,
+          "name": "Ring1.R",
+          "children": [
+            35
+          ]
+        },
+        {
+          "index": 37,
+          "name": "Pinky4.R",
+          "children": []
+        },
+        {
+          "index": 38,
+          "name": "Pinky3.R",
+          "children": [
+            37
+          ]
+        },
+        {
+          "index": 39,
+          "name": "Pinky2.R",
+          "children": [
+            38
+          ]
+        },
+        {
+          "index": 40,
+          "name": "Pinky1.R",
+          "children": [
+            39
+          ]
+        },
+        {
+          "index": 41,
+          "name": "Thumb3.R",
+          "children": []
+        },
+        {
+          "index": 42,
+          "name": "Thumb2.R",
+          "children": [
+            41
+          ]
+        },
+        {
+          "index": 43,
+          "name": "Thumb1.R",
+          "children": [
+            42
+          ]
+        },
+        {
+          "index": 44,
+          "name": "Wrist.R",
+          "children": [
+            28,
+            32,
+            36,
+            40,
+            43
+          ]
+        },
+        {
+          "index": 45,
+          "name": "LowerArm.R",
+          "children": [
+            44
+          ]
+        },
+        {
+          "index": 46,
+          "name": "UpperArm.R",
+          "children": [
+            45
+          ]
+        },
+        {
+          "index": 47,
+          "name": "Shoulder.R",
+          "children": [
+            46
+          ]
+        },
+        {
+          "index": 48,
+          "name": "Chest",
+          "children": [
+            1,
+            24,
+            47
+          ]
+        },
+        {
+          "index": 49,
+          "name": "Torso",
+          "children": [
+            48
+          ]
+        },
+        {
+          "index": 50,
+          "name": "Abdomen",
+          "children": [
+            49
+          ]
+        },
+        {
+          "index": 51,
+          "name": "Hips",
+          "children": [
+            50
+          ]
+        },
+        {
+          "index": 52,
+          "name": "LowerLeg.L",
+          "children": []
+        },
+        {
+          "index": 53,
+          "name": "UpperLeg.L",
+          "children": [
+            52
+          ]
+        },
+        {
+          "index": 54,
+          "name": "LowerLeg.R",
+          "children": []
+        },
+        {
+          "index": 55,
+          "name": "UpperLeg.R",
+          "children": [
+            54
+          ]
+        },
+        {
+          "index": 56,
+          "name": "Body",
+          "children": [
+            51,
+            53,
+            55
+          ]
+        },
+        {
+          "index": 57,
+          "name": "Foot.L",
+          "children": []
+        },
+        {
+          "index": 58,
+          "name": "PT.L",
+          "children": []
+        },
+        {
+          "index": 59,
+          "name": "Foot.R",
+          "children": []
+        },
+        {
+          "index": 60,
+          "name": "PT.R",
+          "children": []
+        },
+        {
+          "index": 61,
+          "name": "Root",
+          "children": [
+            56,
+            57,
+            58,
+            59,
+            60
+          ]
+        }
+      ],
+      "kaykitCompatibility": "not asserted",
+      "retargeted": false
+    },
+    "availableReviewClips": [
+      "Death",
+      "HitRecieve",
+      "HitRecieve_2",
+      "Idle",
+      "Idle_Neutral",
+      "Idle_Sword",
+      "Interact",
+      "Kick_Left",
+      "Kick_Right",
+      "Punch_Left",
+      "Punch_Right",
+      "Roll",
+      "Run",
+      "Run_Back",
+      "Run_Left",
+      "Run_Right",
+      "Sword_Slash",
+      "Walk",
+      "Wave"
+    ],
+    "uses": [
+      "female-protagonist-comparison",
+      "combat-profession"
+    ],
+    "registrationKind": "new-model",
+    "review": {
+      "route": "/review-objects",
+      "nativeAnimationOnly": true,
+      "productionVisualApproval": false,
+      "runtimeApproval": false,
+      "browserStatus": "pending"
+    },
+    "thumbnailPath": "thumbnail/quaternius-characters-20260922/quaternius-modular-women-witch/0d167c7f9b33cfce73b5f5e43f5317d33b7e7082.webp",
+    "thumbnailSha256": "4c9bb148e40bf6a2f9783e80d9925a22f394ac19355ee50425db1ae9a0832000",
+    "thumbnailSource": {
+      "head": "52a441cf8e4fe56247f1afec1eeafdfaf0ad4fc9",
+      "assetSha256": "9042d106d305123724f0a133ff648b85a972b79528c0bb51ff88ee8493ae3863",
+      "render": "canonical review-objects native idle front"
+    }
+  },
+  {
+    "id": "quaternius-modular-men-king",
+    "modelId": "character.quaternius-modular-men-king.v1",
+    "visualAssetId": "library.quaternius-modular-men-king.v1",
+    "label": "王 · King",
+    "modelName": "King",
+    "kind": "character",
+    "type": "character",
+    "category": "characters",
+    "active": false,
+    "status": "MATERIALIZED",
+    "origin": "artist-authored",
+    "license": "CC0-1.0",
+    "author": "Quaternius",
+    "originalSource": "https://quaternius.com/packs/ultimatemodularcharacters.html",
+    "pack": "quaternius-modular-men",
+    "runtimePath": "model/quaternius-modular-men/king/87566c3d7a8f7106aa70dccb60abd0e801351d38.glb",
+    "localPath": "apps/review/public/library/model/quaternius-modular-men/king/87566c3d7a8f7106aa70dccb60abd0e801351d38.glb",
+    "licensePath": "apps/review/public/library/licenses/quaternius-modular-men-CC0.txt",
+    "sha256": "fb5b45f5c308d90466381d33d40e23ffba29c413cdf4c7788697eb5b52c2d602",
+    "gitBlobSha": "87566c3d7a8f7106aa70dccb60abd0e801351d38",
+    "byteLength": 2159652,
+    "source": {
+      "repository": "agentkaerf/FreeModels",
+      "revision": "db3df04d1e4714298a09510b26fb6de6645138a2",
+      "path": "Ultimate Modular Men- Feb 2022/Individual Characters/glTF/King.gltf",
+      "url": "https://raw.githubusercontent.com/agentkaerf/FreeModels/db3df04d1e4714298a09510b26fb6de6645138a2/Ultimate%20Modular%20Men-%20Feb%202022/Individual%20Characters/glTF/King.gltf",
+      "byteLength": 3790158,
+      "gitBlobSha": "76f763cf96daacfa60c6aca6eec7eed37330386a",
+      "sha256": "659c7d84dcea8c6331698c3430484861944c83e629389425664b782d4aecd17c",
+      "hash": "git-blob:76f763cf96daacfa60c6aca6eec7eed37330386a"
+    },
+    "originalFileUrl": "https://drive.google.com/file/d/1LmjkaT-i9zOKYiQ0zyYsf9zXGTJ9edXr/view",
+    "directOriginalByteComparison": false,
+    "inputs": [
+      {
+        "path": "Ultimate Modular Men- Feb 2022/Individual Characters/glTF/King.gltf",
+        "url": "https://raw.githubusercontent.com/agentkaerf/FreeModels/db3df04d1e4714298a09510b26fb6de6645138a2/Ultimate%20Modular%20Men-%20Feb%202022/Individual%20Characters/glTF/King.gltf",
+        "byteLength": 3790158,
+        "gitBlobSha": "76f763cf96daacfa60c6aca6eec7eed37330386a",
+        "sha256": "659c7d84dcea8c6331698c3430484861944c83e629389425664b782d4aecd17c"
+      }
+    ],
+    "transform": "Existing materialize-curation glTF-to-GLB embedding only; authored geometry, materials, rig and clips unchanged; no decimation or retargeting",
+    "inspection": {
+      "format": "glb",
+      "vertices": 21701,
+      "triangles": 11110,
+      "meshes": 4,
+      "primitives": 13,
+      "materials": 9,
+      "skins": 1,
+      "joints": 62,
+      "animations": [
+        {
+          "index": 0,
+          "name": "Death",
+          "channels": 108,
+          "duration": 1.0666666666666667
+        },
+        {
+          "index": 1,
+          "name": "Gun_Shoot",
+          "channels": 108,
+          "duration": 0.6
+        },
+        {
+          "index": 2,
+          "name": "HitRecieve",
+          "channels": 108,
+          "duration": 0.5666666666666667
+        },
+        {
+          "index": 3,
+          "name": "HitRecieve_2",
+          "channels": 108,
+          "duration": 0.5666666666666667
+        },
+        {
+          "index": 4,
+          "name": "Idle",
+          "channels": 108,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 5,
+          "name": "Idle_Gun",
+          "channels": 108,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 6,
+          "name": "Idle_Gun_Pointing",
+          "channels": 108,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 7,
+          "name": "Idle_Gun_Shoot",
+          "channels": 108,
+          "duration": 0.6666666666666666
+        },
+        {
+          "index": 8,
+          "name": "Idle_Neutral",
+          "channels": 108,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 9,
+          "name": "Idle_Sword",
+          "channels": 108,
+          "duration": 1.6666666666666667
+        },
+        {
+          "index": 10,
+          "name": "Interact",
+          "channels": 108,
+          "duration": 1.2666666666666666
+        },
+        {
+          "index": 11,
+          "name": "Kick_Left",
+          "channels": 116,
+          "duration": 0.9333333333333333
+        },
+        {
+          "index": 12,
+          "name": "Kick_Right",
+          "channels": 116,
+          "duration": 0.9333333333333333
+        },
+        {
+          "index": 13,
+          "name": "Punch_Left",
+          "channels": 116,
+          "duration": 0.8333333333333334
+        },
+        {
+          "index": 14,
+          "name": "Punch_Right",
+          "channels": 116,
+          "duration": 0.8333333333333334
+        },
+        {
+          "index": 15,
+          "name": "Roll",
+          "channels": 116,
+          "duration": 1.3333333333333333
+        },
+        {
+          "index": 16,
+          "name": "Run",
+          "channels": 116,
+          "duration": 0.8
+        },
+        {
+          "index": 17,
+          "name": "Run_Back",
+          "channels": 116,
+          "duration": 0.8333333333333334
+        },
+        {
+          "index": 18,
+          "name": "Run_Left",
+          "channels": 124,
+          "duration": 0.8
+        },
+        {
+          "index": 19,
+          "name": "Run_Right",
+          "channels": 124,
+          "duration": 0.8
+        },
+        {
+          "index": 20,
+          "name": "Run_Shoot",
+          "channels": 116,
+          "duration": 0.8333333333333334
+        },
+        {
+          "index": 21,
+          "name": "Sword_Slash",
+          "channels": 108,
+          "duration": 1.0333333333333334
+        },
+        {
+          "index": 22,
+          "name": "Walk",
+          "channels": 116,
+          "duration": 1.3333333333333333
+        },
+        {
+          "index": 23,
+          "name": "Wave",
+          "channels": 108,
+          "duration": 1.6666666666666667
+        }
+      ],
+      "textureDimensions": [],
+      "externalDependencies": 0,
+      "uniqueBoneCount": 62,
+      "morphTargets": 0,
+      "meshParts": [
+        "Cube.043",
+        "Cube.205",
+        "Cube.025",
+        "Cube.051"
+      ],
+      "materialNames": [
+        "Skin",
+        "Blue",
+        "Metal",
+        "Beige",
+        "Metal_Dark",
+        "Hair_White",
+        "Gold",
+        "Eye",
+        "DarkBrown"
+      ],
+      "scaleOrientationFeet": "glTF authored transforms preserved; viewer normalization and ground contact require browser review"
+    },
+    "rig": {
+      "id": "quaternius-modular-men.native",
+      "jointCount": 62,
+      "nodes": [
+        {
+          "index": 0,
+          "name": "Head",
+          "children": []
+        },
+        {
+          "index": 1,
+          "name": "Neck",
+          "children": [
+            0
+          ]
+        },
+        {
+          "index": 2,
+          "name": "Index4.L",
+          "children": []
+        },
+        {
+          "index": 3,
+          "name": "Index3.L",
+          "children": [
+            2
+          ]
+        },
+        {
+          "index": 4,
+          "name": "Index2.L",
+          "children": [
+            3
+          ]
+        },
+        {
+          "index": 5,
+          "name": "Index1.L",
+          "children": [
+            4
+          ]
+        },
+        {
+          "index": 6,
+          "name": "Middle4.L",
+          "children": []
+        },
+        {
+          "index": 7,
+          "name": "Middle3.L",
+          "children": [
+            6
+          ]
+        },
+        {
+          "index": 8,
+          "name": "Middle2.L",
+          "children": [
+            7
+          ]
+        },
+        {
+          "index": 9,
+          "name": "Middle1.L",
+          "children": [
+            8
+          ]
+        },
+        {
+          "index": 10,
+          "name": "Ring4.L",
+          "children": []
+        },
+        {
+          "index": 11,
+          "name": "Ring3.L",
+          "children": [
+            10
+          ]
+        },
+        {
+          "index": 12,
+          "name": "Ring2.L",
+          "children": [
+            11
+          ]
+        },
+        {
+          "index": 13,
+          "name": "Ring1.L",
+          "children": [
+            12
+          ]
+        },
+        {
+          "index": 14,
+          "name": "Pinky4.L",
+          "children": []
+        },
+        {
+          "index": 15,
+          "name": "Pinky3.L",
+          "children": [
+            14
+          ]
+        },
+        {
+          "index": 16,
+          "name": "Pinky2.L",
+          "children": [
+            15
+          ]
+        },
+        {
+          "index": 17,
+          "name": "Pinky1.L",
+          "children": [
+            16
+          ]
+        },
+        {
+          "index": 18,
+          "name": "Thumb3.L",
+          "children": []
+        },
+        {
+          "index": 19,
+          "name": "Thumb2.L",
+          "children": [
+            18
+          ]
+        },
+        {
+          "index": 20,
+          "name": "Thumb1.L",
+          "children": [
+            19
+          ]
+        },
+        {
+          "index": 21,
+          "name": "Wrist.L",
+          "children": [
+            5,
+            9,
+            13,
+            17,
+            20
+          ]
+        },
+        {
+          "index": 22,
+          "name": "LowerArm.L",
+          "children": [
+            21
+          ]
+        },
+        {
+          "index": 23,
+          "name": "UpperArm.L",
+          "children": [
+            22
+          ]
+        },
+        {
+          "index": 24,
+          "name": "Shoulder.L",
+          "children": [
+            23
+          ]
+        },
+        {
+          "index": 25,
+          "name": "Index4.R",
+          "children": []
+        },
+        {
+          "index": 26,
+          "name": "Index3.R",
+          "children": [
+            25
+          ]
+        },
+        {
+          "index": 27,
+          "name": "Index2.R",
+          "children": [
+            26
+          ]
+        },
+        {
+          "index": 28,
+          "name": "Index1.R",
+          "children": [
+            27
+          ]
+        },
+        {
+          "index": 29,
+          "name": "Middle4.R",
+          "children": []
+        },
+        {
+          "index": 30,
+          "name": "Middle3.R",
+          "children": [
+            29
+          ]
+        },
+        {
+          "index": 31,
+          "name": "Middle2.R",
+          "children": [
+            30
+          ]
+        },
+        {
+          "index": 32,
+          "name": "Middle1.R",
+          "children": [
+            31
+          ]
+        },
+        {
+          "index": 33,
+          "name": "Ring4.R",
+          "children": []
+        },
+        {
+          "index": 34,
+          "name": "Ring3.R",
+          "children": [
+            33
+          ]
+        },
+        {
+          "index": 35,
+          "name": "Ring2.R",
+          "children": [
+            34
+          ]
+        },
+        {
+          "index": 36,
+          "name": "Ring1.R",
+          "children": [
+            35
+          ]
+        },
+        {
+          "index": 37,
+          "name": "Pinky4.R",
+          "children": []
+        },
+        {
+          "index": 38,
+          "name": "Pinky3.R",
+          "children": [
+            37
+          ]
+        },
+        {
+          "index": 39,
+          "name": "Pinky2.R",
+          "children": [
+            38
+          ]
+        },
+        {
+          "index": 40,
+          "name": "Pinky1.R",
+          "children": [
+            39
+          ]
+        },
+        {
+          "index": 41,
+          "name": "Thumb3.R",
+          "children": []
+        },
+        {
+          "index": 42,
+          "name": "Thumb2.R",
+          "children": [
+            41
+          ]
+        },
+        {
+          "index": 43,
+          "name": "Thumb1.R",
+          "children": [
+            42
+          ]
+        },
+        {
+          "index": 44,
+          "name": "Wrist.R",
+          "children": [
+            28,
+            32,
+            36,
+            40,
+            43
+          ]
+        },
+        {
+          "index": 45,
+          "name": "LowerArm.R",
+          "children": [
+            44
+          ]
+        },
+        {
+          "index": 46,
+          "name": "UpperArm.R",
+          "children": [
+            45
+          ]
+        },
+        {
+          "index": 47,
+          "name": "Shoulder.R",
+          "children": [
+            46
+          ]
+        },
+        {
+          "index": 48,
+          "name": "Chest",
+          "children": [
+            1,
+            24,
+            47
+          ]
+        },
+        {
+          "index": 49,
+          "name": "Torso",
+          "children": [
+            48
+          ]
+        },
+        {
+          "index": 50,
+          "name": "Abdomen",
+          "children": [
+            49
+          ]
+        },
+        {
+          "index": 51,
+          "name": "Hips",
+          "children": [
+            50
+          ]
+        },
+        {
+          "index": 52,
+          "name": "LowerLeg.L",
+          "children": []
+        },
+        {
+          "index": 53,
+          "name": "UpperLeg.L",
+          "children": [
+            52
+          ]
+        },
+        {
+          "index": 54,
+          "name": "LowerLeg.R",
+          "children": []
+        },
+        {
+          "index": 55,
+          "name": "UpperLeg.R",
+          "children": [
+            54
+          ]
+        },
+        {
+          "index": 56,
+          "name": "Body",
+          "children": [
+            51,
+            53,
+            55
+          ]
+        },
+        {
+          "index": 57,
+          "name": "Foot.L",
+          "children": []
+        },
+        {
+          "index": 58,
+          "name": "PT.L",
+          "children": []
+        },
+        {
+          "index": 59,
+          "name": "Foot.R",
+          "children": []
+        },
+        {
+          "index": 60,
+          "name": "PT.R",
+          "children": []
+        },
+        {
+          "index": 61,
+          "name": "Root",
+          "children": [
+            56,
+            57,
+            58,
+            59,
+            60
+          ]
+        }
+      ],
+      "kaykitCompatibility": "not asserted",
+      "retargeted": false
+    },
+    "availableReviewClips": [
+      "Death",
+      "HitRecieve",
+      "HitRecieve_2",
+      "Idle",
+      "Idle_Neutral",
+      "Idle_Sword",
+      "Interact",
+      "Kick_Left",
+      "Kick_Right",
+      "Punch_Left",
+      "Punch_Right",
+      "Roll",
+      "Run",
+      "Run_Back",
+      "Run_Left",
+      "Run_Right",
+      "Sword_Slash",
+      "Walk",
+      "Wave"
+    ],
+    "uses": [
+      "combat-profession",
+      "npc-comparison"
+    ],
+    "registrationKind": "new-model",
+    "review": {
+      "route": "/review-objects",
+      "nativeAnimationOnly": true,
+      "productionVisualApproval": false,
+      "runtimeApproval": false,
+      "browserStatus": "pending"
+    },
+    "thumbnailPath": "thumbnail/quaternius-characters-20260922/quaternius-modular-men-king/3220877468bd5aee12243f9fdf6005e2d5350514.webp",
+    "thumbnailSha256": "b341e027a3a2afdcb6c07bc47f82ad28496f4af9c9597cc047620d7d499233a4",
+    "thumbnailSource": {
+      "head": "52a441cf8e4fe56247f1afec1eeafdfaf0ad4fc9",
+      "assetSha256": "fb5b45f5c308d90466381d33d40e23ffba29c413cdf4c7788697eb5b52c2d602",
+      "render": "canonical review-objects native idle front"
+    }
+  }
+]

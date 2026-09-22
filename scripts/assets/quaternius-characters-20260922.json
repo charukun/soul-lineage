@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "id": "quaternius-characters-20260922",
+  "baseSha": "3e473bf7dc36ae3128db49c82c2a96102b553bb0",
+  "policy": {"additiveOnly": true, "maxObjectBytes": 6000000, "maxCreatureBytes": 6000000, "maxTriangles": 30000, "maxTextureDimension": 2048},
+  "packs": [
+    {
+      "id": "quaternius-rpg-characters", "name": "RPG Characters", "author": "Quaternius", "license": "CC0-1.0",
+      "originalSource": "https://quaternius.com/packs/rpgcharacters.html",
+      "officialFolder": "https://drive.google.com/drive/folders/1MIRQXLfTd21HMI5rwOb6Xy0rv0xv1m8b",
+      "originalLicenseUrl": "https://drive.google.com/file/d/1dc19T9_fxiy7jscseYp0lP2IhRi-e2b6/view",
+      "localLicense": "docs/characters/licenses/quaternius-rpg-characters-CC0.txt",
+      "licenseSha256": "83d8959f9fc56353ed571fbe2dc52e4bcd64508e2399501cd45ac2ce3df0bf8c",
+      "repository": "euuuuuuan/cairnfall-public", "revision": "8ee4cfd789282c59632a9339e61564b7d6c1acfe",
+      "sourcePrefix": "assets/vendor/quaternius_rpg/",
+      "models": ["Cleric", "Monk", "Ranger", "Rogue", "Warrior", "Wizard"],
+      "originalFileIds": {"Cleric":"1LlmtVPWTRVbB5rXemboYstI5lor7I8vO","Monk":"1GUeuxXhHiraTNo1voRxxhV3cgzZ7dPiq","Ranger":"1e3eAO6oHYVyDNdhoNogNii5CtLQB7pLc","Rogue":"1mnmoERmMi_342qyS_WPioVU0pmIQvIYa","Warrior":"1oALqyqy7yVQnLh-Vs19kKg3eZgJqIgoc","Wizard":"1OfEos4LtQLrMfJLpw2OdBNhbu36RtZUd"},
+      "verifiedOriginals": {"Cleric":{"sha256":"6497456a3fa1c151d7a6ab4f7b4c343ee416c23d9454505b950c93ea558e4601","byteLength":2985183}},
+      "excluded": []
+    },
+    {
+      "id": "quaternius-modular-women", "name": "Ultimate Modular Women", "author": "Quaternius", "license": "CC0-1.0",
+      "originalSource": "https://quaternius.com/packs/ultimatemodularwomen.html",
+      "officialFolder": "https://drive.google.com/drive/folders/1720N9IGyQHXYvtvZJzazhxtTTlz-y2Vf",
+      "originalLicenseUrl": "https://drive.google.com/file/d/1lIFL16xEpoPbr0j_HUATgmcEnAmYoIK2/view",
+      "licensePath": "Ultimate Modular Women - April 2022/License.txt", "licenseBlobSha": "62341762fbd2f5eca68b8ab98d3ae1c4487087a1",
+      "licenseNote": "Official women folder License.txt says Ultimate Modular Males in its heading; its CC0 terms and the women-specific official page agree. Original heading is preserved.",
+      "repository": "agentkaerf/FreeModels", "revision": "db3df04d1e4714298a09510b26fb6de6645138a2",
+      "sourcePrefix": "Ultimate Modular Women - April 2022/Individual Characters/glTF/",
+      "models": ["Medieval", "Witch"],
+      "originalFileIds": {"Medieval":"17xT8FvSs2oGKVg28vRFf_8nwsM5nF2bG","Witch":"1fGbeo6SdjB9EWVSNKKOxoNKdmnK8hy3d"},
+      "verifiedOriginals": {"Medieval":{"sha256":"32c3cd6d4e59bd1f433bc5eeca788b1430399ef15dfd2e0fb4a038a967c0c293","byteLength":3206051}},
+      "excluded": ["Adventurer", "Casual", "Formal", "Punk", "SciFi", "Soldier", "Suit", "Worker"]
+    },
+    {
+      "id": "quaternius-modular-men", "name": "Ultimate Modular Men", "author": "Quaternius", "license": "CC0-1.0",
+      "originalSource": "https://quaternius.com/packs/ultimatemodularcharacters.html",
+      "officialFolder": "https://drive.google.com/drive/folders/1USAAquX2JJWuA2m6zol0KUkFe3UkZ8zX",
+      "originalLicenseUrl": "https://drive.google.com/file/d/1TTvylHa1CsiJuHFWWiv6PFGhLM-aAH5z/view",
+      "licensePath": "Ultimate Modular Men- Feb 2022/License.txt", "licenseBlobSha": "62341762fbd2f5eca68b8ab98d3ae1c4487087a1",
+      "repository": "agentkaerf/FreeModels", "revision": "db3df04d1e4714298a09510b26fb6de6645138a2",
+      "sourcePrefix": "Ultimate Modular Men- Feb 2022/Individual Characters/glTF/",
+      "models": ["King"], "originalFileIds": {"King":"1LmjkaT-i9zOKYiQ0zyYsf9zXGTJ9edXr"},
+      "excluded": ["Adventurer", "Beach", "Casual_2", "Casual_Hoodie", "Farmer", "Punk", "Spacesuit", "Suit", "Swat", "Worker"]
+    }
+  ]
+}

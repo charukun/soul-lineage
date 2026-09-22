@@ -1225,6 +1225,24 @@
       "sha256": "cf15868a089dbc422f33bb4be09795d456aa93d664ff901e0422706f69b82f54"
     },
     {
+      "path": "licenses/quaternius-modular-men-CC0.txt",
+      "bytes": 372,
+      "gitBlobSha": "62341762fbd2f5eca68b8ab98d3ae1c4487087a1",
+      "sha256": "e8dbf915a2b82229913e301a0787696611241bdefec4832bc084f54161db1efe"
+    },
+    {
+      "path": "licenses/quaternius-modular-women-CC0.txt",
+      "bytes": 372,
+      "gitBlobSha": "62341762fbd2f5eca68b8ab98d3ae1c4487087a1",
+      "sha256": "e8dbf915a2b82229913e301a0787696611241bdefec4832bc084f54161db1efe"
+    },
+    {
+      "path": "licenses/quaternius-rpg-characters-CC0.txt",
+      "bytes": 364,
+      "gitBlobSha": "f55d873d20718a1d16c086bb9cc4ac3dcbff901e",
+      "sha256": "83d8959f9fc56353ed571fbe2dc52e4bcd64508e2399501cd45ac2ce3df0bf8c"
+    },
+    {
       "path": "model/575da270ed4e7e6a40eae60f056640542c2fa645/Skeleton_Warrior.glb",
       "bytes": 367484,
       "gitBlobSha": "575da270ed4e7e6a40eae60f056640542c2fa645",
@@ -3948,6 +3966,60 @@
       "bytes": 338080,
       "gitBlobSha": "2e706c1a2764ee2620e1fc59195941e28ab6b9c0",
       "sha256": "1ad270feaffde220be673178d4d3086de768d7cfd50765584906526336b07517"
+    },
+    {
+      "path": "model/quaternius-modular-men/king/87566c3d7a8f7106aa70dccb60abd0e801351d38.glb",
+      "bytes": 2159652,
+      "gitBlobSha": "87566c3d7a8f7106aa70dccb60abd0e801351d38",
+      "sha256": "fb5b45f5c308d90466381d33d40e23ffba29c413cdf4c7788697eb5b52c2d602"
+    },
+    {
+      "path": "model/quaternius-modular-women/medieval/6162857f949ea68a63cde80f20918c13264b9ce4.glb",
+      "bytes": 1718808,
+      "gitBlobSha": "6162857f949ea68a63cde80f20918c13264b9ce4",
+      "sha256": "7ee434d9c08b524501bd9333a6f9a44ccb9a11f4e093274b6dca40f31a46ce31"
+    },
+    {
+      "path": "model/quaternius-modular-women/witch/6475c0297c8837ce970f4f5e9d3f1f639dae7113.glb",
+      "bytes": 1722924,
+      "gitBlobSha": "6475c0297c8837ce970f4f5e9d3f1f639dae7113",
+      "sha256": "9042d106d305123724f0a133ff648b85a972b79528c0bb51ff88ee8493ae3863"
+    },
+    {
+      "path": "model/quaternius-rpg-characters/cleric/aa0e750cc4c4158f7da0221109c5279f53a543a3.glb",
+      "bytes": 1970168,
+      "gitBlobSha": "aa0e750cc4c4158f7da0221109c5279f53a543a3",
+      "sha256": "8c622660b4313633dabf0105d501c4c3fc9c9d676630b72873ea6c2951fa4ffb"
+    },
+    {
+      "path": "model/quaternius-rpg-characters/monk/53340027bcb7416522980d4a71588120fbcbc330.glb",
+      "bytes": 1724004,
+      "gitBlobSha": "53340027bcb7416522980d4a71588120fbcbc330",
+      "sha256": "7a69faade3aa6e5efe7de2e5cbfaf32240e2b9a916c4c7f222488c19e00efd5f"
+    },
+    {
+      "path": "model/quaternius-rpg-characters/ranger/c5bdf613895ce86a6b1fa2f4466deb31cdf29482.glb",
+      "bytes": 1900432,
+      "gitBlobSha": "c5bdf613895ce86a6b1fa2f4466deb31cdf29482",
+      "sha256": "40b9c5c2a06c9ef3cbcf0eaf499c8d8ead2597cb5fa00a8fffdd5717693c25f0"
+    },
+    {
+      "path": "model/quaternius-rpg-characters/rogue/61c25160b37f7405c2a9eff4ce9c64b0cc6f4829.glb",
+      "bytes": 1631352,
+      "gitBlobSha": "61c25160b37f7405c2a9eff4ce9c64b0cc6f4829",
+      "sha256": "6e6bb811d0cf6ba6d59c9630ba9517f8a11693d22b912c7b384245b778d1d04f"
+    },
+    {
+      "path": "model/quaternius-rpg-characters/warrior/8824233c5c6800532ac2b131ecd59bc1e902b729.glb",
+      "bytes": 1959936,
+      "gitBlobSha": "8824233c5c6800532ac2b131ecd59bc1e902b729",
+      "sha256": "885262d565b44e78f8c9ab33fef370e33b9342c2be1c1b3d977045d827f209a9"
+    },
+    {
+      "path": "model/quaternius-rpg-characters/wizard/0613d91e91f5b968dcd8b4feb32d244b88d36b21.glb",
+      "bytes": 2108476,
+      "gitBlobSha": "0613d91e91f5b968dcd8b4feb32d244b88d36b21",
+      "sha256": "46a26e82740a78ded5e536eab4fb85b56aa1ae5dc92ea0c531239da74e6cf06a"
     },
     {
       "path": "motion/cmu-parkour-cartwheel/ebbefcc997700a381bf4b5bc09a8c457de6ce5bd.bvh",
@@ -6801,6 +6873,60 @@
       "bytes": 5112,
       "sha256": "9e304c7b490850e2e52e176b29e5dbfc9530e673d6e56840a44b292030d539a0",
       "gitBlobSha": "f6802eb8d70b4bb8b9459e9cea3dd90f7b15f435"
+    },
+    {
+      "path": "thumbnail/quaternius-characters-20260922/quaternius-modular-men-king/3220877468bd5aee12243f9fdf6005e2d5350514.webp",
+      "bytes": 9888,
+      "gitBlobSha": "3220877468bd5aee12243f9fdf6005e2d5350514",
+      "sha256": "b341e027a3a2afdcb6c07bc47f82ad28496f4af9c9597cc047620d7d499233a4"
+    },
+    {
+      "path": "thumbnail/quaternius-characters-20260922/quaternius-modular-women-medieval/480973a1bcff08892f39cf34065db4fd7b03b271.webp",
+      "bytes": 9504,
+      "gitBlobSha": "480973a1bcff08892f39cf34065db4fd7b03b271",
+      "sha256": "e25eff82eed906757596cdb25140eb626ce05da67cbc1717558e77e5e98592a3"
+    },
+    {
+      "path": "thumbnail/quaternius-characters-20260922/quaternius-modular-women-witch/0d167c7f9b33cfce73b5f5e43f5317d33b7e7082.webp",
+      "bytes": 9782,
+      "gitBlobSha": "0d167c7f9b33cfce73b5f5e43f5317d33b7e7082",
+      "sha256": "4c9bb148e40bf6a2f9783e80d9925a22f394ac19355ee50425db1ae9a0832000"
+    },
+    {
+      "path": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-cleric/0c3500b5a718faf39e7a347c0f5801eb7f3956d7.webp",
+      "bytes": 9878,
+      "gitBlobSha": "0c3500b5a718faf39e7a347c0f5801eb7f3956d7",
+      "sha256": "4ebea76f2a9cdb868afde21ada88d1a860b274cab1126578f91d5ad47eaf27c7"
+    },
+    {
+      "path": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-monk/9c5b677ca5e21e017f127d78ce27f09ed8d50830.webp",
+      "bytes": 10298,
+      "gitBlobSha": "9c5b677ca5e21e017f127d78ce27f09ed8d50830",
+      "sha256": "b723c14ab14f2044260e5de9ea67e38c880499d09a5b87e6c77aa1556fa0a6ea"
+    },
+    {
+      "path": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-ranger/0723c86c560327662000176e9d226ec5b1eab2c6.webp",
+      "bytes": 8984,
+      "gitBlobSha": "0723c86c560327662000176e9d226ec5b1eab2c6",
+      "sha256": "63c075edf41329d1f546be1f64af8e66c4ae1ce8942b474cd4a1041f3564cefb"
+    },
+    {
+      "path": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-rogue/31ef92dddd1fdcd866cc62024b4c67eba7947d2b.webp",
+      "bytes": 6700,
+      "gitBlobSha": "31ef92dddd1fdcd866cc62024b4c67eba7947d2b",
+      "sha256": "a8a5eceac105b9df51308439ed5fd477b4bd21ac4ca3d0989c13808a4e5edbff"
+    },
+    {
+      "path": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-warrior/58ff382fcb8f4c6b2114a78b84a2267ad16c3f8f.webp",
+      "bytes": 7452,
+      "gitBlobSha": "58ff382fcb8f4c6b2114a78b84a2267ad16c3f8f",
+      "sha256": "f7c622e13668e67c96a50e7208618b9e059a6fcbf8b79864a171105d106512ab"
+    },
+    {
+      "path": "thumbnail/quaternius-characters-20260922/quaternius-rpg-characters-wizard/494851efef3371d77672f989aaee70962433c253.webp",
+      "bytes": 10352,
+      "gitBlobSha": "494851efef3371d77672f989aaee70962433c253",
+      "sha256": "70f2c2ee32a884e9789e4788704c732ab39136e8b9c20984620da8bb26b6c6e2"
     }
   ]
 }

@@ -1,9 +1,9 @@
 import catalog from '../generated/curated-library.json' with {type:'json'};
+import characters from '../generated/quaternius-characters.json' with {type:'json'};
 import {projectAssetUrl,PROJECT_ASSET_MAX_BYTES} from './runtime-origin.js';
 
-// Compact generated data backs the existing visualAssetRegistry and review catalogs.
-// Importing this module performs no fetch and does not preload model/audio payloads.
-const rows=Array.isArray(catalog)?catalog:catalog.assets.map(row=>{
+// Metadata only: payloads are fetched lazily through the existing Asset Origin.
+const authoredRows=Array.isArray(catalog)?catalog:catalog.assets.map(row=>{
   const pack=catalog.packs[row.pack];
   return {...row,status:'MATERIALIZED',origin:'artist-authored',license:pack.license,author:pack.author,
     originalSource:pack.originalSource,localPath:`apps/review/public/library/${row.runtimePath}`,
@@ -11,7 +11,12 @@ const rows=Array.isArray(catalog)?catalog:catalog.assets.map(row=>{
     source:{repository:pack.repository,revision:pack.revision,path:row.sourcePath,
       hash:`git-blob:${row.sourceGitBlobSha}`,gitBlobSha:row.sourceGitBlobSha,byteLength:row.sourceByteLength}};
 });
-export const CURATED_ASSETS=Object.freeze(rows.map(row=>Object.freeze({...row,source:Object.freeze(row.source)})));
+// Review availability is NOT runtime/protagonist/production approval. Native rigs
+// stay outside the KayKit character family and gameplay selection contracts.
+const characterRows=characters.map(row=>({...row,active:row.review?.excluded!==true,
+  reviewOnly:true,productionReady:false,runtimeApproval:false,
+  provenancePath:'provenance/quaternius-characters-20260922.json'}));
+export const CURATED_ASSETS=Object.freeze([...authoredRows,...characterRows].map(row=>Object.freeze({...row,source:Object.freeze(row.source)})));
 export const CURATED_MODEL_ASSETS=Object.freeze(CURATED_ASSETS.filter(row=>row.active&&row.kind!=='audio'));
 export const CURATED_SOUND_ASSETS=Object.freeze(CURATED_ASSETS.filter(row=>row.active&&row.kind==='audio'));
 export const CURATED_PROVENANCE_PATH='provenance/curation-20260921.json';
@@ -31,8 +36,10 @@ export function curatedVisualEntries(){
     attribution:asset.author,source:asset.source,
     sha256:asset.sha256,gitBlobSha:asset.gitBlobSha,byteLength:asset.byteLength,
     runtime:{format:'glb',assetPath:asset.runtimePath,lazy:true,
-      animationMode:asset.kind==='creature'?'native-skeleton':'none'},
-    review:{route:'/review-objects',assetId:asset.id,productionVisualApproval:false},
+      animationMode:['creature','character'].includes(asset.kind)?'native-skeleton':'none',
+      ...(asset.kind==='character'?{modelId:asset.modelId,rigId:asset.rig.id,reviewOnly:true,productionReady:false}:{})},
+    review:{route:'/review-objects',assetId:asset.id,productionVisualApproval:false,
+      ...(asset.kind==='character'?{modelId:asset.modelId,nativeClips:asset.availableReviewClips,provenancePath:asset.provenancePath}:{})},
   }]);
 }
 
@@ -44,7 +51,6 @@ export async function fetchCuratedAssetBytes(assetOrId,{environment='dev',signal
   const response=await fetchImpl(url,{signal,redirect:'error',credentials:'omit'});
   if(!response.ok)throw new Error(`Asset load failed (${response.status}): ${asset.id}`);
   const declared=response.headers.get('content-length'),encoding=response.headers.get('content-encoding');
-  // Content-Length can describe the compressed transfer; the decoded stream is always bounded.
   if(declared!==null&&(!encoding||encoding==='identity')&&Number(declared)!==asset.byteLength){await response.body?.cancel();throw new Error(`Asset byteLength mismatch: ${asset.id}`);}
   const bytes=new Uint8Array(asset.byteLength);let offset=0;
   if(response.body){
