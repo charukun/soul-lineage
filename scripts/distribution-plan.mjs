@@ -12,9 +12,13 @@ const pulsePath=path=>path.startsWith('ops-board/')
 
 export function distributionPlanForDev(nodes,paths){
   const publishPulse=paths.some(pulsePath);
-  const regularPaths=paths.filter(path=>!pulsePath(path));
+  const appIds=new Set([...nodes.values()].filter(node=>node.group==='apps').map(node=>node.id));
+  const directApps=paths.map(path=>path.match(/^wrangler\.dev\.([a-z][a-z0-9-]*)\.jsonc$/)?.[1]||null)
+    .filter(app=>app&&app!==PULSE_APP&&appIds.has(app));
+  const directPaths=new Set(directApps.map(app=>`wrangler.dev.${app}.jsonc`));
+  const regularPaths=paths.filter(path=>!pulsePath(path)&&!directPaths.has(path));
   const regular=regularPaths.length?affectedForDev(nodes,regularPaths):[];
-  const apps=[...new Set([...regular,...(publishPulse?[PULSE_APP]:[])])];
+  const apps=[...new Set([...regular,...directApps,...(publishPulse?[PULSE_APP]:[])])];
   const include=apps.map(app=>({app,target:'web-dev'}));
   return Object.freeze({apps:Object.freeze(apps),include:Object.freeze(include)});
 }

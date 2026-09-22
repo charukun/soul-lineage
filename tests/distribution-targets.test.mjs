@@ -45,6 +45,10 @@ test('DEV distribution plan is app-scoped and fans shared dependencies out throu
     {app:'character-studio',target:'web-dev'},{app:'demon',target:'web-dev'},{app:'review',target:'web-dev'},{app:'rinne',target:'web-dev'},{app:'village',target:'web-dev'}
   ]);
   assert.deepEqual(distributionPlanForDev(nodes,['scripts/autonomous-iteration-telemetry.mjs']),{apps:['pulse'],include:[{app:'pulse',target:'web-dev'}]});
+  assert.deepEqual(distributionPlanForDev(nodes,['wrangler.dev.village.jsonc']),{apps:['village'],include:[{app:'village',target:'web-dev'}]});
+  assert.deepEqual(distributionPlanForDev(nodes,['wrangler.dev.eclipse.jsonc']),{apps:['eclipse'],include:[{app:'eclipse',target:'web-dev'}]});
+  assert.deepEqual(distributionPlanForDev(nodes,['wrangler.dev.pulse.jsonc']),{apps:['pulse'],include:[{app:'pulse',target:'web-dev'}]});
+  assert.deepEqual(distributionPlanForDev(nodes,['AGENTS.md']),{apps:[],include:[]});
   assert.deepEqual(distributionPlanForDev(nodes,['docs/PLATFORMS.md']),{apps:[],include:[]});
 });
 

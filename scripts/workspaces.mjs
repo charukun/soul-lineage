@@ -8,7 +8,7 @@ export const documentationPath = path => /^(docs\/|README\.md$|LICENSE(?:\..*)?$
 export const workspaceManifestPath = path => /^(apps|packages)\/[^/]+\/package\.json$/.test(path);
 export const devGlobalBuildPath = path => /^(?:package(?:-lock)?\.json|\.nvmrc|\.npmrc)$/.test(path);
 export const devBuildToolingPath = path => /^(?:package(?:-lock)?\.json|\.nvmrc|\.npmrc|scripts\/(?:vite-app|workspaces|application-catalog|prepare-basis-assets|prepare-kaykit-foundation|strip-retired-character-assets|verify-build)\.mjs)$/.test(path);
-export const devControlPlanePath = path => /^(?:\.github\/|tests\/|templates\/|scripts\/(?:integration-|fast-dev-|context-|browser\/|affected\.mjs$|validate\.mjs$|check\.mjs$|test-app\.mjs$|deploy\.mjs$|dev-|site-dedupe\.mjs$|verify-live\.mjs$|implementation-handoff\.mjs$|notify-|code-health\.mjs$|visual-budget\.mjs$|completion-evidence\.mjs$|check-push-route\.mjs$|performance-|physical-performance-|ops-|pulse-|review-))/i.test(path);
+export const devControlPlanePath = path => /^(?:AGENTS\.md$|\.autonomous\/|\.task-start\/|\.github\/|tests\/|templates\/|scripts\/(?:integration-|fast-dev-|context-|browser\/|affected\.mjs$|validate\.mjs$|check\.mjs$|test-app\.mjs$|deploy\.mjs$|dev-|site-dedupe\.mjs$|verify-live\.mjs$|implementation-handoff\.mjs$|notify-|code-health\.mjs$|visual-budget\.mjs$|completion-evidence\.mjs$|check-push-route\.mjs$|performance-|physical-performance-|ops-|pulse-|review-))/i.test(path);
 
 export function graph(root = process.cwd()) {
   const nodes = new Map();
