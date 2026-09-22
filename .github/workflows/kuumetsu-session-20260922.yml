@@ -1,5 +1,6 @@
-name: Temporary kuumetsu capture feedback final evidence 20260922
-# Reuse existing task-scoped ops lane only. Never merge to develop/main.
+name: Temporary kuumetsu immutable observation 20260922
+# Existing task-scoped ops fallback only. Never merge to develop/main.
+# Candidate observation precedes merge-owning validation under current develop contract.
 on:
   push:
     branches: [ops/kuumetsu-observe-20260922-01]
@@ -10,7 +11,7 @@ permissions:
   statuses: read
   pull-requests: read
 env:
-  SOURCE_SHA: a455f8aa22b2a863407b4562df8104db6d71b8a9
+  SOURCE_SHA: 405c090f2141cd82fb7893b1668c6be52acebca9
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -20,32 +21,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: a455f8aa22b2a863407b4562df8104db6d71b8a9
+          ref: 405c090f2141cd82fb7893b1668c6be52acebca9
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-      - name: Require canonical exact-head validation
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const fs=require('fs');
-            const runs=(await github.rest.actions.listWorkflowRuns({...context.repo,workflow_id:'astra-work-validation.yml',head_sha:process.env.SOURCE_SHA,per_page:10})).data.workflow_runs;
-            const run=runs.find(r=>r.head_sha===process.env.SOURCE_SHA&&r.event==='push'&&r.status==='completed');
-            if(!run||run.conclusion!=='success')throw new Error('Canonical exact-head validation is not successful');
-            const statuses=(await github.rest.repos.getCombinedStatusForRef({...context.repo,ref:process.env.SOURCE_SHA})).data.statuses;
-            for(const name of ['astra/fast-dev-contract','astra/focused-validation','astra/merge-freshness']){
-              const latest=statuses.filter(s=>s.context===name).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at))[0];
-              if(latest?.state!=='success')throw new Error('Missing canonical success: '+name);
-            }
-            fs.mkdirSync('session-evidence',{recursive:true});
-            fs.writeFileSync('session-evidence/canonical-validation.json',JSON.stringify({runId:run.id,url:run.html_url,head:run.head_sha,conclusion:run.conclusion},null,2));
-      - name: Publish exact head through existing Per-App DEV Publish
+      - name: Publish exact source through existing Per-App DEV Publish
         id: publish
         uses: actions/github-script@v8
         with:
           script: |
             const fs=require('fs');
+            fs.mkdirSync('session-evidence',{recursive:true});
             const started=Date.now(),seen=new Set();
             await github.rest.actions.createWorkflowDispatch({...context.repo,workflow_id:'dev-app-publish.yml',ref:'develop',inputs:{app:'demon',source_sha:process.env.SOURCE_SHA}});
             for(let attempt=0;attempt<48;attempt++){
@@ -65,15 +52,15 @@ jobs:
                 const v=await(await fetch(new URL('version.json',preview))).json();
                 if(v.commit!==process.env.SOURCE_SHA)continue;
                 if(job.conclusion!=='success')throw new Error('Exact publication job failed: '+run.html_url);
-                fs.writeFileSync('session-evidence/after-publication.json',JSON.stringify({runId:run.id,jobId:job.id,url:run.html_url,sourceSha:process.env.SOURCE_SHA,versionId,preview,version:v,commitMatched:true,verifiedAt:new Date().toISOString()},null,2));
-                core.setOutput('preview',preview);core.info('IMMUTABLE_AFTER '+preview+' '+v.commit);return;
+                fs.writeFileSync('session-evidence/publication.json',JSON.stringify({runId:run.id,jobId:job.id,url:run.html_url,sourceSha:process.env.SOURCE_SHA,versionId,preview,version:v,commitMatched:true,verifiedAt:new Date().toISOString()},null,2));
+                core.setOutput('preview',preview);core.info('IMMUTABLE_STAGING '+preview+' '+v.commit);return;
               }
             }
             throw new Error('Bounded exact-source publication wait elapsed');
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-devour-feedback-final-publish-1396
+          name: kuumetsu-staging-first-before-publication
           path: session-evidence
           retention-days: 14
   observe:
@@ -83,7 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: a455f8aa22b2a863407b4562df8104db6d71b8a9
+          ref: 405c090f2141cd82fb7893b1668c6be52acebca9
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -98,13 +85,13 @@ jobs:
             const fs=require('fs');
             const r=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-session-observe.mjs',ref:context.sha});
             fs.writeFileSync('session-observe.mjs',Buffer.from(r.data.content,'base64'));
-      - name: Same-condition immutable native After
+      - name: Immutable Before native browser play
         env:
           PREVIEW_URL: ${{ needs.publish.outputs.preview }}
         run: mkdir -p session-evidence && cp session-observe.mjs session-evidence/observer.mjs && node session-observe.mjs > session-evidence/browser.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-devour-feedback-final-after-1396
+          name: kuumetsu-staging-first-before-observation
           path: session-evidence
           retention-days: 14
