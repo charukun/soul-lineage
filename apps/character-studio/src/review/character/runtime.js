@@ -387,13 +387,23 @@ function start() {
         if (receipt.bytes !== byteLength) errors.push('モデル監査票のbyte lengthと一致しません');
         if (receipt.sha256 !== sha256) errors.push('モデル監査票のSHA-256と一致しません');
         if (receipt.humanoidRig !== 'kaykit.Rig_Medium.v1') errors.push('Rig_Medium互換ではありません');
-        return Object.freeze({ approved: errors.length === 0, errors, modelId: model.id, license: 'CC0-1.0 / RINNE DCC', source: receipt });
+        return Object.freeze({ approved: errors.length === 0, errors, modelId: model.id, license: receipt.license?.spdx || 'CC0-1.0 / RINNE DCC', source: receipt });
       };
       const assetUrl = new URL(model.assetPath, location.href);
       assetUrl.searchParams.set('sha256', receipt.sha256);
       review.displayModelId = model.id;
       activeModelLabel = model.label;
-      return load(() => modelBytes(assetUrl.href, { cache: 'no-store' }), auditReferenceDocument, kaykitReviewRig);
+      return load(() => modelBytes(assetUrl.href, { cache: 'no-store' }), auditReferenceDocument, async gltf => {
+        // Bundled weapon samples are not the protagonist's owned equipment.
+        // Exclude only display meshes before framing/cloning; the verified original
+        // GLB, body, clothing, skeleton and attachment bones remain unchanged.
+        for (const name of model.sourceDisplay?.excludeMeshNodes || []) {
+          const mesh = gltf.scene.getObjectByName(name);
+          if (!mesh?.isMesh) throw new Error(`除外対象の素材メッシュが見つかりません: ${name}`);
+          mesh.removeFromParent();
+        }
+        return kaykitReviewRig(gltf);
+      });
     } catch (error) {
       if (request === modelRequestSequence) report(error);
     }
@@ -426,4 +436,4 @@ function start() {
 }
 try { start(); } catch (error) { report(error); el('retry').disabled = false; el('retry').onclick = () => location.reload(); }
 
-if (document.body.classList.contains('advanced-review')) import('./character-workspace-advanced.js').catch(report);
+if (document.body.classList.contains('advanced-review')) import('../workspace/advanced.js').catch(report);

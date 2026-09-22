@@ -2,58 +2,31 @@
   "schema": "character-production",
   "version": 2,
   "id": "protagonist.villager.female.v1",
-  "stage": "PRIMARY",
-  "modelingMode": "dcc-blender",
+  "stage": "REFERENCE",
+  "modelingMode": "imported-reviewed",
   "license": "CC0-1.0",
   "source": {
     "referencePaths": [
-      "docs/characters/references/protagonist-villager-female-v1.svg"
+      "apps/review/public/library/provenance/female-protagonist-rogue-v1.json"
     ],
-    "meshPath": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb",
+    "meshPath": "apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb",
     "integrityPath": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json",
     "rigId": "kaykit.Rig_Medium.v1",
-    "rigProvenance": "Derived from repository-local protagonist.villager.v1; KayKit Character Pack Adventures 1.0 Rig_Medium at revision 672074b73ba276876a19e8816ecdc5241817ab47, CC0-1.0.",
-    "dcc": {
-      "tool": "Blender",
-      "version": "4.0.2",
-      "sourcePath": "assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend",
-      "sourceSha256": "ec4c09cf6a952d1a69728adc3743cad673ba7dcd7e20036bda6feba888ce4fac"
+    "rigProvenance": "Official KayKit Adventurers 1.0 Rogue / Rig_Medium; revision 672074b73ba276876a19e8816ecdc5241817ab47; CC0-1.0.",
+    "import": {
+      "author": "Kay Lousberg",
+      "revision": "672074b73ba276876a19e8816ecdc5241817ab47",
+      "url": "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Rogue.glb",
+      "sha256": "e825437cd4d2ee9c1960b517a74a69101e33eb409ae7fa8cedc7134a998fbb7d",
+      "gitBlobSha": "c8827661105eef7b2bfbef3bc676d41a47625733",
+      "conversion": "None: official original GLB retained byte-for-byte."
     }
   },
   "evidence": {
     "reference": {
       "intentLocked": true,
-      "views": [
-        "front",
-        "side",
-        "back"
-      ]
-    },
-    "blockout": {
-      "views": [
-        "front",
-        "side",
-        "back",
-        "three-quarter",
-        "face"
-      ],
-      "proportionsReviewed": true,
-      "silhouetteReviewed": true,
-      "reviewEvidence": "docs/characters/qa/protagonist-villager-female-v1/"
-    },
-    "primary": {
-      "topologyReviewed": true,
-      "uvReviewed": true,
-      "separateSurfaces": [
-        "skin",
-        "hair",
-        "clothing",
-        "source-protagonist-kaykit-parts"
-      ],
-      "auditPath": "docs/characters/qa/protagonist-villager-female-v1/blender-audit.json",
-      "meshObjects": 25,
-      "triangles": 4196,
-      "materials": 9
+      "views": [],
+      "sourceAuditPath": "apps/review/public/library/provenance/female-protagonist-rogue-v1.json"
     }
   },
   "status": {
@@ -61,6 +34,6 @@
     "productionReady": false,
     "licensePolicy": "allowed-cc0",
     "distributionEligible": true,
-    "note": "Three Blender fixed-view review rounds completed; round 2 selected after round 3 regressed fringe continuity. Face close-up plus deformation pose evidence retained. Rig_Medium 41-bone contract preserved; explicit human visual approval, full motion polish and device performance remain pending."
+    "note": "Original external replacement, not an iteration of the retired authored model. Prior visual approvals and DCC evidence do not carry over. Fixed-view/runtime observation is task evidence; explicit human approval and physical-device performance acceptance remain pending."
   }
 }
