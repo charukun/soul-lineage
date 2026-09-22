@@ -2,10 +2,12 @@ import {renderReviewProbeLinks} from '@soul/shared-ui/review-shell';
 import {REVIEW_DEV,REVIEW_ROUTES,REVIEW_VFX_WARM_ASSETS,REVIEW_WARM_ORDER} from './review-lab-config.js';
 import {decorateReviewMenuIcons} from './review-lab-icons.js';
 import {createReviewWarmup} from './review-lab-warmup.js';
+import {mountHi3dgenLab} from './hi3dgen-lab.js';
 
 const probeGrid=document.querySelector('#probe-grid');
 renderReviewProbeLinks(probeGrid,{routes:REVIEW_ROUTES});
 decorateReviewMenuIcons({routes:REVIEW_ROUTES});
+mountHi3dgenLab();
 
 for(const link of document.querySelectorAll('[data-route]')){
   const href=REVIEW_ROUTES[link.dataset.route];
