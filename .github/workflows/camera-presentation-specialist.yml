@@ -1,5 +1,5 @@
 name: Camera Presentation specialist (task only)
-run-name: Camera specialist PR1490 d62bc23e13d2ad2d2f67011235582cb8d34f1271
+run-name: Camera native room traversal PR1490 d62bc23e13d2ad2d2f67011235582cb8d34f1271
 on:
   push:
     branches: [dispatch/camera-presentation-specialist-20260923]
@@ -8,16 +8,12 @@ permissions:
   actions: read
   pull-requests: read
 jobs:
-  browser:
+  interior:
     runs-on: ubuntu-latest
-    timeout-minutes: 16
-    strategy:
-      fail-fast: false
-      matrix:
-        scenario: [exploration, combat, interior, occlusion, review]
+    timeout-minutes: 12
     env:
       APP_ENV: dev
-      CAMERA_SCENARIO: ${{ matrix.scenario }}
+      CAMERA_SCENARIO: interior
     steps:
       - uses: actions/checkout@v6
         with:
@@ -40,42 +36,24 @@ jobs:
         working-directory: work
       - run: npx playwright install --with-deps chromium
         working-directory: work
-      - name: Native-input exact-head scenario (all assertions retained)
+      - name: Native room aisle, exit and entry on unchanged exact game head
         working-directory: work
         run: |
           cp ../control/scripts/browser/camera-playtest-task.mjs scripts/browser/camera-playtest-task.mjs
           python3 ../control/scripts/camera-native-input-patch.py
           python3 ../control/scripts/camera-shard-patch.py
+          python3 ../control/scripts/camera-interior-route-patch.py
           node --check scripts/browser/camera-playtest-task.mjs
           node scripts/browser/camera-playtest-task.mjs
-      - uses: actions/upload-artifact@v4
+      - name: Existing merge-window summary
         if: always()
-        with:
-          name: camera-specialist-d62bc23e13d2ad2d2f67011235582cb8d34f1271-${{ matrix.scenario }}
-          path: work/test-results/camera-presentation
-          retention-days: 14
-  summary:
-    needs: browser
-    if: always()
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: d62bc23e13d2ad2d2f67011235582cb8d34f1271
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      - name: Existing Actions summary and merge-window snapshot
+        working-directory: work
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p /tmp/camera-summary
-          npm run actions:summary -- --repo charukun/soul-lineage --pr 1490 --sha d62bc23e13d2ad2d2f67011235582cb8d34f1271 --output /tmp/camera-summary/actions-summary.json
+        run: npm run actions:summary -- --repo charukun/soul-lineage --pr 1490 --sha d62bc23e13d2ad2d2f67011235582cb8d34f1271 --output test-results/camera-presentation/actions-summary.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: camera-actions-summary-d62bc23e13d2ad2d2f67011235582cb8d34f1271
-          path: /tmp/camera-summary
+          name: camera-interior-native-route-d62bc23e13d2ad2d2f67011235582cb8d34f1271
+          path: work/test-results/camera-presentation
           retention-days: 14
