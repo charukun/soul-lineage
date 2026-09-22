@@ -72,14 +72,13 @@ bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces)); bm.to_mesh(ob.data); bm
 after = topology(ob); assert after['boundaryEdges'] == 0
 repairs.append({'mesh': ob.name, 'operation': 'close-existing-inner-waist', 'before': before, 'after': after})
 
-# Only the large skin boundary left by retired hair removal is a skull hole.
-# Preserve every original facial corner: BMesh otherwise discards imported
-# split normals, erasing the approved smile and changing the eyes/nose shading.
-ob = bpy.data.objects['Rogue_Head']; before = topology(ob)
-ob.data.calc_normals_split()
-facial_corners = [(ob.data.vertices[loop.vertex_index].co.copy(), ob.data.uv_layers.active.data[loop.index].uv.copy(), loop.normal.copy()) for loop in ob.data.loops]
-bm = bmesh.new(); bm.from_mesh(ob.data)
-bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=0.000001)
+# Keep the original face mesh completely untouched. Rebuilding its vertex fans
+# quantizes artist-authored split normals and can erase the smile. The missing
+# scalp is closed by a skin seam surface with identical boundary positions and
+# head weights, not by filling eye/brow/nose/ear overlays or replacing the face.
+head = bpy.data.objects['Rogue_Head']; before = topology(head); head.data.calc_normals_split()
+facial_corners = [(head.data.vertices[loop.vertex_index].co.copy(), head.data.uv_layers.active.data[loop.index].uv.copy(), loop.normal.copy()) for loop in head.data.loops]
+bm = bmesh.new(); bm.from_mesh(head.data); bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=0.000001)
 unseen = set(e for e in bm.edges if e.is_boundary); components = []
 while unseen:
     seed = unseen.pop(); component = {seed}; todo = list(seed.verts)
@@ -89,26 +88,35 @@ while unseen:
             if edge in unseen: unseen.remove(edge); component.add(edge); todo.extend(edge.verts)
     components.append(component)
 candidates = [c for c in components if len(c) == 24 and max(v.co.z for e in c for v in e.verts) > 1.86]
-assert len(candidates) == 1, [(len(c), max(v.co.z for e in c for v in e.verts)) for c in components]
-cap = bm.verts.new((.008, .012, 1.955)); deform = bm.verts.layers.deform.verify(); cap[deform][ob.vertex_groups['head'].index] = 1
-uv = bm.loops.layers.uv.active
-for edge in candidates[0]:
-    loop = edge.link_loops[0]; face = bm.faces.new((loop.link_loop_next.vert, loop.vert, cap)); face.smooth = True
-    for item in face.loops: item[uv].uv = (.065, .875)
-bm.to_mesh(ob.data); bm.free(); ob.data.update()
-ob.data.use_auto_smooth = True; ob.data.calc_normals_split()
-normals = [loop.normal.copy() for loop in ob.data.loops]
+assert len(candidates) == 1
+boundary = sorted({v for e in candidates[0] for v in e.verts}, key=lambda v: tuple(v.co))
+index = {v: i for i, v in enumerate(boundary)}; points = [tuple(v.co) for v in boundary] + [(.008, .012, 1.955)]
+faces = []
+for edge in sorted(candidates[0], key=lambda e: tuple(sorted(index[v] for v in e.verts))):
+    loop = edge.link_loops[0]; faces.append((index[loop.link_loop_next.vert], index[loop.vert], len(boundary)))
+bm.free()
+mesh = bpy.data.meshes.new('Heroine_ScalpClosure'); mesh.from_pydata(points, [], faces); mesh.update(); mesh.materials.append(head.data.materials[0])
+closure = bpy.data.objects.new('Heroine_ScalpClosure', mesh); bpy.context.scene.collection.objects.link(closure); closure.matrix_world = head.matrix_world.copy()
+uv = mesh.uv_layers.new(name='UVMap')
+for face in mesh.polygons:
+    face.use_smooth = True
+    for li in face.loop_indices: uv.data[li].uv = (.065, .875)
+group = closure.vertex_groups.new(name='head'); group.add(list(range(len(points))), 1, 'REPLACE')
+modifier = closure.modifiers.new('Preserved KayKit scalp skin', 'ARMATURE'); modifier.object = rig
+# Geometric topology is measured across the joined skin domain, independently
+# of the split mesh boundary used to preserve original shading data.
+bm = bmesh.new(); bm.from_mesh(head.data); bm.from_mesh(mesh); bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=0.000001)
+after = {'domain': ['Rogue_Head', 'Heroine_ScalpClosure'], 'vertices': len(bm.verts), 'polygons': len(bm.faces), 'boundaryEdges': sum(e.is_boundary for e in bm.edges), 'nonManifoldEdges': sum(not e.is_manifold and not e.is_boundary for e in bm.edges)}
+bm.free(); assert after['boundaryEdges'] == before['boundaryEdges'] - 24
+head.data.calc_normals_split()
 for index, (position, texcoord, normal) in enumerate(facial_corners):
-    loop = ob.data.loops[index]
-    assert (ob.data.vertices[loop.vertex_index].co - position).length < 0.000001, 'Facial geometry reordered'
-    assert (ob.data.uv_layers.active.data[index].uv - texcoord).length < 0.000001, 'Facial UV changed'
-    normals[index] = normal
-ob.data.normals_split_custom_set(normals); ob.data.calc_normals_split()
-normal_delta = max((ob.data.loops[i].normal - row[2]).length for i, row in enumerate(facial_corners))
-assert normal_delta < 0.002, ('Facial split normals changed', normal_delta)
-after = topology(ob); assert after['boundaryEdges'] == before['boundaryEdges'] - 24
-face_preservation = {'originalCorners': len(facial_corners), 'positionsAndUvsUnchanged': True, 'maxCornerNormalDelta': normal_delta, 'normalTolerance': .002, 'features': ['smile', 'eyes', 'eyebrows', 'nose', 'ears']}
-repairs.append({'mesh': ob.name, 'operation': 'close-only-missing-scalp-under-bob', 'preserved': 'face, smile, eyes, brows, nose, ears and original split normals', 'before': before, 'after': after})
+    loop = head.data.loops[index]
+    assert (head.data.vertices[loop.vertex_index].co - position).length == 0
+    assert (head.data.uv_layers.active.data[index].uv - texcoord).length == 0
+normal_delta = max((head.data.loops[i].normal - row[2]).length for i, row in enumerate(facial_corners))
+assert normal_delta < .002
+face_preservation = {'originalCorners': len(facial_corners), 'positionsAndUvsUnchanged': True, 'maxCornerNormalDelta': normal_delta, 'normalTolerance': .002, 'method': 'original head mesh and split normals untouched; separate geometric scalp closure', 'features': ['smile', 'eyes', 'eyebrows', 'nose', 'ears']}
+repairs.append({'mesh': head.name, 'operation': 'close-only-missing-scalp-under-bob', 'closureMesh': closure.name, 'preserved': 'face, smile, eyes, brows, nose, ears and original split normals', 'before': before, 'after': after})
 
 # An inset continuation at the collar joins the otherwise point-contact chin
 # and torso during head tilt. Derived from the existing garment neck contour.
