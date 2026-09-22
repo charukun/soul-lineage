@@ -39,6 +39,7 @@
         <div class="forge-primary forge-transport review-workbench__transport">
           <label><span class="forge-sr-only">動き</span><select aria-label="動き" data-forge-animation><option value="Bind">基準姿勢</option></select></label>
           <button type="button" data-forge-pause hidden>一時停止</button>
+          <button type="button" data-forge-shape aria-pressed="false" aria-label="形状確認（単色表示）" title="単色表示でモデルの凹凸・厚みを確認する">形状</button>
           <button type="button" data-forge-turntable aria-pressed="false">360°</button>
           <button type="button" data-forge-compare aria-pressed="false" title="三面図との比較を切り替える">比較</button>
         </div>
@@ -56,7 +57,6 @@
               <label data-forge-opacity-label hidden>参照の濃さ <input type="range" min="0" max="1" step=".05" value=".5" aria-label="比較の不透明度" data-forge-opacity></label>
             </fieldset>
             <fieldset><legend>モデルの表示</legend>
-              <label><input type="checkbox" data-forge-texture checked>テクスチャ</label>
               <label><input type="checkbox" data-forge-wire>ワイヤーフレーム</label>
               <label><input type="checkbox" data-forge-skeleton>骨格</label>
               <label><input type="checkbox" data-forge-sockets>ソケット（装着位置）</label>
