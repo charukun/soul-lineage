@@ -93,7 +93,7 @@ function advanceCursor(actor,cursor){
       if(cursor.phaseIndex>=PHASES.length){cursor.phaseIndex=0;cursor.cycle++;}}}
   return{before,after:nodeFor(actor,cursor)};
 }
-const NEUTRAL_BATTLE2_TUNING=Object.freeze({spacing:1,footwork:1,tempo:1,recovery:1});
+const NEUTRAL_BATTLE2_TUNING=Object.freeze({spacing:1,footwork:1,tempo:1,recovery:1,damage:1});
 function battle2Tuning(actor,loadout=null){
   if(actor?.side!=='party'||!loadout)return NEUTRAL_BATTLE2_TUNING;
   const config=normalizeBattle2Loadout(loadout),heart=new Set(config.heart.active),body=config.body;
@@ -104,7 +104,8 @@ function battle2Tuning(actor,loadout=null){
   const heartSpacing=(heart.has('skill.observe')||heart.has('skill.danger'))?1.025:1;
   const tempo=(body.stance==='ryu'?1.04:body.stance==='kosei'?1.03:1)*(heart.has('skill.breath')?1.02:1);
   const recovery=(body.stance==='kosei'?.96:body.stance==='chinshin'?1.04:1)*(heart.has('skill.breath')?.86:1);
-  return Object.freeze({spacing:styleSpacing*stanceSpacing*heartSpacing,footwork:styleFootwork*stanceFootwork,tempo,recovery});
+  const damage=heart.has('skill.focus')?1.06:1;
+  return Object.freeze({spacing:styleSpacing*stanceSpacing*heartSpacing,footwork:styleFootwork*stanceFootwork,tempo,recovery,damage});
 }
 function preferredWeaponSpacing(actor,loadout=null,{deep=false}={}){
   const weapon=WEAPONS[actor?.equipment?.weapon]||WEAPONS.sword,tuning=battle2Tuning(actor,loadout);
@@ -163,7 +164,7 @@ function maneuverDone(positions,actor,target,maneuver,now){
   if(['forward','chase','rush'].includes(maneuver.footwork)&&Number.isFinite(maneuver.stopDistance))return distance<=maneuver.stopDistance+.015;
   return false;
 }
-function advanceFootwork(battle,positions,actions,maneuvers,now,dt){
+function advanceFootwork(battle,positions,actions,maneuvers,now,dt,loadout=null){
   for(const actor of battle.actors.values()){
     const action=actions.get(actor.id);let maneuver=!action?maneuvers.get(actor.id):null;
     if(maneuver){
@@ -177,8 +178,8 @@ function advanceFootwork(battle,positions,actions,maneuvers,now,dt){
     const movement=johakyuStageCapability(actor,{weapon:actor.equipment.weapon,kind:'ready',footwork});
     if(!movement.allowed)continue;
     const vector=footworkVector(positions,actor,target,footwork),closing=['forward','chase','rush','cross','spiral','orbitL','orbitR','counterL','counterR'].includes(footwork);
-    const deepEntry=action&&['rush','cross','spiral','counterL','counterR'].includes(footwork),comboBoost=action?.chainLength>1&&closing?1.12:1,speed=baseSpeed*battle2Tuning(actor,reviewLoadout).footwork*comboBoost;
-    const stopDistance=maneuver?.stopDistance??preferredWeaponSpacing(actor,reviewLoadout,{deep:deepEntry});
+    const deepEntry=action&&['rush','cross','spiral','counterL','counterR'].includes(footwork),comboBoost=action?.chainLength>1&&closing?1.12:1,speed=baseSpeed*battle2Tuning(actor,loadout).footwork*comboBoost;
+    const stopDistance=maneuver?.stopDistance??preferredWeaponSpacing(actor,loadout,{deep:deepEntry});
     let step=speed*dt*movement.body.movementScale;
     if(closing)step=Math.min(step,Math.max(0,distance-stopDistance));
     if(footwork==='retreat'&&Number.isFinite(maneuver?.stopDistance))step=Math.min(step,Math.max(0,maneuver.stopDistance-distance));
@@ -312,7 +313,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
       if(distance>COUNTER_PRESS_DISTANCE){setManeuver(actor,target,{reason:'counter-press',footwork:'chase',seconds:.5,stopDistance:COUNTER_PRESS_DISTANCE});return false;}
       maneuvers.delete(actor.id);return true;
     }
-    const attackFootwork=node.stage.step.footwork,deepEntry=['rush','cross','spiral','counterL','counterR'].includes(attackFootwork),baseLaunch=attackFootwork==='rush'?1.82:attackFootwork==='cross'?1.78:attackFootwork==='spiral'?1.76:attackFootwork==='chase'?1.74:attackFootwork==='forward'?1.7:attackFootwork==='orbitL'||attackFootwork==='orbitR'?1.68:1.62,launchDistance=Math.max(preferredWeaponSpacing(actor,reviewLoadout,{deep:deepEntry}),Math.min(CONTACT_REACH-.08,baseLaunch));
+    const attackFootwork=node.stage.step.footwork,deepEntry=['rush','cross','spiral','counterL','counterR'].includes(attackFootwork),baseLaunch=attackFootwork==='rush'?1.82:attackFootwork==='cross'?1.78:attackFootwork==='spiral'?1.76:attackFootwork==='chase'?1.74:attackFootwork==='forward'?1.7:attackFootwork==='orbitL'||attackFootwork==='orbitR'?1.68:1.62,launchDistance=Math.max(preferredWeaponSpacing(actor,loadout,{deep:deepEntry}),Math.min(CONTACT_REACH-.08,baseLaunch));
     if(stageDamage(node.stage)>0&&distance>launchDistance){
       setManeuver(actor,target,{reason:'engage-range',footwork:distance>3.05?'chase':'forward',seconds:.85,stopDistance:launchDistance});return false;
     }
@@ -459,7 +460,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
         setManeuver(actor,target,{reason:'exchange-zanshin',footwork,seconds:.3});
       }
     }
-    const baseSettle=comboStyle==='burst'?burstSettleSeconds(moved.before.phase,moved.after.phase):exchangeComplete?.3:(state.motion.offense?.05:.12),zanshinScale=actor.side==='party'&&reviewLoadout?({still:1,breath:.91,pursuit:.95,guard:1.04}[reviewLoadout.body.zanshin]||1):1,settle=baseSettle*zanshinScale*battle2Tuning(actor,reviewLoadout).recovery;
+    const baseSettle=comboStyle==='burst'?burstSettleSeconds(moved.before.phase,moved.after.phase):exchangeComplete?.3:(state.motion.offense?.05:.12),zanshinScale=actor.side==='party'&&reviewLoadout?({still:1,breath:.91,pursuit:.95,guard:1.04}[reviewLoadout.body.zanshin]||1):1,settle=baseSettle*zanshinScale*battle2Tuning(actor,loadout).recovery;
     // Ending recovery is a real action lock, not merely a HUD label or an AI
     // delay that can be cancelled immediately into another defensive reaction.
     if(comboStyle==='burst'&&exchangeComplete)setRecovery(actor,'zanshin',state.targetId,settle);
@@ -545,7 +546,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
       if(!action||!action.motion.offense)continue;
       const state=combatState(id);if(!reviewStageCanResolve(state,action)||state.impacted)continue;
       const source=battle.actors.get(id),target=battle.actors.get(action.targetId);if(!source||!target||source.dead||source.incapacitated||target.dead||target.incapacitated)continue;
-      const baseDamage=state.reactionKind==='counter'?KIND_DAMAGE.counter:stageDamage(state.node.stage),focusScale=source.side==='party'&&reviewLoadout?.heart.active.includes('skill.focus')?1.06:1,damage=source.side==='enemy'?Math.max(1,Math.round(baseDamage*ENEMY_DAMAGE_SCALE)):Math.max(1,Math.round(baseDamage*focusScale));if(!(damage>0))continue;
+      const baseDamage=state.reactionKind==='counter'?KIND_DAMAGE.counter:stageDamage(state.node.stage),focusScale=battle2Tuning(source,reviewLoadout).damage,damage=source.side==='enemy'?Math.max(1,Math.round(baseDamage*ENEMY_DAMAGE_SCALE)):Math.max(1,Math.round(baseDamage*focusScale));if(!(damage>0))continue;
       const contact=contactWindow(positions,source,target),physical=physicalMode?physicalContactFor(physicalContacts,action,target.id):null,contactProgress=Number(action.motion.contactProgress??.5),contactExpired=action.progress>Math.min(.92,contactProgress+.36),visualAssist=Boolean(physicalMode&&!physical&&contactExpired&&contact.reachable);
       if(physicalMode&&!physical&&!visualAssist){if(!contactExpired)continue;state.impacted=true;state.outcome='miss';state.exchangeContinuity=updateExchange(source,target,{type:'miss',phase:action.phase,major:false}).continuity;trace.push({type:'miss',time:Number(time.toFixed(2)),attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,techniqueId:action.techniqueId,stageIndex:action.stageIndex,distance:Number(contact.distance.toFixed(3)),reach:CONTACT_REACH,contactEngine:'weapon-body-sweep',exchangeContinuity:state.exchangeContinuity});continue;}
       if(!physicalMode){if(action.progress<.46)continue;if(!contact.reachable){state.impacted=true;state.outcome='miss';state.exchangeContinuity=updateExchange(source,target,{type:'miss',phase:action.phase,major:contact.distance>CONTACT_REACH+.2}).continuity;trace.push({type:'miss',time:Number(time.toFixed(2)),attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,techniqueId:action.techniqueId,stageIndex:action.stageIndex,distance:Number(contact.distance.toFixed(3)),reach:CONTACT_REACH,contactEngine:'range-fallback',exchangeContinuity:state.exchangeContinuity});continue;}}
@@ -634,7 +635,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     time+=dt;revision++;
     for(const [key,until]of settleAt)if(time>=until){const row=exchangeStates.get(key);exchangeStates.set(key,reduceJohakyuExchange(row,{type:'settle'}));settleAt.delete(key);}
     for(const actor of battle.actors.values())recoverJohakyuStamina(actor,dt);
-    const actions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)]));advanceFootwork(battle,positions,actions,maneuvers,time,dt);resolveBodySeparation(battle,positions);const events=applyContacts(actions,physicalContacts);
+    const actions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)]));advanceFootwork(battle,positions,actions,maneuvers,time,dt,reviewLoadout);resolveBodySeparation(battle,positions);const events=applyContacts(actions,physicalContacts);
     if(!battle.result&&checkpointSeconds>0&&!resumed&&time>=checkpointSeconds){const checkpoint=createJohakyuCheckpoint({battle,lifeId:'review-life',ageSeconds:28*60,encounterId:`review-${encounter}`});battle=restoreJohakyuCheckpoint(checkpoint).battle;epoch++;revision=0;resumes++;resumed=true;actionState.clear();reactionState.clear();reactionCooldowns.clear();defenseRhythm.clear();counterWindows.clear();exchangeStates.clear();normalPending.clear();settleAt.clear();cursors.clear();maneuvers.clear();recoveries.clear();phaseCues.clear();phaseCueSeen.clear();seedReadyWindow(.08);traceRow({type:'resume',epoch});}
     // No timed reset of a living encounter. Keep the final impact and terminal
     // actors in this epoch long enough to play their fall before endless repop.
