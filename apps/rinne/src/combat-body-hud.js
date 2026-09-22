@@ -53,16 +53,17 @@ export function createCombatBodyHud({root}={}){
   if(!root)return null;
   root.classList.add('combat-body-hud');
   const map=document.createElement('div');map.className='combat-body-hud__map';map.setAttribute('aria-label','身体部位。タップで詳細');
-  const tag=document.createElement('span');tag.className='combat-body-hud__tag';tag.textContent='身体';
+  const tag=document.createElement('span');tag.className='combat-body-hud__tag';tag.textContent='からだ';
   const buttons=new Map();
   for(const part of COMBAT_BODY_PARTS){const button=partButton(part);buttons.set(part,button);map.append(button);}
   const detail=document.createElement('section');detail.className='combat-body-hud__detail';detail.hidden=true;
   const head=document.createElement('header'),title=document.createElement('strong'),close=document.createElement('button');
   close.type='button';close.className='combat-body-hud__close';close.textContent='×';close.setAttribute('aria-label','身体部位詳細を閉じる');head.append(title,close);
   const meter=document.createElement('div');meter.className='combat-body-hud__meter';const meterFill=document.createElement('i');meter.append(meterFill);
-  const durability=valueRow('耐久','combat-body-hud__durability'),stage=valueRow('損傷','combat-body-hud__stage'),attack=valueRow('攻撃','combat-body-hud__attack'),movement=valueRow('移動','combat-body-hud__movement'),reaction=valueRow('反応','combat-body-hud__reaction');
+  const durability=valueRow('耐久','combat-body-hud__durability'),stage=valueRow('損傷','combat-body-hud__stage'),attack=valueRow('攻撃','combat-body-hud__attack'),movement=valueRow('移動','combat-body-hud__movement'),reaction=valueRow('反応','combat-body-hud__reaction'),judgment=valueRow('判断','combat-body-hud__judgment'),stamina=valueRow('持久','combat-body-hud__stamina');
+  const grid=document.createElement('div');grid.className='combat-body-hud__detail-grid';grid.append(durability.row,stage.row,attack.row,movement.row,reaction.row,judgment.row,stamina.row);
   const note=document.createElement('p');note.className='combat-body-hud__note';
-  detail.append(head,meter,durability.row,stage.row,attack.row,movement.row,reaction.row,note);
+  detail.append(head,meter,grid,note);
   root.replaceChildren(tag,map,detail);
 
   let combatState=null,selectedPart=null,flashTimer=0;
@@ -83,6 +84,8 @@ export function createCombatBodyHud({root}={}){
     attack.value.textContent=`${model.selected.attack}%`;
     movement.value.textContent=`${model.selected.movement}%`;
     reaction.value.textContent=model.selected.reaction;
+    judgment.value.textContent=`${model.selected.judgment}%`;
+    stamina.value.textContent=`${model.selected.stamina}%`;
     note.textContent=model.selected.note;
     meterFill.style.width=`${model.selected.durability}%`;
   };
@@ -97,7 +100,7 @@ export function createCombatBodyHud({root}={}){
     flash(part){
       const button=buttons.get(part);if(!button)return;
       clearTimeout(flashTimer);for(const node of buttons.values())node.removeAttribute('data-hit');
-      button.dataset.hit='true';flashTimer=setTimeout(()=>{button.removeAttribute('data-hit');flashTimer=0;},720);
+      button.dataset.hit='true';flashTimer=setTimeout(()=>{button.removeAttribute('data-hit');flashTimer=0;},680);
     },
     destroy(){clearTimeout(flashTimer);root.replaceChildren();root.classList.remove('combat-body-hud');}
   };

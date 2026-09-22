@@ -111,7 +111,7 @@ test('duel body clearance prevents mesh penetration and parry exposes a weapon-c
  assert.ok(Math.hypot(parry.contactPoint.x-midpoint.x,parry.contactPoint.z-midpoint.z)<.01,'clash point must sit between the two weapon bearers');
 });
 
-test('a real miss breaks the current chain and restarts its phase from the first stage',()=>{
+test('a real miss breaks the current chain and restarts the whole 序破急 loop from 序',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel',duelGap:3.6});let proof=null;
  for(let i=0;i<900&&!proof;i++){
    scenario.step(1/60);const trace=scenario.inspect().trace;
@@ -119,11 +119,11 @@ test('a real miss breaks the current chain and restarts its phase from the first
    if(missIndex<0)continue;
    const breakIndex=trace.findIndex((row,index)=>index>missIndex&&row.type==='chain-break'&&row.reason==='miss');
    if(breakIndex<0)continue;
-   const restart=trace.slice(breakIndex+1).find(row=>row.type==='stage-start');
+   const restart=trace.slice(breakIndex+1).find(row=>row.type==='stage-start'&&row.actorId==='hero');
    if(restart)proof={broken:trace[breakIndex],restart};
  }
  assert.ok(proof,'miss must produce a chain break followed by a restart');
- assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,proof.broken.techniqueIndex);assert.equal(proof.restart.stageIndex,0);
+ assert.equal(proof.broken.restartPhase,'jo');assert.equal(proof.broken.restartTechniqueIndex,0);assert.equal(proof.broken.restartStageIndex,0);assert.equal(proof.restart.phase,'jo');assert.equal(proof.restart.techniqueIndex,0);assert.equal(proof.restart.stageIndex,0);
 });
 
 test('shallow early contact retains pressure rather than breaking every attack',()=>{
@@ -247,7 +247,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.1');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.9');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -286,10 +286,13 @@ test('HUD centers 破 with symmetric exchange waveforms and no scale recentering
  assert.doesNotMatch(css,/battle-sequence-hud__phase[^}]*transform:scale/);assert.ok(css.includes('[data-phase="maai"] .battle-sequence-hud__edge--maai'));assert.ok(css.includes('[data-phase="zanshin"] .battle-sequence-hud__edge--zanshin'));
 });
 
-test('action history remains floating text rather than a list repaint',()=>{
+test('action history remains floating text and narrates techniques plus spacing/defense semantics',()=>{
  const stage=stageSource(),css=hudCss();
  assert.match(stage,/spawnActionText/);assert.match(stage,/historyNode\.append\(line\)/);assert.match(stage,/animationend/);assert.match(stage,/setTimeout\(remove,4200\)/);
  assert.doesNotMatch(stage,/historyNode\.replaceChildren\(\.\.\.history\.map/);
+ assert.match(stage,/function actionHistoryKey/);assert.match(stage,/連「\$\{name\}」/);assert.doesNotMatch(stage,/\$\{meta\.stageIndex\+1\}段/);
+ for(const copy of ['間合いを取る','武器で弾いた','様子を見る','仕切り直す'])assert.ok(stage.includes(copy),copy);
+ assert.match(stage,/interrupted\?'maai'/);assert.match(stage,/seenNarration/);
  assert.match(css,/\.battle-sequence-history__float\{/);assert.match(css,/position:absolute/);assert.match(css,/johakyu-text-drift 3\.7s/);assert.match(css,/@keyframes johakyu-text-drift/);
  assert.doesNotMatch(css,/battle-sequence-history__float[^}]*background:/);
 });
