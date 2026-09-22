@@ -41,6 +41,9 @@ const stateView = state => ({
   unknown: ['CHECK', 'info', 'DEV確認中'],
 })[state] || ['CHECK', 'info', 'DEV確認中'];
 const taskView = state => state === 'Ready' ? ['READY', 'warning'] : ['WORKING', 'progress'];
+const executionView=execution=>execution&&execution.label
+  ? [execution.label,execution.tone||'muted',execution.detail||'']
+  : ['UNKNOWN','muted','実行状態未記録'];
 
 function primaryTarget(app) {
   const targets = app?.targets || [];
@@ -349,6 +352,12 @@ function renderSession(session,{iteration=false,graph=false}={}) {
   const summaryIds=new Set(['observation','implementation','astraValidation','afterObservation','merge','devPublish']);
   const phases=iteration?allPhases.filter(phase=>summaryIds.has(phase.id)):allPhases;
   const current=iterationCurrentPhase(session,allPhases);
+  const execution=executionView(session.execution);
+  const live=el('div','rapid-execution-line');
+  live.append(el('span','rapid-execution-state '+execution[1],execution[0]));
+  const activity=[execution[2],session.execution?.lastActivityAt?relative(session.execution.lastActivityAt):null].filter(Boolean).join(' · ');
+  live.append(el('span','rapid-execution-detail',activity||'活動時刻未記録'));
+  row.append(live);
   const head=el('div','rapid-session-head');
   const prHref=iteration?null:safeHref(session.pr?.url);
   const iterationGame=iterationGameId(session),iterationNumber=session.autonomous?.number||session.iteration;
@@ -451,13 +460,15 @@ function renderHealth(state, issues) {
   if (!root || !title || !meta) return;
   const appRows = managedApps(state);
   const healthy = appRows.filter(app => primaryTarget(app)?.state === 'success').length;
-  const active = activePulls(state).length;
+  const active = activeSessions(state);
+  const running = active.filter(session=>['running','validating','merging'].includes(session.execution?.state)).length;
+  const idle = active.filter(session=>session.execution?.state==='idle').length;
   const issueCount = issues.length;
   const danger = issues.some(item => item.tone === 'danger');
   const tone = issueCount ? (danger ? 'danger' : 'warning') : state?.syncStatus === 'degraded' ? 'warning' : 'ok';
   root.className = 'rapid-health ' + tone;
   title.textContent = appRows.length ? healthy + ' Apps Healthy' : 'Apps 確認中';
-  meta.textContent = active + ' Task' + (active === 1 ? '' : 's') + ' Running · ' + (issueCount ? issueCount + ' Issues' : 'No Issues');
+  meta.textContent = running + ' Running' + (idle ? ' · ' + idle + ' Idle' : '') + ' · ' + (issueCount ? issueCount + ' Issues' : 'No Issues');
 }
 function render(state, error) {
   if (!state) {
