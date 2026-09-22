@@ -1,54 +1,37 @@
 name: Camera Presentation specialist (task only)
-run-name: Camera Before observation (native family resume) 96acf1b999ff713d0660ad5b3307c9dc5b90ae25
+run-name: Materialize camera task source on 67d33c8f1fd181cb6b82724bb2b8a58e0a757a96
 on:
   push:
     branches: [dispatch/camera-presentation-specialist-20260923]
 permissions:
-  contents: read
+  contents: write
 jobs:
-  observe:
+  materialize:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
-    env:
-      APP_ENV: dev
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
         with:
           path: control
           persist-credentials: false
-          sparse-checkout: scripts/browser/camera-baseline-task.mjs
-          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            scripts
+            apps/review
+            apps/rinne
+            packages/rendering
+            docs/rendering
       - uses: actions/checkout@v6
         with:
-          ref: 96acf1b999ff713d0660ad5b3307c9dc5b90ae25
+          ref: 67d33c8f1fd181cb6b82724bb2b8a58e0a757a96
           path: work
           persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: work/package-lock.json
-      - run: npm ci --ignore-scripts
+      - name: Materialize task source as blobs only; Connector owns refs and merge
         working-directory: work
-      - run: npm run build:rinne
-        working-directory: work
-      - run: npx playwright install --with-deps chromium
-        working-directory: work
-      - name: Observe exact Before through native browser input
-        working-directory: work
-        run: |
-          cp ../control/scripts/browser/camera-baseline-task.mjs scripts/browser/camera-baseline-task.mjs
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('scripts/browser/camera-baseline-task.mjs')
-          s=p.read_text().replace("await page.locator('#continue-life').click();", "await page.locator('#continue-life').click();await page.getByRole('button',{name:'この人生を続ける',exact:true}).click();")
-          s=s.replace("toHaveAttribute('data-runtime','active');", "toHaveAttribute('data-runtime','active',{timeout:90000});")
-          p.write_text(s)
-          PY
-          node scripts/browser/camera-baseline-task.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 ../control/scripts/materialize-camera-task.py
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: camera-before-96acf1b999ff713d0660ad5b3307c9dc5b90ae25
-          path: work/test-results/camera-before
-          retention-days: 14
+          name: camera-materialized-source
+          path: /tmp/camera-materialized
+          retention-days: 7
