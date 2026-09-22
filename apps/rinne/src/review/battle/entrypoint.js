@@ -4,6 +4,7 @@ import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './stage.js';
 import {tidebreakWeaponFor} from '../../rebuild/combat.js';
 import {applyChoreographyImpact,combatBodySnapshot,strategyForState} from '../../rebuild/combat-choreography.js';
 import {createCombatBodyHud} from '../../combat-body-hud.js';
+import {applyReviewBodyPreset} from './body-hud-presets.js';
 import {tidebreakMindsetFromVector} from '../../rebuild/combat-tactics.js';
 import {advanceReviewFinisher,createReviewFinisher,reviewBattleLoopDue,reviewBattlePhaseState,reviewInspirationModeState} from './state.js';
 import {REVIEW_INSPIRATION_TIMELINE,generatedReviewInspirationCandidates,pickGeneratedReviewInspiration,pickReviewInspiration} from './inspiration.js';
@@ -106,7 +107,7 @@ function runtimeLoadout(engine,weapon){
 }
 function makeReviewBody(role,strategy){
   const state={seed:reviewSeed+(role==='enemy'?101:0),generation:1,ageSeconds:0,maxHp:role==='hero'?230:180,injuries:{},combatStrategy:strategy};
-  if(reviewInjury!=='none'&&role==='hero')state.injuries[reviewInjury]={severity:.72,at:0};
+  if(role==='hero')applyReviewBodyPreset(state,reviewInjury);
   combatBodySnapshot(state);return state;
 }
 function syncBodyHud(){if(reviewHeroBody)bodyHud?.update(reviewHeroBody);}

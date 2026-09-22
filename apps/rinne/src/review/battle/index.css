@@ -451,3 +451,8 @@ main.battle-review.review-surface .camera-zoom button{
   .battle-inspiration[data-sequence="announce"] strong{font-size:18px!important}
 }
 
+
+/* Body charm: reserve the upper-left for live injury state. Composition remains available in the existing settings dialog. */
+.body-hud-review-composition{grid-column:1/-1;min-width:0;padding:8px;border:1px solid #bda57538;border-radius:8px;background:#15262366}
+.body-hud-review-composition>summary{padding:6px;color:#e2d4b5;cursor:pointer;font-size:13px}
+.body-hud-review-composition .technique-composition{position:static;display:grid;gap:6px;width:100%;max-width:100%;padding-top:8px}

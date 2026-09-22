@@ -1,0 +1,5 @@
+# Keep the public contract while the implementation remains under review/battle.
+# Workers Static Assets applies only the first matching rule (including proxies).
+/review-battle /review/battle/ 200
+/review/battle/ /review-battle 301
+/review/battle /review-battle 301
