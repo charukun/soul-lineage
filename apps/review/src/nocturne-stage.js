@@ -18,7 +18,7 @@ const stage=document.querySelector('[data-review-surface="battle2"]');
 const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects'),versionNode=document.getElementById('battle2-version'),startButton=document.getElementById('battle2-start');
 const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
 const previewIdentity=rinnePreviewPlayer((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0);
-const playerHud=createRinnePlayerHud(document.getElementById('battle2-player-hud'),previewIdentity);
+const playerHud=createRinnePlayerHud(document.getElementById('battle2-player-hud'),{...previewIdentity,portraitMode:'static'});
 const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
 const cameraPresentation=createBattle2CameraPresentation({stage,world});
 const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]','[data-battle-technique-mode-control]','[data-battle-inspiration-rate-control]'],label:'戦闘設定'});
@@ -114,7 +114,7 @@ function beginComboFade(){
 function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId||meta.exchangeHistoryKey!==lastExchangeKey){resetHistory(meta.battleId);lastExchangeKey=meta.exchangeHistoryKey;}
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
- const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);playerHud?.capture(world,{x:.5,y:.6,scale:.24});
+ const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);
  const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
  for(const row of activity){
   if(row?.type!=='inspiration'||!row.techniqueId)continue;
