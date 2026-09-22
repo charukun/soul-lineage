@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 25
     env:
       APP_ENV: dev
-      SOURCE_SHA: 283713a438156f0fdd08e7059a0f45b622173408
+      SOURCE_SHA: 705ad6e3fc8d49eb717985f1f8848dd5bf919399
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v6
@@ -27,72 +27,42 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Apply reviewed bounded fixes and materialize candidate
+      - name: Materialize normal boot-input and boundary-verification corrections
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           mkdir -p .deploy-state/sprite-set-candidate
           python3 - <<'PY'
           from pathlib import Path
-          import json
-          def change(path, old, new):
-              p=Path(path); s=p.read_text()
-              assert s.count(old)==1, (path, 'patch anchor count', s.count(old))
-              p.write_text(s.replace(old,new))
-          browser='scripts/sprite-set/browser-playtest.mjs'
-          change(browser, 'headed-equivalent Chromium / software WebGL, real UI inputs', 'headless Chromium / software WebGL; real UI inputs')
-          change(browser,
-            "async function cameraInput(degrees){const input=review.locator('[data-sprite-camera]');await input.scrollIntoViewIfNeeded();const box=await input.boundingBox();await review.mouse.click(box.x+8+(box.width-16)*(degrees+180)/360,box.y+box.height/2);await review.waitForTimeout(200);}",
-            "async function cameraInput(degrees){\n  const input=review.locator('[data-sprite-camera]');await input.scrollIntoViewIfNeeded();await input.focus();\n  const difference=degrees-Number(await input.inputValue());\n  // Native key input reaches even angles within the range thumb's hit area. A click there need not change its value.\n  for(let i=0;i<Math.abs(difference);i++)await input.press(difference>0?'ArrowRight':'ArrowLeft');\n  assert.equal(Number(await input.inputValue()),degrees);\n  await review.waitForFunction(deg=>{const s=document.querySelector('.sprite-set-stage canvas').spriteSetSnapshot();const delta=Math.atan2(s.camera.x,s.camera.z)-deg*Math.PI/180;return Math.abs(Math.atan2(Math.sin(delta),Math.cos(delta)))<.01;},degrees);\n  await review.waitForTimeout(150);\n}")
-          playground='apps/review/src/sprite-set-playground.js'
-          change(playground,
-            "    for(const button of host.querySelectorAll('[data-sprite-action]'))button.disabled=!Object.hasOwn(actor.manifest.actions,button.dataset.spriteAction);",
-            "    const actionGrid=find('.sprite-set-actions');\n    for(const button of actionGrid.querySelectorAll('[data-sprite-action]'))if(!SPRITE_SET_ACTIONS.includes(button.dataset.spriteAction)&&!Object.hasOwn(actor.manifest.actions,button.dataset.spriteAction))button.remove();\n    for(const name of Object.keys(actor.manifest.actions))if(!actionGrid.querySelector(`[data-sprite-action=\"${name}\"]`)){\n      const button=document.createElement('button'),label=document.createElement('b'),code=document.createElement('small');\n      button.type='button';button.dataset.spriteAction=name;label.textContent=LABELS[name]||name;code.textContent=name;button.append(label,code);actionGrid.append(button);\n    }\n    for(const button of actionGrid.querySelectorAll('[data-sprite-action]'))button.disabled=!Object.hasOwn(actor.manifest.actions,button.dataset.spriteAction);")
-          change(playground,
-            "  for(const button of host.querySelectorAll('[data-sprite-action]'))on(button,'click',()=>{\n    if(!sandbox)return;find('[data-sprite-demo]').checked=false;sandbox.setDemo(false);",
-            "  on(find('.sprite-set-actions'),'click',event=>{\n    const button=event.target.closest('button[data-sprite-action]');\n    if(!button||button.disabled||!sandbox)return;find('[data-sprite-demo]').checked=false;sandbox.setDemo(false);")
-          guest='apps/rinne/src/rebuild/sprite-set-guest.js'
-          change(guest, 'export function installSpriteSetGuest(view,{environment,canvas}={}){', "const INSTALLED=Symbol.for('rinne.sprite-set.guest');\nexport function installSpriteSetGuest(view,{environment,canvas}={}){\n  if(view?.[INSTALLED])return view;")
-          change(guest, '  const abort=new AbortController(),originalRender=view.renderState,originalDispose=view.dispose;', '  view[INSTALLED]=true;\n  const abort=new AbortController(),originalRender=view.renderState,originalDispose=view.dispose;')
-          change(guest, 'delete canvas.spriteSetSnapshot;}', 'delete canvas.spriteSetSnapshot;delete view[INSTALLED];}')
-          manifest=Path('apps/review/public/sprite-sets/kaykit-knight/manifest.json')
-          data=json.loads(manifest.read_text());data['actions']['rest']['loop']=False;data['actions']['rest']['oneShot']=True
-          data['provenance']['derivedProcessing'].append('Rest transition plays once and holds the seated terminal pose; image bytes are unchanged')
-          manifest.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
-          change('apps/review/src/tools/sprite-set-baker.js', "const LOOP=new Set(['idle','walk','run','talk','rest','fall','climb']);", "const LOOP=new Set(['idle','walk','run','talk','fall','climb']);")
-          change('docs/characters/CHARACTER_SPRITE_SET.md', 'The fixture contains all thirteen.', 'The fixture contains all thirteen. Its authored sit-down/rest clip is explicitly one-shot and holds the seated terminal frame instead of repeatedly standing and sitting.')
-          # Exercise extension discovery using an explicit imported test bundle, then restore the unmodified sample before the RINNE handoff.
-          change(browser,
-            "  const popup=review.waitForEvent('popup');",
-            "  const extension=JSON.parse(await readFile(bundlePath,'utf8'));extension.manifest.actions.guard={...structuredClone(extension.manifest.actions.attack),loop:false,oneShot:true};\n  await review.locator('[data-sprite-import]').setInputFiles({name:'extension.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(extension))});await review.waitForFunction(()=>document.querySelector('.sprite-set-playground').dataset.busy==='false');\n  await review.locator('[data-sprite-action=\"guard\"]').click();await review.waitForFunction(()=>document.querySelector('.sprite-set-stage canvas').spriteSetSnapshot().actor.action==='guard');note('manifest-defined extension action has a real control',await state());\n  await review.locator('[data-sprite-import]').setInputFiles({name:'restore.json',mimeType:'application/json',buffer:await readFile(bundlePath)});await review.waitForFunction(()=>document.querySelector('.sprite-set-playground').dataset.busy==='false');assert.equal(await review.locator('[data-sprite-action=\"guard\"]').count(),0);\n  const popup=review.waitForEvent('popup');")
+          import subprocess
+          p=Path('scripts/sprite-set/browser-playtest.mjs');s=p.read_text()
+          def change(old,new):
+              global s
+              assert s.count(old)==1, ('anchor count', s.count(old),old[:80])
+              s=s.replace(old,new)
+          change("  await rinne.mouse.click(640,350);await rinne.waitForTimeout(500);",
+                 "  // The existing brand boot requires a deliberate tap after its assets are ready.\n  await rinne.locator('#soul-brand-boot.ready').click({timeout:120000});\n  await rinne.locator('#soul-brand-boot').waitFor({state:'hidden',timeout:30000});")
+          change("if(await rinne.locator('#title-screen').getAttribute('data-intro')!=='idle'){await rinne.mouse.click(640,350);await rinne.waitForTimeout(500);}",
+                 "if(await rinne.locator('#title-screen').getAttribute('data-intro')!=='idle'){await rinne.locator('#title-screen').click({position:{x:20,y:20}});await rinne.waitForTimeout(500);}")
+          change("  assert.equal(new Set(views).size,8);await cameraInput(0);",
+                 "  assert.equal(new Set(views).size,8);await cameraInput(0);\n  const boundary=[];for(const angle of [21,24,21,24]){await cameraInput(angle);boundary.push((await state()).actor.view);}assert.ok(boundary.every(view=>view==='front'));\n  await cameraInput(30);for(const angle of [24,21,24,21]){await cameraInput(angle);assert.equal((await state()).actor.view,'frontRight');}\n  note('real camera input retains both hysteresis sectors across boundary jitter',boundary);await cameraInput(0);")
+          change("note('self-window command rejected',await gameState());",
+                 "note('self-window command rejected',await gameState());\n  const stableViews=[];for(let i=0;i<10;i++){await rinne.waitForTimeout(100);stableViews.push((await gameState()).actor.view);}\n  const viewTransitions=stableViews.slice(1).filter((v,i)=>v!==stableViews[i]).length;assert.ok(viewTransitions<=1,'RINNE view must not flicker at rest');note('RINNE settled view stability',{stableViews,viewTransitions});")
+          change("const note=(label,snapshot)=>receipt.steps.push({label,snapshot,at:new Date().toISOString()});",
+                 "const note=(label,snapshot)=>{receipt.steps.push({label,snapshot,at:new Date().toISOString()});console.log('SPRITE_SET_STEP '+label);};")
+          p.write_text(s)
+          previous=subprocess.check_output(['git','log','-1','--format=%B'],text=True)
+          Path('/tmp/sprite-set-message').write_text('test(sprite-set): follow real RINNE boot and verify boundary stability [astra-validate] [astra-heavy-validation]\n\n'+previous.split('\n',1)[1])
           PY
+          node --check scripts/sprite-set/browser-playtest.mjs
           git diff --check
-          git add -- apps/review/src/sprite-set-playground.js apps/rinne/src/rebuild/sprite-set-guest.js apps/review/public/sprite-sets/kaykit-knight/manifest.json apps/review/src/tools/sprite-set-baker.js docs/characters/CHARACTER_SPRITE_SET.md scripts/sprite-set/browser-playtest.mjs
+          git add -- scripts/sprite-set/browser-playtest.mjs
           git diff --cached --stat | tee .deploy-state/sprite-set-candidate/diff-stat.txt
           git diff --cached > .deploy-state/sprite-set-candidate/changes.patch
           git config user.name 'Sprite Set implementation'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          cat > /tmp/sprite-set-message <<'MSG'
-          fix(sprite-set): hold rest poses, discover action extensions and verify exact camera input [astra-validate] [astra-heavy-validation]
-
-          Preserve current develop equipment compatibility and idempotent session ownership. Native browser input verifies eight exact camera views rather than clicking within a range thumb hit area.
-
-          Astra-Check: packages/assets/src/character-sprite-set.js
-          Astra-Check: packages/assets/src/character-sprite-playback.js
-          Astra-Check: packages/assets/src/character-sprite-sandbox.js
-          Astra-Check: packages/assets/src/adapters/browser/character-sprite-set.js
-          Astra-Check: packages/assets/src/adapters/three/character-sprite-set.js
-          Astra-Check: apps/review/src/sprite-set-playground.js
-          Astra-Check: apps/rinne/src/rebuild/sprite-set-guest.js
-          Astra-Check: scripts/sprite-set/browser-playtest.mjs
-          Astra-Test: packages/assets/tests/character-sprite-set.test.mjs
-          Astra-Test: packages/assets/tests/character-sprite-set-integration.test.mjs
-          Astra-Test: tests/character25d-equipment.test.mjs
-          Astra-Build: review
-          Astra-Build: rinne
-          MSG
           git commit -F /tmp/sprite-set-message
-          git push origin HEAD:refs/heads/work/sprite-set-candidate-1492-r2
+          git push origin HEAD:refs/heads/work/sprite-set-candidate-1492-r3
           sha=$(git rev-parse HEAD)
           echo "$sha" | tee .deploy-state/sprite-set-candidate/candidate-head.txt
           echo "SOURCE_SHA=$sha" >> "$GITHUB_ENV"
