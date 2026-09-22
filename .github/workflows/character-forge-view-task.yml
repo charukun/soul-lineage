@@ -1,0 +1,51 @@
+name: Character Forge dedicated view evidence
+on:
+  push:
+    branches: ['dispatch/character-forge-view-evidence']
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+  statuses: read
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      SOURCE_SHA: 7eac3f87d3c8c5cbe86c1483effa50f198118113
+      APP_ENV: dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7eac3f87d3c8c5cbe86c1483effa50f198118113
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: node --test tests/character-create-forge-browser.test.mjs
+      - name: Await explicitly required exact-head validation status
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'NODE'
+          const url=process.env.GITHUB_API_URL+'/repos/'+process.env.GITHUB_REPOSITORY+'/commits/'+process.env.SOURCE_SHA+'/status';
+          for(let i=0;i<15;i++){
+            const r=await fetch(url,{headers:{authorization:'Bearer '+process.env.GITHUB_TOKEN}});if(!r.ok)throw new Error('status '+r.status);
+            const s=(await r.json()).statuses.find(x=>x.context==='astra/focused-validation');
+            if(s?.state==='success')process.exit(0);
+            if(s&&['failure','error'].includes(s.state))throw new Error('Exact-head focused validation failed');
+            await new Promise(resolve=>setTimeout(resolve,10000));
+          }
+          throw new Error('Exact-head status did not complete within bounded wait');
+          NODE
+      - name: Summarize exact-head validation and merge freshness
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/actions-result-summary.mjs --repo "$GITHUB_REPOSITORY" --pr 1504 --sha "$SOURCE_SHA" --output test-results/character-create-forge/actions-summary.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: character-forge-browser-${{ env.SOURCE_SHA }}
+          retention-days: 30
+          path: test-results/character-create-forge
