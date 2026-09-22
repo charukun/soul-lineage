@@ -240,7 +240,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     ui.mindState.textContent=labels[dominant]||'中庸';ui.mind.dataset.dominant=dominant;
   }
   function summary(s,{dashing=false,resting=false,training=null}={}){
-    state=s;speech.sync();loadoutUI.syncCombat(s);ui.name.textContent=s.name||'旅人';ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;
+    state=s;if(ui.panel&&!ui.panel.hidden&&!ui.panel.dataset.type)close();speech.sync();loadoutUI.syncCombat(s);ui.name.textContent=s.name||'旅人';ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;
     const talents=s.inspiration?.talents||[],tags=[];if(talents.includes('tenyo'))tags.push('天与');if(talents.includes('sui'))tags.push('彗');ui.talentTags.replaceChildren(...tags.map(label=>{const tag=document.createElement('span');tag.textContent=label;return tag;}));ui.talentTags.hidden=!tags.length;updateRadar();
     ui.state.textContent=s.down?'救助待ち':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;ui.trainingStrike.hidden=!engaged||s.down||s.ended;ui.trainingStrike.dataset.ready=String(engaged);if(engaged){ui.trainingName.textContent=training.label;ui.trainingStrike.setAttribute('aria-label',`${training.label}を打って稽古する`);}updateContextVitals(s,{dashing,resting,training});updateMindBalance(s,training);
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
