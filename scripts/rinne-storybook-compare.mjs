@@ -42,7 +42,7 @@ function layoutLoss(p,g){const t=target[p],v=[g.book.y/g.view.h-t.bookTop,g.head
 const hash=b=>createHash('sha256').update(b).digest('hex');
 function imageLoss(p,path){return Number(execFileSync('python3',['scripts/rinne-storybook-pixels.py',`docs/rinne/ui-reference-v6/${p}.png`,path],{encoding:'utf8'}).trim());}
 async function capture(p,path){const buffer=await page.screenshot({path,fullPage:false,type:path.endsWith('.jpg')?'jpeg':'png',...(path.endsWith('.jpg')?{quality:86}:{})});const g=await geometry();assert.equal(g.missing.length,0,`Missing production artwork: ${g.missing}`);assert.ok(g.book.w>g.view.w*.8,'book width');assert.ok(g.nav.bottom<=g.view.h-15,'core controls and captions inside viewport');const pixel=imageLoss(p,path),layout=layoutLoss(p,g);return {sha256:hash(buffer),pixel,layout,score:pixel*.55+layout*.45,geometry:g};}
-const rounds=[];const functional=[];
+const rounds=[],functional=[];
 try{
   await page.goto('http://127.0.0.1:4173/storybook-review.html');await page.waitForFunction(()=>window.bookReady,{timeout:60000});
   for(const p of pages){await select(p);await capture(p,`${out}/initial-${p}.png`);}
@@ -66,6 +66,7 @@ try{
       }
     }
   }
+  await writeFile(`${out}/rounds-complete.json`,JSON.stringify({exactHead:head,rounds,params,calibrationCss:cssFor()},null,2));
   for(const p of pages){await select(p);await capture(p,`${out}/final-${p}.png`);}
   const probeContext=await browser.newContext({viewport:{width:390,height:680},deviceScaleFactor:1,reducedMotion:'reduce'}),probe=await probeContext.newPage();probe.on('pageerror',e=>errors.push(String(e)));
   await probe.goto('http://127.0.0.1:4173/storybook-review.html');await probe.waitForFunction(()=>window.bookReady,{timeout:60000});
@@ -78,7 +79,7 @@ try{
   for(const p of ['technique','body','items']){await probe.evaluate(p=>window.bookReview.ui.open(p),p);await probe.locator(`.rb-page[data-book-page="${p}"]`).waitFor();assert.equal(await probe.locator('.rb-slot').count(),3);await probe.screenshot({path:`${out}/mobile-${p}.png`});functional.push(`${p}-three-canonical-slots`);}
   await probe.locator('[data-book-id="armor:light"]').click();assert.match(await probe.locator('.rb-facts').innerText(),/旅服|旅装|布/);assert.equal(await probe.evaluate(()=>window.bookReview.state.equipment.armor),'cloth');await probe.locator('[data-book-action="equip"]').click();assert.equal(await probe.evaluate(()=>window.bookReview.state.equipment.armor),'light');functional.push('equipment-preview-correct-slot-and-confirm');
   await probe.locator('[data-book-action="close"]').click();assert.equal(await probe.locator('.rinne-core-menu').isVisible(),false);assert.equal(await probe.locator('#game-screen').getAttribute('data-storybook-open'),null);functional.push('no-closed-ghost-window');
-  await probe.locator('[data-body]').click();await probe.keyboard.press('Escape');assert.equal(await probe.locator('.rinne-core-menu').isVisible(),false);assert.equal(await probe.locator('#game-screen').getAttribute('data-storybook-open'),null);functional.push('escape-cleans-world-visibility');
+  await probe.locator('.rinne-primary-four [data-body]').click();await probe.keyboard.press('Escape');assert.equal(await probe.locator('.rinne-core-menu').isVisible(),false);assert.equal(await probe.locator('#game-screen').getAttribute('data-storybook-open'),null);functional.push('escape-cleans-world-visibility');
   await probe.evaluate(()=>{const s=window.bookReview.fixture(0);window.bookReview.set(s);window.bookReview.ui.open('items')});assert.equal(await probe.locator('[data-book-action="equip"]').isDisabled(),true);assert.equal(await probe.locator('[data-book-action="remove"]').isDisabled(),true);await probe.screenshot({path:`${out}/newborn-equipment.png`});functional.push('newborn-seven-year-gate');
   await probe.evaluate(()=>{const s=window.bookReview.fixture();s.combat={training:false};window.bookReview.set(s);window.bookReview.ui.open('heart')});assert.equal(await probe.locator('[data-book-action="equip"]').isDisabled(),true);functional.push('combat-readonly');
   await probe.setViewportSize({width:360,height:520});await probe.evaluate(()=>{window.bookReview.set(window.bookReview.fixture());window.bookReview.ui.open('body')});await probe.screenshot({path:`${out}/small-body.png`});
@@ -96,5 +97,5 @@ try{
   const commit=(await api('git/commits',{message:`承認UIの実ブラウザ比較記録: ${rounds.length}回、機能確認${functional.length}項目`,tree,parents:[head]})).sha;
   assert.equal((await api(`git/ref/heads/${branch}`)).object.sha,head,'Work branch moved during evidence generation');await api(`git/refs/heads/${branch}`,{sha:commit,force:false},'PATCH');
   console.log(JSON.stringify({evidenceCommit:commit,roundsExecuted:rounds.length,retained:receipt.retained,functional}));
-}catch(error){await writeFile(`${out}/failure.json`,JSON.stringify({head,roundsExecuted:rounds.length,rounds,errors,error:String(error),stack:error.stack},null,2));throw error;}
+}catch(error){await writeFile(`${out}/failure.json`,JSON.stringify({head,roundsExecuted:rounds.length,rounds,params,calibrationCss:cssFor(),errors,error:String(error),stack:error.stack},null,2));throw error;}
 finally{await writeFile(calibration,originalCss);await rm(harness,{force:true});await browser.close();await server.close();}
