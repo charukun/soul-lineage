@@ -73,8 +73,12 @@ after = topology(ob); assert after['boundaryEdges'] == 0
 repairs.append({'mesh': ob.name, 'operation': 'close-existing-inner-waist', 'before': before, 'after': after})
 
 # Only the large skin boundary left by retired hair removal is a skull hole.
-# Eye, brow, nose and ear overlay boundaries are deliberately not blanket-filled.
-ob = bpy.data.objects['Rogue_Head']; before = topology(ob); bm = bmesh.new(); bm.from_mesh(ob.data)
+# Preserve every original facial corner: BMesh otherwise discards imported
+# split normals, erasing the approved smile and changing the eyes/nose shading.
+ob = bpy.data.objects['Rogue_Head']; before = topology(ob)
+ob.data.calc_normals_split()
+facial_corners = [(ob.data.vertices[loop.vertex_index].co.copy(), ob.data.uv_layers.active.data[loop.index].uv.copy(), loop.normal.copy()) for loop in ob.data.loops]
+bm = bmesh.new(); bm.from_mesh(ob.data)
 bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=0.000001)
 unseen = set(e for e in bm.edges if e.is_boundary); components = []
 while unseen:
@@ -91,9 +95,20 @@ uv = bm.loops.layers.uv.active
 for edge in candidates[0]:
     loop = edge.link_loops[0]; face = bm.faces.new((loop.link_loop_next.vert, loop.vert, cap)); face.smooth = True
     for item in face.loops: item[uv].uv = (.065, .875)
-bm.to_mesh(ob.data); bm.free(); ob.data.update(); after = topology(ob)
-assert after['boundaryEdges'] == before['boundaryEdges'] - 24
-repairs.append({'mesh': ob.name, 'operation': 'close-only-missing-scalp-under-bob', 'preserved': 'face, eyes, brows, nose and ears', 'before': before, 'after': after})
+bm.to_mesh(ob.data); bm.free(); ob.data.update()
+ob.data.use_auto_smooth = True; ob.data.calc_normals_split()
+normals = [loop.normal.copy() for loop in ob.data.loops]
+for index, (position, texcoord, normal) in enumerate(facial_corners):
+    loop = ob.data.loops[index]
+    assert (ob.data.vertices[loop.vertex_index].co - position).length < 0.000001, 'Facial geometry reordered'
+    assert (ob.data.uv_layers.active.data[index].uv - texcoord).length < 0.000001, 'Facial UV changed'
+    normals[index] = normal
+ob.data.normals_split_custom_set(normals); ob.data.calc_normals_split()
+normal_delta = max((ob.data.loops[i].normal - row[2]).length for i, row in enumerate(facial_corners))
+assert normal_delta < 0.002, ('Facial split normals changed', normal_delta)
+after = topology(ob); assert after['boundaryEdges'] == before['boundaryEdges'] - 24
+face_preservation = {'originalCorners': len(facial_corners), 'positionsAndUvsUnchanged': True, 'maxCornerNormalDelta': normal_delta, 'normalTolerance': .002, 'features': ['smile', 'eyes', 'eyebrows', 'nose', 'ears']}
+repairs.append({'mesh': ob.name, 'operation': 'close-only-missing-scalp-under-bob', 'preserved': 'face, smile, eyes, brows, nose, ears and original split normals', 'before': before, 'after': after})
 
 # An inset continuation at the collar joins the otherwise point-contact chin
 # and torso during head tilt. Derived from the existing garment neck contour.
@@ -138,7 +153,7 @@ for material in doc['materials']:
 text = json.dumps(doc, separators=(',', ':')).encode(); text += b' ' * (-len(text) % 4)
 body = struct.pack('<III', 0x46546c67, 2, 28 + len(text) + len(binary)) + struct.pack('<II', len(text), 0x4e4f534a) + text + struct.pack('<II', len(binary), 0x004e4942) + binary
 (out / 'HeroineDawn.glb').write_bytes(body)
-audit.update(bytes=len(body), sha256=hashlib.sha256(body).hexdigest(), gitBlobSha=hashlib.sha1(f'blob {len(body)}\0'.encode() + body).hexdigest(), baselineSha256=BASELINE, authoringTool=bpy.app.version_string, sourceRig='Rig_Medium', repairs=repairs, opacity='explicit OPAQUE; alpha=1; retained two-sided surface shading with real closed thickness', design='preserved Heroine Dawn face, rounded bob, swept fringe, ivory sleeves/collar, blue pinafore and rose bows')
+audit.update(bytes=len(body), sha256=hashlib.sha256(body).hexdigest(), gitBlobSha=hashlib.sha1(f'blob {len(body)}\0'.encode() + body).hexdigest(), baselineSha256=BASELINE, authoringTool=bpy.app.version_string, sourceRig='Rig_Medium', repairs=repairs, faceSurfacePreservation=face_preservation, opacity='explicit OPAQUE; alpha=1; retained two-sided surface shading with real closed thickness', design='preserved Heroine Dawn smile, face, rounded bob, swept fringe, ivory sleeves/collar, blue pinafore and rose bows')
 assert audit['triangles'] < 10000, audit['triangles']
 (out / 'inspection.json').write_text(json.dumps(audit, indent=2)); bpy.ops.wm.save_as_mainfile(filepath=str(out / 'HeroineDawn.blend'), compress=True)
 print('HEROINE_OPACITY_REPAIR', json.dumps(audit))
