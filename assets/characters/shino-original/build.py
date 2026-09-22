@@ -274,8 +274,8 @@ def build_character(armature,names,mats):
     head_center=head.lerp(head_tail,0.56)
     spine=bone_head(armature,names,"spine"); hips=bone_head(armature,names,"hips")
     shoulder_l=bone_head(armature,names,"leftUpperArm"); shoulder_r=bone_head(armature,names,"rightUpperArm")
-    body_width=max(0.30,abs(shoulder_l.x-shoulder_r.x)*0.72)
-    head_scale=max(0.145,abs(head_tail.z-head.z)*1.12)
+    body_width=max(0.32,abs(shoulder_l.x-shoulder_r.x)*0.74)
+    head_scale=max(0.138,abs(head_tail.z-head.z)*1.06)
 
     ellipsoid("Shino_Face",head_center+Vector((0,-head_scale*.025,0)),(head_scale*.79,head_scale*.67,head_scale*.88),mats["skin"],armature,names["head"],36,24,0.08)
     for side,x in (("L",-head_scale*.29),("R",head_scale*.29)):
@@ -286,12 +286,12 @@ def build_character(armature,names,mats):
     tube("Shino_Mouth",[head_center+Vector((-head_scale*.07,-head_scale*.68,-head_scale*.23)),head_center+Vector((0,-head_scale*.69,-head_scale*.25)),head_center+Vector((head_scale*.07,-head_scale*.68,-head_scale*.23))],[.006,.005,.006],mats["mouth"],armature,names["head"],8)
 
     ellipsoid("Shino_HairCap",head_center+Vector((0,head_scale*.10,head_scale*.16)),(head_scale*.88,head_scale*.75,head_scale*.82),mats["hair"],armature,names["head"],34,22,0.0)
-    bangs=[(-.34,.42,.20), (0,.48,.26), (.34,.42,.20)]
+    bangs=[(-.46,.56,.35),(-.23,.60,.31),(0,.63,.37),(.23,.60,.31),(.46,.56,.35)]
     for i,(sx,sz,ez) in enumerate(bangs):
-        p0=head_center+Vector((sx*head_scale,-head_scale*.50,sz*head_scale))
-        p1=head_center+Vector((sx*.72*head_scale,-head_scale*.70,(sz-.06)*head_scale))
-        p2=head_center+Vector((sx*.55*head_scale,-head_scale*.71,ez*head_scale))
-        tube(f"Shino_Bang_{i}",[p0,p1,p2],[head_scale*.10,head_scale*.075,head_scale*.022],mats["hair"],armature,names["head"],12)
+        p0=head_center+Vector((sx*head_scale,-head_scale*.46,sz*head_scale))
+        p1=head_center+Vector((sx*.82*head_scale,-head_scale*.62,(sz-.05)*head_scale))
+        p2=head_center+Vector((sx*.68*head_scale,-head_scale*.66,ez*head_scale))
+        tube(f"Shino_Bang_{i}",[p0,p1,p2],[head_scale*.060,head_scale*.044,head_scale*.014],mats["hair"],armature,names["head"],10)
     for side,sign in (("L",-1),("R",1)):
         tube(f"Shino_SideLock_{side}",[
             head_center+Vector((sign*head_scale*.68,-head_scale*.28,head_scale*.18)),
@@ -303,30 +303,32 @@ def build_character(armature,names,mats):
     rim_points=[]
     for deg in range(-145,146,24):
         a=math.radians(deg)
-        rim_points.append(head_center+Vector((math.sin(a)*head_scale*.90,-head_scale*.61,math.cos(a)*head_scale*.93+head_scale*.10)))
+        rim_y=-head_scale*(.60-.18*abs(math.sin(a)))
+        rim_points.append(head_center+Vector((math.sin(a)*head_scale*.90,rim_y,math.cos(a)*head_scale*.93+head_scale*.10)))
     tube("Shino_HoodRim",rim_points,[head_scale*.055 for _ in rim_points],mats["ivory"],armature,names["head"],14)
     ellipsoid("Shino_HoodBack",head_center+Vector((0,head_scale*.24,head_scale*.08)),(head_scale*.92,head_scale*.48,head_scale*.88),mats["ivory_shadow"],armature,names["head"],30,20,0.0)
-    ellipsoid("Shino_GhostClasp",head_center+Vector((0,-head_scale*.74,-head_scale*.72)),(head_scale*.10,head_scale*.024,head_scale*.10),mats["ivory"],armature,names["head"],14,9)
-    for side,sign in (("L",-1),("R",1)):
-        ellipsoid(f"Shino_GhostClaspEye_{side}",head_center+Vector((sign*head_scale*.035,-head_scale*.766,-head_scale*.70)),(head_scale*.012,head_scale*.006,head_scale*.022),mats["charcoal"],armature,names["head"],8,6)
 
     shoulder_z=(shoulder_l.z+shoulder_r.z)*.5
     waist_z=hips.z+abs(shoulder_z-hips.z)*.28
     knee_z=min(bone_head(armature,names,"leftLowerLeg").z,bone_head(armature,names,"rightLowerLeg").z)
     hem_z=knee_z+abs(hips.z-knee_z)*.46
-    poncho_hem_z=hips.z-.14
+    poncho_hem_z=hips.z+.04
     torso_bind=lambda obj: bind_vertical(obj,armature,names["spine"],names["hips"],waist_z,max(.15,abs(shoulder_z-hips.z)*.45))
     loft("Shino_Tunic",[(shoulder_z-.02,body_width*.63,body_width*.42,0,0),(waist_z,body_width*.55,body_width*.37,0,0),(hips.z-.02,body_width*.60,body_width*.41,0,0)],mats["charcoal"],armature,torso_bind,28)
     loft("Shino_Poncho",[
-        (shoulder_z+.045,body_width*.82,body_width*.44,0,.00),
-        (spine.z+.03,body_width*.96,body_width*.50,0,.01),
-        (waist_z-.04,body_width*1.08,body_width*.56,0,.015),
-        (poncho_hem_z,body_width*1.20,body_width*.61,0,.02),
+        (shoulder_z+.045,body_width*.76,body_width*.40,0,.00),
+        (spine.z+.03,body_width*.90,body_width*.46,0,.01),
+        (waist_z-.02,body_width*1.03,body_width*.52,0,.015),
+        (poncho_hem_z,body_width*1.17,body_width*.57,0,.02),
     ],mats["ivory"],armature,torso_bind,40,math.pi/40)
-    loft("Shino_Skirt",[(hips.z+.01,body_width*.57,body_width*.39,0,0),((hips.z+hem_z)*.50,body_width*.66,body_width*.43,0,.01),(hem_z,body_width*.78,body_width*.47,0,.015)],mats["ivory_shadow"],armature,lambda obj:bind_rigid(obj,armature,names["hips"]),30,math.pi/30)
+    loft("Shino_Skirt",[(hips.z+.01,body_width*.57,body_width*.39,0,0),((hips.z+hem_z)*.50,body_width*.66,body_width*.43,0,.01),(hem_z,body_width*.78,body_width*.47,0,.015)],mats["charcoal"],armature,lambda obj:bind_rigid(obj,armature,names["hips"]),30,math.pi/30)
     tube("Shino_Trim_L",[Vector((-.035,-body_width*.48,shoulder_z-.02)),Vector((-.10,-body_width*.55,waist_z+.03)),Vector((-.045,-body_width*.59,poncho_hem_z+.08))],[.020,.017,.009],mats["ribbon"],armature,names["spine"],9)
     tube("Shino_Trim_R",[Vector((.035,-body_width*.48,shoulder_z-.02)),Vector((.10,-body_width*.55,waist_z+.03)),Vector((.045,-body_width*.59,poncho_hem_z+.08))],[.020,.017,.009],mats["ribbon"],armature,names["spine"],9)
     ellipsoid("Shino_Clasp",Vector((0,-body_width*.50,shoulder_z-.02)),(.033,.016,.042),mats["bronze"],armature,names["spine"],14,9)
+    ghost_center=Vector((0,-body_width*.54,shoulder_z-.105))
+    ellipsoid("Shino_GhostCharm",ghost_center,(.045,.014,.050),mats["ivory_shadow"],armature,names["spine"],14,9)
+    for side,sign in (("L",-1),("R",1)):
+        ellipsoid(f"Shino_GhostCharmEye_{side}",ghost_center+Vector((sign*.014,-.014,.010)),(.005,.003,.008),mats["charcoal"],armature,names["spine"],8,6)
 
     for side in ("left","right"):
         ua=f"{side}UpperArm";la=f"{side}LowerArm";hand=f"{side}Hand";ul=f"{side}UpperLeg";ll=f"{side}LowerLeg";foot=f"{side}Foot"
