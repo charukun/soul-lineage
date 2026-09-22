@@ -1,0 +1,58 @@
+name: Task PULSE execution-state observation
+on:
+  push:
+    branches: [fix/pulse-live-execution-state-20260922]
+permissions:
+  contents: read
+jobs:
+  observe:
+    if: ${{ contains(github.event.head_commit.message, '[pulse-observe]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Observe PULSE execution states
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory ops-board/public >/tmp/pulse-http.log 2>&1 &
+          node --input-type=module <<'EOF'
+          import { chromium } from '@playwright/test';
+          import { writeFileSync } from 'node:fs';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1});
+          const head='a'.repeat(40);
+          const baseSession={state:'Draft',status:'active',branch:'work/example',headSha:head,validatedExactHead:null,browserRequired:false,autonomous:null,iterationSteps:null,repairAttempts:0,lastFailure:null,targets:[{id:'rinne',label:'百年転生'}],steps:[{id:'implementation',label:'実装',state:'running',startedAt:'2026-09-22T02:40:00Z'},{id:'validation',label:'検証',state:'waiting'},{id:'browser',label:'Browser',state:'skipped'},{id:'merge',label:'merge',state:'waiting'},{id:'publish',label:'DEV',state:'waiting'}]};
+          const state={syncStatus:'ok',applications:[],pullRequests:{normal:[]},recentActionFailures:[],history:{publications:[]},controlTower:{timeline:[]},developmentSessions:[
+            {...baseSession,pr:{number:1407,url:'https://github.com/charukun/soul-lineage/pull/1407'},title:'百年転生：攻勢継続と攻守交代をExchange単位で統一',updatedAt:'2026-09-22T02:48:00Z',execution:{state:'idle',label:'IDLE',tone:'muted',detail:'GitHub上で実行中の処理なし',lastActivityAt:'2026-09-22T02:48:00Z'}},
+            {...baseSession,pr:{number:1412,url:'https://github.com/charukun/soul-lineage/pull/1412'},title:'PULSEで実行中とPR存在を分離',updatedAt:'2026-09-22T02:55:00Z',execution:{state:'validating',label:'VALIDATING',tone:'progress',detail:'exact-head検証を実行中',lastActivityAt:'2026-09-22T02:55:00Z'},steps:baseSession.steps.map(s=>s.id==='validation'?{...s,state:'running',startedAt:'2026-09-22T02:55:00Z'}:s)}
+          ]};
+          await page.route('**/api/state',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(state)}));
+          await page.route('**/version.json',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({commit:'bb82da64ca0be60438efa94f90e914ab27336001'})}));
+          const errors=[]; page.on('pageerror',e=>errors.push(String(e)));
+          await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+          await page.waitForSelector('.rapid-execution-state');
+          const badges=await page.locator('.rapid-execution-state').allTextContents();
+          const health=await page.locator('#rapid-health-meta').textContent();
+          if(!badges.includes('IDLE')||!badges.includes('VALIDATING'))throw new Error('missing execution badges '+JSON.stringify(badges));
+          if(!health?.includes('1 Running')||!health?.includes('1 Idle'))throw new Error('bad health summary '+health);
+          if(errors.length)throw new Error('page errors: '+errors.join(' | '));
+          await page.screenshot({path:'pulse-execution-state.png',fullPage:true});
+          writeFileSync('pulse-execution-state.json',JSON.stringify({badges,health,errors},null,2));
+          await browser.close();
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pulse-execution-state-${{ github.sha }}
+          path: |
+            pulse-execution-state.png
+            pulse-execution-state.json
+          retention-days: 7
