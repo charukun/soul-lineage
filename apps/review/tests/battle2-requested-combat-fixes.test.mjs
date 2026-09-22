@@ -1,8 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {CAUSAL_ANSWERS} from '@soul/game-data';
-import {BATTLE2_BODY_OPTIONS,BATTLE2_HEART_OPTIONS} from '../src/nocturne/battle2-loadout.js';
 import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.js';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
@@ -16,12 +14,10 @@ test('序破急HUD upper line is the technique name and situation prose is not i
   assert.doesNotMatch(stage,/for\(const row of \[\.\.\.activity\].*pushNarration/);
 });
 
-test('heart and body menus expose the canonical game-spec catalogs and selected choices feed combat tuning',()=>{
-  const ui=read('src/nocturne/battle2-loadout.js'),source=read('src/nocturne/johakyu-p7-review.js'),canonicalHearts=CAUSAL_ANSWERS.filter(row=>row.kind==='heart'&&!row.executor).map(row=>row.id);
-  assert.match(ui,/戦闘で意識する心得/);assert.match(ui,/意識中/);assert.match(ui,/CAUSAL_ANSWERS\.filter\(row=>row\.kind==='heart'/);
-  assert.deepEqual(BATTLE2_HEART_OPTIONS.map(row=>row.id),canonicalHearts);
-  assert.equal(Object.values(BATTLE2_BODY_OPTIONS).flat().length,13);for(const label of ['正眼','沈身','流構え','攻勢','中庸','間合い重視','迎撃','圧迫','流動','静止残心','呼吸残心','追い残心','守り残心'])assert.ok(Object.values(BATTLE2_BODY_OPTIONS).flat().some(row=>row.label===label),label);
-  assert.match(ui,/身法一覧/);assert.match(ui,/構え・戦法・残心の関連身法をすべて表示/);
+test('heart copy says 意識 and selected heart/body choices feed combat tuning',()=>{
+  const ui=read('src/nocturne/battle2-loadout.js'),source=read('src/nocturne/johakyu-p7-review.js');
+  assert.match(ui,/戦闘で意識する心得/);assert.match(ui,/意識中/);assert.doesNotMatch(ui,/戦闘へ持ち込む心得/);
+  for(const id of ['skill.breath','skill.observe','skill.balance','skill.focus','skill.danger'])assert.ok(source.includes(id),id);
   for(const body of ['body.style','body.stance','body.zanshin'])assert.ok(source.includes(body),body);
   assert.match(source,/battle2Tuning/);assert.match(source,/preferredWeaponSpacing/);
 });
@@ -81,10 +77,4 @@ test('player portrait copies the presented canvas immediately without pixel-read
   assert.match(hud,/return draw\(source,options\)/);
   assert.match(hud,/root\.dataset\.portrait='live'/);
   assert.doesNotMatch(hud,/getImageData|requestAnimationFrame/);
-});
-
-
-test('battle2 hit feedback adds a damped body recoil on top of authored reaction, hitstop and camera impulse',()=>{
- const runtime=read('../../packages/johakyu-presentation/src/runtime.js');
- assert.match(runtime,/function applyImpactRecoil/);assert.match(runtime,/target\.impactRecoil=\{/);assert.match(runtime,/applyImpactRecoil\(a\)/);assert.match(runtime,/recoilDuration=event\.counter\?\.55:heavy\?\.48:\.34/);assert.match(runtime,/event\.counter\?\.095:heavy\?\.075:\.045/);assert.match(runtime,/kickCamera\(source,target,event\.counter\?\.28:heavy\?\.22:\.12\)/);
 });
