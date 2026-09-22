@@ -2,7 +2,10 @@
 import hashlib, io, json, os, urllib.request, zipfile
 from pathlib import Path
 artifact = 10691889355
-req = urllib.request.Request(f'https://api.github.com/repos/charukun/soul-lineage/actions/artifacts/{artifact}/zip', headers={'Authorization': 'Bearer '+os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
+req = urllib.request.Request(f'https://api.github.com/repos/charukun/soul-lineage/actions/artifacts/{artifact}/zip', headers={'Accept': 'application/vnd.github+json'})
+# The storage URL carries its own signed authorization. Do not forward a
+# GitHub bearer credential to that different host; it rejects that header.
+req.add_unredirected_header('Authorization', 'Bearer '+os.environ['GH_TOKEN'])
 with urllib.request.urlopen(req, timeout=180) as response: body = response.read()
 assert hashlib.sha256(body).hexdigest() == '941c35e55ce655869a1b95d4b01513db4bb0e958b949084fc7e4bb1729dec402'
 out = Path('generated/heroine-opacity'); out.mkdir(parents=True,exist_ok=True)
