@@ -1,69 +1,86 @@
 name: Temporary kuumetsu immutable observation 20260922
-# Reuse exact merged publication for iteration 2 Observation First. Never merge this ops branch.
+# Same isolated session fallback; no canonical workflow changes and never merged.
 on:
   push:
     branches: [ops/kuumetsu-three-20260922-041446]
     paths: [.github/workflows/kuumetsu-session-20260922.yml]
 permissions:
   contents: read
-  actions: read
+  actions: write
   pull-requests: write
 env:
-  SOURCE_SHA: b7e928572a17a87cd08a3c35d7d5cf446fdd7de0
+  SOURCE_SHA: 2b7157d474c02558eff04c1f35f70285058e3cbe
+  PR_NUMBER: 1440
 jobs:
   observe:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: b7e928572a17a87cd08a3c35d7d5cf446fdd7de0
+          ref: 2b7157d474c02558eff04c1f35f70285058e3cbe
           persist-credentials: false
+      - name: Dispatch canonical exact-source demon staging
+        id: publish
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const at=new Date().toISOString();core.setOutput('started_at',at);
+            await github.rest.actions.createWorkflowDispatch({...context.repo,workflow_id:'dev-app-publish.yml',ref:'develop',inputs:{app:'demon',source_sha:process.env.SOURCE_SHA}});
+            const pr=await github.rest.pulls.get({...context.repo,pull_number:Number(process.env.PR_NUMBER)});
+            const marker=/<!-- autonomous-iteration-telemetry:v1:([A-Za-z0-9_-]+) -->/;
+            const t=JSON.parse(Buffer.from(pr.data.body.match(marker)[1],'base64url').toString());
+            const s=t.steps.implementation;s.state='done';s.completedAt=at;s.durationMs=Date.parse(at)-Date.parse(s.startedAt);
+            t.currentStep='causalValidation';t.updatedAt=at;t.prNumber=pr.data.number;t.steps.causalValidation={...t.steps.causalValidation,state:'running',startedAt:at};
+            t.changes=['persistent-trait-effects','native-copied-move-roles'];t.changedPaths=['apps/demon/src/web/lineage.js','apps/demon/src/web/lineage-move-plan.js','apps/demon/src/web/ominous-shell.css','apps/demon/tests/lineage-knowledge.test.mjs'];
+            t.improvementSummary='身体に残る特能のcanonical効果と、次の交戦の破・急・控えを転生史で説明する';
+            await github.rest.pulls.update({...context.repo,pull_number:pr.data.number,body:pr.data.body.replace(marker,`<!-- autonomous-iteration-telemetry:v1:${Buffer.from(JSON.stringify(t)).toString('base64url')} -->`)});
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Leaf causal preflight only; formal validation remains unarmed
+        run: |
+          mkdir -p session-evidence
+          node --test apps/demon/tests/lineage-knowledge.test.mjs | tee session-evidence/causal-preflight.log
+          node --input-type=module -e "import {validateRecord} from './.autonomous/lib/contract.mjs';import {readFileSync} from 'node:fs';validateRecord(JSON.parse(readFileSync('.autonomous/kuumetsu/experiments/kuumetsu-retained-power-20260922.json','utf8')));"
       - run: npx playwright install --with-deps chromium > /tmp/browser-install.log 2>&1
-      - name: Resolve preceding receipt and reuse exact immutable publication
+      - name: Bind immutable candidate and reuse existing native observer
         uses: actions/github-script@v8
+        env:
+          PUBLISH_STARTED_AT: ${{ steps.publish.outputs.started_at }}
         with:
           script: |
-            const fs=require('fs');fs.mkdirSync('session-evidence',{recursive:true});
-            const comment=await github.rest.issues.getComment({...context.repo,comment_id:5771545532});
-            const receipt=JSON.parse(comment.data.body.match(/```json\s*([\s\S]*?)```/)[1]);
-            if(receipt.status!=='MERGED_TO_DEVELOP'||receipt.merge.sha!==process.env.SOURCE_SHA)throw Error('Previous iteration receipt not final');
-            fs.writeFileSync('session-evidence/previous-receipt.json',JSON.stringify(receipt,null,2));
-            const pr=await github.rest.pulls.get({...context.repo,pull_number:1427});
-            const marker=/<!-- autonomous-iteration-telemetry:v1:([A-Za-z0-9_-]+) -->/;
-            const t=JSON.parse(Buffer.from(pr.data.body.match(marker)[1],'base64url').toString());
-            const advance=(from,to,at)=>{const s=t.steps[from];s.state='done';s.completedAt=at;s.durationMs=Date.parse(at)-Date.parse(s.startedAt);t.steps[to]={...t.steps[to],state:'running',startedAt:at};t.currentStep=to;t.updatedAt=at;};
-            if(t.currentStep==='astraValidation'){
-              advance('astraValidation','freshness','2026-09-22T05:11:17Z');advance('freshness','merge','2026-09-22T05:12:54.081Z');advance('merge','devPublish',receipt.merge.mergedAt);
-              t.validatedHead=receipt.validatedHead;t.mergeSha=receipt.merge.sha;t.verdict=receipt.verdict;
-              await github.rest.pulls.update({...context.repo,pull_number:1427,body:pr.data.body.replace(marker,`<!-- autonomous-iteration-telemetry:v1:${Buffer.from(JSON.stringify(t)).toString('base64url')} -->`)});
+            const fs=require('fs'),started=Date.parse(process.env.PUBLISH_STARTED_AT)-1000,seen=new Set();let publication=null;
+            for(let attempt=0;attempt<40&&!publication;attempt++){
+              const runs=await github.rest.actions.listWorkflowRuns({...context.repo,workflow_id:'dev-app-publish.yml',event:'workflow_dispatch',per_page:10});
+              for(const r of runs.data.workflow_runs.filter(r=>Date.parse(r.created_at)>=started&&r.status==='completed'&&r.conclusion==='success'&&!seen.has(r.id))){
+                const jobs=await github.rest.actions.listJobsForWorkflowRun({...context.repo,run_id:r.id,per_page:50});
+                for(const j of jobs.data.jobs){
+                  const log=await github.rest.actions.downloadJobLogsForWorkflowRun({...context.repo,job_id:j.id});const text=typeof log.data==='string'?log.data:Buffer.from(log.data).toString('utf8'),v=text.match(/Current Version ID:\s*([a-f0-9-]{36})/);
+                  if(v&&text.includes(process.env.SOURCE_SHA)){publication={sourceSha:process.env.SOURCE_SHA,runId:r.id,runUrl:r.html_url,jobId:j.id,versionId:v[1],url:`https://${v[1].slice(0,8)}-soul-lineage-demon-dev.c-okamoto.workers.dev/`};break;}
+                }
+                seen.add(r.id);if(publication)break;
+              }
+              if(!publication)await new Promise(r=>setTimeout(r,15000));
             }
-            const runId=35689878982,run=await github.rest.actions.getWorkflowRun({...context.repo,run_id:runId});
-            if(run.data.head_sha!==process.env.SOURCE_SHA||run.data.conclusion!=='success')throw Error('Exact merged Before publication not reusable');
-            const jobs=await github.rest.actions.listJobsForWorkflowRun({...context.repo,run_id:runId,per_page:50});let publication=null;
-            for(const j of jobs.data.jobs){
-              if(!j.name.includes('demon'))continue;
-              const log=await github.rest.actions.downloadJobLogsForWorkflowRun({...context.repo,job_id:j.id});
-              const text=typeof log.data==='string'?log.data:Buffer.from(log.data).toString('utf8');const v=text.match(/Current Version ID:\s*([a-f0-9-]{36})/);
-              if(v&&text.includes(process.env.SOURCE_SHA)){publication={sourceSha:process.env.SOURCE_SHA,runId,runUrl:run.data.html_url,jobId:j.id,versionId:v[1],url:`https://${v[1].slice(0,8)}-soul-lineage-demon-dev.c-okamoto.workers.dev/`};break;}
-            }
-            if(!publication)throw Error('Missing immutable version coordinate');
-            publication.version=await(await fetch(new URL('version.json',publication.url))).json();if(publication.version.commit!==process.env.SOURCE_SHA)throw Error('immutable identity mismatch');
-            publication.boundAt=new Date().toISOString();fs.writeFileSync('session-evidence/publication.json',JSON.stringify(publication,null,2));core.exportVariable('PREVIEW_URL',publication.url);
+            if(!publication)throw Error('No exact immutable publication; never substitute mutable latest');
+            publication.version=await(await fetch(new URL('version.json',publication.url))).json();if(publication.version.commit!==process.env.SOURCE_SHA)throw Error('immutable version mismatch');
+            publication.boundAt=new Date().toISOString();fs.writeFileSync('session-evidence/publication.json',JSON.stringify(publication,null,2));core.exportVariable('PREVIEW_URL',publication.url);core.info(JSON.stringify(publication));
             const r=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-session-observe.mjs',ref:context.sha});let source=Buffer.from(r.data.content,'base64').toString('utf8');
             source=source.replace("if(await gate.isVisible()){await tap('#soul-brand-boot');", "if(await gate.isVisible()){await page.waitForFunction(()=>document.querySelector('#soul-brand-boot')?.classList.contains('armed'));await tap('#soul-brand-boot');");
-            source=source.replace("await capture('05-lineage');","await capture('05-lineage');await page.setViewportSize({width:360,height:841});await capture('06-lineage-narrow');");
-            fs.writeFileSync('session-observe.mjs',source);fs.writeFileSync('session-evidence/observer.mjs',source);core.info(JSON.stringify(publication));
-      - name: Iteration 2 fresh immutable Before native play
+            source=source.replace("await capture('05-lineage');","await capture('05-lineage');await page.setViewportSize({width:360,height:841});await capture('06-lineage-narrow');await page.mouse.move(180,650);await page.mouse.wheel(0,330);await page.waitForTimeout(500);await capture('07-lineage-details-narrow');");
+            fs.writeFileSync('session-observe.mjs',source);fs.writeFileSync('session-evidence/observer.mjs',source);
+            const pr=await github.rest.pulls.get({...context.repo,pull_number:Number(process.env.PR_NUMBER)}),marker=/<!-- autonomous-iteration-telemetry:v1:([A-Za-z0-9_-]+) -->/;
+            const t=JSON.parse(Buffer.from(pr.data.body.match(marker)[1],'base64url').toString()),at=new Date().toISOString(),s=t.steps.causalValidation;
+            s.state='done';s.completedAt=at;s.durationMs=Date.parse(at)-Date.parse(s.startedAt);t.currentStep='afterObservation';t.updatedAt=at;t.steps.afterObservation={...t.steps.afterObservation,state:'running',startedAt:at};
+            await github.rest.pulls.update({...context.repo,pull_number:pr.data.number,body:pr.data.body.replace(marker,`<!-- autonomous-iteration-telemetry:v1:${Buffer.from(JSON.stringify(t)).toString('base64url')} -->`)});
+      - name: Iteration 2 immutable candidate native play
         run: node session-observe.mjs > session-evidence/browser.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-three-20260922-041446-i2-before
+          name: kuumetsu-three-20260922-041446-i2-after
           path: session-evidence
           retention-days: 14
