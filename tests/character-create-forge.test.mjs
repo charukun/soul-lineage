@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync,spawnSync} from 'node:child_process';
-import {mkdtempSync,readFileSync,existsSync,rmSync} from 'node:fs';
+import {mkdtempSync,readFileSync,existsSync,rmSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 
@@ -22,6 +22,9 @@ test('Forge keeps observed views, exports real skin/clips, and registers only va
     assert.ok(multi.manifest.skeleton.bones.length>=20);assert.ok(multi.manifest.animations.length>=6);
     const sheet=create('sheet',['--sheet',join(fixture,'character-sheet.png')]);assert.equal(sheet.spec.reconstructionMode,'multi-view');assert.equal(Object.keys(sheet.spec.views).length,3);
     const single=create('single',['--front',join(fixture,'front.png')]);assert.equal(single.spec.reconstructionMode,'single-view');assert.equal(single.spec.depthMeasurements.chest.status,'inferred');
+    const baseAnalysis=join(fixture,'base-only.json');writeFileSync(baseAnalysis,JSON.stringify({baseMeshOnly:true,parts:[]}));
+    const baseOnly=create('base-only',['--front',join(fixture,'front.png'),'--side',join(fixture,'side.png'),'--back',join(fixture,'back.png'),'--analysis',baseAnalysis]);
+    assert.ok(!baseOnly.spec.components.some(c=>c.id==='clothing'||c.id==='rearHair'),'Golden Base must not synthesize clothing or hair shells');
     assert.notDeepEqual(single.spec.components.find(c=>c.id==='head').rings,multi.spec.components.find(c=>c.id==='head').rings,'Side must change depth geometry');
     execFileSync(python,['-c','from PIL import Image; import sys; Image.open(sys.argv[1]).resize((220,360)).save(sys.argv[2])',join(fixture,'back.png'),join(fixture,'wide-back.png')]);
     const wider=create('wide-back',['--front',join(fixture,'front.png'),'--side',join(fixture,'side.png'),'--back',join(fixture,'wide-back.png')]);
