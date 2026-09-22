@@ -38,12 +38,12 @@ const probe=path.join(root,'apps/character-studio/heroine-motion-probe.js');awai
 const shots=path.join(out,'runtime');await mkdir(shots,{recursive:true});
 try{
  await page.goto('http://127.0.0.1:5177/',{waitUntil:'networkidle',timeout:90000});
- await page.waitForFunction(()=>window.masterCharacterReview?.ready&&window.characterStudio,{timeout:90000});
+ await page.waitForFunction(()=>window.masterCharacterReview?.ready&&window.characterStudio,null,{timeout:90000});
  await page.evaluate(async original=>{await window.masterCharacterReview.loadReferenceModel({kind:'dcc-character-model',id:'qa.before.rogue',assetId:'qa.before.rogue.asset',label:'比較元 Rogue',integrityPath:'/qa-before-rogue.asset.json',assetPath:'https://soul-lineage-review-dev.c-okamoto.workers.dev/library/model/'+original.gitBlobSha+'/Rogue.glb',sourceDisplay:{excludeMeshNodes:['Knife_Offhand','1H_Crossbow','2H_Crossbow','Knife','Throwable']}});window.masterCharacterReview.configure({paused:true,rotate:false,view:'single'});},original);
- await page.waitForFunction(()=>window.masterCharacterReview.ready&&window.masterCharacterReview.audit?.modelId==='qa.before.rogue',{timeout:60000});
+ await page.waitForFunction(()=>window.masterCharacterReview.ready&&window.masterCharacterReview.audit?.modelId==='qa.before.rogue',null,{timeout:60000});
  for(const view of ['front','three-quarter','side','back','face']){await page.evaluate(v=>window.masterCharacterReview.aim(v==='three-quarter'?'overview':v),view);await page.waitForTimeout(400);await page.locator('#stage').screenshot({path:path.join(shots,'before-'+view+'.png')});}
- await page.locator('[data-character-model="protagonist.villager.female.v1"]').click();
- await page.waitForFunction(()=>window.masterCharacterReview?.ready&&window.masterCharacterReview?.audit?.modelId==='protagonist.villager.female.v1',{timeout:60000});
+ await page.locator('.character-model-card[data-model-key="protagonist.villager.female.v1"]').click();
+ await page.waitForFunction(()=>window.masterCharacterReview?.ready&&window.masterCharacterReview?.audit?.modelId==='protagonist.villager.female.v1',null,{timeout:60000});
  await page.evaluate(()=>window.masterCharacterReview.configure({paused:true,rotate:false,view:'single'}));
  const canvas=page.locator('#stage');await canvas.scrollIntoViewIfNeeded();
  for(const view of ['front','three-quarter','side','back','face']){await page.evaluate(v=>window.masterCharacterReview.aim(v==='three-quarter'?'overview':v),view);await page.waitForTimeout(450);await canvas.screenshot({path:path.join(shots,view+'.png')});}
