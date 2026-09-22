@@ -1,3 +1,4 @@
+import {createRinneWeapon} from '@soul/assets/equipment/three';
 import * as THREE from 'three';
 import { defs, muraBlocked } from '@soul/world/mura';
 import { createMuraModels } from '@soul/rendering/mura';
@@ -67,17 +68,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   function mat(color,extra={}){return new THREE.MeshStandardMaterial({color,roughness:.76,metalness:.08,...extra});}
   function box(parent,size,pos,color){const g=new THREE.BoxGeometry(...size),m=mat(color),mesh=new THREE.Mesh(g,m);mesh.position.set(...pos);parent.add(mesh);return mesh;}
   function cyl(parent,r,h,pos,color,segments=10){const g=new THREE.CylinderGeometry(r,r,h,segments),m=mat(color),mesh=new THREE.Mesh(g,m);mesh.position.set(...pos);parent.add(mesh);return mesh;}
-  function blade(parent,length=.9,width=.09,color=0xd8d8cf){const g=new THREE.BoxGeometry(width,length,.055),m=mat(color,{metalness:.6,roughness:.3}),mesh=new THREE.Mesh(g,m);mesh.position.y=length/2+.18;parent.add(mesh);box(parent,[.34,.055,.09],[0,.18,0],0x8c724a);cyl(parent,.045,.3,[0,.03,0],0x5d4532,8);return mesh;}
-  function weaponVisual(id,mini=false){const g=new THREE.Group(),s=mini?.58:1;
-    if(id==='fist'){cyl(g,.08,.28,[0,.18,0],0x8a7050,8);box(g,[.28,.08,.12],[0,.34,0],0xb69a72);}
-    else if(id==='dagger')blade(g,.48,.105);
-    else if(id==='sword')blade(g,.9,.09);
-    else if(id==='great'){blade(g,1.25,.16);g.scale.x=1.12;}
-    else if(id==='spear'){cyl(g,.035,1.55,[0,.78,0],0x775b42,8);const tip=new THREE.Mesh(new THREE.ConeGeometry(.105,.32,6),mat(0xd8d8cf,{metalness:.6,roughness:.3}));tip.position.y=1.72;g.add(tip);}
-    else if(id==='axe'){cyl(g,.045,1.15,[0,.58,0],0x775b42,8);box(g,[.38,.34,.08],[.15,1.03,0],0xbfc0b5);}
-    else if(id==='staff'){cyl(g,.05,1.5,[0,.75,0],0x72523e,10);const orb=new THREE.Mesh(new THREE.SphereGeometry(.13,12,8),mat(0x8aa8a3,{emissive:0x304947,emissiveIntensity:.6}));orb.position.y=1.55;g.add(orb);}
-    g.scale.setScalar(s);return g;
-  }
+  const weaponVisual=(id,mini=false)=>createRinneWeapon(THREE,id,mini);
 
   const interiors=buildInteriors(layout),interiorById=new Map(interiors.map(row=>[row.id,row])),interiorGroups=new Map();
   for(const interior of interiors){
@@ -204,4 +195,5 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   }
   return{THREE,scene,camera,viewport,presentationCamera,renderState,cameraVector,screenDirection,canMoveTo,sampleActorGround,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,setTitlePreviewQuality,qualitySnapshot:()=>qualityGovernor.snapshot(),visualSnapshot:()=>({focus:focusEffect.snapshot(),lighting:lighting.snapshot(),contacts:contacts.snapshot()}),dispose};
 }
+
 
