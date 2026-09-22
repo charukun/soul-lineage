@@ -9,5 +9,5 @@ test('battle2 body HUD is a compact six-part liquid gauge beside the player card
  assert.match(hud,/COMBAT_BODY_PARTS/);assert.match(hud,/combatBodySnapshot/);assert.match(hud,/battle2-body-hud__liquid/);assert.match(hud,/--level/);
  assert.doesNotMatch(hud,/battle2-body-hud__detail|battle2-body-hud__gauge|function toggle|aria-expanded|addEventListener\('click'/);
  assert.match(css,/width:40px;height:46px/);assert.match(css,/height:var\(--level\)/);assert.match(css,/@keyframes b2-body-water/);assert.match(css,/@keyframes b2-body-bubbles/);assert.match(css,/@keyframes b2-body-surge/);assert.match(css,/@keyframes b2-body-splash/);
- assert.match(css,/data-body-part=head/);assert.match(css,/data-body-part=torso/);assert.match(css,/data-hit=true/);assert.match(version,/BATTLE2_VERSION='2\.2\.38'/);
+ assert.match(css,/data-body-part=head/);assert.match(css,/data-body-part=torso/);assert.match(css,/data-hit=true/);assert.match(version,/BATTLE2_VERSION='2\.2\.39'/);
 });
