@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import './hybrid-25d-lab.css';
+import {createSprite25dActor} from '@soul/assets/sprite25d/three';
 
 const MODEL_URL='./library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb';
 const VIEW_PRESETS=Object.freeze({
@@ -88,7 +89,9 @@ function createHybridPreview(canvas,onStatus){
 
   const modelGroup=new THREE.Group();modelGroup.position.set(-1.2,0,0);scene.add(modelGroup);
   const loader=new GLTFLoader();let modelRoot=null,mixer=null,modelReady=false;
+  let spriteActor=null,destroyed=false,imageRevision=0;
   loader.load(new URL(MODEL_URL,location.href).href,gltf=>{
+    if(destroyed){gltf.scene.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)});return;}
     modelRoot=gltf.scene;modelGroup.add(modelRoot);
     modelRoot.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true}});
     const box=new THREE.Box3().setFromObject(modelRoot),size=box.getSize(new THREE.Vector3());
@@ -114,14 +117,25 @@ function createHybridPreview(canvas,onStatus){
     const t=performance.now()*.001;
     card.position.y=(card.scale.y*.5)+(idleMotion?Math.sin(t*2.2)*.018:0);
     if(billboard){const dx=camera.position.x-cardGroup.position.x,dz=camera.position.z-cardGroup.position.z;cardGroup.rotation.y=Math.atan2(dx,dz)}else cardGroup.rotation.y=0;
-    controls.update();renderer.render(scene,camera);raf=requestAnimationFrame(frame);
+    controls.update();
+    if(spriteActor){spriteActor.object.position.copy(cardGroup.position);spriteActor.update({camera,delta,billboard});}
+    renderer.render(scene,camera);raf=requestAnimationFrame(frame);
   };frame();
 
   return{
+    async setCharacter(bundle){
+      const revision=++imageRevision,next=await createSprite25dActor(THREE,bundle);
+      if(destroyed||revision!==imageRevision){next.dispose();return;}
+      spriteActor?.dispose();spriteActor=next;scene.add(next.object);card.visible=false;next.setOpacity(arrangement==='overlay'?.74:1);
+    },
+    clearCharacter(){imageRevision++;spriteActor?.dispose();spriteActor=null;card.visible=true;},
+    setSpritePreview(action,direction){spriteActor?.setPreview(action,direction);},
     async setImage(file){
-      const url=URL.createObjectURL(file);
+      const revision=++imageRevision,url=URL.createObjectURL(file);
       try{
         const texture=await new THREE.TextureLoader().loadAsync(url);texture.colorSpace=THREE.SRGBColorSpace;
+        if(destroyed||revision!==imageRevision){texture.dispose();return;}
+        spriteActor?.dispose();spriteActor=null;card.visible=true;
         const previous=cardMaterial.map;cardMaterial.map=texture;cardMaterial.needsUpdate=true;fitCard(texture);previous?.dispose?.();
       }finally{URL.revokeObjectURL(url)}
     },
@@ -132,13 +146,13 @@ function createHybridPreview(canvas,onStatus){
       arrangement=value==='overlay'?'overlay':'split';
       if(arrangement==='overlay'){modelGroup.position.set(-.12,0,-.12);cardGroup.position.set(.12,0,.12);cardMaterial.opacity=.74}
       else{modelGroup.position.set(-1.2,0,0);cardGroup.position.set(1.2,0,0);cardMaterial.opacity=1}
-      cardMaterial.transparent=true;
+      cardMaterial.transparent=true;spriteActor?.setOpacity(cardMaterial.opacity);
     },
     setView(name){
       const angle=VIEW_PRESETS[name]??VIEW_PRESETS.quarter;const radius=5.7;camera.position.set(Math.sin(angle)*radius,2.55,Math.cos(angle)*radius);controls.target.set(0,.85,0);controls.update();
     },
-    getState(){return{modelReady,billboard,idleMotion,arrangement}},
-    destroy(){cancelAnimationFrame(raf);controls.dispose();renderer.dispose();groundTexture.dispose();ground.geometry.dispose();disposeMaterial(ground.material);grid.geometry.dispose();disposeMaterial(grid.material);card.geometry.dispose();disposeMaterial(card.material);shadow.geometry.dispose();disposeMaterial(shadow.material);proxy.geometry.dispose();disposeMaterial(proxy.material);if(modelRoot)modelRoot.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)})}
+    getState(){return{modelReady,billboard,idleMotion,arrangement,spriteStatus:spriteActor?.getStatus()||null}},
+    destroy(){if(destroyed)return;destroyed=true;imageRevision++;spriteActor?.dispose();cancelAnimationFrame(raf);controls.dispose();renderer.dispose();groundTexture.dispose();ground.geometry.dispose();disposeMaterial(ground.material);grid.geometry.dispose();disposeMaterial(grid.material);card.geometry.dispose();disposeMaterial(card.material);shadow.geometry.dispose();disposeMaterial(shadow.material);proxy.geometry.dispose();disposeMaterial(proxy.material);if(modelRoot)modelRoot.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)})}
   };
 }
 
@@ -152,7 +166,7 @@ export function mountHybrid25dLab(){
         <label class="hybrid25d-upload"><input type="file" accept="image/png,image/jpeg,image/webp"><b>2Dキャラ画像を選ぶ</b><span>透過PNG推奨。端末内の絵をそのまま3D空間へ置きます。</span></label>
         <div class="hybrid25d-switches">
           <label><input type="checkbox" data-billboard checked><span>カメラ追従</span></label>
-          <label><input type="checkbox" data-idle checked><span>微動</span></label>
+          <label><input type="checkbox" data-idle checked><span>微動（単一画像）</span></label>
           <label><input type="checkbox" data-proxy><span>3D proxy表示</span></label>
         </div>
         <div class="hybrid25d-arrange"><button type="button" data-arrange="split" aria-pressed="true">並べる</button><button type="button" data-arrange="overlay" aria-pressed="false">重ね比較</button></div>
@@ -183,4 +197,5 @@ export function mountHybrid25dLab(){
   for(const button of section.querySelectorAll('[data-view]'))button.addEventListener('click',()=>preview.setView(button.dataset.view));
   preview.setView('quarter');
   addEventListener('pagehide',()=>preview.destroy(),{once:true});
+  return {section,preview};
 }

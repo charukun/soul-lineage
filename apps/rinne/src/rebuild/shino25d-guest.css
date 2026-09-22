@@ -1,0 +1,5 @@
+.shino25d-guest{position:fixed;z-index:800;top:calc(env(safe-area-inset-top,0px) + 8px);right:8px;width:min(270px,calc(100vw - 24px));max-height:45dvh;overflow:auto;box-sizing:border-box;padding:10px;border:1px solid #777250;border-radius:9px;background:#14231fed;color:#e8dec2;font:inherit;font-size:12px;line-height:1.6;box-shadow:0 6px 24px #0008}
+.shino25d-guest summary{cursor:pointer;font-weight:700}.shino25d-guest p{margin:8px 0;color:#bfc6b4}
+.shino25d-guest input{display:block;max-width:100%;margin:8px 0;color:inherit;font:inherit}.shino25d-guest output{display:block;overflow-wrap:anywhere;margin-top:8px}
+.shino25d-guest button{padding:7px 10px;border:1px solid #827b50;border-radius:5px;background:#304033;color:inherit;font:inherit;cursor:pointer}
+.shino25d-guest :focus-visible{outline:2px solid #ded09b;outline-offset:3px}
