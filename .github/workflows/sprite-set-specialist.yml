@@ -1,0 +1,54 @@
+name: Sprite Set Specialist - task branch only
+on:
+  push:
+    branches: [work/sprite-set-specialist-20260923]
+    paths: [.github/workflows/sprite-set-specialist.yml]
+permissions:
+  contents: write
+concurrency:
+  group: sprite-set-specialist-1492
+  cancel-in-progress: false
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_ENV: dev
+      SOURCE_SHA: e6522f31d8c6d3608d8e7231241f3bae193762f3
+      TARGET_BRANCH: work/character-sprite-set-v1
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Focused format and playback tests
+        run: node --test packages/assets/tests/character-sprite-set.test.mjs
+      - name: Bake and browser-verify the pinned source
+        run: node scripts/sprite-set/bake-sample.mjs
+      - name: Commit only generated sample files to the same task branch
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git ls-remote origin refs/heads/$TARGET_BRANCH | cut -f1)" = "$SOURCE_SHA"
+          git add -- apps/review/public/sprite-sets/kaykit-knight
+          test "$(git diff --cached --name-only | grep -vc '^apps/review/public/sprite-sets/kaykit-knight/' || true)" = 0
+          git config user.name 'Sprite Set asset bake'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(assets): materialize thirteen verified Knight action sheets'
+          git push origin HEAD:refs/heads/$TARGET_BRANCH
+          git rev-parse HEAD | tee .deploy-state/sprite-set-bake/materialized-head.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sprite-set-bake-${{ env.SOURCE_SHA }}
+          path: |
+            .deploy-state/sprite-set-bake
+            apps/review/public/sprite-sets/kaykit-knight
+          retention-days: 14
