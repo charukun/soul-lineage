@@ -1,69 +1,69 @@
-# Task-scoped bulk/observation route; removed before the final Astra validation.
+# Task-scoped bulk/observation path. Removed before final Astra validation.
 name: Task KayKit Library
 on:
   push:
     branches: [work/kaykit-character-library-20260922]
     paths: [.github/workflows/task-kaykit-library.yml]
 permissions:
-  contents: read
+  contents: write
+  actions: read
 jobs:
-  acquire:
-    if: contains(github.event.head_commit.message, '[kaykit-acquire]')
+  integrate:
+    if: contains(github.event.head_commit.message, '[kaykit-integrate]')
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
+    env:
+      APP_ENV: dev
+      APP_BRANCH: work/kaykit-character-library-20260922
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 1
-      - name: Acquire only publisher-listed free downloads and inventory original archives
+      - uses: actions/download-artifact@v4
+        with:
+          name: kaykit-acquire
+          run-id: 35681283338
+          github-token: ${{ github.token }}
+          path: /tmp/kaykit-acquire
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Materialize locked originals and integrate existing library consumers
         run: |
-          python3 - <<'PY'
-          import pathlib, subprocess, zipfile, json, urllib.request, urllib.parse, http.cookiejar, re, hashlib, io
-          out=pathlib.Path('/tmp/kaykit-acquire'); out.mkdir()
-          summary=[]
-          for slug,expected in [('kaykit-adventurers','15363167'),('kaykit-skeletons','15363145'),('prototype-bits','15362979')]:
-            base='https://kaylousberg.itch.io/'+slug
-            opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-            opener.addheaders=[('User-Agent','Mozilla/5.0')]
-            item={'sourceUrl':base,'slug':slug,'expectedUploadId':expected}
-            try:
-              html=opener.open(base,timeout=45).read().decode()
-              def token(text): return re.search(r'name="csrf_token"\s+value="([^"]+)"',text).group(1)
-              def post(url,html,referer):
-                return json.loads(opener.open(urllib.request.Request(url,data=urllib.parse.urlencode({'csrf_token':token(html)}).encode(),headers={'Referer':referer,'X-Requested-With':'XMLHttpRequest'}),timeout=45).read())
-              link=post(base+'/download_url',html,base)['url']
-              dl=opener.open(link,timeout=45).read().decode()
-              ids=re.findall(r'data-upload_id="(\d+)"',dl)
-              assert expected in ids, 'Expected free upload not listed by publisher'
-              res=post(base+'/file/'+expected,dl,link)
-              if 'url' not in res:
-                item['downloadResponse']=res
-                raise RuntimeError('Publisher did not return a free download URL')
-              data=opener.open(res['url'],timeout=120).read(80*1024*1024+1)
-              assert len(data)<80*1024*1024 and data[:2]==b'PK'
-              archive=out/(slug+'.zip'); archive.write_bytes(data)
-              item.update(sha256=hashlib.sha256(data).hexdigest(),byteLength=len(data),files=[])
-              with zipfile.ZipFile(io.BytesIO(data)) as z:
-                for info in z.infolist():
-                  item['files'].append({'path':info.filename,'bytes':info.file_size})
-                  if not info.is_dir() and ('license' in info.filename.lower() or info.filename.lower().endswith('.glb')):
-                    b=z.read(info); target=out/slug/info.filename; target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(b)
-              item['status']='acquired'
-            except Exception as e: item.update(status='failed',error=str(e))
-            summary.append(item)
-          # Repository-native comparison inputs, not new third-party runtime sources.
-          with zipfile.ZipFile(out/'existing-models-motion.zip','w',zipfile.ZIP_DEFLATED) as z:
-            for p in pathlib.Path('apps/review/public/library').rglob('*.glb'):
-              if '/motion/kaykit-' in str(p) or p.name.lower() in ['knight.glb','barbarian.glb','mage.glb','rogue.glb','rogue_hooded.glb','skeleton_warrior.glb','skeleton_rogue.glb','skeleton_mage.glb','skeleton_minion.glb']:
-                z.write(p,str(p))
-          (out/'acquisition.json').write_text(json.dumps(summary,indent=2))
-          print(json.dumps([{k:v for k,v in s.items() if k!='files'} for s in summary],indent=2))
-          PY
+          set -euo pipefail
+          python3 scripts/task-kaykit-integrate.py /tmp/kaykit-acquire
+          python3 scripts/assets/materialize-kaykit-current.py /tmp/kaykit-acquire
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/assets/kaykit-current-20260922.json packages/characters/src/index.js packages/characters/generated/kaykit-current.json apps/review/public/library apps/character-studio/src/review/character/main.js apps/character-studio/src/review/character/grid.js apps/character-studio/src/review/character/grid.css apps/rinne/src/review/motion/models.js apps/rinne/src/review/motion/source-runtime.js apps/rinne/tests/review-motion-protagonist.test.mjs
+          git commit -m 'feat: materialize ten current KayKit GLBs with official licenses and lazy canonical library'
+          git push origin HEAD:${{ github.ref_name }}
+      - name: Install dependencies for explicit browser and build validation
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Verify actual motion compatibility and generate existing-renderer thumbnails
+        run: |
+          set -euo pipefail
+          node scripts/browser/kaykit-library.mjs --generate
+          git add packages/characters/generated/kaykit-current.json apps/review/public/library/manifest.json apps/review/public/library/thumbnail/kaykit-current-20260922
+          git commit -m 'art: materialize observed KayKit thumbnails and real shared-animation compatibility receipts'
+          git push origin HEAD:${{ github.ref_name }}
+      - name: Build all explicitly requested consumers and run focused regressions
+        run: |
+          set -euo pipefail
+          mkdir -p .deploy-state/kaykit-library
+          npm run build --workspace @soul/rinne 2>&1 | tee .deploy-state/kaykit-library/build-rinne.log
+          npm run build --workspace @soul/character-studio 2>&1 | tee .deploy-state/kaykit-library/build-studio.log
+          npm run build --workspace @soul/review 2>&1 | tee .deploy-state/kaykit-library/build-review.log
+          node --test packages/characters/tests/kaykit-library.test.mjs packages/characters/tests/kaykit-foundation.test.mjs apps/character-studio/tests/character-review-grid.test.mjs apps/rinne/tests/review-motion-protagonist.test.mjs packages/rendering/tests/kaykit-rig.test.mjs packages/rendering/tests/kaykit-runtime-model.test.mjs 2>&1 | tee .deploy-state/kaykit-library/focused-tests.log
+      - name: Observe exact built source in real review UIs
+        run: node scripts/browser/kaykit-library.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kaykit-acquire
-          path: /tmp/kaykit-acquire/
+          name: kaykit-library-observation
+          path: .deploy-state/kaykit-library/
           retention-days: 3
-          if-no-files-found: error
+          if-no-files-found: warn
