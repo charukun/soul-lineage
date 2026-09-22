@@ -7,6 +7,7 @@ import { createHeartTechniqueBodyUI } from './heart-technique-body-ui.js';
 import { decorateSelectionDetail, installSelectionDetail } from './selection-detail.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import {rinnePrimaryFourMarkup} from '@soul/shared-ui/rinne-primary-four';
+import {rinneLoadoutPanelMarkup} from '@soul/shared-ui/rinne-loadout-menu';
 import {sequenceHudState,meleeSequenceHudState} from './combat-sequence-hud.js';
 import {tidebreakMindVectorFor} from './rebuild/combat-tactics.js';
 import './rebuild/conversation-input.css';
@@ -17,7 +18,7 @@ import '@soul/shared-ui/combat-sequence.css';
 import './dark-navy-hud.css';
 import './playable-core-ui.css';
 import './rinne-world-ui.css';
-import './rinne-core-menu.css';
+import '@soul/shared-ui/rinne-loadout-menu.css';
 import './combat-exchange-cue.css';
 import '@soul/shared-ui/rinne-primary-four.css';
 import {RINNE_UI_VERSION} from './ui-version.js';
@@ -56,7 +57,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     </aside>
 
     <button data-one-motion class="one-motion-control" type="button" hidden><b>奥</b><span><strong data-one-motion-name>奥義</strong><small>消耗大 / 隙大</small></span></button>
-    <section data-panel class="rinne-core-menu" hidden aria-modal="true" aria-label="旅人の手帳"><header class="rinne-core-menu-head"><span class="rinne-core-menu-mark" aria-hidden="true">✦</span><div><small>旅人の手帳</small><strong data-title></strong></div><button data-close aria-label="閉じる">×</button></header><div data-body class="rinne-core-menu-body"></div></section>
+    ${rinneLoadoutPanelMarkup()}
     <aside data-spark class="technique-spark" role="status" aria-live="polite" hidden><div><span>ひらめいた！</span><strong data-spark-name></strong><small>技として覚えた</small></div><button data-spark-set type="button">うれしい</button></aside>
     <div data-rest class="upgrade-rest" hidden><span></span><strong>ひとやすみ</strong><small>息を整えている</small></div>
     <div data-training class="upgrade-training" hidden><strong>かかし</strong><span data-training-name>稽古</span><small>近づくと稽古できる</small></div>`;
