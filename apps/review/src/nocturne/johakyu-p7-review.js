@@ -18,7 +18,7 @@ const LAYOUT=Object.freeze({hero:{x:0,z:.35,yaw:0},'enemy-a':{x:0,z:2.25,yaw:Mat
 const TARGETS=Object.freeze({hero:['enemy-a','enemy-b','enemy-c'],'enemy-a':['hero'],'enemy-b':['hero'],'enemy-c':['hero']});
 const KIND_DAMAGE=Object.freeze({slash:13,back:13,thrust:15,pierce:17,heavy:24,diagonal:17,sweep:15,counter:21,bash:12,pommel:11});
 const RHYTHM_SECONDS=Object.freeze({sharp:.58,flow:.66,weight:.82,elastic:.64,seamless:.54});
-const CONTACT_REACH=2.35,BODY_CLEARANCE=1.46,ENGAGE_DISTANCE=1.7,DISENGAGE_DISTANCE=3.05,COUNTER_PRESS_DISTANCE=1.62;
+const CONTACT_REACH=2.35,BODY_CLEARANCE=1.46,ENGAGE_DISTANCE=1.7,DISENGAGE_DISTANCE=3.05,COUNTER_PRESS_DISTANCE=1.62,RANGE_ARRIVAL_TOLERANCE=.06;
 const RECOVERY_SECONDS=Object.freeze({miss:.62,blocked:.52,parried:.78,countered:.88,'hit-before-contact':.42,hit:.28,'enemy-attack-reset':.9,'weapon-clash':.34});
 const PHASE_CUE_SECONDS=.5,PHASE_CUE_PRESENTATION=Object.freeze({jo:Object.freeze({clip:'Jump_Start',poseStart:.04,poseEnd:.56,motion:'crouch',glow:'#ff8f32'}),ha:Object.freeze({clip:'Blocking',poseStart:.08,poseEnd:.76,motion:'brace',glow:'#ffa447'}),kyu:Object.freeze({clip:'Spellcast_Raise',poseStart:.1,poseEnd:.7,motion:'charge',glow:'#ffbb63'})});
 const REACTION_SECONDS=Object.freeze({guard:.36,parry:.32,slip:.3,counter:.52}),DEFENSE_COOLDOWN=Object.freeze({guard:.24,parry:.3,slip:.2}),HEAVY_THREATS=new Set(['heavy','sweep','bash','pommel']);
@@ -160,8 +160,8 @@ function resolveBodySeparation(battle,positions){
 function maneuverDone(positions,actor,target,maneuver,now){
   if(!maneuver||now>=maneuver.until)return true;
   const distance=distanceBetween(positions,actor,target);
-  if(maneuver.footwork==='retreat'&&Number.isFinite(maneuver.stopDistance))return distance>=maneuver.stopDistance-.015;
-  if(['forward','chase','rush'].includes(maneuver.footwork)&&Number.isFinite(maneuver.stopDistance))return distance<=maneuver.stopDistance+.015;
+  if(maneuver.footwork==='retreat'&&Number.isFinite(maneuver.stopDistance))return distance>=maneuver.stopDistance-RANGE_ARRIVAL_TOLERANCE;
+  if(['forward','chase','rush'].includes(maneuver.footwork)&&Number.isFinite(maneuver.stopDistance))return distance<=maneuver.stopDistance+RANGE_ARRIVAL_TOLERANCE;
   return false;
 }
 function advanceFootwork(battle,positions,actions,maneuvers,now,dt,loadout=null){
@@ -314,11 +314,11 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
       maneuvers.delete(actor.id);return true;
     }
     if(kind==='counter'&&counterWindow?.against===target.id&&time<=counterWindow.until){
-      if(distance>COUNTER_PRESS_DISTANCE){setManeuver(actor,target,{reason:'counter-press',footwork:'chase',seconds:.5,stopDistance:COUNTER_PRESS_DISTANCE});return false;}
+      if(distance>COUNTER_PRESS_DISTANCE+RANGE_ARRIVAL_TOLERANCE){setManeuver(actor,target,{reason:'counter-press',footwork:'chase',seconds:.5,stopDistance:COUNTER_PRESS_DISTANCE});return false;}
       maneuvers.delete(actor.id);return true;
     }
     const attackFootwork=node.stage.step.footwork,deepEntry=['rush','cross','spiral','counterL','counterR'].includes(attackFootwork),baseLaunch=attackFootwork==='rush'?1.82:attackFootwork==='cross'?1.78:attackFootwork==='spiral'?1.76:attackFootwork==='chase'?1.74:attackFootwork==='forward'?1.7:attackFootwork==='orbitL'||attackFootwork==='orbitR'?1.68:1.62,launchDistance=Math.max(preferredWeaponSpacing(actor,loadout,{deep:deepEntry}),Math.min(CONTACT_REACH-.08,baseLaunch));
-    if(stageDamage(node.stage)>0&&distance>launchDistance){
+    if(stageDamage(node.stage)>0&&distance>launchDistance+RANGE_ARRIVAL_TOLERANCE){
       setManeuver(actor,target,{reason:'engage-range',footwork:distance>3.05?'chase':'forward',seconds:.85,stopDistance:launchDistance});return false;
     }
     return true;
