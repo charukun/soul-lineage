@@ -9,18 +9,7 @@ Routine implementation is Astra-driven and optimized to avoid CI churn while pre
 - Use the connected GitHub Connector to read current source and construct the implementation on that branch.
 - Prefer composing a coherent tree and moving the branch ref once when practical. Intermediate commits are allowed, but do not stop to wait for validation on superseded heads.
 - Code Mode / V8 checks are preflight only.
-
-### Bounded observation feedback for real-output work
-
-When the task's acceptance criteria depend on what a player or reviewer actually sees, feels, or receives from generated output, add a bounded evidence round before the final merge-owning validation.
-
-- Use the existing task-specific review/evidence route to produce the smallest representative real output after the implementation is coherent.
-- Inspect the result and repair concrete in-scope defects before arming the final `[astra-validate]` head.
-- In normal Fast work, use one observation round and at most one repair/recheck round. If the result still needs substantial iteration, continue through the existing specialist DCC/browser/Visual Review/autonomous route rather than making Fast DEV heavier.
-- Prefer Actions artifacts or the existing review/evidence store for intermediate screenshots, traces, generated assets, and renders. Do not materialize every round back into git through evidence-only bot commits unless the governing contract requires it.
-- This is authoring feedback, not a persistent CI expansion. Do not add browser, DCC, asset generation, or evidence collection to `Astra Work Validation` or the default DEV gate.
-- Browser automation remains governed by the existing opt-in browser routing contracts.
-- Skip this loop for routine source-only changes whose acceptance criteria are already proven by focused checks/tests.
+- Routine Fast DEV does not perform staging/browser/Playwright/render/DCC/evidence observation automatically. Player-facing scope alone is not a trigger. Run those paths only for an explicit user request or an existing specialist/autonomous route that explicitly requires them.
 
 ## 2. Validate once, then check impact-aware freshness
 
@@ -62,6 +51,7 @@ A violation publishes `astra/fast-dev-contract=error` with a machine-readable re
 - Actions inspection is status-first by default. Healthy canonical `astra/*` statuses are sufficient to proceed without listing workflow runs, jobs, artifacts, or logs. On `error`/`failure`, inspect only the referenced canonical run and failed-job logs. Use `npm run actions:summary -- --full ...` only for explicit browser/DEV/artifact/history needs or unresolved diagnostics.
 - The default DEV gate does not run repository-wide syntax, code-health, visual-budget, production-asset, or all-consumer build sweeps. Those are Astra-selected only when materially relevant.
 - Routine Fast DEV validation is intentionally lightweight. Do not select broad RINNE runtime suites, browser/integration tests, or app builds by default. Use the smallest test that directly covers the changed package/module plus targeted syntax checks. The planner rejects known heavy tests and builds unless the user explicitly requested heavy validation for the task and the final commit carries `[astra-heavy-validation]`.
+- Do not create task-scoped browser/evidence runners as routine authoring feedback. Browser, staging, render, DCC, screenshot, and similar observation stay outside the normal Fast DEV critical path unless explicitly requested or required by the selected specialist/autonomous route.
 - The `Astra Work Validation` runner is explicitly armed only when the pushed final-head commit message contains `[astra-validate]`.
 - Explicit browser playtest requests still follow `BROWSER_PLAYTEST_ROUTING.md`; do not substitute static review for browser evidence.
 - `main` / Production retains its existing strict gates.

@@ -24,25 +24,12 @@ The detailed doctrine is `.autonomous/EXOSKELETON.md`; the machine-readable inve
 ## Astra fast flow
 
 1. **Implement** — start from latest `develop`, use a dedicated work branch / Draft PR, and construct the implementation through the connected GitHub Connector. Prefer composing a coherent final tree and updating the branch once instead of pushing every tiny intermediate edit. Intermediate pushes never justify waiting for CI.
-2. **Validate once, merge safely** — when implementation is coherent, re-read current `develop`, but do not reconcile solely because its SHA advanced. For player-facing work, "coherent" means the required fixed-SHA staging / bounded observation and any bounded repair-recheck have already selected the candidate source; do not formally validate a pre-observation draft. Arm one merge-owning validation by making that adopted final work-head commit contain `[astra-validate]`. After it passes, the freshness gate checks whether current `develop` still merges cleanly and whether its new affected app/package/build/control-plane scope overlaps the validated work. Independent mergeable drift reuses the validation; conflict or impact overlap requires reconciliation and one new validation. Then mark Ready and merge to `develop` in the same task/session.
+2. **Validate once, merge safely** — when implementation is coherent, re-read current `develop`, but do not reconcile solely because its SHA advanced. Arm one merge-owning validation by making that adopted final work-head commit contain `[astra-validate]`. After it passes, the freshness gate checks whether current `develop` still merges cleanly and whether its new affected app/package/build/control-plane scope overlaps the validated work. Independent mergeable drift reuses the validation; conflict or impact overlap requires reconciliation and one new validation. Then mark Ready and merge to `develop` in the same task/session.
 3. **Deploy** — the `develop` push starts asynchronous DEV publication. Do not wait or poll for it.
 
 Ready for review is transient, not a success terminal. Normal success is `MERGED_TO_DEVELOP`. Report `FAILED` only when a real blocker remains.
 
 A qualifying Micro Patch may use a lighter authoring path, but still performs one final merge-owning validation, impact-aware freshness verification, and same-task merge. Reconcile only when the freshness gate finds conflict or impact overlap. See `docs/MICRO_PATCH_FAST_LANE.md`.
-
-## Bounded observation feedback
-
-For tasks whose acceptance depends on rendered, player-facing, interactive, or generated output rather than source correctness alone, use a bounded observation loop during authoring. Typical examples are 3D/WebGL, character/DCC, animation/effects, visual or responsive UI, generated assets, and interaction feel.
-
-- After the implementation is coherent but before arming the final `[astra-validate]` head, use the existing task-specific evidence route to produce the smallest real output needed to judge the requested result.
-- Inspect that evidence and repair concrete in-scope defects before final validation. Observation is authoring feedback, not a new default CI or merge gate.
-- Keep Fast work bounded: normally one evidence round plus at most one repair/recheck round. If materially more iteration is required, use the existing specialist DCC, browser, Visual Review, or autonomous route instead of expanding Fast DEV.
-- Reuse existing review/evidence paths. A task-scoped runner path is acceptable only when no existing route can produce the needed evidence, and it must not expand the persistent Fast DEV Actions surface.
-- Keep intermediate screenshots, traces, generated outputs, and similar evidence in Actions artifacts or the existing review/evidence store by default. Do not create evidence-only bot commits each round unless the governing artifact contract requires repository materialization.
-- Do not apply this loop to routine source-only work when focused tests/checks already prove the acceptance criteria.
-- Browser automation remains opt-in under the existing browser routing contracts; this rule does not make browser playtests a default develop gate.
-- Formal merge evidence is still the existing exact-head Astra validation plus freshness gate. Observation never substitutes for causal/native validation when that validation is required.
 
 ## Connector and Actions execution
 
@@ -79,6 +66,7 @@ For tasks whose acceptance depends on rendered, player-facing, interactive, or g
 - `Astra Work Validation` runs the anti-expansion contract before task-specific validation. Routine branches cannot rewrite the workflow, focused runner, contract, or freshness classifier. Dependency installation uses `npm ci --ignore-scripts` only when the Astra-selected test/build plan actually needs dependencies.
 - Repository-wide syntax scans, code-health, visual-budget, production-asset audits, and all-affected-app builds are not default merge-owning Actions work. Astra may choose the smallest relevant check/test/build for the task and must declare it on the final commit.
 - Default Fast DEV validation must stay light: do not select broad RINNE runtime suites, browser/integration tests, or app builds for routine feature/fix work. Prefer the smallest changed-package test plus targeted `Astra-Check` entries. The focused-validation planner rejects known heavy tests and `Astra-Build` unless the current task explicitly requires heavy validation and the final commit carries `[astra-heavy-validation]`.
+- Routine Fast DEV must not automatically add staging, browser/Playwright, rendered-output, DCC, screenshot, or evidence-observation work merely because a change is player-facing. Do not create task-scoped observation runners in the routine lane. Use those routes only when the user explicitly requests that form of observation or when the task is explicitly routed to an existing specialist/autonomous contract that requires it.
 - `astra/fast-dev-contract=error` is a recoverable self-inflicted violation, not `FAILED`. Keep the same branch / PR, identify the attempted expansion from the receipt, remove it or move it outside Fast DEV, then create a new final head and validate again. Do not ask the user how to recover from your own violation.
 - A contract violation intentionally does not make the GitHub merge button mechanically impossible. Astra must nevertheless not mark Ready or merge while the violation remains, unless the user explicitly requested a Fast DEV contract change in the current task.
 - For an explicit user-requested Fast DEV contraction only, the final merge-owning commit also includes `[astra-contract-change]`. That marker may reduce workflow count or per-run workload, but never authorizes adding persistent Actions work.
