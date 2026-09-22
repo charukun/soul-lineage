@@ -15,11 +15,16 @@
 <aside id="battle2-body-hud" class="battle2-body-hud-host" aria-label="プレイヤー身体部位HUD" hidden></aside>
 <button id="battle2-start" class="battle2-start" type="button" disabled aria-describedby="battle2-status"><span>タップで開始</span><small>音を有効にして戦闘を開始</small></button>
 <div id="battle-sequence-hud" class="battle-sequence-hud" aria-live="polite" hidden>
+<div id="battle-sequence-techniques" class="battle-sequence-techniques" aria-label="序破急で使用した技">
+<span class="battle-sequence-technique-lane" data-technique-phase="jo" aria-label="序の技"></span>
+<span class="battle-sequence-technique-lane" data-technique-phase="ha" aria-label="破の技"></span>
+<span class="battle-sequence-technique-lane" data-technique-phase="kyu" aria-label="急の技"></span>
+</div>
 <aside id="battle-phase" class="battle-sequence-hud__phase combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" data-phase="idle" aria-label="間合いから残心までの序破急">
 <span class="battle-sequence-hud__edge battle-sequence-hud__edge--maai" aria-hidden="true"><svg viewBox="0 0 42 18" focusable="false"><path d="M1 9h6c2.2 0 2.8-2.2 4.1-2.2l2.6 6.7L17.2 2l3.7 14.1 3.5-9.7 2.7 4.2c1.1 1.7 2.4 2.4 4.3 2.4H41"/></svg></span><span class="battle-sequence-hud__step combat-sequence__step" data-combat-phase="jo" data-active="false">序</span><i class="battle-sequence-hud__wave combat-sequence__link" data-combat-link="jo-ha" aria-hidden="true"></i><span class="battle-sequence-hud__step combat-sequence__step" data-combat-phase="ha" data-active="false">破</span><i class="battle-sequence-hud__wave combat-sequence__link" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="battle-sequence-hud__step combat-sequence__step" data-combat-phase="kyu" data-active="false">急</span><span class="battle-sequence-hud__edge battle-sequence-hud__edge--zanshin" aria-hidden="true"><svg viewBox="0 0 42 18" focusable="false"><path d="M1 9h5.5c2.1 0 2.7-1.8 4-1.8l2.5 5.6L16.3 4l3.4 10.9 3.4-7.7 2.8 3.6c1.2 1.5 2.6 2.2 4.6 2.2H41"/></svg></span>
 </aside>
 <strong id="battle-sequence-current" class="battle-sequence-current" data-kind="idle"></strong>
-<div id="battle-sequence-history" class="battle-sequence-history" aria-label="使用した技と動作の履歴"></div>
+<div id="battle-sequence-history" class="battle-sequence-history" aria-label="戦闘ログ"></div>
 </div>
 <p id="battle2-status" role="status" aria-live="polite">戦闘を準備中…</p>
 </section></div>
