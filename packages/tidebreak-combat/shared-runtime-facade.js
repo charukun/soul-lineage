@@ -65,6 +65,7 @@ export function createSharedTidebreakFacade({copy,clamp,weapons,strikes,sampleWe
       stepIndex:Number.isInteger(run?.index)?run.index:null,targetId:attack.targetId??null,
       progress:attackProgress(actor),motionDuration:attack.motionDuration??attack.duration,
       elapsed:attack.t,duration:attack.duration,chargeTime:attack.chargeTime??0,
+      footwork:run?.recipe?.steps?.[run.index]?.footwork??'stay',
       charge:run?.recipe?.steps?.[run.index]?.charge??'none',contactActive:(segment??weaponSegment(actor)).active});
   }
   function snapshotActor(actor){
