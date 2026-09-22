@@ -459,6 +459,10 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     const moved=advanceCursor(actor,cursorFor(actor)),techniqueComplete=moved.before.technique.id!==moved.after.technique.id||moved.before.phase!==moved.after.phase,exchangeComplete=moved.before.phase==='kyu'&&moved.after.phase==='jo';
     if(actor.id==='hero'&&moved.before.phase!==moved.after.phase)traceRow({type:'phase-change',phase:moved.after.phase,reason:'configured-chain-complete'});
     const target=battle.actors.get(state.targetId);
+    if(actor.side==='party'&&techniqueComplete&&!exchangeComplete&&target){
+      const yielded=updateExchange(actor,target,{type:'offense-complete',phase:moved.before.phase,serial:state.exchangeSerial});
+      if(yielded.mode==='zanshin'){readyAt.set(actor.id,Math.max(readyAt.get(actor.id)||0,time+.46));traceRow({type:'initiative-yield',actorId:actor.id,targetId:target.id,phase:moved.before.phase});}
+    }
     if(exchangeComplete&&target){
       updateExchange(actor,target,{type:'kyu-complete',phase:'kyu',serial:state.exchangeSerial});
       if(distanceBetween(positions,actor,target)<=CONTACT_REACH&&!activeManeuver(actor)){
