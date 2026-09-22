@@ -121,7 +121,7 @@ function updateSequence(meta){
   const added=loadoutUI.learnTechnique(row.techniqueId);runtime?.learnTechnique?.(row.techniqueId);
   if(added)recordHistory({phase:row.phase||'idle',label:`閃き「${row.techniqueName||battle2TechniqueLabel(row.techniqueId)}」`,kind:'inspiration'});
  }
- const selection=battleSettings.techniqueMode==='set'?activeLoadout?.technique?.[meta.phase]:null,technique=String(selection?battle2SelectionLabel(selection):(meta.techniqueName||meta.actionName||'')).trim();
+ const selection=battleSettings.techniqueMode==='set'&&meta.exchangeIntent!=='finisher'?activeLoadout?.technique?.[meta.phase]:null,technique=String(selection?battle2SelectionLabel(selection):(meta.techniqueName||meta.actionName||'')).trim();
  cueNode.hidden=!technique;if(cueNode.textContent!==technique)cueNode.textContent=technique;
  hud.dataset.exchangeIntent=meta.exchangeIntent||'read';
  const hudState=interrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;
