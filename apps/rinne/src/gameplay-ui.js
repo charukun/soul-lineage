@@ -6,6 +6,8 @@ import { createSkillSetter } from './skill-setter.js';
 import { createHeartTechniqueBodyUI } from './heart-technique-body-ui.js';
 import { decorateSelectionDetail, installSelectionDetail } from './selection-detail.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
+import {rinnePrimaryFourMarkup} from '@soul/shared-ui/rinne-primary-four';
+import {rinneLoadoutPanelMarkup} from '@soul/shared-ui/rinne-loadout-menu';
 import {sequenceHudState,meleeSequenceHudState} from './combat-sequence-hud.js';
 import {tidebreakMindVectorFor} from './rebuild/combat-tactics.js';
 import './rebuild/conversation-input.css';
@@ -16,8 +18,9 @@ import '@soul/shared-ui/combat-sequence.css';
 import './dark-navy-hud.css';
 import './playable-core-ui.css';
 import './rinne-world-ui.css';
-import './rinne-core-menu.css';
+import '@soul/shared-ui/rinne-loadout-menu.css';
 import './combat-exchange-cue.css';
+import '@soul/shared-ui/rinne-primary-four.css';
 import {RINNE_UI_VERSION} from './ui-version.js';
 
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
@@ -40,12 +43,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     <aside data-mind class="rinne-mind-balance" hidden aria-label="現在の意識バランス"><span class="mind-title">意識</span><div class="mind-orbit" aria-hidden="true"><i data-axis="attack"><b>攻</b></i><i data-axis="guard"><b>守</b></i><i data-axis="spacing"><b>間</b></i><i data-axis="counter"><b>返</b></i><i data-axis="mobility"><b>機</b></i><i data-axis="survival"><b>生</b></i><em></em></div><strong data-mind-state>中庸</strong></aside>
     <div data-phase class="combat-phase-indicator combat-sequence" data-combat-sequence data-combat-sequence-phase="idle" hidden aria-label="現在の序破急"><span data-exchange-cue class="combat-exchange-cue" role="status"></span><span class="combat-exchange-edge" data-exchange-edge="maai" aria-hidden="true"><svg viewBox="0 0 26 12"><path d="M0 6 Q5 1 10 6 T20 6 L26 6"/></svg></span><span class="combat-exchange-edge" data-exchange-edge="zanshin" aria-hidden="true"><svg viewBox="0 0 26 12"><path d="M0 6 L6 6 Q11 1 16 6 T26 6"/></svg></span><span class="combat-sequence__step" data-phase-id="jo" data-combat-phase="jo">序</span><i class="phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="ha" data-combat-phase="ha">破</span><i class="phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="kyu" data-combat-phase="kyu">急</span><strong data-phase-action class="combat-phase-action combat-sequence__action"></strong><div data-phase-history class="combat-phase-history combat-sequence__history" aria-label="直近のアクション" aria-live="polite"></div></div>
 
-    <nav class="rinne-bottom-controls rinne-primary-four" aria-label="主要操作">
-      <button data-heart class="upgrade-control is-heart" type="button"><i aria-hidden="true">心</i><span>心得</span></button>
-      <button data-techniques class="upgrade-control is-technique" type="button"><i aria-hidden="true">技</i><span>技</span></button>
-      <button data-body class="upgrade-control is-body" type="button"><i aria-hidden="true">体</i><span>身法</span></button>
-      <button data-items class="upgrade-control is-items" type="button"><i aria-hidden="true">装</i><span>武具</span></button>
-    </nav>
+    ${rinnePrimaryFourMarkup({ariaLabel:'主要操作'})}
 
     <button data-training-strike class="rinne-context-strike" type="button" hidden><i aria-hidden="true">打</i><span>稽古</span></button>
     <button data-menu class="rinne-record-toggle" type="button" aria-expanded="false" aria-label="地図と人生の記録を開く"><i aria-hidden="true">記</i><span>記録</span></button>
@@ -59,7 +57,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     </aside>
 
     <button data-one-motion class="one-motion-control" type="button" hidden><b>奥</b><span><strong data-one-motion-name>奥義</strong><small>消耗大 / 隙大</small></span></button>
-    <section data-panel class="rinne-core-menu" hidden aria-modal="true" aria-label="旅人の手帳"><header class="rinne-core-menu-head"><span class="rinne-core-menu-mark" aria-hidden="true">✦</span><div><small>旅人の手帳</small><strong data-title></strong></div><button data-close aria-label="閉じる">×</button></header><div data-body class="rinne-core-menu-body"></div></section>
+    ${rinneLoadoutPanelMarkup()}
     <aside data-spark class="technique-spark" role="status" aria-live="polite" hidden><div><span>ひらめいた！</span><strong data-spark-name></strong><small>技として覚えた</small></div><button data-spark-set type="button">うれしい</button></aside>
     <div data-rest class="upgrade-rest" hidden><span></span><strong>ひとやすみ</strong><small>息を整えている</small></div>
     <div data-training class="upgrade-training" hidden><strong>かかし</strong><span data-training-name>稽古</span><small>近づくと稽古できる</small></div>`;

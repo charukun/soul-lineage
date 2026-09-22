@@ -1,5 +1,5 @@
-import * as THREE from 'three';
 import {createRinneWeapon} from '@soul/assets/equipment/three';
+import * as THREE from 'three';
 import { defs, muraBlocked } from '@soul/world/mura';
 import { createMuraModels } from '@soul/rendering/mura';
 import { createMuraBuildingVisual } from '@soul/rendering/mura/building-visual';
@@ -166,6 +166,9 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     if(zone==='interior')return !interiorBlocked(interiorById.get(interiorId),x,z,radius);
     return !muraBlocked(layout,x,z,radius);
   }
+  // The current RINNE character controller uses the village's flat y=0 walk plane.
+  // Expose that same ground contract to visual drivers; it is not a second terrain.
+  function sampleActorGround(x,z,out){out.height=0;out.normal.x=0;out.normal.y=1;out.normal.z=0;out.valid=Number.isFinite(x)&&Number.isFinite(z);return out;}
   function renderState(state,dt=0,{titlePreview=false,titleTime=0,titleIdleTime=0}={}){
     elapsed+=dt;if(dt>0&&!doc.hidden)qualityGovernor.observeFrame(dt);characterStage.render(state,dt);
     const village=state.zone==='village',inside=village&&!!state.interior,titleFrame=Boolean(titlePreview&&village&&!inside),baseSpace=inside?`interior:${state.interior.buildingId}`:state.zone,space=titleFrame?'title-preview':baseSpace,spaceChanged=space!==lastSpace;lastSpace=space;
@@ -196,6 +199,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     observer.disconnect();cameraControl.dispose();foregroundOcclusion.dispose();skirmishRenderer.dispose();characterStage.dispose();focusEffect.dispose();contacts.dispose();lighting.dispose();
     root.removeFromParent();interiorRoot.removeFromParent();skirmishRoot.removeFromParent();frontRoot.removeFromParent();for(const v of cache.values())disposeObject(v);renderer.dispose();
   }
-  return{THREE,scene,camera,viewport,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,setTitlePreviewQuality,qualitySnapshot:()=>qualityGovernor.snapshot(),visualSnapshot:()=>({focus:focusEffect.snapshot(),lighting:lighting.snapshot(),contacts:contacts.snapshot()}),dispose};
+  return{THREE,scene,camera,viewport,renderState,cameraVector,screenDirection,canMoveTo,sampleActorGround,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,setTitlePreviewQuality,qualitySnapshot:()=>qualityGovernor.snapshot(),visualSnapshot:()=>({focus:focusEffect.snapshot(),lighting:lighting.snapshot(),contacts:contacts.snapshot()}),dispose};
 }
+
 

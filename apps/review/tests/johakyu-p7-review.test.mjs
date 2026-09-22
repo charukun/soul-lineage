@@ -91,7 +91,7 @@ test('canonical footwork persists in world space and only reachable impacts beco
 
 test('browser battle2 resolves damage from rendered weapon sweeps against bone-following body capsules',()=>{
  const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),driver=readFileSync(new URL('../../../packages/johakyu-presentation/src/driver.js',import.meta.url),'utf8');
- assert.match(runtime,/function collectBodyContactRig/);assert.match(runtime,/function bodyContactCapsules/);assert.match(runtime,/function sweptWeaponBodyContact/);assert.match(runtime,/previousAxis/);assert.match(runtime,/engine:'weapon-body-sweep'/);
+ assert.match(runtime,/function collectBodyContactRig/);assert.match(runtime,/function bodyContactCapsules/);assert.match(runtime,/function sweptWeaponBodyContact/);assert.match(runtime,/previousAxis/);assert.match(runtime,/engine:'weapon-body-sweep'/);assert.match(runtime,/BODY_CONTACT_SKIN=\.065/);assert.match(runtime,/radii=\{head:\.21,torso:\.285/);assert.match(runtime,/covered=new Set/);
  assert.match(driver,/sampleContacts/);assert.match(controller,/scenario\.step\(dt,physicalContacts\)/);assert.match(controller,/driven\.sampleContacts/);
  assert.match(source,/function physicalContactFor/);assert.match(source,/contactEngine:'weapon-body-sweep'/);assert.match(source,/part:physical\?\.bodyPart/);assert.match(source,/contactPoint/);
 });
@@ -260,7 +260,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.26');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.28');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -370,15 +370,14 @@ test('public battle2 uses authored technique specs and footwork instead of the b
  assert.match(source,/actor\.side==='enemy'&&stageDamage\(node\.stage\)>0\?burstPresentationClip/);
 });
 
-test('battle2 mounts the 百年転生 心技体装 four-button loadout and wires selections into combat',()=>{
- const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),stage=stageSource(),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- const block=ui.match(/rinne-bottom-controls rinne-primary-four[\s\S]*?<\/nav>/)?.[0]||ui;
- for(const text of ['>心<','>技<','>体<','>装<'])assert.ok(block.includes(text),text);
- assert.match(ui,/data-heart/);assert.match(ui,/data-techniques/);assert.match(ui,/data-body/);assert.match(ui,/data-items/);
+test('battle2 and 百年転生 share the same captionless 心技体装 buttons and post-tap menu primitives',()=>{
+ const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),stage=stageSource(),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8'),sharedFour=readFileSync(new URL('../../../packages/shared-ui/src/rinne-primary-four.js',import.meta.url),'utf8'),sharedMenu=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.js',import.meta.url),'utf8'),sharedMenuCss=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.css',import.meta.url),'utf8');
+ assert.match(ui,/rinnePrimaryFourMarkup/);assert.match(ui,/rinneLoadoutPanelMarkup/);assert.match(ui,/createRinneLoadoutSlot/);assert.match(ui,/createRinneLoadoutGridItem/);assert.match(ui,/@soul\/shared-ui\/rinne-loadout-menu\.css/);
+ assert.doesNotMatch(sharedFour,/<span>/);assert.match(sharedFour,/aria-label/);assert.match(sharedMenu,/class="rinne-core-menu"/);assert.match(sharedMenuCss,/\.rinne-core-menu \.loadout-grid\{/);
+ // Explicit parity request: battle2 intentionally inherits the same 3-column portrait menu grid as 百年転生.
+ assert.match(sharedMenuCss,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);assert.doesNotMatch(css,/battle2-loadout-grid|battle2-loadout-panel|battle2-loadout-choice/);
  assert.match(stage,/createBattle2LoadoutUI/);assert.match(stage,/loadout:loadoutUI\.value/);assert.match(controller,/configureLoadout/);assert.match(source,/normalizeBattle2Loadout/);assert.match(source,/heroCompositionFor/);assert.match(source,/bodyDistanceScale/);assert.match(ui,/hash=2166136261/);assert.match(ui,/toString\(36\)\.padStart\(7,'0'\)/);
- assert.match(css,/\.battle2-loadout-grid\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
 });
-
 test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});
 
 

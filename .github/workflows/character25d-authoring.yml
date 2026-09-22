@@ -25,7 +25,7 @@ jobs:
       - name: Attachment invariants
         id: attachment
         continue-on-error: true
-        run: node --test tests/character25d-equipment.test.mjs tests/shino25d-pipeline.test.mjs
+        run: node --test tests/character25d-equipment.test.mjs tests/character25d-runtime.test.mjs tests/character25d-disposal.test.mjs
       - run: npx playwright install --with-deps chromium
       - run: npm run predev --workspace @soul/rinne
       - name: Actual Lab and RINNE observation

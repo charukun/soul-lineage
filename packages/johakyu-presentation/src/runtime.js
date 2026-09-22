@@ -76,7 +76,7 @@ function collectParryRig(root){
 function clearParryRig(a){
  for(const row of a.parryRig){if(row.x)row.node.rotation.x-=row.x;if(row.y)row.node.rotation.y-=row.y;if(row.z)row.node.rotation.z-=row.z;row.x=0;row.y=0;row.z=0;}
 }
-const BODY_CONTACT_PARTS=Object.freeze(['head','torso','leftArm','rightArm','leftLeg','rightLeg']);
+const BODY_CONTACT_PARTS=Object.freeze(['head','torso','leftArm','rightArm','leftLeg','rightLeg']),BODY_CONTACT_SKIN=.065;
 function bodyBoneSide(raw){
  const text=String(raw||'').toLowerCase();if(/left|(^|[._-])l($|[._-])/.test(text))return'left';if(/right|(^|[._-])r($|[._-])/.test(text))return'right';return'';
 }
@@ -93,19 +93,18 @@ function collectBodyContactRig(root){
  return rig;
 }
 function bodyContactCapsules(a){
- if(!a?.bodyContactRig)return[];a.object.updateMatrixWorld(true);const scale=clamp((a.height||2.95)/2.95,.72,1.45),radii={head:.19,torso:.245,leftArm:.115,rightArm:.115,leftLeg:.14,rightLeg:.14},rows=[];
+ if(!a?.bodyContactRig)return[];a.object.updateMatrixWorld(true);const scale=clamp((a.height||2.95)/2.95,.72,1.45),radii={head:.21,torso:.285,leftArm:.14,rightArm:.14,leftLeg:.165,rightLeg:.165},rows=[],covered=new Set();
  for(const part of BODY_CONTACT_PARTS){
   const points=(a.bodyContactRig[part]||[]).map(node=>node.getWorldPosition(new V())).sort((x,y)=>y.y-x.y),radius=radii[part]*scale;
-  if(!points.length)continue;
-  if(points.length===1){const half=(part==='head'?.1:.13)*scale,lo=points[0].clone().add(new V(0,-half,0)),hi=points[0].clone().add(new V(0,half,0));rows.push({part,a:lo,b:hi,radius});continue;}
-  for(let i=0;i<points.length-1;i++)if(points[i].distanceToSquared(points[i+1])>.0004)rows.push({part,a:points[i],b:points[i+1],radius});
+  if(!points.length)continue;covered.add(part);
+  if(points.length===1){const half=(part==='head'?.115:.145)*scale,lo=points[0].clone().add(new V(0,-half,0)),hi=points[0].clone().add(new V(0,half,0));rows.push({part,a:lo,b:hi,radius});continue;}
+  for(let i=0;i<points.length-1;i++)if(points[i].distanceToSquared(points[i+1])>.00025)rows.push({part,a:points[i],b:points[i+1],radius});
  }
- if(rows.length)return rows;
- const center=a.pos.clone(),yaw=a.object.rotation.y,right=new V(Math.cos(yaw),0,-Math.sin(yaw)),up=new V(0,1,0),h=a.height||2.5;
- rows.push({part:'head',a:center.clone().addScaledVector(up,h*.76),b:center.clone().addScaledVector(up,h*.88),radius:h*.065});
- rows.push({part:'torso',a:center.clone().addScaledVector(up,h*.36),b:center.clone().addScaledVector(up,h*.68),radius:h*.095});
- for(const [part,sign] of [['leftArm',-1],['rightArm',1]])rows.push({part,a:center.clone().addScaledVector(up,h*.61).addScaledVector(right,sign*h*.08),b:center.clone().addScaledVector(up,h*.39).addScaledVector(right,sign*h*.16),radius:h*.045});
- for(const [part,sign] of [['leftLeg',-1],['rightLeg',1]])rows.push({part,a:center.clone().addScaledVector(up,h*.37).addScaledVector(right,sign*h*.06),b:center.clone().addScaledVector(up,h*.08).addScaledVector(right,sign*h*.08),radius:h*.05});
+ const center=a.pos.clone(),yaw=a.object.rotation.y,right=new V(Math.cos(yaw),0,-Math.sin(yaw)),up=new V(0,1,0),h=a.height||2.5,add=(part,p0,p1,radius)=>{if(!covered.has(part))rows.push({part,a:p0,b:p1,radius});};
+ add('head',center.clone().addScaledVector(up,h*.75),center.clone().addScaledVector(up,h*.9),h*.075);
+ add('torso',center.clone().addScaledVector(up,h*.34),center.clone().addScaledVector(up,h*.7),h*.105);
+ for(const [part,sign] of [['leftArm',-1],['rightArm',1]])add(part,center.clone().addScaledVector(up,h*.62).addScaledVector(right,sign*h*.075),center.clone().addScaledVector(up,h*.37).addScaledVector(right,sign*h*.18),h*.055);
+ for(const [part,sign] of [['leftLeg',-1],['rightLeg',1]])add(part,center.clone().addScaledVector(up,h*.39).addScaledVector(right,sign*h*.055),center.clone().addScaledVector(up,h*.06).addScaledVector(right,sign*h*.085),h*.06);
  return rows;
 }
 function closestPointOnSegment(point,a,b,out){
@@ -113,17 +112,17 @@ function closestPointOnSegment(point,a,b,out){
 }
 function bladeCapsuleDistance(start,end,capsule){
  let best=Infinity,weaponPoint=null,bodyPoint=null;const nearest=new V();
- for(let i=0;i<=8;i++){const p=start.clone().lerp(end,i/8);closestPointOnSegment(p,capsule.a,capsule.b,nearest);const d=p.distanceTo(nearest);if(d<best){best=d;weaponPoint=p;bodyPoint=nearest.clone();}}
+ for(let i=0;i<=12;i++){const p=start.clone().lerp(end,i/12);closestPointOnSegment(p,capsule.a,capsule.b,nearest);const d=p.distanceTo(nearest);if(d<best){best=d;weaponPoint=p;bodyPoint=nearest.clone();}}
  for(const endpoint of [capsule.a,capsule.b]){const p=closestPointOnSegment(endpoint,start,end,new V()),d=p.distanceTo(endpoint);if(d<best){best=d;weaponPoint=p;bodyPoint=endpoint.clone();}}
  return{distance:best,weaponPoint,bodyPoint};
 }
 function sweptWeaponBodyContact(source,target){
  const row=source?.canonicalRow,action=row?.action,trace=source?.weaponTrace;if(!action?.motion?.offense||!trace?.axis||action.targetId!==target?.canonicalId||target.dead)return null;
- const expected=Number(action.motion.contactProgress??.5),progress=Number(action.progress);if(!Number.isFinite(progress)||Math.abs(progress-expected)>.32)return null;
- const previous=trace.previousAxis||trace.axis,current=trace.axis,capsules=bodyContactCapsules(target),weaponRadius=row.equipment?.weapon==='great'?.09:.065;let best=null;
- for(const t of [0,.2,.4,.6,.8,1]){
+ const expected=Number(action.motion.contactProgress??.5),progress=Number(action.progress);if(!Number.isFinite(progress)||Math.abs(progress-expected)>.38)return null;
+ const previous=trace.previousAxis||trace.axis,current=trace.axis,capsules=bodyContactCapsules(target),weaponRadius=row.equipment?.weapon==='great'?.115:.085;let best=null;
+ for(const t of [0,.125,.25,.375,.5,.625,.75,.875,1]){
   const start=previous.start.clone().lerp(current.start,t),end=previous.end.clone().lerp(current.end,t);
-  for(const capsule of capsules){const hit=bladeCapsuleDistance(start,end,capsule),clearance=hit.distance-(capsule.radius+weaponRadius);if(clearance>0||best&&clearance>=best.clearance)continue;best={clearance,part:capsule.part,weaponPoint:hit.weaponPoint,bodyPoint:hit.bodyPoint};}
+  for(const capsule of capsules){const hit=bladeCapsuleDistance(start,end,capsule),clearance=hit.distance-(capsule.radius+weaponRadius+BODY_CONTACT_SKIN);if(clearance>0||best&&clearance>=best.clearance)continue;best={clearance,part:capsule.part,weaponPoint:hit.weaponPoint,bodyPoint:hit.bodyPoint};}
  }
  if(!best)return null;const point=best.weaponPoint.clone().lerp(best.bodyPoint,.5);
  return{attackId:action.id,sourceId:source.canonicalId,targetId:target.canonicalId,bodyPart:best.part,point:{x:point.x,y:point.y,z:point.z},clearance:Number(best.clearance.toFixed(4)),engine:'weapon-body-sweep'};

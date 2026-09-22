@@ -1,205 +1,114 @@
-import {assertSprite25dManifest} from '../../sprite25d-manifest.js';
+import {assertCharacter25D,CHARACTER25D_SCHEMA} from '../../character25d-schema.js';
+import {buildInfluenceMeshes,clamp,angleDelta} from '../../character25d-rig.js';
+import {createMotionState,sampleMotion,stepSpring} from '../../character25d-motion.js';
+import {createCharacter25DProxy,selectAppearance,VIEW_ANGLES} from '../../character25d-proxy.js';
 import {loadSpriteImage,spriteAssetBlob} from '../browser/sprite25d-assets.js';
-import {createRinneWeapon,disposeRinneEquipment,resolveRinneEquipment,RINNE_EQUIPMENT_PROFILES} from './runtime-equipment.js';
+import {createSprite25dActor} from './sprite25d-actor.js';
+import {createCharacter25DEquipment} from './character25d-equipment.js';
 
-export const CHARACTER25D_ACTIONS=Object.freeze(['idle','walk','run','turn','attack','hit','rest']);
-const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-const smooth=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
-const wrap=x=>Math.atan2(Math.sin(x),Math.cos(x));
-export function character25dView(relative){
-  const a=Math.abs(wrap(relative));return a>Math.PI*.75?'back':a>Math.PI*.375?'side':a>Math.PI*.125?'quarter':'front';
-}
-
-// One body proxy owns both the deforming appearance and equipment. Neither weapons
-// nor hit/trail anchors are independently positioned by the renderer.
-export function createCharacter25dRig(THREE,{height=1.72,width=.92}={}){
-  const root=new THREE.Group();root.name='Character25D.GameplayProxy';
-  root.userData.collider={kind:'capsule',radius:width*.22,height};
-  const rig=new THREE.Group();rig.name='Invisible3DSkeleton';root.add(rig);
-  const bones={},rest={},list=[];
-  function bone(name,parent,position){const b=new THREE.Bone();b.name=name;b.position.fromArray(position);parent.add(b);bones[name]=b;rest[name]=b.position.clone();list.push(b);return b;}
-  const torso=bone('torso',rig,[0,0,0]);
-  bone('head',torso,[0,height*.84,0]);
-  for(const [side,sign] of [['right',-1],['left',1]]){
-    const shoulder=bone(side+'UpperArm',torso,[sign*width*.28,height*.74,0]);
-    const elbow=bone(side+'LowerArm',shoulder,[sign*width*.075,-height*.13,0]);
-    bone(side+'Hand',elbow,[sign*width*.075,-height*.13,0]);
-    const hip=bone(side+'UpperLeg',torso,[sign*width*.14,height*.43,0]);
-    bone(side+'LowerLeg',hip,[0,-height*.19,0]);
+export async function createCharacter25DActor(THREE,bundle,options={}) {
+  assertCharacter25D(bundle);
+  if(bundle.schema!==CHARACTER25D_SCHEMA)return createSprite25dActor(THREE,bundle,options);
+  if(!bundle.appearance.front)throw new Error('Character25D needs a front appearance');
+  const object=new THREE.Group();object.name='Character25D:'+bundle.id;
+  const body=new THREE.Group();body.name='Invisible3DBody';object.add(body);
+  const proxy=createCharacter25DProxy(bundle.gameplayProxy,options),motion=createMotionState();
+  const textures=new Map(),views=[],owned=[],attachments=new Map();
+  const rotations=new Float32Array(bundle.rig.bones.length*3),translations=new Float32Array(rotations.length);
+  const springs={hair:{value:0,velocity:0},clothing:{value:0,velocity:0},accessories:{value:0,velocity:0}};
+  const uniforms=Object.fromEntries(Object.keys(springs).map(k=>[k,{value:0}]));
+  const scale=bundle.render.height,point=new THREE.Vector3(),cameraPoint=new THREE.Vector3(),footPoint=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),normal=new THREE.Vector3();
+  const springKeys=Object.keys(springs),footPairs=[['L','left'],['R','right']];
+  let disposed=false,current=null,previous=null,transition=1,opacity=1,lastSpeed=0,lastYaw=0,actualSpeed=0,forcedView=null;
+  function makeSkeleton(parent,compression=1) {
+    const bones=[],byName=new Map();
+    for(const def of bundle.rig.bones) {
+      const bone=new THREE.Bone();bone.name=def.name;const p=bundle.rig.bones.find(b=>b.name===def.parent);
+      bone.position.set((def.rest[0]-(p?.rest[0]||0))*compression,def.rest[1]-(p?.rest[1]||0),0);
+      (byName.get(def.parent)||parent).add(bone);byName.set(def.name,bone);bones.push(bone);
+    }
+    parent.updateMatrixWorld(true);
+    return {bones,byName,skeleton:new THREE.Skeleton(bones),rest:bones.map(b=>b.position.clone())};
   }
-  const sockets={rightHand:bones.rightHand,leftHand:bones.leftHand};sockets.offhand=sockets.leftHand;
-  function socket(name,parent){const node=new THREE.Group();node.name=name;parent.add(node);sockets[name]=node;return node;}
-  const weapon=socket('weapon',sockets.rightHand),gripFrame=socket('gripFrame',weapon);
-  socket('secondaryGripTarget',gripFrame);socket('weaponHitboxAnchor',gripFrame);socket('trailOrigin',gripFrame);socket('heldItemAnchor',sockets.leftHand);
-  root.updateMatrixWorld(true);
-  const skeleton=new THREE.Skeleton(list);
-  const v=()=>new THREE.Vector3(),q=()=>new THREE.Quaternion();
-  // Fixed-length, two-bone solve; targets beyond reach are clamped rather than
-  // stretching wrists away from their skinned arm. Targets use rig-local space.
-  function solveHand(side,target,rotation){
-    const upper=bones[side+'UpperArm'],lower=bones[side+'LowerArm'],hand=bones[side+'Hand'];
-    const start=upper.position.clone(),axis=target.clone().sub(start),l1=rest[side+'LowerArm'].length(),l2=rest[side+'Hand'].length();
-    const d=clamp(axis.length(),.0001,l1+l2-.00001);axis.normalize();
-    const along=(l1*l1-l2*l2+d*d)/(2*d),bend=Math.sqrt(Math.max(0,l1*l1-along*along));
-    const pole=v().set(side==='right'?-1:1,-.2,.12);pole.addScaledVector(axis,-pole.dot(axis)).normalize();
-    const elbow=start.clone().addScaledVector(axis,along).addScaledVector(pole,bend);
-    const end=start.clone().addScaledVector(axis,d);
-    upper.quaternion.setFromUnitVectors(lower.position.clone().normalize(),elbow.clone().sub(start).normalize());
-    const fore=end.sub(elbow).applyQuaternion(upper.quaternion.clone().invert()).normalize();
-    lower.quaternion.setFromUnitVectors(hand.position.clone().normalize(),fore);
-    hand.quaternion.copy(upper.quaternion).multiply(lower.quaternion).invert().multiply(rotation||q());
+  const bodyRig=makeSkeleton(body);body.scale.setScalar(scale);
+  const sockets={};
+  for(const [key,boneName] of Object.entries(bundle.gameplayProxy.sockets)) {
+    const socket=new THREE.Object3D();socket.name='Character25D:'+key;bodyRig.byName.get(boneName).add(socket);sockets[key]=socket;
   }
-  function reset(){for(const b of list){b.position.copy(rest[b.name]);b.quaternion.identity();}}
-  return {root,rig,bones,sockets,skeleton,rest,solveHand,reset,height,width};
-}
-
-function skinGeometry(THREE,rig,flip=false,sideView=null){
-  const {width:w,height:h,bones,skeleton}=rig,g=new THREE.PlaneGeometry(w,h,36,56);
-  g.translate(0,h*.5,0);
-  const indices=[],weights=[],index=name=>skeleton.bones.indexOf(bones[name]);
-  const add=(a,b,t)=>{indices.push(index(a),index(b),0,0);weights.push(1-t,t,0,0);};
-  const pos=g.attributes.position;
-  for(let i=0;i<pos.count;i++){
-    const x=pos.getX(i)/w,y=pos.getY(i)/h,side=(x<0)!==flip?'right':'left';
-    if(y>.78){add('torso','head',smooth((y-.78)/.08));}
-    else if(sideView&&y>.43&&y<.71&&x*(sideView==='right'?1:-1)>.03){
-      const part=y>.61?sideView+'UpperArm':y>.51?sideView+'LowerArm':sideView+'Hand';
-      add('torso',part,y<.53?1:smooth((Math.abs(x)-.03)/.10));
-    }else if(!sideView&&y>.43&&y<.77&&Math.abs(x)>.24){
-      const arm=smooth((Math.abs(x)-.24)/.065);
-      const part=y>.61?side+'UpperArm':y>.51?side+'LowerArm':side+'Hand';
-      add('torso',part,arm);
-    }else if(y<.43){add(side+'UpperLeg',side+'LowerLeg',1-smooth((y-.20)/.10));}
-    else add('torso','torso',0);
-  }
-  g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(indices,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(weights,4));return g;
-}
-
-export async function createCharacter25dActor(THREE,bundle,{shadow=false,equipment={weapon:'sword',shield:true}}={}){
-  assertSprite25dManifest(bundle);
-  const views=bundle.appearance?.views||{front:bundle.pose};
-  if(!views.front)throw new Error('先にキャラクター画像を入れてください');
-  const textures=new Map();
-  try{for(const hash of new Set(Object.values(views).filter(Boolean))){const image=await loadSpriteImage(spriteAssetBlob(bundle.assets[hash]));const t=new THREE.Texture(image);t.colorSpace=THREE.SRGBColorSpace;t.generateMipmaps=false;t.minFilter=t.magFilter=THREE.LinearFilter;t.needsUpdate=true;textures.set(hash,t);}}
-  catch(error){for(const texture of textures.values())texture.dispose();throw error;}
-  const h=bundle.render.height,front=bundle.assets[views.front],width=h*front.width/front.height;
-  const rig=createCharacter25dRig(THREE,{height:h,width}),{root:object,bones,sockets}=rig;
-  const material=new THREE.MeshBasicMaterial({map:textures.get(views.front),alphaTest:.12,side:THREE.DoubleSide,depthTest:true,depthWrite:true,toneMapped:false});
-  // Cutout depth writes make the actual skinned arm/palm occlude a 3D grip. The
-  // rig supplies signed local depth per view; no fixed front/back render order.
-  const mesh=new THREE.SkinnedMesh(skinGeometry(THREE,rig),material);mesh.name='Character25D.Appearance';mesh.frustumCulled=false;rig.rig.add(mesh);object.updateMatrixWorld(true);mesh.bind(rig.skeleton);
-  let contact=null;
-  if(shadow){contact=new THREE.Mesh(new THREE.CircleGeometry(width*.32,24),new THREE.MeshBasicMaterial({color:0x050706,transparent:true,opacity:.28,depthWrite:false}));contact.rotation.x=-Math.PI/2;contact.scale.y=.6;contact.position.y=.012;object.add(contact);}
-  let weapon=null,shield=null,heldItem=null,loadout={},profile=null,time=0,actionTime=0,action='idle',previewAction=null,previewDirection=null,disposed=false,relative=0,view='front',sourceView='front',secondary=0,lastYaw=0,geometryKey='';
-  const point=new THREE.Vector3(),target=new THREE.Vector3(),rotation=new THREE.Quaternion(),yAxis=new THREE.Vector3(0,1,0);
-  function setEquipment(next){
-    const resolved=resolveRinneEquipment(next);
-    if(resolved.weapon!==loadout.weapon){
-      disposeRinneEquipment(weapon);weapon=null;profile=RINNE_EQUIPMENT_PROFILES[resolved.weapon]||null;
-      if(profile){weapon=createRinneWeapon(THREE,resolved.weapon);sockets.gripFrame.add(weapon);weapon.position.set(0,0,0);
-        sockets.weapon.quaternion.fromArray(profile.rotation);sockets.gripFrame.scale.setScalar(profile.scale);sockets.gripFrame.position.fromArray(profile.grip).multiplyScalar(-profile.scale);
-        sockets.secondaryGripTarget.position.fromArray(profile.supportGrip);sockets.weaponHitboxAnchor.position.fromArray(profile.bladeBase);sockets.trailOrigin.position.fromArray(profile.bladeTip);
+  const equipment=createCharacter25DEquipment(THREE,{body,rig:bodyRig,sockets,height:scale});
+  equipment.setEquipment(options.equipment||{},options.equipmentProfiles);
+  const debugGeometry=new THREE.CapsuleGeometry(proxy.collider.radius,Math.max(.01,proxy.collider.height-2*proxy.collider.radius),4,8);
+  const debugMaterial=new THREE.MeshBasicMaterial({color:0xe5c991,wireframe:true});owned.push(debugGeometry,debugMaterial);
+  const collider=new THREE.Mesh(debugGeometry,debugMaterial);collider.position.y=proxy.collider.height/2;collider.visible=false;object.add(collider);
+  const shadowGeometry=new THREE.CircleGeometry(proxy.collider.radius*1.35,20),shadowMaterial=new THREE.MeshBasicMaterial({color:0x131d18,transparent:true,opacity:.24,depthWrite:false});owned.push(shadowGeometry,shadowMaterial);
+  const contact=new THREE.Mesh(shadowGeometry,shadowMaterial);contact.rotation.x=-Math.PI/2;contact.position.y=.009;object.add(contact);
+  const dispose=()=>{if(disposed)return;disposed=true;object.removeFromParent();equipment.dispose();for(const attachment of attachments.values())attachment.removeFromParent();attachments.clear();for(const v of views)v.rig.skeleton.dispose();bodyRig.skeleton.dispose();for(const asset of owned)asset.dispose();for(const texture of textures.values())texture.dispose();textures.clear();};
+  try {
+    for(const [name,appearance] of Object.entries(bundle.appearance)) {
+      if(!appearance)continue;
+      const asset=bundle.assets[appearance.asset];
+      if(!textures.has(appearance.asset)) {const image=await loadSpriteImage(spriteAssetBlob(asset)),texture=new THREE.Texture(image);texture.colorSpace=THREE.SRGBColorSpace;texture.minFilter=texture.magFilter=THREE.LinearFilter;texture.generateMipmaps=false;texture.needsUpdate=true;textures.set(appearance.asset,texture);}
+      const group=new THREE.Group();group.name='Appearance:'+name;group.scale.setScalar(scale);object.add(group);
+      const rig=makeSkeleton(group,name==='side'?.48:name.startsWith('back')?-1:1),meshes=[],footSamples=[];
+      const data=buildInfluenceMeshes(bundle.rig,{bounds:appearance.bounds,width:asset.width,height:asset.height,side:name==='side',back:name.startsWith('back')});
+      for(const layer of data) {
+        const geometry=new THREE.BufferGeometry();
+        geometry.setAttribute('position',new THREE.Float32BufferAttribute(layer.positions,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(layer.uvs,2));
+        geometry.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(layer.skinIndices,4));geometry.setAttribute('skinWeight',new THREE.Float32BufferAttribute(layer.skinWeights,4));geometry.setAttribute('secondaryWeight',new THREE.Float32BufferAttribute(layer.secondary,1));geometry.setIndex(layer.indices);geometry.computeVertexNormals();
+        const material=new THREE.MeshLambertMaterial({map:textures.get(appearance.asset),transparent:true,alphaTest:.055,side:THREE.DoubleSide,depthTest:true,depthWrite:true,emissive:0xffffff,emissiveIntensity:.12,toneMapped:false});
+        const secondary=layer.name.startsWith('hair')?'hair':layer.name==='clothing'?'clothing':layer.name==='accessories'?'accessories':null;
+        material.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>','outgoingLight = clamp(outgoingLight, diffuseColor.rgb * 0.72, diffuseColor.rgb * 1.12);\n#include <opaque_fragment>');shader.uniforms.characterLag=secondary?uniforms[secondary]:{value:0};shader.vertexShader='attribute float secondaryWeight;\nuniform float characterLag;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <skinning_vertex>','#include <skinning_vertex>\ntransformed.x += characterLag * secondaryWeight;');};
+        material.customProgramCacheKey=()=> 'character25d-layer-v2-art-light';
+        const mesh=new THREE.SkinnedMesh(geometry,material);mesh.name=layer.name;mesh.frustumCulled=false;mesh.receiveShadow=true;mesh.castShadow=false;group.add(mesh);mesh.bind(rig.skeleton);meshes.push(mesh);owned.push(geometry,material);
+        for(let i=0;i<layer.positions.length/3;i++)if(layer.positions[i*3+1]<.001)footSamples.push({mesh,index:i});
+      }
+      group.visible=false;views.push({name,group,rig,meshes,footSamples,appearance});
+    }
+  } catch(error){dispose();throw error;}
+  function applyPose(rig,projection=null) {
+    for(let i=0;i<rig.bones.length;i++) {
+      const bone=rig.bones[i],k=i*3;bone.position.copy(rig.rest[i]);
+      if(projection===null){bone.rotation.set(rotations[k],rotations[k+1],rotations[k+2]);bone.position.y+=translations[k+1];}
+      else{
+        // Project sagittal movement into each view; front keeps a small lateral
+        // silhouette cue. Never scale limbs, flip UVs, or repaint the face.
+        const sagittal=Math.sin(projection),frontal=Math.cos(projection);
+        bone.rotation.set(0,0,clamp(rotations[k+2]*frontal-rotations[k]*(Math.abs(sagittal)>.15?sagittal:.28),-.32,.32));
+        bone.position.y+=translations[k+1];
       }
     }
-    if(resolved.shield!==loadout.shield){disposeRinneEquipment(shield);shield=null;if(resolved.shield){shield=createRinneWeapon(THREE,'shield');const p=RINNE_EQUIPMENT_PROFILES.shield;shield.scale.setScalar(p.scale);shield.quaternion.fromArray(p.rotation);sockets.leftHand.add(shield);shield.position.fromArray(p.grip).multiplyScalar(-p.scale);}}
-    loadout=resolved;sockets.heldItemAnchor.visible=!resolved.shield&&!profile?.twoHanded;object.userData.equipment={...resolved};
   }
-  setEquipment(equipment);
-  function update({camera,delta=0,yaw=0,moving=false,speed=0,action:requested,attacking=false,hit=false,resting=false}={}){
-    if(disposed||!camera)return;
-    const dt=clamp(Number(delta)||0,0,.05);time+=dt;
-    object.getWorldPosition(point);camera.getWorldPosition(target);
-    const angle=Math.atan2(target.x-point.x,target.z-point.z);relative=wrap(angle-yaw);
-    if(previewDirection){const directions=['s','sw','w','nw','n','ne','e','se'];relative=directions.indexOf(previewDirection)*Math.PI/4;}
-    object.rotation.y=angle;
-    const next=previewAction||requested||(hit?'hit':attacking?'attack':resting?'rest':moving?(speed>3?'run':'walk'):Math.abs(wrap(yaw-lastYaw))>.015?'turn':'idle');
-    lastYaw=yaw;
-    if(action!==next){action=CHARACTER25D_ACTIONS.includes(next)?next:'idle';actionTime=0;}else actionTime+=dt;
-    view=character25dView(relative);sourceView=views[view]?view:view==='quarter'?'front':views.side?'side':'front';
-    material.map=textures.get(views[sourceView]);
-    // Opposite profile is an explicit mirrored approximation; missing rear art
-    // remains reported as missing. It is never counted as authored coverage.
-    const mirror=sourceView==='side'&&relative<0;
-    material.map.repeat.x=mirror?-1:1;material.map.offset.x=mirror?1:0;
-    const source=bundle.assets[views[sourceView]],viewWidth=h*source.width/source.height;
-    const back=view==='back',flip=back?-1:1,sideView=sourceView==='side'?(relative>=0?'right':'left'):null;
-    const nextGeometryKey=`${back}:${sideView}`;
-    if(geometryKey!==nextGeometryKey){mesh.geometry.dispose();mesh.geometry=skinGeometry(THREE,rig,back,sideView);geometryKey=nextGeometryKey;}
-    const positions=mesh.geometry.attributes.position;
-    for(let i=0;i<positions.count;i++){
-      const nx=(i%37)/36-.5,ny=1-Math.floor(i/37)/56;
-      positions.setX(i,nx*viewWidth);positions.setY(i,ny*h);positions.setZ(i,0);
-      const handSide=sideView||(nx*flip<0?'right':'left');
-      const holding=handSide==='right'?!!weapon:!!shield||!!profile?.twoHanded||!!heldItem;
-      const palmRegion=sideView?nx*(mirror?-1:1)>.03:Math.abs(nx)>.34;
-      if(holding&&palmRegion&&ny>.43&&ny<.50){
-        // Fold the visible fingertip strip into the palm. Its curved local
-        // depth wraps the same 3D handle rather than leaving an open flat hand.
-        positions.setY(i,(.48+(ny-.48)*.4)*h);
-        positions.setZ(i,Math.sin((ny-.43)/.07*Math.PI)*.018);
+  function update(input={}) {
+    if(disposed)return;const delta=clamp(Number(typeof input==='number'?input:input.delta)||0,0,.05),camera=typeof input==='object'?input.camera:null;
+    actualSpeed=proxy.step(delta);motion.step(delta,actualSpeed);sampleMotion(motion,bundle.rig,rotations,translations);
+    object.position.set(proxy.position.x,proxy.position.y,proxy.position.z);body.rotation.y=proxy.yaw;applyPose(bodyRig);equipment.pose(motion);
+    const acceleration=delta?(actualSpeed-lastSpeed)/delta:0,turn=delta?angleDelta(lastYaw,proxy.yaw)/delta:0;
+    for(const key of springKeys){const cfg=bundle.secondaryMotion[key],target=clamp(-acceleration*.005-turn*.009+Math.sin(motion.phase-.6)*(actualSpeed>.08?.013:0),-cfg.limit,cfg.limit);uniforms[key].value=stepSpring(springs[key],target,delta,cfg);}
+    lastSpeed=actualSpeed;lastYaw=proxy.yaw;
+    if(camera){camera.getWorldPosition(cameraPoint);object.getWorldPosition(point);const cameraYaw=Math.atan2(cameraPoint.x-point.x,cameraPoint.z-point.z),relative=angleDelta(proxy.yaw,cameraYaw);
+      const selected=forcedView||selectAppearance(bundle.appearance,relative,current);
+      if(selected!==current){previous=current;current=selected;transition=0;}transition=Math.min(1,transition+delta/.14);
+      for(const view of views){const active=view.name===current,old=view.name===previous&&transition<1;view.group.visible=active||old;if(!view.group.visible)continue;
+        view.group.rotation.y=cameraYaw;const viewAngle=VIEW_ANGLES[view.name]*(relative<0?-1:1);applyPose(view.rig,viewAngle);view.group.position.y=0;view.group.updateMatrixWorld(true);view.rig.skeleton.update();
+        let min=Infinity;for(const sample of view.footSamples){footPoint.fromBufferAttribute(sample.mesh.geometry.attributes.position,sample.index);sample.mesh.applyBoneTransform(sample.index,footPoint);min=Math.min(min,footPoint.y);}
+        view.group.position.y=Number.isFinite(min)?-min*scale:0;
+        view.group.updateWorldMatrix(true,true);equipment.project(view);
+        const alpha=(active?transition:1-transition)*opacity;
+        for(const mesh of view.meshes){mesh.material.opacity=alpha;mesh.material.depthWrite=alpha>.5;}
       }
     }
-    positions.needsUpdate=true;
-    rig.reset();
-    for(const [name,sign]of [['right',-1],['left',1]]){
-      bones[name+'UpperArm'].position.x=sideView?viewWidth*.16*(mirror?-1:1):sign*viewWidth*.28*flip;
-      bones[name+'LowerArm'].position.x=sideView?-viewWidth*.04*(mirror?-1:1):sign*viewWidth*.075*flip;
-      bones[name+'Hand'].position.x=sideView?-viewWidth*.04*(mirror?-1:1):sign*viewWidth*.075*flip;
-      bones[name+'UpperLeg'].position.x=sign*viewWidth*.14*flip;
-    }
-    object.updateMatrixWorld(true);rig.skeleton.calculateInverses();
-    mesh.bindMatrix.copy(object.matrixWorld);mesh.bindMatrixInverse.copy(object.matrixWorld).invert();
-    const locomotion=action==='walk'||action==='run',stride=locomotion?Math.sin(time*(action==='run'?10:6))*(action==='run'?.55:.3):0;
-    const attack=action==='attack'?Math.sin(clamp(actionTime/.65,0,1)*Math.PI):0;
-    const recoil=action==='hit'?Math.sin(clamp(actionTime/.4,0,1)*Math.PI):0;
-    const rest=action==='rest'?1:0;
-    bones.torso.position.y=locomotion?Math.abs(stride)*.035:-rest*h*.044;
-    bones.torso.rotation.z=recoil*.09;
-    bones.head.rotation.z=Math.sin(time*1.8)*.008-recoil*.035;
-    secondary+=(stride*.075+attack*.04-secondary)*(1-Math.exp(-8*dt));bones.head.rotation.y=secondary;
-    bones.rightUpperLeg.rotation.x=stride-rest*.55;bones.leftUpperLeg.rotation.x=-stride-rest*.55;
-    bones.rightUpperLeg.rotation.z=stride*.14;bones.leftUpperLeg.rotation.z=-stride*.14;
-    bones.rightLowerLeg.rotation.x=Math.max(0,-stride)*.65+rest*1.1;bones.leftLowerLeg.rotation.x=Math.max(0,stride)*.65+rest*1.1;
-    // Natural front/back hand order, changing through turn and the attack arc.
-    const facing=Math.cos(relative),side=Math.sin(relative),two=Boolean(profile?.twoHanded);
-    for(const [name,sign]of [['right',-1],['left',1]]){
-      const upper=bones[name+'UpperArm'];upper.position.z=-sign*width*.18*side;
-      const carry=two?viewWidth*.12:viewWidth*.43;
-      const x=sideView?viewWidth*.08*(mirror?-1:1):(sign*carry+(name==='right'?attack*viewWidth*.10:0))*flip;
-      const z=-sign*carry*side+(.045+attack*.15)*(Math.cos(relative));
-      target.set(x,h*((two?.65:.48)+attack*.04+rest*.035)+stride*sign*.018,z);
-      rotation.setFromAxisAngle(yAxis,-relative);
-      rotation.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),name==='right'?(.28+attack*1.2):.12));
-      if(two&&name==='right'){
-        // Keep the primary wrist in the intersection of both arms' reach
-        // spheres, with the asset's rotated support offset included.
-        const support=new THREE.Vector3(...profile.supportGrip).sub(new THREE.Vector3(...profile.grip)).multiplyScalar(profile.scale).applyQuaternion(new THREE.Quaternion().fromArray(profile.rotation)).applyQuaternion(rotation);
-        const other=bones.leftUpperArm.position.clone();other.z=width*.18*-side;
-        const centers=[upper.position,other.sub(support)],reach=h*.26-.002;
-        for(let pass=0;pass<12;pass++)for(const center of centers){const offset=target.clone().sub(center);if(offset.length()>reach)target.copy(center).add(offset.setLength(reach));}
-      }
-      rig.solveHand(name,target,rotation);
-    }
-    if(two){
-      object.updateMatrixWorld(true);sockets.secondaryGripTarget.getWorldPosition(target);bones.torso.worldToLocal(target);
-      const supportRotation=bones.rightUpperArm.quaternion.clone().multiply(bones.rightLowerArm.quaternion).multiply(bones.rightHand.quaternion).multiply(new THREE.Quaternion().fromArray(profile.rotation)).multiply(new THREE.Quaternion().fromArray(profile.supportRotation));
-      rig.solveHand('left',target,supportRotation);
-    }
-    material.color.setHex(action==='hit'?0xffdddd:0xffffff);
-    object.updateMatrixWorld(true);rig.skeleton.update();
-    object.userData.character25d={action,view,sourceView,missingView:!views[view]&&view!=='quarter',secondary,hybrid:true};
+    normal.set(proxy.groundNormal.x,proxy.groundNormal.y,proxy.groundNormal.z);contact.quaternion.setFromUnitVectors(up,normal);contact.rotateX(-Math.PI/2);
+    contact.material.opacity=proxy.grounded?.24*opacity:0;
+    object.updateMatrixWorld(true);
+    for(const [side,key] of footPairs){bodyRig.byName.get('foot.'+side).getWorldPosition(footPoint);proxy.feet[key].x=footPoint.x;proxy.feet[key].y=footPoint.y;proxy.feet[key].z=footPoint.z;}
   }
-  return {object,rig,sockets,update,setEquipment,
-    // The caller owns a prop's geometry/materials; detaching returns it for reuse.
-    setHeldItem(item,calibration={grip:[0,0,0],rotation:[0,0,0,1],scale:1}){
-      const previous=heldItem;previous?.removeFromParent();heldItem=item;
-      if(item){sockets.heldItemAnchor.add(item);sockets.heldItemAnchor.quaternion.fromArray(calibration.rotation);item.scale.setScalar(calibration.scale);item.position.fromArray(calibration.grip).multiplyScalar(-calibration.scale);}
-      return previous;
-    },
-    setPreview(next=null,direction=null){previewAction=next;previewDirection=direction;},
-    setOpacity(value){material.opacity=clamp(value,0,1);material.transparent=value<1;},
-    getStatus:()=>`${action} · ${view}${sourceView!==view?'（推定表示）':''} · ${loadout.weapon||'素手'}`,
-    snapshot(){object.updateMatrixWorld(true);const world=node=>node.getWorldPosition(new THREE.Vector3()).toArray();const actualGrip=weapon?weapon.localToWorld(new THREE.Vector3(...profile.grip)).toArray():null;return {action,view,sourceView,equipment:{...loadout},position:object.position.toArray(),hand:world(sockets.rightHand),actualGrip,offhand:world(sockets.leftHand),secondaryGrip:world(sockets.secondaryGripTarget),trail:world(sockets.trailOrigin),hitbox:world(sockets.weaponHitboxAnchor),twoHanded:!!profile?.twoHanded};},
-    dispose(){if(disposed)return;disposed=true;object.removeFromParent();heldItem?.removeFromParent();disposeRinneEquipment(weapon);disposeRinneEquipment(shield);mesh.geometry.dispose();material.dispose();rig.skeleton.dispose();contact?.geometry.dispose();contact?.material.dispose();for(const t of textures.values())t.dispose();textures.clear();},
-  };
+  function snapshot(){const view=views.find(v=>v.name===current);return {schema:bundle.schema,id:bundle.id,position:{...proxy.position},yaw:proxy.yaw,velocity:{...proxy.velocity},speed:actualSpeed,grounded:proxy.grounded,blocked:proxy.blocked,groundNormal:{...proxy.groundNormal},action:motion.action,time:motion.time,view:current,transition,availableViews:views.map(v=>v.name),mirror:false,bodyBones:bodyRig.bones.length,layerMeshes:view?.meshes.length||0,rotations:[...rotations],secondary:Object.fromEntries(Object.entries(springs).map(([k,v])=>[k,v.value])),textures:textures.size,feet:{left:{...proxy.feet.left},right:{...proxy.feet.right}},...equipment.snapshot(),appearanceGrips:view?Object.fromEntries(['R','L'].map(side=>[side,view.rig.byName.get('hand.'+side).getWorldPosition(new THREE.Vector3()).toArray()])):null,disposed};}
+  return {object,proxy,sockets,update,dispose,snapshot,
+    play(name,opts){motion.play(name,opts);},setAction(name,opts){motion.play(name,{restart:false,...opts});},releaseAction({locomotionOnly=false}={}){if(!locomotionOnly||['idle','walk','run','rest'].includes(motion.action))motion.release();},
+    setTransform(p,yaw){proxy.setTransform(p,yaw);},setVelocity(v){proxy.setVelocity(v);},setFacing(yaw){proxy.setFacing(yaw);},setGroundNormal(n){proxy.setGroundNormal(n);},
+    setEquipment(slot,attachment){if(typeof slot!=='string')return equipment.setEquipment(slot,attachment);if(!sockets[slot])throw new Error('Unknown equipment socket');attachments.get(slot)?.removeFromParent();attachments.delete(slot);if(attachment){sockets[slot].add(attachment);attachments.set(slot,attachment);}},
+    setHeldItem:equipment.setHeldItem,
+    setOpacity(value){opacity=clamp(value,0,1);},setDebug(value){collider.visible=Boolean(value);},
+    setPreview(action=null,direction=null){if(action)motion.play(action);else motion.release();forcedView=({s:'front',sw:'frontQuarter',w:'side',nw:'backQuarter',n:'back',ne:'backQuarter',e:'side',se:'frontQuarter'})[direction]||null;if(forcedView&&!bundle.appearance[forcedView])forcedView=null;},
+    getStatus(){return `${motion.action} · ${current||'front'} · ${views.length===1?'正面のみ（他方向は未収録）':views.length+'方向候補・反転なし'}`;}};
 }

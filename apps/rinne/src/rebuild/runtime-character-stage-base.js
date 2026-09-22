@@ -1,5 +1,5 @@
-import * as THREE from 'three';
 import {createRinneWeapon} from '@soul/assets/equipment/three';
+import * as THREE from 'three';
 import { PoseSchedule } from '@soul/characters';
 import { attentionLoadPriority, shouldPromoteAttention } from '@soul/rendering/attention-priority';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';

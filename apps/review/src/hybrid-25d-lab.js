@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import './hybrid-25d-lab.css';
-import {createCharacter25dActor} from '@soul/assets/character25d/three';
+import {createSprite25dActor} from '@soul/assets/sprite25d/three';
+import {createCharacter25DActor} from '@soul/assets/character25d/three';
+import {createCharacter25DPlayground} from './character25d-playground.js';
 
 const MODEL_URL='./library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb';
 const VIEW_PRESETS=Object.freeze({
@@ -90,6 +92,8 @@ function createHybridPreview(canvas,onStatus){
   const modelGroup=new THREE.Group();modelGroup.position.set(-1.2,0,0);scene.add(modelGroup);
   const loader=new GLTFLoader();let modelRoot=null,mixer=null,modelReady=false;
   let spriteActor=null,destroyed=false,imageRevision=0;
+  const playground=createCharacter25DPlayground({THREE,scene,camera,canvas,getActor:()=>spriteActor});
+  canvas.character25dSnapshot=()=>spriteActor?.snapshot?.()||null;
   loader.load(new URL(MODEL_URL,location.href).href,gltf=>{
     if(destroyed){gltf.scene.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)});return;}
     modelRoot=gltf.scene;modelGroup.add(modelRoot);
@@ -105,14 +109,7 @@ function createHybridPreview(canvas,onStatus){
     modelReady=true;onStatus('ready','3Dモデル読込済み · 2D画像を選ぶと同一空間で比較できます');
   },undefined,error=>{console.error(error);onStatus('error','3Dモデルを読み込めませんでした。2.5D側だけでも操作できます')});
 
-  let billboard=true,idleMotion=true,arrangement='actor';let raf=0;const clock=new THREE.Clock();
-  let motion='idle',motionEnd=0,yaw=0,yawTarget=0,travel=1,shieldEnabled=true,weaponId='sword',lastObservation=0;
-  const keys=new Set(),inputAbort=new AbortController();canvas.tabIndex=0;
-  canvas.addEventListener('keydown',event=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','Shift',' '].includes(event.key)){event.preventDefault();keys.add(event.key);if(event.key===' ')startMotion('attack');}},{signal:inputAbort.signal});
-  addEventListener('keyup',event=>keys.delete(event.key),{signal:inputAbort.signal});
-  canvas.addEventListener('blur',()=>keys.clear(),{signal:inputAbort.signal});
-  function startMotion(value){motion=value;motionEnd=['attack','hit'].includes(value)?(value==='attack'?.7:.45):0;if(value==='turn')yawTarget+=Math.PI*.5;}
-
+  let billboard=true,idleMotion=true,arrangement='split';let raf=0;const clock=new THREE.Clock();
   const resize=()=>{const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};
   const fitCard=texture=>{
     const image=texture.image;const ratio=Math.max(.25,Math.min(4,(image?.width||2)/(image?.height||3)));const height=1.72;card.scale.set(height*ratio,height,1);card.position.y=height*.5;
@@ -125,40 +122,18 @@ function createHybridPreview(canvas,onStatus){
     card.position.y=(card.scale.y*.5)+(idleMotion?Math.sin(t*2.2)*.018:0);
     if(billboard){const dx=camera.position.x-cardGroup.position.x,dz=camera.position.z-cardGroup.position.z;cardGroup.rotation.y=Math.atan2(dx,dz)}else cardGroup.rotation.y=0;
     controls.update();
-    if(spriteActor){
-      if(motionEnd){motionEnd-=delta;if(motionEnd<=0){motion='idle';motionEnd=0;}}
-      const dx=Number(keys.has('d')||keys.has('ArrowRight'))-Number(keys.has('a')||keys.has('ArrowLeft'));
-      const dz=Number(keys.has('s')||keys.has('ArrowDown'))-Number(keys.has('w')||keys.has('ArrowUp'));
-      const manual=!!(dx||dz),moving=manual||['walk','run'].includes(motion),run=keys.has('Shift')||motion==='run';
-      const speed=moving?(run?3.4:1.3):0;
-      if(moving){
-        const x=manual?dx:travel,z=manual?dz:0,len=Math.hypot(x,z)||1;
-        spriteActor.object.position.x+=x/len*speed*delta;spriteActor.object.position.z+=z/len*speed*delta;
-        yawTarget=Math.atan2(x,z);
-        if(Math.abs(spriteActor.object.position.x)>3){spriteActor.object.position.x=Math.sign(spriteActor.object.position.x)*3;travel*=-1;}
-        spriteActor.object.position.z=THREE.MathUtils.clamp(spriteActor.object.position.z,-2,2);
-      }
-      yaw+=Math.atan2(Math.sin(yawTarget-yaw),Math.cos(yawTarget-yaw))*(1-Math.exp(-10*delta));
-      spriteActor.update({camera,delta,yaw,moving,speed,action:['attack','hit','rest'].includes(motion)?motion:moving?(run?'run':'walk'):motion});
-      canvas.dataset.actorAction=spriteActor.object.userData.character25d?.action||'';
-      canvas.dataset.actorView=spriteActor.object.userData.character25d?.view||'';
-      if(performance.now()-lastObservation>150){lastObservation=performance.now();canvas.dataset.actorSnapshot=JSON.stringify(spriteActor.snapshot());}
-    }
+    if(spriteActor){if(spriteActor.proxy){playground.update(delta);}else spriteActor.object.position.copy(cardGroup.position);spriteActor.update({camera,delta,billboard});}
     renderer.render(scene,camera);raf=requestAnimationFrame(frame);
   };frame();
 
   return{
     async setCharacter(bundle){
-      const revision=++imageRevision,next=await createCharacter25dActor(THREE,bundle,{shadow:true,equipment:{weapon:weaponId,shield:shieldEnabled}});
+      const revision=++imageRevision,next=await (bundle.schema==='rinne.character25d/v2'?createCharacter25DActor(THREE,bundle,{canMoveTo:playground.canMoveTo,sampleGround:playground.sampleGround}):createSprite25dActor(THREE,bundle));
       if(destroyed||revision!==imageRevision){next.dispose();return;}
-      spriteActor?.dispose();spriteActor=next;next.object.position.set(0,0,0);modelGroup.visible=false;arrangement='actor';scene.add(next.object);card.visible=false;next.setOpacity(arrangement==='overlay'?.74:1);
+      spriteActor?.dispose();spriteActor=next;scene.add(next.object);card.visible=false;shadow.visible=false;next.setTransform?.({x:cardGroup.position.x,y:0,z:cardGroup.position.z},0);next.setOpacity(arrangement==='overlay'?.74:1);playground.activate();
     },
-    clearCharacter(){imageRevision++;spriteActor?.dispose();spriteActor=null;card.visible=true;},
+    clearCharacter(){imageRevision++;spriteActor?.dispose();spriteActor=null;card.visible=true;shadow.visible=true;},
     setSpritePreview(action,direction){spriteActor?.setPreview(action,direction);},
-    setMotion:startMotion,
-    setWeapon(id){weaponId=id;spriteActor?.setEquipment({weapon:weaponId,shield:shieldEnabled});},
-    setShield(value){shieldEnabled=Boolean(value);spriteActor?.setEquipment({weapon:weaponId,shield:shieldEnabled});},
-    moveKey(key,pressed){if(pressed)keys.add(key);else keys.delete(key);},
     async setImage(file){
       const revision=++imageRevision,url=URL.createObjectURL(file);
       try{
@@ -169,19 +144,21 @@ function createHybridPreview(canvas,onStatus){
       }finally{URL.revokeObjectURL(url)}
     },
     setBillboard(value){billboard=Boolean(value)},
-    setProxy(value){proxy.visible=Boolean(value)},
+    setProxy(value){proxy.visible=Boolean(value)&&!spriteActor?.proxy;spriteActor?.setDebug?.(value)},
     setIdle(value){idleMotion=Boolean(value)},
     setArrangement(value){
-      arrangement=['actor','overlay','split'].includes(value)?value:'actor';modelGroup.visible=arrangement!=='actor';
+      arrangement=value==='overlay'?'overlay':'split';
       if(arrangement==='overlay'){modelGroup.position.set(-.12,0,-.12);cardGroup.position.set(.12,0,.12);cardMaterial.opacity=.74}
       else{modelGroup.position.set(-1.2,0,0);cardGroup.position.set(1.2,0,0);cardMaterial.opacity=1}
-      cardMaterial.transparent=true;spriteActor?.setOpacity(cardMaterial.opacity);
+      cardMaterial.transparent=true;spriteActor?.setOpacity(cardMaterial.opacity);spriteActor?.setTransform?.({x:cardGroup.position.x,y:0,z:cardGroup.position.z},0);
     },
     setView(name){
-      const angle=VIEW_PRESETS[name]??VIEW_PRESETS.quarter;const radius=4.3,x=spriteActor?.object.position.x||0,z=spriteActor?.object.position.z||0;camera.position.set(x+Math.sin(angle)*radius,1.9,z+Math.cos(angle)*radius);controls.target.set(x,.85,z);controls.update();
+      // A preset cancels residual drag momentum before setting the camera.
+      const damping=controls.enableDamping;controls.enableDamping=false;controls.update();
+      const angle=VIEW_PRESETS[name]??VIEW_PRESETS.quarter;const radius=5.7;camera.position.set(Math.sin(angle)*radius,2.55,Math.cos(angle)*radius);controls.target.set(0,.85,0);controls.update();controls.enableDamping=damping;
     },
-    getState(){return{modelReady,billboard,idleMotion,arrangement,spriteStatus:spriteActor?.getStatus()||null}},
-    destroy(){if(destroyed)return;destroyed=true;imageRevision++;spriteActor?.dispose();cancelAnimationFrame(raf);inputAbort.abort();controls.dispose();renderer.dispose();groundTexture.dispose();ground.geometry.dispose();disposeMaterial(ground.material);grid.geometry.dispose();disposeMaterial(grid.material);card.geometry.dispose();disposeMaterial(card.material);shadow.geometry.dispose();disposeMaterial(shadow.material);proxy.geometry.dispose();disposeMaterial(proxy.material);if(modelRoot)modelRoot.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)})}
+    getState(){return{modelReady,billboard,idleMotion,arrangement,spriteStatus:spriteActor?.getStatus()||null,actor:spriteActor?.snapshot?.()||null}},
+    destroy(){if(destroyed)return;destroyed=true;imageRevision++;playground.dispose();delete canvas.character25dSnapshot;spriteActor?.dispose();cancelAnimationFrame(raf);controls.dispose();renderer.dispose();groundTexture.dispose();ground.geometry.dispose();disposeMaterial(ground.material);grid.geometry.dispose();disposeMaterial(grid.material);card.geometry.dispose();disposeMaterial(card.material);shadow.geometry.dispose();disposeMaterial(shadow.material);proxy.geometry.dispose();disposeMaterial(proxy.material);if(modelRoot)modelRoot.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)})}
   };
 }
 
@@ -189,22 +166,19 @@ export function mountHybrid25dLab(){
   const anchor=document.querySelector('.hi3dgen-lab')||document.querySelector('.lab-layout');if(!anchor)return;
   const section=el('section','lab-section hybrid25d-lab');
   section.innerHTML=`
-    <div class="section-head"><div><span>CHARACTER FORGE</span><h2>2.5D Actor Playground</h2></div><small>same world · same camera · same scale</small></div>
+    <div class="section-head"><div><span>CHARACTER PLAYGROUND</span><h2>2.5D × 3D 共存ビュー</h2></div><small>same world · same camera · same scale</small></div>
     <div class="hybrid25d-grid">
       <div class="hybrid25d-controls">
-        <p>下の「キャラ画像を選ぶ」から開始。矢印キー・WASDで移動、Shiftで走る、Spaceで攻撃。</p>
-        <div class="character25d-options" aria-label="武器">
-          <button data-weapon="sword">剣</button><button data-weapon="axe">斧</button><button data-weapon="spear">槍</button><button data-weapon="great">大剣</button><button data-weapon="staff">杖</button>
+        <details class="character25d-legacy-render"><summary>従来表示の詳細</summary><label class="hybrid25d-upload"><input type="file" accept="image/png,image/jpeg,image/webp"><b>2Dキャラ画像を選ぶ</b><span>透過PNG推奨。端末内の絵をそのまま3D空間へ置きます。</span></label>
+        <div class="hybrid25d-switches">
+          <label><input type="checkbox" data-billboard checked><span>カメラ追従</span></label>
+          <label><input type="checkbox" data-idle checked><span>微動（単一画像）</span></label>
+          <label><input type="checkbox" data-proxy><span>3D proxy表示</span></label>
         </div>
-        <label><input type="checkbox" data-shield checked>盾を持つ（両手武器では収納）</label>
-        <div class="character25d-motion" aria-label="動作">
-          <button data-motion="idle">Idle</button><button data-motion="walk">Walk</button><button data-motion="run">Run</button><button data-motion="attack">Attack</button><button data-motion="turn">Turn</button><button data-motion="hit">Hit</button><button data-motion="rest">Rest</button>
-        </div>
-        <div class="character25d-movement" aria-label="移動"><button data-move="ArrowLeft">左へ</button><button data-move="ArrowUp">奥へ</button><button data-move="ArrowDown">手前へ</button><button data-move="ArrowRight">右へ</button></div>
-        <div class="hybrid25d-arrange"><button type="button" data-arrange="actor" aria-pressed="true">Actorだけ</button><button type="button" data-arrange="split" aria-pressed="false">3Dと比較</button><button type="button" data-arrange="overlay" aria-pressed="false">重ね比較</button></div>
+        </details><div class="hybrid25d-arrange"><button type="button" data-arrange="split" aria-pressed="true">並べる</button><button type="button" data-arrange="overlay" aria-pressed="false">重ね比較</button></div>
         <div class="hybrid25d-views" aria-label="camera presets"><button type="button" data-view="front">正面</button><button type="button" data-view="quarter">斜め</button><button type="button" data-view="side">横</button><button type="button" data-view="back">背面</button></div>
         <output class="hybrid25d-status" data-status data-stage="loading">3Dモデルを読み込み中</output>
-        <p class="hybrid25d-note">剣・盾はRINNE主人公と同じ3Dモデルです。歩行・攻撃中の握りと前後関係を確認できます。</p>
+        <p class="hybrid25d-note">左が既存3D、右が2.5D。地面・カメラ・照明・接地影を共有し、混在した時の違和感を先に見ます。</p>
       </div>
       <div class="hybrid25d-stage"><canvas></canvas><div class="hybrid25d-badges"><span>3D</span><span>2.5D</span></div></div>
     </div>`;
@@ -212,13 +186,16 @@ export function mountHybrid25dLab(){
   const status=section.querySelector('[data-status]');
   const setStatus=(stage,message)=>{status.dataset.stage=stage;status.textContent=message};
   const preview=createHybridPreview(section.querySelector('canvas'),setStatus);
-  for(const button of section.querySelectorAll('[data-motion]'))button.addEventListener('click',()=>preview.setMotion(button.dataset.motion));
-  for(const button of section.querySelectorAll('[data-weapon]'))button.addEventListener('click',()=>preview.setWeapon(button.dataset.weapon));
-  section.querySelector('[data-shield]').addEventListener('change',event=>preview.setShield(event.currentTarget.checked));
-  for(const button of section.querySelectorAll('[data-move]')){
-    button.addEventListener('pointerdown',event=>{button.setPointerCapture(event.pointerId);preview.moveKey(button.dataset.move,true);});
-    for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,()=>preview.moveKey(button.dataset.move,false));
-  }
+  const fileInput=section.querySelector('input[type=file]');
+  fileInput.addEventListener('change',async()=>{
+    const file=fileInput.files?.[0];if(!file)return;
+    setStatus('loading',`${file.name} を2.5D面へ配置中`);
+    try{await preview.setImage(file);setStatus('ready',`${file.name} · 2.5D表示中。カメラを回して共存感を確認できます`)}
+    catch(error){console.error(error);setStatus('error','画像を読み込めませんでした')}
+  });
+  section.querySelector('[data-billboard]').addEventListener('change',event=>preview.setBillboard(event.currentTarget.checked));
+  section.querySelector('[data-idle]').addEventListener('change',event=>preview.setIdle(event.currentTarget.checked));
+  section.querySelector('[data-proxy]').addEventListener('change',event=>preview.setProxy(event.currentTarget.checked));
   for(const button of section.querySelectorAll('[data-arrange]'))button.addEventListener('click',()=>{
     const mode=button.dataset.arrange;preview.setArrangement(mode);
     for(const item of section.querySelectorAll('[data-arrange]'))item.setAttribute('aria-pressed',String(item===button));
@@ -228,4 +205,3 @@ export function mountHybrid25dLab(){
   addEventListener('pagehide',()=>preview.destroy(),{once:true});
   return {section,preview};
 }
-

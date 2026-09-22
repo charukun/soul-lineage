@@ -1,7 +1,7 @@
 import {createReviewRoutes} from '@soul/shared-ui/review-shell';
 
 export const REVIEW_DEV=Object.freeze({
-  rinne:import.meta.env.DEV&&['localhost','127.0.0.1'].includes(location.hostname)?'http://127.0.0.1:5173/':'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',
+  rinne:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',
   village:'https://soul-lineage-village-dev.c-okamoto.workers.dev/',
   demon:'https://soul-lineage-demon-dev.c-okamoto.workers.dev/',
   pulse:'https://rinne-ops.c-okamoto.workers.dev/',
@@ -27,4 +27,3 @@ export const REVIEW_VFX_WARM_ASSETS=Object.freeze([
   'simulator/assets/effekseer/samples/00_Basic/Simple_Ribbon_Sword.efkefc',
   'simulator/assets/effekseer/samples/02_Tktk03/ToonHit.efkefc',
 ]);
-

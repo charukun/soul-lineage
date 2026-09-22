@@ -1,4 +1,4 @@
-import {cropSpriteReference,importSpriteAsset,loadSpriteImage,spriteAssetBlob} from '@soul/assets/sprite25d/browser';
+import {cropSpriteReference,importSpriteAsset,loadSpriteImage,spriteAssetBlob} from './sprite25d-assets.js';
 
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
@@ -68,22 +68,22 @@ function overlap(a,b){
 
 function chooseThree(candidates,width,height){
   let best=null;
-  const list=candidates.slice(0,9);
+  const list=candidates.filter(item=>item.width/item.height<.7).slice(0,9);
   for(let a=0;a<list.length;a++)for(let b=a+1;b<list.length;b++)for(let c=b+1;c<list.length;c++){
     const trio=[list[a],list[b],list[c]].sort((p,q)=>p.x-q.x),heights=trio.map(item=>item.height),bottoms=trio.map(item=>item.y+item.height);
     const ratio=Math.min(...heights)/Math.max(...heights),bottomSpread=(Math.max(...bottoms)-Math.min(...bottoms))/height;
     if(ratio<.62||bottomSpread>.19||trio.some((item,index)=>index&&overlap(item,trio[index-1])>.18))continue;
     const span=(trio[2].x+trio[2].width-trio[0].x)/width;
     if(span<.2)continue;
-    const score=trio.reduce((sum,item)=>sum+item.score,0)+ratio*2-bottomSpread*5;
+    const symmetry=Math.min(trio[0].width,trio[2].width)/Math.max(trio[0].width,trio[2].width);
+    const gapA=trio[1].x-trio[0].x,gapB=trio[2].x-trio[1].x,gapBalance=Math.abs(gapA-gapB)/Math.max(gapA,gapB);
+    if(symmetry<.62||gapBalance>.68)continue;
+    const narrowSide=trio[1].width<Math.min(trio[0].width,trio[2].width)*.9?1:0;
+    const score=trio.reduce((sum,item)=>sum+item.score,0)+ratio*2-bottomSpread*5+symmetry*3-gapBalance*2+narrowSide*2;
     if(!best||score>best.score)best={score,trio};
   }
   if(best)return best.trio;
-  // Character sheets often group FRONT/SIDE/BACK into one wide connected block.
-  const wide=candidates.find(item=>item.width/item.height>.58&&item.width>width*.15&&item.height>height*.24);
-  if(!wide)return null;
-  const cell=wide.width/3;
-  return [0,1,2].map(index=>({x:wide.x+cell*index,y:wide.y,width:cell,height:wide.height,score:wide.score-.2}));
+  return null;
 }
 
 function toSourceRect(item,scaleX,scaleY,sourceWidth,sourceHeight,pad=.035){
@@ -116,15 +116,33 @@ function removeBackground(imageData,bg){
   return removed/(width*height);
 }
 
+// Drop detached sheet captions after edge matting. Source bytes stay intact.
+function retainBodyComponent(image){
+  const {data,width,height}=image,labels=new Int32Array(width*height),queue=new Uint32Array(width*height),sizes=[0];let label=0,best=0;
+  for(let start=0;start<labels.length;start++){
+    if(labels[start]||data[start*4+3]<32)continue;
+    label++;let head=0,tail=1;queue[0]=start;labels[start]=label;
+    while(head<tail){const i=queue[head++],x=i%width,y=Math.floor(i/width);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=width||ny>=height)continue;const j=ny*width+nx;if(!labels[j]&&data[j*4+3]>=32){labels[j]=label;queue[tail++]=j;}}}
+    sizes[label]=tail;if(tail>sizes[best])best=label;
+  }
+  if(!best)return;
+  for(let i=0;i<labels.length;i++)if(labels[i]!==best)data[i*4+3]=0;
+}
+
 async function transparentCrop(source,rect,bg){
   const image=await loadSpriteImage(spriteAssetBlob(source)),canvas=document.createElement('canvas');canvas.width=rect[2];canvas.height=rect[3];
   try{
     const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,...rect,0,0,rect[2],rect[3]);
-    const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),removedRatio=removeBackground(pixels,bg);ctx.putImageData(pixels,0,0);
+    const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),removedRatio=removeBackground(pixels,bg);retainBodyComponent(pixels);ctx.putImageData(pixels,0,0);
     const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('透過素材を作成できません')),'image/png'));
     const file=new File([blob],'character-auto-pose.png',{type:'image/png'}),asset=await importSpriteAsset(file,{kind:'reference-crop',parentSha256:source.sha256,rect:[...rect],removeBorderWhite:false,backgroundMode:'auto-edge'});
     return {asset,removedRatio};
   }finally{canvas.width=canvas.height=1;}
+}
+
+export function detectCharacterSheetRegions(data,width,height){
+  const bg=backgroundColor(data,width,height),found=components(foregroundMask(data,width,height,bg),width,height);
+  return {bg,found,trio:chooseThree(found,width,height)};
 }
 
 export async function autoPrepareCharacterSheet(file){
@@ -133,14 +151,14 @@ export async function autoPrepareCharacterSheet(file){
   const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
   try{
     const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0,width,height);const pixels=ctx.getImageData(0,0,width,height),bg=backgroundColor(pixels.data,width,height);
-    const found=components(foregroundMask(pixels.data,width,height,bg),width,height),trio=chooseThree(found,width,height),primary=trio?.[0]||found[0]||{x:Math.floor(width*.12),y:Math.floor(height*.08),width:Math.floor(width*.4),height:Math.floor(height*.84)};
+    const found=components(foregroundMask(pixels.data,width,height,bg),width,height),trio=chooseThree(found,width,height),primary=trio?.[0]||found[0]||{x:0,y:0,width,height};
     const scaleX=source.width/width,scaleY=source.height/height,viewRects=trio?trio.map(item=>toSourceRect(item,scaleX,scaleY,source.width,source.height)):[toSourceRect(primary,scaleX,scaleY,source.width,source.height)];
     const assets={[source.sha256]:source},references={sheet:source.sha256,front:null,quarter:null,side:null,back:null};
     const names=['front','side','back'];
     for(let index=0;index<viewRects.length;index++){
-      const viewAsset=await cropSpriteReference(source,{rect:viewRects[index],removeBorderWhite:false});assets[viewAsset.sha256]=viewAsset;references[names[index]]=viewAsset.sha256;
+      const {asset:viewAsset}=await transparentCrop(source,viewRects[index],bg);assets[viewAsset.sha256]=viewAsset;references[names[index]]=viewAsset.sha256;
     }
-    const poseResult=await transparentCrop(source,viewRects[0],bg);assets[poseResult.asset.sha256]=poseResult.asset;
-    return {assets,references,pose:poseResult.asset.sha256,diagnostics:{views:trio?3:1,removedRatio:poseResult.removedRatio,confidence:trio&&poseResult.removedRatio>.08?'high':trio?'medium':'low'}};
+    const poseResult={asset:assets[references.front],removedRatio:0};
+    return {assets,references,pose:poseResult.asset.sha256,diagnostics:{views:trio?3:1,removedRatio:poseResult.removedRatio,confidence:trio?'candidate':'single-view'}};
   }finally{canvas.width=canvas.height=1;}
 }

@@ -1,7 +1,7 @@
 import {mountHybrid25dLab} from './hybrid-25d-lab.js';
-import {mountShino25dWorkshop} from './shino25d-workshop.js';
+import {mountCharacter25DForge} from './character25d-forge.js';
 
-mountShino25dWorkshop(mountHybrid25dLab());
+mountCharacter25DForge(mountHybrid25dLab());
 
 const build=document.querySelector('[data-build]');
 if(build){
