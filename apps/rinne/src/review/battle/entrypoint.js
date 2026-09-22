@@ -243,8 +243,6 @@ battleCanvas?.addEventListener('pointermove',event=>{if(!reviewSwipe.move(event.
 battleCanvas?.addEventListener('pointerup',event=>{if(reviewSwipe.id!==event.pointerId)return;event.preventDefault();reviewSwipe.up(event.pointerId,event.clientX,event.clientY,performance.now());if(battleCanvas.hasPointerCapture?.(event.pointerId))battleCanvas.releasePointerCapture(event.pointerId);},{passive:false});
 const cancelReviewSwipe=()=>reviewSwipe.cancel();
 battleCanvas?.addEventListener('pointercancel',cancelReviewSwipe,{passive:true});battleCanvas?.addEventListener('lostpointercapture',()=>{if(reviewSwipe.id!==null)reviewSwipe.cancel();},{passive:true});
-q('camera-zoom-in')?.addEventListener('click',()=>void ensureBattleStage().then(stage=>stage.zoomBy(-.14)));
-q('camera-zoom-out')?.addEventListener('click',()=>void ensureBattleStage().then(stage=>stage.zoomBy(.14)));
 q('battle-technique-composition')?.addEventListener('click',event=>{const button=event.target.closest?.('[data-chain-preview]');if(button)void previewTechniqueChain(button.getAttribute('data-chain-preview'));});
 
 for(const button of document.querySelectorAll('[data-battle-mode]'))button.addEventListener('click',()=>{encounterMode=button.dataset.battleMode==='one-v-three'?'one-v-three':'duel';for(const item of document.querySelectorAll('[data-battle-mode]'))item.setAttribute('aria-pressed',String(item===button));resetBattle();});

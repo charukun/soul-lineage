@@ -107,8 +107,10 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs on
 | Browser repair | `docs/BROWSER_SELF_HEALING.md` |
 | Explicit browser playtest | `docs/BROWSER_PLAYTEST_ROUTING.md` |
 | Distribution | `docs/DISTRIBUTION_ARCHITECTURE.md` |
+| Character Create Forge / 三面図から3D候補 | `docs/characters/CHARACTER_CREATE_FORGE.md` |
 | Character / DCC | `docs/art/README.md` and routed `docs/characters/` docs |
 
 Specialized character, motion, browser, distribution, and DCC source contracts still apply when that task is requested, but routine execution stays on the canonical Astra lane. Do not read them preemptively.
 
 For 「村アプリを1 iteration自律改善してください」, 「喰滅廻遊を1 iteration自律改善してください」, or 「百年転生を1 iteration自律改善してください」, use the autonomous route above (`village` / `kuumetsu` / `rinne` respectively). Preserve the Fast DEV ceiling and existing quality gates. Gameplay iterations start from an immutable staging observation bound to an exact source SHA; never use a mutable latest-DEV page as Before/After evidence. For Evolution/Polish and other player-facing iterations, publish and observe the exact candidate After before arming the final merge-owning `[astra-validate]` head; if observation changes the candidate, re-stage it before formal validation. Browser observation is evidence discovery, not a substitute for causal/native validation. Completion still requires validated exact-head merge to develop in this session, not Ready alone.
+

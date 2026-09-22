@@ -1,0 +1,66 @@
+{
+  "forgeVersion": "1.0.0",
+  "stages": [
+    {
+      "stage": "Intake",
+      "status": "completed"
+    },
+    {
+      "stage": "View Detection",
+      "status": "completed"
+    },
+    {
+      "stage": "View Normalization",
+      "status": "completed"
+    },
+    {
+      "stage": "Multi-view Measurement",
+      "status": "completed"
+    },
+    {
+      "stage": "Reconstruction Spec",
+      "status": "completed"
+    },
+    {
+      "stage": "Geometry Generation",
+      "status": "completed"
+    },
+    {
+      "stage": "Multi-view Texture Projection",
+      "status": "completed"
+    },
+    {
+      "stage": "Rig",
+      "status": "completed"
+    },
+    {
+      "stage": "Skinning",
+      "status": "completed"
+    },
+    {
+      "stage": "Animation",
+      "status": "completed"
+    },
+    {
+      "stage": "Socket Generation",
+      "status": "completed"
+    },
+    {
+      "stage": "Export",
+      "status": "completed"
+    },
+    {
+      "stage": "Validation",
+      "status": "completed"
+    },
+    {
+      "stage": "Character Package Registration",
+      "status": "completed"
+    },
+    {
+      "stage": "Visual Review Lab Registration",
+      "status": "completed"
+    }
+  ],
+  "registeredPackages": 1
+}

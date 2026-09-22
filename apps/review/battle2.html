@@ -10,6 +10,8 @@
 <section class="review-surface__workspace">
 <div class="review-surface__stage-column"><section class="nocturne-stage review-surface__stage" data-review-surface="battle2" data-runtime="nocturne-native" data-state="BOOT">
 <canvas id="world" aria-label="序破急 canonical 自動戦闘"></canvas><canvas id="effects" aria-hidden="true"></canvas><div class="nocturne-vignette" aria-hidden="true"></div>
+<div class="battle2-camera-control-host" data-battle2-camera-host aria-label="カメラ操作"></div>
+<aside id="battle2-player-hud" class="battle2-player-hud-host" aria-label="プレイヤー情報HUD"></aside>
 <aside id="battle2-body-hud" class="battle2-body-hud-host" aria-label="プレイヤー身体部位HUD" hidden></aside>
 <button id="battle2-start" class="battle2-start" type="button" disabled aria-describedby="battle2-status"><span>タップで開始</span><small>音を有効にして戦闘を開始</small></button>
 <div id="battle-sequence-hud" class="battle-sequence-hud" aria-live="polite" hidden>
@@ -21,7 +23,7 @@
 </div>
 <p id="battle2-status" role="status" aria-live="polite">戦闘を準備中…</p>
 </section></div>
-<section class="controls review-surface__panel review-workbench__panel-host" aria-label="戦闘人数の切替"><div class="battle-stage-switch"><div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="oneVsThree" aria-pressed="false">1v3</button></div></div></section>
+<div class="battle-stage-switch" data-review-stage-control data-battle-mode-control><div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="oneVsThree" aria-pressed="false">1v3</button></div></div>
 </section>
 </main>
 <script type="module" src="./src/battle2-shell.js"></script><script type="module" src="./src/nocturne-stage.js"></script>

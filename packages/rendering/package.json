@@ -54,7 +54,9 @@
     "./humanoid-preview-constraints": "./src/humanoid-preview-constraints.js",
     "./camera-director": "./src/camera-director.js",
     "./character-view-resolver": "./src/character-view-resolver.js",
-    "./camera-presentation-three": "./src/camera-presentation-three.js"
+    "./camera-presentation-three": "./src/camera-presentation-three.js",
+    "./snap-camera-control": "./src/snap-camera-control.js",
+    "./snap-camera-control.css": "./src/snap-camera-control.css"
   },
   "dependencies": {
     "three": "0.186.0",

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="720" viewBox="0 0 1400 720">
+<rect width="1400" height="720" fill="#f7f4ef"/>
+<style>.t{font-family:system-ui,sans-serif;fill:#35323a}.h{font-size:34px;font-weight:700}.s{font-size:18px}.line{stroke:#4a4549;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.iv{fill:#e9e6e1}.iv2{fill:#c9c9cf}.hair{fill:#c7c9cf}.skin{fill:#efd4c9}.eye{fill:#7b2c2b}.dark{fill:#302c2d}.bronze{fill:#765842}.boot{fill:#403a39}.none{fill:none}</style>
+<text x="55" y="58" class="t h">しのちゃん / Shino — RINNE original turnaround</text><text x="55" y="89" class="t s">small stylized adult • silver-gray hair • red-brown eyes • ghost hood / poncho • ivory / pale gray</text>
+<g transform="translate(80,120)"><text x="155" y="28" class="t h">FRONT</text>
+<path class="iv2 line" d="M88 248 Q45 300 38 472 L110 444 145 505 210 456 275 505 310 444 382 472 Q375 300 332 248Z"/>
+<path class="skin line" d="M150 455 L188 455 181 595 151 595Z"/><path class="skin line" d="M232 455 L270 455 269 595 239 595Z"/>
+<path class="boot line" d="M142 578 Q170 566 193 585 L192 625 133 625Z"/><path class="boot line" d="M228 585 Q252 566 280 578 L289 625 230 625Z"/>
+<path class="iv line" d="M125 320 Q210 285 295 320 L330 470 Q210 520 90 470Z"/><path class="dark line" d="M162 330 L258 330 275 445 Q210 470 145 445Z"/>
+<path class="iv line" d="M130 300 Q86 318 58 384 Q100 410 150 390 L166 315Z"/><path class="iv line" d="M290 300 Q334 318 362 384 Q320 410 270 390 L254 315Z"/>
+<path class="skin line" d="M61 379 q-28 6-36 26 28 13 52-1"/><path class="skin line" d="M359 379 q28 6 36 26-28 13-52-1"/>
+<ellipse cx="210" cy="214" rx="88" ry="96" class="skin line"/><path class="hair line" d="M132 218 Q124 115 210 108 Q296 115 288 218 L270 198 Q245 158 210 164 Q175 158 150 198Z"/>
+<path class="hair line" d="M144 187 Q158 255 130 305 Q175 286 187 223Z"/><path class="hair line" d="M276 187 Q262 255 290 305 Q245 286 233 223Z"/>
+<path class="iv line" d="M92 218 Q104 84 210 70 Q316 84 328 218 L290 270 Q304 160 210 128 Q116 160 130 270Z"/>
+<ellipse cx="176" cy="111" rx="12" ry="20" class="dark"/><ellipse cx="244" cy="111" rx="12" ry="20" class="dark"/><path d="M194 139 Q210 153 226 139" class="none line"/>
+<ellipse cx="177" cy="215" rx="18" ry="24" class="eye line"/><ellipse cx="243" cy="215" rx="18" ry="24" class="eye line"/><ellipse cx="171" cy="207" rx="5" ry="7" fill="#fff"/><ellipse cx="237" cy="207" rx="5" ry="7" fill="#fff"/>
+<path d="M197 255 Q210 264 223 255" class="none line"/><path class="bronze line" d="M210 301 l14 14-14 14-14-14Z"/><path class="dark line" d="M195 310 l-34-18 10 34Z"/><path class="dark line" d="M225 310 l34-18-10 34Z"/>
+<text x="155" y="665" class="t s">front: face + ghost hood marks + clasp readable at small size</text></g>
+<g transform="translate(505,120)"><text x="155" y="28" class="t h">SIDE</text>
+<path class="iv2 line" d="M154 250 Q105 315 116 493 L185 455 220 500 272 466 310 486 Q317 310 281 250Z"/><path class="skin line" d="M205 448 L242 448 245 593 215 593Z"/><path class="boot line" d="M205 578 Q239 565 268 588 L273 623 208 623Z"/>
+<path class="iv line" d="M150 318 Q218 287 276 327 L292 466 Q224 500 166 463Z"/><path class="dark line" d="M188 330 L257 336 268 445 Q226 463 191 447Z"/>
+<ellipse cx="220" cy="213" rx="75" ry="94" class="skin line"/><path class="hair line" d="M157 210 Q155 120 222 108 Q289 120 288 223 L260 211 Q246 161 206 166 Q187 181 176 231Z"/><path class="hair line" d="M252 171 Q294 241 268 309 Q237 276 234 215Z"/>
+<path class="iv line" d="M121 217 Q134 91 226 74 Q315 95 321 206 L288 276 Q300 167 226 128 Q168 143 153 241Z"/><ellipse cx="191" cy="111" rx="11" ry="19" class="dark"/><ellipse cx="183" cy="216" rx="17" ry="24" class="eye line"/><ellipse cx="177" cy="208" rx="5" ry="7" fill="#fff"/>
+<path class="iv line" d="M166 301 Q122 330 97 399 Q133 415 177 390 L190 319Z"/><path class="skin line" d="M98 396 q-21 5-28 20 23 10 42 0"/><path class="bronze line" d="M183 307 l12 12-12 12-12-12Z"/>
+<text x="150" y="665" class="t s">side: hood volume, bob layers, cape thickness, boot shape</text></g>
+<g transform="translate(930,120)"><text x="155" y="28" class="t h">BACK</text>
+<path class="iv2 line" d="M88 248 Q48 306 38 490 L111 451 148 507 210 465 272 507 309 451 382 490 Q372 306 332 248Z"/>
+<path class="skin line" d="M150 455 L188 455 181 595 151 595Z"/><path class="skin line" d="M232 455 L270 455 269 595 239 595Z"/><path class="boot line" d="M142 578 Q170 566 193 585 L192 625 133 625Z"/><path class="boot line" d="M228 585 Q252 566 280 578 L289 625 230 625Z"/>
+<path class="iv line" d="M125 320 Q210 285 295 320 L330 470 Q210 520 90 470Z"/><path class="hair line" d="M134 211 Q131 119 210 106 Q289 119 286 211 Q286 282 256 310 Q210 283 164 310 Q134 282 134 211Z"/>
+<path class="iv line" d="M92 218 Q104 84 210 70 Q316 84 328 218 L300 285 Q294 169 210 126 Q126 169 120 285Z"/><path class="dark line" d="M168 346 q42-40 84 0-42 44-84 0Z"/><path class="dark line" d="M199 357 l-35 72 45-33Z"/><path class="dark line" d="M221 357 l35 72-45-33Z"/><path class="iv2 line" d="M150 430 q60 34 120 0"/>
+<text x="148" y="665" class="t s">back: large bow + layered cape hem; silhouette remains distinct</text></g>
+<g transform="translate(55,660)"><circle cx="0" cy="0" r="9" fill="#e9e6e1"/><text x="18" y="6" class="t s">ivory</text><circle cx="95" cy="0" r="9" fill="#c7c9cf"/><text x="113" y="6" class="t s">silver hair</text><circle cx="235" cy="0" r="9" fill="#7b2c2b"/><text x="253" y="6" class="t s">red-brown eyes</text><circle cx="400" cy="0" r="9" fill="#302c2d"/><text x="418" y="6" class="t s">charcoal detail</text></g>
+</svg>

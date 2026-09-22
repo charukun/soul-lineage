@@ -2,7 +2,7 @@ import { validateMuraLayout, riverX, muraEntry } from '@soul/world/mura';
 
 // RINNE-owned geometry only. Shared/custom villages and the life/combat rules stay untouched.
 export const JOURNEY_VILLAGE_ID='rinne-windward-birth-v1';
-export const JOURNEY_REVISION=3;
+export const JOURNEY_REVISION=4;
 const placements=[
   ['birth-manor','clanManor',[-14,-5,0.04],[-19,-7,Math.PI/2]],
   ['birth-square','campfire',[0,0,0],[0,0,0]],
@@ -53,26 +53,70 @@ const extras=[
   ['journey-port-seat','bench',157,11],['journey-port-lamp','wardlamp',157,4],
   ['journey-home-flowers','flowers',-10,-10],['journey-learning-flowers','flowers',10,17],
 ];
-const matches=(objects,coordinates)=>objects.length===placements.length&&placements.every(([id,kind,before,after])=>{
+const matches=(objects,coordinates)=>placements.every(([id,kind,before,after])=>{
   const o=objects.find(row=>row.id===id),at=coordinates==='before'?before:after;
   return o?.kind===kind&&o.phase==='built'&&o.x===at[0]&&o.z===at[1]&&o.rot===at[2];
 });
+const roomRows=(host,items)=>items.map(([kind,x,z,rot=0],index)=>({id:`${host}.room.${index}`,kind,x,z,rot,phase:'built',level:1,material:'base'}));
+const facility=(id,kind,x,z,rot=0,items=[])=>({id,kind,x,z,rot,phase:'built',level:1,material:'base',...(items.length?{room:roomRows(id,items)}:{})});
 
-/** Upgrade only the untouched built-in v2 exterior. Preserve furniture, IDs and family/save identity. */
+// Revision 4 grows the existing village into readable districts using only existing MURA facilities.
+const v4Facilities=[
+  facility('birth-restaurant','restaurant',-48,27,Math.PI,[['table',-2,-1],['table',2,-1],['chair',-2,1],['chair',2,1],['counter',0,-3],['hearth',-3.5,2.2],['lamp',3.5,2.4]]),
+  facility('birth-tavern','tavern',-49,12,Math.PI/2,[['table',0,0],['chair',-2,.5],['chair',2,.5],['counter',0,-2.4],['hearth',-3,2.1],['lamp',3,2.2]]),
+  facility('birth-furniture','furniture',-51,-14,Math.PI/2,[['sofa',-2,.2],['table',1,.2],['shelf',2,-2.4],['workbench',-2,-2.2],['lamp',2.5,2.2]]),
+  facility('birth-tools','tools',38,3,0,[['workbench',-1.5,-1.2],['shelf',1.6,-1.7],['counter',0,1.3],['lamp',2.1,2.1]]),
+  facility('birth-armor','armor',38,-12,0,[['counter',0,-1.5],['workbench',-1.7,.6],['shelf',1.8,.8],['lamp',0,2.3]]),
+  facility('birth-jeweler','jeweler',31,16,0,[['counter',0,-1.5],['table',0,1.1],['shelf',-1.8,-1.4],['lamp',2,1.9]]),
+  facility('birth-storage','storage',-47,-41),
+  facility('birth-clay','clay',45,-29),
+  facility('birth-hunting','hunting',-60,-27),
+  facility('birth-fishpond','fishpond',49,24),
+  facility('birth-home-northwest','home',-59,3,0,[['bed',-1.2,-1.4],['table',.7,0],['shelf',1.2,-2.2],['plant',-1.8,2],['lamp',1.8,2]]),
+  facility('birth-home-westgate','home',-61,-12,0,[['bed',-1.2,-1.4],['sofa',.8,.6],['table',-.8,1.7],['hearth',1.3,-2],['rug',0,0]]),
+];
+const v4Scenery=[
+  ['journey-market-table','logtable',-25,8,0],['journey-market-flowers','flowers',-23,13,0],
+  ['journey-restaurant-lamp','wardlamp',-48,19,0],['journey-tavern-seat','bench',-55,12,Math.PI/2],
+  ['journey-furniture-flowers','flowers',-51,-7,0],['journey-west-lamp','wardlamp',-58,16,0],
+  ['journey-hunt-seat','logseat',-60,-18,0],['journey-storage-table','logtable',-43,-48,0],
+  ['journey-tools-lamp','lamp',43,7,0],['journey-armor-lamp','wardlamp',43,-17,0],
+  ['journey-jeweler-flowers','flowers',31,22,0],['journey-pond-seat','bench',55,18,Math.PI/2],
+  ['journey-pond-flowers','flowers',45,17,0],['journey-clay-seat','logseat',51,-28,0],
+  ['journey-home-nw-flowers','flowers',-59,8,0],['journey-home-westgate-lamp','lamp',-65,-7,0],
+  ['journey-orchard-table','logtable',41,42,0],['journey-artisan-bench','bench',34,2,Math.PI/2],
+];
+const exactRows=(objects,rows)=>rows.every(([id,kind,x,z,rot=0])=>objects.some(o=>o.id===id&&o.kind===kind&&o.x===x&&o.z===z&&o.rot===rot&&o.phase==='built'));
+const legacyExtrasMatch=objects=>exactRows(objects,extras);
+const v4FacilitiesMatch=objects=>v4Facilities.every(row=>objects.some(o=>o.id===row.id&&o.kind===row.kind&&o.x===row.x&&o.z===row.z&&o.rot===row.rot&&o.phase==='built'));
+const v4SceneryMatch=objects=>exactRows(objects,v4Scenery);
+
+
+/** Upgrade only untouched built-in layouts. Shared/custom exteriors remain authoritative. */
 export function refreshRinneBirthVillage(layout){
-  if(layout?.__sharedWorldCode||layout?.id!==JOURNEY_VILLAGE_ID||layout.revision!==2||!matches(layout.objects,'before'))return layout;
-  const positions=new Map(placements.map(([id,, ,after])=>[id,after]));
-  return validateMuraLayout({...layout,revision:JOURNEY_REVISION,objects:[
-    ...layout.objects.map(o=>{const [x,z,rot]=positions.get(o.id);return {...o,x,z,rot};}),
-    ...extras.map(([id,kind,x,z])=>({id,kind,x,z,rot:0,phase:'built',level:1,material:'base'})),
-  ]});
+  if(layout?.__sharedWorldCode||layout?.id!==JOURNEY_VILLAGE_ID)return layout;
+  let next=layout;
+  if(next.revision===2&&next.objects.length===placements.length&&matches(next.objects,'before')){
+    const positions=new Map(placements.map(([id,, ,after])=>[id,after]));
+    next=validateMuraLayout({...next,revision:3,objects:[
+      ...next.objects.map(o=>{const [x,z,rot]=positions.get(o.id);return {...o,x,z,rot};}),
+      ...extras.map(([id,kind,x,z])=>({id,kind,x,z,rot:0,phase:'built',level:1,material:'base'})),
+    ]});
+  }
+  if(next.revision===3&&next.objects.length===placements.length+extras.length&&matches(next.objects,'after')&&legacyExtrasMatch(next.objects)){
+    next=validateMuraLayout({...next,revision:JOURNEY_REVISION,objects:[
+      ...next.objects,
+      ...v4Facilities.map(row=>({...row,...(row.room?{room:row.room.map(item=>({...item}))}:{})})),
+      ...v4Scenery.map(([id,kind,x,z,rot=0])=>({id,kind,x,z,rot,phase:'built',level:1,material:'base'})),
+    ]});
+  }
+  return next;
 }
 
 export function isJourneyVillage(layout){
   if(layout?.__sharedWorldCode||layout?.id!==JOURNEY_VILLAGE_ID||layout.revision!==JOURNEY_REVISION)return false;
-  return matches(layout.objects.filter(o=>placements.some(([id])=>o.id===id)),'after')
-    &&layout.objects.length===placements.length+extras.length
-    &&extras.every(([id,kind,x,z])=>layout.objects.some(o=>o.id===id&&o.kind===kind&&o.x===x&&o.z===z&&o.rot===0&&o.phase==='built'));
+  return matches(layout.objects,'after')&&legacyExtrasMatch(layout.objects)&&v4FacilitiesMatch(layout.objects)&&v4SceneryMatch(layout.objects)
+    &&layout.objects.length===placements.length+extras.length+v4Facilities.length+v4Scenery.length;
 }
 
 const point=(id,x,z,label)=>({id,x,z,label});
@@ -97,6 +141,11 @@ export function villageJourneyRoads(){
     point('north-approach',49,48,'北の休み場'),point('north-west',north-12,54,'北の渡し'),
     point('north-east',north+12,54,'北の渡し'),point('coast-north',143,54,'海辺の小径'),
     point('coast-home',156,20,'故郷へ続く道'),
+    point('north-bypass',-28,36,'商いの外周'),point('west-north',-68,36,'西の外周路'),
+    point('west-mid',-70,2,'住宅街の外周'),point('west-south',-70,-42,'森の外周'),
+    point('storage-road',-55,-52,'資材街道'),point('craft-south',-35,-52,'農地の外周'),
+    point('east-market',55,10,'水辺の小径'),point('pond-road',55,17,'釣り堀の小径'),
+    point('east-work',48,-4,'職人工房街'),point('east-armory',50,-18,'武具職人街'),point('east-clay',52,-32,'粘土の小径'),
   ];
   const chains=[
     ['home','square','learning','prayer','east','forge','yard','south','return','clinic','home'],
@@ -105,6 +154,9 @@ export function villageJourneyRoads(){
     ['south','gate','gate-out'],
     ['forge','road-east','south-approach','south-west','south-east','coast-south','coast-turn','port'],
     ['east','orchard-turn','orchard','north-approach','north-west','north-east','coast-north','coast-home','port'],
+    ['market','north-bypass','west-north','west-mid','west-south','storage-road','craft-south','field-west'],
+    ['east','east-market','pond-road','orchard-turn'],
+    ['forge','east-work','east-armory','east-clay','south-approach'],
   ];
   const edges=chains.flatMap(chain=>chain.slice(1).map((id,i)=>({from:chain[i],to:id,danger:id==='gate-out'||chain[i]==='gate-out',width:id==='gate-out'?1.8:2.4})));
   return {nodes,edges};
@@ -140,6 +192,16 @@ export function registerVillageJourney(layout,stations){
     ['workshop-maintain','journey-craft-table','maintain','木工の庭で道具を手入れする',-33,-28.5],
     ['farm-care','birth-farm','care','畑の手入れを手伝う',-22,-36],
     ['orchard-adapt','birth-orchard','adapt','果樹と風の様子を見る',34,40],
+    ['restaurant-observe','birth-restaurant','observe','料亭の客と料理人を観察する',-42,20.5],
+    ['tavern-breathe','birth-tavern','breathe','酒場の軒先で呼吸を整える',-42,16],
+    ['furniture-care','birth-furniture','care','家具屋の展示を整える',-45,-9],
+    ['tools-maintain','birth-tools','maintain','道具屋で道具を手入れする',43,9],
+    ['armor-maintain','birth-armor','maintain','防具屋で装備を手入れする',43,-6.5],
+    ['jeweler-focus','birth-jeweler','focus','装飾工房で細工へ集中する',36,22],
+    ['storage-maintain','birth-storage','maintain','資材置き場を整理する',-47,-34],
+    ['clay-adapt','birth-clay','adapt','湿地の土と足場を確かめる',51,-24],
+    ['hunting-track','birth-hunting','track','猟場の痕跡を追う',-60,-18],
+    ['fishpond-balance','birth-fishpond','balance','水辺で姿勢を整える',49,17],
     ['gate-rest','journey-gate-seat','rest','見張りの休み場で息を整える',2,-34.5],
     ['ford-south-rest','journey-ford-south-seat','rest','南の渡しの手前で休む',52,-33.5],
     ['ford-east-rest','journey-ford-east-seat','rest','渡しの木陰で休む',109,-36.5],

@@ -2,8 +2,8 @@ import {createDrivenBattleRuntime} from '@soul/johakyu-presentation';
 import {createJohakyuP7ReviewScenario} from './johakyu-p7-review.js';
 import {normalizeBattle2Loadout} from './battle2-loadout.js';
 
-export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,onMeta=()=>{},evidence=false,fixture=null,mode='duel',loadout=null}){
-  const driven=createDrivenBattleRuntime({world,effects,stage,sound,notify,signal});
+export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,cameraPresentation=null,onMeta=()=>{},evidence=false,fixture=null,mode='duel',loadout=null}){
+  const driven=createDrivenBattleRuntime({world,effects,stage,sound,notify,signal,cameraPresentation});
   let reviewLoadout=normalizeBattle2Loadout(loadout||{});
   const makeScenario=()=>evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({mode,duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5,loadout:reviewLoadout}):createJohakyuP7ReviewScenario({mode,comboStyle:'composed',duelGap:mode==='duel'?2.18:3.15,enemyLeadSeconds:mode==='duel'?.16:0,loadout:reviewLoadout});
   let scenario=makeScenario();
