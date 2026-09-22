@@ -387,7 +387,7 @@ function start() {
         if (receipt.bytes !== byteLength) errors.push('モデル監査票のbyte lengthと一致しません');
         if (receipt.sha256 !== sha256) errors.push('モデル監査票のSHA-256と一致しません');
         if (receipt.humanoidRig !== 'kaykit.Rig_Medium.v1') errors.push('Rig_Medium互換ではありません');
-        return Object.freeze({ approved: errors.length === 0, errors, modelId: model.id, license: 'CC0-1.0 / RINNE DCC', source: receipt });
+        return Object.freeze({ approved: errors.length === 0, errors, modelId: model.id, license: receipt.license?.spdx || 'CC0-1.0 / RINNE DCC', source: receipt });
       };
       const assetUrl = new URL(model.assetPath, location.href);
       assetUrl.searchParams.set('sha256', receipt.sha256);
