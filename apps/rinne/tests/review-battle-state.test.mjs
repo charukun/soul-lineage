@@ -162,3 +162,17 @@ assert.match(stageSource,/weaponSegment/);assert.match(stageSource,/rightHand/);
   assert.doesNotMatch(stageSource,/reviewBattleMultiHitFrame/);assert.doesNotMatch(stageSource,/function ring\(|\.marker\b/);assert.match(stageSource,/core\?\.enemies/);
   assert.match(stageSource,/onInspirationCue\('spark'/);
 });
+
+
+test('battle review starts duel immediately and reports combat at technique granularity',()=>{
+  const battleSource=readFileSync(new URL('../src/review-battle.js',import.meta.url),'utf8');
+  const entrypointSource=readFileSync(new URL('../src/review/battle/entrypoint.js',import.meta.url),'utf8');
+  assert.match(entrypointSource,/opponent:group\?'group':'duel',encounterReady:true/);
+  assert.match(entrypointSource,/pushBattleReadout\(\`連「\$\{action\}」\`,'action'\)/);
+  assert.doesNotMatch(entrypointSource,/state\.skill\|\|battleActionLabel\(core\?\.hero\?\.attack/);
+  assert.match(entrypointSource,/pushBattleReadout\('武器で弾いた','defense'\)/);
+  assert.match(entrypointSource,/distance>2\.6\?'間合いを取る':'様子を見る'/);
+  assert.match(entrypointSource,/battleComboInterrupted\(core,previous\)/);
+  assert.match(entrypointSource,/syncCombatSequence\(phasePanel,''\)/);
+  assert.match(battleSource,/review\/battle\/entrypoint\.js/);
+});
