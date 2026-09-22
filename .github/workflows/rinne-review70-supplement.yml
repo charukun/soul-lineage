@@ -1,0 +1,29 @@
+name: RINNE review 70 supplemental native play (temporary)
+on:
+  push:
+    branches: [fix/rinne-playreview70-20260922]
+permissions:
+  contents: read
+jobs:
+  observe:
+    if: contains(github.event.head_commit.message, '[rinne-review-before2]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/review70-supplement.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rinne-review70-before-supplement-4866eb31
+          path: .review70-supplement/
+          if-no-files-found: error
+          retention-days: 14
