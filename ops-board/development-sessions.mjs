@@ -79,13 +79,21 @@ function sessionStatus(steps,merged){
   return 'active';
 }
 
-function executionState({steps=[],merged=false,state='Draft',matched=[],updatedAt=null}={}){
+function failureNeedsHuman(pr,lastFailure){
+  const labels=new Set((pr?.labels||[]).map(item=>String(item?.name||'').toLowerCase()).filter(Boolean));
+  return lastFailure?.conclusion==='action_required'||labels.has('human-required')||labels.has('needs-human');
+}
+
+function executionState({steps=[],merged=false,state='Draft',matched=[],updatedAt=null,needsHuman=false}={}){
   const validation=steps.find(item=>item.id==='validation');
   const browser=steps.find(item=>item.id==='browser');
   const publish=steps.find(item=>item.id==='publish');
   const activeRun=latest((matched||[]).filter(run=>RUNNING.has(run.status)));
   const base={lastActivityAt:updatedAt,runId:activeRun?.id||null,url:activeRun?.html_url||null};
-  if(steps.some(item=>item.state==='problem'))return Object.freeze({...base,state:'blocked',label:'BLOCKED',tone:'danger',detail:'失敗した工程で停止'});
+  if(steps.some(item=>item.state==='problem')){
+    if(needsHuman)return Object.freeze({...base,state:'needs-user',label:'NEEDS USER',tone:'danger',detail:'人の判断・権限が必要'});
+    return Object.freeze({...base,state:'repair',label:'AUTO REPAIR',tone:'warning',detail:'自動修復レーンで継続'});
+  }
   if(validation?.state==='running')return Object.freeze({...base,state:'validating',label:'VALIDATING',tone:'progress',detail:'exact-head検証を実行中'});
   if(merged&&publish?.state==='done')return Object.freeze({...base,state:'done',label:'DONE',tone:'ok',detail:'develop merge完了'});
   if(merged&&publish?.state==='running')return Object.freeze({...base,state:'running',label:'RUNNING',tone:'progress',detail:'DEV公開処理を実行中'});
@@ -172,7 +180,7 @@ export function buildDevelopmentSessions(pulls=[],runs=[],{limit=8}={}){
       at:lastFailure.updated_at||lastFailure.created_at||null,
     }):null;
     const updatedAt=[pr.updated_at,pr.merged_at,...matched.map(run=>run.updated_at||run.created_at)].filter(Boolean).sort((a,b)=>at(b)-at(a))[0]||null;
-    const execution=executionState({steps,merged,state,matched,updatedAt});
+    const execution=executionState({steps,merged,state,matched,updatedAt,needsHuman:failureNeedsHuman(pr,lastFailure)});
     sessions.push(Object.freeze({
       pr:Object.freeze({number:pr.number,url:pr.html_url||null}),
       title:pr.title||('PR #'+pr.number),state,status:sessionStatus(steps,merged),branch:pr.head?.ref||null,
