@@ -108,11 +108,14 @@ def apply_side_profiles(spec, analysis=None):
             extra = [f['y'] for f in spec['face'].values()]
         elif comp['id'] in ('torso','clothing','pelvis'):
             extra = [levels['chest'],levels['waist'],levels['hip'],levels['hip']+.015]
-        heights=sorted(set([r[0] for r in legacy]+[y for y in extra if legacy[0][0]<y<legacy[-1][0]]))
+        heights=[y for y in extra if legacy[0][0]<y<legacy[-1][0]]
+        for r in legacy:
+            if all(abs(r[0]-y)>1e-9 for y in heights):heights.append(r[0])
+        heights.sort()
         oldrows=[{'y':r[0],'ring':r} for r in legacy]
         rings=[];sections=[]
         for y in heights:
-            ring=interpolate(oldrows,y,lambda r:r['ring'])
+            ring=list(interpolate(oldrows,y,lambda r:r['ring']));ring[0]=y
             region=region_for(comp,y,levels); shape=shapes[region]
             endpoints=side_bounds(rows,y,facing)
             front,back=endpoints if endpoints else (ring[2]+ring[4],ring[2]-ring[4])
