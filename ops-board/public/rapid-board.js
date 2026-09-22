@@ -2,7 +2,7 @@ import { subscribe } from './view-state.js';
 import { ageLabel, FAILED_CONCLUSIONS } from './health.mjs';
 import { eventDrivenAlerts } from './freshness.mjs';
 import { buildIssueRepairPrompt } from './issue-repair-prompt.js';
-import { renderProgressMini } from './progress-mini.js';
+import { renderProgressMini, tickProgressDurations } from './progress-mini.js';
 
 const $ = selector => document.querySelector(selector);
 const el = (tag, className = '', text = null) => {
@@ -110,8 +110,23 @@ function renderActive(state) {
     root.append(el('p', 'rapid-empty rapid-empty-ok', '現在の作業中タスクはありません'));
     return;
   }
-  sessions.slice(0, 2).forEach(session=>root.append(renderSession(session,{graph:true})));
-  if (sessions.length > 2) root.append(el('p', 'rapid-more-note', 'ほか ' + (sessions.length - 2) + '件'));
+  sessions.slice(0,2).forEach(session=>root.append(renderSession(session,{graph:true})));
+  if(sessions.length>2){
+    const rest=sessions.slice(2);
+    const extra=el('div','rapid-active-extra');
+    extra.hidden=true;
+    rest.forEach(session=>extra.append(renderSession(session,{graph:true})));
+    const toggle=el('button','rapid-more-button','ほか '+rest.length+'件を見る');
+    toggle.type='button';
+    toggle.setAttribute('aria-expanded','false');
+    toggle.addEventListener('click',()=>{
+      const opening=extra.hidden;
+      extra.hidden=!opening;
+      toggle.setAttribute('aria-expanded',String(opening));
+      toggle.textContent=opening?'閉じる':'ほか '+rest.length+'件を見る';
+    });
+    root.append(toggle,extra);
+  }
 }
 
 function appHistory(state, app) {
@@ -284,6 +299,14 @@ const sessionStepView=state=>({
 })[state]||['確認','muted'];
 
 const iterationGameLabel=game=>({kuumetsu:'喰滅廻遊',rinne:'百年転生',village:'村づくり'})[game]||'対象未記録';
+const autonomousGameIds=new Set(['kuumetsu','rinne','village']);
+const iterationGameId=session=>session?.autonomous?.game||session?.game||'';
+const iterationDisplayTitle=(session,gameLabel)=>{
+  const raw=String(session?.title||'自律改善').trim();
+  const prefixes=[gameLabel+'：',gameLabel+':'];
+  for(const prefix of prefixes)if(raw.startsWith(prefix))return raw.slice(prefix.length).trim();
+  return raw;
+};
 const iterationRank=status=>({problem:0,running:1,active:1,publishing:2,complete:3})[status]??4;
 const iterationIdentity=session=>session.id||(
   session.runKey&&session.iteration ? session.runKey+':'+session.iteration
@@ -326,36 +349,20 @@ function renderSession(session,{iteration=false,graph=false}={}) {
   const summaryIds=new Set(['observation','implementation','astraValidation','afterObservation','merge','devPublish']);
   const phases=iteration?allPhases.filter(phase=>summaryIds.has(phase.id)):allPhases;
   const current=iterationCurrentPhase(session,allPhases);
-  const measured=current?phaseDuration(current):null;
-  const total=allPhases.map(phase=>phaseDuration(phase)).filter(Number.isFinite).reduce((sum,value)=>sum+value,0);
-  const state=session.status==='complete'?'complete':session.status==='problem'?'problem':session.status==='publishing'?'publishing':'running';
-
-  if(graph){
-    const band=el('div','rapid-current-band '+state);
-    const flag=el('span','rapid-current-flag',state==='complete'?'DONE':state==='problem'?'ISSUE':state==='publishing'?'DEV':'NOW');
-    const currentCopy=el('span','rapid-current-copy');
-    currentCopy.append(
-      el('strong','',state==='complete'?'完了':current?.label||'確認中'),
-      el('span','',state==='complete'
-        ? (total?'計測合計 '+durationLabel(total):'工程完了')
-        : Number.isFinite(measured)?durationLabel(measured):state==='publishing'?'公開処理中':'現在の工程')
-    );
-    band.append(flag,currentCopy);
-    row.append(band);
-  }
-
   const head=el('div','rapid-session-head');
   const prHref=iteration?null:safeHref(session.pr?.url);
-  const iterationGame=session.autonomous?.game||session.game,iterationNumber=session.autonomous?.number||session.iteration;
-  const titlePrefix=iteration?(iterationGameLabel(iterationGame)+(iterationNumber?' · Iteration '+iterationNumber:'')):'#'+(session.pr?.number||'?');
-  const title=el(prHref?'a':'strong','rapid-session-title',titlePrefix+' · '+(session.title||'開発セッション'));
+  const iterationGame=iterationGameId(session),iterationNumber=session.autonomous?.number||session.iteration;
+  const gameLabel=iterationGameLabel(iterationGame);
+  const titlePrefix=iteration?(iterationNumber?'Iteration '+iterationNumber:'自律改善'):'#'+(session.pr?.number||'?');
+  const sessionTitle=iteration?iterationDisplayTitle(session,gameLabel):(session.title||'開発セッション');
+  const title=el(prHref?'a':'strong','rapid-session-title',titlePrefix+' · '+sessionTitle);
   if(prHref){title.href=prHref;title.target='_blank';title.rel='noreferrer';}
   head.append(title);
   row.append(head);
 
   const meta=el('div','rapid-session-meta');
   const target=iteration
-    ? iterationGameLabel(iterationGame)
+    ? gameLabel
     : ((session.targets||[]).map(item=>item.label).join(' / ')||'対象未記録');
   meta.append(el('span','rapid-session-target',target),el('time','',relative(session.updatedAt)));
   const validated=session.validatedExactHead||session.validatedHead;
@@ -365,7 +372,7 @@ function renderSession(session,{iteration=false,graph=false}={}) {
 
   if(graph){
     const mini=renderProgressMini(phases,{
-      ariaLabel:(iteration?'自律iteration':'作業中タスク')+'の工程進捗',
+      ariaLabel:(iteration?'自律iteration':'作業中タスク')+'の工程時間',
       className:iteration?'iteration':'active',
     });
     if(mini)row.append(mini);
@@ -387,9 +394,10 @@ function renderSession(session,{iteration=false,graph=false}={}) {
 function renderIterations(state){
   const root=$('#rapid-iteration-list'),count=$('#rapid-iteration-count');
   if(!root||!count)return;
-  const all=Array.isArray(state?.autonomousIterations)&&state.autonomousIterations.length
+  const allRaw=Array.isArray(state?.autonomousIterations)&&state.autonomousIterations.length
     ? state.autonomousIterations
     : (state?.developmentSessions||[]).filter(session=>session.autonomous);
+  const all=allRaw.filter(session=>autonomousGameIds.has(iterationGameId(session)));
   const ordered=[...all].sort((a,b)=>iterationRank(a.status)-iterationRank(b.status)||parsedAt(b.updatedAt)-parsedAt(a.updatedAt));
   const issues=ordered.filter(item=>item.status==='problem').length;
   const done=ordered.filter(item=>item.status==='complete').length;
@@ -468,4 +476,18 @@ function render(state, error) {
   renderHealth(state, issues);
 }
 
+async function loadPulseVersion(){
+  const node=$('#pulse-version');
+  if(!node)return;
+  try{
+    const response=await fetch('/version.json',{cache:'no-store',signal:AbortSignal.timeout(5000)});
+    if(!response.ok)return;
+    const version=await response.json();
+    const commit=String(version?.commit||version?.sourceSha||version?.source_sha||'').trim();
+    if(commit)node.textContent='v2 · '+commit.slice(0,7);
+  }catch{}
+}
+
 subscribe(render);
+loadPulseVersion();
+setInterval(()=>{if(!document.hidden)tickProgressDurations(document,Date.now());},1000);

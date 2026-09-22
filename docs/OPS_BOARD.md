@@ -102,20 +102,20 @@ telemetryに実測durationがあるstepは秒数を折れ線グラフで表示�
 
 ### トップ一覧の共通進捗グラフ
 
-ACTIVEとITERATIONSは同じ視覚言語で進捗を読めるようにする。各一覧行は共通のmini progress sparklineを持ち、step順序に対する `done / running / problem / pending` を線と点で表す。mini graphは「進捗の位置」を見るためのもので、詳細な所要時間比較は `iterations.html` のduration graphへ委譲する。
+ACTIVEとITERATIONSは同じ横向きduration timelineを使う。x軸は工程順で左から右へ進み、実測できた工程だけを線と点で描く。各工程名の直下にその工程の実測秒数を表示し、進行中工程は `startedAt` から現在までの秒数を表示する。未開始・未計測工程は右側に位置だけ残し、秒数を推測しない。
 
-ACTIVEはFast DEVの `実装 → 検証 → Browser → merge → DEV`、ITERATIONSは自律iterationの代表stepを同じrendererで表示する。状態の意味は共通化するが、存在しないstepや未計測時間を推測して埋めない。
+そのため、グラフが左半分までしか描画されていなければ、作業が工程列のおおむね左半分まで進んでいることを一覧だけで把握できる。y方向は各工程の所要時間で、長くかかった処理ほど高く描く。ACTIVEはFast DEVの `実装 → 検証 → Browser → merge → DEV`、ITERATIONSは自律iterationの代表stepを同じrendererで表示する。
 
 
 
 ### 一覧カードの視線設計
 
-ACTIVEとITERATIONSの一覧カードは、スマートフォンで `現在地 → タスク名 → 対象/時刻 → mini progress` の順に認識できる情報階層にする。
+ACTIVEとITERATIONSの一覧カードは、スマートフォンで `タスク名 → duration timeline → 対象/時刻` を短い視線移動で読める情報階層にする。
 
 - タスク名は一覧の主情報として十分な文字サイズを確保し、1行固定で潰さず最大2行まで許容する。
-- 現在stepは小さなmetadataへ埋めず、`NOW / ISSUE / DONE` とstep名・経過時間を独立したcurrent bandとして強調する。
-- SHA、再検証回数、対象、更新時刻はcurrent bandやタイトルより弱い補助情報とする。
-- mini progressは現在地を補助するsparklineとし、current pointだけを強調する。グラフ自体がタイトルや現在地より目立たないこと。
+- 現在地を示すための大きな独立bandは置かず、duration timelineそのものを進捗の主表示にする。
+- timelineは工程順を横方向、実測秒数を縦方向に使う。各工程の秒数を必ず文字でも併記し、未計測は `—` とする。
+- SHA、再検証回数、対象、更新時刻はタイトルとtimelineより弱い補助情報とする。
 - 一覧行同士はカードとして十分に分離しつつ、内部余白は情報群ごとに意味のあるまとまりを作る。無意味な均等余白で縦長にしない。
 
 

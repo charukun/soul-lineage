@@ -10,6 +10,18 @@ Routine implementation is Astra-driven and optimized to avoid CI churn while pre
 - Prefer composing a coherent tree and moving the branch ref once when practical. Intermediate commits are allowed, but do not stop to wait for validation on superseded heads.
 - Code Mode / V8 checks are preflight only.
 
+### Bounded observation feedback for real-output work
+
+When the task's acceptance criteria depend on what a player or reviewer actually sees, feels, or receives from generated output, add a bounded evidence round before the final merge-owning validation.
+
+- Use the existing task-specific review/evidence route to produce the smallest representative real output after the implementation is coherent.
+- Inspect the result and repair concrete in-scope defects before arming the final `[astra-validate]` head.
+- In normal Fast work, use one observation round and at most one repair/recheck round. If the result still needs substantial iteration, continue through the existing specialist DCC/browser/Visual Review/autonomous route rather than making Fast DEV heavier.
+- Prefer Actions artifacts or the existing review/evidence store for intermediate screenshots, traces, generated assets, and renders. Do not materialize every round back into git through evidence-only bot commits unless the governing contract requires it.
+- This is authoring feedback, not a persistent CI expansion. Do not add browser, DCC, asset generation, or evidence collection to `Astra Work Validation` or the default DEV gate.
+- Browser automation remains governed by the existing opt-in browser routing contracts.
+- Skip this loop for routine source-only changes whose acceptance criteria are already proven by focused checks/tests.
+
 ## 2. Validate once, then check impact-aware freshness
 
 When implementation is coherent:

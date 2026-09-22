@@ -1,45 +1,82 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { progressMiniModel } from '../ops-board/public/progress-mini.js';
+import { progressMiniModel, progressStepDurationMs, progressDurationLabel, tickProgressDurations } from '../ops-board/public/progress-mini.js';
 
-test('shared mini progress model treats ACTIVE and ITERATION steps with the same state semantics',()=>{
+test('shared mini graph is a left-to-right duration timeline',()=>{
+  const now=Date.parse('2026-09-22T02:00:20Z');
   const model=progressMiniModel([
-    {id:'implementation',label:'実装',state:'done'},
-    {id:'validation',label:'検証',state:'running'},
+    {id:'implementation',label:'実装',state:'done',durationMs:84000},
+    {id:'validation',label:'検証',state:'running',startedAt:'2026-09-22T02:00:08Z'},
     {id:'browser',label:'Browser',state:'waiting'},
     {id:'merge',label:'merge',state:'waiting'},
     {id:'publish',label:'DEV',state:'waiting'},
-  ]);
+  ],now);
   assert.equal(model.total,5);
-  assert.equal(model.complete,1);
+  assert.equal(model.measured.length,2);
   assert.equal(model.current.id,'validation');
+  assert.equal(model.points[0].durationLabel,'84s');
+  assert.equal(model.points[1].durationLabel,'12s');
+  assert.equal(model.points[2].measured,false);
   assert.equal(model.status,'running');
-  assert.equal(model.points[0].score,1);
-  assert.equal(model.points[1].tone,'running');
-  assert.equal(model.current.id,'validation');
 });
 
-test('problem state takes visual priority and skipped steps count as completed positions',()=>{
+test('duration uses explicit telemetry first, then completed timestamps, then live running elapsed',()=>{
+  const now=Date.parse('2026-09-22T02:01:00Z');
+  assert.equal(progressStepDurationMs({durationMs:1500,startedAt:'2026-09-22T01:00:00Z'},now),1500);
+  assert.equal(progressStepDurationMs({startedAt:'2026-09-22T02:00:10Z',completedAt:'2026-09-22T02:00:25Z'},now),15000);
+  assert.equal(progressStepDurationMs({state:'running',startedAt:'2026-09-22T02:00:40Z'},now),20000);
+  assert.equal(progressStepDurationMs({state:'waiting'},now),null);
+  assert.equal(progressDurationLabel(2300),'2.3s');
+  assert.equal(progressDurationLabel(215120),'215s');
+});
+
+test('problem state keeps priority without inventing timing for pending work',()=>{
   const model=progressMiniModel([
-    {id:'observation',label:'観測',state:'done'},
+    {id:'observation',label:'観測',state:'done',durationMs:4200},
     {id:'implementation',label:'実装',state:'skipped'},
-    {id:'astraValidation',label:'Astra',state:'problem'},
+    {id:'astraValidation',label:'Astra',state:'problem',durationMs:88000},
     {id:'afterObservation',label:'After',state:'pending'},
   ]);
   assert.equal(model.complete,2);
   assert.equal(model.current.id,'astraValidation');
   assert.equal(model.status,'problem');
-  assert.equal(model.points[1].tone,'skipped');
+  assert.equal(model.measured.length,2);
+  assert.equal(model.points[3].durationLabel,'');
 });
 
-test('mini progress renderer stays DOM-safe and uses one shared SVG implementation',()=>{
+test('duration renderer stays DOM-safe and plots only measured points into the line',()=>{
   const source=readFileSync(new URL('../ops-board/public/progress-mini.js',import.meta.url),'utf8');
-  assert.match(source,/createElementNS\('http:\/\/www\.w3\.org\/2000\/svg'/);
-  assert.match(source,/rapid-progress-line/);
-  assert.match(source,/rapid-progress-labels/);
-  assert.match(source,/--rapid-progress-count/);
-  assert.match(source,/model\.current\?\.id===point\.id\?' current'/);
-  assert.match(source,/現在 /);
-  assert.doesNotMatch(source,/innerHTML|api\.github\.com/);
+  assert.match(source,/progressStepDurationMs/);
+  assert.match(source,/durationLabel/);
+  assert.match(source,/const segments=\[\]/);
+  assert.match(source,/if\(coord\.point\.measured\)currentSegment\.push/);
+  assert.match(source,/if\(segment\.length<2\)continue/);
+  assert.match(source,/rapid-progress-guide/);
+  assert.match(source,/計測 /);
+  assert.doesNotMatch(source,/SCORE|innerHTML|api\.github\.com/);
+});
+
+test('duration renderer does not bridge across unmeasured gaps',()=>{
+  const source=readFileSync(new URL('../ops-board/public/progress-mini.js',import.meta.url),'utf8');
+  assert.doesNotMatch(source,/measuredCoords=coords\.filter/);
+  assert.match(source,/segments\.push\(currentSegment\)/);
+});
+
+
+test('live elapsed ticker increments running duration labels without a network refresh',()=>{
+  const nodes=[{dataset:{progressLiveStart:'2026-09-22T06:00:00Z'},textContent:''}];
+  const documentRef={querySelectorAll:selector=>selector==='[data-progress-live-start]'?nodes:[]};
+  tickProgressDurations(documentRef,Date.parse('2026-09-22T06:00:12Z'));
+  assert.equal(nodes[0].textContent,'12s');
+  tickProgressDurations(documentRef,Date.parse('2026-09-22T06:00:13Z'));
+  assert.equal(nodes[0].textContent,'13s');
+});
+
+
+test('renderer keeps the source step list in scope for live labels',()=>{
+  const source=readFileSync(new URL('../ops-board/public/progress-mini.js',import.meta.url),'utf8');
+  assert.match(source,/const clean=\(Array\.isArray\(steps\)\?steps:\[\]\)\.filter/);
+  assert.match(source,/progressMiniModel\(clean,now\)/);
+  assert.match(source,/const source=clean\[point\.index\]/);
 });
