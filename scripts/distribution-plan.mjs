@@ -5,7 +5,7 @@ import { affectedForDev, graph } from './workspaces.mjs';
 
 const ZERO=/^0+$/;
 const PULSE_APP='pulse';
-const nonBuildDevPath=path=>path==='AGENTS.md'||path.startsWith('.autonomous/')||path.startsWith('.task-start/');
+const nonBuildDevPath=path=>path==='AGENTS.md'||path==='scripts/distribution-plan.mjs'||path.startsWith('.autonomous/')||path.startsWith('.task-start/');
 const pulsePath=path=>path.startsWith('ops-board/')
   || path==='wrangler.ops.jsonc'
   || path==='wrangler.dev.pulse.jsonc'
