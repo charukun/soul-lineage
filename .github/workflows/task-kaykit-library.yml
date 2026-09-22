@@ -26,8 +26,10 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add apps/rinne/src/review/shared/runtime-thumbnail.js apps/character-studio/src/review/character/main.js apps/rinne/src/review/motion/entrypoint.js apps/rinne/tests/review-kaykit-library.test.mjs scripts/browser/kaykit-library.mjs
-          git commit -m 'fix: tolerate cancelled thumbnail jobs and preserve native raster versus SVG rendering'
-          git push origin HEAD:${{ github.ref_name }}
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix: tolerate cancelled thumbnail jobs and preserve native raster versus SVG rendering'
+            git push origin HEAD:${{ github.ref_name }}
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
