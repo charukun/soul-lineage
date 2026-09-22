@@ -1,6 +1,7 @@
 /** Explicit specialist observation of the delivered GLB in the real Studio. */
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
 const root=process.cwd(), out=path.resolve(process.argv[2]);
@@ -35,7 +36,9 @@ export async function play(url,name){
   return {clip:name,speed:1,frames,wallSeconds,duration:first.duration,videoBase64:btoa(text)};
  }finally{if(recorder.state!=='inactive')recorder.stop();stream.getTracks().forEach(t=>t.stop());}
 }
-}`);
+`);
+// Validate the emitted module, not just this outer runner's template string.
+execFileSync(process.execPath,['--check',probe],{stdio:'inherit'});
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 // Explicit PNGs retain every review frame. Record motion only while it actually
 // plays, avoiding a second continuous screencast of hundreds of still captures.
