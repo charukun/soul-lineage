@@ -140,7 +140,7 @@ test('open draft without an active Actions run is IDLE instead of falsely RUNNIN
   assert.match(session.execution.detail,/実行中の処理なし/);
 });
 
-test('execution state distinguishes validation, blocked and merge-ready work',()=>{
+test('execution state separates automatic repair, human-required failures and merge-ready work',()=>{
   const open={...pr,state:'open',draft:true,merged_at:null,merge_commit_sha:null,updated_at:'2026-09-22T06:10:00Z'};
   const validating={...run(10,'Astra Work Validation',head,null,{head_branch:open.head.ref}),status:'in_progress',conclusion:null,created_at:'2026-09-22T06:10:00Z',updated_at:'2026-09-22T06:10:30Z'};
   let [session]=buildDevelopmentSessions([open],[validating]);
@@ -148,7 +148,15 @@ test('execution state distinguishes validation, blocked and merge-ready work',()
 
   const failed={...run(11,'Astra Work Validation',head,'failure',{head_branch:open.head.ref}),created_at:'2026-09-22T06:11:00Z',updated_at:'2026-09-22T06:11:30Z'};
   [session]=buildDevelopmentSessions([open],[failed]);
-  assert.equal(session.execution.state,'blocked');
+  assert.equal(session.execution.state,'repair');
+  assert.equal(session.execution.label,'AUTO REPAIR');
+  assert.match(session.execution.detail,/自動修復/);
+
+  const humanFailed={...failed,conclusion:'action_required',id:13};
+  [session]=buildDevelopmentSessions([open],[humanFailed]);
+  assert.equal(session.execution.state,'needs-user');
+  assert.equal(session.execution.label,'NEEDS USER');
+  assert.match(session.execution.detail,/人の判断/);
 
   const ready={...open,draft:false,updated_at:'2026-09-22T06:12:00Z',body:'Browser-Playtest: not-required'};
   const passed={...run(12,'Astra Work Validation',head,'success',{head_branch:ready.head.ref}),created_at:'2026-09-22T06:12:00Z',updated_at:'2026-09-22T06:12:30Z'};
