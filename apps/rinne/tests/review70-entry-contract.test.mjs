@@ -14,7 +14,7 @@ test('review70 entry contracts use the current storybook UI and keep origin choi
   assert.match(book,/rb-mind-current/);
   assert.match(book,/data-book-guide-detail/);
   assert.match(world,/family-memory-arrive 1\.05s/);
-  assert.match(world,/r5-float 4\.6s/);
+  assert.match(world,/family-memory-relic\{[^}]*animation:r5-float 4\.6s/s);
 });
 
 test('review70 global shortcuts ignore text entry, IME and shifted typing',async()=>{
