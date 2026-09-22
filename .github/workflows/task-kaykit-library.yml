@@ -7,8 +7,8 @@ on:
 permissions:
   contents: read
 jobs:
-  inspect:
-    if: contains(github.event.head_commit.message, '[kaykit-inspect]')
+  acquire:
+    if: contains(github.event.head_commit.message, '[kaykit-acquire]')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -16,54 +16,54 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
-      - name: Export task source context and official public distribution metadata
+      - name: Acquire only publisher-listed free downloads and inventory original archives
         run: |
           python3 - <<'PY'
-          import os, pathlib, subprocess, zipfile, json, urllib.request, urllib.parse, http.cookiejar, re
-          out=pathlib.Path('/tmp/kaykit-inspect'); out.mkdir()
-          files=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
-          inventory=[]
-          with zipfile.ZipFile(out/'source.zip','w',zipfile.ZIP_DEFLATED) as z:
-            for name in filter(None,files):
-              p=pathlib.Path(name)
-              if not p.is_file(): continue
-              inventory.append({'path':name,'size':p.stat().st_size})
-              if p.suffix.lower() in {'.js','.mjs','.cjs','.ts','.tsx','.jsx','.json','.md','.html','.css','.txt','.yml','.yaml','.toml','.py','.sh'} and p.stat().st_size<3000000:
-                z.write(p,name)
-          (out/'inventory.json').write_text(json.dumps(inventory,ensure_ascii=False))
-          (out/'source-sha.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD']).decode())
-          sources=['kaykit-adventurers','kaykit-skeletons','prototype-bits','kaykit-series-4','kaykit-series-5','kaykit-series-6']
+          import pathlib, subprocess, zipfile, json, urllib.request, urllib.parse, http.cookiejar, re, hashlib, io
+          out=pathlib.Path('/tmp/kaykit-acquire'); out.mkdir()
           summary=[]
-          for slug in sources:
+          for slug,expected in [('kaykit-adventurers','15363167'),('kaykit-skeletons','15363145'),('prototype-bits','15362979')]:
             base='https://kaylousberg.itch.io/'+slug
             opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-            opener.addheaders=[('User-Agent','Mozilla/5.0 KayKit asset acquisition audit')]
-            item={'sourceUrl':base}
+            opener.addheaders=[('User-Agent','Mozilla/5.0')]
+            item={'sourceUrl':base,'slug':slug,'expectedUploadId':expected}
             try:
               html=opener.open(base,timeout=45).read().decode()
-              (out/(slug+'.html')).write_text(html)
-              item['pageFetched']=True
-              # Only request the publisher's documented free/name-your-price flow.
-              if slug in ['kaykit-adventurers','kaykit-skeletons','prototype-bits']:
-                csrf=re.search(r'name="csrf_token"\s+value="([^"]+)"',html)
-                data=urllib.parse.urlencode({'csrf_token':csrf.group(1) if csrf else ''}).encode()
-                req=urllib.request.Request(base+'/download_url',data=data,headers={'Referer':base,'X-Requested-With':'XMLHttpRequest'})
-                response=opener.open(req,timeout=45).read().decode()
-                (out/(slug+'-download-response.json')).write_text(response)
-                link=json.loads(response).get('url')
-                if link:
-                  dl=opener.open(link,timeout=45).read().decode()
-                  (out/(slug+'-downloads.html')).write_text(dl)
-                  item['freeDownloadPageFetched']=True
-            except Exception as e: item['error']=str(e)
+              def token(text): return re.search(r'name="csrf_token"\s+value="([^"]+)"',text).group(1)
+              def post(url,html,referer):
+                return json.loads(opener.open(urllib.request.Request(url,data=urllib.parse.urlencode({'csrf_token':token(html)}).encode(),headers={'Referer':referer,'X-Requested-With':'XMLHttpRequest'}),timeout=45).read())
+              link=post(base+'/download_url',html,base)['url']
+              dl=opener.open(link,timeout=45).read().decode()
+              ids=re.findall(r'data-upload_id="(\d+)"',dl)
+              assert expected in ids, 'Expected free upload not listed by publisher'
+              res=post(base+'/file/'+expected,dl,link)
+              if 'url' not in res:
+                item['downloadResponse']=res
+                raise RuntimeError('Publisher did not return a free download URL')
+              data=opener.open(res['url'],timeout=120).read(80*1024*1024+1)
+              assert len(data)<80*1024*1024 and data[:2]==b'PK'
+              archive=out/(slug+'.zip'); archive.write_bytes(data)
+              item.update(sha256=hashlib.sha256(data).hexdigest(),byteLength=len(data),files=[])
+              with zipfile.ZipFile(io.BytesIO(data)) as z:
+                for info in z.infolist():
+                  item['files'].append({'path':info.filename,'bytes':info.file_size})
+                  if not info.is_dir() and ('license' in info.filename.lower() or info.filename.lower().endswith('.glb')):
+                    b=z.read(info); target=out/slug/info.filename; target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(b)
+              item['status']='acquired'
+            except Exception as e: item.update(status='failed',error=str(e))
             summary.append(item)
-          (out/'sources.json').write_text(json.dumps(summary,indent=2))
-          print(json.dumps(summary,indent=2))
+          # Repository-native comparison inputs, not new third-party runtime sources.
+          with zipfile.ZipFile(out/'existing-models-motion.zip','w',zipfile.ZIP_DEFLATED) as z:
+            for p in pathlib.Path('apps/review/public/library').rglob('*.glb'):
+              if '/motion/kaykit-' in str(p) or p.name.lower() in ['knight.glb','barbarian.glb','mage.glb','rogue.glb','rogue_hooded.glb','skeleton_warrior.glb','skeleton_rogue.glb','skeleton_mage.glb','skeleton_minion.glb']:
+                z.write(p,str(p))
+          (out/'acquisition.json').write_text(json.dumps(summary,indent=2))
+          print(json.dumps([{k:v for k,v in s.items() if k!='files'} for s in summary],indent=2))
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kaykit-inspect
-          path: /tmp/kaykit-inspect/
+          name: kaykit-acquire
+          path: /tmp/kaykit-acquire/
           retention-days: 3
           if-no-files-found: error
