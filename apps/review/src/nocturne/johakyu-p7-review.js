@@ -14,7 +14,7 @@ const PHASES=Object.freeze(['jo','ha','kyu']);
 const PHASE_LABELS=Object.freeze({jo:'序',ha:'破',kyu:'急'});
 const PART_LABELS=Object.freeze({head:'頭',torso:'胴',leftArm:'左腕',rightArm:'右腕',leftLeg:'左脚',rightLeg:'右脚'});
 const MODES=Object.freeze({duel:'1v1',oneVsThree:'1v3'}),RUN_RESTART_DELAY_SECONDS=3,ENCOUNTER_MIN_SECONDS=5,ENCOUNTER_TARGET_SECONDS=10,ENCOUNTER_MAX_SECONDS=15;
-const FINISHER_RANGE=1.9,FINISHER_DURATION=.92,FINISHER_IMPACT=.58,FINISHER_READY_TORSO=.6,ENEMY_RESPAWN_DELAY=.72,ENEMY_CORPSE_SECONDS=1.55;
+const FINISHER_RANGE=1.9,FINISHER_DURATION=.92,FINISHER_IMPACT=.58,FINISHER_READY_TORSO=.6,ENEMY_SPAWN_SECONDS=.7,ENEMY_CORPSE_SECONDS=1.55,ENEMY_RESPAWN_DELAY=ENEMY_CORPSE_SECONDS-ENEMY_SPAWN_SECONDS;
 const LAYOUT=Object.freeze({hero:{x:0,z:.35,yaw:0},'enemy-a':{x:0,z:2.25,yaw:Math.PI},'enemy-b':{x:-1.75,z:2.8,yaw:Math.PI},'enemy-c':{x:1.75,z:2.8,yaw:Math.PI}});
 const INITIAL_ACTOR_IDS=Object.freeze(['hero','enemy-a','enemy-b','enemy-c']),ENEMY_SLOTS=Object.freeze(['enemy-a','enemy-b','enemy-c']);
 const enemySlotId=id=>ENEMY_SLOTS.find(slot=>id===slot||String(id||'').startsWith(slot+'#'))||null;
@@ -232,7 +232,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     cursors.set('hero',{comboStyle,loadout:reviewLoadout,techniqueMode:reviewSettings.techniqueMode,learnedTechniqueIds:knownTechniqueIds,phaseIndex:PHASES.indexOf(heroStartPhase),techniqueIndex:heroStartTechniqueIndex,stageIndex:0,cycle:0});
     if(mode==='duel')positions.set('enemy-a',{x:LAYOUT.hero.x,z:LAYOUT.hero.z+duelGap});
     lastEvents=[];resumed=false;revision=0;attemptSerial=0;seedReadyWindow(.82);
-    for(const actor of battle.actors.values())if(actor.side==='enemy')spawningUntil.set(actor.id,time+.7);
+    for(const actor of battle.actors.values())if(actor.side==='enemy')spawningUntil.set(actor.id,time+ENEMY_SPAWN_SECONDS);
     if(mode==='duel'){
       const hero=battle.actors.get('hero'),enemy=battle.actors.get('enemy-a');
       updateExchange(hero,enemy,{type:'normal-start',phase:'jo',seeded:true});
@@ -261,13 +261,15 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
   function spawnEnemy(slot){
     const template=actorRows(mode,reviewLoadout).find(row=>row.id===slot);if(!template)return null;const serial=++enemySerial,id=slot+'#'+serial,row={...template,...actorOverrides[slot],id,side:'enemy',seed:(Number(template.seed)+serial*997)>>>0,generation:(Number(template.generation)||1)+serial-1,dead:false,incapacitated:false};
     rebuildBattle([...battle.actors.values()].map(actor=>structuredClone(actor)).concat(row),{clearResult:true});
-    positions.set(id,spawnPosition(slot,serial));readyAt.set(id,time+.82);spawningUntil.set(id,time+.7);enemyStartedAt.set(id,time);cursors.set(id,cursorState(comboStyle,reviewLoadout));traceRow({type:'enemy-spawn',actorId:id,slot,serial});
+    positions.set(id,spawnPosition(slot,serial));readyAt.set(id,time+.82);spawningUntil.set(id,time+ENEMY_SPAWN_SECONDS);enemyStartedAt.set(id,time);cursors.set(id,cursorState(comboStyle,reviewLoadout));traceRow({type:'enemy-spawn',actorId:id,slot,serial});
     return id;
   }
   function queueReplacement(target){
     const slot=enemySlotId(target?.id);if(!slot)return;
-    if(!spawnQueue.some(row=>row.slot===slot))spawnQueue.push({slot,at:time+ENEMY_RESPAWN_DELAY,fromId:target.id});
-    if(!corpseQueue.some(row=>row.id===target.id))corpseQueue.push({id:target.id,at:time+ENEMY_CORPSE_SECONDS});
+    const corpseAt=time+ENEMY_CORPSE_SECONDS,spawnAt=corpseAt-ENEMY_SPAWN_SECONDS;
+    if(!spawnQueue.some(row=>row.slot===slot))spawnQueue.push({slot,at:spawnAt,fromId:target.id,corpseUntil:corpseAt});
+    if(!corpseQueue.some(row=>row.id===target.id))corpseQueue.push({id:target.id,at:corpseAt});
+    traceRow({type:'enemy-respawn-overlap',actorId:target.id,slot,spawnIn:Number((spawnAt-time).toFixed(2)),corpseIn:Number((corpseAt-time).toFixed(2)),spawnDuration:ENEMY_SPAWN_SECONDS});
   }
   function removeCorpse(id){
     if(!battle.actors.has(id))return;rebuildBattle([...battle.actors.values()].filter(actor=>actor.id!==id).map(actor=>structuredClone(actor)));positions.delete(id);downedForFinisher.delete(id);clearActorRuntime(id);traceRow({type:'enemy-despawn',actorId:id});
