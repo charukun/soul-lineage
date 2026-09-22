@@ -1,6 +1,6 @@
 import {BATTLE2_VERSION} from './battle2-version.js';
 import {createBattle2BodyHud} from './battle2-body-hud.js';
-import {battle2TechniqueLabel} from './nocturne/battle2-technique-catalog.js';
+import {battle2SelectionLabel,battle2TechniqueLabel} from './nocturne/battle2-technique-catalog.js';
 import {createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
 import {createBattle2CameraPresentation} from './battle2-camera.js';
 import {mountReviewStageControls} from '@soul/shared-ui/review-shell';
@@ -56,6 +56,15 @@ function semanticActionLabel(row){
  if(row?.type==='enemy-spawn')return'新たな敵が現れた';
  return'';
 }
+function semanticActionPerspective(row){
+ if(['player-hit','enemy-downed','finisher-start','finisher-complete'].includes(row?.type))return'self';
+ if(row?.type==='enemy-hit')return'opponent';
+ if(['parry','guard','slip'].includes(row?.type)){
+  if(row.targetId==='hero')return'self';
+  if(row.sourceId==='hero')return'opponent';
+ }
+ return'neutral';
+}
 function clearVisualHistory(){historyNode.replaceChildren();}
 function clearComboFade(){
  if(comboFadeTimer){clearTimeout(comboFadeTimer);comboFadeTimer=0;}
@@ -74,17 +83,30 @@ function syncLogRows(){
 }
 function spawnActionText(row){
  const label=historyDisplayLabel(row);if(!label)return;
- const line=document.createElement('span');line.className='battle-sequence-history__flow';line.dataset.phase=row.phase||'idle';line.dataset.kind=row.kind||'semantic';line.textContent=label;
+ const line=document.createElement('span');line.className='battle-sequence-history__flow';line.dataset.phase=row.phase||'idle';line.dataset.kind=row.kind||'semantic';line.dataset.perspective=row.perspective||'neutral';line.textContent=label;
  historyNode.prepend(line);syncLogRows();
  const remove=()=>{line.remove();syncLogRows();};line.addEventListener('animationend',remove,{once:true});setTimeout(remove,LOG_DISPLAY_MS+180);
 }
 function recordHistory(row){history.push(row);if(history.length>8)history.shift();spawnActionText(row);}
+function selectedTechniqueDisplay(meta){
+ if(meta?.stageIndex!==0)return null;
+ if(meta?.exchangeIntent==='finisher')return{label:shortActionName(meta)||'止め',key:[meta.battleId,'finisher',meta.actionId].join(':')};
+ if(battleSettings.techniqueMode==='set'){
+  const selection=activeLoadout?.technique?.[meta.phase];
+  if(String(selection||'').startsWith('combo:')){
+   if(meta?.techniqueIndex!==0)return null;
+   return{label:battle2SelectionLabel(selection),key:[meta.battleId,meta.cycle,meta.phase,selection].join(':')};
+  }
+  const runtimeName=shortActionName(meta),label=/^(秘技|奥義)・/.test(runtimeName)?runtimeName:(selection?battle2SelectionLabel(selection):runtimeName);
+  return label?{label,key:[meta.battleId,meta.cycle,meta.phase,selection||meta.techniqueId].join(':')}:null;
+ }
+ const label=shortActionName(meta);return label?{label,key:[meta.battleId,meta.cycle,meta.phase,meta.techniqueId].join(':')}:null;
+}
 function pushAction(meta){
- if(meta?.stageIndex!==0)return;
- const key=[meta?.battleId,meta?.actionId].join(':');if(!meta?.actionId||!meta?.techniqueId||seenActions.has(key))return;
- seenActions.add(key);if(seenActions.size>256)seenActions.delete(seenActions.values().next().value);
- const lane=techniqueLanes.get(meta.phase),label=shortActionName(meta);if(!lane||!label)return;
- const line=document.createElement('span');line.className='battle-sequence-technique-name';line.dataset.phase=meta.phase;line.textContent=label;lane.append(line);
+ const display=selectedTechniqueDisplay(meta);if(!meta?.actionId||!meta?.techniqueId||!display||seenActions.has(display.key))return;
+ seenActions.add(display.key);if(seenActions.size>256)seenActions.delete(seenActions.values().next().value);
+ const lane=techniqueLanes.get(meta.phase);if(!lane)return;
+ const line=document.createElement('span');line.className='battle-sequence-technique-name';line.dataset.phase=meta.phase;line.textContent=display.label;lane.append(line);
  const remove=()=>line.remove();line.addEventListener('animationend',remove,{once:true});setTimeout(remove,TECHNIQUE_DISPLAY_MS);
 }
 function pushNarration(row,meta){
@@ -93,7 +115,7 @@ function pushNarration(row,meta){
  const previous=lastNarrationAt.get(semanticKey)??-Infinity;if(now-previous<minimum)return false;
  const key=[meta?.battleId,row?.type,row?.reason,row?.actorId,row?.id,Math.floor(now*2),label].join(':');if(seenNarration.has(key))return false;
  lastNarrationAt.set(semanticKey,now);seenNarration.add(key);if(seenNarration.size>256)seenNarration.delete(seenNarration.values().next().value);
- recordHistory({phase:'idle',label,kind:'semantic'});return true;
+ recordHistory({phase:'idle',label,kind:'semantic',perspective:semanticActionPerspective(row)});return true;
 }
 function setPhaseLamps(index){
  for(const node of phaseNodes){const i=PHASE_INDEX[node.dataset.combatPhase];node.dataset.active=String(i===index);node.dataset.completed=String(index>=0&&i<index);node.dataset.lit=String(index>=0&&i<=index);}
@@ -112,7 +134,7 @@ function updateSequence(meta){
  for(const row of activity){
   if(row?.type==='inspiration'&&row.techniqueId){
    const added=loadoutUI.learnTechnique(row.techniqueId);runtime?.learnTechnique?.(row.techniqueId);
-   if(added)recordHistory({phase:row.phase||'idle',label:`閃き「${row.techniqueName||battle2TechniqueLabel(row.techniqueId)}」`,kind:'inspiration'});
+   if(added)recordHistory({phase:row.phase||'idle',label:`閃き「${row.techniqueName||battle2TechniqueLabel(row.techniqueId)}」`,kind:'inspiration',perspective:'self'});
    continue;
   }
   pushNarration(row,meta);
