@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  actionsInspectionPlan,
   affectedTestPlan,
   buildActionsSummary,
   browserEvidenceSummary,
@@ -21,6 +22,25 @@ test('workflow and step classification stays stable',()=>{
   assert.deepEqual(classifyStep('Run focused tests'),{test:true,build:false,browser:false,publish:false});
   assert.deepEqual(classifyStep('Build immutable web-dev artifact'),{test:false,build:true,browser:false,publish:false});
   assert.equal(classifyStep('Playwright browser smoke').browser,true);
+});
+
+test('default Actions inspection is status-first and only deep-dives a failing canonical run',()=>{
+  const run='https://github.com/charukun/soul-lineage/actions/runs/12345';
+  const success=[
+    {context:'astra/fast-dev-contract',state:'success',updated_at:'2026-09-22T00:00:00Z',target_url:run},
+    {context:'astra/focused-validation',state:'success',updated_at:'2026-09-22T00:01:00Z',target_url:run},
+    {context:'astra/merge-freshness',state:'success',updated_at:'2026-09-22T00:02:00Z',target_url:run},
+  ];
+  assert.deepEqual(actionsInspectionPlan(success),{
+    mode:'status-first',run_id:null,reason:'critical-statuses-do-not-require-deep-inspection',
+  });
+  const failing=[...success,{context:'astra/focused-validation',state:'error',updated_at:'2026-09-22T00:03:00Z',target_url:'https://github.com/charukun/soul-lineage/actions/runs/67890'}];
+  assert.deepEqual(actionsInspectionPlan(failing),{
+    mode:'failure-detail',run_id:67890,reason:'astra/focused-validation:error',
+  });
+  assert.deepEqual(actionsInspectionPlan(success,{full:true}),{
+    mode:'full',run_id:null,reason:'explicit-full-inspection',
+  });
 });
 
 test('major errors and commit validation directives are compact',()=>{
