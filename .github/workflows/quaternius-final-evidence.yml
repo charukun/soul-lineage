@@ -1,0 +1,75 @@
+name: Temporary Quaternius Final Immutable Review
+on:
+  push:
+    branches: [evidence/quaternius-final-20260922]
+    paths:
+      - .github/workflows/quaternius-final-evidence.yml
+permissions:
+  contents: read
+  statuses: write
+jobs:
+  review:
+    if: github.repository == 'charukun/soul-lineage'
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    env:
+      APP_ENV: dev
+      HEAD_SHA: 3416ed1bf92fb8ea73b88ab290f38ee2b85d53fd
+      EVIDENCE_WORKER: soul-lineage-review-evidence-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 3416ed1bf92fb8ea73b88ab290f38ee2b85d53fd
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Build exact self-owned Asset Origin
+        run: npm run distribution:build -- --app review --target web-dev
+      - name: Build exact RINNE web-dev artifact
+        run: npm run distribution:build -- --app rinne --target web-dev
+      - name: Publish exact RINNE head and capture immutable Worker version
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --config wrangler.dev.rinne.jsonc 2>&1 | tee "$RUNNER_TEMP/rinne-wrangler.log"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const out=fs.readFileSync(process.env.RUNNER_TEMP+'/rinne-wrangler.log','utf8');
+          const id=out.match(/Current Version ID:\s*([0-9a-f-]{36})/i)?.[1]?.toLowerCase();
+          if(!id)throw new Error('RINNE Current Version ID missing');
+          const url='https://'+id.slice(0,8)+'-soul-lineage-rinne-dev.c-okamoto.workers.dev/';
+          fs.appendFileSync(process.env.GITHUB_ENV,'CHARACTER_REVIEW_URL='+url+'\n');
+          NODE
+      - name: Publish run-scoped self-owned Asset Origin
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --config wrangler.dev.review.jsonc --name "$EVIDENCE_WORKER"
+          echo "CHARACTER_ASSET_ORIGIN_URL=https://$EVIDENCE_WORKER.c-okamoto.workers.dev/" >> "$GITHUB_ENV"
+      - name: Verify exact validated head via immutable RINNE preview
+        run: node scripts/browser/quaternius-characters.mjs
+      - name: Remove run-scoped evidence Worker
+        if: always()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: npx --yes wrangler@4 delete --name "$EVIDENCE_WORKER" --force || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quaternius-final-immutable-3416ed1bf92fb8ea73b88ab290f38ee2b85d53fd
+          path: .deploy-state/quaternius-character-evidence/
+          include-hidden-files: true
+          retention-days: 14
