@@ -11,7 +11,12 @@ export const BATTLE2_SOUND_SAMPLES=Object.freeze({
 
 export function createNocturneSound(doc=document){
   const sound=createSharedNocturneSound(doc,{samples:BATTLE2_SOUND_SAMPLES});
+  function phaseCue({phase='jo'}={}){
+    const pitch={jo:1850,ha:2250,kyu:2750}[phase]||2250,rate={jo:1.18,ha:1.32,kyu:1.46}[phase]||1.32;
+    sound.parry?.({gain:.34,rate});
+    sound.note?.(pitch,.22,'sine',.12);sound.note?.(pitch*1.62,.1,'triangle',.055);
+  }
   // Keep canonical stamina and the authored fatigue pose, but do not play the
   // looped human panting sample in the battle review.
-  return Object.freeze({...sound,fatigue(){}});
+  return Object.freeze({...sound,phaseCue,fatigue(){}});
 }
