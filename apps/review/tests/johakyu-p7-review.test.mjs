@@ -247,7 +247,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.9');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.11');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -298,3 +298,21 @@ test('action history remains floating text and narrates techniques plus spacing/
 });
 
 test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});
+
+
+test('battle2 narration rate-limits repeated spacing text instead of flooding the HUD',()=>{
+ const stage=stageSource();
+ assert.match(stage,/lastNarrationAt=new Map\(\)/);
+ assert.match(stage,/now-previous<1\.35/);
+ assert.match(stage,/row\.actorId!==\'hero\'/);
+ assert.match(stage,/if\(pushNarration\(row,meta\)\)break/);
+});
+
+
+test('battle2 mounts the canonical body-part HUD beside the live fight',()=>{
+ const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource();
+ assert.match(html,/id="battle2-body-hud"/);
+ assert.match(stage,/createBattle2BodyHud/);
+ assert.match(stage,/runtime\?\.inspectActors\?\.\(\)\.find\(actor=>actor\.self\)/);
+ assert.match(stage,/bodyHud\?\.setVisible\(started&&prepared&&next!==\'ERROR\'\)/);
+});
