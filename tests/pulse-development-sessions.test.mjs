@@ -165,3 +165,37 @@ test('execution state separates automatic repair, human-required failures and me
   [session]=buildDevelopmentSessions([ready],[passed]);
   assert.equal(session.execution.state,'merging');
 });
+
+
+test('active Draft and Ready PRs are never displaced by newer merged history',()=>{
+  const oldDraft={...pr,number:1524,title:'Character Create Forge',state:'open',draft:true,merged_at:null,merge_commit_sha:null,
+    created_at:'2026-09-20T00:00:00Z',updated_at:'2026-09-20T01:00:00Z',head:{ref:'feat/forge',sha:'1'.repeat(40)}};
+  const ready={...pr,number:1525,title:'Long running Ready',state:'open',draft:false,merged_at:null,merge_commit_sha:null,
+    created_at:'2026-09-20T00:10:00Z',updated_at:'2026-09-20T01:10:00Z',head:{ref:'feat/ready',sha:'2'.repeat(40)}};
+  const closed={...pr,number:1526,title:'Closed without merge',state:'closed',draft:false,merged_at:null,merge_commit_sha:null,
+    updated_at:'2026-09-23T00:30:00Z',head:{ref:'feat/closed',sha:'3'.repeat(40)}};
+  const mergedRows=Array.from({length:12},(_,index)=>({
+    ...pr,number:1600+index,title:'Merged '+index,state:'closed',draft:false,
+    merged_at:'2026-09-23T00:'+String(index).padStart(2,'0')+':00Z',
+    updated_at:'2026-09-23T00:'+String(index).padStart(2,'0')+':00Z',
+    merge_commit_sha:String(index+4).repeat(40).slice(0,40),
+    head:{ref:'feat/merged-'+index,sha:String(index+5).repeat(40).slice(0,40)},
+  }));
+  const sessions=buildDevelopmentSessions([...mergedRows,closed,oldDraft,ready],[],{limit:8});
+  const numbers=sessions.map(session=>session.pr.number);
+  assert.ok(numbers.includes(1524),'old Draft equivalent to #1524 remains present');
+  assert.ok(numbers.includes(1525),'Ready remains present');
+  assert.ok(!numbers.includes(1526),'closed unmerged PR is excluded');
+  assert.equal(sessions.filter(session=>session.state==='Draft'||session.state==='Ready').length,2);
+});
+
+test('active PR count may exceed the nominal history limit without dropping any open PR',()=>{
+  const opens=Array.from({length:10},(_,index)=>({
+    ...pr,number:1700+index,state:'open',draft:index%2===0,merged_at:null,merge_commit_sha:null,
+    updated_at:'2026-09-20T00:'+String(index).padStart(2,'0')+':00Z',
+    head:{ref:'feat/open-'+index,sha:String(index+1).repeat(40).slice(0,40)},
+  }));
+  const sessions=buildDevelopmentSessions(opens,[],{limit:8});
+  assert.equal(sessions.length,10);
+  assert.deepEqual(new Set(sessions.map(session=>session.state)),new Set(['Draft','Ready']));
+});
