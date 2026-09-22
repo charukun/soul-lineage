@@ -4,22 +4,21 @@ import {readFileSync} from 'node:fs';
 import {RINNE_UI_VERSION} from '../src/ui-version.js';
 
 const gameplay=readFileSync(new URL('../src/gameplay-ui.js',import.meta.url),'utf8');
+const sharedFour=readFileSync(new URL('../../../packages/shared-ui/src/rinne-primary-four.js',import.meta.url),'utf8');
+const sharedFourCss=readFileSync(new URL('../../../packages/shared-ui/src/rinne-primary-four.css',import.meta.url),'utf8');
 const family=readFileSync(new URL('../src/family-origin-ui.js',import.meta.url),'utf8');
 const css=readFileSync(new URL('../src/rinne-world-ui.css',import.meta.url),'utf8');
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 
-test('RINNE 5.2 protects 心 技 体 装 as the permanent four',()=>{
+test('RINNE 5.2 protects 心 技 体 装 as one shared permanent-four component',()=>{
   assert.equal(RINNE_UI_VERSION,'5.2.0');
-  const block=gameplay.match(/<nav class="rinne-bottom-controls rinne-primary-four"[\s\S]*?<\/nav>/)?.[0]||'';
-  assert.ok(block);
-  assert.equal((block.match(/<button/g)||[]).length,4);
-  const order=['data-heart','data-techniques','data-body','data-items'];
-  let cursor=-1;
-  for(const attr of order){const next=block.indexOf(attr);assert.ok(next>cursor,attr);cursor=next;}
-  for(const text of ['>心<','>技<','>体<','>装<']) assert.ok(block.includes(text),text);
-  assert.doesNotMatch(block,/data-training-strike|data-menu|>打<|>記</);
+  assert.match(gameplay,/rinnePrimaryFourMarkup/);assert.match(gameplay,/@soul\/shared-ui\/rinne-primary-four\.css/);
+  const order=['data-heart','data-techniques','data-body','data-items'];let cursor=-1;
+  for(const attr of order){const next=sharedFour.indexOf(attr);assert.ok(next>cursor,attr);cursor=next;}
+  for(const text of ["glyph:'心'","glyph:'技'","glyph:'体'","glyph:'装'"])assert.ok(sharedFour.includes(text),text);
+  assert.match(sharedFourCss,/--rinne-four-heart:#e9a6a4/);assert.match(sharedFourCss,/--rinne-four-technique:#91c9dc/);assert.match(sharedFourCss,/--rinne-four-body:#b8b0d7/);assert.match(sharedFourCss,/--rinne-four-items:#e5b579/);
+  assert.doesNotMatch(gameplay,/<nav class="rinne-bottom-controls rinne-primary-four"/);
 });
-
 test('打 is contextual and 記 is auxiliary, neither occupies a core slot',()=>{
   assert.match(gameplay,/<button data-training-strike class="rinne-context-strike"[^>]* hidden>/);
   assert.match(gameplay,/<button data-menu class="rinne-record-toggle"/);

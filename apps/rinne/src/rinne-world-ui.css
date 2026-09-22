@@ -139,48 +139,7 @@ dialog.family-home-dialog{position:fixed!important;inset:0!important;width:100vw
   --r51-ink:#4d3c32;
 }
 
-/* Four-button gameplay contract */
-#game-screen .rinne-gameplay-upgrade .rinne-primary-four{
-  position:absolute!important;z-index:48!important;left:50%!important;right:auto!important;
-  bottom:max(13px,calc(env(safe-area-inset-bottom) + 8px))!important;
-  transform:translateX(-50%)!important;display:grid!important;grid-template-columns:repeat(4,52px)!important;
-  gap:10px!important;width:auto!important;padding:0!important;border:0!important;background:transparent!important;
-  box-shadow:none!important;backdrop-filter:none!important;opacity:1!important;pointer-events:auto!important
-}
-#game-screen .rinne-primary-four .upgrade-control{
-  --r51-button:#d7c091;position:relative!important;display:grid!important;grid-template-rows:44px 14px!important;
-  place-items:center!important;width:52px!important;height:60px!important;min-width:52px!important;min-height:60px!important;
-  padding:0!important;border:0!important;border-radius:0!important;clip-path:none!important;background:transparent!important;
-  box-shadow:none!important;color:#fff!important;overflow:visible!important
-}
-#game-screen .rinne-primary-four .upgrade-control>i{
-  position:relative!important;display:grid!important;place-items:center!important;width:44px!important;height:44px!important;
-  border:3px solid rgba(255,244,216,.94)!important;border-radius:50%!important;
-  background:
-    radial-gradient(circle at 36% 25%,rgba(255,255,255,.58) 0 7%,transparent 8%),
-    linear-gradient(180deg,color-mix(in srgb,var(--r51-button) 91%,#fff 9%),color-mix(in srgb,var(--r51-button) 78%,#79533d 22%))!important;
-  color:#fff8e8!important;font-family:var(--font-rinne-display)!important;font-size:17px!important;font-style:normal!important;font-weight:700!important;
-  text-shadow:0 2px 3px rgba(84,55,39,.55)!important;
-  box-shadow:inset 0 2px rgba(255,255,255,.36),0 3px 0 color-mix(in srgb,var(--r51-button) 58%,#684631 42%),0 7px 12px rgba(37,40,31,.18)!important;
-  transition:transform .14s ease,filter .14s ease
-}
-#game-screen .rinne-primary-four .upgrade-control>i::after{
-  content:"";position:absolute;inset:5px;border:1px solid rgba(255,248,226,.34);border-radius:50%;pointer-events:none
-}
-#game-screen .rinne-primary-four .upgrade-control>span{
-  margin:0!important;align-self:end!important;color:#fff2d3!important;font-size:8px!important;line-height:1!important;
-  font-weight:800!important;text-shadow:0 1px 4px rgba(53,47,34,.78)!important
-}
-#game-screen .rinne-primary-four .is-heart{--r51-button:var(--r51-heart)}
-#game-screen .rinne-primary-four .is-technique{--r51-button:var(--r51-tech)}
-#game-screen .rinne-primary-four .is-practice{--r51-button:var(--r51-train)}
-#game-screen .rinne-primary-four .is-menu{--r51-button:var(--r51-book)}
-#game-screen .rinne-primary-four .upgrade-control:active>i,
-#game-screen .rinne-primary-four .upgrade-control[data-active="true"]>i{transform:translateY(2px) scale(.96);filter:saturate(1.12) brightness(1.03)}
-#game-screen .rinne-primary-four .is-practice[data-ready="false"]>i{filter:saturate(.52) brightness(.83);opacity:.72}
-#game-screen .rinne-primary-four .is-practice[data-ready="true"]>i{box-shadow:inset 0 2px rgba(255,255,255,.4),0 3px 0 #966735,0 0 0 4px rgba(255,214,127,.14),0 8px 15px rgba(42,40,29,.22)!important}
-#game-screen .rinne-primary-four .upgrade-control:disabled{opacity:.42!important}
-
+/* 心技体装の描画正本は @soul/shared-ui/rinne-primary-four.css。 */
 /* The four stay visible during dialogue and menu/panel transitions. */
 #game-screen:has(#dialogue:not([hidden])) .rinne-primary-four{opacity:.72!important;pointer-events:auto!important;transform:translateX(-50%) scale(.96)!important}
 #game-screen[data-archive-open="true"] .rinne-primary-four,
@@ -272,18 +231,12 @@ dialog.family-home-dialog{position:fixed!important;inset:0!important;width:100vw
 .rinne-explore-controls,.rinne-function-hub{display:none!important}
 
 @media(max-width:620px){
-  #game-screen .rinne-gameplay-upgrade .rinne-primary-four{grid-template-columns:repeat(4,50px)!important;gap:7px!important}
-  #game-screen .rinne-primary-four .upgrade-control{width:50px!important;min-width:50px!important}
-  #game-screen .rinne-primary-four .upgrade-control>i{width:42px!important;height:42px!important}
   #game-screen .rinne-secondary-sheet{width:min(262px,calc(100vw - 18px))!important}
   #game-screen .rinne-gameplay-upgrade .upgrade-panel.rinne-archive-panel:not([hidden]){
     bottom:max(73px,calc(env(safe-area-inset-bottom) + 65px))!important
   }
 }
 @media(max-width:360px){
-  #game-screen .rinne-gameplay-upgrade .rinne-primary-four{grid-template-columns:repeat(4,47px)!important;gap:4px!important}
-  #game-screen .rinne-primary-four .upgrade-control{width:47px!important;min-width:47px!important}
-  #game-screen .rinne-primary-four .upgrade-control>i{width:40px!important;height:40px!important}
 }
 
 
@@ -292,11 +245,6 @@ dialog.family-home-dialog{position:fixed!important;inset:0!important;width:100vw
    心 / 技 / 体 / 装 are the permanent four.
    打 is contextual training. 記 is auxiliary map/lineage access.
    ============================================================ */
-#game-screen .rinne-primary-four .is-heart{--r51-button:#e9a6a4!important}
-#game-screen .rinne-primary-four .is-technique{--r51-button:#91c9dc!important}
-#game-screen .rinne-primary-four .is-body{--r51-button:#b8b0d7!important}
-#game-screen .rinne-primary-four .is-items{--r51-button:#e5b579!important}
-
 /* contextual 稽古 button only appears beside the dummy */
 .rinne-context-strike{
   position:absolute!important;z-index:52!important;left:50%!important;

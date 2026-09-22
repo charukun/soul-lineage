@@ -11,6 +11,8 @@
     "./speech-bubbles": "./src/speech-bubbles.js",
     "./combat-sequence": "./src/combat-sequence.js",
     "./combat-sequence.css": "./src/combat-sequence.css",
+    "./rinne-primary-four": "./src/rinne-primary-four.js",
+    "./rinne-primary-four.css": "./src/rinne-primary-four.css",
     "./media-lifecycle": "./src/media-lifecycle.js",
     "./review-shell": "./src/review/shell.js",
     "./boot-gate": "./src/boot-gate.js",
