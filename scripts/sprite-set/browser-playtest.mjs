@@ -16,7 +16,7 @@ async function start(app,port){
 const stage=()=>review.locator('.sprite-set-stage canvas');
 const state=()=>stage().evaluate(canvas=>canvas.spriteSetSnapshot());
 const gameState=()=>rinne.locator('#game').evaluate(canvas=>canvas.spriteSetSnapshot?.()||null);
-const note=(label,snapshot)=>receipt.steps.push({label,snapshot,at:new Date().toISOString()});
+const note=(label,snapshot)=>{receipt.steps.push({label,snapshot,at:new Date().toISOString()});console.log('SPRITE_SET_STEP '+label);};
 async function screenshot(page,name,selector){await (selector?page.locator(selector):page).screenshot({path:`${out}/${name}.png`});}
 async function cameraInput(degrees){
   const input=review.locator('[data-sprite-camera]');await input.scrollIntoViewIfNeeded();await input.focus();
@@ -55,6 +55,9 @@ try{
   await review.locator('[data-sprite-reset]').click();await review.locator('[data-sprite-direction]').selectOption('auto');
   const views=[];for(const degrees of [0,45,90,135,180,-135,-90,-45]){await cameraInput(degrees);const snapshot=await state();views.push(snapshot.actor.view);note('camera '+degrees,snapshot);await screenshot(review,'view-'+snapshot.actor.view,'.sprite-set-stage canvas');}
   assert.equal(new Set(views).size,8);await cameraInput(0);
+  const boundary=[];for(const angle of [21,24,21,24]){await cameraInput(angle);boundary.push((await state()).actor.view);}assert.ok(boundary.every(view=>view==='front'));
+  await cameraInput(30);for(const angle of [24,21,24,21]){await cameraInput(angle);assert.equal((await state()).actor.view,'frontRight');}
+  note('real camera input retains both hysteresis sectors across boundary jitter',boundary);await cameraInput(0);
   for(const action of Object.keys(manifest.actions))await actionInReview(action);
   assert.ok(receipt.steps.find(s=>s.label==='review:walk').snapshot.sandbox.distanceTravelled>0);
   assert.ok(receipt.steps.find(s=>s.label==='review:jump').snapshot.sandbox.airHeight>.05);
@@ -66,9 +69,11 @@ try{
   await review.locator('[data-sprite-action="guard"]').click();await review.waitForFunction(()=>document.querySelector('.sprite-set-stage canvas').spriteSetSnapshot().actor.action==='guard');note('manifest-defined extension action has a real control',await state());
   await review.locator('[data-sprite-import]').setInputFiles({name:'restore.json',mimeType:'application/json',buffer:await readFile(bundlePath)});await review.waitForFunction(()=>document.querySelector('.sprite-set-playground').dataset.busy==='false');assert.equal(await review.locator('[data-sprite-action="guard"]').count(),0);
   const popup=review.waitForEvent('popup');await review.locator('[data-sprite-rinne]').click();rinne=await popup;rinne.setDefaultTimeout(60000);videos.push(['rinne-motion',rinne.video()]);await rinne.waitForLoadState('domcontentloaded');await rinne.bringToFront();
-  await rinne.mouse.click(640,350);await rinne.waitForTimeout(500);
+  // The existing brand boot requires a deliberate tap after its assets are ready.
+  await rinne.locator('#soul-brand-boot.ready').click({timeout:120000});
+  await rinne.locator('#soul-brand-boot').waitFor({state:'hidden',timeout:30000});
   await rinne.locator('#title-screen[data-ready="true"]').waitFor({timeout:120000});
-  if(await rinne.locator('#title-screen').getAttribute('data-intro')!=='idle'){await rinne.mouse.click(640,350);await rinne.waitForTimeout(500);}
+  if(await rinne.locator('#title-screen').getAttribute('data-intro')!=='idle'){await rinne.locator('#title-screen').click({position:{x:20,y:20}});await rinne.waitForTimeout(500);}
   await rinne.locator('#new-life').click();
   for(let step=0;step<3;step++){await rinne.locator(`.family-origin[data-step="${step}"][data-answering="false"] [data-memory-current]`).click();}
   await rinne.locator('[data-origin-confirm]').click();await rinne.locator('#game-screen[data-runtime="active"]').waitFor({timeout:120000});
@@ -86,6 +91,8 @@ try{
   const moving=receipt.steps.filter(s=>['rinne:walk','rinne:run'].includes(s.label));assert.ok(moving.every(s=>s.snapshot.sandbox.distanceTravelled>0));
   await review.locator('[data-sprite-action="rest"]').click();await rinne.bringToFront();await rinne.waitForFunction(()=>document.querySelector('#game').spriteSetSnapshot().actor.action==='rest');
   await rinne.evaluate(()=>window.postMessage({type:'rinne.sprite-set.command',token:new URLSearchParams(location.search).get('spriteTransfer'),command:'action',action:'attack'},location.origin));await rinne.waitForTimeout(350);assert.equal((await gameState()).actor.action,'rest');note('self-window command rejected',await gameState());
+  const stableViews=[];for(let i=0;i<10;i++){await rinne.waitForTimeout(100);stableViews.push((await gameState()).actor.view);}
+  const viewTransitions=stableViews.slice(1).filter((v,i)=>v!==stableViews[i]).length;assert.ok(viewTransitions<=1,'RINNE view must not flicker at rest');note('RINNE settled view stability',{stableViews,viewTransitions});
   assert.equal(await rinne.evaluate(id=>Object.keys(localStorage).some(key=>String(localStorage.getItem(key)).includes(id)),manifest.id),false);
   const legacy=await context.newPage();await legacy.goto('http://127.0.0.1:5276/review-hybrid-25d?legacy25d=1',{waitUntil:'networkidle'});await legacy.locator('.character25d-forge').waitFor();await legacy.locator('.hybrid25d-lab').waitFor();await screenshot(legacy,'legacy-route');note('legacy Forge/coexistence route mounts',true);await legacy.close();
   const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'reduce'}),phone=await mobile.newPage();phone.on('pageerror',error=>receipt.errors.push({kind:'mobile-pageerror',message:error.message}));
