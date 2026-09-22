@@ -4,7 +4,7 @@ on:
     branches: [art/female-protagonist-kaykit-rogue-20260922]
     paths: [.github/workflows/task-female-rogue-acquire.yml]
 permissions:
-  contents: read
+  contents: write
 jobs:
   observe:
     if: contains(github.event.head_commit.message, '[female-observe]')
@@ -16,8 +16,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 1
+      - name: Repair the three observed build-blocking module references
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          entries=[
+            ('apps/character-studio/src/review/motion/entrypoint.js','./character-workshop-ux.js','../../character-workshop-ux.js'),
+            ('apps/character-studio/src/review/character/runtime.js','./character-workspace-advanced.js','../workspace/advanced.js'),
+            ('apps/character-studio/src/review/workspace/index.js','./character-reference-workshop.js','../../character-reference-workshop.js'),
+          ]
+          for name,old,new in entries:
+              path=Path(name); text=path.read_text(); assert (path.parent/new).resolve().is_file(),new
+              if "'"+old+"'" in text:
+                  assert text.count("'"+old+"'")==1
+                  path.write_text(text.replace("'"+old+"'","'"+new+"'"))
+              else: assert "'"+new+"'" in text
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/character-studio/src/review/motion/entrypoint.js apps/character-studio/src/review/character/runtime.js apps/character-studio/src/review/workspace/index.js
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix(studio): resolve moved modules so protagonist review can actually build'
+            git push origin HEAD:${{ github.ref_name }}
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
