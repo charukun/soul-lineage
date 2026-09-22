@@ -1,15 +1,20 @@
 import {mountReviewGroup,mountReviewSelect,mountReviewSelectGrid} from '@soul/shared-ui/review-slot-picker';
 import {createReviewAutoInstaller,ensureReviewRow,installReviewStageCameraSlot,moveReviewSlot} from '@soul/shared-ui/review-auto-install';
-import {createReviewAutoInstaller,ensureReviewRow,installReviewStageCameraSlot,moveReviewSlot} from '@soul/shared-ui/review-auto-install';
+import {installCharacterReviewGrid} from './character/grid.js';
+
 const byId=id=>document.getElementById(id);
 const qs=selector=>document.querySelector(selector);
 
-function installStageCameraSlot(){if(!document.body.classList.contains('simple-review')||document.body.dataset.reviewMode==='motion')return;const cycle=byId('camera-cycle');if(cycle)cycle.hidden=true;installReviewStageCameraSlot({mountGroup:mountReviewGroup});}
+function installStageCameraSlot(){
+  if(!document.body.classList.contains('simple-review')||document.body.dataset.reviewMode==='motion')return;
+  const cycle=byId('camera-cycle');if(cycle)cycle.hidden=true;
+  installReviewStageCameraSlot({mountGroup:mountReviewGroup});
+}
 
 function installCharacterSlots(){
   if(!document.body.classList.contains('simple-review'))return;
   const mode=document.body.dataset.reviewMode;
-  if(mode==='character')return;
+  if(mode==='character'){installCharacterReviewGrid();return;}
   installStageCameraSlot();
   if(mode==='motion'){
     const basics=byId('simple-motion-controls');
@@ -58,17 +63,13 @@ function installEffectSlots(){
 
 function installBattleSlots(){
   if(!byId('battle-canvas'))return;
-  const settings=qs('.review-settings'),pickers=settings?.querySelector('.pickers');
-  if(!settings||!pickers)return;
+  const pickers=qs('.pickers');
+  if(!pickers)return;
   pickers.classList.add('review-slot-row');
-  moveReviewSlot(mountReviewSelect(byId('battle-hero-model'),'左モデル'),pickers);
-  moveReviewSlot(mountReviewSelect(byId('battle-enemy-model'),'右モデル'),pickers);
-  const modes=settings.querySelector('.review-modes');
-  if(modes){
-    modes.hidden=false;
-    moveReviewSlot(mountReviewGroup(modes.querySelector('.battle-mode-switch'),'戦闘人数'),modes);
-    moveReviewSlot(mountReviewGroup(modes.querySelector('.skin-switch'),'カメラ / UI'),modes);
-  }
+  moveReviewSlot(mountReviewSelect(byId('battle-hero-model'),'自プレイヤー'),pickers);
+  moveReviewSlot(mountReviewGroup(qs('.skin-switch'),'UI'),pickers);
+  const modes=qs('.review-modes');
+  if(modes&&!modes.querySelector('.review-slot-picker'))modes.hidden=true;
 }
 
 function install(){
