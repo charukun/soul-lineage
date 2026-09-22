@@ -1,3 +1,4 @@
+import { characterMaterialRole } from './character-material-role.js';
 import { Color, DoubleSide, Group, Mesh, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
 import { validateVisualIdentity } from '@soul/characters';
 import { attachFaceIdentity } from './master-character-face.js';
@@ -31,7 +32,7 @@ export function attachModularAppearanceController(actor) {
   if (actor[KEY]) return actor[KEY];
   let profile=BASE, identity=null, appearance=null, destroyed=false;
   const sourceHair = new Map();
-  actor.visual.traverse(n=>{if(!n.isMesh)return;for(const m of Array.isArray(n.material)?n.material:[n.material])if(m&&/HAIR/i.test(m.name))sourceHair.set(m,m.visible);});
+  actor.visual.traverse(n=>{if(!n.isMesh)return;for(const m of Array.isArray(n.material)?n.material:[n.material])if(m&&characterMaterialRole(m.name)==='hair')sourceHair.set(m,m.visible);});
   const roots={ hair:group(actor.bones.head,'mc-hair-root'), outfit:group(actor.bones.spine,'mc-outfit-root'),
     headAccessory:group(actor.bones.head,'mc-head-accessory'), torsoAccessory:group(actor.bones.spine,'mc-torso-accessory'), gear:group(actor.bones.spine,'mc-role-gear') };
   const groups={};

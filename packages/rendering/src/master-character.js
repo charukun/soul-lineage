@@ -1,3 +1,4 @@
+import { characterMaterialRole } from './character-material-role.js';
 import { AnimationMixer, Box3, Color, Group, Matrix4, Quaternion, Vector3 } from 'three';
 import { captureMotionRest } from './motion-quality.js';
 import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
@@ -45,7 +46,7 @@ export function createMasterCharacterPool({ template, humanoid, capacity = 30 })
       const copy = material => {
         if (!ownedMaterials.has(material)) {
           const m = material.clone();
-          const role = /HAIR/i.test(m.name) ? 'hair' : /EyeIris/i.test(m.name) ? 'eyes' : /SKIN/i.test(m.name) ? 'skin' : /CLOTH/i.test(m.name) ? 'dye' : 'other';
+          const role = characterMaterialRole(m.name);
           const tint = { value: new Color(1, 1, 1) }, gray = { value: 0 };
           const originalColor = m.color?.clone();
           if (role === 'hair') {
