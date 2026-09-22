@@ -11,6 +11,9 @@ const PALETTES=Object.freeze({base:2,timber:3,stone:5,earth:0});
 // These are existing authored silhouettes in @soul/housing-assets. MURA keeps
 // kind/footprint/interior/collision authority; this table is presentation only.
 const FACILITY_TYPES=Object.freeze({
+  market:Object.freeze({type:'market',palette:0,floors:1}),
+  carpenter:Object.freeze({type:'cottage',palette:3,floors:1}),
+  farm:Object.freeze({type:'windmill',palette:3,floors:1}),
   guardpost:Object.freeze({type:'roundhouse',palette:1,floors:1}),
   watchtower:Object.freeze({type:'tallhouse',palette:1,floors:3}),
   barracks:Object.freeze({type:'manor',palette:1,floors:2}),
@@ -23,9 +26,9 @@ const FACILITY_TYPES=Object.freeze({
   diner:Object.freeze({type:'bakery',palette:3,floors:1}),
   restaurant:Object.freeze({type:'manor',palette:2,floors:2}),
   weapons:Object.freeze({type:'cottage',palette:0,floors:1}),
-  armor:Object.freeze({type:'cottage',palette:1,floors:1}),
+  armor:Object.freeze({type:'tallhouse',palette:1,floors:1}),
   jeweler:Object.freeze({type:'greenhouse',palette:4,floors:1}),
-  tools:Object.freeze({type:'cottage',palette:3,floors:1}),
+  tools:Object.freeze({type:'roundhouse',palette:3,floors:1}),
   tavern:Object.freeze({type:'bakery',palette:4,floors:2}),
   furniture:Object.freeze({type:'cottage',palette:2,floors:1})
 });
