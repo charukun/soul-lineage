@@ -2,6 +2,7 @@ import {BATTLE2_VERSION} from './battle2-version.js';
 import {createBattle2BodyHud} from './battle2-body-hud.js';
 import {createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
 import {createBattle2CameraPresentation} from './battle2-camera.js';
+import {mountReviewStageControls} from '@soul/shared-ui/review-shell';
 import '@soul/shared-ui/rinne-primary-four.css';
 import '@soul/shared-ui/rinne-loadout-menu.css';
 
@@ -10,6 +11,7 @@ const status=document.getElementById('battle2-status'),world=document.getElement
 const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
 const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
 const cameraPresentation=createBattle2CameraPresentation({stage,world});
+const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]'],label:'戦闘設定'});
 const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],modeButtons=[...document.querySelectorAll('[data-battle-mode]')];
 const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
 const HISTORY_DISPLAY_MS=3200,HISTORY_GAP_MS=260,HISTORY_QUEUE_LIMIT=6,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
@@ -141,5 +143,5 @@ world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepare
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
 window.addEventListener('error',event=>{if(event.error&&!disposed)failed(event.error);});
 window.addEventListener('unhandledrejection',event=>{if(!disposed)failed(event.reason);});
-window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(historyTimer)clearTimeout(historyTimer);if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();cameraPresentation.dispose();loadoutUI.destroy();});
+window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(historyTimer)clearTimeout(historyTimer);if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();cameraPresentation.dispose();stageControls?.destroy();loadoutUI.destroy();});
 syncModeButtons();report('BOOT');void boot();
