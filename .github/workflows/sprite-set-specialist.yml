@@ -4,51 +4,51 @@ on:
     branches: [work/sprite-set-specialist-20260923]
     paths: [.github/workflows/sprite-set-specialist.yml]
 permissions:
-  contents: write
+  contents: read
+  statuses: write
 concurrency:
   group: sprite-set-specialist-1492
   cancel-in-progress: false
 jobs:
-  bake:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       APP_ENV: dev
-      SOURCE_SHA: e6522f31d8c6d3608d8e7231241f3bae193762f3
-      TARGET_BRANCH: work/character-sprite-set-v1
+      SOURCE_SHA: 283713a438156f0fdd08e7059a0f45b622173408
+      GH_TOKEN: ${{ github.token }}
     steps:
+      - name: Register exact-source browser validation
+        run: gh api repos/${{ github.repository }}/statuses/$SOURCE_SHA -f state=pending -f context=astra/sprite-set-browser -f description='Exact-source builds and real-input motion verification running' -f target_url='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
       - uses: actions/checkout@v6
         with:
           ref: ${{ env.SOURCE_SHA }}
           fetch-depth: 1
-          persist-credentials: true
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium
-      - name: Focused format and playback tests
-        run: node --test packages/assets/tests/character-sprite-set.test.mjs
-      - name: Bake and browser-verify the pinned source
-        run: node scripts/sprite-set/bake-sample.mjs
-      - name: Commit only generated sample files to the same task branch
+      - name: Build exact-source Review and RINNE
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-          test "$(git ls-remote origin refs/heads/$TARGET_BRANCH | cut -f1)" = "$SOURCE_SHA"
-          git add -- apps/review/public/sprite-sets/kaykit-knight
-          test "$(git diff --cached --name-only | grep -vc '^apps/review/public/sprite-sets/kaykit-knight/' || true)" = 0
-          git config user.name 'Sprite Set asset bake'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(assets): materialize thirteen verified Knight action sheets'
-          git push origin HEAD:refs/heads/$TARGET_BRANCH
-          git rev-parse HEAD | tee .deploy-state/sprite-set-bake/materialized-head.txt
+          npm run build --workspace @soul/review
+          npm run build --workspace @soul/rinne
+      - name: Real UI actions, cameras, RINNE village and motion evidence
+        run: node scripts/sprite-set/browser-playtest.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: sprite-set-bake-${{ env.SOURCE_SHA }}
-          path: |
-            .deploy-state/sprite-set-bake
-            apps/review/public/sprite-sets/kaykit-knight
+          name: sprite-set-browser-${{ env.SOURCE_SHA }}
+          path: .deploy-state/sprite-set-browser-${{ env.SOURCE_SHA }}
+          if-no-files-found: warn
           retention-days: 14
+      - name: Publish actual exact-source result
+        if: always()
+        run: |
+          state=failure
+          if [ '${{ job.status }}' = success ]; then state=success; fi
+          gh api repos/${{ github.repository }}/statuses/$SOURCE_SHA -f state="$state" -f context=astra/sprite-set-browser -f description='Sprite Set specialist builds / real-input browser result' -f target_url='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
