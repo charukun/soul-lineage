@@ -81,20 +81,23 @@ export function createCharacter25DEquipment(THREE,{body,rig,sockets,height}) {
     if(shield){rig.byName.get('hand.L').getWorldPosition(target);body.worldToLocal(target);target.y+=.035;target.z+=.08;body.localToWorld(target);solveCharacter25DHand(THREE,rig,'L',target);orient(sockets.leftHand,new THREE.Quaternion().setFromAxisAngle(axis,-.25));}
     body.updateWorldMatrix(true,true);sockets.rightHand.getWorldPosition(rightTarget);sockets.leftHand.getWorldPosition(leftTarget);
   }
-  function project(view) {
+  function project(view,relative=0) {
+    view.sideFlip=view.name==='side'&&relative<0;
+    if(view.handDepth){view.handDepth.copy(handDepth);if(view.sideFlip)view.handDepth.set(handDepth.y,handDepth.x);}
     if(!main&&!shield&&!held)return;
     // The same world-space grips drive the drawing's arm bones. Their local Z
     // is a socket-aware depth proxy: a far arm/weapon passes behind the torso,
     // a near arm/hand covers it. Depth is recomputed for every facing and pose.
     for(const [side,enabled,world] of [['R',main,rightTarget],['L',shield||held||profile?.twoHanded,leftTarget]]) {
       if(!enabled)continue;
-      const upper=view.rig.byName.get('upperArm.'+side),physical=rig.byName.get('upperArm.'+side);
+      const drawnSide=view.sideFlip?(side==='R'?'L':'R'):side;
+      const upper=view.rig.byName.get('upperArm.'+drawnSide),physical=rig.byName.get('upperArm.'+side);
       physical.getWorldPosition(point);upper.parent.worldToLocal(point);
       // Retarget the whole shoulder frame, not just its depth. Keeping the
       // frontal shoulder X in a side view can put the wrist outside its reach.
       // The original continuous influence weights blend the shoulder join.
       upper.position.copy(point);
-      solveCharacter25DHand(THREE,view.rig,side,world);
+      solveCharacter25DHand(THREE,view.rig,drawnSide,world);
     }
     view.group.updateWorldMatrix(true,true);view.rig.skeleton.update();
   }

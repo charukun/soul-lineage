@@ -22,9 +22,10 @@ export async function createCharacter25DActor(THREE,bundle,options={}) {
   let disposed=false,current=null,previous=null,transition=1,opacity=1,lastSpeed=0,lastYaw=0,actualSpeed=0,forcedView=null;
   function makeSkeleton(parent,compression=1) {
     const bones=[],byName=new Map();
+    const projectedRest=def=>{if(!def)return [0,0,0];const x=def.rest[0]*compression;if(compression===.48&&/^(upperArm|lowerArm|hand)\./.test(def.name))return [(def.name.endsWith('.L')?1:-1)*(def.name.startsWith('upper')?.01:def.name.startsWith('lower')?.005:0),def.rest[1],0];return [x,def.rest[1],0];};
     for(const def of bundle.rig.bones) {
       const bone=new THREE.Bone();bone.name=def.name;const p=bundle.rig.bones.find(b=>b.name===def.parent);
-      bone.position.set((def.rest[0]-(p?.rest[0]||0))*compression,def.rest[1]-(p?.rest[1]||0),0);
+      const a=projectedRest(def),b=projectedRest(p);bone.position.set(a[0]-b[0],a[1]-b[1],0);
       (byName.get(def.parent)||parent).add(bone);byName.set(def.name,bone);bones.push(bone);
     }
     parent.updateMatrixWorld(true);
@@ -49,7 +50,7 @@ export async function createCharacter25DActor(THREE,bundle,options={}) {
       const asset=bundle.assets[appearance.asset];
       if(!textures.has(appearance.asset)) {const image=await loadSpriteImage(spriteAssetBlob(asset)),texture=new THREE.Texture(image);texture.colorSpace=THREE.SRGBColorSpace;texture.minFilter=texture.magFilter=THREE.LinearFilter;texture.generateMipmaps=false;texture.needsUpdate=true;textures.set(appearance.asset,texture);}
       const group=new THREE.Group();group.name='Appearance:'+name;group.scale.setScalar(scale);object.add(group);
-      const rig=makeSkeleton(group,name==='side'?.48:name.startsWith('back')?-1:1),meshes=[],footSamples=[];
+      const rig=makeSkeleton(group,name==='side'?.48:name.startsWith('back')?-1:1),meshes=[],footSamples=[],handDepth=equipment.handDepth.clone();
       const data=buildInfluenceMeshes(bundle.rig,{bounds:appearance.bounds,width:asset.width,height:asset.height,side:name==='side',back:name.startsWith('back')});
       for(const layer of data) {
         const geometry=new THREE.BufferGeometry();
@@ -60,12 +61,12 @@ export async function createCharacter25DActor(THREE,bundle,options={}) {
         geometry.setAttribute('handPriority',new THREE.Float32BufferAttribute(priority,2));
         const material=new THREE.MeshLambertMaterial({map:textures.get(appearance.asset),transparent:true,alphaTest:.055,side:THREE.DoubleSide,depthTest:true,depthWrite:true,emissive:0xffffff,emissiveIntensity:.12,toneMapped:false});
         const secondary=layer.name.startsWith('hair')?'hair':layer.name==='clothing'?'clothing':layer.name==='accessories'?'accessories':null;
-        material.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>','outgoingLight = clamp(outgoingLight, diffuseColor.rgb * 0.72, diffuseColor.rgb * 1.12);\n#include <opaque_fragment>');shader.uniforms.characterLag=secondary?uniforms[secondary]:{value:0};shader.uniforms.characterHandDepth={value:equipment.handDepth};shader.vertexShader='attribute float secondaryWeight;\nattribute vec2 handPriority;\nuniform vec2 characterHandDepth;\nuniform float characterLag;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <skinning_vertex>','#include <skinning_vertex>\ntransformed.x += characterLag * secondaryWeight * (1.0 - min(1.0, handPriority.x + handPriority.y));\ntransformed.z += dot(handPriority, characterHandDepth);');};
+        material.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>','outgoingLight = clamp(outgoingLight, diffuseColor.rgb * 0.72, diffuseColor.rgb * 1.12);\n#include <opaque_fragment>');shader.uniforms.characterLag=secondary?uniforms[secondary]:{value:0};shader.uniforms.characterHandDepth={value:handDepth};shader.vertexShader='attribute float secondaryWeight;\nattribute vec2 handPriority;\nuniform vec2 characterHandDepth;\nuniform float characterLag;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <skinning_vertex>','#include <skinning_vertex>\ntransformed.x += characterLag * secondaryWeight * (1.0 - min(1.0, handPriority.x + handPriority.y));\ntransformed.z += dot(handPriority, characterHandDepth);');};
         material.customProgramCacheKey=()=> 'character25d-layer-v2-art-light-equipment-depth';
         const mesh=new THREE.SkinnedMesh(geometry,material);mesh.name=layer.name;mesh.frustumCulled=false;mesh.receiveShadow=true;mesh.castShadow=false;group.add(mesh);mesh.bind(rig.skeleton);meshes.push(mesh);owned.push(geometry,material);
         for(let i=0;i<layer.positions.length/3;i++)if(layer.positions[i*3+1]<.001)footSamples.push({mesh,index:i});
       }
-      group.visible=false;views.push({name,group,rig,meshes,footSamples,appearance});
+      group.visible=false;views.push({name,group,rig,meshes,footSamples,appearance,handDepth});
     }
   } catch(error){dispose();throw error;}
   function applyPose(rig,projection=null) {
@@ -95,7 +96,7 @@ export async function createCharacter25DActor(THREE,bundle,options={}) {
         view.group.rotation.y=cameraYaw;const viewAngle=VIEW_ANGLES[view.name]*(relative<0?-1:1);applyPose(view.rig,viewAngle);view.group.position.y=0;view.group.updateMatrixWorld(true);view.rig.skeleton.update();
         let min=Infinity;for(const sample of view.footSamples){footPoint.fromBufferAttribute(sample.mesh.geometry.attributes.position,sample.index);sample.mesh.applyBoneTransform(sample.index,footPoint);min=Math.min(min,footPoint.y);}
         view.group.position.y=Number.isFinite(min)?-min*scale:0;
-        view.group.updateWorldMatrix(true,true);equipment.project(view);
+        view.group.updateWorldMatrix(true,true);equipment.project(view,relative);
         const alpha=(active?transition:1-transition)*opacity;
         for(const mesh of view.meshes){mesh.material.opacity=alpha;mesh.material.depthWrite=alpha>.5;}
       }
@@ -105,7 +106,7 @@ export async function createCharacter25DActor(THREE,bundle,options={}) {
     object.updateMatrixWorld(true);
     for(const [side,key] of footPairs){bodyRig.byName.get('foot.'+side).getWorldPosition(footPoint);proxy.feet[key].x=footPoint.x;proxy.feet[key].y=footPoint.y;proxy.feet[key].z=footPoint.z;}
   }
-  function snapshot(){const view=views.find(v=>v.name===current);return {schema:bundle.schema,id:bundle.id,position:{...proxy.position},yaw:proxy.yaw,velocity:{...proxy.velocity},speed:actualSpeed,grounded:proxy.grounded,blocked:proxy.blocked,groundNormal:{...proxy.groundNormal},action:motion.action,time:motion.time,view:current,transition,availableViews:views.map(v=>v.name),mirror:false,bodyBones:bodyRig.bones.length,layerMeshes:view?.meshes.length||0,rotations:[...rotations],secondary:Object.fromEntries(Object.entries(springs).map(([k,v])=>[k,v.value])),textures:textures.size,feet:{left:{...proxy.feet.left},right:{...proxy.feet.right}},...equipment.snapshot(),appearanceGrips:view?Object.fromEntries(['R','L'].map(side=>[side,view.rig.byName.get('hand.'+side).getWorldPosition(new THREE.Vector3()).toArray()])):null,disposed};}
+  function snapshot(){const view=views.find(v=>v.name===current);return {schema:bundle.schema,id:bundle.id,position:{...proxy.position},yaw:proxy.yaw,velocity:{...proxy.velocity},speed:actualSpeed,grounded:proxy.grounded,blocked:proxy.blocked,groundNormal:{...proxy.groundNormal},action:motion.action,time:motion.time,view:current,transition,availableViews:views.map(v=>v.name),mirror:false,bodyBones:bodyRig.bones.length,layerMeshes:view?.meshes.length||0,rotations:[...rotations],secondary:Object.fromEntries(Object.entries(springs).map(([k,v])=>[k,v.value])),textures:textures.size,feet:{left:{...proxy.feet.left},right:{...proxy.feet.right}},...equipment.snapshot(),appearanceGrips:view?Object.fromEntries(['R','L'].map(side=>[side,view.rig.byName.get('hand.'+(view.sideFlip?(side==='R'?'L':'R'):side)).getWorldPosition(new THREE.Vector3()).toArray()])):null,disposed};}
   return {object,proxy,sockets,update,dispose,snapshot,
     play(name,opts){motion.play(name,opts);},setAction(name,opts){motion.play(name,{restart:false,...opts});},releaseAction({locomotionOnly=false}={}){if(!locomotionOnly||['idle','walk','run','rest'].includes(motion.action))motion.release();},
     setTransform(p,yaw){proxy.setTransform(p,yaw);},setVelocity(v){proxy.setVelocity(v);},setFacing(yaw){proxy.setFacing(yaw);},setGroundNormal(n){proxy.setGroundNormal(n);},

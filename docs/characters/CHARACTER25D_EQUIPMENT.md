@@ -8,7 +8,8 @@ that factory; there is no Character25D weapon asset catalog or copied model set.
 `actor.setEquipment(life.equipment)` consumes the existing weapon IDs and shield
 boolean. It does not modify inventory or grant combat authority. The opt-in DEV
 companion reads the live state each frame, follows normal movement, and mirrors
-the existing training strike. Normal entry and Production have no guest panel.
+the existing training-impact event. Its bootstrap is idempotent across legacy
+and Forge entry paths; one Actor owns the live render callback. Normal entry and Production have no guest panel.
 
 ## Attachment and presentation
 
@@ -25,6 +26,9 @@ arm bones follow the same world targets, including local depth. Alpha-tested
 body layers and depth-writing 3D models therefore change occlusion with camera,
 facing and motion; there is no universal front/side/back render-order list.
 Near arms/hands can cover the torso, while far arms/weapons are occluded by it.
+A narrow profile arm region follows the visible hand; its binding swaps with
+camera side without mirroring source pixels. A palm depth bias keeps fingers
+over the grip surface, and gripping pixels are excluded from cloth lag.
 Attack is retained during movement; hit/recovery and view transitions update
 attachments in the same frame. No detached weapon image or trail duplicate is used.
 

@@ -5,7 +5,7 @@ import {createCharacter25DDraft,CHARACTER25D_ACTIONS} from '../packages/assets/s
 import {createCharacter25DActor} from '../packages/assets/src/adapters/three/character25d-actor.js';
 import {createRinneWeapon,RINNE_EQUIPMENT_PROFILES,resolveRinneEquipment,disposeRinneEquipment} from '../packages/assets/src/adapters/three/runtime-equipment.js';
 import {weaponCalibration} from '../packages/animations/src/weapon-calibration.js';
-import {analyzeSilhouette,createHumanoidRig,influenceAt} from '../packages/assets/src/character25d-rig.js';
+import {analyzeSilhouette,createHumanoidRig,influenceAt,buildInfluenceMeshes} from '../packages/assets/src/character25d-rig.js';
 import {installShino25dGuest} from '../apps/rinne/src/rebuild/shino25d-guest.js';
 test('the two compatible guest bootstrap paths install only one live renderer',t=>{
   const saved=Object.fromEntries(['window','document','location','addEventListener'].map(k=>[k,globalThis[k]]));t.after(()=>{for(const [k,v]of Object.entries(saved)){if(v===undefined)delete globalThis[k];else globalThis[k]=v;}});
@@ -20,6 +20,11 @@ test('separated palms calibrate the hand pivot from original alpha, hidden hands
   const analysis=analyzeSilhouette(data,w,h),rig=createHumanoidRig({...analysis.proportions,handLandmarks:analysis.handLandmarks}),hand=rig.bones.find(b=>b.name==='hand.R').rest;
   assert.ok(hand[0]<-.18);assert.ok(hand[1]>.4&&hand[1]<.47);
   const hips=influenceAt(.12,.45,rig).map(([i])=>rig.bones[i].name);assert.ok(hips.every(name=>!name.includes('Arm')&&!name.startsWith('hand')),'hip pixels must not follow a weapon grip');
+});
+test('a profile palm over the torso centre is weighted to the visible arm',()=>{
+  const rig=createHumanoidRig({handLandmarks:{L:[.17,.44],R:[-.17,.44]}}),layers=buildInfluenceMeshes(rig,{side:true,bounds:[0,0,62,261],width:62,height:261});let palmWeight=0;
+  for(const mesh of layers)for(let i=0;i<mesh.positions.length/3;i++)if(Math.abs(mesh.positions[i*3])<.012&&Math.abs(mesh.positions[i*3+1]-.444)<.004){for(let j=0;j<4;j++){const name=rig.bones[mesh.skinIndices[i*4+j]].name;if(name==='hand.L')palmWeight=Math.max(palmWeight,mesh.skinWeights[i*4+j]);}}
+  assert.ok(palmWeight>.9,'the drawn side palm must move with its grip');
 });
 function draft(){const d=createCharacter25DDraft({id:'test.equipment',name:'equipment fixture'}),hash='a'.repeat(64);d.assets[hash]={sha256:hash,byteLength:8,mediaType:'image/png',width:80,height:120,name:'fixture.png',hasTransparency:true,dataUrl:'data:image/png;base64,iVBORw0KGgo=',provenance:{kind:'user-upload',author:'user-supplied-unverified',license:'unverified'}};d.references.front=d.pose=hash;for(const name of ['front','side','back'])d.appearance[name]={asset:hash,bounds:[0,0,80,120],side:'unknown',mirror:false,status:'detected-candidate'};d.provenance.sourceSha256=hash;d.provenance.sourceDimensions=[80,120];return d;}
 const distance=(a,b)=>Math.hypot(...a.map((value,i)=>value-b[i]));

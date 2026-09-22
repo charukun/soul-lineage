@@ -91,6 +91,15 @@ export function buildInfluenceMeshes(rig,{aspect=1,bounds=[0,0,1,1],width=1,heig
   const point=(col,row)=>({x:(col/cols-.5)*scale,y:1-row/rows,u:(left+w*col/cols)/width,v:1-(top+h*row/rows)/height});
   const vertex=(g,p)=>{
     const normalizedX=side?p.x*1.5:back?-p.x:p.x,weights=influenceAt(normalizedX,p.y,rig);
+    if(side&&p.y>rig.proportions.hip-.09&&p.y<rig.proportions.shoulder+.01){
+      // In profile the visible arm lies over the torso's centre, not along
+      // the frontal silhouette's outer edge. Keep a narrow authored arm strip.
+      const wrist=rig.bones.find(b=>b.name==='hand.L').rest[1],elbow=(rig.proportions.shoulder+rig.proportions.hip)*.52;
+      const isArm=p.x>-.028&&p.x<.052&&p.y>wrist-.035;
+      weights.length=0;
+      if(isArm){const a=p.y>elbow?'lowerArm.L':'hand.L',b=p.y>elbow?'upperArm.L':'lowerArm.L',t=clamp(p.y>elbow?(p.y-elbow)/(rig.proportions.shoulder-elbow):(p.y-wrist)/(elbow-wrist),0,1);weights.push([rig.bones.findIndex(bone=>bone.name===a),1-t],[rig.bones.findIndex(bone=>bone.name===b),t]);}
+      else weights.push(...influenceAt(Math.max(-rig.proportions.width*.42,Math.min(rig.proportions.width*.42,normalizedX)),p.y,rig));
+    }
     g.positions.push(p.x,p.y,0);g.uvs.push(p.u,p.v);
     for(let j=0;j<4;j++){g.skinIndices.push(weights[j]?.[0]??0);g.skinWeights.push(weights[j]?.[1]??0);}
     const lag=g.name==='hairBack'||g.name==='hairFront'?clamp((.95-p.y)/.25,0,1):g.name==='clothing'?clamp((rig.proportions.hip+.06-p.y)/.18,0,1):g.name==='accessories'?clamp((.62-p.y)/.2,0,1):0;
