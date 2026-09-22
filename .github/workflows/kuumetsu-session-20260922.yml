@@ -1,0 +1,47 @@
+name: Temporary kuumetsu immutable observation 20260922
+# Reuse existing isolated hosted observation fallback. Never merge this ops branch.
+on:
+  push:
+    branches: [ops/kuumetsu-three-20260922-041446]
+    paths: [.github/workflows/kuumetsu-session-20260922.yml]
+permissions:
+  contents: read
+  actions: write
+  statuses: read
+  pull-requests: read
+env:
+  SOURCE_SHA: c696c681a9f1699118ae36124c0fb9614f41351b
+  PREVIEW_URL: https://c49e87da-soul-lineage-demon-dev.c-okamoto.workers.dev/
+  VERSION_ID: c49e87da-29ea-42aa-b96b-9d3e1f93cad3
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: c696c681a9f1699118ae36124c0fb9614f41351b
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium > /tmp/browser-install.log 2>&1
+      - name: Reuse existing native pointer observation with armed gate
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs=require('fs');
+            const r=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-session-observe.mjs',ref:context.sha});
+            let source=Buffer.from(r.data.content,'base64').toString('utf8');
+            source=source.replace("if(await gate.isVisible()){await tap('#soul-brand-boot');", "if(await gate.isVisible()){await page.waitForFunction(()=>document.querySelector('#soul-brand-boot')?.classList.contains('armed'));await tap('#soul-brand-boot');");
+            fs.writeFileSync('session-observe.mjs',source);
+      - name: Iteration 1 immutable Before native play
+        run: mkdir -p session-evidence && cp session-observe.mjs session-evidence/observer.mjs && node session-observe.mjs > session-evidence/browser.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kuumetsu-three-20260922-041446-i1-before
+          path: session-evidence
+          retention-days: 14
