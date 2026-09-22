@@ -1,0 +1,44 @@
+.lineage-powers{
+  display:grid;
+  gap:.55rem;
+  margin:.35rem 0 .8rem;
+}
+.lineage-power{
+  display:grid;
+  gap:.22rem;
+  padding:.58rem .68rem;
+  border:1px solid rgba(119,76,46,.28);
+  border-radius:.45rem;
+  background:rgba(249,232,194,.08);
+}
+.lineage-power-name{
+  display:flex;
+  align-items:center;
+  gap:.42rem;
+  min-width:0;
+}
+.lineage-power-name>span{
+  display:grid;
+  place-items:center;
+  flex:0 0 1.55rem;
+  width:1.55rem;
+  height:1.55rem;
+  border:1px solid currentColor;
+  border-radius:50%;
+  font-size:.72rem;
+  line-height:1;
+}
+.lineage-power-name>b{
+  min-width:0;
+  font-size:.95rem;
+  letter-spacing:.04em;
+}
+.lineage-power>small{
+  display:block;
+  margin-left:1.97rem;
+  line-height:1.45;
+  opacity:.82;
+}
+.lineage-power-unknown{
+  opacity:.72;
+}

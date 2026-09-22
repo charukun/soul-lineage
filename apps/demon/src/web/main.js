@@ -12,6 +12,7 @@ import {HuntFlowUi} from './hunt-flow-ui.js';
 import {PREY, FORMS, offerVillages} from '@soul/raid/world';
 import {SwipeInput} from '@soul/input';
 import {renderLineage} from './lineage.js';
+import './lineage-power.css';
 import {huntPresentationSnapshot} from './presentation-snapshot.js';
 import {AngledGuide} from './angled-guide.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';

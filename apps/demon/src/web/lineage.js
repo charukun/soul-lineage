@@ -9,10 +9,12 @@ const moveNames={ember:'猟りの詰め',dancer:'旅歩の返し',calm:'静か�
 
 function chips(items,kind){
   if(!items.length)return '<span class="lineage-empty">まだ刻まれていない</span>';
-  return `<div class="lineage-chips">${items.map(key=>{
-    const data=kind==='power'?PREY[key]:null;
-    return `<span>${data?`${esc(data.glyph)} ${esc(data.power)}`:esc(moveNames[key]||key)}</span>`;
+  if(kind==='power')return `<div class="lineage-powers">${items.map(key=>{
+    const data=PREY[key];
+    if(!data)return `<span class="lineage-power-unknown">${esc(key)}</span>`;
+    return `<div class="lineage-power" data-power="${esc(key)}"><div class="lineage-power-name"><span aria-hidden="true">${esc(data.glyph)}</span><b>${esc(data.power)}</b></div><small>${esc(data.desc)}</small></div>`;
   }).join('')}</div>`;
+  return `<div class="lineage-chips">${items.map(key=>`<span>${esc(moveNames[key]||key)}</span>`).join('')}</div>`;
 }
 
 // A live hunt has not reached ProfileStore.finish yet. Project it only at the
