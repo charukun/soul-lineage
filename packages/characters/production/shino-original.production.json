@@ -14,7 +14,7 @@
       "tool": "Blender",
       "version": "4.5.14 LTS",
       "sourcePath": "assets/characters/shino-original/model.blend",
-      "sourceSha256": "a92857fccf58d7d2bce184ea7cf7e478fb16e2f1415b33421d01f163a3cbfd01"
+      "sourceSha256": "66e820a8904b3e1b39019710d337d2235ea57c2e331c7b71cc48fcc04627e805"
     }
   },
   "evidence": {
@@ -47,8 +47,8 @@
         "accessories"
       ],
       "auditPath": "docs/characters/qa/shino-original-dcc/blender-audit.json",
-      "meshObjects": 64,
-      "triangles": 12574,
+      "meshObjects": 52,
+      "triangles": 12782,
       "materials": 12
     }
   },

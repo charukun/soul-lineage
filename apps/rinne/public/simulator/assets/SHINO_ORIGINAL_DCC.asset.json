@@ -6,12 +6,12 @@
   "license": "RINNE-authored-original + CC0-1.0 Rig_Medium foundation",
   "path": "./simulator/assets/SHINO_ORIGINAL_DCC.glb",
   "model": {
-    "bytes": 3454264,
-    "sha256": "f68ced9f5af912fe6fe821064ae182671240f30ff323185dc71f7be3eef6a6f4"
+    "bytes": 3423172,
+    "sha256": "8315d3d051c75818751e1c6e43675b0affb9e3cf3f36ead49aa5f62c7df29568"
   },
   "source": {
     "blendPath": "assets/characters/shino-original/model.blend",
-    "blendSha256": "a92857fccf58d7d2bce184ea7cf7e478fb16e2f1415b33421d01f163a3cbfd01",
+    "blendSha256": "66e820a8904b3e1b39019710d337d2235ea57c2e331c7b71cc48fcc04627e805",
     "referencePath": "assets/characters/shino-original/reference.svg",
     "referenceSha256": "a779db7d67cb257de854499d1cef3c4d3a5e4ae33f99174ff53a7e961bb477c4"
   },
@@ -106,12 +106,12 @@
   "scene": {
     "unitSystem": "METRIC",
     "scaleLength": 1.0,
-    "meshObjects": 64,
+    "meshObjects": 52,
     "armatures": 1,
-    "vertices": 6699,
-    "triangles": 12574,
+    "vertices": 6745,
+    "triangles": 12782,
     "materials": 12,
-    "uvMeshCount": 64,
+    "uvMeshCount": 52,
     "shapeKeys": [],
     "bones": 41
   },
