@@ -1,3 +1,4 @@
+import { createSurfaceFootsteps } from './surface-footsteps.js';
 import { audioURLs } from '@soul/audio/urls';
 import { webAudioActivation } from '@soul/platform-web/audio-activation';
 import { relinquishMediaElement, restoreMediaElement } from '@soul/shared-ui/media-lifecycle';
@@ -7,6 +8,7 @@ export const unlockRinneAudio=()=>activeAudio?.unlock?.()??false;
 export const selectRinneAudio=()=>activeAudio?.select?.();
 export const confirmRinneAudio=()=>activeAudio?.commit?.();
 export const presentRinneImpactAudio=options=>activeAudio?.impact?.(options);
+export const presentRinneFootstepAudio=contact=>activeAudio?.step?.(0,contact);
 export const clearRinneImpactAudio=()=>activeAudio?.clearImpact?.();
 export const enterRinneGameplayAudio=()=>activeAudio?.enterGameplay?.();
 export const prepareRinneTitleAudio=()=>activeAudio?.prepareTitle?.()??Promise.resolve(false);
@@ -17,8 +19,9 @@ export const playRinneLineageAudio=(kind,index=0)=>activeAudio?.lineage?.(kind,i
 export function createRinneAudio(){
   const BASE_MUSIC_VOLUME=.2,TITLE_MUSIC_VOLUME=1,TITLE_MUSIC_GAIN=1.25,musicURL=audioURLs.r01,titleMusicURL=audioURLs.r22,music=new Audio(musicURL),titleMusic=new Audio(titleMusicURL);music.loop=true;music.volume=BASE_MUSIC_VOLUME;music.preload='auto';titleMusic.loop=true;titleMusic.volume=TITLE_MUSIC_VOLUME;titleMusic.preload='auto';titleMusic.load();
   const doc=globalThis.document,win=globalThis.window,pageHidden=()=>Boolean(doc&&(doc.hidden||doc.visibilityState==='hidden'));
-  let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden(),duckTimer=0,musicDetached=false,musicPosition=0,brandPending=Boolean(win?.__SOUL_BRAND_BOOT_PENDING__),titleMode=false,titleSource=null,titleGain=null,titlePrepared=false,titlePreparePromise=null,lineageMode=false,lineageAmbience=null,lineageFocusAt=0;
+  let context=null,disposed=false,unlocked=false,backgrounded=pageHidden(),duckTimer=0,musicDetached=false,musicPosition=0,brandPending=Boolean(win?.__SOUL_BRAND_BOOT_PENDING__),titleMode=false,titleSource=null,titleGain=null,titlePrepared=false,titlePreparePromise=null,lineageMode=false,lineageAmbience=null,lineageFocusAt=0;
 
+  const footsteps=createSurfaceFootsteps({getContext:()=>context,canPlay:()=>!disposed&&!backgrounded&&!pageHidden()&&!titleMode});
   const contextCanResume=()=>Boolean(context&&context.state!=='running'&&context.state!=='closed');
   const once=(target,event,timeout=4500)=>new Promise((resolve,reject)=>{let timer=0;const cleanup=()=>{target.removeEventListener(event,onEvent);target.removeEventListener('error',onError);clearTimeout(timer);};const onEvent=()=>{cleanup();resolve(true);};const onError=()=>{cleanup();reject(new Error(`Rinne title audio ${event} failed`));};target.addEventListener(event,onEvent,{once:true});target.addEventListener('error',onError,{once:true});timer=setTimeout(()=>{cleanup();reject(new Error(`Rinne title audio ${event} timeout`));},timeout);});
   function ensureTitleGraph(){
@@ -96,7 +99,7 @@ export function createRinneAudio(){
   }
   function clearImpact(){clearTimeout(duckTimer);duckTimer=0;if(!disposed)music.volume=BASE_MUSIC_VOLUME;}
   function suspendForBackground(){
-    backgrounded=true;clearImpact();detachMusic();titleMusic.pause();
+    backgrounded=true;footsteps.clear();clearImpact();detachMusic();titleMusic.pause();
     if(context?.state==='running')void context.suspend().catch(error=>{console.warn('Rinne AudioContext suspend failed',error);});
   }
   async function resumePlayback(){
@@ -168,8 +171,8 @@ export function createRinneAudio(){
     unlock,select,commit,ui:select,impact,clearImpact,enterGameplay,prepareTitle,enterLineage,exitLineage,lineage,
     item(){tone(620,.08,.024,'triangle');setTimeout(()=>tone(840,.08,.018,'triangle'),55);},
     combat:()=>tone(128,.11,.032,'sawtooth'),rest:()=>tone(260,.14,.014),dash:()=>tone(170,.07,.022,'square'),
-    step(now){if(now-lastStep<.25)return;lastStep=now;tone(92,.035,.012);},
-    dispose(){if(disposed)return;exitLineage();disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);win?.removeEventListener?.('pagehide',suspendForBackground);win?.removeEventListener?.('pageshow',onVisibilityChange);win?.removeEventListener?.('soul:brand-enter',onBrandEnter);unsubscribeAudioUnlock();music.volume=BASE_MUSIC_VOLUME;titleMusic.pause();titleMusic.removeAttribute('src');titleMusic.load();detachMusic();void context?.close?.();context=null;}
+    step(_now,contact){return footsteps.step(contact);},
+    dispose(){if(disposed)return;footsteps.dispose();exitLineage();disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);win?.removeEventListener?.('pagehide',suspendForBackground);win?.removeEventListener?.('pageshow',onVisibilityChange);win?.removeEventListener?.('soul:brand-enter',onBrandEnter);unsubscribeAudioUnlock();music.volume=BASE_MUSIC_VOLUME;titleMusic.pause();titleMusic.removeAttribute('src');titleMusic.load();detachMusic();void context?.close?.();context=null;}
   };
   activeAudio=controller;
   return controller;
