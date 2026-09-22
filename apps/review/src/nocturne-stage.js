@@ -10,7 +10,8 @@ const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'},LI
 const HISTORY_DISPLAY_MS=3200,HISTORY_GAP_MS=260,HISTORY_QUEUE_LIMIT=6,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
 let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],historyQueue=[],historyTimer=0,historyShowing=false,seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',lastPhaseCueKey='',comboFadeTimer=0;
-let state='BOOT',lastError=null;
+let state='BOOT',lastError=null,lastExchangeKey='';
+const cueNode=document.createElement('span');cueNode.className='battle-exchange-cue';cueNode.setAttribute('role','status');hud.prepend(cueNode);
 hud.dataset.anchored='true';
 if(versionNode)versionNode.textContent=`v${BATTLE2_VERSION}`;
 function report(next,detail=''){
@@ -92,31 +93,32 @@ function beginComboFade(){
  comboFadeTimer=setTimeout(()=>{comboFadeTimer=0;delete phasePanel.dataset.comboInterrupted;},COMBO_FADE_MS);
 }
 function updateSequence(meta){
- reviewMeta=meta;if(meta.battleId!==lastBattleId)resetHistory(meta.battleId);
+ reviewMeta=meta;if(meta.battleId!==lastBattleId||meta.exchangeHistoryKey!==lastExchangeKey){resetHistory(meta.battleId);lastExchangeKey=meta.exchangeHistoryKey;}
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
  const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);
  const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
+ const cue=interrupted?'仕切り直し':(meta.exchangeCue||'間合い · 読み合い');if(cueNode.textContent!==cue)cueNode.textContent=cue;hud.dataset.exchangeIntent=interrupted?'read':(meta.exchangeIntent||'read');
  const narrativePriority=row=>row?.type==='chain-break'?0:(row?.type==='parry'||row?.type==='clash'?1:row?.type==='guard'?2:3);
  for(const row of [...activity].sort((a,b)=>narrativePriority(a)-narrativePriority(b))){if(pushNarration(row,meta))break;}
  const hudState=interrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;
  phasePanel.dataset.phase=hudState;phasePanel.dataset.combatSequencePhase=hudState;phasePanel.dataset.comboActive=String(index>=0&&!interrupted);
  if(interrupted)beginComboFade();else if(index>=0)clearComboFade();
  setPhaseLamps(interrupted?-1:index);
- if(!interrupted&&index>=0&&meta.actionId)pushAction(meta);
+ if(!interrupted&&index>=0&&meta.actionId&&phase===hudState)pushAction(meta);
  currentNode.dataset.kind='idle';currentNode.textContent='';
 }
 function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));}
 function failed(error){runtime?.fail?.(error);report('ERROR',error?.message||String(error));sound?.pause();}
-window.__BATTLE2__=Object.freeze({get state(){return state;},get started(){return started;},get mode(){return battleMode;},get lastError(){return lastError;},get version(){return BATTLE2_VERSION;},get sourceSha(){return __BUILD_INFO__.commit;},get metrics(){return runtime?.metrics()||{ready:false};},get actors(){return runtime?.inspectActors()||[];},get trace(){return runtime?.trace.slice()||[];},get observation(){return prepared?runtime?.inspectBattle(sequence)??null:null;},get review(){return reviewMeta;},get history(){return history.slice();},advance(seconds){if(!new URL(location.href).searchParams.has('evidence'))throw Error('Evidence mode required');return runtime.advance(seconds);}});
+window.__BATTLE2__=Object.freeze({get state(){return state;},get started(){return started;},get mode(){return battleMode;},get lastError(){return lastError;},get version(){return BATTLE2_VERSION;},get sourceSha(){return __BUILD_INFO__.commit;},get metrics(){return runtime?.metrics()||{ready:false};},get actors(){return runtime?.inspectActors()||[];},get trace(){return runtime?.trace.slice()||[];},get observation(){return prepared?runtime?.inspectBattle(sequence)??null:null;},get review(){return reviewMeta;},get history(){return history.slice();},get exchangeTrace(){return runtime?.exchangeTrace??[];},advance(seconds){if(!new URL(location.href).searchParams.has('evidence'))throw Error('Evidence mode required');return runtime.advance(seconds);}});
 async function boot(){
- const own=++sequence;prepared=false;controller?.abort();runtime?.destroy();runtime=null;lastError=null;reviewMeta=null;resetHistory();delete stage.dataset.error;controller=new AbortController();report('BOOT');
+ const own=++sequence;prepared=false;controller?.abort();runtime?.destroy();runtime=null;lastError=null;reviewMeta=null;lastExchangeKey='';resetHistory();delete stage.dataset.error;controller=new AbortController();report('BOOT');
  try{
   const [{createNocturneSound},{createJohakyuP7Controller}]=await Promise.all([import('./nocturne/audio.js'),import('./nocturne/johakyu-p7-controller.js')]);
   if(disposed||own!==sequence)return;
   // Install gesture listeners before enabling Start, and keep the unlocked
   // AudioContext across mode switches instead of recreating it after the tap.
   sound??=createNocturneSound();
-  runtime=createJohakyuP7Controller({world,effects,stage,sound,notify:report,signal:controller.signal,onMeta:updateSequence,evidence:new URL(location.href).searchParams.has('evidence'),mode:battleMode});
+  runtime=createJohakyuP7Controller({world,effects,stage,sound,notify:report,signal:controller.signal,onMeta:updateSequence,evidence:new URL(location.href).searchParams.has('evidence'),fixture:new URL(location.href).searchParams.get('exchangeFixture'),mode:battleMode});
   await runtime.prepare();if(disposed||own!==sequence)return;
   prepared=true;if(started){runtime.start();report('BATTLE');}else report('READY');
  }catch(error){if(!disposed&&own===sequence){controller.abort(error);failed(error);}}

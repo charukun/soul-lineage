@@ -1,3 +1,4 @@
+import {observedLocomotion} from './observed-locomotion.js';
 import {createCanonicalPresentationDriver} from './driver.js';
 import {resolveFatiguePresentation} from './fatigue.js';
 import {sampleFatigueMotion} from './fatigue-motion.js';
@@ -470,6 +471,7 @@ function createDrivenPort(){
   remove(a){removeActor(a);actors.splice(actors.indexOf(a),1);bindings.delete(a.canonicalId);},
   self(a){hero=a;selfBinding=a;},
   update(a,row,dt,{initial}){
+   const observedClip=!initial&&dt>0?observedLocomotion(a.pos,row.position,row.yaw):null;
    a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;clearFatigueRig(a);clearParryRig(a);if(a.spawn>0)a.spawn=Math.max(0,a.spawn-dt);if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-dt);if(a.reaction.remaining<=0)a.reaction=null;}if(a.parryRecoil){a.parryRecoil.remaining=Math.max(0,a.parryRecoil.remaining-dt);if(a.parryRecoil.remaining<=0)a.parryRecoil=null;}if(a.contactHold){a.contactHold.remaining=Math.max(0,a.contactHold.remaining-dt);if(a.contactHold.remaining<=0)a.contactHold=null;}
    const equipmentKey=row.equipment.weapon+':'+row.equipment.shield;
    if(a.equipmentKey!==equipmentKey){
@@ -479,9 +481,9 @@ function createDrivenPort(){
     if(row.equipment.shield){const shield=a.root.getObjectByName('Round_Shield');if(!shield)throw Error('Missing authored shield');shield.visible=true;}
     a.equipmentKey=equipmentKey;
    }
-   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,spawnClip=!terminal&&a.spawnStyle==='battlebk-ground'&&a.spawn>0?'Spawn_Ground_Skeletons':null,reactionClip=!terminal&&!spawnClip?a.reaction?.clip:null,contactClip=!terminal&&!spawnClip?a.contactHold?.clip:null,phaseCue=!terminal&&!spawnClip&&!reactionClip&&!contactClip&&!action?row.phaseCue:null,phaseCueClip=phaseCue?.clip??null,actionClip=action?.presentationClip??action?.motion.clip,locomotionClip=!spawnClip&&!phaseCue&&!action&&row.moving?row.locomotion?.clip:null;
+   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,spawnClip=!terminal&&a.spawnStyle==='battlebk-ground'&&a.spawn>0?'Spawn_Ground_Skeletons':null,reactionClip=!terminal&&!spawnClip?a.reaction?.clip:null,contactClip=!terminal&&!spawnClip?a.contactHold?.clip:null,phaseCue=!terminal&&!spawnClip&&!reactionClip&&!contactClip&&!action?row.phaseCue:null,phaseCueClip=phaseCue?.clip??null,actionClip=action?.presentationClip??action?.motion.clip,locomotionClip=!spawnClip&&!phaseCue&&!action&&row.moving?(row.locomotion?.clip||(observedClip&&a.clips.has(observedClip)?observedClip:null)):null;
    const clip=terminal||spawnClip||reactionClip||contactClip||phaseCueClip||actionClip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
-   const key=terminal||(spawnClip?'spawn:battlebk-ground':reactionClip?('reaction:'+a.reaction.serial+':'+reactionClip):contactClip?('contact:'+a.contactHold.serial+':'+contactClip):phaseCue?('phase-cue:'+phaseCue.key+':'+phaseCueClip):((action?.id||(locomotionClip?('locomotion:'+row.locomotion.kind+':'+locomotionClip):clip))+':'+(action?.step??0)));
+   const key=terminal||(spawnClip?'spawn:battlebk-ground':reactionClip?('reaction:'+a.reaction.serial+':'+reactionClip):contactClip?('contact:'+a.contactHold.serial+':'+contactClip):phaseCue?('phase-cue:'+phaseCue.key+':'+phaseCueClip):((action?.id||(locomotionClip?('locomotion:'+(row.locomotion?.kind||'observed')+':'+locomotionClip):clip))+':'+(action?.step??0)));
    if(a.canonicalAction!==key){play(a,clip,Boolean(terminal||spawnClip||reactionClip||contactClip||action||row.hit),spawnClip?.8:0);a.canonicalAction=key;a.deathTime=0;}
    if(spawnClip&&!terminal){a.presentationActionId=null;a.action.paused=false;a.mixer.update(dt);}
    else if(reactionClip&&!terminal){a.action.paused=false;a.mixer.update(dt*(game.hitstop>0?.08:1));}
@@ -508,7 +510,7 @@ function createDrivenPort(){
     record('canonical-clash',{attackId:event.attackId,otherAttackId:event.otherAttackId,sourceId:event.sourceId,targetId:event.targetId,contactPoint:point||null,contactDistance:event.contactDistance||null});return;
    }
    if(['guard','parry'].includes(event.type)){
-    const parry=event.type==='parry',strongParry=parry&&event.strongParry!==false,point=event.contactPoint;
+    const parry=event.type==='parry',strongParry=parry&&event.strongParry===true,point=event.contactPoint;
     if(parry){syncContactPose(source,event.sourceContactProgress,strongParry?.095:.055);syncContactPose(target,event.defenseContactProgress,strongParry?.095:.055);}
     const fallback=point?new V(point.x,Math.min(source?.height||target.height,target.height)*.58,point.z):target.pos.clone().add(new V(0,target.height*.58,0)),clash=source?bladeClashPoint(source,target,fallback):fallback,visualDirection=parry?deflectionFromBladeTrace(source,target,event.parryDirection||'right'):(event.parryDirection||null),pan=spatialPan(clash);
     if(parry&&source)source.parryRecoil={remaining:strongParry?.3:.13,duration:strongParry?.3:.13,side:visualDirection==='left'?-1:1};
