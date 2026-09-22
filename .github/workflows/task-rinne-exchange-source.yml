@@ -1,38 +1,88 @@
-name: Task RINNE Exchange Reconcile Sources
+name: Task RINNE Exchange Reconcile
 on:
   push:
     branches: [work/rinne-exchange-boundaries-20260922]
     paths: [.github/workflows/task-rinne-exchange-source.yml]
 permissions:
-  contents: read
+  contents: write
 jobs:
-  source:
+  reconcile:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 09efde1f482c0959169eb1a212f338fb60493e01
-          fetch-depth: 1
-          persist-credentials: false
-      - name: Export exact develop source for semantic conflict review
-        run: |
-          python3 - <<'PY'
-          import pathlib,subprocess,tarfile
-          paths=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
-          prefixes=('packages/','apps/rinne/src/','apps/rinne/tests/','apps/rinne/test/','apps/review/src/','apps/review/tests/','scripts/','tools/','tests/','.github/')
-          explicit={'package.json','package-lock.json','AGENTS.md','apps/rinne/package.json','apps/review/package.json','apps/rinne/docs/COMBAT_EVOLUTION.md','apps/rinne/docs/BATTLE_REVIEW_LAB.md','docs/DEVELOPMENT.md','docs/DEVELOP_MERGE.md','docs/BROWSER_PLAYTEST_ROUTING.md'}
-          extensions={'.js','.mjs','.cjs','.json','.ts','.md','.yml','.yaml','.css','.html'}
-          with tarfile.open('/tmp/rinne-reconcile-sources.tar.gz','w:gz') as out:
-            for path in paths:
-              p=pathlib.Path(path)
-              if path and p.is_file() and (path in explicit or (path.startswith(prefixes) and p.suffix in extensions)):out.add(p,arcname=path)
-          PY
-          git rev-parse HEAD > /tmp/source-sha.txt
-      - uses: actions/upload-artifact@v4
+          ref: ${{ github.sha }}
+          fetch-depth: 64
+      - uses: actions/setup-node@v6
         with:
-          name: rinne-reconcile-sources
-          path: |
-            /tmp/rinne-reconcile-sources.tar.gz
-            /tmp/source-sha.txt
-          retention-days: 2
+          node-version: '24'
+          cache: npm
+      - name: Materialize reviewed semantic resolution over canonical develop
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=5497108d637b5364762d05162a55319e79efd310
+          mkdir -p "$RUNNER_TEMP/rinne-exchange-integrated"
+          cp .github/task-rinne-exchange-integrated.b64 "$RUNNER_TEMP/rinne-exchange-integrated/payload.b64"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch --no-tags --depth=64 origin develop
+          git cat-file -e "$BASE^{commit}"
+          # Explicit semantic resolution: retain the canonical PR1399 observer/counter
+          # architecture and apply the separately reviewed twelve-file supplement.
+          # Both prior work and observed develop remain parents; this is not a force push.
+          git read-tree --reset -u "$BASE"
+          python3 - <<'PY'
+          import base64,hashlib,json,lzma,pathlib,os
+          root=pathlib.Path('.')
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'rinne-exchange-integrated'
+          raw=lzma.decompress(base64.b64decode((out/'payload.b64').read_text(),validate=True))
+          assert hashlib.sha256(raw).hexdigest()=='aac67b7f388f953068aed3264220d2de23146e6c040f3862c5d83c46d13cbe94','payload corruption'
+          payload=json.loads(raw);assert payload['version']==1
+          for row in payload['files']:
+            p=root/row['path'];assert not p.is_absolute() and '..' not in p.parts
+            before=p.read_text() if p.exists() else ''
+            actual=hashlib.sha256(before.encode()).hexdigest() if p.exists() else None
+            assert actual==row['before'],f"Preimage changed: {p}"
+            after=before
+            for start,end,text in reversed(row['edits']):
+              assert 0<=start<=end<=len(before)
+              after=after[:start]+text+after[end:]
+            assert hashlib.sha256(after.encode()).hexdigest()==row['after'],f"Postimage mismatch: {p}"
+            p.parent.mkdir(parents=True,exist_ok=True);p.write_text(after)
+          (out/'manifest.json').write_text(json.dumps({'base':'5497108d637b5364762d05162a55319e79efd310','files':[{k:v for k,v in row.items() if k!='edits'} for row in payload['files']]},indent=2))
+          (out/'paths.txt').write_text('\n'.join(row['path'] for row in payload['files'])+'\n')
+          (out/'payload.b64').unlink()
+          PY
+          while IFS= read -r path; do git add -- "$path"; done < "$RUNNER_TEMP/rinne-exchange-integrated/paths.txt"
+          git diff --cached --check
+          TREE=$(git write-tree)
+          CANDIDATE=$(git commit-tree "$TREE" -p "$GITHUB_SHA" -p "$BASE" -m 'feat(rinne): reconcile canonical exchange observer, pair AI and pressure boundaries')
+          git reset --hard "$CANDIDATE"
+          test ! -e .github/workflows/task-rinne-exchange-source.yml
+          test ! -e .github/task-rinne-exchange-integrated.b64
+          git rev-parse HEAD > "$RUNNER_TEMP/rinne-exchange-integrated/candidate-head.txt"
+          git rev-parse HEAD^{tree} > "$RUNNER_TEMP/rinne-exchange-integrated/candidate-tree.txt"
+          git diff --stat "$BASE" HEAD > "$RUNNER_TEMP/rinne-exchange-integrated/diff-stat.txt"
+      - name: Install workspace dependencies without build lifecycle
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Focused authoring preflight on reconciled exact candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in packages/johakyu-combat/src/exchange-policy.js packages/tidebreak-combat/index.js apps/rinne/src/rebuild/combat-core.js apps/rinne/src/rebuild/tidebreak-loadout.js apps/review/src/nocturne/johakyu-p7-review.js; do node --check "$file"; done
+          node --test packages/johakyu-combat/test/exchange-policy.test.mjs packages/johakyu-combat/test/exchange-boundary-regressions.test.mjs packages/tidebreak-combat/test/exchange-runtime.test.mjs packages/tidebreak-combat/test/exchange-boundary-regressions.test.mjs packages/tidebreak-combat/test/inspiration-window.test.mjs apps/review/tests/exchange-initiative.test.mjs apps/review/tests/johakyu-p7-review.test.mjs apps/rinne/tests/exchange-boundaries.test.mjs apps/rinne/tests/johakyu-runtime-capability-gate.test.mjs apps/rinne/tests/combat-sequence-hud.test.mjs apps/rinne/tests/combat-capability-choice.test.mjs | tee "$RUNNER_TEMP/rinne-exchange-integrated/preflight.log"
+          node scripts/fast-dev-contract.mjs 5497108d637b5364762d05162a55319e79efd310 HEAD | tee "$RUNNER_TEMP/rinne-exchange-integrated/fast-dev-contract.log"
+      - name: Publish unarmed coherent candidate to the existing work branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
+          echo 'AUTHORING_PREFLIGHT_PASSED; final exact-head validation is not yet armed' > "$RUNNER_TEMP/rinne-exchange-integrated/result.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rinne-exchange-integrated-preflight
+          path: ${{ runner.temp }}/rinne-exchange-integrated/
+          retention-days: 5
