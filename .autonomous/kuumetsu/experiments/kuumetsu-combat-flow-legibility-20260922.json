@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 3,
+  "id": "kuumetsu-combat-flow-legibility-20260922",
+  "game": "kuumetsu",
+  "mode": "evolution",
+  "kind": "gameplay",
+  "themeKey": "combat-sequence-continuity-legibility",
+  "definedAt": "2026-09-22T10:14:32Z",
+  "experienceGoal": {
+    "playerProblem": "自動戦闘の最中、現在の技名が短いイベント表示として消え、序破急のどこを進行しているかを継続して結び付けて読みにくい。",
+    "targetState": "交戦中は現在のnative技と序破急phaseが常時ひとまとまりで読め、進行済みphaseも一目で追える。",
+    "successSignals": [
+      "交戦中、現在の技名がイベント消失後も序・破・急のphase付きで読める。",
+      "phaseが進むと完了済み段階と現在段階を視覚的に区別でき、間合い状態では技を捏造しない。"
+    ]
+  },
+  "rootCauses": [
+    {
+      "key": "current-technique-is-transient-only",
+      "revision": "97a9eec9193ed4b6edfda988cee4fa906dec31f2",
+      "path": "apps/demon/src/web/combat-readout-flow.js",
+      "symbol": "installCombatReadoutFlow/sync",
+      "observationEvidence": "Immutable Before 03-play-04 shows active combat and a recent incoming contact, but no current technique name remains visible; the persistent line only says 自動戦闘 · スワイプで間合い.",
+      "sourceEvidence": "skill-name receives p.skill from native fight state, but is visually clipped; flow only pushes action changes into a 2700ms transient entry.",
+      "prediction": "Projecting existing skill-name plus active phase into a persistent read-only label keeps current intent legible without touching combat authority.",
+      "falsifier": "Displayed technique differs from native action/phase, or a technique is invented while measuring distance.",
+      "paths": [
+        "apps/demon/src/web/combat-readout-flow.js",
+        "apps/demon/src/web/combat-readout-state.js"
+      ],
+      "relatedPaths": [
+        "apps/demon/src/web/main.js"
+      ]
+    },
+    {
+      "key": "phase-progress-has-no-persistent-trail",
+      "revision": "97a9eec9193ed4b6edfda988cee4fa906dec31f2",
+      "path": "apps/demon/src/web/combat-readout-flow.css",
+      "symbol": ".phases",
+      "observationEvidence": "Immutable Before combat screenshots show 序破急 as low-salience labels; transition pulses are momentary and leave no progress trail.",
+      "sourceEvidence": "syncCombatSequence already supplies authoritative active phase; Demon presentation has no completed-phase trail.",
+      "prediction": "A presentation-only trail derived from current native phase makes sequence continuity readable without changing transitions.",
+      "falsifier": "Completed styling appears ahead of current phase or survives combat reset.",
+      "paths": [
+        "apps/demon/src/web/combat-readout-flow.js",
+        "apps/demon/src/web/combat-readout-flow.css"
+      ],
+      "relatedPaths": [
+        "packages/shared-ui/src/combat-sequence.js"
+      ]
+    }
+  ],
+  "workItems": [
+    {
+      "id": "persistent-native-technique",
+      "summary": "Keep current native technique visible with its authored phase while combat is active.",
+      "rootCauseKeys": [
+        "current-technique-is-transient-only"
+      ],
+      "paths": [
+        "apps/demon/src/web/combat-readout-state.js",
+        "apps/demon/src/web/combat-readout-flow.js",
+        "apps/demon/src/web/combat-readout-flow.css",
+        "apps/demon/tests/combat-flow-legibility.test.mjs"
+      ],
+      "evidence": "Pure label projection plus immutable candidate native-combat screenshot.",
+      "expectedPlayerFacingEffect": "Current automatic action remains readable after transient feed entries fade."
+    },
+    {
+      "id": "persistent-phase-trail",
+      "summary": "Mark phases before the current authoritative phase as completed and strengthen the current phase, clearing on combat end.",
+      "rootCauseKeys": [
+        "phase-progress-has-no-persistent-trail"
+      ],
+      "paths": [
+        "apps/demon/src/web/combat-readout-flow.js",
+        "apps/demon/src/web/combat-readout-flow.css",
+        "apps/demon/tests/combat-flow-legibility.test.mjs"
+      ],
+      "evidence": "Leaf assertions plus immutable candidate screenshots across native phase progression.",
+      "expectedPlayerFacingEffect": "Sequence direction and current position can be read continuously."
+    }
+  ],
+  "observation": {
+    "summary": "Pinned native play completed two combats and two captures. Candidate problems were combat sequence continuity, post-capture world occlusion, return spatial guidance, and lineage density. Sequence continuity was selected because fresh combat evidence shows attrition/contact state while current technique/phase continuity disappears between transient events.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "97a9eec9193ed4b6edfda988cee4fa906dec31f2",
+      "reference": "https://bf0cd3b7-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "versionId": "bf0cd3b7-a001-4713-80fa-779ba684ad7c",
+      "publicationRun": 35714133569,
+      "observationRun": 35714431731,
+      "artifactId": 10688592795,
+      "artifactDigest": "sha256:6422ce1b0d7cd4ae81b465e4ad1a81612fdaa568a6d4bc5550222c1f1870a27c",
+      "versionCommitMatched": true,
+      "conditions": {
+        "viewport": [
+          673,
+          841
+        ],
+        "deviceScaleFactor": 1,
+        "hasTouch": true,
+        "renderer": "Chromium SwiftShader",
+        "profile": "fresh",
+        "route": "armed brand tap > begin > native steering > idle combat/devour > pause > lineage",
+        "stateInjection": false
+      }
+    },
+    "candidateProblems": [
+      {
+        "id": "combat-sequence-continuity",
+        "selected": true
+      },
+      {
+        "id": "post-capture-world-occlusion",
+        "selected": false
+      },
+      {
+        "id": "return-spatial-guidance",
+        "selected": false
+      },
+      {
+        "id": "lineage-density",
+        "selected": false
+      }
+    ],
+    "historyComparison": {
+      "reviewedRecent": 12,
+      "doNotRetryRespected": [
+        "Do not repeat combat attrition/contact ownership from PR #1415.",
+        "Do not treat DOM/test presence as visual evidence."
+      ]
+    }
+  },
+  "hypothesis": {
+    "cause": "Authoritative action and phase exist but persistent presentation only keeps generic control copy while action transitions fade.",
+    "prediction": "Joining native action+phase in a persistent label and deriving a completed trail makes authored sequence progress readable without changing Tidebreak/input.",
+    "falsifier": "Candidate mislabels phase/action, invents action during measure, obscures vitals/guide, or leaves stale trail after combat."
+  },
+  "candidates": [
+    {
+      "id": "read-side-native-action-phase-projection",
+      "selected": true,
+      "reason": "Small causal presentation change using existing authority."
+    },
+    {
+      "id": "new-combat-timeline-model",
+      "selected": false,
+      "reason": "Duplicates Tidebreak state and risks a second authority."
+    }
+  ],
+  "implementation": {
+    "summary": "Demon-only read-side flow label and phase trail; no combat, input, capture, extraction, save, shared sequence authority or workflow change.",
+    "paths": [
+      "apps/demon/src/web/combat-readout-state.js",
+      "apps/demon/src/web/combat-readout-flow.js",
+      "apps/demon/src/web/combat-readout-flow.css",
+      "apps/demon/tests/combat-flow-legibility.test.mjs"
+    ]
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": [
+      "apps/demon/tests/combat-flow-legibility.test.mjs"
+    ],
+    "stagingAfter": "required",
+    "limitations": [
+      "Fresh native timing may not expose every phase in screenshots; notVerified stays explicit.",
+      "No balance or outcome claim."
+    ],
+    "workItemCoverage": [
+      {
+        "workItemId": "persistent-native-technique",
+        "evidence": "Pure projection + native After."
+      },
+      {
+        "workItemId": "persistent-phase-trail",
+        "evidence": "Leaf reset/order assertions + native After."
+      }
+    ]
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": null,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-combat-flow-legibility-20260922"
+  }
+}
