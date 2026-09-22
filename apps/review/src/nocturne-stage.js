@@ -7,9 +7,9 @@ const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.get
 const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
 const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],modeButtons=[...document.querySelectorAll('[data-battle-mode]')];
 const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
-const HISTORY_DISPLAY_MS=2800,HISTORY_GAP_MS=220,HISTORY_QUEUE_LIMIT=6,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
+const HISTORY_DISPLAY_MS=3200,HISTORY_GAP_MS=260,HISTORY_QUEUE_LIMIT=6,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
-let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],historyQueue=[],historyTimer=0,historyShowing=false,seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',comboFadeTimer=0;
+let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],historyQueue=[],historyTimer=0,historyShowing=false,seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',lastPhaseCueKey='',comboFadeTimer=0;
 let state='BOOT',lastError=null;
 hud.dataset.anchored='true';
 if(versionNode)versionNode.textContent=`v${BATTLE2_VERSION}`;
@@ -33,7 +33,7 @@ function semanticActionLabel(row){
  if(row?.type==='maneuver-start'){
   if(['engage-range','counter-press'].includes(row.reason))return'間合いを詰める';
   if(['read-threat','read-pressure'].includes(row.reason))return'様子を見る';
-  if(['miss-reset','hit-withdrawal','parried-recoil','countered-withdrawal','exchange-zanshin','weapon-clash'].includes(row.reason))return'間合いを取る';
+  if(['miss-reset','combo-break-retreat','hit-withdrawal','parried-recoil','countered-withdrawal','exchange-zanshin','weapon-clash'].includes(row.reason))return'間合いを取る';
  }
  if(row?.type==='normal-offense-ready')return'序から構え直す';
  return'';
@@ -47,7 +47,7 @@ function clearComboFade(){
  delete phasePanel.dataset.comboInterrupted;
 }
 function resetHistory(battleId=''){
- lastBattleId=battleId;seenActions.clear();seenNarration.clear();lastNarrationAt.clear();history=[];clearVisualHistory();clearComboFade();
+ lastBattleId=battleId;lastPhaseCueKey='';seenActions.clear();seenNarration.clear();lastNarrationAt.clear();history=[];clearVisualHistory();clearComboFade();
 }
 function historyDisplayLabel(row){
  const label=String(row?.label||'').trim();if(!label)return'';
@@ -93,6 +93,7 @@ function beginComboFade(){
 }
 function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId)resetHistory(meta.battleId);
+ const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
  const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);
  const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
  const narrativePriority=row=>row?.type==='chain-break'?0:(row?.type==='parry'||row?.type==='clash'?1:row?.type==='guard'?2:3);
