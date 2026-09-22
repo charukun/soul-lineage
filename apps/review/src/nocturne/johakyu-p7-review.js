@@ -343,7 +343,8 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     if(!target||time<(reactionCooldowns.get(actor.id)||0))return null;
     const node=nodeFor(actor,cursorFor(actor));if(['ready','slip','guard','brace','parry'].includes(node.stage.step.kind))return null;
     const threat=incomingThreat(actor,target);if(!threat)return null;
-    const kind=chooseDefenseReaction(actor,threat);if(!kind)return null;
+    const kind=chooseDefenseReaction(actor,threat);
+    if(!kind){const openingUntil=threat.state.startedAt+threat.state.duration+.08;reactionCooldowns.set(actor.id,Math.max(reactionCooldowns.get(actor.id)||0,openingUntil));return null;}
     const reaction=beginReaction(actor,target,kind,'incoming-threat',{footwork:kind==='slip'?'sideL':null});
     if(reaction)reactionCooldowns.set(actor.id,time+DEFENSE_COOLDOWN[kind]);
     return reaction;
@@ -509,7 +510,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     // Shared pair meaning informs selection, not the domain contact executor.
     if(stageDamage(node.stage)>0&&!counterTransition&&johakyuExchangeIntent(exchangeFor(actor,target),{actorId:actor.id})==='respond'){
       const incoming=incomingThreat(actor,target);
-      if(incoming&&exchangeFor(actor,target).mode==='pressure'&&time>=(reactionCooldowns.get(actor.id)||0)){const kind=chooseDefenseReaction(actor,incoming);if(kind){const response=beginReaction(actor,target,kind,'opponent-pressure',{footwork:kind==='slip'?'sideL':null});if(response){reactionCooldowns.set(actor.id,time+DEFENSE_COOLDOWN[kind]);return actionView(actor,response);}}}
+      if(incoming&&exchangeFor(actor,target).mode==='pressure'&&time>=(reactionCooldowns.get(actor.id)||0)){const kind=chooseDefenseReaction(actor,incoming);if(!kind){const openingUntil=incoming.state.startedAt+incoming.state.duration+.08;reactionCooldowns.set(actor.id,Math.max(reactionCooldowns.get(actor.id)||0,openingUntil));}else{const response=beginReaction(actor,target,kind,'opponent-pressure',{footwork:kind==='slip'?'sideL':null});if(response){reactionCooldowns.set(actor.id,time+DEFENSE_COOLDOWN[kind]);return actionView(actor,response);}}}
       setManeuver(actor,target,{reason:'read-pressure',footwork:actor.side==='party'?'orbitL':'orbitR',seconds:.2});return null;
     }
     if(activeManeuver(actor)&&!threat)return null;
