@@ -89,6 +89,13 @@ test('canonical footwork persists in world space and only reachable impacts beco
 });
 
 
+test('browser battle2 resolves damage from rendered weapon sweeps against bone-following body capsules',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),driver=readFileSync(new URL('../../../packages/johakyu-presentation/src/driver.js',import.meta.url),'utf8');
+ assert.match(runtime,/function collectBodyContactRig/);assert.match(runtime,/function bodyContactCapsules/);assert.match(runtime,/function sweptWeaponBodyContact/);assert.match(runtime,/previousAxis/);assert.match(runtime,/engine:'weapon-body-sweep'/);
+ assert.match(driver,/sampleContacts/);assert.match(controller,/scenario\.step\(dt,physicalContacts\)/);assert.match(controller,/driven\.sampleContacts/);
+ assert.match(source,/function physicalContactFor/);assert.match(source,/contactEngine:'weapon-body-sweep'/);assert.match(source,/part:physical\?\.bodyPart/);assert.match(source,/contactPoint/);
+});
+
 test('authored sword motions expose contact timing and blade trajectory metadata',()=>{
  const slash=resolveJohakyuMotion({weapon:'sword',kind:'slash',phase:'jo'}),parry=resolveJohakyuMotion({weapon:'sword',kind:'parry',phase:'uke'});
  assert.equal(slash.supported,true);assert.ok(slash.contactProgress>.45&&slash.contactProgress<.65);assert.ok(['left','right'].includes(slash.deflect));assert.notEqual(slash.bladeTrajectory,'neutral');
@@ -253,7 +260,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.25');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.26');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });

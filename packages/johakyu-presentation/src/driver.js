@@ -1,4 +1,4 @@
-/** Presentation only: there is intentionally no damage, RNG, save or tick port. */
+/** Presentation owns no damage, RNG, save or tick authority. It may expose geometry-only contact observations. */
 export function createCanonicalPresentationDriver(port){
   const actors=new Map(),seen=new Set();let key=null,revision=-1,disposed=false;
   function reset(){for(const actor of actors.values())port.remove(actor);actors.clear();seen.clear();key=null;revision=-1;port.clear?.();}
@@ -35,5 +35,6 @@ export function createCanonicalPresentationDriver(port){
     port.draw?.(frame,dt);
     return {accepted:true,actors:actors.size,battleId:frame.battleId,revision};
   }
-  return Object.freeze({present,reset,dispose(){if(disposed)return;reset();disposed=true;},metrics:()=>({actors:actors.size,eventKeys:seen.size,battleId:key,revision})});
+  function sampleContacts(){if(disposed)return[];const rows=port.sampleBodyContacts?.();return Array.isArray(rows)?rows:[];}
+  return Object.freeze({present,sampleContacts,reset,dispose(){if(disposed)return;reset();disposed=true;},metrics:()=>({actors:actors.size,eventKeys:seen.size,battleId:key,revision})});
 }
