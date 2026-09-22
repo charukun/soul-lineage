@@ -23,7 +23,12 @@ export function installSpriteSetGuest(view,{environment,canvas}={}){
       sweep:(position,dx,dz,canMoveTo,radius)=>sweepAndSlide(position,dx,dz,canMoveTo,radius,'village',null),
     });
     view.scene.add(actor.object);actor.object.visible=false;sandbox.setDemo(true);
-    canvas.spriteSetSnapshot=()=>({actor:actor.snapshot(),sandbox:sandbox.snapshot(),visible:actor.object.visible});
+    // Read-only projection evidence; these values cannot move or control the actor.
+    canvas.spriteSetSnapshot=()=>{
+      const points=[[-.5,-.5],[-.5,.5],[.5,-.5],[.5,.5]].map(([x,y])=>actor.mesh.localToWorld(new view.THREE.Vector3(x,y,0)).project(view.camera));
+      const xs=points.map(p=>(p.x+1)/2),ys=points.map(p=>(1-p.y)/2);
+      return {actor:actor.snapshot(),sandbox:sandbox.snapshot(),visible:actor.object.visible,sceneActorCount:view.scene.children.filter(node=>node.name?.startsWith('CharacterSpriteSet:')).length,screenBounds:{left:Math.min(...xs),right:Math.max(...xs),top:Math.min(...ys),bottom:Math.max(...ys),depth:points.reduce((sum,p)=>sum+p.z,0)/4}};
+    };
   }
   window.addEventListener('message',event=>{
     if(disposed||event.source!==window.opener||event.data?.token!==token||!trustedSpriteSetOrigin(event.origin))return;

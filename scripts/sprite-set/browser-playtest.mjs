@@ -8,7 +8,7 @@ import {chromium} from '@playwright/test';
 const sha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),out=`.deploy-state/sprite-set-browser-${sha}`;
 await mkdir(out,{recursive:true});
 const receipt={schema:'rinne.sprite-set-browser-evidence/v1',sourceSha:sha,execution:'headless Chromium / software WebGL; real UI inputs',physicalDevice:false,steps:[],errors:[],pass:false};
-const servers=[],logs=[],videos=[];let browser,context,review,rinne;
+const servers=[],logs=[],videos=[];let browser,context,review,rinne,phone,mobile;
 async function start(app,port){
   const log=createWriteStream(`${out}/${app}-server.log`),server=spawn('npm',['run','preview','--workspace','@soul/'+app],{env:{...process.env,APP_ENV:'dev'},detached:true,stdio:['ignore','pipe','pipe']});server.stdout.pipe(log);server.stderr.pipe(log);servers.push(server);logs.push(log);
   for(let i=0;i<120;i++){try{const response=await fetch(`http://127.0.0.1:${port}/version.json`);if(response.ok){const version=await response.json();assert.equal(version.commit,sha);receipt[app+'Version']=version;return;}}catch(error){if(error.code==='ERR_ASSERTION')throw error;}await new Promise(r=>setTimeout(r,500));}throw new Error(app+' preview did not start');
@@ -41,6 +41,10 @@ try{
   context=await browser.newContext({viewport:{width:1280,height:900},reducedMotion:'reduce',recordVideo:{dir:out+'/video',size:{width:1280,height:900}}});
   context.on('page',page=>{page.on('pageerror',error=>receipt.errors.push({url:page.url(),kind:'pageerror',message:error.message}));page.on('console',message=>{if(message.type()==='error')receipt.errors.push({url:page.url(),kind:'console',message:message.text()});});});
   await context.tracing.start({screenshots:true,snapshots:true,sources:true});
+  // Separate GPU lifetimes: validate the small viewport before the two-app world session.
+  mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'reduce'});phone=await mobile.newPage();phone.setDefaultTimeout(60000);phone.on('pageerror',error=>receipt.errors.push({kind:'mobile-pageerror',message:error.message}));
+  const mobileResponse=await phone.goto('http://127.0.0.1:5276/review-hybrid-25d');assert.equal(mobileResponse.status(),200);note('mobile navigation',{url:phone.url(),title:await phone.title()});await phone.locator('[data-sprite-sample]').click();await phone.waitForFunction(()=>document.querySelector('.sprite-set-playground')?.dataset.spriteReady==='true');
+  assert.equal(await phone.locator('.sprite-set-actions').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),5);await phone.screenshot({path:out+'/review-mobile.png',fullPage:true});note('390px viewport retains five-column controls',true);await mobile.close();
   review=await context.newPage();review.setDefaultTimeout(30000);videos.push(['review-motion',review.video()]);
   await review.goto('http://127.0.0.1:5276/review-hybrid-25d',{waitUntil:'networkidle'});
   await review.locator('[data-sprite-sample]').click();await review.waitForFunction(()=>document.querySelector('.sprite-set-playground')?.dataset.spriteReady==='true');
@@ -78,7 +82,11 @@ try{
   for(let step=0;step<3;step++){await rinne.locator(`.family-origin[data-step="${step}"][data-answering="false"] [data-memory-current]`).click();}
   await rinne.locator('[data-origin-confirm]').click();await rinne.locator('#game-screen[data-runtime="active"]').waitFor({timeout:120000});
   await rinne.waitForFunction(()=>document.querySelector('#game')?.spriteSetSnapshot?.()?.visible===true,null,{timeout:120000});
-  await screenshot(rinne,'rinne-village-entry');note('RINNE entered through normal family/new-life controls',await gameState());
+  // Dismiss the real optional first-run guide; do not capture an actor hidden behind its overlay.
+  await rinne.locator('.rinneFirstRunSkip').click();await rinne.locator('.rinneFirstRunSkip').waitFor({state:'hidden'});
+  await rinne.locator('#camera-position').focus();await rinne.locator('#camera-position').press('Home');assert.equal(await rinne.locator('#camera-position').inputValue(),'0');
+  await rinne.waitForTimeout(1200);
+  await screenshot(rinne,'rinne-village-entry');note('RINNE entered through normal family/new-life controls, guide skip and near-camera input',await gameState());
   // Real pointer movement input, not a synthetic state teleport or mocked runtime.
   const box=await rinne.locator('#game').boundingBox();await rinne.mouse.move(box.x+box.width*.48,box.y+box.height*.42);await rinne.mouse.down();await rinne.mouse.move(box.x+box.width*.63,box.y+box.height*.35,{steps:12});await rinne.waitForTimeout(300);await rinne.mouse.up();
   for(const action of ['idle','walk','run','turn','attack','hit','talk','pickup','rest','jump','fall','vault','climb']){
@@ -86,7 +94,10 @@ try{
     await rinne.waitForFunction(a=>document.querySelector('#game')?.spriteSetSnapshot?.()?.actor.action===a,action);
     if(['jump','fall','vault'].includes(action))await rinne.waitForFunction(()=>document.querySelector('#game').spriteSetSnapshot().sandbox.airHeight>.05);
     else await rinne.waitForFunction(()=>document.querySelector('#game').spriteSetSnapshot().actor.frame>=2);
-    const snapshot=await gameState();assert.equal(snapshot.visible,true);assert.ok([snapshot.actor.position.x,snapshot.actor.position.y,snapshot.actor.position.z].every(Number.isFinite));note('rinne:'+action,snapshot);await screenshot(rinne,'rinne-'+action,'#game');
+    const snapshot=await gameState();assert.equal(snapshot.visible,true);assert.ok([snapshot.actor.position.x,snapshot.actor.position.y,snapshot.actor.position.z].every(Number.isFinite));assert.equal(snapshot.sceneActorCount,1);const b=snapshot.screenBounds;assert.ok(b&&[b.left,b.top,b.right,b.bottom,b.depth].every(Number.isFinite));assert.ok(b.right>0&&b.left<1&&b.bottom>0&&b.top<1&&b.depth>-1&&b.depth<1,'Sprite must actually project inside the gameplay viewport');
+    note('rinne:'+action,snapshot);await screenshot(rinne,'rinne-'+action,'#game');
+    const gameBox=await rinne.locator('#game').boundingBox(),left=Math.max(0,Math.floor(gameBox.x+b.left*gameBox.width-16)),top=Math.max(0,Math.floor(gameBox.y+b.top*gameBox.height-16)),right=Math.min(1280,Math.ceil(gameBox.x+b.right*gameBox.width+16)),bottom=Math.min(900,Math.ceil(gameBox.y+b.bottom*gameBox.height+16));
+    assert.ok(right>left&&bottom>top);await rinne.screenshot({path:out+'/rinne-'+action+'-actor.png',clip:{x:left,y:top,width:right-left,height:bottom-top}});
   }
   const moving=receipt.steps.filter(s=>['rinne:walk','rinne:run'].includes(s.label));assert.ok(moving.every(s=>s.snapshot.sandbox.distanceTravelled>0));
   await review.locator('[data-sprite-action="rest"]').click();await rinne.bringToFront();await rinne.waitForFunction(()=>document.querySelector('#game').spriteSetSnapshot().actor.action==='rest');
@@ -94,16 +105,15 @@ try{
   const stableViews=[];for(let i=0;i<10;i++){await rinne.waitForTimeout(100);stableViews.push((await gameState()).actor.view);}
   const viewTransitions=stableViews.slice(1).filter((v,i)=>v!==stableViews[i]).length;assert.ok(viewTransitions<=1,'RINNE view must not flicker at rest');note('RINNE settled view stability',{stableViews,viewTransitions});
   assert.equal(await rinne.evaluate(id=>Object.keys(localStorage).some(key=>String(localStorage.getItem(key)).includes(id)),manifest.id),false);
+  // The linked session is complete. Closing both pages exercises disposal and avoids keeping their WebGL loops alive during unrelated route checks.
+  await rinne.close();await review.close();
   const legacy=await context.newPage();await legacy.goto('http://127.0.0.1:5276/review-hybrid-25d?legacy25d=1',{waitUntil:'networkidle'});await legacy.locator('.character25d-forge').waitFor();await legacy.locator('.hybrid25d-lab').waitFor();await screenshot(legacy,'legacy-route');note('legacy Forge/coexistence route mounts',true);await legacy.close();
-  const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'reduce'}),phone=await mobile.newPage();phone.on('pageerror',error=>receipt.errors.push({kind:'mobile-pageerror',message:error.message}));
-  await phone.goto('http://127.0.0.1:5276/review-hybrid-25d');await phone.locator('[data-sprite-sample]').click();await phone.waitForFunction(()=>document.querySelector('.sprite-set-playground')?.dataset.spriteReady==='true');
-  assert.equal(await phone.locator('.sprite-set-actions').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),5);await phone.screenshot({path:out+'/review-mobile.png',fullPage:true});note('390px viewport retains five-column controls',true);await mobile.close();
   const actionHashes=[];for(const action of ['attack','hit','talk','pickup','rest'])actionHashes.push(createHash('sha256').update(await readFile(out+'/review-'+action+'.png')).digest('hex'));assert.equal(new Set(actionHashes).size,5);
   assert.deepEqual(receipt.errors,[]);receipt.pass=true;
-}catch(error){receipt.failure={message:error.message,stack:error.stack};for(const [label,page] of [['review',review],['rinne',rinne]])if(page&&!page.isClosed()){try{await screenshot(page,label+'-failure');await writeFile(out+'/'+label+'-failure-dom.txt',await page.locator('body').innerText());}catch{}}process.exitCode=1;}
+}catch(error){receipt.failure={message:error.message,stack:error.stack};for(const [label,page] of [['review',review],['rinne',rinne],['mobile',phone]])if(page&&!page.isClosed()){try{await screenshot(page,label+'-failure');await writeFile(out+'/'+label+'-failure-dom.txt',await page.locator('body').innerText());}catch{}}process.exitCode=1;}
 finally{
   try{await context?.tracing.stop({path:out+'/trace.zip'});}catch{}await context?.close();
   for(const [name,video] of videos)if(video)try{await video.saveAs(out+'/'+name+'.webm');}catch{}
-  await browser?.close();for(const server of servers)try{process.kill(-server.pid,'SIGTERM');}catch{}for(const log of logs)log.end();
+  await mobile?.close();await browser?.close();for(const server of servers)try{process.kill(-server.pid,'SIGTERM');}catch{}for(const log of logs)log.end();
   await writeFile(out+'/receipt.json',JSON.stringify(receipt,null,2)+'\n');console.log('SPRITE_SET_BROWSER '+JSON.stringify({sourceSha:sha,pass:receipt.pass,steps:receipt.steps.length,errors:receipt.errors,failure:receipt.failure?.message,out}));
 }
