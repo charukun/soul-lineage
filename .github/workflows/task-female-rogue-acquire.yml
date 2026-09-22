@@ -1,0 +1,56 @@
+name: Task Female Rogue Acquisition
+on:
+  push:
+    branches: [art/female-protagonist-kaykit-rogue-20260922]
+    paths: [.github/workflows/task-female-rogue-acquire.yml]
+permissions:
+  contents: write
+jobs:
+  acquire:
+    if: contains(github.event.head_commit.message, '[female-acquire]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 1
+      - name: Inspect replacement consumers and acquire the exact CC0 source
+        run: |
+          set -euo pipefail
+          echo '=== CURRENT CONTRACT ==='
+          cat AGENTS.md
+          echo '=== CHARACTER CONSUMERS ==='
+          git grep -n -I -E 'PROTAGONIST_VILLAGER_FEMALE|protagonist\.villager\.female|villager-female-v1' -- apps packages scripts tests docs/characters assets/characters || true
+          echo '=== KAYKIT DELIVERY FILES ==='
+          git ls-files | grep -E 'Rogue|rogue|kaykit|runtime-origin|protagonist.*female|female.*protagonist' | head -160
+          python3 - <<'PY'
+          import urllib.request, hashlib, json, struct
+          from pathlib import Path
+          revision='672074b73ba276876a19e8816ecdc5241817ab47'
+          base=f'https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/{revision}/'
+          source=base+'addons/kaykit_character_pack_adventures/Characters/gltf/Rogue.glb'
+          data=urllib.request.urlopen(source,timeout=60).read()
+          blob=hashlib.sha1(f'blob {len(data)}\0'.encode()+data).hexdigest()
+          assert len(data)==3616284 and blob=='c8827661105eef7b2bfbef3bc676d41a47625733', (len(data),blob)
+          path=Path(f'apps/review/public/library/model/{blob}/Rogue.glb')
+          path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(data)
+          length,kind=struct.unpack_from('<II',data,12); assert kind==0x4e4f534a
+          doc=json.loads(data[20:20+length])
+          print('=== ACQUIRED ORIGINAL ===')
+          print(json.dumps({'path':str(path),'sha256':hashlib.sha256(data).hexdigest(),'gitBlobSha':blob,'bytes':len(data),'generator':doc.get('asset'),'meshNames':[m.get('name') for m in doc.get('meshes',[])],'nodes':[n.get('name') for n in doc.get('nodes',[])],'skins':len(doc.get('skins',[])),'images':doc.get('images'),'animations':[a.get('name') for a in doc.get('animations',[])]},ensure_ascii=False))
+          lic=urllib.request.urlopen(base+'LICENSE.txt',timeout=30).read()
+          assert b'CC0' in lic or b'Creative Commons' in lic
+          lp=Path('apps/review/public/library/licenses/kaykit-adventurers-1.0.txt'); lp.parent.mkdir(parents=True,exist_ok=True); lp.write_bytes(lic)
+          print('=== SOURCE LICENSE ==='); print(lic.decode())
+          PY
+      - name: Commit materialized source on the task branch only
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb apps/review/public/library/licenses/kaykit-adventurers-1.0.txt
+          if ! git diff --cached --quiet; then
+            git commit -m 'asset: materialize pinned CC0 KayKit Rogue original for female protagonist'
+            git push origin HEAD:${{ github.ref_name }}
+          fi
