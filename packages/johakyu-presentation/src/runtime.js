@@ -461,6 +461,7 @@ function createDrivenPort(){
    const asset=models.get(key);if(!asset)return {supported:false,reason:'missing-model:'+key};
    if(row.kind!=='hero'&&row.equipment.shield)return {supported:false,reason:'unaccepted-shield-socket'};
    if(row.action&&(!row.action.legal||!row.action.motion?.supported||!asset.animations.some(clip=>clip.name===row.action.motion.clip)))return {supported:false,reason:'unaccepted-motion:'+row.action?.motion?.kind};
+   if(row.phaseCue?.clip&&!asset.animations.some(clip=>clip.name===row.phaseCue.clip))return {supported:false,reason:'unaccepted-phase-cue:'+row.phaseCue.phase};
    if(row.locomotion?.clip&&!asset.animations.some(clip=>clip.name===row.locomotion.clip))return {supported:false,reason:'unaccepted-locomotion:'+row.locomotion.kind};
    return {supported:true};
   },
@@ -477,12 +478,13 @@ function createDrivenPort(){
     if(row.equipment.shield){const shield=a.root.getObjectByName('Round_Shield');if(!shield)throw Error('Missing authored shield');shield.visible=true;}
     a.equipmentKey=equipmentKey;
    }
-   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,reactionClip=!terminal?a.reaction?.clip:null,contactClip=!terminal?a.contactHold?.clip:null,locomotionClip=!action&&row.moving?row.locomotion?.clip:null;
-   const clip=terminal||reactionClip||contactClip||action?.motion.clip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
-   const key=terminal||(reactionClip?('reaction:'+a.reaction.serial+':'+reactionClip):contactClip?('contact:'+a.contactHold.serial+':'+contactClip):((action?.id||(locomotionClip?('locomotion:'+row.locomotion.kind+':'+locomotionClip):clip))+':'+(action?.step??0)));
+   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,reactionClip=!terminal?a.reaction?.clip:null,contactClip=!terminal?a.contactHold?.clip:null,phaseCue=!terminal&&!reactionClip&&!contactClip&&!action?row.phaseCue:null,phaseCueClip=phaseCue?.clip??null,locomotionClip=!phaseCue&&!action&&row.moving?row.locomotion?.clip:null;
+   const clip=terminal||reactionClip||contactClip||phaseCueClip||action?.motion.clip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
+   const key=terminal||(reactionClip?('reaction:'+a.reaction.serial+':'+reactionClip):contactClip?('contact:'+a.contactHold.serial+':'+contactClip):phaseCue?('phase-cue:'+phaseCue.key+':'+phaseCueClip):((action?.id||(locomotionClip?('locomotion:'+row.locomotion.kind+':'+locomotionClip):clip))+':'+(action?.step??0)));
    if(a.canonicalAction!==key){play(a,clip,Boolean(terminal||reactionClip||contactClip||action||row.hit));a.canonicalAction=key;a.deathTime=0;}
    if(reactionClip&&!terminal){a.action.paused=false;a.mixer.update(dt*(game.hitstop>0?.08:1));}
    else if(contactClip&&!terminal){const held=a.contactHold;a.action.paused=true;a.action.time=Math.min(a.clips.get(contactClip).duration-.000001,held.progress*a.clips.get(contactClip).duration);a.mixer.update(0);}
+   else if(phaseCue&&!terminal){const pose=Math.max(0,Math.min(.95,Number(phaseCue.poseProgress)||0));a.presentationActionId=null;a.action.paused=true;a.action.time=Math.min(a.clips.get(phaseCueClip).duration-.000001,pose*a.clips.get(phaseCueClip).duration);a.mixer.update(0);}
    else if(action&&!terminal){
     const canonicalProgress=Math.max(0,action.progress);if(a.presentationActionId!==action.id){a.presentationActionId=action.id;a.presentationProgress=canonicalProgress;}
     if(game.hitstop<=0)a.presentationProgress=canonicalProgress;a.action.paused=true;a.action.time=Math.min(a.clips.get(clip).duration-.000001,a.presentationProgress*a.clips.get(clip).duration);a.mixer.update(game.hitstop>0?0:dt);
@@ -493,7 +495,7 @@ function createDrivenPort(){
    }
    applyFatigue(a,row,dt);applyParryRecoil(a);sampleWeaponTrace(a,dt);
    if(terminal)a.deathTime+=dt;
-   a.flash=Math.max(0,a.flash-dt);for(const {mat,base,power} of a.mats){mat.emissive.copy(a.flash>0?new THREE.Color('#ffe7c4'):base);mat.emissiveIntensity=a.flash>0?1.7:power;}
+   a.flash=Math.max(0,a.flash-dt);const cueColor=phaseCue?.glow?new THREE.Color(phaseCue.glow):null,cueGlow=phaseCue?1.15+Math.sin(Math.PI*Math.max(0,Math.min(1,Number(phaseCue.progress)||0)))*.72:0;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(new THREE.Color('#ffe7c4'));mat.emissiveIntensity=1.7;}else if(cueColor){mat.emissive.copy(cueColor);mat.emissiveIntensity=Math.max(power,cueGlow);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
   },
   impact(event,source,target){
    if(event.type==='clash'){
