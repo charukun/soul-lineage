@@ -1,5 +1,7 @@
 import {readSavedBody,readSavedTerrain,clearSavedPresentation} from './johakyu-save-contract.js';
 import {spendActionStamina,recoverActionStamina} from '@soul/johakyu-combat/stamina';
+import {WEAPONS,ARMORS} from '@soul/johakyu-combat/execution-capability';
+export {WEAPONS,ARMORS} from '@soul/johakyu-combat/execution-capability';
 import { DISCOVERIES, skillEffects, skillName } from './skill-system.js';
 import { enterInteriorState, leaveInteriorState } from './interior-state.js';
 import { ensureCombatInjuryState, recoverPersistentInjuries } from './combat-injury.js';
@@ -15,23 +17,9 @@ export const ACTIVITY_SECONDS = 8;
 export const CLOCK_RATES = Object.freeze([1, 5, 10, 20]);
 export const DEFAULT_VILLAGE_ID = 'local-hoshitsugi';
 
-export const WEAPONS = Object.freeze({
-  fist: { id:'fist', label:'素手', skill:'basic.fist', reach:1.05, stamina:5, power:8 },
-  sword: { id:'sword', label:'片手剣', skill:'basic.sword', reach:1.45, stamina:9, power:13 },
-  dagger: { id:'dagger', label:'短剣', skill:'basic.dagger', reach:1.0, stamina:6, power:10 },
-  great: { id:'great', label:'大剣', skill:'basic.great', reach:1.7, stamina:16, power:20 },
-  spear: { id:'spear', label:'槍', skill:'basic.spear', reach:2.15, stamina:11, power:15 },
-  axe: { id:'axe', label:'戦斧', skill:'basic.axe', reach:1.45, stamina:14, power:18 },
-  staff: { id:'staff', label:'杖', skill:'basic.staff', reach:1.75, stamina:10, power:12 },
-});
-export const ARMORS = Object.freeze({
-  cloth: { id:'cloth', label:'服', guard:0, staminaScale:1 },
-  light: { id:'light', label:'軽鎧', guard:.15, staminaScale:.94 },
-  heavy: { id:'heavy', label:'重鎧', guard:.28, staminaScale:.84 },
-});
 export const EXPERIENCES = Object.freeze({
   play:'遊び', pray:'祈り', forge:'鍛冶見学', train:'稽古見学', study:'学び', read:'読書',
-  care:'手伝い', observe:'観察', track:'足跡', maintain:'武具の手入れ', voyage:'船上の祈り', rest:'休息', combat:'実戦',
+  care:'手伝い', observe:'観察', track:'足跡を追う', maintain:'武具の手入れ', voyage:'船上の祈り', rest:'休息', combat:'実戦',
   breathe:'呼吸を整える', balance:'姿勢を整える', fall:'受身を試す', focus:'一点へ集中する', sense:'気配を読む',
   repeat:'反復する', distance:'間合いを見る', adapt:'環境へ馴染む', practice:'かかしで型を反復する',
 });
@@ -140,8 +128,11 @@ function recover(state,dt){
   const armor=ARMORS[state.equipment.armor],effects=skillEffects(state);
   recoverActionStamina(state,dt,{capBase:100*armor.staminaScale,recovery:effects.recovery});
 }
+export function staminaMultiplierFor(state){
+  const effects=skillEffects(state);return Math.max(0,(1+effects.staminaCost)*inspirationEffortScale(state));
+}
 export function spendStamina(state,amount){
-  const effects=skillEffects(state);amount=Math.max(0,(Number(amount)||0)*(1+effects.staminaCost)*inspirationEffortScale(state));
+  amount=Math.max(0,(Number(amount)||0)*staminaMultiplierFor(state));
   return spendActionStamina(state,amount);
 }
 export function endLifeEarly(state,cause='戦い'){
@@ -171,7 +162,7 @@ export function returnHome(state){
   const firstReturn=!state.homelands.includes(state.birthVillageId);if(firstReturn)state.homelands.push(state.birthVillageId);pushEvent(state,'return',firstReturn?'村へ帰還した。この村が一族の故郷として刻まれた。':'村へ帰還した。');return true;
 }
 export function objectiveFor(state){
-  if(state.ended)return 'この生涯を記録し、次の人生へ';if(state.phase==='birth')return '母と村を歩き、4歳まで世界を知る';if(state.activity)return `${state.activity.label}を続ける`;if(state.interior)return '建物の中を見て、暮らしを知る';
+  if(state.ended)return 'この生涯を記録し、次の人生へ';if(state.phase==='birth')return '母と村を歩き、4歳まで世界を知る';if(state.activity)return `${state.activity.label}を続ける`;if(state.interior)return '建物の中で、暮らしを知る';
   if(state.ageYears<7)return '村を歩き、暮らしを知る';if(state.ageYears<15)return state.equipment.weapon==='fist'?'武具のそばへ行き、自分の得物を試す':'暮らしながら、技と装備を試す';
   if(state.zone==='village')return canDepart(state)?'港へ行けば、次の船で前線へ出る':'暮らしながら、次の出航を待つ';return state.front>=5?'魔王軍の主力を退け、帰還する':'前線を生き抜き、奥へ進む';
 }
