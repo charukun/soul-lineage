@@ -12,21 +12,22 @@ export function battle2BodyModel(actor){
 }
 export function createBattle2BodyHud(root){
  if(!root)return null;root.classList.add('battle2-body-hud');root.hidden=true;
- const figure=document.createElement('div');figure.className='battle2-body-hud__figure';figure.tabIndex=0;figure.setAttribute('role','button');figure.setAttribute('aria-expanded','false');figure.setAttribute('aria-label','身体部位。タップで全体の耐久を見る');
- const parts=new Map();for(const part of COMBAT_BODY_PARTS){const node=document.createElement('i');node.dataset.bodyPart=part;node.className='battle2-body-hud__part';parts.set(part,node);figure.append(node);}
- const detail=document.createElement('section');detail.className='battle2-body-hud__detail';detail.hidden=true;
- const close=document.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label','閉じる');detail.append(close);
- const list=document.createElement('div');list.className='battle2-body-hud__list';const gauges=new Map();
- for(const part of COMBAT_BODY_PARTS){const row=document.createElement('div');row.className='battle2-body-hud__gauge';row.dataset.bodyPart=part;const label=document.createElement('span'),meter=document.createElement('b'),fill=document.createElement('i');meter.append(fill);row.append(label,meter);row.setAttribute('aria-label',part);list.append(row);gauges.set(part,{row,label,fill});}
- detail.append(list);root.replaceChildren(figure,detail);
- let actor=null,open=false,previous=new Map(),timer=0;
+ const figure=document.createElement('div');figure.className='battle2-body-hud__figure';figure.setAttribute('role','img');figure.setAttribute('aria-label','身体部位の耐久');
+ const parts=new Map();
+ for(const part of COMBAT_BODY_PARTS){
+  const node=document.createElement('i');node.dataset.bodyPart=part;node.className='battle2-body-hud__part';
+  const liquid=document.createElement('b');liquid.className='battle2-body-hud__liquid';liquid.setAttribute('aria-hidden','true');
+  node.append(liquid);parts.set(part,{node,liquid});figure.append(node);
+ }
+ root.replaceChildren(figure);
+ let actor=null,previous=new Map(),timer=0;
  function render(){
   if(!actor)return;const model=battle2BodyModel(actor);
-  for(const part of model.parts){const node=parts.get(part.id),gauge=gauges.get(part.id);node.dataset.tone=part.tone;node.dataset.stage=part.stage;node.setAttribute('aria-label',part.label+' '+part.stage);gauge.row.dataset.tone=part.tone;gauge.row.setAttribute('aria-label',part.label+' '+part.stage);gauge.label.textContent=part.label;gauge.fill.style.width=part.durability+'%';}
-  detail.hidden=!open;figure.setAttribute('aria-expanded',String(open));
+  for(const part of model.parts){
+   const item=parts.get(part.id);item.node.dataset.tone=part.tone;item.node.dataset.stage=part.stage;item.node.setAttribute('aria-label',part.label+' '+part.stage+' '+part.durability+'%');
+   item.node.style.setProperty('--level',part.durability+'%');
+  }
  }
- function toggle(){open=!open;render();}
- function flash(part){const node=parts.get(part);if(!node)return;clearTimeout(timer);for(const n of parts.values())n.removeAttribute('data-hit');node.dataset.hit='true';timer=setTimeout(()=>node.removeAttribute('data-hit'),560);}
- figure.addEventListener('click',toggle);figure.addEventListener('keydown',event=>{if(event.key!=='Enter'&&event.key!==' ')return;event.preventDefault();toggle();});close.addEventListener('click',()=>{open=false;render();figure.focus();});
+ function flash(part){const item=parts.get(part);if(!item)return;clearTimeout(timer);for(const row of parts.values())row.node.removeAttribute('data-hit');item.node.dataset.hit='true';timer=setTimeout(()=>item.node.removeAttribute('data-hit'),560);}
  return {setVisible(v){root.hidden=!v;},update(next){actor=next;const model=battle2BodyModel(actor);for(const part of model.parts){const before=previous.get(part.id)??part.severity;if(part.severity>before+.0001)flash(part.id);previous.set(part.id,part.severity);}render();},destroy(){clearTimeout(timer);root.replaceChildren();}};
 }
