@@ -6,7 +6,7 @@ import {beginCombatState} from '../src/rebuild/combat-loadout-runtime.js';
 import {eligibleDiscoveries} from '../src/rebuild/skill-system.js';
 import {CAUSAL_ANSWERS,CAUSAL_ANSWER_BY_ID,answerSignature,validateCausalAnswers} from '@soul/game-data';
 import {ensureInspiration,recordLifeExperience,advanceInspirationTime,recordCombatQuestion,recordCombatAnswers,inspirationCandidates,answerAvailability,updateInspirationSigns,renameInspiration,archiveInspiration,inspirationEffortScale,INSPIRATION_LIMITS} from '../src/rebuild/inspiration-state.js';
-import {combatFinisherRuntime,ensureCombatLoadout,learnedHeartSkills,learnedTechniqueSkills,addCombo,setComboSkill,toggleFavored,setActiveCombo,setHeartActive,setHeartSlot,setOneMotion,setBodyChoice,unlockedBodyOptions,requestOneMotion,selectCombatCombo} from '../src/combat-loadout.js';
+import {ensureCombatLoadout,learnedHeartSkills,learnedTechniqueSkills,addCombo,setComboSkill,toggleFavored,setActiveCombo,setHeartActive,setHeartSlot,setOneMotion,setBodyChoice,unlockedBodyOptions,requestOneMotion,selectCombatCombo} from '../src/combat-loadout.js';
 import {inspirationJournalModel} from '../src/inspiration-journal-model.js';
 
 function living(seed=77){const s=createLife({name:'検証',seed});s.phase='living';s.ageSeconds=20*60;s.ageYears=20;s.resting=false;return s;}
@@ -74,7 +74,7 @@ test('favored combos remain functional and an authored answer is learned only th
 
 test('body choices retain their grammar and descendants inherit bounded motifs, never parent technique IDs',()=>{
   const fresh=living();ensureCombatLoadout(fresh);assert.equal(unlockedBodyOptions(fresh,'stance').some(r=>r.id==='chinshin'),false);
-  const s=migrated(['skill.balance','skill.edge','skill.recovery-breath']);assert.equal(setBodyChoice(s,'stance','chinshin'),true);assert.equal(setBodyChoice(s,'finisher','sokudan'),true);assert.equal(setBodyChoice(s,'zanshin','breath'),true);assert.deepEqual(s.combatLoadout.body,{stance:'chinshin',finisher:'sokudan',zanshin:'breath'});
+  const s=migrated(['skill.balance','skill.distance','skill.recovery-breath']);assert.equal(setBodyChoice(s,'stance','chinshin'),true);assert.equal(setBodyChoice(s,'style','distance'),true);assert.equal(setBodyChoice(s,'zanshin','breath'),true);assert.deepEqual(s.combatLoadout.body,{stance:'chinshin',style:'distance',zanshin:'breath'});
   recordLifeExperience(s,'play');recordLifeExperience(s,'practice');recordLifeExperience(s,'care');recordLifeExperience(s,'observe');elapsed(s);recordLifeExperience(s,'care');s.ended=true;
   const child=rebirth(s,{name:'次代'});assert.deepEqual(child.knownSkills,['basic.fist']);assert.equal(Object.keys(child.inspiration.records).length,0);assert.ok(child.inspiration.heritage.length>0);assert.ok(child.inspiration.heritage.length<=INSPIRATION_LIMITS.heritage);assert.ok(child.inspiration.heritage.every(h=>h.sourceLifeId===s.id));
   for(const value of Object.values(child.inspiration.body))assert.ok(value>=.7&&value<=1.3);
@@ -93,10 +93,4 @@ test('migrated manual one-motion keeps its stamina price and recovery exposure',
   assert.ok(fired,'the queued manual action must execute in the real combat runtime');
   assert.ok(armSpend!==null&&armSpend>=expectedCost-1e-7,`payment must be observed before normal regeneration: ${armSpend} / ${expectedCost}`);
   assert.ok(s.combat.attackCooldown>1.5);assert.ok(s.combat.zanshinSeconds>.8);
-});
-
-
-test('不殺の心得は葬焉を外さず休止し、トドメ判断だけを止める',()=>{
-  const s=migrated(['skill.nonlethal']);assert.equal(setHeartActive(s,'skill.nonlethal',true),true);const policy=combatFinisherRuntime(s);
-  assert.equal(policy.nonlethal,true);assert.equal(policy.execute,false);assert.equal(policy.finisher.id,'kaishaku');
 });

@@ -7,7 +7,7 @@ import {WEAPONS,cancelJohakyuStage,johakyuStageCapability} from '@soul/johakyu-c
 import {beginReviewStage,reviewTechniqueCapability,reviewStageCanResolve} from './johakyu-p7-execution.js';
 import {BURST_CADENCE,burstCompositionFor,burstStageDuration,burstSettleSeconds} from './johakyu-burst-cadence.js';
 import {CAUSAL_ANSWER_BY_ID} from '@soul/game-data';
-import {BATTLE2_BODY_OPTIONS,battle2LoadoutKey,normalizeBattle2Loadout} from './battle2-loadout.js';
+import {BATTLE2_BODY_OPTIONS,BATTLE2_LOADOUT_DEFAULT,battle2LoadoutKey,normalizeBattle2Loadout} from './battle2-loadout.js';
 import {BATTLE2_TECHNIQUE_CATALOG,battle2InspirationCatalog,battle2SelectionTechniques,battle2TechniqueDefinition,battle2TechniqueLabel,battle2TechniquePresentation} from './battle2-technique-catalog.js';
 
 const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
@@ -112,12 +112,16 @@ function advanceCursor(actor,cursor){
 }
 const NEUTRAL_BATTLE2_TUNING=Object.freeze({spacing:1,footwork:1,tempo:1,recovery:1,damage:1});
 function battle2HeartIntent(loadout){const totals={attack:0,guard:0,counter:0,mobility:0,survival:0,spacing:0};for(const id of normalizeBattle2Loadout(loadout).heart.active)for(const [key,value]of Object.entries(CAUSAL_ANSWER_BY_ID[id]?.intent||{}))if(Object.hasOwn(totals,key)&&Number.isFinite(value))totals[key]+=value;return totals;}
+const BATTLE2_DEFAULT_HEART_INTENT=Object.freeze(battle2HeartIntent(BATTLE2_LOADOUT_DEFAULT));
 function battle2Tuning(actor,loadout=null){
   if(actor?.side!=='party'||!loadout)return NEUTRAL_BATTLE2_TUNING;
-  const config=normalizeBattle2Loadout(loadout),body=config.body,intent=battle2HeartIntent(config),stanceSpacing=({seigan:1,chinshin:1.02,ryu:1.04,kosei:.96}[body.stance]||1),stanceFootwork=({seigan:1,chinshin:.94,ryu:1.08,kosei:1.1}[body.stance]||1);
-  const spacing=Math.max(.88,Math.min(1.16,stanceSpacing+intent.spacing*.1+intent.survival*.025-intent.attack*.045)),footwork=Math.max(.9,Math.min(1.14,stanceFootwork+intent.mobility*.1+intent.attack*.025));
-  const tempo=Math.max(.92,Math.min(1.12,(body.stance==='ryu'?1.04:body.stance==='kosei'?1.03:1)+intent.attack*.04+intent.counter*.02)),zanshinScale=({still:1,breath:.94,pursuit:.98,guard:1.02}[body.zanshin]||1);
-  const recovery=Math.max(.9,Math.min(1.08,(body.stance==='kosei'?.96:body.stance==='chinshin'?1.04:1)*zanshinScale-intent.counter*.035-intent.survival*.025)),damage=Math.max(.9,Math.min(1.16,1+intent.attack*.11));
+  const config=normalizeBattle2Loadout(loadout),body=config.body,intent=battle2HeartIntent(config),delta=Object.fromEntries(Object.keys(BATTLE2_DEFAULT_HEART_INTENT).map(key=>[key,(intent[key]||0)-(BATTLE2_DEFAULT_HEART_INTENT[key]||0)]));
+  const stanceSpacing=({seigan:1,chinshin:1.02,ryu:1.04,kosei:.96}[body.stance]||1),stanceFootwork=({seigan:1,chinshin:.94,ryu:1.08,kosei:1.1}[body.stance]||1),stanceTempo=body.stance==='ryu'?1.04:body.stance==='kosei'?1.03:1,stanceRecovery=body.stance==='kosei'?.96:body.stance==='chinshin'?1.04:1;
+  const spacing=1.025*stanceSpacing*Math.max(.9,Math.min(1.12,1+delta.spacing*.1+delta.survival*.025-delta.attack*.045));
+  const footwork=stanceFootwork*Math.max(.92,Math.min(1.1,1+delta.mobility*.1+delta.attack*.025));
+  const tempo=stanceTempo*Math.max(.94,Math.min(1.08,1+delta.attack*.04+delta.counter*.02));
+  const zanshinScale=({still:1,breath:.94,pursuit:.98,guard:1.02}[body.zanshin]||1),recovery=stanceRecovery*.96*zanshinScale*Math.max(.94,Math.min(1.06,1-delta.counter*.035-delta.survival*.025));
+  const damage=1.09*Math.max(.92,Math.min(1.1,1+delta.attack*.11));
   return Object.freeze({spacing,footwork,tempo,recovery,damage});
 }
 function preferredWeaponSpacing(actor,loadout=null,{deep=false}={}){

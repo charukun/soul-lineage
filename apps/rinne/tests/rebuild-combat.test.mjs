@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLife} from '../src/rebuild/domain.js';
-import {ensureCombatLoadout,setHeartActive} from '../src/combat-loadout.js';
+import {combatFinisherRuntime,ensureCombatLoadout,setBodyChoice,setHeartActive} from '../src/combat-loadout.js';
 import {createFront,frontierFatalityChance,normalizeFront,tickFront,tickSharedFront} from '../src/rebuild/combat.js';
 
 function combatState(seed=17,id=null){
@@ -69,4 +69,11 @@ test('不殺は最後のダウンを殺害なしの前線制圧として完了�
 test('不殺で残したダウン敵は戦闘継続中なら再起する',()=>{
   const state=combatState(92);equipNonlethal(state);const front=createFront(0,92),downed=front.enemies[0],active=front.enemies[1];front.enemies.slice(2).forEach(row=>{row.dead=true;});downed.downed=true;downed.downedElapsed=20;downed.hp=0;active.x=4.6;active.z=4.6;const events=tickFront(state,front,1/60);
   assert.equal(downed.downed,false);assert.ok(downed.hp>0);assert.ok(events.some(row=>row.type==='enemy-recovered'&&row.targetId===downed.id));
+});
+
+
+test('葬焉はトドメの型であり、不殺は選択を保持したまま実行だけ止める',()=>{
+  const state=combatState(93);state.inspiration.legacySkills.push('skill.nonlethal','skill.edge');state.knownSkills.push('skill.nonlethal','skill.edge');state.combatLoadout=null;ensureCombatLoadout(state);
+  assert.equal(setBodyChoice(state,'finisher','sokudan'),true);let policy=combatFinisherRuntime(state);assert.equal(policy.finisher.id,'sokudan');assert.equal(policy.execute,true);
+  assert.equal(setHeartActive(state,'skill.nonlethal',true),true);policy=combatFinisherRuntime(state);assert.equal(policy.finisher.id,'sokudan');assert.equal(policy.nonlethal,true);assert.equal(policy.execute,false);
 });
