@@ -70,7 +70,7 @@ PULSE snapshot、GitHub APIキャッシュ、control historyはDurable Objects�
 トップは ACTIVE / ITERATIONS / APPS / ISSUES / RECENT の5区画です。
 
 - ACTIVE: Draft / Ready のopen develop PR。PRが存在するだけでは実行中とみなさず、観測できるGitHub Actions実行・検証・merge準備状態を別のexecution stateとして表示する。
-- ITERATIONS: 自律改善の内容・現在地・次の確認・反映結果を日本語で読む軽量サマリ。詳細は専用 `iterations.html` で1 iteration単位に表示する。
+- ITERATIONS: 自律改善の時系列と工程グラフを常時表示する軽量サマリ。状態説明はその補助とし、全工程の時刻・改修内容は専用 `iterations.html` で1 iteration単位に表示する。
 - APPS: 全管理対象のDEV状態
 - ISSUES: 実際の失敗と人の確認が必要な項目。各異常から、現在GitHub状態を再確認して同じPRで修復するためのAIプロンプトをコピーできる
 - RECENT: 直近Fast DEVセッションを `実装 → 検証 → Browser → merge → DEV` の5段で表示し、セッション情報がない場合だけmerge・DEV公開・PULSE状態変化を表示
@@ -109,21 +109,23 @@ DEV公開処理は取り込み後の別表示とし、runがないときは未�
 
 `iterations.html` は `runKey + iteration` を1件の表示単位とする。同一runKeyの1/3・2/3・3/3も別カードで、異なるrunKeyの実行も識別できる。PR番号を表示し、どのカードも単に「Iteration 1」とだけ見えることを避ける。
 
-各カードはtheme、improvement summary、root causes、changes、changed paths、PR、validated head、merge SHA、verdictを保持する。step順はtelemetryの `ITERATION_STEPS` が正本であり、改善後の確認は最終Astra検証より前に並ぶ。工程名と現在地は利用者向けの日本語でも表示する。
+各カードはtheme、improvement summary、root causes、changes、changed paths、PR、validated head、merge SHA、verdictを保持する。step順はtelemetryの `ITERATION_STEPS` が正本であり、改善後の確認は最終Astra検証より前に並ぶ。工程グラフを説明より先に常時表示し、その下に全工程を順番つきの縦の記録として表示する。各工程は名前・所要時間・状態・開始時刻・終了時刻を併記し、未記録の時刻を推測しない。
 
-トップと専用ページで同じ状態モデルを使い、件数・フィルタ・反映結果を一致させる。件数は取得できた直近記録の集計であり、全履歴や常時並行実行数を意味しない。更新時刻は「最終記録」「照合」とラベルを付け、何の時刻かを明示する。
+トップと専用ページで同じ状態モデルと開始記録順の並べ方を使い、件数・フィルタ・反映結果を一致させる。件数は取得できた直近記録の集計であり、全履歴や常時並行実行数を意味しない。更新時刻は「最終記録」「照合」とラベルを付け、何の時刻かを明示する。
 
 ### Iteration操作性
 
-トップのITERATIONSは最大3件。対象game、改善内容、状態、現在または最後に記録された工程、未反映・問題の理由、次に確認することをグラフを解読せずに読めること。要対応、実行中、待機・未確認、取込済みの順とし、4群の件数を日本語で表示する。公開処理の問題は別件数とする。非表示の残りがある場合は「ほかN件」と全件へのリンクを明示する。
+トップのITERATIONSは最大3件。初期表示は開始記録が新しい順とし、トップ・専用ページの両方で古い順に切り替えられること。状態の優先度や最終更新時刻で履歴の位置を動かさない。開始時刻がない旧記録は最初に時刻が記録された工程を使い、「最初の工程記録」と区別する。日時自体が未記録なら両方向とも末尾とし、時刻を補わない。同時刻は同じrunKeyのiteration番号・PR番号で安定化する。
 
-カード本体のタップで専用ページの該当iterationへ直接移動できる。URL fragmentにより対象カードを画面内へ表示する。異常iterationには `runKey / iteration / PR / currentStep / failed step / validated head / last failure` を参考snapshotとして含む修復プロンプトのコピー操作を保持する。プロンプトは現在GitHub状態とactions summaryの再確認を要求し、snapshotだけで修復判断を確定しない。反映済みの公開処理問題にはそのrunへのリンクを出し、取り込み済みPRの再mergeを要求しない。
+対象game、改善内容、工程の流れ、開始・反映の記録時刻を一覧で読めること。4群の件数は日本語で表示し、公開処理の問題は別件数とする。非表示の残りがある場合は「ほかN件」と全件へのリンクを明示する。
+
+カード本体のタップで専用ページの該当iterationへ直接移動できる。URL fragmentにより対象カードを画面内へ表示し、古い順の指定も引き継ぐ。異常iterationには `runKey / iteration / PR / currentStep / failed step / validated head / last failure` を参考snapshotとして含む修復プロンプトのコピー操作を保持する。プロンプトは現在GitHub状態とactions summaryの再確認を要求し、snapshotだけで修復判断を確定しない。反映済みの公開処理問題にはそのrunへのリンクを出し、取り込み済みPRの再mergeを要求しない。
 
 ### 工程時間と視線設計
 
-ACTIVEは従来どおり `タスク名 → duration timeline → 対象/時刻` を主な視線順とする。ITERATIONSは `対象・状態 → 改善内容 → 現在地・理由・次の確認 → 公開・効果 → 補助情報` を優先する。スマートフォンで状態・理由を隠したり、低コントラストの小さい文字や色だけに意味を依存させたりしない。
+ACTIVEは従来どおり `タスク名 → duration timeline → 対象/時刻` を主な視線順とする。ITERATIONSは `対象・タイトル → 開始時刻 → 工程グラフ → 短い現在地・結果 → 詳細リンク` とする。詳しい理由・次の確認・改修内容は専用ページで工程の下に置き、説明文で工程を押し流さない。スマートフォンでも時系列と所要時間を開閉操作なしで確認できること。
 
-ITERATIONSのduration timelineは「工程と所要時間を見る」に折り畳む補助情報とする。カード本体のリンクと開閉操作を入れ子にしない。代表工程のrendererはACTIVEと共通のまま、横軸は工程順、縦軸は所要時間であり完了率・品質ではないと説明する。実測できた連続する工程だけを線でつなぎ、未計測を推測しない。
+ITERATIONSのduration timelineは折り畳まない主表示とする。代表工程のrendererはACTIVEと共通のまま、横軸は工程順、縦軸は所要時間であり完了率・品質ではない。実測できた連続する工程だけを線でつなぎ、未計測を推測しない。詳細の全工程グラフ・開始終了時刻も折り畳まない。リンクの中にselectやbuttonなどの操作部品を入れ子にしない。
 
 telemetryに記録されたdurationは保持する。時計のライブ計算は対応する実runを観測できる場合だけとし、観測できないrunning記録、反映済み、同期がdegradedの記録の時計を増やし続けない。新たなpolling・ブラウザからのGitHub呼び出し・Actions工程を追加せず、既存snapshotと同じ実測情報から表示する。
 
