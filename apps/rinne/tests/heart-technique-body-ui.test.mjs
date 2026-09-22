@@ -5,10 +5,11 @@ import {fileURLToPath} from 'node:url';
 import {dirname,join} from 'node:path';
 const here=dirname(fileURLToPath(import.meta.url));
 const source=path=>readFileSync(join(here,'../src',path),'utf8');
-const gameplay=source('gameplay-ui.js'),entry=source('inspiration-gameplay-ui.js'),journal=source('inspiration-journal-ui.js'),controls=source('inspiration-combat-controls.js'),css=source('inspiration-journal.css');
+const gameplay=source('gameplay-ui.js'),heartUI=source('heart-technique-body-ui.js'),entry=source('inspiration-gameplay-ui.js'),journal=source('inspiration-journal-ui.js'),controls=source('inspiration-combat-controls.js'),css=source('inspiration-journal.css');
+const sharedFour=readFileSync(join(here,'../../../packages/shared-ui/src/rinne-primary-four.js'),'utf8'),sharedMenu=readFileSync(join(here,'../../../packages/shared-ui/src/rinne-loadout-menu.js'),'utf8');
 
 test('bottom rail retains independent heart technique body pages through the causal journal adapter',()=>{
-  assert.match(gameplay,/data-heart/);assert.match(gameplay,/data-techniques/);assert.match(gameplay,/data-body/);assert.match(gameplay,/>心</);assert.match(gameplay,/>技</);assert.match(gameplay,/>体</);
+  assert.match(gameplay,/rinnePrimaryFourMarkup/);for(const attr of ['data-heart','data-techniques','data-body','data-items'])assert.match(sharedFour,new RegExp(attr));assert.doesNotMatch(sharedFour,/<span>/);
   assert.match(entry,/installInspirationUI/);assert.match(entry,/installInspirationCombatControls/);assert.match(journal,/renderHeart/);assert.match(journal,/renderTechnique/);assert.match(journal,/renderBody/);
   assert.match(source('gameplay-upgrade.js'),/import \{ createGameplayUI \} from '\.\/inspiration-gameplay-ui\.js'/);
   // This app owns the presentation probe; the independent Lab tests only its routes.
@@ -17,7 +18,7 @@ test('bottom rail retains independent heart technique body pages through the cau
 });
 
 test('body command and panel content remain distinct DOM targets',()=>{
-  assert.match(gameplay,/panel=q\('\[data-panel\]'\)/);assert.match(gameplay,/bodyButton:q\('\.rinne-bottom-controls \[data-body\]'\)/);assert.match(gameplay,/body:panel\.querySelector\('\[data-body\]'\)/);
+  assert.match(gameplay,/panel=q\('\[data-panel\]'\)/);assert.match(gameplay,/bodyButton:q\('\.rinne-bottom-controls \[data-body\]'\)/);assert.match(gameplay,/body:panel\.querySelector\('\[data-body\]'\)/);assert.match(gameplay,/rinneLoadoutPanelMarkup/);assert.match(sharedMenu,/createRinneLoadoutSlot/);assert.match(heartUI,/createRinneLoadoutGridItem/);
   assert.doesNotMatch(gameplay,/bodyButton:q\('\[data-body\]'\).*body:q\('\[data-body\]'\)/s);
 });
 
