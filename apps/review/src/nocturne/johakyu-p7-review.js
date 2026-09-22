@@ -6,7 +6,8 @@ import {johakyuExchangeIntent,isDeepJohakyuExchangeHit,classifyJohakyuParry,joha
 import {WEAPONS,cancelJohakyuStage,johakyuStageCapability} from '@soul/johakyu-combat/execution-capability';
 import {beginReviewStage,reviewTechniqueCapability,reviewStageCanResolve} from './johakyu-p7-execution.js';
 import {BURST_CADENCE,burstCompositionFor,burstStageDuration,burstSettleSeconds} from './johakyu-burst-cadence.js';
-import {battle2LoadoutKey,normalizeBattle2Loadout} from './battle2-loadout.js';
+import {CAUSAL_ANSWER_BY_ID} from '@soul/game-data';
+import {BATTLE2_BODY_OPTIONS,BATTLE2_LOADOUT_DEFAULT,battle2LoadoutKey,normalizeBattle2Loadout} from './battle2-loadout.js';
 import {BATTLE2_TECHNIQUE_CATALOG,battle2InspirationCatalog,battle2SelectionTechniques,battle2TechniqueDefinition,battle2TechniqueLabel,battle2TechniquePresentation} from './battle2-technique-catalog.js';
 
 const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
@@ -14,7 +15,7 @@ const PHASES=Object.freeze(['jo','ha','kyu']);
 const PHASE_LABELS=Object.freeze({jo:'序',ha:'破',kyu:'急'});
 const PART_LABELS=Object.freeze({head:'頭',torso:'胴',leftArm:'左腕',rightArm:'右腕',leftLeg:'左脚',rightLeg:'右脚'});
 const MODES=Object.freeze({duel:'1v1',oneVsThree:'1v3'}),RUN_RESTART_DELAY_SECONDS=3,ENCOUNTER_MIN_SECONDS=5,ENCOUNTER_TARGET_SECONDS=10,ENCOUNTER_MAX_SECONDS=15;
-const FINISHER_RANGE=1.9,FINISHER_DURATION=.92,FINISHER_IMPACT=.58,FINISHER_READY_TORSO=.6,ENEMY_SPAWN_SECONDS=.7,ENEMY_CORPSE_SECONDS=1.55,ENEMY_RESPAWN_DELAY=ENEMY_CORPSE_SECONDS-ENEMY_SPAWN_SECONDS;
+const FINISHER_RANGE=1.9,FINISHER_DURATION=.92,FINISHER_IMPACT=.58,FINISHER_READY_TORSO=.6,ENEMY_SPAWN_SECONDS=.7,ENEMY_CORPSE_SECONDS=1.55,ENEMY_RESPAWN_DELAY=ENEMY_CORPSE_SECONDS-ENEMY_SPAWN_SECONDS,DOWNED_RECOVERY_SECONDS=6.5;
 const LAYOUT=Object.freeze({hero:{x:0,z:.35,yaw:0},'enemy-a':{x:0,z:2.25,yaw:Math.PI},'enemy-b':{x:-1.75,z:2.8,yaw:Math.PI},'enemy-c':{x:1.75,z:2.8,yaw:Math.PI}});
 const INITIAL_ACTOR_IDS=Object.freeze(['hero','enemy-a','enemy-b','enemy-c']),ENEMY_SLOTS=Object.freeze(['enemy-a','enemy-b','enemy-c']);
 const enemySlotId=id=>ENEMY_SLOTS.find(slot=>id===slot||String(id||'').startsWith(slot+'#'))||null;
@@ -110,18 +111,18 @@ function advanceCursor(actor,cursor){
   return{before,after:nodeFor(actor,cursor)};
 }
 const NEUTRAL_BATTLE2_TUNING=Object.freeze({spacing:1,footwork:1,tempo:1,recovery:1,damage:1});
+function battle2HeartIntent(loadout){const totals={attack:0,guard:0,counter:0,mobility:0,survival:0,spacing:0};for(const id of normalizeBattle2Loadout(loadout).heart.active)for(const [key,value]of Object.entries(CAUSAL_ANSWER_BY_ID[id]?.intent||{}))if(Object.hasOwn(totals,key)&&Number.isFinite(value))totals[key]+=value;return totals;}
+const BATTLE2_DEFAULT_HEART_INTENT=Object.freeze(battle2HeartIntent(BATTLE2_LOADOUT_DEFAULT));
 function battle2Tuning(actor,loadout=null){
   if(actor?.side!=='party'||!loadout)return NEUTRAL_BATTLE2_TUNING;
-  const config=normalizeBattle2Loadout(loadout),heart=new Set(config.heart.active),body=config.body;
-  const styleSpacing=({balanced:1,distance:1.14,counter:1.06,pressure:.92,flow:1.03}[body.style]||1);
-  const stanceSpacing=({seigan:1,chinshin:1.02,ryu:1.04,kosei:.96}[body.stance]||1);
-  const styleFootwork=({balanced:1,distance:.97,counter:1.02,pressure:1.1,flow:1.08}[body.style]||1);
-  const stanceFootwork=({seigan:1,chinshin:.94,ryu:1.08,kosei:1.1}[body.stance]||1);
-  const heartSpacing=(heart.has('skill.observe')||heart.has('skill.patience'))?1.025:1;
-  const tempo=body.stance==='ryu'?1.04:body.stance==='kosei'?1.03:1;
-  const recovery=(body.stance==='kosei'?.96:body.stance==='chinshin'?1.04:1)*(heart.has('skill.patience')?.96:1);
-  const damage=heart.has('skill.edge')?1.09:1;
-  return Object.freeze({spacing:styleSpacing*stanceSpacing*heartSpacing,footwork:styleFootwork*stanceFootwork,tempo,recovery,damage});
+  const config=normalizeBattle2Loadout(loadout),body=config.body,intent=battle2HeartIntent(config),delta=Object.fromEntries(Object.keys(BATTLE2_DEFAULT_HEART_INTENT).map(key=>[key,(intent[key]||0)-(BATTLE2_DEFAULT_HEART_INTENT[key]||0)]));
+  const stanceSpacing=({seigan:1,chinshin:1.02,ryu:1.04,kosei:.96}[body.stance]||1),stanceFootwork=({seigan:1,chinshin:.94,ryu:1.08,kosei:1.1}[body.stance]||1),stanceTempo=body.stance==='ryu'?1.04:body.stance==='kosei'?1.03:1,stanceRecovery=body.stance==='kosei'?.96:body.stance==='chinshin'?1.04:1;
+  const spacing=1.025*stanceSpacing*Math.max(.9,Math.min(1.12,1+delta.spacing*.1+delta.survival*.025-delta.attack*.045));
+  const footwork=stanceFootwork*Math.max(.92,Math.min(1.1,1+delta.mobility*.1+delta.attack*.025));
+  const tempo=stanceTempo*Math.max(.94,Math.min(1.08,1+delta.attack*.04+delta.counter*.02));
+  const zanshinScale=({still:1,breath:.94,pursuit:.98,guard:1.02}[body.zanshin]||1),recovery=stanceRecovery*.96*zanshinScale*Math.max(.94,Math.min(1.06,1-delta.counter*.035-delta.survival*.025));
+  const damage=1.09*Math.max(.92,Math.min(1.1,1+delta.attack*.11));
+  return Object.freeze({spacing,footwork,tempo,recovery,damage});
 }
 function preferredWeaponSpacing(actor,loadout=null,{deep=false}={}){
   const weapon=WEAPONS[actor?.equipment?.weapon]||WEAPONS.sword,tuning=battle2Tuning(actor,loadout);
@@ -219,7 +220,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
   if(!Number.isFinite(duelGap)||duelGap<1||duelGap>5)throw new RangeError('Invalid duel review gap');
   if(!Number.isFinite(enemyLeadSeconds)||enemyLeadSeconds<0||enemyLeadSeconds>1)throw new RangeError('Invalid enemy lead');
   if(!PHASES.includes(heroStartPhase)||!Number.isInteger(heroStartTechniqueIndex)||heroStartTechniqueIndex<0||heroStartTechniqueIndex>2)throw new RangeError('Invalid hero start');
-  const reviewLoadout=loadout?normalizeBattle2Loadout(loadout):null,loadoutId=reviewLoadout?battle2LoadoutKey(reviewLoadout):'full',reviewSettings=freeze({techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'}),knownTechniqueIds=[...new Set((Array.isArray(learnedTechniqueIds)?learnedTechniqueIds:[]).filter(id=>battle2TechniqueDefinition(id,{weapon:reviewLoadout?.equipment?.weapon||'sword'})))];
+  const reviewLoadout=loadout?normalizeBattle2Loadout(loadout):null,loadoutId=reviewLoadout?battle2LoadoutKey(reviewLoadout):'full',reviewSettings=freeze({techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'}),nonlethalHeart=Boolean(reviewLoadout?.heart?.active.includes('skill.nonlethal')),knownTechniqueIds=[...new Set((Array.isArray(learnedTechniqueIds)?learnedTechniqueIds:[]).filter(id=>battle2TechniqueDefinition(id,{weapon:reviewLoadout?.equipment?.weapon||'sword'})))];
   let encounter=1,epoch=1,revision=0,time=0,resumes=0,resumed=false,battle,restartAt=null,enemySerial=1,defeats=0,finisherCount=0;
   let actionState=new Map(),reactionState=new Map(),reactionCooldowns=new Map(),defenseRhythm=new Map(),cursors=new Map(),readyAt=new Map(),positions=new Map(),recoveries=new Map(),maneuvers=new Map(),counterWindows=new Map(),exchangeStates=new Map(),normalPending=new Set(),settleAt=new Map(),initiativeHandoffs=new Map(),terminalFacings=new Map(),phaseCues=new Map(),phaseCueSeen=new Set(),lastEvents=[],trace=[],currentActivity=[],lastFrame=null,lastMeta=null,attemptSerial=0,downedForFinisher=new Map(),spawningUntil=new Map(),enemyStartedAt=new Map(),spawnQueue=[],corpseQueue=[],finisher=null;
 
@@ -276,6 +277,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
   }
   function processEnemyLifecycle(){
     const hero=battle.actors.get('hero'),canSpawn=Boolean(hero&&!hero.dead&&!hero.incapacitated);
+    if(nonlethalHeart)for(const [id,row]of [...downedForFinisher]){if(time-row.at<DOWNED_RECOVERY_SECONDS)continue;const target=battle.actors.get(id);if(!target||target.dead||target.incapacitated){downedForFinisher.delete(id);continue;}downedForFinisher.delete(id);target.hp=Math.max(target.hp,target.maxHp*.34);if(target.injuries?.torso)target.injuries.torso.severity=Math.min(target.injuries.torso.severity,.52);readyAt.set(id,time+.8);enemyStartedAt.set(id,time);traceRow({type:'enemy-recovered',actorId:id,hp:target.hp});}
     const dueSpawns=spawnQueue.filter(row=>row.at<=time),futureSpawns=spawnQueue.filter(row=>row.at>time);spawnQueue=futureSpawns;
     if(canSpawn)for(const row of dueSpawns)spawnEnemy(row.slot);
     const dueCorpses=corpseQueue.filter(row=>row.at<=time),futureCorpses=corpseQueue.filter(row=>row.at>time);corpseQueue=futureCorpses;for(const row of dueCorpses)removeCorpse(row.id);
@@ -293,17 +295,18 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
   }
   function finisherActionView(actor,run){
     const progress=Math.min(1,Math.max(0,(time-run.startedAt)/run.duration)),cursor=cursorFor(actor);
-    return{id:run.id,targetId:run.targetId,techniqueId:'action.finish',name:'止め',phase:'kyu',step:0,stageIndex:0,stageLabel:'止め',techniqueIndex:0,chainLength:1,chainLabel:'急 · 止め',cycle:cursor.cycle,footwork:'stay',progress,duration:run.duration,motion:run.motion,presentation:run.presentation,presentationClip:run.presentation?.clip??run.motion.clip,legal:true,scope:'combat-finisher'};
+    return{id:run.id,targetId:run.targetId,techniqueId:'action.finish',name:'トドメ',souenId:run.souenId,souenLabel:run.souenLabel,phase:'kyu',step:0,stageIndex:0,stageLabel:'トドメ',techniqueIndex:0,chainLength:1,chainLabel:'急 · トドメ',cycle:cursor.cycle,footwork:'stay',progress,duration:run.duration,motion:run.motion,presentation:run.presentation,presentationClip:run.presentation?.clip??run.motion.clip,legal:true,scope:'combat-finisher'};
   }
   function beginFinisher(actor,target){
-    const definition=battle2TechniqueDefinition('action.finish',{weapon:actor.equipment.weapon,name:'止め'}),step=definition?.steps?.[0]||{kind:'heavy',footwork:'stay',charge:'breath'},motion=resolveJohakyuMotion({weapon:actor.equipment.weapon,kind:step.kind,charge:step.charge,phase:'kyu'});if(!motion.supported)return null;
-    const presentation=battle2TechniquePresentation(definition||{id:'action.finish',name:'止め',steps:[step]},{weapon:actor.equipment.weapon,phase:'kyu',stageIndex:0});
-    finisher={id:battle.battleId+':finisher:'+actor.id+':'+target.id+':'+(++attemptSerial),actorId:actor.id,targetId:target.id,startedAt:time,duration:FINISHER_DURATION,impactAt:FINISHER_IMPACT,impacted:false,motion,presentation};maneuvers.delete(actor.id);readyAt.delete(actor.id);
-    for(const other of battle.actors.values())if(other.side==='enemy'&&other.id!==target.id&&!other.dead&&!other.incapacitated&&!isReviewDowned(other)){const action=actionState.get(other.id);if(action)cancelJohakyuStage(action);const reaction=reactionState.get(other.id);if(reaction)cancelJohakyuStage(reaction);actionState.delete(other.id);reactionState.delete(other.id);setRecovery(other,'finisher-cinematic',actor.id,FINISHER_DURATION+.18);setManeuver(other,actor,{reason:'finisher-space',footwork:'retreat',seconds:.5,stopDistance:2.9});}
-    traceRow({type:'finisher-start',actorId:actor.id,targetId:target.id,duration:FINISHER_DURATION,impactAt:FINISHER_IMPACT});return finisher;
+    const profile=BATTLE2_BODY_OPTIONS.finisher.find(row=>row.id===reviewLoadout?.body?.finisher)||BATTLE2_BODY_OPTIONS.finisher[0],duration=FINISHER_DURATION*(Number(profile.durationScale)||1),impactAt=Number.isFinite(profile.impactAt)?profile.impactAt:FINISHER_IMPACT;
+    const definition=battle2TechniqueDefinition('action.finish',{weapon:actor.equipment.weapon,name:'トドメ'}),step=definition?.steps?.[0]||{kind:'heavy',footwork:'stay',charge:'breath'},motion=resolveJohakyuMotion({weapon:actor.equipment.weapon,kind:step.kind,charge:step.charge,phase:'kyu'});if(!motion.supported)return null;
+    const presentation=battle2TechniquePresentation(definition||{id:'action.finish',name:'トドメ',steps:[step]},{weapon:actor.equipment.weapon,phase:'kyu',stageIndex:0});
+    finisher={id:battle.battleId+':finisher:'+actor.id+':'+target.id+':'+(++attemptSerial),actorId:actor.id,targetId:target.id,startedAt:time,duration,impactAt,impacted:false,motion,presentation,souenId:profile.id,souenLabel:profile.label};maneuvers.delete(actor.id);readyAt.delete(actor.id);
+    for(const other of battle.actors.values())if(other.side==='enemy'&&other.id!==target.id&&!other.dead&&!other.incapacitated&&!isReviewDowned(other)){const action=actionState.get(other.id);if(action)cancelJohakyuStage(action);const reaction=reactionState.get(other.id);if(reaction)cancelJohakyuStage(reaction);actionState.delete(other.id);reactionState.delete(other.id);setRecovery(other,'finisher-cinematic',actor.id,duration+.18);setManeuver(other,actor,{reason:'finisher-space',footwork:'retreat',seconds:.5,stopDistance:2.9});}
+    traceRow({type:'finisher-start',actorId:actor.id,targetId:target.id,action:'トドメ',souenId:profile.id,souenLabel:profile.label,duration,impactAt});return finisher;
   }
   function finisherControl(actor){
-    if(actor.id!=='hero')return{claimed:false,action:null};
+    if(actor.id!=='hero'||nonlethalHeart)return{claimed:false,action:null};
     if(finisher?.actorId===actor.id)return{claimed:true,action:finisherActionView(actor,finisher)};
     const candidate=nearestDowned(actor);if(!candidate)return{claimed:false,action:null};
     if(candidate.distance>FINISHER_RANGE){setManeuver(actor,candidate.target,{reason:'finisher-approach',footwork:'forward',seconds:.18,stopDistance:FINISHER_RANGE-.12});return{claimed:true,action:null};}
@@ -316,7 +319,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
       run.impacted=true;const eventId=run.id+':impact',result=applyJohakyuImpactOnce(battle,{eventId,attackId:run.id,sourceId:actor.id,targetId:target.id,damage:target.maxHp*.6,part:'torso',phase:'finisher'});
       if(result.applied){
         if(result.incapacitated){target.dead=true;target.incapacitated=true;target.hp=0;}
-        const event=freeze({id:eventId,type:'finisher',attackId:run.id,sourceId:actor.id,targetId:target.id,damage:result.dealt,phase:'finisher',counter:false,deepHit:true,techniqueId:'action.finish',techniqueName:'止め',stageIndex:0,stageLabel:'止め',contactDistance:Number(distanceBetween(positions,actor,target).toFixed(3)),contactReach:FINISHER_RANGE,contactPoint:contactPointBetween(positions,actor,target),contactEngine:'finisher',bodyPart:result.part,bodyDurability:result.durability,blocked:false,presentation:run.presentation});
+        const event=freeze({id:eventId,type:'finisher',attackId:run.id,sourceId:actor.id,targetId:target.id,damage:result.dealt,phase:'finisher',counter:false,deepHit:true,techniqueId:'action.finish',techniqueName:'トドメ',souenId:run.souenId,souenLabel:run.souenLabel,stageIndex:0,stageLabel:'トドメ',contactDistance:Number(distanceBetween(positions,actor,target).toFixed(3)),contactReach:FINISHER_RANGE,contactPoint:contactPointBetween(positions,actor,target),contactEngine:'finisher',bodyPart:result.part,bodyDurability:result.durability,blocked:false,presentation:run.presentation});
         events.push(event);traceRow({...event});
       }
     }
