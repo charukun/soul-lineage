@@ -3,12 +3,16 @@ import {createBattle2BodyHud} from './battle2-body-hud.js';
 import {createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
 import {createBattle2CameraPresentation} from './battle2-camera.js';
 import {mountReviewStageControls} from '@soul/shared-ui/review-shell';
+import {createRinnePlayerHud,rinnePreviewPlayer} from '@soul/shared-ui/rinne-player-hud';
 import '@soul/shared-ui/rinne-primary-four.css';
 import '@soul/shared-ui/rinne-loadout-menu.css';
+import '@soul/shared-ui/rinne-player-hud.css';
 
 const stage=document.querySelector('[data-review-surface="battle2"]');
 const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects'),versionNode=document.getElementById('battle2-version'),startButton=document.getElementById('battle2-start');
 const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
+const previewIdentity=rinnePreviewPlayer((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0);
+const playerHud=createRinnePlayerHud(document.getElementById('battle2-player-hud'),previewIdentity);
 const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
 const cameraPresentation=createBattle2CameraPresentation({stage,world});
 const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]'],label:'戦闘設定'});
@@ -103,7 +107,7 @@ function beginComboFade(){
 function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId||meta.exchangeHistoryKey!==lastExchangeKey){resetHistory(meta.battleId);lastExchangeKey=meta.exchangeHistoryKey;}
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
- const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);
+ const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);playerHud?.capture(world,{x:.34,y:.56,scale:.34});
  const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
  const technique=String(meta.techniqueName||meta.actionName||'').trim();
  cueNode.hidden=!technique;if(cueNode.textContent!==technique)cueNode.textContent=technique;
@@ -143,5 +147,5 @@ world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepare
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
 window.addEventListener('error',event=>{if(event.error&&!disposed)failed(event.error);});
 window.addEventListener('unhandledrejection',event=>{if(!disposed)failed(event.reason);});
-window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(historyTimer)clearTimeout(historyTimer);if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();cameraPresentation.dispose();stageControls?.destroy();loadoutUI.destroy();});
+window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(historyTimer)clearTimeout(historyTimer);if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
 syncModeButtons();report('BOOT');void boot();
