@@ -1,78 +1,86 @@
 name: Shino original character authoring (task-scoped)
-run-name: Shino offline authoring inputs ${{ github.sha }}
+run-name: Shino DCC authoring ${{ github.sha }}
 on:
   push:
     branches: ['work/shino-original-20260922']
-    paths: ['.github/workflows/shino-original-authoring.yml']
+    paths:
+      - '.github/workflows/shino-original-authoring.yml'
+      - 'scripts/blender/build-shino-original.py'
+      - 'scripts/assets/materialize-shino-original.py'
+      - 'docs/characters/references/shino-original/turnaround.webp'
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: shino-original-authoring
   cancel-in-progress: false
-# Gap: this character-authoring session has no networked local DCC installation.
-# Dependencies: hosted checkout, locked npm dependencies, official Blender binary.
-# Detach: delete this task-only workflow before final-head validation/merge.
-# This is an authoring data-plane operation, never an Astra validation step.
+# Temporary specialist data plane, not Fast DEV validation.
+# Gap: network-isolated local authoring session needs pinned rig/asset inputs.
+# Remove this workflow before final exact-head validation and merge.
 jobs:
-  authoring-inputs:
+  authoring:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: npm
-      - name: Collect immutable source and asset inventory
+          ref: ${{ github.ref_name }}
+          fetch-depth: 1
+      - name: Require exact authoring head and materialize audited rig source
         run: |
-          mkdir -p /tmp/shino-authoring/context
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+          mkdir -p /tmp/shino-rig-input
           python3 - <<'PY'
-          import hashlib,json,pathlib,subprocess,zipfile
-          root=pathlib.Path.cwd()
-          files=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
-          inventory=[]
-          extensions={'.js','.mjs','.cjs','.json','.jsonc','.ts','.tsx','.html','.css','.md','.py','.yml','.yaml','.svg','.txt'}
-          with zipfile.ZipFile('/tmp/shino-authoring/context/source.zip','w',zipfile.ZIP_DEFLATED) as z:
-              for name in files:
-                  p=root/name
-                  if not name or not p.is_file(): continue
-                  if p.suffix.lower() in {'.glb','.gltf','.blend','.vrm','.fbx'}:
-                      inventory.append({'path':name,'byteLength':p.stat().st_size})
-                  if p.suffix.lower() in extensions and p.stat().st_size<4*1024*1024:
-                      z.write(p,name)
-              z.writestr('authoring-source.json',json.dumps({'sourceSha':subprocess.check_output(['git','rev-parse','HEAD']).decode().strip(),'purpose':'read-only task source acquisition; not validation'},indent=2))
-          pathlib.Path('/tmp/shino-authoring/context/asset-inventory.json').write_text(json.dumps(inventory,indent=2))
+          from pathlib import Path
+          import hashlib,json,struct,shutil
+          p=Path('apps/review/public/library/model/717b56ca2b5ff5392679774725201ba03a3eefab/Knight.glb')
+          b=p.read_bytes();h=hashlib.sha1(('blob '+str(len(b))+'\0').encode()+b).hexdigest()
+          assert h=='717b56ca2b5ff5392679774725201ba03a3eefab' and len(b)==3659532
+          shutil.copyfile(p,'/tmp/shino-rig-input/Knight.glb')
+          n=struct.unpack_from('<I',b,12)[0];d=json.loads(b[20:20+n])
+          Path('/tmp/shino-rig-input/source.json').write_text(json.dumps({'purpose':'CC0 skeleton and existing animations only; all character meshes/materials/textures must be deleted before authoring','revision':'672074b73ba276876a19e8816ecdc5241817ab47','gitBlobSha':h,'sha256':hashlib.sha256(b).hexdigest(),'byteLength':len(b),'nodes':d.get('nodes',[]),'clips':[a.get('name') for a in d.get('animations',[])]},indent=2))
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: shino-source-context-${{ github.sha }}
-          path: /tmp/shino-authoring/context/
+          name: shino-rig-input-${{ github.sha }}
+          path: /tmp/shino-rig-input/
           retention-days: 3
-      - name: Acquire locked rendering dependencies
+      - name: Resolve authored model build
+        id: model
         run: |
-          npm ci --ignore-scripts
-          tar -czf /tmp/shino-authoring/node-dependencies.tar.gz node_modules
-      - uses: actions/upload-artifact@v4
-        with:
-          name: shino-node-dependencies-${{ github.sha }}
-          path: /tmp/shino-authoring/node-dependencies.tar.gz
-          compression-level: 0
-          retention-days: 1
-      - name: Acquire and verify official pinned Blender 4.5.14
+          if test -f scripts/blender/build-shino-original.py && test -f scripts/assets/materialize-shino-original.py; then echo 'enabled=true' >> "$GITHUB_OUTPUT"; else echo 'enabled=false' >> "$GITHUB_OUTPUT"; fi
+      - name: Acquire pinned Blender
+        if: steps.model.outputs.enabled == 'true'
         run: |
           set -euo pipefail
-          cd /tmp/shino-authoring
-          curl --fail --location --retry 3 --output blender-4.5.14-linux-x64.tar.xz https://download.blender.org/release/Blender4.5/blender-4.5.14-linux-x64.tar.xz
-          curl --fail --location --retry 3 --output blender-4.5.14.sha256 https://download.blender.org/release/Blender4.5/blender-4.5.14.sha256
-          grep 'blender-4.5.14-linux-x64.tar.xz' blender-4.5.14.sha256 | sha256sum --check --strict
-      - uses: actions/upload-artifact@v4
+          mkdir -p /tmp/shino-blender
+          cd /tmp/shino-blender
+          curl -fsSL --retry 3 -O https://download.blender.org/release/Blender4.5/blender-4.5.14-linux-x64.tar.xz
+          curl -fsSL --retry 3 -O https://download.blender.org/release/Blender4.5/blender-4.5.14.sha256
+          grep blender-4.5.14-linux-x64.tar.xz blender-4.5.14.sha256 | sha256sum --check --strict
+          tar -xJf blender-4.5.14-linux-x64.tar.xz
+      - name: Build and audit original character in Blender
+        if: steps.model.outputs.enabled == 'true'
+        run: |
+          /tmp/shino-blender/blender-4.5.14-linux-x64/blender --background --factory-startup --python scripts/blender/build-shino-original.py -- --rig-source /tmp/shino-rig-input/Knight.glb --out assets/characters/shino-original/v1
+          python3 scripts/assets/materialize-shino-original.py
+      - name: Retain real authoring evidence
+        if: steps.model.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
         with:
-          name: shino-blender-tool-4.5.14
-          path: |
-            /tmp/shino-authoring/blender-4.5.14-linux-x64.tar.xz
-            /tmp/shino-authoring/blender-4.5.14.sha256
-          compression-level: 0
-          retention-days: 1
+          name: shino-original-dcc-${{ github.sha }}
+          path: assets/characters/shino-original/v1/
+          retention-days: 14
+      - name: Commit only generated character assets to unchanged task branch
+        if: steps.model.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin '${{ github.ref_name }}'
+          test "$(git rev-parse FETCH_HEAD)" = '${{ github.sha }}'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/characters/shino-original/v1 apps/review/public/library packages/characters/generated/shino-original.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'art(shino): retain original Blender source, GLB and measured DCC evidence'
+            git push origin HEAD:'${{ github.ref_name }}'
+          fi
