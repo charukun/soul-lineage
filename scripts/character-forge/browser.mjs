@@ -5,9 +5,10 @@ import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {createHash} from 'node:crypto';
 
+const characterId=process.env.CHARACTER_FORGE_ID||'forge-scout';assert.match(characterId,/^[a-z0-9][a-z0-9-]{0,63}$/);
 const output=resolve('test-results/character-create-forge');await mkdir(output,{recursive:true});
 const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),errors=[];
-const receipt={schemaVersion:1,head,status:'running',modelSha256:JSON.parse(await readFile('packages/assets/characters/forge/forge-scout/manifest.json')).model.sha256,views:{},animations:{},errors,realDevice:false};
+const receipt={schemaVersion:1,head,status:'running',modelSha256:JSON.parse(await readFile('packages/assets/characters/forge/'+characterId+'/manifest.json')).model.sha256,views:{},animations:{},errors,realDevice:false};
 let log='',browser,context,page;
 const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--config','apps/character-studio/vite.config.js','--host','127.0.0.1','--port','5297','--strictPort'],{stdio:['ignore','pipe','pipe']});server.stdout.on('data',d=>log+=d);server.stderr.on('data',d=>log+=d);
 const snapshot=()=>page.locator('#stage').evaluate(c=>c.characterForgeSnapshot?.());
@@ -19,12 +20,12 @@ try{
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await page.goto('http://127.0.0.1:5297/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.masterCharacterReview?.ready,null,{timeout:90000});
-  await page.locator('[data-forge-candidate="forge-scout"]').click();await expect(page.locator('.forge-panel')).toHaveAttribute('data-ready','true',{timeout:60000});
+  await page.locator('[data-forge-candidate="'+characterId+'"]').click();await expect(page.locator('.forge-panel')).toHaveAttribute('data-ready','true',{timeout:60000});
   await page.waitForFunction(()=>document.querySelector('.forge-readout')?.textContent.includes('comparisons'));
   for(const view of ['front','side','back']){
     await page.locator('[data-forge-view="'+view+'"]').click();await expect(page.locator('.forge-panel')).toHaveAttribute('data-view',view);
     await page.waitForFunction(()=>[...document.querySelectorAll('.forge-comparison img')].every(i=>i.complete&&i.naturalWidth>0));
-    receipt.views[view]=await snapshot();assert.equal(receipt.views[view].view,view);assert.equal(receipt.views[view].cameraPresentation.profile,'current3d');assert.equal(receipt.views[view].cameraPresentation.targetActor,'forge-scout');const safety=receipt.views[view].screenSafety.actors[0];assert.ok(safety.screenHeight>.6&&safety.screenHeight<.99,'whole character must fit comparison');assert.ok(safety.edgeMargin>=0,'character must not be clipped');await capture(view,page.locator('.forge-comparison'));
+    receipt.views[view]=await snapshot();assert.equal(receipt.views[view].view,view);assert.equal(receipt.views[view].cameraPresentation.profile,'current3d');assert.equal(receipt.views[view].cameraPresentation.targetActor,characterId);const safety=receipt.views[view].screenSafety.actors[0];assert.ok(safety.screenHeight>.6&&safety.screenHeight<.99,'whole character must fit comparison');assert.ok(safety.edgeMargin>=0,'character must not be clipped');await capture(view,page.locator('.forge-comparison'));
   }
   await page.locator('[data-forge-overlay]').check();await page.locator('[data-forge-opacity]').fill('0.35');await expect(page.locator('.forge-comparison')).toHaveAttribute('data-overlay','true');await capture('overlay',page.locator('.forge-comparison'));await page.locator('[data-forge-overlay]').uncheck();
   for(const name of ['Idle','Walk','Talk','Attack','Hit','Rest']){

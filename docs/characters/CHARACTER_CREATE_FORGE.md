@@ -114,8 +114,8 @@ with a matching model hash, and cannot grant `approved`.
   components support hood, hat, cape and accessories. No image billboard meshes.
 - Projection: front/side/back and optional obliques really sample their own pixels.
   Surface-normal weights blend in linear color into a per-component UV atlas with
-  gutters. Opposite-side samples are marked mirrored; no valid source produces a
-  neutral generated texel. Weight-map A RGBA = front/front34/side/back34; B RGBA =
+  gutters. Opposite-side samples are marked mirrored; when no valid source exists the texel is
+  neutral and marked generated. Weight-map A RGBA = front/front34/side/back34; B RGBA =
   back/mirrored/generated/opaque. This is real CPU pixel baking, not a descriptor.
 - Rig/skinning: RINNE-owned generic humanoid hierarchy, inverse bind matrices,
   four-joint attributes with normalized soft parent-join weights. This is a generic
@@ -144,7 +144,7 @@ trace, video and a head/hash-bound receipt are written to `test-results/characte
 Automated visual diagnostics rasterize delivered GLB triangles using fixed
 orthographic front/side/back coordinates. They report IoU/silhouette, height,
 head-area/body ratio and ground mismatch. Review captures use the existing shared
-camera with a 1° weak-perspective lens. Diagnostics do not prove facial likeness,
+camera with a 6° weak-perspective lens. Diagnostics do not prove facial likeness,
 intersections, invisible concavities, hand topology, animation polish or physical
 mobile performance. Reference lighting is not removed; occlusion-aware texture
 visibility and semantic segmentation are limited. The candidate pipeline's numeric
@@ -160,3 +160,5 @@ paths; infer rights; silently approve; replace Character25D; change normal game
 state; introduce a second camera director; weaken validation or Production gates.
 
 Reference comparisons submit an authored cut to the shared Camera Director (now on develop via PR #1490); the package camera subject supplies bounds, head/body/focus/ground anchors. Interactive orbit remains the existing Review control. No Forge camera director is implemented.
+
+For evidence of a newly created package, run `CHARACTER_FORGE_ID=<character-id> node --test tests/character-create-forge-browser.test.mjs` on its exact head. The default id is the original synthetic fixture; the same native controls and assertions apply to other discovered packages.
