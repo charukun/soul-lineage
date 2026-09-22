@@ -539,7 +539,7 @@ function metrics(){return {ready:game.ready,phase:game.phase,rounds,totalKills:a
 // The main-game path never invokes start(), simulate(), damage() or a native RAF.
 // It borrows only the accepted assets, actor factory, animation mixer and VFX.
 function createDrivenPort(){
- const bindings=new Map(),coverNodes=new Map();let lastFrame=null,selfBinding=null;
+ const bindings=new Map(),coverNodes=new Map();let lastFrame=null,selfBinding=null,portraitTarget=null,portraitPixels=null;
  const equipmentNames=['1H_Sword','1H_Sword_Offhand','2H_Sword','Rectangle_Shield','Round_Shield','Spike_Shield'];
  const weaponMesh={fist:null,sword:'1H_Sword',great:'2H_Sword'};
  const driver=createCanonicalPresentationDriver({
@@ -643,12 +643,27 @@ function createDrivenPort(){
   buildNocturneEnvironment({THREE,V,TAU,models,scene,environmentMeshes,torches,rand,randRange});
   game.ready=true;game.phase='battle';await withTimeout(renderer.compileAsync(scene,camera),20000,'Shader preparation timed out');notify('READY');
  }
- return Object.freeze({prepare:prepareDriven,present:(snapshot,dt,events)=>driver.present(snapshot,dt,events),resize,
+ function renderSelfPortrait(canvas){
+  if(!canvas||!selfBinding||!renderer||!scene)return false;
+  const width=Math.max(32,Math.floor(Number(canvas.width)||96)),height=Math.max(32,Math.floor(Number(canvas.height)||96));
+  if(!portraitTarget||portraitTarget.width!==width||portraitTarget.height!==height){portraitTarget?.dispose();portraitTarget=new THREE.WebGLRenderTarget(width,height,{depthBuffer:true,stencilBuffer:false});portraitTarget.texture.colorSpace=THREE.SRGBColorSpace;portraitPixels=new Uint8Array(width*height*4);}
+  const portraitCamera=new THREE.PerspectiveCamera(27,width/height,.1,20),focus=selfBinding.pos.clone().add(new V(0,selfBinding.height*.66,0)),yaw=selfBinding.object.rotation.y,front=new V(Math.sin(yaw),0,Math.cos(yaw));
+  portraitCamera.position.copy(focus).addScaledVector(front,selfBinding.height*.76).add(new V(0,selfBinding.height*.035,0));portraitCamera.lookAt(focus);portraitCamera.layers.set(7);portraitCamera.updateMatrixWorld();
+  selfBinding.object.traverse(node=>node.layers?.enable(7));scene.traverse(node=>{if(node.isLight)node.layers.enable(7);});
+  const targetBefore=renderer.getRenderTarget(),clearBefore=renderer.getClearColor(new THREE.Color()).clone(),alphaBefore=renderer.getClearAlpha(),autoBefore=renderer.autoClear;
+  try{
+   renderer.setRenderTarget(portraitTarget);renderer.setClearColor('#13231f',1);renderer.autoClear=true;renderer.clear(true,true,true);renderer.render(scene,portraitCamera);renderer.readRenderTargetPixels(portraitTarget,0,0,width,height,portraitPixels);
+   const context=canvas.getContext('2d');if(!context)return false;const image=context.createImageData(width,height);
+   for(let y=0;y<height;y++){const source=(height-1-y)*width*4,dest=y*width*4;image.data.set(portraitPixels.subarray(source,source+width*4),dest);}
+   context.putImageData(image,0,0);return true;
+  }catch{return false;}finally{renderer.setRenderTarget(targetBefore);renderer.setClearColor(clearBefore,alphaBefore);renderer.autoClear=autoBefore;}
+ }
+ return Object.freeze({prepare:prepareDriven,present:(snapshot,dt,events)=>driver.present(snapshot,dt,events),renderSelfPortrait,resize,
   cameraVector(axis){const forward=new V();camera.getWorldDirection(forward);forward.y=0;forward.normalize();return new V().crossVectors(forward,new V(0,1,0)).multiplyScalar(axis.x).addScaledVector(forward,-axis.y).normalize();},
   anchor(){if(!hero)return null;return project(hero.pos.clone().add(new V(0,hero.height,0)));},
   footAnchor(){if(!selfBinding)return null;return project(selfBinding.pos.clone().add(new V(0,.03,0)));},
   metrics:()=>({...metrics(),...driver.metrics(),authority:'rinne-domain',cameraProjection:camera?.isPerspectiveCamera?'perspective':'orthographic',sharedCamera:Boolean(cameraPresentation)}),snapshot:()=>lastFrame,
-  clear:()=>driver.reset(),dispose(){driver.dispose();destroy();}});
+  clear:()=>driver.reset(),dispose(){portraitTarget?.dispose();portraitTarget=null;portraitPixels=null;driver.dispose();destroy();}});
 }
 if(presentationPort)presentationPort.install(createDrivenPort());
 

@@ -61,6 +61,7 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
     inspectActors:()=>current?.frame.actors??scenario.inspect().frame.actors,
     inspectBattle:()=>current?.frame??scenario.inspect().frame,
     footAnchor:()=>driven.footAnchor?.()??null,
+    renderPlayerPortrait:canvas=>driven.renderSelfPortrait?.(canvas)??false,
     get exchangeTrace(){return scenario.inspect().trace;},
     get loadout(){return reviewLoadout;},
     get settings(){return {...reviewSettings};},
