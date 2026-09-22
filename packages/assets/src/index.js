@@ -1,3 +1,4 @@
+export {EXPERIMENTAL_GENERATED_ASSETS} from '../generated/experimental-assets.js';
 export {visualAssetRegistry,visualAssetById,requireMaterializedVisualAsset} from './visual-asset-registry.js';
 export {CURATED_ASSETS,CURATED_MODEL_ASSETS,CURATED_SOUND_ASSETS,CURATED_PROVENANCE_PATH,curatedAssetById,fetchCuratedAssetBytes} from './curated-library.js';
 export {

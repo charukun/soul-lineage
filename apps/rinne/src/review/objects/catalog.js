@@ -1,6 +1,6 @@
 import {CURATED_REVIEW_OBJECTS} from '../shared/curated-library.js';
 import {defs} from '@soul/world/mura';
-import {projectAssetUrl} from '@soul/assets';
+import {EXPERIMENTAL_GENERATED_ASSETS,projectAssetUrl} from '@soul/assets';
 import {RINNE_KENNEY_EXPANSION_OBJECTS} from '../shared/kenney-library.js';
 
 const runtimeEnvironment=typeof __BUILD_INFO__==='undefined'?'dev':__BUILD_INFO__.environment;
@@ -17,6 +17,17 @@ const kaykitDungeon=(id,label,file,gitBlobSha,thumbnail='box')=>Object.freeze({
   source:'KayKit Dungeon Remastered 1.0 · CC0',
 });
 
+const generatedExperimental=item=>Object.freeze({
+  id:item.id,label:item.label,category:'props',kind:'gltf',
+  url:libraryUrl(item.runtimePath),thumbnailImageUrl:libraryUrl(item.thumbnailPath),
+  source:`Hi3DGen · experimental · ${item.model}`,experimentalGenerated:true,
+  provenance:Object.freeze({
+    repository:'Stable-X/Hi3DGen',revision:item.sourceRevision,path:item.provenancePath,
+    gitBlobSha:item.gitBlobSha,byteLength:item.byteLength,license:item.license,
+    triangles:item.inspection?.triangles,sha256:item.sha256,
+  }),
+});
+
 const kenneyMedieval=(id,label,category,thumbnail,sourcePath,gitBlobSha,byteLength)=>Object.freeze({
   id:`kenney-${id}`,label,category,kind:'gltf',
   url:libraryUrl(`object/kenney-medieval/${id}/${gitBlobSha}.glb`),
@@ -26,6 +37,7 @@ const kenneyMedieval=(id,label,category,thumbnail,sourcePath,gitBlobSha,byteLeng
 });
 
 export const RINNE_OBJECT_REVIEW_CATALOG=Object.freeze([
+  ...EXPERIMENTAL_GENERATED_ASSETS.map(generatedExperimental),
   ...CURATED_REVIEW_OBJECTS,
   {id:'barrel',label:'樽',category:'props',kind:'gltf',url:'/assets/vendor/kaykit-dungeon/barrel_small.gltf.glb',thumbnailUrl:thumb('barrel'),source:'KayKit Dungeon Remastered'},
   {id:'box',label:'木箱',category:'props',kind:'gltf',url:'/assets/vendor/kaykit-dungeon/box_small.gltf.glb',thumbnailUrl:thumb('box'),source:'KayKit Dungeon Remastered'},

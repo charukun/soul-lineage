@@ -10,11 +10,12 @@ assert hashlib.sha256(Path(p['dccSourcePath']).read_bytes()).hexdigest()==p['dcc
 shutil.copy2(p['path'],out/'Before.glb');shutil.copy2(p['dccSourcePath'],out/'Before.blend')
 PY
 blender --background assets/characters/heroine-dawn/source/HeroineDawn.blend --python-exit-code 1 --python-expr "import bpy; bpy.context.scene.world = bpy.context.scene.world or bpy.data.worlds.new('Inspection World')" --python scripts/blender/inspect-protagonist-villager-female-v1.py -- --out "$OUT/dcc-before" > "$OUT/dcc-before.log" 2>&1 || { tail -80 "$OUT/dcc-before.log"; exit 1; }
-npm exec --workspace @soul/character-studio -- vite --host 127.0.0.1 --port 5177 --strictPort > "$OUT/vite.log" 2>&1 &
+# Run the app's declared predev lifecycle, including the pinned local KayKit assets.
+npm run dev --workspace @soul/character-studio -- --host 127.0.0.1 > "$OUT/vite.log" 2>&1 &
 server=$!
 trap 'kill "$server" 2>/dev/null || true; rm -f apps/character-studio/heroine-motion-probe.js' EXIT
 for i in $(seq 1 60); do curl -fsS http://127.0.0.1:5177/ >/dev/null && break; sleep 1; done
-node .task-start/heroine-opacity/observe-before.mjs "$OUT" > "$OUT/browser.log" 2>&1 || { tail -100 "$OUT/browser.log"; exit 1; }
+node .task-start/heroine-opacity/observe-before.mjs "$OUT" > "$OUT/browser.log" 2>&1 || { tail -100 "$OUT/browser.log"; tail -40 "$OUT/vite.log"; exit 1; }
 cat "$OUT/browser.log"
 python3 - <<'PY'
 from pathlib import Path

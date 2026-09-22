@@ -63,7 +63,10 @@ function pump(){
   if(active||!jobs.length)return;
   active=true;
   idle(async()=>{
-    const job=jobs.shift();queuedKeys.delete(job.key);
+    const job=jobs.shift();
+    // The queue can be cleared after scheduling this idle callback.
+    if(!job){active=false;return;}
+    queuedKeys.delete(job.key);
     try{
       if(!job.target.isConnected)return;
       const cached=cache.get(job.key);if(cached){draw(job.target,cached);return;}

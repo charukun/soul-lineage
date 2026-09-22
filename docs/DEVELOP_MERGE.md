@@ -6,7 +6,7 @@ The normal develop lane is:
 compose implementation against develop tree with no routine branch yet
   -> exact final bytes validated
   -> final commit created detached from refs
-  -> branch created directly at final commit
+  -> short-lived routine/txn-* branch created directly at final commit
   -> non-draft PR created once
   -> final work-head commit contains [astra-validate]
   -> routine: exact final bytes are checked before blob/tree/commit creation
@@ -16,6 +16,7 @@ compose implementation against develop tree with no routine branch yet
      advanced base: drift classification, then merge/reconcile
   -> same-task merge to develop
   -> asynchronous DEV publication
+  -> asynchronous routine ref cleanup (not awaited)
 ```
 
 ## Merge conditions
@@ -57,6 +58,6 @@ PR作成とmergeの間にも `develop` は進み得る。GitHubの通常PR merge
 
 この再読は品質gateを増やすものではなく、既存freshness判定と実際のmerge対象baseの間にあるrace windowを閉じるための座標確認である。
 
-Ordinary CI, browser verification not explicitly requested, and DEV publication are not waiting stages after merge. The `develop` push starts DEV publication asynchronously.
+Ordinary CI, browser verification not explicitly requested, DEV publication, and routine-ref cleanup are not waiting stages after merge. The `develop` push starts DEV publication asynchronously.
 
 `main` / Production keeps its existing blocking quality gates and requires explicit permission.

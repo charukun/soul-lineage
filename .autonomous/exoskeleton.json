@@ -52,8 +52,8 @@
       "id": "connector-native-routine-proof",
       "state": "required-currently",
       "removable": true,
-      "compensatesFor": "Routine Fast DEV needs exact-source and concurrency safety without hosted-runner latency or redundant branch/PR state transitions. The final commit can be constructed transactionally before any branch exists, then exposed once for PR merge.",
-      "detachWhen": "GitHub or the runtime provides a single transactional create-change-and-merge primitive with equivalent exact-byte identity, concurrency safety, and review provenance.",
+      "compensatesFor": "Routine Fast DEV needs exact-source/concurrency safety with minimal synchronous GitHub state. Short-lived routine/txn transport refs preserve PR provenance and are deleted asynchronously after merge so cleanup adds no critical-path latency.",
+      "detachWhen": "GitHub or the runtime provides a single transactional create-change-merge operation with immutable review provenance and no temporary ref lifecycle.",
       "dependencies": []
     },
     {
