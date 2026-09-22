@@ -9,7 +9,7 @@ assert hashlib.sha256(Path(p['dccSourcePath']).read_bytes()).hexdigest()==p['dcc
 (out/'integration.json').write_text(json.dumps({'modelSha256':p['sha256'],'meshPath':p['path'],'assetUrl':p['runtimeOrigin']+p['path'].split('/library/')[1]}))
 shutil.copy2(p['path'],out/'Before.glb');shutil.copy2(p['dccSourcePath'],out/'Before.blend')
 PY
-blender --background assets/characters/heroine-dawn/source/HeroineDawn.blend --python-exit-code 1 --python scripts/blender/inspect-protagonist-villager-female-v1.py -- --out "$OUT/dcc-before" > "$OUT/dcc-before.log" 2>&1 || { tail -80 "$OUT/dcc-before.log"; exit 1; }
+blender --background assets/characters/heroine-dawn/source/HeroineDawn.blend --python-exit-code 1 --python-expr "import bpy; bpy.context.scene.world = bpy.context.scene.world or bpy.data.worlds.new('Inspection World')" --python scripts/blender/inspect-protagonist-villager-female-v1.py -- --out "$OUT/dcc-before" > "$OUT/dcc-before.log" 2>&1 || { tail -80 "$OUT/dcc-before.log"; exit 1; }
 npm exec --workspace @soul/character-studio -- vite --host 127.0.0.1 --port 5177 --strictPort > "$OUT/vite.log" 2>&1 &
 server=$!
 trap 'kill "$server" 2>/dev/null || true; rm -f apps/character-studio/heroine-motion-probe.js' EXIT
