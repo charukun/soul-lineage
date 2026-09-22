@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
 const script = readFileSync(new URL('../ops-board/public/rapid-board.js', import.meta.url), 'utf8');
+// Duration timeline contract intentionally stays on the lightweight PULSE unit path.
 const rapidCss = readFileSync(new URL('../ops-board/public/rapid-ui.css', import.meta.url), 'utf8');
 
 test('rapid board exposes work, app publication, issues and recent history without replacing source data', () => {
