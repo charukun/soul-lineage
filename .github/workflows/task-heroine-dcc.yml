@@ -23,16 +23,16 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - name: Retrieve visually inspected round-2 asset
+      - name: Correct actual walking-clearance defect in reviewed DCC mesh
         env:
-          GH_TOKEN: ${{ github.token }}
+          PYTHONPATH: /usr/lib/python3/dist-packages
         run: |
           mkdir -p generated/heroine-dawn
-          gh api repos/charukun/soul-lineage/actions/artifacts/10676526990/zip > /tmp/heroine-round2.zip
-          echo '9b113b6573fb79ad219587059d1d596d54afffaa186732c36d2c899376b241a0  /tmp/heroine-round2.zip' | sha256sum -c
-          unzip -q /tmp/heroine-round2.zip -d generated/heroine-dawn
-          echo 'c44ab5a5d21cf3005ad20ae5400a45e2644dad1b55cfb528f40c1dc2f4a9c435  generated/heroine-dawn/HeroineDawn.glb' | sha256sum -c
-          python3 assets/characters/heroine-dawn/integrate.py --out generated/heroine-dawn
+          sudo apt-get update -qq > /tmp/heroine-apt.log 2>&1
+          sudo apt-get install -y blender python3-numpy >> /tmp/heroine-apt.log 2>&1
+          echo 'ebd2ca4c62c66e111f9f67f47c823e10e219c89e4ef76254728386365971aa96  assets/characters/heroine-dawn/source/HeroineDawn.blend' | sha256sum -c
+          blender --background assets/characters/heroine-dawn/source/HeroineDawn.blend --python-exit-code 1 --python assets/characters/heroine-dawn/polish.py -- --source apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb --out generated/heroine-dawn > generated/heroine-dawn/dcc.log 2>&1 || { tail -70 generated/heroine-dawn/dcc.log; exit 1; }
+          python3 assets/characters/heroine-dawn/publish-polish.py --out generated/heroine-dawn
       - name: Build actual Character Studio
         env:
           APP_ENV: dev
@@ -50,7 +50,7 @@ jobs:
           for i in $(seq 1 60); do curl -fsS http://127.0.0.1:5177/ >/dev/null && break; sleep 1; done
           node assets/characters/heroine-dawn/observe.mjs generated/heroine-dawn > generated/heroine-dawn/browser.log 2>&1 || { tail -90 generated/heroine-dawn/browser.log; exit 1; }
           cat generated/heroine-dawn/browser.log
-      - name: Commit allowlisted materialized asset and observation only
+      - name: Commit allowlisted model repair and refreshed observations
         run: |
           python3 - <<'PY'
           import json,shutil
@@ -63,11 +63,13 @@ jobs:
           rm -f apps/character-studio/heroine-motion-probe.js
           git diff --exit-code -- apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb packages/characters/src/kaykit-foundation.js
           mesh=$(node -p "JSON.parse(require('fs').readFileSync('generated/heroine-dawn/integration.json')).meshPath")
+          old=$(node -p "JSON.parse(require('fs').readFileSync('generated/heroine-dawn/integration.json')).previousMeshPath")
           git add -f -- "$mesh" assets/characters/heroine-dawn/source docs/characters/qa/heroine-dawn-v1
+          git add -u -- "$old"
           git add -- apps/review/public/library/provenance/heroine-dawn-v1.json packages/characters/src/reference-model-catalog.js packages/characters/production/protagonist-villager-female-v1.production.json apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m '女主人公の実DCC派生モデルと実レンダー観察を自前Originへ収録'
+          git commit -m '女主人公の歩行時スカート貫通を実モデルで修正し再観察'
           git push origin HEAD:dcc/heroine-dawn
           git rev-parse HEAD > generated/heroine-dawn/materialized-head.txt
           git diff HEAD^ HEAD --stat > generated/heroine-dawn/materialized-stat.txt
