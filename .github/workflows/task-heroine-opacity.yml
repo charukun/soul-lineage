@@ -6,6 +6,7 @@ on:
       - '.task-start/heroine-opacity/**'
       - '.github/workflows/task-heroine-opacity.yml'
       - 'assets/characters/heroine-dawn/opacity.py'
+      - 'assets/characters/heroine-dawn/observe-opacity.mjs'
 permissions:
   contents: write
   actions: read
@@ -31,10 +32,11 @@ jobs:
           sudo apt-get install -y blender python3-numpy python3-pil libegl1 libegl-mesa0 libgl1-mesa-dri >> generated/heroine-opacity/apt.log 2>&1
           npm ci --ignore-scripts > generated/heroine-opacity/npm.log 2>&1
           npx playwright install --with-deps chromium > generated/heroine-opacity/chromium.log 2>&1
-      - name: Execute bounded same-head authoring and observation
+      - name: Author, observe and prepare same-repository delivery tree
         env:
           APP_ENV: dev
           PYTHONPATH: /usr/lib/python3/dist-packages
+          GH_TOKEN: ${{ github.token }}
         run: bash .task-start/heroine-opacity/run.sh
       - uses: actions/upload-artifact@v4
         if: always()
