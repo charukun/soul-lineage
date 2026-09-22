@@ -95,6 +95,12 @@ test('authored sword motions expose contact timing and blade trajectory metadata
  assert.equal(parry.supported,true);assert.ok(parry.contactProgress>.3&&parry.contactProgress<.6);assert.equal(parry.clip,'Block_Hit');
 });
 
+test('simultaneous attacks enter a visible authored weapon-clash pose before separating',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(source,/Math\.abs\(action\.progress-sourceContact\)>\.24/);assert.match(source,/state\.interrupted='weapon-clash'/);assert.match(source,/otherState\.interrupted='weapon-clash'/);assert.match(source,/reason==='weapon-clash'/);
+ assert.match(runtime,/function holdAuthoredContactPose/);assert.match(runtime,/holdAuthoredContactPose\(source,'Block_Hit',\.43,\.14\)/);assert.match(runtime,/holdAuthoredContactPose\(target,'Block_Hit',\.57,\.14\)/);assert.match(runtime,/game\.hitstop=Math\.max\(game\.hitstop,\.075\)/);assert.match(runtime,/poseClip:'Block_Hit'/);
+});
+
 test('duel body clearance prevents mesh penetration and parry exposes a weapon-clash point',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2});let minDistance=Infinity,parry=null,parryFrame=null;
  for(let i=0;i<900&&(!parry||i<240);i++){
@@ -247,7 +253,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.23');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.24');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -355,6 +361,15 @@ test('public battle2 uses authored technique specs and footwork instead of the b
  for(const id of ['action.feint','action.side-step','action.guard-step','action.counter','action.crash','action.precision'])assert.ok(source.includes(id),id);
  for(const footwork of ["sideR","cross","retreat","sideL","chase","forward"])assert.ok(source.includes(footwork),footwork);
  assert.match(source,/actor\.side==='enemy'&&stageDamage\(node\.stage\)>0\?burstPresentationClip/);
+});
+
+test('battle2 mounts the 百年転生 心技体装 four-button loadout and wires selections into combat',()=>{
+ const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),stage=stageSource(),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
+ const block=ui.match(/rinne-bottom-controls rinne-primary-four[\s\S]*?<\/nav>/)?.[0]||ui;
+ for(const text of ['>心<','>技<','>体<','>装<'])assert.ok(block.includes(text),text);
+ assert.match(ui,/data-heart/);assert.match(ui,/data-techniques/);assert.match(ui,/data-body/);assert.match(ui,/data-items/);
+ assert.match(stage,/createBattle2LoadoutUI/);assert.match(stage,/loadout:loadoutUI\.value/);assert.match(controller,/configureLoadout/);assert.match(source,/normalizeBattle2Loadout/);assert.match(source,/heroCompositionFor/);assert.match(source,/bodyDistanceScale/);
+ assert.match(css,/\.battle2-loadout-grid\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
 });
 
 test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});

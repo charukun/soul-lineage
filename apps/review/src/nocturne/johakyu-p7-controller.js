@@ -1,9 +1,12 @@
 import {createDrivenBattleRuntime} from '@soul/johakyu-presentation';
 import {createJohakyuP7ReviewScenario} from './johakyu-p7-review.js';
+import {normalizeBattle2Loadout} from './battle2-loadout.js';
 
-export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,onMeta=()=>{},evidence=false,fixture=null,mode='duel'}){
+export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,onMeta=()=>{},evidence=false,fixture=null,mode='duel',loadout=null}){
   const driven=createDrivenBattleRuntime({world,effects,stage,sound,notify,signal});
-  const scenario=evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({mode,duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5}):createJohakyuP7ReviewScenario({mode,comboStyle:'composed',duelGap:mode==='duel'?2.18:3.15,enemyLeadSeconds:mode==='duel'?.16:0});
+  let reviewLoadout=normalizeBattle2Loadout(loadout||{});
+  const makeScenario=()=>evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({mode,duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5,loadout:reviewLoadout}):createJohakyuP7ReviewScenario({mode,comboStyle:'composed',duelGap:mode==='duel'?2.18:3.15,enemyLeadSeconds:mode==='duel'?.16:0,loadout:reviewLoadout});
+  let scenario=makeScenario();
   let disposed=false,ready=false,started=false,raf=0,previous=0,current=null,trace=[],lastResumes=0,lastEncounter=1;
   function render(dt){
     if(disposed)return null;
@@ -33,18 +36,24 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
     if(disposed||!ready)return;
     driven.resize();if(!started||evidence)driven.present(current.frame,0,[]);
   }
+  function configureLoadout(next){
+    reviewLoadout=normalizeBattle2Loadout(next||{});scenario=makeScenario();current=scenario.inspect();lastResumes=0;lastEncounter=1;
+    trace.push({type:'loadout-reset',loadout:reviewLoadout});if(trace.length>100)trace=trace.slice(-100);
+    if(ready&&!disposed){driven.present(current.frame,0,[]);onMeta(current.meta);}return reviewLoadout;
+  }
   function advance(seconds){
     if(disposed||!ready||!started)throw new Error('Start the battle before evidence advancement');
     if(!Number.isFinite(seconds)||seconds<=0||seconds>30)throw new Error('Invalid evidence advancement');
     for(let i=0;i<Math.ceil(seconds*60);i++)render(1/60);
     return metrics();
   }
-  function metrics(){return {...driven.metrics(),started,mode:'p7-canonical-review',review:current?.meta??scenario.inspect().meta};}
+  function metrics(){return {...driven.metrics(),started,mode:'p7-canonical-review',loadout:reviewLoadout,review:current?.meta??scenario.inspect().meta};}
   function destroy(){if(disposed)return;disposed=true;ready=false;started=false;if(raf)cancelAnimationFrame(raf);driven.dispose();}
-  return Object.freeze({prepare,start,resize,metrics,advance,destroy,fail:destroy,
+  return Object.freeze({prepare,start,resize,configureLoadout,metrics,advance,destroy,fail:destroy,
     inspectActors:()=>current?.frame.actors??scenario.inspect().frame.actors,
     inspectBattle:()=>current?.frame??scenario.inspect().frame,
     footAnchor:()=>driven.footAnchor?.()??null,
     get exchangeTrace(){return scenario.inspect().trace;},
+    get loadout(){return reviewLoadout;},
     get trace(){return trace.slice();}});
 }
