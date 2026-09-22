@@ -2,7 +2,7 @@ name: Temporary RINNE playtest (do not merge)
 on:
   push:
     branches: [review/rinne-playtest-20260922]
-    paths: [.github/workflows/task-rinne-playtest.yml, .review/rinne-observe.mjs]
+    paths: [.github/workflows/task-rinne-playtest.yml, .review/rinne-native.mjs]
 permissions:
   contents: read
 jobs:
@@ -21,7 +21,7 @@ jobs:
           mkdir -p /tmp/rinne-review evidence
           npm install --prefix /tmp/rinne-review --ignore-scripts --no-audit --no-fund playwright@1.63.0
           /tmp/rinne-review/node_modules/.bin/playwright install --with-deps chromium
-          cp .review/rinne-observe.mjs /tmp/rinne-review/observe.mjs
+          cp .review/rinne-native.mjs /tmp/rinne-review/observe.mjs
       - name: Actual input observation
         env:
           EVIDENCE_DIR: ${{ github.workspace }}/evidence
@@ -29,7 +29,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rinne-playtest-session
+          name: rinne-native-session
           path: evidence/
           retention-days: 7
           if-no-files-found: error
