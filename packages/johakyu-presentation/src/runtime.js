@@ -76,7 +76,7 @@ function collectParryRig(root){
 function clearParryRig(a){
  for(const row of a.parryRig){if(row.x)row.node.rotation.x-=row.x;if(row.y)row.node.rotation.y-=row.y;if(row.z)row.node.rotation.z-=row.z;row.x=0;row.y=0;row.z=0;}
 }
-const BODY_CONTACT_PARTS=Object.freeze(['head','torso','leftArm','rightArm','leftLeg','rightLeg']),BODY_CONTACT_SKIN=.18;
+const BODY_CONTACT_PARTS=Object.freeze(['head','torso','leftArm','rightArm','leftLeg','rightLeg']),BODY_CONTACT_SKIN=.22,BODY_CONTACT_ASSIST=.2,WEAPON_TRACE_HISTORY=5;
 function bodyBoneSide(raw){
  const text=String(raw||'').toLowerCase();if(/left|(^|[._-])l($|[._-])/.test(text))return'left';if(/right|(^|[._-])r($|[._-])/.test(text))return'right';return'';
 }
@@ -116,16 +116,20 @@ function bladeCapsuleDistance(start,end,capsule){
  for(const endpoint of [capsule.a,capsule.b]){const p=closestPointOnSegment(endpoint,start,end,new V()),d=p.distanceTo(endpoint);if(d<best){best=d;weaponPoint=p;bodyPoint=endpoint.clone();}}
  return{distance:best,weaponPoint,bodyPoint};
 }
+function expandedWeaponAxis(axis,padding){
+ const dir=axis.end.clone().sub(axis.start),length=dir.length();if(length<1e-5)return{start:axis.start.clone(),end:axis.end.clone()};dir.multiplyScalar(1/length);return{start:axis.start.clone().addScaledVector(dir,-padding),end:axis.end.clone().addScaledVector(dir,padding)};
+}
 function sweptWeaponBodyContact(source,target){
- const row=source?.canonicalRow,action=row?.action,trace=source?.weaponTrace;if(!action?.motion?.offense||!trace?.axis||action.targetId!==target?.canonicalId||target.dead)return null;
- const expected=Number(action.motion.contactProgress??.5),progress=Number(action.progress);if(!Number.isFinite(progress)||Math.abs(progress-expected)>.44)return null;
- const previous=trace.previousAxis||trace.axis,current=trace.axis,capsules=bodyContactCapsules(target),weaponRadius=row.equipment?.weapon==='great'?.115:.085;let best=null;
- for(const t of [0,.0625,.125,.1875,.25,.3125,.375,.4375,.5,.5625,.625,.6875,.75,.8125,.875,.9375,1]){
+ const row=source?.canonicalRow,action=row?.action,trace=source?.weaponTrace,currentAxis=trace?.axis??weaponAxis(source);if(!action?.motion?.offense||!currentAxis||action.targetId!==target?.canonicalId||target.dead)return null;
+ const expected=Number(action.motion.contactProgress??.5),progress=Number(action.progress),windowStart=Math.max(.06,expected-.5),windowEnd=Math.min(.97,expected+.5),actorDistance=source.pos.distanceTo(target.pos);if(!Number.isFinite(progress)||progress<windowStart||progress>windowEnd||actorDistance>2.18)return null;
+ const rawHistory=trace?.actionId===action.id&&trace.history?.length?trace.history:[currentAxis],padding=row.equipment?.weapon==='great'?.18:.14,history=rawHistory.map(axis=>expandedWeaponAxis(axis,padding)),capsules=bodyContactCapsules(target),weaponRadius=row.equipment?.weapon==='great'?.13:.1;let best=null;
+ const pairs=history.length>1?history.slice(1).map((axis,index)=>[history[index],axis]):[[history[0],history[0]]];
+ for(const [previous,current] of pairs)for(const t of [0,.0625,.125,.1875,.25,.3125,.375,.4375,.5,.5625,.625,.6875,.75,.8125,.875,.9375,1]){
   const start=previous.start.clone().lerp(current.start,t),end=previous.end.clone().lerp(current.end,t);
-  for(const capsule of capsules){const hit=bladeCapsuleDistance(start,end,capsule),clearance=hit.distance-(capsule.radius+weaponRadius+BODY_CONTACT_SKIN);if(clearance>0||best&&clearance>=best.clearance)continue;best={clearance,part:capsule.part,weaponPoint:hit.weaponPoint,bodyPoint:hit.bodyPoint};}
+  for(const capsule of capsules){const hit=bladeCapsuleDistance(start,end,capsule),clearance=hit.distance-(capsule.radius+weaponRadius+BODY_CONTACT_SKIN);if(best&&clearance>=best.clearance)continue;best={clearance,part:capsule.part,weaponPoint:hit.weaponPoint,bodyPoint:hit.bodyPoint};}
  }
- if(!best)return null;const point=best.weaponPoint.clone().lerp(best.bodyPoint,.5);
- return{attackId:action.id,sourceId:source.canonicalId,targetId:target.canonicalId,bodyPart:best.part,point:{x:point.x,y:point.y,z:point.z},clearance:Number(best.clearance.toFixed(4)),engine:'weapon-body-sweep'};
+ if(!best||best.clearance>BODY_CONTACT_ASSIST)return null;const point=best.weaponPoint.clone().lerp(best.bodyPoint,.5),assisted=best.clearance>0;
+ return{attackId:action.id,sourceId:source.canonicalId,targetId:target.canonicalId,bodyPart:best.part,point:{x:point.x,y:point.y,z:point.z},clearance:Number(best.clearance.toFixed(4)),engine:assisted?'weapon-body-sweep-assist':'weapon-body-sweep'};
 }
 function emitFatigueSweat(a,profile,dt){
  if(a.kind!=='hero'||!(profile.sweatInterval>0))return;
@@ -245,9 +249,9 @@ function bladeClashPoint(source,target,fallback){
  return pa.clone().lerp(pb,.5);
 }
 function sampleWeaponTrace(a,dt){
- const axis=weaponAxis(a);if(!axis)return null;const center=axis.start.clone().lerp(axis.end,.5),previous=a.weaponTrace?.center??center,previousAxis=a.weaponTrace?.axis?{start:a.weaponTrace.axis.start.clone(),end:a.weaponTrace.axis.end.clone()}:{start:axis.start.clone(),end:axis.end.clone()};
+ const axis=weaponAxis(a);if(!axis){a.weaponTrace=null;return null;}const actionId=a.canonicalRow?.action?.id??null,center=axis.start.clone().lerp(axis.end,.5),sameAction=a.weaponTrace?.actionId===actionId,previous=sameAction?(a.weaponTrace?.center??center):center,prior=sameAction?(a.weaponTrace?.history||[]):[],history=[...prior.slice(-(WEAPON_TRACE_HISTORY-1)),{start:axis.start.clone(),end:axis.end.clone()}];
  const velocity=center.clone().sub(previous);if(dt>1e-5)velocity.multiplyScalar(1/dt);
- a.weaponTrace={center:center.clone(),velocity,axis,previousAxis};return a.weaponTrace;
+ a.weaponTrace={actionId,center:center.clone(),velocity,axis,previousAxis:history.length>1?history[history.length-2]:axis,history};return a.weaponTrace;
 }
 function deflectionFromBladeTrace(source,target,fallback='right'){
  const velocity=source?.weaponTrace?.velocity;if(!velocity||velocity.lengthSq()<.0025)return fallback;
