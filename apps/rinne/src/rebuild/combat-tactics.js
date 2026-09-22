@@ -14,6 +14,12 @@ export function activeHeartIds(state){
 export {staminaPolicyFor} from '@soul/johakyu-combat/stamina';
 import {staminaPolicyFor} from '@soul/johakyu-combat/stamina';
 
+export function combatBodyPerformance(state){
+  const outcome=combatBodyOutcome(state),band=value=>Math.round(clamp(value,.4,1)*20)/20;
+  const attackScale=band(outcome.attackScale),movementScale=band(outcome.movementScale);
+  return Object.freeze({attackScale,movementScale,techniqueTempoScale:clamp(movementScale,.7,1),severity:outcome.severity,compromised:outcome.compromised});
+}
+
 export function tidebreakMindVectorFor(state){
   ensureCombatLoadout(state);const body=bodyRuntime(state),heart=activeHeartIds(state),stamina=staminaPolicyFor(state),injury=injuryEffects(state),bodyOutcome=combatBodyOutcome(state),strategy=strategyForState(state);
   const baseline={attack:.5,guard:.46,spacing:.5,counter:.28,mobility:.42,survival:.28},v={};for(const key of Object.keys(baseline))v[key]=baseline[key]*.42+strategy[key]*.58;
