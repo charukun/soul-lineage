@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {positionReviewCamera} from '@soul/rendering';
 import {createCameraDirector} from '@soul/rendering/camera-director';
-import {applyCameraPresentation} from '@soul/rendering/camera-presentation-three';
+import {applyCameraPresentation,actorScreenSafety} from '@soul/rendering/camera-presentation-three';
 import {characterForgeCandidates} from '../../../../../packages/assets/generated/create-forge-registry.js';
 import {createCharacterPackageActor} from '../../../../../packages/assets/src/character-create-forge/actor.js';
 import './forge-review.css';
@@ -34,12 +34,12 @@ export function mountCharacterForgeReview(review){
   function deactivate(){sequence++;actor?.dispose();actor=null;entry=null;turntable=false;restore();panel.dataset.ready='false';}
   function aim(view='front'){
     if(!actor)return;selectedView=['side','back'].includes(view)?view:'front';actor.root.rotation.y=0;
-    stage.camera.fov=1;stage.camera.far=1000;stage.orbit.maxDistance=500;stage.camera.updateProjectionMatrix();
+    stage.camera.fov=6;stage.camera.far=1000;stage.orbit.maxDistance=500;stage.camera.updateProjectionMatrix();
     positionReviewCamera({camera:stage.camera,controls:stage.orbit,root:frameRoot,preset:selectedView,padding:320/288,minDistance:.1,maxDistance:500});
     presentReviewShot();
   }
   function comparison(view){
-    if(!actor)return;turntable=false;actor.neutral();aim(view);const url=entry.references[selectedView];
+    if(!actor)return;panel.dataset.capturePhase='begin';turntable=false;actor.neutral();aim(view);const url=entry.references[selectedView];
     $('[data-forge-reference]').hidden=!url;if(url)$('[data-forge-reference]').src=url;
     $('[data-forge-original]').href=entry.sourceReferences[selectedView]||entry.sourceReferences.front;
     $('[data-forge-ref-label]').textContent='REFERENCE '+selectedView.toUpperCase()+(url?'':' — 未観測');
@@ -48,9 +48,9 @@ export function mountCharacterForgeReview(review){
     // comparison capture has fixed weak-perspective lens; restore viewport.
     const size=stage.renderer.getSize(new THREE.Vector2()),aspect=stage.camera.aspect;
     stage.renderer.setSize(320,320,false);stage.camera.aspect=1;stage.camera.updateProjectionMatrix();aim(view);
-    stage.renderer.render(stage.scene,stage.camera);$('[data-forge-render]').src=stage.canvas.toDataURL('image/png');
+    panel.dataset.capturePhase='render';stage.renderer.render(stage.scene,stage.camera);panel.dataset.capturePhase='readback';$('[data-forge-render]').src=stage.canvas.toDataURL('image/png');
     stage.renderer.setSize(size.x,size.y,false);stage.camera.aspect=aspect;stage.camera.updateProjectionMatrix();aim(view);
-    panel.dataset.view=selectedView;
+    panel.dataset.view=selectedView;panel.dataset.capturePhase='complete';
   }
   async function select(candidate){
     const token=++sequence;status('GLBを読み込み中…');
@@ -77,7 +77,7 @@ export function mountCharacterForgeReview(review){
   $('[data-forge-opacity]').oninput=e=>$('.forge-comparison').style.setProperty('--forge-opacity',e.target.value);
   const api={get active(){return Boolean(actor);},get actor(){return actor;},aim,deactivate,
     tick(dt){if(!actor)return;for(const a of stage.actors())a.root.visible=false;actor.update(dt);if(turntable){angle+=dt*.7;actor.root.rotation.y=angle;}stage.orbit.update();},
-    snapshot:()=>actor?{...actor.snapshot(),view:selectedView,turntable,angle,subject:actor.cameraSubject(),cameraPresentation:director.snapshot()}:null,
+    snapshot:()=>actor?{...actor.snapshot(),view:selectedView,turntable,angle,subject:actor.cameraSubject(),cameraPresentation:director.snapshot(),screenSafety:actorScreenSafety(stage.camera,[actor.cameraSubject()])}:null,
     dispose(){deactivate();frameGeometry.dispose();frameMaterial.dispose();panel.remove();}};
   review.forge=api;stage.canvas.characterForgeSnapshot=api.snapshot;
   return api;

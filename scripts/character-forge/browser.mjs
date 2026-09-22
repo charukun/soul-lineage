@@ -24,7 +24,7 @@ try{
   for(const view of ['front','side','back']){
     await page.locator('[data-forge-view="'+view+'"]').click();await expect(page.locator('.forge-panel')).toHaveAttribute('data-view',view);
     await page.waitForFunction(()=>[...document.querySelectorAll('.forge-comparison img')].every(i=>i.complete&&i.naturalWidth>0));
-    receipt.views[view]=await snapshot();assert.equal(receipt.views[view].view,view);assert.equal(receipt.views[view].cameraPresentation.profile,'current3d');assert.equal(receipt.views[view].cameraPresentation.targetActor,'forge-scout');await capture(view,page.locator('.forge-comparison'));
+    receipt.views[view]=await snapshot();assert.equal(receipt.views[view].view,view);assert.equal(receipt.views[view].cameraPresentation.profile,'current3d');assert.equal(receipt.views[view].cameraPresentation.targetActor,'forge-scout');const safety=receipt.views[view].screenSafety.actors[0];assert.ok(safety.screenHeight>.6&&safety.screenHeight<.99,'whole character must fit comparison');assert.ok(safety.edgeMargin>=0,'character must not be clipped');await capture(view,page.locator('.forge-comparison'));
   }
   await page.locator('[data-forge-overlay]').check();await page.locator('[data-forge-opacity]').fill('.35');await expect(page.locator('.forge-comparison')).toHaveAttribute('data-overlay','true');await capture('overlay',page.locator('.forge-comparison'));await page.locator('[data-forge-overlay]').uncheck();
   for(const name of ['Idle','Walk','Talk','Attack','Hit','Rest']){
@@ -41,7 +41,7 @@ try{
   await page.setViewportSize({width:390,height:844});await page.waitForTimeout(250);const columns=await page.locator('.forge-candidates').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length);assert.equal(columns,5);await capture('mobile',page.locator('.forge-panel'));
   await page.locator('[data-forge-exit]').click();assert.equal(await snapshot(),null);await page.waitForFunction(()=>window.masterCharacterReview.actors.some(a=>a.root.visible));
   assert.deepEqual(errors,[]);receipt.status='passed';
-}catch(error){receipt.status='failed';receipt.failure=error.stack;throw error;}
+}catch(error){receipt.status='failed';receipt.failure=error.stack;receipt.lastUI=await Promise.race([page?.evaluate(()=>({phase:document.querySelector('.forge-panel')?.dataset.capturePhase,view:document.querySelector('.forge-panel')?.dataset.view})).catch(()=>null),new Promise(r=>setTimeout(()=>r('unresponsive'),2000))]);throw error;}
 finally{
   await writeFile(join(output,'playtest-receipt.json'),JSON.stringify(receipt,null,2));
   await context?.tracing.stop({path:join(output,'trace.zip')}).catch(()=>{});await context?.close();await browser?.close();server.kill('SIGTERM');await writeFile(join(output,'preview.log'),log);
