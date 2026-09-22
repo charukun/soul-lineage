@@ -57,3 +57,11 @@
 }
 @media(max-width:520px){.forge-transport{gap:4px}.forge-transport button{font-size:10px;padding-inline:7px}.forge-candidates button{flex-direction:column;gap:2px}.forge-page .review-surface__title h1{font-size:14px!important}}
 @media(max-height:500px) and (orientation:landscape){.forge-page .review-surface__workspace{grid-template-columns:minmax(0,1fr) 190px!important;grid-template-rows:minmax(0,1fr)!important}}
+
+/* Input references remain available while the model keeps the main viewport. */
+.forge-input-preview{position:absolute;z-index:3;top:36px;left:8px;width:clamp(108px,28vw,168px);max-width:42%;padding:6px;border:1px solid #526358;border-radius:8px;background:#101715e8;box-shadow:0 3px 12px #0003}
+.forge-input-preview>span{display:block;margin-bottom:4px;color:#c2d1c6;font-size:9px}
+.forge-input-images{display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin}
+.forge-input-images a{flex:1 0 25px;min-width:0;display:grid;gap:3px;color:#cbd6ca;text-decoration:none;text-align:center;font-size:8px;line-height:1.3;touch-action:manipulation}
+.forge-input-images img{display:block;width:100%;height:64px;object-fit:contain;border-radius:3px;background:#e9edef}
+@media(max-width:520px){.forge-input-images img{height:48px}.forge-input-preview{padding:5px}}
