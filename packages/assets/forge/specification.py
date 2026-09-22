@@ -10,6 +10,7 @@ PROFILE_SHAPES={
 def reconstruction_spec(identifier,name,views,measurements,detection,provenance,analysis=None):
     count=len(views);modes={1:'single-view',3:'multi-view',5:'enhanced-multi-view'}
     if count not in modes:raise ValueError('Unsupported view combination')
+    analysis=analysis or {}
     levels=measurements['levels'];chin=levels['chin'];shoulder=levels['shoulder'];components=[]
     def component(cid,bottom,top,bone,kind='loft',side=None,role='body',profile='default'):
         rings=[]
@@ -38,11 +39,15 @@ def reconstruction_spec(identifier,name,views,measurements,detection,provenance,
     for side in ('L','R'):
         for cid,bot,top,bone,profile in [('upperArm',.53,shoulder,'upperArm','limb'),('lowerArm',.39,.55,'lowerArm','limb'),('hand',.34,.41,'hand','hand'),('upperLeg',.25,.46,'upperLeg','limb'),('lowerLeg',.065,.27,'lowerLeg','limb'),('foot',.005,.07,'foot','foot')]:
             component(cid+'.'+side,bot,top,bone+'.'+side,side=side,profile=profile)
-    component('clothing',.44,shoulder-.015,'chest',role='clothing',profile='chest')
-    for ring in components[-1]['rings']:ring['rx']*=1.025;ring['frontDepth']*=1.025;ring['backDepth']*=1.025
-    component('rearHair',chin+.01,.995,'head',kind='rear-shell',role='hair',profile='head')
-    for ring in components[-1]['rings']:ring['rx']*=1.018;ring['backDepth']*=1.06
-    for part in (analysis or {}).get('parts',[]):
+    # Golden Base / mannequin inputs can explicitly suppress semantic shells.
+    # The flag is authored by Astra from the user's character intent, never inferred
+    # merely from color. Projected source color still lands on the underlying body.
+    if not analysis.get('baseMeshOnly'):
+        component('clothing',.44,shoulder-.015,'chest',role='clothing',profile='chest')
+        for ring in components[-1]['rings']:ring['rx']*=1.025;ring['frontDepth']*=1.025;ring['backDepth']*=1.025
+        component('rearHair',chin+.01,.995,'head',kind='rear-shell',role='hair',profile='head')
+        for ring in components[-1]['rings']:ring['rx']*=1.018;ring['backDepth']*=1.06
+    for part in analysis.get('parts',[]):
         if not isinstance(part,dict) or part.get('role') not in ('hood','hat','hair','clothing','cape','accessory'):raise ValueError('Unknown semantic component role')
         bottom,top=part.get('verticalBand',[])
         if not 0<=bottom<top<=1:raise ValueError('Invalid semantic component height band')

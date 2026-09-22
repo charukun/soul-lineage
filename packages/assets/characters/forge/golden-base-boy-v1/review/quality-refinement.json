@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "rinne.character-forge-refinement/v1",
+  "modelSha256": "fd81bd3e817752bf33acac2372cc8221fdb8f95b2ee62430d692f55c1dc20374",
+  "status": "pending-dcc-review",
+  "maxRounds": 3,
+  "requiredFixedViews": [
+    "front",
+    "side",
+    "back",
+    "three-quarter"
+  ],
+  "qualityReferences": [
+    "source-turnaround",
+    "repository-approved-quality-reference"
+  ],
+  "rounds": [],
+  "diagnostics": [
+    {
+      "kind": "silhouette",
+      "view": "back",
+      "metrics": {
+        "silhouetteMismatch": 0.6285257391718553,
+        "iou": 0.37147426082814466,
+        "heightMismatch": 0.0,
+        "headBodyProportionMismatch": 0.015544484554641302,
+        "groundAlignmentMismatch": 0.003472222222222222,
+        "camera": "orthographic +Y-up; fixed 1.6m height, ground=0, no per-render auto-fit",
+        "status": "needs-review"
+      }
+    }
+  ],
+  "contract": [
+    "capture fixed front/side/back/three-quarter from the delivered model",
+    "compare against source reference and repository Quality Reference",
+    "record failed regions without hiding them with camera/light changes",
+    "edit the real model in Blender/DCC",
+    "re-export the same candidate package",
+    "re-capture and compare the new model hash",
+    "repeat failed regions only, for at most three rounds"
+  ],
+  "completionRule": "structural validation alone never completes Forge; visual approval remains pending until the fixed-view DCC loop is reviewed"
+}
