@@ -73,6 +73,14 @@ test('existing DEV workflow supports exact source dispatch without changing its 
   assert.match(workflow,/verify-published-app/);
 });
 
+test('autonomous contract selects staged After before merge-owning validation',()=>{
+  const prompt=readFileSync(new URL('../.autonomous/prompts/run-iteration.md',import.meta.url),'utf8');
+  const readme=readFileSync(new URL('../.autonomous/README.md',import.meta.url),'utf8');
+  assert.match(prompt,/After observation is authoring feedback that selects the candidate source/);
+  assert.ok(prompt.indexOf('capture immutable version preview as After') < prompt.indexOf('one exact-head Astra merge validation'));
+  assert.match(readme,/stagingで未採用のdraftを先に正式validationして、観測修正のたびにvalidationを繰り返しません/);
+});
+
 test('controller requires immutable version previews for evidence',()=>{
   const source=readFileSync(new URL('../scripts/autonomous-run-controller.mjs',import.meta.url),'utf8');
   assert.match(source,/cloudflare-worker-version-preview/);
