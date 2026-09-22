@@ -14,9 +14,10 @@ function life(seed=9){const state=createLife({seed});state.phase='living';state.
 function equippedLegacy(state,skills){state.inspiration.legacySkills.push(...skills);state.knownSkills.push(...skills);state.combatLoadout=null;ensureCombatLoadout(state);for(const id of skills)assert.equal(setHeartActive(state,id,true),true);return state;}
 const enemy=(id,x,z)=>({id,x,z,hp:100,maxHp:100,dead:false,cooldown:0,attackWindow:.3,threat:{}});
 
-test('continuous mind vector reacts to learned heart/body choices instead of being only a label',()=>{
-  const state=life();const base=tidebreakMindVectorFor(state);equippedLegacy(state,['skill.read','skill.patience','skill.peripheral']);assert.equal(setBodyChoice(state,'style','counter'),true);const trained=tidebreakMindVectorFor(state);
-  assert.ok(trained.counter>base.counter);assert.ok(trained.guard>base.guard);assert.equal(typeof tidebreakMindsetFromVector(trained),'string');
+test('continuous mind vector comes from selected heart intent while 葬焉 stays a finisher concern',()=>{
+  const state=life();const base=tidebreakMindVectorFor(state);equippedLegacy(state,['skill.read','skill.patience','skill.peripheral']);const trained=tidebreakMindVectorFor(state);
+  assert.ok(trained.counter>base.counter);assert.ok(trained.survival>base.survival);assert.equal(typeof tidebreakMindsetFromVector(trained),'string');
+  assert.equal(setBodyChoice(state,'finisher','kaishaku'),true);assert.deepEqual(tidebreakMindVectorFor(state),trained);
 });
 
 test('stamina exhaustion changes decision policy into recovery instead of allowing a free attack',()=>{
