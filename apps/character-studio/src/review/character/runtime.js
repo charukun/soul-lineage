@@ -10,8 +10,6 @@ import { reviewSettings, createReviewCohort, editReviewCharacter, serializeRevie
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
 import {setReviewStatus} from '@soul/shared-ui/review-status';
-import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
-import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
 
 const el = id => document.getElementById(id);
