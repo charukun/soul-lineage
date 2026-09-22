@@ -16,3 +16,14 @@ main.battle2-review.review-surface>.review-surface__workspace{grid-template-colu
 .battle2-loadout-shell{position:absolute;inset:0;z-index:8;pointer-events:none}
 .battle2-loadout-shell .rinne-core-menu{pointer-events:auto}
 .battle2-loadout-shell .rinne-primary-four{z-index:180!important}
+
+/* Shared snap camera for the canonical 序破急バトル view. */
+.battle2-camera-control-host{
+  position:absolute;z-index:7;
+  top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));
+  width:46px;height:46px;pointer-events:auto;
+}
+.battle2-camera-control-host>.snap-camera-control{
+  position:relative!important;left:auto!important;top:auto!important;
+  width:46px;height:46px;display:grid!important;visibility:visible!important;opacity:1!important;
+}
