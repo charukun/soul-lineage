@@ -1,0 +1,422 @@
+{
+  "schemaVersion": "rinne.character-package/v1",
+  "id": "golden-base-boy-v1",
+  "displayName": "Golden Base Boy v1",
+  "forgeVersion": "1.0.0",
+  "representation": "3d",
+  "reconstructionMode": "multi-view",
+  "sourceViews": {
+    "front": {
+      "source": "source/front.png",
+      "status": "observed",
+      "sha256": "b4f9c3ce99ed2eedcd3fa94f416784ff9b3726166be59988ba6479d1a143bce2",
+      "sheetRect": null
+    },
+    "side": {
+      "source": "source/side.png",
+      "status": "observed",
+      "sha256": "4da3e673cf54879688fcc6bb7b198b2d23d828841a3993bfaf1e1342afa6dfef",
+      "sheetRect": null
+    },
+    "back": {
+      "source": "source/back.png",
+      "status": "observed",
+      "sha256": "1801c59c9e75533468d9f42138b03ba3a310a0254beddcb0b7109fec3271f69c",
+      "sheetRect": null
+    }
+  },
+  "model": {
+    "path": "build/character.glb",
+    "sha256": "fd81bd3e817752bf33acac2372cc8221fdb8f95b2ee62430d692f55c1dc20374"
+  },
+  "skeleton": {
+    "id": "rinne.forge.humanoid.v1",
+    "coordinateSystem": "+Y up, +Z forward",
+    "bindPose": "neutral reference",
+    "bones": [
+      {
+        "name": "root",
+        "parent": null,
+        "position": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "hips",
+        "parent": "root",
+        "position": [
+          0,
+          0.46,
+          0
+        ]
+      },
+      {
+        "name": "spine",
+        "parent": "hips",
+        "position": [
+          0,
+          0.55,
+          0
+        ]
+      },
+      {
+        "name": "chest",
+        "parent": "spine",
+        "position": [
+          0,
+          0.65,
+          0
+        ]
+      },
+      {
+        "name": "neck",
+        "parent": "chest",
+        "position": [
+          0,
+          0.715,
+          0
+        ]
+      },
+      {
+        "name": "head",
+        "parent": "neck",
+        "position": [
+          0,
+          0.785,
+          0
+        ]
+      },
+      {
+        "name": "shoulder.L",
+        "parent": "chest",
+        "position": [
+          0.11696875,
+          0.715,
+          0
+        ]
+      },
+      {
+        "name": "upperArm.L",
+        "parent": "shoulder.L",
+        "position": [
+          0.19494791666666667,
+          0.715,
+          0
+        ]
+      },
+      {
+        "name": "lowerArm.L",
+        "parent": "upperArm.L",
+        "position": [
+          0.19116319444444446,
+          0.54,
+          0
+        ]
+      },
+      {
+        "name": "hand.L",
+        "parent": "lowerArm.L",
+        "position": [
+          0.10309027777777778,
+          0.39,
+          0
+        ]
+      },
+      {
+        "name": "upperLeg.L",
+        "parent": "hips",
+        "position": [
+          0.052083333333333336,
+          0.45,
+          0
+        ]
+      },
+      {
+        "name": "lowerLeg.L",
+        "parent": "upperLeg.L",
+        "position": [
+          0.06770833333333333,
+          0.26,
+          0
+        ]
+      },
+      {
+        "name": "foot.L",
+        "parent": "lowerLeg.L",
+        "position": [
+          0.08333333333333333,
+          0.055,
+          0
+        ]
+      },
+      {
+        "name": "shoulder.R",
+        "parent": "chest",
+        "position": [
+          -0.08988541666666668,
+          0.715,
+          0
+        ]
+      },
+      {
+        "name": "upperArm.R",
+        "parent": "shoulder.R",
+        "position": [
+          -0.1498090277777778,
+          0.715,
+          0
+        ]
+      },
+      {
+        "name": "lowerArm.R",
+        "parent": "upperArm.R",
+        "position": [
+          -0.14949652777777778,
+          0.54,
+          0
+        ]
+      },
+      {
+        "name": "hand.R",
+        "parent": "lowerArm.R",
+        "position": [
+          -0.06142361111111111,
+          0.39,
+          0
+        ]
+      },
+      {
+        "name": "upperLeg.R",
+        "parent": "hips",
+        "position": [
+          -0.034722222222222224,
+          0.45,
+          0
+        ]
+      },
+      {
+        "name": "lowerLeg.R",
+        "parent": "upperLeg.R",
+        "position": [
+          -0.050347222222222224,
+          0.26,
+          0
+        ]
+      },
+      {
+        "name": "foot.R",
+        "parent": "lowerLeg.R",
+        "position": [
+          -0.046875,
+          0.055,
+          0
+        ]
+      }
+    ],
+    "jointStatus": "inferred",
+    "skin": "linear-blend"
+  },
+  "animations": [
+    {
+      "name": "Idle",
+      "duration": 3,
+      "loop": true,
+      "status": "generated"
+    },
+    {
+      "name": "Walk",
+      "duration": 1,
+      "loop": true,
+      "status": "generated"
+    },
+    {
+      "name": "Talk",
+      "duration": 2,
+      "loop": true,
+      "status": "generated"
+    },
+    {
+      "name": "Attack",
+      "duration": 0.85,
+      "loop": false,
+      "status": "generated"
+    },
+    {
+      "name": "Hit",
+      "duration": 0.5,
+      "loop": false,
+      "status": "generated"
+    },
+    {
+      "name": "Rest",
+      "duration": 2.4,
+      "loop": true,
+      "status": "generated"
+    },
+    {
+      "name": "Run",
+      "duration": 0.65,
+      "loop": true,
+      "status": "generated"
+    },
+    {
+      "name": "Pickup",
+      "duration": 1.5,
+      "loop": false,
+      "status": "generated"
+    },
+    {
+      "name": "Jump",
+      "duration": 1,
+      "loop": false,
+      "status": "generated"
+    },
+    {
+      "name": "Fall",
+      "duration": 1,
+      "loop": true,
+      "status": "generated"
+    }
+  ],
+  "sockets": {
+    "definitions": {
+      "rightHand": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "leftHand": {
+        "bone": "hand.L",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "weapon": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "secondaryGripTarget": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "weaponHitboxAnchor": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0.18,
+          0
+        ]
+      },
+      "trailOrigin": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0.7,
+          0
+        ]
+      },
+      "heldItemAnchor": {
+        "bone": "hand.L",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "talkAnchor": {
+        "bone": "head",
+        "offset": [
+          0,
+          0.24,
+          0
+        ]
+      }
+    },
+    "aliases": {
+      "handR": "rightHand",
+      "handL": "leftHand",
+      "offhand": "leftHand",
+      "secondaryGrip": "secondaryGripTarget",
+      "weaponHitbox": "weaponHitboxAnchor",
+      "hitbox": "weaponHitboxAnchor",
+      "heldItem": "heldItemAnchor"
+    }
+  },
+  "scale": {
+    "unit": "metre",
+    "height": 1.6
+  },
+  "bounds": {
+    "min": [
+      -0.49444442987442017,
+      0.00800000037997961,
+      -0.3157200813293457
+    ],
+    "max": [
+      0.4888888895511627,
+      1.600000023841858,
+      0.2944444417953491
+    ]
+  },
+  "presentation": {
+    "headAnchor": [
+      0,
+      1.2560000000000002,
+      0
+    ],
+    "bodyCenter": [
+      -0.002777770161628723,
+      0.8040000121109188,
+      -0.010637819766998291
+    ],
+    "focusTarget": [
+      0,
+      0.8,
+      0
+    ],
+    "groundPoint": [
+      0,
+      0,
+      0
+    ]
+  },
+  "reviewStatus": "review-candidate",
+  "visualApproval": "pending",
+  "productionReady": false,
+  "provenance": {
+    "author": "RINNE project user-provided reference",
+    "source": "Golden Base Boy v1 turnaround supplied directly in the Character Create Forge task",
+    "license": "RINNE-OWNED",
+    "authorization": "Explicit user instruction to build and register Golden Base Boy v1 from the supplied turnaround",
+    "generator": "RINNE-owned procedural pipeline",
+    "sourceHashes": {
+      "front": "b4f9c3ce99ed2eedcd3fa94f416784ff9b3726166be59988ba6479d1a143bce2",
+      "side": "4da3e673cf54879688fcc6bb7b198b2d23d828841a3993bfaf1e1342afa6dfef",
+      "back": "1801c59c9e75533468d9f42138b03ba3a310a0254beddcb0b7109fec3271f69c"
+    }
+  },
+  "validationStatus": "passed",
+  "validationReport": "validation-report.json",
+  "qualityRefinement": "review/quality-refinement.json",
+  "reconstructionSpec": "spec/reconstruction.json",
+  "comparisons": {
+    "front": "review/comparisons/front-silhouette-overlay.png",
+    "side": "review/comparisons/side-silhouette-overlay.png",
+    "back": "review/comparisons/back-silhouette-overlay.png"
+  }
+}

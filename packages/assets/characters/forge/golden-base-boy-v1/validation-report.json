@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "rinne.character-forge-validation/v1",
+  "structuralStatus": "passed",
+  "visualStatus": "needs-human-review",
+  "reviewStatus": "review-candidate",
+  "productionReady": false,
+  "modelSha256": "fd81bd3e817752bf33acac2372cc8221fdb8f95b2ee62430d692f55c1dc20374",
+  "performance": {
+    "triangles": 13056,
+    "vertices": 6832,
+    "materials": 1,
+    "textures": 1,
+    "textureDimensions": [
+      [
+        480,
+        384
+      ]
+    ],
+    "approximateDrawCalls": 16,
+    "glbSize": 620796
+  },
+  "comparisons": {
+    "front": {
+      "silhouetteMismatch": 0.1821644058367924,
+      "iou": 0.8178355941632076,
+      "heightMismatch": 0.0,
+      "headBodyProportionMismatch": 0.014283829656781766,
+      "groundAlignmentMismatch": 0.003472222222222222,
+      "camera": "orthographic +Y-up; fixed 1.6m height, ground=0, no per-render auto-fit",
+      "status": "diagnostic-pass"
+    },
+    "side": {
+      "silhouetteMismatch": 0.12847470688611218,
+      "iou": 0.8715252931138878,
+      "heightMismatch": 0.0,
+      "headBodyProportionMismatch": 0.03191438045909617,
+      "groundAlignmentMismatch": 0.003472222222222222,
+      "camera": "orthographic +Y-up; fixed 1.6m height, ground=0, no per-render auto-fit",
+      "status": "diagnostic-pass"
+    },
+    "back": {
+      "silhouetteMismatch": 0.6285257391718553,
+      "iou": 0.37147426082814466,
+      "heightMismatch": 0.0,
+      "headBodyProportionMismatch": 0.015544484554641302,
+      "groundAlignmentMismatch": 0.003472222222222222,
+      "camera": "orthographic +Y-up; fixed 1.6m height, ground=0, no per-render auto-fit",
+      "status": "needs-review"
+    }
+  },
+  "sideDepthDiagnostics": {
+    "forehead": {
+      "referenceFrontDepth": 0.1388888888888889,
+      "referenceBackDepth": 0.16319444444444445,
+      "modelFrontDepth": 0.15104166232049465,
+      "modelBackDepth": 0.19205430522561073,
+      "frontMismatch": 0.012152773431605757,
+      "backMismatch": 0.028859860781166286,
+      "centerMismatch": 0.008353543674780264,
+      "status": "diagnostic-pass"
+    },
+    "eyePlane": {
+      "referenceFrontDepth": 0.16666666666666666,
+      "referenceBackDepth": 0.1840277777777778,
+      "modelFrontDepth": 0.1770833320915699,
+      "modelBackDepth": 0.19732505083084106,
+      "frontMismatch": 0.010416665424903243,
+      "backMismatch": 0.013297273053063274,
+      "centerMismatch": 0.0014403038140800156,
+      "status": "diagnostic-pass"
+    },
+    "cheek": {
+      "referenceFrontDepth": 0.17708333333333334,
+      "referenceBackDepth": 0.1840277777777778,
+      "modelFrontDepth": 0.1840277761220932,
+      "modelBackDepth": 0.19418448209762573,
+      "frontMismatch": 0.006944442788759858,
+      "backMismatch": 0.010156704319847942,
+      "centerMismatch": 0.001606130765544042,
+      "status": "diagnostic-pass"
+    },
+    "nose": {
+      "referenceFrontDepth": 0.1840277777777778,
+      "referenceBackDepth": 0.1840277777777778,
+      "modelFrontDepth": 0.1840277761220932,
+      "modelBackDepth": 0.19148124381899834,
+      "frontMismatch": 1.6556845894299954e-09,
+      "backMismatch": 0.007453466041220547,
+      "centerMismatch": 0.003726733848452568,
+      "status": "diagnostic-pass"
+    },
+    "mouthPlane": {
+      "referenceFrontDepth": 0.1840277777777778,
+      "referenceBackDepth": 0.1840277777777778,
+      "modelFrontDepth": 0.1840277761220932,
+      "modelBackDepth": 0.18626026809215546,
+      "frontMismatch": 1.6556845894299954e-09,
+      "backMismatch": 0.0022324903143776664,
+      "centerMismatch": 0.001116245985031128,
+      "status": "diagnostic-pass"
+    },
+    "jaw": {
+      "referenceFrontDepth": 0.1840277777777778,
+      "referenceBackDepth": 0.1840277777777778,
+      "modelFrontDepth": 0.1840277761220932,
+      "modelBackDepth": 0.18535777926445007,
+      "frontMismatch": 1.6556845894299954e-09,
+      "backMismatch": 0.0013300014866722831,
+      "centerMismatch": 0.0006650015711784363,
+      "status": "diagnostic-pass"
+    },
+    "chin": {
+      "referenceFrontDepth": 0.1840277777777778,
+      "referenceBackDepth": 0.1840277777777778,
+      "modelFrontDepth": 0.1840277761220932,
+      "modelBackDepth": 0.1844189316034317,
+      "frontMismatch": 1.6556845894299954e-09,
+      "backMismatch": 0.00039115382565391155,
+      "centerMismatch": 0.0001955777406692505,
+      "status": "diagnostic-pass"
+    },
+    "chest": {
+      "referenceFrontDepth": 0.1597222222222222,
+      "referenceBackDepth": 0.1076388888888889,
+      "modelFrontDepth": 0.1684027723968029,
+      "modelBackDepth": 0.1406249962747097,
+      "frontMismatch": 0.008680550174580692,
+      "backMismatch": 0.032986107385820806,
+      "centerMismatch": 0.012152778605620057,
+      "status": "diagnostic-pass"
+    },
+    "waist": {
+      "referenceFrontDepth": 0.0763888888888889,
+      "referenceBackDepth": 0.06944444444444445,
+      "modelFrontDepth": 0.086805559694767,
+      "modelBackDepth": 0.06944444496184587,
+      "frontMismatch": 0.010416670805878103,
+      "backMismatch": 5.174014272579797e-10,
+      "centerMismatch": 0.005208335144238338,
+      "status": "diagnostic-pass"
+    },
+    "pelvis": {
+      "referenceFrontDepth": 0.09027777777777778,
+      "referenceBackDepth": 0.06597222222222222,
+      "modelFrontDepth": 0.09027778171002865,
+      "modelBackDepth": 0.07291666697710752,
+      "frontMismatch": 3.9322508721406635e-09,
+      "backMismatch": 0.006944444754885301,
+      "centerMismatch": 0.0034722204113172145,
+      "status": "diagnostic-pass"
+    }
+  },
+  "errors": [],
+  "warnings": [
+    "back silhouette mismatch exceeds 0.30"
+  ],
+  "limitations": [
+    "Silhouette rasterization is deterministic CPU projection of delivered GLB triangles, not physical-device or perceptual acceptance",
+    "Numeric validation cannot complete the DCC quality refinement loop",
+    "Concavity, asymmetric hidden surfaces, finger topology and foot contact remain unapproved"
+  ]
+}
