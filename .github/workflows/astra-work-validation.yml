@@ -44,7 +44,7 @@ jobs:
           else
             git config remote.origin.promisor true
             git config remote.origin.partialclonefilter blob:none
-            git fetch --filter=blob:none --no-tags --depth=1 origin "$HEAD_SHA"
+            git fetch --filter=blob:none --no-tags --depth=8 origin "$HEAD_SHA" "develop:refs/remotes/origin/develop" "${GITHUB_REF_NAME}:refs/remotes/origin/${GITHUB_REF_NAME}"
             git sparse-checkout set --no-cone '*.js' '*.mjs' '*.cjs' 'package.json' 'package-lock.json' '.github/workflows/astra-work-validation.yml' 'scripts/'
             git checkout --detach "$HEAD_SHA"
           fi
@@ -53,7 +53,9 @@ jobs:
         run: |
           set -euo pipefail
           depth=8
-          git fetch --no-tags --depth="$depth" origin             "develop:refs/remotes/origin/develop"             "${GITHUB_REF_NAME}:refs/remotes/origin/${GITHUB_REF_NAME}"
+          if ! git show-ref --verify --quiet refs/remotes/origin/develop; then
+            git fetch --no-tags --depth="$depth" origin "develop:refs/remotes/origin/develop" "${GITHUB_REF_NAME}:refs/remotes/origin/${GITHUB_REF_NAME}"
+          fi
           while ! base="$(git merge-base origin/develop HEAD 2>/dev/null)"; do
             if [ "$depth" -ge 256 ]; then
               echo "Unable to recover merge-base within bounded Fast DEV history." >&2
@@ -100,8 +102,10 @@ jobs:
             },body:JSON.stringify({context,state,description,target_url:target})});
             if(!res.ok)throw new Error(`status ${context}: ${res.status} ${await res.text()}`);
           }
-          await post('astra/fast-dev-contract','error','FAST_DEV_CONTRACT_VIOLATION: repair same branch and revalidate');
-          await post('astra/focused-validation','error','Skipped: Fast DEV execution expansion must be repaired first');
+          await Promise.all([
+            post('astra/fast-dev-contract','error','FAST_DEV_CONTRACT_VIOLATION: repair same branch and revalidate'),
+            post('astra/focused-validation','error','Skipped: Fast DEV execution expansion must be repaired first')
+          ]);
           })().catch(error=>{console.error(error);process.exit(1);});
           NODE
       - name: Resolve Astra-selected focused validation
@@ -146,8 +150,13 @@ jobs:
             const packages=[...nodes.values()].filter(n=>n.group==='packages'&&paths.some(p=>p.startsWith(`${n.dir}/`)&&!p.endsWith('/README.md'))).map(n=>n.name);
             return {apps,packages,infrastructure,controlPlane:paths.some(ws.toolingPath)&&!infrastructure,paths};
           };
-          git(['fetch','--no-tags','origin','develop:refs/remotes/origin/develop']);
-          const developSha=git(['rev-parse','origin/develop']);
+          const observedDevelop=git(['rev-parse','origin/develop']);
+          const refResponse=await fetch(`${api}/repos/${repo}/git/ref/heads/develop`,{headers:{
+            authorization:`Bearer ${process.env.GITHUB_TOKEN}`,'x-github-api-version':'2022-11-28'
+          }});
+          if(!refResponse.ok)throw new Error(`develop ref: ${refResponse.status} ${await refResponse.text()}`);
+          const developSha=(await refResponse.json()).object.sha;
+          if(developSha!==observedDevelop)git(['fetch','--no-tags','origin','develop:refs/remotes/origin/develop']);
           let reusable=isAncestor(developSha,sha);
           let reason=reusable?'current-develop-contained':'';
           if(!reusable){
@@ -167,15 +176,16 @@ jobs:
               }catch{ reason='merge-conflict'; }
             }
           }
-          await post('astra/fast-dev-contract','success','Fast DEV execution contract is clean');
-          await post('astra/merge-freshness',reusable?'success':'error',
-            (reusable?(reason==='current-develop-contained'?'Validated head contains current develop':'Independent develop drift; validation reusable'):`ASTRA_REVALIDATE_REQUIRED: ${reason}`).slice(0,140));
-          if(!reusable){
-            await post('astra/focused-validation','error','Develop drift conflicts or overlaps validated impact; reconcile and revalidate');
-            throw new Error(`ASTRA_REVALIDATE_REQUIRED: ${reason}`);
-          }
-          await post('astra/focused-validation','success',
-            reason==='current-develop-contained'?'Astra-selected exact-head validation passed':'Astra validation reused across independent develop drift');
+          const freshnessDescription=(reusable?(reason==='current-develop-contained'?'Validated head contains current develop':'Independent develop drift; validation reusable'):`ASTRA_REVALIDATE_REQUIRED: ${reason}`).slice(0,140);
+          await Promise.all([
+            post('astra/fast-dev-contract','success','Fast DEV execution contract is clean'),
+            post('astra/merge-freshness',reusable?'success':'error',freshnessDescription),
+            post('astra/focused-validation',reusable?'success':'error',
+              reusable
+                ? (reason==='current-develop-contained'?'Astra-selected exact-head validation passed':'Astra validation reused across independent develop drift')
+                : 'Develop drift conflicts or overlaps validated impact; reconcile and revalidate')
+          ]);
+          if(!reusable)throw new Error(`ASTRA_REVALIDATE_REQUIRED: ${reason}`);
           })().catch(error=>{console.error(error);process.exit(1);});
           NODE
       - name: Record final-head validation failure
