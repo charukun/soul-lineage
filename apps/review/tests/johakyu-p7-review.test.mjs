@@ -247,7 +247,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.16');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.17');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -316,6 +316,24 @@ test('battle2 defaults to defense, retreats on broken chains, and makes landed h
  assert.match(source,/DEFENSE_COOLDOWN=Object\.freeze\(\{guard:\.24,parry:\.3,slip:\.2\}\)/);assert.match(source,/cycle=\['parry','slip','guard'\]/);
  assert.match(source,/reason:'combo-break-retreat',footwork:'retreat'/);assert.match(source,/reactionCooldowns\.set\(target\.id/);
  assert.match(source,/heavy:24/);assert.match(source,/counter:21/);assert.match(source,/damage\*1\.4/);
+});
+
+test('burst choreography gives player varied non-horizontal attacks and enemies a distinct attack set',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(source,/HERO_BURST_PRESENTATION/);assert.match(source,/1H_Melee_Attack_Slice_Diagonal/);assert.match(source,/1H_Melee_Attack_Stab/);assert.match(source,/1H_Melee_Attack_Chop/);
+ assert.match(source,/ENEMY_BURST_PRESENTATION/);assert.match(source,/1H_Melee_Attack_Jump_Chop/);assert.match(source,/1H_Melee_Attack_Slice_Horizontal/);
+ assert.match(source,/presentationClip/);assert.match(runtime,/row\.action\?\.presentationClip/);
+});
+
+test('phase cue glow visibly blinks instead of holding a steady emissive level',()=>{
+ const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(runtime,/cueBlink/);assert.match(runtime,/Math\.sin\(cueProgress\*Math\.PI\*6\)/);assert.match(runtime,/cueColor&&cueBlink/);
+});
+
+test('battle2 enemy respawn reuses the battlebk ground-spawn animation and timing',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(source,/spawnStyle:actor\.side==='enemy'\?'battlebk-ground':null/);assert.match(source,/seedReadyWindow\(\.82\)/);
+ assert.match(runtime,/spawnStyle==='battlebk-ground'/);assert.match(runtime,/Spawn_Ground_Skeletons/);assert.match(runtime,/spawnClip\?\.8:0/);
 });
 
 test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});

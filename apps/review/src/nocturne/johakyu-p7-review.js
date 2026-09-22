@@ -22,6 +22,21 @@ const PHASE_CUE_SECONDS=.5,PHASE_CUE_PRESENTATION=Object.freeze({jo:Object.freez
 const REACTION_SECONDS=Object.freeze({guard:.36,parry:.32,slip:.3,counter:.52}),DEFENSE_COOLDOWN=Object.freeze({guard:.24,parry:.3,slip:.2}),HEAVY_THREATS=new Set(['heavy','sweep','bash','pommel']);
 const DEFENSE_WINDOW=Object.freeze({guard:[0,.98],brace:[0,.98],parry:[.04,.92],slip:[0,.76]});
 const FOOTWORK_SPEED=Object.freeze({stay:0,forward:.72,chase:1.08,rush:1.5,retreat:.96,sideL:.82,sideR:.82,orbitL:.58,orbitR:.58,cross:.82,spiral:.9,counterL:1.08,counterR:1.08});
+const HERO_BURST_PRESENTATION=Object.freeze({
+  jo:Object.freeze(['1H_Melee_Attack_Slice_Diagonal','1H_Melee_Attack_Stab','1H_Melee_Attack_Chop']),
+  ha:Object.freeze(['1H_Melee_Attack_Stab','1H_Melee_Attack_Chop','1H_Melee_Attack_Slice_Diagonal']),
+  kyu:Object.freeze(['1H_Melee_Attack_Chop','1H_Melee_Attack_Stab','1H_Melee_Attack_Slice_Diagonal']),
+});
+const ENEMY_BURST_PRESENTATION=Object.freeze({
+  jo:Object.freeze(['1H_Melee_Attack_Chop','1H_Melee_Attack_Slice_Horizontal','1H_Melee_Attack_Jump_Chop']),
+  ha:Object.freeze(['1H_Melee_Attack_Jump_Chop','1H_Melee_Attack_Chop','1H_Melee_Attack_Slice_Horizontal']),
+  kyu:Object.freeze(['1H_Melee_Attack_Slice_Horizontal','1H_Melee_Attack_Jump_Chop','1H_Melee_Attack_Chop']),
+});
+function burstPresentationClip(actor,phase,stageIndex,fallback){
+  if(actor?.equipment?.weapon!=='sword')return fallback;
+  const table=actor.side==='party'?HERO_BURST_PRESENTATION:ENEMY_BURST_PRESENTATION;
+  return table[phase]?.[Math.max(0,stageIndex)%3]??fallback;
+}
 
 function buildComposition(rows,weapon='sword'){
   const composition=createReviewTechniqueComposition();
@@ -168,7 +183,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     cursors.set('hero',{comboStyle,phaseIndex:PHASES.indexOf(heroStartPhase),techniqueIndex:heroStartTechniqueIndex,stageIndex:0,cycle:0});
     if(mode==='duel')positions.set('enemy-a',{x:LAYOUT.hero.x,z:LAYOUT.hero.z+duelGap});
     if(carry)for(const [id,row] of carry)if(positions.has(id)&&row.position)positions.set(id,{...row.position});
-    lastEvents=[];resumed=false;revision=0;attemptSerial=0;seedReadyWindow(.34);
+    lastEvents=[];resumed=false;revision=0;attemptSerial=0;seedReadyWindow(.82);
     if(mode==='duel'){
       const hero=battle.actors.get('hero'),enemy=battle.actors.get('enemy-a');
       updateExchange(hero,enemy,{type:'normal-start',phase:'jo',seeded:true});
@@ -320,10 +335,11 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
         footwork:state.footwork??(state.reactionKind==='counter'?'forward':'stay'),progress,duration:state.duration,motion:state.motion,legal:true,scope:'combat-reaction',reaction:state.reactionKind,parryDirection:state.parryDirection??null};
     }
     const {node}=state;
+    const presentationClip=comboStyle==='burst'&&stageDamage(node.stage)>0?burstPresentationClip(actor,node.phase,node.stage.index,state.motion.clip):state.motion.clip;
     return{id:state.id,targetId:state.targetId,techniqueId:node.technique.id,name:node.technique.name,phase:node.phase,step:node.stage.index,
       stageIndex:node.stage.index,stageLabel:node.stage.label,techniqueIndex:node.chain.indexOf(node.technique),chainLength:node.chain.length,
       chainLabel:reviewChainLabel(node.phase,node.chain.length),cycle:cursorFor(actor).cycle,footwork:node.stage.step.footwork,
-      progress,duration:state.duration,motion:state.motion,legal:true,scope:state.transition?'combat-counter-transition':'review-technique-composition'};
+      progress,duration:state.duration,motion:state.motion,presentationClip,legal:true,scope:state.transition?'combat-counter-transition':'review-technique-composition'};
   }
   function nextAction(actor){
     if(actor.dead||actor.incapacitated)return null;
@@ -548,7 +564,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
   function frame(actions){
     const actors=[...battle.actors.values()].map(actor=>{
       const action=actions.get(actor.id)??null,phaseCue=!action?phaseCueFor(actor):null,maneuver=!action&&!phaseCue?activeManeuver(actor):null,capability=johakyuActorCapability(actor);
-      return{id:actor.id,side:actor.side,self:actor.id==='hero',kind:actor.side==='party'?'hero':'enemy',boss:actor.id==='enemy-c',position:positionFor(actor),yaw:facingYaw(actor),hp:actor.hp,maxHp:actor.maxHp,body:bodyView(actor),stamina:{value:actor.stamina,cap:actor.staminaCap},capability:{canMove:capability.canMove,canAttack:capability.canAttack,stamina:capability.stamina},equipment:{...actor.equipment},moving:Boolean(capability.canMove&&!phaseCue&&(action&&action.footwork!=='stay'||maneuver)),locomotion:!action&&!phaseCue?locomotionFor(actor):null,resting:false,dead:actor.dead,downed:actor.incapacitated,hit:false,ageYears:actor.side==='party'?28:0,phaseCue,action};
+      return{id:actor.id,side:actor.side,self:actor.id==='hero',kind:actor.side==='party'?'hero':'enemy',boss:actor.id==='enemy-c',position:positionFor(actor),yaw:facingYaw(actor),hp:actor.hp,maxHp:actor.maxHp,body:bodyView(actor),stamina:{value:actor.stamina,cap:actor.staminaCap},capability:{canMove:capability.canMove,canAttack:capability.canAttack,stamina:capability.stamina},equipment:{...actor.equipment},spawnStyle:actor.side==='enemy'?'battlebk-ground':null,moving:Boolean(capability.canMove&&!phaseCue&&(action&&action.footwork!=='stay'||maneuver)),locomotion:!action&&!phaseCue?locomotionFor(actor):null,resting:false,dead:actor.dead,downed:actor.incapacitated,hit:false,ageYears:actor.side==='party'?28:0,phaseCue,action};
     });
     return freeze({version:1,authority:'rinne-domain',reviewFixture:'p7-technique-composition',reviewMode:mode,battleId:battle.battleId,epoch,revision,status:battle.result?(battle.result.winner==='party'?'won':'lost'):'battle',actors,obstacles:[],projectiles:[],result:battle.result??{cleared:false,defeats:0,returns:resumes}});
   }
