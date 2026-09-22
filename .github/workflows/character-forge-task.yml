@@ -12,12 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
-      SOURCE_SHA: c8117c7e28b4e1c5d6024fc92cd5200559ca1db0
+      SOURCE_SHA: a2d1ace05fcf81b51a69577640f9af92a867815c
       APP_ENV: dev
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: c8117c7e28b4e1c5d6024fc92cd5200559ca1db0
+          ref: a2d1ace05fcf81b51a69577640f9af92a867815c
           fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
