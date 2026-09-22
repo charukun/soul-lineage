@@ -138,13 +138,22 @@ export function buildDevelopmentSessions(pulls=[],runs=[],{limit=8}={}){
       ]);
     }
     const failedAttempts=validations.filter(run=>FAILED.has(run.conclusion)).length;
+    const lastFailure=latest(matched.filter(run=>FAILED.has(run.conclusion)));
+    const failureView=lastFailure?Object.freeze({
+      workflow:lastFailure.name||lastFailure.display_title||'GitHub Actions',
+      conclusion:lastFailure.conclusion||null,
+      runId:lastFailure.id||null,
+      url:lastFailure.html_url||null,
+      headSha:lastFailure.head_sha||null,
+      at:lastFailure.updated_at||lastFailure.created_at||null,
+    }):null;
     const updatedAt=[pr.updated_at,pr.merged_at,...matched.map(run=>run.updated_at||run.created_at)].filter(Boolean).sort((a,b)=>at(b)-at(a))[0]||null;
     sessions.push(Object.freeze({
       pr:Object.freeze({number:pr.number,url:pr.html_url||null}),
       title:pr.title||('PR #'+pr.number),state,status:sessionStatus(steps,merged),branch:pr.head?.ref||null,
       headSha:head,mergeSha:merge,validatedExactHead:exactSuccess?.head_sha||null,browserRequired:needsBrowser,
       autonomous,iterationSteps,
-      repairAttempts:failedAttempts,targets:(pr.targetApps||[]).slice(0,4).map(target=>({id:target.id,label:target.label})),
+      repairAttempts:failedAttempts,lastFailure:failureView,targets:(pr.targetApps||[]).slice(0,4).map(target=>({id:target.id,label:target.label})),
       updatedAt,steps:Object.freeze(steps),
     }));
     if(sessions.length>=limit)break;
@@ -187,6 +196,7 @@ function iterationView(session){
     branch:session.branch,
     title:session.title,
     repairAttempts:session.repairAttempts,
+    lastFailure:session.lastFailure||null,
     targets:session.targets,
     steps:Object.freeze(steps),
   });
@@ -197,9 +207,8 @@ export function buildAutonomousIterations(pulls=[],runs=[],{limit=40}={}){
     .filter(session=>session.autonomous)
     .map(iterationView)
     .sort((a,b)=>{
-      const activeA=['running','active','publishing','problem'].includes(a.status)?0:1;
-      const activeB=['running','active','publishing','problem'].includes(b.status)?0:1;
-      return activeA-activeB||at(b.updatedAt)-at(a.updatedAt)||Number(b.pr?.number||0)-Number(a.pr?.number||0);
+      const rank=status=>({problem:0,running:1,active:1,publishing:2,complete:3})[status]??4;
+      return rank(a.status)-rank(b.status)||at(b.updatedAt)-at(a.updatedAt)||Number(b.pr?.number||0)-Number(a.pr?.number||0);
     })
     .slice(0,limit));
 }

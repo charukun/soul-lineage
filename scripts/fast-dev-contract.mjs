@@ -117,6 +117,9 @@ export function inspectAuthorizedFastDevContraction(base, head) {
     '.github/workflows/astra-work-validation.yml',
     'scripts/fast-dev-contract.mjs',
     'scripts/astra-focused-validation.mjs',
+    'scripts/actions-result-summary.mjs',
+    'scripts/lib/actions-summary-core.mjs',
+    'tests/actions-result-summary.test.mjs',
     'AGENTS.md',
     'docs/DEVELOPMENT.md',
     'docs/DEVELOP_MERGE.md',
@@ -131,7 +134,7 @@ export function inspectAuthorizedFastDevContraction(base, head) {
   for (const row of changedRows(branchBase,head)) {
     if (!row.path || allowedChanges.has(row.path)) continue;
     if (/^apps\/[^/]+\/package\.json$/.test(row.path)) violations.push(...lifecycleViolations(branchBase,head,row.path));
-    else violations.push({code:'CONTRACTION_SCOPE_EXPANDED',path:row.path,detail:'Fast DEV contraction may only change the validation workflow, its anti-expansion contract, focused runner, and execution docs.'});
+    else violations.push({code:'CONTRACTION_SCOPE_EXPANDED',path:row.path,detail:'Fast DEV contraction may only change the validation workflow, anti-expansion contract, focused runner, status-first Actions inspector, its focused test, and execution docs.'});
   }
   const workflow=readAt(head,'.github/workflows/astra-work-validation.yml')||'';
   for (const token of ['fetch-depth: 1','scripts/astra-focused-validation.mjs plan','scripts/astra-focused-validation.mjs run','needs_install','npm ci --ignore-scripts','astra/merge-freshness','ASTRA_REVALIDATE_REQUIRED']) {

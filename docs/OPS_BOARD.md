@@ -89,6 +89,36 @@ telemetryに実測durationがあるstepは秒数を折れ線グラフで表示�
 トップ画面は最大3件の軽量サマリに留め、詳細な改修内容・step timing・並行session確認は専用ページへ委譲します。
 
 
+
+### Iteration操作性
+
+トップのITERATIONSは「一覧を見る」ための軽量面とし、1行タップで専用ページの該当iterationへ直接移動できること。各行は対象gameと現在stepを優先表示し、telemetryにgameがある場合は `対象確認中` を表示しない。
+
+並び順は異常、進行中、DEV公開中、完了の優先度とし、件数表示も総数だけでなくRunning / Issues / Doneの内訳を示す。現在stepは `NOW: <step> <elapsed>` として一目で分かる表示にする。repairAttemptsは機械語の `repair N` ではなく、実態に合わせて `再検証 N回` と表示する。
+
+専用iterationsページはURL fragmentで1 iterationを直接指定でき、遷移後に対象カードを画面内へ表示する。異常iterationには、その `runKey / iteration / PR / currentStep / failed step / validated head / last failure` を参考snapshotとして含む修復プロンプトのコピー操作を出す。プロンプトは必ず現在GitHub状態とactions summaryを再確認させ、PULSE snapshotだけで修復判断を確定しない。
+
+
+
+### トップ一覧の共通進捗グラフ
+
+ACTIVEとITERATIONSは同じ視覚言語で進捗を読めるようにする。各一覧行は共通のmini progress sparklineを持ち、step順序に対する `done / running / problem / pending` を線と点で表す。mini graphは「進捗の位置」を見るためのもので、詳細な所要時間比較は `iterations.html` のduration graphへ委譲する。
+
+ACTIVEはFast DEVの `実装 → 検証 → Browser → merge → DEV`、ITERATIONSは自律iterationの代表stepを同じrendererで表示する。状態の意味は共通化するが、存在しないstepや未計測時間を推測して埋めない。
+
+
+
+### 一覧カードの視線設計
+
+ACTIVEとITERATIONSの一覧カードは、スマートフォンで `現在地 → タスク名 → 対象/時刻 → mini progress` の順に認識できる情報階層にする。
+
+- タスク名は一覧の主情報として十分な文字サイズを確保し、1行固定で潰さず最大2行まで許容する。
+- 現在stepは小さなmetadataへ埋めず、`NOW / ISSUE / DONE` とstep名・経過時間を独立したcurrent bandとして強調する。
+- SHA、再検証回数、対象、更新時刻はcurrent bandやタイトルより弱い補助情報とする。
+- mini progressは現在地を補助するsparklineとし、current pointだけを強調する。グラフ自体がタイトルや現在地より目立たないこと。
+- 一覧行同士はカードとして十分に分離しつつ、内部余白は情報群ごとに意味のあるまとまりを作る。無意味な均等余白で縦長にしない。
+
+
 ## 7. PULSE公開成功
 
 PULSEのstatic assetが配られただけでは正常とは扱いません。

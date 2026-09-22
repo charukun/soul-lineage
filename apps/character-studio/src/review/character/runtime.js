@@ -9,13 +9,14 @@ import { reviewSettings, createReviewCohort, editReviewCharacter, serializeRevie
   reviewGlbDocument, MAX_MODEL_BYTES, MAX_SESSION_BYTES } from './state.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
+import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
 
 const el = id => document.getElementById(id);
 const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null, displayModelId: null };
 window.masterCharacterReview = review;
 const modelLoads=createReviewLoadController();
-const status = (message, isError = false) => { el('status').textContent = message; el('status').dataset.error = String(isError); };
+const status = (message, isError = false) => setReviewStatus(el('status'), message, {error:isError});
 const report = error => { const message = String(error?.message ?? error); review.errors.push(message); if (review.errors.length > 100) review.errors.shift(); status(`エラー: ${message}`, true); };
 const download = (blob, name) => {
   const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = name;

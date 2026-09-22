@@ -11,7 +11,8 @@
     "./stamina": "./src/stamina.js",
     "./motion-contract": "./src/motion-contract.js",
     "./technique-composition": "./src/technique-composition.js",
-    "./execution-capability": "./src/execution-capability.js"
+    "./execution-capability": "./src/execution-capability.js",
+    "./exchange-policy": "./src/exchange-policy.js"
   },
   "dependencies": {
     "@soul/game-data": "*"

@@ -3,12 +3,6 @@
   "game": "kuumetsu",
   "recent": [
     {
-      "id": "kuumetsu-plan-chapter-binding-20260920",
-      "problemKey": "settlement-plan-chapter-forgery",
-      "path": "experiments/kuumetsu-plan-chapter-binding-20260920.json",
-      "verdict": "pending"
-    },
-    {
       "id": "kuumetsu-route-fail-closed-20260920",
       "problemKey": "invalid-hunt-route-silent-fallback",
       "path": "experiments/kuumetsu-route-fail-closed-20260920.json",
@@ -107,6 +101,16 @@
       ],
       "path": "experiments/kuumetsu-live-lineage-20260922.json",
       "schemaVersion": 2
+    },
+    {
+      "id": "kuumetsu-first-combat-agency-20260922",
+      "themeKey": "first-combat-agency-clarity",
+      "problemKeys": [
+        "first-hunt-guide-omits-auto-combat-contract",
+        "combat-readout-shows-state-not-player-agency"
+      ],
+      "path": "experiments/kuumetsu-first-combat-agency-20260922.json",
+      "schemaVersion": 3
     }
   ],
   "archive": {
