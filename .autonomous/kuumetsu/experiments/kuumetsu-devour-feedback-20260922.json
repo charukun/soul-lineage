@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 3,
+  "id": "kuumetsu-devour-feedback-20260922",
+  "game": "kuumetsu",
+  "mode": "evolution",
+  "kind": "gameplay",
+  "themeKey": "devour-state-and-reward-legibility",
+  "definedAt": "2026-09-22T01:24:15.875Z",
+  "experienceGoal": {
+    "playerProblem": "戦闘に勝ったあと操作が止まる理由と捕食の進み具合、完了後に何を得たかが画面から読み取れず、待つべきか次の行動へ戻ったか判断できない。",
+    "targetState": "捕食中は捕食状態とネイティブの進行が見え、完了後は獲得した特能・成長・未確保戦利品と、再びスワイプで移動できることが分かる。",
+    "successSignals": [
+      "実際の捕食中、近づく段階と捕食の進行が画面に表示され、止まって待つ状態とスワイプによる中断を判断できる。",
+      "実際の捕食完了後、獲得した特能・成長・未確保戦利品と移動再開の案内が読める。完了前や中断時に報酬を表示せず、戦利品を確保済み扱いしない。"
+    ]
+  },
+  "observation": {
+    "summary": "固定developのnative playで2人を捕食。03-play-05..08はdevouring=true、実進行0.175→0.841なのに画面に捕食進行がない。03-play-09/18では捕食完了・成長・未確保戦利品がnative stateに反映され、短い報酬toastはDOMに残るがviewportでは読めない。",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "9c2e5336db65546c0afe98d6365b860d41e1c0b1",
+      "reference": "https://b24a67e7-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "versionId": "b24a67e7-a2b3-48cb-989c-9fb9ca5b1341",
+      "publicationRun": 35673829796,
+      "publicationJob": 106576060078,
+      "publicationReused": true,
+      "commitMatched": true,
+      "observedAt": "2026-09-22T01:17:24.998Z",
+      "observationRun": 35675164082,
+      "artifactId": 10672233751,
+      "artifactDigest": "sha256:9fedf6c261eff5a7bab916f35ab8696141e041322df5b102b471e42b52e5f4a7",
+      "conditions": {
+        "viewport": [673, 841],
+        "deviceScaleFactor": 1,
+        "hasTouch": true,
+        "renderer": "Chromium SwiftShader",
+        "profile": "fresh",
+        "route": "Native brand tap, gate hidden, begin, pointer steering towards nearest traveller, idle native combat/devour, pause, lineage. No gameplay state injection.",
+        "observerRevision": "008d72f1c31e9affba0a50648135b9e22d6aa359"
+      },
+      "notVerified": ["Physical Pixel Fold touch/timing", "human comprehension study", "long-run balance", "verified extraction was not performed", "Two aborted requests had no page error; they are not proof of a gameplay failure"]
+    },
+    "evidence": [
+      {
+        "kind": "test",
+        "revision": "008d72f1c31e9affba0a50648135b9e22d6aa359",
+        "path": "ops/kuumetsu-session-observe.mjs",
+        "symbol": "capture / native pointer play",
+        "statement": "Hosted run 35675164082 artifact 10672233751: 03-play-05..08 devouring=true and player.devourProgress=.174603,.408730,.634920,.841270; 03-play-08.png has no capture progress. Actual eat count advances at 09 and 18; 09.png has no readable earned ability/growth receipt. Read-only snapshot plus real pointer input, not a synthetic game replacement."
+      },
+      {
+        "kind": "source",
+        "revision": "9c2e5336db65546c0afe98d6365b860d41e1c0b1",
+        "path": "apps/demon/src/web/hunt-flow-ui.js",
+        "symbol": "HuntFlowUi.update",
+        "statement": "Capture is represented only by a once-per-token 3600ms eat guide; the persistent actionLine is always hidden and native phase/progress are not projected."
+      },
+      {
+        "kind": "source",
+        "revision": "9c2e5336db65546c0afe98d6365b860d41e1c0b1",
+        "path": "apps/demon/src/web/main.js",
+        "symbol": "event / toast / hud",
+        "statement": "Consumption feedback lasts 2.2 wall-clock seconds and selects either new ability or healed amount; maxHpGain is omitted. Native game time advances independently of slow renderer wall time."
+      }
+    ]
+  },
+  "candidateProblems": [
+    {"id":"devour-handoff","selected":true,"playerProblem":"勝利後の捕食中・完了・操作再開を視覚的に区別できない。","evidence":"03-play-05..09 and 15..18, native progress plus screenshots."},
+    {"id":"exchange-ownership","selected":false,"playerProblem":"誰の攻撃がどちらに効いたか理解しにくい。","reason":"Distinct future theme; do not redo the supported first-combat agency instructions.","evidence":"03-play-03/04 native enemy HP decrease versus phase-only presentation."},
+    {"id":"objective-legibility","selected":false,"playerProblem":"狩りの目標と進捗をviewportで読み取りにくい。","reason":"Overlaps recent hunt-hud-decision-hierarchy and prey guidance. No broad HUD cleanup in this iteration.","evidence":"02-hunt-entry and 03-play-09 screenshots."},
+    {"id":"secured-reward-distinction","selected":false,"playerProblem":"帰還数値だけでは手持ちを失い得ることを捉えにくい。","reason":"Do not reopen supported retreat-risk-reward; completion copy must simply preserve unsecured meaning.","evidence":"03-play-09 versus 05-lineage."}
+  ],
+  "historyComparison": {
+    "reviewed": ["bounded recent experiment-history.json at initial develop", "PR #1370 autonomous-receipt:kuumetsu:kuumetsu-first-combat-agency-20260922", "PR #1321 autonomous-receipt:kuumetsu:kuumetsu-title-preview-budget-20260921", "recent active-hunt-lineage-progress experiment"],
+    "decision": "No existing capture-state/completion-receipt theme is repeated. Preserve recent combat agency, title readiness, prey guidance, retreat and live-lineage improvements. Do not retry title density reduction or broaden HUD hierarchy work."
+  },
+  "rootCauses": [
+    {
+      "key": "capture-state-only-has-one-shot-guide",
+      "summary": "Native capture approach/feeding/progress exist but the HUD exposes only a short first-use guide, leaving subsequent ongoing capture indistinguishable from idle.",
+      "revision": "9c2e5336db65546c0afe98d6365b860d41e1c0b1",
+      "path": "apps/demon/src/web/hunt-flow-ui.js",
+      "symbol": "HuntFlowUi.update token / guideSeen / actionLine",
+      "observationEvidence": "Before stages 05..08: real progress .175→.841; screenshot08 lacks progress.",
+      "sourceEvidence": "HuntFlowUi.update never reads player.devourProgress or devour.phase; packages/raid/devour.js advanceDevour already owns both and resets them on cancel.",
+      "prediction": "A persistent read-only projection will visibly distinguish approach from feeding and track real progress until completion/cancellation.",
+      "falsifier": "Active capture has no visible progress, approach is falsely shown as feeding, or cancellation claims completion.",
+      "paths": ["apps/demon/src/web/hunt-flow-ui.js", "apps/demon/src/web/devour-feedback-state.js", "apps/demon/src/web/devour-feedback.css"],
+      "relatedPaths": ["packages/raid/devour.js", "apps/demon/src/web/hunt-minimal-hud.css"]
+    },
+    {
+      "key": "consume-gains-only-use-short-wall-clock-toast",
+      "summary": "Actual reward fields are available but the only completion feedback expires on wall time and omits simultaneous growth/resume guidance.",
+      "revision": "9c2e5336db65546c0afe98d6365b860d41e1c0b1",
+      "path": "apps/demon/src/web/main.js",
+      "symbol": "event consume / toast / hud",
+      "observationEvidence": "Before09 eaten1, maximum life124, carried2; reward text is in DOM but absent from the viewport screenshot. Before18 eaten2, maximum life128, carried4.",
+      "sourceEvidence": "main.js toast expires after 2200ms performance.now. Native session emit queues consume with at:game.time; hunt/session-loop.js augments real reward with maxHpGain, lootGain, carried and techniqueSpeed.",
+      "prediction": "A six-active-game-second completion receipt, read only from the actual consume event, exposes earned ability/growth/unsecured loot and swipe resume without expiring solely due to rendering or pause wall time.",
+      "falsifier": "Receipt is absent after actual consumption, repeats an old receipt after another fight, fabricates reward, or labels unsecured loot as banked.",
+      "paths": ["apps/demon/src/web/hunt-flow-ui.js", "apps/demon/src/web/devour-feedback-state.js", "apps/demon/src/web/devour-feedback.css"],
+      "relatedPaths": ["apps/demon/src/web/main.js", "apps/demon/src/hunt/session-loop.js", "packages/raid/session.js"]
+    }
+  ],
+  "workItems": [
+    {
+      "id": "capture-progress",
+      "summary": "Project native approach/feeding/progress into a scoped persistent capture readout with stop-to-continue and swipe-to-cancel guidance.",
+      "rootCauseKeys": ["capture-state-only-has-one-shot-guide"],
+      "paths": ["apps/demon/src/web/devour-feedback-state.js", "apps/demon/src/web/hunt-flow-ui.js", "apps/demon/src/web/devour-feedback.css", "apps/demon/tests/devour-feedback.test.mjs"],
+      "evidence": "Small native advanceDevour leaf assertions for approach, feeding and swipe cancellation, then identical immutable native browser route with visible progress matched to player.devourProgress.",
+      "expectedPlayerFacingEffect": "The player can tell why movement has stopped, whether capture is advancing and how to cancel."
+    },
+    {
+      "id": "consume-receipt",
+      "summary": "Project actual consume event gains and movement resumption into a duration-safe completion readout; never award or bank anything in the UI.",
+      "rootCauseKeys": ["consume-gains-only-use-short-wall-clock-toast"],
+      "paths": ["apps/demon/src/web/devour-feedback-state.js", "apps/demon/src/web/hunt-flow-ui.js", "apps/demon/src/web/devour-feedback.css", "apps/demon/tests/devour-feedback.test.mjs"],
+      "evidence": "Pure event projection and native completion leaf assertions for actual gains, six active seconds, no premature/stale receipt, followed by immutable native consumption screenshots and state.",
+      "expectedPlayerFacingEffect": "The player sees what was actually gained, knows loot is still unsecured and knows to swipe to resume movement."
+    }
+  ],
+  "hypothesis": {
+    "cause": "Both missing ongoing-capture projection and transient incomplete reward feedback break the same victory→capture→gain→resume judgement chain.",
+    "prediction": "Connecting existing native phase/progress and actual consume-event gains to one scoped readout will satisfy both player-facing success signals without changing any gameplay authority.",
+    "falsifier": "Either signal remains visually absent, partial evidence is rounded to supported, rewards appear before completion/after cancellation, loot is falsely banked, or protected mechanics change."
+  },
+  "candidates": [
+    {"id":"native-read-side","selected":true,"reason":"Smallest causal solution: read native phase/progress and event queue, render one scoped HUD element, leave all simulation/input/save/extraction authority unchanged."},
+    {"id":"longer-toast-only","selected":false,"reason":"Longer copy cannot expose continuous native progress, one-shot reuse or simultaneous growth; Before already contains reward text in DOM without useful viewport feedback."},
+    {"id":"shorten-channel-or-auto-bank","selected":false,"reason":"Changes protected capture/risk/extraction semantics to conceal a presentation gap; rejected."}
+  ],
+  "implementation": {
+    "summary": "One theme, two causal work items. Add a pure capture/consume projection, scoped readout styling and HuntFlowUi wiring, plus focused leaf tests. No native combat, capture durations, input, three memory slots, form, pressure, extraction, chapter, growth or save changes. No workflow/Fast DEV changes on work branch.",
+    "paths": ["apps/demon/src/web/devour-feedback-state.js", "apps/demon/src/web/hunt-flow-ui.js", "apps/demon/src/web/devour-feedback.css", "apps/demon/tests/devour-feedback.test.mjs"]
+  },
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": ["apps/demon/tests/devour-feedback.test.mjs"],
+    "stagingAfter": "required",
+    "workItemCoverage": [
+      {"workItemId":"capture-progress","evidence":"Real advanceDevour approach/feeding/cancel leaf assertions plus visible immutable After progress matched to native snapshot."},
+      {"workItemId":"consume-receipt","evidence":"Actual completion event projection, exact reward/read-only/age/lifecycle assertions plus immutable After completed-consumption viewport evidence."}
+    ],
+    "limitations": ["Browser observation is not a human comprehension study", "Hosted SwiftShader is not physical Pixel Fold performance", "No whole-game balance or full chapter sweep", "Observation must report partial or notVerified rather than infer unsupported visual success from DOM text alone"],
+    "afterConditions": "Same 673x841 fresh-profile native observer route and exact source commit verification. Reuse existing task-scoped Actions observer fallback; no canonical quality-gate expansion."
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": null,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-devour-feedback-20260922"
+  }
+}
