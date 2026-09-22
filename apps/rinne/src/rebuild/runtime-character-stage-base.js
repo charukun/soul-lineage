@@ -19,8 +19,20 @@ import {
 
 const armorDye=Object.freeze({cloth:[1,1,1],light:[.72,.84,.78],heavy:[.68,.73,.82]});
 
-function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=false,carriedChild=false,tidebreak=null}={},time=0){
-  const cadence=Math.min(12,6.4+Math.max(0,speed)*.85),stride=moving?Math.sin(time*cadence)*.42:0;
+// Integrate phase instead of multiplying absolute time by a changing speed.
+// Weak ownership follows the pooled skeleton; combat/peer poses keep their contract.
+const locomotionGaits=new WeakMap();
+function locomotionStride(bones,time,moving,speed){
+  let gait=locomotionGaits.get(bones);
+  if(!gait||time<gait.time||time-gait.time>.5){gait={time,phase:0,amplitude:0};locomotionGaits.set(bones,gait);}
+  const dt=Math.max(0,Math.min(.05,time-gait.time)),target=moving?.42*Math.min(1,Math.max(.18,speed/3)):0;
+  gait.time=time;gait.phase=(gait.phase+dt*Math.min(12,6.4+Math.max(0,speed)*.85))%(Math.PI*2);
+  gait.amplitude+=(target-gait.amplitude)*(1-Math.exp(-18*dt));
+  return Math.sin(gait.phase)*gait.amplitude;
+}
+
+function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=false,carriedChild=false,tidebreak=null,smoothGait=false}={},time=0){
+  const cadence=Math.min(12,6.4+Math.max(0,speed)*.85),stride=smoothGait?locomotionStride(bones,time,moving,speed):(moving?Math.sin(time*cadence)*.42:0);
   if(bones.leftUpperLeg)bones.leftUpperLeg.rotation.x+=stride;
   if(bones.rightUpperLeg)bones.rightUpperLeg.rotation.x-=stride;
   if(bones.leftLowerLeg)bones.leftLowerLeg.rotation.x+=Math.max(0,-stride)*.28;
@@ -103,11 +115,12 @@ function renderActors({roster,heroSchedule,motherSchedule,motherMotion,character
   heroActor.root.rotation.set(0,carried?carry.yaw:life.yaw,0);motherActor.root.rotation.set(0,life.yaw,0);heroActor.attachments.visible=!carried;
   if(carried){motherActor.setVisible(true);motherActor.root.position.set(life.position.x,0,life.position.z);heroActor.root.position.set(life.position.x,0,life.position.z);}else{motherActor.setVisible(false);heroActor.root.position.set(life.position.x,0,life.position.z);}
   const heroPresentation=resolveRinneRuntimeCharacter({...state.heroDescriptor,distance:0,visible:true,important:true});heroPresentation.appearance.dye=[...(armorDye[life.equipment.armor]||armorDye.cloth)];const heroTide=carried?null:life.combat?.tidebreakPose||null;
-  heroActor.root.userData.tidebreakPose=heroTide;syncRuntimeState(heroActor,{dead:Boolean(life.dead)||life.phase==='dead',hit:(Number(life.flash)||0)>0,attacking:Boolean(heroTide?.attack||life.attacking),resting:Boolean(life.resting),dashing:Boolean(life.dashing),moving:carried?false:Boolean(life.moving),speed:carried?0:(life.moving?4.1:0),combat:carried?false:Boolean(life.combat),runThreshold:3});
-  const heroSampled=sampleSlot(heroActor,heroSchedule,heroPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carried?false:life.moving,speed:carried?0:(life.moving?4.1:0),combat:carried?false:Boolean(life.combat),carriedChild:carried,tidebreak:heroTide},time));
+  const observedSpeed=heroActor.root.userData.locomotionSpeed,heroSpeed=Number.isFinite(observedSpeed)?observedSpeed:(life.moving?4.1:0);
+  heroActor.root.userData.tidebreakPose=heroTide;syncRuntimeState(heroActor,{dead:Boolean(life.dead)||life.phase==='dead',hit:(Number(life.flash)||0)>0,attacking:Boolean(heroTide?.attack||life.attacking),resting:Boolean(life.resting),dashing:Boolean(life.dashing),moving:carried?false:Boolean(life.moving),speed:carried?0:heroSpeed,combat:carried?false:Boolean(life.combat),runThreshold:3});
+  const heroSampled=sampleSlot(heroActor,heroSchedule,heroPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carried?false:life.moving,speed:carried?0:heroSpeed,combat:carried?false:Boolean(life.combat),carriedChild:carried,tidebreak:heroTide,smoothGait:true},time));
   syncPresentationScale(heroActor.root,heroSampled,carried?NEWBORN_CARRY.visualScale:1);
   const motherPresentation=resolveRinneRuntimeCharacter({...state.motherDescriptor,distance:.3,visible:carried,important:true});syncRuntimeState(motherActor,{moving:carrierMoving,speed:motherMotion.speed,runThreshold:3});
-  sampleSlot(motherActor,motherSchedule,motherPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carrierMoving,speed:motherMotion.speed,carrier:carried},time));
+  sampleSlot(motherActor,motherSchedule,motherPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carrierMoving,speed:motherMotion.speed,carrier:carried,smoothGait:true},time));
   sanitizeCarrierCarryVisual(motherActor.root,{attachments:motherActor.attachments,active:carried});
   if(carried){
     const carryTime=performance.now()/1000;
