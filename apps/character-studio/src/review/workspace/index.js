@@ -7,7 +7,7 @@ import { createReviewCohort, editReviewCharacter, reviewSettings, serializeRevie
 import { WORKSPACE_KEY, serializeWorkspace, deserializeWorkspace, createEditHistory } from './state.js';
 
 /** One isolated editor workspace shared by the simple and advanced pages. */
-export function createCharacterWorkspace(review) {
+export function createCharacterWorkspace(review, { sourceModelsOnly = document.body.classList.contains('simple-review') } = {}) {
   const profiles = new Map(), controllers = new WeakMap(), history = createEditHistory();
   let quality = qualitySettings(), modelId = null;
   let syncing = false, restoring = false, previewId = null, generation = 0, saveMessage = 'このブラウザに保存', timer;
@@ -40,7 +40,9 @@ export function createCharacterWorkspace(review) {
         const selectedReference = referenceModel && actor.id === selectedId ? referenceModel : null;
         // A DCC reference swaps the whole audited template/pool. Do not layer the
         // procedural modular/reference controllers back over that authored mesh.
-        if (referenceModel?.kind === 'dcc-character-model') continue;
+        // The source-only catalog loads models directly, outside selectModel().
+        // Restored editor profiles must survive without replacing its audited surfaces.
+        if (sourceModelsOnly || referenceModel?.kind === 'dcc-character-model') continue;
         let controller = controllers.get(actor);
         if (!controller) {
           controller = attachModularAppearanceController(actor);
