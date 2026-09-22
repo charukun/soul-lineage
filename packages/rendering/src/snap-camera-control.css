@@ -1,19 +1,21 @@
 .snap-camera-control{
-  --snap-camera-size:46px;
+  --snap-camera-size:58px;
   position:absolute;z-index:30;left:max(8px,env(safe-area-inset-left));top:max(8px,env(safe-area-inset-top));
-  width:var(--snap-camera-size);height:var(--snap-camera-size);padding:3px;border:0;border-radius:50%;
+  width:var(--snap-camera-size);height:44px;padding:2px;border:0;border-radius:15px;
   display:grid;place-items:center;touch-action:none;user-select:none;cursor:grab;
   color:#ead08e;background:rgba(22,28,29,.68);backdrop-filter:blur(9px);
   box-shadow:0 7px 18px rgba(0,0,0,.26),inset 0 0 0 1px rgba(255,255,255,.07);
   transition:transform .13s ease,opacity .13s ease,box-shadow .13s ease;
 }
-.snap-camera-control svg{display:block;width:40px;height:40px;overflow:visible;pointer-events:none}
-.snap-camera-control__eye{fill:rgba(57,54,47,.9);stroke:#e1c57e;stroke-width:1.45;stroke-linejoin:round}
-.snap-camera-control__iris{fill:#1a292b;stroke:#e5cb86;stroke-width:1.4}
+.snap-camera-control svg{display:block;width:56px;height:40px;overflow:visible;pointer-events:none}
+.snap-camera-control__turn-band{fill:rgba(201,169,98,.10);stroke:#c8aa66;stroke-width:1.25}
+.snap-camera-control__turn-arrow{fill:none;stroke:#e5c878;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.snap-camera-control__eye{fill:rgba(57,54,47,.94);stroke:#e1c57e;stroke-width:1.35;stroke-linejoin:round}
+.snap-camera-control__iris{fill:#1a292b;stroke:#e5cb86;stroke-width:1.35}
 .snap-camera-control__pupil{fill:#f4dfaa}
-.snap-camera-control__ring{fill:none;stroke:#c8aa66;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round;opacity:.88}
-.snap-camera-control__zoom{fill:none;stroke:#9dbca1;stroke-width:1.25;stroke-linecap:round;opacity:.7}
-.snap-camera-control.is-active{cursor:grabbing;transform:scale(.95);box-shadow:0 5px 14px rgba(0,0,0,.34),0 0 0 3px rgba(222,190,115,.12)}
-.snap-camera-control.is-active .snap-camera-control__ring{stroke:#f1be68}
+.snap-camera-control__zoom-arrow{fill:none;stroke:#9dbca1;stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round;opacity:.72}
+.snap-camera-control.is-active{cursor:grabbing;transform:scale(.96);box-shadow:0 5px 14px rgba(0,0,0,.34),0 0 0 3px rgba(222,190,115,.12)}
+.snap-camera-control.is-active .snap-camera-control__turn-band{fill:rgba(241,190,104,.16);stroke:#f1be68}
+.snap-camera-control.is-active .snap-camera-control__turn-arrow{stroke:#f4d48b}
 .snap-camera-control[data-enabled="false"]{opacity:.34;pointer-events:none}
 @media(prefers-reduced-motion:reduce){.snap-camera-control{transition:none}}
