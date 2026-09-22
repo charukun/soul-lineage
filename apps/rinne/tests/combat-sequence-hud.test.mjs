@@ -43,3 +43,11 @@ test('Rinne HUD wires soft history replacement, simple damage copy, and interrup
   assert.match(css,/rinne-sequence-interrupt/);
   assert.match(css,/data-combo-active="false"/);
 });
+
+
+test('main combat HUD shows technique names and heart slots use 意識 language',async()=>{
+  const ui=await readFile(new URL('../src/gameplay-ui.js',import.meta.url),'utf8');
+  const heart=await readFile(new URL('../src/heart-technique-body-ui.js',import.meta.url),'utf8');
+  assert.match(ui,/phaseTechnique/);assert.match(ui,/combatSkillForPhase/);assert.match(ui,/const action=rawAction/);
+  assert.match(heart,/意識中/);assert.match(heart,/心得枠で意識する/);assert.doesNotMatch(heart,/心得枠へ装着/);
+});

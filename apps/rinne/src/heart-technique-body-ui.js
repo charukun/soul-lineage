@@ -55,11 +55,11 @@ const topSlotRow=()=>createRinneLoadoutSlotRow();
 function renderHeart(model,focusId=null){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='heart';model.tracker.consume('heart');model.ui.title.textContent='心 · 心得';model.ui.body.innerHTML='';
   const ids=learnedHeartSkills(state),active=state.combatLoadout.heart.active;model.heartTarget=Math.max(0,Math.min(2,model.heartTarget||0));
-  const slots=topSlotRow();for(let index=0;index<3;index++){const id=active[index]||null;slots.append(slot('心得 '+(index+1),id?techniqueName(id):'空き',{selected:model.heartTarget===index,empty:!id,icon:rinneSkillSigilKind(id,SKILL_BY_ID[id]?.effects),detail:id?skillDetail(id,'心得','装着中'):null,onClick:()=>{model.heartTarget=index;model.audio.ui();renderHeart(model,focusId);}}));}model.ui.body.append(slots);
+  const slots=topSlotRow();for(let index=0;index<3;index++){const id=active[index]||null;slots.append(slot('心得 '+(index+1),id?techniqueName(id):'空き',{selected:model.heartTarget===index,empty:!id,icon:rinneSkillSigilKind(id,SKILL_BY_ID[id]?.effects),detail:id?skillDetail(id,'心得','意識中'):null,onClick:()=>{model.heartTarget=index;model.audio.ui();renderHeart(model,focusId);}}));}model.ui.body.append(slots);
   if(focusId){const index=ids.indexOf(focusId);if(index>=0)model.pages.heart=Math.floor(index/GRID_PAGE_SIZE);}
-  const library=gridSection('心得一覧','選択中のスロットへ装着');library.classList.add('heart-learned-list');
+  const library=gridSection('心得一覧','選択中の心得枠で意識する');library.classList.add('heart-learned-list');
   const list=library.querySelector('.loadout-grid'),page=pageRows(model,'heart',ids,()=>renderHeart(model,focusId));
-  for(const id of page.rows){const item=gridItem(techniqueName(id),effectSummary(id),{active:active[model.heartTarget]===id,focus:id===focusId,icon:rinneSkillSigilKind(id,SKILL_BY_ID[id]?.effects),detail:skillDetail(id,'心得',active.includes(id)?'装着中':'習得済み'),onClick:()=>{setHeartSlot(state,model.heartTarget,id);model.audio.item();haptic(10);renderHeart(model,id);}});item.setAttribute('aria-label',techniqueName(id)+'。選択中の心得枠へ装着');list.append(item);}
+  for(const id of page.rows){const item=gridItem(techniqueName(id),effectSummary(id),{active:active[model.heartTarget]===id,focus:id===focusId,icon:rinneSkillSigilKind(id,SKILL_BY_ID[id]?.effects),detail:skillDetail(id,'心得',active.includes(id)?'意識中':'習得済み'),onClick:()=>{setHeartSlot(state,model.heartTarget,id);model.audio.item();haptic(10);renderHeart(model,id);}});item.setAttribute('aria-label',techniqueName(id)+'。選択中の心得枠で意識する');list.append(item);}
   if(!page.rows.length){const empty=document.createElement('p');empty.className='loadout-empty';empty.textContent='まだ心得を習得していません。';list.append(empty);}model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);
 }
 

@@ -9,6 +9,7 @@ import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import {rinnePrimaryFourMarkup} from '@soul/shared-ui/rinne-primary-four';
 import {rinneLoadoutPanelMarkup} from '@soul/shared-ui/rinne-loadout-menu';
 import {sequenceHudState,meleeSequenceHudState} from './combat-sequence-hud.js';
+import {combatSkillForPhase,techniqueName} from './combat-loadout.js';
 import {tidebreakMindVectorFor} from './rebuild/combat-tactics.js';
 import './rebuild/conversation-input.css';
 import './skill-setter.css';
@@ -248,14 +249,15 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     const readSequence=()=>exchangeCombat?meleeSequenceHudState({combat:s.combat,actorId:s.id,attack:rawAction,interrupted:comboInterrupted}):sequenceHudState({phase,attack:rawAction,interrupted:comboInterrupted});
     let sequence=readSequence();
     ui.phase.dataset.exchangeState=sequence.hudState||'';
-    ui.phase.dataset.exchangeIntent=sequence.exchangeIntent||'';ui.exchangeCue.hidden=!exchangeCombat;
-    if(ui.exchangeCue.textContent!==(sequence.exchangeCue||''))ui.exchangeCue.textContent=sequence.exchangeCue||'';
+    ui.phase.dataset.exchangeIntent=sequence.exchangeIntent||'';
+    const phaseTechnique=phase?String(s.combat?.tidebreakPose?.skill||techniqueName(combatSkillForPhase(s,s.combat,phase),s)||'').trim():'';
+    ui.exchangeCue.hidden=!phaseTechnique;if(ui.exchangeCue.textContent!==phaseTechnique)ui.exchangeCue.textContent=phaseTechnique;
     if(exchangeCombat&&sequence.historyKey!==exchangeHistoryKey){exchangeHistoryKey=sequence.historyKey;phaseHistory=[];lastAction='';lastPhase='';renderPhaseHistory();}
     if(comboInterrupted&&!rawAction){comboInterrupted=false;sequence=readSequence();}
     if(sequence.comboActive&&ui.phase.dataset.comboInterrupted==='true'){clearTimeout(interruptTimer);interruptTimer=0;endInterruptionVisual();}
     currentComboKey=sequence.key;ui.phase.dataset.comboActive=String(sequence.comboActive);ui.phase.dataset.phase=sequence.comboActive?sequence.activePhase:'idle';
     syncCombatSequence(ui.phase,sequence.comboActive?sequence.activePhase:'',{pulse:sequence.comboActive});setCompletedPhases(sequence.completed);
-    const action=sequence.action;if(ui.phaseAction){ui.phaseAction.textContent=action;ui.phaseAction.hidden=!action;}
+    const action=rawAction;if(ui.phaseAction){ui.phaseAction.textContent=action;ui.phaseAction.hidden=!action;}
     if(sequence.comboActive&&sequence.activePhase!==lastPhase){lastPhase=sequence.activePhase;haptic(8);audio.ui();}else if(!sequence.comboActive)lastPhase='';
     if(action&&action!==lastAction){lastAction=action;if(sequence.comboActive)pushPhaseHistory({phase:sequence.activePhase,action});}
     if(!phase&&!exchangeCombat){lastPhase='';lastAction='';comboInterrupted=false;currentComboKey='';exchangeHistoryKey='';phaseHistory=[];renderPhaseHistory();endInterruptionVisual();}

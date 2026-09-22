@@ -13,11 +13,11 @@ function catalogRow(id){const form=formFor(id),steps=formSteps(form),motions=ste
 export const BATTLE2_TECHNIQUE_CATALOG=Object.freeze(ids.map(catalogRow).filter(row=>row.supported));
 const chain=(...techniques)=>Object.freeze(techniques.slice(0,3));
 export const BATTLE2_COMBO_PRESETS=Object.freeze([
- Object.freeze({id:'combo-1',label:'壱ノ連',techniques:chain('action.feint','action.counter','action.precision')}),
+ Object.freeze({id:'combo-1',label:'壱ノ連',techniques:chain('action.feint','action.lunge','action.precision')}),
  Object.freeze({id:'combo-2',label:'弐ノ連',techniques:chain('action.side-step','action.guard-step','action.crash')}),
  Object.freeze({id:'combo-3',label:'参ノ連',techniques:chain('action.slip','action.flow','action.finish')}),
  Object.freeze({id:'combo-4',label:'肆ノ連',techniques:chain('action.lunge','action.circle','action.draw')}),
- Object.freeze({id:'combo-5',label:'伍ノ連',techniques:chain('action.breakfall','action.recover')}),
+ Object.freeze({id:'combo-5',label:'伍ノ連',techniques:chain('action.breakfall','action.recover','action.lunge')}),
  Object.freeze({id:'combo-6',label:'陸ノ連',techniques:chain('basic.sword')})
 ]);
 const BASIC_LABELS=Object.freeze({sword:'剣の型',great:'大剣の型',dagger:'短剣の型',spear:'槍の型',axe:'戦斧の型',staff:'杖の型',fist:'徒手の型'});

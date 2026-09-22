@@ -99,9 +99,9 @@ function updateSequence(meta){
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
  const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);
  const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
- const cue=interrupted?'仕切り直し':(meta.exchangeCue||'間合い · 読み合い');if(cueNode.textContent!==cue)cueNode.textContent=cue;hud.dataset.exchangeIntent=interrupted?'read':(meta.exchangeIntent||'read');
- const narrativePriority=row=>row?.type==='chain-break'?0:(row?.type==='parry'||row?.type==='clash'?1:row?.type==='guard'?2:3);
- for(const row of [...activity].sort((a,b)=>narrativePriority(a)-narrativePriority(b))){if(pushNarration(row,meta))break;}
+ const technique=String(meta.techniqueName||meta.actionName||'').trim();
+ cueNode.hidden=!technique;if(cueNode.textContent!==technique)cueNode.textContent=technique;
+ hud.dataset.exchangeIntent=meta.exchangeIntent||'read';
  const hudState=interrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;
  phasePanel.dataset.phase=hudState;phasePanel.dataset.combatSequencePhase=hudState;phasePanel.dataset.comboActive=String(index>=0&&!interrupted);
  if(interrupted)beginComboFade();else if(index>=0)clearComboFade();
