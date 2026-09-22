@@ -36,8 +36,9 @@ export async function loadPinnedReviewTarget(model,{fetcher=fetch,baseUrl=global
   const source=model?.source;
   if(model?.license!=='CC0-1.0'||!source||!/^[a-f0-9]{40}$/.test(source.gitBlobSha)||!Number.isSafeInteger(source.byteLength)||source.byteLength<1||source.byteLength>MAX_SOURCE_BYTES)throw new Error('Unverified review target');
   const base=new URL(baseUrl),url=new URL(model.runtime.url,base);
-  if(!['http:','https:'].includes(url.protocol)||url.origin!==base.origin)throw new Error('Review target must be self-hosted');
-  const response=await fetcher(url.href,{signal:AbortSignal.timeout(60000),cache:'force-cache'});
+  const ownedLibrary=url.href.startsWith(projectAssetOrigin(runtimeEnvironment));
+  if(!['http:','https:'].includes(url.protocol)||(url.origin!==base.origin&&!ownedLibrary)||isThirdPartyRuntimeAssetUrl(url.href))throw new Error('Review target must be self-hosted');
+  const response=await fetcher(url.href,{signal:AbortSignal.timeout(60000),cache:'force-cache',redirect:'error'});
   if(!response.ok)throw new Error('Review target HTTP '+response.status);
   const bytes=new Uint8Array(await response.arrayBuffer());
   if(bytes.byteLength!==source.byteLength||await gitBlobSha(bytes)!==source.gitBlobSha)throw new Error('Review target integrity mismatch');

@@ -49,6 +49,7 @@ export { CHARACTER_REFERENCE_MODEL_VERSION, PROTAGONIST_VILLAGER_MODEL, PROTAGON
 
 export * from './master-character.js';
 export * from './kaykit-foundation.js';
+export * from './kaykit-library.js';
 export * from './license-policy.js';
 export * from './appearance-parts.js';
 export * from './character-sync.js';

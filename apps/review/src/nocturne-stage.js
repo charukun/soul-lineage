@@ -1,12 +1,14 @@
 import {BATTLE2_VERSION} from './battle2-version.js';
+import {createBattle2BodyHud} from './battle2-body-hud.js';
 
 const stage=document.querySelector('[data-review-surface="battle2"]');
 const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects'),versionNode=document.getElementById('battle2-version'),startButton=document.getElementById('battle2-start');
 const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
+const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
 const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],modeButtons=[...document.querySelectorAll('[data-battle-mode]')];
 const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'};
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
-let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],seenActions=new Set(),seenNarration=new Set(),lastBattleId='';
+let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='';
 let state='BOOT',lastError=null;
 hud.dataset.anchored='true';
 if(versionNode)versionNode.textContent=`v${BATTLE2_VERSION}`;
@@ -14,7 +16,7 @@ function report(next,detail=''){
  if(disposed||((next==='BATTLE'||next==='READY')&&!prepared))return;
  state=next;stage.dataset.state=next;
  startButton.hidden=started||next==='ERROR';startButton.disabled=!prepared||next==='ERROR';
- hud.hidden=!started||!prepared||next==='ERROR';
+ hud.hidden=!started||!prepared||next==='ERROR';bodyHud?.setVisible(started&&prepared&&next!=='ERROR');
  if(next==='ERROR'){lastError=String(detail);stage.dataset.error=lastError;status.hidden=false;status.setAttribute('role','alert');status.textContent='戦闘を読み込めませんでした。'+lastError+' 再読み込みで再試行できます。';}
  else{status.setAttribute('role','status');status.hidden=['BATTLE','RESETTING','READY'].includes(next);status.textContent=next==='ASSET_LOADING'?'戦闘を読み込み中… '+detail:'戦闘を準備中…';}
 }
@@ -36,7 +38,7 @@ function semanticActionLabel(row){
  return'';
 }
 function clearVisualHistory(){historyNode.replaceChildren();}
-function resetHistory(battleId=''){lastBattleId=battleId;seenActions.clear();seenNarration.clear();history=[];clearVisualHistory();}
+function resetHistory(battleId=''){lastBattleId=battleId;seenActions.clear();seenNarration.clear();lastNarrationAt.clear();history=[];clearVisualHistory();}
 function spawnActionText(row){
  const line=document.createElement('span');line.className='battle-sequence-history__float';line.dataset.phase=row.phase;
  line.textContent=row.label;line.style.setProperty('--float-x',row.phase==='jo'?'-5px':row.phase==='kyu'?'5px':'0px');historyNode.append(line);
@@ -48,15 +50,20 @@ function pushAction(meta){
  const row={phase:meta.phase,label:techniqueHistoryName(meta)};history.unshift(row);if(history.length>8)history.length=8;spawnActionText(row);
 }
 function pushNarration(row,meta){
- const label=semanticActionLabel(row);if(!label)return;
- const key=[meta?.battleId,row?.time,row?.type,row?.reason,row?.actorId,row?.id,label].join(':');if(seenNarration.has(key))return;
- seenNarration.add(key);if(seenNarration.size>256)seenNarration.delete(seenNarration.values().next().value);
- const item={phase:Object.hasOwn(PHASE_INDEX,row?.phase)?row.phase:'idle',label};history.unshift(item);if(history.length>8)history.length=8;spawnActionText(item);
+ const label=semanticActionLabel(row);if(!label)return false;
+ if((row?.type==='maneuver-start'||row?.type==='chain-break'||row?.type==='normal-offense-ready')&&row?.actorId&&row.actorId!=='hero')return false;
+ const now=Number(row?.time)||0,semanticKey=[row?.actorId||'pair',row?.type,row?.reason||'',label].join(':');
+ const previous=lastNarrationAt.get(semanticKey)??-Infinity;if(now-previous<1.35)return false;
+ const key=[meta?.battleId,row?.type,row?.reason,row?.actorId,row?.id,Math.floor(now*4),label].join(':');if(seenNarration.has(key))return false;
+ lastNarrationAt.set(semanticKey,now);seenNarration.add(key);if(seenNarration.size>256)seenNarration.delete(seenNarration.values().next().value);
+ const item={phase:Object.hasOwn(PHASE_INDEX,row?.phase)?row.phase:'idle',label};history.unshift(item);if(history.length>8)history.length=8;spawnActionText(item);return true;
 }
 function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId)resetHistory(meta.battleId);
+ const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);
  const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
- for(const row of activity)pushNarration(row,meta);
+ const narrativePriority=row=>row?.type==='chain-break'?0:(row?.type==='parry'||row?.type==='clash'?1:row?.type==='guard'?2:3);
+ for(const row of [...activity].sort((a,b)=>narrativePriority(a)-narrativePriority(b))){if(pushNarration(row,meta))break;}
  const hudState=interrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;phasePanel.dataset.phase=hudState;phasePanel.dataset.combatSequencePhase=hudState;phasePanel.dataset.comboActive=String(index>=0);
  for(const node of phaseNodes){const i=PHASE_INDEX[node.dataset.combatPhase];node.dataset.active=String(i===index);node.dataset.completed=String(index>=0&&i<index);}
  if(!interrupted&&index>=0&&meta.actionId){currentNode.dataset.kind=phase;currentNode.textContent=techniqueHistoryName(meta);pushAction(meta);}
@@ -90,5 +97,5 @@ world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepare
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
 window.addEventListener('error',event=>{if(event.error&&!disposed)failed(event.error);});
 window.addEventListener('unhandledrejection',event=>{if(!disposed)failed(event.reason);});
-window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();observer.disconnect();runtime?.destroy();sound?.destroy();});
+window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();});
 syncModeButtons();report('BOOT');void boot();
