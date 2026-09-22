@@ -99,8 +99,10 @@ with a matching model hash, and cannot grant `approved`.
   → `enhanced-multi-view`. Two or four views and ambiguous sheets are rejected.
 - Alignment: foreground extrema define head top/ground, uniform scale normalizes
   height to one, and silhouette center normalizes the horizontal origin. Raw
-  images/bounds are retained. Named body levels link all views in one +Y-up/+Z-front
-  space. A neck notch is estimated from the outline; other body/face semantic
+  images/bounds are retained. An independently inferred neck notch is aligned to the view median with a bounded
+  piecewise vertical correction (at most 3.5% height), preserving top and sole. Raw
+  and corrected landmarks remain distinct. Named body levels link all views in one
+  +Y-up/+Z-front space; other body/face semantic
   landmarks remain explicit anatomical hypotheses.
 - Perspective: weak-perspective, isotropic height/ground correction is recorded.
   This compensates minor scale/ground offsets, not large yaw/foreshortening or

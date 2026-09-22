@@ -9,11 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     env:
-      SOURCE_SHA: 3891bfc4c107b4f81101f66255701144dc4cbc83
+      SOURCE_SHA: 369ffdb16a80194d76a7e6c17e354a8fd7c36fdf
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 3891bfc4c107b4f81101f66255701144dc4cbc83
+          ref: 369ffdb16a80194d76a7e6c17e354a8fd7c36fdf
           fetch-depth: 1
       - uses: actions/setup-python@v5
         with:
