@@ -2,10 +2,11 @@ import {createDrivenBattleRuntime} from '@soul/johakyu-presentation';
 import {createJohakyuP7ReviewScenario} from './johakyu-p7-review.js';
 import {normalizeBattle2Loadout} from './battle2-loadout.js';
 
-export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,cameraPresentation=null,onMeta=()=>{},evidence=false,fixture=null,mode='duel',loadout=null}){
+export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,cameraPresentation=null,onMeta=()=>{},evidence=false,fixture=null,mode='duel',loadout=null,settings=null,learnedTechniqueIds=[]}){
   const driven=createDrivenBattleRuntime({world,effects,stage,sound,notify,signal,cameraPresentation});
-  let reviewLoadout=normalizeBattle2Loadout(loadout||{});
-  const makeScenario=()=>evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({mode,duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5,loadout:reviewLoadout}):createJohakyuP7ReviewScenario({mode,comboStyle:'composed',duelGap:mode==='duel'?2.18:3.15,enemyLeadSeconds:mode==='duel'?.16:0,loadout:reviewLoadout});
+  let reviewLoadout=normalizeBattle2Loadout(loadout||{}),reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'},reviewLearned=[...new Set(Array.isArray(learnedTechniqueIds)?learnedTechniqueIds:[])];
+  const scenarioOptions=()=>({mode,loadout:reviewLoadout,settings:reviewSettings,learnedTechniqueIds:reviewLearned});
+  const makeScenario=()=>evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({...scenarioOptions(),duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5}):createJohakyuP7ReviewScenario({...scenarioOptions(),comboStyle:'composed',duelGap:mode==='duel'?2.18:3.15,enemyLeadSeconds:mode==='duel'?.16:0});
   let scenario=makeScenario();
   let disposed=false,ready=false,started=false,raf=0,previous=0,current=null,trace=[],lastResumes=0,lastEncounter=1,physicalContacts=[];
   function render(dt){
@@ -41,19 +42,28 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
     trace.push({type:'loadout-reset',loadout:reviewLoadout});if(trace.length>100)trace=trace.slice(-100);
     if(ready&&!disposed){driven.present(current.frame,0,[]);onMeta(current.meta);}return reviewLoadout;
   }
+  function configureSettings(next){
+    reviewSettings={techniqueMode:next?.techniqueMode==='random'?'random':'set',inspirationRate:next?.inspirationRate==='high'?'high':'normal'};scenario=makeScenario();current=scenario.inspect();lastResumes=0;lastEncounter=1;physicalContacts=[];
+    trace.push({type:'settings-reset',settings:{...reviewSettings}});if(trace.length>100)trace=trace.slice(-100);
+    if(ready&&!disposed){driven.present(current.frame,0,[]);onMeta(current.meta);}return {...reviewSettings};
+  }
+  function learnTechnique(id){const raw=String(id||'');if(!raw||reviewLearned.includes(raw))return false;reviewLearned=[...reviewLearned,raw];trace.push({type:'technique-learned',techniqueId:raw});if(trace.length>100)trace=trace.slice(-100);return true;}
+
   function advance(seconds){
     if(disposed||!ready||!started)throw new Error('Start the battle before evidence advancement');
     if(!Number.isFinite(seconds)||seconds<=0||seconds>30)throw new Error('Invalid evidence advancement');
     for(let i=0;i<Math.ceil(seconds*60);i++)render(1/60);
     return metrics();
   }
-  function metrics(){return {...driven.metrics(),started,mode:'p7-canonical-review',physicalContactCount:physicalContacts.length,loadout:reviewLoadout,review:current?.meta??scenario.inspect().meta};}
+  function metrics(){return {...driven.metrics(),started,mode:'p7-canonical-review',physicalContactCount:physicalContacts.length,loadout:reviewLoadout,settings:{...reviewSettings},learnedTechniqueIds:reviewLearned.slice(),review:current?.meta??scenario.inspect().meta};}
   function destroy(){if(disposed)return;disposed=true;ready=false;started=false;if(raf)cancelAnimationFrame(raf);driven.dispose();}
-  return Object.freeze({prepare,start,resize,configureLoadout,metrics,advance,destroy,fail:destroy,
+  return Object.freeze({prepare,start,resize,configureLoadout,configureSettings,learnTechnique,metrics,advance,destroy,fail:destroy,
     inspectActors:()=>current?.frame.actors??scenario.inspect().frame.actors,
     inspectBattle:()=>current?.frame??scenario.inspect().frame,
     footAnchor:()=>driven.footAnchor?.()??null,
     get exchangeTrace(){return scenario.inspect().trace;},
     get loadout(){return reviewLoadout;},
+    get settings(){return {...reviewSettings};},
+    get learnedTechniqueIds(){return reviewLearned.slice();},
     get trace(){return trace.slice();}});
 }
