@@ -1,0 +1,21 @@
+{
+  "renderer": "Blender Cycles",
+  "version": "4.5.0",
+  "round": 1,
+  "modelSha256": "35b47d99c934e766426f71ae42e19ec1425edfb00f67739f5397b5fddb74d6a3",
+  "source": "build/character.glb",
+  "views": [
+    "front",
+    "side",
+    "back",
+    "three-quarter"
+  ],
+  "morphRenders": [
+    "neutral",
+    "Blink.L",
+    "Smile",
+    "MouthOpen"
+  ],
+  "status": "rendered, awaiting actual art review",
+  "productionReady": false
+}

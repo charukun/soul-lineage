@@ -1,0 +1,26 @@
+{
+  "round": 1,
+  "texture": {
+    "dimensions": [
+      2048,
+      2048
+    ],
+    "method": "barycentric UV bake of actual Blender-edited triangles; generated base paint plus bounded normal-weighted original-view samples",
+    "sampleContributions": {
+      "front": 37808.07270921311,
+      "front34": 0.0,
+      "side": 82096.52615945904,
+      "back34": 0.0,
+      "back": 49574.58113132751
+    },
+    "generatedTexels": 773316,
+    "projectedTexels": 1082780,
+    "uvInteriorOverlapSamples": 180,
+    "colorNormalization": "reference lighting not solved; contribution explicitly limited and recorded"
+  },
+  "modelSha256": "35b47d99c934e766426f71ae42e19ec1425edfb00f67739f5397b5fddb74d6a3",
+  "sourceSha256": "86b6d48c9f9818e3b31a571ef87937e8882b61cfcf5423ef12c24fd0d0f3efb1",
+  "structuralStatus": "passed",
+  "visualApproval": "pending",
+  "productionReady": false
+}

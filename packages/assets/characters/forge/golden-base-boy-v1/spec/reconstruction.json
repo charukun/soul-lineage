@@ -793,13 +793,13 @@
   },
   "levels": {
     "headTop": 1,
-    "chin": 0.785,
-    "shoulder": 0.715,
-    "chest": 0.6499999999999999,
-    "waist": 0.5449999999999999,
-    "hip": 0.46,
-    "knee": 0.25,
-    "ankle": 0.06,
+    "chin": 0.6087499999999999,
+    "shoulder": 0.5625,
+    "chest": 0.5249999999999999,
+    "waist": 0.44999999999999996,
+    "hip": 0.33125,
+    "knee": 0.18437499999999998,
+    "ankle": 0.05499999999999999,
     "sole": 0,
     "bodyCenter": 0.5
   },
@@ -7039,256 +7039,568 @@
   "rig": {
     "id": "rinne.forge.humanoid.v1",
     "coordinateSystem": "+Y up, +Z forward",
-    "bindPose": "neutral reference",
+    "bindPose": "reference shallow A-pose",
     "bones": [
       {
         "name": "root",
         "parent": null,
         "position": [
-          0,
-          0,
-          0
+          0.0,
+          0.0,
+          0.0
         ]
       },
       {
         "name": "hips",
         "parent": "root",
         "position": [
-          0,
-          0.46,
-          0
+          0.0,
+          0.31875,
+          0.0
         ]
       },
       {
         "name": "spine",
         "parent": "hips",
         "position": [
-          0,
-          0.55,
-          0
+          0.0,
+          0.43124999999999997,
+          0.0
         ]
       },
       {
         "name": "chest",
         "parent": "spine",
         "position": [
-          0,
-          0.65,
-          0
+          0.0,
+          0.53125,
+          0.0
         ]
       },
       {
         "name": "neck",
         "parent": "chest",
         "position": [
-          0,
-          0.715,
-          0
+          0.0,
+          0.590625,
+          0.0
         ]
       },
       {
         "name": "head",
         "parent": "neck",
         "position": [
-          0,
-          0.785,
-          0
+          0.0,
+          0.625,
+          0.0
         ]
       },
       {
         "name": "shoulder.L",
         "parent": "chest",
         "position": [
-          0.10107291666666667,
-          0.715,
-          0
+          0.056249999999999994,
+          0.564375,
+          0.0
         ]
       },
       {
         "name": "upperArm.L",
         "parent": "shoulder.L",
         "position": [
-          0.1684548611111111,
-          0.715,
-          0
+          0.09312499999999999,
+          0.5575,
+          0.0
         ]
       },
       {
         "name": "lowerArm.L",
         "parent": "upperArm.L",
         "position": [
-          0.17539930555555555,
-          0.54,
-          0
+          0.17812499999999998,
+          0.516875,
+          0.00125
         ]
       },
       {
         "name": "hand.L",
         "parent": "lowerArm.L",
         "position": [
-          0.08288194444444444,
-          0.39,
-          0
+          0.26625,
+          0.485625,
+          0.005
         ]
       },
       {
         "name": "upperLeg.L",
         "parent": "hips",
         "position": [
-          0.041666666666666664,
-          0.45,
-          0
+          0.06812499999999999,
+          0.33125,
+          -0.009375
         ]
       },
       {
         "name": "lowerLeg.L",
         "parent": "upperLeg.L",
         "position": [
-          0.059027777777777776,
-          0.26,
-          0
+          0.06812499999999999,
+          0.18437499999999998,
+          -0.0031249999999999997
         ]
       },
       {
         "name": "foot.L",
         "parent": "lowerLeg.L",
         "position": [
-          0.06597222222222222,
-          0.055,
-          0
+          0.06874999999999999,
+          0.05499999999999999,
+          -0.011874999999999998
         ]
       },
       {
         "name": "shoulder.R",
         "parent": "chest",
         "position": [
-          -0.09690624999999999,
-          0.715,
-          0
+          -0.056249999999999994,
+          0.564375,
+          0.0
         ]
       },
       {
         "name": "upperArm.R",
         "parent": "shoulder.R",
         "position": [
-          -0.16151041666666666,
-          0.715,
-          0
+          -0.09312499999999999,
+          0.5575,
+          0.0
         ]
       },
       {
         "name": "lowerArm.R",
         "parent": "upperArm.R",
         "position": [
-          -0.1649826388888889,
-          0.54,
-          0
+          -0.17812499999999998,
+          0.516875,
+          0.00125
         ]
       },
       {
         "name": "hand.R",
         "parent": "lowerArm.R",
         "position": [
-          -0.07940972222222223,
-          0.39,
-          0
+          -0.26625,
+          0.485625,
+          0.005
         ]
       },
       {
         "name": "upperLeg.R",
         "parent": "hips",
         "position": [
-          -0.03993055555555555,
-          0.45,
-          0
+          -0.06812499999999999,
+          0.33125,
+          -0.009375
         ]
       },
       {
         "name": "lowerLeg.R",
         "parent": "upperLeg.R",
         "position": [
-          -0.057291666666666664,
-          0.26,
-          0
+          -0.06812499999999999,
+          0.18437499999999998,
+          -0.0031249999999999997
         ]
       },
       {
         "name": "foot.R",
         "parent": "lowerLeg.R",
         "position": [
-          -0.0642361111111111,
-          0.055,
-          0
+          -0.06874999999999999,
+          0.05499999999999999,
+          -0.011874999999999998
+        ]
+      },
+      {
+        "name": "index1.L",
+        "parent": "hand.L",
+        "position": [
+          0.298125,
+          0.485625,
+          0.015625
+        ]
+      },
+      {
+        "name": "index2.L",
+        "parent": "index1.L",
+        "position": [
+          0.31,
+          0.4875,
+          0.018125
+        ]
+      },
+      {
+        "name": "index3.L",
+        "parent": "index2.L",
+        "position": [
+          0.320625,
+          0.4875,
+          0.019375
+        ]
+      },
+      {
+        "name": "middle1.L",
+        "parent": "hand.L",
+        "position": [
+          0.300625,
+          0.48625,
+          0.0043749999999999995
+        ]
+      },
+      {
+        "name": "middle2.L",
+        "parent": "middle1.L",
+        "position": [
+          0.31375,
+          0.4875,
+          0.0043749999999999995
+        ]
+      },
+      {
+        "name": "middle3.L",
+        "parent": "middle2.L",
+        "position": [
+          0.32625,
+          0.4875,
+          0.0043749999999999995
+        ]
+      },
+      {
+        "name": "ring1.L",
+        "parent": "hand.L",
+        "position": [
+          0.29874999999999996,
+          0.485625,
+          -0.0062499999999999995
+        ]
+      },
+      {
+        "name": "ring2.L",
+        "parent": "ring1.L",
+        "position": [
+          0.310625,
+          0.486875,
+          -0.008124999999999999
+        ]
+      },
+      {
+        "name": "ring3.L",
+        "parent": "ring2.L",
+        "position": [
+          0.32125,
+          0.48625,
+          -0.009375
+        ]
+      },
+      {
+        "name": "little1.L",
+        "parent": "hand.L",
+        "position": [
+          0.29437499999999994,
+          0.484375,
+          -0.016249999999999997
+        ]
+      },
+      {
+        "name": "little2.L",
+        "parent": "little1.L",
+        "position": [
+          0.30437499999999995,
+          0.485,
+          -0.01875
+        ]
+      },
+      {
+        "name": "little3.L",
+        "parent": "little2.L",
+        "position": [
+          0.313125,
+          0.484375,
+          -0.02
+        ]
+      },
+      {
+        "name": "thumb1.L",
+        "parent": "hand.L",
+        "position": [
+          0.279375,
+          0.481875,
+          0.018125
+        ]
+      },
+      {
+        "name": "thumb2.L",
+        "parent": "thumb1.L",
+        "position": [
+          0.2875,
+          0.48125,
+          0.027499999999999997
+        ]
+      },
+      {
+        "name": "thumb3.L",
+        "parent": "thumb2.L",
+        "position": [
+          0.298125,
+          0.48125,
+          0.032499999999999994
+        ]
+      },
+      {
+        "name": "index1.R",
+        "parent": "hand.R",
+        "position": [
+          -0.298125,
+          0.485625,
+          0.015625
+        ]
+      },
+      {
+        "name": "index2.R",
+        "parent": "index1.R",
+        "position": [
+          -0.31,
+          0.4875,
+          0.018125
+        ]
+      },
+      {
+        "name": "index3.R",
+        "parent": "index2.R",
+        "position": [
+          -0.320625,
+          0.4875,
+          0.019375
+        ]
+      },
+      {
+        "name": "middle1.R",
+        "parent": "hand.R",
+        "position": [
+          -0.300625,
+          0.48625,
+          0.0043749999999999995
+        ]
+      },
+      {
+        "name": "middle2.R",
+        "parent": "middle1.R",
+        "position": [
+          -0.31375,
+          0.4875,
+          0.0043749999999999995
+        ]
+      },
+      {
+        "name": "middle3.R",
+        "parent": "middle2.R",
+        "position": [
+          -0.32625,
+          0.4875,
+          0.0043749999999999995
+        ]
+      },
+      {
+        "name": "ring1.R",
+        "parent": "hand.R",
+        "position": [
+          -0.29874999999999996,
+          0.485625,
+          -0.0062499999999999995
+        ]
+      },
+      {
+        "name": "ring2.R",
+        "parent": "ring1.R",
+        "position": [
+          -0.310625,
+          0.486875,
+          -0.008124999999999999
+        ]
+      },
+      {
+        "name": "ring3.R",
+        "parent": "ring2.R",
+        "position": [
+          -0.32125,
+          0.48625,
+          -0.009375
+        ]
+      },
+      {
+        "name": "little1.R",
+        "parent": "hand.R",
+        "position": [
+          -0.29437499999999994,
+          0.484375,
+          -0.016249999999999997
+        ]
+      },
+      {
+        "name": "little2.R",
+        "parent": "little1.R",
+        "position": [
+          -0.30437499999999995,
+          0.485,
+          -0.01875
+        ]
+      },
+      {
+        "name": "little3.R",
+        "parent": "little2.R",
+        "position": [
+          -0.313125,
+          0.484375,
+          -0.02
+        ]
+      },
+      {
+        "name": "thumb1.R",
+        "parent": "hand.R",
+        "position": [
+          -0.279375,
+          0.481875,
+          0.018125
+        ]
+      },
+      {
+        "name": "thumb2.R",
+        "parent": "thumb1.R",
+        "position": [
+          -0.2875,
+          0.48125,
+          0.027499999999999997
+        ]
+      },
+      {
+        "name": "thumb3.R",
+        "parent": "thumb2.R",
+        "position": [
+          -0.298125,
+          0.48125,
+          0.032499999999999994
         ]
       }
     ],
-    "jointStatus": "inferred",
-    "skin": "linear-blend"
+    "jointStatus": "inferred; Blender reference-fitted",
+    "skin": "linear-blend",
+    "goldenBaseProfile": "rinne.golden-base-boy.v1",
+    "externalGoldenRigVerified": false
   },
   "sockets": {
     "definitions": {
-      "rightHand": {
+      "Head": {
+        "bone": "head",
+        "offset": [
+          0.0,
+          0.375,
+          0.0
+        ]
+      },
+      "LeftHand": {
+        "bone": "hand.L",
+        "offset": [
+          0.02562500000000001,
+          -0.00187499999999996,
+          0.001874999999999999
+        ]
+      },
+      "RightHand": {
         "bone": "hand.R",
         "offset": [
-          0,
-          0,
-          0
+          -0.02562500000000001,
+          -0.00187499999999996,
+          0.001874999999999999
+        ]
+      },
+      "Weapon": {
+        "bone": "hand.R",
+        "offset": [
+          -0.02562500000000001,
+          -0.00187499999999996,
+          0.001874999999999999
+        ]
+      },
+      "head": {
+        "bone": "head",
+        "offset": [
+          0.0,
+          0.375,
+          0.0
         ]
       },
       "leftHand": {
         "bone": "hand.L",
         "offset": [
-          0,
-          0,
-          0
+          0.02562500000000001,
+          -0.00187499999999996,
+          0.001874999999999999
+        ]
+      },
+      "rightHand": {
+        "bone": "hand.R",
+        "offset": [
+          -0.02562500000000001,
+          -0.00187499999999996,
+          0.001874999999999999
         ]
       },
       "weapon": {
         "bone": "hand.R",
         "offset": [
-          0,
-          0,
-          0
+          -0.02562500000000001,
+          -0.00187499999999996,
+          0.001874999999999999
         ]
       },
       "secondaryGripTarget": {
         "bone": "hand.R",
         "offset": [
-          0,
-          0,
-          0
+          -0.02562500000000001,
+          -0.00187499999999996,
+          0.001874999999999999
         ]
       },
       "weaponHitboxAnchor": {
         "bone": "hand.R",
         "offset": [
-          0,
-          0.18,
-          0
+          -0.02562500000000001,
+          0.13312499999999994,
+          0.001874999999999999
         ]
       },
       "trailOrigin": {
         "bone": "hand.R",
         "offset": [
-          0,
-          0.7,
-          0
+          -0.02562500000000001,
+          0.433125,
+          0.001874999999999999
         ]
       },
       "heldItemAnchor": {
         "bone": "hand.L",
         "offset": [
-          0,
-          0,
-          0
+          0.02562500000000001,
+          -0.00187499999999996,
+          0.001874999999999999
         ]
       },
       "talkAnchor": {
         "bone": "head",
         "offset": [
-          0,
-          0.24,
-          0
+          0.0,
+          0.4312499999999999,
+          0.0
         ]
       }
     },
@@ -7299,7 +7611,11 @@
       "secondaryGrip": "secondaryGripTarget",
       "weaponHitbox": "weaponHitboxAnchor",
       "hitbox": "weaponHitboxAnchor",
-      "heldItem": "heldItemAnchor"
+      "heldItem": "heldItemAnchor",
+      "Head": "Head",
+      "LeftHand": "LeftHand",
+      "RightHand": "RightHand",
+      "Weapon": "Weapon"
     }
   },
   "validationMetadata": {
@@ -7308,33 +7624,116 @@
   },
   "textureProjection": {
     "dimensions": [
-      480,
-      384
+      2048,
+      2048
     ],
-    "method": "CPU baked multi-view normal-weighted linear-color projection",
-    "weights": {
-      "source-weights-a.png": [
-        "front",
-        "front34",
-        "side",
-        "back34"
-      ],
-      "source-weights-b.png": [
-        "back",
-        "mirrored",
-        "generated",
-        "opaque"
-      ]
-    },
+    "method": "barycentric UV bake of actual Blender-edited triangles; generated base paint plus bounded normal-weighted original-view samples",
     "sampleContributions": {
-      "front": 41700.94314670512,
-      "front34": 0,
-      "side": 85445.99835734574,
-      "back34": 0,
-      "back": 37812.05849595835
+      "front": 37808.07270921311,
+      "front34": 0.0,
+      "side": 82096.52615945904,
+      "back34": 0.0,
+      "back": 49574.58113132751
     },
-    "unobservedTexels": 929,
-    "mirroredTexels": 82526,
-    "colorNormalization": "sRGB linearization only; reference lighting retained"
+    "generatedTexels": 773316,
+    "projectedTexels": 1082780,
+    "uvInteriorOverlapSamples": 180,
+    "colorNormalization": "reference lighting not solved; contribution explicitly limited and recorded"
+  },
+  "dccRefinement": {
+    "round": 1,
+    "blenderVersion": "4.5.0",
+    "sourceTopology": "source/dcc/topology.json",
+    "headToBodyRatio": 2.5559105431309903,
+    "headProfile": [
+      [
+        0.974,
+        0.031,
+        -0.069,
+        0.086
+      ],
+      [
+        0.988,
+        0.081,
+        -0.148,
+        0.107
+      ],
+      [
+        1.012,
+        0.151,
+        -0.213,
+        0.148
+      ],
+      [
+        1.061,
+        0.211,
+        -0.261,
+        0.202
+      ],
+      [
+        1.13,
+        0.269,
+        -0.272,
+        0.253
+      ],
+      [
+        1.2,
+        0.298,
+        -0.276,
+        0.288
+      ],
+      [
+        1.3,
+        0.307,
+        -0.299,
+        0.32
+      ],
+      [
+        1.4,
+        0.289,
+        -0.294,
+        0.322
+      ],
+      [
+        1.5,
+        0.223,
+        -0.247,
+        0.268
+      ],
+      [
+        1.575,
+        0.125,
+        -0.155,
+        0.157
+      ],
+      [
+        1.596,
+        0.034,
+        -0.033,
+        0.037
+      ],
+      [
+        1.6,
+        0.001,
+        -0.001,
+        0.001
+      ]
+    ],
+    "authoringSource": "source/dcc/golden-base-boy-v1-authoring.blend",
+    "initialPipelineOutput": "source/dcc/pipeline-import.blend",
+    "actualMorphs": [
+      "Blink.L",
+      "Blink.R",
+      "Smile",
+      "MouthOpen"
+    ],
+    "unsupportedClaims": [
+      "No independently specified external Golden Rig was available; fitted Forge hierarchy is used",
+      "No facial/oral anatomical simulation or motion-capture polish claimed"
+    ],
+    "shapeAuthority": "central source Front/Side/Back; printed 3.5 ratio and right technical thumbnails are not shape authority",
+    "clothingMeshes": 0,
+    "hairMeshes": 0,
+    "accessoryMeshes": 0
   }
 }

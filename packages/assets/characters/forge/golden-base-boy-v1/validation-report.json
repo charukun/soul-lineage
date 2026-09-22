@@ -4,45 +4,45 @@
   "visualStatus": "needs-human-review",
   "reviewStatus": "review-candidate",
   "productionReady": false,
-  "modelSha256": "cfa3a9f5649a2d435cb39a4f89604bb7109637a8c2cd543eb7a66e78a986fdbd",
+  "modelSha256": "35b47d99c934e766426f71ae42e19ec1425edfb00f67739f5397b5fddb74d6a3",
   "performance": {
-    "triangles": 14720,
-    "vertices": 7686,
+    "triangles": 24714,
+    "vertices": 16048,
     "materials": 1,
     "textures": 1,
     "textureDimensions": [
       [
-        480,
-        384
+        2048,
+        2048
       ]
     ],
-    "approximateDrawCalls": 18,
-    "glbSize": 698288
+    "approximateDrawCalls": 1,
+    "glbSize": 2340300
   },
   "comparisons": {
     "front": {
-      "silhouetteMismatch": 0.1509425593257928,
-      "iou": 0.8490574406742072,
-      "heightMismatch": 0.0,
-      "headBodyProportionMismatch": 0.026296426343728196,
+      "silhouetteMismatch": 0.13736726782403508,
+      "iou": 0.8626327321759649,
+      "heightMismatch": 0.006944444444444444,
+      "headBodyProportionMismatch": 0.027082638303398687,
       "groundAlignmentMismatch": 0.003472222222222222,
       "camera": "orthographic +Y-up; fixed 1.6m height, ground=0, no per-render auto-fit",
       "status": "diagnostic-pass"
     },
     "side": {
-      "silhouetteMismatch": 0.17767602881232902,
-      "iou": 0.822323971187671,
-      "heightMismatch": 0.0,
-      "headBodyProportionMismatch": 0.06501361949325113,
+      "silhouetteMismatch": 0.17035693325508194,
+      "iou": 0.8296430667449181,
+      "heightMismatch": 0.006944444444444444,
+      "headBodyProportionMismatch": 0.07223548947609526,
       "groundAlignmentMismatch": 0.003472222222222222,
       "camera": "orthographic +Y-up; fixed 1.6m height, ground=0, no per-render auto-fit",
       "status": "diagnostic-pass"
     },
     "back": {
-      "silhouetteMismatch": 0.1996046581582227,
-      "iou": 0.8003953418417773,
-      "heightMismatch": 0.0,
-      "headBodyProportionMismatch": 0.02634977471486194,
+      "silhouetteMismatch": 0.1475122926910576,
+      "iou": 0.8524877073089424,
+      "heightMismatch": 0.006944444444444444,
+      "headBodyProportionMismatch": 0.03010277090029828,
       "groundAlignmentMismatch": 0.003472222222222222,
       "camera": "orthographic +Y-up; fixed 1.6m height, ground=0, no per-render auto-fit",
       "status": "diagnostic-pass"
@@ -52,6 +52,39 @@
   "warnings": [],
   "limitations": [
     "Silhouette rasterization is deterministic CPU projection of delivered GLB triangles, not physical-device or perceptual acceptance",
-    "Concavity, asymmetric hidden surfaces, finger topology and foot contact remain unapproved"
-  ]
+    "Concavity, asymmetric hidden surfaces, finger topology and foot contact remain unapproved",
+    "Fitted Golden Base profile uses the existing Forge hierarchy; external Golden Rig equivalence is not asserted",
+    "Geometric ocular/expression surfaces are stylized, not full eyelid/oral anatomy",
+    "Generic candidate motion requires art review; no production promotion"
+  ],
+  "dccTopology": {
+    "sourceClosed": true,
+    "sourceQuadFraction": 0.9159624777114505,
+    "boneCount": 50,
+    "fingersPerHand": 5,
+    "uvInteriorOverlapSamples": 180
+  },
+  "morphs": {
+    "Blink.L": {
+      "nonzeroVertices": 1920,
+      "maxDisplacementMetres": 0.06157180461568038
+    },
+    "Blink.R": {
+      "nonzeroVertices": 1918,
+      "maxDisplacementMetres": 0.06157180461568038
+    },
+    "Smile": {
+      "nonzeroVertices": 4290,
+      "maxDisplacementMetres": 0.06664267342455091
+    },
+    "MouthOpen": {
+      "nonzeroVertices": 918,
+      "maxDisplacementMetres": 0.054196244824888065
+    }
+  },
+  "goldenRig": {
+    "runtimeContract": "rinne.forge.humanoid.v1",
+    "fittedProfile": "rinne.golden-base-boy.v1",
+    "externalContractVerified": false
+  }
 }

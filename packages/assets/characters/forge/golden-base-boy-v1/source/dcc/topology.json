@@ -1,0 +1,402 @@
+{
+  "blenderVersion": "4.5.0",
+  "round": 1,
+  "objects": [
+    {
+      "name": "GoldenBaseBody",
+      "role": "body",
+      "vertices": 4477,
+      "faces": 4475,
+      "quads": 4475,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        0,
+        0,
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "GoldenBaseHead",
+      "role": "head",
+      "vertices": 2882,
+      "faces": 2944,
+      "quads": 2816,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1024,
+        0,
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "Ear L",
+      "role": "ear",
+      "vertices": 610,
+      "faces": 640,
+      "quads": 576,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        0,
+        1024,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Ear bowl L",
+      "role": "ear-inner",
+      "vertices": 314,
+      "faces": 336,
+      "quads": 288,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        256,
+        1024,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Ear R",
+      "role": "ear",
+      "vertices": 610,
+      "faces": 640,
+      "quads": 576,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        512,
+        1024,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Ear bowl R",
+      "role": "ear-inner",
+      "vertices": 314,
+      "faces": 336,
+      "quads": 288,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        768,
+        1024,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Eye white L",
+      "role": "eye-white",
+      "vertices": 362,
+      "faces": 400,
+      "quads": 320,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1024,
+        1024,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Iris L",
+      "role": "iris",
+      "vertices": 362,
+      "faces": 400,
+      "quads": 320,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1280,
+        1024,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Pupil L",
+      "role": "pupil",
+      "vertices": 122,
+      "faces": 144,
+      "quads": 96,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1536,
+        1024,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Catchlight 0 L",
+      "role": "highlight",
+      "vertices": 66,
+      "faces": 80,
+      "quads": 48,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1792,
+        1024,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Catchlight 1 L",
+      "role": "highlight",
+      "vertices": 66,
+      "faces": 80,
+      "quads": 48,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        0,
+        1280,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Upper lid L",
+      "role": "lash",
+      "vertices": 202,
+      "faces": 208,
+      "quads": 192,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        256,
+        1280,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Lash wing L",
+      "role": "lash",
+      "vertices": 26,
+      "faces": 32,
+      "quads": 16,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        512,
+        1280,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Lower lid L",
+      "role": "lower-lid",
+      "vertices": 128,
+      "faces": 132,
+      "quads": 120,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        768,
+        1280,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Brow L",
+      "role": "brow",
+      "vertices": 110,
+      "faces": 114,
+      "quads": 102,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1024,
+        1280,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Eye white R",
+      "role": "eye-white",
+      "vertices": 362,
+      "faces": 400,
+      "quads": 320,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1280,
+        1280,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Iris R",
+      "role": "iris",
+      "vertices": 362,
+      "faces": 400,
+      "quads": 320,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1536,
+        1280,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Pupil R",
+      "role": "pupil",
+      "vertices": 122,
+      "faces": 144,
+      "quads": 96,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1792,
+        1280,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Catchlight 0 R",
+      "role": "highlight",
+      "vertices": 66,
+      "faces": 80,
+      "quads": 48,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        0,
+        1536,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Catchlight 1 R",
+      "role": "highlight",
+      "vertices": 66,
+      "faces": 80,
+      "quads": 48,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        256,
+        1536,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Upper lid R",
+      "role": "lash",
+      "vertices": 202,
+      "faces": 208,
+      "quads": 192,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        512,
+        1536,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Lash wing R",
+      "role": "lash",
+      "vertices": 26,
+      "faces": 32,
+      "quads": 16,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        768,
+        1536,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Lower lid R",
+      "role": "lower-lid",
+      "vertices": 128,
+      "faces": 132,
+      "quads": 120,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1024,
+        1536,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Brow R",
+      "role": "brow",
+      "vertices": 110,
+      "faces": 114,
+      "quads": 102,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1280,
+        1536,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Mouth opening",
+      "role": "mouth",
+      "vertices": 162,
+      "faces": 192,
+      "quads": 128,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1536,
+        1536,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "Mouth rim",
+      "role": "lip",
+      "vertices": 152,
+      "faces": 156,
+      "quads": 144,
+      "nonManifoldEdges": 0,
+      "degenerateFaces": 0,
+      "uvAtlasRect": [
+        1792,
+        1536,
+        256,
+        256
+      ]
+    }
+  ],
+  "totalQuads": 11815,
+  "totalFaces": 12899,
+  "closedSourceMeshes": true,
+  "fingerCountPerHand": 5,
+  "rigBones": 50,
+  "externalGoldenRigVerified": false
+}
