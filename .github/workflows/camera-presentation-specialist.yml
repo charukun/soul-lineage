@@ -1,37 +1,46 @@
 name: Camera Presentation specialist (task only)
-run-name: Materialize camera task source on 67d33c8f1fd181cb6b82724bb2b8a58e0a757a96
+run-name: Camera gameplay specialist PR1490 2053721f1f2809d8fe8a1344f2223d5d2fefd361
 on:
   push:
     branches: [dispatch/camera-presentation-specialist-20260923]
 permissions:
-  contents: write
+  contents: read
 jobs:
-  materialize:
+  browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 22
+    env:
+      APP_ENV: dev
     steps:
       - uses: actions/checkout@v6
         with:
           path: control
           persist-credentials: false
-          sparse-checkout: |
-            scripts
-            apps/review
-            apps/rinne
-            packages/rendering
-            docs/rendering
+          sparse-checkout: scripts/browser
       - uses: actions/checkout@v6
         with:
-          ref: 67d33c8f1fd181cb6b82724bb2b8a58e0a757a96
+          ref: 2053721f1f2809d8fe8a1344f2223d5d2fefd361
           path: work
           persist-credentials: false
-      - name: Materialize task source as blobs only; Connector owns refs and merge
-        working-directory: work
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: python3 ../control/scripts/materialize-camera-task.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/setup-node@v6
         with:
-          name: camera-materialized-source
-          path: /tmp/camera-materialized
-          retention-days: 7
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: work/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: work
+      - run: npm run build:rinne && npm run build:review
+        working-directory: work
+      - run: npx playwright install --with-deps chromium
+        working-directory: work
+      - name: Native camera gameplay and Review evidence for exact head
+        working-directory: work
+        run: |
+          cp ../control/scripts/browser/camera-playtest-task.mjs scripts/browser/camera-playtest-task.mjs
+          node scripts/browser/camera-playtest-task.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: camera-specialist-2053721f1f2809d8fe8a1344f2223d5d2fefd361
+          path: work/test-results/camera-presentation
+          retention-days: 14
