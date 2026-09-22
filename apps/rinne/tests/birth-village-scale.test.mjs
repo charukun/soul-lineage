@@ -11,15 +11,16 @@ const halfExtents=o=>{
 
 test('windward birth village is compact, walkable and facility footprints do not overlap',()=>{
  const layout=createRinneBirthVillage(),facilities=layout.objects.filter(o=>defs[o.kind]?.building);
- assert.equal(layout.revision,2);
+ assert.equal(layout.revision,4);
  for(let i=0;i<facilities.length;i++)for(let j=i+1;j<facilities.length;j++){
   const a=facilities[i],b=facilities[j],ha=halfExtents(a),hb=halfExtents(b),gap=.75;
   const separated=Math.abs(a.x-b.x)>=ha.x+hb.x+gap||Math.abs(a.z-b.z)>=ha.z+hb.z+gap;
   assert.ok(separated,`${a.id} overlaps ${b.id}`);
  }
- const outer=new Set(['birth-watch-west','birth-watch-east','birth-farm','birth-wheat','birth-logging','birth-quarry','birth-carpenter','birth-orchard','birth-harbor']);
- const core=facilities.filter(o=>!outer.has(o.id));
- assert.ok(Math.max(...core.map(o=>Math.hypot(o.x,o.z)))<=33,'inhabited core must stay in a short walking radius');
+ const inland=facilities.filter(o=>o.id!=='birth-harbor');
+ assert.ok(Math.max(...inland.map(o=>Math.hypot(o.x,o.z)))<=72,'expanded inland village must remain inside the authored district ring');
+ for(const kind of ['restaurant','tavern','armor','jeweler','tools','furniture','storage','clay','hunting','fishpond'])assert.ok(facilities.some(o=>o.kind===kind),`missing facility: ${kind}`);
+ assert.ok(facilities.filter(o=>o.kind==='home').length>=4,'expanded village should include a visible residential quarter');
  assert.equal(layout.objects.find(o=>o.id==='birth-harbor').x,166,'harbor stays on the established east coast');
 });
 
