@@ -17,7 +17,7 @@ export function zoomFromVerticalSwipe(startZoom,deltaY,{min=.58,max=1.65,sensiti
 export function createSnapCameraControl({document:doc,container,initialIndex=0,initialZoom=1,minZoom=.58,maxZoom=1.65,onChange=()=>{},ariaLabel='カメラ操作'}={}){
   if(!doc)throw new TypeError('document is required');
   const root=doc.createElement('button');root.type='button';root.className='snap-camera-control';root.setAttribute('aria-label',ariaLabel);root.dataset.enabled='true';
-  root.innerHTML='<svg viewBox="0 0 44 40" aria-hidden="true"><path class="snap-camera-control__top" d="M13 9.5 16 5.8h10l3 3.7"/><rect class="snap-camera-control__body" x="5" y="9" width="34" height="25" rx="8"/><circle class="snap-camera-control__lens" cx="22" cy="21.5" r="7.8"/><circle class="snap-camera-control__shine" cx="19.4" cy="18.8" r="2.1"/><circle class="snap-camera-control__dot" cx="33" cy="14.5" r="2"/></svg>';
+  root.innerHTML='<svg viewBox="0 0 44 44" aria-hidden="true"><path class="snap-camera-control__eye" d="M5.5 22c4.1-6.4 9.7-9.6 16.5-9.6S34.4 15.6 38.5 22c-4.1 6.4-9.7 9.6-16.5 9.6S9.6 28.4 5.5 22Z"/><circle class="snap-camera-control__iris" cx="22" cy="22" r="6.4"/><circle class="snap-camera-control__pupil" cx="22" cy="22" r="2.6"/><path class="snap-camera-control__ring" d="M11.2 9.8A17 17 0 0 1 32.8 9.8M34.2 11.2l-1.4-5.1 5.1 1.4M32.8 34.2A17 17 0 0 1 11.2 34.2M9.8 32.8l1.4 5.1-5.1-1.4"/><path class="snap-camera-control__zoom" d="M22 4.5v4M20 6.5h4M22 35.5v4M20 37.5h4"/></svg>';
   container?.append(root);
   let index=wrapStep(initialIndex),zoom=clamp(initialZoom,minZoom,maxZoom),enabled=true,pointerId=null,startX=0,startY=0,startZoom=zoom,axis='';
   const snapshot=()=>Object.freeze({index,yaw:snapCameraYaw(index),zoom});
