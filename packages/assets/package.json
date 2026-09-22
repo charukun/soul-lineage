@@ -13,7 +13,8 @@
     "./character25d/motion": "./src/character25d-motion.js",
     "./character25d/proxy": "./src/character25d-proxy.js",
     "./character25d/browser": "./src/adapters/browser/character25d-compiler.js",
-    "./character25d/three": "./src/adapters/three/character25d-actor.js"
+    "./character25d/three": "./src/adapters/three/character25d-actor.js",
+    "./equipment/three": "./src/adapters/three/runtime-equipment.js"
   },
   "dependencies": {}
 }
