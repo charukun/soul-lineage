@@ -60,3 +60,18 @@
   #game-screen[data-storybook-open="true"] .rinne-record-toggle{right:4%!important;bottom:17px!important;width:38px!important;height:44px!important}
   #game-screen[data-storybook-open="true"] .rinne-primary-four .upgrade-control>span{font-size:9px!important}
 }
+/* Final visual review: restore the approved display face despite the legacy
+   body-wide font override, and keep cropped source labels out of live text. */
+.rb-page :is(h1,h2,h3),.rb-slot>strong,.rb-tile>strong,.rb-person>*{
+  font-family:var(--font-rinne-display)!important;
+  font-kerning:normal;
+}
+.rb-page[data-book-page="technique"] .rb-detail-art{
+  object-position:center top;
+  transform:scale(1.13);
+  transform-origin:center top;
+  clip-path:inset(0 0 12% 0);
+}
+/* The old corner crop included a square of background grass. Keep the clean
+   continuous book edge rather than drawing a photograph-shaped corner. */
+.rb-book::before,.rb-book::after{display:none}

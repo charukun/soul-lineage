@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {chromium} from '@playwright/test';
 import {createServer} from 'vite';
 
-/** Selected explicitly by Astra for the approved UI task. No production test API or save is changed. */
+/** Explicit approved-UI acceptance. The isolated fixture is never shipped or saved. */
 test('approved storybook pages render and commit real canonical choices on the exact head',{timeout:240000},async()=>{
   const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
   const app=resolve(root,'apps/rinne'),file=resolve(app,`storybook-acceptance-${process.pid}.html`),evidence=resolve(root,'.artifacts/storybook-acceptance');
@@ -38,28 +38,46 @@ test('approved storybook pages render and commit real canonical choices on the e
     browser=await chromium.launch({headless:true,args:['--disable-dev-shm-usage']});
     const context=await browser.newContext({viewport:{width:390,height:680},hasTouch:true,deviceScaleFactor:1,reducedMotion:'reduce'}),page=await context.newPage();page.on('pageerror',e=>errors.push(String(e)));page.setDefaultTimeout(15000);
     await page.goto(`http://127.0.0.1:4187/storybook-acceptance-${process.pid}.html`);await page.waitForFunction(()=>window.acceptanceReady);
-    const build=await page.evaluate(()=>window.acceptance.build);if(process.env.GITHUB_SHA)assert.equal(build.commit,process.env.GITHUB_SHA,'browser must use the validated exact head');
+    const build=await page.evaluate(()=>window.acceptance.build);if(process.env.GITHUB_SHA)assert.equal(build.commit,process.env.GITHUB_SHA,'browser uses the validated exact head');
     const names=[['heart','[data-heart]'],['technique','[data-techniques]'],['body','.rinne-primary-four [data-body]'],['items','[data-items]']];
+    async function settle(){await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.querySelectorAll('.rb-page img')].map(i=>i.complete?Promise.resolve():new Promise(r=>{i.onload=i.onerror=r})));});}
+    async function open(p){await page.evaluate(p=>window.acceptance.ui.open(p),p);await page.locator(`.rb-page[data-book-page="${p}"]`).waitFor();await settle();}
     for(const [p,selector]of names){
-      await page.locator(selector).click();await page.locator(`.rb-page[data-book-page="${p}"]`).waitFor();await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.querySelectorAll('.rb-page img')].map(i=>i.complete?Promise.resolve():new Promise(r=>{i.onload=i.onerror=r})));});
+      await page.locator(selector).click();await page.locator(`.rb-page[data-book-page="${p}"]`).waitFor();await settle();
       assert.equal(await page.locator('.rb-slot').count(),3,`${p}: canonical slot count`);
       assert.equal(await page.locator('.rinne-primary-four button').count(),4,'persistent 心技体装');
       assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.rb-page img')].filter(i=>!i.naturalWidth).length),0,`${p}: materialized artwork`);
       const close=await page.locator('[data-book-action="close"]').boundingBox();assert.ok(close&&close.x>=0&&close.y>=0&&close.x+close.width<=390&&close.y+close.height<=680,'close control reachable');
+      assert.match(await page.locator('.rb-book-head h1').evaluate(e=>getComputedStyle(e).fontFamily),/Kaisei Opti/,'approved display typography survives legacy body font rules');
       await page.screenshot({path:resolve(evidence,`${p}.png`)});
     }
     await page.locator('[data-heart]').click();const before=await page.evaluate(()=>window.acceptance.snapshot()),tile=page.locator('.rb-tile').nth(4),id=await tile.getAttribute('data-book-id');await tile.click();assert.deepEqual(await page.evaluate(()=>window.acceptance.snapshot()),before,'preview and simulated mind balance must not mutate life');await page.locator('[data-book-action="equip"]').click();assert.equal(await page.evaluate(()=>window.acceptance.state.combatLoadout.heart.active[0]),id);
     await page.evaluate(()=>window.acceptance.roundtrip());assert.equal(await page.evaluate(()=>window.acceptance.state.combatLoadout.heart.active[0]),id,'chosen heart survives the canonical save codec');
+    await open('technique');await page.locator('[data-book-slot="ha"]').click();
+    const technique=await page.evaluate(()=>window.acceptance.model('technique').allRows.find(r=>!r.basic&&r.known&&r.availability?.usable!==false&&(!r.weapons.length||r.weapons.includes('sword')))?.id);
+    assert.ok(technique,'fixture exposes a usable learned technique');
+    const techniqueBefore=await page.evaluate(()=>window.acceptance.snapshot());await page.locator('.rb-tile').filter({has:page.locator('img')}).count();
+    await page.locator(`[data-book-id="${technique}"]`).click();assert.deepEqual(await page.evaluate(()=>window.acceptance.snapshot()),techniqueBefore,'technique preview is nonmutating');
+    await page.locator('[data-book-action="equip"]').click();assert.equal(await page.evaluate(()=>{const s=window.acceptance.state;return s.combatLoadout.technique.combos.find(c=>c.id===s.combatLoadout.technique.activeComboId).slots.ha;}),technique,'confirmed technique updates the selected phase');
+    await open('body');const bodyChoice=await page.evaluate(()=>{const a=window.acceptance;return a.model('body').allRows.find(r=>r.known&&r.category==='stance'&&r.choice!==a.state.combatLoadout.body.stance);});assert.ok(bodyChoice,'fixture exposes a second learned stance');
+    const bodyBefore=await page.evaluate(()=>window.acceptance.snapshot());await page.locator(`[data-book-id="${bodyChoice.id}"]`).click();assert.deepEqual(await page.evaluate(()=>window.acceptance.snapshot()),bodyBefore,'body preview is nonmutating');await page.locator('[data-book-action="equip"]').click();assert.equal(await page.evaluate(()=>window.acceptance.state.combatLoadout.body.stance),bodyChoice.choice);
     await page.locator('[data-items]').click();await page.locator('[data-book-id="armor:light"]').click();assert.equal(await page.evaluate(()=>window.acceptance.state.equipment.armor),'cloth');await page.locator('[data-book-action="equip"]').click();assert.equal(await page.evaluate(()=>window.acceptance.state.equipment.armor),'light');
     await page.keyboard.press('Escape');assert.equal(await page.locator('.rinne-core-menu').isVisible(),false);assert.equal(await page.locator('#game-screen').getAttribute('data-storybook-open'),null,'closing restores the game rather than leaving a ghost panel');
     await page.evaluate(()=>{window.acceptance.set(window.acceptance.fixture(0));window.acceptance.ui.open('items')});assert.equal(await page.locator('[data-book-action="equip"]').isDisabled(),true);assert.equal(await page.locator('[data-book-action="remove"]').isDisabled(),true);
     await page.evaluate(()=>{const s=window.acceptance.fixture();s.combat={training:false};window.acceptance.set(s);window.acceptance.ui.open('heart')});assert.equal(await page.locator('[data-book-action="equip"]').isDisabled(),true);
     await page.evaluate(()=>{const s=window.acceptance.fixture();window.acceptance.set(s);document.querySelector('#game').dataset.coopPlayer='test';window.acceptance.ui.open('body')});assert.equal(await page.locator('[data-book-action="equip"]').isDisabled(),true);
-    await page.evaluate(()=>{delete document.querySelector('#game').dataset.coopPlayer;window.acceptance.set(window.acceptance.fixture());window.acceptance.ui.open('body')});
-    for(const viewport of [{width:360,height:520},{width:740,height:360},{width:941,height:1672}]){await page.setViewportSize(viewport);await page.waitForTimeout(100);const nav=await page.locator('.rinne-primary-four').boundingBox();assert.ok(nav&&nav.x>=0&&nav.x+nav.width<=viewport.width+1&&nav.y+nav.height<viewport.height-10,'navigation fits '+JSON.stringify(viewport));await page.screenshot({path:resolve(evidence,`body-${viewport.width}x${viewport.height}.png`)});}
+    await page.evaluate(()=>{delete document.querySelector('#game').dataset.coopPlayer;window.acceptance.set(window.acceptance.fixture());});
+    const captures=[];
+    for(const viewport of [{width:360,height:520},{width:740,height:360},{width:941,height:1672}]){
+      await page.setViewportSize(viewport);
+      for(const [p]of names){
+        await open(p);const nav=await page.locator('.rinne-primary-four').boundingBox();assert.ok(nav&&nav.x>=0&&nav.x+nav.width<=viewport.width+1&&nav.y+nav.height<viewport.height-10,'navigation fits '+p+' '+JSON.stringify(viewport));
+        const fileName=`${p}-${viewport.width}x${viewport.height}.png`;await page.screenshot({path:resolve(evidence,fileName)});captures.push(fileName);
+      }
+    }
     assert.deepEqual(errors,[]);
-    await writeFile(resolve(evidence,'receipt.json'),JSON.stringify({exactHead:build.commit,kind:'production-controller-browser-acceptance',scope:'isolated UI fixtures, not a full-life no-injection playthrough',pages:4,checks:['canonical-slots','four-core-controls','all-artwork-loaded','close-hit-target','preview-is-nonmutating','heart-confirm','canonical-save-roundtrip','equipment-confirm','escape-cleanup','age-gate','combat-readonly','shared-readonly','three-viewport-bounds'],errors},null,2));
-    console.log(`Storybook acceptance passed on ${build.commit}: four pages, live canonical setters, read-only gates, save roundtrip, three viewport checks.`);
+    await writeFile(resolve(evidence,'receipt.json'),JSON.stringify({exactHead:build.commit,kind:'production-controller-browser-acceptance',scope:'isolated UI fixtures, not a full-life no-injection playthrough',pages:4,checks:['canonical-slots','four-core-controls','all-artwork-loaded','close-hit-target','approved-heading-font','preview-is-nonmutating','heart-confirm','canonical-save-roundtrip','technique-preview-and-phase-confirm','body-preview-and-stance-confirm','equipment-confirm','escape-cleanup','age-gate','combat-readonly','shared-readonly','all-pages-three-viewport-bounds'],captures,errors},null,2));
+    console.log(`Storybook acceptance passed on ${build.commit}: four pages, canonical setters for every core page, read-only gates, save roundtrip, three viewport checks.`);
     await context.close();
   }finally{await browser?.close();await server?.close();await rm(file,{force:true});}
 });

@@ -1,0 +1,36 @@
+name: Task-scoped RINNE approved UI workbench
+on:
+  push:
+    branches: [feat/rinne-approved-storybook-20260922]
+    paths: [.storybook-task-input.json]
+permissions:
+  contents: read
+env:
+  APP_ENV: dev
+  APP_BRANCH: feat/rinne-approved-storybook-20260922
+jobs:
+  work:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Prepare explicitly requested comparison
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Verify all four real pages and capture final comparison evidence
+        run: node --test apps/rinne/tests/storybook-model.test.mjs apps/rinne/tests/browser-storybook-acceptance.test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rinne-storybook-final-${{ github.sha }}
+          path: .artifacts/storybook-acceptance/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
