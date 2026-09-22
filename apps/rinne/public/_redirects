@@ -1,0 +1,8 @@
+# Canonical RINNE Visual Review routes.
+# Keep the public URL extensionless while proxying to nested source/build entrypoints.
+/review-motion /review/motion/ 200
+/review-assets /review/equipment/ 200
+/review-objects /review/objects/ 200
+/review-effects /review/effects/ 200
+/review-sound /review/sound/ 200
+/review-battle /review/battle/ 200
