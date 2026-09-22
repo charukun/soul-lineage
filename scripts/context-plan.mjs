@@ -10,6 +10,12 @@ export const WHOLE_DIFF_MAX_LINES = 2000;
 export const MAX_LOG_BYTES = 64 * 1024;
 export const MAX_SESSION_LOG_BYTES = 96 * 1024;
 export const MAX_SESSION_LOG_EXCERPTS = 3;
+export const CONNECTOR_ROUND_TRIP_BUDGET = Object.freeze({
+  acquirePhases: 1,
+  coherentWritePhases: 1,
+  validationStatusReads: 1,
+  mergeGuardReads: 1,
+});
 
 const ROUTES = [
   {
@@ -219,6 +225,32 @@ export function buildContextPlan({ task = '', paths = [], base = 'origin/develop
     read: budget.read,
     deferred: budget.deferred,
     diff: { ...diff, strategy: chooseDiffStrategy(diff) },
+    connectorRoundTripBudget: {
+      ...CONNECTOR_ROUND_TRIP_BUDGET,
+      model: 'phase-budget',
+      normalPhases: [
+        'acquire: batch independent source/context reads together',
+        'write: one coherent blobs→tree→commit→ref update; make it the [astra-validate] candidate when practical',
+        'validation-status: read canonical exact-head astra/* statuses once; do not inspect healthy run/job/log/artifact detail',
+        'merge-guard: one Ready-time head/base refresh immediately before merge',
+      ],
+      recoveryOnly: [
+        'exact-head validation failure',
+        'merge conflict',
+        'affected-scope overlap',
+        'upstream state change that invalidates cached metadata',
+        'tool/transport failure requiring another supported path',
+      ],
+      prohibited: [
+        're-fetch unchanged files',
+        'fetch→edit→push→Actions→fetch exploratory loops',
+        'intermediate-head Actions or artifact inspection',
+        'preflight-only implementation commits',
+        'success-job log/artifact inspection',
+        'polling',
+      ],
+      note: 'Repository contract for sequential decision phases; repository code cannot intercept external Connector calls directly.',
+    },
     githubRetrieval: {
       maxLogBytes: MAX_LOG_BYTES,
       maxSessionLogBytes: MAX_SESSION_LOG_BYTES,
@@ -268,6 +300,7 @@ function printCompact(plan) {
     }
     if (plan.pathRetrieval.narrowFirst.length > 20) console.log(`- ... +${plan.pathRetrieval.narrowFirst.length - 20} more`);
   }
+  console.log(`connector-roundtrip-budget: acquire=${plan.connectorRoundTripBudget.acquirePhases}, write=${plan.connectorRoundTripBudget.coherentWritePhases}, validation-status=${plan.connectorRoundTripBudget.validationStatusReads}, merge-guard=${plan.connectorRoundTripBudget.mergeGuardReads}; extra phases require a concrete recovery trigger`);
   console.log(`ci-log-budget: ${plan.githubRetrieval.maxSessionLogExcerpts} unique excerpts / ${plan.githubRetrieval.maxSessionLogBytes} bytes per session ledger; exhaustion is a stop condition`);
   console.log('rule: narrow/search first; do not preload old chats, all docs, whole large files/diffs, or all CI logs');
 }

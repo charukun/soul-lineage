@@ -16,6 +16,29 @@
 - タスクに必要な参照候補を小さく列挙する `npm run context:plan` を提供し、全文を束ねた巨大なcontext dumpは生成しない。
 - context削減を理由に、既存のテスト、review、Integration、browser gate、Production gateを弱めない。
 
+## Connector round-trip budget
+
+通常Fast DEVでは、取得量だけでなく**逐次Connector往復そのもの**を制限する。ここでいう1 phaseは、前の結果を待たずに独立して実行できるGitHub Connector callを同じorchestrationでまとめた単位。API call個数そのものではなく、モデルが「結果を見る→次を決める」を何回繰り返したかを制限する。
+
+標準budget:
+
+1. **Acquire** — 最新develop、AGENTS、task-specific docs/sourceを可能な限り1回のbatched readで取得する。
+2. **Write** — coherent final treeを `blobs -> tree -> commit -> ref` の1 write phaseで反映する。通常はこのcommitを `[astra-validate]` headにする。
+3. **Validate status** — exact-headのcanonical `astra/*` statusを1回読む。成功時はrun/job/log/artifactを掘らない。
+4. **Merge guard** — Ready後、既存race guardとしてhead/baseを1回再読してmergeする。
+
+禁止事項:
+- unchanged fileの再fetch
+- fetch → edit → push → Actions確認 → fetch → edit の探索ループ
+- intermediate headのActions/run/artifact確認
+- preflight目的だけのimplementation commit/ref更新
+- success job log/artifactの確認
+- tool callの逐次polling
+
+budgetを超える追加phaseは、validation failure、merge conflict、affected-scope overlap、キャッシュ済み状態を無効化するupstream change、またはtool/transport failureの**具体的receipt**がある場合だけ。追加phaseではその原因に必要な対象だけを読む/直す。例外発生を理由に全contextや全CIを取り直さない。
+
+RepositoryはChatGPT/GitHub Connectorの外部tool-callカウンタを直接interceptできないため、これはagent実行契約として強制する。`context:plan` はmachine-readableな `connectorRoundTripBudget` を出力し、通常実装はそのphase modelに従う。
+
 ## 取得順序
 
 1. 最新 `develop` のSHAと `AGENTS.md` を確認する。
