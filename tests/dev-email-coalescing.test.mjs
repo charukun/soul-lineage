@@ -160,6 +160,38 @@ test('fallback DEV email thread title identifies the deployed change before the 
   assert.equal(posted.length, 1);
 });
 
+test('fallback DEV email dedupe ignores pre-merge history after the shared thread exceeds 300 comments', async () => {
+  const target = pr(1463, merge877, '2026-09-22T11:34:46Z');
+  let fallbackGets = 0, fallbackPosts = 0;
+  const request = async (url, init = {}) => {
+    const method = init.method || 'GET';
+    if (method === 'GET' && url.includes('/issues/1463/comments?')) return response([]);
+    if (method === 'POST' && url.endsWith('/issues/1463/comments')) return response({ message: 'forbidden' }, 403);
+    if (method === 'GET' && url.includes('/issues/1009/comments?')) {
+      fallbackGets++;
+      assert.match(url, /since=2026-09-22T11%3A34%3A46.000Z/);
+      return response([]);
+    }
+    if (method === 'PATCH' && url.endsWith('/issues/1009')) return response({ number: 1009 }, 200);
+    if (method === 'POST' && url.endsWith('/issues/1009/comments')) {
+      fallbackPosts++;
+      return response({ id: 301 }, 201);
+    }
+    throw new Error(`Unexpected request: ${method} ${url}`);
+  };
+  const receipt = await recordGithubDeliveryReceipt({
+    token: 'token',
+    repository: repo,
+    sha: current,
+    message: 'DEV反映完了【Visual Review Lab】\\n反映内容: 300件到達後の通知復旧',
+    pr: target,
+    request,
+  });
+  assert.equal(receipt, 'github-dev-email-thread-comment');
+  assert.equal(fallbackGets, 1);
+  assert.equal(fallbackPosts, 1);
+});
+
 test('DEV email health is observable without claiming SMTP delivery', () => {
   assert.deepEqual(developmentEmailStatus('success'), { state: 'success', description: 'GitHub PR DEV receipt created or already present' });
   assert.equal(developmentEmailStatus('skipped').state, 'success');
