@@ -1123,6 +1123,18 @@
       "sha256": "7399c6db48fa15ca1db483f7d7480499f57d46ea4dde76e8e99c7dfd670dc616"
     },
     {
+      "path": "licenses/d86c2c2614171457167773409997e998c626090c.txt",
+      "bytes": 1552,
+      "gitBlobSha": "d86c2c2614171457167773409997e998c626090c",
+      "sha256": "327a1aac6e6ff1259d82d0024cdaf088bcef302f8d7a116b5142538ac2b5cf8d"
+    },
+    {
+      "path": "licenses/f6062e1a4ab833ee21b22707247717b83ac7c682.txt",
+      "bytes": 1554,
+      "gitBlobSha": "f6062e1a4ab833ee21b22707247717b83ac7c682",
+      "sha256": "d4adc31660d1db22eb60eba648e01db41577548f6fa1a3576cb4a6283dae0a58"
+    },
+    {
       "path": "licenses/kaykit-dungeon-additions-CC0.txt",
       "bytes": 829,
       "gitBlobSha": "686cf4ee3931b75d4ecfac6308f9d3287553748c",
@@ -1151,6 +1163,66 @@
       "bytes": 550,
       "gitBlobSha": "c639d69bc4ac45f19a9b684663e74c60f1b13888",
       "sha256": "cf15868a089dbc422f33bb4be09795d456aa93d664ff901e0422706f69b82f54"
+    },
+    {
+      "path": "model/575da270ed4e7e6a40eae60f056640542c2fa645/Skeleton_Warrior.glb",
+      "bytes": 367484,
+      "gitBlobSha": "575da270ed4e7e6a40eae60f056640542c2fa645",
+      "sha256": "992d5cfd6beb5565c50f742587d492f2a2cfcdfb3ffe4435aa16461c6d0e54be"
+    },
+    {
+      "path": "model/66eac745c7d4360e463bf4c4e5e117e4c0c58b1e/Mage.glb",
+      "bytes": 352472,
+      "gitBlobSha": "66eac745c7d4360e463bf4c4e5e117e4c0c58b1e",
+      "sha256": "1f7d891bde50b879c70965f155b7b765b166dc3f8518e5abb86c0002f191a26e"
+    },
+    {
+      "path": "model/6f28b937ec57b06815240fbf4106c58e76a74c0c/Rogue.glb",
+      "bytes": 409188,
+      "gitBlobSha": "6f28b937ec57b06815240fbf4106c58e76a74c0c",
+      "sha256": "cae5d9b2f08d53f7b4ab2617d9f42f021c546eb10920455fdcd82a110867fae4"
+    },
+    {
+      "path": "model/7063f6cbca7fd2445c9b804a9f157c11c0e7b0f2/Rogue_Hooded.glb",
+      "bytes": 381432,
+      "gitBlobSha": "7063f6cbca7fd2445c9b804a9f157c11c0e7b0f2",
+      "sha256": "e8f3233c6db190506fbef3ad855683e6cb8bd7350de637d923e14a08aef088dc"
+    },
+    {
+      "path": "model/793ac234dcc0509222b073a314d2ab5f18551797/Knight.glb",
+      "bytes": 341688,
+      "gitBlobSha": "793ac234dcc0509222b073a314d2ab5f18551797",
+      "sha256": "e484370733824a0740683e7f6040aae0d20e5efd4107dde1175d6a2ad7e2f199"
+    },
+    {
+      "path": "model/7fcc7e425741699d01bf9c2d4d64b795acee1355/Skeleton_Mage.glb",
+      "bytes": 265676,
+      "gitBlobSha": "7fcc7e425741699d01bf9c2d4d64b795acee1355",
+      "sha256": "aee903d0febd151dbc49a4784ad4135862b20c1b025bf433b98a08d52e5f7849"
+    },
+    {
+      "path": "model/8edaf04430036130c3a7fcb6767049aac3c3f3a7/Ranger.glb",
+      "bytes": 484712,
+      "gitBlobSha": "8edaf04430036130c3a7fcb6767049aac3c3f3a7",
+      "sha256": "3a0b0166b9d61d58dcaaa739c3cc0538be46e00d2928dd5cb513d9a41770d2e9"
+    },
+    {
+      "path": "model/9c3d1185c63fd744865b0fb5bbaaa5b5394f0ae8/Skeleton_Minion.glb",
+      "bytes": 318520,
+      "gitBlobSha": "9c3d1185c63fd744865b0fb5bbaaa5b5394f0ae8",
+      "sha256": "1fadbf1bc66fd7ce008eecd0ffccc8f8089e1c2887813559ca553680a738fece"
+    },
+    {
+      "path": "model/c3f48757143a30e0261028a79d67961f60c50ae6/Skeleton_Rogue.glb",
+      "bytes": 331180,
+      "gitBlobSha": "c3f48757143a30e0261028a79d67961f60c50ae6",
+      "sha256": "d5b8f074a78a9972af0966014905ea1df2e71d2c3495d37a211980e6343ee774"
+    },
+    {
+      "path": "model/d06efc99d5fe8541a31affdd0a25d0c519980c89/Barbarian.glb",
+      "bytes": 386648,
+      "gitBlobSha": "d06efc99d5fe8541a31affdd0a25d0c519980c89",
+      "sha256": "d37824a1d6e8e8af57ef9ae4a87e9271c3986210fbc432fb44670749a577ccac"
     },
     {
       "path": "model/gobkit/goblin-runt/f7700d62b6252f14601743f156049ef3b8454f96.glb",
@@ -4149,6 +4221,12 @@
       "bytes": 1890126,
       "gitBlobSha": "01fd808b8cf4cf1d74f22988d9542d8e5d32cc16",
       "sha256": "2438fc6ceaa2a749f4617c9b13cf075bfa7daf901b0789978c36b0eb95bd4ae2"
+    },
+    {
+      "path": "provenance/kaykit-current-20260922.json",
+      "bytes": 15143,
+      "gitBlobSha": "b293d83cdd8bbd7bc394072b26ed3ba4f7fff891",
+      "sha256": "780b82c5ed28dc8b22b89f9acb6bf9ea46ee9cd3f9c11c465f989bbdbf9786b1"
     },
     {
       "path": "thumbnail/curation-20260921/kaykit-dungeon-additions-banner-blue/fe8e81947b17c58ec8d36f9e90a77f049fd69244.webp",

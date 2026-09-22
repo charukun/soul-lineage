@@ -10,6 +10,7 @@ export function readCharacterModels(doc, ready) {
     key: source.dataset.characterModel || String(index),
     label: sourceLabel(source),
     stage: source.dataset.modelStage || '',
+    thumbnailUrl: source.dataset.thumbnailUrl || '',
     selected: source.getAttribute('aria-pressed') === 'true',
     disabled: !ready || source.matches(':disabled')
   }));
@@ -100,6 +101,11 @@ export function installCharacterReviewGrid(doc = document, win = window) {
       button.disabled = model.disabled;
       button.setAttribute('role', 'option');
       button.setAttribute('aria-selected', String(model.selected));
+      if (model.thumbnailUrl) {
+        const image = make('img', 'character-model-thumbnail');
+        image.src = model.thumbnailUrl; image.alt = ''; image.loading = 'lazy'; image.decoding = 'async';
+        image.width = 288; image.height = 184; button.append(image);
+      }
       button.append(make('strong', 'character-model-card-label', model.label));
       if (model.stage) button.append(make('small', 'character-model-card-stage', model.stage));
       button.addEventListener('click', () => choose(model));
@@ -123,7 +129,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   function sync() {
     const ready = Boolean(review()?.ready);
     const models = readCharacterModels(doc, ready);
-    const next = JSON.stringify(models.map(model => [model.key, model.label, model.stage, model.selected, model.disabled]));
+    const next = JSON.stringify(models.map(model => [model.key, model.label, model.stage, model.thumbnailUrl, model.selected, model.disabled]));
     if (next !== signature) {
       signature = next;
       render(models);

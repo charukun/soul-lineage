@@ -1,6 +1,6 @@
 import './runtime.js';
 import '../../character-art-qa.js';
-import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, KAYKIT_MODELS, YEAR_MS, createCharacterModelBuildRequest } from '@soul/characters';
+import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, KAYKIT_MODELS, KAYKIT_CHARACTER_LIBRARY, YEAR_MS, createCharacterModelBuildRequest } from '@soul/characters';
 import { createCharacterWorkspace, downloadWorkspace } from '../workspace/index.js';
 import {createReviewRoutes,mountReviewShell} from '@soul/shared-ui/review-shell';
 const reviewShell=mountReviewShell({current:'characters',routes:createReviewRoutes({rinneBase:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',charactersBase:location.href}),homeHref:'https://soul-lineage-review-dev.c-okamoto.workers.dev/'});
@@ -37,9 +37,11 @@ function buildModelOptions() {
   }
   if (simpleReview) {
     const labels = { knight: '騎士', barbarian: '蛮族', mage: '魔術師', rogue: '盗賊', 'rogue-hooded': 'フード盗賊' };
-    for (const model of KAYKIT_MODELS) {
+    for (const model of KAYKIT_CHARACTER_LIBRARY) {
       const b = button(labels[model.key] || model.label, () => { void studio.review.loadFoundationModel(model); studio.review.aim('front'); });
-      b.dataset.characterModel = model.id; b.dataset.modelStage = 'CC0'; row.append(b);
+      b.dataset.characterModel = model.id; b.dataset.modelStage = model.legacyVersion ? '1.0 / CC0' : `${model.pack.includes('2.0') ? '2.0' : '1.1'} / CC0`;
+      if (model.thumbnailUrl) b.dataset.thumbnailUrl = model.thumbnailUrl;
+      b.title = `${model.label} · ${model.rigId} · ${model.productionStage}`; row.append(b);
     }
   }
   if (!simpleReview) {
