@@ -33,9 +33,17 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /再検証/);
   assert.match(script, /iterationRank/);
   assert.match(script, /Run ·/);
+  assert.match(script, /autonomousGameIds/);
+  assert.match(script, /iterationDisplayTitle/);
+  assert.match(script, /allRaw\.filter\(session=>autonomousGameIds\.has\(iterationGameId\(session\)\)\)/);
   assert.match(script, /対象未記録/);
   assert.match(script, /rapid-session-card/);
   assert.match(script, /工程時間/);
+  assert.match(script, /sessions\.slice\(2\)/);
+  assert.match(script, /rapid-more-button/);
+  assert.match(script, /aria-expanded/);
+  assert.match(script, /extra\.hidden=!opening/);
+  assert.match(script, /ほか '\+rest\.length\+'件を見る/);
   assert.doesNotMatch(script, /rapid-current-band/);
   assert.doesNotMatch(script, /api\.github\.com|innerHTML/);
 });
@@ -61,4 +69,10 @@ test('mobile work cards make the duration timeline the primary progress readout'
   assert.match(rapidCss,/\.rapid-progress-label small/);
   assert.match(rapidCss,/font-variant-numeric:tabular-nums/);
   assert.match(rapidCss,/\.rapid-progress-point\.unmeasured/);
+});
+
+test('autonomous summary keeps game in metadata instead of duplicating it in the title',()=>{
+  assert.match(script,/titlePrefix=iteration\?\(iterationNumber\?'Iteration '/);
+  assert.match(script,/iterationDisplayTitle\(session,gameLabel\)/);
+  assert.match(script,/\? gameLabel/);
 });
