@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {KAYKIT_MODELS,PROTAGONIST_VILLAGER_MODEL} from '@soul/characters';
+import {KAYKIT_CHARACTER_LIBRARY,PROTAGONIST_VILLAGER_MODEL} from '@soul/characters';
 import {
   RINNE_MOTION_REVIEW_DEFAULT_MODEL,
   RINNE_MOTION_REVIEW_MODELS,
@@ -26,5 +26,5 @@ test('motion review default is the same repository-local DCC protagonist used by
 
 test('motion review keeps KayKit alternatives after the protagonist default',()=>{
   assert.equal(RINNE_MOTION_REVIEW_MODELS[0],RINNE_PROTAGONIST_REVIEW_TARGET);
-  assert.deepEqual(RINNE_MOTION_REVIEW_MODELS.slice(1),KAYKIT_MODELS);
+  assert.deepEqual(RINNE_MOTION_REVIEW_MODELS.slice(1),KAYKIT_CHARACTER_LIBRARY);
 });
