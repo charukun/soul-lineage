@@ -22,3 +22,10 @@ body.hunt-loop #devour-feedback progress::-moz-progress-bar{background:#dfb78b}
 @media(max-height:500px){
   body.hunt-loop #hud #devour-feedback{bottom:calc(52px + env(safe-area-inset-bottom));padding:6px 14px;line-height:1.35}
 }
+/* Native compact return/pressure guides share the lower HUD. Reserve their
+ * lane while visible instead of covering either the actual gain or the tip. */
+@media(min-height:521px){
+  body.hunt-loop:has(#angled-guide[data-variant="compact"]:not([hidden])) #hud #devour-feedback{
+    bottom:calc(280px + env(safe-area-inset-bottom));
+  }
+}

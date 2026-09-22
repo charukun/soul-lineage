@@ -104,5 +104,7 @@ test('HUD integration owns no simulation and keeps the scoped readout outside th
   assert.match(source,/this\.devourProgress\.value = feedback\.progress/);
   assert.match(source,/node\.textContent = feedback\[key\]/);
   assert.match(css,/#devour-feedback\[hidden\]/);assert.match(css,/pointer-events:none/);
+  assert.match(css,/:has\(#angled-guide\[data-variant="compact"\]:not\(\[hidden\]\)\)/);
+  assert.match(css,/bottom:calc\(280px \+ env\(safe-area-inset-bottom\)\)/);
   assert.doesNotMatch(source,/advanceDevour|game\.consume\(/);
 });
