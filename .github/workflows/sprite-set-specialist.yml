@@ -4,17 +4,106 @@ on:
     branches: [work/sprite-set-specialist-20260923]
     paths: [.github/workflows/sprite-set-specialist.yml]
 permissions:
-  contents: read
+  contents: write
+  statuses: write
 concurrency:
   group: sprite-set-specialist-1492
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
-  recover-browser-diagnostic:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 25
+    env:
+      APP_ENV: dev
+      SOURCE_SHA: cbaa061e973116c9e2925404b2aabc239ed1f838
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Release the stalled browser run so its actual progress log can be inspected
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Materialize isolated viewport and unobstructed actual-world evidence
         run: |
-          echo 'The preceding browser verification exceeded ten minutes in one step.'
-          echo 'Canceling that observation does not pass or bypass the browser gate.'
-          echo 'Inspect its terminal logs and retained evidence before retrying exact-source verification.'
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          mkdir -p .deploy-state/sprite-set-candidate
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          def replace(path,old,new):
+              p=Path(path);s=p.read_text();assert s.count(old)==1,(path,s.count(old),old[:100]);p.write_text(s.replace(old,new))
+          script='scripts/sprite-set/browser-playtest.mjs'
+          replace(script,'let browser,context,review,rinne;','let browser,context,review,rinne,phone,mobile;')
+          p=Path(script);s=p.read_text();start=s.index('  const mobile=await browser.newContext(');end=s.index('  const actionHashes=[];',start);mobile=s[start:end]
+          assert "390px viewport retains five-column controls" in mobile
+          s=s[:start]+s[end:]
+          mobile=mobile.replace("const mobile=await browser.newContext", "mobile=await browser.newContext").replace("}),phone=await mobile.newPage();phone.on", "});phone=await mobile.newPage();phone.setDefaultTimeout(60000);phone.on")
+          mobile=mobile.replace("  await phone.goto('http://127.0.0.1:5276/review-hybrid-25d');", "  const mobileResponse=await phone.goto('http://127.0.0.1:5276/review-hybrid-25d');assert.equal(mobileResponse.status(),200);note('mobile navigation',{url:phone.url(),title:await phone.title()});")
+          anchor='  review=await context.newPage();'
+          assert s.count(anchor)==1;s=s.replace(anchor,"  // Separate GPU lifetimes: validate the small viewport before the two-app world session.\n"+mobile+anchor)
+          p.write_text(s)
+          replace(script,
+            "  await screenshot(rinne,'rinne-village-entry');note('RINNE entered through normal family/new-life controls',await gameState());",
+            "  // Dismiss the real optional first-run guide; do not capture an actor hidden behind its overlay.\n  await rinne.locator('.rinneFirstRunSkip').click();await rinne.locator('.rinneFirstRunSkip').waitFor({state:'hidden'});\n  await rinne.locator('#camera-position').focus();await rinne.locator('#camera-position').press('Home');assert.equal(await rinne.locator('#camera-position').inputValue(),'0');\n  await rinne.waitForTimeout(1200);\n  await screenshot(rinne,'rinne-village-entry');note('RINNE entered through normal family/new-life controls, guide skip and near-camera input',await gameState());")
+          replace(script,
+            "note('rinne:'+action,snapshot);await screenshot(rinne,'rinne-'+action,'#game');",
+            "assert.equal(snapshot.sceneActorCount,1);const b=snapshot.screenBounds;assert.ok(b&&[b.left,b.top,b.right,b.bottom,b.depth].every(Number.isFinite));assert.ok(b.right>0&&b.left<1&&b.bottom>0&&b.top<1&&b.depth>-1&&b.depth<1,'Sprite must actually project inside the gameplay viewport');\n    note('rinne:'+action,snapshot);await screenshot(rinne,'rinne-'+action,'#game');\n    const gameBox=await rinne.locator('#game').boundingBox(),left=Math.max(0,Math.floor(gameBox.x+b.left*gameBox.width-16)),top=Math.max(0,Math.floor(gameBox.y+b.top*gameBox.height-16)),right=Math.min(1280,Math.ceil(gameBox.x+b.right*gameBox.width+16)),bottom=Math.min(900,Math.ceil(gameBox.y+b.bottom*gameBox.height+16));\n    assert.ok(right>left&&bottom>top);await rinne.screenshot({path:out+'/rinne-'+action+'-actor.png',clip:{x:left,y:top,width:right-left,height:bottom-top}});")
+          replace(script,
+            '  const legacy=await context.newPage();',
+            "  // The linked session is complete. Closing both pages exercises disposal and avoids keeping their WebGL loops alive during unrelated route checks.\n  await rinne.close();await review.close();\n  const legacy=await context.newPage();")
+          replace(script,"[['review',review],['rinne',rinne]]","[['review',review],['rinne',rinne],['mobile',phone]]")
+          replace(script,'await browser?.close();for(const server of servers)', 'await mobile?.close();await browser?.close();for(const server of servers)')
+          guest='apps/rinne/src/rebuild/sprite-set-guest.js'
+          replace(guest,
+            "    canvas.spriteSetSnapshot=()=>({actor:actor.snapshot(),sandbox:sandbox.snapshot(),visible:actor.object.visible});",
+            "    // Read-only projection evidence; these values cannot move or control the actor.\n    canvas.spriteSetSnapshot=()=>{\n      const points=[[-.5,-.5],[-.5,.5],[.5,-.5],[.5,.5]].map(([x,y])=>actor.mesh.localToWorld(new view.THREE.Vector3(x,y,0)).project(view.camera));\n      const xs=points.map(p=>(p.x+1)/2),ys=points.map(p=>(1-p.y)/2);\n      return {actor:actor.snapshot(),sandbox:sandbox.snapshot(),visible:actor.object.visible,sceneActorCount:view.scene.children.filter(node=>node.name?.startsWith('CharacterSpriteSet:')).length,screenBounds:{left:Math.min(...xs),right:Math.max(...xs),top:Math.min(...ys),bottom:Math.max(...ys),depth:points.reduce((sum,p)=>sum+p.z,0)/4}};\n    };")
+          previous=subprocess.check_output(['git','log','-1','--format=%B'],text=True)
+          Path('/tmp/sprite-set-message').write_text('test(sprite-set): isolate viewport lifetimes and capture unobstructed RINNE actions [astra-validate] [astra-heavy-validation]\n\n'+previous.split('\n',1)[1])
+          PY
+          node --check scripts/sprite-set/browser-playtest.mjs
+          node --check apps/rinne/src/rebuild/sprite-set-guest.js
+          git diff --check
+          git add -- scripts/sprite-set/browser-playtest.mjs apps/rinne/src/rebuild/sprite-set-guest.js
+          git diff --cached --stat | tee .deploy-state/sprite-set-candidate/diff-stat.txt
+          git diff --cached > .deploy-state/sprite-set-candidate/changes.patch
+          git config user.name 'Sprite Set implementation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -F /tmp/sprite-set-message
+          git push origin HEAD:refs/heads/work/sprite-set-candidate-1492-r4
+          sha=$(git rev-parse HEAD)
+          echo "$sha" | tee .deploy-state/sprite-set-candidate/candidate-head.txt
+          echo "SOURCE_SHA=$sha" >> "$GITHUB_ENV"
+      - name: Register exact-source browser validation
+        run: gh api repos/${{ github.repository }}/statuses/$SOURCE_SHA -f state=pending -f context=astra/sprite-set-browser -f description='Exact-source builds and real-input motion verification running' -f target_url='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Focused schema, Three ownership, proxy and compatibility tests
+        run: node --test packages/assets/tests/character-sprite-set.test.mjs packages/assets/tests/character-sprite-set-integration.test.mjs tests/character25d-equipment.test.mjs
+      - name: Build exact-source Review and RINNE
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          npm run build --workspace @soul/review
+          npm run build --workspace @soul/rinne
+      - name: Real UI actions, cameras, RINNE village and motion evidence
+        run: node scripts/sprite-set/browser-playtest.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sprite-set-browser-${{ env.SOURCE_SHA }}
+          path: |
+            .deploy-state/sprite-set-candidate
+            .deploy-state/sprite-set-browser-${{ env.SOURCE_SHA }}
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Publish actual exact-source result
+        if: always()
+        run: |
+          state=failure
+          if [ '${{ job.status }}' = success ]; then state=success; fi
+          gh api repos/${{ github.repository }}/statuses/$SOURCE_SHA -f state="$state" -f context=astra/sprite-set-browser -f description='Sprite Set specialist builds / real-input browser result' -f target_url='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
