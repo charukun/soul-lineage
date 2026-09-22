@@ -4,8 +4,8 @@ import { activeCombo, comboById, ensureCombatLoadout, techniqueName } from '../c
 import { CAUSAL_ANSWER_BY_ID } from '@soul/game-data';
 import { inspirationRecipe } from './inspiration-state.js';
 import { applySkillComponents, directionalDefenseFor, staminaPolicyFor, tidebreakMindVectorFor, tidebreakMindsetFromVector } from './combat-tactics.js';
-import {johakyuTechniqueCapability,johakyuWeaponRequiresTwoHands} from '@soul/johakyu-combat/execution-capability';
-import {WEAPONS,ARMORS} from './domain.js';
+import {rinneTechniqueCapability} from './combat-execution.js';
+import {WEAPONS} from './domain.js';
 
 function phaseRecipe(state,phase,weapon,combo,target){
   let skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`;
@@ -19,13 +19,6 @@ function phaseRecipe(state,phase,weapon,combo,target){
   if(CAUSAL_ANSWER_BY_ID[skill]?.steps.length)skill=`basic.${state.equipment.weapon}`;
   const raw=applySkillComponents(state,skill,phase,formForSkill(skill,state.equipment.weapon)),kinds=raw.kinds.map(kind=>adaptKind(kind,weapon));
   return{id:`rinne-${phase}-${skill}`,name:techniqueName(skill,state),type:'normal',weapon,element:'steel',rhythm:raw.rhythm,tempo:raw.tempo,aura:'none',steps:kinds.map((kind,index)=>({kind,footwork:raw.feet[index]||'forward',charge:raw.charges[index]||'none'}))};
-}
-const PHASE_COST_SCALE=Object.freeze({jo:1,ha:1.08,kyu:1.25});
-function recipeCapability(state,phase,recipe,skill){
-  const base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,armor=ARMORS[state.equipment.armor]||ARMORS.cloth,effort=Number(CAUSAL_ANSWER_BY_ID[skill]?.effort)||1,cost=base.stamina*(PHASE_COST_SCALE[phase]||1)*effort/Math.max(.5,Number(armor.staminaScale)||1);
-  const stages=recipe.steps.filter(step=>step?.kind&&step.kind!=='none').map(step=>({...step,weapon:recipe.weapon,phase,staminaCost:cost}));
-  if(!stages.length)return Object.freeze({canStart:false,canContinue:false,blockedStageIndex:0,reason:'empty-technique',stages:Object.freeze([])});
-  return johakyuTechniqueCapability(state,{weapon:recipe.weapon,phase,stages,requiresTwoHands:johakyuWeaponRequiresTwoHands(recipe.weapon)});
 }
 const COUNTER_KINDS=new Set(['parry','counter']);
 const GUARD_KINDS=new Set(['guard','brace']);
@@ -60,8 +53,14 @@ function configuredComboScore(combo,index,{phase,preferredId,activeId}){
 export function selectCapableTidebreakCombo(state,{phase='jo',comboId=state?.combat?.comboId,target=null}={}){
   if(!['jo','ha','kyu'].includes(phase))throw new RangeError('Invalid capability selection phase');
   const loadout=ensureCombatLoadout(state),weapon=tidebreakWeaponFor(state.equipment.weapon),activeId=loadout.technique.activeComboId,attempts=[],candidates=[];
+  // Only accepted runtime poses are published here by combat-core. Their current
+  // stage has already paid; prediction concerns the remaining stages, not a replay.
+  const execution=state.combat?.tidebreakPose?.execution;
   for(const [index,combo] of loadout.technique.combos.entries()){
-    const skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`,recipe=phaseRecipe(state,phase,weapon,combo,target),capability=recipeCapability(state,phase,recipe,skill);
+    const skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`,recipe=phaseRecipe(state,phase,weapon,combo,target);
+    const continuing=execution?.recipeId===recipe.id&&execution.phase===phase&&Number.isInteger(execution.stepIndex);
+    const fromStage=continuing?Math.min(recipe.steps.filter(step=>step.kind!=='none').length,execution.stepIndex+1):0;
+    const capability=rinneTechniqueCapability(state,phase,recipe,{fromStage});
     const configuredScore=configuredComboScore(combo,index,{phase,preferredId:comboId,activeId}),situationScore=recipeSituationScore(state,recipe,target),score=configuredScore+situationScore;
     const attempt=Object.freeze({comboId:combo.id,techniqueId:skill,reason:capability.reason,capability,canStart:capability.canStart,canContinue:capability.canContinue,configuredScore,situationScore,score});
     attempts.push(attempt);if(capability.canContinue)candidates.push({combo,skill,capability,score,index});

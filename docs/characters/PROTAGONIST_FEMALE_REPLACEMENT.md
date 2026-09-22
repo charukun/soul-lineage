@@ -1,51 +1,27 @@
-# 女主人公の外部モデル差し替え
+# 女主人公 — Rogueから独立したDCC派生モデル
 
-2026-09-22: ユーザーの明示的な破棄依頼により、旧自作モデルを廃止。
+2026-09-22の追加依頼「盗賊と同一人物にしか見えない」を受け、`protagonist.villager.female.v1` を主人公専用の実モデルへ更新した。同日先行対応の「公式Rogueを無改変で採用」は比較用の原本として残すが、女主人公のactive出力ではなくなった。
 
-## 採用原本
+## 現在の採用モデル
 
-Kay Lousberg / KayKit Adventurers 1.0 / Rogue（フードなし）。
-CC0-1.0 の公式 GLB を無改変で保持。顔・髪・服を自作で置き換えない。
+名称はHeroine Dawn。丸い短めの栗色ボブ、大きく流した前髪、小さなローズ色の髪飾り、生成りの襟と袖、明るい青の村人服、細い帯と背面リボンを持つ。元の長いケープ・三角スカーフ・重い革ベルト・ポーチ・耳飾りを除去。髪型、首・肩周り、裾、背面の輪郭を実メッシュで変え、単なる配色違いにしない。
 
-正本は `apps/review/public/library/provenance/female-protagonist-rogue-v1.json`。
-原典 URL・固定 revision・作者・ライセンス・Git blob SHA・SHA-256・byte length を記録。
-原本 3,616,284 bytes、SHA-256 は
-`e825437cd4d2ee9c1960b517a74a69101e33eb409ae7fa8cedc7134a998fbb7d`。
-実体は `apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb`。
-通常表示は `projectAssetUrl` による自前 Cloudflare Asset Origin を利用し、第三者 URL を runtime 参照しない。
+KayKit原本の顔・手足を制作上の基礎とし、眉・目の印象を調整。破棄済みの旧自作頭部は再導入しない。元のRig_Medium、41関節、inverse bind、76 animation sampler streamsはbyte-for-byteで保持する。
 
-## 旧モデルの破棄と互換性
+採用出力・作者・CC0ライセンス・固定原典revision・hash・byte lengthの正本は `apps/review/public/library/provenance/heroine-dawn-v1.json`。編集正本は `assets/characters/heroine-dawn/source/HeroineDawn.blend`。再構成手順は同ディレクトリのREADMEを参照。
 
-`protagonist.villager.female.v1` は既存の選択 ID としてだけ継続する。
-旧 SHA-256 `7c422960add80f120d5dbcd91a6b74e23269b35049796f60cb1e6c4e4604d9a2` の
-GLB、Blender 原本、再生成スクリプト、旧参照画、旧 QA 画像は現行ツリーから除去。
-履歴は Git に残るが active 候補でも fallback でもない。
+実体は自前Cloudflare Static Asset Origin配下のcontent-addressed GLBとして収録する。通常runtimeから上流GitHubへ直接アクセスしない。RINNEとCharacter Studioのfemale integrity receiptは同じ採用binaryを指す。
 
-公式原本に同梱された武器見本 5 メッシュは、女主人公の表示時だけ外す。
-対象は `Knife_Offhand`, `1H_Crossbow`, `2H_Crossbow`, `Knife`, `Throwable`。
-身体・髪・衣装・Rig・手持ちソケットは残し、GLB 原本そのものは変更しない。
-モデル鑑賞とゲーム上の装備所有を混同しない。
-男主人公、セーブ、年齢・成長、戦闘ルール、装備所有、共通リグ契約は変更しない。
+## 制作と実表示の確認
 
-## 実表示 Observation
+Blenderで3ラウンドの実編集・実レンダーを行った。第1稿の衣装の穴と角張った前髪を第2稿で修正し、実Character Studioの歩行で見つかった裾の短パン貫通を第3稿で修正した。
 
-観察した実装 SHA: `3263bdc6f09a1724de14165bf2cfcb21f6aa68a7`。
-実行: GitHub Actions run `35679442674`、artifact `10674140794`。
-実際の Character Studio を `APP_ENV=dev` で build し、同一 checkout の
-取得済み原本を自前 origin のローカル代替として読み込んだ。公開 DEV の表示確認ではない。
+最終出力を実Character Studioで読み込み、正面・斜め・横・背面・顔アップ、390px幅、待機・歩行2位相・攻撃・防御・被弾を取得して画像を目視確認した。これは実GLBの表示証拠であり、生成イラストではない。実画像、観察条件、出力hash、変形結果は `docs/characters/qa/heroine-dawn-v1/README.md` と `runtime/receipt.json` に記録している。
 
-正面、斜め、横、背面、顔アップ、首回転・右肩/肘・左膝の変形ポーズ、
-390px 幅の表示を取得し、画像を目視確認した。
-初回に武器見本の同時表示を発見し、表示対象のみを修正して再取得した。
-原作者の顔・髪・服、手持ちソケットは維持。モデルロード監査は通過し、
-最終 receipt の page error / HTTP error / console error はいずれも空。
+## 維持する境界
 
-これは実 GLB の表示と限定した関節変形の確認であり、全モーションの品質保証や
-Pixel Fold 実機の性能計測ではない。生モデルの T-pose は検査表示として維持する。
-CI の日本語フォント表示と画面下のカメラ操作列はモデル造形の評価に含めない。
-旧モデルの PRIMARY 段階・視覚証拠は継承せず、新規採用モデルは REFERENCE、
-`visualApproval=pending` / `productionReady=false` を維持する。
+旧SHA-256 `7c422960add80f120d5dbcd91a6b74e23269b35049796f60cb1e6c4e4604d9a2` の自作GLB・Blender原本・再生成スクリプト・参照画は廃止したまま。今回の派生は固定CC0 Rogueから始めた別の制作物であり、その旧モデルへfallbackしない。
 
-この観察後の最終コミットでは、実モデルと表示ロジックはそのままに、
-一時取得・観察 workflow/scripts を除去し、モジュール参照の回帰テストを追加する。
-恒久 CI の拡張や品質ゲートの緩和は行わない。
+公式Rogue原本のSHA-256 `e825437cd4d2ee9c1960b517a74a69101e33eb409ae7fa8cedc7134a998fbb7d` は変更しない。Rogue自身は独立した盗賊候補のまま。女主人公の表示時に同梱武器見本5メッシュを外す既存設定は継続し、装備所有や手持ちソケットを変えない。
+
+男主人公、通常プレイの主人公選択方式、セーブ、年齢・成長、操作、戦闘、装備所有は変更しない。制作段階はPRIMARY、`visualApproval=pending` / `productionReady=false`。実表示の目視確認を人間の最終承認や全76クリップ・全装備の品質保証、Pixel Fold実機の性能計測に読み替えない。main / Productionへの反映は対象外。

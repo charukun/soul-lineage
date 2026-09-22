@@ -79,6 +79,7 @@ export function inspectAuthorizedFreshnessHardening(base, head) {
     'AGENTS.md',
     'docs/DEVELOPMENT.md',
     'docs/DEVELOP_MERGE.md',
+    '.autonomous/exoskeleton.json',
   ]);
   for (const row of changedRows(branchBase,head)) {
     if (!row.path || allowed.has(row.path)) continue;
@@ -117,12 +118,15 @@ export function inspectAuthorizedFastDevContraction(base, head) {
     '.github/workflows/astra-work-validation.yml',
     'scripts/fast-dev-contract.mjs',
     'scripts/astra-focused-validation.mjs',
+    'scripts/context-plan.mjs',
+    'docs/CONTEXT_EFFICIENCY.md',
     'scripts/actions-result-summary.mjs',
     'scripts/lib/actions-summary-core.mjs',
     'tests/actions-result-summary.test.mjs',
     'AGENTS.md',
     'docs/DEVELOPMENT.md',
     'docs/DEVELOP_MERGE.md',
+    '.autonomous/exoskeleton.json',
   ]);
   const added = after.filter(path => !before.includes(path));
   const unexpected = after.filter(path => !canonical.has(path));
@@ -137,14 +141,14 @@ export function inspectAuthorizedFastDevContraction(base, head) {
     else violations.push({code:'CONTRACTION_SCOPE_EXPANDED',path:row.path,detail:'Fast DEV contraction may only change the validation workflow, anti-expansion contract, focused runner, status-first Actions inspector, its focused test, and execution docs.'});
   }
   const workflow=readAt(head,'.github/workflows/astra-work-validation.yml')||'';
-  for (const token of ['fetch-depth: 1','scripts/astra-focused-validation.mjs plan','scripts/astra-focused-validation.mjs run','needs_install','npm ci --ignore-scripts','astra/merge-freshness','ASTRA_REVALIDATE_REQUIRED']) {
+  for (const token of ['fetch-depth: 1','scripts/astra-focused-validation.mjs plan','scripts/astra-focused-validation.mjs run','has_work','needs_install','npm ci --ignore-scripts','astra/merge-freshness','ASTRA_REVALIDATE_REQUIRED']) {
     if (!workflow.includes(token)) violations.push({code:'FAST_DEV_MINIMAL_PATH_MISSING',path:'.github/workflows/astra-work-validation.yml',detail:`Required minimal validation token missing: ${token}`});
   }
   for (const token of ['fetch-depth: 0','node scripts/validate.mjs dev','Run changed focused tests','scripts/check.mjs','scripts/code-health.mjs','scripts/visual-budget.mjs']) {
     if (workflow.includes(token)) violations.push({code:'FAST_DEV_HEAVY_PATH_RETAINED',path:'.github/workflows/astra-work-validation.yml',detail:`Heavy legacy validation token remains: ${token}`});
   }
   const focused=readAt(head,'scripts/astra-focused-validation.mjs')||'';
-  for (const token of ['Astra-Validation','Astra-Check','Astra-Test','Astra-Build','execFileSync']) {
+  for (const token of ['Astra-Validation','Astra-Check','Astra-Test','Astra-Build','!heavyValidationExplicit && plan.tests.length','execFileSync']) {
     if (!focused.includes(token)) violations.push({code:'FOCUSED_RUNNER_CONTRACT_MISSING',path:'scripts/astra-focused-validation.mjs',detail:`Focused runner token missing: ${token}`});
   }
   return Object.freeze({state:violations.length?'violation':'clean',authorizedContraction:true,beforeWorkflows:Object.freeze(before),afterWorkflows:Object.freeze(after),violations:Object.freeze(violations)});

@@ -64,25 +64,26 @@ test('motion review defaults to the current game protagonist while retaining exp
   assert.match(models, /28fae04c0d0276af60e854756e8e7d10a5b965d3/);
 });
 
-
-test('female protagonist replaces the retired DCC surface with the original CC0 Rogue', () => {
+test('female protagonist uses the independently authored CC0-derived heroine without restoring the retired head', () => {
   const model = CHARACTER_REFERENCE_MODELS[PROTAGONIST_VILLAGER_FEMALE_MODEL_ID];
   const receipt = JSON.parse(readFileSync('apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json', 'utf8'));
   const production = JSON.parse(readFileSync('packages/characters/production/protagonist-villager-female-v1.production.json', 'utf8'));
   const bytes = readFileSync(production.source.meshPath);
   assert.equal(model.id, 'protagonist.villager.female.v1');
-  assert.equal(model.modelingMode, 'imported-reviewed');
+  assert.equal(model.modelingMode, 'dcc-blender');
   assert.equal(model.production.target.rigId, 'Rig_Medium');
   assert.equal(model.sourceModelId, 'kaykit.rogue.v1');
   assert.equal(model.assetPath, receipt.path);
-  assert.equal(model.productionStage, 'REFERENCE');
-  assert.equal(production.stage, 'REFERENCE');
+  assert.equal(model.productionStage, 'PRIMARY');
+  assert.equal(production.stage, 'PRIMARY');
   assert.equal(production.status.visualApproval, 'pending');
   assert.equal(production.status.productionReady, false);
   assert.equal(model.productionReady, false);
   assert.equal(bytes.length, receipt.bytes);
   assert.equal(createHash('sha256').update(bytes).digest('hex'), receipt.sha256);
-  assert.equal(receipt.sha256, 'e825437cd4d2ee9c1960b517a74a69101e33eb409ae7fa8cedc7134a998fbb7d');
+  assert.notEqual(receipt.sha256, 'e825437cd4d2ee9c1960b517a74a69101e33eb409ae7fa8cedc7134a998fbb7d');
+  assert.equal(model.referenceStyle.design, 'protagonist-female-heroine-dawn');
+  assert.equal(existsSync(model.dccSourcePath), true);
   assert.equal(receipt.humanoidRig, 'kaykit.Rig_Medium.v1');
   assert.equal(receipt.license.spdx, 'CC0-1.0');
   for (const app of ['rinne', 'character-studio']) {

@@ -16,7 +16,7 @@ Routine implementation is Astra-driven and optimized to avoid CI churn while pre
 When implementation is coherent:
 
 1. Re-read current `develop`, but do not reconcile solely because its SHA advanced.
-2. Astra chooses the smallest task-specific hosted validation and records it on the final commit with `[astra-validate]` plus one or more `Astra-Check: <file>`, `Astra-Test: <file>`, `Astra-Build: <app>`, or the explicit `Astra-Validation: none` directive.
+2. Routine Fast DEV proves only repository/source safety. Use `Astra-Validation: none` when no syntax check is applicable, otherwise targeted `Astra-Check` for changed JS/source syntax. Do not select `Astra-Test`, `Astra-Build`, browser/integration/runtime/startup checks, or visual/interaction evidence in the routine lane. Behavioral validation belongs to an explicit user-requested heavy/specialist task.
 3. The runner checks out that exact head, enforces the Fast DEV anti-expansion contract, and executes only the declared focused plan. It does not repeat repository-wide review.
 4. After validation, the freshness gate re-reads current `develop`.
 5. If current `develop` is already contained in the work head, proceed normally.
@@ -39,7 +39,7 @@ Per-app DEV publication is impact-scoped. Known non-build documentation/control 
 
 Fast DEV is intentionally bounded. Routine feature/fix work must not make GitHub Actions do more work than the current `develop` contract.
 
-Before task-specific validation, `Astra Work Validation` runs the Fast DEV anti-expansion contract. Routine work cannot rewrite the workflow, focused runner, contract, or freshness classifier, and cannot make build lifecycle commands heavier. Adding ordinary repository tests does not expand Actions by itself because tests only run when Astra explicitly selects them. `npm ci --ignore-scripts` runs only when the declared test/build plan requires dependencies.
+Before task-specific validation, `Astra Work Validation` runs the Fast DEV anti-expansion contract. Routine work cannot rewrite the workflow, focused runner, contract, or freshness classifier, and cannot make build lifecycle commands heavier. Routine plans are `none` or syntax-check only and do not run `npm ci`. Dependency installation is reserved for an explicitly requested heavy/specialist plan.
 
 A violation publishes `astra/fast-dev-contract=error` with a machine-readable receipt and skips the remaining validation work. This is deliberately recoverable and is not a GitHub branch-protection dead end: the same worker repairs the same branch / PR, makes a new final head, and re-validates. Only an explicit user request to change the Fast DEV contract itself can authorize merging a contract-changing task. For an explicit Fast DEV contraction, the final commit also includes `[astra-contract-change]`; the runner then verifies that the persistent Actions surface does not expand and that the minimal exact-head/focused/freshness path remains intact.
 
@@ -50,7 +50,7 @@ A violation publishes `astra/fast-dev-contract=error` with a machine-readable re
 - Required merge evidence is one successful hosted execution of the Astra-declared plan for the exact PR head, with `astra/fast-dev-contract=success` and `astra/merge-freshness=success`. Independent mergeable develop drift does not invalidate that evidence.
 - Actions inspection is status-first by default. Healthy canonical `astra/*` statuses are sufficient to proceed without listing workflow runs, jobs, artifacts, or logs. On `error`/`failure`, inspect only the referenced canonical run and failed-job logs. Use `npm run actions:summary -- --full ...` only for explicit browser/DEV/artifact/history needs or unresolved diagnostics.
 - The default DEV gate does not run repository-wide syntax, code-health, visual-budget, production-asset, or all-consumer build sweeps. Those are Astra-selected only when materially relevant.
-- Routine Fast DEV validation is intentionally lightweight. Do not select broad RINNE runtime suites, browser/integration tests, or app builds by default. Use the smallest test that directly covers the changed package/module plus targeted syntax checks. The planner rejects known heavy tests and builds unless the user explicitly requested heavy validation for the task and the final commit carries `[astra-heavy-validation]`.
+- Routine Fast DEV validation is intentionally non-behavioral: `none` or targeted source syntax checks only. Do not pre-detect whether the app starts, gameplay/animation feels wrong, UI looks wrong, or runtime behavior regressed. The user may detect those on DEV and request the next fix. Tests/builds/browser/runtime/visual validation require an explicit heavy/specialist request. Check-only and none plans skip dependency installation.
 - Do not create task-scoped browser/evidence runners as routine authoring feedback. Browser, staging, render, DCC, screenshot, and similar observation stay outside the normal Fast DEV critical path unless explicitly requested or required by the selected specialist/autonomous route.
 - The `Astra Work Validation` runner is explicitly armed only when the pushed final-head commit message contains `[astra-validate]`.
 - Explicit browser playtest requests still follow `BROWSER_PLAYTEST_ROUTING.md`; do not substitute static review for browser evidence.
@@ -92,4 +92,4 @@ A failed local git command, DNS path, `git push`, Codespaces route, cancelled st
 
 Do not create a replacement PR merely because one transport or superseded validation run failed.
 
-Never modify `main` / Production without explicit permission. Never weaken tests, browser assertions, review requirements, the final-head merge gate, or Production gates.
+Never modify `main` / Production without explicit permission. Routine DEV may intentionally omit behavioral/runtime/visual validation; do not weaken the final-head contract/freshness merge gate, explicitly requested specialist/autonomous checks, or Production gates.

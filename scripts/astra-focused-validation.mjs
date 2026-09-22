@@ -50,11 +50,14 @@ function parsePlan(source) {
     if (!file.endsWith('.test.mjs')) throw new Error(`Astra-Test only accepts .test.mjs files: ${file}`);
     if (!existsSync(file)) throw new Error(`Astra-Test target does not exist: ${file}`);
     if (!heavyValidationExplicit && isHeavyTest(file)) {
-      throw new Error(`Heavy DEV test is not allowed in the default Fast DEV lane: ${file}. Use a narrow focused test/check instead.`);
+      throw new Error(`Runtime/browser/integration test is not allowed in routine Fast DEV: ${file}. Explicit heavy/specialist validation is required.`);
     }
   }
+  if (!heavyValidationExplicit && plan.tests.length) {
+    throw new Error('Routine Fast DEV does not accept Astra-Test. Use Astra-Validation: none / Astra-Check; behavioral tests require an explicit [astra-heavy-validation] task.');
+  }
   if (!heavyValidationExplicit && plan.builds.length) {
-    throw new Error('Astra-Build is not allowed in the default Fast DEV lane. Use focused tests/checks; heavy validation requires an explicit [astra-heavy-validation] request.');
+    throw new Error('Astra-Build is not allowed in routine Fast DEV. Use none/source syntax checks; build validation requires an explicit [astra-heavy-validation] request.');
   }
   for (const app of plan.builds) {
     if (!/^[a-z0-9][a-z0-9-]*$/.test(app)) throw new Error(`Invalid Astra-Build app id: ${app}`);

@@ -8,7 +8,8 @@
     "Every scaffold must stay detachable and declare dependencies plus a detachment condition.",
     "When native model/tool capability provides equal or better outcomes, prefer removing or replacing the scaffold.",
     "Current required scaffolds remain mandatory until an explicit framework contract change removes them.",
-    "For player-facing autonomous work, immutable candidate After observation and bounded repair/re-stage select the source before the single merge-owning exact-head validation is armed."
+    "For player-facing autonomous work, immutable candidate After observation and bounded repair/re-stage select the source before the single merge-owning exact-head validation is armed.",
+    "Routine Fast DEV deliberately leaves launch/runtime/behavior/visual defect discovery to user playtesting on DEV unless heavy or specialist validation is explicitly requested."
   ],
   "modules": [
     {
@@ -41,21 +42,19 @@
     },
     {
       "id": "focused-tests",
-      "state": "required-currently",
+      "state": "optional",
       "removable": true,
-      "compensatesFor": "Current implementation models can introduce causal regressions that are cheaper to detect with targeted executable assertions.",
-      "detachWhen": "Model-native or direct runtime evaluation establishes changed behavior and regression safety at equal or better reliability without separate tests.",
+      "compensatesFor": "Explicit heavy/specialist tasks may still need executable behavioral assertions; routine Fast DEV deliberately does not use tests to pre-detect user-visible runtime defects.",
+      "detachWhen": "No explicit heavy/specialist task requires executable behavioral assertions.",
       "dependencies": []
     },
     {
       "id": "exact-head-actions-validation",
       "state": "required-currently",
       "removable": true,
-      "compensatesFor": "Current chat/tool execution cannot be assumed to validate the exact repository head in a reproducible hosted environment.",
+      "compensatesFor": "Routine Fast DEV still needs one hosted exact-head repository-safety/freshness receipt, even when no behavioral test, build, startup check, or browser observation runs.",
       "detachWhen": "The execution model natively provides trustworthy exact-source execution and validation receipts without a separate hosted CI pass.",
-      "dependencies": [
-        "focused-tests"
-      ]
+      "dependencies": []
     },
     {
       "id": "immutable-staging",
