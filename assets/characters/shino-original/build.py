@@ -64,6 +64,7 @@ def smooth(obj) -> None:
 
 def material(name: str, rgba, roughness=0.76, metallic=0.0):
     mat = bpy.data.materials.new(name)
+    mat.diffuse_color = rgba
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
     bsdf.inputs["Base Color"].default_value = rgba
@@ -298,43 +299,34 @@ def build_character(armature,names,mats):
             head_center+Vector((sign*head_scale*.68,-head_scale*.06,-head_scale*.42)),
         ],[head_scale*.10,head_scale*.075,head_scale*.026],mats["hair_shadow"],armature,names["head"],11)
 
-    hood_verts=[];hood_faces=[];u_steps=40;v_steps=13
-    for v in range(v_steps+1):
-        pv=v/v_steps; polar=math.radians(18+126*pv)
-        for u in range(u_steps+1):
-            pu=u/u_steps; az=math.radians(-150+300*pu)
-            radius=head_scale*(1.02+0.055*math.sin(math.pi*pv))
-            x=math.sin(polar)*math.sin(az)*radius
-            y=math.sin(polar)*math.cos(az)*radius*.91 + head_scale*.10
-            z=math.cos(polar)*radius + head_scale*.15
-            hood_verts.append(tuple(head_center+Vector((x,y,z))))
-    for v in range(v_steps):
-        for u in range(u_steps):
-            a=v*(u_steps+1)+u;b=a+1;c=(v+1)*(u_steps+1)+u+1;d=c-1;hood_faces.append((a,b,c,d))
-    hood=make_mesh("Shino_Hood",hood_verts,hood_faces,mats["ivory"],armature,names["head"])
-    sol=hood.modifiers.new("HoodThickness","SOLIDIFY");sol.thickness=head_scale*.040;sol.offset=-.25
-    bev=hood.modifiers.new("HoodSoftEdge","BEVEL");bev.width=head_scale*.014;bev.segments=2
-    select_only(hood);bpy.ops.object.modifier_apply(modifier=sol.name);bpy.ops.object.modifier_apply(modifier=bev.name);smart_uv(hood)
+    # Hood uses a padded face rim plus a shallow back cowl so the head does not read as a sphere.
+    rim_points=[]
+    for deg in range(-145,146,24):
+        a=math.radians(deg)
+        rim_points.append(head_center+Vector((math.sin(a)*head_scale*.90,-head_scale*.61,math.cos(a)*head_scale*.93+head_scale*.10)))
+    tube("Shino_HoodRim",rim_points,[head_scale*.055 for _ in rim_points],mats["ivory"],armature,names["head"],14)
+    ellipsoid("Shino_HoodBack",head_center+Vector((0,head_scale*.24,head_scale*.08)),(head_scale*.92,head_scale*.48,head_scale*.88),mats["ivory_shadow"],armature,names["head"],30,20,0.0)
+    ellipsoid("Shino_GhostClasp",head_center+Vector((0,-head_scale*.74,-head_scale*.72)),(head_scale*.10,head_scale*.024,head_scale*.10),mats["ivory"],armature,names["head"],14,9)
     for side,sign in (("L",-1),("R",1)):
-        ellipsoid(f"Shino_HoodMark_{side}",head_center+Vector((sign*head_scale*.26,-head_scale*.91,head_scale*.77)),(head_scale*.050,head_scale*.016,head_scale*.078),mats["charcoal"],armature,names["head"],12,8)
-    tube("Shino_HoodSmile",[head_center+Vector((-head_scale*.05,-head_scale*.92,head_scale*.64)),head_center+Vector((0,-head_scale*.93,head_scale*.60)),head_center+Vector((head_scale*.05,-head_scale*.92,head_scale*.64))],[.004,.004,.004],mats["charcoal"],armature,names["head"],7)
+        ellipsoid(f"Shino_GhostClaspEye_{side}",head_center+Vector((sign*head_scale*.035,-head_scale*.766,-head_scale*.70)),(head_scale*.012,head_scale*.006,head_scale*.022),mats["charcoal"],armature,names["head"],8,6)
 
     shoulder_z=(shoulder_l.z+shoulder_r.z)*.5
     waist_z=hips.z+abs(shoulder_z-hips.z)*.28
     knee_z=min(bone_head(armature,names,"leftLowerLeg").z,bone_head(armature,names,"rightLowerLeg").z)
     hem_z=knee_z+abs(hips.z-knee_z)*.46
+    poncho_hem_z=hips.z-.14
     torso_bind=lambda obj: bind_vertical(obj,armature,names["spine"],names["hips"],waist_z,max(.15,abs(shoulder_z-hips.z)*.45))
     loft("Shino_Tunic",[(shoulder_z-.02,body_width*.63,body_width*.42,0,0),(waist_z,body_width*.55,body_width*.37,0,0),(hips.z-.02,body_width*.60,body_width*.41,0,0)],mats["charcoal"],armature,torso_bind,28)
     loft("Shino_Poncho",[
-        (shoulder_z+.055,body_width*.98,body_width*.64,0,.01),
-        (spine.z+.02,body_width*1.08,body_width*.70,0,.015),
-        (waist_z-.08,body_width*1.18,body_width*.76,0,.02),
-        (hem_z+.13,body_width*1.26,body_width*.80,0,.025),
-    ],mats["ivory"],armature,torso_bind,36,math.pi/36)
+        (shoulder_z+.045,body_width*.82,body_width*.44,0,.00),
+        (spine.z+.03,body_width*.96,body_width*.50,0,.01),
+        (waist_z-.04,body_width*1.08,body_width*.56,0,.015),
+        (poncho_hem_z,body_width*1.20,body_width*.61,0,.02),
+    ],mats["ivory"],armature,torso_bind,40,math.pi/40)
     loft("Shino_Skirt",[(hips.z+.01,body_width*.57,body_width*.39,0,0),((hips.z+hem_z)*.50,body_width*.66,body_width*.43,0,.01),(hem_z,body_width*.78,body_width*.47,0,.015)],mats["ivory_shadow"],armature,lambda obj:bind_rigid(obj,armature,names["hips"]),30,math.pi/30)
-    tube("Shino_Trim_L",[Vector((-.035,-body_width*.67,shoulder_z-.02)),Vector((-.12,-body_width*.72,waist_z+.02)),Vector((-.055,-body_width*.75,waist_z-.14))],[.020,.017,.009],mats["ribbon"],armature,names["spine"],9)
-    tube("Shino_Trim_R",[Vector((.035,-body_width*.67,shoulder_z-.02)),Vector((.12,-body_width*.72,waist_z+.02)),Vector((.055,-body_width*.75,waist_z-.14))],[.020,.017,.009],mats["ribbon"],armature,names["spine"],9)
-    ellipsoid("Shino_Clasp",Vector((0,-body_width*.70,shoulder_z-.02)),(.033,.016,.042),mats["bronze"],armature,names["spine"],14,9)
+    tube("Shino_Trim_L",[Vector((-.035,-body_width*.48,shoulder_z-.02)),Vector((-.10,-body_width*.55,waist_z+.03)),Vector((-.045,-body_width*.59,poncho_hem_z+.08))],[.020,.017,.009],mats["ribbon"],armature,names["spine"],9)
+    tube("Shino_Trim_R",[Vector((.035,-body_width*.48,shoulder_z-.02)),Vector((.10,-body_width*.55,waist_z+.03)),Vector((.045,-body_width*.59,poncho_hem_z+.08))],[.020,.017,.009],mats["ribbon"],armature,names["spine"],9)
+    ellipsoid("Shino_Clasp",Vector((0,-body_width*.50,shoulder_z-.02)),(.033,.016,.042),mats["bronze"],armature,names["spine"],14,9)
 
     for side in ("left","right"):
         ua=f"{side}UpperArm";la=f"{side}LowerArm";hand=f"{side}Hand";ul=f"{side}UpperLeg";ll=f"{side}LowerLeg";foot=f"{side}Foot"
