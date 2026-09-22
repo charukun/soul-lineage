@@ -1,7 +1,8 @@
 :root{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark;background:#0a0f0e;color:#ece9df}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}
 [hidden]{display:none!important}
-.forge-page{--vrl-panel-width:280px}
+.forge-page{--vrl-panel-width:280px;--forge-model-background:#26332f}
+.forge-page[data-comparing="true"]{--forge-model-background:#e9edef}
 .forge-page button,.forge-page select,.forge-page input{font:inherit}
 .forge-page button,.forge-page select{min-height:36px;padding:6px 9px;border:1px solid #39433f;border-radius:8px;background:#151d1a;color:#dce4dd;font-size:11px}
 .forge-page button{cursor:pointer;touch-action:manipulation}
@@ -13,9 +14,10 @@
 .forge-stage{isolation:isolate}
 .forge-comparison{position:absolute;inset:0 0 62px;display:grid;grid-template-columns:minmax(0,1fr);gap:1px;background:#304239}
 .forge-comparison figure{min-width:0;min-height:0;margin:0;display:grid;grid-template-rows:28px minmax(0,1fr);background:#e9edef}
+.forge-comparison .forge-model-pane{background:var(--forge-model-background)}
 .forge-comparison figcaption{display:flex;align-items:center;padding:0 10px;font-size:10px;color:#aabbb0;background:#14201a;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .forge-viewport{min-width:0;min-height:0;container-type:size;display:grid;place-items:center}
-.canvas-wrap{width:100%;height:100%;position:relative;background:#e9edef}
+.canvas-wrap{width:100%;height:100%;position:relative;background:var(--forge-model-background)}
 #forge-stage{display:block;width:100%;height:100%;touch-action:none}
 .forge-image-wrap{position:relative;width:min(100cqw,100cqh);height:min(100cqw,100cqh)}
 .forge-image-wrap img,.forge-overlay{display:block;width:100%;height:100%;object-fit:contain}
