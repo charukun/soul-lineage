@@ -19,7 +19,10 @@
     "./character-sprite-set/playback": "./src/character-sprite-playback.js",
     "./character-sprite-set/sandbox": "./src/character-sprite-sandbox.js",
     "./character-sprite-set/browser": "./src/adapters/browser/character-sprite-set.js",
-    "./character-sprite-set/three": "./src/adapters/three/character-sprite-set.js"
+    "./character-sprite-set/three": "./src/adapters/three/character-sprite-set.js",
+    "./character-create-forge": "./src/character-create-forge/contract.js",
+    "./character-create-forge/three": "./src/character-create-forge/actor.js"
   },
   "dependencies": {}
 }
+
