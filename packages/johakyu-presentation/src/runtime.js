@@ -208,6 +208,10 @@ function syncContactPose(a,progress,hold=.09){
  const p=clamp(progress,.02,.98);a.contactHold={clip:a.actionName,progress:p,remaining:hold,duration:hold,serial:++a.contactSerial};
  a.action.paused=true;a.action.time=Math.min(clip.duration-.000001,p*clip.duration);a.mixer.update(0);a.object.updateMatrixWorld(true);return true;
 }
+function holdAuthoredContactPose(a,clip='Block_Hit',progress=.43,hold=.14){
+ if(!a?.clips?.has(clip))return false;const p=clamp(progress,.02,.98);
+ a.contactHold={clip,progress:p,remaining:hold,duration:hold,serial:++a.contactSerial};return true;
+}
 
 
 
@@ -504,10 +508,11 @@ function createDrivenPort(){
   impact(event,source,target){
    if(event.type==='clash'){
     const point=event.contactPoint,fallback=point?new V(point.x,Math.min(source?.height||target.height,target.height)*.58,point.z):target.pos.clone().add(new V(0,target.height*.58,0)),clash=source?bladeClashPoint(source,target,fallback):fallback,pan=spatialPan(clash);
-    syncContactPose(source,event.sourceContactProgress??.5,.04);syncContactPose(target,event.targetContactProgress??.5,.04);
-    if(source)source.parryRecoil={remaining:.18,duration:.18,side:-1};if(target)target.parryRecoil={remaining:.18,duration:.18,side:1};
-    burst(clash,12,'#fff0b8');sound.parry?.({pan,gain:.78,rate:1.04});game.hitstop=Math.max(game.hitstop,.038);game.cameraPunch=Math.max(game.cameraPunch,.012);game.shake=Math.max(game.shake,.01);kickCamera(source,target,.06);
-    record('canonical-clash',{attackId:event.attackId,otherAttackId:event.otherAttackId,sourceId:event.sourceId,targetId:event.targetId,contactPoint:point||null,contactDistance:event.contactDistance||null});return;
+    holdAuthoredContactPose(source,'Block_Hit',.43,.14);holdAuthoredContactPose(target,'Block_Hit',.57,.14);
+    if(source)source.parryRecoil={remaining:.3,duration:.3,side:-1};if(target)target.parryRecoil={remaining:.3,duration:.3,side:1};
+    burst(clash,22,'#fff0b8');ring(clash,.58,'#fff4ce',.2);if(source)arc(source.pos,Math.max(1.45,source.pos.distanceTo(target.pos)*.58),source.object.rotation.y,1.15,'#fff0b8',.18);
+    sound.parry?.({pan,gain:1.08,rate:1.12});game.hitstop=Math.max(game.hitstop,.075);game.cameraPunch=Math.max(game.cameraPunch,.028);game.shake=Math.max(game.shake,.024);kickCamera(source,target,.13);
+    record('canonical-clash',{attackId:event.attackId,otherAttackId:event.otherAttackId,sourceId:event.sourceId,targetId:event.targetId,contactPoint:point||null,contactDistance:event.contactDistance||null,poseClip:'Block_Hit'});return;
    }
    if(['guard','parry'].includes(event.type)){
     const parry=event.type==='parry',strongParry=parry&&event.strongParry===true,point=event.contactPoint;
