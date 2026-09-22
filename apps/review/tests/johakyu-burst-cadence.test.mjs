@@ -42,12 +42,12 @@ test('battle2 uses the burst executor option for both sides without removing com
   assert.throws(() => createJohakyuP7ReviewScenario({comboStyle: 'burst', heroStartTechniqueIndex: 1}), RangeError);
   assert.throws(() => createJohakyuP7ReviewScenario({comboStyle: 'unknown'}), RangeError);
   const controller = readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js', import.meta.url), 'utf8');
-  assert.match(controller, /createJohakyuP7ReviewScenario\(\{mode,comboStyle:'burst'\}\)/);
+  assert.match(controller, /createJohakyuP7ReviewScenario\(\{mode,comboStyle:'burst',duelGap:mode==='duel'\?2\.18:3\.15,enemyLeadSeconds:mode==='duel'\?\.16:0\}\)/);
 });
 
 
 test('battle2 duel burst actually opens combat instead of remaining in the ready/read loop', () => {
-  const scenario=createJohakyuP7ReviewScenario({mode:'duel',comboStyle:'burst',duelGap:2.75,enemyLeadSeconds:.16});
+  const scenario=createJohakyuP7ReviewScenario({mode:'duel',comboStyle:'burst',duelGap:2.18,enemyLeadSeconds:.16});
   let stageStart=null,contact=null;
   for(let i=0;i<240&&!(stageStart&&contact);i++){
     const result=scenario.step(1/60);
