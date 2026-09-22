@@ -5,10 +5,10 @@
   "referencePath": "assets/characters/shino-original/reference.svg",
   "sourceRigSha256": "60428e3abc09ba83e595d256e3af8c5c976b46cdae599f0802fc82b4a3445168",
   "blenderVersion": "4.5.14 LTS",
-  "meshObjects": 53,
-  "trianglesApprox": 11192,
+  "meshObjects": 55,
+  "trianglesApprox": 11268,
   "materials": 12,
-  "uvMeshCount": 53,
+  "uvMeshCount": 55,
   "fingerMeshes": 10,
   "expectedFingerMeshes": 10,
   "sourceMeshesRemoved": [
@@ -109,8 +109,8 @@
     "Walking_C"
   ],
   "animationClipCount": 76,
-  "blendSha256": "b484ce20c3c595728b8889f5f4cb3db47b561afeb31cf23237785f3ac6ae0a5a",
-  "glbSha256": "9c36bfc81876eb145900f63b518d694c79cfb46857ba81b3cefc83da21fe7f0f",
+  "blendSha256": "34f0b0dea1feb811c4a885d0a3acb59d75fb2e71fbd378de370fc03ae5c3fcde",
+  "glbSha256": "f42ce183eeebd999867f84ba11da71795086cfab31aa11f51993dcb1c3764e66",
   "productionReady": false,
   "visualApproval": "pending"
 }
