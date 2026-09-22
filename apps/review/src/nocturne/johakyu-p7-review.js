@@ -15,7 +15,7 @@ const LAYOUT=Object.freeze({hero:{x:0,z:.35,yaw:0},'enemy-a':{x:0,z:2.25,yaw:Mat
 const TARGETS=Object.freeze({hero:['enemy-a','enemy-b','enemy-c'],'enemy-a':['hero'],'enemy-b':['hero'],'enemy-c':['hero']});
 const KIND_DAMAGE=Object.freeze({slash:7,back:7,thrust:8,pierce:9,heavy:14,diagonal:9,sweep:8,counter:10,bash:7,pommel:6});
 const RHYTHM_SECONDS=Object.freeze({sharp:.58,flow:.66,weight:.82,elastic:.64,seamless:.54});
-const CONTACT_REACH=2.35,BODY_CLEARANCE=1.46,MIN_SPACING=BODY_CLEARANCE,ENGAGE_DISTANCE=2.08,DISENGAGE_DISTANCE=2.72,COUNTER_PRESS_DISTANCE=2.18;
+const CONTACT_REACH=2.35,BODY_CLEARANCE=1.46,FIGHTING_SPACING=1.92,DEEP_ENTRY_SPACING=1.72,ENGAGE_DISTANCE=2.24,DISENGAGE_DISTANCE=3.05,COUNTER_PRESS_DISTANCE=2.08;
 const RECOVERY_SECONDS=Object.freeze({miss:.62,blocked:.52,parried:.78,countered:.88,'hit-before-contact':.42,hit:.28});
 const REACTION_SECONDS=Object.freeze({guard:.42,parry:.38,counter:.52}),HEAVY_THREATS=new Set(['heavy','sweep','bash','pommel']);
 const DEFENSE_WINDOW=Object.freeze({guard:[.12,.92],brace:[.1,.96],parry:[.12,.9]});
@@ -124,8 +124,10 @@ function advanceFootwork(battle,positions,actions,maneuvers,now,dt){
     const movement=johakyuStageCapability(actor,{weapon:actor.equipment.weapon,kind:'ready',footwork});
     if(!movement.allowed)continue;
     const vector=footworkVector(positions,actor,target,footwork),closing=['forward','chase','rush','cross','spiral','orbitL','orbitR','counterL','counterR'].includes(footwork);
+    const deepEntry=action&&['rush','cross','spiral','counterL','counterR'].includes(footwork);
+    const stopDistance=maneuver?.stopDistance??(deepEntry?DEEP_ENTRY_SPACING:FIGHTING_SPACING);
     let step=speed*dt*movement.body.movementScale;
-    if(closing)step=Math.min(step,Math.max(0,distance-(maneuver?.stopDistance??MIN_SPACING)));
+    if(closing)step=Math.min(step,Math.max(0,distance-stopDistance));
     if(footwork==='retreat'&&Number.isFinite(maneuver?.stopDistance))step=Math.min(step,Math.max(0,maneuver.stopDistance-distance));
     positions.set(actor.id,{x:clampPosition(from.x+vector.x*step,-4.8,4.8),z:clampPosition(from.z+vector.z*step,-1.4,5.4)});
   }
@@ -136,7 +138,7 @@ function contactWindow(positions,source,target){
   return{reachable:Boolean(reachable),distance};
 }
 
-export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLeadSeconds=0,heroStartPhase='jo',heroStartTechniqueIndex=0,checkpointSeconds=0,actorOverrides={}}={}){
+export function createJohakyuP7ReviewScenario({mode='duel',duelGap=3.15,enemyLeadSeconds=0,heroStartPhase='jo',heroStartTechniqueIndex=0,checkpointSeconds=0,actorOverrides={}}={}){
   if(!Number.isFinite(checkpointSeconds)||checkpointSeconds<0)throw new RangeError('Invalid checkpoint time');
   if(!actorOverrides||typeof actorOverrides!=='object'||Object.keys(actorOverrides).some(id=>!Object.hasOwn(TARGETS,id)))throw new TypeError('Invalid actor fixture overrides');
   if(!Object.hasOwn(MODES,mode))throw new RangeError('Unsupported battle review mode');
@@ -455,9 +457,9 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
         if(targetAction&&!['guard','parry','brace'].includes(targetKind)){targetAction.interrupted='countered';cancelJohakyuStage(targetAction);}
         setManeuver(target,source,{reason:'countered-withdrawal',footwork:'retreat',seconds:.72,stopDistance:DISENGAGE_DISTANCE});
       }else if(deepHit&&targetAction&&incomingProgress<.34&&!targetAction.impacted&&!['guard','parry','brace'].includes(targetKind)){
-        targetAction.interrupted='hit-before-contact';cancelJohakyuStage(targetAction);setManeuver(target,source,{reason:'hit-withdrawal',footwork:'retreat',seconds:.34,stopDistance:2.44});
+        targetAction.interrupted='hit-before-contact';cancelJohakyuStage(targetAction);setManeuver(target,source,{reason:'hit-withdrawal',footwork:'retreat',seconds:.4,stopDistance:2.72});
       }else if(!targetAction){
-        setRecovery(target,'hit',source.id,.2);setManeuver(target,source,{reason:'hit-withdrawal',footwork:'retreat',seconds:.28,stopDistance:2.4});
+        setRecovery(target,'hit',source.id,.2);setManeuver(target,source,{reason:'hit-withdrawal',footwork:'retreat',seconds:.34,stopDistance:2.62});
       }
     }
     if(events.length){lastEvents=events;if(trace.length>120)trace=trace.slice(-120);}
