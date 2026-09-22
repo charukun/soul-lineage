@@ -5,16 +5,26 @@ import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.j
 import {createCanonicalPresentationDriver} from '../../../packages/johakyu-presentation/src/driver.js';
 import {resolveJohakyuLocomotion,resolveJohakyuMotion} from '../../../packages/johakyu-combat/src/motion-contract.js';
 import {BATTLE2_VERSION} from '../src/battle2-version.js';
-import {BATTLE2_COMBO_PRESETS,BATTLE2_TECHNIQUE_CATALOG} from '../src/nocturne/battle2-technique-catalog.js';
+import {BATTLE2_COMBO_PRESETS,BATTLE2_TECHNIQUE_CATALOG,battle2InspirationCatalog} from '../src/nocturne/battle2-technique-catalog.js';
 
 const stageSource=()=>readFileSync(new URL('../src/nocturne-stage.js',import.meta.url),'utf8');
 const hudCss=()=>readFileSync(new URL('../src/nocturne/johakyu-p7-readout.css',import.meta.url),'utf8');
 
-test('battle2 keeps only 1v1 and 1v3 controls and never wires inspiration',()=>{
+test('battle2 keeps 1v1 and 1v3 while exposing technique-use and inspiration settings in the review gear menu',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource();
  assert.match(html,/<h1>序破急バトル<\/h1>/);assert.equal((html.match(/data-battle-mode=/g)||[]).length,2);assert.match(html,/data-battle-mode="duel"/);assert.match(html,/data-battle-mode="oneVsThree"/);
- assert.doesNotMatch(html+stage,/inspiration|hirameki|閃き|battle-inspire|pendingDiscoveries/i);
+ assert.equal((html.match(/data-battle-technique-mode=/g)||[]).length,2);assert.match(html,/data-battle-technique-mode="random"/);assert.match(html,/data-battle-technique-mode="set"/);
+ assert.equal((html.match(/data-battle-inspiration-rate=/g)||[]).length,2);assert.match(html,/data-battle-inspiration-rate="normal"/);assert.match(html,/data-battle-inspiration-rate="high"/);
+ assert.match(stage,/battle2\.settings\.v1/);assert.match(stage,/configureSettings/);assert.match(stage,/learnTechnique/);assert.match(stage,/閃き「/);
  assert.match(html,/data-combat-phase="jo"/);assert.match(html,/data-combat-phase="ha"/);assert.match(html,/data-combat-phase="kyu"/);assert.match(html,/battle-sequence-history/);
+});
+
+test('high inspiration mode learns a canonical causal technique and random mode builds one technique per phase',()=>{
+ const catalog=battle2InspirationCatalog({weapon:'sword'});assert.ok(catalog.length>0);assert.ok(catalog.every(row=>row.id&&row.label&&row.steps.length>0));
+ const random=createJohakyuP7ReviewScenario({mode:'duel',settings:{techniqueMode:'random',inspirationRate:'normal'}});assert.equal(random.settings.techniqueMode,'random');for(const phase of ['jo','ha','kyu'])assert.equal(random.composition.hero[phase].length,1);
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',settings:{techniqueMode:'set',inspirationRate:'high'}});let insight=null;
+ for(let i=0;i<3600&&!insight;i++){const r=scenario.step(1/60,[]);insight=(r.meta.activity||[]).find(row=>row.type==='inspiration')||null;}
+ assert.ok(insight,'high inspiration review mode must eventually spark during landed player attacks');assert.ok(catalog.some(row=>row.id===insight.techniqueId));assert.ok(scenario.learnedTechniqueIds.includes(insight.techniqueId));
 });
 
 test('review fixture is a real phase -> technique -> stage composition, not fixed phase tactics',()=>{
@@ -245,7 +255,7 @@ test('battle2 presentation layers hit reactions, local hit stop, two-actor frami
  const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),audio=readFileSync(new URL('../src/nocturne/audio.js',import.meta.url),'utf8'),sharedAudio=readFileSync(new URL('../../../packages/johakyu-presentation/src/audio.js',import.meta.url),'utf8');
  assert.match(runtime,/resolveFatiguePresentation/);assert.match(runtime,/applyFatigue\(a,row,dt\)/);assert.match(runtime,/reactionClip=\['head','leftArm','rightArm'\]\.includes\(event\.bodyPart\)\?'Hit_B':'Hit_A'/);
  assert.match(runtime,/game\.hitstop=Math\.max/);assert.match(runtime,/midpoint=opponent\?hero\.pos\.clone\(\)\.lerp\(opponent\.pos,\.5\)/);assert.match(runtime,/camera\.zoom=lerp/);
- assert.match(runtime,/sound\.swing\?\./);assert.match(runtime,/sound\.parry\?\./);assert.match(runtime,/sound\.impact\?\./);assert.match(runtime,/event\.contactPoint/);assert.match(runtime,/strongParry/);assert.match(runtime,/bladeClashPoint/);assert.match(runtime,/function weaponAxis/);assert.match(runtime,/sampleWeaponTrace/);assert.match(runtime,/deflectionFromBladeTrace/);assert.match(runtime,/syncContactPose/);assert.match(runtime,/source\.parryRecoil=/);assert.match(runtime,/collectParryRig/);assert.match(runtime,/applyParryRecoil\(a\)/);assert.match(runtime,/contactHold/);assert.match(sharedAudio,/createStereoPanner/);assert.match(sharedAudio,/fatigueVoices/);
+ assert.match(runtime,/sound\.swing\?\./);assert.match(runtime,/sound\.parry\?\./);assert.match(runtime,/sound\.impact\?\./);assert.match(runtime,/event\.contactPoint/);assert.match(runtime,/strongParry/);assert.match(runtime,/bladeClashPoint/);assert.match(runtime,/function weaponAxis/);assert.match(runtime,/sampleWeaponTrace/);assert.match(runtime,/deflectionFromBladeTrace/);assert.match(runtime,/syncContactPose/);assert.match(runtime,/source\.parryRecoil=/);assert.match(runtime,/collectParryRig/);assert.match(runtime,/applyParryRecoil\(a\)/);assert.match(runtime,/function applyImpactRecoil/);assert.match(runtime,/target\.impactRecoil=\{/);assert.match(runtime,/event\.counter\?\.095:heavy\?\.075:\.045/);assert.match(runtime,/contactHold/);assert.match(sharedAudio,/createStereoPanner/);assert.match(sharedAudio,/fatigueVoices/);
  for(const path of [
   '../public/library/audio/kenney/sword-swing/368a5d13d3b2cc9d0bf6abe86c5ba950e49aaeb4.ogg',
   '../public/library/audio/kenney/sword-metal/7c57bffa367f23199029ef8dade2643b58627e98.ogg',
@@ -261,7 +271,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.33');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.36');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
