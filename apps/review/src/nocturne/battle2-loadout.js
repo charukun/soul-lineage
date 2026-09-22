@@ -1,3 +1,6 @@
+import {rinnePrimaryFourMarkup} from '@soul/shared-ui/rinne-primary-four';
+import '@soul/shared-ui/rinne-primary-four.css';
+
 const STORAGE_KEY='battle2.loadout.v1';
 const HEART_LIMIT=3;
 const PHASES=Object.freeze([['jo','序'],['ha','破'],['kyu','急']]);
@@ -73,12 +76,8 @@ export function createBattle2LoadoutUI({stage,onChange=()=>{}}={}){
   if(!stage)throw new TypeError('battle2 stage required');
   let value=readStored(),section='',techniqueTarget='jo',bodyTarget='stance',equipmentTarget='weapon';
   const shell=document.createElement('div');shell.className='battle2-loadout-shell';
-  shell.innerHTML='<nav class="rinne-bottom-controls rinne-primary-four battle2-loadout-nav" aria-label="心技体装">'+
-    '<button data-heart class="upgrade-control is-heart" type="button"><i aria-hidden="true">心</i><span>心得</span></button>'+
-    '<button data-techniques class="upgrade-control is-technique" type="button"><i aria-hidden="true">技</i><span>技</span></button>'+
-    '<button data-body class="upgrade-control is-body" type="button"><i aria-hidden="true">体</i><span>身法</span></button>'+
-    '<button data-items class="upgrade-control is-items" type="button"><i aria-hidden="true">装</i><span>武具</span></button>'+
-    '</nav><section class="battle2-loadout-panel" hidden aria-live="polite"><header><div><small>百年転生 LOADOUT</small><strong data-loadout-title></strong></div><button type="button" data-loadout-close aria-label="閉じる">×</button></header><div data-loadout-body></div></section>';
+  shell.innerHTML=rinnePrimaryFourMarkup({ariaLabel:'心技体装',extraClass:'battle2-loadout-nav'})+
+    '<section class="battle2-loadout-panel" hidden aria-live="polite"><header><div><small>百年転生 LOADOUT</small><strong data-loadout-title></strong></div><button type="button" data-loadout-close aria-label="閉じる">×</button></header><div data-loadout-body></div></section>';
   stage.append(shell);
   const nav=shell.querySelector('.battle2-loadout-nav'),panel=shell.querySelector('.battle2-loadout-panel'),title=panel.querySelector('[data-loadout-title]'),body=panel.querySelector('[data-loadout-body]');
   const navButtons={heart:nav.querySelector('[data-heart]'),technique:nav.querySelector('[data-techniques]'),body:nav.querySelector('[data-body]'),items:nav.querySelector('[data-items]')};
