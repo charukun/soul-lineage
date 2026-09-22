@@ -1,0 +1,44 @@
+name: Heroine opacity review (task scoped)
+on:
+  push:
+    branches: ['fix/heroine-dawn-opacity']
+    paths:
+      - '.task-start/heroine-opacity/**'
+      - '.github/workflows/task-heroine-opacity.yml'
+      - 'assets/characters/heroine-dawn/opacity.py'
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: heroine-opacity-authoring
+  cancel-in-progress: true
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Prepare explicitly requested DCC and browser review
+        run: |
+          mkdir -p generated/heroine-opacity
+          sudo apt-get update -qq > generated/heroine-opacity/apt.log 2>&1
+          sudo apt-get install -y blender python3-numpy python3-pil >> generated/heroine-opacity/apt.log 2>&1
+          npm ci --ignore-scripts > generated/heroine-opacity/npm.log 2>&1
+          npx playwright install --with-deps chromium > generated/heroine-opacity/chromium.log 2>&1
+      - name: Execute bounded same-head authoring and observation
+        env:
+          APP_ENV: dev
+          PYTHONPATH: /usr/lib/python3/dist-packages
+        run: bash .task-start/heroine-opacity/run.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: heroine-opacity-${{ github.sha }}
+          path: generated/heroine-opacity
+          retention-days: 7
