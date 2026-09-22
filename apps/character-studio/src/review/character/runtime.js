@@ -393,7 +393,17 @@ function start() {
       assetUrl.searchParams.set('sha256', receipt.sha256);
       review.displayModelId = model.id;
       activeModelLabel = model.label;
-      return load(() => modelBytes(assetUrl.href, { cache: 'no-store' }), auditReferenceDocument, kaykitReviewRig);
+      return load(() => modelBytes(assetUrl.href, { cache: 'no-store' }), auditReferenceDocument, async gltf => {
+        // Bundled weapon samples are not the protagonist's owned equipment.
+        // Exclude only display meshes before framing/cloning; the verified original
+        // GLB, body, clothing, skeleton and attachment bones remain unchanged.
+        for (const name of model.sourceDisplay?.excludeMeshNodes || []) {
+          const mesh = gltf.scene.getObjectByName(name);
+          if (!mesh?.isMesh) throw new Error(`除外対象の素材メッシュが見つかりません: ${name}`);
+          mesh.removeFromParent();
+        }
+        return kaykitReviewRig(gltf);
+      });
     } catch (error) {
       if (request === modelRequestSequence) report(error);
     }

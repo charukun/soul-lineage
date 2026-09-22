@@ -112,6 +112,7 @@ const femaleProtagonist = {
   visualApproval: 'pending',
   procedural: false,
   sourceModelId: 'kaykit.rogue.v1',
+  sourceDisplay: { excludeMeshNodes: ['Knife_Offhand', '1H_Crossbow', '2H_Crossbow', 'Knife', 'Throwable'] },
   license: 'CC0-1.0',
   assetPath: projectAssetUrl('model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb'),
   integrityPath: './simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json',

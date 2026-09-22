@@ -95,3 +95,14 @@ test('replacement does not inherit old visual approval, alter male protagonist o
   assert.equal(male.modelingMode, 'dcc-blender');
   assert.equal(male.assetPath, './simulator/assets/PROTAGONIST_VILLAGER_V1.glb');
 });
+
+
+test('bundled weapon sample meshes are excluded from display without altering the source or skeleton', () => {
+  assert.deepEqual(model.sourceDisplay.excludeMeshNodes, ['Knife_Offhand', '1H_Crossbow', '2H_Crossbow', 'Knife', 'Throwable']);
+  const joints = new Set(doc.skins.flatMap(skin => skin.joints));
+  for (const name of model.sourceDisplay.excludeMeshNodes) {
+    const index = doc.nodes.findIndex(node => node.name === name);
+    assert.ok(index >= 0 && Number.isInteger(doc.nodes[index].mesh), name);
+    assert.equal(joints.has(index), false, name);
+  }
+});

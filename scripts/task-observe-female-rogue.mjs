@@ -37,6 +37,7 @@ try {
   });
   assert.ok(receipt.runtime.names.includes('Rogue_Head'));
   assert.ok(receipt.runtime.names.includes('Rogue_Body'));
+  for (const name of ['Knife_Offhand','1H_Crossbow','2H_Crossbow','Knife','Throwable']) assert.ok(!receipt.runtime.names.includes(name), name);
   assert.deepEqual(receipt.runtime.errors, []);
   for (const view of ['front', 'side', 'back', 'face']) {
     await page.evaluate(view => window.masterCharacterReview.aim(view), view);
@@ -52,8 +53,8 @@ try {
   await page.evaluate(() => {
     const r = window.masterCharacterReview, root = r.actors[0].root;
     root.rotation.y = 0;
-    for (const [name, axis, amount] of [['head', 'y', .5], ['upperarm.r', 'z', .5], ['lowerarm.r', 'x', .6], ['lowerleg.l', 'x', -.6]]) {
-      const bone = root.getObjectByName(name);
+    for (const [name, axis, amount] of [['head', 'y', .5], ['rightUpperArm', 'z', .5], ['rightLowerArm', 'x', .6], ['leftLowerLeg', 'x', -.6]]) {
+      const bone = r.actors[0].bones[name];
       if (!bone?.isBone) throw new Error(`Missing deformation probe bone ${name}`);
       bone.rotation[axis] += amount;
     }
