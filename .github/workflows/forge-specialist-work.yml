@@ -1,0 +1,67 @@
+name: Character Forge task-scoped authoring
+run-name: Forge source audit ${{ github.sha }}
+on:
+  push:
+    branches: [work/forge-upstream-fidelity-20260923]
+permissions:
+  contents: read
+jobs:
+  audit:
+    if: contains(github.event.head_commit.message, '[forge-audit]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: img2threejs/img2threejs
+          ref: 6e60b5e22419464b4853e01ddb6c0e6f6659a733
+          path: .forge-audit-upstream
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: img2threejs/plugin-character
+          ref: d8750638f9fc092714e7fcb4941053514455295d
+          path: .forge-audit-plugin
+          persist-credentials: false
+      - name: Collect task sources without executing upstream code
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .forge-audit
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess, zipfile
+          root = pathlib.Path.cwd()
+          files = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          prefixes = ('packages/assets/forge/', 'packages/assets/src/', 'packages/assets/generated/', 'packages/assets/characters/forge/', 'packages/rendering/', 'apps/review/', 'apps/character-studio/', 'scripts/character-forge/', 'scripts/dcc/', 'docs/characters/', 'docs/art/')
+          exact = {'AGENTS.md','package.json','package-lock.json','docs/BROWSER_PLAYTEST_ROUTING.md','docs/DEVELOP_MERGE.md','scripts/astra-focused-validation.mjs','scripts/build.mjs','scripts/workspaces.mjs','scripts/fast-dev-contract.mjs','scripts/prepare-assets.mjs'}
+          records = []
+          with zipfile.ZipFile('.forge-audit/task-sources.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr('repository-files.txt', '\n'.join(files))
+            for name in files:
+              if not name: continue
+              selected = name in exact or name.startswith(prefixes) or (name.startswith('tests/') and ('character' in name or 'golden' in name or 'dcc' in name)) or (name.startswith('scripts/') and ('golden' in name or 'character' in name))
+              if not selected: continue
+              path = root / name
+              if not path.is_file() or path.is_symlink(): continue
+              data = path.read_bytes()
+              archive.writestr('repository/' + name, data)
+              records.append({'path':name,'sha256':hashlib.sha256(data).hexdigest()})
+            for directory, destination in [('.forge-audit-upstream','upstream'),('.forge-audit-plugin','plugin-character')]:
+              paths = subprocess.check_output(['git','-C',directory,'ls-files','-z']).decode().split('\0')
+              for name in paths:
+                if not name: continue
+                path = root / directory / name
+                if path.is_file() and not path.is_symlink(): archive.write(path, destination + '/' + name)
+            archive.writestr('audit.json',json.dumps({'repository':'charukun/soul-lineage','sourceSha':os.environ['GITHUB_SHA'],'upstreamCommit':'6e60b5e22419464b4853e01ddb6c0e6f6659a733','pluginCommit':'d8750638f9fc092714e7fcb4941053514455295d','records':records},indent=2))
+          print(json.dumps({'sourceSha':os.environ['GITHUB_SHA'],'sourceFileCount':len(records),'archiveBytes':pathlib.Path('.forge-audit/task-sources.zip').stat().st_size}))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-source-audit-${{ github.sha }}
+          path: .forge-audit/task-sources.zip
+          if-no-files-found: error
+          retention-days: 14

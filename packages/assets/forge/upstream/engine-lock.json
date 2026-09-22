@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "rinne.img2threejs-lock/v1",
+  "engine": {
+    "repository": "img2threejs/img2threejs",
+    "commit": "6e60b5e22419464b4853e01ddb6c0e6f6659a733",
+    "license": "Apache-2.0"
+  },
+  "animationPlugin": {
+    "repository": "img2threejs/plugin-character",
+    "commit": "d8750638f9fc092714e7fcb4941053514455295d"
+  },
+  "corePolicy": "unmodified-upstream",
+  "adapterBoundary": ["intake", "invocation", "golden-rig", "morph", "sockets", "package", "registry", "review", "dcc"],
+  "silentFallback": false
+}
