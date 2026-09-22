@@ -1,0 +1,12 @@
+{
+  "renderer": "Blender Cycles",
+  "blenderVersion": "4.5.0",
+  "model": "build/character.glb",
+  "views": [
+    "front",
+    "side",
+    "back"
+  ],
+  "status": "initial actual render; not visually approved",
+  "productionReady": false
+}

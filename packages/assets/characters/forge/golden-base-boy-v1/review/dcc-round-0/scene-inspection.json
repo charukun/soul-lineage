@@ -1,0 +1,147 @@
+{
+  "blender": "4.5.0",
+  "importedModel": "build/character.glb",
+  "objects": [
+    {
+      "name": "rinne.forge.humanoid.v1",
+      "type": "ARMATURE",
+      "vertices": null
+    },
+    {
+      "name": "socket_talkAnchor",
+      "type": "EMPTY",
+      "vertices": null
+    },
+    {
+      "name": "socket_leftHand",
+      "type": "EMPTY",
+      "vertices": null
+    },
+    {
+      "name": "socket_heldItemAnchor",
+      "type": "EMPTY",
+      "vertices": null
+    },
+    {
+      "name": "socket_rightHand",
+      "type": "EMPTY",
+      "vertices": null
+    },
+    {
+      "name": "socket_weapon",
+      "type": "EMPTY",
+      "vertices": null
+    },
+    {
+      "name": "socket_secondaryGripTarget",
+      "type": "EMPTY",
+      "vertices": null
+    },
+    {
+      "name": "socket_weaponHitboxAnchor",
+      "type": "EMPTY",
+      "vertices": null
+    },
+    {
+      "name": "socket_trailOrigin",
+      "type": "EMPTY",
+      "vertices": null
+    },
+    {
+      "name": "headMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "neckMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "torsoMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "pelvisMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "upperArm.LMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "lowerArm.LMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "hand.LMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "upperLeg.LMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "lowerLeg.LMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "foot.LMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "upperArm.RMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "lowerArm.RMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "hand.RMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "upperLeg.RMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "lowerLeg.RMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "foot.RMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "clothingMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "rearHairMesh",
+      "type": "MESH",
+      "vertices": 427
+    },
+    {
+      "name": "Icosphere",
+      "type": "MESH",
+      "vertices": 42
+    }
+  ],
+  "role": "read-only initial GLB inspection before DCC correction"
+}

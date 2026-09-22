@@ -1,0 +1,71 @@
+{
+  "author": "RINNE original procedural model; reference supplied by the commissioning user",
+  "source": "User attachment 1000003576.png / Golden Base Boy v1, explicitly supplied to create this new Golden Base",
+  "license": "RINNE-OWNED",
+  "authorizationEvidence": "User explicitly instructed Character Create Forge creation from this attachment. No third-party character model, rig or texture library is imported.",
+  "referenceAuthorship": "User-provided; independent original authorship not asserted",
+  "originalSha256": "86b6d48c9f9818e3b31a571ef87937e8882b61cfcf5423ef12c24fd0d0f3efb1",
+  "originalSize": [
+    1536,
+    1152
+  ],
+  "shapeAuthority": "Central Front / Side / Back figures only; right panels are implementation guidance",
+  "excluded": "Previously generated presentation image; right technical thumbnails; footer dressed character",
+  "bodyRatioPolicy": "Measure the actual central figures, do not force the decorative approximately-3.5 label over the drawn proportions",
+  "sourceViews": {
+    "front": {
+      "sheetRect": [
+        11,
+        164,
+        458,
+        852
+      ],
+      "previewRect": [
+        10,
+        150,
+        420,
+        781
+      ],
+      "rawCropSha256": "3e2eec88e0ffeb0b53bd93e12a50dfc89243f7d6c14d5c38848d507225e74dcb",
+      "inputSha256": "34f9ca2c77cd1f8933691e6b060e9ac4d3a51d919831297730a7ae997b669e0e",
+      "maskMethod": "authored central-view bounds, background color mask and hole fill; original-resolution pixels retained",
+      "status": "observed image, inferred segmentation"
+    },
+    "side": {
+      "sheetRect": [
+        457,
+        164,
+        731,
+        852
+      ],
+      "previewRect": [
+        419,
+        150,
+        670,
+        781
+      ],
+      "rawCropSha256": "9e0935225959455b8d6245120b73f3c40975365bc769fbbf175d5a74f95b7484",
+      "inputSha256": "bdefd69a218eb9b95fe3783027ca80732c4a86c840e6c0e5000e29e4f376b67a",
+      "maskMethod": "authored central-view bounds, background color mask and hole fill; original-resolution pixels retained",
+      "status": "observed image, inferred segmentation"
+    },
+    "back": {
+      "sheetRect": [
+        709,
+        164,
+        1154,
+        852
+      ],
+      "previewRect": [
+        650,
+        150,
+        1058,
+        781
+      ],
+      "rawCropSha256": "fb9bdf057abadb26e43eb998d298d2c6510a6e298801ee2a769eb7137f1c8f30",
+      "inputSha256": "b70c51c4e2f4a8b3db24232f6fbe244ec37b8b86e84e16cc1820ba293fdf822e",
+      "maskMethod": "authored central-view bounds, background color mask and hole fill; original-resolution pixels retained",
+      "status": "observed image, inferred segmentation"
+    }
+  }
+}

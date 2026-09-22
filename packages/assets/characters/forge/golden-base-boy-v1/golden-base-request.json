@@ -1,0 +1,19 @@
+{
+  "target": "reusable Golden Base only",
+  "newMesh": true,
+  "hair": false,
+  "garments": false,
+  "accessories": false,
+  "grayRegion": "neutral base material region, not a separate garment",
+  "required": [
+    "clean topology",
+    "UV",
+    "materials",
+    "Golden Rig compatibility",
+    "real morph targets",
+    "Head/LeftHand/RightHand/Weapon sockets",
+    "Blender edit and actual turnaround comparison"
+  ],
+  "reviewStatus": "DCC refinement required; pipeline candidate is not completion",
+  "sourceHead": "2724d7afce29f6ab7e19374450741a968d54b857"
+}
