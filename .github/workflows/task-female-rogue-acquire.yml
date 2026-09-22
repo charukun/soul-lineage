@@ -18,28 +18,66 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 1
-      - name: Repair the three observed build-blocking module references
+      - name: Apply the bounded actual-output correction
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          entries=[
-            ('apps/character-studio/src/review/motion/entrypoint.js','./character-workshop-ux.js','../../character-workshop-ux.js'),
-            ('apps/character-studio/src/review/character/runtime.js','./character-workspace-advanced.js','../workspace/advanced.js'),
-            ('apps/character-studio/src/review/workspace/index.js','./character-reference-workshop.js','../../character-reference-workshop.js'),
-          ]
-          for name,old,new in entries:
-              path=Path(name); text=path.read_text(); assert (path.parent/new).resolve().is_file(),new
-              if "'"+old+"'" in text:
-                  assert text.count("'"+old+"'")==1
-                  path.write_text(text.replace("'"+old+"'","'"+new+"'"))
-              else: assert "'"+new+"'" in text
+          catalog=Path('packages/characters/src/reference-model-catalog.js')
+          text=catalog.read_text()
+          if 'excludeMeshNodes' not in text:
+              old="  sourceModelId: 'kaykit.rogue.v1',"
+              assert text.count(old)==1
+              text=text.replace(old,old+"\n  sourceDisplay: { excludeMeshNodes: ['Knife_Offhand', '1H_Crossbow', '2H_Crossbow', 'Knife', 'Throwable'] },")
+              catalog.write_text(text)
+          runtime=Path('apps/character-studio/src/review/character/runtime.js')
+          text=runtime.read_text()
+          old="return load(() => modelBytes(assetUrl.href, { cache: 'no-store' }), auditReferenceDocument, kaykitReviewRig);"
+          new="""return load(() => modelBytes(assetUrl.href, { cache: 'no-store' }), auditReferenceDocument, async gltf => {
+            // Bundled weapon samples are not the protagonist's owned equipment.
+            // Detach only named display meshes before framing/cloning; preserve the
+            // verified original GLB, body, clothing, rig and all attachment bones.
+            for (const name of model.sourceDisplay?.excludeMeshNodes || []) {
+              const mesh = gltf.scene.getObjectByName(name);
+              if (!mesh?.isMesh) throw new Error(`除外対象の素材メッシュが見つかりません: ${name}`);
+              mesh.removeFromParent();
+            }
+            return kaykitReviewRig(gltf);
+          });"""
+          if old in text:
+              assert text.count(old)==1;runtime.write_text(text.replace(old,new))
+          else: assert 'excludeMeshNodes' in text
+          probe=Path('scripts/task-observe-female-rogue.mjs')
+          text=probe.read_text().replace("['upperarm.r', 'z', .5]","['rightUpperArm', 'z', .5]").replace("['lowerarm.r', 'x', .6]","['rightLowerArm', 'x', .6]").replace("['lowerleg.l', 'x', -.6]","['leftLowerLeg', 'x', -.6]").replace('const bone = root.getObjectByName(name);','const bone = r.actors[0].bones[name];')
+          marker="  assert.ok(receipt.runtime.names.includes('Rogue_Body'));"
+          addition="\n  for (const name of ['Knife_Offhand','1H_Crossbow','2H_Crossbow','Knife','Throwable']) assert.ok(!receipt.runtime.names.includes(name), name);"
+          if addition not in text: text=text.replace(marker,marker+addition)
+          probe.write_text(text)
+          test=Path('packages/characters/tests/female-protagonist-source.test.mjs')
+          text=test.read_text()
+          if 'bundled weapon sample meshes are excluded' not in text:
+              text+='''\n
+test('bundled weapon sample meshes are excluded from display without altering the source or skeleton', () => {
+  assert.deepEqual(model.sourceDisplay.excludeMeshNodes, ['Knife_Offhand', '1H_Crossbow', '2H_Crossbow', 'Knife', 'Throwable']);
+  const joints = new Set(doc.skins.flatMap(skin => skin.joints));
+  for (const name of model.sourceDisplay.excludeMeshNodes) {
+    const index = doc.nodes.findIndex(node => node.name === name);
+    assert.ok(index >= 0 && Number.isInteger(doc.nodes[index].mesh), name);
+    assert.equal(joints.has(index), false, name);
+  }
+});
+'''
+              test.write_text(text)
+          note=Path('docs/characters/PROTAGONIST_FEMALE_REPLACEMENT.md')
+          text=note.read_text()
+          if '武器見本' not in text:
+              note.write_text(text+'\n公式原本に同梱された武器見本5メッシュは、主人公女の表示時だけ外す。\nGLB原本は無改変。身体・髪・衣装・Rig・手持ちソケットは残し、\nモデル鑑賞とゲーム上の装備所有を混同しない。\n')
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add apps/character-studio/src/review/motion/entrypoint.js apps/character-studio/src/review/character/runtime.js apps/character-studio/src/review/workspace/index.js
+          git add packages/characters/src/reference-model-catalog.js apps/character-studio/src/review/character/runtime.js scripts/task-observe-female-rogue.mjs packages/characters/tests/female-protagonist-source.test.mjs docs/characters/PROTAGONIST_FEMALE_REPLACEMENT.md
           if ! git diff --cached --quiet; then
-            git commit -m 'fix(studio): resolve moved modules so protagonist review can actually build'
+            git commit -m 'art: present original female Rogue without bundled weapon samples; retain canonical rig'
             git push origin HEAD:${{ github.ref_name }}
           fi
       - uses: actions/setup-node@v4
