@@ -107,7 +107,7 @@ function beginComboFade(){
 function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId||meta.exchangeHistoryKey!==lastExchangeKey){resetHistory(meta.battleId);lastExchangeKey=meta.exchangeHistoryKey;}
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
- const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);playerHud?.capture(world,{x:.34,y:.56,scale:.34});
+ const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);playerHud?.capture(world,{x:.5,y:.6,scale:.24});
  const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
  const technique=String(meta.techniqueName||meta.actionName||'').trim();
  cueNode.hidden=!technique;if(cueNode.textContent!==technique)cueNode.textContent=technique;
