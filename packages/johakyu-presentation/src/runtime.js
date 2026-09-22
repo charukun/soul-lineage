@@ -76,7 +76,7 @@ function collectParryRig(root){
 function clearParryRig(a){
  for(const row of a.parryRig){if(row.x)row.node.rotation.x-=row.x;if(row.y)row.node.rotation.y-=row.y;if(row.z)row.node.rotation.z-=row.z;row.x=0;row.y=0;row.z=0;}
 }
-const BODY_CONTACT_PARTS=Object.freeze(['head','torso','leftArm','rightArm','leftLeg','rightLeg']),BODY_CONTACT_SKIN=.065;
+const BODY_CONTACT_PARTS=Object.freeze(['head','torso','leftArm','rightArm','leftLeg','rightLeg']),BODY_CONTACT_SKIN=.18;
 function bodyBoneSide(raw){
  const text=String(raw||'').toLowerCase();if(/left|(^|[._-])l($|[._-])/.test(text))return'left';if(/right|(^|[._-])r($|[._-])/.test(text))return'right';return'';
 }
@@ -118,9 +118,9 @@ function bladeCapsuleDistance(start,end,capsule){
 }
 function sweptWeaponBodyContact(source,target){
  const row=source?.canonicalRow,action=row?.action,trace=source?.weaponTrace;if(!action?.motion?.offense||!trace?.axis||action.targetId!==target?.canonicalId||target.dead)return null;
- const expected=Number(action.motion.contactProgress??.5),progress=Number(action.progress);if(!Number.isFinite(progress)||Math.abs(progress-expected)>.38)return null;
+ const expected=Number(action.motion.contactProgress??.5),progress=Number(action.progress);if(!Number.isFinite(progress)||Math.abs(progress-expected)>.44)return null;
  const previous=trace.previousAxis||trace.axis,current=trace.axis,capsules=bodyContactCapsules(target),weaponRadius=row.equipment?.weapon==='great'?.115:.085;let best=null;
- for(const t of [0,.125,.25,.375,.5,.625,.75,.875,1]){
+ for(const t of [0,.0625,.125,.1875,.25,.3125,.375,.4375,.5,.5625,.625,.6875,.75,.8125,.875,.9375,1]){
   const start=previous.start.clone().lerp(current.start,t),end=previous.end.clone().lerp(current.end,t);
   for(const capsule of capsules){const hit=bladeCapsuleDistance(start,end,capsule),clearance=hit.distance-(capsule.radius+weaponRadius+BODY_CONTACT_SKIN);if(clearance>0||best&&clearance>=best.clearance)continue;best={clearance,part:capsule.part,weaponPoint:hit.weaponPoint,bodyPoint:hit.bodyPoint};}
  }
