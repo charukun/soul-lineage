@@ -38,6 +38,10 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /allRaw\.filter\(session=>autonomousGameIds\.has\(iterationGameId\(session\)\)\)/);
   assert.match(script, /対象未記録/);
   assert.match(script, /rapid-session-card/);
+  assert.match(script, /rapid-execution-state/);
+  assert.match(script, /session\.execution/);
+  assert.match(script, /'running','validating','merging'/);
+  assert.match(script, /Idle/);
   assert.match(script, /工程時間/);
   assert.match(script, /tickProgressDurations/);
   assert.match(script, /setInterval\(\(\)=>\{if\(!document\.hidden\)tickProgressDurations/);
