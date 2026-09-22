@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {dirname,join} from 'node:path';
 const here=dirname(fileURLToPath(import.meta.url));
 const source=path=>readFileSync(join(here,'../src',path),'utf8');
-const gameplay=source('gameplay-ui.js'),heartUI=source('heart-technique-body-ui.js'),entry=source('inspiration-gameplay-ui.js'),journal=source('inspiration-journal-ui.js'),controls=source('inspiration-combat-controls.js'),css=source('inspiration-journal.css');
+const gameplay=source('gameplay-ui.js'),heartUI=source('heart-technique-body-ui.js'),combatLoadout=source('combat-loadout.js'),entry=source('inspiration-gameplay-ui.js'),journal=source('inspiration-journal-ui.js'),controls=source('inspiration-combat-controls.js'),css=source('inspiration-journal.css');
 const sharedFour=readFileSync(join(here,'../../../packages/shared-ui/src/rinne-primary-four.js'),'utf8'),sharedMenu=readFileSync(join(here,'../../../packages/shared-ui/src/rinne-loadout-menu.js'),'utf8'),sharedMenuCss=readFileSync(join(here,'../../../packages/shared-ui/src/rinne-loadout-menu.css'),'utf8');
 
 test('bottom rail retains independent heart technique body pages through the causal journal adapter',()=>{
@@ -22,9 +22,11 @@ test('body command and panel content remain distinct DOM targets',()=>{
   assert.doesNotMatch(gameplay,/bodyButton:q\('\[data-body\]'\).*body:q\('\[data-body\]'\)/s);
 });
 
-test('心技体装 uses three selection slots and six-column motion-style target grids',()=>{
-  assert.match(sharedMenuCss,/\.loadout-slot-row[\s\S]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
+test('心 uses five pentagon slots while shared candidate grids remain compact',()=>{
+  assert.match(combatLoadout,/HEART_SLOT_COUNT=5/);assert.match(heartUI,/HEART_SLOT_COUNT/);assert.match(heartUI,/topSlotRow\(swapActive,'pentagon'\)/);
+  assert.match(sharedMenuCss,/loadout-slot-row\[data-layout="pentagon"\]/);assert.match(sharedMenuCss,/nth-child\(5\)/);
   assert.match(sharedMenuCss,/\.loadout-grid\{[\s\S]*grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);assert.match(sharedMenuCss,/aspect-ratio:1\/1!important/);
+  assert.match(sharedMenuCss,/loadout-library\.loadout-combo-grid \.loadout-grid\{grid-template-columns:repeat\(3/);
   assert.match(heartUI,/setHeartSlot/);assert.match(heartUI,/setPhaseSelection/);assert.match(heartUI,/phaseSelectionLabel/);assert.match(heartUI,/心得一覧/);assert.match(heartUI,/連技一覧/);assert.match(heartUI,/基本技一覧/);assert.match(heartUI,/GRID_PAGE_SIZE=12/);
 });
 
