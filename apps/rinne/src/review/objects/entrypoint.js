@@ -11,6 +11,7 @@ import {RINNE_OBJECT_REVIEW_CATALOG as OBJECTS} from './catalog.js';
 import {createReviewSvgThumbnail} from '@soul/shared-ui/review-thumbnail';
 import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
+import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
 mountRinneReviewShell('objects');
 
 const runtimeEnvironment=typeof __BUILD_INFO__==='undefined'?'dev':__BUILD_INFO__.environment;

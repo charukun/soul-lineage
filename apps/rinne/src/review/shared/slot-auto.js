@@ -1,13 +1,10 @@
 import {mountReviewGroup,mountReviewSelect,mountReviewSelectGrid} from '@soul/shared-ui/review-slot-picker';
 import {createReviewAutoInstaller,ensureReviewRow,installReviewStageCameraSlot,moveReviewSlot} from '@soul/shared-ui/review-auto-install';
+import {createReviewAutoInstaller,ensureReviewRow,installReviewStageCameraSlot,moveReviewSlot} from '@soul/shared-ui/review-auto-install';
 const byId=id=>document.getElementById(id);
 const qs=selector=>document.querySelector(selector);
 
-function installStageCameraSlot(){
-  if(!document.body.classList.contains('simple-review')||document.body.dataset.reviewMode==='motion')return;
-  const cycle=byId('camera-cycle');if(cycle)cycle.hidden=true;
-  installReviewStageCameraSlot({mountGroup:mountReviewGroup});
-}
+function installStageCameraSlot(){if(!document.body.classList.contains('simple-review')||document.body.dataset.reviewMode==='motion')return;const cycle=byId('camera-cycle');if(cycle)cycle.hidden=true;installReviewStageCameraSlot({mountGroup:mountReviewGroup});}
 
 function installCharacterSlots(){
   if(!document.body.classList.contains('simple-review'))return;
