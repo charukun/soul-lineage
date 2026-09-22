@@ -1,0 +1,62 @@
+{
+  "schema": "character-production",
+  "version": 2,
+  "id": "npc.shino.original.v1",
+  "stage": "PRIMARY",
+  "modelingMode": "dcc-blender",
+  "source": {
+    "referencePaths": [
+      "docs/characters/references/shino-original/turnaround.svg"
+    ],
+    "meshPath": "apps/rinne/public/simulator/assets/SHINO_ORIGINAL_DCC.glb",
+    "integrityPath": "apps/rinne/public/simulator/assets/SHINO_ORIGINAL_DCC.asset.json",
+    "dcc": {
+      "tool": "Blender",
+      "version": "4.5.14 LTS",
+      "sourcePath": "assets/characters/shino-original/model.blend",
+      "sourceSha256": "a92857fccf58d7d2bce184ea7cf7e478fb16e2f1415b33421d01f163a3cbfd01"
+    }
+  },
+  "evidence": {
+    "reference": {
+      "intentLocked": true,
+      "views": [
+        "front",
+        "side",
+        "back"
+      ]
+    },
+    "blockout": {
+      "views": [
+        "front",
+        "side",
+        "back",
+        "three-quarter"
+      ],
+      "proportionsReviewed": true,
+      "silhouetteReviewed": true,
+      "reviewEvidence": "docs/characters/qa/shino-original-dcc/"
+    },
+    "primary": {
+      "topologyReviewed": true,
+      "uvReviewed": true,
+      "separateSurfaces": [
+        "skin",
+        "hair",
+        "clothing",
+        "accessories"
+      ],
+      "auditPath": "docs/characters/qa/shino-original-dcc/blender-audit.json",
+      "meshObjects": 64,
+      "triangles": 12574,
+      "materials": 12
+    }
+  },
+  "status": {
+    "visualApproval": "pending",
+    "productionReady": false,
+    "licensePolicy": "eligible-original-plus-cc0-rig",
+    "distributionEligible": false,
+    "note": "Original Shino surfaces authored for RINNE on the pinned CC0 Rig_Medium foundation. Deformation and imported clip evidence is retained; explicit human visual approval and device performance remain separate gates."
+  }
+}
