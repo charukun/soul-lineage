@@ -133,7 +133,6 @@ def resolve_bones(armature) -> dict[str, str]:
         "hips": ("hips", "pelvis", "hip"),
         "spine": ("spine", "spine1", "chest"),
         "head": ("head",),
-        "neck": ("neck",),
         "leftUpperArm": ("leftupperarm", "upperarml", "armleft", "leftarm"),
         "leftLowerArm": ("leftlowerarm", "lowerarml", "forearml", "forearmleft"),
         "leftHand": ("lefthand", "handl", "handleft"),
