@@ -126,6 +126,7 @@ export function inspectAuthorizedFastDevContraction(base, head) {
     'AGENTS.md',
     'docs/DEVELOPMENT.md',
     'docs/DEVELOP_MERGE.md',
+    '.autonomous/exoskeleton.json',
   ]);
   const added = after.filter(path => !before.includes(path));
   const unexpected = after.filter(path => !canonical.has(path));
