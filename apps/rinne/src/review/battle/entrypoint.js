@@ -23,7 +23,7 @@ const phasePanel=q('battle-phase'),sequenceCurrent=q('battle-sequence-current'),
 const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
 let strategyA='balanced',strategyB='patient',strategyVariant='A',reviewSeed=6197,reviewInjury='none',reviewHeroBody=null,reviewEnemyBody=null,bodyHud=null;
-let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks=new Map(),bulbTimer=0,pendingInspirationTimer=0,sequenceTimer=0;
+let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastSequenceRecipe='',lastRenderedCore=null,lastImpactSerial=0,lastIdleReadoutAt=-Infinity,lastAudioAttacks=new Map(),bulbTimer=0,pendingInspirationTimer=0,sequenceTimer=0;
 const INSPIRATION_BULB_HOLD_MS=420;
 const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
 let techniqueComposition=createReviewTechniqueComposition(),compositionWeapon='';
@@ -112,13 +112,13 @@ function makeReviewBody(role,strategy){
 }
 function syncBodyHud(){if(reviewHeroBody)bodyHud?.update(reviewHeroBody);}
 function resetBattle(){
-  endInspirationWindow();reviewSwipe.cancel();lastCore=null;finishedAt=0;finisher=null;clearTimeout(pendingInspirationTimer);pendingInspirationTimer=0;clearTimeout(sequenceTimer);sequenceTimer=0;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastAudioAttacks.clear();if(sequenceCurrent){sequenceCurrent.textContent='間合いを測っている…';sequenceCurrent.dataset.kind='idle';sequenceCurrent.classList.remove('battle-sequence-current--event');}battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
+  endInspirationWindow();reviewSwipe.cancel();lastCore=null;finishedAt=0;finisher=null;clearTimeout(pendingInspirationTimer);pendingInspirationTimer=0;clearTimeout(sequenceTimer);sequenceTimer=0;hideReviewSign();hideInspirationBulb();inspirationSequenceActive=false;lastSequenceAction='';lastSequencePhase='';lastSequenceRecipe='';lastRenderedCore=null;lastImpactSerial=0;lastIdleReadoutAt=-Infinity;lastAudioAttacks.clear();if(sequenceCurrent){sequenceCurrent.textContent='間合いを測っている…';sequenceCurrent.dataset.kind='idle';sequenceCurrent.classList.remove('battle-sequence-current--event');}battleStage?.resetRound();battleSfx.reset();if(battleSfx.unlocked)battleSfx.draw();
   const weapon=runtimeWeapon(),group=encounterMode==='one-v-three',strategy=strategyVariant==='A'?strategyA:strategyB;reviewHeroBody=makeReviewBody('hero',strategy);reviewEnemyBody=makeReviewBody('enemy','balanced');
   runtime=createTidebreakRuntime({seed:reviewSeed+(group?31:0),weapon,onImpact:impact=>{battleStage?.presentImpact?.(impact);battleSfx.impact({guard:Boolean(impact?.guard),power:Number(impact?.power)||.7});}});
   const loadout=runtimeLoadout(runtime,weapon);ensureTechniqueComposition(loadout);const positions=group
     ?{hero:{x:-2.65,z:0},enemy:{x:2.65,z:0},enemies:[{x:2.65,z:0},{x:2.45,z:-1.75},{x:2.45,z:1.75}]}
     :{hero:{x:-2.65,z:0},enemy:{x:2.65,z:0}};
-  runtime.configure({weapon,loadout,opponent:group?'group':'duel',hp:230,maxhp:230,enemyHp:180,enemyWeapon:'sword',enemyStyle:'balanced',mindset:tidebreakMindsetFromVector(strategyForState(reviewHeroBody)),positions,...(group?{enemies:[{weapon:'sword',hp:180},{weapon:'spear',hp:165},{weapon:'axe',hp:195}]}:{})});
+  runtime.configure({weapon,loadout,opponent:group?'group':'duel',encounterReady:true,hp:230,maxhp:230,enemyHp:180,enemyWeapon:'sword',enemyStyle:'balanced',mindset:tidebreakMindsetFromVector(strategyForState(reviewHeroBody)),positions,...(group?{enemies:[{weapon:'sword',hp:180},{weapon:'spear',hp:165},{weapon:'axe',hp:195}]}:{})});
   lastCore=runtime.state();last=performance.now();battleStage?.setEncounterMode(encounterMode);syncBodyHud();
 }
 const INTERNAL_ACTION_LABELS=Object.freeze({
@@ -138,11 +138,40 @@ function pushBattleReadout(text,kind='action'){
   sequenceCurrent.textContent=value;sequenceCurrent.dataset.kind=kind;sequenceCurrent.classList.add('battle-sequence-current--event');
   sequenceTimer=setTimeout(()=>{sequenceTimer=0;settleBattleReadout();},1800);
 }
-function renderPhase(core){
-  const state=reviewBattlePhaseState(core);syncCombatSequence(phasePanel,state.phase);phasePanel.dataset.phase=state.phase||'idle';
-  const action=state.skill||battleActionLabel(core?.hero?.attack||'');
+const PHASE_ORDER=Object.freeze({jo:0,ha:1,kyu:2});
+function battleActorForPhase(core,state){
+  if(state.heroPhase)return core?.hero||null;
+  if(state.enemyPhase)return core?.enemy||null;
+  return null;
+}
+function battleComboInterrupted(core,previous){
+  if(!previous)return false;
+  const before=reviewBattlePhaseState(previous),after=reviewBattlePhaseState(core);
+  const restarted=before.phase&&after.phase&&PHASE_ORDER[after.phase]<PHASE_ORDER[before.phase];
+  const actors=[[core?.hero,previous?.hero],[core?.enemy,previous?.enemy]];
+  const explicit=actors.some(([now,prior])=>Boolean(now?.normalRestartPending&&!prior?.normalRestartPending));
+  const knockedOut=Boolean(before.phase&&!after.phase&&actors.some(([now,prior])=>Boolean((now?.reaction&&!prior?.reaction)||(now?.transition&&!prior?.transition))));
+  return Boolean(restarted||explicit||knockedOut);
+}
+function renderDefenseReadout(core){
+  const impact=core?.impact;if(!impact||impact.serial===lastImpactSerial)return;
+  lastImpactSerial=impact.serial;
+  if(impact.guard||impact.parry||impact.defense)pushBattleReadout('武器で弾いた','defense');
+}
+function renderPhase(core,previous=null){
+  const state=reviewBattlePhaseState(core),interrupted=battleComboInterrupted(core,previous);
+  if(interrupted){syncCombatSequence(phasePanel,'');phasePanel.dataset.phase='idle';lastSequenceAction='';lastSequencePhase='';lastSequenceRecipe='';pushBattleReadout('連が途切れた・仕切り直し','event');}
+  syncCombatSequence(phasePanel,state.phase);phasePanel.dataset.phase=state.phase||'idle';
+  const actor=battleActorForPhase(core,state),action=String(actor?.skill||'').trim(),recipe=String(actor?.execution?.recipeId||action||'');
   for(const chain of document.querySelectorAll('#battle-technique-composition [data-chain-phase]'))chain.dataset.active=String(chain.dataset.chainPhase===state.heroPhase);
-  if(action!==lastSequenceAction||state.phase!==lastSequencePhase){if(action&&action!=='間合いを測る'&&action!=='間合いを測っている…')pushBattleReadout(action,'action');lastSequenceAction=action;lastSequencePhase=state.phase;}
+  if(action&&recipe!==lastSequenceRecipe){pushBattleReadout(`連「${action}」`,'action');lastSequenceRecipe=recipe;lastSequenceAction=action;}
+  if(!action)lastSequenceRecipe='';
+  const now=Number(core?.time)||0,busy=Boolean(state.phase||core?.hero?.attack||core?.enemy?.attack);
+  if(!busy&&now-lastIdleReadoutAt>=2.2){
+    const hero=core?.hero,enemy=core?.enemy,distance=hero&&enemy?Math.hypot((Number(enemy.x)||0)-(Number(hero.x)||0),(Number(enemy.z)||0)-(Number(hero.z)||0)):0;
+    pushBattleReadout(distance>2.6?'間合いを取る':'様子を見る','tactic');lastIdleReadoutAt=now;
+  }
+  lastSequencePhase=state.phase;
 }
 function syncBattleAudio(core){
   const actors=[['hero',core?.hero],...(core?.enemies||[]).map((actor,index)=>[`enemy-${index}`,actor])];
@@ -184,7 +213,7 @@ function syncBattle(dt){
   const core=lastCore||runtime?.state?.();if(!core)return;
   const enemies=core.enemies||[core.enemy].filter(Boolean),heroWon=enemies.length>0&&enemies.every(enemy=>enemy.dead),finished=Boolean(core.done);
   q('battle-time').textContent=`${Number(core.time||0).toFixed(1)}秒`;q('battle-result').textContent=finished?(heroWon?'主人公 勝利':'敵 勝利'):(encounterMode==='one-v-three'?'1v3 戦闘中':'戦闘中');
-  syncBattleAudio(core);renderPhase(core);const phase=reviewBattlePhaseState(core).phase;if(phase)maybeInspire(phase);else lastInspirationPhase='';battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
+  syncBattleAudio(core);renderDefenseReadout(core);renderPhase(core,lastRenderedCore);lastRenderedCore=core;const phase=reviewBattlePhaseState(core).phase;if(phase)maybeInspire(phase);else lastInspirationPhase='';battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
 }
 function advanceBattle(dt){
   if(!runtime)return;
