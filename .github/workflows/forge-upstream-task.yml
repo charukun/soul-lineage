@@ -1,0 +1,55 @@
+name: Character Forge task-scoped specialist
+run-name: Forge specialist ${{ github.sha }}
+on:
+  push:
+    branches: ['work/character-forge-upstream-20260923']
+permissions:
+  contents: read
+concurrency:
+  group: forge-upstream-specialist-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  forge:
+    if: contains(github.event.head_commit.message, '[forge-specialist]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HEAD_SHA: ${{ github.sha }}
+      APP_ENV: dev
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Materialize and verify pinned engine without modifying it
+        run: |
+          python3 packages/assets/forge/upstream_engine.py materialize --key engine
+          python3 packages/assets/forge/upstream_engine.py materialize --key animatedCharacter
+      - name: Execute explicit specialist task when present
+        run: |
+          if [ -f scripts/character-forge/specialist.mjs ]; then
+            node scripts/character-forge/specialist.mjs
+          fi
+      - name: Package scoped source and reconstruction evidence
+        if: always()
+        run: |
+          mkdir -p .forge-transfer
+          git rev-parse HEAD > .forge-transfer/source-sha.txt
+          git ls-tree -r --name-only HEAD > .forge-transfer/repository-paths.txt
+          git archive --format=tar.gz HEAD docs/characters docs/art docs/DEVELOPMENT.md docs/DEVELOP_MERGE.md docs/DELIVERY_AUTHORIZATION.md docs/BROWSER_PLAYTEST_ROUTING.md packages/assets/forge packages/assets/src packages/assets/generated packages/characters packages/rendering apps/review scripts tests package.json package-lock.json AGENTS.md > .forge-transfer/source-scope.tar.gz
+          if [ -d .cache/character-forge-upstream ]; then
+            tar -czf .forge-transfer/upstream.tar.gz -C .cache character-forge-upstream
+          fi
+          if [ -d test-results/character-forge-upstream ]; then
+            tar -czf .forge-transfer/evidence.tar.gz -C test-results character-forge-upstream
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: forge-specialist-${{ github.sha }}
+          path: .forge-transfer/
+          retention-days: 7
+          include-hidden-files: true
+# Temporary data/compute plane for this explicitly requested specialist task.
+# Remove before develop merge; never expands ordinary Fast DEV execution.
