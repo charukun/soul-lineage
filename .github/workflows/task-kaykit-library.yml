@@ -22,13 +22,15 @@ jobs:
       - name: Correct the reproduced cancellation and thumbnail defects
         run: |
           set -euo pipefail
-          python3 scripts/task-kaykit-correct.py
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add apps/rinne/src/review/shared/runtime-thumbnail.js apps/character-studio/src/review/character/main.js apps/rinne/src/review/motion/entrypoint.js apps/rinne/tests/review-kaykit-library.test.mjs scripts/browser/kaykit-library.mjs
-          if ! git diff --cached --quiet; then
-            git commit -m 'fix: tolerate cancelled thumbnail jobs and preserve native raster versus SVG rendering'
-            git push origin HEAD:${{ github.ref_name }}
+          if grep -q 'const job=jobs.shift();queuedKeys.delete(job.key);' apps/rinne/src/review/shared/runtime-thumbnail.js; then
+            python3 scripts/task-kaykit-correct.py
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add apps/rinne/src/review/shared/runtime-thumbnail.js apps/character-studio/src/review/character/main.js apps/rinne/src/review/motion/entrypoint.js apps/rinne/tests/review-kaykit-library.test.mjs scripts/browser/kaykit-library.mjs
+            if ! git diff --cached --quiet; then
+              git commit -m 'fix: tolerate cancelled thumbnail jobs and preserve native raster versus SVG rendering'
+              git push origin HEAD:${{ github.ref_name }}
+            fi
           fi
       - uses: actions/setup-node@v4
         with:
