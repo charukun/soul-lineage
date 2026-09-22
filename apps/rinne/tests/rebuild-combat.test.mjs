@@ -26,6 +26,13 @@ test('critical stamina switches the body to recovery rather than free offensive 
   const state=combatState(34),foe=enemy('a',0,1.2,0,500),front={stage:0,enemies:[foe],cleared:false,clearSeconds:0};state.hp=state.maxHp=500;state.stamina=2;state.staminaCap=100;const events=[];for(let i=0;i<120&&!state.down&&!state.ended;i++)events.push(...tickFront(state,front,1/60));assert.equal(state.combat?.staminaBand,'critical');assert.equal(state.combat?.bodyIntent,'recover');assert.equal(events.some(row=>row.type==='player-hit'&&['jo','ha','kyu'].includes(row.phase)),false,'critical stamina must not execute normal offense');
 });
 
+test('primary Tidebreak pair exposes exchange interpretation without removing secondary threats',()=>{
+  const state=combatState(135),r=1.25,front={stage:0,enemies:[enemy('a',0,r,0,500),enemy('b',Math.sin(2.1)*r,Math.cos(2.1)*r,0,500),enemy('c',Math.sin(-2.1)*r,Math.cos(-2.1)*r,0,500)],cleared:false,clearSeconds:0};state.hp=state.maxHp=500;
+  for(let i=0;i<180&&!state.combat?.exchange;i++)tickFront(state,front,1/60);
+  assert.ok(state.combat?.exchange,'primary pair must expose the shared exchange interpretation');assert.ok(['read','pressure','reversal','zanshin'].includes(state.combat.exchange.mode));
+  assert.ok(state.combat.threatIds.length>=3,'pair exchange must not lock out flank/support threats');assert.equal('damage' in state.combat.exchange,false);assert.equal('slot' in state.combat.exchange,false);
+});
+
 test('Tidebreak combat snapshot is exposed to the Rinne renderer from the same exchange',()=>{
   const state=combatState(35),front={stage:0,enemies:[enemy('a',0,1.2,0,500)],cleared:false,clearSeconds:0};for(let i=0;i<180&&!state.combat?.tidebreakPose?.attack;i++)tickFront(state,front,1/60);assert.equal(state.combat?.engine,'tidebreak');assert.ok(state.combat?.tidebreakPose);assert.equal(state.combat.tidebreakPose.targetId,'a');assert.ok(Number.isFinite(state.combat.tidebreakPose.progress));
 });

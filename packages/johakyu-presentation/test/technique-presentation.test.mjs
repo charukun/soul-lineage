@@ -27,3 +27,24 @@ test('authored technique ID overrides generic weapon metadata without changing t
 test('presentation effect IDs are concrete registered effect keys',()=>{
   assert.deepEqual([...techniquePresentationEffectIds()].sort(),['impact','lib-effectmaterials-parts-hit01','lib-tktk01-light1','slash'].sort());
 });
+
+
+test('optional motion variation replaces authored clip playback without changing structural contact semantics',()=>{
+  const input={techniqueId:'gen2.spear.thrust~forward',weapon:'spear',phase:'ha',steps:[{kind:'thrust',footwork:'forward'}]};
+  const base=resolveTechniquePresentation(input);
+  const varied=resolveTechniquePresentation({...input,motionVariation:{id:'dragon-fang',clips:[{segment:0,clipId:'technique/dragon-fang-thrust',sampleStart:.12,sampleEnd:.86,speed:.94}]}});
+  assert.equal(varied.motion.variationId,'dragon-fang');
+  assert.equal(varied.motion.segments[0].clipId,'technique/dragon-fang-thrust');
+  assert.equal(varied.motion.segments[0].kind,base.motion.segments[0].kind);
+  assert.deepEqual(varied.contact,base.contact);
+});
+
+test('secret and ultimate motion variations can be grade gated and safely fall back',()=>{
+  const variation={id:'secret-body-form',minimumGrade:'secret',clips:[{clipId:'technique/secret-body-form'}]};
+  const normal=resolveTechniquePresentation({weapon:'sword',grade:'normal',steps:[{kind:'slash'}],motionVariation:variation});
+  const secret=resolveTechniquePresentation({weapon:'sword',grade:'secret',steps:[{kind:'slash'}],motionVariation:variation});
+  assert.equal(normal.motion.variationId,null);
+  assert.equal(normal.motion.segments[0].clipId,undefined);
+  assert.equal(secret.motion.variationId,'secret-body-form');
+  assert.equal(secret.motion.segments[0].clipId,'technique/secret-body-form');
+});

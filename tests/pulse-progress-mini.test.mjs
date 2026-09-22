@@ -17,6 +17,7 @@ test('shared mini progress model treats ACTIVE and ITERATION steps with the same
   assert.equal(model.status,'running');
   assert.equal(model.points[0].score,1);
   assert.equal(model.points[1].tone,'running');
+  assert.equal(model.current.id,'validation');
 });
 
 test('problem state takes visual priority and skipped steps count as completed positions',()=>{
@@ -38,5 +39,7 @@ test('mini progress renderer stays DOM-safe and uses one shared SVG implementati
   assert.match(source,/rapid-progress-line/);
   assert.match(source,/rapid-progress-labels/);
   assert.match(source,/--rapid-progress-count/);
+  assert.match(source,/model\.current\?\.id===point\.id\?' current'/);
+  assert.match(source,/現在 /);
   assert.doesNotMatch(source,/innerHTML|api\.github\.com/);
 });
