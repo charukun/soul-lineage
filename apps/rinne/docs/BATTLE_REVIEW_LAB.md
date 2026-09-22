@@ -11,7 +11,7 @@
 - カメラ追従をON/OFFでき、ON時は両者の中点と広がりを追い、戦闘中の接触を見失わない。OFF時は固定レビューカメラとする。
 - 1v1の剣戟は、攻撃clipと受けclipの実接触フレームを同期し、表示中のblade軌道から受け流し方向を決める。弾かれ側は下半身を含む短い崩れを経てretreatへ連続遷移し、その開いた線へcounterする。判定・HP・序破急のauthorityは変更しない。
 - 序→破→急の攻勢は、通常guard・弱いparryでは技ごとに間合いを取り直さず連続する。共有Exchange Policyがstrong parry / deep hit / major miss / execution blocked / 急完了を観測した時だけ、reversalまたは読み合いへ戻す。Review専用の別状態機械で本編と異なる攻防規則を作らない。
-- 序破急HUDは主人公視点のExchangeに追従する。主人公がinitiativeを持つpressure中だけ序/破/急を点灯し、守勢・読み合いでは左端の間合い波形、exchange完了では右端の残心を点灯する。cursor phaseだけで攻勢表示を残さない。
+- 序破急HUDは主人公視点のExchangeに追従する。主人公がinitiativeを持つpressure中だけ序/破/急を点灯し、守勢・読み合いでは左端の間合い波形、主人公自身の急完遂だけ右端の残心を点灯する。相手の完了・strong parry・counter/reversal遷移は左波形とする。cursor phaseだけで攻勢表示を残さない。
 - 対戦相手は人型キャラクターへ角などを足した疑似怪物ではなく、実モンスターGLBを表示する。1v3の追加個体もモンスターモデルで統一する。
 - モデル表示の差し替えは戦闘ロジック・HP・攻撃タイミングを変更しない。
 - 閃いた技はその瞬間に主人公が使用していた序/破/急スロットへセットし、そのレビューセッション中は同一技を再度「新規習得」しない。候補は共有の因縁閃き技カタログから、装備武器・現在phase・1v1/1v3状況・未習得を条件に選ぶ。
@@ -22,3 +22,11 @@
 - 公開 Visual Review bundle は `/` と `/review.html` のどちらからでも同じランチャーへ到達でき、戻る導線や既存URLから `review.html` を開いても 404 にしない。
 
 この文書はレビュー画面の受入条件のみを定義し、本編の戦闘仕様そのものを変更しない。
+
+## /battle2 2.2.0 Exchange受入
+
+共有Policyで反転と通常開始を分け、次の通常攻勢は旧reaction/action後処理の終了後に序から始める。段の合間も同じ攻勢のphaseを保持する。攻撃clip/受けclipの表示contact syncは維持し、canonical event triggerの`.46`は変更しない。
+
+通常レビューに時刻固定のsave/restoreを注入しない（これが攻勢の途中でcursorを巻き戻していた）。保存テストは明示的な`checkpointSeconds` fixtureで行い、復帰時はREAD・空のaction・序cursorとする。`actorOverrides`はdeterministicなstamina/身体境界のテスト用であり、通常画面はcanonical既定条件を用いる。
+
+focused受入: shared Exchange Policy、Tidebreak実接触/recoil/counter/deferred restart、reviewの全攻勢/HUD/secondary接触/能力拒否、実life保存境界をそれぞれ検証する。描画観察はこの因果的検証を代替しない。

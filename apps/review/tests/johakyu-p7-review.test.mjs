@@ -126,19 +126,14 @@ test('a real miss breaks the current chain and restarts its phase from the first
  assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,proof.broken.techniqueIndex);assert.equal(proof.restart.stageIndex,0);
 });
 
-test('an early incoming hit breaks an unprotected chain instead of retrying a later stage',()=>{
- const scenario=createJohakyuP7ReviewScenario({mode:'duel',enemyLeadSeconds:.3});let proof=null;
- for(let i=0;i<1200&&!proof;i++){
-   scenario.step(1/60);const trace=scenario.inspect().trace;
-   const breakIndex=trace.findIndex(row=>row.type==='chain-break'&&row.reason==='hit-before-contact');
-   if(breakIndex<0)continue;
-   const restart=trace.slice(breakIndex+1).find(row=>row.type==='stage-start');
-   if(restart)proof={broken:trace[breakIndex],restart};
+test('shallow early contact retains pressure rather than breaking every attack',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',enemyLeadSeconds:.3});let hits=0;
+ for(let i=0;i<600;i++){
+   const r=scenario.step(1/60);for(const event of r.events)if(event.type==='enemy-hit'&&!event.deepHit){hits++;assert.notEqual(event.exchangeContinuity,'reverse');}
  }
- assert.ok(proof,'early real contact must break the chain');
- assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,proof.broken.techniqueIndex);assert.equal(proof.restart.stageIndex,0);
+ assert.ok(hits>0,'real shallow contact must still apply injury and damage');
+ assert.equal(scenario.inspect().trace.some(row=>row.type==='chain-break'&&row.reason==='hit-before-contact'),false);
 });
-
 
 test('ordinary guard retains pressure instead of breaking the offensive chain',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let guard=null;
@@ -246,12 +241,12 @@ test('battle2 presentation layers hit reactions, local hit stop, two-actor frami
 });
 
 test('battle2 consumes canonical actor capability without duplicating the next injury layer',()=>{
- const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');assert.match(source,/johakyuActorCapability/);assert.match(source,/capability\.canAttack/);assert.match(source,/capability:\{canMove:capability\.canMove,canAttack:capability\.canAttack/);assert.doesNotMatch(source,/johakyuStageCapability|void capability/);
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');assert.match(source,/johakyuActorCapability/);assert.match(source,/capability\.canAttack/);assert.match(source,/capability:\{canMove:capability\.canMove,canAttack:capability\.canAttack/);assert.match(source,/johakyuStageCapability/);assert.match(source,/stage\.allowed/);assert.doesNotMatch(source,/void capability/);
 });
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.1.0');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.0');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -260,8 +255,8 @@ test('HUD follows exchange initiative instead of leaving stale jo ha kyu lit whi
  const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2});let sawOffense=false,sawDefense=false,sawZanshin=false;
  for(let i=0;i<1200&&!(sawOffense&&sawDefense&&sawZanshin);i++){const r=scenario.step(1/60),meta=r.meta;
   if(['jo','ha','kyu'].includes(meta.hudState)){sawOffense=true;assert.equal(meta.initiativeId,'hero');assert.equal(meta.exchangeMode,'pressure');}
-  if(meta.hudState==='maai'){sawDefense=true;assert.notEqual(meta.exchangeMode==='pressure'&&meta.initiativeId==='hero',true);}
-  if(meta.hudState==='zanshin'){sawZanshin=true;assert.equal(meta.exchangeMode,'zanshin');}
+  if(meta.hudState==='maai'){sawDefense=true;const action=r.frame.actors.find(a=>a.self)?.action;assert.ok(meta.exchangeMode!=='pressure'||meta.initiativeId!=='hero'||action?.scope==='combat-reaction'||action?.scope==='combat-counter-transition');}
+  if(meta.hudState==='zanshin'){sawZanshin=true;assert.equal(meta.exchangeMode,'zanshin');assert.equal(meta.completedBy,'hero');}
  }
  assert.ok(sawOffense,'offensive pressure must still light a jo ha kyu step');assert.ok(sawDefense,'defense/read must return to the left maai edge');assert.ok(sawZanshin,'exchange completion must light zanshin');
 });
