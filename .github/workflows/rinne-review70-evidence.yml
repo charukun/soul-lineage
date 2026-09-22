@@ -5,38 +5,67 @@ on:
 permissions:
   contents: read
 jobs:
-  context:
-    if: contains(github.event.head_commit.message, '[rinne-review-context]')
+  observe:
+    if: contains(github.event.head_commit.message, '[rinne-review-evidence]')
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 4866eb31c7bc9da1ead5379926aa6f805b117448
+          path: control
           persist-credentials: false
-      - name: Package tracked task source (no assets, credentials or git database)
+      - name: Resolve immutable review request
+        id: request
         run: |
-          mkdir -p /tmp/rinne-review70
-          python3 - <<'PY'
-          import pathlib, subprocess, zipfile, json
-          root=pathlib.Path('.')
-          files=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
-          suffixes={'.js','.mjs','.cjs','.ts','.tsx','.css','.json','.jsonc','.html','.md','.yml','.yaml'}
-          with zipfile.ZipFile('/tmp/rinne-review70/source.zip','w',zipfile.ZIP_DEFLATED) as z:
-            for name in files:
-              p=root/name
-              if not name or not p.is_file() or p.suffix not in suffixes: continue
-              if not (name.startswith(('apps/rinne/','packages/','scripts/','tests/','docs/','.autonomous/rinne/','.github/')) or '/' not in name): continue
-              if p.stat().st_size>2000000: continue
-              try: p.read_text(encoding='utf-8')
-              except UnicodeError: continue
-              z.write(p,name)
-            z.writestr('SOURCE_SHA',subprocess.check_output(['git','rev-parse','HEAD']).decode())
-            z.writestr('TREE_INDEX',subprocess.check_output(['git','ls-tree','-rl','HEAD']).decode())
-          PY
-      - uses: actions/upload-artifact@v4
+          node --input-type=module -e "import fs from 'node:fs'; const r=JSON.parse(fs.readFileSync('control/scripts/review70-request.json')); const sha=r.sourceSha==='HEAD'?process.env.GITHUB_SHA:r.sourceSha; if(!/^[a-f0-9]{40}$/.test(sha))throw Error('exact SHA required'); fs.appendFileSync(process.env.GITHUB_OUTPUT,'sha='+sha+'\nphase='+r.phase+'\n');"
+      - uses: actions/checkout@v6
         with:
-          name: rinne-review70-source-4866eb31
-          path: /tmp/rinne-review70/
+          ref: ${{ steps.request.outputs.sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - name: Build the existing immutable RINNE distribution
+        working-directory: source
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run distribution:build -- --app rinne --target web-dev
+      - name: Upload a non-live immutable Worker version
+        working-directory: source
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SOURCE_SHA: ${{ steps.request.outputs.sha }}
+          PHASE: ${{ steps.request.outputs.phase }}
+        run: |
+          mkdir -p ../evidence
+          npx --yes wrangler@4 versions upload --config wrangler.dev.rinne.jsonc --message "PR1433 ${PHASE} ${SOURCE_SHA}" 2>&1 | tee ../evidence/version-upload.txt
+          SOURCE_SHA="$SOURCE_SHA" node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import {stagingObservation} from './scripts/staging-preview.mjs';
+          const text=fs.readFileSync('../evidence/version-upload.txt','utf8');
+          const id=text.match(/(?:Uploaded |Current )?Version ID:\s*([a-f0-9-]{36})/i)?.[1];
+          const observation=stagingObservation({app:'rinne',sourceSha:process.env.SOURCE_SHA,versionId:id,conditions:{phase:process.env.PHASE,viewport:'1280x800 / 393x852 / 852x393',input:'Playwright native mouse/keyboard/touch emulation; no save or domain mutation'},notVerified:['physical Pixel Fold performance and touch hardware']});
+          const version=await fetch(new URL('version.json',observation.reference)).then(r=>r.json());
+          if(version.commit!==observation.sourceSha)throw Error('immutable preview source mismatch');
+          fs.writeFileSync('../evidence/staging.json',JSON.stringify({...observation,version},null,2));
+          JS
+      - name: Observe real UI input and lifecycle
+        working-directory: source
+        env:
+          REVIEW_PHASE: ${{ steps.request.outputs.phase }}
+        run: |
+          npx playwright install --with-deps chromium
+          cp ../control/scripts/review70-playthrough.mjs .review70-playthrough.mjs
+          node .review70-playthrough.mjs
+      - name: Preserve browser evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rinne-review70-${{ steps.request.outputs.phase }}-${{ steps.request.outputs.sha }}
+          path: evidence/
           retention-days: 14
           if-no-files-found: error
