@@ -10,7 +10,7 @@ const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value))
 const PHASES=Object.freeze(['jo','ha','kyu']);
 const PHASE_LABELS=Object.freeze({jo:'序',ha:'破',kyu:'急'});
 const PART_LABELS=Object.freeze({head:'頭',torso:'胴',leftArm:'左腕',rightArm:'右腕',leftLeg:'左脚',rightLeg:'右脚'});
-const MODES=Object.freeze({duel:'1v1',oneVsThree:'1v3'}),RESPAWN_DELAY_SECONDS=3;
+const MODES=Object.freeze({duel:'1v1',oneVsThree:'1v3'}),RESPAWN_DELAY_SECONDS=3,ENCOUNTER_MIN_SECONDS=5,ENCOUNTER_TARGET_SECONDS=10,ENCOUNTER_MAX_SECONDS=15;
 const LAYOUT=Object.freeze({hero:{x:0,z:.35,yaw:0},'enemy-a':{x:0,z:2.25,yaw:Math.PI},'enemy-b':{x:-1.75,z:2.8,yaw:Math.PI},'enemy-c':{x:1.75,z:2.8,yaw:Math.PI}});
 const TARGETS=Object.freeze({hero:['enemy-a','enemy-b','enemy-c'],'enemy-a':['hero'],'enemy-b':['hero'],'enemy-c':['hero']});
 const KIND_DAMAGE=Object.freeze({slash:7,back:7,thrust:8,pierce:9,heavy:14,diagonal:9,sweep:8,counter:10,bash:7,pommel:6});
@@ -431,11 +431,18 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
       }
       const counterWindow=counterWindows.get(source.id),countered=(state.reactionKind==='counter'||stateKind(state)==='counter')&&counterWindow?.against===target.id&&time<=counterWindow.until;
       const dealtDamage=countered?Math.round(damage*1.18):damage;
-      // In the review loop, a landed 急 against an already worn-down opponent is the
-      // decisive body strike. The canonical domain still owns damage, injury and death;
-      // this only selects its existing finisher phase so encounters actually resolve.
-      const decisive=action.phase==='kyu'&&target.hp/Math.max(1,target.maxHp)<=.5;
-      const resolvedDamage=decisive?Math.max(dealtDamage,target.maxHp*.38):dealtDamage;
+      // Battle2 is a short duel showcase: the opening 5 seconds preserve normal
+      // pressure, then landed blows gain resolution weight so most encounters close
+      // around 10 seconds and strongly converge before the 15 second ceiling.
+      const resolutionProgress=Math.min(1,Math.max(0,(time-ENCOUNTER_MIN_SECONDS)/(ENCOUNTER_MAX_SECONDS-ENCOUNTER_MIN_SECONDS)));
+      const pressureDamage=time<ENCOUNTER_MIN_SECONDS?dealtDamage:Math.max(dealtDamage,Math.round(dealtDamage*(1+resolutionProgress*1.8)));
+      const hpRatio=target.hp/Math.max(1,target.maxHp);
+      const decisive=time>=ENCOUNTER_MIN_SECONDS&&(
+        (action.phase==='kyu'&&(hpRatio<=.72||time>=ENCOUNTER_TARGET_SECONDS))||
+        (time>=12&&hpRatio<=.88)||
+        time>=14
+      );
+      const resolvedDamage=decisive?Math.max(pressureDamage,target.maxHp*(time>=14?.56:.46)):pressureDamage;
       const eventId=`${action.id}:${source.id}:${target.id}:impact`,result=applyJohakyuImpactOnce(battle,{eventId,attackId:action.id,sourceId:source.id,targetId:target.id,damage:resolvedDamage,part:decisive?'torso':null,phase:decisive?'finisher':action.phase});
       if(!result.applied)continue;state.outcome='hit';if(countered)counterWindows.delete(source.id);
       const deepHit=isDeepJohakyuExchangeHit({damage:result.dealt,maxHp:target.maxHp,outcome:{incapacitated:result.incapacitated}}),exchange=updateExchange(source,target,{type:'hit',phase:action.phase,deep:deepHit});state.exchangeContinuity=exchange.continuity;

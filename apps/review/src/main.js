@@ -12,6 +12,18 @@ for(const link of document.querySelectorAll('[data-route]')){
   if(href){link.href=href;link.rel='noopener'}
 }
 
+const reviewLinks=[...document.querySelectorAll('#probe-grid a,[data-route][href]')];
+for(const link of reviewLinks){
+  link.addEventListener('click',event=>{
+    if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+    const href=link.href;
+    if(!href)return;
+    event.preventDefault();
+    location.assign(href);
+  });
+}
+
+const touchFirst=Boolean(navigator.maxTouchPoints>0||globalThis.matchMedia?.('(pointer: coarse)').matches);
 const warmup=createReviewWarmup({
   routes:REVIEW_ROUTES,
   assetBase:REVIEW_DEV.rinne,
@@ -19,15 +31,16 @@ const warmup=createReviewWarmup({
   assetPaths:REVIEW_VFX_WARM_ASSETS,
 });
 
-const warmIdsByHref=new Map(REVIEW_WARM_ORDER.map(id=>[REVIEW_ROUTES[id],id]));
-for(const link of probeGrid?.querySelectorAll('a')||[]){
-  const id=warmIdsByHref.get(link.href);
-  if(!id)continue;
-  link.addEventListener('pointerenter',()=>warmup.warmRoute(id,{eager:true}),{passive:true});
-  link.addEventListener('focus',()=>warmup.warmRoute(id,{eager:true}));
-  link.addEventListener('touchstart',()=>warmup.warmRoute(id,{eager:true}),{passive:true});
+if(!touchFirst){
+  const warmIdsByHref=new Map(REVIEW_WARM_ORDER.map(id=>[REVIEW_ROUTES[id],id]));
+  for(const link of probeGrid?.querySelectorAll('a')||[]){
+    const id=warmIdsByHref.get(link.href);
+    if(!id)continue;
+    link.addEventListener('pointerenter',()=>warmup.warmRoute(id,{eager:true}),{passive:true});
+    link.addEventListener('focus',()=>warmup.warmRoute(id,{eager:true}));
+  }
+  warmup.start();
 }
-warmup.start();
 
 const build=document.querySelector('[data-build]');
 if(build){

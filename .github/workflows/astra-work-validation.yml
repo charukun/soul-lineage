@@ -35,6 +35,15 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 1
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            ${{ contains(github.event.head_commit.message, '[astra-heavy-validation]') && '/*' || '*.js' }}
+            *.mjs
+            *.cjs
+            package.json
+            package-lock.json
+            .github/workflows/astra-work-validation.yml
+            scripts/
       - name: Recover bounded validation ancestry
         shell: bash
         run: |
