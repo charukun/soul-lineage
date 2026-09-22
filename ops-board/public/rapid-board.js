@@ -326,24 +326,6 @@ function renderSession(session,{iteration=false,graph=false}={}) {
   const summaryIds=new Set(['observation','implementation','astraValidation','afterObservation','merge','devPublish']);
   const phases=iteration?allPhases.filter(phase=>summaryIds.has(phase.id)):allPhases;
   const current=iterationCurrentPhase(session,allPhases);
-  const measured=current?phaseDuration(current):null;
-  const total=allPhases.map(phase=>phaseDuration(phase)).filter(Number.isFinite).reduce((sum,value)=>sum+value,0);
-  const state=session.status==='complete'?'complete':session.status==='problem'?'problem':session.status==='publishing'?'publishing':'running';
-
-  if(graph){
-    const band=el('div','rapid-current-band '+state);
-    const flag=el('span','rapid-current-flag',state==='complete'?'DONE':state==='problem'?'ISSUE':state==='publishing'?'DEV':'NOW');
-    const currentCopy=el('span','rapid-current-copy');
-    currentCopy.append(
-      el('strong','',state==='complete'?'完了':current?.label||'確認中'),
-      el('span','',state==='complete'
-        ? (total?'計測合計 '+durationLabel(total):'工程完了')
-        : Number.isFinite(measured)?durationLabel(measured):state==='publishing'?'公開処理中':'現在の工程')
-    );
-    band.append(flag,currentCopy);
-    row.append(band);
-  }
-
   const head=el('div','rapid-session-head');
   const prHref=iteration?null:safeHref(session.pr?.url);
   const iterationGame=session.autonomous?.game||session.game,iterationNumber=session.autonomous?.number||session.iteration;
@@ -365,7 +347,7 @@ function renderSession(session,{iteration=false,graph=false}={}) {
 
   if(graph){
     const mini=renderProgressMini(phases,{
-      ariaLabel:(iteration?'自律iteration':'作業中タスク')+'の工程進捗',
+      ariaLabel:(iteration?'自律iteration':'作業中タスク')+'の工程時間',
       className:iteration?'iteration':'active',
     });
     if(mini)row.append(mini);
