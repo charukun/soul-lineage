@@ -33,7 +33,7 @@
           </figure>
           <figure class="forge-reference-pane" hidden>
             <figcaption data-forge-ref-label>参照 · 正面</figcaption>
-            <div class="forge-viewport"><div class="forge-image-wrap"><img data-forge-reference alt="正規化した参照画像"><p data-forge-missing hidden>この方向の参照画像はありません。</p></div></div>
+            <div class="forge-viewport"><div class="forge-image-wrap"><img data-forge-reference alt="比較用の参照画像"><p data-forge-missing hidden>この方向の参照画像はありません。</p></div></div>
           </figure>
         </div>
         <div class="forge-primary forge-transport review-workbench__transport">
@@ -47,24 +47,31 @@
             <button type="button" data-forge-view="front" aria-pressed="false">正面</button>
             <button type="button" data-forge-view="side" aria-pressed="false">側面</button>
             <button type="button" data-forge-view="back" aria-pressed="false">背面</button>
+            <button type="button" data-forge-view="three-quarter" aria-pressed="false">斜め</button>
           </div>
         </div>
         <div class="forge-advanced" data-review-stage-control>
           <div class="forge-settings">
-            <fieldset><legend>三面図との比較</legend>
+            <fieldset><legend>参照との比較</legend>
+              <label>比較資料 <select data-forge-reference-source aria-label="比較資料"><option value="identity">元三面図（形状の正本）</option></select></label>
               <label><input type="checkbox" data-forge-overlay>参照画像を重ねる</label>
               <label data-forge-opacity-label hidden>参照の濃さ <input type="range" min="0" max="1" step=".05" value=".5" aria-label="比較の不透明度" data-forge-opacity></label>
             </fieldset>
             <fieldset><legend>モデルの表示</legend>
-              <label><input type="checkbox" data-forge-texture checked>テクスチャ</label>
+              <label><input type="checkbox" data-forge-texture checked>テクスチャ / マテリアル</label>
               <label><input type="checkbox" data-forge-wire>ワイヤーフレーム</label>
-              <label><input type="checkbox" data-forge-skeleton>骨格</label>
+              <label><input type="checkbox" data-forge-skeleton>骨格（Rig / Skeleton）</label>
               <label><input type="checkbox" data-forge-sockets>ソケット（装着位置）</label>
             </fieldset>
             <fieldset><legend>装備の確認</legend>
               <label>武器 <select data-forge-equipment><option value="">なし</option><option value="sword">剣</option><option value="spear">槍</option></select></label>
             </fieldset>
           </div>
+          <details class="forge-report"><summary>形状診断・修正履歴</summary>
+            <p data-forge-quality-status>品質ループ未実施</p>
+            <p data-forge-depth></p>
+            <pre data-forge-findings></pre>
+          </details>
           <details class="forge-report"><summary>出典・計測・制約</summary>
             <a data-forge-original target="_blank" rel="noopener">原画像を見る</a>
             <pre class="forge-readout"></pre>
@@ -74,7 +81,7 @@
     </div>
     <aside class="forge-library review-surface__panel" aria-label="キャラクター選択">
       <section class="review-workbench__library">
-        <div class="review-workbench__library-head"><div><span class="review-workbench__kicker">CHARACTERS</span><strong>生成キャラ</strong></div></div>
+        <div class="review-workbench__library-head"><div><span class="review-workbench__kicker">CHARACTERS</span><strong>生成キャラ / 素体候補</strong></div></div>
         <p class="forge-status" role="status">生成候補を読み込み中…</p>
         <div class="forge-candidates review-choice-grid" aria-label="生成候補"></div>
       </section>

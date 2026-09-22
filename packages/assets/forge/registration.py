@@ -8,12 +8,13 @@ def create_manifest(spec,report,clips,model):
     points=[p for m in doc['meshes'] for p in get(m['primitives'][0]['attributes']['POSITION'])]
     lo=[min(p[i] for p in points) for i in range(3)];hi=[max(p[i] for p in points) for i in range(3)]
     return {'schemaVersion':'rinne.character-package/v1','id':spec['id'],'displayName':spec['displayName'],'forgeVersion':VERSION,
-      'representation':'3d','reconstructionMode':spec['reconstructionMode'],'sourceViews':spec['views'],'model':{'path':'build/character.glb','sha256':report['modelSha256']},
+      'representation':'3d','packageKind':spec.get('packageKind','character-package'),'reconstructionMode':spec['reconstructionMode'],'sourceViews':spec['views'],'model':{'path':'build/character.glb','sha256':report['modelSha256']},
       'skeleton':spec['rig'],'animations':[{'name':c['name'],'duration':c['duration'],'loop':c['loop'],'status':'generated'} for c in clips],
       'sockets':spec['sockets'],'scale':{'unit':'metre','height':1.6},'bounds':{'min':lo,'max':hi},
       'presentation':{'headAnchor':[0,spec['levels']['chin']*1.6,0],'bodyCenter':[(a+b)/2 for a,b in zip(lo,hi)],'focusTarget':[0,.8,0],'groundPoint':[0,0,0]},
       'reviewStatus':'review-candidate','visualApproval':'pending','productionReady':False,'provenance':spec['provenance'],'validationStatus':report['structuralStatus'],
-      'validationReport':'validation-report.json','reconstructionSpec':'spec/reconstruction.json','comparisons':{v:f'review/comparisons/{v}-silhouette-overlay.png' for v in report['comparisons']}}
+      'validationReport':'validation-report.json','reconstructionSpec':'spec/reconstruction.json','comparisons':{v:f'review/comparisons/{v}-silhouette-overlay.png' for v in report['comparisons']},
+      'qualityRefinement':{'path':'review/refinement.json','status':'awaiting-capture','repairRounds':0,'modelSha256':report['modelSha256']},'qualityReferences':[]}
 
 def register_review(root):
     entries=[];imports=[]
@@ -22,14 +23,36 @@ def register_review(root):
         # Transaction/recovery folders are never published as packages.
         if directory.name!=m.get('id'):continue
         if m.get('validationStatus')!='passed' or m.get('reviewStatus')!='review-candidate':continue
-        if digest((directory/m['model']['path']).read_bytes())!=m['model']['sha256']:raise ValueError('Model hash mismatch while registering '+m['id'])
+        def local(p):
+            if not isinstance(p,str) or Path(p).is_absolute():raise ValueError('Relative package asset required')
+            result=(directory/p).resolve()
+            if not result.is_relative_to(directory.resolve()) or not result.is_file():raise ValueError('Missing/escaping package asset: '+p)
+            return result
+        if digest(local(m['model']['path']).read_bytes())!=m['model']['sha256']:raise ValueError('Model hash mismatch while registering '+m['id'])
+        refinement=m.get('qualityRefinement')
+        if refinement:
+            state=json.loads(local(refinement['path']).read_text())
+            if state['modelSha256']!=m['model']['sha256'] or state['status']!=refinement['status']:
+                raise ValueError('Stale quality refinement while registering '+m['id'])
         i=len(entries);relative='../characters/forge/'+directory.name+'/'
         # Generated from discovered manifests. No hand-maintained imports/arrays.
         imports.append(f'import m{i} from {json.dumps(relative+"manifest.json")} with {{type:"json"}};')
-        url=lambda p:'new URL('+json.dumps(relative+p)+',import.meta.url).href'
+        def url(p):
+            local(p)
+            return 'new URL('+json.dumps(relative+p)+',import.meta.url).href'
         refs=','.join(json.dumps(v)+':'+url('review/references/'+v+'.png') for v in m['sourceViews'])
         raw=','.join(json.dumps(v)+':'+url('source/'+v+'.png') for v in m['sourceViews'])
-        entries.append('{manifest:m'+str(i)+',modelUrl:'+url(m['model']['path'])+',references:{'+refs+'},sourceReferences:{'+raw+'},reportUrl:'+url(m['validationReport'])+'}')
+        quality=[]
+        for q in m.get('qualityReferences',[]):
+            directions=[]
+            for v,record in q['views'].items():
+                if digest(local(record['path']).read_bytes())!=record['sha256']:raise ValueError('Quality reference hash mismatch')
+                directions.append(json.dumps(v)+':'+url(record['path']))
+            quality.append('{id:'+json.dumps(q['id'])+',role:"quality-not-identity",rationale:'+json.dumps(q['rationale'])+',views:{'+','.join(directions)+'}}')
+        comparisons=','.join(json.dumps(v)+':'+url(p) for v,p in m.get('comparisons',{}).items())
+        entries.append('{manifest:m'+str(i)+',modelUrl:'+url(m['model']['path'])+',references:{'+refs+'},sourceReferences:{'+raw+'},reportUrl:'+url(m['validationReport'])+',specUrl:'+url(m['reconstructionSpec'])+',comparisonUrls:{'+comparisons+'},refinementUrl:'+(url(refinement['path']) if refinement else 'null')+',qualityReferences:['+','.join(quality)+']}')
     target=root/'packages/assets/generated/create-forge-registry.js';target.parent.mkdir(parents=True,exist_ok=True)
-    target.write_text('// Generated by character-forge:create; discovered packages, never edit by hand.\n'+'\n'.join(imports)+'\nexport const characterForgeCandidates=['+','.join(entries)+'];\n')
+    next_path=target.with_suffix('.js.next')
+    next_path.write_text('// Generated by character-forge:create/refinement; discovered packages, never edit by hand.\n'+'\n'.join(imports)+'\nexport const characterForgeCandidates=['+','.join(entries)+'];\n')
+    next_path.replace(target)
     return len(entries)

@@ -4,6 +4,7 @@ import struct
 from PIL import Image,ImageDraw,ImageChops
 from normalization import SIZE,PAD,HEIGHT
 from common import digest
+from side_profiles import depth_diagnostics
 
 def read_export(path):
     data=path.read_bytes();magic,version,length=struct.unpack_from('<III',data)
@@ -11,8 +12,9 @@ def read_export(path):
     n=struct.unpack_from('<I',data,12)[0];doc=json.loads(data[20:20+n]);binary=data[28+n:]
     def get(index):
         a=doc['accessors'][index];v=doc['bufferViews'][a['bufferView']];offset=v.get('byteOffset',0)+a.get('byteOffset',0)
-        size={'SCALAR':1,'VEC2':2,'VEC3':3,'VEC4':4,'MAT4':16}[a['type']];code={5126:'f',5123:'H',5125:'I'}[a['componentType']]
-        stride=struct.calcsize(code)*size
+        if a.get('sparse'):raise ValueError('Sparse accessor requires explicit DCC normalization')
+        size={'SCALAR':1,'VEC2':2,'VEC3':3,'VEC4':4,'MAT4':16}[a['type']];code={5126:'f',5123:'H',5125:'I',5121:'B'}[a['componentType']]
+        stride=v.get('byteStride',struct.calcsize(code)*size)
         return [struct.unpack_from('<'+code*size,binary,offset+i*stride) for i in range(a['count'])]
     return data,doc,get
 
@@ -34,12 +36,17 @@ def validate_export(spec,views,model,texture_info,out):
             for i in range(0,len(idx),3):draw.polygon([points[idx[i+k]] for k in range(3)],fill=255)
         reference=views[view]['mask'];inter=ImageChops.multiply(reference,render);union=ImageChops.lighter(reference,render)
         area=lambda img:sum(img.histogram()[1:])
-        rb=reference.getbbox();gb=render.getbbox();iou=area(inter)/max(1,area(union))
+        rb=reference.getbbox();gb=render.getbbox()
+        if not rb or not gb:raise ValueError('Missing reference/export silhouette: '+view)
+        iou=area(inter)/max(1,area(union))
         band=round(SIZE-PAD-spec['levels']['chin']*HEIGHT)
         head_ratio=lambda image:area(image.crop((0,0,SIZE,band)))/max(1,area(image))
         metric={'silhouetteMismatch':1-iou,'iou':iou,'heightMismatch':abs((rb[3]-rb[1])-(gb[3]-gb[1]))/HEIGHT,
           'headBodyProportionMismatch':abs(head_ratio(reference)-head_ratio(render)),'groundAlignmentMismatch':abs(rb[3]-gb[3])/HEIGHT,
           'camera':'orthographic +Y-up; fixed 1.6m height, ground=0, no per-render auto-fit','status':'needs-review' if 1-iou>.30 else 'diagnostic-pass'}
+        if view=='side':
+            metric['depthMismatch']=depth_diagnostics(reference,render,spec)
+            if metric['depthMismatch']['status']=='needs-review':warnings.append('side front/back/center depth mismatch requires local review')
         if metric['status']=='needs-review':warnings.append(view+' silhouette mismatch exceeds 0.30')
         render.save(out/(view+'-silhouette.png'))
         overlay=Image.merge('RGB',(reference,render,Image.new('L',(SIZE,SIZE))));overlay.save(out/(view+'-silhouette-overlay.png'))
@@ -54,4 +61,4 @@ def validate_export(spec,views,model,texture_info,out):
         if texture_info['sampleContributions'][view]<=0:errors.append('Ignored projection view '+view)
     return {'schemaVersion':'rinne.character-forge-validation/v1','structuralStatus':'failed' if errors else 'passed','visualStatus':'needs-human-review','reviewStatus':'review-candidate',
       'productionReady':False,'modelSha256':digest(data),'performance':stats,'comparisons':comparisons,'errors':errors,'warnings':warnings,
-      'limitations':['Silhouette rasterization is deterministic CPU projection of delivered GLB triangles, not physical-device or perceptual acceptance','Concavity, asymmetric hidden surfaces, finger topology and foot contact remain unapproved']}
+      'limitations':['Silhouette rasterization is deterministic CPU projection of delivered GLB triangles, not physical-device or perceptual acceptance','Concavity, asymmetric hidden surfaces, finger topology and foot contact remain unapproved','Side endpoint errors use fixed coordinates, not per-view recentering; anatomical centers and hidden curvature remain inferred']}
