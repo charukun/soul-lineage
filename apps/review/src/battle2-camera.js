@@ -1,14 +1,8 @@
 import {CAMERA_PROFILES,createCameraDirector,externalCameraShot} from '@soul/rendering/camera-director';
 import {actorScreenSafety,applyCameraPresentation} from '@soul/rendering/camera-presentation-three';
 import {createSnapCameraControl} from '@soul/rendering/snap-camera-control';
+import {battle2CameraWorldHeight} from './battle2-camera-math.js';
 import '@soul/rendering/snap-camera-control.css';
-
-const clamp=(value,min,max)=>Math.max(min,Math.min(max,Number(value)||0));
-
-export function battle2CameraWorldHeight(worldHeight,zoom=1){
-  const height=Number(worldHeight),scale=clamp(zoom,.58,1.65);
-  return Number.isFinite(height)&&height>0?height*scale:undefined;
-}
 
 export function createBattle2CameraPresentation({stage,world}={}){
   if(!stage||!world)throw new TypeError('battle2 stage and world canvas are required');

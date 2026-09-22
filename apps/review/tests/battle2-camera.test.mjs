@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {battle2CameraWorldHeight} from '../src/battle2-camera.js';
+import {battle2CameraWorldHeight} from '../src/battle2-camera-math.js';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
