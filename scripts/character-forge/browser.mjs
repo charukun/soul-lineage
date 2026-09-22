@@ -28,7 +28,7 @@ try{
   }
   await page.locator('[data-forge-overlay]').check();await page.locator('[data-forge-opacity]').fill('0.35');await expect(page.locator('.forge-comparison')).toHaveAttribute('data-overlay','true');await capture('overlay',page.locator('.forge-comparison'));await page.locator('[data-forge-overlay]').uncheck();
   for(const name of ['Idle','Walk','Talk','Attack','Hit','Rest']){
-    await page.locator('[data-forge-animation]').selectOption(name);const before=await snapshot();await page.waitForTimeout(230);const after=await snapshot();
+    await page.locator('[data-forge-animation]').selectOption(name);const before=await snapshot();await page.waitForFunction(start=>document.querySelector('#stage').characterForgeSnapshot().time>start+.1,before.time,{timeout:15000});const after=await snapshot();receipt.animations[name]={before,after};
     assert.equal(after.action,name);assert.ok(after.time>before.time);assert.notDeepEqual(after.bones,before.bones,name+' must actually animate exported bones');receipt.animations[name]={before,after};
   }
   for(const selector of ['wire','skeleton','sockets']){await page.locator('[data-forge-'+selector+']').check();await capture(selector,page.locator('.canvas-wrap'));await page.locator('[data-forge-'+selector+']').uncheck();}
