@@ -11,7 +11,7 @@ const LABELS=Object.freeze({'basic.sword':'剣の型','action.guard-step':'受�
 const BASIC_LABELS=Object.freeze({sword:'剣の型',great:'大剣の型',dagger:'短剣の型',spear:'槍の型',axe:'戦斧の型',staff:'杖の型',fist:'徒手の型'});
 const formFor=id=>String(id||'').startsWith('basic.')?BASIC_FORMS[String(id).slice(6)]:ACTION_FORMS[id],ids=['basic.sword',...Object.keys(ACTION_FORMS)];
 function cloneStep(step,weapon='sword',{normalizeFootwork=false}={}){const rawFootwork=String(step?.footwork||'stay');return{kind:adaptKind(String(step?.kind||'ready'),weapon),footwork:normalizeFootwork&&rawFootwork==='back'?'retreat':rawFootwork,charge:String(step?.charge||'none')};}
-function formSteps(form,weapon='sword'){return form.kinds.map((kind,index)=>cloneStep({kind,footwork:form.feet?.[index]||'stay',charge:form.charges?.[index]||'none'},weapon));}
+function formStep(form,weapon='sword'){const index=0;return cloneStep({kind:form.kinds[index],footwork:form.feet?.[index]||'stay',charge:form.charges?.[index]||'none'},weapon);}
 function techniqueLabel(id){
  const raw=String(id||'');if(raw.startsWith('basic.'))return BASIC_LABELS[raw.slice(6)]||'基本の型';
  const answer=resolveInspirationAnswer(raw);return LABELS[raw]||(answer?inspirationTechniqueName(answer):raw||'未設定');
@@ -20,8 +20,8 @@ function supportedSteps(steps,weapon){return steps.length>0&&steps.every(row=>re
 export function battle2TechniqueDefinition(id,{weapon='sword',name=null}={}){
  const raw=String(id||''),basicWeapon=raw.startsWith('basic.')?raw.slice(6):weapon,form=formFor(raw);
  if(form){
-  const steps=formSteps(form,basicWeapon);if(!supportedSteps(steps,basicWeapon))return null;
-  return Object.freeze({id:raw,name:name||techniqueLabel(raw),label:techniqueLabel(raw),meta:form.kinds.join(' / '),rhythm:form.rhythm||'flow',tempo:Number.isFinite(form.tempo)?form.tempo:1,steps:Object.freeze(steps.map(Object.freeze)),source:'combat-form'});
+  const steps=[formStep(form,basicWeapon)];if(!supportedSteps(steps,basicWeapon))return null;
+  return Object.freeze({id:raw,name:name||techniqueLabel(raw),label:techniqueLabel(raw),meta:steps[0].kind,rhythm:form.rhythm||'flow',tempo:Number.isFinite(form.tempo)?form.tempo:1,steps:Object.freeze(steps.map(Object.freeze)),source:'combat-form'});
  }
  const answer=resolveInspirationAnswer(raw);if(!answer||!['technique','variant'].includes(answer.kind)||answer.executor||(answer.weapons?.length&&!answer.weapons.includes(weapon)))return null;
  const steps=(Array.isArray(answer.steps)?answer.steps:[]).slice(0,3).map(step=>cloneStep(step,weapon,{normalizeFootwork:true}));if(!supportedSteps(steps,weapon))return null;
