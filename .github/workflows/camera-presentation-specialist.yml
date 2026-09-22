@@ -1,0 +1,37 @@
+name: Camera Presentation specialist (task only)
+run-name: Camera source acquisition 96acf1b999ff713d0660ad5b3307c9dc5b90ae25
+on:
+  push:
+    branches: [dispatch/camera-presentation-specialist-20260923]
+permissions:
+  contents: read
+jobs:
+  acquire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 96acf1b999ff713d0660ad5b3307c9dc5b90ae25
+          persist-credentials: false
+      - name: Export task source, not binary art or credentials
+        run: |
+          python3 - <<'PY'
+          import subprocess,tarfile,pathlib
+          paths=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          allowed={'.js','.mjs','.cjs','.json','.jsonc','.html','.css','.md','.ts','.yml','.yaml','.svg'}
+          with tarfile.open('/tmp/camera-source.tgz','w:gz') as tar:
+            for name in paths:
+              p=pathlib.Path(name)
+              if name and p.is_file() and p.suffix in allowed and p.stat().st_size<1500000:
+                if name.startswith(('apps/rinne/','apps/review/','packages/','scripts/','tests/','docs/','.github/')) or '/' not in name:
+                  tar.add(name,arcname=name)
+          pathlib.Path('/tmp/source-sha.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD']).decode())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: camera-source-96acf1b999ff713d0660ad5b3307c9dc5b90ae25
+          path: |
+            /tmp/camera-source.tgz
+            /tmp/source-sha.txt
+          retention-days: 7
