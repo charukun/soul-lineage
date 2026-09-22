@@ -69,13 +69,26 @@ PULSE snapshot、GitHub APIキャッシュ、control historyはDurable Objects�
 
 トップは ACTIVE / ITERATIONS / APPS / ISSUES / RECENT の5区画です。
 
-- ACTIVE: Draft / Ready のopen develop PR
+- ACTIVE: Draft / Ready のopen develop PR。PRが存在するだけでは実行中とみなさず、観測できるGitHub Actions実行・検証・merge準備状態を別のexecution stateとして表示する。
 - ITERATIONS: 自律改善の軽量サマリ。詳細は専用 `iterations.html` で1 iteration単位に表示
 - APPS: 全管理対象のDEV状態
 - ISSUES: 実際の失敗と人の確認が必要な項目。各異常から、現在GitHub状態を再確認して同じPRで修復するためのAIプロンプトをコピーできる
 - RECENT: 直近Fast DEVセッションを `実装 → 検証 → Browser → merge → DEV` の5段で表示し、セッション情報がない場合だけmerge・DEV公開・PULSE状態変化を表示
 
 トップのApps Healthyは管理対象7件を母数とし、各DEV実体の `version.json` を確認できたアプリをHealthyとして数えます。ゲーム3本だけを数えません。
+
+### ACTIVE execution state
+
+ACTIVEカードはopen PRの存在と「今動いている処理」を分離する。表示は `VALIDATING / RUNNING / MERGING / BLOCKED / DONE / IDLE` を使用する。
+
+- `VALIDATING`: exact-head validationの実runが進行中。
+- `RUNNING`: Browser / DEV publishなど、そのPRに結び付くGitHub Actions実runが進行中。
+- `MERGING`: Readyかつ必要な検証が成功しており、merge境界にいる。
+- `BLOCKED`: 現在工程に失敗があり、次工程へ進めない。
+- `DONE`: develop merge後の完了状態。
+- `IDLE`: open PRは存在するが、GitHub上で現在進行中の処理を観測できない。
+
+`IDLE` はChatGPTランタイムそのものの停止を断定する状態ではない。PULSEが観測できるGitHub側のlive signalがない、という意味に限定する。各カードはbranch / exact headと合わせてlast activityを表示し、commitが存在するだけで `RUNNING` と表示してはいけない。
 
 
 ### Iterations専用ページ

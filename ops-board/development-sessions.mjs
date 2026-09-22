@@ -79,6 +79,23 @@ function sessionStatus(steps,merged){
   return 'active';
 }
 
+function executionState({steps=[],merged=false,state='Draft',matched=[],updatedAt=null}={}){
+  const validation=steps.find(item=>item.id==='validation');
+  const browser=steps.find(item=>item.id==='browser');
+  const publish=steps.find(item=>item.id==='publish');
+  const activeRun=latest((matched||[]).filter(run=>RUNNING.has(run.status)));
+  const base={lastActivityAt:updatedAt,runId:activeRun?.id||null,url:activeRun?.html_url||null};
+  if(steps.some(item=>item.state==='problem'))return Object.freeze({...base,state:'blocked',label:'BLOCKED',tone:'danger',detail:'失敗した工程で停止'});
+  if(validation?.state==='running')return Object.freeze({...base,state:'validating',label:'VALIDATING',tone:'progress',detail:'exact-head検証を実行中'});
+  if(merged&&publish?.state==='done')return Object.freeze({...base,state:'done',label:'DONE',tone:'ok',detail:'develop merge完了'});
+  if(merged&&publish?.state==='running')return Object.freeze({...base,state:'running',label:'RUNNING',tone:'progress',detail:'DEV公開処理を実行中'});
+  if(!merged&&state==='Ready'&&validation?.state==='done'&&(!browser||browser.state==='done'||browser.state==='skipped')){
+    return Object.freeze({...base,state:'merging',label:'MERGING',tone:'warning',detail:'検証済み・merge待ち'});
+  }
+  if(activeRun)return Object.freeze({...base,state:'running',label:'RUNNING',tone:'progress',detail:activeRun.name||activeRun.display_title||'GitHub Actionsを実行中'});
+  return Object.freeze({...base,state:'idle',label:'IDLE',tone:'muted',detail:'GitHub上で実行中の処理なし'});
+}
+
 export function buildDevelopmentSessions(pulls=[],runs=[],{limit=8}={}){
   const ordered=[...(pulls||[])].filter(pr=>pr?.state==='open'||pr?.merged_at)
     .sort((a,b)=>at(b.updated_at||b.created_at)-at(a.updated_at||a.created_at)||Number(b.number||0)-Number(a.number||0))
@@ -155,13 +172,14 @@ export function buildDevelopmentSessions(pulls=[],runs=[],{limit=8}={}){
       at:lastFailure.updated_at||lastFailure.created_at||null,
     }):null;
     const updatedAt=[pr.updated_at,pr.merged_at,...matched.map(run=>run.updated_at||run.created_at)].filter(Boolean).sort((a,b)=>at(b)-at(a))[0]||null;
+    const execution=executionState({steps,merged,state,matched,updatedAt});
     sessions.push(Object.freeze({
       pr:Object.freeze({number:pr.number,url:pr.html_url||null}),
       title:pr.title||('PR #'+pr.number),state,status:sessionStatus(steps,merged),branch:pr.head?.ref||null,
       headSha:head,mergeSha:merge,validatedExactHead:exactSuccess?.head_sha||null,browserRequired:needsBrowser,
       autonomous,iterationSteps,
       repairAttempts:failedAttempts,lastFailure:failureView,targets:(pr.targetApps||[]).slice(0,4).map(target=>({id:target.id,label:target.label})),
-      updatedAt,steps:Object.freeze(steps),
+      execution,updatedAt,steps:Object.freeze(steps),
     }));
     if(sessions.length>=limit)break;
   }
