@@ -55,12 +55,12 @@ export class HuntFlowUi {
       if (!overlay && token !== 'move' && !this.guideSeen.has(token)) {
         this.guideSeen.add(token);
         const copy = {
-          fight:{kicker:'戦いかた', title:'近づけば、戦いが始まる', body:[{label:'危険なら', text:'敵と逆へ離れる'}]},
+          fight:{kicker:'戦いかた', title:'近づけば、自動戦闘', body:[{label:'スワイプ', text:'間合いを変える'},{label:'離れたい', text:'敵と逆へ距離を取る'}]},
           fallen:{kicker:'捕食', title:'倒れた獲物へ', body:[{label:'そばで止まる', text:'捕食を始める'},{label:'動く', text:'捕食を中断'}]},
           eat:{kicker:'捕食', title:'止まったまま、喰らう', body:[{label:'動かない', text:'捕食を続ける'}]},
           return:{kicker:'帰りかた', title:'戦利品を持ち帰れる', body:[{label:'帰還口', text:'輪の中で止まる'}]}
         }[token];
-        if (copy) this.guide?.show({...copy, side:'right', variant:token === 'return' ? 'compact' : 'normal', duration:3600});
+        if (copy) this.guide?.show({...copy, side:'right', variant:token === 'return' ? 'compact' : 'normal', duration:token === 'fight' ? 7000 : 3600});
       }
     }
     guide.hidden = true;

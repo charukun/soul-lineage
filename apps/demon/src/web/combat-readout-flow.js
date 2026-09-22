@@ -18,7 +18,7 @@ export function installCombatReadoutFlow(doc=document){
 
   const flow=doc.createElement('div');
   flow.id='combat-action-flow';
-  flow.innerHTML='<div class="combat-feed"><span class="combat-feed-baseline">間合いを測っている…</span><div class="combat-feed-events" role="log" aria-live="polite" aria-relevant="additions"></div></div>';
+  flow.innerHTML='<div class="combat-feed"><span class="combat-feed-baseline">自動戦闘 · スワイプで間合い</span><div class="combat-feed-events" role="log" aria-live="polite" aria-relevant="additions"></div></div>';
   source.insertAdjacentElement('afterend',flow);
 
   const feed=flow.querySelector('.combat-feed-events');
