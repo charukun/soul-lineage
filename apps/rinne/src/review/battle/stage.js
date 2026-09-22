@@ -103,7 +103,9 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   let encounterMode='duel',techniquePlayback=null,cameraOrbit=0,cameraZoom=.82,impactKick=0,impactYaw=0,lastImpactSerial=0;
   const cameraDirector=createCameraDirector({profile:'current3d'});let cameraScreenSafety=null,lastCameraPresentation=null;
   const cameraPresentationSnapshot=()=>lastCameraPresentation?structuredClone(lastCameraPresentation):null;canvas.cameraPresentation=cameraPresentationSnapshot;
-  const cameraControl=createSnapCameraControl({document:canvas.ownerDocument||document,container:canvas.closest('.stage')||canvas.parentElement,initialZoom:.82,minZoom:.58,maxZoom:1.65,onChange:state=>{cameraOrbit=state.yaw;cameraZoom=state.zoom;canvas.dataset.cameraStep=String(state.index);canvas.dataset.cameraZoom=state.zoom.toFixed(2);}});
+  const cameraStage=canvas.closest('.stage')||canvas.parentElement,cameraHost=cameraStage?.querySelector?.('[data-camera-control-host]')||cameraStage;
+  const cameraControl=createSnapCameraControl({document:canvas.ownerDocument||document,container:cameraHost,initialZoom:.82,minZoom:.58,maxZoom:1.65,onChange:state=>{cameraOrbit=state.yaw;cameraZoom=state.zoom;canvas.dataset.cameraStep=String(state.index);canvas.dataset.cameraZoom=state.zoom.toFixed(2);}});
+  cameraControl.element.dataset.reviewBattleCamera='true';
   const reviewCameraSubject=(row,id)=>{const weapon=String(row?.weaponSegment?.weapon||row?.weapon||'sword');return{id,position:{x:Number(row?.x)||0,y:0,z:Number(row?.z)||0},yaw:Number(row?.yaw)||0,height:1.9,radius:.5,weaponRadius:WEAPON_VISUAL_REACH[weapon]||.9};};
   const impactBursts=[],inspirationHandPoint=new THREE.Vector3(),inspirationEnemyPoint=new THREE.Vector3(),inspirationBladeA=new THREE.Vector3(),inspirationBladeB=new THREE.Vector3();
   function heroWeaponPoint(target=inspirationHandPoint){const hand=heroWeaponRig.rightHand;if(hand?.getWorldPosition){hand.getWorldPosition(target);return target;}target.copy(hero.actor.root.position);target.y+=1.05;return target;}
