@@ -1,18 +1,14 @@
 name: Camera Presentation specialist (task only)
-run-name: Camera gameplay specialist PR1490 9d293787895d6141a5f523c5de3fb34d24ee6aec
+run-name: Reconcile camera with shared 3D weapons c000b40c53e84db93e590ce4443a6eb4463f49ce
 on:
   push:
     branches: [dispatch/camera-presentation-specialist-20260923]
 permissions:
-  contents: read
-  actions: read
-  pull-requests: read
+  contents: write
 jobs:
-  browser:
+  materialize:
     runs-on: ubuntu-latest
-    timeout-minutes: 22
-    env:
-      APP_ENV: dev
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
         with:
@@ -24,35 +20,13 @@ jobs:
           ref: 9d293787895d6141a5f523c5de3fb34d24ee6aec
           path: work
           persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: work/package-lock.json
-      - run: npm ci --ignore-scripts
-        working-directory: work
-      - run: npm run build:rinne && npm run build:review
-        working-directory: work
-      - run: npx playwright install --with-deps chromium
-        working-directory: work
-      - name: Native camera gameplay and Review evidence for exact head
-        working-directory: work
-        run: |
-          cp ../control/scripts/browser/camera-playtest-task.mjs scripts/browser/camera-playtest-task.mjs
-          python3 ../control/scripts/camera-native-input-patch.py
-          node --check scripts/browser/camera-playtest-task.mjs
-          node scripts/browser/camera-playtest-task.mjs
-      - name: Existing Actions summary and merge-window snapshot
-        if: always()
+      - name: Verify exact incoming renderer diff and materialize its merged blob
         working-directory: work
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p test-results/camera-presentation
-          npm run actions:summary -- --repo charukun/soul-lineage --pr 1490 --sha 9d293787895d6141a5f523c5de3fb34d24ee6aec --output test-results/camera-presentation/actions-summary.json
+        run: python3 ../control/scripts/reconcile-camera-equipment.py
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: camera-specialist-9d293787895d6141a5f523c5de3fb34d24ee6aec
-          path: work/test-results/camera-presentation
-          retention-days: 14
+          name: camera-equipment-reconcile
+          path: /tmp/camera-equipment-reconcile
+          retention-days: 7
