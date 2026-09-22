@@ -3,7 +3,7 @@ export const RIG_VERSION = 'humanoid-influence/v1';
 export const LAYER_NAMES = Object.freeze(['hairBack','body','legs','arms','face','hairFront','clothing','accessories']);
 export const clamp = (n,lo,hi)=>Math.max(lo,Math.min(hi,n));
 export const angleDelta = (a,b)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
-export function createHumanoidRig({head=.78,shoulder=.68,hip=.43,width=.24}={}) {
+export function createHumanoidRig({head=.78,shoulder=.68,hip=.43,width=.24,handLandmarks={}}={}) {
   head=clamp(head,.72,.84); shoulder=clamp(shoulder,.61,.72); hip=clamp(hip,.36,.49); width=clamp(width,.18,.32);
   const bones=[];
   const add=(name,parent,x,y,z=0)=>bones.push({name,parent,rest:[x,y,z]});
@@ -12,7 +12,8 @@ export function createHumanoidRig({head=.78,shoulder=.68,hip=.43,width=.24}={}) 
   for(const [side,sign] of [['L',1],['R',-1]]) {
     add('upperArm.'+side,'chest',sign*width*.57,shoulder-.015);
     add('lowerArm.'+side,'upperArm.'+side,sign*width*.73,(shoulder+hip)*.52);
-    add('hand.'+side,'lowerArm.'+side,sign*width*.8,hip-.055);
+    const hand=handLandmarks[side];
+    add('hand.'+side,'lowerArm.'+side,hand?sign*clamp(Math.abs(hand[0]),.10,.38):sign*width*.8,hand?clamp(hand[1],.3,.58):hip-.055);
     add('upperLeg.'+side,'pelvis',sign*width*.3,hip-.015);
     add('lowerLeg.'+side,'upperLeg.'+side,sign*width*.34,hip*.51);
     add('foot.'+side,'lowerLeg.'+side,sign*width*.36,.025,.035);
@@ -30,7 +31,20 @@ export function analyzeSilhouette(data,width,height) {
   if(count<32||bottom-top<8)throw new Error('全身の輪郭を検出できません。背景と人物が分かれた画像を選んでください');
   const bounds=[left,top,right+1,bottom+1],h=bottom+1-top;
   const rowSpan=f=>{const y=clamp(Math.round(top+h*f),top,bottom);let a=width,b=-1;for(let x=left;x<=right;x++)if(data[(y*width+x)*4+3]>32){a=Math.min(a,x);b=x;}return b>=a?(b-a+1)/h:0;};
-  return {bounds,coverage:count/(width*height),proportions:{head:.79,shoulder:.68,hip:.43,width:clamp(rowSpan(.4)*.65,.18,.32)},method:'alpha-bounds+humanoid-template',confidence:'template'};
+  // A separated lateral silhouette below the elbow is an observable hand,
+  // unlike a guessed human limb ratio. Keep the template when art hides it.
+  const handLandmarks={},center=(left+right+1)/2,points={L:[],R:[]};
+  for(let y=Math.ceil(top+h*.42);y<Math.min(bottom,top+h*.70);y++){
+    const runs=[];let start=null;
+    for(let x=left;x<=right+1;x++){const ink=x<=right&&data[(y*width+x)*4+3]>32;if(ink&&start===null)start=x;if(!ink&&start!==null){runs.push([start,x]);start=null;}}
+    if(!runs.some(([a,b])=>a<=center&&b>=center))continue;
+    for(const [a,b] of runs){const x=(a+b)/2,dx=(x-center)/h;if(Math.abs(dx)<.11||Math.abs(dx)>.38||b-a<h*.008||b-a>h*.10)continue;points[dx>0?'L':'R'].push({x,y});}
+  }
+  for(const side of ['L','R'])if(points[side].length>=Math.max(3,h*.015)){
+    const last=Math.max(...points[side].map(p=>p.y)),palm=points[side].filter(p=>p.y>=last-h*.035);
+    handLandmarks[side]=[(palm.reduce((n,p)=>n+p.x,0)/palm.length-center)/h,1-(palm.reduce((n,p)=>n+p.y,0)/palm.length-top)/h];
+  }
+  return {bounds,coverage:count/(width*height),proportions:{head:.79,shoulder:.68,hip:.43,width:clamp(rowSpan(.4)*.65,.18,.32)},handLandmarks,method:'alpha-bounds+humanoid-template',confidence:'template'};
 }
 
 export function layerAt(x,y,rig) {
@@ -54,7 +68,7 @@ export function influenceAt(x,y,rig) {
   else if(y>hip-.075&&ax>width*.5) {
     const elbow=(shoulder+hip)*.52;
     if(y>elbow)blend('lowerArm.'+side,'upperArm.'+side,(y-elbow)/(shoulder-elbow));
-    else blend('hand.'+side,'lowerArm.'+side,(y-(hip-.055))/(elbow-(hip-.055)));
+    else {const wrist=rig.bones.find(b=>b.name==='hand.'+side).rest[1];blend('hand.'+side,'lowerArm.'+side,(y-wrist)/(elbow-wrist));}
   } else if(y<hip) {
     if(y<.08) add('foot.'+side,1);
     else if(y<hip*.51)blend('foot.'+side,'lowerLeg.'+side,(y-.08)/(hip*.51-.08));

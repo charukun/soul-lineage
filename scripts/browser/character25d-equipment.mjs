@@ -50,6 +50,7 @@ try{
   await page.locator('[data-home]').click();await page.locator('[data-view="front"]').click();await page.locator('[data-resume]').click();
   const before=await sample(canvas,'move-before');await page.keyboard.down('KeyD');await delay(650);await page.keyboard.up('KeyD');
   const after=await sample(canvas,'move-after');assert.ok(Math.hypot(before.position.x-after.position.x,before.position.z-after.position.z)>.2,'keyboard must translate actor');
+  await page.keyboard.down('KeyA');await page.keyboard.down('ShiftLeft');await delay(400);const running=await sample(canvas,'running-movement',null,'run');await page.keyboard.up('ShiftLeft');await page.keyboard.up('KeyA');assert.ok(running.speed>2.5);
   await page.keyboard.down('KeyA');await page.keyboard.press(' ');const attackMove=await sample(canvas,'moving-attack','data-actor-snapshot','attack');await delay(350);await page.keyboard.up('KeyA');const attackMoveEnd=await sample(canvas,'moving-attack-end');assert.ok(Math.hypot(attackMove.position.x-attackMoveEnd.position.x,attackMove.position.z-attackMoveEnd.position.z)>.05,'movement and attack must coexist');
   for(const weapon of ['axe','spear','great','staff','sword']){
     await page.locator(`[data-weapon="${weapon}"]`).click();await play(page,'walk');await delay(300);await sample(canvas,weapon+'-walk');
@@ -77,7 +78,7 @@ try{
   await game.waitForFunction(()=>{const t=document.getElementById('title-screen');return t?.dataset.intro==='idle'||t?.dataset.skip==='ready';});if(await game.locator('#title-screen').getAttribute('data-intro')==='cinematic')await game.locator('#title-screen').click({position:{x:80,y:80}});
   await game.locator('#continue-life').click();await game.getByRole('button',{name:'この人生を続ける',exact:true}).click();await expect(game.locator('#game')).toHaveAttribute('data-runtime','active',{timeout:90000});
   const gameCanvas=game.locator('#game');await expect.poll(()=>gameCanvas.evaluate(c=>c.character25dSnapshot?.()?.actualGrip),{timeout:30000}).not.toBeNull();await delay(300);
-  await sample(gameCanvas,'rinne-idle','data-character25d');await game.screenshot({path:resolve(output,'rinne-idle.png')});
+  const idle=await sample(gameCanvas,'rinne-idle',null,'idle');assert.deepEqual(idle.equipment,{weapon:'sword',shield:true});await game.screenshot({path:resolve(output,'rinne-idle.png')});
   await game.locator('[data-training-strike]').click();await delay(250);await sample(gameCanvas,'rinne-attack','data-character25d','attack');await game.screenshot({path:resolve(output,'rinne-attack.png')});
   await game.keyboard.down('ArrowRight');await delay(700);await sample(gameCanvas,'rinne-walk',null,'walk');await game.keyboard.up('ArrowRight');await game.screenshot({path:resolve(output,'rinne-walk.png')});
   assert.equal(await game.locator('[data-shino25d-panel],.shino25d-workshop,.character25d-forge,input[type=file]').count(),0);

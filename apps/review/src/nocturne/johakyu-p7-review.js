@@ -19,7 +19,7 @@ const KIND_DAMAGE=Object.freeze({slash:13,back:13,thrust:15,pierce:17,heavy:24,d
 const RHYTHM_SECONDS=Object.freeze({sharp:.58,flow:.66,weight:.82,elastic:.64,seamless:.54});
 const CONTACT_REACH=2.35,BODY_CLEARANCE=1.46,FIGHTING_SPACING=1.92,DEEP_ENTRY_SPACING=1.72,ENGAGE_DISTANCE=2.24,DISENGAGE_DISTANCE=3.05,COUNTER_PRESS_DISTANCE=2.08;
 const RECOVERY_SECONDS=Object.freeze({miss:.62,blocked:.52,parried:.78,countered:.88,'hit-before-contact':.42,hit:.28,'enemy-attack-reset':.9,'weapon-clash':.34});
-const PHASE_CUE_SECONDS=.5,PHASE_CUE_PRESENTATION=Object.freeze({jo:Object.freeze({clip:'Blocking',poseProgress:.34,glow:'#ff8f32'}),ha:Object.freeze({clip:'1H_Melee_Attack_Slice_Diagonal',poseProgress:.18,glow:'#ffa447'}),kyu:Object.freeze({clip:'1H_Melee_Attack_Stab',poseProgress:.2,glow:'#ffbb63'})});
+const PHASE_CUE_SECONDS=.5,PHASE_CUE_PRESENTATION=Object.freeze({jo:Object.freeze({clip:'Jump_Start',poseStart:.04,poseEnd:.56,motion:'crouch',glow:'#ff8f32'}),ha:Object.freeze({clip:'Blocking',poseStart:.08,poseEnd:.76,motion:'brace',glow:'#ffa447'}),kyu:Object.freeze({clip:'Spellcast_Raise',poseStart:.1,poseEnd:.7,motion:'charge',glow:'#ffbb63'})});
 const REACTION_SECONDS=Object.freeze({guard:.36,parry:.32,slip:.3,counter:.52}),DEFENSE_COOLDOWN=Object.freeze({guard:.24,parry:.3,slip:.2}),HEAVY_THREATS=new Set(['heavy','sweep','bash','pommel']);
 const DEFENSE_WINDOW=Object.freeze({guard:[0,.98],brace:[0,.98],parry:[.04,.92],slip:[0,.76]});
 const FOOTWORK_SPEED=Object.freeze({stay:0,forward:.72,chase:1.08,rush:1.5,retreat:.96,sideL:.82,sideR:.82,orbitL:.58,orbitR:.58,cross:.82,spiral:.9,counterL:1.08,counterR:1.08});
@@ -253,9 +253,9 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     const key=phaseCueKey(actor);if(phaseCueSeen.has(key))return null;
     const phase=PHASES[cursor.phaseIndex],style=PHASE_CUE_PRESENTATION[phase];if(!style)return null;
     phaseCueSeen.add(key);if(phaseCueSeen.size>128)phaseCueSeen.delete(phaseCueSeen.values().next().value);
-    const cue={key,phase,clip:style.clip,poseProgress:style.poseProgress,glow:style.glow,startedAt:time,until:time+PHASE_CUE_SECONDS,targetId:target?.id??null};
+    const cue={key,phase,clip:style.clip,poseStart:style.poseStart,poseEnd:style.poseEnd,motion:style.motion,glow:style.glow,startedAt:time,until:time+PHASE_CUE_SECONDS,targetId:target?.id??null};
     phaseCues.set(actor.id,cue);maneuvers.delete(actor.id);readyAt.set(actor.id,Math.max(readyAt.get(actor.id)||0,cue.until));
-    traceRow({type:'phase-cue',actorId:actor.id,targetId:cue.targetId,phase,key,duration:PHASE_CUE_SECONDS});return cue;
+    traceRow({type:'phase-cue',actorId:actor.id,targetId:cue.targetId,phase,key,duration:PHASE_CUE_SECONDS,motion:cue.motion});return cue;
   }
   function chooseDefenseReaction(actor,threat){
     const count=defenseRhythm.get(actor.id)||0;defenseRhythm.set(actor.id,count+1);

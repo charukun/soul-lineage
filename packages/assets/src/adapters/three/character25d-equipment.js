@@ -87,8 +87,10 @@ export function createCharacter25DEquipment(THREE,{body,rig,sockets,height}) {
       if(!enabled)continue;
       const upper=view.rig.byName.get('upperArm.'+side),physical=rig.byName.get('upperArm.'+side);
       physical.getWorldPosition(point);upper.parent.worldToLocal(point);
-      // Only depth is transferred at the shoulder; preserve original UV joins.
-      upper.position.z=point.z;
+      // Retarget the whole shoulder frame, not just its depth. Keeping the
+      // frontal shoulder X in a side view can put the wrist outside its reach.
+      // The original continuous influence weights blend the shoulder join.
+      upper.position.copy(point);
       solveCharacter25DHand(THREE,view.rig,side,world);
     }
     view.group.updateWorldMatrix(true,true);view.rig.skeleton.update();

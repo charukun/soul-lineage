@@ -17,6 +17,9 @@ secondaryGripTarget, weaponHitboxAnchor and trailOrigin share that frame.
 leftHand/offhand owns shieldAnchor and heldItemAnchor. Compatibility handR/handL,
 weapon and hitbox names remain available. Damage remains the host's responsibility.
 
+The compiler measures separated palm silhouettes and places the existing hand
+bone pivots on those original pixels; concealed hands keep the template fallback.
+This prevents a numerically attached weapon sitting below the illustrated palm.
 Fixed-length arm IK follows the primary and secondary grips. The appearance's
 arm bones follow the same world targets, including local depth. Alpha-tested
 body layers and depth-writing 3D models therefore change occlusion with camera,
@@ -44,7 +47,8 @@ Shield is stowed for two-handed profiles. `setHeldItem(object, calibration)`
 attaches a host-owned prop; replacement returns/detaches it without disposal.
 
 The Playground offers sword, axe, spear, greatsword, staff, shield and swapping,
-with its existing keyboard/touch movement and action transport. Use one sheet
+with its existing keyboard/touch movement and action transport. The single-actor
+view removes comparison-model overlap during grip/occlusion review. Use one sheet
 with front/side/back artwork for directional review. Source art still determines
 hand quality: template rigging cannot invent fingers or unseen body surfaces.
 The opposite side remains the Forge's explicit unmirrored fallback.
@@ -55,7 +59,8 @@ The opposite side remains the Forge's explicit unmirrored fallback.
 appearance alignment, calibration, moving attacks and resource ownership.
 `scripts/browser/character25d-equipment.mjs` records actual Playground input and
 the existing Lab → RINNE transfer, equipment state and training attack, screenshots,
-video and console errors. This is task-selected evidence, not an automatic CI
+video and console errors. `tests/character25d-equipment-browser.test.mjs` runs
+that scenario on the final hosted checkout. This is task-selected evidence, not an automatic CI
 sweep. The existing opt-in snapshot is read-only and can be removed when visual
 inspection no longer needs this observability bridge. Numeric attachment alone
 does not certify art quality or complete visual-slice success.

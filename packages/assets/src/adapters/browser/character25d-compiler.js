@@ -19,7 +19,7 @@ export async function compileCharacter25D(file,{id,name,onProgress=()=>{}}={}) {
     const hash=prepared.references[key];if(!hash)continue;
     const analysis=await silhouette(draft.assets[hash]);
     draft.appearance[key]={asset:hash,bounds:analysis.bounds,side:'unknown',mirror:false,status:'detected-candidate'};
-    if(key==='front')draft.rig=createHumanoidRig(analysis.proportions);
+    if(key==='front')draft.rig=createHumanoidRig({...analysis.proportions,handLandmarks:analysis.handLandmarks});
   }
   draft.provenance={...draft.provenance,sourceSha256:source.sha256,sourceDimensions:[source.width,source.height],segmentation:'edge-connected-background+alpha-bounds',rig:draft.rig.version,viewAssociation:'left-to-right-front-side-back-candidates',diagnostics:prepared.diagnostics};
   return assertCharacter25D(draft);
@@ -29,7 +29,7 @@ export async function upgradeCharacter25D(input) {
   const legacy=await verifySprite25dBundle(input);
   if(!legacy.pose) return legacy; // Atlas-only v1 retains its real authored playback.
   const analysis=await silhouette(legacy.assets[legacy.pose]);
-  const result=migrateCharacter25D(legacy,{bounds:analysis.bounds});result.rig=createHumanoidRig(analysis.proportions);
+  const result=migrateCharacter25D(legacy,{bounds:analysis.bounds});result.rig=createHumanoidRig({...analysis.proportions,handLandmarks:analysis.handLandmarks});
   return assertCharacter25D(result);
 }
 export async function verifyCharacter25DBundle(input) {
@@ -62,3 +62,4 @@ export async function reassociateCharacter25D(bundle,associations) {
   for(const [key,source] of Object.entries(associations)) {if(!APPEARANCE_VIEWS.includes(key)||!APPEARANCE_VIEWS.includes(source))throw new Error('Unknown view');next.appearance[key]=old[source]?{...old[source],status:'user-associated'}:null;}
   return assertCharacter25D(next);
 }
+

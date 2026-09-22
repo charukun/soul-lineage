@@ -24,7 +24,6 @@ jobs:
       - run: npm ci
       - name: Attachment invariants
         id: attachment
-        continue-on-error: true
         run: node --test tests/character25d-equipment.test.mjs tests/character25d-runtime.test.mjs tests/character25d-disposal.test.mjs
       - run: npx playwright install --with-deps chromium
       - run: npm run predev --workspace @soul/rinne
