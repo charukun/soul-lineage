@@ -53,8 +53,14 @@ function configuredComboScore(combo,index,{phase,preferredId,activeId}){
 export function selectCapableTidebreakCombo(state,{phase='jo',comboId=state?.combat?.comboId,target=null}={}){
   if(!['jo','ha','kyu'].includes(phase))throw new RangeError('Invalid capability selection phase');
   const loadout=ensureCombatLoadout(state),weapon=tidebreakWeaponFor(state.equipment.weapon),activeId=loadout.technique.activeComboId,attempts=[],candidates=[];
+  // Only accepted runtime poses are published here by combat-core. Their current
+  // stage has already paid; prediction concerns the remaining stages, not a replay.
+  const execution=state.combat?.tidebreakPose?.execution;
   for(const [index,combo] of loadout.technique.combos.entries()){
-    const skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`,recipe=phaseRecipe(state,phase,weapon,combo,target),capability=rinneTechniqueCapability(state,phase,recipe);
+    const skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`,recipe=phaseRecipe(state,phase,weapon,combo,target);
+    const continuing=execution?.recipeId===recipe.id&&execution.phase===phase&&Number.isInteger(execution.stepIndex);
+    const fromStage=continuing?Math.min(recipe.steps.filter(step=>step.kind!=='none').length,execution.stepIndex+1):0;
+    const capability=rinneTechniqueCapability(state,phase,recipe,{fromStage});
     const configuredScore=configuredComboScore(combo,index,{phase,preferredId:comboId,activeId}),situationScore=recipeSituationScore(state,recipe,target),score=configuredScore+situationScore;
     const attempt=Object.freeze({comboId:combo.id,techniqueId:skill,reason:capability.reason,canStart:capability.canStart,canContinue:capability.canContinue,configuredScore,situationScore,score});
     attempts.push(attempt);if(capability.canContinue)candidates.push({combo,skill,capability,score,index});
