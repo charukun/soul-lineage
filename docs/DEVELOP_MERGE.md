@@ -3,12 +3,17 @@
 The normal develop lane is:
 
 ```text
-implementation on Draft PR
+compose implementation against develop tree with no routine branch yet
+  -> exact final bytes validated
+  -> final commit created detached from refs
+  -> branch created directly at final commit
+  -> non-draft PR created once
   -> final work-head commit contains [astra-validate]
   -> routine: exact final bytes are checked before blob/tree/commit creation
      heavy: exact work head passes hosted Astra validation
-  -> connector-native mergeability + dependency-impact freshness verification
-  -> Ready
+  -> one current-develop read
+  -> unchanged base: immediate expected-head merge
+     advanced base: drift classification, then merge/reconcile
   -> same-task merge to develop
   -> asynchronous DEV publication
 ```
@@ -38,13 +43,13 @@ Hosted `Astra Work Validation` is armed only when the same final commit also con
 
 Use that lane for tests, builds, browser/DCC/asset processing, specialist validation, and explicit Fast DEV contract changes.
 
-After the final proof is established, mark Ready and merge immediately. Ready is transient, not a stopping point.
+For routine work, create the PR non-draft after the final proof already exists, so there is no Draft -> Ready transition. Heavy/recovery work may still use Draft while multiple published heads are expected.
 
 ### Ready-to-merge race guard
 
-Ready化そのものとmergeの間にも `develop` は進み得る。GitHubの通常PR mergeは、直前に確認したbase SHAではなく、その瞬間の最新baseを自動的に採用できるため、検証済みheadだけを固定してもshared-control driftを取り込む競合窓が残る。
+PR作成とmergeの間にも `develop` は進み得る。GitHubの通常PR mergeは、その瞬間の最新baseを採用できるため、検証済みheadだけを固定してもshared-control driftを取り込む競合窓が残る。
 
-そのためReady化**後**、routineではConnectorの1 orchestration内でPR head・最新develop・mergeabilityを読み、そのまま `expected_head_sha` 付きmergeを実行する。heavyでは既存 `actions:summary` のmerge-window tokenを使う。どちらも読み取りとmergeの間に不要な会話・待機を挟まない。
+そのためroutineでは、PR作成レスポンスのhead SHAを保持したまま、merge直前に最新 `develop` を1回だけ読む。developがfinal commitのparentから動いていなければ、別のPR-info/status/mergeability readをせず `expected_head_sha` 付きmergeを直ちに実行する。developが動いていた場合だけcompare/freshness分類へ分岐する。heavyでは既存 `actions:summary` のmerge-window tokenを使う。
 
 - PR headがvalidated headと違えば停止して新headを検証する。
 - developが前回観測から動いていれば、そのdriftをfreshness分類へ戻す。independent driftだけがproof reuse可能で、control-plane/impact overlapはreconcile + new proof。

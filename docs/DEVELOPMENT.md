@@ -5,9 +5,9 @@ Routine implementation is Astra-driven and uses connector-native exact-source pr
 ## 1. Implement
 
 - Confirm latest `develop` and `AGENTS.md`.
-- Create or reuse a dedicated work branch / Draft PR from current `develop`.
-- Use the connected GitHub Connector to read current source and construct the implementation on that branch.
-- Prefer composing a coherent tree and moving the branch ref once when practical. Intermediate commits are allowed, but do not stop to wait for validation on superseded heads.
+- Use the connected GitHub Connector to read current source and compose the final tree against the current `develop` tree without creating a routine branch yet.
+- For routine Fast DEV, validate the final bytes, create blobs/tree, create the final commit with `develop` as parent, then create the dedicated branch directly at that commit. This replaces `create branch -> commit -> update ref` with `commit -> create branch`.
+- Open the routine PR non-draft only after the final branch head exists. Draft PRs and intermediate branch moves are reserved for recovery or heavy/specialist work that genuinely needs multiple published heads.
 - Validate the final source bytes before GitHub blob creation. For routine JS checks, run syntax/consistency validation against the exact final byte strings that will be sent to `create_blob`; those returned blob SHAs become the proof coordinates.
 - Routine Fast DEV does not perform staging/browser/Playwright/render/DCC/evidence observation automatically. Player-facing scope alone is not a trigger. Run those paths only for an explicit user request or an existing specialist/autonomous route that explicitly requires them.
 
@@ -17,12 +17,11 @@ When implementation is coherent:
 
 1. Re-read current `develop`, but do not reconcile solely because its SHA advanced.
 2. Routine Fast DEV accepts only `Astra-Validation: none` or targeted `Astra-Check`. Validate each declared source against the exact final bytes before blob creation.
-3. Create the GitHub blobs from those same checked bytes, then create the final tree/commit/ref. The returned blob SHAs and final commit SHA are the immutable exact-source proof. Do not start GitHub Actions for routine validation.
-4. Create/reuse the Draft PR and verify that its head is exactly that commit.
-5. Re-read current `develop` and compare the work delta with any develop drift by affected app/package/build/control-plane scope. Require GitHub to report the PR mergeable against current `develop`.
-6. Independent mergeable drift reuses the connector-native proof. Conflict or affected-scope overlap requires reconciliation into the same branch and a new exact-bytes proof.
-7. Mark Ready, perform one final connector-native race-guard read, and merge immediately with `expected_head_sha`.
-8. Fetch the resulting merge commit once and confirm its parents. The develop push starts DEV publication asynchronously.
+3. Create the GitHub blobs from those same checked bytes, create the final tree, then create the final commit **before** creating the routine branch. The returned blob SHAs and final commit SHA are the immutable exact-source proof.
+4. Create the dedicated branch directly at that final commit and open the PR non-draft. The create-PR response is the head-identity receipt; do not re-read PR info on the unchanged-base path.
+5. Re-read current `develop` exactly once immediately before merge. If it still equals the final commit parent, merge immediately with `expected_head_sha`. Do not separately query mergeability; the merge API is authoritative and fails closed.
+6. Only if `develop` advanced, compare the drift with the work delta by affected app/package/build/control-plane scope. Independent mergeable drift reuses the proof; conflict or overlap requires reconciliation into the same branch and a new proof.
+7. Fetch the resulting merge commit once and confirm the validated head is a parent. The develop push starts DEV publication asynchronously.
 
 Heavy/specialist work is different: add `[astra-heavy-validation]` and use the hosted exact-head runner for tests, builds, browser/DCC/asset work, or any validation requiring a real repository execution environment.
 
