@@ -22,34 +22,55 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Prepare explicit DCC tool
-        run: |
-          sudo apt-get update -qq > /tmp/heroine-apt.log 2>&1
-          sudo apt-get install -y blender python3-numpy >> /tmp/heroine-apt.log 2>&1
-      - name: Retrieve inspected immutable first-pass DCC source
+          cache: npm
+      - name: Retrieve visually inspected round-2 asset
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p generated/heroine-round1 generated/heroine-dawn
-          gh api repos/charukun/soul-lineage/actions/artifacts/10676142028/zip > /tmp/heroine-round1.zip
-          echo 'accd830154c7c954ebfad2ff3fdaab11091c0bc9dd26aa2dd2ca628e0cdd58e3  /tmp/heroine-round1.zip' | sha256sum -c
-          unzip -q /tmp/heroine-round1.zip -d generated/heroine-round1
-          echo '59e0c87ce8b419810d5541ed1e91b220982f82614322fbea8a48b12f9e4a3716  generated/heroine-round1/HeroineDawn.glb' | sha256sum -c
-      - name: Repair reviewed mesh defects and render
+          mkdir -p generated/heroine-dawn
+          gh api repos/charukun/soul-lineage/actions/artifacts/10676526990/zip > /tmp/heroine-round2.zip
+          echo '9b113b6573fb79ad219587059d1d596d54afffaa186732c36d2c899376b241a0  /tmp/heroine-round2.zip' | sha256sum -c
+          unzip -q /tmp/heroine-round2.zip -d generated/heroine-dawn
+          echo 'c44ab5a5d21cf3005ad20ae5400a45e2644dad1b55cfb528f40c1dc2f4a9c435  generated/heroine-dawn/HeroineDawn.glb' | sha256sum -c
+          python3 assets/characters/heroine-dawn/integrate.py --out generated/heroine-dawn
+      - name: Build actual Character Studio
         env:
-          PYTHONPATH: /usr/lib/python3/dist-packages
+          APP_ENV: dev
         run: |
-          blender --background generated/heroine-round1/HeroineDawn.blend --python-exit-code 1 --python assets/characters/heroine-dawn/finalize.py -- --source apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb --out generated/heroine-dawn > generated/heroine-dawn/dcc.log 2>&1 || { tail -70 generated/heroine-dawn/dcc.log; exit 1; }
-          for f in inspection.json HeroineDawn.glb HeroineDawn.blend front.png three-quarter.png side.png back.png face.png; do test -s generated/heroine-dawn/$f; done
-          cat generated/heroine-dawn/inspection.json
-      - name: Collect targeted runtime integration context
-        if: always()
+          npm ci > generated/heroine-dawn/npm.log 2>&1 || { tail -70 generated/heroine-dawn/npm.log; exit 1; }
+          npm run build --workspace @soul/character-studio > generated/heroine-dawn/build.log 2>&1 || { tail -90 generated/heroine-dawn/build.log; exit 1; }
+          npx playwright install --with-deps chromium > generated/heroine-dawn/chromium.log 2>&1 || { tail -60 generated/heroine-dawn/chromium.log; exit 1; }
+      - name: Observe real renderer and source animation clips
+        env:
+          APP_ENV: dev
         run: |
-          mkdir -p generated/heroine-dawn/context
-          git grep -l -E 'selectKaykitModel|PROTAGONIST_VILLAGER_FEMALE|protagonist.villager.female|KAYKIT_DEFAULT_MODEL_ID' -- 'apps/rinne/**' 'packages/rendering/**' 'tests/**' > generated/heroine-dawn/context/paths.txt || true
-          git ls-files scripts/vite-app.mjs scripts/verify-build.mjs packages/rendering/src/review-camera.js >> generated/heroine-dawn/context/paths.txt
-          sort -u generated/heroine-dawn/context/paths.txt -o generated/heroine-dawn/context/paths.txt
-          tar -czf generated/heroine-dawn/context/source-context.tgz --files-from generated/heroine-dawn/context/paths.txt
+          npm exec --workspace @soul/character-studio -- vite --host 127.0.0.1 --port 5177 --strictPort > generated/heroine-dawn/vite.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:5177/ >/dev/null && break; sleep 1; done
+          node assets/characters/heroine-dawn/observe.mjs generated/heroine-dawn > generated/heroine-dawn/browser.log 2>&1 || { tail -90 generated/heroine-dawn/browser.log; exit 1; }
+          cat generated/heroine-dawn/browser.log
+      - name: Commit allowlisted materialized asset and observation only
+        run: |
+          python3 - <<'PY'
+          import json,shutil
+          from pathlib import Path
+          out=Path('generated/heroine-dawn');i=json.loads((out/'integration.json').read_text());r=json.loads((out/'runtime/receipt.json').read_text());assert not r['errors'];assert r['modelSha256']==i['modelSha256'];assert len(r['poses'])==6
+          dst=Path(i['qa'])/'runtime';shutil.copytree(out/'runtime',dst,dirs_exist_ok=True)
+          p=Path(i['provenance']);v=json.loads(p.read_text());v['runtimeEvidence']=str(dst/'receipt.json');p.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+          p=Path('packages/characters/production/protagonist-villager-female-v1.production.json');v=json.loads(p.read_text());v['evidence']['runtimeObservation']={'receiptPath':str(dst/'receipt.json'),'modelSha256':i['modelSha256'],'humanApproval':False,'physicalDevicePerformance':'not-measured'};p.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+          PY
+          rm -f apps/character-studio/heroine-motion-probe.js
+          git diff --exit-code -- apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb packages/characters/src/kaykit-foundation.js
+          mesh=$(node -p "JSON.parse(require('fs').readFileSync('generated/heroine-dawn/integration.json')).meshPath")
+          git add -f -- "$mesh" assets/characters/heroine-dawn/source docs/characters/qa/heroine-dawn-v1
+          git add -- apps/review/public/library/provenance/heroine-dawn-v1.json packages/characters/src/reference-model-catalog.js packages/characters/production/protagonist-villager-female-v1.production.json apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m '女主人公の実DCC派生モデルと実レンダー観察を自前Originへ収録'
+          git push origin HEAD:dcc/heroine-dawn
+          git rev-parse HEAD > generated/heroine-dawn/materialized-head.txt
+          git diff HEAD^ HEAD --stat > generated/heroine-dawn/materialized-stat.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
