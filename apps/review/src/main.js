@@ -3,11 +3,13 @@ import {REVIEW_DEV,REVIEW_ROUTES,REVIEW_VFX_WARM_ASSETS,REVIEW_WARM_ORDER} from 
 import {decorateReviewMenuIcons} from './review-lab-icons.js';
 import {createReviewWarmup} from './review-lab-warmup.js';
 import {mountHi3dgenLab} from './hi3dgen-lab.js';
+import {mountHybrid25dLab} from './hybrid-25d-lab.js';
 
 const probeGrid=document.querySelector('#probe-grid');
 renderReviewProbeLinks(probeGrid,{routes:REVIEW_ROUTES});
 decorateReviewMenuIcons({routes:REVIEW_ROUTES});
 mountHi3dgenLab();
+mountHybrid25dLab();
 
 for(const link of document.querySelectorAll('[data-route]')){
   const href=REVIEW_ROUTES[link.dataset.route];
