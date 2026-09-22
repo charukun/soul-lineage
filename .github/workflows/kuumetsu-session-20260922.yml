@@ -1,6 +1,5 @@
 name: Temporary kuumetsu immutable observation 20260922
 # Existing task-scoped ops fallback only. Never merge to develop/main.
-# Candidate observation precedes merge-owning validation under current develop contract.
 on:
   push:
     branches: [ops/kuumetsu-observe-20260922-01]
@@ -12,59 +11,9 @@ permissions:
   pull-requests: read
 env:
   SOURCE_SHA: 405c090f2141cd82fb7893b1668c6be52acebca9
+  PREVIEW_URL: https://12562775-soul-lineage-demon-dev.c-okamoto.workers.dev/
 jobs:
-  publish:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    outputs:
-      preview: ${{ steps.publish.outputs.preview }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: 405c090f2141cd82fb7893b1668c6be52acebca9
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-      - name: Publish exact source through existing Per-App DEV Publish
-        id: publish
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const fs=require('fs');
-            fs.mkdirSync('session-evidence',{recursive:true});
-            const started=Date.now(),seen=new Set();
-            await github.rest.actions.createWorkflowDispatch({...context.repo,workflow_id:'dev-app-publish.yml',ref:'develop',inputs:{app:'demon',source_sha:process.env.SOURCE_SHA}});
-            for(let attempt=0;attempt<48;attempt++){
-              await new Promise(r=>setTimeout(r,15000));
-              const runs=(await github.rest.actions.listWorkflowRuns({...context.repo,workflow_id:'dev-app-publish.yml',event:'workflow_dispatch',per_page:15})).data.workflow_runs.filter(r=>Date.parse(r.created_at)>=started-3000);
-              for(const run of runs){
-                if(seen.has(run.id))continue;
-                const jobs=(await github.rest.actions.listJobsForWorkflowRun({...context.repo,run_id:run.id,per_page:30})).data.jobs;
-                const job=jobs.find(j=>j.name==='Publish demon DEV');
-                if(!job||job.status!=='completed')continue;
-                seen.add(run.id);
-                const response=await github.rest.actions.downloadJobLogsForWorkflowRun({...context.repo,job_id:job.id});
-                const log=typeof response.data==='string'?response.data:Buffer.from(response.data).toString('utf8');
-                const versionId=log.match(/Current Version ID:\s*([0-9a-f-]{36})/i)?.[1];
-                if(!versionId)continue;
-                const preview='https://'+versionId.slice(0,8)+'-soul-lineage-demon-dev.c-okamoto.workers.dev/';
-                const v=await(await fetch(new URL('version.json',preview))).json();
-                if(v.commit!==process.env.SOURCE_SHA)continue;
-                if(job.conclusion!=='success')throw new Error('Exact publication job failed: '+run.html_url);
-                fs.writeFileSync('session-evidence/publication.json',JSON.stringify({runId:run.id,jobId:job.id,url:run.html_url,sourceSha:process.env.SOURCE_SHA,versionId,preview,version:v,commitMatched:true,verifiedAt:new Date().toISOString()},null,2));
-                core.setOutput('preview',preview);core.info('IMMUTABLE_STAGING '+preview+' '+v.commit);return;
-              }
-            }
-            throw new Error('Bounded exact-source publication wait elapsed');
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: kuumetsu-staging-first-before-publication
-          path: session-evidence
-          retention-days: 14
   observe:
-    needs: publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -78,20 +27,20 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npx playwright install --with-deps chromium > /tmp/browser-install.log 2>&1
-      - name: Load existing native kuumetsu observer
+      - name: Reuse native observer with armed gate input readiness
         uses: actions/github-script@v8
         with:
           script: |
             const fs=require('fs');
             const r=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-session-observe.mjs',ref:context.sha});
-            fs.writeFileSync('session-observe.mjs',Buffer.from(r.data.content,'base64'));
-      - name: Immutable Before native browser play
-        env:
-          PREVIEW_URL: ${{ needs.publish.outputs.preview }}
+            let source=Buffer.from(r.data.content,'base64').toString('utf8');
+            source=source.replace("if(await gate.isVisible()){await tap('#soul-brand-boot');", "if(await gate.isVisible()){await page.waitForFunction(()=>document.querySelector('#soul-brand-boot')?.classList.contains('armed'));await tap('#soul-brand-boot');");
+            fs.writeFileSync('session-observe.mjs',source);
+      - name: Reuse exact immutable Before native browser play
         run: mkdir -p session-evidence && cp session-observe.mjs session-evidence/observer.mjs && node session-observe.mjs > session-evidence/browser.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-staging-first-before-observation
+          name: kuumetsu-staging-first-before-armed
           path: session-evidence
           retention-days: 14
