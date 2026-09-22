@@ -1,4 +1,4 @@
-name: Task Female Rogue Acquisition
+name: Task Female Rogue Observation
 on:
   push:
     branches: [art/female-protagonist-kaykit-rogue-20260922]
@@ -6,47 +6,51 @@ on:
 permissions:
   contents: write
 jobs:
-  acquire:
-    if: contains(github.event.head_commit.message, '[female-acquire]')
+  observe:
+    if: contains(github.event.head_commit.message, '[female-observe]')
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 1
-      - name: Acquire and verify the exact CC0 source
+      - name: Apply replacement once and commit the real source changes
         run: |
           set -euo pipefail
-          git ls-files | grep -E 'Rogue|runtime-origin|protagonist.*female|female.*protagonist' || true
-          python3 - <<'PY'
-          import urllib.request, hashlib, json, struct
-          from pathlib import Path
-          revision='672074b73ba276876a19e8816ecdc5241817ab47'
-          base=f'https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/{revision}/'
-          source=base+'addons/kaykit_character_pack_adventures/Characters/gltf/Rogue.glb'
-          data=urllib.request.urlopen(source,timeout=60).read()
-          blob=hashlib.sha1(f'blob {len(data)}\0'.encode()+data).hexdigest()
-          assert len(data)==3616284 and blob=='c8827661105eef7b2bfbef3bc676d41a47625733', (len(data),blob)
-          path=Path(f'apps/review/public/library/model/{blob}/Rogue.glb')
-          path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(data)
-          length,kind=struct.unpack_from('<II',data,12); assert kind==0x4e4f534a
-          doc=json.loads(data[20:20+length])
-          receipt={'schema':'character-source-acquisition','version':1,'id':'protagonist.villager.female.v1','title':'KayKit Adventurers Rogue','author':'Kay Lousberg','license':'CC0-1.0','retrievedAt':'2026-09-22','sourceUrl':source,'assetPage':'https://kaylousberg.itch.io/kaykit-adventurers','repository':'KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0','revision':revision,'originalFilename':'Rogue.glb','path':str(path),'sha256':hashlib.sha256(data).hexdigest(),'gitBlobSha':blob,'bytes':len(data),'conversion':'None: official original GLB retained byte-for-byte.','meshNames':[m.get('name') for m in doc.get('meshes',[])],'nodes':[n.get('name') for n in doc.get('nodes',[])],'skins':len(doc.get('skins',[])),'materials':doc.get('materials'),'images':doc.get('images'),'animations':[a.get('name') for a in doc.get('animations',[])],'triangles':sum(doc['accessors'][p['indices']]['count']//3 for m in doc.get('meshes',[]) for p in m['primitives'] if p.get('mode',4)==4 and 'indices' in p)}
-          lic=urllib.request.urlopen(base+'LICENSE.txt',timeout=30).read()
-          assert b'CC0' in lic or b'Creative Commons' in lic
-          lp=Path('apps/review/public/library/licenses/kaykit-adventurers-1.0.txt'); lp.parent.mkdir(parents=True,exist_ok=True); lp.write_bytes(lic)
-          receipt['licensePath']=str(lp); receipt['licenseSha256']=hashlib.sha256(lic).hexdigest()
-          rp=Path('apps/review/public/library/provenance/female-protagonist-rogue-v1.json');rp.parent.mkdir(parents=True,exist_ok=True);rp.write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
-          print(json.dumps(receipt,ensure_ascii=False));print(lic.decode())
-          PY
-      - name: Commit materialized source on the task branch only
-        run: |
-          set -euo pipefail
+          if ! grep -q 'protagonist-female-kaykit-rogue-original' packages/characters/src/reference-model-catalog.js; then
+            python3 scripts/task-replace-female-rogue.py
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb apps/review/public/library/licenses/kaykit-adventurers-1.0.txt apps/review/public/library/provenance/female-protagonist-rogue-v1.json
+          git add -A apps/character-studio/public/simulator/assets apps/rinne/public/simulator/assets packages/characters/src/reference-model-catalog.js packages/characters/production/protagonist-villager-female-v1.production.json assets/characters/protagonist docs/characters scripts/blender apps/character-studio/src/review/character/runtime.js apps/character-studio/tests/character-review-grid.test.mjs tests/protagonist-villager-dcc.test.mjs
           if ! git diff --cached --quiet; then
-            git commit -m 'asset: materialize pinned CC0 KayKit Rogue original for female protagonist'
+            git commit -m 'art: replace rejected female protagonist with unchanged official CC0 Rogue'
             git push origin HEAD:${{ github.ref_name }}
           fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run focused source and consumer checks
+        run: |
+          node --test packages/characters/tests/female-protagonist-source.test.mjs packages/characters/tests/active-reference-catalog.test.mjs apps/character-studio/tests/character-review-grid.test.mjs
+          node --check packages/characters/src/reference-model-catalog.js
+          node --check apps/character-studio/src/review/character/runtime.js
+      - name: Build the real Character Studio
+        run: |
+          npm ci --ignore-scripts
+          npm run build --workspace @soul/character-studio
+      - name: Observe actual model and deformation views
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist/character-studio >/tmp/female-studio-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" || true' EXIT
+          node scripts/task-observe-female-rogue.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: female-rogue-observation
+          path: /tmp/female-rogue-observation/
+          if-no-files-found: warn
+          retention-days: 7
