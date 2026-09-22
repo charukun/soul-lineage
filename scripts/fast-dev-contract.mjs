@@ -148,7 +148,7 @@ export function inspectAuthorizedFastDevContraction(base, head) {
     if (workflow.includes(token)) violations.push({code:'FAST_DEV_HEAVY_PATH_RETAINED',path:'.github/workflows/astra-work-validation.yml',detail:`Heavy legacy validation token remains: ${token}`});
   }
   const focused=readAt(head,'scripts/astra-focused-validation.mjs')||'';
-  for (const token of ['Astra-Validation','Astra-Check','Astra-Test','Astra-Build','plan.tests.length > 1','execFileSync']) {
+  for (const token of ['Astra-Validation','Astra-Check','Astra-Test','Astra-Build','!heavyValidationExplicit && plan.tests.length','execFileSync']) {
     if (!focused.includes(token)) violations.push({code:'FOCUSED_RUNNER_CONTRACT_MISSING',path:'scripts/astra-focused-validation.mjs',detail:`Focused runner token missing: ${token}`});
   }
   return Object.freeze({state:violations.length?'violation':'clean',authorizedContraction:true,beforeWorkflows:Object.freeze(before),afterWorkflows:Object.freeze(after),violations:Object.freeze(violations)});
