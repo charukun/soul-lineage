@@ -256,29 +256,24 @@ test('battle2 shows a human semantic version while keeping source SHA internal',
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
 
-test('strong parry breaks the attacker sequence while the reversal/counter side stays on the left HUD edge',()=>{
- const scenario=createJohakyuP7ReviewScenario({mode:'duel'});let heroParried=null,reset=null,counterTransition=false,nextHeroPressure=null;
- for(let i=0;i<2200&&!(heroParried&&reset&&counterTransition&&nextHeroPressure);i++){
+test('strong parry keeps the successful defender on the left HUD edge and resets only the broken attacker',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2});let parry=null,counterTransition=false,enemyReset=null;
+ for(let i=0;i<1200&&!(parry&&counterTransition&&enemyReset);i++){
   const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self),meta=r.meta;
-  heroParried=heroParried||r.events.find(e=>e.type==='parry'&&e.sourceId==='hero'&&e.strongParry);
-  if(heroParried){
-    reset=reset||scenario.inspect().trace.find(row=>row.type==='chain-break'&&row.reason==='strong-parry'&&row.restartPhase==='jo'&&row.restartTechniqueIndex===0&&row.restartStageIndex===0);
-    if(meta.exchangeMode==='reversal'||hero?.action?.reaction==='counter'){counterTransition=true;assert.equal(meta.hudState,'maai');}
-    if(hero?.action?.scope==='review-technique-composition'&&hero.action.motion.offense&&meta.initiativeId==='hero')nextHeroPressure={action:hero.action,meta};
-  }
+  parry=parry||r.events.find(e=>e.type==='parry'&&e.targetId==='hero'&&e.strongParry);
+  if(parry&&(meta.exchangeMode==='reversal'||hero?.action?.reaction==='counter')){counterTransition=true;assert.equal(meta.hudState,'maai');}
+  enemyReset=enemyReset||scenario.inspect().trace.find(row=>row.type==='chain-break'&&row.actorId==='enemy-a'&&row.reason==='strong-parry'&&row.restartPhase==='jo'&&row.restartTechniqueIndex===0&&row.restartStageIndex===0);
  }
- assert.ok(heroParried,'hero must eventually be strongly parried');assert.ok(reset,'strong parry must reset only the broken attacker to jo');
- assert.ok(counterTransition,'reversal/counter interval must stay on the left waveform');
- assert.ok(nextHeroPressure,'hero must later regain a normal pressure turn');assert.equal(nextHeroPressure.action.phase,'jo');assert.equal(nextHeroPressure.meta.hudState,'jo');
+ assert.ok(parry,'hero must win a strong parry');assert.ok(counterTransition,'reversal/counter transition must remain on the left waveform');assert.ok(enemyReset,'only the parried attacker sequence must restart at jo');
 });
 
-test('HUD maps hero pressure, opponent pressure and zanshin from exchange ownership rather than cursor alone',()=>{
+test('HUD maps hero pressure and hero-owned zanshin from exchange ownership rather than cursor alone',()=>{
  const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');
  assert.match(source,/heroPressure=exchangeView\?\.mode==='pressure'&&exchangeView\.initiativeId==='hero'/);
  assert.match(source,/heroZanshin=exchangeView\?\.mode==='zanshin'&&exchangeView\.initiativeId==='hero'/);
  assert.match(source,/normalPressureAction=action\?\.scope==='review-technique-composition'&&action\?\.motion\?\.offense/);
  assert.match(source,/hudState=heroZanshin\?'zanshin':heroPressure&&pressurePhase\?pressurePhase:'maai'/);
- assert.match(source,/exchange\.mode==='zanshin'\)\{updateExchange\(actor,target,\{type:'settle'\}\)/);
+ assert.doesNotMatch(source,/stageDamage\(node\.stage\)>0&&\['pressure','reversal'\]\.includes\(exchange\.mode\)/,'HUD projection must not become a second combat authority');
 });
 
 test('HUD metadata comes from the executing technique and stage',()=>{

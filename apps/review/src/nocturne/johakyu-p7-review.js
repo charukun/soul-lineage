@@ -179,10 +179,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
     return progress<.58&&distanceBetween(positions,actor,target)<=2.95?{state:incoming,progress}:null;
   }
   function gateAction(actor,target,node){
-    const kind=node.stage.step.kind,distance=distanceBetween(positions,actor,target),counterWindow=counterWindows.get(actor.id),exchange=exchangeFor(actor,target);
-    if(stageDamage(node.stage)>0&&['pressure','reversal'].includes(exchange.mode)&&exchange.initiativeId&&exchange.initiativeId!==actor.id){
-      if(!maneuvers.has(actor.id))setManeuver(actor,target,{reason:'defensive-read',footwork:actor.id==='hero'?'orbitL':'orbitR',seconds:.2});return false;
-    }
+    const kind=node.stage.step.kind,distance=distanceBetween(positions,actor,target),counterWindow=counterWindows.get(actor.id);
     if(['guard','brace','parry'].includes(kind)){
       const threat=incomingThreat(actor,target);
       if(!threat){if(distance<=CONTACT_REACH+.25&&!maneuvers.has(actor.id))setManeuver(actor,target,{reason:'read-threat',footwork:actor.id==='hero'?'orbitL':'orbitR',seconds:.24});return false;}
@@ -279,7 +276,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
     if(fullReset){cursor.phaseIndex=0;cursor.techniqueIndex=0;cursor.stageIndex=0;}else cursor.stageIndex=0;actionState.delete(actor.id);
     const recoverySeconds=RECOVERY_SECONDS[reason]??.34;setRecovery(actor,reason,state.targetId,recoverySeconds);
     if(reason==='miss'&&target)setManeuver(actor,target,{reason:'miss-reset',footwork:'chase',seconds:.9,stopDistance:ENGAGE_DISTANCE});
-    if(actor.id==='hero')traceRow({type:'chain-break',reason,phase:node.phase,techniqueId:state.node.technique.id,techniqueIndex,stageIndex:state.node.stage.index,restartPhase:fullReset?'jo':node.phase,restartTechniqueIndex:fullReset?0:techniqueIndex,restartStageIndex:0});
+    traceRow({type:'chain-break',actorId:actor.id,reason,phase:node.phase,techniqueId:state.node.technique.id,techniqueIndex,stageIndex:state.node.stage.index,restartPhase:fullReset?'jo':node.phase,restartTechniqueIndex:fullReset?0:techniqueIndex,restartStageIndex:0});
   }
   function finishAction(actor,state,{interrupted=false}={}){
     actionState.delete(actor.id);
@@ -310,7 +307,6 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
     if(state)return actionView(actor,state);
     const recovery=recoveries.get(actor.id);if(recovery&&time<recovery.until)return null;if(recovery)recoveries.delete(actor.id);
     const target=selectTarget(battle,actor.id);if(!target)return null;
-    const exchange=exchangeFor(actor,target);if(exchange.mode==='zanshin'){updateExchange(actor,target,{type:'settle'});readyAt.set(actor.id,Math.max(readyAt.get(actor.id)||0,time+.08));return null;}
     const counterWindow=counterWindows.get(actor.id);
     if(counterWindow&&time<=counterWindow.until){
       const counter=maybeBeginCounterReaction(actor,target);if(counter)return actionView(actor,counter);
