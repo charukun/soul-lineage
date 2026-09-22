@@ -12,23 +12,29 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / '.dcc-work/golden-base-boy-v1/source-sheet.jpg'
 OUT = ROOT / '.dcc-work/golden-base-boy-v1/references'
 OUT.mkdir(parents=True, exist_ok=True)
+source_hash = hashlib.sha256(SOURCE.read_bytes()).hexdigest()
+if source_hash != '86b6d48c9f9818e3b31a571ef87937e8882b61cfcf5423ef12c24fd0d0f3efb1':
+    raise ValueError('The immutable user source changed')
 image = Image.open(SOURCE).convert('RGB')
-if image.size != (1408, 1056):
+if image.size != (1536, 1152):
     raise ValueError(f'Unexpected original reference dimensions: {image.size}')
-# Exact user-selected central views. Right implementation panels and footer never enter geometry measurements.
+# The chat displayed a 1408x1056 preview. Map semantic bounds to the original
+# resolution; never resize or repaint the original source pixels.
+scale = image.width / 1408
+coord = lambda value: round(value * scale)
 regions = {
     'front': (10, 150, 420, 781),
     'side': (419, 150, 670, 781),
     'back': (650, 150, 1058, 781),
 }
-# Row-dependent semantic bounds remove ruler, neighboring figures and the green display pads.
 bands = {
     'front': [(150,406,85,348),(406,497,10,420),(497,601,135,295),(601,781,139,290)],
     'side': [(150,406,420,666),(406,611,469,603),(611,781,480,600)],
     'back': [(150,406,728,990),(406,499,650,1058),(499,603,778,944),(603,781,785,940)],
 }
 records = {}
-for name, rect in regions.items():
+for name, preview_rect in regions.items():
+    rect = tuple(coord(v) for v in preview_rect)
     raw = image.crop(rect)
     raw.save(OUT / (name + '-raw.png'))
     pixels = np.asarray(raw).astype(np.int16)
@@ -38,24 +44,24 @@ for name, rect in regions.items():
     allowed = Image.new('L', raw.size, 0)
     draw = ImageDraw.Draw(allowed)
     for y0,y1,x0,x1 in bands[name]:
-        draw.rectangle((x0-rect[0],y0-rect[1],x1-rect[0],y1-rect[1]),fill=255)
+        draw.rectangle((coord(x0)-rect[0],coord(y0)-rect[1],coord(x1)-rect[0],coord(y1)-rect[1]),fill=255)
     foreground &= np.asarray(allowed)>0
     mask = Image.fromarray(np.uint8(foreground)*255).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.MinFilter(3))
-    # Fill only internal holes; retain the gap between legs and under arms.
     flood = mask.copy()
     ImageDraw.floodfill(flood,(0,0),128,thresh=0)
     data = np.asarray(flood)
     mask = Image.fromarray(np.uint8(data != 128)*255)
     rgba = raw.convert('RGBA'); rgba.putalpha(mask)
     rgba.save(OUT / (name+'.png'))
-    records[name] = {'sheetRect':list(rect),'rawCropSha256':hashlib.sha256((OUT/(name+'-raw.png')).read_bytes()).hexdigest(),'inputSha256':hashlib.sha256((OUT/(name+'.png')).read_bytes()).hexdigest(),'maskMethod':'authored central-view bounds, background color mask and hole fill; original pixels retained','status':'observed image, inferred segmentation'}
+    records[name] = {'sheetRect':list(rect),'previewRect':list(preview_rect),'rawCropSha256':hashlib.sha256((OUT/(name+'-raw.png')).read_bytes()).hexdigest(),'inputSha256':hashlib.sha256((OUT/(name+'.png')).read_bytes()).hexdigest(),'maskMethod':'authored central-view bounds, background color mask and hole fill; original-resolution pixels retained','status':'observed image, inferred segmentation'}
 provenance = {
     'author':'RINNE original procedural model; reference supplied by the commissioning user',
     'source':'User attachment 1000003576.png / Golden Base Boy v1, explicitly supplied to create this new Golden Base',
     'license':'RINNE-OWNED',
     'authorizationEvidence':'User explicitly instructed Character Create Forge creation from this attachment. No third-party character model, rig or texture library is imported.',
     'referenceAuthorship':'User-provided; independent original authorship not asserted',
-    'originalSha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
+    'originalSha256':source_hash,
+    'originalSize':list(image.size),
     'shapeAuthority':'Central Front / Side / Back figures only; right panels are implementation guidance',
     'excluded':'Previously generated presentation image; right technical thumbnails; footer dressed character',
     'bodyRatioPolicy':'Measure the actual central figures, do not force the decorative approximately-3.5 label over the drawn proportions',
@@ -72,4 +78,4 @@ shutil.copy2(prov,target/'source/provenance.json')
 for name in ('front','side','back'): shutil.copy2(OUT/(name+'-raw.png'),target/'source'/(name+'-raw-crop.png'))
 request = {'target':'reusable Golden Base only','newMesh':True,'hair':False,'garments':False,'accessories':False,'grayRegion':'neutral base material region, not a separate garment','required':['clean topology','UV','materials','Golden Rig compatibility','real morph targets','Head/LeftHand/RightHand/Weapon sockets','Blender edit and actual turnaround comparison'],'reviewStatus':'DCC refinement required; pipeline candidate is not completion','sourceHead':'2724d7afce29f6ab7e19374450741a968d54b857'}
 (target/'golden-base-request.json').write_text(json.dumps(request,indent=2),encoding='utf-8')
-print(json.dumps({'stage':'FORGE_CLI_EXECUTED','id':'golden-base-boy-v1','originalSha256':provenance['originalSha256'],'dccApproval':False}))
+print(json.dumps({'stage':'FORGE_CLI_EXECUTED','id':'golden-base-boy-v1','originalSha256':source_hash,'dccApproval':False}))
