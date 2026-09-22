@@ -152,7 +152,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
   if(!Number.isFinite(enemyLeadSeconds)||enemyLeadSeconds<0||enemyLeadSeconds>1)throw new RangeError('Invalid enemy lead');
   if(!PHASES.includes(heroStartPhase)||!Number.isInteger(heroStartTechniqueIndex)||heroStartTechniqueIndex<0||heroStartTechniqueIndex>2)throw new RangeError('Invalid hero start');
   let encounter=1,epoch=1,revision=0,time=0,resumes=0,resumed=false,battle,respawnAt=null;
-  let actionState=new Map(),reactionState=new Map(),reactionCooldowns=new Map(),cursors=new Map(),readyAt=new Map(),positions=new Map(),recoveries=new Map(),maneuvers=new Map(),counterWindows=new Map(),exchangeStates=new Map(),normalPending=new Set(),settleAt=new Map(),terminalFacings=new Map(),lastEvents=[],trace=[],lastFrame=null,lastMeta=null,attemptSerial=0;
+  let actionState=new Map(),reactionState=new Map(),reactionCooldowns=new Map(),cursors=new Map(),readyAt=new Map(),positions=new Map(),recoveries=new Map(),maneuvers=new Map(),counterWindows=new Map(),exchangeStates=new Map(),normalPending=new Set(),settleAt=new Map(),terminalFacings=new Map(),lastEvents=[],trace=[],currentActivity=[],lastFrame=null,lastMeta=null,attemptSerial=0;
 
   function cursorFor(actor){let cursor=cursors.get(actor.id);if(!cursor){cursor=cursorState(comboStyle);cursors.set(actor.id,cursor);}return cursor;}
   function seedReadyWindow(delay=.24){readyAt.clear();for(const actor of battle.actors.values())readyAt.set(actor.id,time+Math.max(0,delay+(actor.side==='enemy'?.12-enemyLeadSeconds:0)));}
@@ -174,7 +174,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
   }
   freshBattle();
 
-  function traceRow(row){trace.push(freeze({...row,time:Number(time.toFixed(2))}));if(trace.length>180)trace=trace.slice(-180);}
+  function traceRow(row){const entry=freeze({...row,time:Number(time.toFixed(2))});trace.push(entry);currentActivity.push(entry);if(trace.length>180)trace=trace.slice(-180);}
   function exchangeKey(a,b){return[a.id,b.id].sort().join('::');}
   function exchangeFor(a,b){
     const key=exchangeKey(a,b);let row=exchangeStates.get(key);
@@ -325,10 +325,11 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
   }
   function breakChain(actor,state,reason){
     const cursor=cursorFor(actor),node=nodeFor(actor,cursor),techniqueIndex=cursor.techniqueIndex,target=battle.actors.get(state.targetId);
-    cancelJohakyuStage(state);cursor.stageIndex=0;actionState.delete(actor.id);
+    cancelJohakyuStage(state);cursor.phaseIndex=0;cursor.techniqueIndex=0;cursor.stageIndex=0;cursor.cycle++;actionState.delete(actor.id);
+    if(target)updateExchange(actor,target,{type:'interrupted',phase:node.phase});
     const recoverySeconds=RECOVERY_SECONDS[reason]??.34;setRecovery(actor,reason,state.targetId,recoverySeconds);
     if(reason==='miss'&&target)setManeuver(actor,target,{reason:'miss-reset',footwork:'chase',seconds:.9,stopDistance:ENGAGE_DISTANCE});
-    if(actor.id==='hero')traceRow({type:'chain-break',reason,phase:node.phase,techniqueId:state.node.technique.id,techniqueIndex,stageIndex:state.node.stage.index,restartTechniqueIndex:techniqueIndex,restartStageIndex:0});
+    if(actor.id==='hero')traceRow({type:'chain-break',actorId:actor.id,reason,phase:node.phase,techniqueId:state.node.technique.id,techniqueIndex,stageIndex:state.node.stage.index,restartPhase:'jo',restartTechniqueIndex:0,restartStageIndex:0});
   }
   function selectCapableNode(actor,target){
     const cursor=cursorFor(actor),node=nodeFor(actor,cursor),capability=reviewTechniqueCapability(actor,node);
@@ -527,10 +528,11 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
       techniqueName:action?.name??cursorNode.technique.name,techniqueIndex:action?.techniqueIndex??heroCursor.techniqueIndex,chainLength:action?.chainLength??cursorNode.chain.length,
       chainLabel:action?.chainLabel??reviewChainLabel(cursorNode.phase,cursorNode.chain.length),stageIndex:action?.stageIndex??heroCursor.stageIndex,stageLabel:action?.stageLabel??cursorNode.stage.label,
       cycle:heroCursor.cycle,stamina:Math.round(hero.stamina),injuryPart:PART_LABELS[worst[0]],injuryPercent:Math.round(worst[1].severity*100),
-      party:1,enemies:livingEnemies,resumes,encounter,epoch,battleId:frameValue.battleId,respawnIn:respawnAt===null?null:Math.max(0,respawnAt-time)});
+      party:1,enemies:livingEnemies,resumes,encounter,epoch,battleId:frameValue.battleId,activity:freeze(currentActivity.slice()),respawnIn:respawnAt===null?null:Math.max(0,respawnAt-time)});
   }
   function step(dt=1/60){
     if(!Number.isFinite(dt)||dt<0||dt>.25)throw new TypeError('Invalid P7 review delta');
+    currentActivity=[];
     time+=dt;revision++;
     for(const [key,until]of settleAt)if(time>=until){const row=exchangeStates.get(key);exchangeStates.set(key,reduceJohakyuExchange(row,{type:'settle'}));settleAt.delete(key);}
     for(const actor of battle.actors.values())recoverJohakyuStamina(actor,dt);
