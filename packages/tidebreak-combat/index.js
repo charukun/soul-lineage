@@ -1,4 +1,4 @@
-import {classifyJohakyuParry} from '@soul/johakyu-combat/exchange-policy';
+import {classifyJohakyuParry,johakyuExchangeRestartActors} from '@soul/johakyu-combat/exchange-policy';
 import {createTidebreakExchangeObserver} from './exchange-observer.js';
 import { cloneInspirationWeaponArts } from '@soul/game-data';
 import {createSharedTidebreakFacade,installSharedTidebreakWeaponProfiles,sharedPommelContact} from './shared-runtime-facade.js';
@@ -3507,9 +3507,7 @@ function exchangeActor(id){return [hero,...enemies].find(a=>String(a.id)===Strin
 function observeExchange(event){
  const before=event.sourceId!=null&&event.targetId!=null?exchangeObserver.between(event.sourceId,event.targetId):null;
  const row=exchangeObserver.observe(event);if(!row)return null;
- if((before?.mode!==row.exchange.mode||before?.serial!==row.exchange.serial)&&['read','reversal','zanshin'].includes(row.exchange.mode)&&['reset','reverse'].includes(row.exchange.continuity)){
-  for(const id of row.exchange.pair){const a=exchangeActor(id);if(a)a.exchangeRestartPending=true;}
- }
+ for(const id of johakyuExchangeRestartActors(before,row.exchange,exchangeObserver.snapshot().exchanges)){const a=exchangeActor(id);if(a)a.exchangeRestartPending=true;}
  return row;
 }
 function pairFor(a){const target=nearest(a);return target?exchangeObserver.between(a.id,target.id):null;}
@@ -3584,7 +3582,7 @@ performCounter=function(defender,source){
 const registerHitFacade=registerHit;
 registerHit=(source,target,attack,contact)=>{
  const execution=sharedFacade.execution(source),defense=guardMode(target),pair=exchangeObserver.between(source.id,target.id);
- const parry=classifyJohakyuParry({authored:defense==='parry'&&Boolean(target.attack),counter:defense==='counter',slip:defense==='slip',responding:pair.initiativeId!==String(target.id),phase:execution?.phase,impact:{heavy:decisiveContact(target,attack),power:attack.power}});
+ const parry=classifyJohakyuParry({authored:defense==='parry'&&target.attack?.targetId===source.id,counter:defense==='counter',slip:defense==='slip',responding:pair.initiativeId!==String(target.id),phase:execution?.phase,impact:{heavy:decisiveContact(target,attack),power:attack.power}});
  const context={execution,attackId:attack.id,parry,defense,reversed:false},prior=exchangeCounterContext;exchangeCounterContext=context;
  try{return sharedFacade.withHitContext(source,target,attack,()=>{
   const already=attack.damaged.has(target.id),beforeHp=target.hp,result=registerHitFacade(source,target,attack,contact);

@@ -60,3 +60,12 @@ test('a fresh configured runtime never restores pending exchange or attacks',()=
  const s=r.configure({encounterReady:true,weapon:'sword',hp:71,enemyHp:80});
  assert.equal(s.hero.hp,71);assert.equal(s.hero.attack,null);assert.equal(s.hero.transition,false);assert.deepEqual(s.exchanges,[]);assert.deepEqual(s.exchangeEvents,[]);
 });
+
+test('a secondary pair completion cannot interrupt the real primary attack',()=>{
+ const r=fixture();r.configure({encounterReady:true,weapon:'sword',opponent:'group',hp:1000,enemyHp:1000,positions:{hero:{x:0,z:0,yaw:0},enemies:[{x:0,z:1.6},{x:3,z:3},{x:-3,z:3}]}});
+ r._test.start('hero',recipe(r,'primary-slash','slash'));const before=r.state(),id=String(before.hero.id),secondary=String(before.enemies[1].id);
+ assert.equal(before.exchanges.find(e=>e.initiativeId===id)?.mode,'pressure');
+ r.observeExchange({type:'normal-start',sourceId:secondary,targetId:id,phase:'enemy'});r.observeExchange({type:'offense-complete',sourceId:secondary,targetId:id,phase:'enemy'});
+ assert.equal(r.state().hero.normalRestartPending,false);
+ const after=r.step(1/60);assert.equal(after.hero.execution.attackId,before.hero.execution.attackId);assert.equal(after.exchanges.find(e=>e.initiativeId===id)?.mode,'pressure');
+});

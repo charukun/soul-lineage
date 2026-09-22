@@ -76,3 +76,11 @@ export function johakyuExchangeHudState(state,{actorId='hero',phase:slot=null,re
   const p=slot??state.lastPhase;
   return ['jo','ha','kyu'].includes(p)?p:'maai';
 }
+
+/** A finished secondary pair must not rewind another pair's normal offense.
+ * Decisive physical interruptions still request restart after native cleanup. */
+export function johakyuExchangeRestartActors(before,after,exchanges=[]){
+  if(!before||!after||(before.mode===after.mode&&before.serial===after.serial)||!['read','reversal','zanshin'].includes(after.mode))return freeze([]);
+  const decisive=['strong-parry','deep-hit','incapacitation'].includes(after.lastReason);
+  return freeze(after.pair.filter(actorId=>decisive||!exchanges.some(row=>row.mode==='pressure'&&row.initiativeId===actorId&&!samePair(row.pair,...after.pair))));
+}

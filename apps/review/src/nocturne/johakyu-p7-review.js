@@ -1,7 +1,7 @@
 import {applyJohakyuImpactOnce,createJohakyuBattle,createJohakyuCheckpoint,johakyuActorCapability,recoverJohakyuStamina,restoreJohakyuCheckpoint,selectReachableTarget,spendJohakyuStamina} from '@soul/johakyu-combat/domain';
 import {resolveJohakyuLocomotion,resolveJohakyuMotion} from '@soul/johakyu-combat/motion-contract';
 import {addTechniqueToReviewChain,compileTechniqueComposition,createReviewTechniqueComposition,reviewChainLabel,techniqueFromCombatForm} from '@soul/johakyu-combat/technique-composition';
-import {classifyJohakyuParry,createJohakyuExchangeState,johakyuExchangeSnapshot,johakyuExchangeHudState,reduceJohakyuExchange} from '@soul/johakyu-combat/exchange-policy';
+import {classifyJohakyuParry,johakyuExchangeRestartActors,createJohakyuExchangeState,johakyuExchangeSnapshot,johakyuExchangeHudState,reduceJohakyuExchange} from '@soul/johakyu-combat/exchange-policy';
 
 import {johakyuStageCapability} from '@soul/johakyu-combat/execution-capability';
 
@@ -158,9 +158,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   function updateExchange(source,target,event){
     const key=exchangeKey(source,target),before=exchangeFor(source,target),after=reduceJohakyuExchange(before,{...event,sourceId:event.sourceId??source.id,targetId:event.targetId??target.id});
     exchangeStates.set(key,after);
-    if(after!==before&&(after.mode==='reversal'||(after.mode==='read'&&before.mode!=='read')||after.mode==='zanshin')){
-      normalPending.add(source.id);normalPending.add(target.id);
-    }
+    for(const id of johakyuExchangeRestartActors(before,after,[...exchangeStates.values()]))normalPending.add(id);
     if(after.mode==='zanshin'&&before.mode!=='zanshin')settleAt.set(key,time+.3);
     if(after.mode!=='zanshin')settleAt.delete(key);
     if(before.mode!==after.mode||before.initiativeId!==after.initiativeId||['reverse','reset'].includes(after.continuity))traceRow({type:'exchange',sourceId:source.id,targetId:target.id,mode:after.mode,initiativeId:after.initiativeId,responderId:after.responderId,continuity:after.continuity,reason:after.lastReason,phase:after.lastPhase,serial:after.serial,completedBy:after.completedBy});
@@ -168,7 +166,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.85,enemyLea
   }
   function reviewParryStrength(source,target,targetState,defenseNode){
     const reaction=Boolean(targetState?.reaction),fresh=target.stamina/Math.max(1,target.staminaCap)>=.55;
-    return classifyJohakyuParry({authored:!reaction,counter:reaction&&fresh&&defenseNode?.phase==='kyu',phase:defenseNode?.phase??'uke',responding:exchangeFor(source,target).initiativeId!==target.id,capable:johakyuStageCapability(target,{weapon:'sword',kind:'parry',phase:'uke'}).allowed});
+    return classifyJohakyuParry({authored:!reaction&&targetState?.targetId===source.id,counter:reaction&&fresh&&defenseNode?.phase==='kyu',phase:defenseNode?.phase??'uke',responding:exchangeFor(source,target).initiativeId!==target.id,capable:johakyuStageCapability(target,{weapon:'sword',kind:'parry',phase:'uke'}).allowed});
   }
   function setRecovery(actor,reason,targetId,seconds){
     const until=time+Math.max(0,seconds),previous=recoveries.get(actor.id),lockedUntil=Math.max(until,previous?.until||0);

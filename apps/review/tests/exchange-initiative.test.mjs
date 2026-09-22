@@ -66,3 +66,16 @@ test('explicit checkpoint destroys transient exchange and old phase while retain
  }
  assert.ok(resumed);
 });
+
+test('secondary enemy completion cannot rewind the hero primary initiative',()=>{
+ const scenario=create({mode:'oneVsThree'}),phases=new Map(),rank={jo:0,ha:1,kyu:2};let secondaryComplete=false,afterCompletion=false;
+ for(let i=0;i<640;i++){
+  const {meta:m}=scenario.step(1/60);
+  secondaryComplete ||= scenario.inspect().trace.some(e=>e.type==='exchange'&&['enemy-b','enemy-c'].includes(e.sourceId)&&e.mode==='zanshin');
+  if(m.exchangeMode==='pressure'&&m.initiativeId==='hero'&&m.hudState!=='maai'){
+   assert.ok(rank[m.hudState]>=(phases.get(m.exchangeSerial)??-1),`secondary pair rewound primary serial ${m.exchangeSerial}`);phases.set(m.exchangeSerial,rank[m.hudState]);
+   afterCompletion ||= secondaryComplete&&rank[m.hudState]>=1;
+  }
+ }
+ assert.ok(secondaryComplete&&afterCompletion);
+});

@@ -62,3 +62,5 @@ HUDは`johakyuExchangeHudState`を本編とreviewで共有する。相手initiat
 Tidebreakの防御を含む編成済みrecipe、attackId、実軌道・接触時刻・target lock・world contactを維持する。stamina不足や腕/脚の機能制限は既存stage/technique capabilityで拒否し、initiativeを理由に通さない。周囲の敵のflank/support/retreat/secondary contactをpairでロックしない。projectile、finisher、因果閃きの実行・接触・支払条件は別の既存authorityを維持する。
 
 保存時は現在combatのcursor/target/queue/pose/exchange/counter/残心を破棄し、HP・部位負傷・stamina・装備・技譜・恒久因果記録を保持する。ロードはREADから始める。live stateはserializeによって変更しない。
+
+Secondary pair completion/failure must not request a cursor restart for an actor who is still pressing in another pair. The shared restart-participant policy enforces this for native Tidebreak and the review adapter. An authored parry intent is directed at the executor's actual target lock: incidental blade contact from another opponent is a light deflection, not an invented strong reversal toward an unauthored target. Real decisive interruptions remain executor cleanup events.
