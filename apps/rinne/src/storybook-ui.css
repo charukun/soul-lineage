@@ -74,3 +74,45 @@
 @media(max-height:700px){.rb-page{--rb-top:12%;--rb-bottom:12%;--rb-heading:13%;--rb-loadout:27%}.rb-logo>p{display:none}.rb-book-head p{display:none}.rb-hero{height:70%}.rb-help{bottom:4px}.rb-body-chart{display:none}.rb-signs{min-height:30px}.rb-detail-picture{flex-basis:23%}.rb-detail h2{font-size:15px}}
 @media(orientation:landscape){.rb-page{--rb-top:8%;--rb-bottom:17%;--rb-heading:14%;--rb-loadout:30%}.rb-layout{max-width:1000px}.rb-logo{font-size:20px;padding-top:0}.rb-logo>p,.rb-logo>small,.rb-hero{display:none}.rb-person{top:0;font-size:10px;padding:0 8px;display:flex}.rb-book-head{padding-left:16%}.rb-crest{width:24%;max-height:180%;left:-4%}.rb-book-head h1{font-size:27px}.rb-slot{grid-template-columns:32% 1fr;grid-template-rows:auto auto;padding:2px 4px;column-gap:5px}.rb-slot-art{grid-row:1/3;min-height:0}.rb-slot-label{font-size:8px}.rb-slot>strong{font-size:12px}.rb-slot>small,.rb-change{display:none}.rb-current{grid-template-rows:28% 1fr}.rb-grid{grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:65px}.rb-body-chart{display:none}.rb-detail-picture{display:none}.rb-detail-copy{font-size:10px}.rb-detail h2{font-size:15px}.rb-detail h3{font-size:11px}.rb-detail-copy p{margin:0 0 4px}.rb-detail footer{padding:0}.rb-filters button,.rb-library-tools{min-height:22px}.rb-section-bar h2{font-size:14px}.rb-book{grid-template-rows:var(--rb-heading) var(--rb-loadout) minmax(0,1fr) auto}.rb-signs,.rb-status{display:none}#game-screen[data-storybook-open="true"] .rinne-primary-four{width:320px!important;bottom:12px!important;grid-template-columns:repeat(4,44px)!important;justify-content:space-between!important}#game-screen[data-storybook-open="true"] .rinne-primary-four .upgrade-control{width:44px!important;min-height:44px!important}#game-screen[data-storybook-open="true"] .rinne-primary-four .upgrade-control>span{font-size:8px!important}}
 @media(prefers-reduced-motion:reduce){.rb-page *{animation:none!important;transition:none!important}}
+
+
+/* Review 70: readable touch-first book pages without changing the book metaphor. */
+.rb-mind-current{flex:0 0 auto;margin:0 0 7px;padding:7px 9px;border:1px solid #cbb692;border-radius:9px;background:#fff5dc9c;cursor:pointer}
+.rb-mind-current>h3{margin:0 0 4px;font-family:var(--font-rinne-display),serif;font-size:clamp(11px,1.8vw,19px);font-weight:500}
+.rb-mind-current .rb-mind{grid-template-columns:70px minmax(0,1fr);gap:10px;margin:0}
+.rb-mind-current:focus-visible{outline:3px solid #56866d;outline-offset:2px}
+@media(max-width:620px) and (orientation:portrait){
+  .rb-page{font-size:14px;--rb-library-width:100%}
+  .rb-book-head{padding-right:48px}
+  .rb-help{min-height:44px;min-width:72px;display:grid;place-items:center;padding:4px 8px}
+  .rb-close{width:44px;height:44px;min-width:44px;min-height:44px;right:-2px;top:-4px}
+  .rb-main{grid-template-columns:1fr;overflow-y:auto;overscroll-behavior:contain;padding-bottom:8px}
+  .rb-library{overflow:visible;min-height:260px}
+  .rb-detail{min-height:300px;margin-top:8px;overflow:visible}
+  .rb-detail-copy{overflow:visible;font-size:14px;line-height:1.65}
+  .rb-detail p,.rb-detail small,.rb-origin{font-size:13px}
+  .rb-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(88px,auto)}
+  .rb-tile{min-height:88px}
+  .rb-tile>strong{font-size:12px}.rb-tile>small{font-size:11px;white-space:normal}
+  .rb-filters button,.rb-pager button,.rb-primary,.rb-secondary,.rb-library-tools input,.rb-library-tools select{min-height:44px}
+  .rb-library-tools{min-height:44px}
+  .rb-mind-current .rb-mind{grid-template-columns:82px minmax(0,1fr)}
+  .rb-mind dt,.rb-mind dd{font-size:12px}
+}
+@media(max-height:480px) and (orientation:landscape){
+  .rb-book-head{padding-right:58px}
+  .rb-close{width:44px;height:44px;min-width:44px;min-height:44px;top:0}
+  .rb-help{min-height:40px}
+  .rb-detail-copy{font-size:12px}
+  .rb-body-chart{display:block!important;max-height:108px;overflow:auto}
+  .rb-body-chart>div{grid-template-columns:96px minmax(0,1fr)}
+  .rb-body-chart svg{max-height:78px}
+}
+
+.rb-tech-tools{flex:0 0 auto;display:grid;gap:5px;margin:0 0 7px;padding:7px 8px;border:1px solid #cbb692;border-radius:9px;background:#fff5dc9c}
+.rb-tech-tools>strong{font-family:var(--font-rinne-display),serif;font-size:clamp(11px,1.8vw,18px)}
+.rb-tech-tools>div{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.rb-tech-tools button,.rb-tech-tools select{min-height:36px;border:1px solid #b89e75;border-radius:6px;background:#fff3d8;padding:3px 5px;font-size:clamp(8px,1.2vw,12px)}
+.rb-tech-tools label{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:7px;font-size:11px}
+.rb-basis-note{display:block;margin-top:5px;color:#806c50;font-size:.78em;line-height:1.45}
+@media(max-width:620px){.rb-tech-tools>div{grid-template-columns:repeat(2,minmax(0,1fr))}.rb-tech-tools button,.rb-tech-tools select{min-height:44px;font-size:11px}}

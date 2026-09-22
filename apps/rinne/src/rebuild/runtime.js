@@ -222,7 +222,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
       moved=locomotion.step({state,direction,speed,dt,enabled}).moved;
     }
     if(moved&&movementHint){movementHint=false;$('move-hint').hidden=true;}
-    setMoving(state,birthStep.handled?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position,{interiorId:state.interior?.buildingId||null}):null,events=tickLife(state,{realDelta:dt,lifeDelta,station,paused:document.hidden});handleEvents(events);
+    setMoving(state,birthStep.handled?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position,{interiorId:state.interior?.buildingId||null}):null,readingLifePaused=document.body.classList.contains('rinne-first-run-active')||gameScreen.dataset.storybookOpen==='true';gameScreen.dataset.lifeClockPaused=String(readingLifePaused);const events=tickLife(state,{realDelta:dt,lifeDelta:readingLifePaused?0:lifeDelta,station,paused:document.hidden});handleEvents(events);
     if(state.zone==='village'&&!moved&&(station?.enterInterior||station?.exitInterior)){
       if(doorStationId!==station.id){doorStationId=station.id;doorDwell=0;}doorDwell+=dt;
       if(doorDwell>=.55){const entering=station.enterInterior,changed=entering?enterBuilding(state,station):leaveBuilding(state);if(changed){toast(entering?`${station.label}へ入る`:'外へ出る');doorDwell=0;doorStationId='';void save();}}
