@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "uiVersion": "6.0.0",
+  "renderedHead": "15131b88d90f7e5c5f4cb23c536a9182dadd4421",
+  "runUrl": "https://github.com/charukun/soul-lineage/actions/runs/35676757239",
+  "artifactId": 10673900766,
+  "artifactSha256": "6106a60fc6e596d5fdf2d705779b668073730fe452e8025fe752a4a34d786afc",
+  "comparisonHistory": "evidence/receipt.json",
+  "automatedComparisonRounds": 100,
+  "retainedCandidates": 36,
+  "revertedCandidates": 64,
+  "additionalVisualCorrections": [
+    "Restore approved display typography against legacy body-wide font rules",
+    "Exclude baked source text from technique hero artwork",
+    "Remove background-contaminated decorative corner crops"
+  ],
+  "productionSourceBlobs": {
+    "storybook-ui.js": "8679cfa6cec8f28358dab51b9f59ccdae816a4d2",
+    "storybook-model.js": "a411db98b55bc9579a96d635d8430e9e840ed05a",
+    "storybook-ui.css": "555462c686d1feed84c946f90e33ec79a0467fb3",
+    "storybook-polish.css": "24edb40765ba8137085d192661ce8017fdad617d",
+    "storybook-calibration.css": "ecdfaec256979cfa9ffd6d6135bda5e40526a70f"
+  },
+  "referenceSizeScreenshots": {
+    "heart-941x1672.png": "d7db3ad6dc52e39be504f9373faa4e99f9e24752e2124f902f0db6a7bd62ca4a",
+    "technique-941x1672.png": "4cf02bd916c771a67dffa5fb46d610d94a204ea590588d58ba2a613668a72422",
+    "body-941x1672.png": "7629ee15f74150513986a719bc22dd084dc989c35b051c895e6ff8d6ed4d1f59",
+    "items-941x1672.png": "4e9611c9ed0f58104500b8bf6a707bc4932b5ef463fcb3634f145ac7f5264253"
+  },
+  "viewports": [[390,680],[360,520],[740,360],[941,1672]],
+  "acceptance": "All four production UI pages, preview/confirm through canonical setters, save roundtrip, age/combat/shared-world gates, close cleanup, artwork and viewport checks passed",
+  "browserErrors": [],
+  "scope": "Isolated UI fixtures. Not a no-injection complete-life playthrough. The reference art is reproduced with current game data; complete pixel identity is not claimed.",
+  "finalization": "Remove task-only workflow and control input, then run the same browser acceptance and RINNE build on the merge-owning exact head. Keep the listed production blobs unchanged."
+}

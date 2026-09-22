@@ -1,4 +1,7 @@
 import {readProgress, huntPlan, goalText, bodyStats, automaticGrowth} from '../hunt/balance.js';
+import {PREY} from '@soul/raid/world';
+import {devourFeedback} from './devour-feedback-state.js';
+import './devour-feedback.css';
 import './hunt-flow.css';
 import './hunt-minimal-hud.css';
 import './title-readability.css';
@@ -19,6 +22,13 @@ export class HuntFlowUi {
     this.exitText.append(this.exitDistance, this.exitValue); byId('return-hint').replaceChildren(this.bearing, this.exitText);
     this.actionLine = document.createElement('p'); this.actionLine.className = 'hunt-action';
     this.actionLine.setAttribute('role', 'status'); this.actionLine.hidden = true; this.objective.append(this.actionLine);
+    this.devourReadout = document.createElement('section');
+    this.devourReadout.id = 'devour-feedback'; this.devourReadout.hidden = true;
+    this.devourReadout.setAttribute('aria-label', '捕食の進行と獲得');
+    this.devourReadout.innerHTML = '<strong data-title role="status"></strong><span data-detail></span><progress max="1" value="0" aria-label="捕食の進行"></progress><span data-loot></span><p data-action></p>';
+    this.devourCopy = Object.fromEntries(['title', 'detail', 'loot', 'action'].map(key => [key, this.devourReadout.querySelector(`[data-${key}]`)]));
+    this.devourProgress = this.devourReadout.querySelector('progress');
+    byId('hud').append(this.devourReadout);
     this.actionToken = ''; this.actionAt = 0;
     this.guideSeen = new Set();
     this.hubStatus = document.createElement('p'); this.hubStatus.className = 'hunt-hub-status';
@@ -34,6 +44,17 @@ export class HuntFlowUi {
   shouldReturn(game) { return game.pressure().returnSuggested; }
   target(game, returning) { return game.fight || game.devour || returning || this.shouldReturn(game) ? null : game.nextHuntPrey(); }
   update(game, {returning = false, overlay = false} = {}) {
+    const feedback = devourFeedback(game, {overlay, prey: PREY});
+    this.devourReadout.hidden = !feedback;
+    if (feedback) {
+      this.devourReadout.dataset.state = feedback.state;
+      for (const [key, node] of Object.entries(this.devourCopy)) {
+        if (node.textContent !== feedback[key]) node.textContent = feedback[key];
+        node.hidden = !feedback[key];
+      }
+      this.devourProgress.hidden = feedback.progress === null;
+      if (feedback.progress !== null) this.devourProgress.value = feedback.progress;
+    }
     returning = returning || this.shouldReturn(game);
     const plan = game.huntPlan, risk = game.pressure(), ready = game.goalReady(), target = this.target(game, returning), exit = game.nearestEscape();
     const heading = this.objective.querySelector(':scope > small'), text = this.objective.querySelector(':scope > span');

@@ -60,7 +60,8 @@ export function renderProgressMini(steps=[],{
   now=Date.now(),
 }={}){
   if(!documentRef)return null;
-  const model=progressMiniModel(steps,now);
+  const clean=(Array.isArray(steps)?steps:[]).filter(step=>step&&step.id);
+  const model=progressMiniModel(clean,now);
   const root=documentRef.createElement('div');
   root.className='rapid-progress-mini '+className;
   root.dataset.progressStatus=model.status;
@@ -131,6 +132,11 @@ export function renderProgressMini(steps=[],{
     name.textContent=point.label;
     const duration=documentRef.createElement('small');
     duration.textContent=point.durationLabel||'—';
+    const source=clean[point.index];
+    const explicit=source?.durationMs;
+    if(point.state==='running'&&(explicit===null||explicit===undefined||explicit==='')&&parseAt(source?.startedAt)!==null){
+      duration.dataset.progressLiveStart=source.startedAt;
+    }
     label.append(name,duration);
     labels.append(label);
   }
@@ -145,4 +151,14 @@ export function renderProgressMini(steps=[],{
 
   root.append(svg,labels,meta);
   return root;
+}
+
+
+export function tickProgressDurations(documentRef=globalThis.document,now=Date.now()){
+  if(!documentRef?.querySelectorAll)return;
+  for(const node of documentRef.querySelectorAll('[data-progress-live-start]')){
+    const start=parseAt(node.dataset.progressLiveStart);
+    if(start===null)continue;
+    node.textContent=progressDurationLabel(Math.max(0,now-start));
+  }
 }

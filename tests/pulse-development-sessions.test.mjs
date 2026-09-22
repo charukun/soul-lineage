@@ -108,3 +108,24 @@ test('autonomous iteration ordering prioritizes problem, running, publishing, th
   assert.deepEqual(items.map(item=>item.status),['problem','running','publishing','complete']);
   assert.equal(items[0].lastFailure.runId,6);
 });
+
+
+test('draft implementation exposes a live start time and exact-head validation advances the visible phase',()=>{
+  const draft={...pr,state:'open',draft:true,merged_at:null,merge_commit_sha:null,created_at:'2026-09-22T05:00:00Z',updated_at:'2026-09-22T05:05:00Z'};
+  let [session]=buildDevelopmentSessions([draft],[]);
+  const implementation=session.steps.find(step=>step.id==='implementation');
+  assert.equal(implementation.state,'running');
+  assert.equal(implementation.startedAt,'2026-09-22T05:00:00Z');
+  assert.equal(implementation.completedAt,null);
+  assert.equal(implementation.durationMs,null);
+
+  const validation={...run(8,'Astra final-head validation '+draft.head.ref,draft.head.sha,'success'),created_at:'2026-09-22T05:06:00Z',updated_at:'2026-09-22T05:06:30Z',head_branch:draft.head.ref};
+  [session]=buildDevelopmentSessions([draft],[validation]);
+  const completed=session.steps.find(step=>step.id==='implementation');
+  const validating=session.steps.find(step=>step.id==='validation');
+  assert.equal(completed.state,'done');
+  assert.equal(completed.completedAt,'2026-09-22T05:06:00Z');
+  assert.equal(completed.durationMs,360000);
+  assert.equal(validating.startedAt,'2026-09-22T05:06:00Z');
+  assert.equal(validating.completedAt,'2026-09-22T05:06:30Z');
+});

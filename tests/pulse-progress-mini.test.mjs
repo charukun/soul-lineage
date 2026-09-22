@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { progressMiniModel, progressStepDurationMs, progressDurationLabel } from '../ops-board/public/progress-mini.js';
+import { progressMiniModel, progressStepDurationMs, progressDurationLabel, tickProgressDurations } from '../ops-board/public/progress-mini.js';
 
 test('shared mini graph is a left-to-right duration timeline',()=>{
   const now=Date.parse('2026-09-22T02:00:20Z');
@@ -61,4 +61,22 @@ test('duration renderer does not bridge across unmeasured gaps',()=>{
   const source=readFileSync(new URL('../ops-board/public/progress-mini.js',import.meta.url),'utf8');
   assert.doesNotMatch(source,/measuredCoords=coords\.filter/);
   assert.match(source,/segments\.push\(currentSegment\)/);
+});
+
+
+test('live elapsed ticker increments running duration labels without a network refresh',()=>{
+  const nodes=[{dataset:{progressLiveStart:'2026-09-22T06:00:00Z'},textContent:''}];
+  const documentRef={querySelectorAll:selector=>selector==='[data-progress-live-start]'?nodes:[]};
+  tickProgressDurations(documentRef,Date.parse('2026-09-22T06:00:12Z'));
+  assert.equal(nodes[0].textContent,'12s');
+  tickProgressDurations(documentRef,Date.parse('2026-09-22T06:00:13Z'));
+  assert.equal(nodes[0].textContent,'13s');
+});
+
+
+test('renderer keeps the source step list in scope for live labels',()=>{
+  const source=readFileSync(new URL('../ops-board/public/progress-mini.js',import.meta.url),'utf8');
+  assert.match(source,/const clean=\(Array\.isArray\(steps\)\?steps:\[\]\)\.filter/);
+  assert.match(source,/progressMiniModel\(clean,now\)/);
+  assert.match(source,/const source=clean\[point\.index\]/);
 });
