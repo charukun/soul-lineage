@@ -29,7 +29,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import hashlib,shutil
-          p=Path('apps/rinne/public/simulator/assets/kaykit/Knight.glb')
+          p=Path('apps/review/public/library/model/717b56ca2b5ff5392679774725201ba03a3eefab/Knight.glb')
           b=p.read_bytes();h=hashlib.sha1(('blob '+str(len(b))+'\0').encode()+b).hexdigest()
           assert h=='717b56ca2b5ff5392679774725201ba03a3eefab',h
           assert len(b)==3659532,len(b)
