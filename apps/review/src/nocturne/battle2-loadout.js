@@ -57,8 +57,9 @@ export function normalizeBattle2Loadout(value={}){
   return{heart:{active},technique,body,equipment:{weapon,shield:weapon==='sword'&&Boolean(value?.equipment?.shield)}};
 }
 export function battle2LoadoutKey(value){
-  const row=normalizeBattle2Loadout(value);
-  return[row.heart.active.join('.'),row.technique.jo,row.technique.ha,row.technique.kyu,row.body.stance,row.body.style,row.body.zanshin,row.equipment.weapon,row.equipment.shield?'shield':'bare'].join('~');
+  const row=normalizeBattle2Loadout(value),raw=[row.heart.active.join('.'),row.technique.jo,row.technique.ha,row.technique.kyu,row.body.stance,row.body.style,row.body.zanshin,row.equipment.weapon,row.equipment.shield?'shield':'bare'].join('~');
+  let hash=2166136261;for(let i=0;i<raw.length;i++){hash^=raw.charCodeAt(i);hash=Math.imul(hash,16777619);}
+  return(hash>>>0).toString(36).padStart(7,'0').slice(-7);
 }
 function readStored(){
   try{return normalizeBattle2Loadout(JSON.parse(globalThis.localStorage?.getItem(STORAGE_KEY)||'{}'));}catch{return normalizeBattle2Loadout();}
