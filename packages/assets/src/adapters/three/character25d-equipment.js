@@ -30,12 +30,14 @@ export function createCharacter25DEquipment(THREE,{body,rig,sockets,height}) {
   // Preserve the legacy socket object, but make its ownership explicit.
   sockets.rightHand.add(sockets.weapon);sockets.weapon.position.set(0,0,0);
   const gripFrame=add('gripFrame',sockets.weapon),support=add('secondaryGripTarget',gripFrame);
-  const hitbox=add('weaponHitboxAnchor',gripFrame),trail=add('trailOrigin',gripFrame);
-  sockets.hitbox=hitbox;
+  const hitbox=sockets.hitbox,trail=add('trailOrigin',gripFrame);
+  gripFrame.add(hitbox);sockets.weaponHitboxAnchor=hitbox;
   const shieldAnchor=add('shieldAnchor',sockets.leftHand),heldAnchor=add('heldItemAnchor',sockets.leftHand);
   let state={weapon:null,shield:false},main=null,shield=null,held=null,profile=null,shieldProfile=null,signature='';
   const point=new THREE.Vector3(),target=new THREE.Vector3(),q=new THREE.Quaternion(),parentQ=new THREE.Quaternion(),axis=new THREE.Vector3(0,1,0);
   const rightTarget=new THREE.Vector3(),leftTarget=new THREE.Vector3();
+  const handDepth=new THREE.Vector2();
+  const prioritizeHands=()=>handDepth.set(main?.026:0,shield||profile?.twoHanded||(held&&heldAnchor.visible)?.026:0);
   function place(anchor,p){const s=p.scale/height;anchor.scale.setScalar(s);anchor.quaternion.fromArray(p.rotation).normalize();anchor.position.fromArray(p.grip).multiplyScalar(-s).applyQuaternion(anchor.quaternion);}
   function setEquipment(value={},overrides={}) {
     const next=resolveRinneEquipment(value),nextProfile=next.weapon?calibration(RINNE_EQUIPMENT_PROFILES[next.weapon],overrides[next.weapon]):null;
@@ -47,10 +49,11 @@ export function createCharacter25DEquipment(THREE,{body,rig,sockets,height}) {
     if(main){place(gripFrame,profile);gripFrame.add(main);support.position.fromArray(profile.supportGrip);support.quaternion.fromArray(profile.supportRotation).normalize();hitbox.position.fromArray(profile.bladeBase);trail.position.fromArray(profile.bladeTip);}
     if(shield){place(shieldAnchor,shieldProfile);shieldAnchor.add(shield);}
     heldAnchor.visible=!shield&&!profile?.twoHanded;
+    prioritizeHands();
   }
   function setHeldItem(item,p={grip:[0,0,0],rotation:[0,0,0,1],scale:1}) {
     if(!Array.isArray(p.grip)||p.grip.length!==3||!p.grip.every(Number.isFinite)||!Array.isArray(p.rotation)||p.rotation.length!==4||!p.rotation.every(Number.isFinite)||!Number.isFinite(p.scale)||p.scale<=0)throw new Error('Invalid held item calibration');
-    const previous=held;held?.removeFromParent();held=item||null;place(heldAnchor,p);if(held)heldAnchor.add(held);return previous;
+    const previous=held;held?.removeFromParent();held=item||null;place(heldAnchor,p);if(held)heldAnchor.add(held);prioritizeHands();return previous;
   }
   function orient(socket,rotation){socket.parent.getWorldQuaternion(parentQ);body.getWorldQuaternion(q);q.multiply(rotation);socket.quaternion.copy(parentQ.invert().multiply(q));}
   function pose(motion) {
@@ -64,7 +67,7 @@ export function createCharacter25DEquipment(THREE,{body,rig,sockets,height}) {
       target.y+=strike*.05;target.z+=strike*.10;
       if(profile.occlusionMode==='front')target.z+=.07;if(profile.occlusionMode==='behind')target.z-=.07;
       // Keep the full support pair in both arms' reach, including custom scales.
-      const rotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(-.12-strike*.9,0,profile.twoHanded?.80:.42-strike*.18));
+      const rotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(.12+strike*.9,0,profile.twoHanded?.80:.42-strike*.18));
       const supportDelta=new THREE.Vector3().fromArray(profile.supportGrip).sub(new THREE.Vector3().fromArray(profile.grip)).multiplyScalar(profile.scale/height).applyQuaternion(new THREE.Quaternion().fromArray(profile.rotation).normalize()).applyQuaternion(rotation);
       for(let pass=0;pass<12;pass++)for(const side of profile.twoHanded?['R','L']:['R']){
         const shoulder=rig.byName.get('upperArm.'+side),elbow=rig.byName.get('lowerArm.'+side),wrist=rig.byName.get('hand.'+side);
@@ -97,5 +100,5 @@ export function createCharacter25DEquipment(THREE,{body,rig,sockets,height}) {
   }
   const pos=node=>node.getWorldPosition(new THREE.Vector3()).toArray();
   function snapshot(){body.updateWorldMatrix(true,true);return {equipment:{...state},twoHanded:Boolean(profile?.twoHanded),hand:pos(sockets.rightHand),offhand:pos(sockets.leftHand),actualGrip:main?main.localToWorld(new THREE.Vector3().fromArray(profile.grip)).toArray():null,secondaryGrip:pos(support),trail:pos(trail),hitbox:pos(hitbox),occlusionMode:profile?.occlusionMode||null};}
-  return {setEquipment,setHeldItem,pose,project,snapshot,dispose(){disposeRinneEquipment(main);disposeRinneEquipment(shield);main=shield=null;held?.removeFromParent();held=null;}};
+  return {setEquipment,setHeldItem,pose,project,snapshot,handDepth,dispose(){disposeRinneEquipment(main);disposeRinneEquipment(shield);main=shield=null;held?.removeFromParent();held=null;}};
 }

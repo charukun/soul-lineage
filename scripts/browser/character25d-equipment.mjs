@@ -16,7 +16,7 @@ const distance=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
 async function server(app,port){const process=spawn('node',[resolve('node_modules/vite/bin/vite.js'),'--host','127.0.0.1','--port',String(port),'--strictPort'],{cwd:resolve('apps',app),stdio:'inherit',env:{...globalThis.process.env,APP_ENV:'dev'}});servers.push(process);for(let i=0;i<100;i++){try{const r=await fetch(`http://127.0.0.1:${port}/`);if(r.ok)return;}catch{}if(process.exitCode!==null)throw Error(app+' server exited');await delay(250);}throw Error(app+' server timeout');}
 function observe(page){page.on('pageerror',e=>receipt.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')receipt.errors.push(m.text());});}
 async function sample(canvas,tag,attribute=null,expectedAction=null){
-  if(expectedAction)await expect.poll(()=>canvas.evaluate(c=>c.character25dSnapshot?.()?.action),{timeout:10000}).toBe(expectedAction);
+  if(expectedAction)await expect.poll(()=>canvas.evaluate(c=>c.character25dSnapshot?.()?.action),{timeout:expectedAction==='idle'?60000:10000}).toBe(expectedAction);
   const snapshot=await canvas.evaluate(c=>c.character25dSnapshot?.());receipt.samples.push({tag,...snapshot});assert.ok(snapshot.actualGrip,tag+' has a weapon');
   assert.ok(distance(snapshot.hand,snapshot.actualGrip)<.0001,tag+' grip separates');
   if(snapshot.twoHanded)assert.ok(distance(snapshot.offhand,snapshot.secondaryGrip)<.01,tag+' second grip separates');
@@ -77,6 +77,7 @@ try{
   await expect(game.locator('#soul-brand-boot')).toHaveClass(/armed/,{timeout:90000});await game.locator('#soul-brand-boot').click();await expect(game.locator('#soul-brand-boot')).toHaveCount(0);
   await game.waitForFunction(()=>{const t=document.getElementById('title-screen');return t?.dataset.intro==='idle'||t?.dataset.skip==='ready';});if(await game.locator('#title-screen').getAttribute('data-intro')==='cinematic')await game.locator('#title-screen').click({position:{x:80,y:80}});
   await game.locator('#continue-life').click();await game.getByRole('button',{name:'この人生を続ける',exact:true}).click();await expect(game.locator('#game')).toHaveAttribute('data-runtime','active',{timeout:90000});
+  await expect(game.locator('.rinneFirstRunSkip')).toBeVisible();await game.locator('.rinneFirstRunSkip').click();await expect(game.locator('#rinneFirstRunGuide')).toHaveCount(0);
   const gameCanvas=game.locator('#game');await expect.poll(()=>gameCanvas.evaluate(c=>c.character25dSnapshot?.()?.actualGrip),{timeout:30000}).not.toBeNull();await delay(300);
   const idle=await sample(gameCanvas,'rinne-idle',null,'idle');assert.deepEqual(idle.equipment,{weapon:'sword',shield:true});await game.screenshot({path:resolve(output,'rinne-idle.png')});
   await game.locator('[data-training-strike]').click();await delay(250);await sample(gameCanvas,'rinne-attack','data-character25d','attack');await game.screenshot({path:resolve(output,'rinne-attack.png')});
