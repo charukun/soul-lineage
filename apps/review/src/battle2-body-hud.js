@@ -17,12 +17,12 @@ export function createBattle2BodyHud(root){
  const detail=document.createElement('section');detail.className='battle2-body-hud__detail';detail.hidden=true;
  const close=document.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label','閉じる');detail.append(close);
  const list=document.createElement('div');list.className='battle2-body-hud__list';const gauges=new Map();
- for(const part of COMBAT_BODY_PARTS){const row=document.createElement('div');row.className='battle2-body-hud__gauge';row.dataset.bodyPart=part;const meter=document.createElement('b'),fill=document.createElement('i');meter.append(fill);row.append(meter);row.setAttribute('aria-label',part);list.append(row);gauges.set(part,{row,fill});}
+ for(const part of COMBAT_BODY_PARTS){const row=document.createElement('div');row.className='battle2-body-hud__gauge';row.dataset.bodyPart=part;const label=document.createElement('span'),meter=document.createElement('b'),fill=document.createElement('i');meter.append(fill);row.append(label,meter);row.setAttribute('aria-label',part);list.append(row);gauges.set(part,{row,label,fill});}
  detail.append(list);root.replaceChildren(figure,detail);
  let actor=null,open=false,previous=new Map(),timer=0;
  function render(){
   if(!actor)return;const model=battle2BodyModel(actor);
-  for(const part of model.parts){const node=parts.get(part.id),gauge=gauges.get(part.id);node.dataset.tone=part.tone;node.dataset.stage=part.stage;node.setAttribute('aria-label',part.label+' '+part.stage);gauge.row.dataset.tone=part.tone;gauge.row.setAttribute('aria-label',part.label+' '+part.stage);gauge.fill.style.width=part.durability+'%';}
+  for(const part of model.parts){const node=parts.get(part.id),gauge=gauges.get(part.id);node.dataset.tone=part.tone;node.dataset.stage=part.stage;node.setAttribute('aria-label',part.label+' '+part.stage);gauge.row.dataset.tone=part.tone;gauge.row.setAttribute('aria-label',part.label+' '+part.stage);gauge.label.textContent=part.label;gauge.fill.style.width=part.durability+'%';}
   detail.hidden=!open;figure.setAttribute('aria-expanded',String(open));
  }
  function toggle(){open=!open;render();}

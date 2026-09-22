@@ -10,6 +10,8 @@ test('序破急バトルビューはshared Camera Directorと45度カメラUIへ
   assert.match(html,/data-battle2-camera-host/);
   assert.match(css,/\.battle2-camera-control-host\{/);
   assert.match(css,/right:max\(8px,env\(safe-area-inset-right\)\)/);
+  assert.match(css,/width:50px;height:50px;pointer-events:auto/);
+  assert.match(css,/position:absolute!important;inset:0!important;left:0!important;top:0!important/);
   assert.match(stage,/createBattle2CameraPresentation\(\{stage,world\}\)/);
   assert.match(stage,/cameraPresentation,onMeta:updateSequence/);
   assert.match(stage,/cameraPresentation\.dispose\(\)/);

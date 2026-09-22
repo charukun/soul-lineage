@@ -26,21 +26,21 @@ export function createRinnePlayerHud(root,{name='旅人',age=0}={}){
   const nameNode=document.createElement('strong'),ageNode=document.createElement('small');nameNode.className='rinne-player-hud__name';ageNode.className='rinne-player-hud__age';info.append(nameNode,ageNode);
   const charm=document.createElement('i');charm.className='rinne-player-hud__charm';charm.setAttribute('aria-hidden','true');charm.textContent='❀';
   card.append(portrait,info,charm);root.replaceChildren(card);
-  let raf=0,lastCapture=-Infinity,destroyed=false;
+  let lastCapture=-Infinity,destroyed=false;
   const update=next=>{if(!next)return;nameNode.textContent=String(next.name||'旅人').trim()||'旅人';const years=clamp(Math.floor(Number(next.age)||0),0,999);ageNode.textContent=years+'歳';card.setAttribute('aria-label',nameNode.textContent+' '+ageNode.textContent);};
   const draw=(source,{x=.5,y=.56,scale=.3}={})=>{
     if(destroyed||!source||!Number.isFinite(source.width)||!Number.isFinite(source.height)||source.width<2||source.height<2)return false;
     const ctx=canvas.getContext('2d');if(!ctx)return false;
     const sw=source.width,sh=source.height,side=Math.max(24,Math.min(sw,sh)*clamp(Number(scale)||.3,.18,.5)),cx=clamp(Number(x)||.5,0,1)*sw,cy=clamp(Number(y)||.56,0,1)*sh;
     const sx=clamp(cx-side*.5,0,Math.max(0,sw-side)),sy=clamp(cy-side*.54,0,Math.max(0,sh-side));
-    try{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(source,sx,sy,side,side,0,0,canvas.width,canvas.height);const sample=ctx.getImageData(16,16,64,64).data;let light=0;for(let i=0;i<sample.length;i+=32)light+=sample[i]+sample[i+1]+sample[i+2];if(light<1800){delete root.dataset.portrait;return false;}root.dataset.portrait='live';return true;}catch{delete root.dataset.portrait;return false;}
+    try{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(source,sx,sy,side,side,0,0,canvas.width,canvas.height);root.dataset.portrait='live';return true;}catch{delete root.dataset.portrait;return false;}
   };
   const capture=(source,options={})=>{
-    const now=globalThis.performance?.now?.()??Date.now();if(destroyed||raf||now-lastCapture<180)return false;
-    lastCapture=now;const run=()=>{raf=0;draw(source,options);};
-    if(typeof globalThis.requestAnimationFrame==='function')raf=globalThis.requestAnimationFrame(run);else run();
-    return true;
+    const now=globalThis.performance?.now?.()??Date.now();if(destroyed||now-lastCapture<180)return false;
+    lastCapture=now;
+    // Copy while a WebGL source still owns its presented framebuffer. Deferring to the next RAF can yield an already-discarded frame.
+    return draw(source,options);
   };
   update({name,age});
-  return Object.freeze({root,canvas,update,capture,destroy(){destroyed=true;if(raf&&typeof globalThis.cancelAnimationFrame==='function')globalThis.cancelAnimationFrame(raf);root.replaceChildren();root.classList.remove('rinne-player-hud-host');}});
+  return Object.freeze({root,canvas,update,capture,destroy(){destroyed=true;root.replaceChildren();root.classList.remove('rinne-player-hud-host');}});
 }

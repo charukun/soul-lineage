@@ -7,7 +7,9 @@ const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
 test('序破急HUD upper line is the technique name and situation prose is not injected',()=>{
   const stage=read('src/nocturne-stage.js');
-  assert.match(stage,/const technique=String\(meta\.techniqueName\|\|meta\.actionName\|\|''\)\.trim\(\)/);
+  assert.match(stage,/battle2SelectionLabel/);
+  assert.match(stage,/activeLoadout\?\.technique\?\.\[meta\.phase\]/);
+  assert.match(stage,/selection\?battle2SelectionLabel\(selection\)/);
   assert.match(stage,/cueNode\.hidden=!technique/);
   assert.doesNotMatch(stage,/for\(const row of \[\.\.\.activity\].*pushNarration/);
 });
@@ -66,4 +68,13 @@ test('range arrival uses the same tolerance for maneuver completion and attack l
   assert.equal(nearRangeReissues,0,'arrival-band frames must launch instead of reissuing the same approach');
   assert.ok(stageStarts>8,'combat must continue advancing through authored stages');
   assert.ok(contacts>0,'combat must keep resolving contacts');
+});
+
+
+test('player portrait copies the presented canvas immediately without pixel-read rejection',()=>{
+  const hud=read('../../packages/shared-ui/src/rinne-player-hud.js');
+  assert.match(hud,/ctx\.drawImage/);
+  assert.match(hud,/return draw\(source,options\)/);
+  assert.match(hud,/root\.dataset\.portrait='live'/);
+  assert.doesNotMatch(hud,/getImageData|requestAnimationFrame/);
 });
