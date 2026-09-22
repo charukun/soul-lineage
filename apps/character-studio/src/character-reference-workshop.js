@@ -1,4 +1,5 @@
 import './character-reference-workshop.css';
+import './native-character-library.js';
 import { CHARACTER_REFERENCE_ARCHETYPES, VISUAL_ROLES } from '@soul/characters';
 
 const el = id => document.getElementById(id);
