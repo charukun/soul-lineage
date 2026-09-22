@@ -153,6 +153,7 @@ function start() {
   }
   function aim(preset = 'overview') {
     cameraPreset = preset;
+    if(review.forge?.active){review.forge.aim(preset);return;}
     if (motionQA?.active) { motionQA.aim(preset === 'side' ? 'left' : ['front','back'].includes(preset) ? preset : 'front'); return; }
     const actor = actors[settings.selected]; if (!actor) return;
     if (simpleModelReview) {
@@ -255,6 +256,7 @@ function start() {
     background();
   }
   async function load(getBytes, auditDocument = auditKaykitDocument, rigBuilder = kaykitReviewRig) {
+    review.forge?.deactivate();
     if (!alive) return; const loadToken=modelLoads.begin(); loading = true; retry = getBytes; retryAudit = auditDocument; retryRig = rigBuilder; review.ready = false; el('retry').disabled = true; el('progress').value = .1;
     status('モデル取得・ハッシュと利用条件を確認中…'); let nextTemplate = null, nextPool = null, installed = false;
     try {
@@ -330,7 +332,8 @@ function start() {
   function frame(now) {
     if (!alive) return; frameId = requestAnimationFrame(frame);
     const actual = (now - last) / 1000; last = now;
-    if (document.hidden || !review.ready) return;
+    if (document.hidden || (!review.ready&&!review.forge?.active)) return;
+    if(review.forge?.active){review.forge.tick(Math.min(.1,Math.max(0,actual)));renderer.render(scene,camera);return;}
     try {
       const dt = Math.min(.1, Math.max(0, actual)); if (!settings.paused) elapsed += dt; if (!motionQA?.active) orbit.update(); motionQA?.tick(dt); physicsActors = 0; drawnActors = 0;
       const plan = new Map(crowdPlan(actors.map((a, i) => ({ id: a.id, visible: a.root.visible, important: i === settings.selected, distance: a.root.position.distanceTo(camera.position) }))).map(p => [p.id, p]));
@@ -425,11 +428,12 @@ function start() {
   review.configure = patch => update(patch, patch.count !== undefined ? 'rebuild' : patch.view !== undefined || patch.selected !== undefined ? 'arrange' : 'looks');
   review.refresh = refreshLooks;
   review.aim = aim;
+  review.presentationStage={scene,camera,orbit,canvas,renderer,ground,marker,actors:()=>actors};
   motionQA = createWorkshopMotionQA({ review, scene, camera, orbit, canvas, refresh: refreshLooks, draw: () => renderer.render(scene, camera) });
   review.motionQA = motionQA;
   function dispose() {
     if (!alive) return; alive = false; modelLoads.invalidate(); review.ready = false; cancelAnimationFrame(frameId); events.abort(); stageLifecycle.destroy(); orbit.dispose();
-    motionQA?.dispose(); pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
+    review.forge?.dispose(); motionQA?.dispose(); pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
   }
   on(window, 'pagehide', event => { if (!event.persisted) dispose(); else suspend(); });
   on(window, 'pageshow', suspend); syncUI(); background(); frameId = requestAnimationFrame(frame); void load(defaultBytes, auditKaykitDocument, kaykitReviewRig);
@@ -437,3 +441,4 @@ function start() {
 try { start(); } catch (error) { report(error); el('retry').disabled = false; el('retry').onclick = () => location.reload(); }
 
 if (document.body.classList.contains('advanced-review')) import('../workspace/advanced.js').catch(report);
+

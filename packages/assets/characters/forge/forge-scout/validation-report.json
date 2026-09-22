@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "rinne.character-forge-validation/v1",
+  "structuralStatus": "passed",
+  "visualStatus": "needs-human-review",
+  "reviewStatus": "review-candidate",
+  "productionReady": false,
+  "modelSha256": "98f6753ab4a679232ed3b69d68b3059963b9b39667e4f8f65e97311ffba64576",
+  "performance": {
+    "triangles": 14720,
+    "vertices": 7686,
+    "materials": 1,
+    "textures": 1,
+    "textureDimensions": [
+      [
+        480,
+        384
+      ]
+    ],
+    "approximateDrawCalls": 18,
+    "glbSize": 605156
+  },
+  "comparisons": {
+    "front": {
+      "silhouetteMismatch": 0.11085564132041381,
+      "iou": 0.8891443586795862,
+      "heightMismatch": 0.0,
+      "headBodyProportionMismatch": 0.014660351223752477,
+      "groundAlignmentMismatch": 0.003472222222222222,
+      "camera": "orthographic +Y-up; fixed 1.6m height, ground=0, no per-render auto-fit",
+      "status": "diagnostic-pass"
+    },
+    "side": {
+      "silhouetteMismatch": 0.08466905525174429,
+      "iou": 0.9153309447482557,
+      "heightMismatch": 0.0,
+      "headBodyProportionMismatch": 0.015252556694173247,
+      "groundAlignmentMismatch": 0.003472222222222222,
+      "camera": "orthographic +Y-up; fixed 1.6m height, ground=0, no per-render auto-fit",
+      "status": "diagnostic-pass"
+    },
+    "back": {
+      "silhouetteMismatch": 0.1433371836606111,
+      "iou": 0.8566628163393889,
+      "heightMismatch": 0.0,
+      "headBodyProportionMismatch": 0.01002908883210396,
+      "groundAlignmentMismatch": 0.003472222222222222,
+      "camera": "orthographic +Y-up; fixed 1.6m height, ground=0, no per-render auto-fit",
+      "status": "diagnostic-pass"
+    }
+  },
+  "errors": [],
+  "warnings": [],
+  "limitations": [
+    "Silhouette rasterization is deterministic CPU projection of delivered GLB triangles, not physical-device or perceptual acceptance",
+    "Concavity, asymmetric hidden surfaces, finger topology and foot contact remain unapproved"
+  ]
+}
