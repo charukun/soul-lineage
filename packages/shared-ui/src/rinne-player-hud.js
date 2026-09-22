@@ -33,7 +33,7 @@ export function createRinnePlayerHud(root,{name='旅人',age=0}={}){
     const ctx=canvas.getContext('2d');if(!ctx)return false;
     const sw=source.width,sh=source.height,side=Math.max(24,Math.min(sw,sh)*clamp(Number(scale)||.3,.18,.5)),cx=clamp(Number(x)||.5,0,1)*sw,cy=clamp(Number(y)||.56,0,1)*sh;
     const sx=clamp(cx-side*.5,0,Math.max(0,sw-side)),sy=clamp(cy-side*.54,0,Math.max(0,sh-side));
-    try{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(source,sx,sy,side,side,0,0,canvas.width,canvas.height);root.dataset.portrait='live';return true;}catch{return false;}
+    try{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(source,sx,sy,side,side,0,0,canvas.width,canvas.height);const sample=ctx.getImageData(16,16,64,64).data;let light=0;for(let i=0;i<sample.length;i+=32)light+=sample[i]+sample[i+1]+sample[i+2];if(light<1800){delete root.dataset.portrait;return false;}root.dataset.portrait='live';return true;}catch{delete root.dataset.portrait;return false;}
   };
   const capture=(source,options={})=>{
     const now=globalThis.performance?.now?.()??Date.now();if(destroyed||raf||now-lastCapture<180)return false;
