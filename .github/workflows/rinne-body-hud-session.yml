@@ -1,48 +1,134 @@
 name: RINNE body HUD session (temporary)
-# Capability gap: this Chat has no repository filesystem/network or dispatch tool.
-# Branch-only bridge to the existing repository evidence/summary scripts.
-# Detach: delete this file before the final merge-owning work head; never merge it.
+# Branch-only capability bridge for explicit specialist review. Delete before
+# final validation/merge. Existing immutable-preview and summary contracts own
+# source binding; no permanent Fast DEV jobs or dependencies are added.
 on:
   push:
     branches: [feat/rinne-body-charm-hud-20260922]
 permissions:
   contents: read
 jobs:
-  context:
-    if: contains(github.event.head_commit.message, '[body-hud-context]')
+  prepare:
+    if: contains(github.event.head_commit.message, '[body-hud-observe]')
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: b7e928572a17a87cd08a3c35d7d5cf446fdd7de0
-          persist-credentials: false
-      - name: Collect only body HUD source and evidence entrypoint index
+          ref: feat/rinne-body-charm-hud-20260922
+          fetch-depth: 256
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Apply bounded source edits and reconcile current develop
         run: |
-          mkdir -p /tmp/body-hud-context
+          set -euo pipefail
+          git config user.name 'RINNE HUD specialist'
+          git config user.email '68882498+charukun@users.noreply.github.com'
+          node .task/body-hud-patch.mjs
+          git diff --check
+          git add apps/rinne/review-battle.html apps/rinne/src/review/battle/entrypoint.js apps/rinne/src/review/battle/index.css
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat(rinne): integrate body charm with native review state and clear its upper-left corner'
+          fi
+          git fetch --no-tags origin develop:refs/remotes/origin/develop
+          git merge --no-edit origin/develop
+          git push origin HEAD:feat/rinne-body-charm-hud-20260922
+          echo "OBSERVATION_CANDIDATE=$(git rev-parse HEAD)"
+  observe:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        phase: [before, after]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ matrix.phase == 'before' && 'b7e928572a17a87cd08a3c35d7d5cf446fdd7de0' || 'feat/rinne-body-charm-hud-20260922' }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Bind observer to source and preserve specialist scenario
+        env:
+          OBSERVER_SHA: ${{ github.sha }}
+        run: |
+          echo "SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          mkdir -p .task .artifacts/body-hud
+          if [ -f apps/rinne/scripts/body-hud-browser-evidence.mjs ]; then
+            cp apps/rinne/scripts/body-hud-browser-evidence.mjs .task/body-hud-browser-evidence.mjs
+          else
+            git fetch --no-tags --depth=1 origin "$OBSERVER_SHA"
+            git show "$OBSERVER_SHA:apps/rinne/scripts/body-hud-browser-evidence.mjs" > .task/body-hud-browser-evidence.mjs
+          fi
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install explicit specialist browser
+        run: npx playwright install --with-deps chromium
+      - name: Build exact immutable RINNE artifact
+        run: npm run distribution:build -- --app rinne --target web-dev
+      - name: Upload immutable Worker version without moving latest DEV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 versions upload --config wrangler.dev.rinne.jsonc --message "PR1436 body HUD $SOURCE_SHA" 2>&1 | tee .artifacts/body-hud/upload.log
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          import path from 'node:path';
-          import {execFileSync} from 'node:child_process';
-          const files=execFileSync('git',['ls-files'],{encoding:'utf8'}).trim().split('\n');
-          const wanted=new Set(['package.json','apps/rinne/package.json','apps/rinne/index.html','apps/rinne/src/combat-body-hud.js','apps/rinne/src/combat-body-hud.css','apps/rinne/src/rebuild/combat-choreography.js','scripts/actions-result-summary.mjs']);
-          const matches=[];
-          for(const f of files){
-            if(!/\.(?:js|mjs|css|md|html|json)$/.test(f))continue;
-            if(!/^(apps\/rinne\/src\/|tests\/|scripts\/browser\/|docs\/)/.test(f))continue;
-            const text=fs.readFileSync(f,'utf8');
-            if(/createCombatBodyHud|combatBodyHudModel|combat-body-hud-host/.test(text)){
-              wanted.add(f);
-              text.split('\n').forEach((line,i)=>{if(/createCombatBodyHud|combat-body-hud-host|\.flash\(/.test(line))matches.push(`${f}:${i+1}: ${line}`);});
-            }
-          }
-          for(const f of wanted){if(!fs.existsSync(f))continue;const to=path.join('/tmp/body-hud-context',f);fs.mkdirSync(path.dirname(to),{recursive:true});fs.copyFileSync(f,to);}
-          const index=files.filter(f=>/^(scripts\/browser\/|scripts\/.*(?:browser|evidence|staging)|docs\/.*(?:BROWSER|EVIDENCE|STAGING)|tests\/.*(?:body|combat)|apps\/rinne\/src\/.*(?:hud|style|battle))/.test(f));
-          fs.writeFileSync('/tmp/body-hud-context/INDEX.txt',`source=b7e928572a17a87cd08a3c35d7d5cf446fdd7de0\n\n${matches.join('\n')}\n\n${index.join('\n')}\n`);
-          console.log(fs.readFileSync('/tmp/body-hud-context/INDEX.txt','utf8'));
+          import {stagingObservation} from './scripts/staging-preview.mjs';
+          const text=fs.readFileSync('.artifacts/body-hud/upload.log','utf8');
+          const versionId=text.match(/(?:Current Version ID|Worker Version ID|Version ID):\s*([0-9a-f-]{36})/i)?.[1];
+          if(!versionId)throw new Error('No immutable Worker version ID in upload output');
+          const evidence=stagingObservation({app:'rinne',sourceSha:process.env.SOURCE_SHA,versionId,conditions:{task:'PR1436 body HUD',publicRoute:'/review-battle'}});
+          fs.writeFileSync('.artifacts/body-hud/staging.json',JSON.stringify(evidence,null,2));
+          fs.appendFileSync(process.env.GITHUB_ENV,`PREVIEW_URL=${evidence.reference}\n`);
+          console.log(JSON.stringify(evidence));
           NODE
+      - name: Native immutable browser review
+        env:
+          PHASE: ${{ matrix.phase }}
+        run: node .task/body-hud-browser-evidence.mjs "$PREVIEW_URL" "$SOURCE_SHA" "$PHASE" .artifacts/body-hud
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: body-hud-1436-${{ matrix.phase }}-${{ github.run_attempt }}
+          path: .artifacts/body-hud/
+          retention-days: 14
+  summary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/rinne-body-charm-hud-20260922
+          fetch-depth: 128
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Canonical exact-head merge window on demand
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if git log -1 --pretty=%B | grep -Fq '[astra-validate]'; then
+            node scripts/actions-result-summary.mjs --repo charukun/soul-lineage --sha "$(git rev-parse HEAD)" --pr 1436 --output /tmp/body-hud-summary.json
+          else
+            echo 'Head is not armed. No intermediate Actions inspection requested.'
+          fi
       - uses: actions/upload-artifact@v4
         with:
-          name: rinne-body-hud-source-context
-          path: /tmp/body-hud-context/
+          name: body-hud-summary-${{ github.run_attempt }}
+          path: /tmp/body-hud-summary.json
+          if-no-files-found: ignore
           retention-days: 3
