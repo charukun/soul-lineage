@@ -1,4 +1,4 @@
-name: Temporary kuumetsu first-combat agency final evidence 20260922
+name: Temporary kuumetsu first-combat agency readable evidence 20260922
 # Task-scoped ops branch only. Never merge this workflow to develop/main.
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   statuses: read
   pull-requests: read
 env:
-  SOURCE_SHA: 065cf7313b7812442a77b7ed87f9b9950a6a4638
+  SOURCE_SHA: df53e10eb45b59706266687b35357262968c7fb6
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 065cf7313b7812442a77b7ed87f9b9950a6a4638
+          ref: df53e10eb45b59706266687b35357262968c7fb6
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -83,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 065cf7313b7812442a77b7ed87f9b9950a6a4638
+          ref: df53e10eb45b59706266687b35357262968c7fb6
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -100,7 +100,7 @@ jobs:
             fs.writeFileSync('session-observe.mjs',Buffer.from(r.data.content,'base64'));
       - name: Same-condition immutable native After
         env:
-          SOURCE_SHA: 065cf7313b7812442a77b7ed87f9b9950a6a4638
+          SOURCE_SHA: df53e10eb45b59706266687b35357262968c7fb6
           PREVIEW_URL: ${{ needs.publish.outputs.preview }}
         run: mkdir -p session-evidence && cp session-observe.mjs session-evidence/observer.mjs && node session-observe.mjs > session-evidence/browser.log 2>&1
       - name: Evaluate first-combat agency success signals
