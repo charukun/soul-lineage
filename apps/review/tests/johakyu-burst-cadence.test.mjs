@@ -57,3 +57,18 @@ test('battle2 duel burst actually opens combat instead of remaining in the ready
   assert.ok(stageStart,'1v1 burst must begin an authored attack within four seconds');
   assert.ok(contact,'1v1 burst must reach a real contact/defense event within four seconds');
 });
+
+
+test('battle2 burst uses a review-only low stamina multiplier so a full 序破急 pressure run is affordable', () => {
+  const scenario=createJohakyuP7ReviewScenario({mode:'duel',comboStyle:'burst',duelGap:2.18,enemyLeadSeconds:.16});
+  let reachedKyu=false,minHeroStamina=100;
+  for(let i=0;i<720&&!reachedKyu;i++){
+    const result=scenario.step(1/60),hero=result.frame.actors.find(actor=>actor.self);
+    minHeroStamina=Math.min(minHeroStamina,hero.stamina.value);
+    reachedKyu=reachedKyu||result.meta.activity.some(row=>row.type==='stage-start'&&row.actorId==='hero'&&row.phase==='kyu');
+  }
+  assert.equal(reachedKyu,true,'hero should be able to afford reaching 急 without stamina starvation');
+  assert.ok(minHeroStamina>50,`battle2 review should remain stamina-rich, got ${minHeroStamina}`);
+  const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');
+  assert.match(source,/BATTLE2_STAMINA_COST_MULTIPLIER=\.12/);
+});
