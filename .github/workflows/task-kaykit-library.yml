@@ -1,0 +1,69 @@
+# Task-scoped bulk/observation route; removed before the final Astra validation.
+name: Task KayKit Library
+on:
+  push:
+    branches: [work/kaykit-character-library-20260922]
+    paths: [.github/workflows/task-kaykit-library.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    if: contains(github.event.head_commit.message, '[kaykit-inspect]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Export task source context and official public distribution metadata
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, subprocess, zipfile, json, urllib.request, urllib.parse, http.cookiejar, re
+          out=pathlib.Path('/tmp/kaykit-inspect'); out.mkdir()
+          files=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          inventory=[]
+          with zipfile.ZipFile(out/'source.zip','w',zipfile.ZIP_DEFLATED) as z:
+            for name in filter(None,files):
+              p=pathlib.Path(name)
+              if not p.is_file(): continue
+              inventory.append({'path':name,'size':p.stat().st_size})
+              if p.suffix.lower() in {'.js','.mjs','.cjs','.ts','.tsx','.jsx','.json','.md','.html','.css','.txt','.yml','.yaml','.toml','.py','.sh'} and p.stat().st_size<3000000:
+                z.write(p,name)
+          (out/'inventory.json').write_text(json.dumps(inventory,ensure_ascii=False))
+          (out/'source-sha.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD']).decode())
+          sources=['kaykit-adventurers','kaykit-skeletons','prototype-bits','kaykit-series-4','kaykit-series-5','kaykit-series-6']
+          summary=[]
+          for slug in sources:
+            base='https://kaylousberg.itch.io/'+slug
+            opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+            opener.addheaders=[('User-Agent','Mozilla/5.0 KayKit asset acquisition audit')]
+            item={'sourceUrl':base}
+            try:
+              html=opener.open(base,timeout=45).read().decode()
+              (out/(slug+'.html')).write_text(html)
+              item['pageFetched']=True
+              # Only request the publisher's documented free/name-your-price flow.
+              if slug in ['kaykit-adventurers','kaykit-skeletons','prototype-bits']:
+                csrf=re.search(r'name="csrf_token"\s+value="([^"]+)"',html)
+                data=urllib.parse.urlencode({'csrf_token':csrf.group(1) if csrf else ''}).encode()
+                req=urllib.request.Request(base+'/download_url',data=data,headers={'Referer':base,'X-Requested-With':'XMLHttpRequest'})
+                response=opener.open(req,timeout=45).read().decode()
+                (out/(slug+'-download-response.json')).write_text(response)
+                link=json.loads(response).get('url')
+                if link:
+                  dl=opener.open(link,timeout=45).read().decode()
+                  (out/(slug+'-downloads.html')).write_text(dl)
+                  item['freeDownloadPageFetched']=True
+            except Exception as e: item['error']=str(e)
+            summary.append(item)
+          (out/'sources.json').write_text(json.dumps(summary,indent=2))
+          print(json.dumps(summary,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kaykit-inspect
+          path: /tmp/kaykit-inspect/
+          retention-days: 3
+          if-no-files-found: error
