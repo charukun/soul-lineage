@@ -24,7 +24,7 @@ test('battle2 nests native canvases inside the shared battle review frame',()=>{
   assert.equal((html.match(/<canvas\b/g)||[]).length,2);
   assert.match(html,/src="\.\/src\/battle2-shell\.js"/);assert.match(html,/src="\.\/src\/nocturne-stage\.js"/);
   assert.doesNotMatch(html,/<iframe\b|<select\b|<input\b|data-runtime-support|id="hud"/i);
-  assert.equal((html.match(/<button\b/g)||[]).length,2);
+  assert.equal((html.match(/data-battle-mode=/g)||[]).length,2);
   assert.equal((html.match(/review-surface__panel/g)||[]).length,0);
   assert.match(html,/data-review-stage-control data-battle-mode-control/);
   assert.match(stage,/mountReviewStageControls/);assert.match(stage,/groups:\['\[data-battle-mode-control\]'\]/);assert.match(stage,/label:'戦闘設定'/);
