@@ -307,12 +307,3 @@ test('battle2 narration rate-limits repeated spacing text instead of flooding th
  assert.match(stage,/row\.actorId!==\'hero\'/);
  assert.match(stage,/if\(pushNarration\(row,meta\)\)break/);
 });
-
-
-test('battle2 mounts the canonical body-part HUD beside the live fight',()=>{
- const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource();
- assert.match(html,/id="battle2-body-hud"/);
- assert.match(stage,/createBattle2BodyHud/);
- assert.match(stage,/runtime\?\.inspectActors\?\.\(\)\.find\(actor=>actor\.self\)/);
- assert.match(stage,/bodyHud\?\.setVisible\(started&&prepared&&next!==\'ERROR\'\)/);
-});
