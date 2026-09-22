@@ -260,7 +260,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.27');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.28');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -370,13 +370,13 @@ test('public battle2 uses authored technique specs and footwork instead of the b
  assert.match(source,/actor\.side==='enemy'&&stageDamage\(node\.stage\)>0\?burstPresentationClip/);
 });
 
-test('battle2 and 百年転生 consume the same shared 心技体装 component and visual skin',()=>{
- const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),stage=stageSource(),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8'),shared=readFileSync(new URL('../../../packages/shared-ui/src/rinne-primary-four.js',import.meta.url),'utf8'),sharedCss=readFileSync(new URL('../../../packages/shared-ui/src/rinne-primary-four.css',import.meta.url),'utf8');
- assert.match(ui,/rinnePrimaryFourMarkup/);assert.match(ui,/@soul\/shared-ui\/rinne-primary-four\.css/);for(const attr of ['data-heart','data-techniques','data-body','data-items'])assert.match(shared,new RegExp(attr));
- assert.match(sharedCss,/--rinne-four-heart:#e9a6a4/);assert.match(sharedCss,/--rinne-four-technique:#91c9dc/);assert.match(sharedCss,/--rinne-four-body:#b8b0d7/);assert.match(sharedCss,/--rinne-four-items:#e5b579/);
- assert.doesNotMatch(css,/\.battle2-loadout-nav \.upgrade-control/);
+test('battle2 and 百年転生 share the same captionless 心技体装 buttons and post-tap menu primitives',()=>{
+ const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),stage=stageSource(),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8'),sharedFour=readFileSync(new URL('../../../packages/shared-ui/src/rinne-primary-four.js',import.meta.url),'utf8'),sharedMenu=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.js',import.meta.url),'utf8'),sharedMenuCss=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.css',import.meta.url),'utf8');
+ assert.match(ui,/rinnePrimaryFourMarkup/);assert.match(ui,/rinneLoadoutPanelMarkup/);assert.match(ui,/createRinneLoadoutSlot/);assert.match(ui,/createRinneLoadoutGridItem/);assert.match(ui,/@soul\/shared-ui\/rinne-loadout-menu\.css/);
+ assert.doesNotMatch(sharedFour,/<span>/);assert.match(sharedFour,/aria-label/);assert.match(sharedMenu,/class="rinne-core-menu"/);assert.match(sharedMenuCss,/\.rinne-core-menu \.loadout-grid\{/);
+ // Explicit parity request: battle2 intentionally inherits the same 3-column portrait menu grid as 百年転生.
+ assert.match(sharedMenuCss,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);assert.doesNotMatch(css,/battle2-loadout-grid|battle2-loadout-panel|battle2-loadout-choice/);
  assert.match(stage,/createBattle2LoadoutUI/);assert.match(stage,/loadout:loadoutUI\.value/);assert.match(controller,/configureLoadout/);assert.match(source,/normalizeBattle2Loadout/);assert.match(source,/heroCompositionFor/);assert.match(source,/bodyDistanceScale/);assert.match(ui,/hash=2166136261/);assert.match(ui,/toString\(36\)\.padStart\(7,'0'\)/);
- assert.match(css,/\.battle2-loadout-grid\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
 });
 test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});
 
