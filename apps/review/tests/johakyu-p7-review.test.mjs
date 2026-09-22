@@ -247,7 +247,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.20');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.21');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -339,6 +339,13 @@ test('battle2 enemy respawn reuses the battlebk ground-spawn animation and timin
 test('battle2 enemy durability matches the battlebk opening-wave baseline',()=>{
  const scenario=createJohakyuP7ReviewScenario({mode:'oneVsThree'}),actors=scenario.inspect().frame.actors.filter(row=>row.side==='enemy');
  assert.equal(actors.length,3);for(const actor of actors){assert.equal(actor.hp,46);assert.equal(actor.maxHp,46);}
+});
+
+test('battle2 enemies attack once per opening, disengage, and use battlebk-like outgoing damage',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');
+ assert.match(source,/ENEMY_DAMAGE_SCALE=\.45/);assert.match(source,/'enemy-attack-reset':\.95/);
+ assert.match(source,/actor\.side==='enemy'&&comboStyle==='burst'&&state\.motion\.offense/);assert.match(source,/breakChain\(actor,state,'enemy-attack-reset'\)/);
+ assert.match(source,/source\.side==='enemy'\?Math\.max\(1,Math\.round\(baseDamage\*ENEMY_DAMAGE_SCALE\)\):baseDamage/);
 });
 
 test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});
