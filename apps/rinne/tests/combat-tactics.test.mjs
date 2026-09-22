@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLife} from '../src/rebuild/domain.js';
 import {ensureCombatLoadout,setHeartActive,setBodyChoice} from '../src/combat-loadout.js';
+import {tidebreakLoadoutFor} from '../src/rebuild/tidebreak-loadout.js';
 import {
-  applySkillComponents,chooseEnemyAttention,directionalDefenseFor,noteEnemyThreat,resolveBodyIntent,
+  applySkillComponents,chooseEnemyAttention,combatBodyPerformance,directionalDefenseFor,noteEnemyThreat,resolveBodyIntent,
   staminaPolicyFor,tidebreakMindVectorFor,tidebreakMindsetFromVector
 } from '../src/rebuild/combat-tactics.js';
 
@@ -36,4 +37,17 @@ test('learned support skills alter Tidebreak recipe components directly',()=>{
 test('enemy attention is an intent score and does not imply exclusive participation',()=>{
   const a=life(20),b=life(21),foe=enemy('boss',0,1.3);a.id='a';b.id='b';a.position.x=-.2;b.position.x=.2;noteEnemyThreat(foe,'b',30);const target=chooseEnemyAttention(foe,[a,b]);
   assert.equal(target.id,'b');assert.ok(Number(foe.threat.b)>0);assert.equal(foe.attentionTargetId,undefined);
+});
+
+
+test('injury performance reduces attack output and technique tempo in stable bands',()=>{
+  const fresh=life(31),hurt=life(32);
+  hurt.injuries.leftArm={severity:.6,at:hurt.ageSeconds};hurt.injuries.rightArm={severity:.6,at:hurt.ageSeconds};
+  hurt.injuries.leftLeg={severity:.6,at:hurt.ageSeconds};hurt.injuries.rightLeg={severity:.6,at:hurt.ageSeconds};
+  const base=combatBodyPerformance(fresh),reduced=combatBodyPerformance(hurt);
+  assert.equal(base.attackScale,1);assert.equal(base.movementScale,1);
+  assert.ok(reduced.attackScale<1);assert.ok(reduced.movementScale<1);assert.ok(reduced.techniqueTempoScale<1);
+  const freshRecipe=tidebreakLoadoutFor(fresh).jo,hurtRecipe=tidebreakLoadoutFor(hurt).jo;
+  assert.ok(hurtRecipe.tempo<freshRecipe.tempo,'leg injury must slow the authored technique/footwork tempo');
+  assert.equal(combatBodyPerformance(hurt).attackScale,reduced.attackScale,'performance band must stay deterministic for the same injury state');
 });
