@@ -20,6 +20,7 @@ from animation import create_animations
 from sockets import create_sockets
 from exporter import export_glb
 from validation import validate_export
+from refinement import create_quality_refinement
 from registration import create_manifest,register_review
 
 STAGES=['Intake','View Detection','View Normalization','Multi-view Measurement','Reconstruction Spec','Geometry Generation','Multi-view Texture Projection','Rig','Skinning','Animation','Socket Generation','Export','Validation','Character Package Registration','Visual Review Lab Registration']
@@ -50,7 +51,7 @@ def run(options):
         projection=project_textures(spec,views,geometry,temp/'build/textures');spec['textureProjection']=projection;stage(STAGES[6])
         bones=create_rig(spec);stage(STAGES[7]);skin_meshes(geometry,bones);stage(STAGES[8]);clips=create_animations(bones);stage(STAGES[9]);create_sockets(spec);stage(STAGES[10])
         model=temp/'build/character.glb';export_glb(spec,geometry,bones,clips,temp/'build/textures/base-color.png',model);stage(STAGES[11])
-        report=validate_export(spec,views,model,projection,temp/'review/comparisons');save_json(temp/'validation-report.json',report);stage(STAGES[12])
+        report=validate_export(spec,views,model,projection,temp/'review/comparisons');save_json(temp/'validation-report.json',report);create_quality_refinement(report['modelSha256'],report,temp/'review/quality-refinement.json');stage(STAGES[12])
         if report['errors']:raise ValueError('; '.join(report['errors']))
         save_json(temp/'spec/reconstruction.json',spec);manifest=create_manifest(spec,report,clips,model);save_json(temp/'manifest.json',manifest)
         views['front']['normalized'].save(temp/'review/thumbnail.png');stage(STAGES[13])
