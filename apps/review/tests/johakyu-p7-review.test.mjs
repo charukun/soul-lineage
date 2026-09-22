@@ -247,7 +247,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.15');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.19');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -288,12 +288,12 @@ test('HUD centers 破 with symmetric exchange waveforms and no scale recentering
 
 test('action history is a paced single-line flow of semantic beats and technique chains',()=>{
  const stage=stageSource(),css=hudCss();
- assert.match(stage,/HISTORY_DISPLAY_MS=2800/);assert.match(stage,/historyQueue/);assert.match(stage,/drainHistoryQueue/);assert.match(stage,/historyDisplayLabel/);
+ assert.match(stage,/HISTORY_DISPLAY_MS=3200/);assert.match(stage,/historyQueue/);assert.match(stage,/drainHistoryQueue/);assert.match(stage,/historyDisplayLabel/);
  assert.match(stage,/historyNode\.replaceChildren\(line\)/);assert.match(stage,/animationend/);assert.match(stage,/kind:'technique'/);assert.match(stage,/kind:'semantic'/);
  assert.match(stage,/function actionHistoryKey/);assert.match(stage,/連「\$\{name\}」/);assert.doesNotMatch(stage,/\$\{meta\.stageIndex\+1\}段/);
  for(const copy of ['間合いを取る','武器で弾いた','様子を見る','仕切り直す'])assert.ok(stage.includes(copy),copy);
  assert.match(stage,/interrupted\?'maai'/);assert.match(stage,/seenNarration/);
- assert.match(css,/\.battle-sequence-history__flow\{/);assert.match(css,/johakyu-history-flow 2\.8s/);assert.match(css,/@keyframes johakyu-history-flow/);
+ assert.match(css,/\.battle-sequence-history__flow\{/);assert.match(css,/johakyu-history-flow 3\.2s/);assert.match(css,/@keyframes johakyu-history-flow/);
  assert.doesNotMatch(css,/battle-sequence-history__float/);
 });
 
@@ -301,7 +301,39 @@ test('battle2 lamps fill left to right, fade together on interruption, and maai 
  const stage=stageSource(),css=hudCss();
  assert.match(stage,/node\.dataset\.lit=String\(index>=0&&i<=index\)/);assert.match(stage,/link\.dataset\.lit=String\(index>i\)/);assert.match(stage,/link\.dataset\.current=String\(index===i\)/);
  assert.match(stage,/beginComboFade/);assert.match(stage,/COMBO_FADE_MS=900/);assert.match(css,/data-lit="true"/);assert.match(css,/data-combo-interrupted="true"/);
- assert.match(css,/johakyu-maai-breathe 1\.55s/);assert.match(css,/@keyframes johakyu-maai-breathe/);
+ assert.match(css,/johakyu-maai-pulse 1\.38s/);assert.match(css,/@keyframes johakyu-maai-pulse/);
+});
+
+test('phase activations hold a half-second stance, chime, and emissive cue',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),stage=stageSource(),audio=readFileSync(new URL('../src/nocturne/audio.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(source,/PHASE_CUE_SECONDS=\.5/);assert.match(source,/clip:'Blocking'/);assert.match(source,/clip:'1H_Melee_Attack_Slice_Diagonal'/);assert.match(source,/clip:'1H_Melee_Attack_Stab'/);assert.match(source,/glow:'#b8e7ff'/);assert.match(source,/glow:'#d7f4ff'/);assert.match(source,/glow:'#f0fbff'/);assert.match(source,/phaseCueKey:/);
+ assert.match(stage,/sound\?\.phaseCue\?\./);assert.match(audio,/function phaseCue/);assert.match(audio,/sound\.parry\?\./);
+ assert.match(runtime,/unaccepted-phase-cue/);assert.match(runtime,/phase-cue:/);assert.match(runtime,/cueGlow/);
+});
+
+test('battle2 defaults to defense, retreats on broken chains, and makes landed hits costly',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');
+ assert.match(source,/DEFENSE_COOLDOWN=Object\.freeze\(\{guard:\.24,parry:\.3,slip:\.2\}\)/);assert.match(source,/cycle=\['parry','slip','guard'\]/);
+ assert.match(source,/reason:'combo-break-retreat',footwork:'retreat'/);assert.match(source,/reactionCooldowns\.set\(target\.id/);
+ assert.match(source,/heavy:24/);assert.match(source,/counter:21/);assert.match(source,/damage\*1\.4/);
+});
+
+test('burst choreography gives player varied non-horizontal attacks and enemies a distinct attack set',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(source,/HERO_BURST_PRESENTATION/);assert.match(source,/1H_Melee_Attack_Slice_Diagonal/);assert.match(source,/1H_Melee_Attack_Stab/);assert.match(source,/1H_Melee_Attack_Chop/);
+ assert.match(source,/ENEMY_BURST_PRESENTATION/);assert.match(source,/1H_Melee_Attack_Jump_Chop/);assert.match(source,/1H_Melee_Attack_Slice_Horizontal/);
+ assert.match(source,/presentationClip/);assert.match(runtime,/row\.action\?\.presentationClip/);
+});
+
+test('phase cue glow visibly blinks instead of holding a steady emissive level',()=>{
+ const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(runtime,/cueBlink/);assert.match(runtime,/Math\.sin\(cueProgress\*Math\.PI\*6\)/);assert.match(runtime,/cueColor&&cueBlink/);
+});
+
+test('battle2 enemy respawn reuses the battlebk ground-spawn animation and timing',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(source,/spawnStyle:actor\.side==='enemy'\?'battlebk-ground':null/);assert.match(source,/seedReadyWindow\(\.82\)/);
+ assert.match(runtime,/spawnStyle==='battlebk-ground'/);assert.match(runtime,/Spawn_Ground_Skeletons/);assert.match(runtime,/spawnClip\?\.8:0/);
 });
 
 test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});

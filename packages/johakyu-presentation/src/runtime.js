@@ -1,3 +1,4 @@
+import {observedLocomotion} from './observed-locomotion.js';
 import {createCanonicalPresentationDriver} from './driver.js';
 import {resolveFatiguePresentation} from './fatigue.js';
 import {sampleFatigueMotion} from './fatigue-motion.js';
@@ -460,15 +461,18 @@ function createDrivenPort(){
    const key=row.kind==='hero'?'adventurers/Knight':row.kind==='mage'?'skeletons/Skeleton_Mage':'skeletons/Skeleton_Warrior';
    const asset=models.get(key);if(!asset)return {supported:false,reason:'missing-model:'+key};
    if(row.kind!=='hero'&&row.equipment.shield)return {supported:false,reason:'unaccepted-shield-socket'};
-   if(row.action&&(!row.action.legal||!row.action.motion?.supported||!asset.animations.some(clip=>clip.name===row.action.motion.clip)))return {supported:false,reason:'unaccepted-motion:'+row.action?.motion?.kind};
+   const actionClip=row.action?.presentationClip??row.action?.motion?.clip;
+   if(row.action&&(!row.action.legal||!row.action.motion?.supported||!asset.animations.some(clip=>clip.name===actionClip)))return {supported:false,reason:'unaccepted-motion:'+row.action?.motion?.kind};
+   if(row.phaseCue?.clip&&!asset.animations.some(clip=>clip.name===row.phaseCue.clip))return {supported:false,reason:'unaccepted-phase-cue:'+row.phaseCue.phase};
    if(row.locomotion?.clip&&!asset.animations.some(clip=>clip.name===row.locomotion.clip))return {supported:false,reason:'unaccepted-locomotion:'+row.locomotion.kind};
    return {supported:true};
   },
-  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss));a.spawn=0;a.canonicalId=row.id;bindings.set(row.id,a);return a;},
+  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss));a.spawnStyle=row.spawnStyle||null;a.spawn=a.spawnStyle==='battlebk-ground'&&a.kind!=='hero'?.7:0;a.canonicalAction=a.spawn>0?'spawn:battlebk-ground':null;a.canonicalId=row.id;bindings.set(row.id,a);return a;},
   remove(a){removeActor(a);actors.splice(actors.indexOf(a),1);bindings.delete(a.canonicalId);},
   self(a){hero=a;selfBinding=a;},
   update(a,row,dt,{initial}){
-   a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;clearFatigueRig(a);clearParryRig(a);if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-dt);if(a.reaction.remaining<=0)a.reaction=null;}if(a.parryRecoil){a.parryRecoil.remaining=Math.max(0,a.parryRecoil.remaining-dt);if(a.parryRecoil.remaining<=0)a.parryRecoil=null;}if(a.contactHold){a.contactHold.remaining=Math.max(0,a.contactHold.remaining-dt);if(a.contactHold.remaining<=0)a.contactHold=null;}
+   const observedClip=!initial&&dt>0?observedLocomotion(a.pos,row.position,row.yaw):null;
+   a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;clearFatigueRig(a);clearParryRig(a);if(a.spawn>0)a.spawn=Math.max(0,a.spawn-dt);if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-dt);if(a.reaction.remaining<=0)a.reaction=null;}if(a.parryRecoil){a.parryRecoil.remaining=Math.max(0,a.parryRecoil.remaining-dt);if(a.parryRecoil.remaining<=0)a.parryRecoil=null;}if(a.contactHold){a.contactHold.remaining=Math.max(0,a.contactHold.remaining-dt);if(a.contactHold.remaining<=0)a.contactHold=null;}
    const equipmentKey=row.equipment.weapon+':'+row.equipment.shield;
    if(a.equipmentKey!==equipmentKey){
     for(const name of equipmentNames){const node=a.root.getObjectByName(name);if(node)node.visible=false;}
@@ -477,12 +481,14 @@ function createDrivenPort(){
     if(row.equipment.shield){const shield=a.root.getObjectByName('Round_Shield');if(!shield)throw Error('Missing authored shield');shield.visible=true;}
     a.equipmentKey=equipmentKey;
    }
-   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,reactionClip=!terminal?a.reaction?.clip:null,contactClip=!terminal?a.contactHold?.clip:null,locomotionClip=!action&&row.moving?row.locomotion?.clip:null;
-   const clip=terminal||reactionClip||contactClip||action?.motion.clip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
-   const key=terminal||(reactionClip?('reaction:'+a.reaction.serial+':'+reactionClip):contactClip?('contact:'+a.contactHold.serial+':'+contactClip):((action?.id||(locomotionClip?('locomotion:'+row.locomotion.kind+':'+locomotionClip):clip))+':'+(action?.step??0)));
-   if(a.canonicalAction!==key){play(a,clip,Boolean(terminal||reactionClip||contactClip||action||row.hit));a.canonicalAction=key;a.deathTime=0;}
-   if(reactionClip&&!terminal){a.action.paused=false;a.mixer.update(dt*(game.hitstop>0?.08:1));}
+   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,spawnClip=!terminal&&a.spawnStyle==='battlebk-ground'&&a.spawn>0?'Spawn_Ground_Skeletons':null,reactionClip=!terminal&&!spawnClip?a.reaction?.clip:null,contactClip=!terminal&&!spawnClip?a.contactHold?.clip:null,phaseCue=!terminal&&!spawnClip&&!reactionClip&&!contactClip&&!action?row.phaseCue:null,phaseCueClip=phaseCue?.clip??null,actionClip=action?.presentationClip??action?.motion.clip,locomotionClip=!spawnClip&&!phaseCue&&!action&&row.moving?(row.locomotion?.clip||(observedClip&&a.clips.has(observedClip)?observedClip:null)):null;
+   const clip=terminal||spawnClip||reactionClip||contactClip||phaseCueClip||actionClip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
+   const key=terminal||(spawnClip?'spawn:battlebk-ground':reactionClip?('reaction:'+a.reaction.serial+':'+reactionClip):contactClip?('contact:'+a.contactHold.serial+':'+contactClip):phaseCue?('phase-cue:'+phaseCue.key+':'+phaseCueClip):((action?.id||(locomotionClip?('locomotion:'+(row.locomotion?.kind||'observed')+':'+locomotionClip):clip))+':'+(action?.step??0)));
+   if(a.canonicalAction!==key){play(a,clip,Boolean(terminal||spawnClip||reactionClip||contactClip||action||row.hit),spawnClip?.8:0);a.canonicalAction=key;a.deathTime=0;}
+   if(spawnClip&&!terminal){a.presentationActionId=null;a.action.paused=false;a.mixer.update(dt);}
+   else if(reactionClip&&!terminal){a.action.paused=false;a.mixer.update(dt*(game.hitstop>0?.08:1));}
    else if(contactClip&&!terminal){const held=a.contactHold;a.action.paused=true;a.action.time=Math.min(a.clips.get(contactClip).duration-.000001,held.progress*a.clips.get(contactClip).duration);a.mixer.update(0);}
+   else if(phaseCue&&!terminal){const pose=Math.max(0,Math.min(.95,Number(phaseCue.poseProgress)||0));a.presentationActionId=null;a.action.paused=true;a.action.time=Math.min(a.clips.get(phaseCueClip).duration-.000001,pose*a.clips.get(phaseCueClip).duration);a.mixer.update(0);}
    else if(action&&!terminal){
     const canonicalProgress=Math.max(0,action.progress);if(a.presentationActionId!==action.id){a.presentationActionId=action.id;a.presentationProgress=canonicalProgress;}
     if(game.hitstop<=0)a.presentationProgress=canonicalProgress;a.action.paused=true;a.action.time=Math.min(a.clips.get(clip).duration-.000001,a.presentationProgress*a.clips.get(clip).duration);a.mixer.update(game.hitstop>0?0:dt);
@@ -493,7 +499,7 @@ function createDrivenPort(){
    }
    applyFatigue(a,row,dt);applyParryRecoil(a);sampleWeaponTrace(a,dt);
    if(terminal)a.deathTime+=dt;
-   a.flash=Math.max(0,a.flash-dt);for(const {mat,base,power} of a.mats){mat.emissive.copy(a.flash>0?new THREE.Color('#ffe7c4'):base);mat.emissiveIntensity=a.flash>0?1.7:power;}
+   a.flash=Math.max(0,a.flash-dt);const cueProgress=Math.max(0,Math.min(1,Number(phaseCue?.progress)||0)),cueColor=phaseCue?.glow?new THREE.Color(phaseCue.glow):null,cueBlink=Boolean(phaseCue&&Math.sin(cueProgress*Math.PI*6)>.05),cueGlow=cueBlink?2.05:0;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(new THREE.Color('#ffe7c4'));mat.emissiveIntensity=1.7;}else if(cueColor&&cueBlink){mat.emissive.copy(cueColor);mat.emissiveIntensity=Math.max(power,cueGlow);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
   },
   impact(event,source,target){
    if(event.type==='clash'){
@@ -504,7 +510,7 @@ function createDrivenPort(){
     record('canonical-clash',{attackId:event.attackId,otherAttackId:event.otherAttackId,sourceId:event.sourceId,targetId:event.targetId,contactPoint:point||null,contactDistance:event.contactDistance||null});return;
    }
    if(['guard','parry'].includes(event.type)){
-    const parry=event.type==='parry',strongParry=parry&&event.strongParry!==false,point=event.contactPoint;
+    const parry=event.type==='parry',strongParry=parry&&event.strongParry===true,point=event.contactPoint;
     if(parry){syncContactPose(source,event.sourceContactProgress,strongParry?.095:.055);syncContactPose(target,event.defenseContactProgress,strongParry?.095:.055);}
     const fallback=point?new V(point.x,Math.min(source?.height||target.height,target.height)*.58,point.z):target.pos.clone().add(new V(0,target.height*.58,0)),clash=source?bladeClashPoint(source,target,fallback):fallback,visualDirection=parry?deflectionFromBladeTrace(source,target,event.parryDirection||'right'):(event.parryDirection||null),pan=spatialPan(clash);
     if(parry&&source)source.parryRecoil={remaining:strongParry?.3:.13,duration:strongParry?.3:.13,side:visualDirection==='left'?-1:1};

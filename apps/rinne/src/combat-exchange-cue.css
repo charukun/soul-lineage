@@ -1,0 +1,10 @@
+/* Same hero-view meaning as battle2; retain the game's existing sequence skin. */
+.combat-phase-indicator .combat-exchange-cue{position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);white-space:nowrap;color:var(--rinne-paper-hi,#f2dfb8);font-size:11px;font-weight:700;letter-spacing:.06em;text-shadow:0 1px 4px #101817,0 0 8px #101817;pointer-events:none}
+.combat-phase-indicator[data-exchange-intent=respond] .combat-exchange-cue{color:#bdd2dc}
+.combat-phase-indicator[data-exchange-intent=counter] .combat-exchange-cue{color:#ffe1a0}
+.combat-phase-indicator[data-exchange-intent=zanshin] .combat-exchange-cue{color:#c6d6b4}
+.combat-phase-indicator .combat-exchange-edge{position:absolute;top:7px;width:25px;height:12px;opacity:.3;pointer-events:none}
+.combat-phase-indicator [data-exchange-edge=maai]{left:-29px}
+.combat-phase-indicator [data-exchange-edge=zanshin]{right:-29px}
+.combat-exchange-edge svg{width:25px;height:12px;overflow:visible}.combat-exchange-edge path{fill:none;stroke:var(--rinne-gold-hi,#efcf88);stroke-width:1.2;vector-effect:non-scaling-stroke}
+.combat-phase-indicator[data-exchange-state=maai] [data-exchange-edge=maai],.combat-phase-indicator[data-exchange-state=zanshin] [data-exchange-edge=zanshin]{opacity:1;filter:drop-shadow(0 0 3px #c7a15d)}

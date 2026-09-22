@@ -14,7 +14,7 @@ function actionOf(actor,pose,battleId){
   }
   const weapon=execution.weapon==='greatsword'?'great':execution.weapon;
   const phase=execution.phase||pose.slot||'enemy';
-  const motion=resolveJohakyuMotion({weapon,kind:execution.kind,phase,charge:execution.charge||'none'});
+  const motion=resolveJohakyuMotion({weapon,kind:execution.kind,phase:phase==='mind'?'uke':phase,charge:execution.charge||'none'});
   return {id:truth?.attackId||`${battleId}:${actor.id}:${execution.attackId}`,targetId:pose.targetId??null,
     techniqueId:truth?.techniqueId??null,name:truth?.name??null,phase,step:execution.stepIndex??0,
     progress:Math.min(1,Math.max(0,finite(execution.progress,finite(pose.progress)))),duration:finite(execution.motionDuration,1),
@@ -52,16 +52,24 @@ export function readRinneBattleFrame(state,front,{peers=[],epoch=0,revision=0}={
 export function readRinneImpactEvents(events,state,{batchId=null}={}){
   const rows=[];
   for(const [index,event] of (events||[]).entries()){
-    if(!['player-hit','enemy-hit','finisher','enemy-down','enemy-downed','downed','life-end'].includes(event.type))continue;
+    if(!['player-hit','enemy-hit','finisher','enemy-down','enemy-downed','downed','life-end','guard','parry'].includes(event.type))continue;
     const sourceId=event.sourceId??(event.type==='player-hit'||event.type==='finisher'?state.id:null);
     const targetId=event.targetId??(event.type==='enemy-hit'||event.type==='downed'||event.type==='life-end'?state.id:null);
     const attackId=event.attackId??event.projectileId??null;
     // A semantic batch key is supplied by the main loop; object identity is not
     // a durable network event identity. Missing both means no replayable effect.
     if(!attackId&&!batchId)continue;
+    const defense=event.type==='guard'||event.type==='parry',native=event.impact?.execution;
+    const sourceMotion=defense&&native?resolveJohakyuMotion({weapon:native.weapon==='greatsword'?'great':native.weapon,kind:native.kind,phase:native.phase==='mind'?'uke':native.phase||'enemy'}):null;
+    const contactPoint=event.impact?.point;
     rows.push({id:attackId?`${attackId}:${sourceId}:${targetId}:${event.type}`:`${batchId}:${index}:${event.type}`,
       type:event.type,attackId,sourceId,targetId,damage:finite(event.damage),phase:event.phase??null,bodyPart:event.bodyPart??event.part??null,
-      point:event.impact?.point?Array.from(event.impact.point):null,blocked:Boolean(event.blockedByTerrain)});
+      point:contactPoint?Array.from(contactPoint):null,blocked:Boolean(event.blockedByTerrain)||defense,
+      ...(defense?{strongParry:event.strongParry===true,exchangeContinuity:event.exchangeContinuity??null,
+        contactPoint:contactPoint?{x:contactPoint[0],z:contactPoint[2]}:null,parryDirection:sourceMotion?.deflect??null,
+        sourceContactProgress:sourceMotion?.supported?sourceMotion.contactProgress:null,
+        defenseContactProgress:resolveJohakyuMotion({weapon:'sword',kind:event.type==='parry'?'parry':'guard',phase:'uke'}).contactProgress}:{}),
+      counter:['mind','uke'].includes(event.impact?.execution?.phase)});
   }
   return freeze(rows);
 }
