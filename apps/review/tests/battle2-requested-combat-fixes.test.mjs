@@ -44,3 +44,26 @@ test('loadout menu leaves the four primary buttons above the sheet',()=>{
   assert.match(css,/\.battle2-loadout-shell \.rinne-primary-four\{z-index:180!important\}/);
   assert.match(shared,/bottom:max\(118px,calc\(env\(safe-area-inset-bottom\) \+ 112px\)\)/);
 });
+
+
+test('range arrival uses the same tolerance for maneuver completion and attack launch so spacing cannot deadlock',()=>{
+  const source=read('src/nocturne/johakyu-p7-review.js');
+  assert.match(source,/RANGE_ARRIVAL_TOLERANCE=\.06/);
+  assert.match(source,/distance<=maneuver\.stopDistance\+RANGE_ARRIVAL_TOLERANCE/);
+  assert.match(source,/distance>launchDistance\+RANGE_ARRIVAL_TOLERANCE/);
+  assert.match(source,/distance>COUNTER_PRESS_DISTANCE\+RANGE_ARRIVAL_TOLERANCE/);
+
+  const scenario=createJohakyuP7ReviewScenario({mode:'duel',enemyLeadSeconds:.16});
+  let nearRangeReissues=0,stageStarts=0,contacts=0;
+  for(let i=0;i<1200;i++){
+    const r=scenario.step(1/60,[]);
+    for(const row of r.meta.activity||[]){
+      if(row.type==='stage-start')stageStarts++;
+      if(row.type==='maneuver-start'&&row.reason==='engage-range'&&Number.isFinite(row.stopDistance)&&Number.isFinite(row.distance)&&row.distance>row.stopDistance&&row.distance<=row.stopDistance+.06)nearRangeReissues++;
+    }
+    contacts+=r.events.filter(event=>['player-hit','enemy-hit','guard','parry','slip','clash'].includes(event.type)).length;
+  }
+  assert.equal(nearRangeReissues,0,'arrival-band frames must launch instead of reissuing the same approach');
+  assert.ok(stageStarts>8,'combat must continue advancing through authored stages');
+  assert.ok(contacts>0,'combat must keep resolving contacts');
+});
