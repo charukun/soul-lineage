@@ -153,7 +153,9 @@ function createHybridPreview(canvas,onStatus){
       cardMaterial.transparent=true;spriteActor?.setOpacity(cardMaterial.opacity);spriteActor?.setTransform?.({x:cardGroup.position.x,y:0,z:cardGroup.position.z},0);
     },
     setView(name){
-      const angle=VIEW_PRESETS[name]??VIEW_PRESETS.quarter;const radius=5.7;camera.position.set(Math.sin(angle)*radius,2.55,Math.cos(angle)*radius);controls.target.set(0,.85,0);controls.update();
+      // A preset cancels residual drag momentum before setting the camera.
+      const damping=controls.enableDamping;controls.enableDamping=false;controls.update();
+      const angle=VIEW_PRESETS[name]??VIEW_PRESETS.quarter;const radius=5.7;camera.position.set(Math.sin(angle)*radius,2.55,Math.cos(angle)*radius);controls.target.set(0,.85,0);controls.update();controls.enableDamping=damping;
     },
     getState(){return{modelReady,billboard,idleMotion,arrangement,spriteStatus:spriteActor?.getStatus()||null,actor:spriteActor?.snapshot?.()||null}},
     destroy(){if(destroyed)return;destroyed=true;imageRevision++;playground.dispose();delete canvas.character25dSnapshot;spriteActor?.dispose();cancelAnimationFrame(raf);controls.dispose();renderer.dispose();groundTexture.dispose();ground.geometry.dispose();disposeMaterial(ground.material);grid.geometry.dispose();disposeMaterial(grid.material);card.geometry.dispose();disposeMaterial(card.material);shadow.geometry.dispose();disposeMaterial(shadow.material);proxy.geometry.dispose();disposeMaterial(proxy.material);if(modelRoot)modelRoot.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)})}
@@ -203,4 +205,3 @@ export function mountHybrid25dLab(){
   addEventListener('pagehide',()=>preview.destroy(),{once:true});
   return {section,preview};
 }
-

@@ -17,7 +17,8 @@ character registry. The canonical entry is Visual Review Lab `/review-hybrid-25d
   capsule footprint/height, swept collision port, ground probe, slope/step limits.
 - `adapters/three/character25d-actor.js`: invisible 3D skeleton, interaction/hand/
   weapon/hitbox/hurtbox sockets, layered skinned meshes, shared texture ownership,
-  view hysteresis and crossfade, bounded hair/hem/accessory springs.
+  view hysteresis and crossfade, bounded hair/hem/accessory springs. Scene lighting
+  is clamped around source color to prevent bright stage lights bleaching the art.
 
 The gameplay-facing visual boundary is `setTransform`, `setVelocity`, `setFacing`,
 `setAction`/`play`, `setGroundNormal`, `setEquipment`, `update`, `dispose`. Sockets
