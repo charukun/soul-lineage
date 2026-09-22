@@ -42,12 +42,12 @@ test('battle2 uses the burst executor option for both sides without removing com
   assert.throws(() => createJohakyuP7ReviewScenario({comboStyle: 'burst', heroStartTechniqueIndex: 1}), RangeError);
   assert.throws(() => createJohakyuP7ReviewScenario({comboStyle: 'unknown'}), RangeError);
   const controller = readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js', import.meta.url), 'utf8');
-  assert.match(controller, /createJohakyuP7ReviewScenario\(\{mode,comboStyle:'burst'\}\)/);
+  assert.match(controller, /createJohakyuP7ReviewScenario\(\{mode,comboStyle:'burst',duelGap:mode==='duel'\?2\.18:3\.15,enemyLeadSeconds:mode==='duel'\?\.16:0\}\)/);
 });
 
 
 test('battle2 duel burst actually opens combat instead of remaining in the ready/read loop', () => {
-  const scenario=createJohakyuP7ReviewScenario({mode:'duel',comboStyle:'burst',duelGap:2.75,enemyLeadSeconds:.16});
+  const scenario=createJohakyuP7ReviewScenario({mode:'duel',comboStyle:'burst',duelGap:2.18,enemyLeadSeconds:.16});
   let stageStart=null,contact=null;
   for(let i=0;i<240&&!(stageStart&&contact);i++){
     const result=scenario.step(1/60);
@@ -56,4 +56,19 @@ test('battle2 duel burst actually opens combat instead of remaining in the ready
   }
   assert.ok(stageStart,'1v1 burst must begin an authored attack within four seconds');
   assert.ok(contact,'1v1 burst must reach a real contact/defense event within four seconds');
+});
+
+
+test('battle2 burst uses a review-only low stamina multiplier so a full 序破急 pressure run is affordable', () => {
+  const scenario=createJohakyuP7ReviewScenario({mode:'duel',comboStyle:'burst',duelGap:2.18,enemyLeadSeconds:.16});
+  let reachedKyu=false,minHeroStamina=100;
+  for(let i=0;i<720&&!reachedKyu;i++){
+    const result=scenario.step(1/60),hero=result.frame.actors.find(actor=>actor.self);
+    minHeroStamina=Math.min(minHeroStamina,hero.stamina.value);
+    reachedKyu=reachedKyu||result.meta.activity.some(row=>row.type==='stage-start'&&row.actorId==='hero'&&row.phase==='kyu');
+  }
+  assert.equal(reachedKyu,true,'hero should be able to afford reaching 急 without stamina starvation');
+  assert.ok(minHeroStamina>50,`battle2 review should remain stamina-rich, got ${minHeroStamina}`);
+  const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');
+  assert.match(source,/BATTLE2_STAMINA_COST_MULTIPLIER=\.12/);
 });

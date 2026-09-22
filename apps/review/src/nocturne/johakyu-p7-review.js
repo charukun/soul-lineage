@@ -37,7 +37,8 @@ const ENEMY_COMPOSITION=buildComposition({
 });
 const equippedCompositions=new Map();
 
-function actorRows(mode){const rows=[{id:'hero',side:'party',hp:125,maxHp:125,stamina:100,staminaCap:100,seed:73917,generation:4},{id:'enemy-a',side:'enemy',hp:mode==='duel'?150:100,maxHp:mode==='duel'?150:100,stamina:100,staminaCap:100,seed:8101,generation:1}];if(mode==='oneVsThree')rows.push({id:'enemy-b',side:'enemy',hp:82,maxHp:82,stamina:96,staminaCap:100,seed:8102,generation:1},{id:'enemy-c',side:'enemy',hp:108,maxHp:108,stamina:100,staminaCap:100,seed:8103,generation:1});return rows.map(row=>({...row,equipment:{weapon:'sword',armor:row.side==='party'?'heavy':'cloth',shield:false}}));}
+const BATTLE2_STAMINA_COST_MULTIPLIER=.12;
+function actorRows(mode){const rows=[{id:'hero',side:'party',hp:125,maxHp:125,stamina:100,staminaCap:100,seed:73917,generation:4},{id:'enemy-a',side:'enemy',hp:mode==='duel'?150:100,maxHp:mode==='duel'?150:100,stamina:100,staminaCap:100,seed:8101,generation:1}];if(mode==='oneVsThree')rows.push({id:'enemy-b',side:'enemy',hp:82,maxHp:82,stamina:96,staminaCap:100,seed:8102,generation:1},{id:'enemy-c',side:'enemy',hp:108,maxHp:108,stamina:100,staminaCap:100,seed:8103,generation:1});return rows.map(row=>({...row,staminaMultiplier:BATTLE2_STAMINA_COST_MULTIPLIER,equipment:{weapon:'sword',armor:row.side==='party'?'heavy':'cloth',shield:false}}));}
 function bodyView(actor){return Object.fromEntries(Object.entries(actor.injuries).map(([part,row])=>{const severity=Math.min(1,Math.max(0,Number(row.severity)||0));return[part,{severity,durability:Math.round((1-severity)*100),label:PART_LABELS[part]}];}));}
 function selectTarget(battle,id){for(const candidate of TARGETS[id]){const actor=battle.actors.get(candidate);if(actor&&!actor.dead&&!actor.incapacitated)return actor;}return null;}
 function compositionFor(actor,comboStyle='composed'){
@@ -167,6 +168,11 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     if(mode==='duel')positions.set('enemy-a',{x:LAYOUT.hero.x,z:LAYOUT.hero.z+duelGap});
     if(carry)for(const [id,row] of carry)if(positions.has(id)&&row.position)positions.set(id,{...row.position});
     lastEvents=[];resumed=false;revision=0;attemptSerial=0;seedReadyWindow(.34);
+    if(mode==='duel'){
+      const hero=battle.actors.get('hero'),enemy=battle.actors.get('enemy-a');
+      updateExchange(hero,enemy,{type:'normal-start',phase:'jo',seeded:true});
+      traceRow({type:'initiative-seeded',actorId:'hero',targetId:'enemy-a',phase:'jo'});
+    }
   }
   function winnerCarry(){
     const winner=battle.result?.winner;if(!winner)return new Map();

@@ -18,6 +18,6 @@ test('battle2 mounts a compact body-part HUD on the live stage',()=>{
   assert.match(css,/left:max\(8px,env\(safe-area-inset-left\)\)/);
   assert.match(css,/top:max\(8px,env\(safe-area-inset-top\)\)/);
   assert.match(css,/data-tone=disabled/);
-  assert.match(css,/data-hit=true/);
-  assert.match(version,/BATTLE2_VERSION='2\.2\.11'/);
+  assert.match(css,/data-hit=true/);assert.match(css,/grid-template-columns:54px minmax\(0,154px\)/);assert.match(hud,/row\('判断','judgment'\)/);assert.doesNotMatch(hud,/row\('反応','reaction'\)/);
+  assert.match(version,/BATTLE2_VERSION='2\\.2\\.14'/);
 });

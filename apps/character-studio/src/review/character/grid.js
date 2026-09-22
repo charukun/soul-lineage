@@ -1,4 +1,5 @@
 import './grid.css';
+import { createReviewSvgThumbnail } from '@soul/shared-ui/review-thumbnail';
 
 function sourceLabel(source) {
   return source.dataset.reviewLabel || source.getAttribute('aria-label') || (source.textContent || '').trim() || 'モデル';
@@ -11,6 +12,7 @@ export function readCharacterModels(doc, ready) {
     label: sourceLabel(source),
     stage: source.dataset.modelStage || '',
     thumbnailUrl: source.dataset.thumbnailUrl || '',
+    thumbnailKind: source.dataset.thumbnailKind || 'image',
     selected: source.getAttribute('aria-pressed') === 'true',
     disabled: !ready || source.matches(':disabled')
   }));
@@ -102,9 +104,13 @@ export function installCharacterReviewGrid(doc = document, win = window) {
       button.setAttribute('role', 'option');
       button.setAttribute('aria-selected', String(model.selected));
       if (model.thumbnailUrl) {
-        const image = make('img', 'character-model-thumbnail');
-        image.src = model.thumbnailUrl; image.alt = ''; image.loading = 'lazy'; image.decoding = 'async';
-        image.width = 288; image.height = 184; button.append(image);
+        if (model.thumbnailKind === 'svg-symbol') {
+          button.append(createReviewSvgThumbnail(model.thumbnailUrl, { className: 'character-model-thumbnail', decorative: true, doc }));
+        } else {
+          const image = make('img', 'character-model-thumbnail');
+          image.src = model.thumbnailUrl; image.alt = ''; image.loading = 'lazy'; image.decoding = 'async';
+          image.width = 288; image.height = 184; button.append(image);
+        }
       }
       button.append(make('strong', 'character-model-card-label', model.label));
       if (model.stage) button.append(make('small', 'character-model-card-stage', model.stage));
@@ -129,7 +135,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   function sync() {
     const ready = Boolean(review()?.ready);
     const models = readCharacterModels(doc, ready);
-    const next = JSON.stringify(models.map(model => [model.key, model.label, model.stage, model.thumbnailUrl, model.selected, model.disabled]));
+    const next = JSON.stringify(models.map(model => [model.key, model.label, model.stage, model.thumbnailUrl, model.thumbnailKind, model.selected, model.disabled]));
     if (next !== signature) {
       signature = next;
       render(models);

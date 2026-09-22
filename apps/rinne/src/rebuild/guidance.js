@@ -1,3 +1,5 @@
+import { routeVillageGuidance } from './village-journey-navigation.js';
+
 const distance=(a,b)=>Math.hypot((a?.x||0)-(b?.x||0),(a?.z||0)-(b?.z||0));
 const target=(row,label=row?.label)=>row?{id:String(row.id||label||'target'),x:row.x,z:row.z,label}:null;
 const score=(state,kind)=>Number(state.experiences?.[kind]?.score||0);
@@ -36,7 +38,7 @@ function villageStage(state,age){
 }
 function activityLabel(row){return row?.actionLabel||row?.label||'暮らす';}
 
-export function guidanceFor({state,stations=[],front=null}){
+function baseGuidanceFor({state,stations=[],front=null}){
   const age=Number(state.ageYears)||0;
   if(state.ended||state.phase==='ended')return {stage:'6/6 輪廻',objective:'記憶を確かめる',badge:'転生',target:null,tone:'rebirth'};
   if(state.down){
@@ -91,4 +93,7 @@ export function guidanceFor({state,stations=[],front=null}){
   return {stage:returned?'5/6 凱旋':'3/6 支度',objective:activityLabel(practice),badge:`次 ${nextAge}歳`,target:target(practice,activityLabel(practice)),tone:returned?'home':'prepare'};
 }
 
+export function guidanceFor({state,stations=[],front=null}){
+  return routeVillageGuidance(state,stations,baseGuidanceFor({state,stations,front}));
+}
 export function guidanceDistance(state,guidance){return guidance?.target?distance(state.position,guidance.target):null;}

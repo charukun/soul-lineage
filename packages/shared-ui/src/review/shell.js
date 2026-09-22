@@ -42,6 +42,20 @@ export function normalizeReviewBackButton({header=document.querySelector('.revie
   return back;
 }
 
+async function refreshReviewAssets({doc=document,win=window,button=null}={}){
+  if(button){button.disabled=true;button.textContent='更新データを取得中…';}
+  try{
+    const registrations=await win.navigator?.serviceWorker?.getRegistrations?.()??[];
+    await Promise.all(registrations.map(registration=>registration.unregister()));
+    if(win.caches){const names=await win.caches.keys();await Promise.all(names.map(name=>win.caches.delete(name)));}
+    const urls=new Set([win.location.href,...(win.performance?.getEntriesByType?.('resource')??[]).map(entry=>entry.name)]);
+    const sameOrigin=[...urls].filter(value=>{try{return new URL(value,win.location.href).origin===win.location.origin;}catch{return false;}});
+    await Promise.allSettled(sameOrigin.map(url=>win.fetch?.(url,{cache:'reload',credentials:'same-origin'})));
+  }finally{
+    const target=new URL(win.location.href);target.searchParams.set('_fresh',Date.now().toString(36));win.location.replace(target.href);
+  }
+}
+
 export function mountReviewShell({current='',routes={},homeHref='',historyBack=false,header=document.querySelector('.review-surface__header'),doc=document,win=window}={}){
   if(!header)return null;
   const back=normalizeReviewBackButton({header,href:homeHref});
@@ -63,6 +77,11 @@ export function mountReviewShell({current='',routes={},homeHref='',historyBack=f
     home.rel='noopener';
     panel.append(home);
   }
+  const refresh=make('button','review-switcher__refresh','キャッシュを消して再読込');
+  refresh.type='button';
+  refresh.setAttribute('aria-label','レビュー画面のキャッシュを消して最新版を再読込');
+  refresh.addEventListener('click',()=>void refreshReviewAssets({doc,win,button:refresh}));
+  panel.append(refresh);
   const grid=make('nav','review-switcher__grid');
   grid.setAttribute('aria-label','Visual Review画面');
   renderReviewProbeLinks(grid,{routes,current});
