@@ -1,0 +1,6 @@
+{
+  "baseMeshOnly": true,
+  "assetRole": "golden-base",
+  "rigProfile": "golden-rig",
+  "referenceAuthority": "Front / Side / Back are authoritative for shape and proportion; Rig / Morph / Sockets / UV are structural references only."
+}

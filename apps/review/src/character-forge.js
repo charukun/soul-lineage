@@ -5,8 +5,8 @@ import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
 import {createCameraDirector} from '@soul/rendering/camera-director';
 import {applyCameraPresentation,actorScreenSafety} from '@soul/rendering/camera-presentation-three';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
-import {characterForgeCandidates} from '../../../packages/assets/generated/create-forge-registry.js';
-import {createCharacterPackageActor} from '../../../packages/assets/src/character-create-forge/actor.js';
+import {characterForgeReviewCandidates as characterForgeCandidates} from '@soul/assets/character-create-forge/catalog';
+import {createCharacterPackageActor} from '@soul/assets/character-create-forge/three';
 
 const panel=document.querySelector('.forge-panel'),$=selector=>panel.querySelector(selector);
 const labels={front:'正面',side:'側面',back:'背面',turntable:'360°',free:'自由視点'};

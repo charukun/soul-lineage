@@ -26,12 +26,18 @@ def export_glb(spec,meshes,bones,clips,texture,out):
     inverse=[]
     for b in bones:
         x,y,z=[a*1.6 for a in b['position']];inverse.append([1,0,0,0,0,1,0,0,0,0,1,0,-x,-y,-z,1])
-    skin={'name':'rinne.forge.humanoid.v1','joints':list(range(len(bones))),'skeleton':0,'inverseBindMatrices':accessor(inverse,'MAT4')}
+    skin={'name':spec['rig']['id'],'joints':list(range(len(bones))),'skeleton':0,'inverseBindMatrices':accessor(inverse,'MAT4')}
     gl_meshes=[];scene_nodes=[0]
     for mesh in meshes:
         pos=[[v*1.6 for v in p] for p in mesh['positions']]
         attrs={'POSITION':accessor(pos,limits=True),'NORMAL':accessor(mesh['normals']),'TEXCOORD_0':accessor(mesh['uv'],'VEC2'),'JOINTS_0':accessor(mesh['joints'],'VEC4',5123),'WEIGHTS_0':accessor(mesh['weights'],'VEC4')}
-        gl_meshes.append({'name':mesh['id'],'primitives':[{'attributes':attrs,'indices':accessor(mesh['indices'],'SCALAR',5123),'material':0}]})
+        primitive={'attributes':attrs,'indices':accessor(mesh['indices'],'SCALAR',5123),'material':0}
+        gl_mesh={'name':mesh['id'],'primitives':[primitive]}
+        morphs=mesh.get('morphTargets',[])
+        if morphs:
+            primitive['targets']=[{'POSITION':accessor([[v*1.6 for v in delta] for delta in target['deltas']])} for target in morphs]
+            gl_mesh['weights']=[0]*len(morphs);gl_mesh['extras']={'targetNames':[target['name'] for target in morphs]}
+        gl_meshes.append(gl_mesh)
         scene_nodes.append(len(nodes));nodes.append({'name':mesh['id']+'Mesh','mesh':len(gl_meshes)-1,'skin':0,'extras':{'component':mesh['id'],'status':mesh['component']['status']}})
     anims=[]
     for clip in clips:

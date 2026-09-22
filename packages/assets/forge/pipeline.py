@@ -16,13 +16,14 @@ from geometry import generate_geometry
 from projection import project_textures
 from rigging import create_rig
 from skinning import skin_meshes
+from morphing import create_morphs
 from animation import create_animations
 from sockets import create_sockets
 from exporter import export_glb
 from validation import validate_export
 from registration import create_manifest,register_review
 
-STAGES=['Intake','View Detection','View Normalization','Multi-view Measurement','Reconstruction Spec','Geometry Generation','Multi-view Texture Projection','Rig','Skinning','Animation','Socket Generation','Export','Validation','Character Package Registration','Visual Review Lab Registration']
+STAGES=['Intake','View Detection','View Normalization','Multi-view Measurement','Reconstruction Spec','Geometry Generation','Multi-view Texture Projection','Rig','Skinning','Morph Generation','Animation','Socket Generation','Export','Validation','Character Package Registration','Visual Review Lab Registration']
 
 def run(options):
     if not re.fullmatch('[a-z0-9][a-z0-9-]{0,63}',options.id):raise ValueError('Invalid character id')
@@ -48,12 +49,12 @@ def run(options):
         spec=reconstruction_spec(options.id,options.name,views,measured,detected,{**provenance,'generator':'RINNE-owned procedural pipeline','sourceHashes':{v:s['sha256'] for v,s in sources.items()}},analysis);stage(STAGES[4])
         geometry=generate_geometry(spec);stage(STAGES[5])
         projection=project_textures(spec,views,geometry,temp/'build/textures');spec['textureProjection']=projection;stage(STAGES[6])
-        bones=create_rig(spec);stage(STAGES[7]);skin_meshes(geometry,bones);stage(STAGES[8]);clips=create_animations(bones);stage(STAGES[9]);create_sockets(spec);stage(STAGES[10])
-        model=temp/'build/character.glb';export_glb(spec,geometry,bones,clips,temp/'build/textures/base-color.png',model);stage(STAGES[11])
-        report=validate_export(spec,views,model,projection,temp/'review/comparisons');save_json(temp/'validation-report.json',report);stage(STAGES[12])
+        bones=create_rig(spec);stage(STAGES[7]);skin_meshes(geometry,bones);stage(STAGES[8]);create_morphs(spec,geometry);stage(STAGES[9]);clips=create_animations(bones);stage(STAGES[10]);create_sockets(spec);stage(STAGES[11])
+        model=temp/'build/character.glb';export_glb(spec,geometry,bones,clips,temp/'build/textures/base-color.png',model);stage(STAGES[12])
+        report=validate_export(spec,views,model,projection,temp/'review/comparisons');save_json(temp/'validation-report.json',report);stage(STAGES[13])
         if report['errors']:raise ValueError('; '.join(report['errors']))
         save_json(temp/'spec/reconstruction.json',spec);manifest=create_manifest(spec,report,clips,model);save_json(temp/'manifest.json',manifest)
-        views['front']['normalized'].save(temp/'review/thumbnail.png');stage(STAGES[13])
+        views['front']['normalized'].save(temp/'review/thumbnail.png');stage(STAGES[14])
         backup=target.with_name(target.name+'.previous')
         if backup.exists():raise ValueError('Recovery directory already exists; inspect before replacing')
         if target.exists():target.rename(backup)
@@ -64,7 +65,7 @@ def run(options):
             if backup.exists():backup.rename(target)
             raise
         if backup.exists():shutil.rmtree(backup)
-        history.append({'stage':STAGES[14],'status':'completed'});save_json(target/'pipeline-state.json',{'forgeVersion':VERSION,'stages':history,'registeredPackages':count})
+        history.append({'stage':STAGES[15],'status':'completed'});save_json(target/'pipeline-state.json',{'forgeVersion':VERSION,'stages':history,'registeredPackages':count})
         return {'id':options.id,'path':str(target),'mode':spec['reconstructionMode'],'reviewStatus':'review-candidate','performance':report['performance'],'comparisons':report['comparisons']}
     except Exception as error:
         save_json(temp/'failure.json',{'error':str(error),'completedStages':history});raise

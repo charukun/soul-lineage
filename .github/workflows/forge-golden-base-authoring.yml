@@ -1,0 +1,70 @@
+name: Forge Golden Base Authoring
+on:
+  push:
+    branches: ['work/golden-base-forge']
+permissions:
+  contents: write
+jobs:
+  author:
+    if: ${{ contains(github.event.head_commit.message, '[forge-author]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install authoring dependencies
+        run: |
+          npm ci --ignore-scripts
+          python3 -m pip install -r packages/assets/forge/requirements.txt
+      - name: Restore supplied turnaround views
+        run: |
+          base64 --decode .authoring/front.b64 > .authoring/front.jpg
+          base64 --decode .authoring/side.b64 > .authoring/side.jpg
+          base64 --decode .authoring/back.b64 > .authoring/back.jpg
+      - name: Create Golden Base through Character Create Forge
+        run: |
+          python3 packages/assets/forge/pipeline.py \
+            --front .authoring/front.jpg \
+            --side .authoring/side.jpg \
+            --back .authoring/back.jpg \
+            --analysis .authoring/analysis.json \
+            --provenance .authoring/provenance.json \
+            --id golden-base-v1 \
+            --name "Golden Base v1"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('packages/assets/characters/forge/golden-base-v1/validation-report.json')
+          r=json.loads(p.read_text())
+          worst=max(v['silhouetteMismatch'] for v in r['comparisons'].values())
+          print('worst silhouette mismatch',worst)
+          if worst > .40:
+              raise SystemExit('Golden Base silhouette mismatch exceeds 0.40; refine Forge reconstruction before commit')
+          PY
+      - name: Open generated GLB in Blender and capture DCC evidence
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y blender
+          blender --background --python scripts/character-forge/blender-review.py -- --package packages/assets/characters/forge/golden-base-v1
+      - name: Focused authoring checks
+        run: |
+          node --test tests/character-create-forge.test.mjs tests/character-create-forge-golden-base.test.mjs tests/character-create-forge-catalog.test.mjs tests/character-create-forge-blender-evidence.test.mjs
+          npm run build --workspace @soul/review
+      - name: Commit generated real assets to the same branch
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          rm -rf .authoring
+          rm -f .github/workflows/forge-golden-base-authoring.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/assets/characters/forge/golden-base-v1 packages/assets/generated/create-forge-registry.js
+          git add -u .authoring .github/workflows/forge-golden-base-authoring.yml
+          git commit -m "Generate Golden Base v1 with Forge and Blender evidence"
+          git push origin "HEAD:${BRANCH}"

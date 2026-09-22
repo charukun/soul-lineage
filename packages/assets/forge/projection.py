@@ -41,6 +41,8 @@ def project_textures(spec,views,meshes,out):
                     color=[encode(sum(linear[s[2][c]]*s[1]/total for s in samples)) for c in range(3)]
                     for view,weight,_ in samples:
                         value=weight/total;weights[VIEWS.index(view)]=round(value*255);totals[view]+=value
+                    if spec.get('assetRole')=='golden-base' and mesh['id']!='head':
+                        color=[244,218,212]
                     pixel[ox+px,oy+py]=tuple(color)
                     if mirror: mirrored+=1
                 else:

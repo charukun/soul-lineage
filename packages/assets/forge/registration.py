@@ -8,8 +8,8 @@ def create_manifest(spec,report,clips,model):
     points=[p for m in doc['meshes'] for p in get(m['primitives'][0]['attributes']['POSITION'])]
     lo=[min(p[i] for p in points) for i in range(3)];hi=[max(p[i] for p in points) for i in range(3)]
     return {'schemaVersion':'rinne.character-package/v1','id':spec['id'],'displayName':spec['displayName'],'forgeVersion':VERSION,
-      'representation':'3d','reconstructionMode':spec['reconstructionMode'],'sourceViews':spec['views'],'model':{'path':'build/character.glb','sha256':report['modelSha256']},
-      'skeleton':spec['rig'],'animations':[{'name':c['name'],'duration':c['duration'],'loop':c['loop'],'status':'generated'} for c in clips],
+      'representation':'3d','assetRole':spec.get('assetRole','character-candidate'),'reconstructionMode':spec['reconstructionMode'],'sourceViews':spec['views'],'model':{'path':'build/character.glb','sha256':report['modelSha256']},
+      'skeleton':spec['rig'],'morphs':spec.get('morphs',[]),'animations':[{'name':c['name'],'duration':c['duration'],'loop':c['loop'],'status':'generated'} for c in clips],
       'sockets':spec['sockets'],'scale':{'unit':'metre','height':1.6},'bounds':{'min':lo,'max':hi},
       'presentation':{'headAnchor':[0,spec['levels']['chin']*1.6,0],'bodyCenter':[(a+b)/2 for a,b in zip(lo,hi)],'focusTarget':[0,.8,0],'groundPoint':[0,0,0]},
       'reviewStatus':'review-candidate','visualApproval':'pending','productionReady':False,'provenance':spec['provenance'],'validationStatus':report['structuralStatus'],
