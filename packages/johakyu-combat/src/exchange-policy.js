@@ -98,3 +98,17 @@ export function johakyuExchangeIntent(state,{actorId}={}){
   if(state.mode==='reversal')return state.initiativeId===actorId?'counter':'respond';
   return state.mode==='zanshin'?'zanshin':'read';
 }
+
+/** Shared, timer-free hero-view wording and history lifetime. No new combat state. */
+export function johakyuExchangeCue(state,options={}){
+  const actorId=options.actorId??'hero',hudState=johakyuExchangeHudState(state,{...options,actorId});
+  const participant=Boolean(state?.pair?.includes(actorId)),own=state?.initiativeId===actorId;
+  let intent='read',label='間合い · 読み合い';
+  if(hudState==='zanshin'){intent='zanshin';label='残心';}
+  else if(participant&&state.mode==='reversal'){
+    intent=own?'counter':'respond';
+    label=own?(state.lastReason==='counter-complete'?'攻守交代 · 構え直し':'攻守交代 · 反撃'):'攻守交代 · 凌ぐ';
+  }else if(['jo','ha','kyu'].includes(hudState)){intent='pressure';label=({jo:'攻勢 · 序から',ha:'攻勢 · 継ぐ',kyu:'攻勢 · 決める'})[hudState];}
+  else if(participant&&state.mode==='pressure'&&!own){intent='respond';label='守勢 · 凌ぐ';}
+  return freeze({hudState,intent,label,historyKey:JSON.stringify([actorId,state?.pair??[],state?.serial??0,state?.mode??'read',state?.initiativeId??null])});
+}

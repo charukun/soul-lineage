@@ -5,6 +5,7 @@ import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.j
 import {createCanonicalPresentationDriver} from '../../../packages/johakyu-presentation/src/driver.js';
 import {resolveJohakyuLocomotion,resolveJohakyuMotion} from '../../../packages/johakyu-combat/src/motion-contract.js';
 import {BATTLE2_VERSION} from '../src/battle2-version.js';
+import {BATTLE2_COMBO_PRESETS,BATTLE2_TECHNIQUE_CATALOG} from '../src/nocturne/battle2-technique-catalog.js';
 
 const stageSource=()=>readFileSync(new URL('../src/nocturne-stage.js',import.meta.url),'utf8');
 const hudCss=()=>readFileSync(new URL('../src/nocturne/johakyu-p7-readout.css',import.meta.url),'utf8');
@@ -89,10 +90,23 @@ test('canonical footwork persists in world space and only reachable impacts beco
 });
 
 
+test('browser battle2 resolves damage from rendered weapon sweeps against bone-following body capsules',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),driver=readFileSync(new URL('../../../packages/johakyu-presentation/src/driver.js',import.meta.url),'utf8');
+ assert.match(runtime,/function collectBodyContactRig/);assert.match(runtime,/function bodyContactCapsules/);assert.match(runtime,/function sweptWeaponBodyContact/);assert.match(runtime,/previousAxis/);assert.match(runtime,/engine:'weapon-body-sweep'/);assert.match(runtime,/BODY_CONTACT_SKIN=\.065/);assert.match(runtime,/radii=\{head:\.21,torso:\.285/);assert.match(runtime,/covered=new Set/);
+ assert.match(driver,/sampleContacts/);assert.match(controller,/scenario\.step\(dt,physicalContacts\)/);assert.match(controller,/driven\.sampleContacts/);
+ assert.match(source,/function physicalContactFor/);assert.match(source,/contactEngine:'weapon-body-sweep'/);assert.match(source,/part:physical\?\.bodyPart/);assert.match(source,/contactPoint/);
+});
+
 test('authored sword motions expose contact timing and blade trajectory metadata',()=>{
  const slash=resolveJohakyuMotion({weapon:'sword',kind:'slash',phase:'jo'}),parry=resolveJohakyuMotion({weapon:'sword',kind:'parry',phase:'uke'});
  assert.equal(slash.supported,true);assert.ok(slash.contactProgress>.45&&slash.contactProgress<.65);assert.ok(['left','right'].includes(slash.deflect));assert.notEqual(slash.bladeTrajectory,'neutral');
  assert.equal(parry.supported,true);assert.ok(parry.contactProgress>.3&&parry.contactProgress<.6);assert.equal(parry.clip,'Block_Hit');
+});
+
+test('simultaneous attacks enter a visible authored weapon-clash pose before separating',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(source,/Math\.abs\(action\.progress-sourceContact\)>\.24/);assert.match(source,/state\.interrupted='weapon-clash'/);assert.match(source,/otherState\.interrupted='weapon-clash'/);assert.match(source,/reason==='weapon-clash'/);
+ assert.match(runtime,/function holdAuthoredContactPose/);assert.match(runtime,/holdAuthoredContactPose\(source,'Block_Hit',\.43,\.14\)/);assert.match(runtime,/holdAuthoredContactPose\(target,'Block_Hit',\.57,\.14\)/);assert.match(runtime,/game\.hitstop=Math\.max\(game\.hitstop,\.075\)/);assert.match(runtime,/poseClip:'Block_Hit'/);
 });
 
 test('duel body clearance prevents mesh penetration and parry exposes a weapon-clash point',()=>{
@@ -169,7 +183,7 @@ test('1v1 creates situational breathing room before re-engaging instead of perma
  assert.ok(sawMovingReset,'between-action footwork must be visible in canonical frames');
  assert.ok(maxDistance-minDistance>.45,`distance must breathe rather than pin: ${minDistance}..${maxDistance}`);
  assert.ok(offenseStarts.length>3);assert.ok(offenseStarts.every(row=>row.distance<=3.161),JSON.stringify(offenseStarts.slice(0,5)));
- assert.ok(offenseStarts.some(row=>row.distance>2.35),'step-in attacks should be allowed to begin at the edge of measure before real contact');
+ assert.ok(offenseStarts.some(row=>row.distance<=2.04),'authored attacks should begin inside practical blade-contact measure');
  const starts=trace.filter(row=>row.type==='stage-start').map(row=>row.time),gaps=starts.slice(1).map((time,index)=>time-starts[index]);
  assert.ok(gaps.some(gap=>gap>.3),'combat rhythm needs at least one real settle/reposition gap');
 });
@@ -247,7 +261,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.14');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.33');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -276,7 +290,7 @@ test('HUD is fixed to the screen center while preserving exchange state',()=>{
  assert.ok(!stage.includes('function positionHud')&&!stage.includes('footAnchor')&&!stage.includes('hud.style.left')&&!stage.includes('hud.style.top'));
  assert.ok(stage.includes("hud.dataset.anchored='true'"));assert.ok(stage.includes("const hudState=meta.hudState||'maai'"));assert.ok(stage.includes('phasePanel.dataset.phase=hudState'));
  assert.ok(css.includes('left:50%;top:50%'));assert.ok(css.includes('grid-template-columns:36px 24px 27px 24px 27px 24px 36px'));
- assert.doesNotMatch(html,/>間合い<|>残心</);assert.ok(stage.includes('function shortActionName'));assert.ok(stage.includes('line.textContent=row.label'));
+ assert.doesNotMatch(html,/>間合い<|>残心</);assert.ok(stage.includes('function shortActionName'));assert.ok(stage.includes('line.textContent=historyDisplayLabel(row)'));
 });
 
 test('HUD centers 破 with symmetric exchange waveforms and no scale recentering',()=>{
@@ -286,24 +300,119 @@ test('HUD centers 破 with symmetric exchange waveforms and no scale recentering
  assert.doesNotMatch(css,/battle-sequence-hud__phase[^}]*transform:scale/);assert.ok(css.includes('[data-phase="maai"] .battle-sequence-hud__edge--maai'));assert.ok(css.includes('[data-phase="zanshin"] .battle-sequence-hud__edge--zanshin'));
 });
 
-test('action history remains floating text and narrates techniques plus spacing/defense semantics',()=>{
+test('action history is a paced single-line flow of semantic beats and technique chains',()=>{
  const stage=stageSource(),css=hudCss();
- assert.match(stage,/spawnActionText/);assert.match(stage,/historyNode\.append\(line\)/);assert.match(stage,/animationend/);assert.match(stage,/setTimeout\(remove,4200\)/);
- assert.doesNotMatch(stage,/historyNode\.replaceChildren\(\.\.\.history\.map/);
+ assert.match(stage,/HISTORY_DISPLAY_MS=3200/);assert.match(stage,/historyQueue/);assert.match(stage,/drainHistoryQueue/);assert.match(stage,/historyDisplayLabel/);
+ assert.match(stage,/historyNode\.replaceChildren\(line\)/);assert.match(stage,/animationend/);assert.match(stage,/kind:'technique'/);assert.match(stage,/kind:'semantic'/);
  assert.match(stage,/function actionHistoryKey/);assert.match(stage,/連「\$\{name\}」/);assert.doesNotMatch(stage,/\$\{meta\.stageIndex\+1\}段/);
  for(const copy of ['間合いを取る','武器で弾いた','様子を見る','仕切り直す'])assert.ok(stage.includes(copy),copy);
  assert.match(stage,/interrupted\?'maai'/);assert.match(stage,/seenNarration/);
- assert.match(css,/\.battle-sequence-history__float\{/);assert.match(css,/position:absolute/);assert.match(css,/johakyu-text-drift 3\.7s/);assert.match(css,/@keyframes johakyu-text-drift/);
- assert.doesNotMatch(css,/battle-sequence-history__float[^}]*background:/);
+ assert.match(css,/\.battle-sequence-history__flow\{/);assert.match(css,/johakyu-history-flow 3\.2s/);assert.match(css,/@keyframes johakyu-history-flow/);
+ assert.doesNotMatch(css,/battle-sequence-history__float/);
 });
 
+test('battle2 lamps fill left to right, fade together on interruption, and maai breathes while waiting',()=>{
+ const stage=stageSource(),css=hudCss();
+ assert.match(stage,/node\.dataset\.lit=String\(index>=0&&i<=index\)/);assert.match(stage,/link\.dataset\.lit=String\(index>i\)/);assert.match(stage,/link\.dataset\.current=String\(index===i\)/);
+ assert.match(stage,/beginComboFade/);assert.match(stage,/COMBO_FADE_MS=900/);assert.match(css,/data-lit="true"/);assert.match(css,/data-combo-interrupted="true"/);
+ assert.match(css,/johakyu-maai-pulse 1\.38s/);assert.match(css,/@keyframes johakyu-maai-pulse/);
+});
+
+test('phase activations animate crouch brace and charge while orange glow follows the motion',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),stage=stageSource(),audio=readFileSync(new URL('../src/nocturne/audio.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),manifest=JSON.parse(readFileSync(new URL('../src/nocturne/manifest.json',import.meta.url),'utf8'));
+ assert.match(source,/PHASE_CUE_SECONDS=\.5/);assert.match(source,/clip:'Jump_Start'/);assert.match(source,/motion:'crouch'/);assert.match(source,/clip:'Blocking'/);assert.match(source,/motion:'brace'/);assert.match(source,/clip:'Spellcast_Raise'/);assert.match(source,/motion:'charge'/);assert.match(source,/poseStart:/);assert.match(source,/poseEnd:/);assert.match(source,/glow:'#ff8f32'/);assert.match(source,/glow:'#ffa447'/);assert.match(source,/glow:'#ffbb63'/);
+ for(const clip of ['Jump_Start','Blocking','Spellcast_Raise'])assert.ok(manifest.models['adventurers/Knight'].animations.includes(clip),clip);
+ assert.match(stage,/sound\?\.phaseCue\?\./);assert.match(audio,/function phaseCue/);assert.match(runtime,/cueEase=cueProgress\*cueProgress\*\(3-2\*cueProgress\)/);assert.match(runtime,/lerp\(poseStart,poseEnd,cueEase\)/);
+ assert.match(runtime,/cueEnvelope=Math\.sin\(cueProgress\*Math\.PI\)/);assert.match(runtime,/cuePulse=Math\.pow\(Math\.abs\(Math\.sin\(cueProgress\*Math\.PI\*2\)\),1\.45\)/);assert.match(runtime,/cueGlow=cueColor\?cueEnvelope\*\(\.18\+2\.25\*cuePulse\):0/);
+});
+
+test('battle2 defaults to defense, retreats on broken chains, and makes landed hits costly',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');
+ assert.match(source,/DEFENSE_COOLDOWN=Object\.freeze\(\{guard:\.24,parry:\.3,slip:\.2\}\)/);assert.match(source,/cycle=\['parry','slip','guard'\]/);
+ assert.match(source,/reason:'combo-break-retreat',footwork:'retreat'/);assert.match(source,/reactionCooldowns\.set\(target\.id/);
+ assert.match(source,/heavy:24/);assert.match(source,/counter:21/);assert.match(source,/damage\*1\.4/);
+});
+
+test('burst choreography gives player varied non-horizontal attacks and enemies a distinct attack set',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(source,/HERO_BURST_PRESENTATION/);assert.match(source,/1H_Melee_Attack_Slice_Diagonal/);assert.match(source,/1H_Melee_Attack_Stab/);assert.match(source,/1H_Melee_Attack_Chop/);
+ assert.match(source,/ENEMY_BURST_PRESENTATION/);assert.match(source,/1H_Melee_Attack_Jump_Chop/);assert.match(source,/1H_Melee_Attack_Slice_Horizontal/);
+ assert.match(source,/presentationClip/);assert.match(runtime,/row\.action\?\.presentationClip/);
+});
+
+test('phase cue glow keeps two smooth surges instead of a frozen binary blink',()=>{
+ const runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.doesNotMatch(runtime,/cueBlink/);assert.match(runtime,/cuePulse/);assert.match(runtime,/Math\.sin\(cueProgress\*Math\.PI\*2\)/);assert.match(runtime,/cueEnvelope/);
+});
+
+test('battle2 enemy respawn reuses the battlebk ground-spawn animation and timing',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(source,/spawnStyle:actor\.side==='enemy'\?'battlebk-ground':null/);assert.match(source,/seedReadyWindow\(\.82\)/);
+ assert.match(runtime,/spawnStyle==='battlebk-ground'/);assert.match(runtime,/Spawn_Ground_Skeletons/);assert.match(runtime,/spawnClip\?\.8:0/);
+});
+
+test('battle2 enemy durability matches the battlebk opening-wave baseline',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'oneVsThree'}),actors=scenario.inspect().frame.actors.filter(row=>row.side==='enemy');
+ assert.equal(actors.length,3);for(const actor of actors){assert.equal(actor.hp,46);assert.equal(actor.maxHp,46);}
+});
+
+test('battle2 enemies attack once per opening, circle in range, and use battlebk-like outgoing damage',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');
+ assert.match(source,/ENEMY_DAMAGE_SCALE=\.45/);assert.match(source,/'enemy-attack-reset':\.9/);
+ assert.match(source,/actor\.side==='enemy'&&state\.motion\.offense/);assert.match(source,/breakChain\(actor,state,'enemy-attack-reset'\)/);
+ assert.match(source,/reason==='enemy-attack-reset'/);assert.match(source,/reason:'enemy-reset-circle'/);assert.match(source,/footwork=cursor\.cycle%2\?'orbitL':'orbitR'/);
+ assert.match(source,/source\.side==='enemy'\?Math\.max\(1,Math\.round\(baseDamage\*ENEMY_DAMAGE_SCALE\)\):baseDamage/);
+});
+
+test('public battle2 uses authored technique specs and footwork instead of the basic burst loop',()=>{
+ const controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');
+ assert.match(controller,/comboStyle:'composed'/);assert.doesNotMatch(controller,/comboStyle:'burst'/);
+ for(const id of ['action.feint','action.side-step','action.guard-step','action.counter','action.crash','action.precision'])assert.ok(source.includes(id),id);
+ for(const footwork of ["sideR","cross","retreat","sideL","chase","forward"])assert.ok(source.includes(footwork),footwork);
+ assert.match(source,/actor\.side==='enemy'&&stageDamage\(node\.stage\)>0\?burstPresentationClip/);
+});
+
+test('battle2 technique menu exposes six combos and all sword combat forms backed by authored clips',()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../src/nocturne/manifest.json',import.meta.url),'utf8')),clips=new Set(manifest.models['adventurers/Knight'].animations);
+ assert.equal(BATTLE2_COMBO_PRESETS.length,6);assert.equal(BATTLE2_TECHNIQUE_CATALOG.length,15);
+ for(const row of BATTLE2_TECHNIQUE_CATALOG){assert.equal(row.supported,true,row.id);for(const motion of row.motions){assert.equal(motion.supported,true,row.id);assert.ok(clips.has(motion.clip),row.id+'/'+motion.clip);}}
+ const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8');assert.match(ui,/連技一覧/);assert.match(ui,/基本技一覧/);assert.match(ui,/BATTLE2_COMBO_PRESETS/);assert.match(ui,/BATTLE2_TECHNIQUE_CATALOG/);
+});
+
+test('序破急 slots accept either combo chains or basic techniques and combo cards expose their 1-3 members',()=>{
+ const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),catalog=readFileSync(new URL('../src/nocturne/battle2-technique-catalog.js',import.meta.url),'utf8'),sharedCss=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.css',import.meta.url),'utf8');
+ assert.match(ui,/loadout-technique-tabs/);assert.match(ui,/loadout-combo-card/);assert.match(ui,/loadout-combo-members/);assert.match(ui,/techniqueTab==='combo'/);assert.match(ui,/基本技一覧/);
+ assert.match(catalog,/techniques:chain/);assert.match(catalog,/battle2SelectionTechniques/);assert.match(catalog,/chosen\.slice\(0,3\)/);assert.match(source,/battle2SelectionTechniques\(config\.technique\[phase\],\{weapon\}\)/);assert.match(source,/runtimeIds\.map/);
+ assert.match(sharedCss,/\.loadout-combo-list\{display:grid!important;grid-template-columns:1fr!important/);assert.match(sharedCss,/\.loadout-combo-members\{display:grid!important;grid-template-columns:repeat\(3/);
+});
+test('physical hit detection continuously sweeps real weapon history and has a bounded visual-contact assist',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(source,/FIGHTING_SPACING=1\.54/);assert.match(source,/DEEP_ENTRY_SPACING=1\.46/);assert.match(source,/ENGAGE_DISTANCE=1\.7/);assert.match(source,/Math\.min\(1\.86/);
+ assert.match(runtime,/BODY_CONTACT_SKIN=\.22/);assert.match(runtime,/BODY_CONTACT_ASSIST=\.2/);assert.match(runtime,/WEAPON_TRACE_HISTORY=5/);assert.match(runtime,/trace\?\.axis\?\?weaponAxis\(source\)/);assert.match(runtime,/history\.length>1/);assert.match(runtime,/weapon-body-sweep-assist/);
+});
+test('selected 序破急 skills own their canonical motion, effects and sound presentation',()=>{
+ const catalog=readFileSync(new URL('../src/nocturne/battle2-technique-catalog.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8'),contract=readFileSync(new URL('../../../packages/johakyu-presentation/src/technique-presentation.js',import.meta.url),'utf8'),manifest=JSON.parse(readFileSync(new URL('../src/nocturne/manifest.json',import.meta.url),'utf8')),clips=new Set(manifest.models['adventurers/Knight'].animations);
+ assert.match(catalog,/resolveTechniquePresentation/);assert.match(catalog,/battle2TechniquePresentation/);for(const clip of ['1H_Melee_Attack_Stab','1H_Melee_Attack_Chop','1H_Melee_Attack_Slice_Horizontal','1H_Melee_Attack_Slice_Diagonal','2H_Melee_Attack_Stab','2H_Melee_Attack_Spinning','2H_Melee_Attack_Chop','2H_Melee_Attack_Slice'])assert.ok(clips.has(clip),clip);
+ assert.match(source,/battle2TechniquePresentation\(node\.technique/);assert.match(source,/presentation,presentationClip/);assert.match(source,/rows\[phase\]\.map\(\(\[id\]\)=>id\)\.join\('\+'\)/);
+ assert.match(runtime,/emitTechniqueExecuteFx/);assert.match(runtime,/action\.presentation\?\.sfx\?\.swing/);assert.match(runtime,/presentation\?\.vfx\?\.impact/);assert.match(runtime,/sound\.impact\?\.\(\{pan,heavy,counter:Boolean\(event\.counter\),gain:/);
+ assert.match(contract,/vfx:\{insight:/);assert.match(contract,/sfx:\{prepare:/);assert.match(contract,/camera:\{preset:/);
+});
+
+test('battle2 and 百年転生 share the same captionless 心技体装 buttons and post-tap menu primitives',()=>{
+ const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),stage=stageSource(),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8'),sharedFour=readFileSync(new URL('../../../packages/shared-ui/src/rinne-primary-four.js',import.meta.url),'utf8'),sharedMenu=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.js',import.meta.url),'utf8'),sharedMenuCss=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.css',import.meta.url),'utf8');
+ assert.match(ui,/rinnePrimaryFourMarkup/);assert.match(ui,/rinneLoadoutPanelMarkup/);assert.match(ui,/createRinneLoadoutSlot/);assert.match(ui,/createRinneLoadoutGridItem/);assert.match(ui,/@soul\/shared-ui\/rinne-loadout-menu\.css/);
+ assert.doesNotMatch(sharedFour,/<span>/);assert.match(sharedFour,/aria-label/);assert.match(sharedMenu,/class="rinne-core-menu"/);assert.match(sharedMenuCss,/\.rinne-core-menu \.loadout-grid\{/);
+ // Explicit user request overrides the review default: 心技体装 selection targets use a shared six-column motion-view-like grid.
+ assert.match(sharedMenuCss,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);assert.match(sharedMenuCss,/aspect-ratio:1\/1!important/);assert.doesNotMatch(css,/battle2-loadout-grid|battle2-loadout-panel|battle2-loadout-choice/);
+ assert.match(stage,/createBattle2LoadoutUI/);assert.match(stage,/loadout:loadoutUI\.value/);assert.match(controller,/configureLoadout/);assert.match(source,/normalizeBattle2Loadout/);assert.match(source,/heroCompositionFor/);assert.match(source,/bodyDistanceScale/);assert.match(ui,/hash=2166136261/);assert.match(ui,/toString\(36\)\.padStart\(7,'0'\)/);
+});
 test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});
 
 
 test('battle2 narration rate-limits repeated spacing text instead of flooding the HUD',()=>{
  const stage=stageSource();
  assert.match(stage,/lastNarrationAt=new Map\(\)/);
- assert.match(stage,/now-previous<1\.35/);
+ assert.match(stage,/NARRATION_MIN_SECONDS=2\.2/);assert.match(stage,/now-previous<NARRATION_MIN_SECONDS/);
  assert.match(stage,/row\.actorId!==\'hero\'/);
  assert.match(stage,/if\(pushNarration\(row,meta\)\)break/);
 });

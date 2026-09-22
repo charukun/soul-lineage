@@ -1,3 +1,5 @@
+import { createLocomotion } from './locomotion.js';
+import { installLocomotionPresentation } from './locomotion-presentation.js';
 import { createWebPlatform } from '@soul/platform-web';
 import { createSharedWorldChannel } from '@soul/platform-web/shared-world';
 import { defaultMuraLayout, validateMuraLayout, safeMuraPosition } from '@soul/world/mura';
@@ -37,7 +39,11 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   const stations=buildStations(layout),skirmishAnchor=villageSkirmishAnchor(stations);stations.push({id:'village-skirmish',label:'村外の戦場',x:skirmishAnchor.x,z:skirmishAnchor.z,radius:2.5,danger:true});
   const canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
   await progress('景色を描いています');
-  const view=await createWorldRenderer({canvas,document,layout,stations,buildInfo});
+  const view=installLocomotionPresentation({view:await createWorldRenderer({canvas,document,layout,stations,buildInfo}),canvas,document});
+  if(['dev','local'].includes(environment)&&['actor','shino'].includes(new URLSearchParams(location.search).get('character25d'))){
+    const {installShino25dGuest}=await import('./shino25d-guest.js');
+    installShino25dGuest(view,{environment,canvas});
+  }
   await progress('旅人を迎えています');
   const preview=placeState(createLife({name:'旅人',seed:0x51f15e,villageIds:[layout.id]}),layout);
   view.syncFront(null);view.syncSkirmish(null);view.renderState(preview,.016,{titlePreview:true,titleTime:0,titleIdleTime:0});canvas.dataset.runtime='prepared';
@@ -88,7 +94,8 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
   }catch(error){host.active=false;if(ownsPrepared)host.dispose();throw error;}
 
   let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,doorDwell=0,doorStationId='',movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='',firstRunGuide=null;
-  const swipe=new SwipeInput();
+  const swipe=new SwipeInput(),locomotion=createLocomotion({canMoveTo:(...args)=>view.canMoveTo(...args)});
+  view.clearLocomotion?.();
   let front=coop?coop.snapshot().view.front:state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;if(front)state.frontState=front;
   let skirmish=coop?null:createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);
   let coopTick=-1,coopEpoch=0,coopHistoryRevision=-1,rebirthPending=false,familyHomePending=false,inputElapsed=0;
@@ -212,11 +219,14 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
     if(!active)return;raf=requestAnimationFrame(frame);const frameMs=Math.max(0,now-last),elapsed=frameMs/1000;last=now;const {simulationDelta:dt,lifeDelta}=splitRuntimeFrameDelta(elapsed,{paused:document.hidden});
     if(coop){renderCoopFrame(dt,frameMs,now);return;}
     const moveAxis=movementAxis(now);let moved=false,carrierMoving=false;const mag=Math.hypot(moveAxis.x,moveAxis.y),birthStep=birth.step(dt,moveAxis);
-    if(birthStep.handled){moved=birthStep.moved;carrierMoving=birthStep.carrierMoving;}
-    else if(mag>.08&&!state.ended&&!state.down){const direction=view.cameraVector(moveAxis),speed=(state.interior?interiorSpeedForAge(state.ageYears):speedForAge(state.ageYears))*(state.combat?.72:1),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
-      const movementZone=state.interior?'interior':state.zone;if(view.canMoveTo(nx,nz,.32,movementZone,state.interior?.buildingId)){state.position.x=nx;state.position.z=nz;state.yaw=Math.atan2(direction.x,direction.z);moved=true;}}
+    if(birthStep.handled){locomotion.reset();moved=birthStep.moved;carrierMoving=birthStep.carrierMoving;}
+    else{
+      const enabled=!document.hidden&&!document.querySelector('dialog[open]')&&!state.ended&&!state.down;
+      const direction=enabled&&mag>.08?view.cameraVector(moveAxis):null,speed=(state.interior?interiorSpeedForAge(state.ageYears):speedForAge(state.ageYears))*(state.combat?.72:1);
+      moved=locomotion.step({state,direction,speed,dt,enabled}).moved;
+    }
     if(moved&&movementHint){movementHint=false;$('move-hint').hidden=true;}
-    setMoving(state,birthStep.handled?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position,{interiorId:state.interior?.buildingId||null}):null,events=tickLife(state,{realDelta:dt,lifeDelta,station,paused:document.hidden});handleEvents(events);
+    setMoving(state,birthStep.handled?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position,{interiorId:state.interior?.buildingId||null}):null,readingLifePaused=document.body.classList.contains('rinne-first-run-active')||gameScreen.dataset.storybookOpen==='true';gameScreen.dataset.lifeClockPaused=String(readingLifePaused);const events=tickLife(state,{realDelta:dt,lifeDelta:readingLifePaused?0:lifeDelta,station,paused:document.hidden});handleEvents(events);
     if(state.zone==='village'&&!moved&&(station?.enterInterior||station?.exitInterior)){
       if(doorStationId!==station.id){doorStationId=station.id;doorDwell=0;}doorDwell+=dt;
       if(doorDwell>=.55){const entering=station.enterInterior,changed=entering?enterBuilding(state,station):leaveBuilding(state);if(changed){toast(entering?`${station.label}へ入る`:'外へ出る');doorDwell=0;doorStationId='';void save();}}
@@ -238,14 +248,14 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
   }
 
   function pagehide(){void save();}
-  function visibility(){last=performance.now();coop?.pause(document.hidden);if(document.hidden){view.clearCombatEffects?.();keys.clear();swipe.cancel();setAxis({x:0,y:0});}}
+  function visibility(){last=performance.now();coop?.pause(document.hidden);if(document.hidden){locomotion.reset();view.clearLocomotion?.();view.clearCombatEffects?.();keys.clear();swipe.cancel();setAxis({x:0,y:0});}}
   document.addEventListener('visibilitychange',visibility);
   window.addEventListener('pagehide',pagehide);
   if(front)view.syncFront(front);else view.syncFront(null);view.renderState(state,.016);birth.afterRender(.016,{carrierMoving:false});syncUI();uiElapsed=0;loading.hidden=true;canvas.dataset.runtime='active';
   armMovementHint();showBirthIntro();const birthNews=state.events?.find(event=>event.type==='village-news'&&event.worldSecond===0);if(birthNews&&state.ageYears<.2)toast(`村報 · ${birthNews.text}`);firstRunGuide=coop?null:startRinneFirstRunGuide({root:gameScreen.querySelector('.rinne-gameplay-upgrade'),gameScreen,canvas,getState:()=>state,environment:host.environment,mode});raf=requestAnimationFrame(frame);void save();
 
   function dispose(){
-    if(!active)return;active=false;host.active=false;firstRunGuide?.dispose?.();firstRunGuide=null;view.clearCombatEffects?.();cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();unsubscribeWorld();
+    if(!active)return;active=false;host.active=false;locomotion.reset();view.clearLocomotion?.();firstRunGuide?.dispose?.();firstRunGuide=null;view.clearCombatEffects?.();cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();unsubscribeWorld();
     window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);
     document.removeEventListener('visibilitychange',visibility);for(const key of Object.keys(canvas.dataset))if(key.startsWith('coop'))delete canvas.dataset[key];view.syncPeers([]);$('coop-darkness').hidden=true;$('coop-people').textContent='';$('clock-rate').disabled=false;
     keys.clear();swipe.cancel();setAxis({x:0,y:0});endDialog?.remove();endDialog=null;$('dialogue').hidden=true;$('toast').hidden=true;canvas.dataset.runtime='prepared';

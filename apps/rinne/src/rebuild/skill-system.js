@@ -20,7 +20,7 @@ function selectedSkillIds(state){
   const allowed=id=>!state?.inspiration||(state.knownSkills?.includes(id)&&!state.inspiration.records?.[id]?.archived);
   for(const id of loadout?.heart?.active||[])if(skillDefinition(id)?.type==='support'&&allowed(id))ids.add(id);
   const technique=loadout?.technique,combo=(technique?.combos||[]).find(row=>row.id===technique?.activeComboId)||technique?.combos?.[0];
-  for(const id of Object.values(combo?.slots||{}))if(skillDefinition(id)?.type==='action'&&allowed(id))ids.add(id);
+  for(const phase of ['jo','ha','kyu']){const selection=technique?.phaseSelections?.[phase],comboId=String(selection||'').startsWith('combo:')?String(selection).slice(6):null,selectedCombo=comboId?(technique?.combos||[]).find(row=>row.id===comboId):null,id=selectedCombo?.slots?.[phase]||selection||combo?.slots?.[phase];if(skillDefinition(id)?.type==='action'&&allowed(id))ids.add(id);}
   if(SKILL_BY_ID[technique?.oneMotion]?.type==='action'&&allowed(technique.oneMotion))ids.add(technique.oneMotion);
   return ids;
 }

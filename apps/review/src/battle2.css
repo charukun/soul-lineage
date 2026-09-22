@@ -10,3 +10,8 @@ main.battle2-review.review-surface>.review-surface__workspace{grid-template-colu
 .nocturne-stage[data-state="BOOT"] #battle2-status,.nocturne-stage[data-state="ASSET_LOADING"] #battle2-status{z-index:5;top:auto;bottom:12px;transform:translateX(-50%);background:transparent;padding:4px 8px;font-size:12px}
 .controls{display:flex;justify-content:center;padding:8px max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));border-top:1px solid #29322f;background:#0d1211f5}.battle-stage-switch{width:min(300px,100%)}.battle-mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:5px}.battle-mode-switch button{border:1px solid #39413e;border-radius:9px;background:#171d1b;color:#c9d0cc;padding:9px 12px;font:700 12px/1 system-ui,sans-serif}.battle-mode-switch button[aria-pressed="true"]{border-color:#c7b77a;background:#ded5b9;color:#111714}
 .battle2-review .review-switcher__grid{grid-template-columns:repeat(5,minmax(0,1fr))}.battle2-review .review-probe-card{padding:7px 4px;overflow-wrap:anywhere}[hidden]{display:none!important}
+
+
+/* 心技体装のナビとメニューは @soul/shared-ui が描画正本。 */
+.battle2-loadout-shell{position:absolute;inset:0;z-index:8;pointer-events:none}
+.battle2-loadout-shell .rinne-core-menu{pointer-events:auto}

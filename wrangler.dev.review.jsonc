@@ -1,9 +1,32 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "soul-lineage-review-dev",
+  "main": "apps/review/worker.mjs",
   "compatibility_date": "2026-09-19",
   "workers_dev": true,
   "assets": {
-    "directory": "./dist/review"
-  }
+    "directory": "./dist/review",
+    "binding": "ASSETS"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "HI3DGEN_JOBS",
+        "class_name": "Hi3DGenJob"
+      },
+      {
+        "name": "HI3DGEN_LIMITS",
+        "class_name": "Hi3DGenRateLimit"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "hi3dgen-async-v1",
+      "new_sqlite_classes": [
+        "Hi3DGenJob",
+        "Hi3DGenRateLimit"
+      ]
+    }
+  ]
 }

@@ -3,21 +3,11 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
-test('battle2 mounts a compact body-part HUD on the live stage',()=>{
-  const html=read('battle2.html'),stage=read('src/nocturne-stage.js'),hud=read('src/battle2-body-hud.js'),css=read('src/battle2-body-hud.css'),version=read('src/battle2-version.js');
-  assert.match(html,/id="battle2-body-hud" class="battle2-body-hud-host"/);
-  assert.match(stage,/createBattle2BodyHud/);
-  assert.match(stage,/runtime\?\.inspectActors\?\.\(\)\.find\(actor=>actor\.self\)/);
-  assert.match(stage,/bodyHud\?\.update\(hero\)/);
-  assert.match(stage,/bodyHud\?\.setVisible\(started&&prepared&&next!==\'ERROR\'\)/);
-  assert.match(hud,/COMBAT_BODY_PARTS/);
-  assert.match(hud,/combatBodySnapshot/);
-  assert.match(hud,/combatBodyOutcome/);
-  assert.match(hud,/previous\.get\(p\.id\)/);
-  assert.match(hud,/flash\(p\.id\)/);
-  assert.match(css,/left:max\(8px,env\(safe-area-inset-left\)\)/);
-  assert.match(css,/top:max\(8px,env\(safe-area-inset-top\)\)/);
-  assert.match(css,/data-tone=disabled/);
-  assert.match(css,/data-hit=true/);assert.match(css,/grid-template-columns:54px minmax\(0,154px\)/);assert.match(hud,/row\('判断','judgment'\)/);assert.doesNotMatch(hud,/row\('反応','reaction'\)/);
-  assert.match(version,/BATTLE2_VERSION='2\\.2\\.14'/);
+test('battle2 body HUD stays compact and opens one six-part durability list',()=>{
+ const html=read('battle2.html'),stage=read('src/nocturne-stage.js'),hud=read('src/battle2-body-hud.js'),css=read('src/battle2-body-hud.css'),version=read('src/battle2-version.js');
+ assert.match(html,/id="battle2-body-hud" class="battle2-body-hud-host"/);assert.match(stage,/createBattle2BodyHud/);assert.match(stage,/bodyHud\?\.update\(hero\)/);
+ assert.match(hud,/COMBAT_BODY_PARTS/);assert.match(hud,/combatBodySnapshot/);assert.doesNotMatch(hud,/combatBodyOutcome|selectedPart|META=/);
+ assert.match(hud,/battle2-body-hud__list/);assert.match(hud,/for\(const part of COMBAT_BODY_PARTS\)/);assert.match(hud,/aria-expanded/);assert.match(hud,/function toggle\(\)/);
+ assert.match(css,/grid-template-columns:40px minmax\(0,168px\)/);assert.match(css,/width:40px;height:62px/);assert.match(css,/battle2-body-hud__gauge/);assert.match(css,/grid-template-columns:28px minmax\(0,1fr\) 48px/);
+ assert.match(css,/data-hit=true/);assert.match(version,/BATTLE2_VERSION='2\.2\.30'/);
 });
