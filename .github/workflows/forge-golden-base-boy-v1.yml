@@ -1,0 +1,43 @@
+name: Forge Golden Base Boy v1
+on:
+  push:
+    branches:
+      - work/golden-base-boy-v1-20260923
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    if: ${{ !contains(github.event.head_commit.message, '[forge-generated]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install Forge authoring dependency
+        run: python3 -m pip install -r packages/assets/forge/requirements.txt
+      - name: Generate registered Golden Base candidate
+        run: |
+          python3 packages/assets/forge/pipeline.py \
+            --root "$GITHUB_WORKSPACE" \
+            --front .forge-input/golden-base-boy-v1/front.png \
+            --side .forge-input/golden-base-boy-v1/side.png \
+            --back .forge-input/golden-base-boy-v1/back.png \
+            --analysis .forge-input/golden-base-boy-v1/analysis.json \
+            --id golden-base-boy-v1 \
+            --name "Golden Base Boy v1" \
+            --provenance .forge-input/golden-base-boy-v1/provenance.json
+      - name: Commit generated package and canonical registry
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -r .forge-input .github/workflows/forge-golden-base-boy-v1.yml
+          git add packages/assets/characters/forge/golden-base-boy-v1 packages/assets/generated/create-forge-registry.js
+          git commit -m "[forge-generated] add Golden Base Boy v1 candidate"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
