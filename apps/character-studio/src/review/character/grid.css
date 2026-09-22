@@ -1,7 +1,7 @@
 /* Character Review is intentionally thin: shared review shell + stage + real model catalog. */
 body.simple-review.character-grid-ready .mode-tabs,
 body.simple-review.character-grid-ready .editor-footer,
-body.simple-review.character-grid-ready .review-controls > :not(#character-review-picker):not(.forge-panel),
+body.simple-review.character-grid-ready .review-controls > :not(#character-review-picker),
 body.simple-review.character-grid-ready .canvas-wrap > .subject-row,
 body.simple-review.character-grid-ready #preview-label{
   display:none!important;
@@ -168,4 +168,5 @@ body.simple-review.character-grid-ready .stage-status #status[data-error="true"]
 }
 
 .character-model-thumbnail{display:block;width:100%;height:auto;aspect-ratio:288/184;object-fit:contain;border-radius:5px}
+
 
