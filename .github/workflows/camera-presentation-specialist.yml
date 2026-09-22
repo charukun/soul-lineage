@@ -1,34 +1,58 @@
 name: Camera Presentation specialist (task only)
-run-name: Materialize observed camera corrections on 2053721f1f2809d8fe8a1344f2223d5d2fefd361
+run-name: Camera gameplay specialist PR1490 9d293787895d6141a5f523c5de3fb34d24ee6aec
 on:
   push:
     branches: [dispatch/camera-presentation-specialist-20260923]
 permissions:
-  contents: write
+  contents: read
+  actions: read
+  pull-requests: read
 jobs:
-  materialize:
+  browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 22
+    env:
+      APP_ENV: dev
     steps:
       - uses: actions/checkout@v6
         with:
           path: control
           persist-credentials: false
-          sparse-checkout: |
-            scripts
-            packages/rendering
+          sparse-checkout: scripts
       - uses: actions/checkout@v6
         with:
-          ref: 2053721f1f2809d8fe8a1344f2223d5d2fefd361
+          ref: 9d293787895d6141a5f523c5de3fb34d24ee6aec
           path: work
           persist-credentials: false
-      - name: Materialize scoped code corrections as blobs only
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: work/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: work
+      - run: npm run build:rinne && npm run build:review
+        working-directory: work
+      - run: npx playwright install --with-deps chromium
+        working-directory: work
+      - name: Native camera gameplay and Review evidence for exact head
+        working-directory: work
+        run: |
+          cp ../control/scripts/browser/camera-playtest-task.mjs scripts/browser/camera-playtest-task.mjs
+          python3 ../control/scripts/camera-native-input-patch.py
+          node --check scripts/browser/camera-playtest-task.mjs
+          node scripts/browser/camera-playtest-task.mjs
+      - name: Existing Actions summary and merge-window snapshot
+        if: always()
         working-directory: work
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 ../control/scripts/materialize-camera-corrections.py
+        run: |
+          mkdir -p test-results/camera-presentation
+          npm run actions:summary -- --repo charukun/soul-lineage --pr 1490 --sha 9d293787895d6141a5f523c5de3fb34d24ee6aec --output test-results/camera-presentation/actions-summary.json
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: camera-corrections-source
-          path: /tmp/camera-corrections
-          retention-days: 7
+          name: camera-specialist-9d293787895d6141a5f523c5de3fb34d24ee6aec
+          path: work/test-results/camera-presentation
+          retention-days: 14
