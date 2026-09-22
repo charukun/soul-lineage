@@ -22,6 +22,9 @@ function node({weapon='sword',phase='jo',techniqueIndex=0,stageIndex=0}={}){
 function life({weapon='sword',armor='cloth',discount=false}={}){
   const state=createLife({seed:73917});
   Object.assign(state,{phase:'living',zone:'frontier',ageYears:28,ageSeconds:1680,position:{x:0,z:0},yaw:0,resting:false,equipment:gear(weapon,armor)});
+  // These tests inject a current injury, not a birth-time injury that should
+  // correctly heal when the real runtime first advances the canonical clock.
+  for(const injury of Object.values(state.injuries))injury.at=state.ageSeconds;
   state.knownSkills.push(`basic.${weapon}`,'action.feint');
   const loadout=ensureCombatLoadout(state);
   for(const combo of loadout.technique.combos)combo.slots={jo:'action.feint',ha:`basic.${weapon}`,kyu:`basic.${weapon}`};
