@@ -147,6 +147,10 @@
   background:linear-gradient(180deg,color-mix(in srgb,var(--menu-accent) 18%,#fffdf0 82%),#f7e5bd)!important;
   box-shadow:inset 0 2px rgba(255,255,255,.72),0 0 0 3px color-mix(in srgb,var(--menu-accent) 17%,transparent),0 4px 8px rgba(86,58,39,.11)!important
 }
+.rinne-core-menu .loadout-slot[data-swap-mode="true"]{transform:translateY(-1px);animation:rinne-loadout-swap-pulse .9s ease-in-out infinite alternate}
+.rinne-core-menu .loadout-slot[data-swap-source="true"]{border-color:#8d6847!important;box-shadow:inset 0 2px rgba(255,255,255,.72),0 0 0 3px color-mix(in srgb,var(--menu-accent) 32%,transparent),0 5px 9px rgba(86,58,39,.18)!important}
+.rinne-core-menu .loadout-swap-hint{margin:-1px 0 5px;padding:2px 6px;color:#765b43;font-size:8px;font-weight:800;letter-spacing:.05em;text-align:center}
+@keyframes rinne-loadout-swap-pulse{from{filter:brightness(.98)}to{filter:brightness(1.08)}}
 .rinne-core-menu .loadout-slot>.skill-sigil{width:26px!important;height:26px!important;min-width:26px!important;margin:0 auto!important}
 .rinne-core-menu .loadout-slot>span{color:#94724d!important;font-size:7px!important;font-weight:800!important}
 .rinne-core-menu .loadout-slot>strong{max-width:100%;overflow:hidden;color:#443329!important;font-size:10px!important;text-overflow:ellipsis;white-space:nowrap}
@@ -204,9 +208,10 @@
   border-color:color-mix(in srgb,var(--menu-accent) 65%,#86613f 35%)!important;
   background:color-mix(in srgb,var(--menu-accent) 14%,#fff9e8 86%)!important
 }
+.rinne-core-menu .loadout-grid-item[data-focus="true"]{border-color:color-mix(in srgb,var(--menu-accent) 78%,#775437 22%)!important;box-shadow:inset 0 1px rgba(255,255,255,.55),0 0 0 2px color-mix(in srgb,var(--menu-accent) 20%,transparent)!important}
 .rinne-core-menu .loadout-grid-item>.skill-sigil{width:30px!important;height:30px!important;min-width:30px!important;margin:0!important}
 .rinne-core-menu .loadout-grid-item>strong{
-  width:100%;overflow:hidden;color:#4b382c!important;font-size:7px!important;line-height:1.1!important;text-align:center;text-overflow:ellipsis;white-space:nowrap
+  width:100%;overflow:hidden;color:#4b382c!important;font-size:8px!important;line-height:1.1!important;text-align:center;text-overflow:ellipsis;white-space:nowrap
 }
 .rinne-core-menu .loadout-grid-item>small{display:none!important}
 .rinne-core-menu .loadout-empty{
@@ -218,6 +223,28 @@
   color:#9a816c!important;
   text-align:center
 }
+.rinne-core-menu .loadout-detail{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  align-items:center;
+  gap:7px;
+  min-height:58px;
+  margin:0 0 7px;
+  padding:5px 4px;
+  border-top:1px dashed rgba(111,77,47,.22);
+  border-bottom:1px dashed rgba(111,77,47,.18);
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--menu-accent) 8%,#fff7e6 92%) 12% 88%,transparent)
+}
+.rinne-core-menu .loadout-detail>.skill-sigil{width:30px!important;height:30px!important;min-width:30px!important;margin:0!important}
+.rinne-core-menu .loadout-detail-copy{display:grid;gap:1px;min-width:0}
+.rinne-core-menu .loadout-detail-copy>small{color:#9a795b;font-size:6.5px;font-weight:800;letter-spacing:.08em}
+.rinne-core-menu .loadout-detail-copy>strong{overflow:hidden;color:#4b382c;font-size:10px;line-height:1.1;text-overflow:ellipsis;white-space:nowrap}
+.rinne-core-menu .loadout-detail-copy>span{overflow:hidden;color:#735c49;font-size:8px;line-height:1.15;text-overflow:ellipsis;white-space:nowrap}
+.rinne-core-menu .loadout-detail-copy>em{overflow:hidden;color:#9a816c;font-size:6.5px;font-style:normal;line-height:1.1;text-overflow:ellipsis;white-space:nowrap}
+.rinne-core-menu .loadout-detail-action{display:grid;justify-items:end;gap:2px}
+.rinne-core-menu .loadout-detail-action>small{max-width:90px;overflow:hidden;color:#8b6d53;font-size:6.5px;text-overflow:ellipsis;white-space:nowrap}
+.rinne-core-menu .loadout-detail-action>button{min-height:30px;padding:4px 8px;border:0;border-radius:9px;background:color-mix(in srgb,var(--menu-accent) 25%,#fff4dc 75%);color:#503b2d;font-size:8px;font-weight:800;box-shadow:inset 0 0 0 1px rgba(112,78,48,.22),0 2px 4px rgba(91,64,42,.08)}
+.rinne-core-menu .loadout-detail-action>button:disabled{opacity:.45}
 
 /* Technique controls are compact and tactile. */
 .rinne-core-menu .loadout-context-bar{
@@ -300,4 +327,4 @@
   .rinne-core-menu{left:78px;right:8px;bottom:8px;top:8px;max-width:none;max-height:none}
   .rinne-core-menu .loadout-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important}
 }
-@media(prefers-reduced-motion:reduce){.rinne-core-menu{transition:none!important}}
+@media(prefers-reduced-motion:reduce){.rinne-core-menu{transition:none!important}.rinne-core-menu .loadout-slot[data-swap-mode="true"]{animation:none!important}}
