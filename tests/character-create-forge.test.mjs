@@ -16,6 +16,8 @@ test('Forge keeps observed views, exports real skin/clips, and registers only va
     assert.equal(multi.spec.reconstructionMode,'multi-view');assert.equal(multi.manifest.reviewStatus,'review-candidate');assert.equal(multi.manifest.productionReady,false);
     for(const view of ['front','side','back']){assert.ok(multi.spec.textureProjection.sampleContributions[view]>100);assert.ok(multi.report.comparisons[view]);assert.ok(multi.report.comparisons[view].silhouetteMismatch<.30);}
     assert.ok(multi.report.performance.triangles>2000);assert.equal(multi.report.structuralStatus,'passed');
+    const legacyManifestPath=join(multi.path,'manifest.json');const legacyManifest=JSON.parse(readFileSync(legacyManifestPath));delete legacyManifest.qualityRefinement;writeFileSync(legacyManifestPath,JSON.stringify(legacyManifest));
+
     assert.ok(multi.report.sideDepthDiagnostics.chest);assert.ok(multi.spec.depthMeasurements.chest.frontDepth>0);assert.ok(multi.spec.depthMeasurements.chest.backDepth>0);
     assert.ok(multi.spec.components.find(c=>c.id==='torso').rings.some(r=>Math.abs(r.frontDepth-r.backDepth)>1e-5),'Side reconstruction must preserve front/back asymmetry');
     const refinement=JSON.parse(readFileSync(join(multi.path,'review/quality-refinement.json')));assert.equal(refinement.status,'pending-dcc-review');assert.deepEqual(refinement.requiredFixedViews,['front','side','back','three-quarter']);assert.equal(refinement.modelSha256,multi.manifest.model.sha256);
