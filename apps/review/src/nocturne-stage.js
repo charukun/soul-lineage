@@ -5,10 +5,11 @@ const stage=document.querySelector('[data-review-surface="battle2"]');
 const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects'),versionNode=document.getElementById('battle2-version'),startButton=document.getElementById('battle2-start');
 const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
 const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
-const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],modeButtons=[...document.querySelectorAll('[data-battle-mode]')];
-const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'};
+const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],modeButtons=[...document.querySelectorAll('[data-battle-mode]')];
+const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
+const HISTORY_DISPLAY_MS=2800,HISTORY_GAP_MS=220,HISTORY_QUEUE_LIMIT=6,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
-let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='';
+let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],historyQueue=[],historyTimer=0,historyShowing=false,seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',comboFadeTimer=0;
 let state='BOOT',lastError=null;
 hud.dataset.anchored='true';
 if(versionNode)versionNode.textContent=`v${BATTLE2_VERSION}`;
@@ -37,26 +38,58 @@ function semanticActionLabel(row){
  if(row?.type==='normal-offense-ready')return'序から構え直す';
  return'';
 }
-function clearVisualHistory(){historyNode.replaceChildren();}
-function resetHistory(battleId=''){lastBattleId=battleId;seenActions.clear();seenNarration.clear();lastNarrationAt.clear();history=[];clearVisualHistory();}
-function spawnActionText(row){
- const line=document.createElement('span');line.className='battle-sequence-history__float';line.dataset.phase=row.phase;
- line.textContent=row.label;line.style.setProperty('--float-x',row.phase==='jo'?'-5px':row.phase==='kyu'?'5px':'0px');historyNode.append(line);
- const remove=()=>line.remove();line.addEventListener('animationend',remove,{once:true});setTimeout(remove,4200);
+function clearVisualHistory(){
+ if(historyTimer){clearTimeout(historyTimer);historyTimer=0;}
+ historyQueue=[];historyShowing=false;historyNode.replaceChildren();
 }
+function clearComboFade(){
+ if(comboFadeTimer){clearTimeout(comboFadeTimer);comboFadeTimer=0;}
+ delete phasePanel.dataset.comboInterrupted;
+}
+function resetHistory(battleId=''){
+ lastBattleId=battleId;seenActions.clear();seenNarration.clear();lastNarrationAt.clear();history=[];clearVisualHistory();clearComboFade();
+}
+function historyDisplayLabel(row){
+ const label=String(row?.label||'').trim();if(!label)return'';
+ const phase=row?.kind==='technique'?(PHASE_LABEL[row.phase]||''):'';
+ return `${phase?`${phase}・`:''}${label}…`;
+}
+function drainHistoryQueue(){
+ if(historyShowing||historyTimer||!historyQueue.length)return;
+ const row=historyQueue.shift(),line=document.createElement('span');line.className='battle-sequence-history__flow';line.dataset.phase=row.phase||'idle';line.dataset.kind=row.kind||'semantic';
+ line.textContent=historyDisplayLabel(row);historyNode.replaceChildren(line);historyShowing=true;
+ const advance=()=>{if(!historyShowing)return;historyShowing=false;if(historyTimer){clearTimeout(historyTimer);historyTimer=0;}line.remove();historyTimer=setTimeout(()=>{historyTimer=0;drainHistoryQueue();},HISTORY_GAP_MS);};
+ line.addEventListener('animationend',advance,{once:true});historyTimer=setTimeout(advance,HISTORY_DISPLAY_MS+450);
+}
+function spawnActionText(row){
+ const previous=historyQueue.at(-1),key=`${row.kind||'semantic'}:${row.phase||'idle'}:${row.label}`;
+ if(previous&&`${previous.kind||'semantic'}:${previous.phase||'idle'}:${previous.label}`===key)return;
+ if(historyQueue.length>=HISTORY_QUEUE_LIMIT){let drop=historyQueue.findIndex(item=>item.kind!=='technique');if(drop<0)drop=0;historyQueue.splice(drop,1);}
+ historyQueue.push(row);drainHistoryQueue();
+}
+function recordHistory(row){history.push(row);if(history.length>8)history.shift();spawnActionText(row);}
 function pushAction(meta){
  const key=actionHistoryKey(meta);if(!meta?.actionId||!meta?.techniqueId||seenActions.has(key))return;
  seenActions.add(key);if(seenActions.size>256)seenActions.delete(seenActions.values().next().value);
- const row={phase:meta.phase,label:techniqueHistoryName(meta)};history.unshift(row);if(history.length>8)history.length=8;spawnActionText(row);
+ recordHistory({phase:meta.phase,label:techniqueHistoryName(meta),kind:'technique'});
 }
 function pushNarration(row,meta){
  const label=semanticActionLabel(row);if(!label)return false;
  if((row?.type==='maneuver-start'||row?.type==='chain-break'||row?.type==='normal-offense-ready')&&row?.actorId&&row.actorId!=='hero')return false;
  const now=Number(row?.time)||0,semanticKey=[row?.actorId||'pair',row?.type,row?.reason||'',label].join(':');
- const previous=lastNarrationAt.get(semanticKey)??-Infinity;if(now-previous<1.35)return false;
- const key=[meta?.battleId,row?.type,row?.reason,row?.actorId,row?.id,Math.floor(now*4),label].join(':');if(seenNarration.has(key))return false;
+ const previous=lastNarrationAt.get(semanticKey)??-Infinity;if(now-previous<NARRATION_MIN_SECONDS)return false;
+ const key=[meta?.battleId,row?.type,row?.reason,row?.actorId,row?.id,Math.floor(now*2),label].join(':');if(seenNarration.has(key))return false;
  lastNarrationAt.set(semanticKey,now);seenNarration.add(key);if(seenNarration.size>256)seenNarration.delete(seenNarration.values().next().value);
- const item={phase:Object.hasOwn(PHASE_INDEX,row?.phase)?row.phase:'idle',label};history.unshift(item);if(history.length>8)history.length=8;spawnActionText(item);return true;
+ recordHistory({phase:'idle',label,kind:'semantic'});return true;
+}
+function setPhaseLamps(index){
+ for(const node of phaseNodes){const i=PHASE_INDEX[node.dataset.combatPhase];node.dataset.active=String(i===index);node.dataset.completed=String(index>=0&&i<index);node.dataset.lit=String(index>=0&&i<=index);}
+ for(const link of phaseLinks){const i=LINK_INDEX[link.dataset.combatLink];link.dataset.lit=String(index>i);link.dataset.current=String(index===i);}
+}
+function beginComboFade(){
+ if(phasePanel.dataset.comboInterrupted==='true')return;
+ phasePanel.dataset.comboInterrupted='true';
+ comboFadeTimer=setTimeout(()=>{comboFadeTimer=0;delete phasePanel.dataset.comboInterrupted;},COMBO_FADE_MS);
 }
 function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId)resetHistory(meta.battleId);
@@ -64,10 +97,12 @@ function updateSequence(meta){
  const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
  const narrativePriority=row=>row?.type==='chain-break'?0:(row?.type==='parry'||row?.type==='clash'?1:row?.type==='guard'?2:3);
  for(const row of [...activity].sort((a,b)=>narrativePriority(a)-narrativePriority(b))){if(pushNarration(row,meta))break;}
- const hudState=interrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;phasePanel.dataset.phase=hudState;phasePanel.dataset.combatSequencePhase=hudState;phasePanel.dataset.comboActive=String(index>=0);
- for(const node of phaseNodes){const i=PHASE_INDEX[node.dataset.combatPhase];node.dataset.active=String(i===index);node.dataset.completed=String(index>=0&&i<index);}
- if(!interrupted&&index>=0&&meta.actionId){currentNode.dataset.kind=phase;currentNode.textContent=techniqueHistoryName(meta);pushAction(meta);}
- else{currentNode.dataset.kind='idle';currentNode.textContent='';}
+ const hudState=interrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;
+ phasePanel.dataset.phase=hudState;phasePanel.dataset.combatSequencePhase=hudState;phasePanel.dataset.comboActive=String(index>=0&&!interrupted);
+ if(interrupted)beginComboFade();else if(index>=0)clearComboFade();
+ setPhaseLamps(interrupted?-1:index);
+ if(!interrupted&&index>=0&&meta.actionId)pushAction(meta);
+ currentNode.dataset.kind='idle';currentNode.textContent='';
 }
 function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));}
 function failed(error){runtime?.fail?.(error);report('ERROR',error?.message||String(error));sound?.pause();}
@@ -97,5 +132,5 @@ world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepare
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
 window.addEventListener('error',event=>{if(event.error&&!disposed)failed(event.error);});
 window.addEventListener('unhandledrejection',event=>{if(!disposed)failed(event.reason);});
-window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();});
+window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(historyTimer)clearTimeout(historyTimer);if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();});
 syncModeButtons();report('BOOT');void boot();
