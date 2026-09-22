@@ -49,3 +49,6 @@
 .combat-body-hud__impact{margin:8px 0 0;color:#d4d7bf;font-size:11px;line-height:1.55}.combat-body-hud__note{margin:6px 0 0;color:#ece1c6;font-size:12px;line-height:1.6}.combat-body-hud__legend{margin:8px 0 0;padding-top:6px;border-top:1px solid #c0a47033;color:#c8c3ad;font-size:10px;line-height:1.6}
 @media(pointer:coarse){.combat-body-hud__close{width:40px;height:40px;flex-basis:40px}}
 @media(prefers-reduced-motion:reduce){.combat-body-hud__shape,.combat-body-hud__meter i{transition:none}.combat-body-hud__part[data-hit="true"] .combat-body-hud__part-art{animation:none;filter:brightness(1.35)}.combat-body-hud__part[data-hit="true"]::after{animation:none;opacity:.7;transform:none}}
+
+/* Injury state must remain readable during native inspiration choreography. */
+.stage > #battle-body-hud.combat-body-hud{opacity:1!important;filter:none!important;transition:none!important}
