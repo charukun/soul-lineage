@@ -4,7 +4,7 @@ on:
     branches: [work/sprite-set-specialist-20260923]
     paths: [.github/workflows/sprite-set-specialist.yml]
 permissions:
-  contents: read
+  contents: write
   statuses: write
 concurrency:
   group: sprite-set-specialist-1492
@@ -18,19 +18,90 @@ jobs:
       SOURCE_SHA: 283713a438156f0fdd08e7059a0f45b622173408
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Register exact-source browser validation
-        run: gh api repos/${{ github.repository }}/statuses/$SOURCE_SHA -f state=pending -f context=astra/sprite-set-browser -f description='Exact-source builds and real-input motion verification running' -f target_url='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
       - uses: actions/checkout@v6
         with:
           ref: ${{ env.SOURCE_SHA }}
           fetch-depth: 1
-          persist-credentials: false
+          persist-credentials: true
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
+      - name: Apply reviewed bounded fixes and materialize candidate
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          mkdir -p .deploy-state/sprite-set-candidate
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          def change(path, old, new):
+              p=Path(path); s=p.read_text()
+              assert s.count(old)==1, (path, 'patch anchor count', s.count(old))
+              p.write_text(s.replace(old,new))
+          browser='scripts/sprite-set/browser-playtest.mjs'
+          change(browser, 'headed-equivalent Chromium / software WebGL, real UI inputs', 'headless Chromium / software WebGL; real UI inputs')
+          change(browser,
+            "async function cameraInput(degrees){const input=review.locator('[data-sprite-camera]');await input.scrollIntoViewIfNeeded();const box=await input.boundingBox();await review.mouse.click(box.x+8+(box.width-16)*(degrees+180)/360,box.y+box.height/2);await review.waitForTimeout(200);}",
+            "async function cameraInput(degrees){\n  const input=review.locator('[data-sprite-camera]');await input.scrollIntoViewIfNeeded();await input.focus();\n  const difference=degrees-Number(await input.inputValue());\n  // Native key input reaches even angles within the range thumb's hit area. A click there need not change its value.\n  for(let i=0;i<Math.abs(difference);i++)await input.press(difference>0?'ArrowRight':'ArrowLeft');\n  assert.equal(Number(await input.inputValue()),degrees);\n  await review.waitForFunction(deg=>{const s=document.querySelector('.sprite-set-stage canvas').spriteSetSnapshot();const delta=Math.atan2(s.camera.x,s.camera.z)-deg*Math.PI/180;return Math.abs(Math.atan2(Math.sin(delta),Math.cos(delta)))<.01;},degrees);\n  await review.waitForTimeout(150);\n}")
+          playground='apps/review/src/sprite-set-playground.js'
+          change(playground,
+            "    for(const button of host.querySelectorAll('[data-sprite-action]'))button.disabled=!Object.hasOwn(actor.manifest.actions,button.dataset.spriteAction);",
+            "    const actionGrid=find('.sprite-set-actions');\n    for(const button of actionGrid.querySelectorAll('[data-sprite-action]'))if(!SPRITE_SET_ACTIONS.includes(button.dataset.spriteAction)&&!Object.hasOwn(actor.manifest.actions,button.dataset.spriteAction))button.remove();\n    for(const name of Object.keys(actor.manifest.actions))if(!actionGrid.querySelector(`[data-sprite-action=\"${name}\"]`)){\n      const button=document.createElement('button'),label=document.createElement('b'),code=document.createElement('small');\n      button.type='button';button.dataset.spriteAction=name;label.textContent=LABELS[name]||name;code.textContent=name;button.append(label,code);actionGrid.append(button);\n    }\n    for(const button of actionGrid.querySelectorAll('[data-sprite-action]'))button.disabled=!Object.hasOwn(actor.manifest.actions,button.dataset.spriteAction);")
+          change(playground,
+            "  for(const button of host.querySelectorAll('[data-sprite-action]'))on(button,'click',()=>{\n    if(!sandbox)return;find('[data-sprite-demo]').checked=false;sandbox.setDemo(false);",
+            "  on(find('.sprite-set-actions'),'click',event=>{\n    const button=event.target.closest('button[data-sprite-action]');\n    if(!button||button.disabled||!sandbox)return;find('[data-sprite-demo]').checked=false;sandbox.setDemo(false);")
+          guest='apps/rinne/src/rebuild/sprite-set-guest.js'
+          change(guest, 'export function installSpriteSetGuest(view,{environment,canvas}={}){', "const INSTALLED=Symbol.for('rinne.sprite-set.guest');\nexport function installSpriteSetGuest(view,{environment,canvas}={}){\n  if(view?.[INSTALLED])return view;")
+          change(guest, '  const abort=new AbortController(),originalRender=view.renderState,originalDispose=view.dispose;', '  view[INSTALLED]=true;\n  const abort=new AbortController(),originalRender=view.renderState,originalDispose=view.dispose;')
+          change(guest, 'delete canvas.spriteSetSnapshot;}', 'delete canvas.spriteSetSnapshot;delete view[INSTALLED];}')
+          manifest=Path('apps/review/public/sprite-sets/kaykit-knight/manifest.json')
+          data=json.loads(manifest.read_text());data['actions']['rest']['loop']=False;data['actions']['rest']['oneShot']=True
+          data['provenance']['derivedProcessing'].append('Rest transition plays once and holds the seated terminal pose; image bytes are unchanged')
+          manifest.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+          change('apps/review/src/tools/sprite-set-baker.js', "const LOOP=new Set(['idle','walk','run','talk','rest','fall','climb']);", "const LOOP=new Set(['idle','walk','run','talk','fall','climb']);")
+          change('docs/characters/CHARACTER_SPRITE_SET.md', 'The fixture contains all thirteen.', 'The fixture contains all thirteen. Its authored sit-down/rest clip is explicitly one-shot and holds the seated terminal frame instead of repeatedly standing and sitting.')
+          # Exercise extension discovery using an explicit imported test bundle, then restore the unmodified sample before the RINNE handoff.
+          change(browser,
+            "  const popup=review.waitForEvent('popup');",
+            "  const extension=JSON.parse(await readFile(bundlePath,'utf8'));extension.manifest.actions.guard={...structuredClone(extension.manifest.actions.attack),loop:false,oneShot:true};\n  await review.locator('[data-sprite-import]').setInputFiles({name:'extension.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(extension))});await review.waitForFunction(()=>document.querySelector('.sprite-set-playground').dataset.busy==='false');\n  await review.locator('[data-sprite-action=\"guard\"]').click();await review.waitForFunction(()=>document.querySelector('.sprite-set-stage canvas').spriteSetSnapshot().actor.action==='guard');note('manifest-defined extension action has a real control',await state());\n  await review.locator('[data-sprite-import]').setInputFiles({name:'restore.json',mimeType:'application/json',buffer:await readFile(bundlePath)});await review.waitForFunction(()=>document.querySelector('.sprite-set-playground').dataset.busy==='false');assert.equal(await review.locator('[data-sprite-action=\"guard\"]').count(),0);\n  const popup=review.waitForEvent('popup');")
+          PY
+          git diff --check
+          git add -- apps/review/src/sprite-set-playground.js apps/rinne/src/rebuild/sprite-set-guest.js apps/review/public/sprite-sets/kaykit-knight/manifest.json apps/review/src/tools/sprite-set-baker.js docs/characters/CHARACTER_SPRITE_SET.md scripts/sprite-set/browser-playtest.mjs
+          git diff --cached --stat | tee .deploy-state/sprite-set-candidate/diff-stat.txt
+          git diff --cached > .deploy-state/sprite-set-candidate/changes.patch
+          git config user.name 'Sprite Set implementation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cat > /tmp/sprite-set-message <<'MSG'
+          fix(sprite-set): hold rest poses, discover action extensions and verify exact camera input [astra-validate] [astra-heavy-validation]
+
+          Preserve current develop equipment compatibility and idempotent session ownership. Native browser input verifies eight exact camera views rather than clicking within a range thumb hit area.
+
+          Astra-Check: packages/assets/src/character-sprite-set.js
+          Astra-Check: packages/assets/src/character-sprite-playback.js
+          Astra-Check: packages/assets/src/character-sprite-sandbox.js
+          Astra-Check: packages/assets/src/adapters/browser/character-sprite-set.js
+          Astra-Check: packages/assets/src/adapters/three/character-sprite-set.js
+          Astra-Check: apps/review/src/sprite-set-playground.js
+          Astra-Check: apps/rinne/src/rebuild/sprite-set-guest.js
+          Astra-Check: scripts/sprite-set/browser-playtest.mjs
+          Astra-Test: packages/assets/tests/character-sprite-set.test.mjs
+          Astra-Test: packages/assets/tests/character-sprite-set-integration.test.mjs
+          Astra-Test: tests/character25d-equipment.test.mjs
+          Astra-Build: review
+          Astra-Build: rinne
+          MSG
+          git commit -F /tmp/sprite-set-message
+          git push origin HEAD:refs/heads/work/sprite-set-candidate-1492-r2
+          sha=$(git rev-parse HEAD)
+          echo "$sha" | tee .deploy-state/sprite-set-candidate/candidate-head.txt
+          echo "SOURCE_SHA=$sha" >> "$GITHUB_ENV"
+      - name: Register exact-source browser validation
+        run: gh api repos/${{ github.repository }}/statuses/$SOURCE_SHA -f state=pending -f context=astra/sprite-set-browser -f description='Exact-source builds and real-input motion verification running' -f target_url='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium
+      - name: Focused schema, Three ownership, proxy and compatibility tests
+        run: node --test packages/assets/tests/character-sprite-set.test.mjs packages/assets/tests/character-sprite-set-integration.test.mjs tests/character25d-equipment.test.mjs
       - name: Build exact-source Review and RINNE
         run: |
           set -euo pipefail
@@ -43,7 +114,9 @@ jobs:
         if: always()
         with:
           name: sprite-set-browser-${{ env.SOURCE_SHA }}
-          path: .deploy-state/sprite-set-browser-${{ env.SOURCE_SHA }}
+          path: |
+            .deploy-state/sprite-set-candidate
+            .deploy-state/sprite-set-browser-${{ env.SOURCE_SHA }}
           if-no-files-found: warn
           retention-days: 14
       - name: Publish actual exact-source result
