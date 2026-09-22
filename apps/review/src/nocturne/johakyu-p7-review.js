@@ -7,7 +7,7 @@ import {WEAPONS,cancelJohakyuStage,johakyuStageCapability} from '@soul/johakyu-c
 import {beginReviewStage,reviewTechniqueCapability,reviewStageCanResolve} from './johakyu-p7-execution.js';
 import {BURST_CADENCE,burstCompositionFor,burstStageDuration,burstSettleSeconds} from './johakyu-burst-cadence.js';
 import {battle2LoadoutKey,normalizeBattle2Loadout} from './battle2-loadout.js';
-import {BATTLE2_TECHNIQUE_CATALOG,battle2SelectionTechniques,battle2TechniqueLabel,battle2TechniquePresentation} from './battle2-technique-catalog.js';
+import {BATTLE2_TECHNIQUE_CATALOG,battle2InspirationCatalog,battle2SelectionTechniques,battle2TechniqueDefinition,battle2TechniqueLabel,battle2TechniquePresentation} from './battle2-technique-catalog.js';
 
 const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const PHASES=Object.freeze(['jo','ha','kyu']);
@@ -42,7 +42,7 @@ function burstPresentationClip(actor,phase,stageIndex,fallback){
 
 function buildComposition(rows,weapon='sword'){
   const composition=createReviewTechniqueComposition();
-  for(const [phase,techniques] of Object.entries(rows))for(const [id,name] of techniques)addTechniqueToReviewChain(composition,phase,techniqueFromCombatForm(id,{weapon,name}));
+  for(const [phase,techniques] of Object.entries(rows))for(const [id,name] of techniques){const definition=battle2TechniqueDefinition(id,{weapon,name});addTechniqueToReviewChain(composition,phase,definition||techniqueFromCombatForm(id,{weapon,name}));}
   return compileTechniqueComposition(composition,{weapon});
 }
 const HERO_TECHNIQUE_ROWS=Object.freeze({
@@ -50,7 +50,7 @@ const HERO_TECHNIQUE_ROWS=Object.freeze({
   ha:Object.freeze([['action.guard-step','受け流し歩法'],['action.counter','返し']]),
   kyu:Object.freeze([['action.crash','打ち崩し'],['action.precision','一点通し']]),
 });
-const HERO_COMPOSITION=buildComposition(HERO_TECHNIQUE_ROWS),HERO_TECHNIQUE_BY_ID=new Map(BATTLE2_TECHNIQUE_CATALOG.map(row=>[row.id,[row.id,row.label]]));
+const HERO_COMPOSITION=buildComposition(HERO_TECHNIQUE_ROWS);
 const ENEMY_COMPOSITION=buildComposition({
   jo:[['basic.sword','剣の型']],ha:[['basic.sword','剣の型']],kyu:[['basic.sword','剣の型']],
 });
@@ -58,19 +58,26 @@ const equippedCompositions=new Map(),heroLoadoutCompositions=new Map();
 function heroCompositionFor(actor,loadout){
   if(!loadout)return HERO_COMPOSITION;
   const config=normalizeBattle2Loadout(loadout),weapon=actor.equipment.weapon,rows={};
-  for(const phase of PHASES){const options=HERO_TECHNIQUE_ROWS[phase],runtimeIds=battle2SelectionTechniques(config.technique[phase],{weapon});rows[phase]=runtimeIds.map(runtimeId=>runtimeId.startsWith('basic.')?[runtimeId,battle2TechniqueLabel(runtimeId)]:(HERO_TECHNIQUE_BY_ID.get(runtimeId)||options[0]));}
+  for(const phase of PHASES){const runtimeIds=battle2SelectionTechniques(config.technique[phase],{weapon});rows[phase]=runtimeIds.map(runtimeId=>[runtimeId,battle2TechniqueLabel(runtimeId)]);}
   const key=weapon+':'+PHASES.map(phase=>rows[phase].map(([id])=>id).join('+')).join('|');
   if(!heroLoadoutCompositions.has(key))heroLoadoutCompositions.set(key,buildComposition(rows,weapon));
   return heroLoadoutCompositions.get(key);
-};
+}
+function deterministicUnit(key){let hash=2166136261;for(const ch of String(key)){hash^=ch.charCodeAt(0);hash=Math.imul(hash,16777619);}return(hash>>>0)/4294967295;}
+const randomHeroCompositions=new Map();
+function randomHeroCompositionFor(actor,loadout,cursor){
+  const weapon=actor.equipment.weapon,base=BATTLE2_TECHNIQUE_CATALOG.map(row=>row.id==='basic.sword'?'basic.'+weapon:row.id),known=Array.isArray(cursor?.learnedTechniqueIds)?cursor.learnedTechniqueIds:[],pool=[...new Set([...base,...known])].filter(id=>battle2TechniqueDefinition(id,{weapon}));
+  const rows={};for(const [phaseIndex,phase] of PHASES.entries()){const index=Math.min(pool.length-1,Math.floor(deterministicUnit('battle2-random:'+actor.seed+':'+cursor.cycle+':'+phase)*pool.length)),id=pool[Math.max(0,index)]||'basic.'+weapon;rows[phase]=[[id,battle2TechniqueLabel(id)]];}
+  const key='random:'+weapon+':'+cursor.cycle+':'+pool.join(',')+':'+PHASES.map(phase=>rows[phase][0][0]).join('|');if(!randomHeroCompositions.has(key))randomHeroCompositions.set(key,buildComposition(rows,weapon));return randomHeroCompositions.get(key);
+}
 
 const BATTLE2_STAMINA_COST_MULTIPLIER=.12,ENEMY_DAMAGE_SCALE=.45;
 function actorRows(mode,loadout){const config=normalizeBattle2Loadout(loadout||{}),rows=[{id:'hero',side:'party',hp:125,maxHp:125,stamina:100,staminaCap:100,seed:73917,generation:4},{id:'enemy-a',side:'enemy',hp:46,maxHp:46,stamina:100,staminaCap:100,seed:8101,generation:1}];if(mode==='oneVsThree')rows.push({id:'enemy-b',side:'enemy',hp:46,maxHp:46,stamina:96,staminaCap:100,seed:8102,generation:1},{id:'enemy-c',side:'enemy',hp:46,maxHp:46,stamina:100,staminaCap:100,seed:8103,generation:1});return rows.map(row=>({...row,staminaMultiplier:BATTLE2_STAMINA_COST_MULTIPLIER,equipment:{weapon:row.side==='party'?config.equipment.weapon:'sword',armor:row.side==='party'?'heavy':'cloth',shield:row.side==='party'&&config.equipment.weapon==='sword'&&config.equipment.shield}}));}
 function bodyView(actor){return Object.fromEntries(Object.entries(actor.injuries).map(([part,row])=>{const severity=Math.min(1,Math.max(0,Number(row.severity)||0));return[part,{severity,durability:Math.round((1-severity)*100),label:PART_LABELS[part]}];}));}
 function selectTarget(battle,id){for(const candidate of TARGETS[id]){const actor=battle.actors.get(candidate);if(actor&&!actor.dead&&!actor.incapacitated)return actor;}return null;}
-function compositionFor(actor,comboStyle='composed',loadout=null){
+function compositionFor(actor,comboStyle='composed',loadout=null,cursor=null){
   if(comboStyle==='burst')return burstCompositionFor(actor.equipment.weapon);
-  if(actor.side==='party')return heroCompositionFor(actor,loadout);
+  if(actor.side==='party')return cursor?.techniqueMode==='random'?randomHeroCompositionFor(actor,loadout,cursor):heroCompositionFor(actor,loadout);
   const canonical=ENEMY_COMPOSITION,weapon=actor.equipment.weapon;
   if(weapon==='sword')return canonical;
   const key=actor.side+':'+weapon;
@@ -80,9 +87,9 @@ function compositionFor(actor,comboStyle='composed',loadout=null){
   }
   return equippedCompositions.get(key);
 }
-function cursorState(comboStyle='composed',loadout=null){return{comboStyle,loadout,phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:0};}
+function cursorState(comboStyle='composed',loadout=null,{techniqueMode='set',learnedTechniqueIds=[]}={}){return{comboStyle,loadout,techniqueMode,learnedTechniqueIds,phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:0};}
 function nodeFor(actor,cursor){
-  const composition=compositionFor(actor,cursor.comboStyle,cursor.loadout),phase=PHASES[cursor.phaseIndex],chain=composition[phase],technique=chain[cursor.techniqueIndex],stage=technique?.stages?.[cursor.stageIndex];
+  const composition=compositionFor(actor,cursor.comboStyle,cursor.loadout,cursor),phase=PHASES[cursor.phaseIndex],chain=composition[phase],technique=chain[cursor.techniqueIndex],stage=technique?.stages?.[cursor.stageIndex];
   if(!technique||!stage)throw new Error('Invalid technique composition cursor');
   return{phase,chain,technique,stage};
 }
@@ -101,10 +108,10 @@ function battle2Tuning(actor,loadout=null){
   const stanceSpacing=({seigan:1,chinshin:1.02,ryu:1.04,kosei:.96}[body.stance]||1);
   const styleFootwork=({balanced:1,distance:.97,counter:1.02,pressure:1.1,flow:1.08}[body.style]||1);
   const stanceFootwork=({seigan:1,chinshin:.94,ryu:1.08,kosei:1.1}[body.stance]||1);
-  const heartSpacing=(heart.has('skill.observe')||heart.has('skill.danger'))?1.025:1;
-  const tempo=(body.stance==='ryu'?1.04:body.stance==='kosei'?1.03:1)*(heart.has('skill.breath')?1.02:1);
-  const recovery=(body.stance==='kosei'?.96:body.stance==='chinshin'?1.04:1)*(heart.has('skill.breath')?.86:1);
-  const damage=heart.has('skill.focus')?1.06:1;
+  const heartSpacing=(heart.has('skill.observe')||heart.has('skill.patience'))?1.025:1;
+  const tempo=body.stance==='ryu'?1.04:body.stance==='kosei'?1.03:1;
+  const recovery=(body.stance==='kosei'?.96:body.stance==='chinshin'?1.04:1)*(heart.has('skill.patience')?.96:1);
+  const damage=heart.has('skill.edge')?1.09:1;
   return Object.freeze({spacing:styleSpacing*stanceSpacing*heartSpacing,footwork:styleFootwork*stanceFootwork,tempo,recovery,damage});
 }
 function preferredWeaponSpacing(actor,loadout=null,{deep=false}={}){
@@ -194,7 +201,7 @@ function contactWindow(positions,source,target){
 
 // The composed preset remains available to the existing technique laboratory.
 // The public battle2 controller selects burst for its nine-strike exchange.
-export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel',duelGap=3.15,enemyLeadSeconds=0,heroStartPhase='jo',heroStartTechniqueIndex=0,checkpointSeconds=0,actorOverrides={},loadout=null}={}){
+export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel',duelGap=3.15,enemyLeadSeconds=0,heroStartPhase='jo',heroStartTechniqueIndex=0,checkpointSeconds=0,actorOverrides={},loadout=null,settings=null,learnedTechniqueIds=[]}={}){
   if(!['composed','burst'].includes(comboStyle))throw new RangeError('Unsupported combo style');
   if(comboStyle==='burst'&&heroStartTechniqueIndex!==0)throw new RangeError('Burst phases contain one three-strike technique');
   if(!Number.isFinite(checkpointSeconds)||checkpointSeconds<0)throw new RangeError('Invalid checkpoint time');
@@ -203,11 +210,11 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
   if(!Number.isFinite(duelGap)||duelGap<1||duelGap>5)throw new RangeError('Invalid duel review gap');
   if(!Number.isFinite(enemyLeadSeconds)||enemyLeadSeconds<0||enemyLeadSeconds>1)throw new RangeError('Invalid enemy lead');
   if(!PHASES.includes(heroStartPhase)||!Number.isInteger(heroStartTechniqueIndex)||heroStartTechniqueIndex<0||heroStartTechniqueIndex>2)throw new RangeError('Invalid hero start');
-  const reviewLoadout=loadout?normalizeBattle2Loadout(loadout):null,loadoutId=reviewLoadout?battle2LoadoutKey(reviewLoadout):'full';
+  const reviewLoadout=loadout?normalizeBattle2Loadout(loadout):null,loadoutId=reviewLoadout?battle2LoadoutKey(reviewLoadout):'full',reviewSettings=freeze({techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'}),knownTechniqueIds=[...new Set((Array.isArray(learnedTechniqueIds)?learnedTechniqueIds:[]).filter(id=>battle2TechniqueDefinition(id,{weapon:reviewLoadout?.equipment?.weapon||'sword'})))];
   let encounter=1,epoch=1,revision=0,time=0,resumes=0,resumed=false,battle,respawnAt=null;
   let actionState=new Map(),reactionState=new Map(),reactionCooldowns=new Map(),defenseRhythm=new Map(),cursors=new Map(),readyAt=new Map(),positions=new Map(),recoveries=new Map(),maneuvers=new Map(),counterWindows=new Map(),exchangeStates=new Map(),normalPending=new Set(),settleAt=new Map(),initiativeHandoffs=new Map(),terminalFacings=new Map(),phaseCues=new Map(),phaseCueSeen=new Set(),lastEvents=[],trace=[],currentActivity=[],lastFrame=null,lastMeta=null,attemptSerial=0;
 
-  function cursorFor(actor){let cursor=cursors.get(actor.id);if(!cursor){cursor=cursorState(comboStyle,reviewLoadout);cursors.set(actor.id,cursor);}return cursor;}
+  function cursorFor(actor){let cursor=cursors.get(actor.id);if(!cursor){cursor=cursorState(comboStyle,reviewLoadout,actor.side==='party'?{techniqueMode:reviewSettings.techniqueMode,learnedTechniqueIds:knownTechniqueIds}:{});cursors.set(actor.id,cursor);}return cursor;}
   function seedReadyWindow(delay=.24){readyAt.clear();for(const actor of battle.actors.values())readyAt.set(actor.id,time+Math.max(0,delay+(actor.side==='enemy'?.12-enemyLeadSeconds:0)));}
   function freshBattle(carry=null){
     const rows=actorRows(mode,reviewLoadout).map(row=>{
@@ -216,7 +223,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     });
     battle=createJohakyuBattle({battleId:'review-p7:'+mode+':'+loadoutId+':'+encounter,actors:rows,seed:73917+encounter});
     actionState=new Map();reactionState=new Map();reactionCooldowns=new Map();defenseRhythm=new Map();cursors=new Map();readyAt=new Map();positions=new Map(Object.entries(LAYOUT).filter(([id])=>battle.actors.has(id)).map(([id,row])=>[id,{x:row.x,z:row.z}]));recoveries=new Map();maneuvers=new Map();counterWindows=new Map();exchangeStates=new Map();normalPending=new Set();settleAt=new Map();initiativeHandoffs=new Map();terminalFacings=new Map();phaseCues=new Map();phaseCueSeen=new Set();respawnAt=null;
-    cursors.set('hero',{comboStyle,loadout:reviewLoadout,phaseIndex:PHASES.indexOf(heroStartPhase),techniqueIndex:heroStartTechniqueIndex,stageIndex:0,cycle:0});
+    cursors.set('hero',{comboStyle,loadout:reviewLoadout,techniqueMode:reviewSettings.techniqueMode,learnedTechniqueIds:knownTechniqueIds,phaseIndex:PHASES.indexOf(heroStartPhase),techniqueIndex:heroStartTechniqueIndex,stageIndex:0,cycle:0});
     if(mode==='duel')positions.set('enemy-a',{x:LAYOUT.hero.x,z:LAYOUT.hero.z+duelGap});
     if(carry)for(const [id,row] of carry)if(positions.has(id)&&row.position)positions.set(id,{...row.position});
     lastEvents=[];resumed=false;revision=0;attemptSerial=0;seedReadyWindow(.82);
@@ -233,6 +240,13 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
   freshBattle();
 
   function traceRow(row){const entry=freeze({...row,time:Number(time.toFixed(2))});trace.push(entry);currentActivity.push(entry);if(trace.length>180)trace=trace.slice(-180);}
+  function maybeInspire(event,source){
+    if(source?.id!=='hero'||event?.type!=='player-hit')return null;
+    const weapon=source.equipment?.weapon||'sword',candidates=battle2InspirationCatalog({weapon}).filter(row=>!knownTechniqueIds.includes(row.id));if(!candidates.length)return null;
+    const chance=reviewSettings.inspirationRate==='high'?.45:.035,gate=deterministicUnit('battle2-inspiration:'+battle.battleId+':'+event.attackId+':'+event.id);if(gate>=chance)return null;
+    const index=Math.min(candidates.length-1,Math.floor(deterministicUnit('battle2-inspiration-pick:'+event.attackId+':'+knownTechniqueIds.length)*candidates.length)),learned=candidates[Math.max(0,index)];knownTechniqueIds.push(learned.id);
+    traceRow({type:'inspiration',actorId:'hero',techniqueId:learned.id,techniqueName:learned.label,phase:event.phase,triggerEventId:event.id,inspirationRate:reviewSettings.inspirationRate,chance});return learned;
+  }
   function exchangeKey(a,b){return[a.id,b.id].sort().join('::');}
   function exchangeFor(a,b){
     const key=exchangeKey(a,b);let row=exchangeStates.get(key);
@@ -597,7 +611,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
       reactionCooldowns.set(target.id,Math.max(reactionCooldowns.get(target.id)||0,time+(deepHit?.58:.38)));
       const event=freeze({id:eventId,type:source.side==='party'?'player-hit':'enemy-hit',attackId:action.id,sourceId:source.id,targetId:target.id,damage:result.dealt,phase:action.phase,counter:countered,deepHit,exchangeMode:exchange.mode,exchangeContinuity:exchange.continuity,initiativeId:exchange.initiativeId,
         techniqueId:action.techniqueId,techniqueName:action.name,stageIndex:action.stageIndex,stageLabel:action.stageLabel,contactDistance:Number(contact.distance.toFixed(3)),contactReach:CONTACT_REACH,contactPoint,contactEngine:physical?'weapon-body-sweep':visualAssist?'weapon-range-assist':'range-fallback',bodyPart:result.part,bodyDurability:result.durability,blocked:false,presentation:action.presentation??null});
-      events.push(event);traceRow({...event});
+      events.push(event);traceRow({...event});if(source.id==='hero')maybeInspire(event,source);
       const targetAction=combatState(target.id),incomingProgress=stateProgress(targetAction),targetKind=stateKind(targetAction);
       if(countered){
         setRecovery(target,'countered',source.id,RECOVERY_SECONDS.countered);
@@ -635,7 +649,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     const recovery=recoveries.get(hero.id),recoveringBurst=comboStyle==='burst'&&recovery?.reason==='zanshin'&&time<recovery.until;
     const cue=johakyuExchangeCue(exchangeView,{actorId:'hero',phase:action?.phase??phaseCue?.phase??exchangeView?.lastPhase,reaction:action?.scope==='combat-reaction'||action?.scope==='combat-counter-transition'}),hudState=hero.dead||hero.incapacitated?'idle':battle.result||recoveringBurst?'zanshin':cue.hudState;
     const exchangeCue=hudState==='zanshin'?'残心':cue.label,exchangeIntent=hudState==='zanshin'?'zanshin':cue.intent,exchangeHistoryKey=hudState==='zanshin'?cue.historyKey+':zanshin':cue.historyKey;
-    return freeze({comboStyle,recoveryRemaining:recoveringBurst?Math.max(0,recovery.until-time):0,mode,modeLabel:MODES[mode],phase,phaseLabel:PHASE_LABELS[phase],phaseCueKey:phaseCue?.key??null,phaseCuePhase:phaseCue?.phase??null,phaseCueProgress:phaseCue?.progress??null,hudState,exchangeCue,exchangeIntent,exchangeHistoryKey,exchangeMode:exchangeView?.mode??'read',initiativeId:exchangeView?.initiativeId??null,
+    return freeze({comboStyle,techniqueMode:reviewSettings.techniqueMode,inspirationRate:reviewSettings.inspirationRate,learnedTechniqueIds:freeze(knownTechniqueIds.slice()),recoveryRemaining:recoveringBurst?Math.max(0,recovery.until-time):0,mode,modeLabel:MODES[mode],phase,phaseLabel:PHASE_LABELS[phase],phaseCueKey:phaseCue?.key??null,phaseCuePhase:phaseCue?.phase??null,phaseCueProgress:phaseCue?.progress??null,hudState,exchangeCue,exchangeIntent,exchangeHistoryKey,exchangeMode:exchangeView?.mode??'read',initiativeId:exchangeView?.initiativeId??null,
       exchangeSerial:exchangeView?.serial??0,completedBy:exchangeView?.completedBy??null,actionId:action?.id??null,actionName:action?.name??null,actionMotion:action?.motion?.kind??null,techniqueId:action?.techniqueId??cursorNode.technique.id,
       techniqueName:action?.name??cursorNode.technique.name,techniqueIndex:action?.techniqueIndex??heroCursor.techniqueIndex,chainLength:action?.chainLength??cursorNode.chain.length,
       chainLabel:action?.chainLabel??reviewChainLabel(cursorNode.phase,cursorNode.chain.length),stageIndex:action?.stageIndex??heroCursor.stageIndex,stageLabel:action?.stageLabel??cursorNode.stage.label,
@@ -662,5 +676,5 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     return freeze({frame:snapshot,events,meta:review});
   }
   function inspect(){const snapshot=lastFrame??frame(new Map()),review=lastMeta??meta(snapshot);return freeze({frame:snapshot,meta:review,events:lastEvents.slice(),trace:trace.slice(),exchanges:freeze([...exchangeStates.entries()].map(([key,value])=>freeze({key,...johakyuExchangeSnapshot(value)})))});}
-  return Object.freeze({step,inspect,composition:freeze({hero:compositionFor(battle.actors.get('hero'),comboStyle,reviewLoadout),enemy:compositionFor(battle.actors.get('enemy-a'),comboStyle,reviewLoadout)}),loadout:reviewLoadout});
+  return Object.freeze({step,inspect,composition:freeze({hero:compositionFor(battle.actors.get('hero'),comboStyle,reviewLoadout,cursorFor(battle.actors.get('hero'))),enemy:compositionFor(battle.actors.get('enemy-a'),comboStyle,reviewLoadout)}),loadout:reviewLoadout,settings:reviewSettings,get learnedTechniqueIds(){return knownTechniqueIds.slice();}});
 }

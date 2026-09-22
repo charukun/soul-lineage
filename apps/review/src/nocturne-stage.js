@@ -1,6 +1,6 @@
 import {BATTLE2_VERSION} from './battle2-version.js';
 import {createBattle2BodyHud} from './battle2-body-hud.js';
-import {battle2SelectionLabel} from './nocturne/battle2-technique-catalog.js';
+import {battle2SelectionLabel,battle2TechniqueLabel} from './nocturne/battle2-technique-catalog.js';
 import {createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
 import {createBattle2CameraPresentation} from './battle2-camera.js';
 import {mountReviewStageControls} from '@soul/shared-ui/review-shell';
@@ -9,6 +9,11 @@ import '@soul/shared-ui/rinne-primary-four.css';
 import '@soul/shared-ui/rinne-loadout-menu.css';
 import '@soul/shared-ui/rinne-player-hud.css';
 
+const SETTINGS_KEY='battle2.settings.v1';
+function normalizeBattleSettings(value={}){return{techniqueMode:value?.techniqueMode==='random'?'random':'set',inspirationRate:value?.inspirationRate==='high'?'high':'normal'};}
+function readBattleSettings(){try{return normalizeBattleSettings(JSON.parse(globalThis.localStorage?.getItem(SETTINGS_KEY)||'{}'));}catch{return normalizeBattleSettings();}}
+function writeBattleSettings(value){try{globalThis.localStorage?.setItem(SETTINGS_KEY,JSON.stringify(normalizeBattleSettings(value)));}catch{}}
+
 const stage=document.querySelector('[data-review-surface="battle2"]');
 const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects'),versionNode=document.getElementById('battle2-version'),startButton=document.getElementById('battle2-start');
 const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
@@ -16,13 +21,13 @@ const previewIdentity=rinnePreviewPlayer((Date.now()^Math.floor(Math.random()*0x
 const playerHud=createRinnePlayerHud(document.getElementById('battle2-player-hud'),previewIdentity);
 const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
 const cameraPresentation=createBattle2CameraPresentation({stage,world});
-const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]'],label:'戦闘設定'});
-const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],modeButtons=[...document.querySelectorAll('[data-battle-mode]')];
+const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]','[data-battle-technique-mode-control]','[data-battle-inspiration-rate-control]'],label:'戦闘設定'});
+const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],modeButtons=[...document.querySelectorAll('[data-battle-mode]')],techniqueModeButtons=[...document.querySelectorAll('[data-battle-technique-mode]')],inspirationRateButtons=[...document.querySelectorAll('[data-battle-inspiration-rate]')];
 const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
 const HISTORY_DISPLAY_MS=3200,HISTORY_GAP_MS=260,HISTORY_QUEUE_LIMIT=6,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
 let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],historyQueue=[],historyTimer=0,historyShowing=false,seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',lastPhaseCueKey='',comboFadeTimer=0;
-let state='BOOT',lastError=null,lastExchangeKey='',activeLoadout=null;
+let state='BOOT',lastError=null,lastExchangeKey='',activeLoadout=null,battleSettings=readBattleSettings();
 const loadoutUI=createBattle2LoadoutUI({stage,onChange:next=>{activeLoadout=next;reviewMeta=null;lastExchangeKey='';resetHistory();runtime?.configureLoadout?.(next);}});
 activeLoadout=loadoutUI.value;
 const cueNode=document.createElement('span');cueNode.className='battle-exchange-cue';cueNode.setAttribute('role','status');hud.prepend(cueNode);
@@ -111,7 +116,12 @@ function updateSequence(meta){
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
  const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);playerHud?.capture(world,{x:.5,y:.6,scale:.24});
  const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
- const selection=activeLoadout?.technique?.[meta.phase],technique=String(selection?battle2SelectionLabel(selection):(meta.techniqueName||meta.actionName||'')).trim();
+ for(const row of activity){
+  if(row?.type!=='inspiration'||!row.techniqueId)continue;
+  const added=loadoutUI.learnTechnique(row.techniqueId);runtime?.learnTechnique?.(row.techniqueId);
+  if(added)recordHistory({phase:row.phase||'idle',label:`閃き「${row.techniqueName||battle2TechniqueLabel(row.techniqueId)}」`,kind:'inspiration'});
+ }
+ const selection=battleSettings.techniqueMode==='set'?activeLoadout?.technique?.[meta.phase]:null,technique=String(selection?battle2SelectionLabel(selection):(meta.techniqueName||meta.actionName||'')).trim();
  cueNode.hidden=!technique;if(cueNode.textContent!==technique)cueNode.textContent=technique;
  hud.dataset.exchangeIntent=meta.exchangeIntent||'read';
  const hudState=interrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;
@@ -121,9 +131,13 @@ function updateSequence(meta){
  if(!interrupted&&index>=0&&meta.actionId&&phase===hudState)pushAction(meta);
  currentNode.dataset.kind='idle';currentNode.textContent='';
 }
-function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));}
+function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));for(const button of techniqueModeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleTechniqueMode===battleSettings.techniqueMode));for(const button of inspirationRateButtons)button.setAttribute('aria-pressed',String(button.dataset.battleInspirationRate===battleSettings.inspirationRate));}
+function setBattleSetting(key,value){
+ const next=normalizeBattleSettings({...battleSettings,[key]:value});if(next[key]===battleSettings[key])return;
+ battleSettings=next;writeBattleSettings(battleSettings);syncModeButtons();reviewMeta=null;lastExchangeKey='';resetHistory();runtime?.configureSettings?.(battleSettings);
+}
 function failed(error){runtime?.fail?.(error);report('ERROR',error?.message||String(error));sound?.pause();}
-window.__BATTLE2__=Object.freeze({get state(){return state;},get started(){return started;},get mode(){return battleMode;},get loadout(){return loadoutUI.value;},get lastError(){return lastError;},get version(){return BATTLE2_VERSION;},get sourceSha(){return __BUILD_INFO__.commit;},get metrics(){return runtime?.metrics()||{ready:false};},get camera(){return cameraPresentation.snapshot();},get actors(){return runtime?.inspectActors()||[];},get trace(){return runtime?.trace.slice()||[];},get observation(){return prepared?runtime?.inspectBattle(sequence)??null:null;},get review(){return reviewMeta;},get history(){return history.slice();},get exchangeTrace(){return runtime?.exchangeTrace??[];},advance(seconds){if(!new URL(location.href).searchParams.has('evidence'))throw Error('Evidence mode required');return runtime.advance(seconds);}});
+window.__BATTLE2__=Object.freeze({get state(){return state;},get started(){return started;},get mode(){return battleMode;},get settings(){return {...battleSettings};},get loadout(){return loadoutUI.value;},get learnedTechniqueIds(){return loadoutUI.learnedTechniqueIds;},get lastError(){return lastError;},get version(){return BATTLE2_VERSION;},get sourceSha(){return __BUILD_INFO__.commit;},get metrics(){return runtime?.metrics()||{ready:false};},get camera(){return cameraPresentation.snapshot();},get actors(){return runtime?.inspectActors()||[];},get trace(){return runtime?.trace.slice()||[];},get observation(){return prepared?runtime?.inspectBattle(sequence)??null:null;},get review(){return reviewMeta;},get history(){return history.slice();},get exchangeTrace(){return runtime?.exchangeTrace??[];},advance(seconds){if(!new URL(location.href).searchParams.has('evidence'))throw Error('Evidence mode required');return runtime.advance(seconds);}});
 async function boot(){
  const own=++sequence;prepared=false;controller?.abort();runtime?.destroy();runtime=null;lastError=null;reviewMeta=null;lastExchangeKey='';resetHistory();delete stage.dataset.error;controller=new AbortController();report('BOOT');
  try{
@@ -132,7 +146,7 @@ async function boot(){
   // Install gesture listeners before enabling Start, and keep the unlocked
   // AudioContext across mode switches instead of recreating it after the tap.
   sound??=createNocturneSound();
-  runtime=createJohakyuP7Controller({world,effects,stage,sound,notify:report,signal:controller.signal,cameraPresentation,onMeta:updateSequence,evidence:new URL(location.href).searchParams.has('evidence'),fixture:new URL(location.href).searchParams.get('exchangeFixture'),mode:battleMode,loadout:loadoutUI.value});
+  runtime=createJohakyuP7Controller({world,effects,stage,sound,notify:report,signal:controller.signal,cameraPresentation,onMeta:updateSequence,evidence:new URL(location.href).searchParams.has('evidence'),fixture:new URL(location.href).searchParams.get('exchangeFixture'),mode:battleMode,loadout:loadoutUI.value,settings:battleSettings,learnedTechniqueIds:loadoutUI.learnedTechniqueIds});
   await runtime.prepare();if(disposed||own!==sequence)return;
   prepared=true;if(started){runtime.start();report('BATTLE');}else report('READY');
  }catch(error){if(!disposed&&own===sequence){controller.abort(error);failed(error);}}
@@ -144,6 +158,8 @@ startButton.addEventListener('click',()=>{
  if(runtime.start()){started=true;report('BATTLE');}
 });
 for(const button of modeButtons)button.addEventListener('click',()=>{const next=button.dataset.battleMode;if(!['duel','oneVsThree'].includes(next)||next===battleMode)return;battleMode=next;syncModeButtons();void boot();});
+for(const button of techniqueModeButtons)button.addEventListener('click',()=>{const next=button.dataset.battleTechniqueMode;if(!['random','set'].includes(next))return;setBattleSetting('techniqueMode',next);});
+for(const button of inspirationRateButtons)button.addEventListener('click',()=>{const next=button.dataset.battleInspirationRate;if(!['normal','high'].includes(next))return;setBattleSetting('inspirationRate',next);});
 const observer=new ResizeObserver(()=>runtime?.resize());observer.observe(stage);
 world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepared=false;const error=new Error('描画環境が中断されました。');controller?.abort(error);failed(error);});
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
