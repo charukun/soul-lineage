@@ -1,0 +1,7640 @@
+{
+  "schemaVersion": "rinne.character-reconstruction/v1",
+  "forgeVersion": "1.0.0",
+  "id": "forge-scout",
+  "displayName": "Forge Scout",
+  "reconstructionMode": "multi-view",
+  "views": {
+    "front": {
+      "source": "source/front.png",
+      "status": "observed",
+      "sha256": "4c02c97c46a9a53b213d4a398dec936d8ce70f7ddc3e1c2ff2d303a3f39ce0db",
+      "sheetRect": [
+        46,
+        0,
+        155,
+        380
+      ]
+    },
+    "side": {
+      "source": "source/side.png",
+      "status": "observed",
+      "sha256": "06cd56e8c9e77493c6414a6ebe5852e1d48d3cd3a5bd4c115d5fa65628b7b946",
+      "sheetRect": [
+        270,
+        0,
+        331,
+        380
+      ]
+    },
+    "back": {
+      "source": "source/back.png",
+      "status": "observed",
+      "sha256": "f47e4f315d09b9e47e4e9d1666aed665d135ff14c490c4427450fa441fec00cc",
+      "sheetRect": [
+        446,
+        0,
+        555,
+        380
+      ]
+    }
+  },
+  "viewDetection": {
+    "method": "foreground-column-gaps",
+    "order": [
+      "front",
+      "side",
+      "back"
+    ],
+    "status": "inferred",
+    "assumption": "Left-to-right semantic order; Astra checks intake contact sheet before adoption",
+    "rects": {
+      "front": [
+        46,
+        0,
+        155,
+        380
+      ],
+      "side": [
+        270,
+        0,
+        331,
+        380
+      ],
+      "back": [
+        446,
+        0,
+        555,
+        380
+      ]
+    }
+  },
+  "normalizedMeasurements": {
+    "front": {
+      "rawBounds": [
+        4,
+        28,
+        105,
+        345
+      ],
+      "rawSize": [
+        109,
+        380
+      ],
+      "uniformScale": 0.9085173501577287,
+      "groundPixel": 304,
+      "centerPixel": 160.0,
+      "characterHeightPixels": 288,
+      "normalizedSize": [
+        320,
+        320
+      ],
+      "perspectiveCompensation": {
+        "method": "weak-perspective isotropic height/ground normalization",
+        "status": "inferred",
+        "fullPerspectiveSolved": false,
+        "remaining": "Foreshortening and pose differences remain uncertain"
+      },
+      "landmarkCorrection": {
+        "neckRawNormalizedY": 0.7569444444444444,
+        "neckCorrectedNormalizedY": 0.7569444444444444,
+        "medianNeckPixel": 86,
+        "shiftPixels": 0,
+        "status": "inferred",
+        "method": "bounded piecewise vertical registration around independent silhouette neck minima; endpoints anchored",
+        "maxHeightFraction": 0.035
+      },
+      "landmarks": {
+        "chin": {
+          "rawNormalizedY": 0.79,
+          "normalizedY": 0.79,
+          "status": "inferred"
+        },
+        "shoulder": {
+          "rawNormalizedY": 0.71,
+          "normalizedY": 0.71,
+          "status": "inferred"
+        },
+        "chest": {
+          "rawNormalizedY": 0.64,
+          "normalizedY": 0.64,
+          "status": "inferred"
+        },
+        "waist": {
+          "rawNormalizedY": 0.54,
+          "normalizedY": 0.54,
+          "status": "inferred"
+        },
+        "hip": {
+          "rawNormalizedY": 0.46,
+          "normalizedY": 0.46,
+          "status": "inferred"
+        },
+        "knee": {
+          "rawNormalizedY": 0.25,
+          "normalizedY": 0.25,
+          "status": "inferred"
+        },
+        "ankle": {
+          "rawNormalizedY": 0.06,
+          "normalizedY": 0.06,
+          "status": "inferred"
+        },
+        "bodyCenter": {
+          "rawNormalizedY": 0.5,
+          "normalizedY": 0.5,
+          "status": "inferred"
+        }
+      }
+    },
+    "side": {
+      "rawBounds": [
+        0,
+        28,
+        61,
+        345
+      ],
+      "rawSize": [
+        61,
+        380
+      ],
+      "uniformScale": 0.9085173501577287,
+      "groundPixel": 304,
+      "centerPixel": 160.0,
+      "characterHeightPixels": 288,
+      "normalizedSize": [
+        320,
+        320
+      ],
+      "perspectiveCompensation": {
+        "method": "weak-perspective isotropic height/ground normalization",
+        "status": "inferred",
+        "fullPerspectiveSolved": false,
+        "remaining": "Foreshortening and pose differences remain uncertain",
+        "landmarkWarpApplied": true
+      },
+      "landmarkCorrection": {
+        "neckRawNormalizedY": 0.7534722222222222,
+        "neckCorrectedNormalizedY": 0.7569444444444444,
+        "medianNeckPixel": 86,
+        "shiftPixels": -1,
+        "status": "inferred",
+        "method": "bounded piecewise vertical registration around independent silhouette neck minima; endpoints anchored",
+        "maxHeightFraction": 0.035
+      },
+      "landmarks": {
+        "chin": {
+          "rawNormalizedY": 0.79,
+          "normalizedY": 0.79,
+          "status": "inferred"
+        },
+        "shoulder": {
+          "rawNormalizedY": 0.71,
+          "normalizedY": 0.71,
+          "status": "inferred"
+        },
+        "chest": {
+          "rawNormalizedY": 0.64,
+          "normalizedY": 0.64,
+          "status": "inferred"
+        },
+        "waist": {
+          "rawNormalizedY": 0.54,
+          "normalizedY": 0.54,
+          "status": "inferred"
+        },
+        "hip": {
+          "rawNormalizedY": 0.46,
+          "normalizedY": 0.46,
+          "status": "inferred"
+        },
+        "knee": {
+          "rawNormalizedY": 0.25,
+          "normalizedY": 0.25,
+          "status": "inferred"
+        },
+        "ankle": {
+          "rawNormalizedY": 0.06,
+          "normalizedY": 0.06,
+          "status": "inferred"
+        },
+        "bodyCenter": {
+          "rawNormalizedY": 0.5,
+          "normalizedY": 0.5,
+          "status": "inferred"
+        }
+      }
+    },
+    "back": {
+      "rawBounds": [
+        4,
+        28,
+        105,
+        345
+      ],
+      "rawSize": [
+        109,
+        380
+      ],
+      "uniformScale": 0.9085173501577287,
+      "groundPixel": 304,
+      "centerPixel": 160.0,
+      "characterHeightPixels": 288,
+      "normalizedSize": [
+        320,
+        320
+      ],
+      "perspectiveCompensation": {
+        "method": "weak-perspective isotropic height/ground normalization",
+        "status": "inferred",
+        "fullPerspectiveSolved": false,
+        "remaining": "Foreshortening and pose differences remain uncertain",
+        "landmarkWarpApplied": true
+      },
+      "landmarkCorrection": {
+        "neckRawNormalizedY": 0.8298611111111112,
+        "neckCorrectedNormalizedY": 0.7948611111111111,
+        "medianNeckPixel": 86,
+        "shiftPixels": 10.080000000000002,
+        "status": "inferred",
+        "method": "bounded piecewise vertical registration around independent silhouette neck minima; endpoints anchored",
+        "maxHeightFraction": 0.035
+      },
+      "landmarks": {
+        "chin": {
+          "rawNormalizedY": 0.79,
+          "normalizedY": 0.79,
+          "status": "inferred"
+        },
+        "shoulder": {
+          "rawNormalizedY": 0.71,
+          "normalizedY": 0.71,
+          "status": "inferred"
+        },
+        "chest": {
+          "rawNormalizedY": 0.64,
+          "normalizedY": 0.64,
+          "status": "inferred"
+        },
+        "waist": {
+          "rawNormalizedY": 0.54,
+          "normalizedY": 0.54,
+          "status": "inferred"
+        },
+        "hip": {
+          "rawNormalizedY": 0.46,
+          "normalizedY": 0.46,
+          "status": "inferred"
+        },
+        "knee": {
+          "rawNormalizedY": 0.25,
+          "normalizedY": 0.25,
+          "status": "inferred"
+        },
+        "ankle": {
+          "rawNormalizedY": 0.06,
+          "normalizedY": 0.06,
+          "status": "inferred"
+        },
+        "bodyCenter": {
+          "rawNormalizedY": 0.5,
+          "normalizedY": 0.5,
+          "status": "inferred"
+        }
+      }
+    }
+  },
+  "landmarksPerView": {
+    "front": {
+      "headTop": {
+        "normalized": [
+          0,
+          1,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          28
+        ],
+        "status": "observed",
+        "method": "foreground-extrema"
+      },
+      "chin": {
+        "normalized": [
+          0,
+          0.755,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          105.66499999999999
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "shoulder": {
+        "normalized": [
+          0,
+          0.6849999999999999,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          127.85500000000002
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "chest": {
+        "normalized": [
+          0,
+          0.6199999999999999,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          148.46000000000004
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "waist": {
+        "normalized": [
+          0,
+          0.5149999999999999,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          181.74500000000003
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "hip": {
+        "normalized": [
+          0,
+          0.46,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          199.18
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "knee": {
+        "normalized": [
+          0,
+          0.25,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          265.75
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "ankle": {
+        "normalized": [
+          0,
+          0.06,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          325.98
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "sole": {
+        "normalized": [
+          0,
+          0,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          345
+        ],
+        "status": "observed",
+        "method": "foreground-extrema"
+      },
+      "bodyCenter": {
+        "normalized": [
+          0,
+          0.5,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          186.5
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      }
+    },
+    "side": {
+      "headTop": {
+        "normalized": [
+          0,
+          1,
+          0
+        ],
+        "rawPixel": [
+          30.5,
+          28
+        ],
+        "status": "observed",
+        "method": "foreground-extrema"
+      },
+      "chin": {
+        "normalized": [
+          0,
+          0.755,
+          0
+        ],
+        "rawPixel": [
+          30.5,
+          105.66499999999999
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "shoulder": {
+        "normalized": [
+          0,
+          0.6849999999999999,
+          0
+        ],
+        "rawPixel": [
+          30.5,
+          127.85500000000002
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "chest": {
+        "normalized": [
+          0,
+          0.6199999999999999,
+          0
+        ],
+        "rawPixel": [
+          30.5,
+          148.46000000000004
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "waist": {
+        "normalized": [
+          0,
+          0.5149999999999999,
+          0
+        ],
+        "rawPixel": [
+          30.5,
+          181.74500000000003
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "hip": {
+        "normalized": [
+          0,
+          0.46,
+          0
+        ],
+        "rawPixel": [
+          30.5,
+          199.18
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "knee": {
+        "normalized": [
+          0,
+          0.25,
+          0
+        ],
+        "rawPixel": [
+          30.5,
+          265.75
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "ankle": {
+        "normalized": [
+          0,
+          0.06,
+          0
+        ],
+        "rawPixel": [
+          30.5,
+          325.98
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "sole": {
+        "normalized": [
+          0,
+          0,
+          0
+        ],
+        "rawPixel": [
+          30.5,
+          345
+        ],
+        "status": "observed",
+        "method": "foreground-extrema"
+      },
+      "bodyCenter": {
+        "normalized": [
+          0,
+          0.5,
+          0
+        ],
+        "rawPixel": [
+          30.5,
+          186.5
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      }
+    },
+    "back": {
+      "headTop": {
+        "normalized": [
+          0,
+          1,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          28
+        ],
+        "status": "observed",
+        "method": "foreground-extrema"
+      },
+      "chin": {
+        "normalized": [
+          0,
+          0.755,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          105.66499999999999
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "shoulder": {
+        "normalized": [
+          0,
+          0.6849999999999999,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          127.85500000000002
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "chest": {
+        "normalized": [
+          0,
+          0.6199999999999999,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          148.46000000000004
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "waist": {
+        "normalized": [
+          0,
+          0.5149999999999999,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          181.74500000000003
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "hip": {
+        "normalized": [
+          0,
+          0.46,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          199.18
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "knee": {
+        "normalized": [
+          0,
+          0.25,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          265.75
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "ankle": {
+        "normalized": [
+          0,
+          0.06,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          325.98
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      },
+      "sole": {
+        "normalized": [
+          0,
+          0,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          345
+        ],
+        "status": "observed",
+        "method": "foreground-extrema"
+      },
+      "bodyCenter": {
+        "normalized": [
+          0,
+          0.5,
+          0
+        ],
+        "rawPixel": [
+          54.5,
+          186.5
+        ],
+        "status": "inferred",
+        "method": "shared anatomical hypothesis, sampled against silhouette; not a detected joint"
+      }
+    }
+  },
+  "bodyProportions": {
+    "chin": {
+      "value": 0.0625,
+      "status": "observed",
+      "views": [
+        "front"
+      ],
+      "method": "foreground width at inferred anatomical height"
+    },
+    "shoulder": {
+      "value": 0.1736111111111111,
+      "status": "observed",
+      "views": [
+        "front"
+      ],
+      "method": "foreground width at inferred anatomical height"
+    },
+    "chest": {
+      "value": 0.3194444444444444,
+      "status": "observed",
+      "views": [
+        "front"
+      ],
+      "method": "foreground width at inferred anatomical height"
+    },
+    "waist": {
+      "value": 0.18055555555555555,
+      "status": "observed",
+      "views": [
+        "front"
+      ],
+      "method": "foreground width at inferred anatomical height"
+    },
+    "hip": {
+      "value": 0.16666666666666666,
+      "status": "observed",
+      "views": [
+        "front"
+      ],
+      "method": "foreground width at inferred anatomical height"
+    },
+    "knee": {
+      "value": 0.06944444444444445,
+      "status": "observed",
+      "views": [
+        "front"
+      ],
+      "method": "foreground width at inferred anatomical height"
+    },
+    "ankle": {
+      "value": 0.09722222222222222,
+      "status": "observed",
+      "views": [
+        "front"
+      ],
+      "method": "foreground width at inferred anatomical height"
+    },
+    "bodyCenter": {
+      "value": 0.1736111111111111,
+      "status": "observed",
+      "views": [
+        "front"
+      ],
+      "method": "foreground width at inferred anatomical height"
+    }
+  },
+  "depthMeasurements": {
+    "chin": {
+      "value": 0.059027777777777776,
+      "status": "observed",
+      "views": [
+        "side"
+      ],
+      "method": "side silhouette at shared normalized height"
+    },
+    "shoulder": {
+      "value": 0.125,
+      "status": "observed",
+      "views": [
+        "side"
+      ],
+      "method": "side silhouette at shared normalized height"
+    },
+    "chest": {
+      "value": 0.1388888888888889,
+      "status": "observed",
+      "views": [
+        "side"
+      ],
+      "method": "side silhouette at shared normalized height"
+    },
+    "waist": {
+      "value": 0.14583333333333331,
+      "status": "observed",
+      "views": [
+        "side"
+      ],
+      "method": "side silhouette at shared normalized height"
+    },
+    "hip": {
+      "value": 0.1284722222222222,
+      "status": "observed",
+      "views": [
+        "side"
+      ],
+      "method": "side silhouette at shared normalized height"
+    },
+    "knee": {
+      "value": 0.08680555555555555,
+      "status": "observed",
+      "views": [
+        "side"
+      ],
+      "method": "side silhouette at shared normalized height"
+    },
+    "ankle": {
+      "value": 0.1527777777777778,
+      "status": "observed",
+      "views": [
+        "side"
+      ],
+      "method": "side silhouette at shared normalized height"
+    },
+    "bodyCenter": {
+      "value": 0.1388888888888889,
+      "status": "observed",
+      "views": [
+        "side"
+      ],
+      "method": "side silhouette at shared normalized height"
+    }
+  },
+  "levels": {
+    "headTop": 1,
+    "chin": 0.755,
+    "shoulder": 0.6849999999999999,
+    "chest": 0.6199999999999999,
+    "waist": 0.5149999999999999,
+    "hip": 0.46,
+    "knee": 0.25,
+    "ankle": 0.06,
+    "sole": 0,
+    "bodyCenter": 0.5
+  },
+  "face": {
+    "forehead": {
+      "y": 0.9460999999999999,
+      "width": 0.1909722222222222,
+      "forward": 0.0625,
+      "status": "interpolated",
+      "views": [
+        "front",
+        "side"
+      ]
+    },
+    "eyePlane": {
+      "y": 0.902,
+      "width": 0.2222222222222222,
+      "forward": 0.08333333333333333,
+      "status": "interpolated",
+      "views": [
+        "front",
+        "side"
+      ]
+    },
+    "cheek": {
+      "y": 0.8726,
+      "width": 0.2222222222222222,
+      "forward": 0.09375,
+      "status": "interpolated",
+      "views": [
+        "front",
+        "side"
+      ]
+    },
+    "nose": {
+      "y": 0.853,
+      "width": 0.2152777777777778,
+      "forward": 0.08680555555555555,
+      "status": "interpolated",
+      "views": [
+        "front",
+        "side"
+      ]
+    },
+    "mouthPlane": {
+      "y": 0.81625,
+      "width": 0.2013888888888889,
+      "forward": 0.07291666666666667,
+      "status": "interpolated",
+      "views": [
+        "front",
+        "side"
+      ]
+    },
+    "jaw": {
+      "y": 0.7893,
+      "width": 0.1527777777777778,
+      "forward": 0.07291666666666667,
+      "status": "interpolated",
+      "views": [
+        "front",
+        "side"
+      ]
+    },
+    "chin": {
+      "y": 0.7599,
+      "width": 0.08333333333333333,
+      "forward": 0.041666666666666664,
+      "status": "interpolated",
+      "views": [
+        "front",
+        "side"
+      ]
+    }
+  },
+  "silhouette": {
+    "front": [
+      {
+        "y": 0.01,
+        "range": [
+          -0.09722222222222222,
+          0.09722222222222222
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            -0.013888888888888888
+          ],
+          [
+            0.013888888888888888,
+            0.09722222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.02,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.03,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.04,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.05,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.06,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.07,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.08,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.09,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.1,
+        "range": [
+          -0.10069444444444445,
+          0.10069444444444445
+        ],
+        "runs": [
+          [
+            -0.10069444444444445,
+            -0.010416666666666666
+          ],
+          [
+            0.010416666666666666,
+            0.10069444444444445
+          ]
+        ]
+      },
+      {
+        "y": 0.11,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.12,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.13,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.14,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.15,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.16,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.17,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.18,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.19,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.2,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.21,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.22,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.23,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.24,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.25,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.26,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.27,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.28,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.29,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.3,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.31,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.32,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.33,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.34,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.35,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.36,
+        "range": [
+          -0.1423611111111111,
+          0.1423611111111111
+        ],
+        "runs": [
+          [
+            -0.1423611111111111,
+            -0.11805555555555555
+          ],
+          [
+            -0.10069444444444445,
+            0.10069444444444445
+          ],
+          [
+            0.11805555555555555,
+            0.1423611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.37,
+        "range": [
+          -0.15625,
+          0.15625
+        ],
+        "runs": [
+          [
+            -0.15625,
+            -0.10416666666666667
+          ],
+          [
+            -0.09722222222222222,
+            0.09722222222222222
+          ],
+          [
+            0.10416666666666667,
+            0.15625
+          ]
+        ]
+      },
+      {
+        "y": 0.38,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09722222222222222,
+            0.09722222222222222
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.39,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.4,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.41,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09027777777777778,
+            0.09027777777777778
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.42,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09027777777777778,
+            0.09027777777777778
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.43,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.44,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.45,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08333333333333333,
+            0.08333333333333333
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.46,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08333333333333333,
+            0.08333333333333333
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.47,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.0798611111111111,
+            0.0798611111111111
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.48,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.49,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.5,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.51,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09027777777777778,
+            0.09027777777777778
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.52,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.53,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.54,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.55,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.56,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.57,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.58,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.59,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.6,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.61,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.62,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.63,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.64,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09722222222222222,
+            0.09722222222222222
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.65,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.66,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.67,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09027777777777778,
+            0.09027777777777778
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.68,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.69,
+        "range": [
+          -0.15625,
+          0.15625
+        ],
+        "runs": [
+          [
+            -0.15625,
+            -0.10416666666666667
+          ],
+          [
+            -0.08333333333333333,
+            0.08333333333333333
+          ],
+          [
+            0.10416666666666667,
+            0.15625
+          ]
+        ]
+      },
+      {
+        "y": 0.7,
+        "range": [
+          -0.14583333333333334,
+          0.14583333333333334
+        ],
+        "runs": [
+          [
+            -0.14583333333333334,
+            -0.1111111111111111
+          ],
+          [
+            -0.08333333333333333,
+            0.08333333333333333
+          ],
+          [
+            0.1111111111111111,
+            0.14583333333333334
+          ]
+        ]
+      },
+      {
+        "y": 0.71,
+        "range": [
+          -0.0798611111111111,
+          0.0798611111111111
+        ],
+        "runs": [
+          [
+            -0.0798611111111111,
+            0.0798611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.72,
+        "range": [
+          -0.0763888888888889,
+          0.0763888888888889
+        ],
+        "runs": [
+          [
+            -0.0763888888888889,
+            0.0763888888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.73,
+        "range": [
+          -0.03125,
+          0.03125
+        ],
+        "runs": [
+          [
+            -0.03125,
+            0.03125
+          ]
+        ]
+      },
+      {
+        "y": 0.74,
+        "range": [
+          -0.03125,
+          0.03125
+        ],
+        "runs": [
+          [
+            -0.03125,
+            0.03125
+          ]
+        ]
+      },
+      {
+        "y": 0.75,
+        "range": [
+          -0.03125,
+          0.03125
+        ],
+        "runs": [
+          [
+            -0.03125,
+            0.03125
+          ]
+        ]
+      },
+      {
+        "y": 0.76,
+        "range": [
+          -0.041666666666666664,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.041666666666666664,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.77,
+        "range": [
+          -0.05555555555555555,
+          0.05555555555555555
+        ],
+        "runs": [
+          [
+            -0.05555555555555555,
+            0.05555555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.78,
+        "range": [
+          -0.06944444444444445,
+          0.06944444444444445
+        ],
+        "runs": [
+          [
+            -0.06944444444444445,
+            0.06944444444444445
+          ]
+        ]
+      },
+      {
+        "y": 0.79,
+        "range": [
+          -0.0798611111111111,
+          0.0798611111111111
+        ],
+        "runs": [
+          [
+            -0.0798611111111111,
+            0.0798611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.8,
+        "range": [
+          -0.08680555555555555,
+          0.08680555555555555
+        ],
+        "runs": [
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.81,
+        "range": [
+          -0.09375,
+          0.09375
+        ],
+        "runs": [
+          [
+            -0.09375,
+            0.09375
+          ]
+        ]
+      },
+      {
+        "y": 0.82,
+        "range": [
+          -0.10069444444444445,
+          0.10069444444444445
+        ],
+        "runs": [
+          [
+            -0.10069444444444445,
+            0.10069444444444445
+          ]
+        ]
+      },
+      {
+        "y": 0.83,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.84,
+        "range": [
+          -0.1076388888888889,
+          0.1076388888888889
+        ],
+        "runs": [
+          [
+            -0.1076388888888889,
+            0.1076388888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.85,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.86,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.87,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.88,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.89,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.9,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.91,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.92,
+        "range": [
+          -0.1076388888888889,
+          0.1076388888888889
+        ],
+        "runs": [
+          [
+            -0.1076388888888889,
+            0.1076388888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.93,
+        "range": [
+          -0.1076388888888889,
+          0.10069444444444445
+        ],
+        "runs": [
+          [
+            -0.1076388888888889,
+            0.10069444444444445
+          ]
+        ]
+      },
+      {
+        "y": 0.94,
+        "range": [
+          -0.10069444444444445,
+          0.09722222222222222
+        ],
+        "runs": [
+          [
+            -0.10069444444444445,
+            0.09722222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.95,
+        "range": [
+          -0.09375,
+          0.09375
+        ],
+        "runs": [
+          [
+            -0.09375,
+            0.09375
+          ]
+        ]
+      },
+      {
+        "y": 0.96,
+        "range": [
+          -0.08680555555555555,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.08680555555555555,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.97,
+        "range": [
+          -0.0763888888888889,
+          0.08333333333333333
+        ],
+        "runs": [
+          [
+            -0.0763888888888889,
+            0.08333333333333333
+          ]
+        ]
+      },
+      {
+        "y": 0.98,
+        "range": [
+          -0.06944444444444445,
+          0.0798611111111111
+        ],
+        "runs": [
+          [
+            -0.06944444444444445,
+            0.0798611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.99,
+        "range": [
+          -0.04861111111111111,
+          0.04861111111111111
+        ],
+        "runs": [
+          [
+            -0.04861111111111111,
+            0.04861111111111111
+          ]
+        ]
+      }
+    ],
+    "side": [
+      {
+        "y": 0.01,
+        "range": [
+          -0.09375,
+          0.052083333333333336
+        ],
+        "runs": [
+          [
+            -0.09375,
+            0.052083333333333336
+          ]
+        ]
+      },
+      {
+        "y": 0.02,
+        "range": [
+          -0.09722222222222222,
+          0.05555555555555555
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            0.05555555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.03,
+        "range": [
+          -0.09722222222222222,
+          0.05555555555555555
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            0.05555555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.04,
+        "range": [
+          -0.09722222222222222,
+          0.05555555555555555
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            0.05555555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.05,
+        "range": [
+          -0.09722222222222222,
+          0.05555555555555555
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            0.05555555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.06,
+        "range": [
+          -0.09722222222222222,
+          0.05555555555555555
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            0.05555555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.07,
+        "range": [
+          -0.09722222222222222,
+          0.05555555555555555
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            0.05555555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.08,
+        "range": [
+          -0.09722222222222222,
+          0.05555555555555555
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            0.05555555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.09,
+        "range": [
+          -0.09722222222222222,
+          0.05555555555555555
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            0.05555555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.1,
+        "range": [
+          -0.09027777777777778,
+          0.04861111111111111
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            0.04861111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.11,
+        "range": [
+          -0.052083333333333336,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.052083333333333336,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.12,
+        "range": [
+          -0.052083333333333336,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.052083333333333336,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.13,
+        "range": [
+          -0.052083333333333336,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.052083333333333336,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.14,
+        "range": [
+          -0.04861111111111111,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04861111111111111,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.15,
+        "range": [
+          -0.04861111111111111,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04861111111111111,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.16,
+        "range": [
+          -0.04861111111111111,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04861111111111111,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.17,
+        "range": [
+          -0.04861111111111111,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04861111111111111,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.18,
+        "range": [
+          -0.04861111111111111,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04861111111111111,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.19,
+        "range": [
+          -0.04861111111111111,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04861111111111111,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.2,
+        "range": [
+          -0.04861111111111111,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04861111111111111,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.21,
+        "range": [
+          -0.04861111111111111,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04861111111111111,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.22,
+        "range": [
+          -0.04861111111111111,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04861111111111111,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.23,
+        "range": [
+          -0.04861111111111111,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04861111111111111,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.24,
+        "range": [
+          -0.04513888888888889,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04513888888888889,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.25,
+        "range": [
+          -0.04513888888888889,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04513888888888889,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.26,
+        "range": [
+          -0.04513888888888889,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04513888888888889,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.27,
+        "range": [
+          -0.04513888888888889,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04513888888888889,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.28,
+        "range": [
+          -0.04513888888888889,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04513888888888889,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.29,
+        "range": [
+          -0.04513888888888889,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04513888888888889,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.3,
+        "range": [
+          -0.04513888888888889,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04513888888888889,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.31,
+        "range": [
+          -0.04513888888888889,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04513888888888889,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.32,
+        "range": [
+          -0.04513888888888889,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.04513888888888889,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.33,
+        "range": [
+          -0.041666666666666664,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.041666666666666664,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.34,
+        "range": [
+          -0.041666666666666664,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.041666666666666664,
+            0.041666666666666664
+          ]
+        ]
+      },
+      {
+        "y": 0.35,
+        "range": [
+          -0.052083333333333336,
+          0.04861111111111111
+        ],
+        "runs": [
+          [
+            -0.052083333333333336,
+            0.04861111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.36,
+        "range": [
+          -0.052083333333333336,
+          0.052083333333333336
+        ],
+        "runs": [
+          [
+            -0.052083333333333336,
+            0.052083333333333336
+          ]
+        ]
+      },
+      {
+        "y": 0.37,
+        "range": [
+          -0.05555555555555555,
+          0.04861111111111111
+        ],
+        "runs": [
+          [
+            -0.05555555555555555,
+            0.04861111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.38,
+        "range": [
+          -0.052083333333333336,
+          0.052083333333333336
+        ],
+        "runs": [
+          [
+            -0.052083333333333336,
+            0.052083333333333336
+          ]
+        ]
+      },
+      {
+        "y": 0.39,
+        "range": [
+          -0.052083333333333336,
+          0.052083333333333336
+        ],
+        "runs": [
+          [
+            -0.052083333333333336,
+            0.052083333333333336
+          ]
+        ]
+      },
+      {
+        "y": 0.4,
+        "range": [
+          -0.05555555555555555,
+          0.05555555555555555
+        ],
+        "runs": [
+          [
+            -0.05555555555555555,
+            0.05555555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.41,
+        "range": [
+          -0.05555555555555555,
+          0.059027777777777776
+        ],
+        "runs": [
+          [
+            -0.05555555555555555,
+            0.059027777777777776
+          ]
+        ]
+      },
+      {
+        "y": 0.42,
+        "range": [
+          -0.05555555555555555,
+          0.059027777777777776
+        ],
+        "runs": [
+          [
+            -0.05555555555555555,
+            0.059027777777777776
+          ]
+        ]
+      },
+      {
+        "y": 0.43,
+        "range": [
+          -0.05555555555555555,
+          0.0625
+        ],
+        "runs": [
+          [
+            -0.05555555555555555,
+            0.0625
+          ]
+        ]
+      },
+      {
+        "y": 0.44,
+        "range": [
+          -0.059027777777777776,
+          0.06597222222222222
+        ],
+        "runs": [
+          [
+            -0.059027777777777776,
+            0.06597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.45,
+        "range": [
+          -0.059027777777777776,
+          0.06597222222222222
+        ],
+        "runs": [
+          [
+            -0.059027777777777776,
+            0.06597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.46,
+        "range": [
+          -0.059027777777777776,
+          0.06944444444444445
+        ],
+        "runs": [
+          [
+            -0.059027777777777776,
+            0.06944444444444445
+          ]
+        ]
+      },
+      {
+        "y": 0.47,
+        "range": [
+          -0.059027777777777776,
+          0.06944444444444445
+        ],
+        "runs": [
+          [
+            -0.059027777777777776,
+            0.06944444444444445
+          ]
+        ]
+      },
+      {
+        "y": 0.48,
+        "range": [
+          -0.0625,
+          0.07291666666666667
+        ],
+        "runs": [
+          [
+            -0.0625,
+            0.07291666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.49,
+        "range": [
+          -0.0625,
+          0.0763888888888889
+        ],
+        "runs": [
+          [
+            -0.0625,
+            0.0763888888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.5,
+        "range": [
+          -0.0625,
+          0.0763888888888889
+        ],
+        "runs": [
+          [
+            -0.0625,
+            0.0763888888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.51,
+        "range": [
+          -0.06597222222222222,
+          0.0798611111111111
+        ],
+        "runs": [
+          [
+            -0.06597222222222222,
+            0.0798611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.52,
+        "range": [
+          -0.06597222222222222,
+          0.0798611111111111
+        ],
+        "runs": [
+          [
+            -0.06597222222222222,
+            0.0798611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.53,
+        "range": [
+          -0.06597222222222222,
+          0.08333333333333333
+        ],
+        "runs": [
+          [
+            -0.06597222222222222,
+            0.08333333333333333
+          ]
+        ]
+      },
+      {
+        "y": 0.54,
+        "range": [
+          -0.06597222222222222,
+          0.08333333333333333
+        ],
+        "runs": [
+          [
+            -0.06597222222222222,
+            0.08333333333333333
+          ]
+        ]
+      },
+      {
+        "y": 0.55,
+        "range": [
+          -0.06944444444444445,
+          0.08680555555555555
+        ],
+        "runs": [
+          [
+            -0.06944444444444445,
+            0.08680555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.56,
+        "range": [
+          -0.06944444444444445,
+          0.08680555555555555
+        ],
+        "runs": [
+          [
+            -0.06944444444444445,
+            0.08680555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.57,
+        "range": [
+          -0.06944444444444445,
+          0.08333333333333333
+        ],
+        "runs": [
+          [
+            -0.06944444444444445,
+            0.08333333333333333
+          ]
+        ]
+      },
+      {
+        "y": 0.58,
+        "range": [
+          -0.06597222222222222,
+          0.08333333333333333
+        ],
+        "runs": [
+          [
+            -0.06597222222222222,
+            0.08333333333333333
+          ]
+        ]
+      },
+      {
+        "y": 0.59,
+        "range": [
+          -0.06597222222222222,
+          0.08333333333333333
+        ],
+        "runs": [
+          [
+            -0.06597222222222222,
+            0.08333333333333333
+          ]
+        ]
+      },
+      {
+        "y": 0.6,
+        "range": [
+          -0.06597222222222222,
+          0.0798611111111111
+        ],
+        "runs": [
+          [
+            -0.06597222222222222,
+            0.0798611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.61,
+        "range": [
+          -0.06597222222222222,
+          0.0798611111111111
+        ],
+        "runs": [
+          [
+            -0.06597222222222222,
+            0.0798611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.62,
+        "range": [
+          -0.0625,
+          0.0763888888888889
+        ],
+        "runs": [
+          [
+            -0.0625,
+            0.0763888888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.63,
+        "range": [
+          -0.0625,
+          0.0763888888888889
+        ],
+        "runs": [
+          [
+            -0.0625,
+            0.0763888888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.64,
+        "range": [
+          -0.0625,
+          0.0763888888888889
+        ],
+        "runs": [
+          [
+            -0.0625,
+            0.0763888888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.65,
+        "range": [
+          -0.0625,
+          0.07291666666666667
+        ],
+        "runs": [
+          [
+            -0.0625,
+            0.07291666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.66,
+        "range": [
+          -0.059027777777777776,
+          0.06944444444444445
+        ],
+        "runs": [
+          [
+            -0.059027777777777776,
+            0.06944444444444445
+          ]
+        ]
+      },
+      {
+        "y": 0.67,
+        "range": [
+          -0.059027777777777776,
+          0.06944444444444445
+        ],
+        "runs": [
+          [
+            -0.059027777777777776,
+            0.06944444444444445
+          ]
+        ]
+      },
+      {
+        "y": 0.68,
+        "range": [
+          -0.059027777777777776,
+          0.06597222222222222
+        ],
+        "runs": [
+          [
+            -0.059027777777777776,
+            0.06597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.69,
+        "range": [
+          -0.05555555555555555,
+          0.06597222222222222
+        ],
+        "runs": [
+          [
+            -0.05555555555555555,
+            0.06597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.7,
+        "range": [
+          -0.05555555555555555,
+          0.0625
+        ],
+        "runs": [
+          [
+            -0.05555555555555555,
+            0.0625
+          ]
+        ]
+      },
+      {
+        "y": 0.71,
+        "range": [
+          -0.05555555555555555,
+          0.0625
+        ],
+        "runs": [
+          [
+            -0.05555555555555555,
+            0.0625
+          ]
+        ]
+      },
+      {
+        "y": 0.72,
+        "range": [
+          -0.05555555555555555,
+          0.059027777777777776
+        ],
+        "runs": [
+          [
+            -0.05555555555555555,
+            0.059027777777777776
+          ]
+        ]
+      },
+      {
+        "y": 0.73,
+        "range": [
+          -0.052083333333333336,
+          0.020833333333333332
+        ],
+        "runs": [
+          [
+            -0.052083333333333336,
+            0.020833333333333332
+          ]
+        ]
+      },
+      {
+        "y": 0.74,
+        "range": [
+          -0.041666666666666664,
+          0.017361111111111112
+        ],
+        "runs": [
+          [
+            -0.041666666666666664,
+            0.017361111111111112
+          ]
+        ]
+      },
+      {
+        "y": 0.75,
+        "range": [
+          -0.041666666666666664,
+          0.017361111111111112
+        ],
+        "runs": [
+          [
+            -0.041666666666666664,
+            0.017361111111111112
+          ]
+        ]
+      },
+      {
+        "y": 0.76,
+        "range": [
+          -0.041666666666666664,
+          0.024305555555555556
+        ],
+        "runs": [
+          [
+            -0.041666666666666664,
+            0.024305555555555556
+          ]
+        ]
+      },
+      {
+        "y": 0.77,
+        "range": [
+          -0.041666666666666664,
+          0.04513888888888889
+        ],
+        "runs": [
+          [
+            -0.041666666666666664,
+            0.04513888888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.78,
+        "range": [
+          -0.041666666666666664,
+          0.059027777777777776
+        ],
+        "runs": [
+          [
+            -0.041666666666666664,
+            0.059027777777777776
+          ]
+        ]
+      },
+      {
+        "y": 0.79,
+        "range": [
+          -0.07291666666666667,
+          0.06597222222222222
+        ],
+        "runs": [
+          [
+            -0.07291666666666667,
+            0.06597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.8,
+        "range": [
+          -0.07291666666666667,
+          0.07291666666666667
+        ],
+        "runs": [
+          [
+            -0.07291666666666667,
+            0.07291666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.81,
+        "range": [
+          -0.07291666666666667,
+          0.0798611111111111
+        ],
+        "runs": [
+          [
+            -0.07291666666666667,
+            0.0798611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.82,
+        "range": [
+          -0.0763888888888889,
+          0.0798611111111111
+        ],
+        "runs": [
+          [
+            -0.0763888888888889,
+            0.0798611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.83,
+        "range": [
+          -0.0763888888888889,
+          0.08333333333333333
+        ],
+        "runs": [
+          [
+            -0.0763888888888889,
+            0.08333333333333333
+          ]
+        ]
+      },
+      {
+        "y": 0.84,
+        "range": [
+          -0.0763888888888889,
+          0.08680555555555555
+        ],
+        "runs": [
+          [
+            -0.0763888888888889,
+            0.08680555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.85,
+        "range": [
+          -0.08333333333333333,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.08333333333333333,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.86,
+        "range": [
+          -0.09375,
+          0.09375
+        ],
+        "runs": [
+          [
+            -0.09375,
+            0.09375
+          ]
+        ]
+      },
+      {
+        "y": 0.87,
+        "range": [
+          -0.09375,
+          0.09375
+        ],
+        "runs": [
+          [
+            -0.09375,
+            0.09375
+          ]
+        ]
+      },
+      {
+        "y": 0.88,
+        "range": [
+          -0.09027777777777778,
+          0.09375
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            0.09375
+          ]
+        ]
+      },
+      {
+        "y": 0.89,
+        "range": [
+          -0.08680555555555555,
+          0.09375
+        ],
+        "runs": [
+          [
+            -0.08680555555555555,
+            0.09375
+          ]
+        ]
+      },
+      {
+        "y": 0.9,
+        "range": [
+          -0.08333333333333333,
+          0.09375
+        ],
+        "runs": [
+          [
+            -0.08333333333333333,
+            0.09375
+          ]
+        ]
+      },
+      {
+        "y": 0.91,
+        "range": [
+          -0.0798611111111111,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.0798611111111111,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.92,
+        "range": [
+          -0.07291666666666667,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.07291666666666667,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.93,
+        "range": [
+          -0.06944444444444445,
+          0.08333333333333333
+        ],
+        "runs": [
+          [
+            -0.06944444444444445,
+            0.08333333333333333
+          ]
+        ]
+      },
+      {
+        "y": 0.94,
+        "range": [
+          -0.06597222222222222,
+          0.0798611111111111
+        ],
+        "runs": [
+          [
+            -0.06597222222222222,
+            0.0798611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.95,
+        "range": [
+          -0.059027777777777776,
+          0.0798611111111111
+        ],
+        "runs": [
+          [
+            -0.059027777777777776,
+            0.0798611111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.96,
+        "range": [
+          -0.052083333333333336,
+          0.07291666666666667
+        ],
+        "runs": [
+          [
+            -0.052083333333333336,
+            0.07291666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.97,
+        "range": [
+          -0.04513888888888889,
+          0.06597222222222222
+        ],
+        "runs": [
+          [
+            -0.04513888888888889,
+            0.06597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.98,
+        "range": [
+          -0.03819444444444445,
+          0.059027777777777776
+        ],
+        "runs": [
+          [
+            -0.03819444444444445,
+            0.059027777777777776
+          ]
+        ]
+      },
+      {
+        "y": 0.99,
+        "range": [
+          -0.024305555555555556,
+          0.04513888888888889
+        ],
+        "runs": [
+          [
+            -0.024305555555555556,
+            0.04513888888888889
+          ]
+        ]
+      }
+    ],
+    "back": [
+      {
+        "y": 0.01,
+        "range": [
+          -0.09722222222222222,
+          0.09722222222222222
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            -0.013888888888888888
+          ],
+          [
+            0.013888888888888888,
+            0.09722222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.02,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.03,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.04,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.05,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.06,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.07,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.08,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.09,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            -0.006944444444444444
+          ],
+          [
+            0.006944444444444444,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.1,
+        "range": [
+          -0.09722222222222222,
+          0.09722222222222222
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            -0.013888888888888888
+          ],
+          [
+            0.013888888888888888,
+            0.09722222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.11,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.12,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.13,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.14,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.15,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.16,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.17,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.18,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.19,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.2,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.21,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.22,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.23,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.24,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.25,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.26,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.27,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.28,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.29,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.3,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.31,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.32,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.33,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            -0.020833333333333332
+          ],
+          [
+            0.020833333333333332,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.34,
+        "range": [
+          -0.10069444444444445,
+          0.10069444444444445
+        ],
+        "runs": [
+          [
+            -0.10069444444444445,
+            0.10069444444444445
+          ]
+        ]
+      },
+      {
+        "y": 0.35,
+        "range": [
+          -0.14930555555555555,
+          0.14930555555555555
+        ],
+        "runs": [
+          [
+            -0.14930555555555555,
+            -0.1111111111111111
+          ],
+          [
+            -0.09722222222222222,
+            0.09722222222222222
+          ],
+          [
+            0.1111111111111111,
+            0.14930555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.36,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09722222222222222,
+            0.09722222222222222
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.37,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.38,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.39,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09027777777777778,
+            0.09027777777777778
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.4,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09027777777777778,
+            0.09027777777777778
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.41,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.42,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.43,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08333333333333333,
+            0.08333333333333333
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.44,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08333333333333333,
+            0.08333333333333333
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.45,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.0798611111111111,
+            0.0798611111111111
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.46,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.47,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.48,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.49,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09027777777777778,
+            0.09027777777777778
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.5,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.51,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.52,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.53,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.54,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.55,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.56,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.57,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.58,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.59,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.6,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.61,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09722222222222222,
+            0.09722222222222222
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.62,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.63,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09375,
+            0.09375
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.64,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.09027777777777778,
+            0.09027777777777778
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.65,
+        "range": [
+          -0.1597222222222222,
+          0.1597222222222222
+        ],
+        "runs": [
+          [
+            -0.1597222222222222,
+            -0.10069444444444445
+          ],
+          [
+            -0.08680555555555555,
+            0.08680555555555555
+          ],
+          [
+            0.10069444444444445,
+            0.1597222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.66,
+        "range": [
+          -0.15625,
+          0.15625
+        ],
+        "runs": [
+          [
+            -0.15625,
+            -0.10069444444444445
+          ],
+          [
+            -0.08333333333333333,
+            0.08333333333333333
+          ],
+          [
+            0.09375,
+            0.15625
+          ]
+        ]
+      },
+      {
+        "y": 0.67,
+        "range": [
+          -0.14930555555555555,
+          0.14930555555555555
+        ],
+        "runs": [
+          [
+            -0.14930555555555555,
+            0.14930555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.68,
+        "range": [
+          -0.11458333333333333,
+          0.12152777777777778
+        ],
+        "runs": [
+          [
+            -0.11458333333333333,
+            0.12152777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.69,
+        "range": [
+          -0.11458333333333333,
+          0.11805555555555555
+        ],
+        "runs": [
+          [
+            -0.11458333333333333,
+            0.11805555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.7,
+        "range": [
+          -0.1111111111111111,
+          0.11805555555555555
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.11805555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.71,
+        "range": [
+          -0.1111111111111111,
+          0.11805555555555555
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.11805555555555555
+          ]
+        ]
+      },
+      {
+        "y": 0.72,
+        "range": [
+          -0.1111111111111111,
+          0.11458333333333333
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.11458333333333333
+          ]
+        ]
+      },
+      {
+        "y": 0.73,
+        "range": [
+          -0.1111111111111111,
+          0.11458333333333333
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.11458333333333333
+          ]
+        ]
+      },
+      {
+        "y": 0.74,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.75,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.76,
+        "range": [
+          -0.1076388888888889,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1076388888888889,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.77,
+        "range": [
+          -0.1076388888888889,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1076388888888889,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.78,
+        "range": [
+          -0.1076388888888889,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1076388888888889,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.79,
+        "range": [
+          -0.10416666666666667,
+          0.1076388888888889
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            0.1076388888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.8,
+        "range": [
+          -0.1076388888888889,
+          0.1076388888888889
+        ],
+        "runs": [
+          [
+            -0.1076388888888889,
+            0.1076388888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.81,
+        "range": [
+          -0.1076388888888889,
+          0.1076388888888889
+        ],
+        "runs": [
+          [
+            -0.1076388888888889,
+            0.1076388888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.82,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.83,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.84,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.85,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.86,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.87,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.88,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.89,
+        "range": [
+          -0.1111111111111111,
+          0.1111111111111111
+        ],
+        "runs": [
+          [
+            -0.1111111111111111,
+            0.1111111111111111
+          ]
+        ]
+      },
+      {
+        "y": 0.9,
+        "range": [
+          -0.1076388888888889,
+          0.1076388888888889
+        ],
+        "runs": [
+          [
+            -0.1076388888888889,
+            0.1076388888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.91,
+        "range": [
+          -0.10416666666666667,
+          0.10416666666666667
+        ],
+        "runs": [
+          [
+            -0.10416666666666667,
+            0.10416666666666667
+          ]
+        ]
+      },
+      {
+        "y": 0.92,
+        "range": [
+          -0.10069444444444445,
+          0.10069444444444445
+        ],
+        "runs": [
+          [
+            -0.10069444444444445,
+            0.10069444444444445
+          ]
+        ]
+      },
+      {
+        "y": 0.93,
+        "range": [
+          -0.09722222222222222,
+          0.09722222222222222
+        ],
+        "runs": [
+          [
+            -0.09722222222222222,
+            0.09722222222222222
+          ]
+        ]
+      },
+      {
+        "y": 0.94,
+        "range": [
+          -0.09027777777777778,
+          0.09027777777777778
+        ],
+        "runs": [
+          [
+            -0.09027777777777778,
+            0.09027777777777778
+          ]
+        ]
+      },
+      {
+        "y": 0.95,
+        "range": [
+          -0.08333333333333333,
+          0.08333333333333333
+        ],
+        "runs": [
+          [
+            -0.08333333333333333,
+            0.08333333333333333
+          ]
+        ]
+      },
+      {
+        "y": 0.96,
+        "range": [
+          -0.0763888888888889,
+          0.0763888888888889
+        ],
+        "runs": [
+          [
+            -0.0763888888888889,
+            0.0763888888888889
+          ]
+        ]
+      },
+      {
+        "y": 0.97,
+        "range": [
+          -0.06944444444444445,
+          0.06944444444444445
+        ],
+        "runs": [
+          [
+            -0.06944444444444445,
+            0.06944444444444445
+          ]
+        ]
+      },
+      {
+        "y": 0.98,
+        "range": [
+          -0.0625,
+          0.0625
+        ],
+        "runs": [
+          [
+            -0.0625,
+            0.0625
+          ]
+        ]
+      },
+      {
+        "y": 0.99,
+        "range": [
+          -0.041666666666666664,
+          0.041666666666666664
+        ],
+        "runs": [
+          [
+            -0.041666666666666664,
+            0.041666666666666664
+          ]
+        ]
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "head",
+      "bone": "head",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.755,
+          0.0,
+          0.012152777777777776,
+          0.04840277777777778,
+          0.029513888888888888
+        ],
+        [
+          0.785625,
+          0.0,
+          -0.0034722222222222238,
+          0.09114583333333334,
+          0.059027777777777776
+        ],
+        [
+          0.81625,
+          0.0,
+          -0.005208333333333329,
+          0.10590277777777778,
+          0.078125
+        ],
+        [
+          0.846875,
+          0.0,
+          -0.005208333333333336,
+          0.1111111111111111,
+          0.08506944444444445
+        ],
+        [
+          0.8775,
+          0.0,
+          -0.0017361111111111119,
+          0.1111111111111111,
+          0.0920138888888889
+        ],
+        [
+          0.9081250000000001,
+          0.0,
+          -0.005208333333333336,
+          0.1076388888888889,
+          0.08506944444444445
+        ],
+        [
+          0.93875,
+          -0.0017361111111111119,
+          -0.008680555555555552,
+          0.09809027777777778,
+          0.07465277777777778
+        ],
+        [
+          0.969375,
+          0.003472222222222217,
+          -0.010416666666666668,
+          0.07465277777777778,
+          0.05555555555555555
+        ],
+        [
+          1.0,
+          0.0,
+          -0.010416666666666666,
+          0.006,
+          0.006
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "neck",
+      "bone": "neck",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.6849999999999999,
+          0.0,
+          -0.0034722222222222238,
+          0.0425,
+          0.04
+        ],
+        [
+          0.6962499999999999,
+          0.0,
+          -0.0034722222222222238,
+          0.0425,
+          0.04
+        ],
+        [
+          0.7075,
+          0.0,
+          -0.0034722222222222238,
+          0.0425,
+          0.04
+        ],
+        [
+          0.71875,
+          0.0,
+          -0.0017361111111111119,
+          0.0425,
+          0.04
+        ],
+        [
+          0.73,
+          0.0,
+          0.015625,
+          0.0425,
+          0.036458333333333336
+        ],
+        [
+          0.74125,
+          0.0,
+          0.012152777777777776,
+          0.0425,
+          0.029513888888888888
+        ],
+        [
+          0.7525,
+          0.0,
+          0.012152777777777776,
+          0.0425,
+          0.029513888888888888
+        ],
+        [
+          0.76375,
+          0.0,
+          0.0034722222222222203,
+          0.0425,
+          0.03819444444444445
+        ],
+        [
+          0.775,
+          0.0,
+          -0.005208333333333336,
+          0.0425,
+          0.04
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "torso",
+      "bone": "chest",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.48,
+          0.0,
+          -0.005208333333333336,
+          0.08680555555555555,
+          0.06770833333333334
+        ],
+        [
+          0.505625,
+          0.0,
+          -0.008680555555555552,
+          0.0920138888888889,
+          0.07118055555555555
+        ],
+        [
+          0.53125,
+          0.0,
+          -0.008680555555555552,
+          0.1267361111111111,
+          0.07465277777777778
+        ],
+        [
+          0.556875,
+          0.0,
+          -0.008680555555555552,
+          0.1597222222222222,
+          0.078125
+        ],
+        [
+          0.5825,
+          0.0,
+          -0.008680555555555552,
+          0.1597222222222222,
+          0.07465277777777778
+        ],
+        [
+          0.608125,
+          0.0,
+          -0.006944444444444441,
+          0.1284722222222222,
+          0.07291666666666666
+        ],
+        [
+          0.6337499999999999,
+          0.0,
+          -0.0069444444444444475,
+          0.09375,
+          0.06944444444444445
+        ],
+        [
+          0.6593749999999999,
+          0.0,
+          -0.005208333333333336,
+          0.08854166666666666,
+          0.0642361111111111
+        ],
+        [
+          0.6849999999999999,
+          0.0,
+          -0.0034722222222222238,
+          0.10243055555555555,
+          0.0625
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "pelvis",
+      "bone": "hips",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.41,
+          0.0,
+          -0.0017361111111111119,
+          0.08854166666666666,
+          0.057291666666666664
+        ],
+        [
+          0.4225,
+          0.0,
+          -0.0034722222222222238,
+          0.08854166666666666,
+          0.059027777777777776
+        ],
+        [
+          0.435,
+          0.0,
+          -0.0034722222222222238,
+          0.08506944444444445,
+          0.059027777777777776
+        ],
+        [
+          0.4475,
+          0.0,
+          -0.0034722222222222238,
+          0.08159722222222221,
+          0.0625
+        ],
+        [
+          0.45999999999999996,
+          0.0,
+          -0.005208333333333336,
+          0.08506944444444445,
+          0.0642361111111111
+        ],
+        [
+          0.47250000000000003,
+          0.0,
+          -0.0069444444444444475,
+          0.08333333333333333,
+          0.06597222222222222
+        ],
+        [
+          0.485,
+          0.0,
+          -0.0069444444444444475,
+          0.08854166666666666,
+          0.06944444444444445
+        ],
+        [
+          0.4975,
+          0.0,
+          -0.0069444444444444475,
+          0.08854166666666666,
+          0.06944444444444445
+        ],
+        [
+          0.51,
+          0.0,
+          -0.006944444444444441,
+          0.0920138888888889,
+          0.07291666666666666
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "upperArm.L",
+      "bone": "upperArm.L",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.53,
+          0.13020833333333331,
+          -0.008680555555555552,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.5493750000000001,
+          0.1309722222222222,
+          -0.008680555555555552,
+          0.028749999999999998,
+          0.033062499999999995
+        ],
+        [
+          0.56875,
+          0.1309722222222222,
+          -0.006944444444444441,
+          0.028749999999999998,
+          0.033062499999999995
+        ],
+        [
+          0.588125,
+          0.1309722222222222,
+          -0.006944444444444441,
+          0.028749999999999998,
+          0.033062499999999995
+        ],
+        [
+          0.6074999999999999,
+          0.1365972222222222,
+          -0.006944444444444441,
+          0.023124999999999996,
+          0.026593749999999992
+        ],
+        [
+          0.626875,
+          0.1369097222222222,
+          -0.0069444444444444475,
+          0.0228125,
+          0.026234374999999997
+        ],
+        [
+          0.64625,
+          0.13020833333333331,
+          -0.005208333333333336,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.6656249999999999,
+          0.13020833333333331,
+          -0.005208333333333336,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.6849999999999999,
+          0.13020833333333331,
+          -0.0034722222222222238,
+          0.02951388888888888,
+          0.03394097222222221
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "lowerArm.L",
+      "bone": "lowerArm.L",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.39,
+          0.13020833333333331,
+          -0.0,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.41000000000000003,
+          0.13020833333333331,
+          -0.0017361111111111119,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.43000000000000005,
+          0.13020833333333331,
+          -0.0034722222222222238,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.45,
+          0.13020833333333331,
+          -0.0034722222222222238,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.47000000000000003,
+          0.13020833333333331,
+          -0.005208333333333336,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.49000000000000005,
+          0.13020833333333331,
+          -0.0069444444444444475,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.51,
+          0.13020833333333331,
+          -0.006944444444444441,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.53,
+          0.13020833333333331,
+          -0.008680555555555552,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.55,
+          0.1309722222222222,
+          -0.008680555555555552,
+          0.028749999999999998,
+          0.033062499999999995
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "hand.L",
+      "bone": "hand.L",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.34,
+          0.05555555555555555,
+          -0.0,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.34875,
+          0.05555555555555555,
+          -0.0,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.35750000000000004,
+          0.08288194444444444,
+          0.0017361111111111119,
+          0.017812500000000002,
+          0.020484375
+        ],
+        [
+          0.36625,
+          0.13020833333333331,
+          0.0017361111111111119,
+          0.019097222222222224,
+          0.021961805555555557
+        ],
+        [
+          0.375,
+          0.1284722222222222,
+          -0.0,
+          0.027777777777777776,
+          0.03194444444444444
+        ],
+        [
+          0.38375,
+          0.13020833333333331,
+          -0.0,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.39249999999999996,
+          0.13020833333333331,
+          -0.0017361111111111084,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.40125,
+          0.13020833333333331,
+          -0.0017361111111111084,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.41,
+          0.13020833333333331,
+          -0.0017361111111111119,
+          0.02951388888888888,
+          0.03394097222222221
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "upperLeg.L",
+      "bone": "upperLeg.L",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.25,
+          0.05555555555555555,
+          0.0017361111111111119,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.27625,
+          0.05555555555555555,
+          0.0017361111111111119,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.3025,
+          0.05555555555555555,
+          0.0017361111111111119,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.32875,
+          0.05555555555555555,
+          -0.0,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.355,
+          0.050347222222222224,
+          0.0017361111111111119,
+          0.0415625,
+          0.047796874999999996
+        ],
+        [
+          0.38125,
+          0.13020833333333331,
+          -0.0,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.40750000000000003,
+          0.13020833333333331,
+          -0.0017361111111111119,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.43375,
+          0.13020833333333331,
+          -0.0034722222222222238,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.46,
+          0.13020833333333331,
+          -0.005208333333333336,
+          0.02951388888888888,
+          0.03394097222222221
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "lowerLeg.L",
+      "bone": "lowerLeg.L",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.065,
+          0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.05590277777777777
+        ],
+        [
+          0.09062500000000001,
+          0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.05590277777777777
+        ],
+        [
+          0.11625,
+          0.05555555555555555,
+          0.005208333333333336,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.141875,
+          0.05555555555555555,
+          0.0034722222222222238,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.1675,
+          0.05555555555555555,
+          0.0034722222222222238,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.19312500000000002,
+          0.05555555555555555,
+          0.0034722222222222238,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.21875,
+          0.05555555555555555,
+          0.0034722222222222238,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.244375,
+          0.05555555555555555,
+          0.0017361111111111119,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.27,
+          0.05555555555555555,
+          0.0017361111111111119,
+          0.034722222222222224,
+          0.03993055555555555
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "foot.L",
+      "bone": "foot.L",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.005,
+          0.05555555555555555,
+          0.020833333333333332,
+          0.04166666666666667,
+          0.07291666666666667
+        ],
+        [
+          0.013125000000000001,
+          0.05555555555555556,
+          0.020833333333333336,
+          0.04513888888888889,
+          0.0763888888888889
+        ],
+        [
+          0.02125,
+          0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.029375000000000002,
+          0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.0375,
+          0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.045625,
+          0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.05375,
+          0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.061875,
+          0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.07,
+          0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "upperArm.R",
+      "bone": "upperArm.R",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.53,
+          -0.13020833333333331,
+          -0.008680555555555552,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.5493750000000001,
+          -0.1309722222222222,
+          -0.008680555555555552,
+          0.028749999999999998,
+          0.033062499999999995
+        ],
+        [
+          0.56875,
+          -0.1309722222222222,
+          -0.006944444444444441,
+          0.028749999999999998,
+          0.033062499999999995
+        ],
+        [
+          0.588125,
+          -0.1309722222222222,
+          -0.006944444444444441,
+          0.028749999999999998,
+          0.033062499999999995
+        ],
+        [
+          0.6074999999999999,
+          -0.1365972222222222,
+          -0.006944444444444441,
+          0.023124999999999996,
+          0.026593749999999992
+        ],
+        [
+          0.626875,
+          -0.1369097222222222,
+          -0.0069444444444444475,
+          0.0228125,
+          0.026234374999999997
+        ],
+        [
+          0.64625,
+          -0.13020833333333331,
+          -0.005208333333333336,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.6656249999999999,
+          -0.13020833333333331,
+          -0.005208333333333336,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.6849999999999999,
+          -0.13020833333333331,
+          -0.0034722222222222238,
+          0.02951388888888888,
+          0.03394097222222221
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "lowerArm.R",
+      "bone": "lowerArm.R",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.39,
+          -0.13020833333333331,
+          -0.0,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.41000000000000003,
+          -0.13020833333333331,
+          -0.0017361111111111119,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.43000000000000005,
+          -0.13020833333333331,
+          -0.0034722222222222238,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.45,
+          -0.13020833333333331,
+          -0.0034722222222222238,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.47000000000000003,
+          -0.13020833333333331,
+          -0.005208333333333336,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.49000000000000005,
+          -0.13020833333333331,
+          -0.0069444444444444475,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.51,
+          -0.13020833333333331,
+          -0.006944444444444441,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.53,
+          -0.13020833333333331,
+          -0.008680555555555552,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.55,
+          -0.1309722222222222,
+          -0.008680555555555552,
+          0.028749999999999998,
+          0.033062499999999995
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "hand.R",
+      "bone": "hand.R",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.34,
+          -0.05555555555555555,
+          -0.0,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.34875,
+          -0.05555555555555555,
+          -0.0,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.35750000000000004,
+          -0.08288194444444444,
+          0.0017361111111111119,
+          0.017812500000000002,
+          0.020484375
+        ],
+        [
+          0.36625,
+          -0.13020833333333331,
+          0.0017361111111111119,
+          0.019097222222222224,
+          0.021961805555555557
+        ],
+        [
+          0.375,
+          -0.1284722222222222,
+          -0.0,
+          0.027777777777777776,
+          0.03194444444444444
+        ],
+        [
+          0.38375,
+          -0.13020833333333331,
+          -0.0,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.39249999999999996,
+          -0.13020833333333331,
+          -0.0017361111111111084,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.40125,
+          -0.13020833333333331,
+          -0.0017361111111111084,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.41,
+          -0.13020833333333331,
+          -0.0017361111111111119,
+          0.02951388888888888,
+          0.03394097222222221
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "upperLeg.R",
+      "bone": "upperLeg.R",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.25,
+          -0.05555555555555555,
+          0.0017361111111111119,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.27625,
+          -0.05555555555555555,
+          0.0017361111111111119,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.3025,
+          -0.05555555555555555,
+          0.0017361111111111119,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.32875,
+          -0.05555555555555555,
+          -0.0,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.355,
+          -0.050347222222222224,
+          0.0017361111111111119,
+          0.0415625,
+          0.047796874999999996
+        ],
+        [
+          0.38125,
+          -0.13020833333333331,
+          -0.0,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.40750000000000003,
+          -0.13020833333333331,
+          -0.0017361111111111119,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.43375,
+          -0.13020833333333331,
+          -0.0034722222222222238,
+          0.02951388888888888,
+          0.03394097222222221
+        ],
+        [
+          0.46,
+          -0.13020833333333331,
+          -0.005208333333333336,
+          0.02951388888888888,
+          0.03394097222222221
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "lowerLeg.R",
+      "bone": "lowerLeg.R",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.065,
+          -0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.05590277777777777
+        ],
+        [
+          0.09062500000000001,
+          -0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.05590277777777777
+        ],
+        [
+          0.11625,
+          -0.05555555555555555,
+          0.005208333333333336,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.141875,
+          -0.05555555555555555,
+          0.0034722222222222238,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.1675,
+          -0.05555555555555555,
+          0.0034722222222222238,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.19312500000000002,
+          -0.05555555555555555,
+          0.0034722222222222238,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.21875,
+          -0.05555555555555555,
+          0.0034722222222222238,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.244375,
+          -0.05555555555555555,
+          0.0017361111111111119,
+          0.034722222222222224,
+          0.03993055555555555
+        ],
+        [
+          0.27,
+          -0.05555555555555555,
+          0.0017361111111111119,
+          0.034722222222222224,
+          0.03993055555555555
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "foot.R",
+      "bone": "foot.R",
+      "kind": "loft",
+      "role": "body",
+      "rings": [
+        [
+          0.005,
+          -0.05555555555555555,
+          0.020833333333333332,
+          0.04166666666666667,
+          0.07291666666666667
+        ],
+        [
+          0.013125000000000001,
+          -0.05555555555555556,
+          0.020833333333333336,
+          0.04513888888888889,
+          0.0763888888888889
+        ],
+        [
+          0.02125,
+          -0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.029375000000000002,
+          -0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.0375,
+          -0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.045625,
+          -0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.05375,
+          -0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.061875,
+          -0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ],
+        [
+          0.07,
+          -0.05555555555555556,
+          0.020833333333333336,
+          0.04861111111111111,
+          0.0763888888888889
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "clothing",
+      "bone": "chest",
+      "kind": "loft",
+      "role": "clothing",
+      "rings": [
+        [
+          0.44,
+          0.0,
+          -0.0034722222222222238,
+          0.08719618055555556,
+          0.0640625
+        ],
+        [
+          0.46875,
+          0.0,
+          -0.005208333333333336,
+          0.08541666666666665,
+          0.06584201388888887
+        ],
+        [
+          0.4975,
+          0.0,
+          -0.0069444444444444475,
+          0.09075520833333331,
+          0.07118055555555555
+        ],
+        [
+          0.52625,
+          0.0,
+          -0.008680555555555552,
+          0.12990451388888888,
+          0.07651909722222221
+        ],
+        [
+          0.5549999999999999,
+          0.0,
+          -0.008680555555555552,
+          0.16371527777777775,
+          0.080078125
+        ],
+        [
+          0.58375,
+          0.0,
+          -0.008680555555555552,
+          0.16371527777777775,
+          0.07651909722222221
+        ],
+        [
+          0.6124999999999999,
+          0.0,
+          -0.006944444444444441,
+          0.13168402777777774,
+          0.07473958333333332
+        ],
+        [
+          0.6412499999999999,
+          0.0,
+          -0.005208333333333336,
+          0.09609374999999999,
+          0.06940104166666668
+        ],
+        [
+          0.6699999999999999,
+          0.0,
+          -0.005208333333333336,
+          0.1227864583333333,
+          0.06584201388888887
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    },
+    {
+      "id": "rearHair",
+      "bone": "head",
+      "kind": "rear-shell",
+      "role": "hair",
+      "rings": [
+        [
+          0.765,
+          0.0,
+          0.0034722222222222203,
+          0.07864756944444445,
+          0.04048611111111112
+        ],
+        [
+          0.79375,
+          0.0,
+          0.0017361111111111119,
+          0.09632118055555555,
+          0.07545138888888889
+        ],
+        [
+          0.8225,
+          0.0,
+          -0.003472222222222217,
+          0.10604166666666667,
+          0.08465277777777777
+        ],
+        [
+          0.8512500000000001,
+          0.0,
+          -0.0034722222222222238,
+          0.1131111111111111,
+          0.0920138888888889
+        ],
+        [
+          0.88,
+          0.0,
+          -0.0017361111111111119,
+          0.1131111111111111,
+          0.09753472222222223
+        ],
+        [
+          0.90875,
+          0.0,
+          -0.005208333333333336,
+          0.1095763888888889,
+          0.09017361111111112
+        ],
+        [
+          0.9375,
+          -0.0017361111111111119,
+          -0.008680555555555552,
+          0.09985590277777778,
+          0.07913194444444445
+        ],
+        [
+          0.96625,
+          0.0034722222222222238,
+          -0.010416666666666668,
+          0.07953125,
+          0.06256944444444444
+        ],
+        [
+          0.995,
+          0.0,
+          -0.010416666666666666,
+          0.04595138888888889,
+          0.03680555555555556
+        ]
+      ],
+      "status": "interpolated",
+      "evidence": {
+        "width": [
+          "front",
+          "back"
+        ],
+        "depth": [
+          "side"
+        ],
+        "decomposition": "inferred humanoid part identity"
+      }
+    }
+  ],
+  "materialRegions": [
+    {
+      "id": "head",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "neck",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "torso",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "pelvis",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "upperArm.L",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "lowerArm.L",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "hand.L",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "upperLeg.L",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "lowerLeg.L",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "foot.L",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "upperArm.R",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "lowerArm.R",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "hand.R",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "upperLeg.R",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "lowerLeg.R",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "foot.R",
+      "role": "body",
+      "status": "inferred"
+    },
+    {
+      "id": "clothing",
+      "role": "clothing",
+      "status": "inferred"
+    },
+    {
+      "id": "rearHair",
+      "role": "hair",
+      "status": "inferred"
+    }
+  ],
+  "textureProjectionRegions": [
+    {
+      "component": "head",
+      "atlasRect": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "neck",
+      "atlasRect": [
+        96,
+        0,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "torso",
+      "atlasRect": [
+        192,
+        0,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "pelvis",
+      "atlasRect": [
+        288,
+        0,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "upperArm.L",
+      "atlasRect": [
+        384,
+        0,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "lowerArm.L",
+      "atlasRect": [
+        0,
+        96,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "hand.L",
+      "atlasRect": [
+        96,
+        96,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "upperLeg.L",
+      "atlasRect": [
+        192,
+        96,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "lowerLeg.L",
+      "atlasRect": [
+        288,
+        96,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "foot.L",
+      "atlasRect": [
+        384,
+        96,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "upperArm.R",
+      "atlasRect": [
+        0,
+        192,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "lowerArm.R",
+      "atlasRect": [
+        96,
+        192,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "hand.R",
+      "atlasRect": [
+        192,
+        192,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "upperLeg.R",
+      "atlasRect": [
+        288,
+        192,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "lowerLeg.R",
+      "atlasRect": [
+        384,
+        192,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "foot.R",
+      "atlasRect": [
+        0,
+        288,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "clothing",
+      "atlasRect": [
+        96,
+        288,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    },
+    {
+      "component": "rearHair",
+      "atlasRect": [
+        192,
+        288,
+        96,
+        96
+      ],
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "method": "normal-weighted orthographic multi-view projection; 2px gutter",
+      "status": "interpolated"
+    }
+  ],
+  "inferredRegions": [
+    "armpits",
+    "undersides",
+    "joint locations",
+    "occluded surfaces",
+    "garment/hair semantic segmentation",
+    "opposite side"
+  ],
+  "unknownRegions": [
+    "hidden accessories",
+    "garment interior",
+    "finger separation",
+    "true perspective camera",
+    "occluded face topology"
+  ],
+  "assumptions": [
+    "Upright neutral full-body image on a flat/transparent background",
+    "Front faces +Z, up +Y, metres; target height 1.6",
+    "Side faces image-left; back is unmirrored",
+    "Joint positions are inferred, silhouette samples are observed",
+    "Raw lighting remains in projected color",
+    "Rear hair/clothing are candidate semantic hypotheses"
+  ],
+  "provenance": {
+    "author": "RINNE contributors",
+    "license": "RINNE-OWNED",
+    "source": "Original synthetic fixture: scripts/character-forge/fixture.py",
+    "thirdPartyAssets": false,
+    "generator": "RINNE-owned procedural pipeline",
+    "sourceHashes": {
+      "sheet": "230b290876e29a2b1b93ef23449547979d4aa0b7c166beebe3ae1605ab76867f"
+    }
+  },
+  "rig": {
+    "id": "rinne.forge.humanoid.v1",
+    "coordinateSystem": "+Y up, +Z forward",
+    "bindPose": "neutral reference",
+    "bones": [
+      {
+        "name": "root",
+        "parent": null,
+        "position": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "hips",
+        "parent": "root",
+        "position": [
+          0,
+          0.46,
+          0
+        ]
+      },
+      {
+        "name": "spine",
+        "parent": "hips",
+        "position": [
+          0,
+          0.55,
+          0
+        ]
+      },
+      {
+        "name": "chest",
+        "parent": "spine",
+        "position": [
+          0,
+          0.65,
+          0
+        ]
+      },
+      {
+        "name": "neck",
+        "parent": "chest",
+        "position": [
+          0,
+          0.6849999999999999,
+          0
+        ]
+      },
+      {
+        "name": "head",
+        "parent": "neck",
+        "position": [
+          0,
+          0.755,
+          0
+        ]
+      },
+      {
+        "name": "shoulder.L",
+        "parent": "chest",
+        "position": [
+          0.07812499999999999,
+          0.6849999999999999,
+          0
+        ]
+      },
+      {
+        "name": "upperArm.L",
+        "parent": "shoulder.L",
+        "position": [
+          0.13020833333333331,
+          0.6849999999999999,
+          0
+        ]
+      },
+      {
+        "name": "lowerArm.L",
+        "parent": "upperArm.L",
+        "position": [
+          0.1309722222222222,
+          0.54,
+          0
+        ]
+      },
+      {
+        "name": "hand.L",
+        "parent": "lowerArm.L",
+        "position": [
+          0.13020833333333331,
+          0.39,
+          0
+        ]
+      },
+      {
+        "name": "upperLeg.L",
+        "parent": "hips",
+        "position": [
+          0.13020833333333331,
+          0.45,
+          0
+        ]
+      },
+      {
+        "name": "lowerLeg.L",
+        "parent": "upperLeg.L",
+        "position": [
+          0.05555555555555555,
+          0.26,
+          0
+        ]
+      },
+      {
+        "name": "foot.L",
+        "parent": "lowerLeg.L",
+        "position": [
+          0.05555555555555556,
+          0.055,
+          0
+        ]
+      },
+      {
+        "name": "shoulder.R",
+        "parent": "chest",
+        "position": [
+          -0.07812499999999999,
+          0.6849999999999999,
+          0
+        ]
+      },
+      {
+        "name": "upperArm.R",
+        "parent": "shoulder.R",
+        "position": [
+          -0.13020833333333331,
+          0.6849999999999999,
+          0
+        ]
+      },
+      {
+        "name": "lowerArm.R",
+        "parent": "upperArm.R",
+        "position": [
+          -0.1309722222222222,
+          0.54,
+          0
+        ]
+      },
+      {
+        "name": "hand.R",
+        "parent": "lowerArm.R",
+        "position": [
+          -0.13020833333333331,
+          0.39,
+          0
+        ]
+      },
+      {
+        "name": "upperLeg.R",
+        "parent": "hips",
+        "position": [
+          -0.13020833333333331,
+          0.45,
+          0
+        ]
+      },
+      {
+        "name": "lowerLeg.R",
+        "parent": "upperLeg.R",
+        "position": [
+          -0.05555555555555555,
+          0.26,
+          0
+        ]
+      },
+      {
+        "name": "foot.R",
+        "parent": "lowerLeg.R",
+        "position": [
+          -0.05555555555555556,
+          0.055,
+          0
+        ]
+      }
+    ],
+    "jointStatus": "inferred",
+    "skin": "linear-blend"
+  },
+  "sockets": {
+    "definitions": {
+      "rightHand": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "leftHand": {
+        "bone": "hand.L",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "weapon": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "secondaryGripTarget": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "weaponHitboxAnchor": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0.18,
+          0
+        ]
+      },
+      "trailOrigin": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0.7,
+          0
+        ]
+      },
+      "heldItemAnchor": {
+        "bone": "hand.L",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "talkAnchor": {
+        "bone": "head",
+        "offset": [
+          0,
+          0.24,
+          0
+        ]
+      }
+    },
+    "aliases": {
+      "handR": "rightHand",
+      "handL": "leftHand",
+      "offhand": "leftHand",
+      "secondaryGrip": "secondaryGripTarget",
+      "weaponHitbox": "weaponHitboxAnchor",
+      "hitbox": "weaponHitboxAnchor",
+      "heldItem": "heldItemAnchor"
+    }
+  },
+  "validationMetadata": {
+    "visualApproval": "pending",
+    "productionReady": false
+  },
+  "textureProjection": {
+    "dimensions": [
+      480,
+      384
+    ],
+    "method": "CPU baked multi-view normal-weighted linear-color projection",
+    "weights": {
+      "source-weights-a.png": [
+        "front",
+        "front34",
+        "side",
+        "back34"
+      ],
+      "source-weights-b.png": [
+        "back",
+        "mirrored",
+        "generated",
+        "opaque"
+      ]
+    },
+    "sampleContributions": {
+      "front": 43915.935348805666,
+      "front34": 0,
+      "side": 81020.93493963439,
+      "back34": 0,
+      "back": 40842.1297115626
+    },
+    "unobservedTexels": 109,
+    "mirroredTexels": 82885,
+    "colorNormalization": "sRGB linearization only; reference lighting retained"
+  }
+}

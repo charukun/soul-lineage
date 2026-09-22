@@ -36,7 +36,6 @@ test('bounded range assist prevents the mutual no-damage deadlock when rendered 
     const r=scenario.step(1/60,[]);
     for(const event of r.events){if(event.type==='player-hit'){hits++;player++;}if(event.type==='enemy-hit'){hits++;enemy++;}}
   }
-  console.log('mutual-damage-debug',JSON.stringify({hits,player,enemy,trace:scenario.inspect().trace.slice(-60)}));
   assert.ok(hits>0);assert.ok(player>0,'player damage must occur');assert.ok(enemy>0,'enemy damage must occur');
 });
 

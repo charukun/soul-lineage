@@ -1,3 +1,4 @@
+import {mountCharacterForgeReview} from './forge-review.js';
 import './runtime.js';
 import '../../character-art-qa.js';
 import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, KAYKIT_MODELS, KAYKIT_CHARACTER_LIBRARY, YEAR_MS, createCharacterModelBuildRequest } from '@soul/characters';
@@ -203,3 +204,5 @@ function init() {
   buildOptions(); expressions(); activate('parts'); render();
 }
 try { init(); } catch (error) { toast(error.message); }
+mountCharacterForgeReview(window.masterCharacterReview);
+

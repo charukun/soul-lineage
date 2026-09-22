@@ -1,0 +1,434 @@
+{
+  "schemaVersion": "rinne.character-package/v1",
+  "id": "forge-scout",
+  "displayName": "Forge Scout",
+  "forgeVersion": "1.0.0",
+  "representation": "3d",
+  "reconstructionMode": "multi-view",
+  "sourceViews": {
+    "front": {
+      "source": "source/front.png",
+      "status": "observed",
+      "sha256": "4c02c97c46a9a53b213d4a398dec936d8ce70f7ddc3e1c2ff2d303a3f39ce0db",
+      "sheetRect": [
+        46,
+        0,
+        155,
+        380
+      ]
+    },
+    "side": {
+      "source": "source/side.png",
+      "status": "observed",
+      "sha256": "06cd56e8c9e77493c6414a6ebe5852e1d48d3cd3a5bd4c115d5fa65628b7b946",
+      "sheetRect": [
+        270,
+        0,
+        331,
+        380
+      ]
+    },
+    "back": {
+      "source": "source/back.png",
+      "status": "observed",
+      "sha256": "f47e4f315d09b9e47e4e9d1666aed665d135ff14c490c4427450fa441fec00cc",
+      "sheetRect": [
+        446,
+        0,
+        555,
+        380
+      ]
+    }
+  },
+  "model": {
+    "path": "build/character.glb",
+    "sha256": "98f6753ab4a679232ed3b69d68b3059963b9b39667e4f8f65e97311ffba64576"
+  },
+  "skeleton": {
+    "id": "rinne.forge.humanoid.v1",
+    "coordinateSystem": "+Y up, +Z forward",
+    "bindPose": "neutral reference",
+    "bones": [
+      {
+        "name": "root",
+        "parent": null,
+        "position": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "hips",
+        "parent": "root",
+        "position": [
+          0,
+          0.46,
+          0
+        ]
+      },
+      {
+        "name": "spine",
+        "parent": "hips",
+        "position": [
+          0,
+          0.55,
+          0
+        ]
+      },
+      {
+        "name": "chest",
+        "parent": "spine",
+        "position": [
+          0,
+          0.65,
+          0
+        ]
+      },
+      {
+        "name": "neck",
+        "parent": "chest",
+        "position": [
+          0,
+          0.6849999999999999,
+          0
+        ]
+      },
+      {
+        "name": "head",
+        "parent": "neck",
+        "position": [
+          0,
+          0.755,
+          0
+        ]
+      },
+      {
+        "name": "shoulder.L",
+        "parent": "chest",
+        "position": [
+          0.07812499999999999,
+          0.6849999999999999,
+          0
+        ]
+      },
+      {
+        "name": "upperArm.L",
+        "parent": "shoulder.L",
+        "position": [
+          0.13020833333333331,
+          0.6849999999999999,
+          0
+        ]
+      },
+      {
+        "name": "lowerArm.L",
+        "parent": "upperArm.L",
+        "position": [
+          0.1309722222222222,
+          0.54,
+          0
+        ]
+      },
+      {
+        "name": "hand.L",
+        "parent": "lowerArm.L",
+        "position": [
+          0.13020833333333331,
+          0.39,
+          0
+        ]
+      },
+      {
+        "name": "upperLeg.L",
+        "parent": "hips",
+        "position": [
+          0.13020833333333331,
+          0.45,
+          0
+        ]
+      },
+      {
+        "name": "lowerLeg.L",
+        "parent": "upperLeg.L",
+        "position": [
+          0.05555555555555555,
+          0.26,
+          0
+        ]
+      },
+      {
+        "name": "foot.L",
+        "parent": "lowerLeg.L",
+        "position": [
+          0.05555555555555556,
+          0.055,
+          0
+        ]
+      },
+      {
+        "name": "shoulder.R",
+        "parent": "chest",
+        "position": [
+          -0.07812499999999999,
+          0.6849999999999999,
+          0
+        ]
+      },
+      {
+        "name": "upperArm.R",
+        "parent": "shoulder.R",
+        "position": [
+          -0.13020833333333331,
+          0.6849999999999999,
+          0
+        ]
+      },
+      {
+        "name": "lowerArm.R",
+        "parent": "upperArm.R",
+        "position": [
+          -0.1309722222222222,
+          0.54,
+          0
+        ]
+      },
+      {
+        "name": "hand.R",
+        "parent": "lowerArm.R",
+        "position": [
+          -0.13020833333333331,
+          0.39,
+          0
+        ]
+      },
+      {
+        "name": "upperLeg.R",
+        "parent": "hips",
+        "position": [
+          -0.13020833333333331,
+          0.45,
+          0
+        ]
+      },
+      {
+        "name": "lowerLeg.R",
+        "parent": "upperLeg.R",
+        "position": [
+          -0.05555555555555555,
+          0.26,
+          0
+        ]
+      },
+      {
+        "name": "foot.R",
+        "parent": "lowerLeg.R",
+        "position": [
+          -0.05555555555555556,
+          0.055,
+          0
+        ]
+      }
+    ],
+    "jointStatus": "inferred",
+    "skin": "linear-blend"
+  },
+  "animations": [
+    {
+      "name": "Idle",
+      "duration": 3,
+      "loop": true,
+      "status": "generated"
+    },
+    {
+      "name": "Walk",
+      "duration": 1,
+      "loop": true,
+      "status": "generated"
+    },
+    {
+      "name": "Talk",
+      "duration": 2,
+      "loop": true,
+      "status": "generated"
+    },
+    {
+      "name": "Attack",
+      "duration": 0.85,
+      "loop": false,
+      "status": "generated"
+    },
+    {
+      "name": "Hit",
+      "duration": 0.5,
+      "loop": false,
+      "status": "generated"
+    },
+    {
+      "name": "Rest",
+      "duration": 2.4,
+      "loop": true,
+      "status": "generated"
+    },
+    {
+      "name": "Run",
+      "duration": 0.65,
+      "loop": true,
+      "status": "generated"
+    },
+    {
+      "name": "Pickup",
+      "duration": 1.5,
+      "loop": false,
+      "status": "generated"
+    },
+    {
+      "name": "Jump",
+      "duration": 1,
+      "loop": false,
+      "status": "generated"
+    },
+    {
+      "name": "Fall",
+      "duration": 1,
+      "loop": true,
+      "status": "generated"
+    }
+  ],
+  "sockets": {
+    "definitions": {
+      "rightHand": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "leftHand": {
+        "bone": "hand.L",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "weapon": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "secondaryGripTarget": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "weaponHitboxAnchor": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0.18,
+          0
+        ]
+      },
+      "trailOrigin": {
+        "bone": "hand.R",
+        "offset": [
+          0,
+          0.7,
+          0
+        ]
+      },
+      "heldItemAnchor": {
+        "bone": "hand.L",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "talkAnchor": {
+        "bone": "head",
+        "offset": [
+          0,
+          0.24,
+          0
+        ]
+      }
+    },
+    "aliases": {
+      "handR": "rightHand",
+      "handL": "leftHand",
+      "offhand": "leftHand",
+      "secondaryGrip": "secondaryGripTarget",
+      "weaponHitbox": "weaponHitboxAnchor",
+      "hitbox": "weaponHitboxAnchor",
+      "heldItem": "heldItemAnchor"
+    }
+  },
+  "scale": {
+    "unit": "metre",
+    "height": 1.6
+  },
+  "bounds": {
+    "min": [
+      -0.261944442987442,
+      0.00800000037997961,
+      -0.1588333398103714
+    ],
+    "max": [
+      0.261944442987442,
+      1.600000023841858,
+      0.15555556118488312
+    ]
+  },
+  "presentation": {
+    "headAnchor": [
+      0,
+      1.2080000000000002,
+      0
+    ],
+    "bodyCenter": [
+      0.0,
+      0.8040000121109188,
+      -0.0016388893127441406
+    ],
+    "focusTarget": [
+      0,
+      0.8,
+      0
+    ],
+    "groundPoint": [
+      0,
+      0,
+      0
+    ]
+  },
+  "reviewStatus": "review-candidate",
+  "visualApproval": "pending",
+  "productionReady": false,
+  "provenance": {
+    "author": "RINNE contributors",
+    "license": "RINNE-OWNED",
+    "source": "Original synthetic fixture: scripts/character-forge/fixture.py",
+    "thirdPartyAssets": false,
+    "generator": "RINNE-owned procedural pipeline",
+    "sourceHashes": {
+      "sheet": "230b290876e29a2b1b93ef23449547979d4aa0b7c166beebe3ae1605ab76867f"
+    }
+  },
+  "validationStatus": "passed",
+  "validationReport": "validation-report.json",
+  "reconstructionSpec": "spec/reconstruction.json",
+  "comparisons": {
+    "front": "review/comparisons/front-silhouette-overlay.png",
+    "side": "review/comparisons/side-silhouette-overlay.png",
+    "back": "review/comparisons/back-silhouette-overlay.png"
+  }
+}
