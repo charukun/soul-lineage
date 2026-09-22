@@ -13,5 +13,9 @@ export const BATTLE2_COMBO_PRESETS=Object.freeze([
  Object.freeze({id:'combo-5',label:'伍ノ連',slots:slot('action.breakfall','action.recover','action.counter')}),
  Object.freeze({id:'combo-6',label:'陸ノ連',slots:slot('basic.sword','action.flow','action.crash')})
 ]);
-export const battle2TechniqueLabel=id=>LABELS[id]||id;
-export function battle2MatchingCombo(technique={}){return BATTLE2_COMBO_PRESETS.find(row=>row.slots.jo===technique.jo&&row.slots.ha===technique.ha&&row.slots.kyu===technique.kyu)?.id??null;}
+const BASIC_LABELS=Object.freeze({sword:'剣の型',great:'大剣の型',dagger:'短剣の型',spear:'槍の型',axe:'戦斧の型',staff:'杖の型',fist:'徒手の型'});
+export const battle2ComboSelection=id=>'combo:'+id;
+export const battle2TechniqueLabel=id=>String(id||'').startsWith('basic.')?(BASIC_LABELS[String(id).slice(6)]||'基本の型'):(LABELS[id]||id||'未設定');
+export function battle2SelectionLabel(selection){const raw=String(selection||'');if(raw.startsWith('combo:'))return BATTLE2_COMBO_PRESETS.find(row=>row.id===raw.slice(6))?.label||'連技';return battle2TechniqueLabel(raw);}
+export function battle2SelectionAllowed(selection){const raw=String(selection||'');if(raw.startsWith('combo:'))return BATTLE2_COMBO_PRESETS.some(row=>row.id===raw.slice(6));return BATTLE2_TECHNIQUE_CATALOG.some(row=>row.id===raw);}
+export function battle2SelectionTechnique(selection,phase,{weapon='sword'}={}){const raw=String(selection||''),combo=raw.startsWith('combo:')?BATTLE2_COMBO_PRESETS.find(row=>row.id===raw.slice(6)):null,chosen=combo?.slots?.[phase]||raw||'basic.sword';return chosen.startsWith('basic.')?'basic.'+weapon:chosen;}

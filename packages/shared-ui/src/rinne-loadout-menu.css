@@ -8,7 +8,7 @@
   z-index:140;
   left:max(10px,env(safe-area-inset-left));
   right:max(10px,env(safe-area-inset-right));
-  bottom:max(78px,calc(env(safe-area-inset-bottom) + 72px));
+  bottom:max(104px,calc(env(safe-area-inset-bottom) + 98px));
   display:flex;
   flex-direction:column;
   max-width:700px;
@@ -275,7 +275,7 @@
   .rinne-core-menu{
     left:max(7px,env(safe-area-inset-left));
     right:max(7px,env(safe-area-inset-right));
-    bottom:max(73px,calc(env(safe-area-inset-bottom) + 67px));
+    bottom:max(96px,calc(env(safe-area-inset-bottom) + 90px));
     max-height:min(61dvh,560px)
   }
   .rinne-core-menu-head{min-height:58px;padding:8px 9px}

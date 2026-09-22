@@ -183,7 +183,7 @@ test('1v1 creates situational breathing room before re-engaging instead of perma
  assert.ok(sawMovingReset,'between-action footwork must be visible in canonical frames');
  assert.ok(maxDistance-minDistance>.45,`distance must breathe rather than pin: ${minDistance}..${maxDistance}`);
  assert.ok(offenseStarts.length>3);assert.ok(offenseStarts.every(row=>row.distance<=3.161),JSON.stringify(offenseStarts.slice(0,5)));
- assert.ok(offenseStarts.some(row=>row.distance>2.35),'step-in attacks should be allowed to begin at the edge of measure before real contact');
+ assert.ok(offenseStarts.some(row=>row.distance<=2.04),'authored attacks should begin inside practical blade-contact measure');
  const starts=trace.filter(row=>row.type==='stage-start').map(row=>row.time),gaps=starts.slice(1).map((time,index)=>time-starts[index]);
  assert.ok(gaps.some(gap=>gap>.3),'combat rhythm needs at least one real settle/reposition gap');
 });
@@ -261,7 +261,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.30');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.31');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -379,6 +379,14 @@ test('battle2 technique menu exposes six combos and all sword combat forms backe
  const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8');assert.match(ui,/連技一覧/);assert.match(ui,/基本技一覧/);assert.match(ui,/BATTLE2_COMBO_PRESETS/);assert.match(ui,/BATTLE2_TECHNIQUE_CATALOG/);
 });
 
+test('序破急 slots accept either combo references or basic techniques and basic forms follow the equipped weapon',()=>{
+ const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),catalog=readFileSync(new URL('../src/nocturne/battle2-technique-catalog.js',import.meta.url),'utf8');
+ assert.match(ui,/value\.technique\[techniqueTarget\]=battle2ComboSelection\(id\)/);assert.match(ui,/value\.technique\[techniqueTarget\]=id/);assert.match(catalog,/battle2SelectionTechnique/);assert.match(catalog,/chosen\.startsWith\('basic\.'\)\?'basic\.'\+weapon/);assert.match(source,/battle2SelectionTechnique\(config\.technique\[phase\],phase,\{weapon\}\)/);
+});
+test('physical hit tuning starts attacks in blade range and keeps rig contact tolerant',()=>{
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
+ assert.match(source,/FIGHTING_SPACING=1\.62/);assert.match(source,/DEEP_ENTRY_SPACING=1\.5/);assert.match(source,/ENGAGE_DISTANCE=1\.82/);assert.match(source,/Math\.min\(2\.04/);assert.match(runtime,/BODY_CONTACT_SKIN=\.18/);assert.match(runtime,/Math\.abs\(progress-expected\)>\.44/);assert.match(runtime,/\.9375,1\]/);
+});
 test('battle2 and 百年転生 share the same captionless 心技体装 buttons and post-tap menu primitives',()=>{
  const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),stage=stageSource(),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8'),sharedFour=readFileSync(new URL('../../../packages/shared-ui/src/rinne-primary-four.js',import.meta.url),'utf8'),sharedMenu=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.js',import.meta.url),'utf8'),sharedMenuCss=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.css',import.meta.url),'utf8');
  assert.match(ui,/rinnePrimaryFourMarkup/);assert.match(ui,/rinneLoadoutPanelMarkup/);assert.match(ui,/createRinneLoadoutSlot/);assert.match(ui,/createRinneLoadoutGridItem/);assert.match(ui,/@soul\/shared-ui\/rinne-loadout-menu\.css/);

@@ -25,7 +25,7 @@ test('body command and panel content remain distinct DOM targets',()=>{
 test('心技体装 uses three selection slots and six-column motion-style target grids',()=>{
   assert.match(sharedMenuCss,/\.loadout-slot-row[\s\S]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
   assert.match(sharedMenuCss,/\.loadout-grid\{[\s\S]*grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);assert.match(sharedMenuCss,/aspect-ratio:1\/1!important/);
-  assert.match(heartUI,/setHeartSlot/);assert.match(heartUI,/心得一覧/);assert.match(heartUI,/連技一覧/);assert.match(heartUI,/基本技一覧/);assert.match(heartUI,/GRID_PAGE_SIZE=12/);
+  assert.match(heartUI,/setHeartSlot/);assert.match(heartUI,/setPhaseSelection/);assert.match(heartUI,/phaseSelectionLabel/);assert.match(heartUI,/心得一覧/);assert.match(heartUI,/連技一覧/);assert.match(heartUI,/基本技一覧/);assert.match(heartUI,/GRID_PAGE_SIZE=12/);
 });
 
 test('journal preserves favored combos and the costly manual one-motion controls',()=>{
