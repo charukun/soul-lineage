@@ -1,14 +1,14 @@
 import { SKILL_BY_ID } from './rebuild/skill-system.js';
 import {
   PHASES, MAX_COMBOS, ensureCombatLoadout, learnedHeartSkills, learnedTechniqueSkills, techniqueName,
-  comboById, addCombo, removeCombo, setActiveCombo, setComboSkill, toggleFavored,
+  comboById, addCombo, removeCombo, setActiveCombo, setComboSkill, toggleFavored, setHeartSlot,
   setOneMotion, setBodyChoice, unlockedBodyOptions, requestOneMotion
 } from './combat-loadout.js';
 import { decorateSelectionDetail } from './selection-detail.js';
 import {createRinneLoadoutGridItem,createRinneLoadoutGridSection,createRinneLoadoutSlot,createRinneLoadoutSlotRow,createRinneMenuLead,rinneSkillSigilKind} from '@soul/shared-ui/rinne-loadout-menu';
 
 const EFFECT_LABELS=Object.freeze({damage:'威力',mitigation:'守り',evasion:'見切り',reach:'間合い',recovery:'回復'});
-const GRID_PAGE_SIZE=10;
+const GRID_PAGE_SIZE=12;
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
 
 function effectSummary(id){
@@ -54,31 +54,24 @@ const topSlotRow=()=>createRinneLoadoutSlotRow();
 
 function renderHeart(model,focusId=null){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='heart';model.tracker.consume('heart');model.ui.title.textContent='心 · 心得';model.ui.body.innerHTML='';
-  const ids=learnedHeartSkills(state);
+  const ids=learnedHeartSkills(state),active=state.combatLoadout.heart.active;model.heartTarget=Math.max(0,Math.min(2,model.heartTarget||0));
+  const slots=topSlotRow();for(let index=0;index<3;index++){const id=active[index]||null;slots.append(slot('心得 '+(index+1),id?techniqueName(id):'空き',{selected:model.heartTarget===index,empty:!id,icon:rinneSkillSigilKind(id,SKILL_BY_ID[id]?.effects),detail:id?skillDetail(id,'心得','装着中'):null,onClick:()=>{model.heartTarget=index;model.audio.ui();renderHeart(model,focusId);}}));}model.ui.body.append(slots);
   if(focusId){const index=ids.indexOf(focusId);if(index>=0)model.pages.heart=Math.floor(index/GRID_PAGE_SIZE);}
-  const library=gridSection('習得した心得','長押しで詳細を見る');
-  library.classList.add('heart-learned-list');
+  const library=gridSection('心得一覧','選択中のスロットへ装着');library.classList.add('heart-learned-list');
   const list=library.querySelector('.loadout-grid'),page=pageRows(model,'heart',ids,()=>renderHeart(model,focusId));
-  for(const id of page.rows){
-    const item=gridItem(techniqueName(id),effectSummary(id),{
-      focus:id===focusId,icon:rinneSkillSigilKind(id,SKILL_BY_ID[id]?.effects),detail:skillDetail(id,'心得','習得済み')
-    });
-    item.dataset.detailOnly='true';item.setAttribute('aria-label',`${techniqueName(id)}。長押しで詳細`);list.append(item);
-  }
-  if(!page.rows.length){const empty=document.createElement('p');empty.className='loadout-empty';empty.textContent='まだ心得を習得していません。';list.append(empty);}
-  model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);
+  for(const id of page.rows){const item=gridItem(techniqueName(id),effectSummary(id),{active:active[model.heartTarget]===id,focus:id===focusId,icon:rinneSkillSigilKind(id,SKILL_BY_ID[id]?.effects),detail:skillDetail(id,'心得',active.includes(id)?'装着中':'習得済み'),onClick:()=>{setHeartSlot(state,model.heartTarget,id);model.audio.item();haptic(10);renderHeart(model,id);}});item.setAttribute('aria-label',techniqueName(id)+'。選択中の心得枠へ装着');list.append(item);}
+  if(!page.rows.length){const empty=document.createElement('p');empty.className='loadout-empty';empty.textContent='まだ心得を習得していません。';list.append(empty);}model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);
 }
 
-function renderComboContext(model,state,combo){
-  const rows=state.combatLoadout.technique.combos,index=Math.max(0,rows.findIndex(row=>row.id===combo.id)),bar=document.createElement('nav');bar.className='loadout-context-bar';bar.setAttribute('aria-label','連技セット');
-  const prev=document.createElement('button'),current=document.createElement('button'),next=document.createElement('button');prev.type=current.type=next.type='button';prev.textContent='‹';next.textContent='›';current.className='loadout-context-current';current.innerHTML='<strong></strong><small></small>';current.querySelector('strong').textContent=combo.name;current.querySelector('small').textContent=combo.id===state.combatLoadout.technique.activeComboId?'主軸':'予備';
-  prev.disabled=next.disabled=rows.length<=1;prev.onclick=()=>{model.comboId=rows[(index-1+rows.length)%rows.length].id;model.audio.ui();renderTechnique(model);};next.onclick=()=>{model.comboId=rows[(index+1)%rows.length].id;model.audio.ui();renderTechnique(model);};
-  bar.append(prev,current,next);
-  if(rows.length<MAX_COMBOS){const add=document.createElement('button');add.type='button';add.textContent='＋';add.setAttribute('aria-label','連技を追加');add.onclick=()=>{const made=addCombo(state);if(made){model.comboId=made.id;model.audio.item();haptic(12);renderTechnique(model);}};bar.append(add);}
-  const main=document.createElement('button');main.type='button';main.textContent=combo.id===state.combatLoadout.technique.activeComboId?'主軸中':'主軸';main.dataset.active=String(combo.id===state.combatLoadout.technique.activeComboId);main.onclick=()=>{setActiveCombo(state,combo.id);model.audio.item();renderTechnique(model);};bar.append(main);
-  if(rows.length>1){const remove=document.createElement('button');remove.type='button';remove.textContent='−';remove.setAttribute('aria-label','この連技を削除');remove.onclick=()=>{removeCombo(state,combo.id);model.comboId=state.combatLoadout.technique.activeComboId;model.audio.ui();renderTechnique(model);};bar.append(remove);}
-  return bar;
+function renderComboList(model,state){
+  const rows=state.combatLoadout.technique.combos,library=gridSection('連技一覧','最大6組 · タップで主軸切替'),list=library.querySelector('.loadout-grid');
+  for(const combo of rows){list.append(gridItem(combo.name,'序破急',{active:combo.id===state.combatLoadout.technique.activeComboId,icon:'flow',detail:{kicker:'連技',title:combo.name,summary:PHASES.map(([phase])=>techniqueName(combo.slots[phase])).join(' → '),status:combo.id===state.combatLoadout.technique.activeComboId?'主軸':'予備'},onClick:()=>{model.comboId=combo.id;setActiveCombo(state,combo.id);model.audio.item();haptic(8);renderTechnique(model);}}));}
+  model.ui.body.append(library);const actions=document.createElement('div');actions.className='loadout-combo-actions';
+  if(rows.length<MAX_COMBOS){const add=document.createElement('button');add.type='button';add.textContent='＋ 連技';add.onclick=()=>{const made=addCombo(state);if(made){model.comboId=made.id;setActiveCombo(state,made.id);model.audio.item();haptic(12);renderTechnique(model);}};actions.append(add);}
+  if(rows.length>1){const remove=document.createElement('button');remove.type='button';remove.textContent='選択中を削除';remove.onclick=()=>{const id=state.combatLoadout.technique.activeComboId;removeCombo(state,id);model.comboId=state.combatLoadout.technique.activeComboId;model.audio.ui();renderTechnique(model);};actions.append(remove);}
+  if(actions.childElementCount)model.ui.body.append(actions);
 }
+
 function phaseSlot(model,state,combo,phase,label){
   const cell=document.createElement('div');cell.className='loadout-slot-cell';cell.dataset.selected=String(model.techniqueTarget===phase);
   const activeId=combo.slots[phase];const button=slot(label,techniqueName(activeId),{selected:model.techniqueTarget===phase,icon:rinneSkillSigilKind(activeId,SKILL_BY_ID[activeId]?.effects),detail:skillDetail(activeId,`${label}の装着技`,model.techniqueTarget===phase?'選択先':'装着中'),onClick:()=>{model.techniqueTarget=phase;model.audio.ui();renderTechnique(model);}});
@@ -89,19 +82,15 @@ function renderTechnique(model,focusId=null){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='technique';model.tracker.consume('technique');if(focusId)model.focusSkill=focusId;
   const combos=state.combatLoadout.technique.combos;if(!model.comboId||!combos.some(row=>row.id===model.comboId))model.comboId=state.combatLoadout.technique.activeComboId;const combo=comboById(state,model.comboId);
   model.ui.title.textContent='技 · 序破急';model.ui.body.innerHTML='';
-  model.ui.body.append(renderComboContext(model,state,combo));
   const slots=topSlotRow();for(const [phase,label] of PHASES)slots.append(phaseSlot(model,state,combo,phase,label));model.ui.body.append(slots);
-  const one=document.createElement('button');one.type='button';one.className='one-motion-card';one.dataset.active=String(model.techniqueTarget==='oneMotion');one.innerHTML='<div><span>手動奥義</span><strong></strong><small>戦闘態勢中のみ · 消耗と隙が大きい</small></div><b>選択</b>';one.querySelector('strong').textContent=state.combatLoadout.technique.oneMotion?techniqueName(state.combatLoadout.technique.oneMotion):'未設定';one.onclick=()=>{model.techniqueTarget='oneMotion';model.audio.ui();renderTechnique(model);};
-  const ids=learnedTechniqueSkills(state,{oneMotion:model.techniqueTarget==='oneMotion'});
-  if(focusId){const index=ids.indexOf(focusId);if(index>=0)model.pages.technique=Math.floor(index/GRID_PAGE_SIZE);}
-  const library=gridSection('習得した技',model.techniqueTarget==='oneMotion'?'手動奥義として使う技を選ぶ':`${PHASES.find(([id])=>id===model.techniqueTarget)?.[1]||'序'}へ入れる技を選ぶ`);
-  const list=library.querySelector('.loadout-grid'),page=pageRows(model,'technique',ids,()=>renderTechnique(model,focusId));
-  for(const id of page.rows){
-    const current=model.techniqueTarget==='oneMotion'?state.combatLoadout.technique.oneMotion:combo.slots[model.techniqueTarget]||null;
-    list.append(gridItem(techniqueName(id),effectSummary(id),{active:id===current,focus:id===focusId,icon:rinneSkillSigilKind(id,SKILL_BY_ID[id]?.effects),detail:skillDetail(id,'戦技',id===current?'装着中':'習得済み'),onClick:()=>{if(model.techniqueTarget==='oneMotion')setOneMotion(state,id);else setComboSkill(state,combo.id,model.techniqueTarget,id);model.audio.item();haptic(12);renderTechnique(model,id);}}));
-  }
-  model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);model.ui.body.append(one);
+  renderComboList(model,state);
+  const ids=learnedTechniqueSkills(state,{oneMotion:model.techniqueTarget==='oneMotion'});if(focusId){const index=ids.indexOf(focusId);if(index>=0)model.pages.technique=Math.floor(index/GRID_PAGE_SIZE);}
+  const library=gridSection(model.techniqueTarget==='oneMotion'?'奥義候補':'基本技一覧',model.techniqueTarget==='oneMotion'?'手動奥義として使う技を選ぶ':(PHASES.find(([id])=>id===model.techniqueTarget)?.[1]||'序')+'へ入れる技を選ぶ'),list=library.querySelector('.loadout-grid'),page=pageRows(model,'technique',ids,()=>renderTechnique(model,focusId));
+  for(const id of page.rows){const current=model.techniqueTarget==='oneMotion'?state.combatLoadout.technique.oneMotion:combo.slots[model.techniqueTarget]||null;list.append(gridItem(techniqueName(id),effectSummary(id),{active:id===current,focus:id===focusId,icon:rinneSkillSigilKind(id,SKILL_BY_ID[id]?.effects),detail:skillDetail(id,'戦技',id===current?'装着中':'習得済み'),onClick:()=>{if(model.techniqueTarget==='oneMotion')setOneMotion(state,id);else setComboSkill(state,combo.id,model.techniqueTarget,id);model.audio.item();haptic(12);renderTechnique(model,id);}}));}
+  model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);
+  const one=document.createElement('button');one.type='button';one.className='one-motion-card';one.dataset.active=String(model.techniqueTarget==='oneMotion');one.innerHTML='<div><span>手動奥義</span><strong></strong><small>戦闘態勢中のみ · 消耗と隙が大きい</small></div><b>選択</b>';one.querySelector('strong').textContent=state.combatLoadout.technique.oneMotion?techniqueName(state.combatLoadout.technique.oneMotion):'未設定';one.onclick=()=>{model.techniqueTarget=model.techniqueTarget==='oneMotion'?'jo':'oneMotion';model.audio.ui();renderTechnique(model);};model.ui.body.append(one);
 }
+
 function renderBody(model){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='body';model.bodyKind=model.bodyKind||'stance';model.ui.title.textContent='体 · 身法';model.ui.body.innerHTML='';
   model.ui.body.append(createRinneMenuLead('いまの身体に合う型を選ぶ'));
@@ -123,14 +112,14 @@ function syncCombat(model,state){
 }
 
 export function createHeartTechniqueBodyUI({ui,audio,getState,tracker}){
-  const model={ui,audio,getState,tracker,comboId:null,focusSkill:null,section:'technique',techniqueTarget:'jo',bodyKind:'stance',pages:{heart:0,technique:0,body:0}};
+  const model={ui,audio,getState,tracker,comboId:null,focusSkill:null,section:'technique',heartTarget:0,techniqueTarget:'jo',bodyKind:'stance',pages:{heart:0,technique:0,body:0}};
   ui.oneMotion.onclick=()=>{const state=getState(),skill=requestOneMotion(state);if(!skill)return;audio.combat();haptic([24,28,14]);ui.oneMotion.dataset.queued='true';setTimeout(()=>{delete ui.oneMotion.dataset.queued;},500);};
   return{
     renderHeart:focus=>renderHeart(model,focus),
     renderTechnique:focus=>renderTechnique(model,focus),
     renderBody:()=>renderBody(model),
     syncCombat:state=>syncCombat(model,state),
-    reset(){model.comboId=null;model.focusSkill=null;model.section='technique';model.techniqueTarget='jo';model.bodyKind='stance';model.pages={heart:0,technique:0,body:0};},
+    reset(){model.comboId=null;model.focusSkill=null;model.section='technique';model.heartTarget=0;model.techniqueTarget='jo';model.bodyKind='stance';model.pages={heart:0,technique:0,body:0};},
     dispose(){}
   };
 }

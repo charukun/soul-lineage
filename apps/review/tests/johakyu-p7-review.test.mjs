@@ -5,6 +5,7 @@ import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.j
 import {createCanonicalPresentationDriver} from '../../../packages/johakyu-presentation/src/driver.js';
 import {resolveJohakyuLocomotion,resolveJohakyuMotion} from '../../../packages/johakyu-combat/src/motion-contract.js';
 import {BATTLE2_VERSION} from '../src/battle2-version.js';
+import {BATTLE2_COMBO_PRESETS,BATTLE2_TECHNIQUE_CATALOG} from '../src/nocturne/battle2-technique-catalog.js';
 
 const stageSource=()=>readFileSync(new URL('../src/nocturne-stage.js',import.meta.url),'utf8');
 const hudCss=()=>readFileSync(new URL('../src/nocturne/johakyu-p7-readout.css',import.meta.url),'utf8');
@@ -260,7 +261,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.29');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.30');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -371,12 +372,19 @@ test('public battle2 uses authored technique specs and footwork instead of the b
  assert.match(source,/actor\.side==='enemy'&&stageDamage\(node\.stage\)>0\?burstPresentationClip/);
 });
 
+test('battle2 technique menu exposes six combos and all sword combat forms backed by authored clips',()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../src/nocturne/manifest.json',import.meta.url),'utf8')),clips=new Set(manifest.models['adventurers/Knight'].animations);
+ assert.equal(BATTLE2_COMBO_PRESETS.length,6);assert.equal(BATTLE2_TECHNIQUE_CATALOG.length,15);
+ for(const row of BATTLE2_TECHNIQUE_CATALOG){assert.equal(row.supported,true,row.id);for(const motion of row.motions){assert.equal(motion.supported,true,row.id);assert.ok(clips.has(motion.clip),row.id+'/'+motion.clip);}}
+ const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8');assert.match(ui,/連技一覧/);assert.match(ui,/基本技一覧/);assert.match(ui,/BATTLE2_COMBO_PRESETS/);assert.match(ui,/BATTLE2_TECHNIQUE_CATALOG/);
+});
+
 test('battle2 and 百年転生 share the same captionless 心技体装 buttons and post-tap menu primitives',()=>{
  const ui=readFileSync(new URL('../src/nocturne/battle2-loadout.js',import.meta.url),'utf8'),stage=stageSource(),controller=readFileSync(new URL('../src/nocturne/johakyu-p7-controller.js',import.meta.url),'utf8'),source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8'),sharedFour=readFileSync(new URL('../../../packages/shared-ui/src/rinne-primary-four.js',import.meta.url),'utf8'),sharedMenu=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.js',import.meta.url),'utf8'),sharedMenuCss=readFileSync(new URL('../../../packages/shared-ui/src/rinne-loadout-menu.css',import.meta.url),'utf8');
  assert.match(ui,/rinnePrimaryFourMarkup/);assert.match(ui,/rinneLoadoutPanelMarkup/);assert.match(ui,/createRinneLoadoutSlot/);assert.match(ui,/createRinneLoadoutGridItem/);assert.match(ui,/@soul\/shared-ui\/rinne-loadout-menu\.css/);
  assert.doesNotMatch(sharedFour,/<span>/);assert.match(sharedFour,/aria-label/);assert.match(sharedMenu,/class="rinne-core-menu"/);assert.match(sharedMenuCss,/\.rinne-core-menu \.loadout-grid\{/);
- // Explicit parity request: battle2 intentionally inherits the same 3-column portrait menu grid as 百年転生.
- assert.match(sharedMenuCss,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);assert.doesNotMatch(css,/battle2-loadout-grid|battle2-loadout-panel|battle2-loadout-choice/);
+ // Explicit user request overrides the review default: 心技体装 selection targets use a shared six-column motion-view-like grid.
+ assert.match(sharedMenuCss,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);assert.match(sharedMenuCss,/aspect-ratio:1\/1!important/);assert.doesNotMatch(css,/battle2-loadout-grid|battle2-loadout-panel|battle2-loadout-choice/);
  assert.match(stage,/createBattle2LoadoutUI/);assert.match(stage,/loadout:loadoutUI\.value/);assert.match(controller,/configureLoadout/);assert.match(source,/normalizeBattle2Loadout/);assert.match(source,/heroCompositionFor/);assert.match(source,/bodyDistanceScale/);assert.match(ui,/hash=2166136261/);assert.match(ui,/toString\(36\)\.padStart\(7,'0'\)/);
 });
 test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});

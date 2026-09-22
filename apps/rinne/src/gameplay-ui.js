@@ -25,7 +25,7 @@ import {RINNE_UI_VERSION} from './ui-version.js';
 
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
 const PAGE_SIZE=6;
-const GRID_PAGE_SIZE=10,RADAR_RANGE=28;
+const GRID_PAGE_SIZE=12,RADAR_RANGE=28;
 const esc=value=>String(value??'').replace(/[&<>\"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[ch]));
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
 
