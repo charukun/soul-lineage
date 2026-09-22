@@ -14,12 +14,12 @@ jobs:
     timeout-minutes: 24
     env:
       APP_ENV: dev
-      HEAD_SHA: 3416ed1bf92fb8ea73b88ab290f38ee2b85d53fd
+      HEAD_SHA: 28a9c9d130e1bc105543f21a3685034ee76434b3
       EVIDENCE_WORKER: soul-lineage-review-evidence-${{ github.run_id }}
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 3416ed1bf92fb8ea73b88ab290f38ee2b85d53fd
+          ref: 28a9c9d130e1bc105543f21a3685034ee76434b3
           fetch-depth: 1
           persist-credentials: false
       - uses: actions/setup-node@v6
@@ -69,7 +69,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: quaternius-final-immutable-3416ed1bf92fb8ea73b88ab290f38ee2b85d53fd
+          name: quaternius-final-immutable-28a9c9d130e1bc105543f21a3685034ee76434b3
           path: .deploy-state/quaternius-character-evidence/
           include-hidden-files: true
           retention-days: 14
