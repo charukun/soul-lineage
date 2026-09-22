@@ -11,6 +11,8 @@ import {applyReviewCombatMotion} from './hero-motion.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {resolveTechniquePresentation} from '@soul/johakyu-presentation/technique-presentation';
 import {createSnapCameraControl} from '@soul/rendering/snap-camera-control';
+import {createCameraDirector,externalCameraShot} from '@soul/rendering/camera-director';
+import {actorScreenSafety,applyCameraPresentation} from '@soul/rendering/camera-presentation-three';
 import '@soul/rendering/snap-camera-control.css';
 
 export const REVIEW_BATTLE_MODELS=REVIEW_MONSTER_MODELS;
@@ -82,7 +84,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
 
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1110);scene.fog=new THREE.Fog(0x0b1110,10,24);
   const camera=new THREE.PerspectiveCamera(40,1,.08,50);camera.position.set(0,5.2,10);
-  const cameraLook=new THREE.Vector3(0,.95,0),cameraTargetPosition=new THREE.Vector3(),cameraTargetLook=new THREE.Vector3();camera.lookAt(cameraLook);
+  const cameraLook=new THREE.Vector3(0,.95,0);camera.lookAt(cameraLook);
   scene.add(new THREE.HemisphereLight(0xdde8e3,0x24302d,2.35));const key=new THREE.DirectionalLight(0xffedca,3.4);key.position.set(-4,7,5);scene.add(key);const rim=new THREE.DirectionalLight(0x9bc7d1,1.5);rim.position.set(5,4,-4);scene.add(rim);
 
   const stageRoot=new THREE.Group();scene.add(stageRoot);
@@ -99,7 +101,10 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   const inspirationVfx=await createInspirationVfxLab({renderer,document,onError:error=>{canvas.dataset.inspirationVfx='fallback';console.warn('Inspiration authored VFX unavailable:',error);}});
   canvas.dataset.inspirationMotion=inspirationMotion.ready?'lab':'fallback';canvas.dataset.inspirationVfx=inspirationVfx.snapshot().phase==='ready'?'lab':'fallback';
   let encounterMode='duel',techniquePlayback=null,cameraOrbit=0,cameraZoom=.82,impactKick=0,impactYaw=0,lastImpactSerial=0;
+  const cameraDirector=createCameraDirector({profile:'current3d'});let cameraScreenSafety=null,lastCameraPresentation=null;
+  const cameraPresentationSnapshot=()=>lastCameraPresentation?structuredClone(lastCameraPresentation):null;canvas.cameraPresentation=cameraPresentationSnapshot;
   const cameraControl=createSnapCameraControl({document:canvas.ownerDocument||document,container:canvas.closest('.stage')||canvas.parentElement,initialZoom:.82,minZoom:.58,maxZoom:1.65,onChange:state=>{cameraOrbit=state.yaw;cameraZoom=state.zoom;canvas.dataset.cameraStep=String(state.index);canvas.dataset.cameraZoom=state.zoom.toFixed(2);}});
+  const reviewCameraSubject=(row,id)=>{const weapon=String(row?.weaponSegment?.weapon||row?.weapon||'sword');return{id,position:{x:Number(row?.x)||0,y:0,z:Number(row?.z)||0},yaw:Number(row?.yaw)||0,height:1.9,radius:.5,weaponRadius:WEAPON_VISUAL_REACH[weapon]||.9};};
   const impactBursts=[],inspirationHandPoint=new THREE.Vector3(),inspirationEnemyPoint=new THREE.Vector3(),inspirationBladeA=new THREE.Vector3(),inspirationBladeB=new THREE.Vector3();
   function heroWeaponPoint(target=inspirationHandPoint){const hand=heroWeaponRig.rightHand;if(hand?.getWorldPosition){hand.getWorldPosition(target);return target;}target.copy(hero.actor.root.position);target.y+=1.05;return target;}
   function nearMissVector(target,sequence,side=1){
@@ -189,15 +194,23 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     const now=performance.now()/1000,sequence=techniquePlayback?reviewInspirationSequenceFrame(now-techniquePlayback.startedAt):null,step=Math.max(1/120,Math.min(.05,Number(dt)||1/60));
     if(core?.hero&&core?.enemy&&followCamera)canvas.dataset.heroComposition=cameraSystem==='demon'?'kuumetsu-shared':'hyakunen-shared';
     if(sequence&&sequence.stage!=='done'&&core?.hero&&core?.enemy){const cinematicFrame=inspirationCameraFrame(sequence)||frame;frame=sequence.stage==='afterglow'?blendCameraFrames(cinematicFrame,baseFrame,sequence.progress):cinematicFrame;}
-    else if(frame?.follow&&core?.hero&&core?.enemy&&!frame.finisher){
-      const ox=frame.position.x-frame.look.x,oz=frame.position.z-frame.look.z,c=Math.cos(cameraOrbit),sn=Math.sin(cameraOrbit);
-      frame={...frame,position:{...frame.position,x:frame.look.x+ox*c-oz*sn,z:frame.look.z+ox*sn+oz*c}};
-    }
-    if(frame?.position&&frame?.look&&frame.system!=='inspiration'){const dx=frame.position.x-frame.look.x,dy=frame.position.y-frame.look.y,dz=frame.position.z-frame.look.z;frame={...frame,position:{x:frame.look.x+dx*cameraZoom,y:frame.look.y+dy*cameraZoom,z:frame.look.z+dz*cameraZoom}};}
     if(impactKick>0)frame={...frame,position:{...frame.position,x:frame.position.x-Math.sin(impactYaw)*impactKick,z:frame.position.z-Math.cos(impactYaw)*impactKick}};
-    cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);const blend=1-Math.exp(-step*(frame.system==='inspiration'?18:frame.finisher?16:10));camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);
-    const cameraProfile=techniquePlayback?.presentation?.camera,fovTarget=sequence&&sequence.stage!=='done'?(sequence.stage==='impact'?cameraProfile?.impactFov:sequence.stage==='execute'?cameraProfile?.executionFov:sequence.stage==='settle'||sequence.stage==='afterglow'?cameraProfile?.settleFov:cameraProfile?.anticipationFov)||sequence.cameraFov:40,fovBlend=1-Math.exp(-step*(sequence?.hitStop?34:18)),nextFov=camera.fov+(fovTarget-camera.fov)*fovBlend;if(Math.abs(nextFov-camera.fov)>.001){camera.fov=nextFov;camera.updateProjectionMatrix();}
-    camera.lookAt(cameraLook);if(frame.system==='inspiration'&&frame.roll)camera.rotateZ(frame.roll);canvas.dataset.cameraFollow=followCamera?'on':'off';canvas.dataset.cameraLock=frame.lock||'scene';canvas.dataset.cameraMode=frame.finisher?'finisher':frame.system;canvas.dataset.cameraZoom=cameraZoom.toFixed(2);if(sequence&&sequence.stage!=='done')canvas.dataset.inspirationFocus=sequence.focus;else delete canvas.dataset.inspirationFocus;
+
+    const cameraProfile=techniquePlayback?.presentation?.camera,fovTarget=sequence&&sequence.stage!=='done'?(sequence.stage==='impact'?cameraProfile?.impactFov:sequence.stage==='execute'?cameraProfile?.executionFov:sequence.stage==='settle'||sequence.stage==='afterglow'?cameraProfile?.settleFov:cameraProfile?.anticipationFov)||sequence.cameraFov:40;
+    const enemyState=(core?.enemies||[core?.enemy]).filter(Boolean)[0]||null,actor=reviewCameraSubject(core?.hero,'review-battle-hero'),target=enemyState?reviewCameraSubject(enemyState,'review-battle-enemy'):null;
+    const authored=frame.system==='inspiration'||frame.finisher||!frame.follow;
+    let cameraInput;
+    if(authored){
+      const zoom=frame.system==='inspiration'?1:cameraZoom,position={x:frame.look.x+(frame.position.x-frame.look.x)*zoom,y:frame.look.y+(frame.position.y-frame.look.y)*zoom,z:frame.look.z+(frame.position.z-frame.look.z)*zoom};
+      cameraInput={mode:frame.system==='inspiration'||frame.finisher?'cinematic':'combat',actor,target,aspect:camera.aspect,space:'review-battle',screenSafety:cameraScreenSafety,authoredShot:externalCameraShot({position,lookTarget:frame.look,fov:fovTarget})};
+    }else{
+      const offset={x:frame.position.x-frame.look.x,y:frame.position.y-frame.look.y,z:frame.position.z-frame.look.z};
+      cameraInput={mode:'combat',actor,target,aspect:camera.aspect,space:'review-battle',screenSafety:cameraScreenSafety,combatFrame:{look:frame.look,offset},yawOffset:cameraOrbit,framing:{zoom:cameraZoom}};
+    }
+    const presentation=cameraDirector.update(cameraInput,step);applyCameraPresentation(camera,presentation);cameraLook.set(presentation.lookTarget.x,presentation.lookTarget.y,presentation.lookTarget.z);
+    if(frame.system==='inspiration'&&frame.roll)camera.rotateZ(frame.roll);
+    cameraScreenSafety=actorScreenSafety(camera,target?[actor,target]:[actor]);lastCameraPresentation={camera:{...presentation,screenSafety:cameraScreenSafety},actor,target,renderer:'review-battle'};
+    canvas.dataset.cameraDirector='shared';canvas.dataset.cameraFollow=followCamera?'on':'off';canvas.dataset.cameraLock=frame.lock||'scene';canvas.dataset.cameraMode=frame.finisher?'finisher':frame.system;canvas.dataset.cameraZoom=cameraZoom.toFixed(2);if(sequence&&sequence.stage!=='done')canvas.dataset.inspirationFocus=sequence.focus;else delete canvas.dataset.inspirationFocus;
   }
 
   function sync(core,dt=0,{followCamera=true,encounterMode:requestedMode='duel',cameraSystem='rinne'}={}){
@@ -239,7 +252,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     triggerInspiration({id='',name='',steps=[],phase='ha',weapon='sword',grade='normal',duration=REVIEW_INSPIRATION_TIMELINE.end}={}){const now=performance.now()/1000,total=Math.max(REVIEW_INSPIRATION_TIMELINE.end,Number(duration)||0),nearMissSide=String(id||name).length%2?1:-1,presentation=resolveTechniquePresentation({techniqueId:id||name,weapon,phase,steps,grade});techniquePlayback={id,name,steps,phase,weapon,grade,presentation,duration:total,startedAt:now,until:now+total,nearMissSide,emitted:new Set(['spark'])};canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');onInspirationCue('spark',techniquePlayback);setTimeout(()=>canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic'),total*1000+120);},
     resetRound(){impactKick=0;lastImpactSerial=0;inspirationVfx.clear();inspirationMotion.reset();hero.presentation=null;hero.hp=null;for(const side of enemies){side.presentation=null;side.hp=null;side.hitUntil=0;}},
     sync,
-    snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',encounterMode,geometry:canvas.dataset.battleGeometry||''});},
-    dispose(){cameraControl.dispose();stageLifecycle.destroy();inspirationVfx.dispose();inspirationMotion.reset();heroPool.despawn(hero.actorId);protagonistRuntime.dispose();for(const monster of monsters)disposeReviewMonsterModel(monster);for(const entry of weaponVisuals)disposeNode(entry.group);for(const row of impactBursts){row.mesh.geometry.dispose();row.mesh.material.dispose();}ground.geometry.dispose();ground.material.dispose();renderer.dispose();}
+    snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',cameraDirector:canvas.dataset.cameraDirector||'',encounterMode,geometry:canvas.dataset.battleGeometry||''});},
+    dispose(){if(canvas.cameraPresentation===cameraPresentationSnapshot)delete canvas.cameraPresentation;cameraDirector.reset();cameraControl.dispose();stageLifecycle.destroy();inspirationVfx.dispose();inspirationMotion.reset();heroPool.despawn(hero.actorId);protagonistRuntime.dispose();for(const monster of monsters)disposeReviewMonsterModel(monster);for(const entry of weaponVisuals)disposeNode(entry.group);for(const row of impactBursts){row.mesh.geometry.dispose();row.mesh.material.dispose();}ground.geometry.dispose();ground.material.dispose();renderer.dispose();}
   });
 }
