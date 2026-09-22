@@ -1,5 +1,5 @@
 // Review-only input and fixtures. Actor physics/rig/motion remain shared runtime.
-export function createCharacter25DPlayground({THREE,scene,camera,canvas,getActor}) {
+export function createCharacter25DPlayground({THREE,scene,camera,canvas,getActor,getHome=()=>({x:1.2,y:0,z:0})}) {
   const ground={height:0,normal:{x:0,y:1,z:0},valid:true},intent={x:0,z:0},velocity={x:0,z:0},keys=new Set(),abort=new AbortController();
   const resources=[],objects=[];let active=false,runTouch=false,touchX=0,touchY=0,disposed=false;
   const equipment={weapon:'sword',shield:true};
@@ -30,7 +30,7 @@ export function createCharacter25DPlayground({THREE,scene,camera,canvas,getActor
   listen(window,'blur',()=>{active=false;clear();});listen(document,'visibilitychange',()=>{if(document.hidden)clear();});
   listen(host.querySelector('[data-play-motion]'),'click',()=>useAction(host.querySelector('[data-motion]').value));
   listen(host.querySelector('[data-resume]'),'click',()=>{getActor()?.releaseAction?.();active=true;canvas.focus({preventScroll:true});});
-  listen(host.querySelector('[data-home]'),'click',()=>{clear();getActor()?.setTransform?.({x:1.2,y:0,z:0},0);getActor()?.releaseAction?.();});
+  listen(host.querySelector('[data-home]'),'click',()=>{clear();getActor()?.setTransform?.(getHome(),0);getActor()?.releaseAction?.();});
   listen(host.querySelector('[data-attack]'),'click',()=>useAction('attack'));listen(host.querySelector('[data-interact]'),'click',interact);
   const run=host.querySelector('[data-run]');listen(run,'pointerdown',event=>{run.setPointerCapture(event.pointerId);runTouch=true;});for(const name of ['pointerup','pointercancel','lostpointercapture'])listen(run,name,()=>{runTouch=false;});
   const stick=host.querySelector('[data-stick]'),knob=stick.firstElementChild;let pointer=null;

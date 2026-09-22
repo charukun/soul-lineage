@@ -11,7 +11,7 @@ import {defaultMuraLayout} from '@soul/world/mura';
 
 const output=resolve('test-results/character25d');mkdirSync(output,{recursive:true});
 const receipt={head:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),input:'docs/characters/references/shino/shino-character-reference-sheet-v2.png',samples:[],errors:[],success:false};
-const servers=[];let browser,context;
+const servers=[];let browser,context;let activePage=null;
 const distance=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
 async function server(app,port){const process=spawn('node',[resolve('node_modules/vite/bin/vite.js'),'--host','127.0.0.1','--port',String(port),'--strictPort'],{cwd:resolve('apps',app),stdio:'inherit',env:{...globalThis.process.env,APP_ENV:'dev'}});servers.push(process);for(let i=0;i<100;i++){try{const r=await fetch(`http://127.0.0.1:${port}/`);if(r.ok)return;}catch{}if(process.exitCode!==null)throw Error(app+' server exited');await delay(250);}throw Error(app+' server timeout');}
 function observe(page){page.on('pageerror',e=>receipt.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')receipt.errors.push(m.text());});}
@@ -31,11 +31,12 @@ try{
   browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader']});
   context=await browser.newContext({viewport:{width:1280,height:980},recordVideo:{dir:resolve(output,'video'),size:{width:1280,height:980}}});
   await context.tracing.start({screenshots:true,snapshots:true,sources:true});
-  const page=await context.newPage();observe(page);
+  const page=await context.newPage();activePage=page;page.setDefaultTimeout(30000);observe(page);
   await page.goto('http://127.0.0.1:5176/review-hybrid-25d',{waitUntil:'domcontentloaded'});
   await page.locator('[data-character-image]').setInputFiles(resolve(receipt.input));
   const canvas=page.locator('.hybrid25d-stage canvas');
   await expect(page.locator('.character25d-forge')).toHaveAttribute('data-actor-ready','true',{timeout:60000});await page.waitForFunction(()=>document.querySelector('.hybrid25d-stage canvas').character25dSnapshot()?.transition===1);
+  await page.locator('[data-arrange="solo"]').click();await page.locator('[data-view="front"]').click();
   await page.locator('.hybrid25d-stage').scrollIntoViewIfNeeded();
   await page.screenshot({path:resolve(output,'forge.png'),fullPage:true});
   for(const view of ['front','quarter','side','back']){
@@ -69,17 +70,17 @@ try{
   const environment=await game.evaluate(()=>document.title.split(' | ')[1]?.toLowerCase()||'prod');assert.ok(['dev','local'].includes(environment));const storageKey=`soul:v1:${environment}:rinne:local:life-v2`;
   await game.evaluate(({key,value})=>localStorage.setItem(key,value),{key:storageKey,value:serializeLife(life)});
   // Reopen an isolated runtime with the fixture save and a fresh transfer token.
-  await game.close();const secondPopup=context.waitForEvent('page');await page.locator('[data-rinne]').click();game=await secondPopup;observe(game);
+  await game.close();const secondPopup=context.waitForEvent('page');await page.locator('[data-rinne]').click();game=await secondPopup;activePage=game;observe(game);
   await game.waitForLoadState('domcontentloaded');await expect(page.locator('[data-forge-status]')).toContainText('転送しました',{timeout:90000});
   await expect(game.locator('#title-screen')).toHaveAttribute('data-ready','true',{timeout:90000});
   await expect(game.locator('#soul-brand-boot')).toHaveClass(/armed/,{timeout:90000});await game.locator('#soul-brand-boot').click();await expect(game.locator('#soul-brand-boot')).toHaveCount(0);
   await game.waitForFunction(()=>{const t=document.getElementById('title-screen');return t?.dataset.intro==='idle'||t?.dataset.skip==='ready';});if(await game.locator('#title-screen').getAttribute('data-intro')==='cinematic')await game.locator('#title-screen').click({position:{x:80,y:80}});
-  await game.locator('#continue-life').click();await expect(game.locator('#game')).toHaveAttribute('data-runtime','active',{timeout:90000});
+  await game.locator('#continue-life').click();await game.getByRole('button',{name:'この人生を続ける',exact:true}).click();await expect(game.locator('#game')).toHaveAttribute('data-runtime','active',{timeout:90000});
   const gameCanvas=game.locator('#game');await expect.poll(()=>gameCanvas.evaluate(c=>c.character25dSnapshot?.()?.actualGrip),{timeout:30000}).not.toBeNull();await delay(300);
   await sample(gameCanvas,'rinne-idle','data-character25d');await game.screenshot({path:resolve(output,'rinne-idle.png')});
   await game.locator('[data-training-strike]').click();await delay(250);await sample(gameCanvas,'rinne-attack','data-character25d','attack');await game.screenshot({path:resolve(output,'rinne-attack.png')});
   await game.keyboard.down('ArrowRight');await delay(700);await sample(gameCanvas,'rinne-walk',null,'walk');await game.keyboard.up('ArrowRight');await game.screenshot({path:resolve(output,'rinne-walk.png')});
   assert.equal(await game.locator('[data-shino25d-panel],.shino25d-workshop,.character25d-forge,input[type=file]').count(),0);
   assert.deepEqual(receipt.errors,[]);receipt.success=true;
-}catch(error){receipt.failure=error.stack;console.error(error);process.exitCode=1;}
-finally{writeFileSync(resolve(output,'receipt.json'),JSON.stringify(receipt,null,2));await context?.tracing.stop({path:resolve(output,'trace.zip')});await context?.close();await browser?.close();for(const server of servers)server.kill('SIGTERM');}
+}catch(error){receipt.failure=error.stack;await activePage?.screenshot({path:resolve(output,'failure.png')}).catch(()=>{});console.error(error);process.exitCode=1;}
+finally{console.log('CHARACTER25D_EQUIPMENT_RECEIPT '+JSON.stringify(receipt));writeFileSync(resolve(output,'receipt.json'),JSON.stringify(receipt,null,2));await context?.tracing.stop({path:resolve(output,'trace.zip')});await context?.close();await browser?.close();for(const server of servers)server.kill('SIGTERM');}

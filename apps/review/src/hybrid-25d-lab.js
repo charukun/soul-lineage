@@ -92,7 +92,7 @@ function createHybridPreview(canvas,onStatus){
   const modelGroup=new THREE.Group();modelGroup.position.set(-1.2,0,0);scene.add(modelGroup);
   const loader=new GLTFLoader();let modelRoot=null,mixer=null,modelReady=false;
   let spriteActor=null,destroyed=false,imageRevision=0;
-  const playground=createCharacter25DPlayground({THREE,scene,camera,canvas,getActor:()=>spriteActor});
+  const playground=createCharacter25DPlayground({THREE,scene,camera,canvas,getActor:()=>spriteActor,getHome:()=>cardGroup.position});
   canvas.character25dSnapshot=()=>spriteActor?.snapshot?.()||null;
   loader.load(new URL(MODEL_URL,location.href).href,gltf=>{
     if(destroyed){gltf.scene.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)});return;}
@@ -147,15 +147,16 @@ function createHybridPreview(canvas,onStatus){
     setProxy(value){proxy.visible=Boolean(value)&&!spriteActor?.proxy;spriteActor?.setDebug?.(value)},
     setIdle(value){idleMotion=Boolean(value)},
     setArrangement(value){
-      arrangement=value==='overlay'?'overlay':'split';
+      arrangement=['overlay','solo'].includes(value)?value:'split';modelGroup.visible=arrangement!=='solo';
       if(arrangement==='overlay'){modelGroup.position.set(-.12,0,-.12);cardGroup.position.set(.12,0,.12);cardMaterial.opacity=.74}
+      else if(arrangement==='solo'){cardGroup.position.set(0,0,0);cardMaterial.opacity=1;}
       else{modelGroup.position.set(-1.2,0,0);cardGroup.position.set(1.2,0,0);cardMaterial.opacity=1}
       cardMaterial.transparent=true;spriteActor?.setOpacity(cardMaterial.opacity);spriteActor?.setTransform?.({x:cardGroup.position.x,y:0,z:cardGroup.position.z},0);
     },
     setView(name){
       // A preset cancels residual drag momentum before setting the camera.
       const damping=controls.enableDamping;controls.enableDamping=false;controls.update();
-      const angle=VIEW_PRESETS[name]??VIEW_PRESETS.quarter;const radius=5.7;camera.position.set(Math.sin(angle)*radius,2.55,Math.cos(angle)*radius);controls.target.set(0,.85,0);controls.update();controls.enableDamping=damping;
+      const angle=VIEW_PRESETS[name]??VIEW_PRESETS.quarter;const radius=arrangement==='solo'?3.6:5.7;camera.position.set(Math.sin(angle)*radius,arrangement==='solo'?1.8:2.55,Math.cos(angle)*radius);controls.target.set(0,.85,0);controls.update();controls.enableDamping=damping;
     },
     getState(){return{modelReady,billboard,idleMotion,arrangement,spriteStatus:spriteActor?.getStatus()||null,actor:spriteActor?.snapshot?.()||null}},
     destroy(){if(destroyed)return;destroyed=true;imageRevision++;playground.dispose();delete canvas.character25dSnapshot;spriteActor?.dispose();cancelAnimationFrame(raf);controls.dispose();renderer.dispose();groundTexture.dispose();ground.geometry.dispose();disposeMaterial(ground.material);grid.geometry.dispose();disposeMaterial(grid.material);card.geometry.dispose();disposeMaterial(card.material);shadow.geometry.dispose();disposeMaterial(shadow.material);proxy.geometry.dispose();disposeMaterial(proxy.material);if(modelRoot)modelRoot.traverse(node=>{node.geometry?.dispose?.();disposeMaterial(node.material)})}
@@ -175,7 +176,7 @@ export function mountHybrid25dLab(){
           <label><input type="checkbox" data-idle checked><span>微動（単一画像）</span></label>
           <label><input type="checkbox" data-proxy><span>3D proxy表示</span></label>
         </div>
-        </details><div class="hybrid25d-arrange"><button type="button" data-arrange="split" aria-pressed="true">並べる</button><button type="button" data-arrange="overlay" aria-pressed="false">重ね比較</button></div>
+        </details><div class="hybrid25d-arrange"><button type="button" data-arrange="split" aria-pressed="true">並べる</button><button type="button" data-arrange="overlay" aria-pressed="false">重ね比較</button><button type="button" data-arrange="solo" aria-pressed="false">キャラのみ</button></div>
         <div class="hybrid25d-views" aria-label="camera presets"><button type="button" data-view="front">正面</button><button type="button" data-view="quarter">斜め</button><button type="button" data-view="side">横</button><button type="button" data-view="back">背面</button></div>
         <output class="hybrid25d-status" data-status data-stage="loading">3Dモデルを読み込み中</output>
         <p class="hybrid25d-note">左が既存3D、右が2.5D。地面・カメラ・照明・接地影を共有し、混在した時の違和感を先に見ます。</p>
