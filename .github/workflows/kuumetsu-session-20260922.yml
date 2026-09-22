@@ -1,47 +1,48 @@
 name: Temporary kuumetsu immutable observation 20260922
-# Reuse existing isolated hosted observation fallback. Never merge this ops branch.
+# Session-only evidence transport using the existing hosted observation artifact. Never merge this ops branch.
 on:
   push:
     branches: [ops/kuumetsu-three-20260922-041446]
     paths: [.github/workflows/kuumetsu-session-20260922.yml]
 permissions:
-  contents: read
-  actions: write
-  statuses: read
-  pull-requests: read
-env:
-  SOURCE_SHA: c696c681a9f1699118ae36124c0fb9614f41351b
-  PREVIEW_URL: https://c49e87da-soul-lineage-demon-dev.c-okamoto.workers.dev/
-  VERSION_ID: c49e87da-29ea-42aa-b96b-9d3e1f93cad3
+  contents: write
+  actions: read
 jobs:
-  observe:
+  evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: c696c681a9f1699118ae36124c0fb9614f41351b
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium > /tmp/browser-install.log 2>&1
-      - name: Reuse existing native pointer observation with armed gate
+      - name: Materialize requested project evidence in the same isolated ops branch
         uses: actions/github-script@v8
         with:
           script: |
-            const fs=require('fs');
-            const r=await github.rest.repos.getContent({...context.repo,path:'ops/kuumetsu-session-observe.mjs',ref:context.sha});
-            let source=Buffer.from(r.data.content,'base64').toString('utf8');
-            source=source.replace("if(await gate.isVisible()){await tap('#soul-brand-boot');", "if(await gate.isVisible()){await page.waitForFunction(()=>document.querySelector('#soul-brand-boot')?.classList.contains('armed'));await tap('#soul-brand-boot');");
-            fs.writeFileSync('session-observe.mjs',source);
-      - name: Iteration 1 immutable Before native play
-        run: mkdir -p session-evidence && cp session-observe.mjs session-evidence/observer.mjs && node session-observe.mjs > session-evidence/browser.log 2>&1
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: kuumetsu-three-20260922-041446-i1-before
-          path: session-evidence
-          retention-days: 14
+            const fs=require('fs'),cp=require('child_process');
+            const branch='ops/kuumetsu-three-20260922-041446';
+            if(context.repo.owner!=='charukun'||context.repo.repo!=='soul-lineage'||context.ref!==`refs/heads/${branch}`)throw Error('wrong evidence destination');
+            const runId=35686878363;
+            const run=await github.rest.actions.getWorkflowRun({...context.repo,run_id:runId});
+            if(run.data.status!=='completed'||run.data.conclusion!=='success')throw Error('Before observation has not succeeded');
+            const artifacts=await github.rest.actions.listWorkflowRunArtifacts({...context.repo,run_id:runId});
+            const artifact=artifacts.data.artifacts.find(a=>a.name==='kuumetsu-three-20260922-041446-i1-before');
+            if(!artifact||artifact.expired)throw Error('missing immutable Before artifact');
+            const archive=await github.rest.actions.downloadArtifact({...context.repo,artifact_id:artifact.id,archive_format:'zip'});
+            fs.writeFileSync('/tmp/evidence.zip',Buffer.from(archive.data));
+            cp.execFileSync('unzip',['-q','/tmp/evidence.zip','-d','/tmp/evidence']);
+            const observation=JSON.parse(fs.readFileSync('/tmp/evidence/observation.json','utf8'));
+            if(!observation.success||observation.sourceSha!=='c696c681a9f1699118ae36124c0fb9614f41351b'||observation.version.commit!==observation.sourceSha)throw Error('invalid observation identity');
+            const summary={sourceSha:observation.sourceSha,url:observation.url,versionId:'c49e87da-29ea-42aa-b96b-9d3e1f93cad3',version:observation.version,observedAt:observation.observedAt,conditions:observation.conditions,runId,artifactId:artifact.id,artifactDigest:artifact.digest,errors:observation.errors,failedRequests:observation.failedRequests,success:observation.success,stages:observation.stages.map(s=>({name:s.name,at:s.at,text:s.text,buttons:s.buttons,snapshot:s.snapshot,presentation:s.presentation}))};
+            fs.writeFileSync('/tmp/evidence/summary.json',JSON.stringify(summary,null,2));
+            const prefix='ops/evidence/kuumetsu-three-20260922-041446/i1-before';
+            const entries=[];
+            for(const name of fs.readdirSync('/tmp/evidence').filter(n=>n.endsWith('.png')||n==='summary.json'||n==='observation.json')){
+              const data=fs.readFileSync(`/tmp/evidence/${name}`);
+              const blob=await github.rest.git.createBlob({...context.repo,content:data.toString('base64'),encoding:'base64'});
+              entries.push({path:`${prefix}/${name}`,mode:'100644',type:'blob',sha:blob.data.sha});
+            }
+            const head=await github.rest.git.getRef({...context.repo,ref:`heads/${branch}`});
+            if(head.data.object.sha!==context.sha)throw Error('ops branch advanced; preserve concurrent work');
+            const parent=await github.rest.git.getCommit({...context.repo,commit_sha:context.sha});
+            const tree=await github.rest.git.createTree({...context.repo,base_tree:parent.data.tree.sha,tree:entries});
+            const commit=await github.rest.git.createCommit({...context.repo,message:'chore(ops): preserve actual immutable Before screenshots and observation receipt',tree:tree.data.sha,parents:[context.sha]});
+            await github.rest.git.updateRef({...context.repo,ref:`heads/${branch}`,sha:commit.data.sha,force:false});
+            core.info(JSON.stringify({evidenceCommit:commit.data.sha,sourceSha:observation.sourceSha,runId,artifactId:artifact.id,artifactDigest:artifact.digest,paths:entries.map(e=>e.path)}));
