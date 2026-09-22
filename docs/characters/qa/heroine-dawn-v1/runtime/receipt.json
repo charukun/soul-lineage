@@ -1,9 +1,9 @@
 {
   "schema": "rinne-heroine-runtime-observation",
-  "sourceSha": "71c17c1e224929e72464c8c383e6a1cd5e3341f4",
-  "modelSha256": "c44ab5a5d21cf3005ad20ae5400a45e2644dad1b55cfb528f40c1dc2f4a9c435",
+  "sourceSha": "dc7e8a24a962ab9ddf0988ba77740b8567ef42f4",
+  "modelSha256": "777f0c4f7f910edf85ab66011fddf961b7144a4a129212cf8a0b5a1b73937678",
   "beforeSha256": "e825437cd4d2ee9c1960b517a74a69101e33eb409ae7fa8cedc7134a998fbb7d",
-  "assetPath": "apps/review/public/library/model/83f0803f8667c876f6ae57f0807357d60c7719ca/HeroineDawn.glb",
+  "assetPath": "apps/review/public/library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb",
   "app": "apps/character-studio",
   "renderer": "actual repository Character Studio (Vite / Chromium SwiftShader)",
   "originMode": "checked-out first-party asset bytes served through exact project-origin request routes; not deployed DEV",
@@ -91,7 +91,7 @@
         [
           0.7622232749839821,
           2.151270286829931,
-          0.38870856763751904
+          0.397027033461085
         ]
       ],
       "clipCount": 76
@@ -106,7 +106,7 @@
         [
           -0.7457015033191133,
           -0.00030716613295620783,
-          -0.23535356255725653
+          -0.30379108727097764
         ],
         [
           0.6647327346862895,
@@ -149,10 +149,10 @@
         "id": "protagonist.villager.female.v1",
         "assetId": "character.protagonist-villager-female.v1",
         "format": "glb",
-        "path": "https://soul-lineage-review-dev.c-okamoto.workers.dev/library/model/83f0803f8667c876f6ae57f0807357d60c7719ca/HeroineDawn.glb",
-        "sha256": "c44ab5a5d21cf3005ad20ae5400a45e2644dad1b55cfb528f40c1dc2f4a9c435",
+        "path": "https://soul-lineage-review-dev.c-okamoto.workers.dev/library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb",
+        "sha256": "777f0c4f7f910edf85ab66011fddf961b7144a4a129212cf8a0b5a1b73937678",
         "bytes": 3987056,
-        "gitBlobSha": "83f0803f8667c876f6ae57f0807357d60c7719ca",
+        "gitBlobSha": "3ced3b11942d57cd82763715c7196dfd4f53141e",
         "productionStage": "PRIMARY",
         "modelingMode": "dcc-blender",
         "sourcePath": "assets/characters/heroine-dawn/source/HeroineDawn.blend",
@@ -215,12 +215,12 @@
       "file": "apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb"
     },
     {
-      "url": "https://soul-lineage-review-dev.c-okamoto.workers.dev/library/model/83f0803f8667c876f6ae57f0807357d60c7719ca/HeroineDawn.glb?sha256=c44ab5a5d21cf3005ad20ae5400a45e2644dad1b55cfb528f40c1dc2f4a9c435",
-      "file": "apps/review/public/library/model/83f0803f8667c876f6ae57f0807357d60c7719ca/HeroineDawn.glb"
+      "url": "https://soul-lineage-review-dev.c-okamoto.workers.dev/library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb?sha256=777f0c4f7f910edf85ab66011fddf961b7144a4a129212cf8a0b5a1b73937678",
+      "file": "apps/review/public/library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb"
     },
     {
-      "url": "https://soul-lineage-review-dev.c-okamoto.workers.dev/library/model/83f0803f8667c876f6ae57f0807357d60c7719ca/HeroineDawn.glb",
-      "file": "apps/review/public/library/model/83f0803f8667c876f6ae57f0807357d60c7719ca/HeroineDawn.glb"
+      "url": "https://soul-lineage-review-dev.c-okamoto.workers.dev/library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb",
+      "file": "apps/review/public/library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb"
     }
   ],
   "hardwareAcceptance": "not-measured",

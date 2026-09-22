@@ -2,8 +2,8 @@
   "schema": "rinne-heroine-dcc-audit",
   "sourceSha256": "e825437cd4d2ee9c1960b517a74a69101e33eb409ae7fa8cedc7134a998fbb7d",
   "bytes": 3987056,
-  "sha256": "c44ab5a5d21cf3005ad20ae5400a45e2644dad1b55cfb528f40c1dc2f4a9c435",
-  "gitBlobSha": "83f0803f8667c876f6ae57f0807357d60c7719ca",
+  "sha256": "777f0c4f7f910edf85ab66011fddf961b7144a4a129212cf8a0b5a1b73937678",
+  "gitBlobSha": "3ced3b11942d57cd82763715c7196dfd4f53141e",
   "meshes": [
     {
       "name": "Rogue_ArmLeft",
@@ -112,17 +112,15 @@
   "visualApproval": "pending",
   "productionReady": false,
   "authoringTool": "4.0.2",
-  "round": 2,
+  "round": 3,
   "sourceRig": "Rig_Medium",
-  "design": "rounded chin bob / side-swept fringe / ivory collar and puff sleeves / continuous blue pinafore / rose sash and bows",
+  "design": "rounded chin bob / side-swept fringe / ivory collar and puff sleeves / blue village pinafore / rose sash and bows",
+  "previousModelSha256": "c44ab5a5d21cf3005ad20ae5400a45e2644dad1b55cfb528f40c1dc2f4a9c435",
   "round1Rejected": [
-    "garment gaps exposed by removing source accessories",
-    "angular fringe corners",
-    "facial custom normals lost on separation"
+    "garment gaps after removing utility gear",
+    "angular fringe"
   ],
-  "round2Repairs": [
-    "continuous retopologized garment with transferred original body weights",
-    "rounded hair edge flow and curved fringe",
-    "smooth face and limb normals"
-  ]
+  "round2Observation": "Character Studio walking at 28 percent exposed a small inner-shorts tip at the skirt front.",
+  "round3Repair": "Actual skirt envelope expanded smoothly below the waist for walking clearance; original skin weights and all motion streams preserved.",
+  "changedGarmentVertices": 128
 }

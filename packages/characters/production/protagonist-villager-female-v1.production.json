@@ -10,7 +10,7 @@
       "assets/characters/heroine-dawn/reference.md",
       "apps/review/public/library/provenance/heroine-dawn-v1.json"
     ],
-    "meshPath": "apps/review/public/library/model/83f0803f8667c876f6ae57f0807357d60c7719ca/HeroineDawn.glb",
+    "meshPath": "apps/review/public/library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb",
     "integrityPath": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json",
     "rigId": "kaykit.Rig_Medium.v1",
     "rigProvenance": "Official KayKit Adventurers 1.0 Rogue / Rig_Medium; revision 672074b73ba276876a19e8816ecdc5241817ab47; CC0-1.0.",
@@ -26,7 +26,7 @@
       "tool": "Blender",
       "version": "4.0.2",
       "sourcePath": "assets/characters/heroine-dawn/source/HeroineDawn.blend",
-      "sourceSha256": "ebd2ca4c62c66e111f9f67f47c823e10e219c89e4ef76254728386365971aa96"
+      "sourceSha256": "7814af09c65f2fb32c62a0b889843fa4df461e5b03134ddae3aa76b8707d78ee"
     }
   },
   "evidence": {
@@ -68,7 +68,7 @@
     },
     "runtimeObservation": {
       "receiptPath": "docs/characters/qa/heroine-dawn-v1/runtime/receipt.json",
-      "modelSha256": "c44ab5a5d21cf3005ad20ae5400a45e2644dad1b55cfb528f40c1dc2f4a9c435",
+      "modelSha256": "777f0c4f7f910edf85ab66011fddf961b7144a4a129212cf8a0b5a1b73937678",
       "humanApproval": false,
       "physicalDevicePerformance": "not-measured"
     }

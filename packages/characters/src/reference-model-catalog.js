@@ -114,7 +114,7 @@ const femaleProtagonist = {
   sourceModelId: 'kaykit.rogue.v1',
   sourceDisplay: { excludeMeshNodes: ['Knife_Offhand', '1H_Crossbow', '2H_Crossbow', 'Knife', 'Throwable'] },
   license: 'CC0-1.0',
-  assetPath: projectAssetUrl('model/83f0803f8667c876f6ae57f0807357d60c7719ca/HeroineDawn.glb'),
+  assetPath: projectAssetUrl('model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb'),
   integrityPath: './simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json',
   dccSourcePath: 'assets/characters/heroine-dawn/source/HeroineDawn.blend',
   referencePath: 'apps/review/public/library/provenance/heroine-dawn-v1.json',
