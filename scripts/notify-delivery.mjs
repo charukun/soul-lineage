@@ -223,8 +223,12 @@ export async function recordGithubDeliveryReceipt({ token = '', repository, sha,
   }
 
   const fallbackRoot = `${root}/issues/${PERSONAL_DEV_EMAIL_ISSUE}/comments`;
+  const mergedAt = Date.parse(pr?.merged_at || '');
+  const since = Number.isFinite(mergedAt)
+    ? `&since=${encodeURIComponent(new Date(mergedAt).toISOString())}`
+    : '';
   for (let page = 1; page <= 3; page++) {
-    const comments = await githubJson(request, `${fallbackRoot}?per_page=100&page=${page}`, { token });
+    const comments = await githubJson(request, `${fallbackRoot}?per_page=100&page=${page}${since}`, { token });
     if (comments.some(comment => (comment.body || '').includes(marker))) return 'existing';
     if (comments.length < 100) break;
     if (page === 3) throw new Error('GITHUB_DELIVERY_FALLBACK_COMMENT_PAGE_LIMIT');
