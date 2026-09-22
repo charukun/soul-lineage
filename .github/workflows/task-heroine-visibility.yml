@@ -22,24 +22,21 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Inspect reported public route and exact checkout
+      - name: Build the repaired actual studio and run bounded regressions
         run: |
           mkdir -p generated/heroine-visibility
           npm ci --ignore-scripts > generated/heroine-visibility/install.log 2>&1
+          node --test packages/rendering/tests/character-material-role.test.mjs packages/rendering/tests/master-character.test.mjs packages/rendering/tests/master-character-modular.test.mjs apps/character-studio/tests/character-workspace.test.mjs packages/characters/tests/female-protagonist-source.test.mjs > generated/heroine-visibility/tests.log 2>&1 || { cat generated/heroine-visibility/tests.log; exit 1; }
+          npm run build --workspace @soul/character-studio > generated/heroine-visibility/build.log 2>&1 || { tail -80 generated/heroine-visibility/build.log; exit 1; }
           npx playwright install --with-deps chromium > generated/heroine-visibility/chromium.log 2>&1
-          node scripts/tasks/heroine-visibility/inspect.mjs https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/ public
-          npm run build --workspace @soul/character-studio > generated/heroine-visibility/build.log 2>&1
-          npm exec --workspace @soul/character-studio -- vite --host 127.0.0.1 --port 5177 --strictPort > generated/heroine-visibility/vite.log 2>&1 &
+      - name: Reproduce saved-state public failure then test native selection on the repaired build
+        run: |
+          python3 -m http.server 5177 --bind 127.0.0.1 --directory dist/character-studio > generated/heroine-visibility/server.log 2>&1 &
           server=$!
           trap 'kill "$server" 2>/dev/null || true' EXIT
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:5177/ >/dev/null && break; sleep 1; done
-          node scripts/tasks/heroine-visibility/inspect.mjs http://127.0.0.1:5177/ checkout
-      - name: Package bounded source and rendered output for diagnosis
-        if: always()
-        run: |
-          git ls-files 'apps/character-studio/src/**' 'apps/character-studio/index.html' 'apps/character-studio/advanced.html' 'apps/character-studio/tests/**' 'packages/rendering/src/master-character*' 'packages/rendering/src/kaykit*' 'packages/rendering/src/review-camera*' 'packages/rendering/tests/*master*' 'packages/characters/src/**' 'packages/characters/tests/female*' 'packages/characters/production/protagonist-villager-female*' 'packages/assets/src/runtime-origin.js' 'apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json' 'apps/review/public/library/provenance/heroine-dawn-v1.json' 'apps/review/public/library/model/3ced3b11942d57cd82763715c7196dfd4f53141e/HeroineDawn.glb' 'package.json' 'package-lock.json' '.github/workflows/astra-work-validation.yml' 'scripts/astra-focused-validation.mjs' 'scripts/github-actions-summary.mjs' > generated/heroine-visibility/source-files.txt
-          tar -czf generated/heroine-visibility/source-context.tgz -T generated/heroine-visibility/source-files.txt
-          if test -d dist/character-studio; then tar -czf generated/heroine-visibility/built-studio.tgz -C dist character-studio; fi
+          node scripts/tasks/heroine-visibility/verify.mjs > generated/heroine-visibility/browser.log 2>&1 || { cat generated/heroine-visibility/browser.log; exit 1; }
+          cat generated/heroine-visibility/browser.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
