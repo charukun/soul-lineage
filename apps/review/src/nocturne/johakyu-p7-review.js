@@ -17,7 +17,7 @@ const TARGETS=Object.freeze({hero:['enemy-a','enemy-b','enemy-c'],'enemy-a':['he
 const KIND_DAMAGE=Object.freeze({slash:13,back:13,thrust:15,pierce:17,heavy:24,diagonal:17,sweep:15,counter:21,bash:12,pommel:11});
 const RHYTHM_SECONDS=Object.freeze({sharp:.58,flow:.66,weight:.82,elastic:.64,seamless:.54});
 const CONTACT_REACH=2.35,BODY_CLEARANCE=1.46,FIGHTING_SPACING=1.92,DEEP_ENTRY_SPACING=1.72,ENGAGE_DISTANCE=2.24,DISENGAGE_DISTANCE=3.05,COUNTER_PRESS_DISTANCE=2.08;
-const RECOVERY_SECONDS=Object.freeze({miss:.62,blocked:.52,parried:.78,countered:.88,'hit-before-contact':.42,hit:.28});
+const RECOVERY_SECONDS=Object.freeze({miss:.62,blocked:.52,parried:.78,countered:.88,'hit-before-contact':.42,hit:.28,'enemy-attack-reset':.95});
 const PHASE_CUE_SECONDS=.5,PHASE_CUE_PRESENTATION=Object.freeze({jo:Object.freeze({clip:'Blocking',poseProgress:.34,glow:'#ff8f32'}),ha:Object.freeze({clip:'1H_Melee_Attack_Slice_Diagonal',poseProgress:.18,glow:'#ffa447'}),kyu:Object.freeze({clip:'1H_Melee_Attack_Stab',poseProgress:.2,glow:'#ffbb63'})});
 const REACTION_SECONDS=Object.freeze({guard:.36,parry:.32,slip:.3,counter:.52}),DEFENSE_COOLDOWN=Object.freeze({guard:.24,parry:.3,slip:.2}),HEAVY_THREATS=new Set(['heavy','sweep','bash','pommel']);
 const DEFENSE_WINDOW=Object.freeze({guard:[0,.98],brace:[0,.98],parry:[.04,.92],slip:[0,.76]});
@@ -53,7 +53,7 @@ const ENEMY_COMPOSITION=buildComposition({
 });
 const equippedCompositions=new Map();
 
-const BATTLE2_STAMINA_COST_MULTIPLIER=.12;
+const BATTLE2_STAMINA_COST_MULTIPLIER=.12,ENEMY_DAMAGE_SCALE=.45;
 function actorRows(mode){const rows=[{id:'hero',side:'party',hp:125,maxHp:125,stamina:100,staminaCap:100,seed:73917,generation:4},{id:'enemy-a',side:'enemy',hp:46,maxHp:46,stamina:100,staminaCap:100,seed:8101,generation:1}];if(mode==='oneVsThree')rows.push({id:'enemy-b',side:'enemy',hp:46,maxHp:46,stamina:96,staminaCap:100,seed:8102,generation:1},{id:'enemy-c',side:'enemy',hp:46,maxHp:46,stamina:100,staminaCap:100,seed:8103,generation:1});return rows.map(row=>({...row,staminaMultiplier:BATTLE2_STAMINA_COST_MULTIPLIER,equipment:{weapon:'sword',armor:row.side==='party'?'heavy':'cloth',shield:false}}));}
 function bodyView(actor){return Object.fromEntries(Object.entries(actor.injuries).map(([part,row])=>{const severity=Math.min(1,Math.max(0,Number(row.severity)||0));return[part,{severity,durability:Math.round((1-severity)*100),label:PART_LABELS[part]}];}));}
 function selectTarget(battle,id){for(const candidate of TARGETS[id]){const actor=battle.actors.get(candidate);if(actor&&!actor.dead&&!actor.incapacitated)return actor;}return null;}
@@ -407,6 +407,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     const parryWhiff=state.node.stage.step.kind==='parry'&&state.outcome!=='parry'&&!ownPressure;
     const failure=interrupted||(state.outcome==='miss'&&state.exchangeContinuity!=='retain')||parryWhiff;
     if(failure){breakChain(actor,state,interrupted||state.outcome||'parry-whiff');return;}
+    if(actor.side==='enemy'&&comboStyle==='burst'&&state.motion.offense){breakChain(actor,state,'enemy-attack-reset');return;}
     const moved=advanceCursor(actor,cursorFor(actor)),techniqueComplete=moved.before.technique.id!==moved.after.technique.id||moved.before.phase!==moved.after.phase,exchangeComplete=moved.before.phase==='kyu'&&moved.after.phase==='jo';
     if(actor.id==='hero'&&moved.before.phase!==moved.after.phase)traceRow({type:'phase-change',phase:moved.after.phase,reason:'configured-chain-complete'});
     const target=battle.actors.get(state.targetId);
@@ -501,7 +502,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
       if(!action||!action.motion.offense||action.progress<.46)continue;
       const state=combatState(id);if(!reviewStageCanResolve(state,action)||state.impacted)continue;state.impacted=true;
       const source=battle.actors.get(id),target=battle.actors.get(action.targetId);if(!source||!target||source.dead||source.incapacitated||target.dead||target.incapacitated)continue;
-      const damage=state.reactionKind==='counter'?KIND_DAMAGE.counter:stageDamage(state.node.stage);if(!(damage>0))continue;
+      const baseDamage=state.reactionKind==='counter'?KIND_DAMAGE.counter:stageDamage(state.node.stage),damage=source.side==='enemy'?Math.max(1,Math.round(baseDamage*ENEMY_DAMAGE_SCALE)):baseDamage;if(!(damage>0))continue;
       const contact=contactWindow(positions,source,target);
       if(!contact.reachable){state.outcome='miss';state.exchangeContinuity=updateExchange(source,target,{type:'miss',phase:action.phase,major:contact.distance>CONTACT_REACH+.2}).continuity;trace.push({type:'miss',time:Number(time.toFixed(2)),attackId:action.id,sourceId:source.id,targetId:target.id,phase:action.phase,techniqueId:action.techniqueId,stageIndex:action.stageIndex,distance:Number(contact.distance.toFixed(3)),reach:CONTACT_REACH,exchangeContinuity:state.exchangeContinuity});continue;}
       const targetState=combatState(target.id),targetProgress=stateProgress(targetState),defense=defenseContact(targetState,targetProgress);
