@@ -35,10 +35,6 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 1
           persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: npm
       - name: Recover bounded validation ancestry
         shell: bash
         run: |
@@ -109,11 +105,17 @@ jobs:
         id: focused-plan
         if: steps.contract.outcome == 'success'
         run: node scripts/astra-focused-validation.mjs plan
+      - name: Set up exact validation Node only when task-specific work exists
+        if: steps.contract.outcome == 'success' && steps.focused-plan.outputs.has_work == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
       - name: Install dependencies only when selected validation needs them
         if: steps.contract.outcome == 'success' && steps.focused-plan.outputs.needs_install == 'true'
         run: npm ci --ignore-scripts
       - name: Run Astra-selected focused validation
-        if: steps.contract.outcome == 'success'
+        if: steps.contract.outcome == 'success' && steps.focused-plan.outputs.has_work == 'true'
         run: node scripts/astra-focused-validation.mjs run
       - name: Record freshness and final-head success
         if: success() && steps.contract.outcome == 'success'

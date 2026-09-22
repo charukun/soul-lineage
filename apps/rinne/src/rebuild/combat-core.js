@@ -1,7 +1,8 @@
 import { createTidebreakRuntime } from '@soul/tidebreak-combat';
 import { resolveInspirationAnswer } from '@soul/game-data';
 import {chargeAttackStamina} from './combat-execution.js';
-import {createJohakyuExchangeState,johakyuExchangeSnapshot} from '@soul/johakyu-combat/exchange-policy';
+import {johakyuStageCapability} from '@soul/johakyu-combat/execution-capability';
+import {createJohakyuExchangeState,johakyuExchangeSnapshot,isDeepJohakyuExchangeHit} from '@soul/johakyu-combat/exchange-policy';
 import {executedTechniqueId,readJohakyuTechniqueTruth} from './johakyu-technique-contract.js';
 import { WEAPONS, ARMORS, endLifeEarly, spendStamina, skillEffects } from './domain.js';
 import { beginCombatState } from './combat-loadout-runtime.js';
@@ -9,7 +10,7 @@ import { bodyRuntime, comboById, selectCombatCombo, techniqueName } from '../com
 import { chooseEnemyAttention,decayEnemyThreat,directionalDefenseFor,noteEnemyThreat,resolveBodyIntent,staminaPolicyFor,tidebreakMindVectorFor } from './combat-tactics.js';
 import { tidebreakFrameFromSnapshot } from './tidebreak-pose.js';
 import { defensiveLoadoutFor,passiveEnemyLoadout,selectCapableTidebreakCombo,tidebreakLoadoutFor,tidebreakMindsetFor,tidebreakWeaponFor } from './tidebreak-loadout.js';
-import {applyChoreographyImpact} from './combat-choreography.js';
+import {applyChoreographyImpact,combatBodyOutcome} from './combat-choreography.js';
 import {lineBlocked} from './combat-world-contact.js';
 import {readSavedBody,readSavedTerrain} from './johakyu-save-contract.js';
 export { tidebreakLoadoutFor, tidebreakMindVector, tidebreakMindsetFor, tidebreakWeaponFor } from './tidebreak-loadout.js';
@@ -44,7 +45,7 @@ function combatSignature(state,target,front,{secondary=false,enemyCanHit=true,co
   return JSON.stringify({target:target.id,role:secondary?'threat':'primary',enemyCanHit,comboId,sector:defense.sector,receive:defense.receive,stamina:policy.band,weapon:tidebreakWeaponFor(state.equipment.weapon),mind:tidebreakMindsetFor(state),loadout:secondary?defensiveLoadoutFor(state,target):tidebreakLoadoutFor(state,comboId,target),armor:state.equipment.armor,shield:state.equipment.shield,enemyWeapon:enemyWeapon(front,target),enemyStyle:enemyStyle(front,target)});
 }
 function createSession(state,target,front,signature,{secondary=false,enemyCanHit=true,comboIdOverride=null}={}){
-  const comboId=comboIdOverride??state?.combat?.comboId,weapon=tidebreakWeaponFor(state.equipment.weapon),loadout=secondary?defensiveLoadoutFor(state,target):tidebreakLoadoutFor(state,comboId,target),mindset=tidebreakMindsetFor(state),hScale=heroHpScale(state),eScale=enemyHpScale(state),foeWeapon=enemyWeapon(front,target),runtime=createTidebreakRuntime({seed:hashSeed(`${state.seed}:${state.generation}:${target.id}:${secondary?'threat':'primary'}:${enemyCanHit?'aggro':'ignore'}`),weapon});
+  const comboId=comboIdOverride??state?.combat?.comboId,weapon=tidebreakWeaponFor(state.equipment.weapon),loadout=secondary?defensiveLoadoutFor(state,target):tidebreakLoadoutFor(state,comboId,target),mindset=tidebreakMindsetFor(state),hScale=heroHpScale(state),eScale=enemyHpScale(state),foeWeapon=enemyWeapon(front,target),runtime=createTidebreakRuntime({seed:hashSeed(`${state.seed}:${state.generation}:${target.id}:${secondary?'threat':'primary'}:${enemyCanHit?'aggro':'ignore'}`),weapon,canParry:actor=>!actor.hero||johakyuStageCapability(state,{weapon:state.equipment.weapon,kind:'parry',phase:'uke',staminaCost:3}).allowed});
   const snapshot=runtime.configure({encounterReady:true,weapon,enemyWeapon:foeWeapon,enemyStyle:enemyStyle(front,target),enemyLoadout:enemyCanHit?undefined:passiveEnemyLoadout(foeWeapon),loadout,mindset,hp:Math.max(.001,state.hp/hScale),maxhp:Math.max(.001,state.maxHp/hScale),enemyHp:Math.max(.001,target.hp/eScale),positions:{hero:{x:state.position.x,z:state.position.z,yaw:state.yaw},enemy:{x:target.x,z:target.z,yaw:target.yaw}}});
   const ordinal=(SESSION_SERIALS.get(state)||0)+1;SESSION_SERIALS.set(state,ordinal);
   const session={id:`${state.id}:${state.generation}:${front.stage}:${ordinal}`,runtime,loadout,sourceId:state.id,targetId:target.id,signature,secondary,enemyCanHit,heroHpScale:hScale,enemyHpScale:eScale,last:snapshot,lastAttackKey:snapshot.hero.execution?String(snapshot.hero.execution.attackId):null,oneMotionArmed:null,invalid:false,exchange:createJohakyuExchangeState({sourceId:state.id,targetId:target.id})};sessionMap(state).set(target.id,session);return session;
@@ -93,7 +94,7 @@ function updateSessionExchange(session,event){
   if(observed)session.exchange=sessionExchangeSnapshot(session,observed.exchange);
   return session.exchange;
 }
-function deepExchangeHit(damage,maxHp,impact,outcome){return Boolean(outcome?.incapacitated||outcome?.compromised||(impact?.heavy&&!impact?.guard)||damage/Math.max(1,maxHp)>=.16);}
+function deepExchangeHit(damage,maxHp,impact,outcome,previousOutcome){return isDeepJohakyuExchangeHit({damage,maxHp,impact,outcome,previousOutcome});}
 function projectPrimaryExchange(state,session,target){if(state.combat?.targetId===target?.id)state.combat.exchange=johakyuExchangeSnapshot(session.exchange);}
 function applyTidebreakStep(state,target,front,dt,events,{primary=false,bodyAuthority=false,enemyPositionAuthority=false,enemyCanHit=true,intent='attack',sharedParticipantCount=1,comboIdOverride=null}={}){
   const session=sessionFor(state,target,front,{secondary:!primary,enemyCanHit,comboIdOverride});armOneMotion(state,session,dt);const manual=primary&&state.moving?.67:0;session.runtime.input(Math.sin(state.yaw),Math.cos(state.yaw),manual,0);
@@ -118,10 +119,11 @@ function applyTidebreakStep(state,target,front,dt,events,{primary=false,bodyAuth
   if(primary&&state.inspiration)state.inspiration.execution=causal?{...tidebreakFrameFromSnapshot(executedActor,{targetId:target.id,intent,sector:defense.sector}),techniqueId:causal.id,paid}:null;
   const armed=primary?session.oneMotionArmed:null,stepImpacts=Array.isArray(next.impacts)?next.impacts:[],outgoingImpact=[...stepImpacts].reverse().find(row=>row?.sourceHero&&!row?.targetHero)||null,incomingImpact=[...stepImpacts].reverse().find(row=>!row?.sourceHero&&row?.targetHero)||null;
   if(dealt>.001&&armed){const extra=Math.min(target.hp,dealt*.78);target.hp-=extra;dealt+=extra;session.oneMotionArmed=null;session.invalid=true;state.combat.zanshinSeconds=.95;state.combat.oneMotionRecovery=1.8;state.combat.attackCooldown=1.8;events.push({type:'one-motion',targetId:target.id,skill:armed,damage:dealt,impact:outgoingImpact,feel:next.feel,engine:'tidebreak'});}
+  const previousEnemyBody=dealt>.001?combatBodyOutcome(target):null,previousHeroBody=taken>.001?combatBodyOutcome(state):null;
   const enemyBody=dealt>.001?applyChoreographyImpact(target,{damage:dealt,maxIntegrity:target.maxHp,sector:'front',sourceId:state.id,phase:armed?'one':(slot||state.combat?.phase||'jo')}):null;
   const heroBody=taken>.001?applyChoreographyImpact(state,{damage:taken,maxIntegrity:state.maxHp,sector:defense.sector,sourceId:target.id,phase:next.enemy?.slot||'ha'}):null;
-  if(dealt>.001)updateSessionExchange(session,{type:'hit',sourceId:state.id,targetId:target.id,phase:armed?'one':(slot||state.combat?.phase||'jo'),deep:deepExchangeHit(dealt,target.maxHp,outgoingImpact,enemyBody?.outcome)});
-  if(taken>.001)updateSessionExchange(session,{type:'hit',sourceId:target.id,targetId:state.id,phase:next.enemy?.slot||'enemy',deep:deepExchangeHit(taken,state.maxHp,incomingImpact,heroBody?.outcome)});
+  if(dealt>.001)updateSessionExchange(session,{type:'hit',sourceId:state.id,targetId:target.id,phase:armed?'one':(slot||state.combat?.phase||'jo'),deep:deepExchangeHit(dealt,target.maxHp,outgoingImpact,enemyBody?.outcome,previousEnemyBody)});
+  if(taken>.001)updateSessionExchange(session,{type:'hit',sourceId:target.id,targetId:state.id,phase:next.enemy?.slot||'enemy',deep:deepExchangeHit(taken,state.maxHp,incomingImpact,heroBody?.outcome,previousHeroBody)});
   if(dealt>.001){target._combatContributors=Array.isArray(target._combatContributors)?target._combatContributors:[];if(!target._combatContributors.includes(state.id))target._combatContributors.push(state.id);target._combatContributors=target._combatContributors.slice(-6);}
   const requiredContributors=sharedParticipantCount>1?Math.min(2,sharedParticipantCount):1,enemyDefeated=Boolean(enemyBody?.outcome.incapacitated&&target._combatContributors?.length>=requiredContributors);
   if(enemyDefeated)target.hp=0;else if(target.hp<=.001){target.hp=Math.max(1,target.maxHp*.18);session.invalid=true;}
@@ -155,7 +157,13 @@ function tickFrontStep(state,front,dt,{advanceEnemies=true,allowedEnemyIds=null,
   let techniqueChoice=null;
   if(state.combat&&target&&intent.mode==='attack'&&intent.stamina.allowOffense){
     techniqueChoice=resolveCapabilityTechniqueChoice(state,target);
-    if(!techniqueChoice?.ok)intent={...intent,mode:'recover',stamina:{...intent.stamina,allowOffense:false}};
+    if(!techniqueChoice?.ok){
+      const current=sessionMap(state).get(target.id);if(current){updateSessionExchange(current,{type:'capability-failure',sourceId:state.id,targetId:target.id,phase:state.combat.phase});projectPrimaryExchange(state,current,target);}
+      const reason=techniqueChoice?.reason||'capability-failure',attempt=techniqueChoice?.attempts?.find(row=>row.reason===reason),stage=attempt?.capability?.stages?.find(row=>!row.allowed),remaining=['arm-injury','leg-injury'].includes(reason)?.85:.45;
+      state.combat.executionBlock={reason,remaining,phase:state.combat.phase,kind:stage?.kind??null,stageIndex:stage?.index??null};state.combat.attackCooldown=Math.max(state.combat.attackCooldown||0,remaining);
+      events.push({type:'execution-blocked',sourceId:state.id,targetId:target.id,...state.combat.executionBlock,engine:'tidebreak',authority:'rinne-domain'});
+      intent={...intent,mode:'recover',stamina:{...intent.stamina,allowOffense:false}};
+    }
   }
   if(state.combat){state.combat.bodyIntent=intent.mode;state.combat.bodyTargetId=intent.bodyTargetId;state.combat.mindVector=intent.vector;state.combat.staminaBand=intent.stamina.band;state.combat.capabilityChoice=techniqueChoice?{phase:state.combat.phase,comboId:techniqueChoice.comboId,techniqueId:techniqueChoice.techniqueId,adapted:techniqueChoice.adapted,reason:techniqueChoice.ok?null:techniqueChoice.reason}:null;state.combat.tidebreakPose=null;}
   for(const enemy of threats){if(state.down||state.ended)break;const isTarget=enemy.id===state.combat?.targetId,offense=isTarget&&intent.mode==='attack'&&intent.stamina.allowOffense,bodyAuthority=heroPositionAuthority&&enemy.id===intent.bodyTargetId,enemyCanHit=enemy.attentionTargetId===state.id||!enemy.attentionTargetId,comboIdOverride=isTarget&&offense&&techniqueChoice?.ok?techniqueChoice.comboId:null;applyTidebreakStep(state,enemy,front,dt,events,{primary:offense,bodyAuthority,enemyPositionAuthority:enemyPositionAuthority&&enemyCanHit,enemyCanHit,intent:intent.mode,sharedParticipantCount,comboIdOverride});}

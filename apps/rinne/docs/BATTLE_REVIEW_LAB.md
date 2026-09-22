@@ -30,3 +30,6 @@
 通常レビューに時刻固定のsave/restoreを注入しない（これが攻勢の途中でcursorを巻き戻していた）。保存テストは明示的な`checkpointSeconds` fixtureで行い、復帰時はREAD・空のaction・序cursorとする。`actorOverrides`はdeterministicなstamina/身体境界のテスト用であり、通常画面はcanonical既定条件を用いる。
 
 focused受入: shared Exchange Policy、Tidebreak実接触/recoil/counter/deferred restart、reviewの全攻勢/HUD/secondary接触/能力拒否、実life保存境界をそれぞれ検証する。描画観察はこの因果的検証を代替しない。
+
+
+`battle2 2.2.1` は共有AI intentにより守勢を実際の受け/spacingへ接続する。決定論fixtureは必要な開始間合い・stamina・stale cursorを明示する。呼吸の検証はbounded traceの末尾だけでなく各frameの記録を集約し、接近/残心/再接近の証拠を失わない。弱いmissは引き続き実damageなし、major missだけが攻勢を切る。

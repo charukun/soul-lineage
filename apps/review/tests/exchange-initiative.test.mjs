@@ -4,7 +4,7 @@ import {createJohakyuP7ReviewScenario as create} from '../src/nocturne/johakyu-p
 const phaseIndex={jo:0,ha:1,kyu:2};
 
 test('one normal initiative advances jo-ha-kyu, never flashes an old phase between actions, then owns zanshin',()=>{
- const scenario=create(),serialPhases=new Map();let completed=false,ordinaryGuard=false,weak=false;
+ const scenario=create({duelGap:2.4}),serialPhases=new Map();let completed=false,ordinaryGuard=false,weak=false;
  for(let i=0;i<1000;i++){
   const {meta:m,events}=scenario.step(1/60);
   if(m.initiativeId==='hero'&&m.exchangeMode==='pressure'&&m.hudState!=='maai'){
@@ -28,7 +28,7 @@ test('successful strong parry and the real counter stay left; next normal offens
 });
 
 test('actual stamina rejection ends pressure; opponent completion never lights hero zanshin despite stale ha',()=>{
- const scenario=create({actorOverrides:{hero:{stamina:0,staminaCap:100}}});let rejected=false,opponentComplete=false,staleHidden=false;
+ const scenario=create({duelGap:2.1,heroStartPhase:'kyu',actorOverrides:{hero:{stamina:0,staminaCap:100}}});let rejected=false,opponentComplete=false,staleHidden=false;
  for(let i=0;i<620;i++){
   const {meta:m}=scenario.step(1/60);rejected ||= scenario.inspect().trace.some(t=>t.type==='execution-blocked'&&t.actorId==='hero'&&t.reason==='stamina-policy');
   if(m.initiativeId==='enemy-a'){assert.equal(m.hudState,'maai');staleHidden ||= m.phase==='ha'||m.phase==='kyu';if(m.exchangeMode==='zanshin'){opponentComplete=true;assert.equal(m.completedBy,'enemy-a');}}
@@ -59,7 +59,7 @@ test('secondary enemies actually contact during the primary pair exchange',()=>{
 });
 
 test('explicit checkpoint destroys transient exchange and old phase while retaining resource state',()=>{
- const scenario=create({checkpointSeconds:7.5});let before=null,resumed=false;
+ const scenario=create({duelGap:2.4,checkpointSeconds:7.5});let before=null,resumed=false;
  for(let i=0;i<480;i++){
   const r=scenario.step(1/60);if(r.meta.resumes&&!resumed){resumed=true;assert.equal(r.meta.exchangeMode,'read');assert.equal(r.meta.phase,'jo');assert.equal(r.meta.hudState,'maai');assert.equal(r.meta.initiativeId,null);assert.equal(r.frame.actors[0].action,null);assert.ok(r.meta.stamina<100);assert.ok(before.meta.phase==='ha');}
   before=r;

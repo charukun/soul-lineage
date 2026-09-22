@@ -62,7 +62,7 @@ export function selectCapableTidebreakCombo(state,{phase='jo',comboId=state?.com
     const fromStage=continuing?Math.min(recipe.steps.filter(step=>step.kind!=='none').length,execution.stepIndex+1):0;
     const capability=rinneTechniqueCapability(state,phase,recipe,{fromStage});
     const configuredScore=configuredComboScore(combo,index,{phase,preferredId:comboId,activeId}),situationScore=recipeSituationScore(state,recipe,target),score=configuredScore+situationScore;
-    const attempt=Object.freeze({comboId:combo.id,techniqueId:skill,reason:capability.reason,canStart:capability.canStart,canContinue:capability.canContinue,configuredScore,situationScore,score});
+    const attempt=Object.freeze({comboId:combo.id,techniqueId:skill,reason:capability.reason,capability,canStart:capability.canStart,canContinue:capability.canContinue,configuredScore,situationScore,score});
     attempts.push(attempt);if(capability.canContinue)candidates.push({combo,skill,capability,score,index});
   }
   candidates.sort((a,b)=>b.score-a.score||a.index-b.index);
