@@ -8,7 +8,7 @@
 
 - 1リクエストにつきstable `runKey` を1つ作る。複数iterationsでも全回で同じrunKeyを使い、`iteration=1..N` だけを進める。並行セッションは別runKeyにする。
 - 各iteration開始時、コードを読む前かつimmutable Before観測前に `createIterationTelemetry` / `telemetry-init` 相当でtelemetryを開始する。時刻はruntime/toolの実時刻を使い、推測しない。
-- 正規stepは `observation → investigation → implementation → causalValidation → astraValidation → afterObservation → verdict → freshness → merge → devPublish`。
+- 正規stepは `observation → investigation → implementation → causalValidation → afterObservation → verdict → astraValidation → freshness → merge → devPublish`。
 - step境界ごとに前stepの完了時刻・durationMsを確定し、同時刻から次stepを開始する。対象外stepも省略せず `skipped` として時間を確定する。
 - Draft PR作成前はtelemetryをセッション内で保持する。Draft PR作成時にPR番号をbindし、PR bodyへ `autonomous-iteration-telemetry:v1` markerをupsertする。以後のstep境界でも同markerを更新し、人間向けPR本文は保持する。
 - theme選定後に `theme/themeKey/rootCauses`、実装後に `improvementSummary/changes/changedPaths`、正式検証後に `validatedHead`、verdict確定時に `verdict`、merge後に `mergeSha` をpatchする。
@@ -38,13 +38,13 @@
 14. Evolution/Polish、またはplayer-facing Hardeningは、実装後に同条件・固定SHA staging Afterを観測する。Beforeとartifact/source/条件のidentityを記録する。
 15. `tests/develop-completion-contract.test.mjs` のactive IDは編集しない。validation base→head差分から新規experimentを自動検出する。
 
-## 4. Validate and merge
+## 4. Adopt candidate, validate once, and merge
 
-16. coherent treeになったら最新developを再取得する。SHA進行だけではreconcileしない。衝突/impact overlapがある場合だけ同branchへ意味を保ってreconcileする。
-17. 原本にPR番号をbindし、最終commitに `[astra-validate]` と最小の `Astra-Check/Test/Build` を明示する。
-18. merge-owning exact-head validationだけを待つ。失敗は同branchで自己修復する。gateを弱めない。
-19. 全work itemのcausal/native evidenceと必要なstaging Afterを確認し、successSignalsとtheme全体の仮説/falsifierへ照合してsupported/refuted/inconclusiveを決める。一部work itemだけ成功した場合は全体supportedへ丸めず、receiptに部分改善と未解決項目を残す。
-20. freshness成功後すぐReady→検証済みexpected headをdevelopへmergeする。Readyで止まらない。DEV publication完了は待たない。
+16. 必要なstaging Afterを観測した時点で、全work itemのcausal/native evidence、successSignals、theme仮説/falsifierを照合し、candidateを採用できるか判定する。Player-facing欠陥があれば同branchでbounded repairし、新candidate exact SHAを再stagingして観測する。未確認事項はnotVerifiedへ残し、一部成功を全体supportedへ丸めない。
+17. 採用candidateが確定してから最新developを再取得する。SHA進行だけではreconcileしない。衝突/impact overlapがある場合だけ同branchへ意味を保ってreconcileする。reconcileがplayer-facing/build inputを変えた場合だけcandidateを再stagingして再確認する。
+18. 原本にPR番号をbindし、採用済みの最終commitに `[astra-validate]` と最小の `Astra-Check/Test/Build` を明示する。staging観測前のdraftをmerge-owning validationへarmしない。
+19. この最終headのmerge-owning exact-head validationだけを待つ。失敗は同branchで自己修復する。修復がplayer-facing結果を変えるならstaging Afterへ戻して再確認してから、新しい最終headを1回だけarmする。gateを弱めない。
+20. validation/freshness成功後すぐReady→検証済みexpected headをdevelopへmergeする。Readyで止まらない。DEV publication完了は待たない。
 21. 同PRへ `autonomous-receipt:<game>:<id>` marker付き確定receiptを残す。validated head/base/run、native evidence、staging Before/After、verdict、learning、merge SHA、notVerifiedを含める。同時にtelemetryのverdict/mergeShaを確定し、`devPublish` を開始状態へ進める。DEV完了待ちはしない。
 22. 次iteration開始時に直前receiptを解決し、必要なら `.autonomous/<game>/receipts/<id>.json` へmaterializeする。過去experimentは編集しない。
 
@@ -60,14 +60,18 @@ exact current develop
   -> dispatch existing Per-App DEV Publish with exact source_sha
   -> capture immutable Cloudflare version preview as Before
   -> choose theme / create experiment / dedicated branch + Draft PR
-  -> implement + exact-head Astra validation
-  -> publish the exact candidate or merge-equivalent source
-  -> capture a new immutable version preview as After
-  -> verdict / receipt / freshness / Ready / develop merge
+  -> implement + smallest causal/native preflight
+  -> publish the exact candidate
+  -> capture immutable version preview as After
+  -> bounded repair / re-stage if needed
+  -> verdict / adopt candidate
+  -> latest-develop impact check / reconcile only if required
+  -> one exact-head Astra merge validation
+  -> freshness / Ready / develop merge
   -> next iteration from the new merge SHA
 ```
 
-Never use the mutable latest DEV URL as Before/After. The normal DEV worker is only the publication vehicle; the immutable Cloudflare version preview is the observation surface. Once a version preview is captured and its `version.json.commit` matches the pinned SHA, unrelated sessions cannot alter that evidence.
+Never use the mutable latest DEV URL as Before/After. The normal DEV worker is only the publication vehicle; the immutable Cloudflare version preview is the observation surface. Once a version preview is captured and its `version.json.commit` matches the pinned SHA, unrelated sessions cannot alter that evidence. Required After observation is authoring feedback that selects the candidate source; formal merge-owning Astra validation comes after candidate adoption, not before it.
 
 If the shared publication job is cancelled before version capture, retry the same exact SHA instead of rebasing or changing the run. Develop drift remains irrelevant until the normal freshness check.
 
