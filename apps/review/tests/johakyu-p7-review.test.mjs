@@ -247,7 +247,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.17');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.19');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -306,7 +306,7 @@ test('battle2 lamps fill left to right, fade together on interruption, and maai 
 
 test('phase activations hold a half-second stance, chime, and emissive cue',()=>{
  const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8'),stage=stageSource(),audio=readFileSync(new URL('../src/nocturne/audio.js',import.meta.url),'utf8'),runtime=readFileSync(new URL('../../../packages/johakyu-presentation/src/runtime.js',import.meta.url),'utf8');
- assert.match(source,/PHASE_CUE_SECONDS=\.5/);assert.match(source,/clip:'Blocking'/);assert.match(source,/clip:'1H_Melee_Attack_Slice_Diagonal'/);assert.match(source,/clip:'1H_Melee_Attack_Stab'/);assert.match(source,/phaseCueKey:/);
+ assert.match(source,/PHASE_CUE_SECONDS=\.5/);assert.match(source,/clip:'Blocking'/);assert.match(source,/clip:'1H_Melee_Attack_Slice_Diagonal'/);assert.match(source,/clip:'1H_Melee_Attack_Stab'/);assert.match(source,/glow:'#b8e7ff'/);assert.match(source,/glow:'#d7f4ff'/);assert.match(source,/glow:'#f0fbff'/);assert.match(source,/phaseCueKey:/);
  assert.match(stage,/sound\?\.phaseCue\?\./);assert.match(audio,/function phaseCue/);assert.match(audio,/sound\.parry\?\./);
  assert.match(runtime,/unaccepted-phase-cue/);assert.match(runtime,/phase-cue:/);assert.match(runtime,/cueGlow/);
 });
