@@ -1,5 +1,6 @@
 import {BATTLE2_VERSION} from './battle2-version.js';
 import {createBattle2BodyHud} from './battle2-body-hud.js';
+import {battle2SelectionLabel} from './nocturne/battle2-technique-catalog.js';
 import {createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
 import {createBattle2CameraPresentation} from './battle2-camera.js';
 import {mountReviewStageControls} from '@soul/shared-ui/review-shell';
@@ -21,8 +22,9 @@ const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'},LI
 const HISTORY_DISPLAY_MS=3200,HISTORY_GAP_MS=260,HISTORY_QUEUE_LIMIT=6,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
 let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],historyQueue=[],historyTimer=0,historyShowing=false,seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',lastPhaseCueKey='',comboFadeTimer=0;
-let state='BOOT',lastError=null,lastExchangeKey='';
-const loadoutUI=createBattle2LoadoutUI({stage,onChange:next=>{reviewMeta=null;lastExchangeKey='';resetHistory();runtime?.configureLoadout?.(next);}});
+let state='BOOT',lastError=null,lastExchangeKey='',activeLoadout=null;
+const loadoutUI=createBattle2LoadoutUI({stage,onChange:next=>{activeLoadout=next;reviewMeta=null;lastExchangeKey='';resetHistory();runtime?.configureLoadout?.(next);}});
+activeLoadout=loadoutUI.value;
 const cueNode=document.createElement('span');cueNode.className='battle-exchange-cue';cueNode.setAttribute('role','status');hud.prepend(cueNode);
 hud.dataset.anchored='true';
 if(versionNode)versionNode.textContent=`v${BATTLE2_VERSION}`;
@@ -109,7 +111,7 @@ function updateSequence(meta){
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
  const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);playerHud?.capture(world,{x:.5,y:.6,scale:.24});
  const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
- const technique=String(meta.techniqueName||meta.actionName||'').trim();
+ const selection=activeLoadout?.technique?.[meta.phase],technique=String(selection?battle2SelectionLabel(selection):(meta.techniqueName||meta.actionName||'')).trim();
  cueNode.hidden=!technique;if(cueNode.textContent!==technique)cueNode.textContent=technique;
  hud.dataset.exchangeIntent=meta.exchangeIntent||'read';
  const hudState=interrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;

@@ -21,11 +21,11 @@ main.battle2-review.review-surface>.review-surface__workspace{grid-template-colu
 .battle2-camera-control-host{
   position:absolute;z-index:7;
   top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));
-  width:46px;height:46px;pointer-events:auto;
+  width:50px;height:50px;pointer-events:auto;
 }
 .battle2-camera-control-host>.snap-camera-control{
-  position:relative!important;left:auto!important;top:auto!important;
-  width:46px;height:46px;display:grid!important;visibility:visible!important;opacity:1!important;
+  position:absolute!important;inset:0!important;left:0!important;top:0!important;
+  width:50px;height:50px;display:grid!important;visibility:visible!important;opacity:1!important;
 }
 
 /* Compact upper-left player + body HUD stack. */
