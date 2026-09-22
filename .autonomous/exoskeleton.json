@@ -43,19 +43,17 @@
       "id": "focused-tests",
       "state": "required-currently",
       "removable": true,
-      "compensatesFor": "Current implementation models can introduce causal regressions that are cheaper to detect with targeted executable assertions.",
-      "detachWhen": "Model-native or direct runtime evaluation establishes changed behavior and regression safety at equal or better reliability without separate tests.",
+      "compensatesFor": "Behavioral logic changes can still introduce causal regressions that static exact-source checks do not establish.",
+      "detachWhen": "Exact-source model/runtime evaluation establishes behavioral regression safety at equal or better reliability without separate tests.",
       "dependencies": []
     },
     {
       "id": "exact-head-actions-validation",
       "state": "required-currently",
       "removable": true,
-      "compensatesFor": "Current chat/tool execution cannot be assumed to validate the exact repository head in a reproducible hosted environment.",
+      "compensatesFor": "Current chat/tool execution still needs one reproducible hosted exact-head receipt for the final candidate, but routine plans may contain no test and no dependency install.",
       "detachWhen": "The execution model natively provides trustworthy exact-source execution and validation receipts without a separate hosted CI pass.",
-      "dependencies": [
-        "focused-tests"
-      ]
+      "dependencies": []
     },
     {
       "id": "immutable-staging",
