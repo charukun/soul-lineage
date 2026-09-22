@@ -13,6 +13,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 import {loadNocturneAssets,withTimeout} from './assets.js';
 import {buildNocturneEnvironment} from './environment.js';
+import {createTechniqueVfxRuntime} from './technique-vfx-runtime.js';
 
 export function createBattleRuntime({world,effects,stage,sound,notify,signal,rules=null,presentationPort=null,cameraPresentation=null}){
 const V=THREE.Vector3,TAU=Math.PI*2;let disposed=false,rounds=0,allKills=0,renderedDeaths=0;
@@ -24,7 +25,7 @@ const randRange = (a,b) => a + (b-a)*rand();
 const trace = [];
 function record(type,data={}) { trace.push({type,time:Math.round(game.time*100)/100,...data}); if(trace.length>160)trace.shift(); }
 const game = {phase:'loading',time:0,wave:0,spawned:0,waveCount:0,spawnTimer:0,kills:0,damage:0,received:0,bursts:0,stance:'balanced',speed:1,energy:0,level:1,upgradeTime:0,banner:0,toast:0,shake:0,hitstop:0,cameraPunch:0,cameraImpulseX:0,cameraImpulseZ:0,ready:false,pausedFrom:'battle',high:stage.clientWidth>720,moveTarget:null,moveTime:0};
-let scene,camera,renderer,composer,sun,heroLight,hero,manifest,clock=0,previous=0,frameCount=0,frameTime=0,fps=0,intro=0;
+let scene,camera,renderer,composer,sun,heroLight,hero,manifest,techniqueVfx,clock=0,previous=0,frameCount=0,frameTime=0,fps=0,intro=0;
 let W=Math.max(1,stage.clientWidth),H=Math.max(1,stage.clientHeight),dpr=Math.min(devicePixelRatio,1.5),models=new Map(),actors=[],projectiles=[],particles=[],rings=[],arcs=[],numbers=[],torches=[],loadedBytes=0;
 const usedModels=new Set(),environmentMeshes=[],cameraTarget=new V(),tmp=new V(),ndc=new THREE.Vector2(),ray=new THREE.Raycaster(),groundPlane=new THREE.Plane(new V(0,1,0),0);
 const fx=effects,ctx=fx.getContext('2d');if(!ctx)throw Error('2D effect canvas unavailable');
@@ -45,7 +46,7 @@ function makeRenderer(){
  sun=new THREE.DirectionalLight('#f4dab0',2.8);sun.position.set(-10,20,9);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-23;sun.shadow.camera.right=23;sun.shadow.camera.top=23;sun.shadow.camera.bottom=-23;sun.shadow.camera.near=1;sun.shadow.camera.far=65;sun.shadow.normalBias=.045;sun.shadow.bias=-.0003;scene.add(sun);
  const rim=new THREE.DirectionalLight('#6da7cc',1.6);rim.position.set(8,9,-14);scene.add(rim);
  heroLight=new THREE.PointLight('#ffd99c',13,11,2);scene.add(heroLight);
- composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),.22,.5,1.15));composer.addPass(new OutputPass());resize();
+ composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),.22,.5,1.15));composer.addPass(new OutputPass());techniqueVfx=createTechniqueVfxRuntime({scene,random:rand});resize();
 }
 
 function collectFatigueRig(root){
@@ -210,7 +211,7 @@ function actor(kind,position,boss=false){
   const next=list.map(m=>{const n=m.clone();n.roughness=.74;n.metalness=.08;n.emissive=new THREE.Color('#000000');if(/Eyes/.test(o.name)){n.emissive.set(kind==='mage'?'#b870f1':'#c97450');n.emissiveIntensity=1.2;}mats.push({mat:n,base:n.emissive.clone(),power:n.emissiveIntensity});return n;});
   o.material=Array.isArray(o.material)?next:next[0];
  }});
- const a={kind,boss,root,posture,fatigueRig:collectFatigueRig(root),parryRig:collectParryRig(root),bodyContactRig:collectBodyContactRig(root),canonicalRow:null,fatigueBand:'fresh',fatigueLocked:false,fatigueSince:0,sweatClock:0,fatiguePose:{rootLean:0,rootDrop:0,rootSway:0,chestPitch:0,shoulderRoll:0,headPitch:0,armDrop:0,breath:0},fatiguePresentation:null,object:container,pos:container.position,height,hp:kind==='hero'?220:boss?620:38+game.wave*8,maxHp:kind==='hero'?220:boss?620:38+game.wave*8,mixer:new THREE.AnimationMixer(root),clips:new Map(asset.animations.map(c=>[c.name,c])),action:null,actionName:'',attack:null,cd:randRange(.4,1.3),dead:false,deathTime:0,flash:0,showHp:0,mats,damage:kind==='hero'?27:boss?18:kind==='mage'?10:7,speed:kind==='hero'?2.7:boss?1.2:kind==='mage'?1.1:1.55,attackSpeed:1,combo:0,spawn:kind==='hero'?0:.7,trail:[],reaction:null,reactionSerial:0,parryRecoil:null,impactRecoil:null,contactHold:null,contactSerial:0,weaponTrace:null,presentationActionId:null,presentationProgress:0,swingKey:null,effectKey:null,stepClock:0};
+ const a={kind,boss,root,posture,fatigueRig:collectFatigueRig(root),parryRig:collectParryRig(root),bodyContactRig:collectBodyContactRig(root),canonicalRow:null,fatigueBand:'fresh',fatigueLocked:false,fatigueSince:0,sweatClock:0,fatiguePose:{rootLean:0,rootDrop:0,rootSway:0,chestPitch:0,shoulderRoll:0,headPitch:0,armDrop:0,breath:0},fatiguePresentation:null,object:container,pos:container.position,height,hp:kind==='hero'?220:boss?620:38+game.wave*8,maxHp:kind==='hero'?220:boss?620:38+game.wave*8,mixer:new THREE.AnimationMixer(root),clips:new Map(asset.animations.map(c=>[c.name,c])),action:null,actionName:'',attack:null,cd:randRange(.4,1.3),dead:false,deathTime:0,flash:0,showHp:0,mats,damage:kind==='hero'?27:boss?18:kind==='mage'?10:7,speed:kind==='hero'?2.7:boss?1.2:kind==='mage'?1.1:1.55,attackSpeed:1,combo:0,spawn:kind==='hero'?0:.7,trail:[],reaction:null,reactionSerial:0,parryRecoil:null,impactRecoil:null,contactHold:null,contactSerial:0,weaponTrace:null,presentationActionId:null,presentationProgress:0,swingKey:null,effectKey:null,insightKey:null,afterglowKey:null,stepClock:0};
  actors.push(a);play(a,'Idle');if(kind!=='hero'){ring(a.pos,1.1,'#bf7dcb',.6);play(a,'Spawn_Ground_Skeletons',true,.8);}return a;
 }
 function play(a,name,once=false,duration=0){
@@ -253,15 +254,10 @@ function weaponTip(a){
  const axis=weaponAxis(a);if(!axis)return null;return axis.start.distanceToSquared(a.pos)>=axis.end.distanceToSquared(a.pos)?axis.start.clone():axis.end.clone();
 }
 function techniqueFxColor(archetype){return archetype==='precision'?'#d9efff':archetype==='heavy'?'#ffc27a':archetype==='counter'?'#fff0b8':archetype==='sweep'?'#f4d49a':'#f7cf80';}
-function emitTechniqueExecuteFx(a,action){
- const presentation=action?.presentation;if(!presentation||!action?.motion?.offense)return;const archetype=presentation.archetype||'flow',trailScale=clamp(Number(presentation.vfx?.trail?.scale)||1,.45,1.7),color=techniqueFxColor(archetype),tip=weaponTip(a)||a.pos.clone().add(new V(0,a.height*.56,0)),yaw=a.object.rotation.y;
- if(archetype==='precision'){burst(tip,Math.max(4,Math.round(5*trailScale)),color);ring(tip,.22+.08*trailScale,color,.16);}
- else if(archetype==='heavy'){arc(a.pos,2.05*trailScale,yaw,1.55,color,.28);ring(tip,.28+.1*trailScale,color,.2);burst(tip,Math.max(5,Math.round(7*trailScale)),color);}
- else if(archetype==='sweep'){arc(a.pos,2.2*trailScale,yaw,2.65,color,.27);}
- else if(archetype==='counter'){arc(a.pos,1.82*trailScale,yaw,1.3,color,.2);burst(tip,Math.max(3,Math.round(4*trailScale)),color);}
- else arc(a.pos,1.95*trailScale,yaw,1.9,color,.23);
- record('technique-execute',{techniqueId:action.techniqueId,stageIndex:action.stageIndex,archetype,effect:presentation.vfx?.trail?.effect||null,clip:action.presentationClip||action.motion?.clip||null});
-}
+function techniqueVfxContext(a,action,stage,origin=null){const presentation=action?.presentation,spec=presentation?.vfx?.[stage];if(!presentation||!spec?.effect)return null;const archetype=presentation.archetype||'flow',axis=weaponAxis(a);return{effectId:spec.effect,stage,origin:origin?.clone?.()||a.pos.clone().add(new V(0,a.height*.5,0)),actorOrigin:a.pos.clone(),axis,trace:a.weaponTrace?.history||[],yaw:a.object.rotation.y,color:techniqueFxColor(archetype),scale:Number(spec.scale)||1,archetype,grade:presentation.grade||'normal'};}
+function emitTechniqueStageFx(a,action,stage,origin=null,extra={}){const context=techniqueVfxContext(a,action,stage,origin);if(!context)return;techniqueVfx.spawn(context.effectId,{...context,...extra});record('technique-vfx',{techniqueId:action.techniqueId,stageIndex:action.stageIndex,stage,archetype:context.archetype,effect:context.effectId,clip:action.presentationClip||action.motion?.clip||null});}
+function emitTechniqueExecuteFx(a,action){emitTechniqueStageFx(a,action,'trail',a.pos.clone());}
+function applyTechniquePresentationPose(a,row){const action=row.action,presentation=action?.presentation;if(!action?.motion?.offense||!presentation)return;const p=clamp(Number(a.presentationProgress??action.progress)||0,0,1),swing=Math.sin(Math.PI*clamp((p-.05)/.88,0,1)),anticipation=Math.sin(Math.PI*clamp(p/.3,0,1)),grade=presentation.grade==='ultimate'?1.35:presentation.grade==='secret'?1.2:1,archetype=presentation.archetype||'flow';if(archetype==='precision'){a.posture.position.z+=.26*swing*grade;a.posture.rotation.x-=.075*swing;}else if(archetype==='heavy'){a.posture.position.y-=.12*anticipation*grade;a.posture.position.z+=.16*swing;a.posture.rotation.x+=.12*anticipation;}else if(archetype==='sweep'){a.posture.rotation.y+=.42*swing*grade;a.posture.rotation.z+=Math.sin(p*TAU)*.065*swing;}else if(archetype==='counter'){a.posture.position.x+=Math.sin(p*Math.PI*2)*.11*swing;a.posture.rotation.y-=.22*swing;}else{a.posture.position.z+=.12*swing;a.posture.rotation.x-=.035*swing;}}
 function bladeClashPoint(source,target,fallback){
  const a=weaponAxis(source),b=weaponAxis(target);if(!a||!b)return fallback.clone();
  const lineA=new THREE.Line3(a.start,a.end),lineB=new THREE.Line3(b.start,b.end),pa=a.start.clone().lerp(a.end,.5),pb=b.start.clone().lerp(b.end,.5);
@@ -463,7 +459,7 @@ function glow(x,y,r,color,alpha=1){
 }
 function drawEffects(){
  ctx.clearRect(0,0,W,H);const scale=camera.isPerspectiveCamera?H/Math.max(.01,2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.position.distanceTo(cameraTarget)):H/(camera.top-camera.bottom);
- // Every effect here is drawn on a 2D canvas, never as modeled geometry.
+ // Environmental/legacy overlay cues remain 2D; technique VFX render as materialized Three.js effects in the world scene.
  for(const t of torches){
   const p=project(new V(t.x,.6,t.z)),flicker=1+Math.sin(clock*7+t.seed)*.12;
   ctx.globalCompositeOperation='screen';glow(p.x,p.y,scale*2.3,'#ea731a',.22*flicker);glow(p.x,p.y,scale*.42,'#ffd38a',.85);ctx.globalCompositeOperation='source-over';
@@ -516,7 +512,7 @@ function renderCamera(dt){
 
 
 function fail(error){game.ready=false;game.phase='error';renderer?.setAnimationLoop(null);sound.pause();record('error',{message:String(error?.message||error)});notify('ERROR',String(error?.message||error));}
-function draw(dt=1/60){renderCamera(dt);renderer.info.autoReset=false;renderer.info.reset();if(game.high)composer.render();else renderer.render(scene,camera);drawEffects();if(actors.some(a=>a.dead&&a.deathTime>0&&a.deathTime<1.3))renderedDeaths++;}
+function draw(dt=1/60){techniqueVfx?.update(dt);renderCamera(dt);renderer.info.autoReset=false;renderer.info.reset();if(game.high)composer.render();else renderer.render(scene,camera);drawEffects();if(actors.some(a=>a.dead&&a.deathTime>0&&a.deathTime<1.3))renderedDeaths++;}
 function frame(now){
  if(disposed||!game.ready)return;
  const elapsed=previous?(now-previous)/1000:1/60;previous=now;if(document.hidden)return;
@@ -535,7 +531,7 @@ async function prepare(){
  if(disposed||signal.aborted)return;
  notify('READY');draw();notify('BATTLE');previous=performance.now();renderer.setAnimationLoop(frame);record('ready',{models:usedModels.size});
 }
-function metrics(){return {ready:game.ready,phase:game.phase,rounds,totalKills:allKills,kills:game.kills,damage:game.damage,received:game.received,wave:game.wave,time:game.time,hp:hero?.hp,models:usedModels.size,loadedBytes,actors:actors.length,activeAnimations:actors.filter(a=>a.action?.isRunning()).length,renderedDeaths,frames:renderer?.info.render.frame||0,drawCalls:renderer?.info.render.calls||0,triangles:renderer?.info.render.triangles||0,fps,audio:sound.metrics(),webgl2:!!renderer?.getContext().texStorage2D};}
+function metrics(){return {ready:game.ready,phase:game.phase,rounds,totalKills:allKills,kills:game.kills,damage:game.damage,received:game.received,wave:game.wave,time:game.time,hp:hero?.hp,models:usedModels.size,loadedBytes,actors:actors.length,activeAnimations:actors.filter(a=>a.action?.isRunning()).length,renderedDeaths,frames:renderer?.info.render.frame||0,drawCalls:renderer?.info.render.calls||0,triangles:renderer?.info.render.triangles||0,fps,techniqueVfx:techniqueVfx?.metrics()??null,audio:sound.metrics(),webgl2:!!renderer?.getContext().texStorage2D};}
 // The main-game path never invokes start(), simulate(), damage() or a native RAF.
 // It borrows only the accepted assets, actor factory, animation mixer and VFX.
 function createDrivenPort(){
@@ -580,14 +576,16 @@ function createDrivenPort(){
    else if(action&&!terminal){
     const canonicalProgress=Math.max(0,action.progress);if(a.presentationActionId!==action.id){a.presentationActionId=action.id;a.presentationProgress=canonicalProgress;}
     if(game.hitstop<=0)a.presentationProgress=canonicalProgress;const segment=action.presentation?.segment,sampleStart=clamp(Number(segment?.sampleStart)||0,0,.95),sampleEnd=clamp(Number(segment?.sampleEnd)||1,sampleStart+.01,.999),sampleProgress=lerp(sampleStart,sampleEnd,a.presentationProgress);a.action.paused=true;a.action.time=Math.min(a.clips.get(clip).duration-.000001,sampleProgress*a.clips.get(clip).duration);a.mixer.update(game.hitstop>0?0:dt);
+    if(action.motion?.offense&&canonicalProgress>=.03&&a.insightKey!==action.id){a.insightKey=action.id;emitTechniqueStageFx(a,action,'insight',a.pos.clone().add(new V(0,a.height*.34,0)));}
     const swingAt=Math.max(.08,Math.min(.28,Number(action.motion?.contactProgress??.5)-.22)),swing=action.presentation?.sfx?.swing;
     if(action.motion?.offense&&canonicalProgress>=swingAt&&a.swingKey!==action.id){a.swingKey=action.id;sound.swing?.({pan:spatialPan(a.pos),gain:Number(swing?.gain)||.66,rate:Number(swing?.pitch)||1});}
     const effectAt=Math.max(.12,Math.min(.42,Number(action.motion?.contactProgress??.5)-.12));if(action.motion?.offense&&canonicalProgress>=effectAt&&a.effectKey!==action.id){a.effectKey=action.id;emitTechniqueExecuteFx(a,action);}
+    const afterglowAt=Math.max(.7,Math.min(.9,Number(action.motion?.contactProgress??.5)+.24));if(action.motion?.offense&&canonicalProgress>=afterglowAt&&a.afterglowKey!==action.id){a.afterglowKey=action.id;emitTechniqueStageFx(a,action,'afterglow',a.pos.clone().add(new V(0,a.height*.38,0)));}
    }else{
     a.presentationActionId=null;a.action.paused=false;if(initial&&terminal)a.action.time=a.clips.get(clip).duration-.000001;a.mixer.update(dt);
     if(row.moving&&!terminal){a.stepClock-=dt;if(a.stepClock<=0){a.stepClock=.34;sound.footstep?.({pan:spatialPan(a.pos),rate:a.kind==='hero'?1.04:.94});}}else a.stepClock=0;
    }
-   applyFatigue(a,row,dt);applyImpactRecoil(a);applyParryRecoil(a);sampleWeaponTrace(a,dt);
+   applyFatigue(a,row,dt);applyTechniquePresentationPose(a,row);applyImpactRecoil(a);applyParryRecoil(a);sampleWeaponTrace(a,dt);
    if(terminal)a.deathTime+=dt;
    a.flash=Math.max(0,a.flash-dt);const cueProgress=Math.max(0,Math.min(1,Number(phaseCue?.progress)||0)),cueColor=phaseCue?.glow?new THREE.Color(phaseCue.glow):null,cueEnvelope=Math.sin(cueProgress*Math.PI),cuePulse=Math.pow(Math.abs(Math.sin(cueProgress*Math.PI*2)),1.45),cueGlow=cueColor?cueEnvelope*(.18+2.25*cuePulse):0;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(new THREE.Color('#ffe7c4'));mat.emissiveIntensity=1.7;}else if(cueColor&&cueGlow>.01){mat.emissive.copy(cueColor);mat.emissiveIntensity=Math.max(power,cueGlow);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
   },
@@ -617,8 +615,10 @@ function createDrivenPort(){
    const presentation=event.presentation||source?.canonicalRow?.action?.presentation||null,archetype=presentation?.archetype||null,impactSpec=presentation?.sfx?.impact,finisher=event.type==='finisher',impactScale=clamp(Math.max(finisher?1.35:0,Number(presentation?.vfx?.impact?.scale)||1),.5,1.8),secondaryScale=clamp(Math.max(finisher?.45:0,Number(presentation?.vfx?.secondary?.scale)||.24),.08,.8);
    target.flash=finisher?.26:.2;const heavy=archetype==='heavy'||event.phase==='kyu'||finisher||event.counter,impactPoint=event.contactPoint?new V(event.contactPoint.x,event.contactPoint.y,event.contactPoint.z):target.pos.clone().add(new V(0,target.height*.55,0)),pan=spatialPan(impactPoint),reactionClip=['head','leftArm','rightArm'].includes(event.bodyPart)?'Hit_B':'Hit_A',color=techniqueFxColor(archetype||'flow'),recoilStrength=finisher?1.58:event.counter?1.35:heavy?1.08:.78,recoilDuration=finisher?.62:event.counter?.55:heavy?.48:.34,recoilSide=event.bodyPart==='leftArm'||event.bodyPart==='leftLeg'?-1:event.bodyPart==='rightArm'||event.bodyPart==='rightLeg'?1:0;
    target.reaction={clip:reactionClip,remaining:finisher?.56:event.counter?.48:heavy?.42:.3,serial:++target.reactionSerial};target.impactRecoil={remaining:recoilDuration,duration:recoilDuration,strength:recoilStrength,side:recoilSide};
-   burst(impactPoint,Math.max(8,Math.round((finisher?26:heavy?17:10)*impactScale)),color);if(finisher||archetype==='heavy'||archetype==='precision')ring(impactPoint,(finisher?.5:.28)+.2*impactScale,color,finisher?.32:.22);if(secondaryScale>.2)burst(impactPoint,Math.max(3,Math.round((finisher?9:6)*secondaryScale)),'#f3e7d2');
-   if(source)arc(source.pos,(finisher?2.65:2.15)*impactScale,source.object.rotation.y,finisher?2.8:archetype==='precision'?.72:heavy?2.35:archetype==='sweep'?2.7:1.75,color,finisher?.4:.32);
+   const impactEffect=presentation?.vfx?.impact,secondaryEffect=presentation?.vfx?.secondary;
+   if(impactEffect?.effect)techniqueVfx.spawn(impactEffect.effect,{stage:'impact',origin:impactPoint,color,scale:impactScale,archetype:archetype||'flow',finisher});
+   if(secondaryEffect?.effect)techniqueVfx.spawn(secondaryEffect.effect,{stage:'secondary',origin:impactPoint,color:'#f3e7d2',scale:secondaryScale,archetype:archetype||'flow',finisher});
+   record('technique-vfx-impact',{techniqueId:event.techniqueId||null,impactEffect:impactEffect?.effect||null,secondaryEffect:secondaryEffect?.effect||null,archetype:archetype||'flow',finisher});
    sound.impact?.({pan,heavy,counter:Boolean(event.counter),gain:Number(impactSpec?.gain)||null,rate:Number(impactSpec?.pitch)||1});game.hitstop=Math.max(game.hitstop,finisher?.115:event.counter?.095:heavy?.075:.045);game.cameraPunch=Math.max(game.cameraPunch,finisher?.072:event.counter?.055:heavy?.04:.02);game.shake=Math.max(finisher?.075:heavy?.055:.025,Math.min(.08,Number(presentation?.camera?.shake)||0));kickCamera(source,target,finisher?.34:event.counter?.28:heavy?.22:.12);
    record('canonical-impact',{attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,bodyPart:event.bodyPart,finisher,counter:Boolean(event.counter),reactionClip,recoilDuration,recoilStrength,techniqueId:event.techniqueId||null,archetype,effect:presentation?.vfx?.impact?.effect||null,soundRole:impactSpec?.role||null});
   },
@@ -627,7 +627,7 @@ function createDrivenPort(){
    for(const row of obstacles){let node=coverNodes.get(row.id);if(!node){node=new THREE.Group();const rock=models.get('nature/stone_largeB').scene.clone(true),box=new THREE.Box3().setFromObject(rock),size=box.getSize(new V()),center=box.getCenter(new V());rock.scale.set(row.w/size.x,row.h/size.y,row.d/size.z);rock.position.set(-center.x*rock.scale.x,-box.min.y*rock.scale.y,-center.z*rock.scale.z);node.add(rock);scene.add(node);coverNodes.set(row.id,node);}node.position.set(row.x,0,row.z);}
    projectiles=shots.map(row=>({pos:new V(row.x,1.3,row.z),life:1}));
   },
-  clear(){particles=[];rings=[];arcs=[];numbers=[];projectiles=[];hero=null;selfBinding=null;for(const node of coverNodes.values())scene?.remove(node);coverNodes.clear();},
+  clear(){particles=[];rings=[];arcs=[];numbers=[];projectiles=[];techniqueVfx?.clear();hero=null;selfBinding=null;for(const node of coverNodes.values())scene?.remove(node);coverNodes.clear();},
   draw(snapshot,dt){
    lastFrame=snapshot;clock+=dt;game.time+=dt;game.phase=snapshot.status;game.shake=Math.max(0,game.shake-dt*.9);game.hitstop=Math.max(0,game.hitstop-dt);
    for(const p of particles){p.life-=dt;p.vel.y-=dt*6;p.pos.addScaledVector(p.vel,dt);}particles=particles.filter(p=>p.life>0);
@@ -676,7 +676,7 @@ function inspectBattle(bootEpoch){
 function advance(seconds){if(!game.ready||disposed||!Number.isFinite(seconds)||seconds<=0||seconds>30)throw Error('Invalid evidence advancement');for(let i=0;i<Math.ceil(seconds*60);i++){simulate(1/60);clock+=1/60;}draw();return metrics();}
 function destroy(){
  if(disposed)return;disposed=true;game.ready=false;renderer?.setAnimationLoop(null);
- for(const a of actors)removeActor(a);actors=[];
+ for(const a of actors)removeActor(a);actors=[];techniqueVfx?.dispose();techniqueVfx=null;
  const geometries=new Set(),materials=new Set(),textures=new Set();
  const gather=root=>root?.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of o.material?(Array.isArray(o.material)?o.material:[o.material]):[]){materials.add(m);for(const value of Object.values(m))if(value?.isTexture)textures.add(value);}});
  gather(scene);for(const gltf of models.values())gather(gltf.scene);for(const r of [...textures,...materials,...geometries])r.dispose();
