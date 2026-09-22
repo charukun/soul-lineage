@@ -451,3 +451,7 @@ main.battle-review.review-surface .camera-zoom button{
   .battle-inspiration[data-sequence="announce"] strong{font-size:18px!important}
 }
 
+
+/* Shared compact snap camera owns the top-left camera gesture. Keep battle loadout clear of it. */
+main.battle-review.review-surface .stage>.technique-loadout{left:60px!important}
+main.battle-review.review-surface .camera-zoom{display:none!important}
