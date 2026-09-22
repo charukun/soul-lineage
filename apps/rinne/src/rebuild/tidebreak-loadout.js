@@ -70,7 +70,7 @@ function recipeExchangeScore(state,recipe){
     else if(responds)score+=guard*(6+5*mind.guard)+counter*(4+5*mind.counter)+evade*(3+4*mind.mobility)+spacing*(3+4*mind.spacing)-offense*3-closing*2;
   }else if(exchange.mode==='pressure'){
     if(owns)score+=offense*(1.8+2.2*mind.attack)+closing*(1+1.5*mind.attack)-guard*.5;
-    else if(responds)score+=guard*(3+4*mind.guard)+counter*(3+4*mind.counter)+evade*(2+3*mind.mobility)+spacing*(2+3*mind.spacing)-offense*1.7;
+    else if(responds)score+=guard*(8+6*mind.guard)+counter*(7+6*mind.counter)+evade*(5+5*mind.mobility)+spacing*(5+5*mind.spacing)-offense*4-closing*2;
   }else if(exchange.mode==='zanshin'){
     score+=spacing*(2+2*mind.spacing)+guard*(1+2*mind.guard)+evade*(1+2*mind.mobility)-closing*1.5;
   }
