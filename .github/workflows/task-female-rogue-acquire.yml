@@ -15,15 +15,10 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 1
-      - name: Inspect replacement consumers and acquire the exact CC0 source
+      - name: Acquire and verify the exact CC0 source
         run: |
           set -euo pipefail
-          echo '=== CURRENT CONTRACT ==='
-          cat AGENTS.md
-          echo '=== CHARACTER CONSUMERS ==='
-          git grep -n -I -E 'PROTAGONIST_VILLAGER_FEMALE|protagonist\.villager\.female|villager-female-v1' -- apps packages scripts tests docs/characters assets/characters || true
-          echo '=== KAYKIT DELIVERY FILES ==='
-          git ls-files | grep -E 'Rogue|rogue|kaykit|runtime-origin|protagonist.*female|female.*protagonist' | head -160
+          git ls-files | grep -E 'Rogue|runtime-origin|protagonist.*female|female.*protagonist' || true
           python3 - <<'PY'
           import urllib.request, hashlib, json, struct
           from pathlib import Path
@@ -37,19 +32,20 @@ jobs:
           path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(data)
           length,kind=struct.unpack_from('<II',data,12); assert kind==0x4e4f534a
           doc=json.loads(data[20:20+length])
-          print('=== ACQUIRED ORIGINAL ===')
-          print(json.dumps({'path':str(path),'sha256':hashlib.sha256(data).hexdigest(),'gitBlobSha':blob,'bytes':len(data),'generator':doc.get('asset'),'meshNames':[m.get('name') for m in doc.get('meshes',[])],'nodes':[n.get('name') for n in doc.get('nodes',[])],'skins':len(doc.get('skins',[])),'images':doc.get('images'),'animations':[a.get('name') for a in doc.get('animations',[])]},ensure_ascii=False))
+          receipt={'schema':'character-source-acquisition','version':1,'id':'protagonist.villager.female.v1','title':'KayKit Adventurers Rogue','author':'Kay Lousberg','license':'CC0-1.0','retrievedAt':'2026-09-22','sourceUrl':source,'assetPage':'https://kaylousberg.itch.io/kaykit-adventurers','repository':'KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0','revision':revision,'originalFilename':'Rogue.glb','path':str(path),'sha256':hashlib.sha256(data).hexdigest(),'gitBlobSha':blob,'bytes':len(data),'conversion':'None: official original GLB retained byte-for-byte.','meshNames':[m.get('name') for m in doc.get('meshes',[])],'nodes':[n.get('name') for n in doc.get('nodes',[])],'skins':len(doc.get('skins',[])),'materials':doc.get('materials'),'images':doc.get('images'),'animations':[a.get('name') for a in doc.get('animations',[])],'triangles':sum(doc['accessors'][p['indices']]['count']//3 for m in doc.get('meshes',[]) for p in m['primitives'] if p.get('mode',4)==4 and 'indices' in p)}
           lic=urllib.request.urlopen(base+'LICENSE.txt',timeout=30).read()
           assert b'CC0' in lic or b'Creative Commons' in lic
           lp=Path('apps/review/public/library/licenses/kaykit-adventurers-1.0.txt'); lp.parent.mkdir(parents=True,exist_ok=True); lp.write_bytes(lic)
-          print('=== SOURCE LICENSE ==='); print(lic.decode())
+          receipt['licensePath']=str(lp); receipt['licenseSha256']=hashlib.sha256(lic).hexdigest()
+          rp=Path('apps/review/public/library/provenance/female-protagonist-rogue-v1.json');rp.parent.mkdir(parents=True,exist_ok=True);rp.write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps(receipt,ensure_ascii=False));print(lic.decode())
           PY
       - name: Commit materialized source on the task branch only
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb apps/review/public/library/licenses/kaykit-adventurers-1.0.txt
+          git add apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb apps/review/public/library/licenses/kaykit-adventurers-1.0.txt apps/review/public/library/provenance/female-protagonist-rogue-v1.json
           if ! git diff --cached --quiet; then
             git commit -m 'asset: materialize pinned CC0 KayKit Rogue original for female protagonist'
             git push origin HEAD:${{ github.ref_name }}
