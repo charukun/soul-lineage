@@ -1,5 +1,5 @@
 import {shino25dGuestEnabled} from './shino25d-guest-policy.js';
-import {createSprite25dActor} from '@soul/assets/sprite25d/three';
+import {createCharacter25dActor} from '@soul/assets/character25d/three';
 import {verifySprite25dBundle} from '@soul/assets/sprite25d/browser';
 
 // Silent, session-only bridge from Visual Review Lab.
@@ -12,11 +12,12 @@ export function installShino25dGuest(view,options={}){
   if(!transferToken||!window.opener)return view;
 
   const abort=new AbortController();
-  let actor=null,anchor=null,disposed=false,loading=false;
+  let actor=null,anchor=null,disposed=false,loading=false,lastObservation=0,attackUntil=0;
   const originalRender=view.renderState,originalDispose=view.dispose;
+  document.addEventListener('click',event=>{if(event.target.closest?.('[data-training-strike]'))attackUntil=performance.now()+650;},{signal:abort.signal});
 
   async function install(bundle){
-    const next=await createSprite25dActor(view.THREE,bundle,{shadow:true});
+    const next=await createCharacter25dActor(view.THREE,bundle,{shadow:true});
     if(disposed){next.dispose();return;}
     actor?.dispose();
     actor=next;
@@ -70,7 +71,21 @@ export function installShino25dGuest(view,options={}){
       actor.object.position.set(anchor.x,anchor.y,anchor.z);
     }
 
-    actor.update({camera:view.camera,delta,yaw:0,moving:false});
+    const dt=Math.min(.05,Math.max(0,Number(delta)||0)),x=Number(state.position?.x),z=Number(state.position?.z);
+    const dx=x+1.15-actor.object.position.x,dz=z+.75-actor.object.position.z,distance=Math.hypot(dx,dz);
+    const speed=distance>2.5?3.4:1.3,moving=distance>.25,step=Math.min(distance,speed*dt);
+    if(moving){
+      const nx=actor.object.position.x+dx/distance*step,nz=actor.object.position.z+dz/distance*step;
+      if(!view.canMoveTo||view.canMoveTo(nx,nz,.22,'village',null))actor.object.position.set(nx,Number(state.position?.y)||0,nz);
+    }
+    actor.setEquipment(state.equipment?.weapon&&state.equipment.weapon!=='fist'?state.equipment:{weapon:'sword',shield:true});
+    actor.update({camera:view.camera,delta:dt,yaw:moving?Math.atan2(dx,dz):Number(state.yaw)||0,moving,speed,
+      attacking:performance.now()<attackUntil||Boolean(state.attacking||state.combat?.tidebreakPose?.attack),hit:Number(state.flash)>0,resting:Boolean(state.resting)});
+    // Observation only: no gameplay, save, attack or equipment authority is added.
+    if(performance.now()-lastObservation>200){
+      lastObservation=performance.now();const canvas=document.querySelector('#game');
+      if(canvas)canvas.dataset.character25d=JSON.stringify(actor.snapshot());
+    }
   }
 
   view.renderState=function(state,delta=0,renderOptions){
@@ -82,7 +97,7 @@ export function installShino25dGuest(view,options={}){
     if(disposed)return;
     disposed=true;
     abort.abort();
-    actor?.dispose();
+    actor?.dispose();const canvas=document.querySelector('#game');if(canvas)delete canvas.dataset.character25d;
   };
 
   view.dispose=function(...args){
@@ -93,3 +108,4 @@ export function installShino25dGuest(view,options={}){
   addEventListener('pagehide',dispose,{once:true,signal:abort.signal});
   return view;
 }
+

@@ -63,7 +63,15 @@ export function assertSprite25dManifest(value){
       if(clip.row!==DIRECTIONS.indexOf(direction))fail('方向の並び順が不正です');
     }
   }
-  const runtimeAssets=new Set([value.pose].filter(Boolean));
+  if(value.appearance!==undefined){
+    const a=value.appearance;
+    if(!record(a)||a.version!==1||a.method!=='auto-cutout-rig'||!record(a.views)||!a.views.front)fail('Actor appearanceが不正です');
+    for(const [view,hash] of Object.entries(a.views)){
+      if(!['front','quarter','side','back'].includes(view))fail('Actor viewが不正です');
+      checkRef(hash,true);
+    }
+  }
+  const runtimeAssets=new Set([value.pose,...Object.values(value.appearance?.views||{})].filter(Boolean));
   for(const action of ACTIONS)for(const clip of Object.values(value.animations[action]))if(clip)runtimeAssets.add(clip.asset);
   if([...runtimeAssets].reduce((sum,hash)=>sum+value.assets[hash].width*value.assets[hash].height,0)>8388608)fail('表示用画像は合計8Mピクセル以下にしてください');
   if(!record(value.render)||!Number.isFinite(value.render.height)||value.render.height<.3||value.render.height>3||!Array.isArray(value.render.pivot)||value.render.pivot.length!==2||value.render.pivot.some(n=>!Number.isFinite(n)||n<0||n>1))fail('接地点・高さが不正です');
@@ -80,9 +88,10 @@ export function sprite25dCoverage(bundle){
   return Object.fromEntries(ACTIONS.map(action=>[action,DIRECTIONS.filter(direction=>bundle.animations[action][direction]).length]));
 }
 export function pruneSprite25dAssets(bundle){
-  const used=new Set([...Object.values(bundle.references),bundle.pose].filter(Boolean));
+  const used=new Set([...Object.values(bundle.references),bundle.pose,...Object.values(bundle.appearance?.views||{})].filter(Boolean));
   for(const action of ACTIONS)for(const clip of Object.values(bundle.animations[action]))if(clip)used.add(clip.asset);
   for(const hash of used){const parent=bundle.assets[hash]?.provenance?.parentSha256;if(parent)used.add(parent);}
   for(const hash of Object.keys(bundle.assets))if(!used.has(hash))delete bundle.assets[hash];
   return bundle;
 }
+

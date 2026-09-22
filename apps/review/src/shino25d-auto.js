@@ -79,11 +79,7 @@ function chooseThree(candidates,width,height){
     if(!best||score>best.score)best={score,trio};
   }
   if(best)return best.trio;
-  // Character sheets often group FRONT/SIDE/BACK into one wide connected block.
-  const wide=candidates.find(item=>item.width/item.height>.58&&item.width>width*.15&&item.height>height*.24);
-  if(!wide)return null;
-  const cell=wide.width/3;
-  return [0,1,2].map(index=>({x:wide.x+cell*index,y:wide.y,width:cell,height:wide.height,score:wide.score-.2}));
+  return null;
 }
 
 function toSourceRect(item,scaleX,scaleY,sourceWidth,sourceHeight,pad=.035){
@@ -137,10 +133,13 @@ export async function autoPrepareCharacterSheet(file){
     const scaleX=source.width/width,scaleY=source.height/height,viewRects=trio?trio.map(item=>toSourceRect(item,scaleX,scaleY,source.width,source.height)):[toSourceRect(primary,scaleX,scaleY,source.width,source.height)];
     const assets={[source.sha256]:source},references={sheet:source.sha256,front:null,quarter:null,side:null,back:null};
     const names=['front','side','back'];
+    const views={front:null,side:null,back:null};let removedRatio=0;
     for(let index=0;index<viewRects.length;index++){
-      const viewAsset=await cropSpriteReference(source,{rect:viewRects[index],removeBorderWhite:false});assets[viewAsset.sha256]=viewAsset;references[names[index]]=viewAsset.sha256;
+      const result=await transparentCrop(source,viewRects[index],bg);
+      assets[result.asset.sha256]=result.asset;references[names[index]]=result.asset.sha256;views[names[index]]=result.asset.sha256;
+      if(index===0)removedRatio=result.removedRatio;
     }
-    const poseResult=await transparentCrop(source,viewRects[0],bg);assets[poseResult.asset.sha256]=poseResult.asset;
-    return {assets,references,pose:poseResult.asset.sha256,diagnostics:{views:trio?3:1,removedRatio:poseResult.removedRatio,confidence:trio&&poseResult.removedRatio>.08?'high':trio?'medium':'low'}};
+    return {assets,references,pose:views.front,appearance:{version:1,method:'auto-cutout-rig',views},diagnostics:{views:trio?3:1,removedRatio,confidence:trio&&removedRatio>.08?'high':trio?'medium':'low'}};
   }finally{canvas.width=canvas.height=1;}
 }
+

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createRinneWeapon} from '@soul/assets/equipment/three';
 import { PoseSchedule } from '@soul/characters';
 import { attentionLoadPriority, shouldPromoteAttention } from '@soul/rendering/attention-priority';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
@@ -87,7 +88,7 @@ function createEquipmentController({heroActor,weaponVisual,mat,disposeObject}){
   let weapon=null,shield=null;
   function syncEquipment(equipment){
     if(equipment.weapon!==weapon){const old=heroActor.detachWeapon('weapon');if(old)disposeObject(old);weapon=equipment.weapon;if(equipment.weapon!=='fist'){const object=weaponVisual(equipment.weapon);object.rotation.z=-Math.PI/2;heroActor.attachWeapon('weapon',object,{bone:'rightHand',position:[0,.02,0],quaternion:[0,0,0,1],scale:.72});}}
-    if(equipment.shield!==shield){const old=heroActor.detachWeapon('shield');if(old)disposeObject(old);shield=equipment.shield;if(equipment.shield){const object=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.07,18),mat(0x78919c,{metalness:.35,roughness:.48}));object.rotation.x=Math.PI/2;heroActor.attachWeapon('shield',object,{bone:'leftHand',position:[0,.03,0],quaternion:[0,0,0,1],scale:.8});}}
+    if(equipment.shield!==shield){const old=heroActor.detachWeapon('shield');if(old)disposeObject(old);shield=equipment.shield;if(equipment.shield){const object=createRinneWeapon(THREE,'shield');heroActor.attachWeapon('shield',object,{bone:'leftHand',position:[0,.03,0],quaternion:[0,0,0,1],scale:.8});}}
   }
   function dispose(){for(const id of ['weapon','shield']){const old=heroActor.detachWeapon(id);if(old)disposeObject(old);}}return{syncEquipment,dispose};
 }

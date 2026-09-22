@@ -73,7 +73,8 @@ test('shared actor selects UV rows/frames, preserves feet and disposes owned res
 });
 test('both apps consume declared shared exports and keep the opt-in separate from gameplay',()=>{
  const root=new URL('../',import.meta.url),read=path=>readFileSync(new URL(path,root),'utf8');
- for(const path of ['apps/review/src/shino25d-workshop.js','apps/review/src/hybrid-25d-lab.js','apps/rinne/src/rebuild/shino25d-guest.js']){const source=read(path);assert.ok(source.includes('@soul/assets/sprite25d'));assert.ok(!source.includes('../packages/'));}
+ for(const path of ['apps/review/src/shino25d-workshop.js','apps/review/src/hybrid-25d-lab.js','apps/rinne/src/rebuild/shino25d-guest.js']){const source=read(path);assert.match(source,/@soul\/assets\/(sprite25d|character25d)/);assert.ok(!source.includes('../packages/'));}
  const pkg=JSON.parse(read('packages/assets/package.json'));for(const suffix of ['','/browser','/three'])assert.ok(pkg.exports['./sprite25d'+suffix]);
  const guest=read('apps/rinne/src/rebuild/shino25d-guest.js');assert.ok(guest.includes('!state.interior'));assert.ok(guest.includes('!renderOptions?.titlePreview'));assert.ok(!guest.includes('localStorage'));
 });
+

@@ -12,7 +12,7 @@ export function mountShino25dWorkshop(lab){
   if(!lab)return;
   const {section,preview}=lab,host=document.createElement('section');host.className='lab-section shino25d-workshop';
   host.innerHTML=`<div class="section-head"><div><span>CHARACTER AUTO PREP</span><h2>画像を1枚入れるだけ</h2></div><small>端末内で自動処理</small></div>
-    <p class="shino25d-lead">作りたいキャラの材料画像を1枚入れてください。正面・側面・背面候補、透過2.5D素材、共存ビューまで自動で用意します。</p>
+    <p class="shino25d-lead">作りたいキャラの材料画像を1枚入れてください。身体と手持ち武器を一緒に動かします。三面図なら側面・背面も自動抽出。正面だけの絵では他の向きは推定表示です。</p>
     <label class="shino25d-drop" data-drop tabindex="0">
       <input data-auto-file type="file" accept="image/png,image/webp,image/jpeg" hidden>
       <strong>キャラ画像を選ぶ</strong><span>またはここへドロップ</span><small>PNG / JPG / WEBP · キャラシート1枚でOK</small>
@@ -67,7 +67,7 @@ export function mountShino25dWorkshop(lab){
   for(const view of REFERENCE_VIEWS){const option=document.createElement('option');option.value=view;option.textContent=VIEW_NAMES[view];find('[data-reference-view]').append(option);}
   for(const direction of DIRECTIONS){const option=document.createElement('option');option.value=direction;option.textContent=DIRECTION_NAMES[direction];find('[data-play-direction]').append(option);}
   let draft=createShinoDraft(),busy=false,disposed=false,timer=0,pendingTransfer=null;
-  const syncPlayback=()=>preview.setSpritePreview(find('[data-play-action]').value,find('[data-play-direction]').value||null);
+  const syncPlayback=()=>preview.setSpritePreview(null,find('[data-play-direction]').value||null);
 
   function resultAsset(key){return key==='pose'?draft.assets[draft.pose]:draft.assets[draft.references[key]];}
   function renderAutoResults(){
@@ -92,7 +92,7 @@ export function mountShino25dWorkshop(lab){
     pruneSprite25dAssets(next);assertSprite25dManifest(next);
     if(playable(next))await preview.setCharacter(next);else preview.clearCharacter();
     if(disposed)return;draft=next;render();syncPlayback();
-    const counts=sprite25dCoverage(draft);let suffix=`Idle ${counts.idle}/8 · Walk ${counts.walk}/8`;
+    const counts=sprite25dCoverage(draft);let suffix=`${draft.appearance?'Actor生成済み':`Idle ${counts.idle}/8 · Walk ${counts.walk}/8`}`;
     try{await saveSprite25dDraft(draft);suffix+=' · 端末に保存済み';}catch(error){suffix+=` · ${error.message}`;}
     setStatus(`${message} · ${suffix}`);
   }
@@ -103,7 +103,7 @@ export function mountShino25dWorkshop(lab){
   }
   async function autoInstall(file){
     setStatus('画像を解析中… 正面・側面・背面とゲーム表示用素材を探しています');
-    const prepared=await autoPrepareCharacterSheet(file),next=createShinoDraft();Object.assign(next.assets,prepared.assets);Object.assign(next.references,prepared.references);next.pose=prepared.pose;
+    const prepared=await autoPrepareCharacterSheet(file),next=createShinoDraft();Object.assign(next.assets,prepared.assets);Object.assign(next.references,prepared.references);next.pose=prepared.pose;next.appearance=prepared.appearance;
     const quality=prepared.diagnostics.confidence==='high'?'3方向を自動検出しました':prepared.diagnostics.views===3?'3方向候補を抽出しました':'正面候補を自動抽出しました';
     await commit(next,`${quality}。共存ビューに反映しました`);
   }
@@ -131,7 +131,7 @@ export function mountShino25dWorkshop(lab){
   },{signal:abort.signal});
 
   handleFile('[data-reference-file]',async file=>{const view=find('[data-reference-view]').value,asset=await importSpriteAsset(file),next=structuredClone(draft);next.assets[asset.sha256] ||= asset;next.references[view]=asset.sha256;await commit(next,'基準画を更新しました');});
-  async function installPose(asset){if(asset.width<8||asset.height<8||!asset.hasTransparency)throw new Error('透過PNG/WebPを選んでください');const next=structuredClone(draft);next.assets[asset.sha256] ||= asset;next.pose=asset.sha256;await commit(next,'透過キャラ画像を更新しました');}
+  async function installPose(asset){if(asset.width<8||asset.height<8||!asset.hasTransparency)throw new Error('透過PNG/WebPを選んでください');const next=structuredClone(draft);next.assets[asset.sha256] ||= asset;next.pose=asset.sha256;delete next.appearance;await commit(next,'透過キャラ画像を更新しました');}
   handleFile('[data-pose-file]',async file=>installPose(await importSpriteAsset(file)));
   find('[data-crop-pose]').addEventListener('click',()=>void run(async()=>{const source=draft.assets[draft.references[find('[data-reference-view]').value]];if(!source)throw new Error('切り出す基準画を選んでください');const rect=[...host.querySelectorAll('[data-crop]')].map(input=>Number(input.value));await installPose(await cropSpriteReference(source,{rect,removeBorderWhite:find('[data-remove-white]').checked}));}),{signal:abort.signal});
   handleFile('[data-atlas-file]',async file=>{const asset=await importSpriteAsset(file),next=structuredClone(draft),action=find('[data-atlas-action]').value,columns=Number(find('[data-columns]').value),fps=Number(find('[data-fps]').value);next.assets[asset.sha256] ||= asset;await validateSprite25dAtlas(asset,columns);for(const [row,direction] of DIRECTIONS.entries())next.animations[action][direction]={asset:asset.sha256,columns,rows:8,row,fps};await commit(next,`${action}の8方向シートを登録しました`);});
@@ -146,3 +146,4 @@ export function mountShino25dWorkshop(lab){
   timer=setInterval(()=>{if(!disposed)find('[data-play-status]').textContent=preview.getState().spriteStatus||'透過素材は未登録です';},350);
   const dispose=()=>{if(disposed)return;disposed=true;abort.abort();clearInterval(timer);};addEventListener('pagehide',dispose,{once:true});
 }
+
