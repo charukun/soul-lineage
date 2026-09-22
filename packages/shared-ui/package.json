@@ -24,7 +24,9 @@
     "./review-status": "./src/review/status.js",
     "./review-slot-picker": "./src/review/slot-picker.js",
     "./review-auto-install": "./src/review/auto-install.js",
-    "./review-load-controller": "./src/review/load-controller.js"
+    "./review-load-controller": "./src/review/load-controller.js",
+    "./rinne-player-hud": "./src/rinne-player-hud.js",
+    "./rinne-player-hud.css": "./src/rinne-player-hud.css"
   },
   "dependencies": {
     "@soul/audio": "*"
