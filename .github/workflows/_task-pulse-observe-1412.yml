@@ -38,7 +38,7 @@ jobs:
           await page.route('**/api/state',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(state)}));
           await page.route('**/version.json',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({commit:'bb82da64ca0be60438efa94f90e914ab27336001'})}));
           const errors=[]; page.on('pageerror',e=>errors.push(String(e)));
-          await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+          await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
           await page.waitForSelector('.rapid-execution-state');
           const badges=await page.locator('.rapid-execution-state').allTextContents();
           const health=await page.locator('#rapid-health-meta').textContent();
