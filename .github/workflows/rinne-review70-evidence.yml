@@ -1,0 +1,42 @@
+name: RINNE review 70 specialist evidence (temporary)
+on:
+  push:
+    branches: [fix/rinne-playreview70-20260922]
+permissions:
+  contents: read
+jobs:
+  context:
+    if: contains(github.event.head_commit.message, '[rinne-review-context]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 4866eb31c7bc9da1ead5379926aa6f805b117448
+          persist-credentials: false
+      - name: Package tracked task source (no assets, credentials or git database)
+        run: |
+          mkdir -p /tmp/rinne-review70
+          python3 - <<'PY'
+          import pathlib, subprocess, zipfile, json
+          root=pathlib.Path('.')
+          files=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          suffixes={'.js','.mjs','.cjs','.ts','.tsx','.css','.json','.jsonc','.html','.md','.yml','.yaml'}
+          with zipfile.ZipFile('/tmp/rinne-review70/source.zip','w',zipfile.ZIP_DEFLATED) as z:
+            for name in files:
+              p=root/name
+              if not name or not p.is_file() or p.suffix not in suffixes: continue
+              if not (name.startswith(('apps/rinne/','packages/','scripts/','tests/','docs/','.autonomous/rinne/','.github/')) or '/' not in name): continue
+              if p.stat().st_size>2000000: continue
+              try: p.read_text(encoding='utf-8')
+              except UnicodeError: continue
+              z.write(p,name)
+            z.writestr('SOURCE_SHA',subprocess.check_output(['git','rev-parse','HEAD']).decode())
+            z.writestr('TREE_INDEX',subprocess.check_output(['git','ls-tree','-rl','HEAD']).decode())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rinne-review70-source-4866eb31
+          path: /tmp/rinne-review70/
+          retention-days: 14
+          if-no-files-found: error
