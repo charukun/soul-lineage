@@ -108,3 +108,11 @@
   .rb-body-chart>div{grid-template-columns:96px minmax(0,1fr)}
   .rb-body-chart svg{max-height:78px}
 }
+
+.rb-tech-tools{flex:0 0 auto;display:grid;gap:5px;margin:0 0 7px;padding:7px 8px;border:1px solid #cbb692;border-radius:9px;background:#fff5dc9c}
+.rb-tech-tools>strong{font-family:var(--font-rinne-display),serif;font-size:clamp(11px,1.8vw,18px)}
+.rb-tech-tools>div{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.rb-tech-tools button,.rb-tech-tools select{min-height:36px;border:1px solid #b89e75;border-radius:6px;background:#fff3d8;padding:3px 5px;font-size:clamp(8px,1.2vw,12px)}
+.rb-tech-tools label{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:7px;font-size:11px}
+.rb-basis-note{display:block;margin-top:5px;color:#806c50;font-size:.78em;line-height:1.45}
+@media(max-width:620px){.rb-tech-tools>div{grid-template-columns:repeat(2,minmax(0,1fr))}.rb-tech-tools button,.rb-tech-tools select{min-height:44px;font-size:11px}}
