@@ -1,14 +1,15 @@
 import {shino25dGuestEnabled} from './shino25d-guest-policy.js';
 import {createSprite25dActor} from '@soul/assets/sprite25d/three';
-import {readSprite25dFile,loadSprite25dDraft,saveSprite25dDraft} from '@soul/assets/sprite25d/browser';
+import {readSprite25dFile,loadSprite25dDraft,saveSprite25dDraft,verifySprite25dBundle} from '@soul/assets/sprite25d/browser';
 import './shino25d-guest.css';
 
 // Opt-in visual guest only. Never writes life, combat, NPC or family state.
 export function installShino25dGuest(view,options={}){
   if(!shino25dGuestEnabled(location.search,options.environment))return view;
   if(!view?.scene||!view.THREE||!view.camera)return view;
+  const params=new URLSearchParams(location.search),transferToken=params.get('spriteTransfer');
   const panel=document.createElement('details');panel.className='shino25d-guest';panel.open=true;
-  panel.innerHTML='<summary>しのちゃん · 仮表示</summary><p>工房で書き出したbundleを選び、通常どおり人生を開始してください。主人公やセーブは変更しません。</p><label>素材bundle<input type="file" accept="application/json,.json"></label><button type="button">隣へ呼ぶ</button><output role="status" aria-live="polite">素材は未登録です</output>';
+  panel.innerHTML='<summary>しのちゃん · 仮表示</summary><p>Visual Review Labから素材を自動受信できます。必要な時だけbundleを手動選択してください。主人公やセーブは変更しません。</p><label>素材bundle<input type="file" accept="application/json,.json"></label><button type="button">隣へ呼ぶ</button><output role="status" aria-live="polite">素材を待っています</output>';
   document.body.append(panel);
   const output=panel.querySelector('output'),input=panel.querySelector('input'),abort=new AbortController();
   let actor=null,anchor=null,disposed=false,loading=false;
@@ -25,8 +26,21 @@ export function installShino25dGuest(view,options={}){
     finally{loading=false;if(!disposed)input.disabled=false;}
   }
   input.addEventListener('change',event=>{const file=event.currentTarget.files?.[0];input.value='';if(!file)return;void load(async()=>{const bundle=await readSprite25dFile(file);await install(bundle);try{await saveSprite25dDraft(bundle);}catch(error){if(!disposed)output.textContent+=` · ${error.message}`;}});},{signal:abort.signal});
-  panel.querySelector('button').addEventListener('click',()=>{anchor=null;output.textContent=actor?'近くの空いている場所へ配置します':'まずbundleを選んでください';},{signal:abort.signal});
+  panel.querySelector('button').addEventListener('click',()=>{anchor=null;output.textContent=actor?'近くの空いている場所へ配置します':'素材を受信するかbundleを選んでください';},{signal:abort.signal});
   for(const type of ['pointerdown','pointerup','click','keydown','keyup'])panel.addEventListener(type,event=>event.stopPropagation(),{signal:abort.signal});
+
+  if(transferToken&&window.opener){
+    window.addEventListener('message',event=>{
+      if(event.source!==window.opener||event.data?.type!=='rinne.character25d.transfer'||event.data?.token!==transferToken)return;
+      void load(async()=>{
+        const bundle=await verifySprite25dBundle(event.data.bundle);await install(bundle);
+        try{await saveSprite25dDraft(bundle);}catch(error){if(!disposed)output.textContent+=` · ${error.message}`;}
+        event.source.postMessage({type:'rinne.character25d.received',token:transferToken},event.origin);
+      });
+    },{signal:abort.signal});
+    try{window.opener.postMessage({type:'rinne.character25d.ready',token:transferToken},'*');output.textContent='Visual Review Labから素材を受信中…';}catch{output.textContent='自動受信できません。bundleを選んでください';}
+  }
+
   function updateGuest(state,delta,renderOptions){
     if(!actor)return;
     const visible=state?.zone==='village'&&!state.interior&&!state.ended&&!renderOptions?.titlePreview;
@@ -47,6 +61,6 @@ export function installShino25dGuest(view,options={}){
   const dispose=()=>{if(disposed)return;disposed=true;abort.abort();actor?.dispose();panel.remove();};
   view.dispose=function(...args){dispose();return originalDispose?.apply(this,args);};
   addEventListener('pagehide',dispose,{once:true,signal:abort.signal});
-  void load(async()=>{const saved=await loadSprite25dDraft();if(saved)await install(saved);});
+  void load(async()=>{const saved=await loadSprite25dDraft();if(saved)await install(saved);else if(!transferToken)output.textContent='素材は未登録です';});
   return view;
 }
