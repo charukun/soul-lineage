@@ -1,34 +1,83 @@
 name: Camera Presentation specialist (task only)
-run-name: Materialize alternate 3D camera bridge PR1490
+run-name: Final camera evidence PR1490 a4b0adadc92725cf05daf5eb0adc3f3232bd2823
 on:
   push:
     branches: [dispatch/camera-presentation-specialist-20260923]
 permissions:
-  contents: write
+  contents: read
+  actions: read
+  pull-requests: read
 jobs:
-  materialize:
+  browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [exploration, combat, driven, interior, occlusion, review]
+    env:
+      APP_ENV: dev
+      CAMERA_SCENARIO: ${{ matrix.scenario }}
     steps:
       - uses: actions/checkout@v6
         with:
           path: control
           persist-credentials: false
-          sparse-checkout: |
-            scripts
-            packages/rendering
+          sparse-checkout: scripts
       - uses: actions/checkout@v6
         with:
-          ref: d62bc23e13d2ad2d2f67011235582cb8d34f1271
+          ref: a4b0adadc92725cf05daf5eb0adc3f3232bd2823
           path: work
           persist-credentials: false
-      - name: Materialize injected camera port as source blobs only
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: work/package-lock.json
+      - run: npm ci --ignore-scripts
         working-directory: work
+      - run: npm run build:rinne && npm run build:review
+        working-directory: work
+      - run: npx playwright install --with-deps chromium
+        working-directory: work
+      - name: Final immutable camera and native input evidence
+        working-directory: work
+        run: |
+          cp ../control/scripts/browser/camera-playtest-task.mjs scripts/browser/camera-playtest-task.mjs
+          python3 ../control/scripts/camera-native-input-patch.py
+          python3 ../control/scripts/camera-shard-patch.py
+          python3 ../control/scripts/camera-interior-route-patch.py
+          python3 ../control/scripts/camera-final-browser-patch.py
+          node --check scripts/browser/camera-playtest-task.mjs
+          node scripts/browser/camera-playtest-task.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: camera-final-a4b0adadc92725cf05daf5eb0adc3f3232bd2823-${{ matrix.scenario }}
+          path: work/test-results/camera-presentation
+          retention-days: 14
+  summary:
+    needs: browser
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: a4b0adadc92725cf05daf5eb0adc3f3232bd2823
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Existing status-first merge-window summary
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 ../control/scripts/materialize-camera-driven-bridge.py
+        run: |
+          mkdir -p /tmp/camera-summary
+          npm run actions:summary -- --repo charukun/soul-lineage --pr 1490 --sha a4b0adadc92725cf05daf5eb0adc3f3232bd2823 --output /tmp/camera-summary/actions-summary.json
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: camera-driven-bridge-source
-          path: /tmp/camera-driven-bridge
-          retention-days: 7
+          name: camera-merge-summary-a4b0adadc92725cf05daf5eb0adc3f3232bd2823
+          path: /tmp/camera-summary
+          retention-days: 14
