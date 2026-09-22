@@ -28,7 +28,7 @@ jobs:
         run: |
           mkdir -p generated/heroine-opacity
           sudo apt-get update -qq > generated/heroine-opacity/apt.log 2>&1
-          sudo apt-get install -y blender python3-numpy python3-pil >> generated/heroine-opacity/apt.log 2>&1
+          sudo apt-get install -y blender python3-numpy python3-pil libegl1 libegl-mesa0 libgl1-mesa-dri >> generated/heroine-opacity/apt.log 2>&1
           npm ci --ignore-scripts > generated/heroine-opacity/npm.log 2>&1
           npx playwright install --with-deps chromium > generated/heroine-opacity/chromium.log 2>&1
       - name: Execute bounded same-head authoring and observation
