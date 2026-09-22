@@ -16,7 +16,16 @@ await context.tracing.start({screenshots:true,snapshots:true,sources:true});
 const page=await context.newPage();
 page.on('pageerror',error=>receipt.consoleErrors.push(error.message));
 page.on('requestfailed',request=>receipt.networkFailures.push({url:request.url(),failure:request.failure()?.errorText}));
-async function screenshot(name){const file=`${phase}-${name}.png`;await page.screenshot({path:path.join(output,file)});receipt.screenshots.push(file);}
+async function screenshot(name){
+  const file=`${phase}-${name}.png`;
+  await page.screenshot({path:path.join(output,file)});receipt.screenshots.push(file);
+  if(phase!=='before'&&name!=='failure'){
+    const opacity=await page.locator('#battle-body-hud').evaluate(root=>{
+      let value=1;for(let node=root;node;node=node.parentElement)value*=Number(getComputedStyle(node).opacity);return value;
+    });
+    assert.ok(opacity>=.95,`HUD visually hidden during ${name}: opacity ${opacity}`);
+  }
+}
 async function controls(open){
   const button=page.getByRole('button',{name:'表示・再生コントロール',exact:true});
   await expect(button).toBeVisible();
@@ -33,13 +42,20 @@ async function bounds(label){
   const result=await page.evaluate(()=>{
     const root=document.querySelector('#battle-body-hud'),stage=root.closest('.stage'),detail=root.querySelector('.combat-body-hud__detail');
     const rect=node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};
-    return{viewport:{width:innerWidth,height:innerHeight},hud:rect(root),stage:rect(stage),detail:detail.hidden?null:rect(detail),parts:[...root.querySelectorAll('[data-body-part]')].map(node=>({id:node.dataset.bodyPart,...rect(node)})),documentOverflow:document.documentElement.scrollWidth>innerWidth+1};
+    let opacity=1;for(let node=root;node;node=node.parentElement)opacity*=Number(getComputedStyle(node).opacity);
+    const detailRow=detail.querySelector('.combat-body-hud__detail-row');
+    return{opacity,detailFont:detailRow?parseFloat(getComputedStyle(detailRow).fontSize):null,viewport:{width:innerWidth,height:innerHeight},hud:rect(root),stage:rect(stage),detail:detail.hidden?null:rect(detail),parts:[...root.querySelectorAll('[data-body-part]')].map(node=>({id:node.dataset.bodyPart,...rect(node)})),documentOverflow:document.documentElement.scrollWidth>innerWidth+1};
   });
   if(phase!=='before'){
+    assert.ok(result.opacity>=.95,'Body HUD is geometrically present but visually hidden');
     assert.ok(result.hud.x>=result.stage.x&&result.hud.x-result.stage.x<28,'HUD is not in upper-left');
     assert.ok(result.hud.y>=result.stage.y&&result.hud.y-result.stage.y<28,'HUD top offset');
     assert.ok(result.parts.every(p=>p.width>=24&&p.height>=24),'Small touch target');
-    if(result.detail){const r=result.detail;assert.ok(r.x>=-1&&r.y>=-1&&r.right<=result.viewport.width+1&&r.bottom<=result.viewport.height+1,'Detail leaves viewport');assert.ok(r.right<=result.stage.right+1&&r.bottom<=result.stage.bottom+1,'Detail leaves stage');}
+    if(result.detail){
+      assert.ok(result.detailFont>=12,'Detail type is too small');
+      const r=result.detail;assert.ok(r.x>=-1&&r.y>=-1&&r.right<=result.viewport.width+1&&r.bottom<=result.viewport.height+1,'Detail leaves viewport');
+      assert.ok(r.right<=result.stage.right+1&&r.bottom<=result.stage.bottom+1,'Detail leaves stage');
+    }
     assert.equal(result.documentOverflow,false,'Horizontal page overflow');
   }
   receipt.checks.push({label,...result});
