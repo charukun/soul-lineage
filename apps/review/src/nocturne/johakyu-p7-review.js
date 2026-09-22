@@ -205,7 +205,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
   if(!PHASES.includes(heroStartPhase)||!Number.isInteger(heroStartTechniqueIndex)||heroStartTechniqueIndex<0||heroStartTechniqueIndex>2)throw new RangeError('Invalid hero start');
   const reviewLoadout=loadout?normalizeBattle2Loadout(loadout):null,loadoutId=reviewLoadout?battle2LoadoutKey(reviewLoadout):'full';
   let encounter=1,epoch=1,revision=0,time=0,resumes=0,resumed=false,battle,respawnAt=null;
-  let actionState=new Map(),reactionState=new Map(),reactionCooldowns=new Map(),defenseRhythm=new Map(),cursors=new Map(),readyAt=new Map(),positions=new Map(),recoveries=new Map(),maneuvers=new Map(),counterWindows=new Map(),exchangeStates=new Map(),normalPending=new Set(),settleAt=new Map(),terminalFacings=new Map(),phaseCues=new Map(),phaseCueSeen=new Set(),lastEvents=[],trace=[],currentActivity=[],lastFrame=null,lastMeta=null,attemptSerial=0;
+  let actionState=new Map(),reactionState=new Map(),reactionCooldowns=new Map(),defenseRhythm=new Map(),cursors=new Map(),readyAt=new Map(),positions=new Map(),recoveries=new Map(),maneuvers=new Map(),counterWindows=new Map(),exchangeStates=new Map(),normalPending=new Set(),settleAt=new Map(),initiativeHandoffs=new Map(),terminalFacings=new Map(),phaseCues=new Map(),phaseCueSeen=new Set(),lastEvents=[],trace=[],currentActivity=[],lastFrame=null,lastMeta=null,attemptSerial=0;
 
   function cursorFor(actor){let cursor=cursors.get(actor.id);if(!cursor){cursor=cursorState(comboStyle,reviewLoadout);cursors.set(actor.id,cursor);}return cursor;}
   function seedReadyWindow(delay=.24){readyAt.clear();for(const actor of battle.actors.values())readyAt.set(actor.id,time+Math.max(0,delay+(actor.side==='enemy'?.12-enemyLeadSeconds:0)));}
@@ -215,7 +215,7 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
       return kept?{...base,...kept,id:row.id,side:row.side,dead:false,incapacitated:false}:base;
     });
     battle=createJohakyuBattle({battleId:'review-p7:'+mode+':'+loadoutId+':'+encounter,actors:rows,seed:73917+encounter});
-    actionState=new Map();reactionState=new Map();reactionCooldowns=new Map();defenseRhythm=new Map();cursors=new Map();readyAt=new Map();positions=new Map(Object.entries(LAYOUT).filter(([id])=>battle.actors.has(id)).map(([id,row])=>[id,{x:row.x,z:row.z}]));recoveries=new Map();maneuvers=new Map();counterWindows=new Map();exchangeStates=new Map();normalPending=new Set();settleAt=new Map();terminalFacings=new Map();phaseCues=new Map();phaseCueSeen=new Set();respawnAt=null;
+    actionState=new Map();reactionState=new Map();reactionCooldowns=new Map();defenseRhythm=new Map();cursors=new Map();readyAt=new Map();positions=new Map(Object.entries(LAYOUT).filter(([id])=>battle.actors.has(id)).map(([id,row])=>[id,{x:row.x,z:row.z}]));recoveries=new Map();maneuvers=new Map();counterWindows=new Map();exchangeStates=new Map();normalPending=new Set();settleAt=new Map();initiativeHandoffs=new Map();terminalFacings=new Map();phaseCues=new Map();phaseCueSeen=new Set();respawnAt=null;
     cursors.set('hero',{comboStyle,loadout:reviewLoadout,phaseIndex:PHASES.indexOf(heroStartPhase),techniqueIndex:heroStartTechniqueIndex,stageIndex:0,cycle:0});
     if(mode==='duel')positions.set('enemy-a',{x:LAYOUT.hero.x,z:LAYOUT.hero.z+duelGap});
     if(carry)for(const [id,row] of carry)if(positions.has(id)&&row.position)positions.set(id,{...row.position});
@@ -460,8 +460,11 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     if(actor.id==='hero'&&moved.before.phase!==moved.after.phase)traceRow({type:'phase-change',phase:moved.after.phase,reason:'configured-chain-complete'});
     const target=battle.actors.get(state.targetId);
     if(actor.side==='party'&&techniqueComplete&&!exchangeComplete&&target){
-      const yielded=updateExchange(actor,target,{type:'offense-complete',phase:moved.before.phase,serial:state.exchangeSerial});
-      if(yielded.mode==='zanshin'){readyAt.set(actor.id,Math.max(readyAt.get(actor.id)||0,time+.46));traceRow({type:'initiative-yield',actorId:actor.id,targetId:target.id,phase:moved.before.phase});}
+      const key=exchangeKey(actor,target),current=exchangeFor(actor,target);
+      initiativeHandoffs.set(key,{sourceId:target.id,targetId:actor.id});
+      if(current.mode==='pressure'&&current.initiativeId===actor.id)updateExchange(actor,target,{type:'offense-complete',phase:moved.before.phase,serial:state.exchangeSerial});
+      readyAt.set(actor.id,Math.max(readyAt.get(actor.id)||0,time+.46));
+      traceRow({type:'initiative-yield',actorId:actor.id,targetId:target.id,phase:moved.before.phase});
     }
     if(exchangeComplete&&target){
       updateExchange(actor,target,{type:'kyu-complete',phase:'kyu',serial:state.exchangeSerial});
@@ -644,9 +647,10 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     currentActivity=[];
     time+=dt;revision++;
     for(const [key,until]of settleAt)if(time>=until){const row=exchangeStates.get(key);exchangeStates.set(key,reduceJohakyuExchange(row,{type:'settle'}));settleAt.delete(key);}
+    for(const [key,handoff]of initiativeHandoffs){const exchange=exchangeStates.get(key);if(exchange?.mode!=='read')continue;const source=battle.actors.get(handoff.sourceId),target=battle.actors.get(handoff.targetId);initiativeHandoffs.delete(key);if(!source||!target||source.dead||source.incapacitated||target.dead||target.incapacitated)continue;updateExchange(source,target,{type:'normal-start',phase:'jo'});traceRow({type:'initiative-handoff',actorId:source.id,targetId:target.id,phase:'jo'});}
     for(const actor of battle.actors.values())recoverJohakyuStamina(actor,dt);
     const actions=new Map([...battle.actors.values()].map(actor=>[actor.id,currentAction(actor)]));advanceFootwork(battle,positions,actions,maneuvers,time,dt,reviewLoadout);resolveBodySeparation(battle,positions);const events=applyContacts(actions,physicalContacts);
-    if(!battle.result&&checkpointSeconds>0&&!resumed&&time>=checkpointSeconds){const checkpoint=createJohakyuCheckpoint({battle,lifeId:'review-life',ageSeconds:28*60,encounterId:`review-${encounter}`});battle=restoreJohakyuCheckpoint(checkpoint).battle;epoch++;revision=0;resumes++;resumed=true;actionState.clear();reactionState.clear();reactionCooldowns.clear();defenseRhythm.clear();counterWindows.clear();exchangeStates.clear();normalPending.clear();settleAt.clear();cursors.clear();maneuvers.clear();recoveries.clear();phaseCues.clear();phaseCueSeen.clear();seedReadyWindow(.08);traceRow({type:'resume',epoch});}
+    if(!battle.result&&checkpointSeconds>0&&!resumed&&time>=checkpointSeconds){const checkpoint=createJohakyuCheckpoint({battle,lifeId:'review-life',ageSeconds:28*60,encounterId:`review-${encounter}`});battle=restoreJohakyuCheckpoint(checkpoint).battle;epoch++;revision=0;resumes++;resumed=true;actionState.clear();reactionState.clear();reactionCooldowns.clear();defenseRhythm.clear();counterWindows.clear();exchangeStates.clear();normalPending.clear();settleAt.clear();initiativeHandoffs.clear();cursors.clear();maneuvers.clear();recoveries.clear();phaseCues.clear();phaseCueSeen.clear();seedReadyWindow(.08);traceRow({type:'resume',epoch});}
     // No timed reset of a living encounter. Keep the final impact and terminal
     // actors in this epoch long enough to play their fall before endless repop.
     if(battle.result&&respawnAt===null){respawnAt=time+RESPAWN_DELAY_SECONDS;traceRow({type:'encounter-ended',winner:battle.result.winner,respawnDelay:RESPAWN_DELAY_SECONDS});}
