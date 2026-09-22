@@ -1,4 +1,4 @@
-import './character-reference-workshop.js';
+import '../../character-reference-workshop.js';
 import { qualitySettings, qualityIdentity, qualityProfile, qualityReport } from '../../character-quality-state.js';
 import { BASE_APPEARANCE_PARTS, canonicalAppearanceParts, mergeAppearanceParts, nextAppearanceParts,
   characterReferenceModel, characterReferenceArchetype } from '@soul/characters';
