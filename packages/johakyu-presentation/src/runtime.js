@@ -499,7 +499,7 @@ function createDrivenPort(){
    }
    applyFatigue(a,row,dt);applyParryRecoil(a);sampleWeaponTrace(a,dt);
    if(terminal)a.deathTime+=dt;
-   a.flash=Math.max(0,a.flash-dt);const cueProgress=Math.max(0,Math.min(1,Number(phaseCue?.progress)||0)),cueColor=phaseCue?.glow?new THREE.Color(phaseCue.glow):null,cueBlink=Boolean(phaseCue&&Math.sin(cueProgress*Math.PI*6)>.05),cueGlow=cueBlink?2.05:0;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(new THREE.Color('#ffe7c4'));mat.emissiveIntensity=1.7;}else if(cueColor&&cueBlink){mat.emissive.copy(cueColor);mat.emissiveIntensity=Math.max(power,cueGlow);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
+   a.flash=Math.max(0,a.flash-dt);const cueProgress=Math.max(0,Math.min(1,Number(phaseCue?.progress)||0)),cueColor=phaseCue?.glow?new THREE.Color(phaseCue.glow):null,cueBlink=Boolean(phaseCue&&Math.sin(cueProgress*Math.PI*4)>.05),cueGlow=cueBlink?2.05:0;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(new THREE.Color('#ffe7c4'));mat.emissiveIntensity=1.7;}else if(cueColor&&cueBlink){mat.emissive.copy(cueColor);mat.emissiveIntensity=Math.max(power,cueGlow);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
   },
   impact(event,source,target){
    if(event.type==='clash'){

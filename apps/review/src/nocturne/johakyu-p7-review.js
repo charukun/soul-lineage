@@ -18,7 +18,7 @@ const KIND_DAMAGE=Object.freeze({slash:13,back:13,thrust:15,pierce:17,heavy:24,d
 const RHYTHM_SECONDS=Object.freeze({sharp:.58,flow:.66,weight:.82,elastic:.64,seamless:.54});
 const CONTACT_REACH=2.35,BODY_CLEARANCE=1.46,FIGHTING_SPACING=1.92,DEEP_ENTRY_SPACING=1.72,ENGAGE_DISTANCE=2.24,DISENGAGE_DISTANCE=3.05,COUNTER_PRESS_DISTANCE=2.08;
 const RECOVERY_SECONDS=Object.freeze({miss:.62,blocked:.52,parried:.78,countered:.88,'hit-before-contact':.42,hit:.28});
-const PHASE_CUE_SECONDS=.5,PHASE_CUE_PRESENTATION=Object.freeze({jo:Object.freeze({clip:'Blocking',poseProgress:.34,glow:'#b8e7ff'}),ha:Object.freeze({clip:'1H_Melee_Attack_Slice_Diagonal',poseProgress:.18,glow:'#d7f4ff'}),kyu:Object.freeze({clip:'1H_Melee_Attack_Stab',poseProgress:.2,glow:'#f0fbff'})});
+const PHASE_CUE_SECONDS=.5,PHASE_CUE_PRESENTATION=Object.freeze({jo:Object.freeze({clip:'Blocking',poseProgress:.34,glow:'#ff8f32'}),ha:Object.freeze({clip:'1H_Melee_Attack_Slice_Diagonal',poseProgress:.18,glow:'#ffa447'}),kyu:Object.freeze({clip:'1H_Melee_Attack_Stab',poseProgress:.2,glow:'#ffbb63'})});
 const REACTION_SECONDS=Object.freeze({guard:.36,parry:.32,slip:.3,counter:.52}),DEFENSE_COOLDOWN=Object.freeze({guard:.24,parry:.3,slip:.2}),HEAVY_THREATS=new Set(['heavy','sweep','bash','pommel']);
 const DEFENSE_WINDOW=Object.freeze({guard:[0,.98],brace:[0,.98],parry:[.04,.92],slip:[0,.76]});
 const FOOTWORK_SPEED=Object.freeze({stay:0,forward:.72,chase:1.08,rush:1.5,retreat:.96,sideL:.82,sideR:.82,orbitL:.58,orbitR:.58,cross:.82,spiral:.9,counterL:1.08,counterR:1.08});
@@ -54,7 +54,7 @@ const ENEMY_COMPOSITION=buildComposition({
 const equippedCompositions=new Map();
 
 const BATTLE2_STAMINA_COST_MULTIPLIER=.12;
-function actorRows(mode){const rows=[{id:'hero',side:'party',hp:125,maxHp:125,stamina:100,staminaCap:100,seed:73917,generation:4},{id:'enemy-a',side:'enemy',hp:mode==='duel'?150:100,maxHp:mode==='duel'?150:100,stamina:100,staminaCap:100,seed:8101,generation:1}];if(mode==='oneVsThree')rows.push({id:'enemy-b',side:'enemy',hp:82,maxHp:82,stamina:96,staminaCap:100,seed:8102,generation:1},{id:'enemy-c',side:'enemy',hp:108,maxHp:108,stamina:100,staminaCap:100,seed:8103,generation:1});return rows.map(row=>({...row,staminaMultiplier:BATTLE2_STAMINA_COST_MULTIPLIER,equipment:{weapon:'sword',armor:row.side==='party'?'heavy':'cloth',shield:false}}));}
+function actorRows(mode){const rows=[{id:'hero',side:'party',hp:125,maxHp:125,stamina:100,staminaCap:100,seed:73917,generation:4},{id:'enemy-a',side:'enemy',hp:46,maxHp:46,stamina:100,staminaCap:100,seed:8101,generation:1}];if(mode==='oneVsThree')rows.push({id:'enemy-b',side:'enemy',hp:46,maxHp:46,stamina:96,staminaCap:100,seed:8102,generation:1},{id:'enemy-c',side:'enemy',hp:46,maxHp:46,stamina:100,staminaCap:100,seed:8103,generation:1});return rows.map(row=>({...row,staminaMultiplier:BATTLE2_STAMINA_COST_MULTIPLIER,equipment:{weapon:'sword',armor:row.side==='party'?'heavy':'cloth',shield:false}}));}
 function bodyView(actor){return Object.fromEntries(Object.entries(actor.injuries).map(([part,row])=>{const severity=Math.min(1,Math.max(0,Number(row.severity)||0));return[part,{severity,durability:Math.round((1-severity)*100),label:PART_LABELS[part]}];}));}
 function selectTarget(battle,id){for(const candidate of TARGETS[id]){const actor=battle.actors.get(candidate);if(actor&&!actor.dead&&!actor.incapacitated)return actor;}return null;}
 function compositionFor(actor,comboStyle='composed'){
