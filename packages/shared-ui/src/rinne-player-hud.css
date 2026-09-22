@@ -2,9 +2,11 @@
 .rinne-player-hud{position:relative;display:grid;grid-template-columns:48px minmax(0,1fr) 12px;align-items:center;gap:7px;width:150px;min-height:58px;padding:5px 7px 5px 5px;border:1px solid rgba(213,180,111,.56);border-bottom-color:rgba(103,73,39,.82);border-radius:17px 12px 12px 17px;background:linear-gradient(145deg,rgba(40,43,35,.96),rgba(20,27,26,.95));box-shadow:inset 0 1px rgba(255,244,214,.12),inset 0 -3px rgba(0,0,0,.2),0 5px 13px rgba(0,0,0,.28);font-family:var(--font-rinne-display,ui-serif),"Yu Mincho","Hiragino Mincho ProN",serif;color:#f6ecd2}
 .rinne-player-hud::after{content:"";position:absolute;left:54px;right:18px;bottom:5px;height:1px;background:linear-gradient(90deg,rgba(213,180,111,.42),transparent)}
 .rinne-player-hud__portrait{position:relative;width:46px;height:46px;overflow:hidden;border:2px solid rgba(246,225,177,.74);border-radius:15px;background:radial-gradient(circle at 52% 34%,rgba(214,186,121,.36),transparent 42%),#18201e;box-shadow:inset 0 0 0 2px rgba(53,39,24,.48),0 2px 6px rgba(0,0,0,.34)}
-.rinne-player-hud__portrait canvas{display:block;width:100%;height:100%;object-fit:cover;filter:saturate(.9) contrast(1.03)}
+.rinne-player-hud__portrait canvas,.rinne-player-hud__avatar{display:block;width:100%;height:100%;object-fit:cover}
+.rinne-player-hud__portrait canvas{filter:saturate(.9) contrast(1.03)}
+.rinne-player-hud__avatar{position:absolute;inset:0}
 .rinne-player-hud__fallback{position:absolute;inset:0;display:grid;place-items:center;color:#e2c77f;font-size:20px;background:radial-gradient(circle at 50% 45%,rgba(227,198,130,.14),transparent 58%)}
-.rinne-player-hud-host[data-portrait="live"] .rinne-player-hud__fallback{display:none}
+.rinne-player-hud-host[data-portrait="live"] .rinne-player-hud__fallback,.rinne-player-hud-host[data-portrait="static"] .rinne-player-hud__fallback,.rinne-player-hud-host[data-portrait="static"] .rinne-player-hud__portrait canvas{display:none}
 .rinne-player-hud__text{display:grid;align-content:center;gap:2px;min-width:0}.rinne-player-hud__name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700;letter-spacing:.04em;text-shadow:0 1px #000}.rinne-player-hud__age{color:#d5c39d;font-size:9px;letter-spacing:.08em}
 .rinne-player-hud__charm{align-self:start;margin-top:2px;color:#e5bb78;font-size:10px;font-style:normal;opacity:.86}
 @media(max-width:410px){.rinne-player-hud-host{left:max(6px,env(safe-area-inset-left));top:max(51px,calc(env(safe-area-inset-top) + 44px))}.rinne-player-hud{grid-template-columns:43px minmax(0,1fr) 10px;width:134px;min-height:52px;gap:6px;padding:4px 6px 4px 4px}.rinne-player-hud__portrait{width:41px;height:41px;border-radius:13px}.rinne-player-hud__name{font-size:12px}.rinne-player-hud__age{font-size:8px}}
