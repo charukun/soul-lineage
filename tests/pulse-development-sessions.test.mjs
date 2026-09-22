@@ -129,3 +129,29 @@ test('draft implementation exposes a live start time and exact-head validation a
   assert.equal(validating.startedAt,'2026-09-22T05:06:00Z');
   assert.equal(validating.completedAt,'2026-09-22T05:06:30Z');
 });
+
+
+test('open draft without an active Actions run is IDLE instead of falsely RUNNING',()=>{
+  const draft={...pr,state:'open',draft:true,merged_at:null,merge_commit_sha:null,created_at:'2026-09-22T06:00:00Z',updated_at:'2026-09-22T06:04:00Z'};
+  const [session]=buildDevelopmentSessions([draft],[]);
+  assert.equal(session.execution.state,'idle');
+  assert.equal(session.execution.label,'IDLE');
+  assert.equal(session.execution.lastActivityAt,'2026-09-22T06:04:00Z');
+  assert.match(session.execution.detail,/実行中の処理なし/);
+});
+
+test('execution state distinguishes validation, blocked and merge-ready work',()=>{
+  const open={...pr,state:'open',draft:true,merged_at:null,merge_commit_sha:null,updated_at:'2026-09-22T06:10:00Z'};
+  const validating={...run(10,'Astra Work Validation',head,null,{head_branch:open.head.ref}),status:'in_progress',conclusion:null,created_at:'2026-09-22T06:10:00Z',updated_at:'2026-09-22T06:10:30Z'};
+  let [session]=buildDevelopmentSessions([open],[validating]);
+  assert.equal(session.execution.state,'validating');
+
+  const failed={...run(11,'Astra Work Validation',head,'failure',{head_branch:open.head.ref}),created_at:'2026-09-22T06:11:00Z',updated_at:'2026-09-22T06:11:30Z'};
+  [session]=buildDevelopmentSessions([open],[failed]);
+  assert.equal(session.execution.state,'blocked');
+
+  const ready={...open,draft:false,updated_at:'2026-09-22T06:12:00Z',body:'Browser-Playtest: not-required'};
+  const passed={...run(12,'Astra Work Validation',head,'success',{head_branch:ready.head.ref}),created_at:'2026-09-22T06:12:00Z',updated_at:'2026-09-22T06:12:30Z'};
+  [session]=buildDevelopmentSessions([ready],[passed]);
+  assert.equal(session.execution.state,'merging');
+});

@@ -1,3 +1,5 @@
+import {classifyJohakyuParry,johakyuExchangeRestartActors,johakyuExchangeIntent} from '@soul/johakyu-combat/exchange-policy';
+import {createTidebreakExchangeObserver} from './exchange-observer.js';
 import { cloneInspirationWeaponArts } from '@soul/game-data';
 import {createSharedTidebreakFacade,installSharedTidebreakWeaponProfiles,sharedPommelContact} from './shared-runtime-facade.js';
 
@@ -1357,9 +1359,10 @@ function nextStep(a){if(!a.run)return;a.run.index++;if(a.run.index>=3){finishSeq
  if(STRIKES[next.kind].damage>0&&gap>WEAPONS[a.weapon].ideal+(BIG_FEET.has(next.footwork)?5.4:STRIKES[next.kind].lunge)+1.25){finishSequence(a,true);a.cool=.30;return;}
  if(a.hero)stats.connections++;beginStep(a);
 }
+function decisiveContact(target,attack){return (STRIKES[attack?.kind]?.damage||0)>=36||(Number(attack?.damage)||0)/Math.max(1,target.maxhp)>=.16;}
 function knockReaction(a,source,attack,guarded=false){const q=poseChannels(a),v=motionVelocity(a),dx=a.x-source.x,dz=a.z-source.z,d=Math.hypot(dx,dz)||1;
  const heavy=STRIKES[attack.kind]?.damage>=36,defending=STRIKES[a.attack?.kind]?.defense;
- if(a.attack&&!guarded&&!defending){audio.cancelAttack(a.attack.id);a.attack=null;finishSequence(a,true);}
+ if(a.attack&&!guarded&&!defending&&decisiveContact(a,attack)){audio.cancelAttack(a.attack.id);a.attack=null;finishSequence(a,true);}
  if(!a.attack){a.exitPose=null;a.exitAge=1;a.reaction={t:0,duration:guarded?.20:heavy?.46:.30,pose:q,velocity:v,power:guarded?.6:heavy?1.2:.85,guard:guarded,side:(dx*Math.cos(a.yaw)-dz*Math.sin(a.yaw))/d,forward:(dx*Math.sin(a.yaw)+dz*Math.cos(a.yaw))/d};a.stun=guarded?.06:heavy?.23:.12;}
  let force=(guarded?.62:heavy?3.35:1.62)*motionScale*Math.min(1.25,attack.power||1)*Math.min(1.35,STRIKES[attack.kind]?.push||1)*(attack.element==='tide'?1.12:1);if(a.ward>0)force*=.55;
  a.kx=dx/d*force;a.kz=dz/d*force;a.flash=.105;a.knockOrigin=[a.x,a.z];a.knockAge=0;
@@ -1397,7 +1400,7 @@ function registerHit(source,t,a,contact){if(!t||t.dead||source.dead||a.damaged.h
  if(!['steel','none'].includes(a.element)){burst(p[0],p[1],p[2],heavy?24:14,ELEMENTS[a.element].color,heavy?4:2.8,'soul');addCircle(t.x,t.z,heavy?2.5:1.4,ELEMENTS[a.element].color,.8);}
  floating((broken?'崩し ':guarded?'防御 ':'')+damage,t.x,t.z,source.hero?(heavy?'critical':guarded?'small':''):'ouch',1.9);audio.impact(guarded?'guard':t.hero?'hurt':heavy?'heavy':a.kind,p[0],p[2]);hitstop=Math.max(hitstop,heavy?.045:.018);shake=Math.max(shake,heavy?.065:.025);
  lastContacts.push({point:p.slice(),time,source:source.id,target:t.id,guard:guarded,damage});if(lastContacts.length>30)lastContacts.shift();
- if(t.hp<=0){incapacitate(t,source);return;}if(!guarded&&t.receptionCooldown<=0)t.pendingReceive={delay:STRIKES[a.kind].rareRush?.46:.11,source};
+ if(t.hp<=0){incapacitate(t,source);return;}if(!guarded&&t.receptionCooldown<=0&&decisiveContact(t,a))t.pendingReceive={delay:STRIKES[a.kind].rareRush?.46:.11,source};
 }
 // Curved, spatial root motion. The target is not teleported and collision remains swept.
 function rootOffset(actor,a,p){
@@ -2185,7 +2188,7 @@ function advanceEndlag(a,dt){const lag=a.endlag;if(!lag)return;a.guarding=false;
  a.flow=null;if(a.hero)slotCursor=0;a.cool=.18;a.tactics={...a.tactics,state:'measure',age:0,duration:.44+rng()*.26};
 }
 const knock4=knockReaction;
-knockReaction=function(a,src,atk,guarded=false){if(a.endlag&&!guarded){a.endlag=null;a.flow=null;a.plan=null;if(a.hero)slotCursor=0;}knock4(a,src,atk,guarded);};
+knockReaction=function(a,src,atk,guarded=false){if(a.endlag&&!guarded&&decisiveContact(a,atk)){a.endlag=null;a.flow=null;a.plan=null;if(a.hero)slotCursor=0;}knock4(a,src,atk,guarded);};
 const ko4=incapacitate;
 incapacitate=function(a,src=null){a.endlag=null;a.flow=null;a.plan=null;if(a.hero){slotCursor=0;releaseMove();}ko4(a,src);};
 const guard4=guardMode;
@@ -2352,7 +2355,7 @@ buildUI=function(){ui4();buildGroundControls();};
 let tempoMode='fixed';
 const STORE6='tidebreak.atelier.v6';
 actorMindKey=a=>a.hero?mindset:({rush:'assault',cautious:'defensive',counter:'counter',pressure:'boxer',heavy:'steadfast'}[enemyStyle]||'balanced');
-function cleanPlayerRecipe(r){const v=normalizeRecipe(r);v.steps=v.steps.map(s=>STRIKES[s.kind]?.damage>0?s:{...s,kind:'none'});return v;}
+function cleanPlayerRecipe(r){const v=normalizeRecipe(r);v.steps=v.steps.map(s=>STRIKES[s.kind]&&(STRIKES[s.kind].damage>0||STRIKES[s.kind].defense||['ready','retreat'].includes(s.kind))?s:{...s,kind:'none'});return v;}
 function allowedStrike(k,w){const st=STRIKES[k];return !!st&&(k==='none'||st.damage>0)&&(!st.weaponOnly||st.weaponOnly===w)&&(w==='fist'?k==='none'||st.fist:!st.fist);}
 const convertWeapon5=toWeapon;
 toWeapon=function(r,w){const v=convertWeapon5(r,w),katanaFallback={katanaDraw:'slash',katanaKesa:'diagonal',katanaReturn:'back',katanaThrust:'thrust',spearwheel:'spin'},katanaMap={slash:'katanaKesa',back:'katanaReturn',thrust:'katanaThrust'};
@@ -3496,8 +3499,113 @@ installSharedTidebreakWeaponProfiles(WEAPONS);
 const physicalContactFacade=physicalContact;
 physicalContact=(a,q,body,sm)=>sharedPommelContact({actor:a,pose:q,matrix:sm,tp,fallback:()=>physicalContactFacade(a,q,body,sm)});
 const sharedFacade=createSharedTidebreakFacade({copy,clamp,weapons:WEAPONS,strikes:STRIKES,sampleWeapon,actorPose,tp,attackProgress,poseChannels,onImpact:ports.onImpact});
+// One shared upper-layer observer, fed ONLY by canonical execution/contact events.
+const exchangeObserver=createTidebreakExchangeObserver();
+let exchangeRuns=new WeakMap(),exchangeCounterContext=null,exchangeDeflecting=false;
+const transitionRun=run=>run?.slot==='mind'||run?.slot==='uke'||run?.recipe?.id==='mind-swat';
+function exchangeActor(id){return [hero,...enemies].find(a=>String(a.id)===String(id));}
+function observeExchange(event){
+ const before=event.sourceId!=null&&event.targetId!=null?exchangeObserver.between(event.sourceId,event.targetId):null;
+ const row=exchangeObserver.observe(event);if(!row)return null;
+ for(const id of johakyuExchangeRestartActors(before,row.exchange,exchangeObserver.snapshot().exchanges)){const a=exchangeActor(id);if(a)a.exchangeRestartPending=true;}
+ return row;
+}
+function pairFor(a){const target=nearest(a);return target?exchangeObserver.between(a.id,target.id):null;}
+function resetNormalCursor(a){
+ // Never called from parry contact, reaction completion, or counter cleanup.
+ if(!a.exchangeRestartPending||a.attack||a.run||a.parryMotion||a.reaction||a.recovery||a.pendingCounter||a.pendingReceive||a.evasion||a.stun>0)return false;
+ if(a.hero)slotCursor=0;a.plan=null;a.flow=null;a.endlag=null;a.exchangeRestartPending=false;return true;
+}
+const prepareExchangePlan=preparePlan;
+preparePlan=function(a){resetNormalCursor(a);return prepareExchangePlan(a);};
+const startExchangeSequence=startSequence;
+startSequence=function(a,recipe,slot='enemy'){
+ const transition=slot==='mind'||slot==='uke'||recipe?.id==='mind-swat';
+ if(!transition&&a.exchangeRestartPending){
+  if(!resetNormalCursor(a))return;
+  if(a.hero){const plan=choosePlan('jo');if(!plan)return;a.plan=plan;recipe=plan.recipe;slot=plan.slot;}
+ }
+ return startExchangeSequence(a,recipe,slot);
+};
+const beginExchangeStep=beginStep;
+beginStep=function(a,...args){
+ beginExchangeStep(a,...args);const run=a.run,attack=a.attack;if(!run||!attack)return;
+ if(!transitionRun(run)&&!['jo','ha','kyu','enemy'].includes(run.slot))return; // one/finisher/projectile stay outside the melee observer
+ let context=exchangeRuns.get(run);
+ if(!context){
+  const target=exchangeActor(attack.targetId)||nearest(a);if(!target)return;
+  context={sourceId:a.id,targetId:target.id,phase:run.slot,transition:transitionRun(run)};exchangeRuns.set(run,context);
+  const offensive=run.recipe.steps.some(step=>(STRIKES[step.kind]?.damage||0)>0);
+  if(context.transition)observeExchange({...context,type:'counter-start'});
+  else if(offensive&&(run.slot==='jo'||run.slot==='enemy'))observeExchange({...context,type:'normal-start'});
+  context.serial=exchangeObserver.between(a.id,target.id).serial;
+ }
+ if(!context.transition)observeExchange({...context,type:attack.damage>0?'commit':'stage',attackId:attack.id,phase:run.slot});
+};
+const finishExchangeSequence=finishSequence;
+finishSequence=function(a,interrupted=false){
+ const run=a.run,context=run&&exchangeRuns.get(run);finishExchangeSequence(a,interrupted);
+ if(!context||exchangeDeflecting)return;
+ if(context.transition)observeExchange({...context,type:'counter-complete'});
+ else if(interrupted)observeExchange({...context,type:'interrupted'});
+ else if(run.slot==='kyu'||run.slot==='enemy')observeExchange({...context,type:run.slot==='kyu'?'kyu-complete':'offense-complete'});
+};
+const nextExchangeStep=nextStep;
+nextStep=function(a){
+ // A decisive authority event may terminate pressure while its final pose finishes.
+ // Stop at the existing step boundary; never move the canonical contact clock.
+ if(a.exchangeRestartPending&&a.run&&!transitionRun(a.run)){finishSequence(a,true);return;}
+ return nextExchangeStep(a);
+};
+const advanceExchangeEndlag=advanceEndlag;
+advanceEndlag=function(a,dt){
+ const lag=a.endlag,slot=lag?.slot,result=advanceExchangeEndlag(a,dt);
+ if(lag&&!a.endlag&&!a.run&&(slot==='kyu'||slot==='enemy')){const target=nearest(a);if(target)observeExchange({type:'settle',sourceId:a.id,targetId:target.id});}
+ return result;
+};
+const performExchangeCounter=performCounter;
+performCounter=function(defender,source){
+ const context=exchangeCounterContext;
+ if(context&&!context.parry.strong){
+  // Light blade deflection/shallow slip is a successful receive, not an interruption.
+  source.contactKick=Math.max(source.contactKick,.12);return;
+ }
+ const cursor=slotCursor,before=defender.parryMotion;
+ exchangeDeflecting=true;
+ try{performExchangeCounter(defender,source);}finally{exchangeDeflecting=false;}
+ if(defender.parryMotion&&defender.parryMotion!==before){
+  if(defender.hero)slotCursor=cursor; // defer successful defender reset until normal selection
+  const phase=context?.execution?.phase??source.run?.slot??'enemy';
+  observeExchange({type:'parry',sourceId:source.id,targetId:defender.id,phase,strong:true,attackId:context?.attackId??null});
+  if(context)context.reversed=true;
+ }
+};
 const registerHitFacade=registerHit;
-registerHit=(source,target,attack,contact)=>sharedFacade.withHitContext(source,target,attack,()=>registerHitFacade(source,target,attack,contact));
+registerHit=(source,target,attack,contact)=>{
+ const execution=sharedFacade.execution(source),defense=guardMode(target),pair=exchangeObserver.between(source.id,target.id);
+ const parry=classifyJohakyuParry({capable:typeof ports.canParry!=='function'||ports.canParry(target)!==false,authored:defense==='parry'&&target.attack?.targetId===source.id,counter:defense==='counter',slip:defense==='slip',responding:pair.initiativeId!==String(target.id),phase:execution?.phase,impact:{heavy:decisiveContact(target,attack),power:attack.power}});
+ const context={execution,attackId:attack.id,parry,defense,reversed:false},prior=exchangeCounterContext;exchangeCounterContext=context;
+ try{return sharedFacade.withHitContext(source,target,attack,()=>{
+  const already=attack.damaged.has(target.id),beforeHp=target.hp,result=registerHitFacade(source,target,attack,contact);
+  if(!already&&attack.damaged.has(target.id)){
+   const defended=target.hp===beforeHp,phase=execution?.phase??'enemy';
+   if(!context.reversed&&defended&&['parry','counter','slip'].includes(defense))observeExchange({type:'parry',sourceId:source.id,targetId:target.id,phase,strong:false,attackId:attack.id});
+   else if(!context.reversed&&defense&&target.hp<beforeHp)observeExchange({type:'guard',sourceId:source.id,targetId:target.id,phase,attackId:attack.id});
+   if(target.hp<beforeHp)observeExchange({type:'hit',sourceId:source.id,targetId:target.id,phase,attackId:attack.id,deep:!defense&&decisiveContact(target,attack)});
+  }
+  return result;
+ },{execution,defense,parry});}finally{exchangeCounterContext=prior;}
+};
+const finishExchangeMotion=finishMotion;
+finishMotion=function(a){
+ const attack=a.attack,run=a.run,context=run&&exchangeRuns.get(run);
+ if(attack&&context&&attack.damage>0&&attack.hitCount===0&&attack.t>=attack.end&&!exchangeDeflecting){
+  const target=exchangeActor(context.targetId),gap=target?Math.hypot(a.x-target.x,a.z-target.z):Infinity;
+  if(!target||target.dead)observeExchange({...context,type:'target-invalidation',attackId:attack.id});
+  else if(gap>WEAPONS[a.weapon].ideal+.6)observeExchange({...context,type:'miss',major:true,attackId:attack.id});
+ }
+ return finishExchangeMotion(a);
+};
 impactAt=(x,y,z,yaw,power,guard)=>{hitstop=sharedFacade.impact({x,y,z,yaw,power,guard,hitstop});};
 function applyInspirationControl(){
  const window=sharedFacade.inspirationState();if(!window.active||!hero)return;
@@ -3509,7 +3617,17 @@ function applyInspirationControl(){
 }
 const updateFacade=update;update=dt=>{const before=sharedFacade.inspirationState(),protectedHp=before.active&&hero&&!hero.dead?hero.hp:null;applyInspirationControl();updateFacade(sharedFacade.simulationDt(dt,hitstop));if(protectedHp!==null&&hero.hp<protectedHp){hero.hp=protectedHp;hero.dead=false;hero.deadTime=0;}sharedFacade.advanceInspirationState(dt);applyInspirationControl();};
 const approachFacade=approach;
-approach=function(a,dt){if(sharedFacade.shouldHoldHero(a)){a.guarding=false;a.plan=null;a.spacing=null;a.cool=Math.max(a.cool,.08);const t=nearest(a);if(t)a.yaw+=clamp(angleMotion(Math.atan2(t.x-a.x,t.z-a.z),a.yaw),-dt*5,dt*5);return;}return approachFacade(a,dt);};
+approach=function(a,dt){if(sharedFacade.shouldHoldHero(a)){a.guarding=false;a.plan=null;a.spacing=null;a.cool=Math.max(a.cool,.08);const t=nearest(a);if(t)a.yaw+=clamp(angleMotion(Math.atan2(t.x-a.x,t.z-a.z),a.yaw),-dt*5,dt*5);return;}
+ // The AI chooses a receive while THIS pair is pressing it. Native execution,
+ // active attacks and all secondary pairs still run through their usual motor.
+ const target=nearest(a),intent=johakyuExchangeIntent(pairFor(a),{actorId:String(a.id)});
+ if(target&&intent==='respond'&&!a.attack&&!a.run&&!a.reaction&&!a.recovery&&!a.parryMotion&&!a.evasion&&!a.weaponTransition){
+  a.plan=null;a.guarding=true;a.tactics.state='guard';a.tactics.age+=dt;
+  a.yaw+=clamp(angleMotion(Math.atan2(target.x-a.x,target.z-a.z),a.yaw),-dt*3.7,dt*3.7);
+  const gap=Math.hypot(target.x-a.x,target.z-a.z),ideal=WEAPONS[a.weapon].ideal+.4;
+  moveInSpacing(a,target,clamp((gap-ideal)*.35,-.2,.25),dt,true);return;
+ }
+ return approachFacade(a,dt);};
 addLog=(text,type='')=>ports.onLog?.({text,type});loadStorage();
 replaceActor=()=>{};equippedWeapon=ports.weapon||'fist';for(const k of ATTACK_KEYS)loadout[k].weapon=equippedWeapon;sharedFacade.resetFeel();resetScene(true);
 const snapshotActor=a=>sharedFacade.snapshotActor(a);
@@ -3533,7 +3651,7 @@ function setPolicy(v={}){
 function configure(v={}){
  world.colliders=(v.colliders||[]).map(c=>({...c}));equippedWeapon=Object.hasOwn(WEAPONS,v.weapon)?v.weapon:'fist';enemyStyle=v.enemyStyle||'balanced';opponent=sharedFacade.opponent(v.opponent);sharedFacade.setHeroPassive(v.heroPassive);
  const set=v.loadout;if(set)for(const k of ATTACK_KEYS)if(set[k])loadout[k]=normalizeRecipe({...set[k],weapon:equippedWeapon});for(const k of ATTACK_KEYS)loadout[k].weapon=equippedWeapon;
- drafts=copy(loadout);poolReady=false;initPools();if(v.mindset&&Object.hasOwn(MINDS,v.mindset)){mindset=v.mindset;fixedMindset=v.mindset;}sharedFacade.resetFeel();resetScene(true);
+ drafts=copy(loadout);poolReady=false;initPools();if(v.mindset&&Object.hasOwn(MINDS,v.mindset)){mindset=v.mindset;fixedMindset=v.mindset;}sharedFacade.resetFeel();exchangeObserver.reset();exchangeRuns=new WeakMap();resetScene(true);
  hero.weapon=equippedWeapon;hero.hp=v.hp??240;hero.maxhp=v.maxhp??hero.hp;const rows=Array.isArray(v.enemies)?v.enemies:[];
  for(let i=0;i<enemies.length;i++){const e=enemies[i],row=rows[i]||{},fallback=i===0?v.enemyWeapon:null;if(Object.hasOwn(WEAPONS,row.weapon))e.weapon=row.weapon;else if(Object.hasOwn(WEAPONS,fallback))e.weapon=fallback;const hp=row.hp??(Array.isArray(v.enemyHp)?v.enemyHp[i]:v.enemyHp)??100;e.hp=hp;e.maxhp=row.maxhp??hp;const pos=v.positions?.enemies?.[i]||(i===0?v.positions?.enemy:null);if(pos){Object.assign(e,pos);e.home=[e.x,e.z];initFeet(e);}const shared=row.loadout||(i===0?v.enemyLoadout:null);if(shared)e.sharedLoadout=copy(shared);}
  if(v.positions?.hero){Object.assign(hero,v.positions.hero);hero.home=[hero.x,hero.z];initFeet(hero);}
@@ -3558,15 +3676,15 @@ function setInspirationState(value={}){
 }
 const enemyChoiceOriginal=chooseEnemyRecipe;
 chooseEnemyRecipe=a=>{if(a.sharedLoadout){const k=ATTACK_KEYS[(a.attackCount||0)%3];if(a.sharedLoadout[k])return normalizeRecipe({...a.sharedLoadout[k],weapon:a.weapon});}return enemyChoiceOriginal(a);};
-function state(){const rows=enemies.map(snapshotActor);return{hero:snapshotActor(hero),enemy:rows[0]||null,enemies:rows,time,stats:copy(stats),contacts:copy(lastContacts),inspiration:sharedFacade.inspirationState(),...sharedFacade.impactState(),feel:sharedFacade.feel(hitstop),done:hero.dead||rows.every(row=>row.dead)};}
+function state(){const rows=enemies.map(snapshotActor);return{hero:snapshotActor(hero),enemy:rows[0]||null,enemies:rows,time,stats:copy(stats),contacts:copy(lastContacts),inspiration:sharedFacade.inspirationState(),...sharedFacade.impactState(),...exchangeObserver.snapshot(),feel:sharedFacade.feel(hitstop),done:hero.dead||rows.every(row=>row.dead)};}
 return {
- configure,setPolicy,setInspirationState,
- step(dt=1/60){sharedFacade.beginStep();if(!hero.dead&&!enemies.every(e=>e.dead))update(dt);return state();},
+ configure,setPolicy,setInspirationState,observeExchange,
+ step(dt=1/60){sharedFacade.beginStep();exchangeObserver.beginStep();if(!hero.dead&&!enemies.every(e=>e.dead))update(dt);return state();},
  input(x,y,amount,cameraAngle=0){manual.dx=x;manual.dy=y;manual.amount=clamp(amount,0,1);camAngle=cameraAngle;},
  syncActors,state,weaponSpec:weapon=>sharedFacade.weaponSpec(weapon),weaponSpecs:sharedFacade.weaponSpecs,
  templates:()=>copy(TEMPLATES),loadout:()=>copy(loadout),weapons:()=>Object.keys(WEAPONS),inspirationCatalog:()=>copy(WEAPON_ARTS),
  decodeNotebook:data=>copy(decodeNotebook(data,false)),exportNotebook:()=>copy(exportData()),sourceVersion:'Tidebreak 10.1 / shared-inspiration catalog / shared-contact-impact / live inspiration protection / forced near-miss opening',
- _test:{generateSkill(weapon='sword',slot='jo',automatic=true){const before=equippedWeapon;equippedWeapon=weapon;try{return copy(generateSkill(slot,automatic));}finally{equippedWeapon=before;}},hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;if(!(who==='hero'&&sharedFacade.inspirationState().active))t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}}
+ _test:{start(who,recipe,slot='jo'){const a=who==='hero'?hero:enemies[0];a.cool=0;a.combatReady=true;a.weaponTransition=null;startSequence(a,normalizeRecipe(recipe),a.hero?slot:'enemy');return state();},contact(who='hero'){const source=who==='hero'?hero:enemies[0],target=who==='hero'?enemies[0]:hero;if(!source.attack)throw Error('Contact fixture requires a real attack');target.invuln=0;registerHit(source,target,source.attack,{point:[(source.x+target.x)/2,1.2,(source.z+target.z)/2]});return state();},cursor(){return slotCursor;},generateSkill(weapon='sword',slot='jo',automatic=true){const before=equippedWeapon;equippedWeapon=weapon;try{return copy(generateSkill(slot,automatic));}finally{equippedWeapon=before;}},hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;if(!(who==='hero'&&sharedFacade.inspirationState().active))t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}}
 };
 })();
 }

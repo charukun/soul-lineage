@@ -733,3 +733,18 @@ a.rapid-iteration-row.rapid-session-card{padding:10px 11px 9px}
   .rapid-current-copy strong{font-size:12.5px}
   .rapid-current-flag{min-width:32px;font-size:7.5px}
 }
+
+
+/* Observable execution state: never infer a live process from an open PR alone. */
+.rapid-execution-line{display:flex;align-items:center;gap:6px;min-width:0}
+.rapid-execution-state{display:inline-flex;align-items:center;min-height:18px;padding:2px 6px;border:1px solid var(--pulse-line);border-radius:999px;font-size:7px;font-weight:900;letter-spacing:.055em;white-space:nowrap}
+.rapid-execution-state.ok{border-color:color-mix(in srgb,var(--ok) 42%,var(--pulse-line));color:#91c4a6}
+.rapid-execution-state.progress{border-color:color-mix(in srgb,var(--progress) 48%,var(--pulse-line));color:#91bbe2}
+.rapid-execution-state.warning{border-color:color-mix(in srgb,var(--warning) 48%,var(--pulse-line));color:#d3b37f}
+.rapid-execution-state.danger{border-color:color-mix(in srgb,var(--danger) 52%,var(--pulse-line));color:#dfa2a5}
+.rapid-execution-state.muted{color:#718096;background:rgba(93,108,129,.06)}
+.rapid-execution-detail{min-width:0;overflow:hidden;color:#667589;font-size:7.2px;text-overflow:ellipsis;white-space:nowrap}
+.rapid-session-card.idle{border-color:rgba(112,128,150,.09)}
+.rapid-session-card.blocked{border-color:color-mix(in srgb,var(--danger) 30%,rgba(126,145,169,.12))}
+.rapid-session-card.validating,.rapid-session-card.running{border-color:color-mix(in srgb,var(--progress) 25%,rgba(126,145,169,.12))}
+.rapid-session-card.merging{border-color:color-mix(in srgb,var(--warning) 25%,rgba(126,145,169,.12))}
