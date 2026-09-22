@@ -1,6 +1,6 @@
 name: Temporary kuumetsu immutable observation 20260922
-# Existing task-scoped ops fallback; inspect only the one final validation.
-# Never merge this ops workflow to develop/main.
+# Existing task-scoped fallback: inspect owned validation, Ready, one merge-window summary.
+# Never merge this ops workflow. Actual develop merge remains Connector-owned.
 on:
   push:
     branches: [ops/kuumetsu-observe-20260922-01]
@@ -11,7 +11,7 @@ permissions:
   statuses: read
   pull-requests: write
 env:
-  FINAL_HEAD: 25bb142c819e3c5d8a298efbc17f168a6b363e59
+  FINAL_HEAD: ccf8528f0961c6e6452e3cd87c043edd181e6073
 jobs:
   inspect:
     runs-on: ubuntu-latest
@@ -24,58 +24,56 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-      - name: Record adopted staging before final validation inspection
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const fs=require('fs'),path=require('path'),{pathToFileURL}=require('url');
-            const m=await import(pathToFileURL(path.join(process.cwd(),'scripts/autonomous-iteration-telemetry.mjs')).href);
-            const pr=(await github.rest.pulls.get({...context.repo,pull_number:1415})).data;
-            let t=m.readIterationTelemetry(pr.body);if(!t)throw new Error('Existing telemetry missing');
-            t=m.patchIterationTelemetry(t,{changes:['交戦相手と自分の生命を表示','実接触の向き・損傷・防御を表示'],verdict:'supported',improvementSummary:'交戦中の削り合いと接触方向をnative状態から読み取れるようにした。'});
-            if(t.currentStep==='afterObservation')t=m.advanceIterationTelemetry(t,{to:'verdict',at:'2026-09-22T03:47:20.902Z'});
-            if(t.currentStep==='verdict')t=m.advanceIterationTelemetry(t,{to:'astraValidation',at:'2026-09-22T03:47:21.487Z'});
-            await github.rest.pulls.update({...context.repo,pull_number:1415,body:m.upsertIterationTelemetry(pr.body,t)});
-            fs.mkdirSync('session-evidence',{recursive:true});fs.writeFileSync('session-evidence/telemetry.json',JSON.stringify(t,null,2));
-      - name: Canonical actions summary first
+      - name: Canonical status-first summary of recovered final head
         env:
           GH_TOKEN: ${{ github.token }}
-        run: npm run actions:summary -- --repo charukun/soul-lineage --sha "$FINAL_HEAD" --pr 1415 --output session-evidence/summary-initial.json > session-evidence/summary-initial.log 2>&1
-      - name: Wait only for the owned exact-head validation contexts
-        id: owned
+        run: mkdir -p session-evidence && npm run actions:summary -- --repo charukun/soul-lineage --sha "$FINAL_HEAD" --pr 1415 --output session-evidence/summary-initial.json > session-evidence/summary-initial.log 2>&1
+      - name: Wait only for the owned validation then mark this exact PR Ready
+        id: ready
         uses: actions/github-script@v8
         with:
           script: |
             const fs=require('fs'),required=['astra/fast-dev-contract','astra/focused-validation','astra/merge-freshness'];
+            let passed=false;
             for(let i=0;i<36;i++){
               const bundle=(await github.rest.repos.getCombinedStatusForRef({...context.repo,ref:process.env.FINAL_HEAD})).data;
               const states=Object.fromEntries(bundle.statuses.map(s=>[s.context,s.state]));
               fs.writeFileSync('session-evidence/owned-status.json',JSON.stringify(bundle,null,2));
-              if(required.every(k=>states[k]==='success')){core.setOutput('success','true');return;}
-              if(required.some(k=>['failure','error'].includes(states[k]))){core.setFailed('Owned validation failed; inspect canonical summary artifact');return;}
+              if(required.every(k=>states[k]==='success')){passed=true;break;}
+              if(required.some(k=>['failure','error'].includes(states[k])))throw new Error('Owned validation failed; retain summary evidence');
               await new Promise(r=>setTimeout(r,5000));
             }
-            core.setFailed('Bounded exact-head validation wait elapsed');
-      - name: Canonical final actions summary
+            if(!passed)throw new Error('Bounded owned validation wait elapsed');
+            const pr=(await github.rest.pulls.get({...context.repo,pull_number:1415})).data;
+            if(pr.head.sha!==process.env.FINAL_HEAD||pr.base.ref!=='develop'||pr.head.ref!=='work/kuumetsu-iteration-20260922-staging-first'||pr.state!=='open')throw new Error('PR identity/head changed');
+            if(pr.draft)await github.graphql('mutation($id:ID!){markPullRequestReadyForReview(input:{pullRequestId:$id}){pullRequest{id isDraft}}}',{id:pr.node_id});
+            fs.writeFileSync('session-evidence/ready.json',JSON.stringify({head:pr.head.sha,at:new Date().toISOString(),ready:true}));
+            core.setOutput('success','true');
+      - name: Single after-Ready canonical merge-window refresh
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: mkdir -p session-evidence && npm run actions:summary -- --repo charukun/soul-lineage --sha "$FINAL_HEAD" --pr 1415 --output session-evidence/summary-final.json > session-evidence/summary-final.log 2>&1
-      - name: Record focused validation boundary
-        if: steps.owned.outputs.success == 'true'
+      - name: Retain exact merge token and telemetry for Connector merge
+        if: steps.ready.outputs.success == 'true'
         uses: actions/github-script@v8
         with:
           script: |
             const fs=require('fs'),path=require('path'),{pathToFileURL}=require('url');
+            const s=JSON.parse(fs.readFileSync('session-evidence/summary-final.json','utf8'));
+            if(!s.decision.can_merge_now||s.pr.draft||s.validation.validated_exact_head!==process.env.FINAL_HEAD||s.merge_window.current_pr_head!==process.env.FINAL_HEAD)throw new Error('After-Ready merge window is not armed: '+JSON.stringify(s.decision));
+            fs.writeFileSync('session-evidence/merge-window.json',JSON.stringify({at:s.generated_at,...s.merge_window,validationBase:s.freshness.validation_base_sha,validation:s.validation,decision:s.decision},null,2));
             const m=await import(pathToFileURL(path.join(process.cwd(),'scripts/autonomous-iteration-telemetry.mjs')).href);
             const pr=(await github.rest.pulls.get({...context.repo,pull_number:1415})).data;
             let t=m.readIterationTelemetry(pr.body);
-            if(t.currentStep==='astraValidation')t=m.advanceIterationTelemetry(t,{to:'freshness',patch:{validatedHead:process.env.FINAL_HEAD}});
+            t=m.patchIterationTelemetry(t,{changes:['交戦相手と自分の生命を表示','実接触の向き・損傷・防御を表示'],validatedHead:process.env.FINAL_HEAD,verdict:'supported'});
+            if(t.currentStep==='astraValidation')t=m.advanceIterationTelemetry(t,{to:'freshness',at:s.generated_at});
+            if(t.currentStep==='freshness')t=m.advanceIterationTelemetry(t,{to:'merge',at:s.generated_at});
             await github.rest.pulls.update({...context.repo,pull_number:1415,body:m.upsertIterationTelemetry(pr.body,t)});
             fs.writeFileSync('session-evidence/telemetry.json',JSON.stringify(t,null,2));
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kuumetsu-contact-final-validation-summary
+          name: kuumetsu-contact-ready-merge-window
           path: session-evidence
           retention-days: 14
