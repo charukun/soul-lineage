@@ -7,6 +7,8 @@ import './devour-feedback.css';
 import './hunt-flow.css';
 import './hunt-minimal-hud.css';
 import './title-readability.css';
+import {huntStakesState} from './hunt-stakes-state.js';
+import './hunt-stakes-readability.css';
 
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const byId = id => document.getElementById(id);
@@ -90,16 +92,16 @@ export class HuntFlowUi {
     }
     guide.hidden = true;
     this.actionLine.hidden = true;
-    const haul = game.carried + (ready ? plan.bonus : 0), eaten = Math.min(game.eaten, plan.quota);
-    this.bag.querySelector('[data-goal]').textContent = plan.marked ? `${plan.prey}${game.targetEaten ? '済' : '未'} ${eaten}/${plan.quota}` : `人影 ${eaten}/${plan.quota}`;
+    const stakes = huntStakesState({plan, risk, ready, eaten:game.eaten, carried:game.carried, targetEaten:game.targetEaten});
+    this.bag.querySelector('[data-goal]').textContent = stakes.goal;
     const haulNode = this.bag.querySelector('[data-haul]'), pressureNode = this.bag.querySelector('[data-pressure]');
-    haulNode.textContent = `未確保 ${game.carried}${ready ? ` · 帰還 ${haul}` : ''}`;
-    haulNode.hidden = game.carried <= 0 && !ready;
-    pressureNode.textContent = `警戒 ${risk.label}`;
-    pressureNode.hidden = risk.level <= 0;
-    this.bag.dataset.pressure = String(risk.level);
-    this.bag.querySelector('progress').value = Math.min(1, game.eaten / plan.quota);
-    this.objective.setAttribute('aria-label', `${goalText(plan)}。現在 ${eaten} / ${plan.quota}。持ち帰れば戦利品 ${haul}。未確保 ${game.carried}。警戒 ${risk.label}`);
+    haulNode.textContent = stakes.haul;
+    haulNode.hidden = stakes.haulHidden;
+    pressureNode.textContent = stakes.pressure;
+    pressureNode.hidden = stakes.pressureHidden;
+    this.bag.dataset.pressure = stakes.pressureLevel;
+    this.bag.querySelector('progress').value = stakes.progress;
+    this.objective.setAttribute('aria-label', `${goalText(plan)}。現在 ${stakes.count} / ${plan.quota}。持ち帰れば戦利品 ${stakes.extraction}。未確保 ${game.carried}。警戒 ${risk.label}`);
     byId('hud').dataset.huntState = game.fight ? 'combat' : returning ? 'return' : 'hunt';
     byId('return-hint').hidden = overlay || game.eaten < 1 || game.finished;
     this.bearing.style.transform = `rotate(${(.33 - Math.atan2(exit.x - game.player.x, exit.z - game.player.z)) * 180 / Math.PI}deg)`;
