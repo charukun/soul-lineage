@@ -4,7 +4,7 @@ import { inspirationName } from './rebuild/inspiration-state.js';
 
 export const PHASES=Object.freeze([['jo','序'],['ha','破'],['kyu','急']]);
 export const MAX_COMBOS=6;
-export const HEART_SLOT_COUNT=3;
+export const HEART_SLOT_COUNT=5;
 const BASIC_BY_WEAPON=Object.freeze({fist:'basic.fist',sword:'basic.sword',dagger:'basic.dagger',great:'basic.great',spear:'basic.spear',axe:'basic.axe',staff:'basic.staff'});
 const BASIC_LABELS=Object.freeze({'basic.fist':'徒手の型','basic.sword':'剣の型','basic.dagger':'短剣の型','basic.great':'大剣の型','basic.spear':'槍の型','basic.axe':'戦斧の型','basic.staff':'杖の型'});
 const COMBO_NAMES=Object.freeze(['壱ノ連','弐ノ連','参ノ連','肆ノ連','伍ノ連','陸ノ連']);
@@ -56,7 +56,9 @@ function normalizePhaseSelections(state,technique){const raw=technique.phaseSele
 function mirrorLegacy(state){if(!state?.combatLoadout?.technique)return;state.skillWeights??={};for(const [phase]of PHASES){const skill=phaseSelectionSkill(state,phase,state.combatLoadout.technique.phaseSelections?.[phase]);state.skillWeights[phase]={[skill]:100};}}
 export function ensureCombatLoadout(state){
   if(!state)return null;const available=combatCatalog(state),existing=state.combatLoadout&&typeof state.combatLoadout==='object'?state.combatLoadout:{},heart=existing.heart&&typeof existing.heart==='object'?existing.heart:{},availableHeart=supportIds().filter(id=>available.has(id));
-  if(!Array.isArray(heart.active))heart.active=[];else heart.active=[...new Set(heart.active.filter(id=>availableHeart.includes(id)))].slice(0,HEART_SLOT_COUNT);
+  const legacyActive=Array.isArray(heart.active)?[...new Set(heart.active.filter(id=>availableHeart.includes(id)))].slice(0,HEART_SLOT_COUNT):[];
+  const rawSlots=Array.isArray(heart.slots)?heart.slots.slice(0,HEART_SLOT_COUNT):legacyActive;
+  const seenHeart=new Set();heart.slots=Array.from({length:HEART_SLOT_COUNT},(_,index)=>{const id=rawSlots[index];if(!availableHeart.includes(id)||seenHeart.has(id))return null;seenHeart.add(id);return id;});heart.active=heart.slots.filter(Boolean);
   const technique=existing.technique&&typeof existing.technique==='object'?existing.technique:{},rawCombos=Array.isArray(technique.combos)?technique.combos.slice(0,MAX_COMBOS):[];
   technique.combos=(rawCombos.length?rawCombos:[null]).map((row,index)=>makeCombo(state,index,row));if(!technique.combos.some(row=>row.id===technique.activeComboId))technique.activeComboId=technique.combos[0].id;technique.phaseSelections=normalizePhaseSelections(state,technique);
   if(skillDefinition(technique.oneMotion)?.type!=='action'||!available.has(technique.oneMotion)||String(technique.oneMotion).startsWith('spark.')||isGeneratedTechniqueId(technique.oneMotion))technique.oneMotion=null;
@@ -69,16 +71,15 @@ export function techniqueName(id,state=null){const fallback=skillDefinition(id)?
 export function activeCombo(state){const loadout=state?.combatLoadout||ensureCombatLoadout(state);return loadout?.technique?.combos?.find(row=>row.id===loadout.technique.activeComboId)||loadout?.technique?.combos?.[0]||null;}
 export function comboById(state,id){ensureCombatLoadout(state);return state.combatLoadout.technique.combos.find(row=>row.id===id)||activeCombo(state);}
 export function setHeartActive(state,id,active){
-  const loadout=ensureCombatLoadout(state);if(!learnedHeartSkills(state).includes(id))return false;const rows=[...loadout.heart.active],index=rows.indexOf(id);
-  if(active){if(index>=0)return true;if(rows.length>=HEART_SLOT_COUNT)return false;rows.push(id);}else if(index>=0)rows.splice(index,1);loadout.heart.active=rows;return true;
+  const loadout=ensureCombatLoadout(state);if(!learnedHeartSkills(state).includes(id))return false;const slots=[...loadout.heart.slots],existing=slots.indexOf(id);
+  if(active){if(existing>=0)return true;const open=slots.findIndex(value=>!value);if(open<0)return false;slots[open]=id;}else if(existing>=0)slots[existing]=null;
+  loadout.heart.slots=slots;loadout.heart.active=slots.filter(Boolean);return true;
 }
 export function setHeartSlot(state,slot,id){
-  const loadout=ensureCombatLoadout(state),rows=[...loadout.heart.active].slice(0,HEART_SLOT_COUNT),index=Math.max(0,Math.min(HEART_SLOT_COUNT-1,Number(slot)||0));
-  if(id==null){if(index<rows.length)rows.splice(index,1);loadout.heart.active=rows;return true;}if(!learnedHeartSkills(state).includes(id))return false;
-  const existing=rows.indexOf(id);if(existing===index)return true;
-  if(existing>=0){const displaced=rows[index];rows[index]=id;if(displaced==null)rows.splice(existing,1);else rows[existing]=displaced;}
-  else if(index<rows.length)rows[index]=id;else rows.push(id);
-  loadout.heart.active=rows.slice(0,HEART_SLOT_COUNT);return true;
+  const loadout=ensureCombatLoadout(state),slots=[...loadout.heart.slots],index=Math.max(0,Math.min(HEART_SLOT_COUNT-1,Number(slot)||0));
+  if(id==null){slots[index]=null;loadout.heart.slots=slots;loadout.heart.active=slots.filter(Boolean);return true;}if(!learnedHeartSkills(state).includes(id))return false;
+  const existing=slots.indexOf(id);if(existing===index)return true;const displaced=slots[index]||null;slots[index]=id;if(existing>=0)slots[existing]=displaced;
+  loadout.heart.slots=slots;loadout.heart.active=slots.filter(Boolean);return true;
 }
 export function addCombo(state){const loadout=ensureCombatLoadout(state),rows=loadout.technique.combos;if(rows.length>=MAX_COMBOS)return null;const source=activeCombo(state),ids=new Set(rows.map(row=>row.id));let serial=1;while(ids.has(`combo-${serial}`))serial++;const combo=makeCombo(state,rows.length,{id:`combo-${serial}`,slots:{...source.slots}});rows.push(combo);return combo;}
 export function removeCombo(state,id){const loadout=ensureCombatLoadout(state),rows=loadout.technique.combos;if(rows.length<=1)return false;const index=rows.findIndex(row=>row.id===id);if(index<0)return false;rows.splice(index,1);if(loadout.technique.activeComboId===id)loadout.technique.activeComboId=rows[0].id;for(const [phase]of PHASES)if(comboSelectionId(loadout.technique.phaseSelections?.[phase])===id)loadout.technique.phaseSelections[phase]=comboSelection(loadout.technique.activeComboId);mirrorLegacy(state);return true;}
