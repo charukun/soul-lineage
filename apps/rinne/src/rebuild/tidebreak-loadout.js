@@ -58,13 +58,32 @@ function recipeSituationScore(state,recipe,target){
 function configuredComboScore(combo,index,{phase,preferredId,activeId}){
   return (combo.id===preferredId?12:0)+(combo.favored?.[phase]?4:0)+(combo.id===activeId?2:0)-index*.001;
 }
+function recipeExchangeScore(state,recipe){
+  const exchange=state?.combat?.exchange;if(!exchange||exchange.mode==='read')return 0;
+  const steps=recipe.steps.filter(step=>step?.kind&&step.kind!=='none'),mind=tidebreakMindVectorFor(state);
+  const count=set=>steps.reduce((n,step)=>n+Number(set.has(step.kind)||set.has(step.footwork)),0);
+  const counter=count(COUNTER_KINDS),guard=count(GUARD_KINDS),evade=count(EVADE_KINDS),closing=count(CLOSING_FEET),spacing=count(SPACING_FEET),offense=steps.filter(step=>!NON_OFFENSE_KINDS.has(step.kind)).length;
+  const owns=exchange.initiativeId===state.id,responds=exchange.responderId===state.id;
+  let score=0;
+  if(exchange.mode==='reversal'){
+    if(owns)score+=offense*(4+3*mind.attack)+closing*(2+2*mind.attack)+counter*(1+2*mind.counter)-guard*1.5-spacing*.8;
+    else if(responds)score+=guard*(6+5*mind.guard)+counter*(4+5*mind.counter)+evade*(3+4*mind.mobility)+spacing*(3+4*mind.spacing)-offense*3-closing*2;
+  }else if(exchange.mode==='pressure'){
+    if(owns)score+=offense*(1.8+2.2*mind.attack)+closing*(1+1.5*mind.attack)-guard*.5;
+    else if(responds)score+=guard*(8+6*mind.guard)+counter*(7+6*mind.counter)+evade*(5+5*mind.mobility)+spacing*(5+5*mind.spacing)-offense*4-closing*2;
+  }else if(exchange.mode==='zanshin'){
+    score+=spacing*(2+2*mind.spacing)+guard*(1+2*mind.guard)+evade*(1+2*mind.mobility)-closing*1.5;
+  }
+  if(exchange.continuity==='reverse')score+=owns?offense*1.5:guard*1.5;
+  return Number(score.toFixed(3));
+}
 export function selectCapableTidebreakCombo(state,{phase='jo',comboId=state?.combat?.comboId,target=null}={}){
   if(!['jo','ha','kyu'].includes(phase))throw new RangeError('Invalid capability selection phase');
   const loadout=ensureCombatLoadout(state),weapon=tidebreakWeaponFor(state.equipment.weapon),activeId=loadout.technique.activeComboId,attempts=[],candidates=[];
   for(const [index,combo] of loadout.technique.combos.entries()){
     const skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`,recipe=phaseRecipe(state,phase,weapon,combo,target),capability=recipeCapability(state,phase,recipe,skill);
-    const configuredScore=configuredComboScore(combo,index,{phase,preferredId:comboId,activeId}),situationScore=recipeSituationScore(state,recipe,target),score=configuredScore+situationScore;
-    const attempt=Object.freeze({comboId:combo.id,techniqueId:skill,reason:capability.reason,canStart:capability.canStart,canContinue:capability.canContinue,configuredScore,situationScore,score});
+    const configuredScore=configuredComboScore(combo,index,{phase,preferredId:comboId,activeId}),situationScore=recipeSituationScore(state,recipe,target),exchangeScore=recipeExchangeScore(state,recipe),score=configuredScore+situationScore+exchangeScore;
+    const attempt=Object.freeze({comboId:combo.id,techniqueId:skill,reason:capability.reason,canStart:capability.canStart,canContinue:capability.canContinue,configuredScore,situationScore,exchangeScore,score});
     attempts.push(attempt);if(capability.canContinue)candidates.push({combo,skill,capability,score,index});
   }
   candidates.sort((a,b)=>b.score-a.score||a.index-b.index);
