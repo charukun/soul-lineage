@@ -1,3 +1,4 @@
+import { projectAssetUrl } from '../../assets/src/runtime-origin.js';
 import { canonicalAppearanceParts } from './appearance-parts.js';
 import { deepFreeze } from './master-character.js';
 import { CHARACTER_REFERENCE_MODEL_VERSION, CHARACTER_REFERENCE_MODELS as BASE_CHARACTER_REFERENCE_MODELS } from './reference-models.js';
@@ -97,47 +98,45 @@ const protagonist = {
 validateVisualIdentity(protagonist);
 export const PROTAGONIST_VILLAGER_MODEL = deepFreeze(protagonist);
 
+// The previous authored head/hair model was explicitly rejected. This role now
+// selects the unchanged official Rogue mesh, not a new procedural approximation.
 const femaleProtagonist = {
   ...protagonist,
   id: PROTAGONIST_VILLAGER_FEMALE_MODEL_ID,
-  label: '主人公・女の子 / 村人服 PRIMARY',
+  label: '主人公・女 / KayKit Rogue（公式CC0原形）',
   characterId: 'Protagonist_Villager_Female_V1',
   assetId: 'character.protagonist-villager-female.v1',
-  assetPath: './simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb',
+  modelingMode: 'imported-reviewed',
+  productionStage: 'REFERENCE',
+  productionReady: false,
+  visualApproval: 'pending',
+  procedural: false,
+  sourceModelId: 'kaykit.rogue.v1',
+  sourceDisplay: { excludeMeshNodes: ['Knife_Offhand', '1H_Crossbow', '2H_Crossbow', 'Knife', 'Throwable'] },
+  license: 'CC0-1.0',
+  assetPath: projectAssetUrl('model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb'),
   integrityPath: './simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json',
-  dccSourcePath: 'assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend',
-  referencePath: 'docs/characters/references/protagonist-villager-female-v1.svg',
-  front: 'fringe',
-  back: 'tied',
-  face: { ...protagonist.face, jaw: .92, cheek: 1.08, eyeWidth: 1.08, eyeHeight: 1.08, chin: .92 },
-  proportions: { shoulders: .90, arms: .96, legs: .95, head: 1.12 },
-  cloth: [.73, .66, .52],
-  trim: [.23, .34, .27],
-  hairValue: .82,
+  dccSourcePath: 'apps/review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb',
+  referencePath: 'apps/review/public/library/provenance/female-protagonist-rogue-v1.json',
   referenceStyle: {
     ...protagonist.referenceStyle,
-    design: 'protagonist-female-kaykit-derivative',
-    palette: {
-      ...protagonist.referenceStyle.palette,
-      hair: [.16, .085, .045],
-      primary: [.73, .66, .52],
-      secondary: [.23, .34, .27],
-      accent: [.50, .34, .19]
-    }
+    design: 'protagonist-female-kaykit-rogue-original'
   },
   production: {
     ...protagonist.production,
     authority: {
       ...protagonist.production.authority,
-      implementedModularParts: [
-        'protagonist-villager-v1-base',
-        'female-silhouette-dcc-pass',
-        'female-authored-head-face',
-        'female-bob-large-mass-hair'
-      ]
+      implementedModularParts: ['kaykit-rogue-original-head-body-hair-clothing'],
+      proposedParts: [],
+      gameEquipment: []
+    },
+    requirements: {
+      ...protagonist.production.requirements,
+      topology: 'kaykit-original-unmodified',
+      sourceProvenanceRequired: true
     }
   },
-  note: '既存主人公のKayKit Rig_Medium互換DCC sourceを正本として、頭部・顔をRINNE-owned形状へ置換し、ボブの大形状、前髪、肩・腕・胴体シルエットを固定ビューとCharacter Studio実表示の3ラウンドで再構成した別実モデル。操作・モーション・武器ソケット・当たり判定契約は共通。PRIMARYでありvisualApproval / RUNTIME_READYは未昇格。'
+  note: '旧自作の頭部・顔・ボブ髪モデルは破棄。Kay Lousberg作 KayKit Adventurers 1.0 の公式CC0 Rogue.glbを固定revisionから取得し、原本の顔・髪・服・Rig_Medium・UV・埋込テクスチャ・モーションを無改変で採用。実体は自前Asset Originへ収録。旧IDは選択互換のためだけに維持し、旧モデルへfallbackしない。新規採用のためREFERENCE / visualApproval=pending / productionReady=falseを維持。装備所有・操作・当たり判定は変更しない。'
 };
 validateVisualIdentity(femaleProtagonist);
 export const PROTAGONIST_VILLAGER_FEMALE_MODEL = deepFreeze(femaleProtagonist);

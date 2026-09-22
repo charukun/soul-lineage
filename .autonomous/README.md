@@ -26,9 +26,12 @@ immutable staging observation
   -> focused source investigation
   -> falsifiable hypothesis
   -> implementation
-  -> smallest causal/native validation
-  -> same-condition staging After when required
-  -> receipt / learning
+  -> smallest causal/native preflight
+  -> exact-candidate same-condition staging After when required
+  -> bounded repair / re-stage if needed
+  -> verdict / candidate adoption
+  -> latest-develop impact check / reconcile only if required
+  -> one merge-owning exact-head Astra validation
   -> freshness / Ready / develop merge
 ```
 
@@ -78,7 +81,7 @@ portable probeは限定されたcausal probeで、ゲーム全体の品質評価
 
 ## Fast DEV と merge
 
-Actions workflowは既存の `.github/workflows/astra-work-validation.yml` を使い、この仕組みから変更しません。最終coherent headのcommitだけを `[astra-validate]` と明示的な `Astra-Check/Test/Build` でarmします。
+Actions workflowは既存の `.github/workflows/astra-work-validation.yml` を使い、この仕組みから変更しません。Player-facing iterationでは必要なstaging Afterとbounded repair/recheckを先に完了し、採用するcandidate sourceを確定します。その後、最新developとのimpactを確認し、必要な場合だけreconcileしたうえで、最終coherent headのcommitだけを `[astra-validate]` と明示的な `Astra-Check/Test/Build` でarmします。stagingで未採用のdraftを先に正式validationして、観測修正のたびにvalidationを繰り返しません。
 
 正式な成功は `MERGED_TO_DEVELOP`。exact-head focused validation、freshness、Ready、同session develop mergeまで完遂します。DEV publication完了は待ちません。main / Productionは明示許可なしに変更しません。
 
@@ -128,7 +131,7 @@ PULSEへ自律改善の進行を正確に出すため、すべての新規iterat
 
 正規stepは次の10個です。
 
-`observation → investigation → implementation → causalValidation → astraValidation → afterObservation → verdict → freshness → merge → devPublish`
+`observation → investigation → implementation → causalValidation → afterObservation → verdict → astraValidation → freshness → merge → devPublish`
 
 telemetryは `scripts/autonomous-iteration-telemetry.mjs` を正本とし、各stepに `startedAt / completedAt / durationMs / state` を持ちます。時刻は実行runtimeまたはtoolが返した実時刻を使い、推測値を記録しません。step境界では前stepを完了して同一時刻から次stepを開始します。
 

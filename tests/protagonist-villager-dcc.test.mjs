@@ -65,49 +65,29 @@ test('motion review defaults to the current game protagonist while retaining exp
 });
 
 
-test('female protagonist is a separate repository-local Rig_Medium DCC model', () => {
+test('female protagonist replaces the retired DCC surface with the original CC0 Rogue', () => {
   const model = CHARACTER_REFERENCE_MODELS[PROTAGONIST_VILLAGER_FEMALE_MODEL_ID];
+  const receipt = JSON.parse(readFileSync('apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json', 'utf8'));
+  const production = JSON.parse(readFileSync('packages/characters/production/protagonist-villager-female-v1.production.json', 'utf8'));
+  const bytes = readFileSync(production.source.meshPath);
   assert.equal(model.id, 'protagonist.villager.female.v1');
-  assert.equal(model.productionStage, 'PRIMARY');
-  assert.equal(model.modelingMode, 'dcc-blender');
-  assert.equal(model.productionReady, false);
+  assert.equal(model.modelingMode, 'imported-reviewed');
   assert.equal(model.production.target.rigId, 'Rig_Medium');
-  assert.equal(model.referenceStyle.design, 'protagonist-female-kaykit-derivative');
-  assert.equal(model.assetPath, './simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb');
-
-  const glbPath = 'apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb';
-  const receiptPath = 'apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json';
-  const blendPath = 'assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend';
-  const productionPath = 'packages/characters/production/protagonist-villager-female-v1.production.json';
-  assert.equal(existsSync(glbPath), true);
-  assert.equal(existsSync(blendPath), true);
-  assert.equal(existsSync(receiptPath), true);
-  assert.equal(existsSync(productionPath), true);
-  for (const view of ['front', 'three-quarter', 'side', 'back', 'face', 'pose-front', 'pose-side']) {
-    assert.equal(existsSync(`docs/characters/qa/protagonist-villager-female-v1/${view}.png`), true);
-  }
-
-  const bytes = readFileSync(glbPath);
-  const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
-  const production = JSON.parse(readFileSync(productionPath, 'utf8'));
-  assert.equal(bytes.length, receipt.bytes);
-  assert.equal(createHash('sha256').update(bytes).digest('hex'), receipt.sha256);
-  assert.equal(receipt.sha256, '7c422960add80f120d5dbcd91a6b74e23269b35049796f60cb1e6c4e4604d9a2');
-  assert.equal(receipt.humanoidRig, 'kaykit.Rig_Medium.v1');
-  assert.equal(production.stage, 'PRIMARY');
+  assert.equal(model.sourceModelId, 'kaykit.rogue.v1');
+  assert.equal(model.assetPath, receipt.path);
+  assert.equal(model.productionStage, 'REFERENCE');
+  assert.equal(production.stage, 'REFERENCE');
   assert.equal(production.status.visualApproval, 'pending');
   assert.equal(production.status.productionReady, false);
-  assert.equal(production.evidence.primary.meshObjects, 25);
-  assert.equal(production.evidence.primary.triangles, 4196);
-  assert.equal(production.status.visualApproval, 'pending');
-  const studioGlbPath = 'apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb';
-  assert.equal(readFileSync(studioGlbPath).equals(bytes), true);
-  const studio = JSON.parse(readFileSync('docs/characters/qa/protagonist-villager-female-v1/character-studio/receipt.json', 'utf8'));
-  assert.equal(studio.displayModelId, 'protagonist.villager.female.v1');
-  assert.equal(studio.ready, true);
-  assert.deepEqual(studio.errors, []);
-  assert.deepEqual(studio.consoleErrors, []);
-  assert.deepEqual(studio.httpErrors, []);
-  assert.deepEqual(studio.failedRequests, []);
-  assert.deepEqual(studio.pageErrors, []);
+  assert.equal(model.productionReady, false);
+  assert.equal(bytes.length, receipt.bytes);
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), receipt.sha256);
+  assert.equal(receipt.sha256, 'e825437cd4d2ee9c1960b517a74a69101e33eb409ae7fa8cedc7134a998fbb7d');
+  assert.equal(receipt.humanoidRig, 'kaykit.Rig_Medium.v1');
+  assert.equal(receipt.license.spdx, 'CC0-1.0');
+  for (const app of ['rinne', 'character-studio']) {
+    assert.equal(existsSync(`apps/${app}/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb`), false);
+    assert.deepEqual(JSON.parse(readFileSync(`apps/${app}/public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json`, 'utf8')), receipt);
+  }
+  assert.equal(existsSync('assets/characters/protagonist/villager-female-v1/source/ProtagonistVillagerFemaleV1.blend'), false);
 });

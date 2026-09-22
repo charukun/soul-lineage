@@ -71,11 +71,11 @@ test('simple installer stays character-only and idempotent', () => {
   assert.equal(installCharacterReviewGrid({ body:{ classList:{contains:()=>false}, dataset:{reviewMode:'character'} } }, {}), false);
 });
 
-test('committed protagonist assets are locally available to character-studio and DCC loading is integrity checked', () => {
+test('protagonist sources are committed in app or shared Asset Origin and loading is integrity checked', () => {
   for (const file of [
     '../public/simulator/assets/PROTAGONIST_VILLAGER_V1.glb',
     '../public/simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json',
-    '../public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.glb',
+    '../../review/public/library/model/c8827661105eef7b2bfbef3bc676d41a47625733/Rogue.glb',
     '../public/simulator/assets/PROTAGONIST_VILLAGER_FEMALE_V1.asset.json'
   ]) assert.ok(statSync(new URL(file, import.meta.url)).size > 0, file);
   assert.match(review, /loadFoundationModel/);

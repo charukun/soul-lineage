@@ -44,6 +44,8 @@ Ready is not a handoff or success state. Normal success is `MERGED_TO_DEVELOP`.
 
 The resulting `develop` push starts asynchronous DEV publication. Do not wait or poll for completion.
 
+Per-app DEV publication is impact-scoped. Known non-build documentation/control files such as `AGENTS.md` and ordinary `docs/**` changes must not rebuild unrelated apps. Changes to the DEV publication planner itself are control-plane-only and must not publish application artifacts. Unknown root/configuration changes remain fail-closed so potentially build-affecting changes cannot be silently skipped.
+
 ## Fast DEV execution contract
 
 Fast DEV is intentionally bounded. Routine feature/fix work must not make GitHub Actions do more work than the current `develop` contract.
