@@ -167,6 +167,11 @@ export function createJohakyuP7ReviewScenario({comboStyle='composed',mode='duel'
     if(mode==='duel')positions.set('enemy-a',{x:LAYOUT.hero.x,z:LAYOUT.hero.z+duelGap});
     if(carry)for(const [id,row] of carry)if(positions.has(id)&&row.position)positions.set(id,{...row.position});
     lastEvents=[];resumed=false;revision=0;attemptSerial=0;seedReadyWindow(.34);
+    if(mode==='duel'){
+      const hero=battle.actors.get('hero'),enemy=battle.actors.get('enemy-a');
+      updateExchange(hero,enemy,{type:'normal-start',phase:'jo',seeded:true});
+      traceRow({type:'initiative-seeded',actorId:'hero',targetId:'enemy-a',phase:'jo'});
+    }
   }
   function winnerCarry(){
     const winner=battle.result?.winner;if(!winner)return new Map();
