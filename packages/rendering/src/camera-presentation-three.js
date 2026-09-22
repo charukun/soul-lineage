@@ -1,4 +1,5 @@
 import { Box3, Vector3 } from 'three';
+export { createCameraSelfVisibility } from './camera-self-visibility.js';
 import { cameraSubject } from './camera-director.js';
 
 /** THREE boundary only. A future 2.5D subject can provide the same bounds directly. */

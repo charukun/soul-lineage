@@ -1,6 +1,6 @@
 import { createCameraDirector } from '@soul/rendering/camera-director';
 import { resolveCharacterView } from '@soul/rendering/character-view-resolver';
-import { applyCameraPresentation, measureCameraSubject, actorScreenSafety, actorSilhouetteSamples } from '@soul/rendering/camera-presentation-three';
+import { applyCameraPresentation, measureCameraSubject, actorScreenSafety, actorSilhouetteSamples, createCameraSelfVisibility } from '@soul/rendering/camera-presentation-three';
 
 const weaponRadius = id => ({ spear: 1.8, great: 1.5, staff: 1.6, sword: 1.1, axe: 1.2 }[id] || .6);
 
@@ -10,6 +10,14 @@ export function createRinnePresentationCamera({ camera, scene, canvas }) {
   let yawOffset = 0, playerView = null, shotOverride = null, subjectProvider = null, screenSafety = null;
   let subjectCache = null, boundsAge = Infinity, lastSubjectKey = '', snapshot = null, drag = null;
   const hero = scene.getObjectByName('Player'), mother = scene.getObjectByName('Mother');
+  const selfVisibility = createCameraSelfVisibility();
+  const originalBeforeRender = scene.onBeforeRender, originalAfterRender = scene.onAfterRender;
+  const beforeRender = function (...args) {
+    originalBeforeRender?.apply(this, args);
+    if (args[2] === camera && snapshot) selfVisibility.apply(snapshot.actor.id === 'player' ? [hero, ...(snapshot.actor.carried ? [mother] : [])] : [], snapshot.camera, snapshot.actor);
+  };
+  const afterRender = function (...args) { selfVisibility.restore(); originalAfterRender?.apply(this, args); };
+  scene.onBeforeRender = beforeRender; scene.onAfterRender = afterRender;
   // Secondary mouse input is reserved for camera orbit; primary/touch movement is untouched.
   const down = event => { if (event.button !== 2) return; drag = { id: event.pointerId, x: event.clientX }; canvas.setPointerCapture?.(event.pointerId); event.preventDefault(); event.stopImmediatePropagation(); };
   const move = event => { if (!drag || drag.id !== event.pointerId) return; yawOffset += (event.clientX - drag.x) * .006; drag.x = event.clientX; event.preventDefault(); event.stopImmediatePropagation(); };
@@ -35,9 +43,9 @@ export function createRinnePresentationCamera({ camera, scene, canvas }) {
         subjectCache = measureCameraSubject(root, { id: 'player', position: state.position, yaw: state.yaw, weaponRadius: weaponRadius(state.equipment?.weapon) });
         boundsAge = 0; lastSubjectKey = key;
       }
-      const actor = subjectProvider?.(state) || { ...subjectCache, position: { x: state.position.x, y: 0, z: state.position.z }, yaw: state.yaw };
+      const actor = subjectProvider?.(state) || { ...subjectCache, position: { x: state.position.x, y: 0, z: state.position.z }, yaw: state.yaw, carried };
       const enemyRoot = targetEnemy ? scene.getObjectByName(`Enemy:${targetEnemy.id}`) : null;
-      const target = targetEnemy ? measureCameraSubject(enemyRoot, { id: targetEnemy.id, position: targetEnemy, yaw: targetEnemy.yaw, fallbackHeight: targetEnemy.height || 1.8, weaponRadius: 1 }) : null;
+      const target = !titleFrame && shotOverride?.target ? shotOverride.target : targetEnemy ? measureCameraSubject(enemyRoot, { id: targetEnemy.id, position: targetEnemy, yaw: targetEnemy.yaw, fallbackHeight: targetEnemy.height || 1.8, weaponRadius: 1 }) : null;
       const baseMode = titleFrame ? 'title' : inside ? 'interior' : combatFrame ? 'combat' : 'exploration';
       const input = { mode: baseMode, actor, target, combatFrame, authoredShot: titleFrame ? titleShot : null,
         offset, yaw: Math.atan2(offset.x, offset.z) + yawOffset, yawOffset, aspect: camera.aspect,
@@ -53,6 +61,9 @@ export function createRinnePresentationCamera({ camera, scene, canvas }) {
     recordOcclusion(ratio) { if (screenSafety) screenSafety.occludedRatio = ratio; },
     snapshot: () => snapshot ? structuredClone(snapshot) : null,
     dispose() {
+      selfVisibility.dispose();
+      if (scene.onBeforeRender === beforeRender) scene.onBeforeRender = originalBeforeRender;
+      if (scene.onAfterRender === afterRender) scene.onAfterRender = originalAfterRender;
       canvas.removeEventListener('pointerdown', down, true); canvas.removeEventListener('pointermove', move, true); canvas.removeEventListener('pointerup', up, true); canvas.removeEventListener('pointercancel', up, true); canvas.removeEventListener('contextmenu', menu); doc.removeEventListener('keydown', orbitKey, true);
       if (canvas.cameraPresentation === api.snapshot) delete canvas.cameraPresentation;
     },

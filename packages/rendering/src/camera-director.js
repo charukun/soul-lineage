@@ -30,7 +30,7 @@ export function selectCameraShot(input = {}, profile = CAMERA_PROFILES.current3d
   } else if (mode === 'interior' && (input.interiorPolicy || profile.interior) === 'interiorFirstPerson') {
     const heading = finite(actor.yaw), eye = Math.max(.35, actor.height * .86), forward = { x: Math.sin(heading), y: 0, z: Math.cos(heading) };
     const position = add(actor.position, { x: forward.x * .08, y: eye, z: forward.z * .08 });
-    shot = { position, lookTarget: add(position, { x: forward.x * 4.2, y: -.03, z: forward.z * 4.2 }), fov: 43, interiorPolicy: 'interiorFirstPerson', pivot: 'eye' };
+    shot = { position, lookTarget: add(position, { x: forward.x * 4.2, y: -.03, z: forward.z * 4.2 }), fov: 43, interiorPolicy: 'interiorFirstPerson', pivot: 'eye', selfVisibility: 'firstPerson' };
   } else if (mode === 'interior') {
     const variant = input.interiorPolicy || profile.interior;
     const pitch = variant === 'interiorDiorama' ? radians(44) : variant === 'interiorCutaway' ? radians(38) : radians(25);
@@ -59,11 +59,11 @@ export function selectCameraShot(input = {}, profile = CAMERA_PROFILES.current3d
     const pitch = clamp(polar.pitch, ...profile.safeViewRange.pitch);
     shot = { position: orbitPosition(target, yaw + framing.yawBias, pitch, clamp(polar.distance * lensScale(profile) * framing.zoom, ...profile.safeViewRange.distance)), lookTarget: target, fov };
   }
-  if (!input.authoredShot && mode !== 'interior') {
+  if (!input.authoredShot && shot.interiorPolicy !== 'interiorFirstPerson') {
     const subjects = opponent && ['combat', 'conversation'].includes(mode) ? [actor, opponent] : [actor];
     const horizontalFov = 2 * Math.atan(Math.tan(radians(shot.fov) / 2) * Math.max(.2, finite(input.aspect, 1)));
     const fitFov = Math.min(radians(shot.fov), horizontalFov), margin = 1 - profile.safeViewRange.edgeMargin * 2;
-    const radius = Math.max(...subjects.map(s => length(subtract(focus(s), shot.lookTarget)) + Math.max(s.height * .55, s.radius, s.weaponRadius)));
+    const radius = Math.max(...subjects.map(s => length(subtract(focus(s), shot.lookTarget)) + Math.hypot(Math.max(s.radius, s.weaponRadius) * Math.SQRT2, Math.max(s.focusHeight, s.height - s.focusHeight))));
     const polar = orbit(shot.position, shot.lookTarget);
     const minimum = radius / Math.max(.04, Math.sin(fitFov / 2) * margin);
     if (minimum > polar.distance) shot.position = orbitPosition(shot.lookTarget, polar.yaw, polar.pitch, minimum);

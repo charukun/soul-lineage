@@ -49,3 +49,12 @@ test('only hit forest instances fade and every original matrix/material is resto
   fader.revealAll(); const restored = new THREE.Matrix4(); forest.getMatrixAt(0, restored); assert.deepEqual(restored.elements, first.elements); assert.equal(root.children.length, 1);
   fader.update({ camera, target: { x: 0, y: 1.5, z: 0 }, instanceOccluders: [forest], dt: .1 }); fader.dispose(); forest.getMatrixAt(0, restored); assert.deepEqual(restored.elements, first.elements); assert.equal(material.opacity, 1); assert.equal(root.children.length, 1); geometry.dispose(); material.dispose();
 });
+
+test('large creatures and long weapons fit conservative projected bounds on portrait and landscape cameras', () => {
+  const actor = { id: 'winged-boss', position: { x: 0, y: 0, z: 0 }, height: 8, radius: 2, weaponRadius: 7.2 };
+  for (const aspect of [.48, 1.4]) for (const mode of ['exploration', 'interior']) {
+    const camera = new THREE.PerspectiveCamera(43, aspect, .08, 650);
+    applyCameraPresentation(camera, createCameraDirector().update({ actor, aspect, mode, interiorPolicy: 'interiorDiorama' }));
+    const safety = actorScreenSafety(camera, [actor]); assert.ok(safety.actors[0].edgeMargin >= .065, JSON.stringify(safety));
+  }
+});

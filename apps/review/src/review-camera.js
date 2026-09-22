@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { createCameraDirector } from '@soul/rendering/camera-director';
 import { CHARACTER_VIEWS, resolveCharacterView, viewYaw } from '@soul/rendering/character-view-resolver';
-import { applyCameraPresentation, actorScreenSafety, actorSilhouetteSamples } from '@soul/rendering/camera-presentation-three';
+import { applyCameraPresentation, actorScreenSafety, actorSilhouetteSamples, createCameraSelfVisibility } from '@soul/rendering/camera-presentation-three';
 import { combatCameraFrame } from '@soul/rendering/combat-camera-frame';
 import { createForegroundOcclusionFader } from '@soul/rendering/occlusion';
 const $ = id => document.getElementById(id), canvas = $('camera-stage');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); renderer.setPixelRatio(Math.min(1.5, devicePixelRatio || 1)); renderer.shadowMap.enabled = true; renderer.toneMapping = THREE.ACESFilmicToneMapping;
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x152320); scene.fog = new THREE.Fog(0x152320, 24, 60);
+const selfVisibility = createCameraSelfVisibility();
 const camera = new THREE.PerspectiveCamera(40, 1, .08, 120), director = createCameraDirector(), fader = createForegroundOcclusionFader();
 scene.add(new THREE.HemisphereLight(0xa5c8d0, 0x514633, 2.1)); const sun = new THREE.DirectionalLight(0xffddb3, 3); sun.position.set(-5, 10, 5); sun.castShadow = true; scene.add(sun);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ color: 0x526655, roughness: .95 })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
@@ -46,14 +47,15 @@ function animate(t) {
   const target = { id: 'target', position: { x: enemy.root.position.x, y: 0, z: enemy.root.position.z }, yaw: Math.PI, height: 2, radius: .5, weaponRadius: 1.1 };
   const mode = $('shot').value, yaw = Number($('camera-yaw').value) * Math.PI / 180;
   const authoredShot = ['title', 'event'].includes(mode) ? { position: { x: Math.sin(time * .2) * 12, y: 5, z: Math.cos(time * .2) * 12 }, lookTarget: { x: 0, y: 1, z: 0 }, fov: mode === 'title' ? 35 : 38 } : null;
-  const shot = director.update({ mode, actor, target, yaw, aspect: camera.aspect, offset: { x: 6, y: 4.5, z: 8 }, interiorPolicy: $('interior-policy').value, authoredShot,
+  const shot = director.update({ mode, actor, target, yaw, yawOffset: yaw - Math.atan2(10.5, 14.5), aspect: camera.aspect, offset: { x: 6, y: 4.5, z: 8 }, interiorPolicy: $('interior-policy').value, authoredShot,
     combatFrame: mode === 'combat' ? combatCameraFrame({ player: actor.position, threats: [target.position] }) : null }, dt);
   applyCameraPresentation(camera, shot);
   viewState = resolveCharacterView({ cameraPosition: camera.position, actorPosition: actor.position, actorYaw: actor.yaw, state: viewState, dt });
   occluders.visible = $('occluder').checked; const occlusion = fader.update({ camera, targets: actorSilhouetteSamples(actor), occluderRoot: occluders, enabled: occluders.visible, dt });
   const safety = actorScreenSafety(camera, [actor, target], occlusion.occludedRatio);
   frameSnapshot = { camera: shot, view: viewState, safety, occlusion, actor, target, model: '3d-dummy' };
-  renderer.render(scene, camera); canvas.dataset.ready = 'true'; canvas.dataset.mode = shot.mode; canvas.dataset.view = viewState.currentView;
+  selfVisibility.apply([hero.root], shot, actor);
+  try { renderer.render(scene, camera); } finally { selfVisibility.restore(); } canvas.dataset.ready = 'true'; canvas.dataset.mode = shot.mode; canvas.dataset.view = viewState.currentView;
   if (time - infoTime > .1) {
     infoTime = time; $('view-label').textContent = viewState.currentView; $('shot-label').textContent = `${shot.mode} · ${shot.profile}`;
     for (const button of $('view-grid').children) button.setAttribute('aria-pressed', String(button.dataset.view === viewState.currentView));
@@ -65,4 +67,4 @@ function animate(t) {
 canvas.cameraPresentation = () => structuredClone(frameSnapshot);
 try { const info = typeof __BUILD_INFO__ !== 'undefined' ? __BUILD_INFO__ : {}; document.querySelector('[data-build]').textContent = String(info.commit || '').slice(0, 12); } catch {}
 raf = requestAnimationFrame(animate);
-window.addEventListener('pagehide', () => { cancelAnimationFrame(raf); resize.disconnect(); fader.dispose(); for (const resource of resources) resource.dispose(); ground.geometry.dispose(); ground.material.dispose(); grid.geometry.dispose(); grid.material.dispose(); renderer.dispose(); }, { once: true });
+window.addEventListener('pagehide', () => { cancelAnimationFrame(raf); resize.disconnect(); selfVisibility.dispose(); fader.dispose(); for (const resource of resources) resource.dispose(); ground.geometry.dispose(); ground.material.dispose(); grid.geometry.dispose(); grid.material.dispose(); renderer.dispose(); }, { once: true });
