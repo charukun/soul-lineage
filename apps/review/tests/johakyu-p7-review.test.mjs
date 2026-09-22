@@ -247,7 +247,7 @@ test('battle2 consumes canonical actor capability without duplicating the next i
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.14');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.15');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
@@ -276,7 +276,7 @@ test('HUD is fixed to the screen center while preserving exchange state',()=>{
  assert.ok(!stage.includes('function positionHud')&&!stage.includes('footAnchor')&&!stage.includes('hud.style.left')&&!stage.includes('hud.style.top'));
  assert.ok(stage.includes("hud.dataset.anchored='true'"));assert.ok(stage.includes("const hudState=meta.hudState||'maai'"));assert.ok(stage.includes('phasePanel.dataset.phase=hudState'));
  assert.ok(css.includes('left:50%;top:50%'));assert.ok(css.includes('grid-template-columns:36px 24px 27px 24px 27px 24px 36px'));
- assert.doesNotMatch(html,/>間合い<|>残心</);assert.ok(stage.includes('function shortActionName'));assert.ok(stage.includes('line.textContent=row.label'));
+ assert.doesNotMatch(html,/>間合い<|>残心</);assert.ok(stage.includes('function shortActionName'));assert.ok(stage.includes('line.textContent=historyDisplayLabel(row)'));
 });
 
 test('HUD centers 破 with symmetric exchange waveforms and no scale recentering',()=>{
@@ -286,15 +286,22 @@ test('HUD centers 破 with symmetric exchange waveforms and no scale recentering
  assert.doesNotMatch(css,/battle-sequence-hud__phase[^}]*transform:scale/);assert.ok(css.includes('[data-phase="maai"] .battle-sequence-hud__edge--maai'));assert.ok(css.includes('[data-phase="zanshin"] .battle-sequence-hud__edge--zanshin'));
 });
 
-test('action history remains floating text and narrates techniques plus spacing/defense semantics',()=>{
+test('action history is a paced single-line flow of semantic beats and technique chains',()=>{
  const stage=stageSource(),css=hudCss();
- assert.match(stage,/spawnActionText/);assert.match(stage,/historyNode\.append\(line\)/);assert.match(stage,/animationend/);assert.match(stage,/setTimeout\(remove,4200\)/);
- assert.doesNotMatch(stage,/historyNode\.replaceChildren\(\.\.\.history\.map/);
+ assert.match(stage,/HISTORY_DISPLAY_MS=2800/);assert.match(stage,/historyQueue/);assert.match(stage,/drainHistoryQueue/);assert.match(stage,/historyDisplayLabel/);
+ assert.match(stage,/historyNode\.replaceChildren\(line\)/);assert.match(stage,/animationend/);assert.match(stage,/kind:'technique'/);assert.match(stage,/kind:'semantic'/);
  assert.match(stage,/function actionHistoryKey/);assert.match(stage,/連「\$\{name\}」/);assert.doesNotMatch(stage,/\$\{meta\.stageIndex\+1\}段/);
  for(const copy of ['間合いを取る','武器で弾いた','様子を見る','仕切り直す'])assert.ok(stage.includes(copy),copy);
  assert.match(stage,/interrupted\?'maai'/);assert.match(stage,/seenNarration/);
- assert.match(css,/\.battle-sequence-history__float\{/);assert.match(css,/position:absolute/);assert.match(css,/johakyu-text-drift 3\.7s/);assert.match(css,/@keyframes johakyu-text-drift/);
- assert.doesNotMatch(css,/battle-sequence-history__float[^}]*background:/);
+ assert.match(css,/\.battle-sequence-history__flow\{/);assert.match(css,/johakyu-history-flow 2\.8s/);assert.match(css,/@keyframes johakyu-history-flow/);
+ assert.doesNotMatch(css,/battle-sequence-history__float/);
+});
+
+test('battle2 lamps fill left to right, fade together on interruption, and maai breathes while waiting',()=>{
+ const stage=stageSource(),css=hudCss();
+ assert.match(stage,/node\.dataset\.lit=String\(index>=0&&i<=index\)/);assert.match(stage,/link\.dataset\.lit=String\(index>i\)/);assert.match(stage,/link\.dataset\.current=String\(index===i\)/);
+ assert.match(stage,/beginComboFade/);assert.match(stage,/COMBO_FADE_MS=900/);assert.match(css,/data-lit="true"/);assert.match(css,/data-combo-interrupted="true"/);
+ assert.match(css,/johakyu-maai-breathe 1\.55s/);assert.match(css,/@keyframes johakyu-maai-breathe/);
 });
 
 test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),/Unsupported/);});
@@ -303,7 +310,7 @@ test('unsupported battle counts fail closed',()=>{assert.throws(()=>createJohaky
 test('battle2 narration rate-limits repeated spacing text instead of flooding the HUD',()=>{
  const stage=stageSource();
  assert.match(stage,/lastNarrationAt=new Map\(\)/);
- assert.match(stage,/now-previous<1\.35/);
+ assert.match(stage,/NARRATION_MIN_SECONDS=2\.2/);assert.match(stage,/now-previous<NARRATION_MIN_SECONDS/);
  assert.match(stage,/row\.actorId!==\'hero\'/);
  assert.match(stage,/if\(pushNarration\(row,meta\)\)break/);
 });
