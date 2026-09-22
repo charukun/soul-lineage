@@ -91,6 +91,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           node <<'NODE'
+          (async()=>{
           const api=process.env.GITHUB_API_URL,repo=process.env.GITHUB_REPOSITORY,sha=process.env.HEAD_SHA;
           const target=`${process.env.GITHUB_SERVER_URL}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`;
           async function post(context,state,description){
@@ -101,6 +102,7 @@ jobs:
           }
           await post('astra/fast-dev-contract','error','FAST_DEV_CONTRACT_VIOLATION: repair same branch and revalidate');
           await post('astra/focused-validation','error','Skipped: Fast DEV execution expansion must be repaired first');
+          })().catch(error=>{console.error(error);process.exit(1);});
           NODE
       - name: Resolve Astra-selected focused validation
         id: focused-plan
@@ -124,6 +126,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           node <<'NODE'
+          (async()=>{
           const cp=require('node:child_process'),path=require('node:path'),{pathToFileURL}=require('node:url');
           const api=process.env.GITHUB_API_URL,repo=process.env.GITHUB_REPOSITORY,sha=process.env.HEAD_SHA;
           const target=`${process.env.GITHUB_SERVER_URL}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`;
@@ -173,6 +176,7 @@ jobs:
           }
           await post('astra/focused-validation','success',
             reason==='current-develop-contained'?'Astra-selected exact-head validation passed':'Astra validation reused across independent develop drift');
+          })().catch(error=>{console.error(error);process.exit(1);});
           NODE
       - name: Record final-head validation failure
         if: failure() && steps.contract.outcome == 'success'
@@ -180,6 +184,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           node <<'NODE'
+          (async()=>{
           const sha=process.env.HEAD_SHA||'';
           if(!/^[0-9a-f]{40}$/.test(sha))process.exit(0);
           const repo=process.env.GITHUB_REPOSITORY;
@@ -188,4 +193,5 @@ jobs:
             authorization:`Bearer ${process.env.GITHUB_TOKEN}`,'content-type':'application/json','x-github-api-version':'2022-11-28'
           },body:JSON.stringify({context:'astra/focused-validation',state:'failure',description:'Astra-selected exact-head validation failed',target_url:target})});
           if(!res.ok)throw new Error(`status failure: ${res.status} ${await res.text()}`);
+          })().catch(error=>{console.error(error);process.exit(1);});
           NODE
