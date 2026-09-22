@@ -38,3 +38,13 @@
 7. main / Production、既存品質gate、ブラウザ検証経路を変更しない。
 
 Depends-On: none
+
+## Exchange boundary contract (2026-09-22)
+
+- `packages/johakyu-combat/src/exchange-policy.js` is the shared pair-scoped interpreter. `normalStarted`, `completedById`, and `transition` distinguish ordinary pressure, reversal/counter, and the actor that actually completed 急. It never pays stamina, resolves contact, writes a combat cursor, or awards inspiration.
+- Native Tidebreak emits committed stages, classified real parries, counter start/completion, interruption, and **whole-sequence** 急 completion. An empty attack between stages is not completion. Main-game physiology interprets actual HP/injury outcomes and feeds the same pair projection back to native AI selection.
+- Ordinary guard, weak parry, shallow hit, and shallow miss retain pressure. A deep hit is an actual incapacitating outcome, newly compromised body when a before/after outcome is available, unguarded heavy impact, or at least 16% of maximum HP in an impact. Major miss, failed execution/capability, disengagement and target invalidation return to READ, not the successful-completion wave.
+- Strong parry creates REVERSAL. Reaction and counter callbacks finish on their original cursor; only the next normal sequence boundary prepares 序. Counter is never silently relabelled 序. Native authored RINNE defense stages must not be stripped by standalone generated-recipe cleanup.
+- Hero HUD reveals canonical jo/ha/kyu only during the hero's normal PRESSURE, including gaps between clips. Opponent pressure, defense, reversal, and counter show 間合い. Only the hero's own whole 急 completion shows 残心; opponent completion stays 間合い.
+- Pair pressure influences AI intent, not battlefield-wide attack rights. Secondary sessions/world contacts and squad roles continue. Projectiles, special one-motion/finisher execution, injury costs, and actual-contact inspiration keep their existing authorities.
+- Exchange, deferred normal-start state, native events, reaction/counter windows and HUD projection are transient. Restore starts at READ; physiology, loadout, learned techniques and causal records remain persistent.

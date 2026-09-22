@@ -120,7 +120,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const onCombatFeedback=event=>{
     if(event.detail?.type!=='enemy-hit')return;
     pushPhaseHistory({action:'攻撃を受けた',kind:'damage'});
-    if(currentComboKey){comboInterrupted=true;interruptSequence();lastPhase='';haptic([18,28,12]);}
+    if(currentComboKey&&(!state?.combat?.exchange||state.combat.exchange.continuity==='reset'||state.combat.exchange.continuity==='reverse')){comboInterrupted=true;interruptSequence();lastPhase='';haptic([18,28,12]);}
   };
   gameScreen.addEventListener('rinne:combat-feedback',onCombatFeedback);
   const showMovementHelp=event=>{
@@ -243,8 +243,10 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
     ui.phase.hidden=!phase;
     const rawAction=phase?(gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';
-    let sequence=sequenceHudState({phase,attack:rawAction,interrupted:comboInterrupted});
-    if(comboInterrupted&&!rawAction){comboInterrupted=false;sequence=sequenceHudState({phase,attack:rawAction});}
+    const exchangeHud=s.combat?.exchange?(s.combat.hudState||'maai'):null;
+    let sequence=sequenceHudState({phase,attack:rawAction,interrupted:comboInterrupted,exchangeHud});
+    ui.phase.dataset.exchange=exchangeHud||'legacy';
+    if(comboInterrupted&&!rawAction){comboInterrupted=false;sequence=sequenceHudState({phase,attack:rawAction,exchangeHud});}
     if(sequence.comboActive&&ui.phase.dataset.comboInterrupted==='true'){clearTimeout(interruptTimer);interruptTimer=0;endInterruptionVisual();}
     currentComboKey=sequence.key;ui.phase.dataset.comboActive=String(sequence.comboActive);ui.phase.dataset.phase=sequence.comboActive?sequence.activePhase:'idle';
     syncCombatSequence(ui.phase,sequence.comboActive?sequence.activePhase:'',{pulse:sequence.comboActive});setCompletedPhases(sequence.completed);
