@@ -10,6 +10,8 @@ import {createInspirationMotionLab,createInspirationVfxLab} from './choreography
 import {applyReviewCombatMotion} from './hero-motion.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {resolveTechniquePresentation} from '@soul/johakyu-presentation/technique-presentation';
+import {createSnapCameraControl} from '@soul/rendering/snap-camera-control';
+import '@soul/rendering/snap-camera-control.css';
 
 export const REVIEW_BATTLE_MODELS=REVIEW_MONSTER_MODELS;
 const clamp=(value,lo,hi)=>Math.min(hi,Math.max(lo,value));
@@ -97,6 +99,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   const inspirationVfx=await createInspirationVfxLab({renderer,document,onError:error=>{canvas.dataset.inspirationVfx='fallback';console.warn('Inspiration authored VFX unavailable:',error);}});
   canvas.dataset.inspirationMotion=inspirationMotion.ready?'lab':'fallback';canvas.dataset.inspirationVfx=inspirationVfx.snapshot().phase==='ready'?'lab':'fallback';
   let encounterMode='duel',techniquePlayback=null,cameraOrbit=0,cameraZoom=.82,impactKick=0,impactYaw=0,lastImpactSerial=0;
+  const cameraControl=createSnapCameraControl({document:canvas.ownerDocument||document,container:canvas.closest('.stage')||canvas.parentElement,initialZoom:.82,minZoom:.58,maxZoom:1.65,onChange:state=>{cameraOrbit=state.yaw;cameraZoom=state.zoom;canvas.dataset.cameraStep=String(state.index);canvas.dataset.cameraZoom=state.zoom.toFixed(2);}});
   const impactBursts=[],inspirationHandPoint=new THREE.Vector3(),inspirationEnemyPoint=new THREE.Vector3(),inspirationBladeA=new THREE.Vector3(),inspirationBladeB=new THREE.Vector3();
   function heroWeaponPoint(target=inspirationHandPoint){const hand=heroWeaponRig.rightHand;if(hand?.getWorldPosition){hand.getWorldPosition(target);return target;}target.copy(hero.actor.root.position);target.y+=1.05;return target;}
   function nearMissVector(target,sequence,side=1){
@@ -187,7 +190,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     if(core?.hero&&core?.enemy&&followCamera)canvas.dataset.heroComposition=cameraSystem==='demon'?'kuumetsu-shared':'hyakunen-shared';
     if(sequence&&sequence.stage!=='done'&&core?.hero&&core?.enemy){const cinematicFrame=inspirationCameraFrame(sequence)||frame;frame=sequence.stage==='afterglow'?blendCameraFrames(cinematicFrame,baseFrame,sequence.progress):cinematicFrame;}
     else if(frame?.follow&&core?.hero&&core?.enemy&&!frame.finisher){
-      cameraOrbit=(cameraOrbit+step*.05)%(Math.PI*2);const ox=frame.position.x-frame.look.x,oz=frame.position.z-frame.look.z,c=Math.cos(cameraOrbit),sn=Math.sin(cameraOrbit);
+      const ox=frame.position.x-frame.look.x,oz=frame.position.z-frame.look.z,c=Math.cos(cameraOrbit),sn=Math.sin(cameraOrbit);
       frame={...frame,position:{...frame.position,x:frame.look.x+ox*c-oz*sn,z:frame.look.z+ox*sn+oz*c}};
     }
     if(frame?.position&&frame?.look&&frame.system!=='inspiration'){const dx=frame.position.x-frame.look.x,dy=frame.position.y-frame.look.y,dz=frame.position.z-frame.look.z;frame={...frame,position:{x:frame.look.x+dx*cameraZoom,y:frame.look.y+dy*cameraZoom,z:frame.look.z+dz*cameraZoom}};}
@@ -230,13 +233,13 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     setWeapon(){},
     presentImpact,
     presentFinisherImpact,
-    zoomBy(delta=0){cameraZoom=clamp(cameraZoom+Number(delta||0),.58,1.65);return cameraZoom;},
-    setZoom(value=.82){cameraZoom=clamp(Number(value)||.82,.58,1.65);return cameraZoom;},
+    zoomBy(delta=0){return cameraControl.setZoom(cameraZoom+Number(delta||0)).zoom;},
+    setZoom(value=.82){return cameraControl.setZoom(value).zoom;},
     cameraAngle(){return Math.atan2(camera.position.x-cameraLook.x,camera.position.z-cameraLook.z);},
     triggerInspiration({id='',name='',steps=[],phase='ha',weapon='sword',grade='normal',duration=REVIEW_INSPIRATION_TIMELINE.end}={}){const now=performance.now()/1000,total=Math.max(REVIEW_INSPIRATION_TIMELINE.end,Number(duration)||0),nearMissSide=String(id||name).length%2?1:-1,presentation=resolveTechniquePresentation({techniqueId:id||name,weapon,phase,steps,grade});techniquePlayback={id,name,steps,phase,weapon,grade,presentation,duration:total,startedAt:now,until:now+total,nearMissSide,emitted:new Set(['spark'])};canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');onInspirationCue('spark',techniquePlayback);setTimeout(()=>canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic'),total*1000+120);},
-    resetRound(){cameraOrbit=0;impactKick=0;lastImpactSerial=0;inspirationVfx.clear();inspirationMotion.reset();hero.presentation=null;hero.hp=null;for(const side of enemies){side.presentation=null;side.hp=null;side.hitUntil=0;}},
+    resetRound(){impactKick=0;lastImpactSerial=0;inspirationVfx.clear();inspirationMotion.reset();hero.presentation=null;hero.hp=null;for(const side of enemies){side.presentation=null;side.hp=null;side.hitUntil=0;}},
     sync,
     snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',encounterMode,geometry:canvas.dataset.battleGeometry||''});},
-    dispose(){stageLifecycle.destroy();inspirationVfx.dispose();inspirationMotion.reset();heroPool.despawn(hero.actorId);protagonistRuntime.dispose();for(const monster of monsters)disposeReviewMonsterModel(monster);for(const entry of weaponVisuals)disposeNode(entry.group);for(const row of impactBursts){row.mesh.geometry.dispose();row.mesh.material.dispose();}ground.geometry.dispose();ground.material.dispose();renderer.dispose();}
+    dispose(){cameraControl.dispose();stageLifecycle.destroy();inspirationVfx.dispose();inspirationMotion.reset();heroPool.despawn(hero.actorId);protagonistRuntime.dispose();for(const monster of monsters)disposeReviewMonsterModel(monster);for(const entry of weaponVisuals)disposeNode(entry.group);for(const row of impactBursts){row.mesh.geometry.dispose();row.mesh.material.dispose();}ground.geometry.dispose();ground.material.dispose();renderer.dispose();}
   });
 }
