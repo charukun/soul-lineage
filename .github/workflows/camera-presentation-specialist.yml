@@ -1,14 +1,23 @@
 name: Camera Presentation specialist (task only)
-run-name: Reconcile camera with shared 3D weapons c000b40c53e84db93e590ce4443a6eb4463f49ce
+run-name: Camera specialist PR1490 d62bc23e13d2ad2d2f67011235582cb8d34f1271
 on:
   push:
     branches: [dispatch/camera-presentation-specialist-20260923]
 permissions:
-  contents: write
+  contents: read
+  actions: read
+  pull-requests: read
 jobs:
-  materialize:
+  browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 16
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [exploration, combat, interior, occlusion, review]
+    env:
+      APP_ENV: dev
+      CAMERA_SCENARIO: ${{ matrix.scenario }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -17,16 +26,56 @@ jobs:
           sparse-checkout: scripts
       - uses: actions/checkout@v6
         with:
-          ref: 9d293787895d6141a5f523c5de3fb34d24ee6aec
+          ref: d62bc23e13d2ad2d2f67011235582cb8d34f1271
           path: work
           persist-credentials: false
-      - name: Verify exact incoming renderer diff and materialize its merged blob
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: work/package-lock.json
+      - run: npm ci --ignore-scripts
         working-directory: work
+      - run: npm run build:rinne && npm run build:review
+        working-directory: work
+      - run: npx playwright install --with-deps chromium
+        working-directory: work
+      - name: Native-input exact-head scenario (all assertions retained)
+        working-directory: work
+        run: |
+          cp ../control/scripts/browser/camera-playtest-task.mjs scripts/browser/camera-playtest-task.mjs
+          python3 ../control/scripts/camera-native-input-patch.py
+          python3 ../control/scripts/camera-shard-patch.py
+          node --check scripts/browser/camera-playtest-task.mjs
+          node scripts/browser/camera-playtest-task.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: camera-specialist-d62bc23e13d2ad2d2f67011235582cb8d34f1271-${{ matrix.scenario }}
+          path: work/test-results/camera-presentation
+          retention-days: 14
+  summary:
+    needs: browser
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: d62bc23e13d2ad2d2f67011235582cb8d34f1271
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Existing Actions summary and merge-window snapshot
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 ../control/scripts/reconcile-camera-equipment.py
+        run: |
+          mkdir -p /tmp/camera-summary
+          npm run actions:summary -- --repo charukun/soul-lineage --pr 1490 --sha d62bc23e13d2ad2d2f67011235582cb8d34f1271 --output /tmp/camera-summary/actions-summary.json
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: camera-equipment-reconcile
-          path: /tmp/camera-equipment-reconcile
-          retention-days: 7
+          name: camera-actions-summary-d62bc23e13d2ad2d2f67011235582cb8d34f1271
+          path: /tmp/camera-summary
+          retention-days: 14
