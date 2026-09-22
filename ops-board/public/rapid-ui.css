@@ -430,6 +430,9 @@ footer{margin-top:16px;opacity:.58}
 }
 
 
+.pulse-brand-row{display:flex;align-items:baseline;gap:7px}
+.pulse-version{color:#66768b;font:760 8px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.035em;white-space:nowrap}
+
 /* 2026-09 rapid control tower: ACTIVE / APPS / ISSUES / RECENT. */
 .rapid-board{display:grid;gap:7px;margin:0 0 10px}
 .rapid-health{display:grid;grid-template-columns:8px auto minmax(0,1fr);align-items:center;gap:8px;min-height:40px;padding:8px 10px;border:1px solid var(--pulse-line);border-radius:12px;background:rgba(13,18,25,.84)}

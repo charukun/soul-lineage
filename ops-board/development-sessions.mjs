@@ -61,8 +61,14 @@ function runState(run,{required=true}={}){
   return run.status==='completed'?'waiting':'running';
 }
 
-function step(id,label,state,run=null){
-  return Object.freeze({id,label,state,runId:run?.id||null,url:run?.html_url||null,at:run?.updated_at||run?.created_at||null});
+function step(id,label,state,run=null,{startedAt=null,completedAt=null}={}){
+  const start=startedAt||run?.created_at||null;
+  const end=completedAt||(run?.status==='completed'?run?.updated_at:null)||null;
+  const startMs=at(start),endMs=at(end);
+  return Object.freeze({
+    id,label,state,runId:run?.id||null,url:run?.html_url||null,at:run?.updated_at||run?.created_at||end||start||null,
+    startedAt:start,completedAt:end,durationMs:startMs&&endMs?Math.max(0,endMs-startMs):null,
+  });
 }
 
 function sessionStatus(steps,merged){
@@ -91,13 +97,14 @@ export function buildDevelopmentSessions(pulls=[],runs=[],{limit=8}={}){
     const publishRun=latest(publishes.filter(run=>run.status==='completed'&&run.conclusion==='success'))||latest(publishes);
     const state=pullState(pr),merged=state==='Merged',needsBrowser=browserRequired(pr);
     const autonomous=autonomousIterationMeta(pr);
-    const implementationState=state==='Draft'?'running':state==='Closed'?'problem':'done';
+    const implementationState=validationRun?'done':state==='Draft'?'running':state==='Closed'?'problem':'done';
     const browserState=runState(browserRun,{required:needsBrowser});
+    const implementationCompletedAt=validationRun?.created_at||(state==='Ready'?pr.updated_at:null);
     const steps=[
-      step('implementation','実装',implementationState),
+      step('implementation','実装',implementationState,null,{startedAt:pr.created_at||null,completedAt:implementationCompletedAt}),
       step('validation','検証',runState(validationRun,{required:true}),validationRun),
       step('browser','Browser',browserState,browserRun),
-      step('merge','merge',merged?'done':state==='Closed'?'problem':'waiting'),
+      step('merge','merge',merged?'done':state==='Closed'?'problem':'waiting',null,{startedAt:validationRun?.updated_at||null,completedAt:pr.merged_at||null}),
       step('publish','DEV',merged?runState(publishRun,{required:true}):'waiting',publishRun),
     ];
     let iterationSteps=null;

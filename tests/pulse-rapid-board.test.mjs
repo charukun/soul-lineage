@@ -39,6 +39,11 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /対象未記録/);
   assert.match(script, /rapid-session-card/);
   assert.match(script, /工程時間/);
+  assert.match(script, /tickProgressDurations/);
+  assert.match(script, /setInterval\(\(\)=>\{if\(!document\.hidden\)tickProgressDurations/);
+  assert.match(script, /fetch\('\/version\.json'/);
+  assert.match(html, /id="pulse-version"/);
+  assert.match(rapidCss, /\.pulse-version\{/);
   assert.match(script, /sessions\.slice\(2\)/);
   assert.match(script, /rapid-more-button/);
   assert.match(script, /aria-expanded/);
