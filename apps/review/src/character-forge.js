@@ -4,16 +4,19 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
 import {createCameraDirector} from '@soul/rendering/camera-director';
 import {applyCameraPresentation,actorScreenSafety} from '@soul/rendering/camera-presentation-three';
-import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
+import {createReviewStageLifecycle,mountReviewShell,mountReviewStageControls} from '@soul/shared-ui/review-shell';
+import {REVIEW_ROUTES} from './review-lab-config.js';
 import {characterForgeCandidates} from '../../../packages/assets/generated/create-forge-registry.js';
 import {createCharacterPackageActor} from '../../../packages/assets/src/character-create-forge/actor.js';
 
 const panel=document.querySelector('.forge-panel'),$=selector=>panel.querySelector(selector);
-const labels={front:'正面',side:'側面',back:'背面',turntable:'360°',free:'自由視点'};
+const labels={model:'モデル',front:'正面',side:'側面',back:'背面',turntable:'360°',free:'自由視点'};
 const motionLabels={Idle:'待機',Walk:'歩く',Talk:'話す',Attack:'攻撃',Hit:'被弾',Rest:'休む',Run:'走る',Pickup:'拾う',Jump:'ジャンプ',Fall:'落下'};
 const status=message=>$('.forge-status').textContent=message;
 
 function start(){
+  const shell=mountReviewShell({current:'forge',routes:REVIEW_ROUTES,homeHref:new URL('./',location.href).href});
+  const stageControls=mountReviewStageControls({stage:$('.forge-stage'),groups:['.forge-camera-tools','.forge-advanced'],label:'モデルの表示設定'});
   const canvas=$('#forge-stage'),renderer=createReviewRenderer(canvas,{exposure:1.2});
   const scene=new THREE.Scene();scene.background=new THREE.Color('#e9edef');
   const camera=new THREE.PerspectiveCamera(6,1,.01,1000);
@@ -25,6 +28,7 @@ function start(){
   // Shared framing uses only package bounds, unaffected by debug axes/equipment.
   const frameGeometry=new THREE.BoxGeometry(1,1,1),frameMaterial=new THREE.MeshBasicMaterial();
   const frameRoot=new THREE.Mesh(frameGeometry,frameMaterial);
+  let comparing=false;
   let actor=null,entry=null,sequence=0,alive=true,turntable=false,paused=false,angle=0,view='front',referenceView='front',raf=0,last=performance.now(),loadController;
   const controls=[...panel.querySelectorAll('.forge-primary button,.forge-primary select,.forge-settings input,.forge-settings select')];
   const enable=ready=>controls.forEach(control=>control.disabled=!ready);
@@ -49,11 +53,20 @@ function start(){
     $('[data-forge-render-label]').textContent='生成3D · '+labels[view];
   }
   function overlay(enabled){
-    const available=Boolean(entry?.references[referenceView])&&['front','side','back'].includes(view)&&actor?.action==='Bind';
+    const available=comparing&&Boolean(entry?.references[referenceView])&&['front','side','back'].includes(view)&&actor?.action==='Bind';
     const checked=Boolean(enabled&&available);
     $('[data-forge-overlay]').checked=checked;$('[data-forge-overlay]').disabled=!available;
     $('[data-forge-overlay-image]').hidden=!checked;$('[data-forge-opacity-label]').hidden=!checked;
     $('.forge-comparison').dataset.overlay=String(checked);
+  }
+  function setComparison(enabled){
+    comparing=Boolean(enabled);panel.dataset.comparing=String(comparing);
+    $('[data-forge-compare]').setAttribute('aria-pressed',String(comparing));
+    $('.forge-reference-pane').hidden=!comparing;
+    if(comparing){compare(['front','side','back'].includes(view)?view:referenceView);return;}
+    overlay(false);turntable=false;angle=0;view='model';
+    if(actor){actor.root.rotation.y=0;frame('three-quarter');}
+    updateViewUI();
   }
   function motionUI(){
     $('[data-forge-animation]').value=actor?.action||'Bind';
@@ -91,7 +104,7 @@ function start(){
       frameRoot.position.fromArray(bounds.min.map((v,i)=>(v+bounds.max[i])*.5));
       frameRoot.scale.fromArray(bounds.min.map((v,i)=>bounds.max[i]-v));frameRoot.updateMatrixWorld(true);
       $('[data-forge-animation]').replaceChildren(new Option('基準姿勢','Bind'),...candidate.manifest.animations.map(c=>new Option(motionLabels[c.name]||c.name,c.name)));
-      actor.setEquipment({weapon:$('[data-forge-equipment]').value||null});display();enable(true);compare('front');panel.dataset.ready='true';
+      actor.setEquipment({weapon:$('[data-forge-equipment]').value||null});display();enable(true);compare('front');if(!comparing)setComparison(false);panel.dataset.ready='true';
       for(const b of panel.querySelectorAll('[data-forge-candidate]'))b.setAttribute('aria-pressed',String(b.dataset.forgeCandidate===candidate.manifest.id));
       const mode={'single-view':'1枚から生成','multi-view':'三面図から生成','enhanced-multi-view':'5方向から生成'}[candidate.manifest.reconstructionMode];
       status(candidate.manifest.displayName+' · '+mode+' · '+(candidate.manifest.reviewStatus==='approved'?'承認済み':'確認候補・未承認'));
@@ -114,11 +127,12 @@ function start(){
   }
   panel.addEventListener('click',event=>{
     const button=event.target.closest('button');if(!button||!actor)return;
+    if(button.hasAttribute('data-forge-compare'))setComparison(!comparing);
     if(button.dataset.forgeView)compare(button.dataset.forgeView);
     if(button.hasAttribute('data-forge-pause')){paused=!paused;actor.setPaused(paused);motionUI();}
     if(button.hasAttribute('data-forge-turntable')){
       if(turntable){compare(referenceView);return;}
-      turntable=true;angle=0;view='turntable';actor.root.rotation.y=0;overlay(false);updateViewUI();frame('three-quarter');
+      setComparison(false);turntable=true;angle=0;view='turntable';actor.root.rotation.y=0;overlay(false);updateViewUI();frame('three-quarter');
     }
   });
   $('[data-forge-animation]').onchange=event=>{
@@ -132,14 +146,14 @@ function start(){
   $('[data-forge-opacity]').oninput=event=>$('.forge-comparison').style.setProperty('--forge-opacity',event.target.value);
   orbit.addEventListener('start',()=>{if(actor){turntable=false;view='free';overlay(false);updateViewUI();}});
   const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.parentElement,
-    onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();if(actor&&['front','side','back'].includes(view))frame(view);},
+    onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();if(actor){if(['front','side','back'].includes(view))frame(view);else if(view!=='free')frame('three-quarter');}},
     render:()=>renderer.render(scene,camera)});
   function tick(now){
     if(!alive)return;raf=requestAnimationFrame(tick);const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;
     if(document.hidden)return;
     actor?.update(dt);if(actor&&turntable){angle+=dt*.7;actor.root.rotation.y=angle;}orbit.update();renderer.render(scene,camera);
   }
-  canvas.characterForgeSnapshot=()=>actor?{...actor.snapshot(),view,turntable,angle,subject:actor.cameraSubject(),
+  canvas.characterForgeSnapshot=()=>actor?{...actor.snapshot(),view,comparing,turntable,angle,subject:actor.cameraSubject(),
     camera:camera.position.toArray(),cameraPresentation:director.snapshot(),screenSafety:actorScreenSafety(camera,[actor.cameraSubject()])}:null;
   raf=requestAnimationFrame(tick);
   const requested=new URLSearchParams(location.search).get('character');
@@ -148,7 +162,8 @@ function start(){
   window.addEventListener('pagehide',event=>{
     if(event.persisted)return;
     alive=false;sequence++;loadController?.abort();cancelAnimationFrame(raf);stageLifecycle.destroy();orbit.dispose();actor?.dispose();
-    frameGeometry.dispose();frameMaterial.dispose();renderer.dispose();
-  },{once:true});
+    frameGeometry.dispose();frameMaterial.dispose();stageControls?.destroy();shell?.destroy();renderer.dispose();
+  });
 }
 try{start();}catch(error){panel.dataset.error=error.message;status('3D表示を開始できませんでした。 '+error.message);}
+

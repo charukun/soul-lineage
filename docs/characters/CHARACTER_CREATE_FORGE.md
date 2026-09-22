@@ -64,14 +64,19 @@ shared `createReviewRenderer`, stage lifecycle, `positionReviewCamera`, and
 `@soul/rendering/camera-director` / `applyCameraPresentation`, plus OrbitControls.
 No new camera system or cross-app import is introduced.
 
-Select a candidate, choose 正面 / 側面 / 背面 / 360°, then select a motion. The first
-candidate opens automatically; `?character=<id>` opens a specific discovered
-package. Reference and live 3D appear side by side (stacked on phones). Choosing
-a reference direction restores the neutral pose and comparison camera.
-詳細設定 starts closed and contains overlay/opacity, texture, wireframe, skeleton,
-sockets and equipment. Overlay is available for observed reference directions in
-the neutral pose; orbit, turntable and motion leave overlay mode. 原画像 and the
-full validation/provenance report are under 出典・計測・制約 inside 詳細設定.
+The Forge viewer uses the shared Review Lab frame, navigation switcher, candidate
+cards and stage settings. The model occupies the main viewport immediately, with
+a three-quarter starting view. The candidate library is on the right on desktop
+and in a compact lower panel on phones; the page itself does not scroll.
+The first candidate opens automatically; `?character=<id>` selects a discovered
+package. Motion, pause and 360° controls stay below the model inside the stage.
+三面図 is opt-in: 比較 opens a reference pane beside the model, and pressing it
+again returns to the full model viewport. The shared ⚙ panel contains 正面 / 側面 /
+背面, overlay/opacity, texture, wireframe, skeleton, sockets and equipment. Choosing
+a reference direction restores the neutral pose and comparison camera. Comparison
+viewports are square so reference and generated framing agree. Overlay is available
+for observed reference directions in the neutral pose; orbit, turntable and motion
+leave overlay mode. 原画像 and the report are under 出典・計測・制約 inside ⚙.
 
 ```
 packages/assets/characters/forge/<id>/
@@ -148,7 +153,7 @@ synthetic blends and do not assert real photographic reconstruction accuracy.
 
 `tests/character-create-forge-browser.test.mjs` is an explicit specialist scenario,
 not an unconditional routine sweep. It follows the Lab’s dedicated-view link and checks the shipped GLB,
-closed-by-default details, native controls, three comparison modes, animation bone deltas,
+model-first initial layout and closed-by-default stage settings, native controls, three comparison modes, animation bone deltas,
 turntable/orbit/zoom, display toggles and absence of browser errors. Screenshots,
 trace, video and a head/hash-bound receipt are written to `test-results/character-create-forge`.
 
@@ -173,4 +178,5 @@ state; introduce a second camera director; weaken validation or Production gates
 Reference comparisons submit an authored cut to the shared Camera Director (now on develop via PR #1490); the package camera subject supplies bounds, head/body/focus/ground anchors. Interactive orbit remains the existing Review control. No Forge camera director is implemented.
 
 For evidence of a newly created package, run `CHARACTER_FORGE_ID=<character-id> node --test tests/character-create-forge-browser.test.mjs` on its exact head. The default id is the original synthetic fixture; the same native controls and assertions apply to other discovered packages.
+
 
