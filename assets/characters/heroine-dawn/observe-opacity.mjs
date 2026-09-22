@@ -24,13 +24,23 @@ export async function sample(url,name,fraction){
  return {clip:name,time:action.getClip().duration*fraction,duration:action.getClip().duration,fraction,changedBones,sampledVertices,bounds:[bounds.min.toArray(),bounds.max.toArray()],clipCount:gltf.animations.length};
 }
 export async function play(url,name){
- const first=await sample(url,name,0),start=performance.now();let frames=0;
- await new Promise((resolve,reject)=>{const step=async now=>{try{const elapsed=(now-start)/1000;await sample(url,name,Math.min(.999,elapsed/first.duration));frames++;if(elapsed<first.duration)requestAnimationFrame(step);else resolve();}catch(e){reject(e);}};requestAnimationFrame(step);});
- return {clip:name,speed:1,frames,wallSeconds:(performance.now()-start)/1000,duration:first.duration};
+ const first=await sample(url,name,0),canvas=document.querySelector('#stage'),stream=canvas.captureStream(30),chunks=[];
+ const recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8'});
+ const stopped=new Promise((resolve,reject)=>{recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};recorder.onstop=resolve;recorder.onerror=e=>reject(e.error||Error('Canvas recording failed'));});
+ recorder.start();const start=performance.now();let frames=0;
+ try{
+  await new Promise((resolve,reject)=>{const step=async now=>{try{const elapsed=(now-start)/1000;await sample(url,name,Math.min(.999,elapsed/first.duration));frames++;if(elapsed<first.duration)requestAnimationFrame(step);else resolve();}catch(e){reject(e);}};requestAnimationFrame(step);});
+  const wallSeconds=(performance.now()-start)/1000;recorder.stop();await stopped;
+  const bytes=new Uint8Array(await new Blob(chunks,{type:'video/webm'}).arrayBuffer());let text='';for(let i=0;i<bytes.length;i+=8192)text+=String.fromCharCode(...bytes.subarray(i,i+8192));
+  return {clip:name,speed:1,frames,wallSeconds,duration:first.duration,videoBase64:btoa(text)};
+ }finally{if(recorder.state!=='inactive')recorder.stop();stream.getTracks().forEach(t=>t.stop());}
+}
 }`);
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-const context=await browser.newContext({viewport:{width:1440,height:1050},deviceScaleFactor:1,recordVideo:{dir:path.join(out,'video'),size:{width:960,height:700}}});
-await context.tracing.start({screenshots:true,snapshots:true});
+// Explicit PNGs retain every review frame. Record motion only while it actually
+// plays, avoiding a second continuous screencast of hundreds of still captures.
+const context=await browser.newContext({viewport:{width:1440,height:1050},deviceScaleFactor:1});
+await context.tracing.start({screenshots:false,snapshots:true});
 const page=await context.newPage(),errors=[],warnings=[],requests=[];
 page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());else if(m.type()==='warning')warnings.push(m.text());});
 await context.route('https://soul-lineage-*.c-okamoto.workers.dev/**',async route=>{
@@ -62,14 +72,15 @@ try{
    for(const view of ['front','three-quarter','side','back']){const file=`matrix-${name}-${Math.round(fraction*100)}-${view}`;await shot(view,file);matrix.push({...result,view,file:file+'.png'});}
   }
   await page.evaluate(()=>window.masterCharacterReview.aim('overview'));
-  playback.push(await page.evaluate(async({url,name})=>(await import('/heroine-motion-probe.js')).play(url,name),{url,name}));
+  const {videoBase64,...motion}=await page.evaluate(async({url,name})=>(await import('/heroine-motion-probe.js')).play(url,name),{url,name});
+  const video=Buffer.from(videoBase64,'base64');assert.ok(video.length>1000);const videoFile=`playback-${name}.webm`;await writeFile(path.join(out,videoFile),video);playback.push({...motion,videoFile});
+  console.log(JSON.stringify({completed:name,matrix:matrix.length,videoBytes:video.length}));
  }
- // The opposite profile exposes the other collar, cuff, ear and bow joins.
  await setPose('1H_Melee_Attack_Chop',.47);await page.evaluate(()=>window.masterCharacterReview.actors[0].root.rotation.y=Math.PI);await shot('side','opposite-side-attack');
  await page.evaluate(()=>window.masterCharacterReview.actors[0].root.rotation.y=0);
  await page.screenshot({path:path.join(out,'studio-ui.png'),fullPage:true});
  await page.setViewportSize({width:390,height:844});await setPose('Idle',.5);await shot('front','mobile-390');
- const receipt={schema:'rinne-heroine-runtime-observation',sourceSha:process.env.GITHUB_SHA,modelSha256:source.sha256,beforeSha256:original.sha256,comparisonBaselineSha256:'777f0c4f7f910edf85ab66011fddf961b7144a4a129212cf8a0b5a1b73937678',assetPath:source.path,app:'apps/character-studio',renderer:'actual repository Character Studio / Chromium SwiftShader',originMode:'exact checked-out first-party asset bytes at their project-origin routes; not deployed DEV',views:['front','three-quarter','side','back','face','mobile-390'],poses,opacityReview:{materials,matrix,playback,oppositeProfile:'opposite-side-attack.png'},audit,errors,warnings,requests,hardwareAcceptance:'not-measured',visualApproval:'pending',productionReady:false};
+ const receipt={schema:'rinne-heroine-runtime-observation',sourceSha:process.env.GITHUB_SHA,modelSha256:source.sha256,beforeSha256:original.sha256,comparisonBaselineSha256:'777f0c4f7f910edf85ab66011fddf961b7144a4a129212cf8a0b5a1b73937678',assetPath:source.path,app:'apps/character-studio',renderer:'actual repository Character Studio / Chromium SwiftShader',originMode:'first-party GLB bytes from the source checkout or explicitly materialized DCC candidate, verified by modelSha256; not deployed DEV',views:['front','three-quarter','side','back','face','mobile-390'],poses,opacityReview:{materials,matrix,playback,oppositeProfile:'opposite-side-attack.png'},audit,errors,warnings,requests,hardwareAcceptance:'not-measured',visualApproval:'pending',productionReady:false};
  await writeFile(path.join(out,'receipt.json'),JSON.stringify(receipt,null,2));assert.deepEqual(errors,[]);console.log(JSON.stringify({sha256:source.sha256,poses:poses.length,matrix:matrix.length,playback,errors}));
 }catch(e){await writeFile(path.join(out,'failure.json'),JSON.stringify({message:e.message,errors,warnings},null,2));await page.screenshot({path:path.join(out,'failure.png'),fullPage:true}).catch(()=>{});throw e;}
 finally{await context.tracing.stop({path:path.join(out,'trace.zip')});await context.close();await browser.close();await rm(probe,{force:true});}
