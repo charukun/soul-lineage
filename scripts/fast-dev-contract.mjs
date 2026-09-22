@@ -141,8 +141,8 @@ export function inspectAuthorizedFastDevContraction(base, head) {
     else violations.push({code:'CONTRACTION_SCOPE_EXPANDED',path:row.path,detail:'Fast DEV contraction may only change the validation workflow, anti-expansion contract, focused runner, status-first Actions inspector, its focused test, and execution docs.'});
   }
   const workflow=readAt(head,'.github/workflows/astra-work-validation.yml')||'';
-  for (const token of ['--filter=blob:none','git sparse-checkout set --no-cone','scripts/astra-focused-validation.mjs plan','scripts/astra-focused-validation.mjs run','has_work','needs_install','npm ci --ignore-scripts','astra/merge-freshness','ASTRA_REVALIDATE_REQUIRED']) {
-    if (!workflow.includes(token)) violations.push({code:'FAST_DEV_MINIMAL_PATH_MISSING',path:'.github/workflows/astra-work-validation.yml',detail:`Required minimal validation token missing: ${token}`});
+  for (const token of ["[astra-heavy-validation]",'scripts/astra-focused-validation.mjs plan','scripts/astra-focused-validation.mjs run','has_work','needs_install','npm ci --ignore-scripts','astra/merge-freshness','ASTRA_REVALIDATE_REQUIRED']) {
+    if (!workflow.includes(token)) violations.push({code:'FAST_DEV_MINIMAL_PATH_MISSING',path:'.github/workflows/astra-work-validation.yml',detail:`Required heavy-validation safety token missing: ${token}`});
   }
   for (const token of ['fetch-depth: 0','node scripts/validate.mjs dev','Run changed focused tests','scripts/check.mjs','scripts/code-health.mjs','scripts/visual-budget.mjs']) {
     if (workflow.includes(token)) violations.push({code:'FAST_DEV_HEAVY_PATH_RETAINED',path:'.github/workflows/astra-work-validation.yml',detail:`Heavy legacy validation token remains: ${token}`});
