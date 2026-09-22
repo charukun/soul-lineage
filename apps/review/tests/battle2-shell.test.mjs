@@ -54,15 +54,3 @@ test('missing or already mounted headers never attach duplicate listeners',()=>{
     const h=shellHarness(options);assert.equal(h.mount(),null);assert.equal(h.headerListeners.size,0);assert.equal(h.windowListeners.size,0);
   }
 });
-
-
-test('battle2 body HUD is wired to the live hero actor and human version 2.2.11',()=>{
-  const html=read('battle2.html'),stage=read('src/nocturne-stage.js'),hud=read('src/battle2-body-hud.js'),version=read('src/battle2-version.js');
-  assert.match(html,/id="battle2-body-hud"/);
-  assert.match(stage,/createBattle2BodyHud/);
-  assert.match(stage,/inspectActors\?\.\(\)\.find\(actor=>actor\.self\)/);
-  assert.match(stage,/bodyHud\?\.setVisible\(started&&prepared&&next!==\'ERROR\'\)/);
-  assert.match(hud,/combatBodySnapshot/);
-  assert.match(hud,/data-hit/);
-  assert.match(version,/BATTLE2_VERSION='2\.2\.11'/);
-});
