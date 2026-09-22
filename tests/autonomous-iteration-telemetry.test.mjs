@@ -34,8 +34,8 @@ test('iteration telemetry records canonical step boundaries and measured duratio
   assert.equal(state.theme,'enemy reaction clarity');
   assert.equal(state.iterationId,'parallel-run-a:2');
   assert.deepEqual(ITERATION_STEPS.map(step=>step.id),[
-    'observation','investigation','implementation','causalValidation','astraValidation',
-    'afterObservation','verdict','freshness','merge','devPublish',
+    'observation','investigation','implementation','causalValidation','afterObservation',
+    'verdict','astraValidation','freshness','merge','devPublish',
   ]);
 });
 
