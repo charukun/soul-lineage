@@ -1,16 +1,18 @@
 name: Golden Base Boy task-scoped authoring
-run-name: Golden Base Boy actual Forge and Blender ${{ github.sha }}
+run-name: Golden Base Boy Blender refinement ${{ github.sha }}
 on:
   push:
     branches: ['work/golden-base-boy-20260923']
-    paths: ['.github/workflows/golden-base-boy-authoring.yml', 'scripts/character-forge/golden-base-boy-*.py', '.dcc-work/golden-base-boy-v1-intake.json']
+    paths: ['.github/workflows/golden-base-boy-authoring.yml', 'scripts/character-forge/golden-base-boy-*.py']
 permissions:
   contents: write
   actions: read
 jobs:
   authoring:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
+    env:
+      GOLDEN_DCC_ROUND: '1'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -21,73 +23,41 @@ jobs:
             packages/assets/characters/forge/
             packages/assets/generated/
             scripts/character-forge/
-            docs/characters/
-            docs/art/
           sparse-checkout-cone-mode: false
-      - name: Preserve the user's actual source bytes before authoring
-        shell: bash
+      - name: Verify immutable original and preserve actual pipeline evidence
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json,urllib.request,hashlib
-          from pathlib import Path
-          target=Path('.dcc-work/golden-base-boy-v1/source-sheet.jpg')
-          request=Path('.dcc-work/golden-base-boy-v1-intake.json')
-          if not target.exists():
-              spec=json.loads(request.read_text())
-              raw=urllib.request.urlopen(spec['sourceDownloadUrl'],timeout=45).read()
-              if len(raw)!=199438 or raw[:2]!=b'\xff\xd8':raise ValueError('Original image byte validation failed')
-              target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
-          print('Original source SHA256:',hashlib.sha256(target.read_bytes()).hexdigest())
-          if request.exists(): request.unlink()
-          PY
-          git config user.name 'RINNE Character Forge'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- .dcc-work
-          if ! git diff --cached --quiet; then
-            git commit -m 'chore: preserve actual Golden Base Boy source; remove temporary intake URL [skip ci]'
-            git push origin HEAD:work/golden-base-boy-20260923
-          fi
-      - name: Install the existing pinned Forge authoring requirements
+          echo '86b6d48c9f9818e3b31a571ef87937e8882b61cfcf5423ef12c24fd0d0f3efb1  .dcc-work/golden-base-boy-v1/source-sheet.jpg' | sha256sum -c -
+          test -f packages/assets/characters/forge/golden-base-boy-v1/source/dcc/pipeline-import.blend
+          test -f packages/assets/characters/forge/golden-base-boy-v1/review/dcc-round-0/receipt.json
+      - name: Install existing Forge and task-local bake requirements
         run: python3 -m pip install -r packages/assets/forge/requirements.txt numpy==2.2.6
-      - name: Execute Character Create Forge on all three actual source views
-        run: python3 scripts/character-forge/golden-base-boy-intake.py
       - uses: actions/download-artifact@v4
         with:
           name: golden-base-boy-authoring-toolkit
           run-id: 35781648914
           github-token: ${{ github.token }}
           path: .dcc-toolkit
-      - name: Inspect and render the actual GLB in Blender
-        shell: bash
+      - name: Verify pinned Blender
         run: |
-          set -euo pipefail
           cd .dcc-toolkit
           grep 'blender-4.5.0-linux-x64.tar.xz$' blender-4.5.0.sha256 | sha256sum --check --strict
           tar -xf blender-4.5.0-linux-x64.tar.xz
-          cd ..
-          .dcc-toolkit/blender-4.5.0-linux-x64/blender -b -t 2 --python scripts/character-forge/golden-base-boy-render.py
-      - name: Preserve actual candidate outputs on the isolated work branch
+      - name: Rebuild failed candidate anatomy and topology in actual Blender
+        run: .dcc-toolkit/blender-4.5.0-linux-x64/blender -b -t 2 --python-exit-code 1 --python scripts/character-forge/golden-base-boy-author.py
+      - name: Bake real UVs and return edited mesh to Forge export validation discovery
+        run: python3 scripts/character-forge/golden-base-boy-finalize.py
+      - name: Reimport and render the actual delivered GLB and morphs
+        run: .dcc-toolkit/blender-4.5.0-linux-x64/blender -b -t 2 --python-exit-code 1 --python scripts/character-forge/golden-base-boy-review.py
+      - name: Preserve exact DCC candidate and evidence on the isolated branch
         run: |
+          git config user.name 'RINNE Character Forge'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -- packages/assets/characters/forge/golden-base-boy-v1 packages/assets/generated/create-forge-registry.js
-          if ! git diff --cached --quiet; then
-            git commit -m 'feat: actual Golden Base Boy Forge candidate and initial Blender evidence [skip ci]'
-            git push origin HEAD:work/golden-base-boy-20260923
-          fi
+          git commit -m 'feat: Blender-refined Golden Base Boy and actual GLB render evidence [skip ci]'
+          git push origin HEAD:work/golden-base-boy-20260923
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: golden-base-boy-round-0
-          path: |
-            packages/assets/characters/forge/golden-base-boy-v1/
-            .dcc-work/golden-base-boy-v1/references/
+          name: golden-base-boy-dcc-round-1
+          path: packages/assets/characters/forge/golden-base-boy-v1/
           retention-days: 7
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: forge-source-only
-          path: |
-            packages/assets/forge/
-            docs/characters/
-            docs/art/
-          retention-days: 3
