@@ -7,6 +7,7 @@ import {cancelJohakyuStage,johakyuStageCapability} from '@soul/johakyu-combat/ex
 import {beginReviewStage,reviewTechniqueCapability,reviewStageCanResolve} from './johakyu-p7-execution.js';
 import {BURST_CADENCE,burstCompositionFor,burstStageDuration,burstSettleSeconds} from './johakyu-burst-cadence.js';
 import {battle2LoadoutKey,normalizeBattle2Loadout} from './battle2-loadout.js';
+import {BATTLE2_TECHNIQUE_CATALOG} from './battle2-technique-catalog.js';
 
 const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const PHASES=Object.freeze(['jo','ha','kyu']);
@@ -49,7 +50,7 @@ const HERO_TECHNIQUE_ROWS=Object.freeze({
   ha:Object.freeze([['action.guard-step','受け流し歩法'],['action.counter','返し']]),
   kyu:Object.freeze([['action.crash','打ち崩し'],['action.precision','一点通し']]),
 });
-const HERO_COMPOSITION=buildComposition(HERO_TECHNIQUE_ROWS);
+const HERO_COMPOSITION=buildComposition(HERO_TECHNIQUE_ROWS),HERO_TECHNIQUE_BY_ID=new Map(BATTLE2_TECHNIQUE_CATALOG.map(row=>[row.id,[row.id,row.label]]));
 const ENEMY_COMPOSITION=buildComposition({
   jo:[['basic.sword','剣の型']],ha:[['basic.sword','剣の型']],kyu:[['basic.sword','剣の型']],
 });
@@ -57,7 +58,7 @@ const equippedCompositions=new Map(),heroLoadoutCompositions=new Map();
 function heroCompositionFor(actor,loadout){
   if(!loadout)return HERO_COMPOSITION;
   const config=normalizeBattle2Loadout(loadout),weapon=actor.equipment.weapon,rows={};
-  for(const phase of PHASES){const options=HERO_TECHNIQUE_ROWS[phase],picked=options.find(([id])=>id===config.technique[phase])||options[0];rows[phase]=[picked];}
+  for(const phase of PHASES){const options=HERO_TECHNIQUE_ROWS[phase],picked=HERO_TECHNIQUE_BY_ID.get(config.technique[phase])||options[0];rows[phase]=[picked];}
   const key=weapon+':'+PHASES.map(phase=>rows[phase][0][0]).join('|');
   if(!heroLoadoutCompositions.has(key))heroLoadoutCompositions.set(key,buildComposition(rows,weapon));
   return heroLoadoutCompositions.get(key);
