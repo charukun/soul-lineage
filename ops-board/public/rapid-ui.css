@@ -763,7 +763,7 @@ a.rapid-iteration-row.rapid-session-card{padding:10px 11px 9px}
 .rapid-active-title:hover{color:#b9d9f6}
 .rapid-active-badges{display:flex;flex-wrap:wrap;gap:5px}
 .rapid-active-badge{display:inline-flex;align-items:center;min-height:20px;padding:3px 6px;border:1px solid var(--pulse-line);border-radius:999px;color:#8492a6;font-size:7px;font-weight:900;letter-spacing:.045em;white-space:nowrap}
-.rapid-active-badge.ok{border-color:color-mix(in srgb,var(--ok) 44%,var(--pulse-line));color:#96c9ab}
+.rapid-active-badge.ok{border-color:color-mix(in srgb,var(--ok) 44%,var(--pulse-line));color:#96c9ab}\n.rapid-active-badge.ok::before{content:'✓';margin-right:4px;font-size:8px;font-weight:950}
 .rapid-active-badge.progress{border-color:color-mix(in srgb,var(--progress) 48%,var(--pulse-line));color:#99c4eb}
 .rapid-active-badge.warning{border-color:color-mix(in srgb,var(--warning) 48%,var(--pulse-line));color:#d9ba86}
 .rapid-active-badge.danger{border-color:color-mix(in srgb,var(--danger) 55%,var(--pulse-line));color:#e3a3a6}
