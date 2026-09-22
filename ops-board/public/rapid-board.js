@@ -2,7 +2,7 @@ import { subscribe } from './view-state.js';
 import { ageLabel, FAILED_CONCLUSIONS } from './health.mjs';
 import { eventDrivenAlerts } from './freshness.mjs';
 import { buildIssueRepairPrompt } from './issue-repair-prompt.js';
-import { renderProgressMini } from './progress-mini.js';
+import { renderProgressMini, tickProgressDurations } from './progress-mini.js';
 
 const $ = selector => document.querySelector(selector);
 const el = (tag, className = '', text = null) => {
@@ -476,4 +476,18 @@ function render(state, error) {
   renderHealth(state, issues);
 }
 
+async function loadPulseVersion(){
+  const node=$('#pulse-version');
+  if(!node)return;
+  try{
+    const response=await fetch('/version.json',{cache:'no-store',signal:AbortSignal.timeout(5000)});
+    if(!response.ok)return;
+    const version=await response.json();
+    const commit=String(version?.commit||version?.sourceSha||version?.source_sha||'').trim();
+    if(commit)node.textContent='v2 · '+commit.slice(0,7);
+  }catch{}
+}
+
 subscribe(render);
+loadPulseVersion();
+setInterval(()=>{if(!document.hidden)tickProgressDurations(document,Date.now());},1000);
