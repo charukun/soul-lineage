@@ -39,12 +39,36 @@
 
 Depends-On: none
 
-## Exchange boundary contract (2026-09-22)
+## Exchange / Initiative契約（2026-09-22）
 
-- `packages/johakyu-combat/src/exchange-policy.js` is the shared pair-scoped interpreter. `normalStarted`, `completedById`, and `transition` distinguish ordinary pressure, reversal/counter, and the actor that actually completed 急. It never pays stamina, resolves contact, writes a combat cursor, or awards inspiration.
-- Native Tidebreak emits committed stages, classified real parries, counter start/completion, interruption, and **whole-sequence** 急 completion. An empty attack between stages is not completion. Main-game physiology interprets actual HP/injury outcomes and feeds the same pair projection back to native AI selection.
-- Ordinary guard, weak parry, shallow hit, and shallow miss retain pressure. A deep hit is an actual incapacitating outcome, newly compromised body when a before/after outcome is available, unguarded heavy impact, or at least 16% of maximum HP in an impact. Major miss, failed execution/capability, disengagement and target invalidation return to READ, not the successful-completion wave.
-- Strong parry creates REVERSAL. Reaction and counter callbacks finish on their original cursor; only the next normal sequence boundary prepares 序. Counter is never silently relabelled 序. Native authored RINNE defense stages must not be stripped by standalone generated-recipe cleanup.
-- Hero HUD reveals canonical jo/ha/kyu only during the hero's normal PRESSURE, including gaps between clips. Opponent pressure, defense, reversal, and counter show 間合い. Only the hero's own whole 急 completion shows 残心; opponent completion stays 間合い.
-- Pair pressure influences AI intent, not battlefield-wide attack rights. Secondary sessions/world contacts and squad roles continue. Projectiles, special one-motion/finisher execution, injury costs, and actual-contact inspiration keep their existing authorities.
-- Exchange, deferred normal-start state, native events, reaction/counter windows and HUD projection are transient. Restore starts at READ; physiology, loadout, learned techniques and causal records remain persistent.
+近接の単位は一発ではなくpair-scopedな攻勢とする。`read → normal-start → pressure（序→破→急）→ zanshin → read` が通常経路。通常guard、weak parry、浅いslip/deflection/hitは同じinitiativeを保持する。各段の空白や受けの段でもphaseを過去へ戻さない。
+
+共有 `packages/johakyu-combat/src/exchange-policy.js` は意味のreducerと主人公視点HUD投影のみを所有する。Tidebreakの `exchange-observer.js` は実行開始・段開始・実接触・sequence完了をpairごとに記録するbounded transient journalであり、実行器、当たり判定、stamina、damageを持たない。本編はこのjournalとsnapshotを読み、既存身体authorityの実行拒否・実負傷を同じobserverへ返す。使用回数や空のattack poseから急完了を推測しない。
+
+### 反転と次の序を分ける
+
+- actual strong parryは`reversal`へ移す。攻撃側の実行は既存parry motorで中断され、contact freeze、全身recoil、退き、counter windowを維持する。
+- 成功した防御者のcursorはcontact時点ではresetしない。`counter-start / counter-complete`は反転の遷移であり、`settle`だけで通常pressureにはしない。
+- 古いaction/reaction、counter、recoveryが終わった安全な次の通常選択でのみ、実行器のcursorを序へ戻す。反撃中の`mind / uke`は通常の序として表示しない。
+- Normal開始と完了にはpairのserialを用い、反転前のaction後処理が新しい攻勢を完了・再開させない。
+- strong判定は実接触、実防御intent、counter、攻撃phase/impactと身体能力に基づく。initiative owner自身が圧の途中で行う軽いinterceptionを、自分自身への攻守反転にしない。shallow slipはstrongにしない。乱数は使用しない。
+
+深い接触（既存heavy/HP比・身体結果）、major miss、実行不能、incapacitation、disengage、target invalidationはREADへ戻す。これらを攻勢完遂の残心と偽らない。通常急の全段を完了したownerだけに`completedBy`を付けて残心とし、相手の完了を主人公の右波形へ投影しない。
+
+### 境界
+
+HUDは`johakyuExchangeHudState`を本編とreviewで共有する。相手initiative、守勢、strong parry直後、counter transitionは左波形。自分の通常攻勢中だけcanonical slotを表示し、自分の急完遂のみ右波形。通常被弾のlegacy interruption animationは、継続中のpressureを消さない。
+
+Tidebreakの防御を含む編成済みrecipe、attackId、実軌道・接触時刻・target lock・world contactを維持する。stamina不足や腕/脚の機能制限は既存stage/technique capabilityで拒否し、initiativeを理由に通さない。周囲の敵のflank/support/retreat/secondary contactをpairでロックしない。projectile、finisher、因果閃きの実行・接触・支払条件は別の既存authorityを維持する。
+
+保存時は現在combatのcursor/target/queue/pose/exchange/counter/残心を破棄し、HP・部位負傷・stamina・装備・技譜・恒久因果記録を保持する。ロードはREADから始める。live stateはserializeによって変更しない。
+
+Secondary pair completion/failure must not request a cursor restart for an actor who is still pressing in another pair. The shared restart-participant policy enforces this for native Tidebreak and the review adapter. An authored parry intent is directed at the executor's actual target lock: incidental blade contact from another opponent is a light deflection, not an invented strong reversal toward an unauthored target. Real decisive interruptions remain executor cleanup events.
+
+### 同時変更の統合と境界補修（PR #1407）
+
+PR #1399 の実イベントobserver・serial・secondary restart保護を正本として統合し、別のExchangeエンジンを重ねない。共有 `johakyuExchangeIntent` はpair内のAI選択をpress/respond/counterに分けるだけで、実行合法性・接触・他pairの参加権を制限しない。通常守勢中は既存のguard/parry/spacingを使い、反転中の被崩し側は新しい通常攻勢を先行させない。攻勢内のauthored受けの段は相手の攻撃が来なくても進行可能。
+
+`isDeepJohakyuExchangeHit` は既存impact/HP/身体結果を読む共通解釈。既に負傷しているだけで毎回の浅い接触をdeepにしない。新たなcompromised遷移、incapacitation、unguarded heavy、最大HP比16%以上を判定材料とする。reviewの小さなreach外missはdamageを与えず継続し、reach + 0.2を越える離脱はmajor missとして切る。`.46`のcanonical event triggerは変更しない。
+
+native strong parryはhostのread-only身体/stamina capabilityを問い合わせ、拒否時は実接触のweak deflectionに留める。実行前のtechnique capability拒否もdomain由来の理由・stageを表示し、現在pressureを終了する。stage確認での支払条件は従来のauthorityで維持する。古いserialや異なるpairのsettleは現在の残心を消さず、hero右波形はkyu-completeのみ。one/finisherの専用開始は通常melee observerに登録しない。

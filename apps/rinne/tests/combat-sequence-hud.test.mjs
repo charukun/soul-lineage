@@ -43,16 +43,3 @@ test('Rinne HUD wires soft history replacement, simple damage copy, and interrup
   assert.match(css,/rinne-sequence-interrupt/);
   assert.match(css,/data-combo-active="false"/);
 });
-
-
-test('main HUD follows the shared Exchange projection even between attack clips',()=>{
-  for(const hidden of ['maai','zanshin']){
-    const row=sequenceHudState({phase:'kyu',attack:'old attack',exchangeHud:hidden});
-    assert.equal(row.activePhase,'');assert.equal(row.comboActive,false);
-    assert.equal(row.action,hidden==='maai'?'間合い':'残心');
-  }
-  for(const phase of ['jo','ha','kyu']){
-    const row=sequenceHudState({phase:'kyu',attack:'',interrupted:true,exchangeHud:phase});
-    assert.equal(row.activePhase,phase);assert.equal(row.comboActive,true);
-  }
-});

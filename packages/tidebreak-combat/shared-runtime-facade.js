@@ -65,11 +65,11 @@ export function createSharedTidebreakFacade({copy,clamp,weapons,strikes,sampleWe
       stepIndex:Number.isInteger(run?.index)?run.index:null,targetId:attack.targetId??null,
       progress:attackProgress(actor),motionDuration:attack.motionDuration??attack.duration,
       elapsed:attack.t,duration:attack.duration,chargeTime:attack.chargeTime??0,
-      offense:(strikes[attack.kind]?.damage||0)>0,counterTransition:run?.recipe?.id==='mind-swat'||run?.slot==='mind'||run?.slot==='uke',charge:run?.recipe?.steps?.[run.index]?.charge??'none',contactActive:(segment??weaponSegment(actor)).active});
+      charge:run?.recipe?.steps?.[run.index]?.charge??'none',contactActive:(segment??weaponSegment(actor)).active});
   }
   function snapshotActor(actor){
     const segment=weaponSegment(actor);
-    return{id:actor.id,execution:execution(actor,segment),x:actor.x,z:actor.z,yaw:actor.yaw,hp:actor.hp,maxhp:actor.maxhp,dead:actor.dead,weapon:actor.weapon,attack:actor.attack?.kind??null,progress:attackProgress(actor),charge:actor.attack?.chargeTime??0,combatReady:actor.combatReady,flash:actor.flash,walk:actor.walk,moveSpeed:actor.moveSpeed,stun:actor.stun,guarding:actor.guarding,slot:actor.run?.slot??null,skill:actor.run?.recipe?.name??null,pose:poseChannels(actor),flow:actor.flow?copy(actor.flow):null,knockback:Object.freeze({x:Number(actor.kx)||0,z:Number(actor.kz)||0}),reaction:Boolean(actor.reaction||actor.recovery||actor.parryMotion),counterTransition:Boolean(actor.parryMotion||actor.run?.recipe?.id==='mind-swat'||actor.run?.slot==='mind'||actor.run?.slot==='uke'),inspirationProtected:Boolean(inspiration?.active&&actor?.hero),inspirationStaggered:inspirationStaggers(actor),weaponSegment:segment};
+    return{id:actor.id,execution:execution(actor,segment),x:actor.x,z:actor.z,yaw:actor.yaw,hp:actor.hp,maxhp:actor.maxhp,dead:actor.dead,weapon:actor.weapon,attack:actor.attack?.kind??null,progress:attackProgress(actor),charge:actor.attack?.chargeTime??0,combatReady:actor.combatReady,flash:actor.flash,walk:actor.walk,moveSpeed:actor.moveSpeed,stun:actor.stun,guarding:actor.guarding,slot:actor.run?.slot??null,skill:actor.run?.recipe?.name??null,pose:poseChannels(actor),flow:actor.flow?copy(actor.flow):null,knockback:Object.freeze({x:Number(actor.kx)||0,z:Number(actor.kz)||0}),reaction:Boolean(actor.reaction||actor.recovery||actor.parryMotion),transition:Boolean(actor.parryMotion||actor.run?.slot==='mind'||actor.run?.recipe?.id==='mind-swat'),endlag:actor.endlag?{slot:actor.endlag.slot,remaining:actor.endlag.remaining}:null,normalRestartPending:Boolean(actor.exchangeRestartPending),inspirationProtected:Boolean(inspiration?.active&&actor?.hero),inspirationStaggered:inspirationStaggers(actor),weaponSegment:segment};
   }
   function syncActor(actor,row){
     if(!actor||!row)return;
@@ -79,15 +79,15 @@ export function createSharedTidebreakFacade({copy,clamp,weapons,strikes,sampleWe
     if(Number.isFinite(row.maxhp)&&row.maxhp>0)actor.maxhp=row.maxhp;
     if(Number.isFinite(row.hp))actor.hp=clamp(row.hp,0,actor.maxhp);
   }
-  function withHitContext(source,target,attack,action){
-    context={source,target,attack,execution:execution(source)};
+  function withHitContext(source,target,attack,action,metadata={}){
+    context={source,target,attack,execution:execution(source),...metadata};
     try{return action();}finally{context=null;}
   }
   function impact({x,y,z,yaw,power,guard,hitstop}){
     const source=context?.source,target=context?.target,attack=context?.attack,heavy=Number(power)>=1.1||(strikes[attack?.kind]?.damage||0)>=36;
     const freeze=guard?.025:heavy?.045:.018,slowSeconds=guard?.035:heavy?.095:.060,nextSlowScale=guard?.72:heavy?.38:.56;
     slowRemaining=Math.max(slowRemaining,slowSeconds);slowScale=Math.min(slowScale,nextSlowScale);
-    lastImpact=Object.freeze({serial:++serial,x,y,z,point:frozenPoint([x,y,z]),yaw,power:Number(power)||0,guard:Boolean(guard),heavy,sourceId:source?.id??null,targetId:target?.id??null,sourceHero:Boolean(source?.hero),targetHero:Boolean(target?.hero),attack:attack?.kind??null,attackId:attack?.id??null,execution:context?.execution??execution(source),knockback:Object.freeze({x:Number(target?.kx)||0,z:Number(target?.kz)||0}),sourceKick:Number(source?.contactKick)||0,freezeSeconds:freeze,slowSeconds,slowScale:nextSlowScale});
+    lastImpact=Object.freeze({serial:++serial,x,y,z,point:frozenPoint([x,y,z]),yaw,power:Number(power)||0,guard:Boolean(guard),heavy,sourceId:source?.id??null,targetId:target?.id??null,sourceHero:Boolean(source?.hero),targetHero:Boolean(target?.hero),attack:attack?.kind??null,attackId:attack?.id??null,execution:context?.execution??execution(source),defense:context?.defense??null,parry:context?.parry??null,knockback:Object.freeze({x:Number(target?.kx)||0,z:Number(target?.kz)||0}),sourceKick:Number(source?.contactKick)||0,freezeSeconds:freeze,slowSeconds,slowScale:nextSlowScale});
     stepImpacts.push(lastImpact);if(stepImpacts.length>8)stepImpacts.shift();onImpact?.(copy(lastImpact));
     return Math.max(Number(hitstop)||0,freeze);
   }
@@ -99,5 +99,5 @@ export function createSharedTidebreakFacade({copy,clamp,weapons,strikes,sampleWe
   function feel(hitstop){return Object.freeze({hitstopRemaining:Number(hitstop)||0,slowRemaining,slowScale:slowRemaining>0?slowScale:1});}
   function impactState(){return{impact:lastImpact?copy(lastImpact):null,impacts:copy(stepImpacts)};}
   resetFeel();
-  return Object.freeze({resetFeel,beginStep,setHeroPassive,setInspirationState,advanceInspirationState,inspirationState,shouldHoldHero,opponent,weaponSpec,weaponSpecs:()=>Object.freeze(Object.fromEntries(Object.keys(weapons).map(id=>[id,weaponSpec(id)]))),snapshotActor,syncActor,withHitContext,impact,simulationDt,feel,impactState});
+  return Object.freeze({resetFeel,beginStep,setHeroPassive,setInspirationState,advanceInspirationState,inspirationState,shouldHoldHero,opponent,weaponSpec,weaponSpecs:()=>Object.freeze(Object.fromEntries(Object.keys(weapons).map(id=>[id,weaponSpec(id)]))),snapshotActor,execution,syncActor,withHitContext,impact,simulationDt,feel,impactState});
 }

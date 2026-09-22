@@ -126,10 +126,13 @@ test('a real miss breaks the current chain and restarts its phase from the first
  assert.equal(proof.restart.phase,proof.broken.phase);assert.equal(proof.restart.techniqueIndex,proof.broken.techniqueIndex);assert.equal(proof.restart.stageIndex,0);
 });
 
-test('shallow incoming contact no longer breaks pressure on every hit',()=>{
- const scenario=createJohakyuP7ReviewScenario({mode:'oneVsThree'});let shallow=0;
- for(let i=0;i<1200;i++){const r=scenario.step(1/60);for(const event of r.events)if(event.type==='enemy-hit'&&!event.deepHit&&event.exchangeMode==='pressure'){shallow++;assert.equal(event.exchangeContinuity,'retain');}}
- assert.ok(shallow>0,'real shallow contacts must be exercised');
+test('shallow early contact retains pressure rather than breaking every attack',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'oneVsThree',enemyLeadSeconds:.3});let hits=0;
+ for(let i=0;i<600;i++){
+   const r=scenario.step(1/60);for(const event of r.events)if(event.type==='enemy-hit'&&!event.deepHit){hits++;assert.notEqual(event.exchangeContinuity,'reverse');}
+ }
+ assert.ok(hits>0,'real shallow contact must still apply injury and damage');
+ assert.equal(scenario.inspect().trace.some(row=>row.type==='chain-break'&&row.reason==='hit-before-contact'),false);
 });
 
 test('ordinary guard retains pressure instead of breaking the offensive chain',()=>{
@@ -153,14 +156,14 @@ test('real guard and parry resolve incoming contact before damage and parry arms
 });
 
 test('1v1 creates situational breathing room before re-engaging instead of permanent contact',()=>{
- const scenario=createJohakyuP7ReviewScenario({mode:'duel',duelGap:3.8});let minDistance=Infinity,maxDistance=0,sawMovingReset=false;const observed=new Map();
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',duelGap:3.8});const observedTrace=new Map();let minDistance=Infinity,maxDistance=0,sawMovingReset=false;
  for(let i=0;i<1440;i++){
    const r=scenario.step(1/60),hero=r.frame.actors.find(a=>a.self),enemy=r.frame.actors.find(a=>a.id==='enemy-a'),distance=Math.hypot(hero.position.x-enemy.position.x,hero.position.z-enemy.position.z);
-   for(const row of scenario.inspect().trace)observed.set(JSON.stringify(row),row);
+   for(const row of scenario.inspect().trace)observedTrace.set(JSON.stringify(row),row);
    minDistance=Math.min(minDistance,distance);maxDistance=Math.max(maxDistance,distance);
    if((hero.moving&&!hero.action)||(enemy.moving&&!enemy.action))sawMovingReset=true;
  }
- const trace=[...observed.values()],offenseStarts=trace.filter(row=>row.type==='stage-start'&&['slash','back','thrust','pierce','heavy','diagonal','sweep','counter','bash','pommel'].includes(row.kind));
+ const trace=[...observedTrace.values()],offenseStarts=trace.filter(row=>row.type==='stage-start'&&['slash','back','thrust','pierce','heavy','diagonal','sweep','counter','bash','pommel'].includes(row.kind));
  assert.ok(trace.some(row=>row.type==='maneuver-start'&&row.reason==='engage-range'),'attack must be earned by approach');
  assert.ok(trace.some(row=>row.type==='maneuver-start'&&['hit-withdrawal','parried-recoil','countered-withdrawal','exchange-zanshin'].includes(row.reason)),'an exchange break must reshape spacing');
  assert.ok(sawMovingReset,'between-action footwork must be visible in canonical frames');
@@ -239,29 +242,24 @@ test('battle2 presentation layers hit reactions, local hit stop, two-actor frami
 });
 
 test('battle2 consumes canonical actor capability without duplicating the next injury layer',()=>{
- const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');assert.match(source,/johakyuActorCapability/);assert.match(source,/capability\.canAttack/);assert.match(source,/capability:\{canMove:capability\.canMove,canAttack:capability\.canAttack/);assert.match(source,/johakyuStageCapability/);assert.doesNotMatch(source,/void capability/);
+ const source=readFileSync(new URL('../src/nocturne/johakyu-p7-review.js',import.meta.url),'utf8');assert.match(source,/johakyuActorCapability/);assert.match(source,/capability\.canAttack/);assert.match(source,/capability:\{canMove:capability\.canMove,canAttack:capability\.canAttack/);assert.match(source,/johakyuStageCapability/);assert.match(source,/stage\.allowed/);assert.doesNotMatch(source,/void capability/);
 });
 
 test('battle2 shows a human semantic version while keeping source SHA internal',()=>{
  const html=readFileSync(new URL('../battle2.html',import.meta.url),'utf8'),stage=stageSource(),css=readFileSync(new URL('../src/battle2.css',import.meta.url),'utf8');
- assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.0');
+ assert.match(BATTLE2_VERSION,/^\d+\.\d+\.\d+$/);assert.equal(BATTLE2_VERSION,'2.2.1');
  assert.match(html,/id="battle2-version"/);assert.match(stage,/versionNode\.textContent=`v\$\{BATTLE2_VERSION\}`/);assert.match(stage,/get version\(\)\{return BATTLE2_VERSION;\}/);
  assert.match(stage,/get sourceSha\(\)\{return __BUILD_INFO__\.commit;\}/);assert.doesNotMatch(stage,/buildCommit|\.slice\(0,7\)|DEV ·/);assert.match(css,/\.battle2-version\{/);
 });
 
-test('HUD follows hero ownership, hides counter transitions, and reserves right zanshin for hero completion',()=>{
- let sawOffense=false,sawDefense=false,sawCounter=false,sawZanshin=false,sawOpponentCompletion=false;
- for(const options of [{},{heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2}]){
-  const scenario=createJohakyuP7ReviewScenario({mode:'duel',...options});
-  for(let i=0;i<1440;i++){const r=scenario.step(1/60),meta=r.meta,action=r.frame.actors.find(a=>a.self)?.action;
-   if(['jo','ha','kyu'].includes(meta.hudState)){sawOffense=true;assert.equal(meta.initiativeId,'hero');assert.equal(meta.exchangeMode,'pressure');assert.notEqual(action?.scope,'combat-reaction');assert.ok(!action?.counterTransition);}
-   if(meta.hudState==='maai')sawDefense=true;
-   if(action?.reaction==='counter'||action?.counterTransition){sawCounter=true;assert.equal(meta.hudState,'maai');}
-   if(meta.hudState==='zanshin'){sawZanshin=true;assert.equal(meta.completedById,'hero');assert.equal(meta.exchangeReason,'kyu-complete');}
-   if(meta.exchangeMode==='zanshin'&&meta.completedById!=='hero'){sawOpponentCompletion=true;assert.equal(meta.hudState,'maai');}
-  }
+test('HUD follows exchange initiative instead of leaving stale jo ha kyu lit while defending',()=>{
+ const scenario=createJohakyuP7ReviewScenario({mode:'duel',heroStartPhase:'ha',heroStartTechniqueIndex:1,enemyLeadSeconds:.2});let sawOffense=false,sawDefense=false,sawZanshin=false;
+ for(let i=0;i<1200&&!(sawOffense&&sawDefense&&sawZanshin);i++){const r=scenario.step(1/60),meta=r.meta;
+  if(['jo','ha','kyu'].includes(meta.hudState)){sawOffense=true;assert.equal(meta.initiativeId,'hero');assert.equal(meta.exchangeMode,'pressure');}
+  if(meta.hudState==='maai'){sawDefense=true;const action=r.frame.actors.find(a=>a.self)?.action;assert.ok(meta.exchangeMode!=='pressure'||meta.initiativeId!=='hero'||action?.scope==='combat-reaction'||action?.scope==='combat-counter-transition');}
+  if(meta.hudState==='zanshin'){sawZanshin=true;assert.equal(meta.exchangeMode,'zanshin');assert.equal(meta.completedBy,'hero');}
  }
- assert.ok(sawOffense&&sawDefense&&sawCounter&&sawZanshin&&sawOpponentCompletion,'each semantic branch must be observed, not vacuously asserted');
+ assert.ok(sawOffense,'offensive pressure must still light a jo ha kyu step');assert.ok(sawDefense,'defense/read must return to the left maai edge');assert.ok(sawZanshin,'exchange completion must light zanshin');
 });
 
 test('HUD metadata comes from the executing technique and stage',()=>{

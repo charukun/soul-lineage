@@ -13,9 +13,13 @@ export function readSavedBody(raw){
 }
 /** Strip derived pose/executor snapshots, not damage, injuries, projectiles or results. */
 export function clearSavedPresentation(state){
-  if(state.combat){delete state.combat.tidebreakPose;delete state.combat.exchange;delete state.combat.hudState;}
+  // Loadout/progression live elsewhere. No target, cursor, queue, counter or
+  // zanshin from an in-flight melee exchange may survive a checkpoint.
+  if(state.combat)state.combat={};
+  if('finisher' in state)state.finisher=null;
+  state.attacking=false;
   if(state.inspiration)delete state.inspiration.execution;
-  for(const enemy of state.frontState?.enemies||[])enemy.tidebreakPose=null;
+  for(const enemy of state.frontState?.enemies||[]){enemy.tidebreakPose=null;enemy.attacking=false;enemy.attackWindow=0;}
   return state;
 }
 

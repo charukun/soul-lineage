@@ -6,7 +6,7 @@ import { createSkillSetter } from './skill-setter.js';
 import { createHeartTechniqueBodyUI } from './heart-technique-body-ui.js';
 import { decorateSelectionDetail, installSelectionDetail } from './selection-detail.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
-import {sequenceHudState} from './combat-sequence-hud.js';
+import {sequenceHudState,meleeSequenceHudState} from './combat-sequence-hud.js';
 import {tidebreakMindVectorFor} from './rebuild/combat-tactics.js';
 import './rebuild/conversation-input.css';
 import './skill-setter.css';
@@ -120,7 +120,9 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const onCombatFeedback=event=>{
     if(event.detail?.type!=='enemy-hit')return;
     pushPhaseHistory({action:'攻撃を受けた',kind:'damage'});
-    if(currentComboKey&&(!state?.combat?.exchange||state.combat.exchange.continuity==='reset'||state.combat.exchange.continuity==='reverse')){comboInterrupted=true;interruptSequence();lastPhase='';haptic([18,28,12]);}
+    const exchange=event.detail.exchange||state?.combat?.exchange;
+    const retaining=state?.combat?.engine==='tidebreak'&&exchange?.mode==='pressure'&&exchange.initiativeId===state.id;
+    if(currentComboKey&&!retaining){comboInterrupted=true;interruptSequence();lastPhase='';haptic([18,28,12]);}
   };
   gameScreen.addEventListener('rinne:combat-feedback',onCombatFeedback);
   const showMovementHelp=event=>{
@@ -243,10 +245,11 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
     ui.phase.hidden=!phase;
     const rawAction=phase?(gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';
-    const exchangeHud=s.combat?.exchange?(s.combat.hudState||'maai'):null;
-    let sequence=sequenceHudState({phase,attack:rawAction,interrupted:comboInterrupted,exchangeHud});
-    ui.phase.dataset.exchange=exchangeHud||'legacy';
-    if(comboInterrupted&&!rawAction){comboInterrupted=false;sequence=sequenceHudState({phase,attack:rawAction,exchangeHud});}
+    const exchangeCombat=s.combat?.engine==='tidebreak';
+    const readSequence=()=>exchangeCombat?meleeSequenceHudState({combat:s.combat,actorId:s.id,attack:rawAction,interrupted:comboInterrupted}):sequenceHudState({phase,attack:rawAction,interrupted:comboInterrupted});
+    let sequence=readSequence();
+    ui.phase.dataset.exchangeState=sequence.hudState||'';
+    if(comboInterrupted&&!rawAction){comboInterrupted=false;sequence=readSequence();}
     if(sequence.comboActive&&ui.phase.dataset.comboInterrupted==='true'){clearTimeout(interruptTimer);interruptTimer=0;endInterruptionVisual();}
     currentComboKey=sequence.key;ui.phase.dataset.comboActive=String(sequence.comboActive);ui.phase.dataset.phase=sequence.comboActive?sequence.activePhase:'idle';
     syncCombatSequence(ui.phase,sequence.comboActive?sequence.activePhase:'',{pulse:sequence.comboActive});setCompletedPhases(sequence.completed);
