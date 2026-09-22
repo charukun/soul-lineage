@@ -32,11 +32,12 @@ test('a prepared sign can be realized on a later identical visit without duplica
   const legacy=migrated(['skill.focus']);const known=[...legacy.knownSkills];assert.equal(skillEffects(legacy).damage,0);assert.equal(setHeartActive(legacy,'skill.focus',true),true);assert.ok(skillEffects(legacy).damage>.05);assert.deepEqual(legacy.knownSkills,known);setHeartActive(legacy,'skill.focus',false);assert.equal(skillEffects(legacy).damage,0);
 });
 
-test('three ordered heart slots retain migrated choices and refuse a fourth or unknown technique',()=>{
-  const ids=['skill.focus','skill.danger','skill.calm','skill.patience'],s=migrated(ids);
-  assert.equal(setHeartSlot(s,0,ids[0]),true);assert.equal(setHeartSlot(s,1,ids[1]),true);assert.equal(setHeartSlot(s,2,ids[2]),true);assert.deepEqual(s.combatLoadout.heart.active,ids.slice(0,3));assert.equal(setHeartActive(s,ids[3],true),false);
-  assert.equal(setHeartSlot(s,1,ids[3]),true);assert.deepEqual(s.combatLoadout.heart.active,[ids[0],ids[3],ids[2]]);assert.equal(setHeartSlot(s,0,'spark.spear.tide'),false);
-  const restored=deserializeLife(serializeLife(s));ensureCombatLoadout(restored);assert.deepEqual(restored.combatLoadout.heart.active,s.combatLoadout.heart.active);
+test('five positional heart slots preserve exact placement, swapping and save migration',()=>{
+  const ids=['skill.focus','skill.danger','skill.calm','skill.patience','skill.observe'],s=migrated(ids);
+  assert.equal(setHeartSlot(s,0,ids[0]),true);assert.equal(setHeartSlot(s,1,ids[1]),true);assert.equal(setHeartSlot(s,2,ids[2]),true);assert.equal(setHeartSlot(s,3,ids[3]),true);assert.equal(setHeartSlot(s,4,ids[4]),true);
+  assert.deepEqual(s.combatLoadout.heart.slots,ids);assert.deepEqual(s.combatLoadout.heart.active,ids);
+  assert.equal(setHeartSlot(s,1,ids[4]),true);assert.deepEqual(s.combatLoadout.heart.slots,[ids[0],ids[4],ids[2],ids[3],ids[1]]);assert.equal(setHeartSlot(s,0,'spark.spear.tide'),false);
+  const restored=deserializeLife(serializeLife(s));ensureCombatLoadout(restored);assert.deepEqual(restored.combatLoadout.heart.slots,s.combatLoadout.heart.slots);assert.deepEqual(restored.combatLoadout.heart.active,s.combatLoadout.heart.active);
 });
 
 test('weapons normalize basic actions while age, injuries and real stamina constrain answers',()=>{
