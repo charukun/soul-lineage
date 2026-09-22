@@ -1,59 +1,34 @@
 name: Camera Presentation specialist (task only)
-run-name: Camera native room traversal PR1490 d62bc23e13d2ad2d2f67011235582cb8d34f1271
+run-name: Materialize alternate 3D camera bridge PR1490
 on:
   push:
     branches: [dispatch/camera-presentation-specialist-20260923]
 permissions:
-  contents: read
-  actions: read
-  pull-requests: read
+  contents: write
 jobs:
-  interior:
+  materialize:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
-    env:
-      APP_ENV: dev
-      CAMERA_SCENARIO: interior
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
         with:
           path: control
           persist-credentials: false
-          sparse-checkout: scripts
+          sparse-checkout: |
+            scripts
+            packages/rendering
       - uses: actions/checkout@v6
         with:
           ref: d62bc23e13d2ad2d2f67011235582cb8d34f1271
           path: work
           persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: work/package-lock.json
-      - run: npm ci --ignore-scripts
-        working-directory: work
-      - run: npm run build:rinne && npm run build:review
-        working-directory: work
-      - run: npx playwright install --with-deps chromium
-        working-directory: work
-      - name: Native room aisle, exit and entry on unchanged exact game head
-        working-directory: work
-        run: |
-          cp ../control/scripts/browser/camera-playtest-task.mjs scripts/browser/camera-playtest-task.mjs
-          python3 ../control/scripts/camera-native-input-patch.py
-          python3 ../control/scripts/camera-shard-patch.py
-          python3 ../control/scripts/camera-interior-route-patch.py
-          node --check scripts/browser/camera-playtest-task.mjs
-          node scripts/browser/camera-playtest-task.mjs
-      - name: Existing merge-window summary
-        if: always()
+      - name: Materialize injected camera port as source blobs only
         working-directory: work
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: npm run actions:summary -- --repo charukun/soul-lineage --pr 1490 --sha d62bc23e13d2ad2d2f67011235582cb8d34f1271 --output test-results/camera-presentation/actions-summary.json
+        run: python3 ../control/scripts/materialize-camera-driven-bridge.py
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: camera-interior-native-route-d62bc23e13d2ad2d2f67011235582cb8d34f1271
-          path: work/test-results/camera-presentation
-          retention-days: 14
+          name: camera-driven-bridge-source
+          path: /tmp/camera-driven-bridge
+          retention-days: 7
