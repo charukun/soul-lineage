@@ -89,6 +89,19 @@ function start(){
     actor?.setDisplay({texture:$('[data-forge-texture]').checked,wireframe:$('[data-forge-wire]').checked,
       skeleton:$('[data-forge-skeleton]').checked,socket:$('[data-forge-sockets]').checked});
   }
+  function showInputImages(candidate){
+    const names={front:'正面',front34:'前斜め',side:'側面',back34:'後斜め',back:'背面'};
+    const images=[];
+    for(const [direction,name] of Object.entries(names)){
+      const url=candidate.sourceReferences?.[direction];if(!url)continue;
+      const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener';
+      link.title=name+'の入力画像を開く';link.setAttribute('aria-label',link.title);
+      const img=document.createElement('img');img.src=url;img.alt=candidate.manifest.displayName+'の入力画像（'+name+'）';img.decoding='async';
+      link.append(img,document.createTextNode(name));images.push(link);
+    }
+    $('[data-forge-input-images]').replaceChildren(...images);
+    $('.forge-input-preview').hidden=images.length===0;
+  }
   async function select(candidate){
     const token=++sequence;loadController?.abort();loadController=new AbortController();const signal=loadController.signal;
     delete panel.dataset.error;panel.dataset.ready='false';enable(false);status(candidate.manifest.displayName+'を読み込み中…');
@@ -99,7 +112,7 @@ function start(){
       if(hash!==candidate.manifest.model.sha256)throw new Error('GLB hash mismatch');
       const gltf=await new GLTFLoader().parseAsync(bytes,''),next=createCharacterPackageActor(THREE,gltf,candidate.manifest);
       if(!alive||token!==sequence){next.dispose();return;}
-      actor?.dispose();actor=next;entry=candidate;scene.add(actor.root,actor.helper);
+      actor?.dispose();actor=next;entry=candidate;scene.add(actor.root,actor.helper);showInputImages(candidate);
       const bounds=candidate.manifest.bounds;
       frameRoot.position.fromArray(bounds.min.map((v,i)=>(v+bounds.max[i])*.5));
       frameRoot.scale.fromArray(bounds.min.map((v,i)=>bounds.max[i]-v));frameRoot.updateMatrixWorld(true);
