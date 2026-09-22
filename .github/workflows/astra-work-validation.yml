@@ -50,17 +50,6 @@ jobs:
             depth=$((depth * 2))
           done
           echo "VALIDATION_BASE_SHA=$base" >> "$GITHUB_ENV"
-      - name: Record final-head validation pending
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const target=`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            for (const contextName of ['astra/fast-dev-contract','astra/focused-validation']) {
-              await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.HEAD_SHA,
-                context:contextName,state:'pending',
-                description:contextName.endsWith('contract')?'Fast DEV contract inspection is running':'Astra-selected exact-head validation is running',
-                target_url:target});
-            }
       - name: Enforce Fast DEV anti-expansion contract
         id: contract
         continue-on-error: true
@@ -83,14 +72,6 @@ jobs:
             cp scripts/fast-dev-contract.mjs "$trusted"
             node "$trusted" origin/develop HEAD --bootstrap
           fi
-      - name: Record Fast DEV contract clean
-        if: steps.contract.outcome == 'success'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.HEAD_SHA,
-              context:'astra/fast-dev-contract',state:'success',description:'Fast DEV execution contract is clean',
-              target_url:`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`});
       - name: Record recoverable Fast DEV contract violation
         if: steps.contract.outcome == 'failure'
         uses: actions/github-script@v8
@@ -105,8 +86,8 @@ jobs:
         id: focused-plan
         if: steps.contract.outcome == 'success'
         run: node scripts/astra-focused-validation.mjs plan
-      - name: Set up exact validation Node only when task-specific work exists
-        if: steps.contract.outcome == 'success' && steps.focused-plan.outputs.has_work == 'true'
+      - name: Set up exact validation Node only when dependency work exists
+        if: steps.contract.outcome == 'success' && steps.focused-plan.outputs.needs_install == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: '24'
@@ -155,6 +136,9 @@ jobs:
                 }catch{ reason='merge-conflict'; }
               }
             }
+            await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.HEAD_SHA,
+              context:'astra/fast-dev-contract',state:'success',description:'Fast DEV execution contract is clean',
+              target_url:target});
             await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.HEAD_SHA,
               context:'astra/merge-freshness',state:reusable?'success':'error',
               description:(reusable?(reason==='current-develop-contained'?'Validated head contains current develop':'Independent develop drift; validation reusable'):`ASTRA_REVALIDATE_REQUIRED: ${reason}`).slice(0,140),
