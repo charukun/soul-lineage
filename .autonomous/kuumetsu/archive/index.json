@@ -7,6 +7,12 @@
       "problemKey": "durable-code-first-loop",
       "path": "experiments/kuumetsu-foundation-20260920.json",
       "verdict": "pending"
+    },
+    {
+      "id": "kuumetsu-route-fail-closed-20260920",
+      "problemKey": "invalid-hunt-route-silent-fallback",
+      "path": "experiments/kuumetsu-route-fail-closed-20260920.json",
+      "verdict": "pending"
     }
   ]
 }
