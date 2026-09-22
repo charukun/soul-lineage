@@ -4,7 +4,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {SPRITE_SET_SCHEMA,SPRITE_SET_BUNDLE_SCHEMA,SPRITE_SET_DIRECTIONS,SPRITE_SET_ACTIONS,assertCharacterSpriteSet} from '@soul/assets/character-sprite-set';
 import {spriteSetDigest} from '@soul/assets/character-sprite-set/browser';
 const CLIPS={idle:/idle/i,walk:/walking|walk/i,run:/running|run/i,turn:/turn/i,attack:/1h.*melee.*chop|melee.*attack|punch/i,hit:/hit|damage/i,talk:/talk|wave/i,pickup:/pick.*up/i,rest:/sitting|sit|rest/i,jump:/jump.*start|jump/i,fall:/jump.*idle|fall/i,vault:/vault/i,climb:/climb/i};
-const LOOP=new Set(['idle','walk','run','talk','rest','fall','climb']);
+const LOOP=new Set(['idle','walk','run','talk','fall','climb']);
 const EVENTS={idle:[[4,'breath']],walk:[[2,'footstep'],[6,'footstep']],run:[[1,'footstep'],[5,'footstep']],turn:[[4,'pivot']],attack:[[3,'strike']],hit:[[1,'impact']],talk:[[2,'voice']],pickup:[[4,'pick']],rest:[[4,'exhale']],jump:[[0,'takeoff']],fall:[[7,'landingHint']],vault:[[3,'clearanceHint']],climb:[[2,'grip'],[6,'grip']]};
 const normalize=value=>String(value).toLowerCase().replace(/[^a-z0-9]/g,'');
 export async function bakeKnightSpriteSet(sourceURL){

@@ -45,7 +45,13 @@ export function mountSpriteSetPlayground(){
     if(disposed){next.dispose();return;}
     sandbox?.dispose();actor?.dispose();actor=next;scene.add(actor.object);sandbox=createSpriteSetSandbox(actor,{canMoveTo});sandbox.reset();sandbox.pause(paused);eventRows.length=0;
     host.dataset.spriteReady='true';
-    for(const button of host.querySelectorAll('[data-sprite-action]'))button.disabled=!Object.hasOwn(actor.manifest.actions,button.dataset.spriteAction);
+    const actionGrid=find('.sprite-set-actions');
+    for(const button of actionGrid.querySelectorAll('[data-sprite-action]'))if(!SPRITE_SET_ACTIONS.includes(button.dataset.spriteAction)&&!Object.hasOwn(actor.manifest.actions,button.dataset.spriteAction))button.remove();
+    for(const name of Object.keys(actor.manifest.actions))if(!actionGrid.querySelector(`[data-sprite-action="${name}"]`)){
+      const button=document.createElement('button'),label=document.createElement('b'),code=document.createElement('small');
+      button.type='button';button.dataset.spriteAction=name;label.textContent=LABELS[name]||name;code.textContent=name;button.append(label,code);actionGrid.append(button);
+    }
+    for(const button of actionGrid.querySelectorAll('[data-sprite-action]'))button.disabled=!Object.hasOwn(actor.manifest.actions,button.dataset.spriteAction);
     find('[data-sprite-export]').disabled=false;find('[data-sprite-rinne]').disabled=false;find('[data-sprite-demo]').checked=false;
     find('[data-sprite-provenance]').textContent=JSON.stringify({id:actor.manifest.id,stage:actor.manifest.stage,provenance:actor.manifest.provenance,approval:actor.manifest.approval},null,2);
     status(`${actor.manifest.label} · ${Object.keys(actor.manifest.actions).length}行動 / 8方向 · local-draft（本番未承認）`);
@@ -55,8 +61,9 @@ export function mountSpriteSetPlayground(){
   on(find('[data-sprite-sample]'),'click',()=>void run(async()=>{status('行動PNGを読み込んで検証しています');await install(await loadSpriteSetURL('./sprite-sets/kaykit-knight/manifest.json',{playable:true}));}));
   on(find('[data-sprite-export]'),'click',()=>{if(actor)downloadSpriteSetBundle(actor.bundle);});
   const send=(command,data={})=>{if(pending&&find('[data-sprite-send]').checked)pending.target.postMessage({type:'rinne.sprite-set.command',token:pending.token,command,...data},pending.origin);};
-  for(const button of host.querySelectorAll('[data-sprite-action]'))on(button,'click',()=>{
-    if(!sandbox)return;find('[data-sprite-demo]').checked=false;sandbox.setDemo(false);
+  on(find('.sprite-set-actions'),'click',event=>{
+    const button=event.target.closest('button[data-sprite-action]');
+    if(!button||button.disabled||!sandbox)return;find('[data-sprite-demo]').checked=false;sandbox.setDemo(false);
     const choice=find('[data-sprite-loop]').value,options=choice==='default'?{}:{loop:choice==='loop'};
     sandbox.play(button.dataset.spriteAction,options);send('action',{action:button.dataset.spriteAction});
   });

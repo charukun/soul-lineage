@@ -6,9 +6,12 @@ export function trustedSpriteSetOrigin(origin,locationLike=location){
   if(REVIEW_ORIGINS.has(origin))return true;
   try{const url=new URL(origin);return ['localhost','127.0.0.1'].includes(locationLike.hostname)&&url.hostname===locationLike.hostname&&url.protocol===locationLike.protocol&&['5176','5276'].includes(url.port);}catch{return false;}
 }
+const INSTALLED=Symbol.for('rinne.sprite-set.guest');
 export function installSpriteSetGuest(view,{environment,canvas}={}){
+  if(view?.[INSTALLED])return view;
   const query=new URLSearchParams(location.search),token=query.get('spriteTransfer');
   if(!['dev','local'].includes(environment)||query.get('spriteSet')!=='1'||!token||!/^[a-zA-Z0-9-]{20,80}$/.test(token)||!window.opener||!view?.scene||!view.camera||!view.THREE)return view;
+  view[INSTALLED]=true;
   const abort=new AbortController(),originalRender=view.renderState,originalDispose=view.dispose;
   let actor=null,sandbox=null,disposed=false,loading=false,received=false,origin=null,spawned=false,lifeKey='',telemetry=0;
   const send=(type,data={})=>{try{window.opener?.postMessage({type,token,...data},origin||'*');}catch{}};
@@ -61,7 +64,7 @@ export function installSpriteSetGuest(view,{environment,canvas}={}){
   }
   // State/ground hooks are existing RINNE hooks; onBeforeRender resolves the final camera.
   view.renderState=function(state,delta=0,options){update(state,delta,options);return originalRender.call(this,state,delta,options);};
-  function dispose(){if(disposed)return;disposed=true;abort.abort();clearInterval(handshake);clearTimeout(expiry);sandbox?.dispose();actor?.dispose();delete canvas.spriteSetSnapshot;}
+  function dispose(){if(disposed)return;disposed=true;abort.abort();clearInterval(handshake);clearTimeout(expiry);sandbox?.dispose();actor?.dispose();delete canvas.spriteSetSnapshot;delete view[INSTALLED];}
   view.dispose=function(...args){dispose();return originalDispose?.apply(this,args);};
   addEventListener('pagehide',dispose,{once:true,signal:abort.signal});return view;
 }

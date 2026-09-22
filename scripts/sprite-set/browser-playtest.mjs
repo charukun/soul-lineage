@@ -7,7 +7,7 @@ import {chromium} from '@playwright/test';
 
 const sha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),out=`.deploy-state/sprite-set-browser-${sha}`;
 await mkdir(out,{recursive:true});
-const receipt={schema:'rinne.sprite-set-browser-evidence/v1',sourceSha:sha,execution:'headed-equivalent Chromium / software WebGL, real UI inputs',physicalDevice:false,steps:[],errors:[],pass:false};
+const receipt={schema:'rinne.sprite-set-browser-evidence/v1',sourceSha:sha,execution:'headless Chromium / software WebGL; real UI inputs',physicalDevice:false,steps:[],errors:[],pass:false};
 const servers=[],logs=[],videos=[];let browser,context,review,rinne;
 async function start(app,port){
   const log=createWriteStream(`${out}/${app}-server.log`),server=spawn('npm',['run','preview','--workspace','@soul/'+app],{env:{...process.env,APP_ENV:'dev'},detached:true,stdio:['ignore','pipe','pipe']});server.stdout.pipe(log);server.stderr.pipe(log);servers.push(server);logs.push(log);
@@ -18,7 +18,15 @@ const state=()=>stage().evaluate(canvas=>canvas.spriteSetSnapshot());
 const gameState=()=>rinne.locator('#game').evaluate(canvas=>canvas.spriteSetSnapshot?.()||null);
 const note=(label,snapshot)=>receipt.steps.push({label,snapshot,at:new Date().toISOString()});
 async function screenshot(page,name,selector){await (selector?page.locator(selector):page).screenshot({path:`${out}/${name}.png`});}
-async function cameraInput(degrees){const input=review.locator('[data-sprite-camera]');await input.scrollIntoViewIfNeeded();const box=await input.boundingBox();await review.mouse.click(box.x+8+(box.width-16)*(degrees+180)/360,box.y+box.height/2);await review.waitForTimeout(200);}
+async function cameraInput(degrees){
+  const input=review.locator('[data-sprite-camera]');await input.scrollIntoViewIfNeeded();await input.focus();
+  const difference=degrees-Number(await input.inputValue());
+  // Native key input reaches even angles within the range thumb's hit area. A click there need not change its value.
+  for(let i=0;i<Math.abs(difference);i++)await input.press(difference>0?'ArrowRight':'ArrowLeft');
+  assert.equal(Number(await input.inputValue()),degrees);
+  await review.waitForFunction(deg=>{const s=document.querySelector('.sprite-set-stage canvas').spriteSetSnapshot();const delta=Math.atan2(s.camera.x,s.camera.z)-deg*Math.PI/180;return Math.abs(Math.atan2(Math.sin(delta),Math.cos(delta)))<.01;},degrees);
+  await review.waitForTimeout(150);
+}
 async function actionInReview(action){
   await review.locator(`[data-sprite-action="${action}"]`).click();
   await review.waitForFunction(a=>document.querySelector('.sprite-set-stage canvas')?.spriteSetSnapshot().actor?.action===a,action);
@@ -53,6 +61,10 @@ try{
   await review.locator('[data-sprite-action="rest"]').click();await review.locator('[data-sprite-pause]').click();const paused=await state();await review.waitForTimeout(350);assert.equal((await state()).actor.time,paused.actor.time);await review.locator('[data-sprite-pause]').click();note('pause/resume froze the animation clock',paused);
   await review.locator('[data-sprite-loop]').selectOption('once');await review.locator('[data-sprite-action="attack"]').click();await review.waitForFunction(()=>document.querySelector('.sprite-set-stage canvas').spriteSetSnapshot().actor.completed);const ended=await state();await review.waitForTimeout(200);assert.equal((await state()).actor.frame,ended.actor.frame);note('one-shot end hold',ended);
   await review.locator('[data-sprite-loop]').selectOption('loop');await review.locator('[data-sprite-action="attack"]').click();await review.waitForFunction(()=>document.querySelector('.sprite-set-stage canvas').spriteSetSnapshot().actor.cycle>=1);assert.equal((await state()).actor.completed,false);note('explicit loop override',await state());await review.locator('[data-sprite-loop]').selectOption('default');
+  const extension=JSON.parse(await readFile(bundlePath,'utf8'));extension.manifest.actions.guard={...structuredClone(extension.manifest.actions.attack),loop:false,oneShot:true};
+  await review.locator('[data-sprite-import]').setInputFiles({name:'extension.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(extension))});await review.waitForFunction(()=>document.querySelector('.sprite-set-playground').dataset.busy==='false');
+  await review.locator('[data-sprite-action="guard"]').click();await review.waitForFunction(()=>document.querySelector('.sprite-set-stage canvas').spriteSetSnapshot().actor.action==='guard');note('manifest-defined extension action has a real control',await state());
+  await review.locator('[data-sprite-import]').setInputFiles({name:'restore.json',mimeType:'application/json',buffer:await readFile(bundlePath)});await review.waitForFunction(()=>document.querySelector('.sprite-set-playground').dataset.busy==='false');assert.equal(await review.locator('[data-sprite-action="guard"]').count(),0);
   const popup=review.waitForEvent('popup');await review.locator('[data-sprite-rinne]').click();rinne=await popup;rinne.setDefaultTimeout(60000);videos.push(['rinne-motion',rinne.video()]);await rinne.waitForLoadState('domcontentloaded');await rinne.bringToFront();
   await rinne.mouse.click(640,350);await rinne.waitForTimeout(500);
   await rinne.locator('#title-screen[data-ready="true"]').waitFor({timeout:120000});

@@ -29,7 +29,7 @@ Actor yaw zero faces +Z. Camera azimuth is `atan2(camera.x-actor.x, camera.z-act
 
 ## Actions, time and events
 
-The core playable profile requires idle, walk, run, turn, attack, hit, talk, pickup, rest. Starter parkour requires jump, fall, and at least one of vault/climb. The fixture contains all thirteen. Draft schema validation permits a partial set; Review's gameplay Playground and RINNE transfer require the playable profile. Additional actions (guard, attackHeavy, death, land, dash, celebrate, etc.) are ordinary named clips, not enum changes to the engine.
+The core playable profile requires idle, walk, run, turn, attack, hit, talk, pickup, rest. Starter parkour requires jump, fall, and at least one of vault/climb. The fixture contains all thirteen. Its authored sit-down/rest clip is explicitly one-shot and holds the seated terminal frame instead of repeatedly standing and sitting. Draft schema validation permits a partial set; Review's gameplay Playground and RINNE transfer require the playable profile. Additional actions (guard, attackHeavy, death, land, dash, celebrate, etc.) are ordinary named clips, not enum changes to the engine.
 
 Loop defaults: idle/walk/run/talk/rest/fall/climb loop; other names default to one-shot. `loop` or `oneShot` overrides the default; contradictory declarations are rejected. One-shots hold their final frame and emit one completion notification. The caller owns subsequent state transitions. Explicit preview loop overrides do not rewrite the manifest. Pause freezes the clock. Reset returns the current clip to frame zero, preserving pause. Missing actions throw instead of silently claiming coverage.
 
