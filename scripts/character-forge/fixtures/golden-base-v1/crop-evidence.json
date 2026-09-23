@@ -1,0 +1,95 @@
+{
+  "schema": "rinne.sheet-intake/v1",
+  "source": "turnaround.png",
+  "sourceSha256": "086a1f89616c7c631e23d12f68e305cd3e1a04d5b8ef3832fa3b59c5326d2a50",
+  "dimensions": [
+    1536,
+    1152
+  ],
+  "views": {
+    "front": {
+      "path": "front.png",
+      "sha256": "9652440a4a49d863104266129524e6f98813d9adf0d9e59f883e3226a406c697",
+      "sheetRect": [
+        16,
+        173,
+        460,
+        853
+      ],
+      "status": "observed pixels, with explicit non-character annotation removal",
+      "removedSheetAnnotationRects": [
+        [
+          44,
+          225,
+          105,
+          446
+        ],
+        [
+          44,
+          567,
+          89,
+          798
+        ],
+        [
+          44,
+          173,
+          70,
+          198
+        ],
+        [
+          47,
+          446,
+          59,
+          482
+        ],
+        [
+          47,
+          539,
+          59,
+          568
+        ]
+      ]
+    },
+    "side": {
+      "path": "side.png",
+      "sha256": "78e9e45e2245afb5a5551852c80d29096c0279eef6d03b704cbecea399d03513",
+      "sheetRect": [
+        452,
+        173,
+        723,
+        853
+      ],
+      "status": "observed pixels, with explicit non-character annotation removal",
+      "removedSheetAnnotationRects": []
+    },
+    "back": {
+      "path": "back.png",
+      "sha256": "09f7a621998876ad14284c09aa9bc3c29321b22d3b343f567d80e43587a18d59",
+      "sheetRect": [
+        714,
+        173,
+        1150,
+        853
+      ],
+      "status": "observed pixels, with explicit non-character annotation removal",
+      "removedSheetAnnotationRects": [
+        [
+          1102,
+          173,
+          1150,
+          478
+        ],
+        [
+          714,
+          173,
+          728,
+          459
+        ]
+      ]
+    }
+  },
+  "limitations": [
+    "Rendered turnaround with nonuniform three-view figure scales, not a geometric blueprint",
+    "Side/back occlusions and unseen geometry remain inferred, never observed"
+  ]
+}

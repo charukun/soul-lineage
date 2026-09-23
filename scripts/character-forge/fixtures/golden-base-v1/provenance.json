@@ -1,0 +1,7 @@
+{
+  "author": "RINNE project user-provided Golden Base v1 turnaround",
+  "source": "Golden Base v1 reference supplied by the user in the Character Create Forge task; original sheet SHA-256 086a1f89616c7c631e23d12f68e305cd3e1a04d5b8ef3832fa3b59c5326d2a50",
+  "license": "RINNE-OWNED",
+  "authorization": "The user requested the supplied Golden Base turnaround as the reconstruction and Golden Rig target, and the existing golden-base-boy-v1 repository package records the same user authorization.",
+  "transforms": "Measured front/side/back sheet crops, with recorded annotation removal only; source sheet retained verbatim."
+}

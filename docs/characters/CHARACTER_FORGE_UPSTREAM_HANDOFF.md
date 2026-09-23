@@ -2,7 +2,7 @@
 
 ## Status
 
-**PAUSED BY USER / INCOMPLETE (2026-09-23).** The user requested ending this work now even with failing tests. Additional reconstruction, tests and merge work are stopped. PR #1524 remains Draft and unmerged. This is not a successful delivery or final validation. Historical hard-stop sections below remain evidence; the current state is active material 9/12, total 11/22, preserved without further mutation.
+**ACTIVE RESUMPTION / INCOMPLETE (2026-09-23).** After the preserved pause below, the user asked to complete the pipeline using the supplied Golden Base reference and avoid repeated quality loops. PR #1524 remains Draft and unmerged. The Scout hard-stop history remains evidence; its material state is 9/12, total 11/22. A separate Golden Base upstream subject starts from its own genuine intake state, without resetting Scout or claiming acceptance.
 
 Latest recorded source head: `a17525a14732ec8308085e6bfba803ffa5104842`.
 Latest develop fetched when pausing: `7f59f92fc3c076b639598fbfece44c0153a5e39e` (not reconciled).
@@ -229,3 +229,30 @@ Prepared browser rig/morph/neutral-parity scripts are now preserved in source wi
 Exact state and spec are stored as lossless gzip snapshots under `qa/forge-upstream-paused/`; `gzip -dc` recovers their original JSON bytes and checkpoint.json contains original SHA-256 values. The supplemental JSON is explicitly named `.local.json`; its source images and render receipt came from the hosted artifact. The temporary seven-day artifact contains the large actual GLB, textures, Blender file and visual evidence. These are not a permanent final package; if that artifact expires, the existing runner must reconstruct/preserve its data before continuation. Do not silently reset the state or claim package reproducibility.
 
 No pins, quality thresholds, loop limits, ordinary Fast DEV/Production gates or common runtime contracts are changed by this pause. The task-only workflow remains on this Draft branch for possible continuation and must be removed before any eventual merge. Resume on the same branch/PR only; first refresh GitHub state and inspect this checkpoint. Final reconciled exact-head validation, Ready, merge commit and DEV-start evidence do not exist.
+
+## Resumption: the actual user-supplied Golden Base turnaround
+
+The image displayed in the conversation is actually preserved as
+`scripts/character-forge/fixtures/golden-base-v1/turnaround.png` (1536×1152 RGB,
+SHA-256 `086a1f89616c7c631e23d12f68e305cd3e1a04d5b8ef3832fa3b59c5326d2a50`).
+The earlier attachment path `project_sources/02-file_0000000067bc82099754caad3a90ec7b.png`
+resolved to a different, GitHub Actions infographic. Treating that infographic
+as the Golden Base reference would have been a further source-identity error.
+
+`prepare_golden_base_views.py` pins the sheet digest, records front/side/back
+rectangles, retains actual source pixels and documents removed ruler/panel graphics.
+`start_golden_base.py` runs the verified, unchanged pinned upstream state initializer
+with these three actual views and refuses an existing workspace with a different
+character/provenance. A local execution completed the real upstream `state.py init`
+and `next.py`: current Golden Base step is `image-analysis`, loop 0/3, total 0/6.
+This proves only intake and state identity, **not geometry, visual quality, Rig or
+the end-to-end pipeline**. The old `golden-base-boy-v1` package comes from the
+deprecated RINNE procedural generator and may be inspected as a legacy candidate,
+but cannot stand in for upstream reconstruction authority. Scout remains a separate
+regression fixture, never the target model for this reference.
+
+Work ahead: genuine reference-specific landmarks/proportions, camera solve,
+upstream factory and visual constraints, projection/bake and staged comparison;
+then Golden Rig/Morph/common Sockets, package/native Lab and actual browser
+evidence. Review failures must be recorded without repeatedly rerunning the same
+unchanged candidate. No pass, acceptance or merge is asserted by this checkpoint.
