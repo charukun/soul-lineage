@@ -57,6 +57,11 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /workflow success/);
   assert.match(script, /workflow failed/);
   assert.match(script, /sessionNextWait/);
+  assert.match(script, /sessionFirstActivityAt/);
+  assert.match(script, /tickActiveElapsed/);
+  assert.match(script, /data-active-started-at/);
+  assert.match(script, /開始から/);
+  assert.match(script, /最初 /);
   assert.doesNotMatch(script, /rapid-current-band/);
   assert.doesNotMatch(script, /api\.github\.com|innerHTML/);
 });
