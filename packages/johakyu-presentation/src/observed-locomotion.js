@@ -93,3 +93,8 @@ export function applyObservedCombatLocomotionPose(bones,gait,{guardArms=true,bre
     rotate(bones.rightUpperArm,armSwing);
   }
 }
+
+export function combatStanceRootFrame(options={}){
+  const weight=combatStanceWeight(options);
+  return Object.freeze({weight,drop:.018*weight,pitch:.055*weight});
+}

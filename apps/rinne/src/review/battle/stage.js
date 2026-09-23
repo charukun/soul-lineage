@@ -11,6 +11,7 @@ import {applyReviewCombatMotion} from './hero-motion.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {resolveTechniquePresentation} from '@soul/johakyu-presentation/technique-presentation';
 import {applyObservedCombatLocomotionPose,combatStanceWeight,createObservedCombatLocomotion} from '@soul/johakyu-presentation/observed-locomotion';
+import {combatReadyEnvelope} from '@soul/johakyu-combat/locomotion';
 import {createSnapCameraControl,tiltCameraOffsetForZoom} from '@soul/rendering/snap-camera-control';
 import {createCameraDirector,externalCameraShot} from '@soul/rendering/camera-director';
 import {actorScreenSafety,applyCameraPresentation} from '@soul/rendering/camera-presentation-three';
@@ -84,7 +85,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   const [protagonistRuntime,...monsters]=await Promise.all([createProtagonistCharacterPool(renderer),loadReviewMonsterModel('skeleton-minion'),loadReviewMonsterModel('skeleton-warrior'),loadReviewMonsterModel('skeleton-rogue')]);
   const heroPool=protagonistRuntime.pool,hero={actorId:'review-battle-hero',actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-hero',0x51f15e)),presentation:null,hp:null,hitUntil:0};
   hero.actor=heroPool.spawn(hero.actorId);hero.actor.root.name='ReviewBattle:hero';hero.actor.attachments.name='ReviewBattleAttachments:hero';stageRoot.add(hero.actor.root,hero.actor.attachments);
-  const heroLocomotion=createObservedCombatLocomotion();
+  const heroLocomotion=createObservedCombatLocomotion();let heroCombatReady=false;
   const enemies=monsters.map((actor,index)=>({actor,requested:REVIEW_MONSTER_MODELS[index]?.id||'skeleton-minion',presentation:null,hp:null,hitUntil:0}));
   stageRoot.add(enemies[0].actor.root);
   const heroWeaponRig={rightHand:hero.actor.bones?.rightHand||null,rightLowerArm:hero.actor.bones?.rightLowerArm||null},enemyWeaponRigs=enemies.map(side=>weaponRigFor(side.actor.root));
@@ -138,7 +139,8 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     if(!state)return;const hit=Number.isFinite(state.hp)&&hero.hp!==null&&state.hp<hero.hp;if(hit)hero.hitUntil=time+.15;hero.hp=Number.isFinite(state.hp)?state.hp:hero.hp;
     const presentation=reviewBattlePresentationFrame(state,target,hero.presentation,dt,{hit});hero.presentation=presentation;hero.actor.root.position.set(presentation.x,0,presentation.z);hero.actor.root.rotation.y=presentation.yaw;
     let frame=tidebreakFrameFromSnapshot(state,{targetId:target?.id||null,intent:'review-battle'});
-    const held=combatStanceWeight({active:Boolean(target&&!state.dead&&!state.downed),attack:Boolean(frame?.attack),progress:frame?.progress});
+    const liveTarget=target&&!target.dead&&!target.downed,targetDistance=liveTarget?Math.hypot((Number(target.x)||0)-presentation.x,(Number(target.z)||0)-presentation.z):Infinity,readyEnvelope=combatReadyEnvelope({distance:targetDistance,weapon:state.weaponSegment?.weapon||state.weapon||'sword',wasReady:heroCombatReady,forced:Boolean(frame?.attack)});heroCombatReady=readyEnvelope.ready;
+    const held=combatStanceWeight({active:heroCombatReady,attack:Boolean(frame?.attack),progress:frame?.progress});
     const gait=heroLocomotion.sample({x:presentation.x,z:presentation.z,yaw:presentation.yaw},dt,{combatWeight:held});
     const sequence=techniquePlayback?reviewInspirationSequenceFrame(playbackTime-techniquePlayback.startedAt):null;
     if(techniquePlayback&&sequence?.executeProgress>0&&sequence.stage!=='done'){const steps=techniquePlayback.steps||[],scaled=sequence.executeProgress*Math.max(1,steps.length),index=Math.min(steps.length-1,Math.floor(scaled)),step=steps[index];if(step)frame=tidebreakFrameFromSnapshot({...state,attack:step.kind,progress:scaled%1,slot:techniquePlayback.phase},{targetId:target?.id||null,intent:'review-battle-inspiration'});}
@@ -246,7 +248,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     setZoom(value=.82){return cameraControl.setZoom(value).zoom;},
     cameraAngle(){return Math.atan2(camera.position.x-cameraLook.x,camera.position.z-cameraLook.z);},
     triggerInspiration({id='',name='',steps=[],phase='ha',weapon='sword',grade='normal',duration=REVIEW_INSPIRATION_TIMELINE.end}={}){const now=performance.now()/1000,total=Math.max(REVIEW_INSPIRATION_TIMELINE.end,Number(duration)||0),nearMissSide=String(id||name).length%2?1:-1,presentation=resolveTechniquePresentation({techniqueId:id||name,weapon,phase,steps,grade});techniquePlayback={id,name,steps,phase,weapon,grade,presentation,duration:total,startedAt:now,until:now+total,nearMissSide,emitted:new Set(['spark'])};canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');onInspirationCue('spark',techniquePlayback);setTimeout(()=>canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic'),total*1000+120);},
-    resetRound(){impactKick=0;lastImpactSerial=0;inspirationVfx.clear();inspirationMotion.reset();hero.presentation=null;hero.hp=null;for(const side of enemies){side.presentation=null;side.hp=null;side.hitUntil=0;}},
+    resetRound(){impactKick=0;lastImpactSerial=0;heroCombatReady=false;heroLocomotion.reset();inspirationVfx.clear();inspirationMotion.reset();hero.presentation=null;hero.hp=null;for(const side of enemies){side.presentation=null;side.hp=null;side.hitUntil=0;}},
     sync,
     snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',cameraDirector:canvas.dataset.cameraDirector||'',encounterMode,geometry:canvas.dataset.battleGeometry||''});},
     dispose(){if(canvas.cameraPresentation===cameraPresentationSnapshot)delete canvas.cameraPresentation;cameraDirector.reset();cameraControl.dispose();stageLifecycle.destroy();inspirationVfx.dispose();inspirationMotion.reset();heroPool.despawn(hero.actorId);protagonistRuntime.dispose();for(const monster of monsters)disposeReviewMonsterModel(monster);for(const entry of weaponVisuals)disposeNode(entry.group);for(const row of impactBursts){row.mesh.geometry.dispose();row.mesh.material.dispose();}ground.geometry.dispose();ground.material.dispose();renderer.dispose();}
