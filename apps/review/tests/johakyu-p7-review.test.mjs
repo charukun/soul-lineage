@@ -3,14 +3,17 @@ import assert from 'node:assert/strict';
 import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.js';
 import {resolveTechnique} from '@soul/johakyu-battle';
 import {presentBattleFrame,presentBattleEvents} from '@soul/johakyu-presentation/battle-presentation';
-import {battle2TechniqueCatalog,BATTLE2_COMBO_PRESETS,battle2SelectionAllowed} from '../src/nocturne/battle2-technique-catalog.js';
+import {battle2TechniqueCatalog,battle2SelectionAllowed} from '../src/nocturne/battle2-technique-catalog.js';
+import {normalizeBattle2Loadout} from '../src/nocturne/battle2-loadout.js';
 function run(options={},seconds=60){const scenario=createJohakyuP7ReviewScenario(options),events=[],frames=[];for(let i=0;i<seconds*60;i++){const result=scenario.step(1/60);events.push(...result.meta.activity);if(i%6===0)frames.push(result.frame);}return{scenario,events,frames};}
 test('Lab uses the shared authority for duel and multiple enemies with a complete technique/stage loadout',()=>{
  for(const mode of ['duel','oneVsThree']){const s=createJohakyuP7ReviewScenario({mode});assert.equal(s.inspect().frame.authority,'johakyu-battle');assert.equal(s.inspect().frame.actors.length,mode==='duel'?2:4);assert.equal(s.composition.hero.kyu[0].stages.length,3);}
  assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),RangeError);
 });
 test('every supported menu selection resolves the complete shared technique for its equipped weapon',()=>{
- assert.equal(BATTLE2_COMBO_PRESETS.length,6);
+  assert.deepEqual(Object.keys(normalizeBattle2Loadout().technique).map(phase=>normalizeBattle2Loadout().technique[phase]),['basic.sword','basic.sword','basic.sword']);
+  assert.deepEqual(Object.values(normalizeBattle2Loadout({equipment:{weapon:'great'},technique:{jo:'combo:opening-return'}}).technique),['basic.great','basic.great','basic.great']);
+  assert.equal(battle2TechniqueCatalog({weapon:'sword'}).length,1);assert.equal(battle2SelectionAllowed('combo:opening-return'),false);
  for(const weapon of ['sword','great'])for(const row of battle2TechniqueCatalog({weapon})){assert.ok(battle2SelectionAllowed(row.id,{weapon}));assert.deepEqual(row.stages,resolveTechnique(row.id,{weapon}).stages);assert.ok(row.stages.length>=1);}
  assert.equal(battle2TechniqueCatalog({weapon:'great'})[0].id,'basic.great');
 });
