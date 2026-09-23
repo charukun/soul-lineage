@@ -98,3 +98,23 @@ test('losing a target after a stage resets its unfinished sequence before a new 
  for(let i=0;i<20&&!breakEvent;i++)breakEvent=runtime.step(1/60).events.find(e=>e.type==='chain-break'&&e.actorId==='a');
  assert.equal(breakEvent?.reason,'target-lost');assert.equal(runtime.actor('a').cursor.phaseIndex,0);assert.equal(runtime.actor('a').cursor.stageIndex,0);
 });
+
+test('an uninterrupted combo flows across constituent techniques and phase boundaries without a wait',()=>{
+ const a={...actor('a','party'),self:true,readyDelay:0,staminaMultiplier:.01,loadout:{jo:'combo:combo-1',ha:'basic.sword',kyu:'basic.sword'}},
+   b={...actor('b','enemy'),hp:10000,maxHp:10000,canAttack:false,stamina:0,recoverStamina:false};
+ const runtime=createJohakyuBattleRuntime({battleId:'combo-momentum',actors:[a,b]}),events=[];
+ for(let i=0;i<1800;i++){
+  const hero=runtime.actor('a');runtime.actor('b').position={x:hero.position.x,z:Math.min(5,hero.position.z+1.55)};
+  events.push(...runtime.step(1/60).events);
+  if(events.some(e=>e.type==='stage-start'&&e.sourceId==='a'&&e.phase==='ha'))break;
+ }
+ const starts=events.filter(e=>e.type==='stage-start'&&e.sourceId==='a'),completes=events.filter(e=>e.type==='stage-complete'&&e.sourceId==='a');
+ const nextTechnique=starts.find(e=>e.phase==='jo'&&e.techniqueIndex===1&&e.stageIndex===0);
+ const precedingTechnique=completes.findLast(e=>e.phase==='jo'&&e.techniqueIndex===0&&e.stageIndex===2);
+ const nextPhase=starts.find(e=>e.phase==='ha'&&e.stageIndex===0),precedingPhase=completes.findLast(e=>e.phase==='jo'&&e.techniqueIndex===2&&e.stageIndex===2);
+ assert.ok(nextTechnique&&precedingTechnique&&nextPhase&&precedingPhase);
+ assert.ok(nextTechnique.time-precedingTechnique.time<.12,'constituent techniques should connect promptly');
+ assert.ok(nextPhase.time-precedingPhase.time<.12,'jo should flow into ha without a gap');
+ const opening=starts.find(e=>e.phase==='jo'&&e.techniqueIndex===0&&e.stageIndex===1);
+ assert.ok(runtime.inspect().frame.actors.find(e=>e.id==='a'));assert.ok(opening);
+});
