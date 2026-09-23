@@ -37,14 +37,26 @@ export function techniqueStageText(stage){
   const rawFootwork=stage?.footwork||'stay',footwork=TECHNIQUE_FOOTWORK_LABELS[rawFootwork]||(rawFootwork==='stay'?'':'足運び');
   return footwork?`${footwork}・${action}`:action;
 }
+const TECHNIQUE_BREAK_KINDS=new Set(['heavy','bash','pommel','oneinch','meteor','bullrush']);
+const TECHNIQUE_RECEIVE_KINDS=new Set(['guard','ready','brace','parry']);
+const TECHNIQUE_RETURN_KINDS=new Set(['back','counter','katanaReturn']);
+const TECHNIQUE_CIRCLE_KINDS=new Set(['round','sweep','crosscut','spin','hook','barrage','rushfist']);
+export function techniqueSigilKind(value,{weapon='sword'}={}){
+  const technique=typeof value==='string'?resolveTechnique(value,{weapon}):value,kinds=(technique?.stages||[]).map(stage=>stage.kind);
+  if(kinds.some(kind=>TECHNIQUE_BREAK_KINDS.has(kind)))return'break';
+  if(kinds.some(kind=>TECHNIQUE_RECEIVE_KINDS.has(kind)))return'receive';
+  if(kinds.some(kind=>TECHNIQUE_RETURN_KINDS.has(kind)))return'return';
+  if(kinds.some(kind=>TECHNIQUE_CIRCLE_KINDS.has(kind)))return'circle';
+  if(kinds.some(kind=>THRUST_KINDS.has(kind)))return'thrust';
+  return'slash';
+}
 export function techniqueDetail(id,{weapon='sword',name=null,kicker=null,status='習得済み',fallbackSummary='実戦で使う技'}={}){
   const title=name||techniqueName(id),technique=resolveTechnique(id,{weapon,name:title});
-  if(!technique)return freeze({id,title,kicker:kicker||(String(id||'').startsWith('basic.')?'基本技':'戦技'),summary:fallbackSummary,status});
-  const answer=resolveInspirationAnswer(id),flow=technique.stages.map(techniqueStageText).join(' → '),parts=[];
-  parts.push(answer?.mechanic||`${technique.label}の基本動作をつなぐ型。`);
-  if(flow)parts.push(`動き: ${flow}`);
-  if(answer?.tradeoff)parts.push(`注意: ${answer.tradeoff}`);
-  return freeze({id,title:technique.label,kicker:kicker||(String(id||'').startsWith('basic.')?'基本技':'戦技'),summary:parts.join(' '),status});
+  if(!technique)return freeze({id,title,kicker:kicker||(String(id||'').startsWith('basic.')?'基本技':'戦技'),summary:fallbackSummary,status,sigil:'flow'});
+  const answer=resolveInspirationAnswer(id),flow=technique.stages.map(techniqueStageText).join(' → ');
+  const form=answer?.mechanic||`${technique.label}の基本動作をつなぐ型。`,weakness=answer?.tradeoff||'';
+  const summary=[`型: ${form}`,flow?`動き: ${flow}`:'',weakness?`弱点: ${weakness}`:''].filter(Boolean).join('\n');
+  return freeze({id,title:technique.label,kicker:kicker||(String(id||'').startsWith('basic.')?'基本技':'戦技'),summary,status,sigil:techniqueSigilKind(technique,{weapon})});
 }
 // Trial-only combat presentation. These durations never modify the world clock.
 export const FIRST_INSPIRATION_PRESENTATION=Object.freeze({
