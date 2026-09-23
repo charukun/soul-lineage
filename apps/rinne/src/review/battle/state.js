@@ -45,14 +45,13 @@ const wrapAngle=value=>Math.atan2(Math.sin(value),Math.cos(value));
 
 /**
  * Review rendering follows Tidebreak's authoritative root position and yaw.
- * Smoothing may affect animation cadence, never contact geometry or actor position.
+ * Animation cadence is owned by the shared observed-locomotion presentation.
  */
 export function reviewBattlePresentationFrame(actor,target,previous=null,dt=1/60,{hit=false}={}){
-  const step=presentationClamp(presentationFinite(dt)||1/60,1/240,.05);
   const x=presentationFinite(actor?.x),z=presentationFinite(actor?.z),fallbackYaw=target?Math.atan2(presentationFinite(target.x)-x,presentationFinite(target.z)-z):0;
   const yaw=Number.isFinite(Number(actor?.yaw))?wrapAngle(Number(actor.yaw)):wrapAngle(fallbackYaw);
-  const start=previous||{x,z,yaw},speed=Math.hypot(x-start.x,z-start.z)/step,attack=String(actor?.attack||''),progress=presentationClamp(presentationFinite(actor?.progress),0,1);
-  return Object.freeze({x,z,yaw,stride:presentationClamp(speed*.22,0,1),attackPulse:attack?Math.sin(progress*Math.PI):0,lunge:0,recoil:0,authoritative:true,hit:Boolean(hit)});
+  const attack=String(actor?.attack||''),progress=presentationClamp(presentationFinite(actor?.progress),0,1);
+  return Object.freeze({x,z,yaw,attackPulse:attack?Math.sin(progress*Math.PI):0,lunge:0,recoil:0,authoritative:true,hit:Boolean(hit)});
 }
 
 const REVIEW_SWEEPS=new Set(['slash','back','heavy','spin','sweep','diagonal','crosscut','round','hook','bodyblow','barrage','rushfist','uppercut','risingfist','meteor','bullrush']);

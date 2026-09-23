@@ -12,3 +12,4 @@ export function createDrivenBattleRuntime(options){
 export {techniquePresentationRevision,resolveTechniquePresentation,techniquePresentationEffectIds} from './technique-presentation.js';
 export {FATIGUE_BREATH_ASSET,resolveFatiguePresentation} from './fatigue.js';
 export {FATIGUE_MOTION_ASSET,sampleFatigueMotion} from './fatigue-motion.js';
+export {applyObservedCombatLocomotionPose,combatStanceWeight,createObservedCombatLocomotion} from './observed-locomotion.js';
