@@ -2,7 +2,7 @@
 
 ## Status
 
-Incomplete; PR stays Draft. This is a recovery record, not a character acceptance
+BLOCKED by the pinned upstream material correction ceiling; PR stays Draft. This is a recovery record, not a character acceptance
 report. Do not mark Ready or merge this branch from the installation smoke result.
 
 - PR: https://github.com/charukun/soul-lineage/pull/1524
@@ -142,3 +142,17 @@ branch or PR. Keep all subsequent evidence bound to the actual current model/hea
 At `438843ca09d826af6d1e6a6a9f7bea5fff4ed9b4`, all meshes produced nonzero UV rasterization and accepted position/normal parity remained exact. Side/back colour gates still failed (20.17/21.89). The next counted correction uses neutral inferred diffuse illumination and an independently extracted blue-back recipe; the upstream gate and threshold stay unchanged. This is material refinement 2/3, total 4/6, not acceptance. Evidence: https://github.com/charukun/soul-lineage/actions/runs/35813707448
 
 The Lab adapter now accepts calibrated img2threejs camera data through the existing Camera Director authored-shot path, preserving projection on differently shaped viewports. Geometric expression validation rejects empty/nonfinite targets, and optional package expressions plus both three-quarter views have controls. Five focused local camera/morph tests passed; no bound model or native browser acceptance is claimed yet.
+
+## Authoritative material hard stop
+
+The material capture at `ce6b54e9cb5c5e1487d82cf27994e4616ff52f3e` passed all three Tier-1 gates (front/side/back IoU .9542/.9086/.9202, colour delta 10.80/8.16/7.78). Divine Eye reported low-confidence/probe with no hard geometric failures. The agent then inspected all three comparison sheets, both obliques, neutral and grazing captures. **Rejected:** strong black speckles and vertical seams, contaminated hands, and missing rear hair length. Numeric passes do not override that visual failure.
+
+The actual upstream `append_review.py` records material rejection r2 with action `refine-code`, score .62 and failed critical features. `next.py` returns **3** with `max-correction-loops-reached:material-pass:3/3`; total corrections are **5/6**. The unchanged upstream `forge/_shared/workflow_state.py:sync_from_spec` stops when the current pass count is >= its limit. `SKILL.md` requires reporting the stop and requesting input. State, complete spec and rejection are retained under `docs/characters/qa/forge-upstream-blocked/`. Never reinitialize this Scout workspace or silently increase the limits.
+
+Evidence: https://github.com/charukun/soul-lineage/actions/runs/35814971440 ; artifact 10731326124, SHA-256 `feb41171b45b458639338500cc236aa220f3577395d4f4f576730d18dc71ff04`. The branch-only specialist now audits the saved stop and source changes; it does not regenerate this stopped subject.
+
+Tried: exact upstream intake/spec/factory/hull; initial browser export repair; two blockout corrections; structural and form acceptance; actual camera/de-light/PBR/GPU projection; material UV-frustum repair; neutral illumination and independently observed back recipe; required deterministic and actual agent visual comparisons. Local browser execution was unavailable, so all actual captures used the hosted runner. DCC repair, rig binding and later stages have not been executed: continuing the reconstruction through a different tool would bypass the now-triggered mandatory upstream stop.
+
+Concrete resume condition: obtain an explicit user decision resolving this upstream hard stop before another reconstruction/DCC iteration. Keep this history and branch/PR. Then diagnose UV chart gutters/raster coverage and per-part projection ownership, use repository Blender refinement if required, and re-evaluate all views without changing acceptance thresholds. The current output is not acceptable for merge.
+
+Prepared but not actual-character validated: `upstream_rig.py` directly calls pinned plugin geodesic binding, rigid-role partitioning, proximity conditioning and payload validation; `three_rig_adapter.js` performs RINNE attachment and Socket transport; `upstream_morph.py` directly calls the pinned upstream morph delta builder. A transformed-mesh test proves neutral buffer preservation and joint rotation, but no actual Scout binding, geometric expression set, rig gates, native Lab package or Quality Floor is claimed. The old integrated factory uses envelope weights while the pinned plugin requires geodesic binding; the adapter uses the plugin directly. Its prescribed mesh-export helper is absent from all three pinned trees, so buffer transport is supplied by the Three adapter with upstream freeze/parity as authority.

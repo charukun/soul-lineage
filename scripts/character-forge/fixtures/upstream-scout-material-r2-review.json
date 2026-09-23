@@ -1,0 +1,366 @@
+{
+  "schemaVersion": "rinne.forge-visual-review/v1",
+  "id": "scout-material-r2",
+  "pass": "material-pass",
+  "sourceHead": "ce6b54e9cb5c5e1487d82cf27994e4616ff52f3e",
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35814971440",
+  "artifactId": 10731326124,
+  "artifactSha256": "feb41171b45b458639338500cc236aa220f3577395d4f4f576730d18dc71ff04",
+  "factorySha256": "493c298be84a847c0e8ba643bb1435d0e593a0a0e6194962efcd42d1c18fa274",
+  "captureSha256": {
+    "front": "7d2d2c64f849c293d911cae4fe08d2516af9a25ec87a60822c3bc540717024e2",
+    "side": "60a35062b87c05ba07552fa18cf3b1492987677399753636e9054c145248536b",
+    "back": "0ad299022a8df7a49ef8619370ecfca58ddfdef5cb9f38848453893a69671488",
+    "front34": "62d9fc372cf087a5d68ab87f07eb3c238b04f7dfe19aaebdf3aed27fe4d76dea",
+    "rear34": "08098eadfb2cfef4191653825903c8127dfa1dd132f6f992581439601f990f09",
+    "oppositeSide": "850f8126ecd6d99bcb2733750debab6e2cfafdf6f8cc5f3b33fbb8113445ce74"
+  },
+  "bakeReportSha256": "b17703f57930b057ab66f5f733414b7081e76b0ead4de0d8a98f39d895215cf1",
+  "action": "refine-code",
+  "fidelity": 0.62,
+  "layerScores": {
+    "silhouetteProportion": 0.9,
+    "componentStructure": 0.83,
+    "formDetail": 0.71,
+    "materialSurface": 0.38,
+    "lightingCamera": 0.83
+  },
+  "featureReviews": [
+    {
+      "id": "anatomy-proportion",
+      "score": 0.89,
+      "notes": "Head/body ratio and three-dimensional limb volumes retained."
+    },
+    {
+      "id": "face-landmark-placement",
+      "score": 0.72,
+      "notes": "Eyes/mouth/fringe retain locations but facial surface has strong speckles and visible chart-like seams."
+    },
+    {
+      "id": "pose-silhouette",
+      "score": 0.86,
+      "notes": "Front/side/back and both obliques remain volumetric, not a billboard."
+    },
+    {
+      "id": "outfit-and-palette",
+      "score": 0.58,
+      "notes": "Teal front, blue rear, belt and diamond are visible, but black streaking, blurry boundaries, and teal contamination on hands fail the floor."
+    }
+  ],
+  "reason": "Agent rejected the actual front/side/back comparison sheets, both three-quarter renders, neutral and grazing close-up after all Tier-1 hard gates passed. Black speckles and vertical seams cover face/neck/limbs/trousers; front/side projection transfers teal cloth pixels onto hands; rear hair remains shorter than the contradictory back reference. The character is recognizable but the surface is visibly broken. No material continuation, Quality Floor, Rig or final validation is approved.",
+  "viewpoints": [
+    "front",
+    "side",
+    "back",
+    "front-three-quarter",
+    "rear-three-quarter",
+    "neutral",
+    "grazing-closeup",
+    "thickness-axis",
+    "long-axis"
+  ],
+  "qualityFloorPassed": false,
+  "tier1": {
+    "front": {
+      "passed": true,
+      "checks": {
+        "silhouetteIoU": 0.9542,
+        "aspectRatioDelta": 0.0079,
+        "scaleDelta": 0.0079,
+        "bilateralSymmetryError": 0.015,
+        "colorDelta": {
+          "checked": 18,
+          "maxDeltaE": 10.8,
+          "perComponent": [
+            {
+              "componentId": "root",
+              "deltaE": 6.43
+            },
+            {
+              "componentId": "pelvis",
+              "deltaE": 6.43
+            },
+            {
+              "componentId": "chest",
+              "deltaE": 6.43
+            },
+            {
+              "componentId": "neck",
+              "deltaE": 2.81
+            },
+            {
+              "componentId": "head",
+              "deltaE": 2.81
+            },
+            {
+              "componentId": "hair",
+              "deltaE": 4.29
+            },
+            {
+              "componentId": "upper-arm-l",
+              "deltaE": 2.81
+            },
+            {
+              "componentId": "forearm-l",
+              "deltaE": 2.81
+            },
+            {
+              "componentId": "hand-l",
+              "deltaE": 2.81
+            },
+            {
+              "componentId": "thigh-l",
+              "deltaE": 7.43
+            },
+            {
+              "componentId": "shin-l",
+              "deltaE": 7.43
+            },
+            {
+              "componentId": "boot-l",
+              "deltaE": 10.8
+            },
+            {
+              "componentId": "upper-arm-r",
+              "deltaE": 2.81
+            },
+            {
+              "componentId": "forearm-r",
+              "deltaE": 2.81
+            },
+            {
+              "componentId": "hand-r",
+              "deltaE": 2.81
+            },
+            {
+              "componentId": "thigh-r",
+              "deltaE": 7.43
+            },
+            {
+              "componentId": "shin-r",
+              "deltaE": 7.43
+            },
+            {
+              "componentId": "boot-r",
+              "deltaE": 10.8
+            }
+          ],
+          "gated": true
+        }
+      },
+      "failures": [],
+      "maskWarnings": [],
+      "renderHash": "7d2d2c64f849c293",
+      "passId": "material-pass"
+    },
+    "side": {
+      "passed": true,
+      "checks": {
+        "silhouetteIoU": 0.9086,
+        "aspectRatioDelta": 0.003,
+        "scaleDelta": 0.0234,
+        "bilateralSymmetryError": 0.0664,
+        "colorDelta": {
+          "checked": 18,
+          "maxDeltaE": 8.16,
+          "perComponent": [
+            {
+              "componentId": "root",
+              "deltaE": 5.02
+            },
+            {
+              "componentId": "pelvis",
+              "deltaE": 5.02
+            },
+            {
+              "componentId": "chest",
+              "deltaE": 5.02
+            },
+            {
+              "componentId": "neck",
+              "deltaE": 4.0
+            },
+            {
+              "componentId": "head",
+              "deltaE": 4.0
+            },
+            {
+              "componentId": "hair",
+              "deltaE": 4.17
+            },
+            {
+              "componentId": "upper-arm-l",
+              "deltaE": 4.0
+            },
+            {
+              "componentId": "forearm-l",
+              "deltaE": 4.0
+            },
+            {
+              "componentId": "hand-l",
+              "deltaE": 4.0
+            },
+            {
+              "componentId": "thigh-l",
+              "deltaE": 5.35
+            },
+            {
+              "componentId": "shin-l",
+              "deltaE": 5.35
+            },
+            {
+              "componentId": "boot-l",
+              "deltaE": 8.16
+            },
+            {
+              "componentId": "upper-arm-r",
+              "deltaE": 4.0
+            },
+            {
+              "componentId": "forearm-r",
+              "deltaE": 4.0
+            },
+            {
+              "componentId": "hand-r",
+              "deltaE": 4.0
+            },
+            {
+              "componentId": "thigh-r",
+              "deltaE": 5.35
+            },
+            {
+              "componentId": "shin-r",
+              "deltaE": 5.35
+            },
+            {
+              "componentId": "boot-r",
+              "deltaE": 8.16
+            }
+          ],
+          "gated": true
+        }
+      },
+      "failures": [],
+      "maskWarnings": [],
+      "renderHash": "60a35062b87c05ba",
+      "passId": "material-pass"
+    },
+    "back": {
+      "passed": true,
+      "checks": {
+        "silhouetteIoU": 0.9202,
+        "aspectRatioDelta": 0.0129,
+        "scaleDelta": 0.0029,
+        "bilateralSymmetryError": 0.015,
+        "colorDelta": {
+          "checked": 18,
+          "maxDeltaE": 7.78,
+          "perComponent": [
+            {
+              "componentId": "root",
+              "deltaE": 7.78
+            },
+            {
+              "componentId": "pelvis",
+              "deltaE": 7.78
+            },
+            {
+              "componentId": "chest",
+              "deltaE": 7.78
+            },
+            {
+              "componentId": "neck",
+              "deltaE": 4.8
+            },
+            {
+              "componentId": "head",
+              "deltaE": 4.8
+            },
+            {
+              "componentId": "hair",
+              "deltaE": 3.72
+            },
+            {
+              "componentId": "upper-arm-l",
+              "deltaE": 4.8
+            },
+            {
+              "componentId": "forearm-l",
+              "deltaE": 4.8
+            },
+            {
+              "componentId": "hand-l",
+              "deltaE": 4.8
+            },
+            {
+              "componentId": "thigh-l",
+              "deltaE": 6.81
+            },
+            {
+              "componentId": "shin-l",
+              "deltaE": 6.81
+            },
+            {
+              "componentId": "boot-l",
+              "deltaE": 2.91
+            },
+            {
+              "componentId": "upper-arm-r",
+              "deltaE": 4.8
+            },
+            {
+              "componentId": "forearm-r",
+              "deltaE": 4.8
+            },
+            {
+              "componentId": "hand-r",
+              "deltaE": 4.8
+            },
+            {
+              "componentId": "thigh-r",
+              "deltaE": 6.81
+            },
+            {
+              "componentId": "shin-r",
+              "deltaE": 6.81
+            },
+            {
+              "componentId": "boot-r",
+              "deltaE": 2.91
+            }
+          ],
+          "gated": true
+        }
+      },
+      "failures": [],
+      "maskWarnings": [],
+      "renderHash": "0ad299022a8df7a4",
+      "passId": "material-pass"
+    }
+  },
+  "divineEye": {
+    "front": {
+      "verdict": "low-confidence",
+      "action": "probe",
+      "fidelity": 0.8197,
+      "hardGateFailures": []
+    },
+    "side": {
+      "verdict": "low-confidence",
+      "action": "probe",
+      "fidelity": 0.8156,
+      "hardGateFailures": []
+    },
+    "back": {
+      "verdict": "low-confidence",
+      "action": "probe",
+      "fidelity": 0.7905,
+      "hardGateFailures": []
+    }
+  },
+  "nextDiagnosis": [
+    "Measure empty/black texel coverage along each UV chart boundary, including low-triangle lathe neck and trousers.",
+    "Check foreground ownership per projected part; a global subject mask cannot distinguish overlapping cloth from hands.",
+    "Use the existing DCC path for topology/UV repair if needed, only after the upstream stop has an explicitly authorized resolution."
+  ]
+}

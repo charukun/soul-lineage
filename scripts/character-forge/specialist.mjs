@@ -1,8 +1,16 @@
 /** Explicit task-only authoring transport. Not part of normal Fast DEV. */
 import {execFileSync} from 'node:child_process';
-import {mkdirSync,writeFileSync,readFileSync} from 'node:fs';
+import {mkdirSync,writeFileSync,readFileSync,existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 const run=(program,args)=>execFileSync(program,args,{stdio:'inherit'});
+if(existsSync('docs/characters/qa/forge-upstream-blocked/blocker.json')){
+  // Software checks are permitted; another reconstruction iteration is not.
+  run('npm',['ci','--ignore-scripts']);
+  run('node',['--test','scripts/character-forge/reference-camera.test.mjs','scripts/character-forge/rig-adapter.test.mjs','packages/characters/tests/character-expressions.test.mjs']);
+  run('npm',['run','build','--workspace','@soul/review']);
+  run('python3',['scripts/character-forge/verify_saved_stop.py']);
+  throw Error('A stopped upstream workspace must not enter reconstruction');
+}
 run('python3',['packages/assets/forge/upstream_engine.py','materialize','--key','harness']);
 run('python3',['scripts/character-forge/verify_upstream.py']);
 const out='test-results/character-forge-upstream';mkdirSync(out,{recursive:true});
