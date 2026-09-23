@@ -16,7 +16,7 @@ function writeBattleSettings(value){try{globalThis.localStorage?.setItem(SETTING
 
 const stage=document.querySelector('[data-review-surface="battle2"]');
 const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects'),versionNode=document.getElementById('battle2-version'),startButton=document.getElementById('battle2-start');
-const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
+const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),finisherNode=document.getElementById('battle-sequence-finisher'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
 const previewIdentity=rinnePreviewPlayer((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0);
 const playerHud=createRinnePlayerHud(document.getElementById('battle2-player-hud'),previewIdentity);
 const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
@@ -71,7 +71,7 @@ function clearComboFade(){
  delete phasePanel.dataset.comboInterrupted;
 }
 function resetHistory(battleId=''){
- lastBattleId=battleId;lastPhaseCueKey='';seenActions.clear();seenNarration.clear();lastNarrationAt.clear();history=[];comboInterrupted=false;clearVisualHistory();for(const lane of techniqueLanes.values())lane.replaceChildren();clearComboFade();
+ lastBattleId=battleId;lastPhaseCueKey='';seenActions.clear();seenNarration.clear();lastNarrationAt.clear();history=[];comboInterrupted=false;finisherNode.hidden=true;finisherNode.textContent='';clearVisualHistory();for(const lane of techniqueLanes.values())lane.replaceChildren();clearComboFade();
 }
 function historyDisplayLabel(row){
  const label=String(row?.label||'').trim();return label?label+'…':'';
@@ -119,6 +119,10 @@ function beginComboFade(){
 }
 function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId)resetHistory(meta.battleId);lastExchangeKey=meta.exchangeHistoryKey;
+ const finisherName=meta.actionKind==='finisher'?String(meta.finisherName||'葬焉'):'';
+ if(finisherNode.textContent!==finisherName)finisherNode.textContent=finisherName;
+ finisherNode.hidden=!finisherName;
+ finisherNode.setAttribute('aria-label',finisherName?`葬焉モーション ${finisherName}`:'葬焉モーション');
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
  const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);if(playerHud?.root?.dataset.portrait!=='model'&&runtime?.renderPlayerPortrait?.(playerHud.canvas))playerHud.markPortrait?.('model');
  const activity=Array.isArray(meta.activity)?meta.activity:[];

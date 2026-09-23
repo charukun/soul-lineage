@@ -33,3 +33,10 @@
 @keyframes johakyu-log-flow{0%{opacity:0;transform:translate(-50%,-5px);filter:blur(.5px)}12%{opacity:.94;transform:translate(-50%,0);filter:blur(0)}72%{opacity:.86;transform:translate(-50%,12px)}100%{opacity:0;transform:translate(-50%,26px);filter:blur(.25px)}}
 @media(max-width:680px){.battle-sequence-hud{width:min(198px,calc(100% - 16px))}.battle-sequence-history{width:min(190px,74vw)}}
 @media(prefers-reduced-motion:reduce){.battle-sequence-technique-name{animation:none;opacity:.9;transform:translate(-50%,-10px)}.battle-sequence-history__flow{animation:none;opacity:.86;filter:none!important}.battle-sequence-hud__wave::after,.battle-sequence-hud__edge svg{animation:none!important}}
+
+/* Show the selected finisher above the right waveform only for its active motion. */
+.battle-sequence-hud__edge--zanshin{position:relative;overflow:visible}
+.battle-sequence-finisher{position:absolute;z-index:5;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);min-width:48px;max-width:76px;padding:3px 8px 4px;border:1px solid rgba(245,194,105,.68);border-radius:9px;background:linear-gradient(155deg,rgba(78,42,20,.96),rgba(15,21,20,.94));color:#ffe8b4;text-align:center;white-space:nowrap;font:700 11px/1.2 ui-serif,"Yu Mincho","Hiragino Mincho ProN",serif;text-shadow:0 0 7px rgba(255,187,89,.5);box-shadow:0 0 13px rgba(225,137,65,.25),0 4px 9px rgba(0,0,0,.55);animation:johakyu-finisher-appear .2s ease-out both}
+.battle-sequence-finisher::before{content:"葬焉";display:block;margin-bottom:2px;color:#eac48e;font:700 7px/1.1 ui-serif,"Yu Mincho","Hiragino Mincho ProN",serif;letter-spacing:.12em}
+@keyframes johakyu-finisher-appear{from{opacity:0;transform:translate(-50%,4px) scale(.94)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.battle-sequence-finisher{animation:none}}
