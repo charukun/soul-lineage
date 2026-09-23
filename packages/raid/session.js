@@ -1,4 +1,5 @@
 import {createTidebreakRuntime} from '@soul/tidebreak-combat';
+import {COMBAT_LOCOMOTION} from '@soul/johakyu-combat/locomotion';
 import {PREY,makeVillage,random,hash} from './world.js';
 import {advanceDevour,cancelDevour} from './devour.js';
 import {DEFAULT_MONSTER_SPECIES,MONSTER_GROWTH_PROFILES,chooseMonsterSpecies,feedingGrowth,monsterSpeciesFor} from './species.js';
@@ -73,7 +74,7 @@ export class RaidSession {
  else{const d=Math.hypot(p.x-f.npc.x,p.z-f.npc.z),ix=v.x||0,iz=v.z||0,im=Math.hypot(ix,iz),ax=(p.x-f.npc.x)/(d||1),az=(p.z-f.npc.z)/(d||1),away=im>.001?(ix*ax+iz*az)/im:0;if(v.amount>.05&&away>.32&&d>3.8)f.retreat=Math.min(2,f.retreat+dt);else f.retreat=Math.max(0,f.retreat-dt*1.35);if(f.retreat>.9&&d>4.6){this.rememberFight(f);f.npc.state='pursue';f.npc.pose=null;this.fight=null;p.pose=null;p.skill=null;this.safeTime=2.1;this.emit('disengage');}}
  }else if(this.devour){advanceDevour(this,dt,v.amount);}
  else{
- const speed=v.dash?4.65:2.85,formBoost=this.profile.form==='stalker'?1.15:1,growthMove=p.moveScale||1;
+ const speed=v.dash?COMBAT_LOCOMOTION.dashSpeed:COMBAT_LOCOMOTION.walkSpeed,formBoost=this.profile.form==='stalker'?1.15:1,growthMove=p.moveScale||1;
  const dx=v.x*v.amount*speed*formBoost*growthMove*dt,dz=v.z*v.amount*speed*formBoost*growthMove*dt;const moved=this.walkActor(p,dx,dz);p.speed=moved/dt;p.walk+=moved*3.8;if(v.amount>.05){const target=Math.atan2(v.x,v.z);p.yaw+=Math.atan2(Math.sin(target-p.yaw),Math.cos(target-p.yaw))*Math.min(1,dt*(v.autoRoam?3.4:12));}
  if(!w.gate.broken&&this.has('smith')&&v.amount>.1&&Math.hypot(p.x-w.gate.x,p.z-w.gate.z)<2.7){this.gatePush+=dt;if(this.gatePush>.75){w.gate.broken=true;this.emit('gate',{x:w.gate.x,z:w.gate.z});}}else this.gatePush=0;
  for(const n of w.npcs){if(n.eaten)continue;const d=Math.hypot(n.x-p.x,n.z-p.z);if(n.dead){if(d<2.5&&v.amount<.05){this.devour={npc:n,t:0};this.resetIdle();break;}}else if(d<3.9&&this.safeTime<=0&&!this.lineBlocked(p,n)){this.engage(n);break;}}

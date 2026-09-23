@@ -17,7 +17,8 @@
     "@soul/johakyu-combat": "*",
     "@soul/johakyu-presentation": "*",
     "@soul/rendering": "*",
-    "@soul/johakyu-battle": "*"
+    "@soul/johakyu-battle": "*",
+    "@soul/input": "*"
   },
   "devDependencies": {
     "vite": "8.2.2"

@@ -42,13 +42,13 @@ function buildModelOptions() {
     row.append(b);
   }
   if (simpleReview) {
-    const b = button('参照キャラ · img2threejs', () => {
+    const b = button('ゴールデンベース', () => {
       studio.workspace.configure({ view: 'single' });
       void studio.review.loadImg2ThreeReference();
     });
     b.dataset.characterModel = 'img2threejs.bald-chibi.v1';
     b.dataset.modelStage = '立体モデル / 参照画像';
-    b.dataset.reviewLabel = '参照キャラ';
+    b.dataset.reviewLabel = 'ゴールデンベース';
     b.dataset.thumbnailUrl = './img2threejs-bald-chibi/reference.jpg';
     b.dataset.thumbnailKind = 'image';
     row.append(b);

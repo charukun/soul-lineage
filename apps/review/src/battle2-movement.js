@@ -1,14 +1,4 @@
-// Match 百年転生's swipe thresholds in the review input adapter.
-const DEADZONE=6,DRAG_RANGE=40,FLICK_MS=420,FLICK_DISTANCE=30,FLICK_SPEED=.32;
-class SwipeInput{
-  constructor(){this.cancel();}
-  down(id,x,y,t){if(this.id!==null)return false;this.cancel();this.id=id;this.x=x;this.y=y;this.started=t;this.samples=[{x,y,t}];return true;}
-  move(id,x,y,t){if(id!==this.id)return false;this.dx=x-this.x;this.dy=y-this.y;this.amount=Math.min(1,Math.max(0,(Math.hypot(this.dx,this.dy)-DEADZONE)/DRAG_RANGE));this.samples.push({x,y,t});while(this.samples.length>2&&this.samples[1].t<t-130)this.samples.shift();return true;}
-  up(id,x,y,t){if(id!==this.id)return false;const dx=x-this.x,dy=y-this.y,d=Math.hypot(dx,dy),elapsed=t-this.started,recent=this.samples.find(p=>p.t>=t-130)||this.samples.at(-1),rx=x-recent.x,ry=y-recent.y,rd=Math.hypot(rx,ry),velocity=rd/Math.max(12,t-recent.t);const terminal=rd>=16&&velocity>=.22,quick=elapsed<=FLICK_MS&&d>=FLICK_DISTANCE&&d/Math.max(24,elapsed)>=FLICK_SPEED&&rd>=8&&velocity>=.165,flick=terminal||quick,aimX=terminal?rx:dx,aimY=terminal?ry:dy,aimD=terminal?rd:d;this.cancel();if(flick&&aimD>0){this.dash=true;this.dashX=aimX/aimD;this.dashY=aimY/aimD;}return flick;}
-  cancel(){this.id=null;this.dx=this.dy=this.amount=0;this.dash=false;this.samples=[];}
-  vector(){const x=this.dash?this.dashX:this.dx/(Math.hypot(this.dx,this.dy)||1),y=this.dash?this.dashY:this.dy/(Math.hypot(this.dx,this.dy)||1);return{screenX:x,screenY:y,amount:this.dash?1:this.amount};}
-}
-
+import {SWIPE_RULES,SwipeInput} from '@soul/input';
 
 export function battle2ScreenVector(axis,camera){
   const position=camera?.camera?.position,look=camera?.camera?.lookTarget;
@@ -36,7 +26,7 @@ export function createBattle2MovementInput({canvas,camera,win=window,clock=()=>p
     const now=clock(),distance=Math.hypot(event.clientX-swipe.x,event.clientY-swipe.y),duration=now-swipe.started;
     if(event.type==='pointercancel')swipe.cancel();
     else if(swipe.up(event.pointerId,event.clientX,event.clientY,now))dashUntil=now+180;
-    else if(distance<6&&duration<420)tapUntil=now+140;
+    else if(distance<SWIPE_RULES.deadzone&&duration<SWIPE_RULES.flickMs)tapUntil=now+140;
     if(canvas.hasPointerCapture?.(event.pointerId))canvas.releasePointerCapture(event.pointerId);
     event.preventDefault();
   }
