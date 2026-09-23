@@ -16,19 +16,8 @@
   transform:translateX(-50%)!important;left:50%!important;
 }
 
-/* The small controls remain usable without occupying the character's portrait band. */
-#game-screen[data-gameplay-upgrade] .hud-top{
-  top:max(10px,env(safe-area-inset-top))!important;
-  left:max(10px,env(safe-area-inset-left))!important;
-  width:34px!important;height:34px!important;
-}
-#game-screen[data-gameplay-upgrade] #back-title{
-  left:0!important;top:0!important;width:32px!important;height:32px!important;
-  min-width:32px!important;min-height:32px!important;font-size:18px!important;opacity:.77!important;
-}
-#game-screen[data-gameplay-upgrade] .hud-top .life-chip,
-#game-screen[data-gameplay-upgrade] .hud-top .bars,
-#game-screen[data-gameplay-upgrade] .hud-top .clock-rate{display:none!important}
+/* Legacy state nodes remain for the runtime; visible identity belongs to the shared HUD. */
+#game-screen[data-gameplay-upgrade] .hud-top{display:none!important}
 #game-screen[data-gameplay-upgrade] .gameplay-surface-version{display:none!important}
 
 /* The shared eye control sits below the radar in both gameplay views. */

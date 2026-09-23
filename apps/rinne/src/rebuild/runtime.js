@@ -139,7 +139,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
   function endLife(){
     view.clearCombatEffects?.();
     if(onLifeHome&&!familyHomePending){
-      familyHomePending=true;void (async()=>{try{await save();const action=await onLifeHome(structuredClone(state));if(action==='rebirth')await rebirthCurrent(null);else if(action==='title')await $('back-title').onclick();}catch(error){console.error(error);toast('一族の記録を開けませんでした');}finally{familyHomePending=false;}})();return;
+      familyHomePending=true;void (async()=>{try{await save();const action=await onLifeHome(structuredClone(state));if(action==='rebirth')await rebirthCurrent(null);else if(action==='title')await exitToTitle();}catch(error){console.error(error);toast('一族の記録を開けませんでした');}finally{familyHomePending=false;}})();return;
     }
     if(onLifeHome||endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
@@ -197,7 +197,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
   window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);
   $('clock-rate').disabled=coop?.role==='guest';
   $('clock-rate').onchange=e=>{try{if(coop)void Promise.resolve(coop.setRate(Number(e.target.value))).catch(error=>toast(error.message));else{setClockRate(state,Number(e.target.value));void save();}}catch(error){toast(error.message);}};
-  $('back-title').onclick=async()=>{await save();dispose();await onExit?.();};
+  async function exitToTitle(){if(!active)return;await save();dispose();await onExit?.();}
   const unsubscribeWorld=channel.subscribe(next=>{if(!next||next.id!==layout.id)return;toast('村更新 · 次回起動');},error=>console.warn(error));
 
   function renderCoopFrame(dt,frameMs,now){
@@ -263,5 +263,5 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
     keys.clear();swipe.cancel();setAxis({x:0,y:0});endDialog?.remove();endDialog=null;$('dialogue').hidden=true;$('toast').hidden=true;canvas.dataset.runtime='prepared';
     if(ownsPrepared)host.dispose();
   }
-  return{dispose,save:()=>save(),snapshot:()=>structuredClone(state),prepared:host};
+  return{dispose,exitToTitle,save:()=>save(),snapshot:()=>structuredClone(state),prepared:host};
 }

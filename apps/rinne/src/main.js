@@ -92,7 +92,7 @@ async function openCoopDialog(){
         const {installRrpPerformanceCapture}=await import('./coop/performance-capture.js');
         rrpCapture=installRrpPerformanceCapture({getSession:()=>coopMenu?.session,buildInfo:info});performanceProbeFactory=rrpCapture.performanceProbeFactory;semanticMeasurement=rrpCapture.semanticMeasurement;
       }
-      coopMenu=installCoopMenu({container:document.getElementById('village-panel'),buildInfo:info,getPrepared:()=>prepared,getName:()=>$('life-name').value,onPlay:enterCoop,performanceProbeFactory,semanticMeasurement,captureWorkload:Boolean(rrpCapture),onLeave:async()=>{villageDialog.close();if(runtime)await $('back-title').onclick();else await coopMenu.leave();}});
+      coopMenu=installCoopMenu({container:document.getElementById('village-panel'),buildInfo:info,getPrepared:()=>prepared,getName:()=>$('life-name').value,onPlay:enterCoop,performanceProbeFactory,semanticMeasurement,captureWorkload:Boolean(rrpCapture),onLeave:async()=>{villageDialog.close();if(runtime)await runtime.exitToTitle();else await coopMenu.leave();}});
       villageInstalled=true;
     }
     if(!villageDialog.open)villageDialog.showModal();
@@ -188,7 +188,7 @@ void boot();
 
 document.getElementById('close-village').addEventListener('click',()=>villageDialog.close());
 $('open-coop-game').addEventListener('click',()=>{void openCoopDialog();});
-$('coop-leave').addEventListener('click',()=>{$('back-title').click();});
+$('coop-leave').addEventListener('click',()=>{void runtime?.exitToTitle();});
 let movementHelpTimer=0;
 $('move-hint').addEventListener('click',()=>{
   const held=$('move-hint').textContent.includes('母'),node=$('toast');

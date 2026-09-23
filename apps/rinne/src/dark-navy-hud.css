@@ -34,22 +34,6 @@
 .game-screen[data-gameplay-upgrade] .hud-top::after,
 .game-screen[data-gameplay-upgrade] .life-chip::before,
 .game-screen[data-gameplay-upgrade] .life-chip::after{display:none!important;content:none!important}
-.game-screen[data-gameplay-upgrade] #back-title{
-  position:absolute!important;left:0!important;top:0!important;
-  width:46px!important;height:46px!important;min-width:46px!important;min-height:46px!important;
-  border:1px solid #8f744d!important;border-bottom:3px solid #4d3d2b!important;
-  border-radius:50%!important;clip-path:none!important;
-  background:
-    radial-gradient(circle at 38% 27%,rgba(255,236,190,.13),transparent 28%),
-    linear-gradient(160deg,#66533c,#2c2b27 65%,#171a19)!important;
-  color:#f1d7a1!important;
-  box-shadow:inset 0 1px rgba(255,244,211,.12),inset 0 -4px rgba(0,0,0,.28),0 3px 6px rgba(0,0,0,.28)!important;
-  font-size:22px!important;pointer-events:auto!important;
-}
-.game-screen[data-gameplay-upgrade] #back-title::after{
-  content:""!important;display:block!important;position:absolute;inset:6px;
-  border:1px solid rgba(231,196,127,.18);border-radius:50%;pointer-events:none;
-}
 .game-screen[data-gameplay-upgrade] #open-coop-game{display:none!important}
 .game-screen[data-gameplay-upgrade] .life-chip{
   position:absolute!important;left:52px!important;top:1px!important;
