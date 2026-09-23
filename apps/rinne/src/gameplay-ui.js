@@ -53,6 +53,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     <aside data-mind class="rinne-mind-balance" hidden aria-label="現在の意識バランス"><span class="mind-title">意識</span><div class="mind-orbit" aria-hidden="true"><i data-axis="attack"><b>攻</b></i><i data-axis="guard"><b>守</b></i><i data-axis="spacing"><b>間</b></i><i data-axis="counter"><b>返</b></i><i data-axis="mobility"><b>機</b></i><i data-axis="survival"><b>生</b></i><em></em></div><strong data-mind-state>中庸</strong></aside>
     ${johakyuSequenceMarkup()}
     <aside data-inspiration-burst class="rinne-inspiration-burst" hidden aria-live="polite"><b>閃</b><strong data-inspiration-burst-name></strong></aside>
+    <aside data-pursuit-cue class="rinne-pursuit-cue" hidden aria-live="polite"><b>追</b><strong>追う者</strong></aside>
 
     ${rinnePrimaryFourMarkup({ariaLabel:'主要操作'})}
 
@@ -79,7 +80,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     root,dash,
     heart:q('[data-heart]'),techniques:q('[data-techniques]'),trainingStrike:q('[data-training-strike]'),menu:q('[data-menu]'),quickMenu:q('[data-quick-menu]'),bodyButton:q('[data-body]'),items:q('[data-items]'),map:q('[data-map]'),fieldRadar:q('[data-field-radar]'),record:q('[data-record]'),phase:q('[data-phase]'),phaseHistory:q('[data-phase-history]'),phaseAction:q('[data-phase-action]'),exchangeCue:q('[data-exchange-cue]'),phaseTrack:q('[data-phase-track]'),phaseTechniques:q('[data-phase-techniques]'),
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
-    inspirationBurst:q('[data-inspiration-burst]'),inspirationBurstName:q('[data-inspiration-burst-name]'),
+    inspirationBurst:q('[data-inspiration-burst]'),inspirationBurstName:q('[data-inspiration-burst-name]'),pursuitCue:q('[data-pursuit-cue]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),
     vitals:q('[data-vitals]'),vitalBreath:q('[data-vital-breath]'),contextStamina:q('[data-context-stamina]'),
     mind:q('[data-mind]'),mindState:q('[data-mind-state]')
@@ -87,7 +88,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   // Dock the selectable body map into the same frame as the player identity.
   // Its detail sheet remains positioned outside the frame when a part is selected.
   playerHud?.root.append(q('[data-combat-body-hud]'));
-  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,interruptTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',lastAction='',phaseHistory=[],comboInterrupted=false,currentComboKey='',exchangeHistoryKey='',lastTechniqueKey='',techniqueTimer=0;
+  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,interruptTimer=0,pursuitTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',lastAction='',phaseHistory=[],comboInterrupted=false,currentComboKey='',exchangeHistoryKey='',lastTechniqueKey='',techniqueTimer=0;
   let lastStamina=null,breathVisibleUntil=0,contextAnchorVisible=false,contextVitalsWanted=false;
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
   const tracker=createSkillSetter({ui,audio,getState:()=>state});
@@ -142,6 +143,12 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     if(currentComboKey&&!retaining){comboInterrupted=true;interruptSequence();lastPhase='';haptic([18,28,12]);}
   };
   gameScreen.addEventListener('rinne:combat-feedback',onCombatFeedback);
+  const onPursuitLeap=event=>{
+    if(event.detail?.sourceId!==state?.id||!ui.pursuitCue)return;
+    clearTimeout(pursuitTimer);ui.pursuitCue.hidden=true;void ui.pursuitCue.offsetWidth;ui.pursuitCue.hidden=false;
+    audio?.pursuit?.();haptic([12,22,28]);pursuitTimer=setTimeout(()=>{ui.pursuitCue.hidden=true;},920);
+  };
+  gameScreen.addEventListener('rinne:pursuit-leap',onPursuitLeap);
   const showMovementHelp=event=>{
     event.stopImmediatePropagation();
     notify(moveHint?.textContent?.includes('母')?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'スワイプで移動。素早くフリックするとダッシュ、画面長押しで休憩して息を回復します。');
@@ -310,5 +317,5 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
   ui.menu.onclick=()=>{if(!ui.panel.hidden)close();toggleQuickMenu();};ui.heart.onclick=()=>toggle('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>toggle('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>toggle('body');ui.items.onclick=()=>toggle('items');ui.trainingStrike.addEventListener('click',()=>{closeQuickMenu();if(!ui.panel.hidden)close();},{capture:true});ui.map.onclick=()=>toggle('map');ui.fieldRadar.onclick=()=>open('map');ui.record.onclick=()=>toggle('record');ui.close.onclick=close;
   let lastModelPortraitAt=-Infinity;
-  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,setContextAnchor,renderPlayerPortrait:render=>{if(!render||!playerHud)return false;const now=performance.now();if(now-lastModelPortraitAt<180)return true;const drawn=render(playerHud.canvas);if(drawn){lastModelPortraitAt=now;playerHud.markPortrait('model');}return drawn;},capturePlayerPortrait:(source,options)=>playerHud?.capture(source,options),dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);clearTimeout(interruptTimer);observer.disconnect();gameScreen.removeEventListener('rinne:combat-feedback',onCombatFeedback);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();motionTeacher.dispose();combatBodyHud?.destroy();playerHud?.destroy();tracker.dispose();speech.dispose();root.remove();}};
+  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,setContextAnchor,renderPlayerPortrait:render=>{if(!render||!playerHud)return false;const now=performance.now();if(now-lastModelPortraitAt<180)return true;const drawn=render(playerHud.canvas);if(drawn){lastModelPortraitAt=now;playerHud.markPortrait('model');}return drawn;},capturePlayerPortrait:(source,options)=>playerHud?.capture(source,options),dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);clearTimeout(interruptTimer);clearTimeout(pursuitTimer);observer.disconnect();gameScreen.removeEventListener('rinne:combat-feedback',onCombatFeedback);gameScreen.removeEventListener('rinne:pursuit-leap',onPursuitLeap);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();motionTeacher.dispose();combatBodyHud?.destroy();playerHud?.destroy();tracker.dispose();speech.dispose();root.remove();}};
 }

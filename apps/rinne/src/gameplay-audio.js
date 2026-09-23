@@ -176,10 +176,18 @@ export function createRinneAudio(){
     tone(660,.52,.028,'triangle',.38);
     tone(990,.62,.022,'sine',.53);
   }
+  function pursuit(){
+    if(disposed||backgrounded||pageHidden())return;
+    music.volume=Math.max(.05,BASE_MUSIC_VOLUME*.72);restoreMusic(360);
+    tone(196,.075,.026,'square');
+    tone(392,.08,.024,'triangle',.035);
+    tone(784,.095,.02,'sawtooth',.075);
+    tone(1176,.12,.014,'triangle',.12);
+  }
   function select(){tone(520,.045,.014,'triangle');}
   function commit(){tone(390,.055,.018,'triangle');setTimeout(()=>tone(660,.07,.016,'triangle'),48);}
   const controller={
-    unlock,select,commit,ui:select,impact,inspiration,clearImpact,enterGameplay,prepareTitle,enterLineage,exitLineage,lineage,
+    unlock,select,commit,ui:select,impact,inspiration,pursuit,clearImpact,enterGameplay,prepareTitle,enterLineage,exitLineage,lineage,
     item(){tone(620,.08,.024,'triangle');setTimeout(()=>tone(840,.08,.018,'triangle'),55);},
     combat:()=>tone(128,.11,.032,'sawtooth'),rest:()=>tone(260,.14,.014),dash:()=>tone(170,.07,.022,'square'),
     step(_now,contact){return footsteps.step(contact);},

@@ -167,6 +167,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
     if(event.type==='birthday'&&[7,15,50,80].includes(event.age))toast(`${event.age}歳`);
     if(event.type==='life-end')endLife(event);
     if(event.type==='player-hit')gameScreen.classList.add('strike-mark');
+    if(event.type==='pursuit-leap')gameScreen.dispatchEvent?.(new CustomEvent('rinne:pursuit-leap',{detail:{sourceId:event.sourceId,targetId:event.targetId}}));
     if(event.type==='enemy-hit'){pulseHurt();gameScreen.dispatchEvent?.(new CustomEvent('rinne:combat-feedback',{detail:{type:'enemy-hit'}}));}
     if(event.type==='evaded')toast('見切った');
     if(event.type==='enemy-downed')toast('戦闘不能 · 近づいてとどめ');
