@@ -93,6 +93,7 @@ export function buildStations(layout){
   const dojoObject=built(layout,['dojo']);
   if(dojoObject){
     const entry=muraEntry(dojoObject),dx=entry.x-dojoObject.x,dz=entry.z-dojoObject.z,len=Math.max(.001,Math.hypot(dx,dz));
+    stations.push({id:'family-motion-teacher',label:'型の教え手',x:entry.x-dz/len*2.4,z:entry.z+dx/len*2.4,radius:1.8,familyMotionTeacher:true});
     stations.push({id:'training-dummy',label:'かかし',x:entry.x+dx/len*2.2,z:entry.z+dz/len*2.2,radius:1.2,activity:'practice',actionLabel:'かかしで型を反復する',trainingDummy:true});
   }
 
