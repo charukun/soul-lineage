@@ -48,6 +48,13 @@ export function createImpactDirector({mobile=false,reducedMotion=false}={}){
       impacts.push({event,profile,source,target,vector,targetKey,part:impactPart(event,actorPose(source))});
     }
     impacts.sort((a,b)=>b.profile.energy-a.profile.energy);strongest=impacts[0]||null;if(strongest){const p=strongest.profile,shared=strongest.event?.feel;if(!shared){stop=Math.max(stop,p.stop);slow=Math.max(slow,p.slow);slowDuration=Math.max(slowDuration,p.slow);slowScale=Math.min(slowScale,p.scale);}camera={x:strongest.vector.x,z:strongest.vector.z,strength:Math.max(camera.strength,p.camera),fov:Math.max(camera.fov,p.fov)};}
+    // Camera presentation belongs only to the actor's own view. No world clock
+    // or peer camera is changed by an inspiration event.
+    for(const event of events)if(event?.type==='inspiration-start'&&event.sourceId===context.state?.id&&!reduced){
+      const target=(context.front?.enemies||[]).find(row=>row.id===event.targetId),vector=attackVector(context.state,target,event),profile=event.firstInspirationPresentation||{};
+      camera={x:vector.x,z:vector.z,strength:Math.max(camera.strength,clamp(profile.cameraStrength,0,.16)),
+        fov:Math.max(camera.fov,clamp(profile.cameraFov,0,2.5))};
+    }
     for(const row of impacts)reactions.push({actorKey:row.targetKey,part:row.part,vector:row.vector,energy:row.profile.energy,remaining:.12+row.profile.energy*.12,duration:.12+row.profile.energy*.12});
     reactions=reactions.sort((a,b)=>b.energy-a.energy).slice(0,8);return{impacts,strongest};
   }

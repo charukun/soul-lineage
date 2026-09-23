@@ -86,7 +86,8 @@ export function tickLifeBattle(states,front,dt,{fatalityChance=()=>.5}={}){
     const row={...event,engine:'johakyu'};
     if(owner)result.get(owner.id).push(row);if(victim&&victim!==owner)result.get(victim.id).push(row);
     if(event.type==='inspiration-start'&&owner){
-      owner.combat.inspirationCue={name:event.skill,until:stepped.frame.time+1.1,attackId:event.attackId};
+      owner.combat.inspirationCue={name:event.skill,until:stepped.frame.time+1.1,attackId:event.attackId,
+        presentation:event.firstInspirationPresentation};
       row.position={...owner.position};
       for(const peer of active)if(peer!==owner)result.get(peer.id).push({...row,scope:'witness'});
     }
