@@ -15,7 +15,7 @@ camera.position.set(0, 1.35, 4.9);
 const controls = new OrbitControls(camera, canvas);controls.target.set(0, 1.35, 0);controls.enableDamping=true;
 const model = await createImg2ThreeReferenceCharacter();scene.add(model);
 window.img2threejsPreview = { ready: true, model, camera, renderer, setView };
-document.querySelector('#status').textContent = 'img2threejs · 立体モデル';
+document.querySelector('#status').textContent = 'ゴールデンベース · 立体モデル';
 function setView(name) {
   const angle = { front:0,right:Math.PI/2,back:Math.PI,left:-Math.PI/2,'three-quarter':Math.PI/4 }[name] ?? 0;
   camera.position.set(Math.sin(angle)*4.9,1.35,Math.cos(angle)*4.9);controls.update();
