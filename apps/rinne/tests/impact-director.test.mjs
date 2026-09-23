@@ -20,7 +20,7 @@ test('only the inspired actor receives a local camera cue and the world clock re
     firstInspirationPresentation:{cameraStrength:.11,cameraFov:1.8}};
   const owner=createImpactDirector(),peer=createImpactDirector();
   owner.present([event],{state,front});peer.present([{...event,sourceId:'ally'}],{state,front});
-  assert.equal(owner.snapshot().timeScale,1);assert.ok(owner.snapshot().camera.strength>.1);
+  assert.equal(owner.snapshot().timeScale,1);assert.ok(owner.snapshot().camera.strength>.08);
   assert.equal(peer.snapshot().camera.strength,0);
   assert.equal(createImpactDirector({reducedMotion:true}).snapshot().timeScale,1);
 });

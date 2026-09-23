@@ -15,8 +15,8 @@ test('game audio pauses in background and recovers on the next gesture if automa
   let blockPlayback=false,blockContext=false;
 
   class FakeAudio extends EventTarget{
-    static last=null;
-    constructor(src){super();this._src=src;this.paused=true;this.playCalls=0;this.pauseCalls=0;this.loadCalls=0;this.currentTime=14;this.readyState=1;FakeAudio.last=this;}
+    static last=null;static all=[];
+    constructor(src){super();this._src=src;this.paused=true;this.playCalls=0;this.pauseCalls=0;this.loadCalls=0;this.currentTime=14;this.readyState=1;FakeAudio.last=this;FakeAudio.all.push(this);}
     get src(){return this._src;}
     set src(value){this._src=value;}
     getAttribute(name){return name==='src'&&this._src?this._src:null;}
@@ -38,7 +38,7 @@ test('game audio pauses in background and recovers on the next gesture if automa
 
   const moduleUrl=new URL('../src/gameplay-audio.js',import.meta.url);moduleUrl.searchParams.set('test',String(Date.now()));
   const {createRinneAudio}=await import(moduleUrl.href);
-  const audio=createRinneAudio(),music=FakeAudio.last;
+  const audio=createRinneAudio(),music=FakeAudio.all[0];
 
   assert.equal(music.playCalls,0,'audio stays silent before a user gesture');
   await audio.unlock();
