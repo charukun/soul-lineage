@@ -23,6 +23,7 @@ export async function startArtifactHost({workspace, factory, port=0}) {
     try {
       const url=new URL(req.url,'http://localhost');let bytes,type;
       if(url.pathname==='/'){bytes=index;type='text/html';}
+      else if(url.pathname==='/favicon.ico'){res.writeHead(204,{'Cache-Control':'no-store'});res.end();return;}
       else if(url.pathname==='/factory.js'){bytes=compiled;type='text/javascript';}
       else {
         const routes=[['/host/',here],['/three/',resolve(repo,'node_modules/three')],['/artifact/',workspace]];
