@@ -85,8 +85,8 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs on
 
 ## Review UI invariant
 
-- Review/catalog choice grids use exactly five equal-width columns by default, including phone layouts. Do not add responsive overrides that reduce these lists to 1–4 columns. If a particular surface genuinely cannot use five columns, that exception requires an explicit user request and a repository test documenting it.
-- This five-column rule applies to selectable review lists such as motion, model, equipment, and object candidates; it does not force unrelated transport controls such as camera buttons or playback controls into five columns.
+- Review/catalog choice grids use exactly six equal-width columns by default, including phone layouts. Do not add responsive overrides that reduce these lists to 1–5 columns. If a particular surface genuinely cannot use six columns, that exception requires an explicit user request and a repository test documenting it.
+- This six-column rule applies to selectable review lists such as motion, model, equipment, and object candidates; it does not force unrelated transport controls such as camera buttons or playback controls into six columns. Fixed gameplay slot counts (for example, five equipped heart slots or three battle phases) stay tied to their game rules.
 
 ## Architecture
 

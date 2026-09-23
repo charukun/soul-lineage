@@ -630,7 +630,7 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   .rinne-core-menu[data-layout="loadout"] .loadout-library>header{
     position:sticky;top:0;z-index:2;background:#f7ead0;
   }
-  .rinne-core-menu[data-layout="loadout"] .loadout-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important}
+  .rinne-core-menu[data-layout="loadout"] .loadout-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:4px!important}
   .rinne-core-menu[data-layout="loadout"] .loadout-grid-item{min-height:48px!important;aspect-ratio:auto!important;padding:4px 2px!important}
   .rinne-core-menu[data-layout="loadout"] .loadout-grid-item>strong{font-size:12px!important;line-height:1.2!important}
   .rinne-core-menu[data-layout="loadout"] .loadout-detail{

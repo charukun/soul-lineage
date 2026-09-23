@@ -35,7 +35,7 @@ test('phone loadout keeps slots, candidates and apply action usable together', {
       assert(await candidates.count()>5,'Heart library has choices to browse');
       const geometry=await library.evaluate(el=>{const r=el.getBoundingClientRect();return {height:r.height,width:el.clientWidth,scrollWidth:el.scrollWidth,cols:getComputedStyle(el.querySelector('.loadout-grid')).gridTemplateColumns.split(' ').length};});
       assert(geometry.height>=78,'At least one readable choice row plus its heading remains available');
-      assert.equal(geometry.cols,5);
+      assert.equal(geometry.cols,6);
       assert(geometry.scrollWidth<=geometry.width+1,'No sideways clipping');
       await panel.locator('.loadout-slot').nth(1).click();
       const last=library.locator('.loadout-grid-item[data-active="false"]').last(),label=await last.locator('strong').innerText();
