@@ -60,6 +60,11 @@ function light(mode){
 }
 function meshBuffers(){const rows=[];model.updateMatrixWorld(true);model.traverse(n=>{if(n.isMesh&&n.visible){const g=n.geometry;rows.push({name:n.name,position:Array.from(g.attributes.position.array),normal:g.attributes.normal?Array.from(g.attributes.normal.array):[],uv:g.attributes.uv?Array.from(g.attributes.uv.array):[],index:g.index?Array.from(g.index.array):[],matrixWorld:n.matrixWorld.toArray()});}});return rows;}
 window.forge={draw,meshBuffers,light,projected,
+ partIds(view){
+  const saved=new Map(),rows=[];let index=0;
+  model.traverse(n=>{if(n.isMesh&&n.visible){const rgb=[32+(index%4)*48,32+(Math.floor(index/4)%4)*48,64+Math.floor(index/16)*64];index++;saved.set(n,n.material);n.material=new THREE.MeshBasicMaterial({color:new THREE.Color().setRGB(...rgb.map(c=>c/255),THREE.SRGBColorSpace),toneMapped:false});rows.push({name:n.name,componentId:n.userData.sculptComponent?.id,rgb});}});
+  draw(view);for(const [n,m]of saved){n.material.dispose();n.material=m;}return rows;
+ },
  stripped(){const saved=new Map();model.traverse(n=>{if(n.isMesh&&n.visible){saved.set(n,n.material);n.material=new THREE.MeshStandardMaterial({color:0xbfcbd5,roughness:.85});}});draw('front');for(const [n,m]of saved){n.material.dispose();n.material=m;}},
  closeup(){light('grazing');model.rotation.y=0;applyReferenceCamera(THREE,camera,cameras.front);camera.position.set(1.7,1.3,3);camera.fov=18;camera.lookAt(0,1.24,0);camera.updateProjectionMatrix();renderer.render(scene,camera);},
  async bake(){const maps=await(await fetch('img2threejs/evidence/projection/maps.json')).json();const outputs=await bakeReferenceProjection(THREE,renderer,model,cameras,maps,{physicalChannels:spec.projectionBake.physicalChannelApplication?.policy,surfaceResponses:spec.projectionBake.surfaceResponses});for(const row of outputs){const slug=row.mesh.toLowerCase().replace(/[^a-z0-9]+/g,'-');for(const [channel,data]of Object.entries(row.files)){const filename=slug+'-'+channel+'.png',body=await(await fetch(data)).arrayBuffer();const response=await fetch('/capture/texture/'+filename,{method:'POST',body});if(!response.ok)throw Error('Texture transport failed');row.files[channel]='build/textures/${pass}/'+filename;}}return {status:'pixels-baked; visual approval pending',authority:'pinned upstream descriptors and camera fit',outputs};},
@@ -112,6 +117,10 @@ try{
    await page.evaluate(()=>window.forge.closeup());await page.locator('canvas').screenshot({path:join(out,'grazing-closeup.png')});await page.evaluate(()=>window.forge.light('reference'));
  }
  for(const view of ['front','side','back','front34','rear34','oppositeSide']){await page.evaluate(view=>window.forge.draw(view),view);await page.locator('canvas').screenshot({path:join(out,view+'.png')});console.log('FORGE_CAPTURE '+view);}
+ if(await page.evaluate(()=>window.forge.projected)){
+   const partIds={};for(const view of ['front','side','back']){partIds[view]=await page.evaluate(v=>window.forge.partIds(v),view);await page.locator('canvas').screenshot({path:join(out,view+'-part-ids.png')});}
+   await writeFile(join(out,'part-id-palette.json'),JSON.stringify(partIds,null,2));
+ }
  const receipt=await page.evaluate(()=>window.forge.snapshot());receipt.errors.push(...errors);receipt.factorySha256=createHash('sha256').update(typescript).digest('hex');receipt.sourceHead=process.env.HEAD_SHA||null;receipt.visualApproval='pending';
  if(receipt.pass&&!['blockout','structural-pass','form-refinement'].includes(receipt.pass))receipt.referenceLighting=JSON.parse(await readFile(join(workspace,'object-sculpt-spec.json'),'utf8')).referenceReviewLighting;
  await page.evaluate(()=>window.forge.draw('front'));
