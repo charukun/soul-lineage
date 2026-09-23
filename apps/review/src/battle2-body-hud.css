@@ -1,3 +1,4 @@
-.battle2-body-hud-host{position:absolute;z-index:7;left:calc(max(8px,env(safe-area-inset-left)) + clamp(142px,39vw,188px) + 6px);top:max(58px,calc(env(safe-area-inset-top) + 50px));width:48px;height:58px;pointer-events:none}.battle2-body-hud-host[hidden]{display:none!important}
+.battle2-review .battle2-player-hud-host{top:max(8px,env(safe-area-inset-top))}
+.battle2-body-hud-host{position:absolute;z-index:7;left:calc(max(8px,env(safe-area-inset-left)) + clamp(142px,39vw,188px) + 6px);top:max(8px,env(safe-area-inset-top));width:48px;height:58px;pointer-events:none}.battle2-body-hud-host[hidden]{display:none!important}
 .battle2-body-hud{width:48px;height:58px;filter:none}
-@media(max-width:410px){.battle2-body-hud-host{left:calc(max(6px,env(safe-area-inset-left)) + clamp(142px,39vw,188px) + 6px);top:max(51px,calc(env(safe-area-inset-top) + 44px))}}
+@media(max-width:410px){.battle2-body-hud-host{left:calc(max(6px,env(safe-area-inset-left)) + clamp(142px,39vw,188px) + 6px);top:max(8px,env(safe-area-inset-top))}}
