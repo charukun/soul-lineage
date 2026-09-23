@@ -59,7 +59,7 @@ test('down, finisher, corpse and respawn are encounter lifecycle around shared c
 test('review checkpoints restart execution identities and cannot replay previous impacts',()=>{
  const {events,scenario}=run({checkpointSeconds:3},12);assert.equal(scenario.inspect().meta.resumes,1);const ids=events.filter(e=>e.impact).map(e=>e.id);assert.equal(new Set(ids).size,ids.length);
 });
-undefined
+
 test('enemy 葬焉 waits for full knockdown and recovery does not interrupt it',()=>{
  const scenario=createJohakyuP7ReviewScenario({actorOverrides:{hero:{hp:0,downed:true,incapacitated:true},'enemy-a':{readyDelay:0,spawnSeconds:0}}});let startAt=null,completeAt=null,recoverAt=null;
  for(let i=0;i<720&&recoverAt===null;i++){const result=scenario.step(1/60);for(const row of result.meta.activity){if(row.type==='finisher-start'&&row.sourceId!=='hero'&&row.targetId==='hero')startAt=i/60;if(row.type==='finisher-complete'&&row.sourceId!=='hero'&&row.targetId==='hero')completeAt=i/60;if(row.type==='hero-recovered')recoverAt=i/60;}}
