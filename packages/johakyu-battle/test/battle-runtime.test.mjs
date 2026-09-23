@@ -15,15 +15,15 @@ test('all catalog techniques retain every stage and identity through presentatio
  assert.equal(resolveTechnique('basic.great',{weapon:'sword'}),null);
 });
 test('stage clock preserves the authored contact under tempo and acceleration',()=>{
- for(const weapon of ['sword','great'])for(const technique of techniqueCatalog(weapon))for(const stage of technique.stages){const a=stageChoreography(technique,stage,{tempo:1}),b=stageChoreography(technique,stage,{tempo:2});assert.equal(b.duration,Math.max(a.duration/2,.34));assert.equal(stagePoseProgress(a.contactProgress,a),a.contactProgress);const p=resolveBattlePresentation({...stage,weapon,choreography:a});assert.equal(p.contact.contactProgress,a.contactProgress);}
+ for(const weapon of ['sword','great'])for(const technique of techniqueCatalog(weapon))for(const stage of technique.stages){const a=stageChoreography(technique,stage,{tempo:1,phase:'jo'}),b=stageChoreography(technique,stage,{tempo:2,phase:'kyu'});assert.equal(b.duration,Math.max(a.duration/2,.34));assert.equal(stagePoseProgress(a.contactProgress,a),a.contactProgress);assert.ok(a.timeline.preImpactBurst<a.contactProgress);const burstSeconds=(a.contactProgress-a.timeline.preImpactBurst)*a.duration;assert.ok(burstSeconds>=.018&&burstSeconds<=.041);const p=resolveBattlePresentation({...stage,weapon,choreography:a});assert.equal(p.contact.contactProgress,a.contactProgress);}
 });
 test('impact separates light/heavy force, guard resistance, reversal and direction',()=>{
  const a=actor('a','party'),b=actor('b','enemy');
  const light=resolveImpact({execution:execution(),source:a,target:b}),heavy=resolveImpact({execution:execution('heavy','great','kyu'),source:{...a,equipment:{weapon:'great',armor:'cloth'}},target:b});
- assert.ok(heavy.damage>light.damage);assert.ok(heavy.impulse>light.impulse);assert.ok(heavy.stagger>light.stagger);assert.ok(heavy.hitstop>light.hitstop);assert.ok(heavy.knockback.z>0);assert.ok(heavy.sourceImpulse.z<0);
+ assert.ok(heavy.damage>light.damage);assert.ok(heavy.impulse>light.impulse);assert.ok(heavy.stagger>light.stagger);assert.ok(heavy.hitstop>light.hitstop);assert.ok(heavy.knockback.z>0);assert.ok(heavy.sourceImpulse.z<0);assert.ok(light.hitstop>=.035&&light.hitstop<=.05);assert.ok(heavy.hitstop>=.06&&heavy.hitstop<=.12);
  const guard=resolveImpact({execution:execution(),source:a,target:{...b,equipment:{...b.equipment,shield:true}},defense:'guard'});assert.ok(guard.blocked);assert.ok(guard.damage<light.damage);assert.ok(guard.staminaDamage>0);
  const broken=resolveImpact({execution:execution('heavy','great'),source:{...a,equipment:{weapon:'great'}},target:{...b,posture:95,stamina:4},defense:'guard'});assert.ok(broken.guardBreak);assert.ok(broken.interrupted);
- const strong=resolveImpact({execution:execution(),source:a,target:{...b,stability:1},defense:'parry'}),weak=resolveImpact({execution:execution('heavy','great'),source:{...a,equipment:{weapon:'great'}},target:{...b,stability:.3},defense:'parry',timingError:.18});assert.ok(strong.strongParry);assert.ok(strong.initiativeReversal);assert.equal(weak.parryStrength,'weak');assert.ok(strong.sourceKick>weak.sourceKick);
+ const strong=resolveImpact({execution:execution(),source:a,target:{...b,stability:1},defense:'parry'}),weak=resolveImpact({execution:execution('heavy','great'),source:{...a,equipment:{weapon:'great'}},target:{...b,stability:.3},defense:'parry',timingError:.18});assert.ok(strong.strongParry);assert.ok(strong.initiativeReversal);assert.equal(weak.parryStrength,'weak');assert.ok(strong.sourceKick>weak.sourceKick);assert.ok(strong.hitstop>=.1&&strong.hitstop<=.14);assert.ok(weak.hitstop>=.1&&weak.hitstop<=.14);
 });
 test('exchange uses weapon range, phase, mind, posture and initiative',()=>{
  const a=actor('a','party'),b=actor('b','enemy'),exchange=createJohakyuExchangeState({sourceId:'a',targetId:'b'});
@@ -38,6 +38,11 @@ test('runtime applies one impact at the stage contact anchor and presentation ca
   for(const event of events.filter(e=>e.impact)){assert.ok(!ids.has(event.id));ids.add(event.id);count++;assert.equal(event.techniqueId,event.impact.techniqueId);assert.equal(event.stageIndex,event.impact.stageIndex);assert.equal(event.kind,event.impact.kind);assert.equal(event.contactEngine,'shared-contact-anchor');const p=presentBattleEvents([event])[0];assert.equal(p.presentation.techniqueId,event.techniqueId);assert.equal(p.presentation.stageIndex,event.stageIndex);}
  }
  assert.ok(count>2);
+});
+test('impact stop compresses contact actors without freezing the authoritative battle clock',()=>{
+ const runtime=createJohakyuBattleRuntime({battleId:'impact-clock',actors:[{...actor('a','party'),self:true,readyDelay:0},{...actor('b','enemy'),canAttack:false}]});let impact=null,at=0;
+ for(let i=0;i<300&&!impact;i++){const result=runtime.step(1/60);impact=result.events.find(event=>event.impact);if(impact)at=result.frame.time;}
+ assert.ok(impact?.hitstop>=.035);const next=runtime.step(1/60).frame;assert.ok(Math.abs(next.time-at-1/60)<1e-6);assert.ok(next.hitstop<impact.hitstop);
 });
 test('shared clock is invariant under host batching and invalid time is rejected',()=>{
  const make=()=>createJohakyuBattleRuntime({battleId:'clock',actors:[actor('a','party'),actor('b','enemy')]});const a=make(),b=make(),ae=[],be=[];

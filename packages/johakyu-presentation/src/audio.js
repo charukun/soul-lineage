@@ -60,8 +60,19 @@ export function createNocturneSound(doc=document,{samples={}}={}){
   }
   function swing({pan=0,gain=.66,rate=1}={}){if(!stereoSample('swing',{pan,gain,rate}))notePan(520,.08,'triangle',.11,pan);}
   function guard({pan=0,gain=.78,rate=.92}={}){if(!stereoSample('guard',{pan,gain,rate})){notePan(310,.12,'triangle',.28,pan);notePan(1200,.06,'square',.08,pan);}}
-  function parry({pan=0,gain=1,rate=1.1}={}){if(!stereoSample('parry',{pan,gain,rate})){notePan(620,.1,'triangle',.34,pan);notePan(2500,.05,'square',.1,pan);}}
-  function impact({pan=0,heavy=false,counter=false,gain=null,rate=1}={}){const role=counter?'counter':'impact',amp=gain??(counter?1.08:heavy?.94:.78);if(!stereoSample(role,{pan,gain:amp,rate:counter?.92:rate}))notePan(counter||heavy?120:230,counter||heavy?.2:.11,'triangle',counter||heavy?.72:.3,pan);}
+  function parry({pan=0,gain=1,rate=1.1,strong=false}={}){
+    const high=stereoSample('parry',{pan,gain:gain*.78,rate:rate*(strong?.98:1.08)}),body=stereoSample('guard',{pan,gain:gain*(strong?.5:.38),rate:rate*.72});
+    if(!high){notePan(1750,.055,'square',.11*gain,pan);notePan(680,.085,'triangle',.18*gain,pan);}
+    if(!body)notePan(360,.075,'triangle',.12*gain,pan);
+    notePan(strong?82:98,.058,'triangle',(strong?.16:.1)*gain,pan);
+  }
+  function impact({pan=0,heavy=false,counter=false,gain=null,rate=1,material='flesh',phase='ha'}={}){
+    const role=counter?'counter':'impact',phaseGain=phase==='kyu'?1.12:phase==='jo'?.92:1,phaseRate=phase==='jo'?1.08:phase==='kyu'?.9:1,amp=(gain??(counter?1.08:heavy?.94:.78))*phaseGain;
+    const body=stereoSample(role,{pan,gain:amp*.82,rate:(counter?.92:rate)*phaseRate});
+    if(material==='armor'||material==='weapon'||material==='shield')stereoSample('guard',{pan,gain:amp*.3,rate:.76*phaseRate});
+    if(!body)notePan(counter||heavy?145:235,counter||heavy?.095:.07,'triangle',counter||heavy?.42:.24,pan);
+    notePan(counter||heavy||phase==='kyu'?88:125,.055,'triangle',Math.min(.18,amp*.12),pan);
+  }
   function footstep({pan=0,gain=.34,rate=1}={}){if(!stereoSample('footstep',{pan,gain,rate}))notePan(95,.055,'triangle',.08,pan);}
 
   async function unlock(event){

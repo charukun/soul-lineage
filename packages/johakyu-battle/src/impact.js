@@ -27,12 +27,15 @@ export function resolveImpact({execution,source,target,defense=null,contactPoint
   const impulse=clash?.65:parry?(strongParry?.12:.38):guard?(guardBreak?2:Math.max(.06,(power-guardCapacity*.75)*.85)):deepHit?Math.min(2.6,power*.8):heavy?Math.min(1.4,power*.55):.1;
   const sourceKick=clash?.65:strongParry?1.85:parry?.6:guard?.25:heavy?.18:.04;
   const stagger=clash?.2:parry?.07:guardBreak?.5:deepHit?.36:heavy?.22:.07;
+  const phaseDensity=phase==='kyu'||phase==='finisher'?1.16:phase==='ha'?1.06:.9;
+  const contactStop=clash?.112:strongParry?.13:parry?.108:guard?Math.min(.068,(.038+power*.012)*phaseDensity):
+    deepHit||counter?Math.min(.12,.096*phaseDensity):heavy?Math.min(.09,.073*phaseDensity):Math.min(.05,.043*phaseDensity);
   return freeze({...executionIdentity(execution),damage,bodyPart,power,momentum,heavy,counter,impulse,
     knockback:{x:normal.x*impulse,z:normal.z*impulse},sourceKick,sourceImpulse:{x:-normal.x*sourceKick,z:-normal.z*sourceKick},direction:normal,
     stagger,postureDamage,blocked,absorbed,deflected:parry,deepHit,interrupted:guardBreak||deepHit,guardBreak,reactionSeverity,
     parryStrength:parry?(strongParry?'strong':'weak'):null,strongParry,parryDirection,initiativeReversal:strongParry,counterOpportunity:strongParry?.85:parry?.35:0,
     staminaDamage:guard?power*(shield?4:7):parry?power*2:0,attackerRecoil:sourceKick,defenderRecoil:impulse,
-    hitstop:clash?.065:strongParry?.074:parry?.035:guard?.028+Math.min(.045,power*.015):heavy?.065:counter?.055:.025,
+    hitstop:contactStop,
     contactPoint:contactPoint||{x:(source.position.x+target.position.x)/2,y:1.05,z:(source.position.z+target.position.z)/2},
     signals:{stability,timing,weaponMass:mass,defenderWeaponMass:targetMass,contactLeverage,bladeTrajectory:trajectory,phase,posture:target.posture}});
 }

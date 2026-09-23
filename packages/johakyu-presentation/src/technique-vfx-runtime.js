@@ -32,11 +32,13 @@ function fallbackTrace(axis,yaw){
  if(!axis?.start||!axis?.end)return[];const current={start:asVector(axis.start),end:asVector(axis.end)},back=new THREE.Vector3(-Math.sin(yaw||0),0,-Math.cos(yaw||0)).multiplyScalar(.34);
  return[{start:current.start.clone().add(back),end:current.end.clone().add(back)},current];
 }
-function particleBurst({texture,random,count,color,size=0.18,speed=3.8,lift=2.4,spread=.12}){
+function particleBurst({texture,random,count,color,size=0.18,speed=3.8,lift=2.4,spread=.12,direction=null,bias=0}){
  const positions=new Float32Array(count*3),velocities=[];
  for(let i=0;i<count;i++){
   const angle=random()*Math.PI*2,radius=random()*spread,y=(random()-.35)*spread;positions.set([Math.cos(angle)*radius,y,Math.sin(angle)*radius],i*3);
-  const horizontal=speed*(.35+random()*.95),up=lift*(.35+random()*.95);velocities.push(new THREE.Vector3(Math.cos(angle)*horizontal,up,Math.sin(angle)*horizontal));
+  const horizontal=speed*(.35+random()*.95),up=lift*(.35+random()*.95),velocity=new THREE.Vector3(Math.cos(angle)*horizontal,up,Math.sin(angle)*horizontal);
+  const force=asVector(direction);force.y*=.35;if(force.lengthSq()>.0001)velocity.addScaledVector(force.normalize(),horizontal*clamp(bias,0,1.4));
+  velocities.push(velocity);
  }
  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
  const material=new THREE.PointsMaterial({color:vividColor(color),size,map:texture,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true,toneMapped:false});
@@ -73,18 +75,19 @@ export function createTechniqueVfxRuntime({scene,random=Math.random}={}){
  }
  function impact(context){
   const scale=clamp(Number(context.scale)||1,.4,2.6),root=new THREE.Group();root.position.copy(asVector(context.origin));
-  const flashMat=new THREE.SpriteMaterial({map:texture,color:vividColor(context.color),transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}),flash=new THREE.Sprite(flashMat);flash.scale.setScalar(1.2*scale);root.add(flash);
-  const ringMat=additiveMaterial(context.color,.82),ring=new THREE.Mesh(new THREE.RingGeometry(.24*scale,.34*scale,48),ringMat);ring.rotation.x=-Math.PI/2;ring.position.y=.02;root.add(ring);
-  const shellMat=additiveMaterial(context.color,.42),shell=new THREE.Mesh(new THREE.SphereGeometry(.28*scale,18,10),shellMat);root.add(shell);
-  for(let i=0;i<4;i++){const rayMat=additiveMaterial(i%2?'#fff8dd':context.color,.68),ray=new THREE.Mesh(new THREE.PlaneGeometry(.045*scale,1.45*scale),rayMat);ray.rotation.set(random()*Math.PI,random()*Math.PI,random()*Math.PI);root.add(ray);}
-  const burst=particleBurst({texture,random,count:Math.max(32,Math.round(52*scale)),color:context.color,size:.095+.04*scale,speed:3.6+2.1*scale,lift:2.5+scale,spread:.12*scale});root.add(burst.node);
-  const light=new THREE.PointLight(context.color||'#f7cf80',11+8*scale,5.5+2.5*scale,2);root.add(light);
-  return track(root,.42+(context.finisher?.18:0),(entry,dt,f)=>{burst.tick(dt,5.4);const eased=1-Math.pow(1-f,3),fade=1-f;ring.scale.setScalar(.7+3.1*eased);ringMat.opacity=fade*.82;shell.scale.setScalar(.65+2.5*eased);shellMat.opacity=fade*.42;flash.scale.setScalar(scale*(1.1+1.6*eased));flashMat.opacity=Math.pow(fade,2);burst.material.opacity=fade;light.intensity=fade*(11+8*scale);for(const child of root.children)if(child.isMesh&&child.geometry?.type==='PlaneGeometry')child.material.opacity=fade*.68;});
+  const direction=asVector(context.direction);direction.y*=.25;if(direction.lengthSq()<.0001)direction.set(0,0,1);direction.normalize();
+  const flashMat=new THREE.SpriteMaterial({map:texture,color:vividColor(context.color),transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}),flash=new THREE.Sprite(flashMat);flash.scale.setScalar(.46*scale);root.add(flash);
+  const streakMat=additiveMaterial(context.color,.9),streak=new THREE.Mesh(new THREE.PlaneGeometry(1.4*scale,.075*scale),streakMat);streak.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),direction);root.add(streak);
+  const coreMat=additiveMaterial('#fff8df',1),core=new THREE.Mesh(new THREE.PlaneGeometry(.82*scale,.025*scale),coreMat);core.quaternion.copy(streak.quaternion);core.position.addScaledVector(direction,.12*scale);root.add(core);
+  const burst=particleBurst({texture,random,count:Math.max(16,Math.round(26*scale)),color:context.color,size:.08+.03*scale,speed:2.7+1.5*scale,lift:1.5+.55*scale,spread:.08*scale,direction,bias:.92});root.add(burst.node);
+  const light=new THREE.PointLight(context.color||'#f7cf80',8+6*scale,3.8+2*scale,2);root.add(light);
+  return track(root,.3+(context.finisher?.12:0),(entry,dt,f)=>{burst.tick(dt,5.2);const fade=1-f;flash.scale.setScalar(scale*(.42+.58*f));flashMat.opacity=Math.pow(fade,2);streak.scale.x=1+.8*f;streakMat.opacity=fade*.9;core.scale.x=1+.45*f;coreMat.opacity=fade;burst.material.opacity=fade;light.intensity=fade*(8+6*scale);});
  }
  function debris(context){
   const scale=clamp(Number(context.scale)||1,.08,1.6),count=Math.max(6,Math.round(13*scale)),root=new THREE.Group();root.position.copy(asVector(context.origin));
   const geometry=new THREE.TetrahedronGeometry(.055+.035*scale),material=new THREE.MeshBasicMaterial({color:new THREE.Color(context.color||'#f3e7d2').multiplyScalar(1.35),transparent:true,opacity:.92,depthWrite:false,toneMapped:false}),mesh=new THREE.InstancedMesh(geometry,material,count),dummy=new THREE.Object3D(),rows=[];
-  for(let i=0;i<count;i++){const angle=random()*Math.PI*2;rows.push({p:new THREE.Vector3(0,0,0),v:new THREE.Vector3(Math.cos(angle)*(1.2+random()*2.8),1.2+random()*3.5,Math.sin(angle)*(1.2+random()*2.8)),r:new THREE.Vector3(random()*4-2,random()*4-2,random()*4-2)});}root.add(mesh);
+  const direction=asVector(context.direction);direction.y*=.2;if(direction.lengthSq()>.0001)direction.normalize();
+  for(let i=0;i<count;i++){const angle=random()*Math.PI*2,v=new THREE.Vector3(Math.cos(angle)*(1.2+random()*2.3),1.2+random()*3.1,Math.sin(angle)*(1.2+random()*2.3));if(direction.lengthSq()>.0001)v.addScaledVector(direction,1.2+random()*2.2);rows.push({p:new THREE.Vector3(0,0,0),v,r:new THREE.Vector3(random()*4-2,random()*4-2,random()*4-2)});}root.add(mesh);
   return track(root,.58,(entry,dt,f)=>{for(let i=0;i<count;i++){const row=rows[i];row.v.y-=6.8*dt;row.p.addScaledVector(row.v,dt);dummy.position.copy(row.p);dummy.rotation.set(row.r.x*f,row.r.y*f,row.r.z*f);dummy.scale.setScalar(Math.max(.15,1-f*.62));dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);}mesh.instanceMatrix.needsUpdate=true;material.opacity=(1-f)*.92;});
  }
  const factories={aura,slash,impact,debris};
