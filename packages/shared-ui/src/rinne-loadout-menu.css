@@ -465,6 +465,12 @@
   .rinne-core-menu[data-type="technique"] .rinne-core-menu-head{grid-template-columns:30px minmax(0,1fr) 36px}
 }
 
+.rinne-core-menu[data-type="technique"] .loadout-combo-card[data-focus="true"]{
+  border:2px solid color-mix(in srgb,var(--menu-accent) 70%,#62828b 30%)!important;
+  background:linear-gradient(180deg,#f4ffff,#f8edcf)!important;
+  box-shadow:0 0 0 2px rgba(97,162,174,.15),0 3px 8px rgba(60,88,89,.12)!important;
+}
+
 /* 心・心得: five readable slots beside a short, non-mechanical portrait. */
 .rinne-core-menu[data-type="heart"] .heart-composition{
   display:grid;grid-template-columns:minmax(0,43fr) minmax(0,57fr);

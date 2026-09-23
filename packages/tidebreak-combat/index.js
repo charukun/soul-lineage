@@ -1539,6 +1539,9 @@ function approach(a,dt){const t=nearest(a);if(!t){a.guarding=false;if(a.spacing)
    else if(rng()<m.guard)setIntent(a,'guard',.40+Math.min(.70,threat.chargeTime*.5));
   }
  }
+ // Enemy neutral footwork holds ground at close range instead of repeatedly kiting.
+ // Hit reactions and authored attack footwork retain their own short withdrawal.
+ if(!a.hero&&radial<0)radial=0;
  const allowSide=brain.state==='measure'&&!winding&&!active&&d>home-.28&&d<home+.30;
  moveInSpacing(a,t,radial,dt,allowSide);
  if(a.hero)stats.tacticalTime[brain.state]=(stats.tacticalTime[brain.state]||0)+dt;

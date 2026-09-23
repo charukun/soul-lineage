@@ -26,7 +26,11 @@
     "./review-auto-install": "./src/review/auto-install.js",
     "./review-load-controller": "./src/review/load-controller.js",
     "./rinne-player-hud": "./src/rinne-player-hud.js",
-    "./rinne-player-hud.css": "./src/rinne-player-hud.css"
+    "./rinne-player-hud.css": "./src/rinne-player-hud.css",
+    "./rinne-field-radar": "./src/rinne-field-radar.js",
+    "./rinne-field-radar.css": "./src/rinne-field-radar.css",
+    "./camera-position-control": "./src/camera-position-control.js",
+    "./camera-position-control.css": "./src/camera-position-control.css"
   },
   "dependencies": {
     "@soul/audio": "*"

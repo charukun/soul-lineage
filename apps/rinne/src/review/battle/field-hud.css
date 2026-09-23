@@ -1,0 +1,6 @@
+
+/* Shared field radar and camera slider in the battle stage. */
+.battle-review .stage .rinne-field-radar{pointer-events:none;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right))}
+.battle-review .stage .rinne-field-radar__places i[data-category="enemy"]{background:#f1a47f;box-shadow:0 0 5px #f1a47f}
+.battle-review .stage .camera-position-control{left:auto;right:max(24px,calc(env(safe-area-inset-right) + 13px));top:max(94px,calc(env(safe-area-inset-top) + 88px));z-index:34;width:48px;height:98px;border:1px solid rgba(188,152,89,.54);border-radius:24px;background:linear-gradient(180deg,rgba(53,50,35,.84),rgba(27,40,35,.83))}
+.battle-review .stage .camera-position-control .camera-position-panel{left:2px;top:2px;width:42px;height:91px}

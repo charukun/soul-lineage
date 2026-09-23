@@ -1,0 +1,48 @@
+/* Native, always visible village radar; the same map sheet opens on tap. */
+.rinne-field-radar{
+  position:absolute;z-index:33;top:max(12px,calc(env(safe-area-inset-top) + 6px));right:max(11px,env(safe-area-inset-right));
+  display:grid;place-items:center;align-content:center;width:76px;height:76px;padding:5px;border:2px solid #a6814b;border-radius:50%;
+  background:linear-gradient(150deg,#66573d,#252c26 70%);color:#f8e5bd;
+  box-shadow:inset 0 2px rgba(255,245,210,.28),inset 0 -4px #272519,0 4px 12px rgba(18,32,22,.3);
+  touch-action:manipulation;pointer-events:auto;
+}
+.rinne-field-radar__face{
+  position:relative;display:block;width:61px;height:61px;overflow:hidden;border:1px solid #ddc18a;border-radius:50%;
+  background:radial-gradient(circle,#526b57 0 27%,#304e48 28% 54%,#192e2c 55% 100%);
+  box-shadow:inset 0 0 10px rgba(0,0,0,.48);
+}
+.rinne-field-radar__rings{
+  position:absolute;inset:7px;border:1px solid rgba(247,226,170,.4);border-radius:50%;
+}
+.rinne-field-radar__rings::after{
+  content:"";position:absolute;inset:12px;border:1px dashed rgba(247,226,170,.27);border-radius:50%;
+}
+.rinne-field-radar__face::before,
+.rinne-field-radar__face::after{
+  content:"";position:absolute;z-index:1;background:rgba(238,215,163,.19);pointer-events:none;
+}
+.rinne-field-radar__face::before{top:50%;left:6px;right:6px;height:1px}
+.rinne-field-radar__face::after{left:50%;top:6px;bottom:6px;width:1px}
+.rinne-field-radar__places i{
+  position:absolute;z-index:2;width:5px;height:5px;transform:translate(-50%,-50%);border:1px solid #f6e8ba;border-radius:50%;background:#b6cf9f;
+}
+.rinne-field-radar__places i[data-category="forge"],
+.rinne-field-radar__places i[data-category="train"]{background:#f1bc78}
+.rinne-field-radar__target{
+  position:absolute;z-index:3;width:8px;height:8px;transform:translate(-50%,-50%) rotate(45deg);
+  border:1px solid #fff2c9;background:#de9166;box-shadow:0 0 7px #f5c17a;
+}
+.rinne-field-radar__player{
+  position:absolute;z-index:4;left:50%;top:50%;width:0;height:0;
+  border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:12px solid #f8d991;
+  filter:drop-shadow(0 2px 2px #141d19);
+}
+.rinne-field-radar__face u{
+  position:absolute;z-index:5;left:50%;top:0;transform:translateX(-50%);text-decoration:none;font:700 7px/1 sans-serif;color:#fff2cd;
+}
+.rinne-field-radar__label,
+.rinne-field-radar__distance{display:none}
+.rinne-field-radar:focus-visible{outline:3px solid #fff2c0;outline-offset:3px}
+
+
+@media(max-height:560px) and (orientation:landscape){.rinne-field-radar{width:60px;height:60px}.rinne-field-radar__face{width:47px;height:47px}}

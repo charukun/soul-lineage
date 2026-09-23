@@ -5,7 +5,7 @@ import {
   setOneMotion, setBodyChoice, unlockedBodyOptions, requestOneMotion
 } from './combat-loadout.js';
 import { decorateSelectionDetail } from './selection-detail.js';
-import {createRinneLoadoutDetail,createRinneLoadoutGridItem,createRinneLoadoutGridSection,createRinneLoadoutSlot,createRinneLoadoutSlotRow,createRinneMenuLead,createRinneSwapHint,rinneSkillSigilKind} from '@soul/shared-ui/rinne-loadout-menu';
+import {createRinneLoadoutDetail,createRinneLoadoutGridItem,createRinneLoadoutGridSection,createRinneLoadoutSlot,createRinneLoadoutSlotRow,createRinneMenuLead,createRinneSwapHint,rinneSkillSigilKind,drawRinneTechniqueSelectionLink} from '@soul/shared-ui/rinne-loadout-menu';
 
 const EFFECT_LABELS=Object.freeze({damage:'威力',mitigation:'守り',evasion:'見切り',reach:'間合い',recovery:'回復'});
 const GRID_PAGE_SIZE=12;
@@ -113,30 +113,6 @@ function phaseSlot(model,state,phase,label){
   return slot(label,phaseSelectionLabel(state,phase),{selected:model.techniqueTarget===phase,icon:String(selection).startsWith('combo:')?'flow':rinneSkillSigilKind(selection,SKILL_BY_ID[selection]?.effects),swapMode:swapActive,swapSource:swapActive&&model.swap.source===phase,detail:{kicker:label+'の選択枠',title:phaseSelectionLabel(state,phase),summary:String(selection).startsWith('combo:')?'連技':'基本技',status:model.techniqueTarget===phase?'選択先':'装着中'},onClick:()=>{if(swapActive){const source=model.swap.source,sourceSelection=state.combatLoadout.technique.phaseSelections?.[source];if(source!==phase&&sourceSelection){setPhaseSelection(state,source,selection);setPhaseSelection(state,phase,sourceSelection);}clearSwap(model);model.techniqueTarget=phase;model.techniquePreview=state.combatLoadout.technique.phaseSelections?.[phase]||selection;model.audio.item();haptic(18);renderTechnique(model);return;}model.techniqueTarget=phase;model.techniquePreview=selection;model.audio.ui();renderTechnique(model);},onLongPress:()=>{model.swap={section:'technique',source:phase};model.audio.ui();haptic([18]);renderTechnique(model);}});
 }
 
-function drawTechniqueSelectionLink(body){
-  body.querySelector('.loadout-selection-path')?.remove();
-  const phase=body.querySelector('.loadout-slot[data-selected="true"]');
-  const detail=body.querySelector('.loadout-detail');
-  const choice=body.querySelector('.loadout-combo-grid .loadout-grid-item[data-focus="true"], .loadout-library .loadout-grid-item[data-focus="true"]');
-  if(!phase||!detail||!body.isConnected)return;
-  const frame=body.getBoundingClientRect();
-  if(!frame.width||!frame.height)return;
-  const point=(node,edge)=>{const rect=node.getBoundingClientRect();return{x:rect.left-frame.left+body.scrollLeft+rect.width/2,y:rect[edge]-frame.top+body.scrollTop};};
-  const start=point(phase,'bottom'),top=point(detail,'top'),bottom=point(detail,'bottom');
-  const width=body.scrollWidth,height=body.scrollHeight;
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.classList.add('loadout-selection-path');
-  svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
-  svg.setAttribute('aria-hidden','true');
-  svg.style.height=`${height}px`;
-  const line=(from,to)=>{if(to.y<=from.y)return;const path=document.createElementNS('http://www.w3.org/2000/svg','path');const mid=(from.y+to.y)/2;path.setAttribute('d',`M ${from.x} ${from.y} C ${from.x} ${mid}, ${to.x} ${mid}, ${to.x} ${to.y}`);svg.append(path);};
-  line(start,{x:start.x,y:top.y});
-  if(choice&&Array.prototype.indexOf.call(choice.parentElement.children,choice)<3){
-    const target=point(choice,'top');
-    line({x:target.x,y:bottom.y},{x:target.x,y:target.y});
-  }
-  body.prepend(svg);
-}
 function renderTechnique(model,focusId=null){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='technique';model.tracker.consume('technique');if(focusId){model.focusSkill=focusId;model.techniquePreview=focusId;}const combos=state.combatLoadout.technique.combos;if(model.comboId&&!combos.some(row=>row.id===model.comboId))model.comboId=null;
   model.ui.title.textContent='技 · 序破急';model.ui.body.innerHTML='';const swapActive=model.swap?.section==='technique',slots=topSlotRow(swapActive);for(const [phase,label] of PHASES)slots.append(phaseSlot(model,state,phase,label));model.ui.body.append(slots);if(swapActive)model.ui.body.append(createRinneSwapHint('入れ替える序破急枠を選択'));
@@ -145,7 +121,7 @@ function renderTechnique(model,focusId=null){
   renderComboList(model,state);const ids=learnedTechniqueSkills(state,{oneMotion:model.techniqueTarget==='oneMotion'});if(preview&&!previewIsCombo){const index=ids.indexOf(preview);if(index>=0)model.pages.technique=Math.floor(index/GRID_PAGE_SIZE);}const library=gridSection(model.techniqueTarget==='oneMotion'?'奥義候補':'基本技一覧','候補を選ぶと詳細を表示'),list=library.querySelector('.loadout-grid'),page=pageRows(model,'technique',ids,()=>renderTechnique(model));
   for(const id of page.rows){list.append(gridItem(techniqueName(id),effectSummary(id),{active:id===current,focus:id===preview,icon:rinneSkillSigilKind(id,SKILL_BY_ID[id]?.effects),detail:skillDetail(id,'戦技',id===current?'装着中':'習得済み'),onClick:()=>{model.techniquePreview=id;model.audio.ui();renderTechnique(model,id);}}));}model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);
   const one=document.createElement('button');one.type='button';one.className='one-motion-card';one.dataset.active=String(model.techniqueTarget==='oneMotion');one.innerHTML='<div><span>手動奥義</span><strong></strong><small>戦闘態勢中のみ · 消耗と隙が大きい</small></div><b>選択</b>';one.querySelector('strong').textContent=state.combatLoadout.technique.oneMotion?techniqueName(state.combatLoadout.technique.oneMotion):'未設定';one.onclick=()=>{model.techniqueTarget=model.techniqueTarget==='oneMotion'?'jo':'oneMotion';clearSwap(model);model.techniquePreview=model.techniqueTarget==='oneMotion'?state.combatLoadout.technique.oneMotion:state.combatLoadout.technique.phaseSelections?.jo||null;model.audio.ui();renderTechnique(model);};model.ui.body.append(one);
-  globalThis.requestAnimationFrame?.(()=>drawTechniqueSelectionLink(model.ui.body));
+  globalThis.requestAnimationFrame?.(()=>drawRinneTechniqueSelectionLink(model.ui.body));
 }
 function renderBody(model){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='body';model.bodyKind=model.bodyKind||'stance';model.ui.title.textContent='体 · 身法';model.ui.body.innerHTML='';model.ui.body.append(createRinneMenuLead('いまの身体に合う型を選ぶ'));const kinds=[['stance','構え','戦闘態勢の形'],['finisher','葬焉','ダウン後のトドメの型'],['zanshin','残心','決着後の戻り']],slots=topSlotRow(false);

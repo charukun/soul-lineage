@@ -43,3 +43,36 @@ export function createRinneLoadoutDetail({icon='empty',kicker='詳細',title='�
   return section;
 }
 export function createRinneSwapHint(text='入れ替える枠を選択',{documentRef=document}={}){const node=documentRef.createElement('p');node.className='loadout-swap-hint';node.textContent=text;return node;}
+
+/** Draw a lightweight link through the selected phase, its detail and the visible choice. */
+export function drawRinneTechniqueSelectionLink(body){
+  body.querySelector('.loadout-selection-path')?.remove();
+  const phase=body.querySelector('.loadout-slot[data-selected="true"]');
+  const detail=body.querySelector('.loadout-detail');
+  const choice=body.querySelector('.loadout-combo-card[data-focus="true"], .loadout-grid-item[data-focus="true"]');
+  if(!phase||!detail||!body.isConnected)return;
+  const frame=body.getBoundingClientRect();
+  if(!frame.width||!frame.height)return;
+  const point=(node,edge)=>{const rect=node.getBoundingClientRect();return{x:rect.left-frame.left+body.scrollLeft+rect.width/2,y:rect[edge]-frame.top+body.scrollTop};};
+  const start=point(phase,'bottom'),top=point(detail,'top'),bottom=point(detail,'bottom');
+  const width=body.scrollWidth,height=body.scrollHeight;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.classList.add('loadout-selection-path');
+  svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
+  svg.setAttribute('aria-hidden','true');
+  svg.style.height=`${height}px`;
+  const line=(from,to)=>{if(to.y<=from.y)return;const path=document.createElementNS('http://www.w3.org/2000/svg','path');const mid=(from.y+to.y)/2;path.setAttribute('d',`M ${from.x} ${from.y} C ${from.x} ${mid}, ${to.x} ${mid}, ${to.x} ${to.y}`);svg.append(path);};
+  line(start,{x:start.x,y:top.y});
+  if(choice){
+    const target=point(choice,'top');
+    const first=choice.parentElement.firstElementChild;const firstRow=first&&Math.abs(choice.getBoundingClientRect().top-first.getBoundingClientRect().top)<4;
+    if(firstRow)line({x:target.x,y:bottom.y},{x:target.x,y:target.y});
+    else if(target.y>bottom.y){
+      const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+      const edge=width-5,turn=target.y-7;
+      path.setAttribute('d',`M ${bottom.x} ${bottom.y} Q ${edge} ${bottom.y}, ${edge} ${bottom.y+12} L ${edge} ${turn-8} Q ${edge} ${turn}, ${edge-8} ${turn} L ${target.x} ${turn} L ${target.x} ${target.y}`);
+      svg.append(path);
+    }
+  }
+  body.prepend(svg);
+}
