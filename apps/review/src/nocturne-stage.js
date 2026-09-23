@@ -1,4 +1,5 @@
 import {BATTLE2_VERSION} from './battle2-version.js';
+import {NOCTURNE_FIELD_RADAR_RANGE} from '@soul/johakyu-presentation';
 import {createBattle2BodyHud} from './battle2-body-hud.js';
 import {johakyuSequenceMarkup} from '@soul/shared-ui/johakyu-hud';
 import {battle2SelectionLabel,battle2TechniqueLabel} from './nocturne/battle2-technique-catalog.js';
@@ -142,7 +143,7 @@ function updateSequence(meta){
      lastRadarAt=now;
      const opponents=actors.filter(actor=>!actor.self&&!actor.dead&&Number.isFinite(actor.position?.x)&&Number.isFinite(actor.position?.z));
      const nearest=opponents.reduce((best,actor)=>!best||Math.hypot(actor.position.x-hero.position.x,actor.position.z-hero.position.z)<Math.hypot(best.position.x-hero.position.x,best.position.z-hero.position.z)?actor:best,null);
-     updateRinneFieldRadar(battleRadar,{position:hero.position,yaw:hero.yaw,places:opponents.map((actor,index)=>({x:actor.position.x,z:actor.position.z,category:'enemy',label:`敵${index+1}`})),target:nearest?{x:nearest.position.x,z:nearest.position.z,label:'敵',distance:Math.round(Math.hypot(nearest.position.x-hero.position.x,nearest.position.z-hero.position.z))}:null,range:20,label:'戦闘位置',interactive:false});
+     updateRinneFieldRadar(battleRadar,{position:hero.position,yaw:hero.yaw,places:opponents.map((actor,index)=>({x:actor.position.x,z:actor.position.z,category:'enemy',label:`敵${index+1}`})),target:nearest?{x:nearest.position.x,z:nearest.position.z,label:'敵',distance:Math.round(Math.hypot(nearest.position.x-hero.position.x,nearest.position.z-hero.position.z))}:null,range:NOCTURNE_FIELD_RADAR_RANGE,label:'戦闘位置',interactive:false});
    }
  }if(playerHud?.root?.dataset.portrait!=='model'&&runtime?.renderPlayerPortrait?.(playerHud.canvas))playerHud.markPortrait?.('model');
  const activity=Array.isArray(meta.activity)?meta.activity:[];

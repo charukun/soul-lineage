@@ -1,5 +1,6 @@
 import {createBattleRuntime} from './runtime.js';
 export {createBattleRuntime};
+export {NOCTURNE_FIELD_BOUNDS,NOCTURNE_FIELD_RADAR_RANGE} from './environment.js';
 /** The native scene is shared; the main game supplies every authoritative frame. */
 export function createDrivenBattleRuntime(options){
   let driver;
