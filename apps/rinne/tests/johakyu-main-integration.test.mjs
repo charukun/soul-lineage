@@ -7,6 +7,8 @@ import {ensureCombatTerrain} from '../src/rebuild/combat-world-contact.js';
 import {readRinneBattleFrame,readRinneImpactEvents} from '../src/rebuild/johakyu-presentation-contract.js';
 import {createCanonicalPresentationDriver} from '@soul/johakyu-presentation/driver';
 import {readSavedBody} from '../src/rebuild/johakyu-save-contract.js';
+import {tickLifeBattle} from '../src/rebuild/johakyu-life-battle.js';
+import {beginCombatState} from '../src/rebuild/combat-loadout-runtime.js';
 function scenario(){const state=createLife({seed:73917});Object.assign(state,{id:'fixed-life',ageSeconds:1200,ageYears:20,phase:'living',zone:'frontier',front:0,position:{x:0,z:0},resting:false});state.equipment={weapon:'sword',armor:'heavy',shield:false};state.knownSkills.push('basic.sword');const front=createFront();state.frontState=front;ensureCombatTerrain(front);return {state,front};}
 const freeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;};
 test('P5 main presentation is a deep read-only projection, including every enemy and ally',()=>{
@@ -15,6 +17,19 @@ test('P5 main presentation is a deep read-only projection, including every enemy
   const snapshot=readRinneBattleFrame(state,front,{peers:[ally],epoch:2,revision:4});
   assert.equal(snapshot.actors.length,5);assert.equal(snapshot.actors.filter(a=>a.self).length,1);assert.equal(snapshot.obstacles.length,2);
   assert.equal(JSON.stringify({state,front,ally}),before);assert.throws(()=>{snapshot.actors[0].hp=0;},TypeError);
+});
+test('the last enemy does not clear the life encounter before the finisher completes',()=>{
+ const {state,front}=scenario();front.enemies=front.enemies.slice(0,1);const enemy=front.enemies[0];
+ Object.assign(enemy,{x:0,z:1.65,hp:0,downed:true,dead:false});state.combat=beginCombatState(state,enemy.id);
+ let started=false,contact=false,completed=false;
+ for(let i=0;i<60*4&&!completed;i++){
+  const events=tickLifeBattle([state],front,1/60).get(state.id);
+  if(events.some(event=>event.type==='finisher-start'))started=true;
+  if(events.some(event=>event.type==='finisher')){contact=true;assert.equal(front.cleared,false);assert.ok(state.combat);}
+  if(contact&&!events.some(event=>event.type==='finisher-complete')){assert.equal(front.cleared,false);assert.ok(state.combat);}
+  if(events.some(event=>event.type==='finisher-complete'))completed=true;
+ }
+ assert.ok(started&&contact&&completed);assert.equal(front.cleared,true);
 });
 test('P5 enabling observation cannot change actual approach, injuries, stamina, targeting or result',()=>{
   const a=scenario(),b={state:structuredClone(a.state)};b.front=b.state.frontState;

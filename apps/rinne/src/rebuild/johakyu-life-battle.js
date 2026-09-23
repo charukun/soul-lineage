@@ -85,6 +85,8 @@ export function tickLifeBattle(states,front,dt,{fatalityChance=()=>.5}={}){
    if(event.type==='actor-downed'&&victim&&!victim.down&&!victim.ended){const outcome=combatBodyOutcome(victim),chance=outcome.fatal?1:fatalityChance(victim);if(hash(`${victim.seed}:${event.id||event.triggerEventId}:fatal`)<chance){endLifeEarly(victim,`第${front.stage+1}前線の戦い`);result.get(victim.id).push({type:'life-end',cause:'combat',engine:'johakyu'});}else{victim.down={elapsed:0,rescueSeconds:40,frontier:true};victim.combat=null;result.get(victim.id).push({type:'downed',engine:'johakyu'});}}
  }
  const nonlethal=active.every(s=>combatFinisherRuntime(s).nonlethal),cleared=front.enemies.every(e=>e.dead||nonlethal&&e.downed);
- if(cleared){front.cleared=true;front.clearSeconds+=dt;for(const state of active){state.combat=null;state.attacking=false;result.get(state.id).push({type:'front-cleared',stage:front.stage,nonlethal,engine:'johakyu'});}}
+ // The finishing contact can defeat the last enemy before the authored motion ends.
+ // Preserve the shared action until its follow-through and recovery have finished.
+ if(cleared&&!active.some(state=>byId.get(state.id)?.action?.finisher)){front.cleared=true;front.clearSeconds+=dt;for(const state of active){state.combat=null;state.attacking=false;result.get(state.id).push({type:'front-cleared',stage:front.stage,nonlethal,engine:'johakyu'});}}
  return result;
 }
