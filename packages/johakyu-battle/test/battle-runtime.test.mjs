@@ -73,12 +73,24 @@ test('simultaneous authored contact clashes once and cancels both pending attack
  const runtime=createJohakyuBattleRuntime({battleId:'clash',actors:[a,b]}),events=[];runtime.actor('a').cursor.phaseIndex=1;runtime.actor('b').cursor.phaseIndex=1;for(let i=0;i<300;i++)events.push(...runtime.step(1/60).events);
  const clash=events.find(e=>e.type==='clash');assert.ok(clash);assert.equal(clash.damage,0);assert.ok(clash.sourceKick>0);assert.ok(clash.impulse>0);assert.ok(events.some(e=>e.type==='interrupted'&&e.reason==='weapon-clash'&&e.attackId===clash.attackId));assert.equal(events.filter(e=>e.impact&&[clash.attackId,clash.otherAttackId].includes(e.attackId)).length,1);
 });
+test('downed state stays settling until the authored fall pose reaches its final sample',()=>{
+ const a={...actor('a','party'),self:true,readyDelay:0},b={...actor('b','enemy'),hp:0,downed:true,incapacitated:true};
+ const runtime=createJohakyuBattleRuntime({battleId:'downed-pose-authority',actors:[a,b]});
+ for(let i=0;i<110;i++){
+  const result=runtime.step(1/60),target=result.frame.actors.find(row=>row.id==='b');
+  assert.equal(result.events.some(event=>event.type==='finisher-start'),false);
+  assert.equal(target.downedState?.phase,'settling');
+  assert.ok(target.downedState?.progress<1);
+ }
+ let start=null,frame=null;for(let i=0;i<30&&!start;i++){const result=runtime.step(1/60);start=result.events.find(event=>event.type==='finisher-start');if(start)frame=result.frame;}
+ assert.ok(start);const target=frame.actors.find(row=>row.id==='b');assert.equal(target.downedState?.phase,'settled');assert.equal(target.downedState?.progress,1);
+});
 test('a downed target gets a deliberate pause, then a complete two-second finisher before recovery',()=>{
  const a={...actor('a','party'),self:true,readyDelay:0,finisherProfile:{id:'kaishaku',durationScale:1}},b={...actor('b','enemy'),hp:0,downed:true,incapacitated:true};
  const runtime=createJohakyuBattleRuntime({battleId:'finisher-pace',actors:[a,b]}),events=[];
  for(let i=0;i<60*4;i++)events.push(...runtime.step(1/60).events);
  const start=events.find(e=>e.type==='finisher-start'),contact=events.find(e=>e.type==='finisher'),complete=events.find(e=>e.type==='finisher-complete');
- assert.ok(start);assert.ok(start.time>=1.5,'finisher must wait until the target has fully settled on the ground');assert.ok(contact.time>start.time);assert.ok(complete.time>contact.time);
+ assert.ok(start);assert.ok(start.time>=1.85,'finisher must wait until the canonical downed pose is fully settled');assert.ok(contact.time>start.time);assert.ok(complete.time>contact.time);
  assert.ok(Math.abs(complete.time-start.time-2)<.08);assert.equal(events.filter(e=>e.type==='finisher').length,1);
  const after=runtime.snapshot().actors.find(row=>row.id==='a');assert.equal(after.phaseCue?.phase,'zanshin');
  const cueRuntime=createJohakyuBattleRuntime({battleId:'finisher-zanshin',actors:[a,b]});let cueFrame=null;
@@ -94,7 +106,7 @@ test('enemy finisher waits for full knockdown and only one enemy claims the exec
  const runtime=createJohakyuBattleRuntime({battleId:'enemy-finisher',actors:[hero,left,right]}),events=[];
  for(let i=0;i<360;i++)events.push(...runtime.step(1/60).events);
  const starts=events.filter(e=>e.type==='finisher-start'&&e.targetId==='hero'),contact=events.find(e=>e.type==='finisher'&&e.targetId==='hero'),complete=events.find(e=>e.type==='finisher-complete'&&e.targetId==='hero');
- assert.equal(starts.length,1,'a downed actor must have one finisher owner');assert.ok(starts[0].time>=1.5);assert.ok(contact&&complete);assert.equal(contact.sourceId,starts[0].sourceId);assert.equal(complete.sourceId,starts[0].sourceId);assert.equal(runtime.actor('hero').dead,true);
+ assert.equal(starts.length,1,'a downed actor must have one finisher owner');assert.ok(starts[0].time>=1.85);assert.ok(contact&&complete);assert.equal(contact.sourceId,starts[0].sourceId);assert.equal(complete.sourceId,starts[0].sourceId);assert.equal(runtime.actor('hero').dead,true);
 });
 test('rendered contact observations cannot alter the authoritative contact or outcome',()=>{
  const make=()=>createJohakyuBattleRuntime({battleId:'observation',actors:[actor('a','party'),actor('b','enemy')]});const a=make(),b=make();
