@@ -1,4 +1,5 @@
-import { SKILL_BY_ID, skillDefinition } from './rebuild/skill-system.js';
+import { SKILL_BY_ID } from './rebuild/skill-system.js';
+import {techniqueDetail as sharedTechniqueDetail} from '@soul/johakyu-battle';
 import {
   PHASES, MAX_COMBOS, HEART_SLOT_COUNT, ensureCombatLoadout, learnedHeartSkills, learnedTechniqueSkills, techniqueName,
   comboById, addCombo, removeCombo, setActiveCombo, setComboSkill, toggleFavored, setHeartSlot, phaseSelectionLabel, setPhaseSelection,
@@ -57,14 +58,8 @@ function techniqueDetail(state,selection,status='習得済み'){
     const combo=comboById(state,String(selection).slice(6));
     return{icon:'flow',kicker:'連技',title:combo?.name||'連技',summary:combo?PHASES.map(([phase])=>techniqueName(combo.slots[phase])).join(' → '):'連技',status};
   }
-  const row=skillDetail(selection,'戦技',status),definition=skillDefinition(selection);
-  const motions=(definition?.steps||[]).map(step=>step?.kind).filter(Boolean).join(' → ');
-  const explanation=[
-    definition?.mechanic||'',
-    motions?`動作: ${motions}`:'',
-    definition?.tradeoff?`注意: ${definition.tradeoff}`:''
-  ].filter(Boolean).join(' ');
-  return{...row,summary:explanation||row.summary,icon:rinneSkillSigilKind(selection,SKILL_BY_ID[selection]?.effects)};
+  const shared=sharedTechniqueDetail(selection,{weapon:state?.equipment?.weapon||'sword',name:techniqueName(selection,state),kicker:'戦技',status});
+  return{...shared,note:'この人生で身につけた技',icon:rinneSkillSigilKind(selection,SKILL_BY_ID[selection]?.effects)};
 }
 function clearSwap(model){model.swap=null;}
 
