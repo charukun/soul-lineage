@@ -22,15 +22,14 @@ const playerHud=createRinnePlayerHud(document.getElementById('battle2-player-hud
 const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
 const cameraPresentation=createBattle2CameraPresentation({stage,world});
 const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]','[data-battle-technique-mode-control]','[data-battle-inspiration-rate-control]'],label:'戦闘設定'});
-const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],modeButtons=[...document.querySelectorAll('[data-battle-mode]')],techniqueModeButtons=[...document.querySelectorAll('[data-battle-technique-mode]')],inspirationRateButtons=[...document.querySelectorAll('[data-battle-inspiration-rate]')];
-const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
-const HISTORY_DISPLAY_MS=3200,HISTORY_GAP_MS=260,HISTORY_QUEUE_LIMIT=6,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
+const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],techniqueLanes=new Map([...document.querySelectorAll('[data-technique-phase]')].map(node=>[node.dataset.techniquePhase,node])),modeButtons=[...document.querySelectorAll('[data-battle-mode]')],techniqueModeButtons=[...document.querySelectorAll('[data-battle-technique-mode]')],inspirationRateButtons=[...document.querySelectorAll('[data-battle-inspiration-rate]')];
+const PHASE_INDEX={jo:0,ha:1,kyu:2},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
+const TECHNIQUE_DISPLAY_MS=2600,LOG_DISPLAY_MS=2400,LOG_VISIBLE_LIMIT=4,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
-let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],historyQueue=[],historyTimer=0,historyShowing=false,seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',lastPhaseCueKey='',comboFadeTimer=0;
+let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',lastPhaseCueKey='',comboFadeTimer=0;
 let state='BOOT',lastError=null,lastExchangeKey='',activeLoadout=null,battleSettings=readBattleSettings();
-const loadoutUI=createBattle2LoadoutUI({stage,onChange:next=>{activeLoadout=next;reviewMeta=null;lastExchangeKey='';resetHistory();runtime?.configureLoadout?.(next);}});
+const loadoutUI=createBattle2LoadoutUI({stage,onChange:next=>{activeLoadout=next;reviewMeta=null;lastExchangeKey='';resetHistory();playerHud?.clearPortrait?.();runtime?.configureLoadout?.(next);}});
 activeLoadout=loadoutUI.value;
-const cueNode=document.createElement('span');cueNode.className='battle-exchange-cue';cueNode.setAttribute('role','status');hud.prepend(cueNode);
 hud.dataset.anchored='true';
 if(versionNode)versionNode.textContent=`v${BATTLE2_VERSION}`;
 function report(next,detail=''){
@@ -43,25 +42,30 @@ function report(next,detail=''){
 }
 const motionLabel=kind=>MOVE_LABEL[kind]||kind||'動作';
 function shortActionName(meta){return String(meta?.techniqueName||meta?.actionName||motionLabel(meta?.actionMotion)||'').trim();}
-function techniqueHistoryName(meta){const name=shortActionName(meta);return name?`連「${name}」`:'';}
 function actionHistoryKey(meta){return [meta?.battleId,meta?.exchangeSerial,meta?.cycle,meta?.phase,meta?.techniqueId,meta?.techniqueIndex].join(':');}
 function semanticActionLabel(row){
- if(row?.type==='chain-break')return'仕切り直す';
- if(row?.type==='parry'||row?.type==='clash')return'武器で弾いた';
- if(row?.type==='guard')return'受け止めた';
- if(row?.type==='slip')return'かわした';
- if(row?.type==='maneuver-start'){
-  if(['engage-range','counter-press'].includes(row.reason))return'間合いを詰める';
-  if(['read-threat','read-pressure'].includes(row.reason))return'様子を見る';
-  if(['miss-reset','combo-break-retreat','hit-withdrawal','parried-recoil','countered-withdrawal','exchange-zanshin','weapon-clash'].includes(row.reason))return'間合いを取る';
- }
- if(row?.type==='normal-offense-ready')return'序から構え直す';
+ if(row?.type==='clash')return'武器がぶつかった';
+ if(row?.type==='parry')return row.targetId==='hero'?'攻撃を弾いた':row.sourceId==='hero'?'攻撃を弾かれた':'武器を弾いた';
+ if(row?.type==='guard')return row.targetId==='hero'?'受け止めた':row.sourceId==='hero'?'受け止められた':'攻撃を受けた';
+ if(row?.type==='slip')return row.targetId==='hero'?'かわした':row.sourceId==='hero'?'かわされた':'攻撃をかわした';
+ if(row?.type==='player-hit')return'攻撃が命中';
+ if(row?.type==='enemy-hit')return'攻撃を受けた';
+ if(row?.type==='enemy-downed')return'敵を崩した';
+ if(row?.type==='finisher-start')return'止めに入る';
+ if(row?.type==='finisher-complete')return'敵を仕留めた';
+ if(row?.type==='enemy-spawn')return'新たな敵が現れた';
  return'';
 }
-function clearVisualHistory(){
- if(historyTimer){clearTimeout(historyTimer);historyTimer=0;}
- historyQueue=[];historyShowing=false;historyNode.replaceChildren();
+function semanticActionPerspective(row){
+ if(['player-hit','enemy-downed','finisher-start','finisher-complete'].includes(row?.type))return'self';
+ if(row?.type==='enemy-hit')return'opponent';
+ if(['parry','guard','slip'].includes(row?.type)){
+  if(row.targetId==='hero')return'self';
+  if(row.sourceId==='hero')return'opponent';
+ }
+ return'neutral';
 }
+function clearVisualHistory(){historyNode.replaceChildren();}
 function clearComboFade(){
  if(comboFadeTimer){clearTimeout(comboFadeTimer);comboFadeTimer=0;}
  delete phasePanel.dataset.comboInterrupted;
@@ -70,37 +74,48 @@ function resetHistory(battleId=''){
  lastBattleId=battleId;lastPhaseCueKey='';seenActions.clear();seenNarration.clear();lastNarrationAt.clear();history=[];clearVisualHistory();clearComboFade();
 }
 function historyDisplayLabel(row){
- const label=String(row?.label||'').trim();if(!label)return'';
- const phase=row?.kind==='technique'?(PHASE_LABEL[row.phase]||''):'';
- return `${phase?`${phase}・`:''}${label}…`;
+ const label=String(row?.label||'').trim();return label?label+'…':'';
 }
-function drainHistoryQueue(){
- if(historyShowing||historyTimer||!historyQueue.length)return;
- const row=historyQueue.shift(),line=document.createElement('span');line.className='battle-sequence-history__flow';line.dataset.phase=row.phase||'idle';line.dataset.kind=row.kind||'semantic';
- line.textContent=historyDisplayLabel(row);historyNode.replaceChildren(line);historyShowing=true;
- const advance=()=>{if(!historyShowing)return;historyShowing=false;if(historyTimer){clearTimeout(historyTimer);historyTimer=0;}line.remove();historyTimer=setTimeout(()=>{historyTimer=0;drainHistoryQueue();},HISTORY_GAP_MS);};
- line.addEventListener('animationend',advance,{once:true});historyTimer=setTimeout(advance,HISTORY_DISPLAY_MS+450);
+function syncLogRows(){
+ const nodes=[...historyNode.querySelectorAll('.battle-sequence-history__flow')];
+ nodes.slice(LOG_VISIBLE_LIMIT).forEach(node=>node.remove());
+ [...historyNode.querySelectorAll('.battle-sequence-history__flow')].forEach((node,index)=>node.style.setProperty('--log-row',String(index)));
 }
 function spawnActionText(row){
- const previous=historyQueue.at(-1),key=`${row.kind||'semantic'}:${row.phase||'idle'}:${row.label}`;
- if(previous&&`${previous.kind||'semantic'}:${previous.phase||'idle'}:${previous.label}`===key)return;
- if(historyQueue.length>=HISTORY_QUEUE_LIMIT){let drop=historyQueue.findIndex(item=>item.kind!=='technique');if(drop<0)drop=0;historyQueue.splice(drop,1);}
- historyQueue.push(row);drainHistoryQueue();
+ const label=historyDisplayLabel(row);if(!label)return;
+ const line=document.createElement('span');line.className='battle-sequence-history__flow';line.dataset.phase=row.phase||'idle';line.dataset.kind=row.kind||'semantic';line.dataset.perspective=row.perspective||'neutral';line.textContent=label;
+ historyNode.prepend(line);syncLogRows();
+ const remove=()=>{line.remove();syncLogRows();};line.addEventListener('animationend',remove,{once:true});setTimeout(remove,LOG_DISPLAY_MS+180);
 }
 function recordHistory(row){history.push(row);if(history.length>8)history.shift();spawnActionText(row);}
+function selectedTechniqueDisplay(meta){
+ if(meta?.stageIndex!==0)return null;
+ if(meta?.exchangeIntent==='finisher')return{label:shortActionName(meta)||'止め',key:[meta.battleId,'finisher',meta.actionId].join(':')};
+ if(battleSettings.techniqueMode==='set'){
+  const selection=activeLoadout?.technique?.[meta.phase];
+  if(String(selection||'').startsWith('combo:')){
+   if(meta?.techniqueIndex!==0)return null;
+   return{label:battle2SelectionLabel(selection),key:[meta.battleId,meta.cycle,meta.phase,selection].join(':')};
+  }
+  const runtimeName=shortActionName(meta),label=/^(秘技|奥義)・/.test(runtimeName)?runtimeName:(selection?battle2SelectionLabel(selection):runtimeName);
+  return label?{label,key:[meta.battleId,meta.cycle,meta.phase,selection||meta.techniqueId].join(':')}:null;
+ }
+ const label=shortActionName(meta);return label?{label,key:[meta.battleId,meta.cycle,meta.phase,meta.techniqueId].join(':')}:null;
+}
 function pushAction(meta){
- const key=actionHistoryKey(meta);if(!meta?.actionId||!meta?.techniqueId||seenActions.has(key))return;
- seenActions.add(key);if(seenActions.size>256)seenActions.delete(seenActions.values().next().value);
- recordHistory({phase:meta.phase,label:techniqueHistoryName(meta),kind:'technique'});
+ const display=selectedTechniqueDisplay(meta);if(!meta?.actionId||!meta?.techniqueId||!display||seenActions.has(display.key))return;
+ seenActions.add(display.key);if(seenActions.size>256)seenActions.delete(seenActions.values().next().value);
+ const lane=techniqueLanes.get(meta.phase);if(!lane)return;
+ const line=document.createElement('span');line.className='battle-sequence-technique-name';line.dataset.phase=meta.phase;line.textContent=display.label;lane.append(line);
+ const remove=()=>line.remove();line.addEventListener('animationend',remove,{once:true});setTimeout(remove,TECHNIQUE_DISPLAY_MS);
 }
 function pushNarration(row,meta){
  const label=semanticActionLabel(row);if(!label)return false;
- if((row?.type==='maneuver-start'||row?.type==='chain-break'||row?.type==='normal-offense-ready')&&row?.actorId&&row.actorId!=='hero')return false;
- const now=Number(row?.time)||0,semanticKey=[row?.actorId||'pair',row?.type,row?.reason||'',label].join(':');
- const previous=lastNarrationAt.get(semanticKey)??-Infinity;if(now-previous<NARRATION_MIN_SECONDS)return false;
+ const now=Number(row?.time)||0,semanticKey=[row?.sourceId||row?.actorId||'pair',row?.targetId||'',row?.type,label].join(':'),rapid=['player-hit','enemy-hit','parry','guard','slip','clash','enemy-downed','finisher-start','finisher-complete','enemy-spawn'].includes(row?.type),minimum=rapid?.18:NARRATION_MIN_SECONDS;
+ const previous=lastNarrationAt.get(semanticKey)??-Infinity;if(now-previous<minimum)return false;
  const key=[meta?.battleId,row?.type,row?.reason,row?.actorId,row?.id,Math.floor(now*2),label].join(':');if(seenNarration.has(key))return false;
  lastNarrationAt.set(semanticKey,now);seenNarration.add(key);if(seenNarration.size>256)seenNarration.delete(seenNarration.values().next().value);
- recordHistory({phase:'idle',label,kind:'semantic'});return true;
+ recordHistory({phase:'idle',label,kind:'semantic',perspective:semanticActionPerspective(row)});return true;
 }
 function setPhaseLamps(index){
  for(const node of phaseNodes){const i=PHASE_INDEX[node.dataset.combatPhase];node.dataset.active=String(i===index);node.dataset.completed=String(index>=0&&i<index);node.dataset.lit=String(index>=0&&i<=index);}
@@ -112,23 +127,24 @@ function beginComboFade(){
  comboFadeTimer=setTimeout(()=>{comboFadeTimer=0;delete phasePanel.dataset.comboInterrupted;},COMBO_FADE_MS);
 }
 function updateSequence(meta){
- reviewMeta=meta;if(meta.battleId!==lastBattleId||meta.exchangeHistoryKey!==lastExchangeKey){resetHistory(meta.battleId);lastExchangeKey=meta.exchangeHistoryKey;}
+ reviewMeta=meta;if(meta.battleId!==lastBattleId)resetHistory(meta.battleId);lastExchangeKey=meta.exchangeHistoryKey;
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
- const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);playerHud?.capture(world,{x:.5,y:.6,scale:.24});
+ const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);if(playerHud?.root?.dataset.portrait!=='model'&&runtime?.renderPlayerPortrait?.(playerHud.canvas))playerHud.markPortrait?.('model');
  const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
  for(const row of activity){
-  if(row?.type!=='inspiration'||!row.techniqueId)continue;
-  const added=loadoutUI.learnTechnique(row.techniqueId);runtime?.learnTechnique?.(row.techniqueId);
-  if(added)recordHistory({phase:row.phase||'idle',label:`閃き「${row.techniqueName||battle2TechniqueLabel(row.techniqueId)}」`,kind:'inspiration'});
+  if(row?.type==='inspiration'&&row.techniqueId){
+   const added=loadoutUI.learnTechnique(row.techniqueId);runtime?.learnTechnique?.(row.techniqueId);
+   if(added)recordHistory({phase:row.phase||'idle',label:`閃き「${row.techniqueName||battle2TechniqueLabel(row.techniqueId)}」`,kind:'inspiration',perspective:'self'});
+   continue;
+  }
+  pushNarration(row,meta);
  }
- const selection=battleSettings.techniqueMode==='set'?activeLoadout?.technique?.[meta.phase]:null,technique=String(selection?battle2SelectionLabel(selection):(meta.techniqueName||meta.actionName||'')).trim();
- cueNode.hidden=!technique;if(cueNode.textContent!==technique)cueNode.textContent=technique;
  hud.dataset.exchangeIntent=meta.exchangeIntent||'read';
  const hudState=interrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;
  phasePanel.dataset.phase=hudState;phasePanel.dataset.combatSequencePhase=hudState;phasePanel.dataset.comboActive=String(index>=0&&!interrupted);
  if(interrupted)beginComboFade();else if(index>=0)clearComboFade();
  setPhaseLamps(interrupted?-1:index);
- if(!interrupted&&index>=0&&meta.actionId&&phase===hudState)pushAction(meta);
+ if(!interrupted&&meta.actionId&&Object.hasOwn(PHASE_INDEX,phase))pushAction(meta);
  currentNode.dataset.kind='idle';currentNode.textContent='';
 }
 function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));for(const button of techniqueModeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleTechniqueMode===battleSettings.techniqueMode));for(const button of inspirationRateButtons)button.setAttribute('aria-pressed',String(button.dataset.battleInspirationRate===battleSettings.inspirationRate));}
@@ -165,5 +181,5 @@ world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepare
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
 window.addEventListener('error',event=>{if(event.error&&!disposed)failed(event.error);});
 window.addEventListener('unhandledrejection',event=>{if(!disposed)failed(event.reason);});
-window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(historyTimer)clearTimeout(historyTimer);if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
+window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
 syncModeButtons();report('BOOT');void boot();

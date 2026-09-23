@@ -17,9 +17,9 @@ test('序破急HUD upper line is the technique name and situation prose is not i
 test('heart copy says 意識 and selected heart/body choices feed combat tuning',()=>{
   const ui=read('src/nocturne/battle2-loadout.js'),source=read('src/nocturne/johakyu-p7-review.js');
   assert.match(ui,/戦闘で意識する心得/);assert.match(ui,/意識中/);assert.doesNotMatch(ui,/戦闘へ持ち込む心得/);
-  for(const id of ['skill.breath','skill.observe','skill.balance','skill.focus','skill.danger'])assert.ok(source.includes(id),id);
-  for(const body of ['body.style','body.stance','body.zanshin'])assert.ok(source.includes(body),body);
-  assert.match(source,/battle2Tuning/);assert.match(source,/preferredWeaponSpacing/);
+  assert.match(source,/CAUSAL_ANSWER_BY_ID/);assert.match(source,/BATTLE2_DEFAULT_HEART_INTENT/);
+  for(const body of ['body.stance','body.zanshin'])assert.ok(source.includes(body),body);assert.match(source,/body\?\.finisher|body\.finisher/);
+  assert.match(source,/battle2Tuning/);assert.match(source,/battle2HeartIntent/);assert.match(source,/preferredWeaponSpacing/);assert.match(ui,/構え・葬焉・残心/);assert.doesNotMatch(ui,/戦法/);assert.doesNotMatch(source,/body\.style/);
 });
 
 test('weapon reach owns preferred spacing and combo chains are faster with stronger closing footwork',()=>{
@@ -77,4 +77,15 @@ test('player portrait copies the presented canvas immediately without pixel-read
   assert.match(hud,/return draw\(source,options\)/);
   assert.match(hud,/root\.dataset\.portrait='live'/);
   assert.doesNotMatch(hud,/getImageData|requestAnimationFrame/);
+});
+
+
+test('不殺の心得はレビューでも葬焉を実行せず、再起契約を持つ',()=>{
+  const source=read('src/nocturne/johakyu-p7-review.js');
+  assert.match(source,/nonlethalHeart=Boolean/);
+  assert.match(source,/actor\.id!=='hero'\|\|nonlethalHeart/);
+  assert.match(source,/enemy-recovered/);
+  assert.match(source,/DOWNED_RECOVERY_SECONDS/);
+  assert.match(source,/souenId:profile\.id/);
+  assert.match(source,/action:'トドメ'/);
 });

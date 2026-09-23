@@ -28,12 +28,16 @@ test('rapid control tower keeps the four sections compact on phone widths', () =
   assert.match(browserCheck, /first viewport exposes ACTIVE, APPS, ISSUES and RECENT/);
 });
 
-test('legacy operational diagnostics remain behind a collapsed detail disclosure', () => {
+test('legacy operational diagnostics remain behind one collapsed PULSE diagnostic disclosure', () => {
   const status = html.indexOf('id="status-section"');
   const tower = html.indexOf('id="control-tower"');
   const tasks = html.indexOf('id="tasks-section"');
-  assert.ok(status >= 0 && status < tower && tower < tasks);
+  const apps = html.indexOf('id="apps-section"');
+  const history = html.indexOf('id="history-section"');
+  assert.ok(status >= 0 && status < tower && tower < tasks && tasks < apps && apps < history);
+  assert.match(html, /<strong>PULSE診断<\/strong>/);
   assert.doesNotMatch(html, /<details id="status-section"[^>]*open/);
+  assert.doesNotMatch(html, /class="rapid-detail-link"/);
   assert.match(browserCheck, /#status-section > summary/);
 });
 

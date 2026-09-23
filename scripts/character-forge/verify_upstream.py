@@ -41,11 +41,17 @@ def main():
         required = ['character-landmarks', 'mesh-freeze', 'rig-bind', 'mesh-parity-verify', 'rig-gates']
         for step in required:
             assert step in status['pending'], (step, status)
+        skipped = subprocess.run([sys.executable, str(install['engine'] / 'forge/state.py'),
+                                  'mark', 'rig-bind', '--state', str(state),
+                                  '--evidence', 'not-a-reconstruction.json'],
+                                 cwd=temp, env=env, capture_output=True, text=True)
+        assert skipped.returncode == 2 and 'out-of-order' in skipped.stderr, skipped.stderr
         run('forge/next.py', '--state', str(state))
         resumed = json.loads(run('forge/state.py', 'status', '--state', str(state), '--json'))
         assert resumed['pending'] == status['pending'], 'next must not approve work'
         print(json.dumps({'profile': 'animated-character', 'requiredSteps': required,
                           'stateInitialization': 'passed', 'nextDoesNotApprove': True,
+                          'outOfOrderRigBindingRejected': True,
                           'reconstructionValidated': False}))
 
 

@@ -37,10 +37,10 @@ export function createRinnePlayerHud(root,{name='旅人',age=0}={}){
   };
   const capture=(source,options={})=>{
     const now=globalThis.performance?.now?.()??Date.now();if(destroyed||now-lastCapture<180)return false;
-    lastCapture=now;
-    // Copy while a WebGL source still owns its presented framebuffer. Deferring to the next RAF can yield an already-discarded frame.
-    return draw(source,options);
+    lastCapture=now;return draw(source,options);
   };
+  const markPortrait=kind=>{if(!destroyed)root.dataset.portrait=String(kind||'model');};
+  const clearPortrait=()=>{if(destroyed)return;canvas.getContext('2d')?.clearRect(0,0,canvas.width,canvas.height);delete root.dataset.portrait;};
   update({name,age});
-  return Object.freeze({root,canvas,update,capture,destroy(){destroyed=true;root.replaceChildren();root.classList.remove('rinne-player-hud-host');}});
+  return Object.freeze({root,canvas,update,capture,markPortrait,clearPortrait,destroy(){destroyed=true;delete root.dataset.portrait;root.replaceChildren();root.classList.remove('rinne-player-hud-host');}});
 }
