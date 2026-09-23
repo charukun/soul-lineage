@@ -14,3 +14,14 @@
 .battle2-review .battle2-body-hud-host .body-silhouette__figure{
   border-top-left-radius:0!important;border-bottom-left-radius:0!important;
 }
+
+/* The head and torso share the center line of the paired limbs. Keep the
+   feet clear of the ornament at the bottom of this battle HUD. */
+.battle2-review #battle2-body-hud .body-silhouette__part[data-body-part="head"],
+.battle2-review #battle2-body-hud .body-silhouette__part[data-body-part="torso"]{
+  left:50%;transform:translateX(-50%);
+}
+.battle2-review #battle2-body-hud .body-silhouette__part[data-body-part="leftLeg"],
+.battle2-review #battle2-body-hud .body-silhouette__part[data-body-part="rightLeg"]{
+  top:33px;
+}
