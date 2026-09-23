@@ -612,11 +612,12 @@ function createDrivenPort(){
  }
  function leftHipSheathFrame(a){
    a.object.updateMatrixWorld(true);const hips=sheathBodyRig(a).hips;if(!hips)return null;hips.updateWorldMatrix(true,true);
-   const highest=bones=>bones?.map(node=>node.getWorldPosition(new THREE.Vector3())).sort((x,y)=>y.y-x.y)[0]||null,leftLeg=highest(a.bodyContactRig?.leftLeg),rightLeg=highest(a.bodyContactRig?.rightLeg);
-   const yaw=a.object.rotation.y,fallbackRight=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)),leftWorld=leftLeg&&rightLeg?leftLeg.clone().sub(rightLeg).setY(0):fallbackRight.clone().multiplyScalar(-1);
-   if(leftWorld.lengthSq()<.0001)leftWorld.copy(fallbackRight).multiplyScalar(-1);leftWorld.normalize();
-   const forwardWorld=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)).normalize(),hipWorld=hips.getWorldPosition(new THREE.Vector3()),mouthWorld=hipWorld.clone().addScaledVector(leftWorld,a.height*.16).add(new THREE.Vector3(0,a.height*.025,0)).addScaledVector(forwardWorld,a.height*.015);
-   const directionWorld=forwardWorld.clone().multiplyScalar(-.94).addScaledVector(leftWorld,.16).add(new THREE.Vector3(0,-.23,0)).normalize();
+   // Left/right must come from the actor transform, not imported bone names. Some accepted rigs
+   // expose mirrored leg labels, which previously put the scabbard on the character's right hip.
+   const actorWorld=a.object.getWorldQuaternion(new THREE.Quaternion()),leftWorld=new THREE.Vector3(-1,0,0).applyQuaternion(actorWorld),forwardWorld=new THREE.Vector3(0,0,1).applyQuaternion(actorWorld);
+   leftWorld.y=0;forwardWorld.y=0;if(leftWorld.lengthSq()<.0001||forwardWorld.lengthSq()<.0001)return null;leftWorld.normalize();forwardWorld.normalize();
+   const hipWorld=hips.getWorldPosition(new THREE.Vector3()),mouthWorld=hipWorld.clone().addScaledVector(leftWorld,a.height*.105).add(new THREE.Vector3(0,a.height*.018,0)).addScaledVector(forwardWorld,a.height*.006);
+   const directionWorld=forwardWorld.clone().multiplyScalar(-.965).addScaledVector(leftWorld,.11).add(new THREE.Vector3(0,-.2,0)).normalize();
    return{hips,mouthWorld,directionWorld,leftWorld,forwardWorld};
  }
  function applyWorldBoneDelta(a,bone,delta,weight=1){
