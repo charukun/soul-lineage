@@ -193,6 +193,7 @@ function updateSequence(meta){
 }
 function syncInspirationResetButton(){if(resetInspirationButton)resetInspirationButton.disabled=!loadoutUI.learnedTechniqueIds.length;}
 function syncWeaponButtons(){const weapon=loadoutUI.value.equipment.weapon;for(const button of weaponButtons)button.setAttribute('aria-pressed',String(button.dataset.battleWeapon===weapon));}
+function syncWeaponButtons(){const weapon=loadoutUI.value.equipment.weapon;for(const button of weaponButtons)button.setAttribute('aria-pressed',String(button.dataset.battleWeapon===weapon));}
 function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));for(const button of techniqueModeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleTechniqueMode===battleSettings.techniqueMode));for(const button of inspirationRateButtons)button.setAttribute('aria-pressed',String(button.dataset.battleInspirationRate===battleSettings.inspirationRate));syncWeaponButtons();}
 function setBattleSetting(key,value){
  const next=normalizeBattleSettings({...battleSettings,[key]:value});if(next[key]===battleSettings[key])return;
@@ -208,7 +209,7 @@ async function boot(){
   // Install gesture listeners before enabling Start, and keep the unlocked
   // AudioContext across mode switches instead of recreating it after the tap.
   sound??=createNocturneSound();
-  runtime=createJohakyuP7Controller({world,effects,stage,sound,notify:report,signal:controller.signal,cameraPresentation,movementInput,onMeta:updateSequence,evidence:new URL(location.href).searchParams.has('evidence'),fixture:new URL(location.href).searchParams.get('exchangeFixture'),mode:battleMode,loadout:loadoutUI.value,settings:battleSettings,learnedTechniqueIds:loadoutUI.learnedTechniqueIds});
+  runtime=createJohakyuP7Controller({world,effects,stage,sound,notify:report,signal:controller.signal,cameraPresentation,movementInput,onMeta:updateSequence,shouldPause:()=>deathCinematic.blocking,evidence:new URL(location.href).searchParams.has('evidence'),fixture:new URL(location.href).searchParams.get('exchangeFixture'),mode:battleMode,loadout:loadoutUI.value,settings:battleSettings,learnedTechniqueIds:loadoutUI.learnedTechniqueIds});
   await runtime.prepare();if(disposed||own!==sequence)return;
   prepared=true;if(started){runtime.start();report('BATTLE');}else report('READY');
  }catch(error){if(!disposed&&own===sequence){controller.abort(error);failed(error);}}

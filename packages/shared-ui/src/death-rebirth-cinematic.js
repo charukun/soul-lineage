@@ -4,11 +4,11 @@ export const DEATH_REBIRTH_TIMING=Object.freeze({
   down:720,
   downCommitted:90,
   cut:120,
-  dead:1120,
-  void:520,
-  watch:2580,
-  rewind:940,
-  release:860,
+  dead:2400,
+  void:700,
+  watch:4800,
+  rewind:1200,
+  release:1000,
   recover:640,
 });
 
@@ -283,6 +283,7 @@ export function createDeathRebirthCinematic(options={}){
 
   return Object.freeze({
     down,recover,playDeath,reset,dispose,unlockAudio,
+    get blocking(){return terminal;},
     get phase(){return root.dataset.phase||'idle';},
   });
 }
