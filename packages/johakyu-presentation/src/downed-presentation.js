@@ -6,3 +6,8 @@ export function downedPresentationSample(row,clipDuration){
  const time=duration<=0?0:Math.min(Math.max(0,duration-.000001),progress*duration);
  return Object.freeze({progress,time,phase:state?.phase||(row?.downed?'settled':null),settled:state?.phase==='settled'||(!state&&Boolean(row?.downed))});
 }
+
+export function activateSampledDownedAction(mixer,action){
+ if(!mixer||!action)return false;
+ mixer.stopAllAction();action.reset();action.enabled=true;action.setEffectiveWeight?.(1);action.setEffectiveTimeScale?.(1);action.clampWhenFinished=true;action.play();action.paused=true;return true;
+}
