@@ -17,7 +17,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
  let encounter=1,epoch=1,serial=1,elapsed=0,defeats=0,finishers=0,resumes=0,restartedAt=null,runtime,last=null,activeHeroLoadout,activity=[],history=[],replacements=[];
  const slots=mode==='duel'?['enemy-a']:['enemy-a','enemy-b','enemy-c'];
  const heroLoadout=()=>reviewSettings.techniqueMode==='random'?Object.fromEntries(PHASES.map(phase=>{const pool=[...BATTLE2_TECHNIQUE_CATALOG.map(t=>t.id),...known].filter(id=>battle2TechniqueDefinition(id,{weapon}));return[phase,pool[Math.min(pool.length-1,Math.floor(hash(encounter+':'+phase+':'+serial)*pool.length))]];})):config.technique;
- function enemyRow(slot,index,id=slot){return {id,side:'enemy',kind:'enemy',hp:46,maxHp:46,stamina:100,staminaCap:100,seed:8101+index,position:{x:index===0?0:index===1?-1.75:1.75,z:.35+duelGap},equipment:{weapon:'sword',armor:'cloth',shield:false},loadout:{jo:'basic.sword',ha:'basic.sword',kyu:'basic.sword'},staminaMultiplier:.12,damageScale:.45,mind:clashFixture?'aggressive':index%2?'counter':'balanced',readyDelay:(clashFixture?.5:.82)-enemyLeadSeconds,spawnSeconds:.7,spawnStyle:'battlebk-ground',canFinish:false,scope:'review-trial',...actorOverrides[slot]};}
+ function enemyRow(slot,index,id=slot){return {id,side:'enemy',kind:'enemy',hp:46,maxHp:46,stamina:100,staminaCap:100,seed:8101+index,position:{x:index===0?0:index===1?-1.75:1.75,z:.35+duelGap},equipment:{weapon:'sword',armor:'cloth',shield:false},loadout:{jo:'basic.sword',ha:'basic.sword',kyu:'basic.sword'},staminaMultiplier:.12,damageScale:.45,mind:clashFixture?'aggressive':index%2?'counter':'balanced',readyDelay:(clashFixture?.5:.82)-enemyLeadSeconds,spawnSeconds:.7,spawnStyle:'battlebk-ground',canFinish:true,scope:'review-trial',...actorOverrides[slot]};}
  function reset(){
    activeHeroLoadout=heroLoadout();
    runtime=createJohakyuBattleRuntime({battleId:`review-battle:${battle2LoadoutKey(config)}:${encounter}`,bounds:NOCTURNE_FIELD_BOUNDS,actors:[
@@ -49,7 +49,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
     if(hero?.phaseCue?.phase==='zanshin'&&!hero.downed&&!hero.dead){entry.at=elapsed+.2;continue;}
     const rows=runtime.snapshot().actors.filter(a=>a.id!==entry.id).map(a=>runtime.actor(a.id)),index=slots.indexOf(entry.slot),id=entry.recover?entry.id:entry.slot+'#'+(++serial);const revived=enemyRow(entry.slot,index,id);if(entry.recover){revived.spawnSeconds=0;revived.spawnStyle=null;revived.hp=revived.maxHp*.28;revived.injuries=Object.fromEntries(Object.keys(PARTS).map(p=>[p,{severity:0,at:0}]));revived.downed=false;revived.dead=false;}runtime.sync([...rows,revived]);record({type:entry.recover?'enemy-recovered':'enemy-spawn',actorId:id,slot:entry.slot});
   }replacements=replacements.filter(r=>r.at>elapsed);
-  const hero=runtime.actor('hero');if(hero.downed||hero.dead){restartedAt??=elapsed+3;if(elapsed>=restartedAt){
+  const hero=runtime.actor('hero'),enemyFinishingHero=runtime.snapshot().actors.some(row=>row.side==='enemy'&&row.action?.finisher&&row.action.targetId==='hero');if(hero.downed||hero.dead){restartedAt??=elapsed+3;if(!enemyFinishingHero&&elapsed>=restartedAt){
     // Recover this actor in place: a fresh battle identity teleports the player and resets the camera.
     const at=heroRespawnPoint();hero.hp=hero.maxHp;hero.dead=false;hero.downed=false;hero.incapacitated=false;
     hero.injuries=Object.fromEntries(Object.keys(PARTS).map(p=>[p,{severity:0,at:0}]));hero.action=null;hero.phaseCue=null;hero.pendingZanshin=false;
