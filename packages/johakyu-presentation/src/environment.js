@@ -1,4 +1,7 @@
-// Original NOCTURNE environment from a923fcc02dfef9a57aad00001bd3daab8786fc07; geometry and lighting layout preserved.
+// Original NOCTURNE environment from a923fcc02dfef9a57aad00001bd3daab8786fc07; geometry and lighting language preserved.
+export const NOCTURNE_FIELD_BOUNDS=Object.freeze({minX:-16,maxX:16,minZ:-14,maxZ:18});
+export const NOCTURNE_FIELD_RADAR_RANGE=32;
+const NOCTURNE_CLEARING_RADIUS=27.5;
 export function buildNocturneEnvironment(env){
 const {THREE,V,TAU,models,scene,environmentMeshes,torches,rand,randRange}=env;
 function tintMaterial(material,key){
@@ -44,20 +47,23 @@ function batch(key,placements){
 }
 function buildForest(){
  const original=models.get('nature/ground_grass').scene.clone(true),b=new THREE.Box3().setFromObject(original),s=b.getSize(new V()),c=b.getCenter(new V());const floor=new THREE.Group();
- original.position.set(-c.x,-b.max.y,-c.z);floor.add(original);floor.scale.set(75/s.x,.12/Math.max(.01,s.y),75/s.z);floor.position.y=-.06;
+ original.position.set(-c.x,-b.max.y,-c.z);floor.add(original);floor.scale.set(104/s.x,.12/Math.max(.01,s.y),104/s.z);floor.position.y=-.06;
  original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;o.material=tintMaterial(o.material,'ground_grass');shadeFloor(o.material);o.userData.assetSource='nature/ground_grass';}});scene.add(floor);
- for(let x=-2;x<=2;x++)for(let z=-2;z<=2;z++){if(Math.hypot(x,z)>2.6)continue;const p=prop('ground_pathTile',x*3.45,z*3.45,3.5,Math.floor(rand()*4)*Math.PI/2,true,-.061);p.scale.y*=.12;p.traverse(o=>{if(o.isMesh)shadeFloor(o.material);});}
- const paving=prop('path_stoneCircle',0,-.4,6.7,0,true,-.055);paving.scale.y*=.12;
+ // Cover the playable field itself, not just the old central arena, with ground variation.
+ for(let x=-4;x<=4;x++)for(let z=-4;z<=4;z++){if(Math.hypot(x,z)>4.6)continue;const p=prop('ground_pathTile',x*4.35,z*4.35,4.45,Math.floor(rand()*4)*Math.PI/2,true,-.061);p.scale.y*=.12;p.traverse(o=>{if(o.isMesh)shadeFloor(o.material);});}
+ const paving=prop('path_stoneCircle',0,-.4,9.4,0,true,-.055);paving.scale.y*=.12;
  const treeKinds=['tree_pineTallA_detailed','tree_pineTallB_detailed','tree_pineRoundC','tree_detailed_dark'];
- for(let k=0;k<treeKinds.length;k++){const placements=[];for(let i=0;i<29;i++){const a=rand()*TAU,r=randRange(13.6,30);placements.push({x:Math.cos(a)*r,z:Math.sin(a)*r,h:randRange(5.8,9.7),r:rand()*TAU});}batch(treeKinds[k],placements);}
- for(const [key,count,lo,hi,h1,h2] of [['plant_bushDetailed',45,9.2,27,.9,2.1],['plant_bushSmall',34,8.5,24,.55,1.1],['grass_large',70,7,26,.25,.55],['grass_leafsLarge',40,9,26,.4,.75],['flower_purpleA',32,7.5,17,.25,.52],['mushroom_redGroup',18,8,18,.25,.5],['stone_smallC',40,5.2,23,.2,.6]]){
+ for(let k=0;k<treeKinds.length;k++){const placements=[];for(let i=0;i<36;i++){const a=rand()*TAU,r=randRange(NOCTURNE_CLEARING_RADIUS,50);placements.push({x:Math.cos(a)*r,z:Math.sin(a)*r,h:randRange(5.8,9.7),r:rand()*TAU});}batch(treeKinds[k],placements);}
+ for(const [key,count,lo,hi,h1,h2] of [['plant_bushDetailed',58,20,45,.9,2.1],['plant_bushSmall',50,18,43,.55,1.1],['grass_large',100,13,43,.25,.55],['grass_leafsLarge',64,16,43,.4,.75],['flower_purpleA',48,11,30,.25,.52],['mushroom_redGroup',28,13,31,.25,.5],['stone_smallC',64,9,42,.2,.6]]){
   const ps=[];for(let i=0;i<count;i++){const a=rand()*TAU,r=randRange(lo,hi);ps.push({x:Math.cos(a)*r,z:Math.sin(a)*r,h:randRange(h1,h2),r:rand()*TAU});}batch(key,ps);
  }
- for(let i=0;i<15;i++){const a=i/15*TAU+.2,r=randRange(10.2,13.3);prop(i%2?'stone_largeB':'stone_largeD',Math.cos(a)*r,Math.sin(a)*r,randRange(1.4,2.7),rand()*TAU);}
- for(let i=0;i<7;i++){const a=i/7*TAU+.3;prop('fence_planks',Math.cos(a)*10.2,Math.sin(a)*10.2,1.6,-a+Math.PI/2);}
- prop('statue_obelisk',-5,-8.4,4.4,.15);prop('statue_columnDamaged',5.5,-8,2.8,-.5);prop('stone_tallB',-8.4,2.3,3.5,.3);prop('log_large',9,4.2,3.8,.5,true);prop('log_large',-8,-5,3.3,1.3,true);prop('stump_roundDetailed',-7.9,6.2,1.3);
- for(const [x,z] of [[-7,-6],[7,-5],[-6.5,6.5],[6.8,7]]){prop('campfire_stones',x,z,1.35,rand()*TAU,true);const light=new THREE.PointLight('#ff9c43',33,11,2);light.position.set(x,.8,z);scene.add(light);torches.push({x,z,light,seed:rand()*9});}
- for(let i=0;i<7;i++){const p=prop('path_stone',Math.sin(i)*.4,8+i*1.8,1.9,rand()*.4,true,-.045);p.scale.y*=.25;}
+ // The old apparent arena ended around radius 10-13. Keep the boundary language, but move it beyond the full 32x32-ish playable field.
+ for(let i=0;i<22;i++){const a=i/22*TAU+.2,r=randRange(24.8,28.4);prop(i%2?'stone_largeB':'stone_largeD',Math.cos(a)*r,Math.sin(a)*r,randRange(1.4,2.7),rand()*TAU);}
+ for(let i=0;i<10;i++){const a=i/10*TAU+.3;prop('fence_planks',Math.cos(a)*24.6,Math.sin(a)*24.6,1.8,-a+Math.PI/2);}
+ prop('statue_obelisk',-12,-18.5,4.4,.15);prop('statue_columnDamaged',12.5,-17.5,2.8,-.5);prop('stone_tallB',-19,3.5,3.5,.3);prop('log_large',20,7.5,3.8,.5,true);prop('log_large',-19,-10.5,3.3,1.3,true);prop('stump_roundDetailed',-18,14,1.3);
+ for(const [x,z] of [[-13,-11.5],[13,-10.5],[-12.5,12.5],[13,13.5]]){prop('campfire_stones',x,z,1.35,rand()*TAU,true);const light=new THREE.PointLight('#ff9c43',33,11,2);light.position.set(x,.8,z);scene.add(light);torches.push({x,z,light,seed:rand()*9});}
+ for(let i=0;i<10;i++){const p=prop('path_stone',Math.sin(i)*.55,13+i*2.2,2.05,rand()*.4,true,-.045);p.scale.y*=.25;}
+ for(let i=0;i<8;i++){const p=prop('path_stone',Math.sin(i+1.7)*.55,-10-i*2.15,2.05,rand()*.4,true,-.045);p.scale.y*=.25;}
 }
 
 
