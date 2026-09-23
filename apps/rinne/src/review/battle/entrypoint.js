@@ -9,6 +9,11 @@ import {advanceReviewFinisher,createReviewFinisher,reviewBattleLoopDue,reviewBat
 import {REVIEW_INSPIRATION_TIMELINE,generatedReviewInspirationCandidates,pickGeneratedReviewInspiration,pickReviewInspiration} from './inspiration.js';
 import {addTechniqueToReviewChain,createReviewTechniqueComposition,flattenReviewTechniqueChain,reviewChainLabel,reviewTechniqueStages} from './technique-composition.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
+import {rinneFieldRadarMarkup,updateRinneFieldRadar} from '@soul/shared-ui/rinne-field-radar';
+import {createCameraPositionControl} from '@soul/shared-ui/camera-position-control';
+import '@soul/shared-ui/rinne-field-radar.css';
+import '@soul/shared-ui/camera-position-control.css';
+import './field-hud.css';
 import '@soul/shared-ui/combat-sequence.css';
 import {createCombatSfx} from '@soul/audio/combat-sfx';
 import {SwipeInput} from '@soul/input';
@@ -212,6 +217,7 @@ function syncBattle(dt){
   const core=lastCore||runtime?.state?.();if(!core)return;
   const enemies=core.enemies||[core.enemy].filter(Boolean),heroWon=enemies.length>0&&enemies.every(enemy=>enemy.dead),finished=Boolean(core.done);
   q('battle-time').textContent=`${Number(core.time||0).toFixed(1)}秒`;q('battle-result').textContent=finished?(heroWon?'主人公 勝利':'敵 勝利'):(encounterMode==='one-v-three'?'1v3 戦闘中':'戦闘中');
+  updateRinneFieldRadar(battleRadar,{position:core.hero,yaw:core.hero?.yaw,places:(core.enemies||[core.enemy]).filter(enemy=>enemy&&!enemy.dead).map((enemy,index)=>({...enemy,category:'enemy',label:`敵${index+1}`})),range:12,label:'戦闘位置',interactive:false});
   syncBattleAudio(core);renderDefenseReadout(core);renderPhase(core,lastRenderedCore);lastRenderedCore=core;const phase=reviewBattlePhaseState(core).phase;if(phase)maybeInspire(phase);else lastInspirationPhase='';battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
 }
 function advanceBattle(dt){
@@ -237,7 +243,10 @@ function frame(now){
   if(reviewBattleLoopDue({loopEnabled,playing:true,finished:nextFinished,finishedAt,now}))resetBattle();syncBattle(Math.min(.05,elapsed));requestAnimationFrame(frame);
 }
 
-const battleCanvas=q('battle-canvas');
+const battleCanvas=q('battle-canvas'),battleHudStage=battleCanvas?.closest('.stage');
+if(battleHudStage)battleHudStage.insertAdjacentHTML('beforeend',rinneFieldRadarMarkup({interactive:false}));
+const battleRadar=battleHudStage?.querySelector('[data-field-radar]');
+const battleViewControl=battleHudStage&&createCameraPositionControl({document,container:battleHudStage,initial:(.82-.58)/1.07,onChange:value=>battleStage?.setZoom(.58+value*1.07)});
 battleCanvas?.addEventListener('pointerdown',event=>{if((event.pointerType==='mouse'&&event.button!==0)||!reviewSwipe.down(event.pointerId,event.clientX,event.clientY,performance.now()))return;battleCanvas.setPointerCapture?.(event.pointerId);event.preventDefault();},{passive:false});
 battleCanvas?.addEventListener('pointermove',event=>{if(!reviewSwipe.move(event.pointerId,event.clientX,event.clientY,performance.now()))return;event.preventDefault();},{passive:false});
 battleCanvas?.addEventListener('pointerup',event=>{if(reviewSwipe.id!==event.pointerId)return;event.preventDefault();reviewSwipe.up(event.pointerId,event.clientX,event.clientY,performance.now());if(battleCanvas.hasPointerCapture?.(event.pointerId))battleCanvas.releasePointerCapture(event.pointerId);},{passive:false});
@@ -256,6 +265,6 @@ q('battle-review-seed')?.addEventListener('change',event=>{reviewSeed=Math.max(1
 q('battle-injury-preset')?.addEventListener('change',event=>{reviewInjury=event.target.value;resetBattle();});
 historyOpen?.addEventListener('click',()=>{insightHistoryOpen=true;renderInsightHistory();});historyClose?.addEventListener('click',()=>{insightHistoryOpen=false;renderInsightHistory();});
 document.addEventListener('pointerdown',()=>{battleSfx.unlock();syncSoundButton();},{passive:true});
-soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});window.addEventListener('pagehide',()=>{battleStage?.dispose();battleSfx.dispose();bodyHud?.destroy();},{once:true});
+soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});window.addEventListener('pagehide',()=>{battleStage?.dispose();battleViewControl?.dispose();battleSfx.dispose();bodyHud?.destroy();},{once:true});
 bodyHud=createCombatBodyHud({root:q('battle-body-hud')});
 syncModelLabels();phasePanel.dataset.skin='rinne';syncSoundButton();renderTechniqueComposition();renderInsightHistory();resetBattle();void ensureBattleStage();requestAnimationFrame(frame);

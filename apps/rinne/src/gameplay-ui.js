@@ -7,6 +7,7 @@ import { createHeartTechniqueBodyUI } from './heart-technique-body-ui.js';
 import { decorateSelectionDetail, installSelectionDetail } from './selection-detail.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import {rinnePrimaryFourMarkup} from '@soul/shared-ui/rinne-primary-four';
+import {rinneFieldRadarMarkup,updateRinneFieldRadar} from '@soul/shared-ui/rinne-field-radar';
 import {rinneLoadoutPanelMarkup} from '@soul/shared-ui/rinne-loadout-menu';
 import {sequenceHudState,meleeSequenceHudState} from './combat-sequence-hud.js';
 import {combatSkillForPhase,techniqueName} from './combat-loadout.js';
@@ -27,6 +28,7 @@ import {RINNE_UI_VERSION} from './ui-version.js';
 import {createRinnePlayerHud,rinnePlayerNameFromSeed} from '@soul/shared-ui/rinne-player-hud';
 import '@soul/shared-ui/rinne-player-hud.css';
 import './reference-exploration-hud.css';
+import '@soul/shared-ui/rinne-field-radar.css';
 import {createCombatBodyHud} from './combat-body-hud.js';
 
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
@@ -41,10 +43,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   root.innerHTML=`
     <aside data-player-hud class="rinne-player-hud-host" aria-label="プレイヤー情報HUD"></aside>
     <aside data-combat-body-hud class="combat-body-hud-host" aria-label="身体部位HUD"></aside>
-    <button data-field-radar class="rinne-field-radar" type="button" aria-label="地図を開く">
-      <span class="rinne-field-radar__face" aria-hidden="true"><span class="rinne-field-radar__rings"></span><span data-radar-places class="rinne-field-radar__places"></span><em data-radar-target class="rinne-field-radar__target" hidden></em><i data-radar-player class="rinne-field-radar__player"></i><u>N</u></span>
-      <small data-radar-label class="rinne-field-radar__label">村</small><strong data-radar-distance class="rinne-field-radar__distance">MAP</strong>
-    </button>
+    ${rinneFieldRadarMarkup()}
     <section class="rinne-player-strip rinne-player-ghost" data-player-info aria-label="プレイヤー情報">
       <div class="player-identity"><strong data-name>旅人</strong><small data-state>探索</small></div>
       <div class="player-equipment"><span>装</span><strong data-equip>素手 · 旅装</strong></div>
@@ -201,12 +200,9 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   function placeGlyph(row){return({port:'港',forge:'鍛',heal:'治',train:'稽',learn:'学',home:'暮',faith:'祈',place:'地'})[placeCategory(row)]||'地';}
   function updateRadar(){
     if(!state||!ui.map)return;
-    const places=majorPlaces(),near=places.map(row=>({...row,d:Math.hypot(row.x-state.position.x,row.z-state.position.z)})).filter(row=>row.d<=RADAR_RANGE).sort((a,b)=>a.d-b.d).slice(0,8);
-    ui.radarPlaces.innerHTML=near.map(row=>{const dx=(row.x-state.position.x)/RADAR_RANGE*42,dz=(row.z-state.position.z)/RADAR_RANGE*42;return `<i data-category="${placeCategory(row)}" style="left:${50+clamp(dx,-42,42)}%;top:${50-clamp(dz,-42,42)}%" title="${esc(row.label||row.id)}"></i>`;}).join('');
-    ui.radarPlayer.style.transform=`translate(-50%,-50%) rotate(${Number(state.yaw)||0}rad)`;
+    const near=majorPlaces().map(row=>({...row,d:Math.hypot(row.x-state.position.x,row.z-state.position.z)})).filter(row=>row.d<=RADAR_RANGE).sort((a,b)=>a.d-b.d).slice(0,8);
     const target=guidance?.navigation&&Number.isFinite(guidance.navigation.x)&&Number.isFinite(guidance.navigation.z)?guidance.navigation:null;
-    if(target){const dx=target.x-state.position.x,dz=target.z-state.position.z,len=Math.max(.001,Math.hypot(dx,dz)),scale=Math.min(42,(len/RADAR_RANGE)*42);ui.radarTarget.hidden=false;ui.radarTarget.style.left=`${50+dx/len*scale}%`;ui.radarTarget.style.top=`${50-dz/len*scale}%`;ui.radarDistance.textContent=`${target.distance}m`;ui.radarLabel.textContent=target.label;ui.fieldRadar.setAttribute('aria-label',`地図を開く。${target.label}まで${target.distance}m`);}
-    else{ui.radarTarget.hidden=true;ui.radarDistance.textContent='MAP';ui.radarLabel.textContent=state.zone==='frontier'?'前線':'村';ui.fieldRadar.setAttribute('aria-label','地図を開く');}
+    updateRinneFieldRadar(ui.fieldRadar,{position:state.position,yaw:state.yaw,places:near.map(row=>({...row,category:placeCategory(row)})),target,range:RADAR_RANGE,label:state.zone==='frontier'?'前線':'村'});
   }
   function map(){
     ui.title.textContent='地図 · 方位盤';
