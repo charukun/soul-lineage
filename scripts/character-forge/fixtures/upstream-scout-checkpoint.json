@@ -1,9 +1,9 @@
 {
-  "sourceHead": "ac2e0456a622d6ca43fb23e0461d9a59e353782c",
-  "runId": 35822189434,
-  "artifactId": 10733407763,
-  "archiveSha256": "2d38c51b09f2d1df83a5d8d6989cfb4dd5c8fb5d62548e7c2bc690d95281ffad",
+  "sourceHead": "7ad07cb1d41e1403392270c70106b207259949f1",
+  "runId": 35822583356,
+  "artifactId": 10733189570,
+  "archiveSha256": "f8b6bdbf1e03319e5483fdbeb434b8f8830675d70a95684f49eb2d7e26eb982e",
   "factorySha256": "640782f06303e01705562731bb3df8122f272a733ae38b469d898250e905e8ea",
-  "archiveReviewAs": "material-r7-before-dcc",
-  "reviewToRecord": null
+  "archiveReviewAs": "material-r8-rejected",
+  "reviewToRecord": "scripts/character-forge/fixtures/upstream-scout-material-r8-review.json"
 }

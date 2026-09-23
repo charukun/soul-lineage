@@ -1,0 +1,350 @@
+{
+  "schemaVersion": "rinne.forge-visual-review/v1",
+  "id": "scout-material-r8",
+  "pass": "material-pass",
+  "sourceHead": "7ad07cb1d41e1403392270c70106b207259949f1",
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35822583356",
+  "artifactId": 10733189570,
+  "artifactSha256": "a8fa8ca4d7292c00ce3244cd03550c43f835c3072400b975f14bb559627a4ce4",
+  "factorySha256": "640782f06303e01705562731bb3df8122f272a733ae38b469d898250e905e8ea",
+  "captureSha256": {
+    "front": "76b472c867e03672533d903bcff294f3bd39d40a2cd53d882cee947e2493cf78",
+    "side": "a5e7dacce9e4623cdda1761bb510a5906cc3645a5e9eb46cae132c8c4f0422b0",
+    "back": "cb3279190f0cf512c0c76a63b0c6b368b080012216567066b37b7c848cc30b2a",
+    "front34": "3ecc430d5ddb25c74ddd650959b190d394dbf44ef349e21d5704ab0e4f97bbd4",
+    "rear34": "5521c341a349a273acdb4c921d1c5f7b1798d857ca38e27bc21f2abfb80b769a",
+    "oppositeSide": "fddb2fc17f95917921b7d2823453b8913d8f05830cf62ecfed803add0599561a",
+    "neutral": "fe6d3647f72fac6f284e80eb1dbf76c58297d5b8e1080c65fd797f0519a4f8a1",
+    "grazing-closeup": "2681e77da9a0639b8a3fd17477f946feff039a83ab4335e1b52303ead6a7cd9e"
+  },
+  "action": "refine-code",
+  "fidelity": 0.82,
+  "layerScores": {
+    "silhouetteProportion": 0.89,
+    "componentStructure": 0.84,
+    "formDetail": 0.72,
+    "materialSurface": 0.86,
+    "lightingCamera": 0.86
+  },
+  "featureReviews": [
+    {
+      "id": "anatomy-proportion",
+      "score": 0.89,
+      "notes": "Measured proportions retained."
+    },
+    {
+      "id": "face-landmark-placement",
+      "score": 0.72,
+      "notes": "DCC forehead band has collapsed/intersecting surface artifacts."
+    },
+    {
+      "id": "pose-silhouette",
+      "score": 0.86,
+      "notes": "Volumetric; scalp/turntable pass."
+    },
+    {
+      "id": "outfit-and-palette",
+      "score": 0.86,
+      "notes": "Belt/emblem pixels clean; back global color-cluster gate fails and must be resolved."
+    }
+  ],
+  "reason": "All eight actual images and FSB comparison sheets inspected. Centroid UV interpolation removed belt/emblem stripes. Reject the actual DCC result: pulling a closed hair rim toward the head collapsed surfaces and produced a visibly speckled/folded forehead band; rear color Tier-1 also fails (21.85 > 20). No acceptance despite run success. Refine the original pre-DCC generated hair with volume-preserving displacement and Blender voxel cleanup before freeze; rebake and rerun every comparison. Keep upstream gates/thresholds and correction history unchanged.",
+  "viewpoints": [
+    "front",
+    "side",
+    "back",
+    "front-three-quarter",
+    "rear-three-quarter",
+    "neutral",
+    "grazing-closeup",
+    "thickness-axis",
+    "long-axis"
+  ],
+  "qualityFloorPassed": false,
+  "tier1": {
+    "front": {
+      "passed": true,
+      "checks": {
+        "silhouetteIoU": 0.945,
+        "aspectRatioDelta": 0.0079,
+        "scaleDelta": 0.0079,
+        "bilateralSymmetryError": 0.015,
+        "colorDelta": {
+          "checked": 18,
+          "maxDeltaE": 5.51,
+          "perComponent": [
+            {
+              "componentId": "root",
+              "deltaE": 2.34
+            },
+            {
+              "componentId": "pelvis",
+              "deltaE": 2.34
+            },
+            {
+              "componentId": "chest",
+              "deltaE": 2.34
+            },
+            {
+              "componentId": "neck",
+              "deltaE": 3.26
+            },
+            {
+              "componentId": "head",
+              "deltaE": 3.26
+            },
+            {
+              "componentId": "hair",
+              "deltaE": 5.51
+            },
+            {
+              "componentId": "upper-arm-l",
+              "deltaE": 3.26
+            },
+            {
+              "componentId": "forearm-l",
+              "deltaE": 3.26
+            },
+            {
+              "componentId": "hand-l",
+              "deltaE": 3.26
+            },
+            {
+              "componentId": "thigh-l",
+              "deltaE": 1.38
+            },
+            {
+              "componentId": "shin-l",
+              "deltaE": 1.38
+            },
+            {
+              "componentId": "boot-l",
+              "deltaE": 3.66
+            },
+            {
+              "componentId": "upper-arm-r",
+              "deltaE": 3.26
+            },
+            {
+              "componentId": "forearm-r",
+              "deltaE": 3.26
+            },
+            {
+              "componentId": "hand-r",
+              "deltaE": 3.26
+            },
+            {
+              "componentId": "thigh-r",
+              "deltaE": 1.38
+            },
+            {
+              "componentId": "shin-r",
+              "deltaE": 1.38
+            },
+            {
+              "componentId": "boot-r",
+              "deltaE": 3.66
+            }
+          ],
+          "gated": true
+        }
+      },
+      "failures": [],
+      "maskWarnings": [],
+      "renderHash": "76b472c867e03672",
+      "passId": "material-pass"
+    },
+    "side": {
+      "passed": true,
+      "checks": {
+        "silhouetteIoU": 0.9083,
+        "aspectRatioDelta": 0.003,
+        "scaleDelta": 0.0234,
+        "bilateralSymmetryError": 0.0666,
+        "colorDelta": {
+          "checked": 18,
+          "maxDeltaE": 6.21,
+          "perComponent": [
+            {
+              "componentId": "root",
+              "deltaE": 6.21
+            },
+            {
+              "componentId": "pelvis",
+              "deltaE": 6.21
+            },
+            {
+              "componentId": "chest",
+              "deltaE": 6.21
+            },
+            {
+              "componentId": "neck",
+              "deltaE": 3.7
+            },
+            {
+              "componentId": "head",
+              "deltaE": 3.7
+            },
+            {
+              "componentId": "hair",
+              "deltaE": 2.87
+            },
+            {
+              "componentId": "upper-arm-l",
+              "deltaE": 3.7
+            },
+            {
+              "componentId": "forearm-l",
+              "deltaE": 3.7
+            },
+            {
+              "componentId": "hand-l",
+              "deltaE": 3.7
+            },
+            {
+              "componentId": "thigh-l",
+              "deltaE": 4.35
+            },
+            {
+              "componentId": "shin-l",
+              "deltaE": 4.35
+            },
+            {
+              "componentId": "boot-l",
+              "deltaE": 2.82
+            },
+            {
+              "componentId": "upper-arm-r",
+              "deltaE": 3.7
+            },
+            {
+              "componentId": "forearm-r",
+              "deltaE": 3.7
+            },
+            {
+              "componentId": "hand-r",
+              "deltaE": 3.7
+            },
+            {
+              "componentId": "thigh-r",
+              "deltaE": 4.35
+            },
+            {
+              "componentId": "shin-r",
+              "deltaE": 4.35
+            },
+            {
+              "componentId": "boot-r",
+              "deltaE": 2.82
+            }
+          ],
+          "gated": true
+        }
+      },
+      "failures": [],
+      "maskWarnings": [],
+      "renderHash": "a5e7dacce9e4623c",
+      "passId": "material-pass"
+    },
+    "back": {
+      "passed": false,
+      "checks": {
+        "silhouetteIoU": 0.9132,
+        "aspectRatioDelta": 0.0129,
+        "scaleDelta": 0.0029,
+        "bilateralSymmetryError": 0.015,
+        "colorDelta": {
+          "checked": 18,
+          "maxDeltaE": 21.85,
+          "perComponent": [
+            {
+              "componentId": "root",
+              "deltaE": 2.78
+            },
+            {
+              "componentId": "pelvis",
+              "deltaE": 2.78
+            },
+            {
+              "componentId": "chest",
+              "deltaE": 2.78
+            },
+            {
+              "componentId": "neck",
+              "deltaE": 10.8
+            },
+            {
+              "componentId": "head",
+              "deltaE": 10.8
+            },
+            {
+              "componentId": "hair",
+              "deltaE": 1.4
+            },
+            {
+              "componentId": "upper-arm-l",
+              "deltaE": 10.8
+            },
+            {
+              "componentId": "forearm-l",
+              "deltaE": 10.8
+            },
+            {
+              "componentId": "hand-l",
+              "deltaE": 10.8
+            },
+            {
+              "componentId": "thigh-l",
+              "deltaE": 1.33
+            },
+            {
+              "componentId": "shin-l",
+              "deltaE": 1.33
+            },
+            {
+              "componentId": "boot-l",
+              "deltaE": 21.85
+            },
+            {
+              "componentId": "upper-arm-r",
+              "deltaE": 10.8
+            },
+            {
+              "componentId": "forearm-r",
+              "deltaE": 10.8
+            },
+            {
+              "componentId": "hand-r",
+              "deltaE": 10.8
+            },
+            {
+              "componentId": "thigh-r",
+              "deltaE": 1.33
+            },
+            {
+              "componentId": "shin-r",
+              "deltaE": 1.33
+            },
+            {
+              "componentId": "boot-r",
+              "deltaE": 21.85
+            }
+          ],
+          "gated": true
+        }
+      },
+      "failures": [
+        "max per-part color delta-E 21.85 exceeds threshold 20.0"
+      ],
+      "maskWarnings": [],
+      "renderHash": "cb3279190f0cf512",
+      "passId": "material-pass"
+    }
+  },
+  "geometryRefinements": [
+    {
+      "path": "build/dcc/refined-hair.json",
+      "sha256": "e56a002ba4fb8c4b55e1fd3291067868869016c4523764084b292088cb1654c0"
+    }
+  ]
+}
