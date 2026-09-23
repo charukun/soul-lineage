@@ -28,6 +28,13 @@ test('reading, approach, retreat and impulse remain observable with the accepted
 test('strong parry reverses the real exchange and creates a counter with recoil at that contact',()=>{
  const {events}=run({loadout:{technique:{jo:'action.counter',ha:'action.counter',kyu:'action.precision'}}});const strong=events.find(e=>e.strongParry);assert.ok(strong);assert.equal(strong.initiativeId,strong.targetId);assert.ok(strong.sourceKick>strong.impulse);assert.ok(strong.counterOpportunity>0);assert.ok(events.some(e=>e.type==='reaction-start'&&e.kind==='counter'&&e.sourceId===strong.targetId&&e.time>strong.time));
 });
+test('the Review Lab clash fixture shows two simultaneous shared attacks stopping at one zero-damage weapon contact',()=>{
+ const scenario=createJohakyuP7ReviewScenario({fixture:'clash',duelGap:1.7,heroStartPhase:'ha'}),events=[];
+ for(let i=0;i<600&&!events.some(e=>e.type==='clash');i++)events.push(...scenario.step(1/60).meta.activity);
+ const clash=events.find(e=>e.type==='clash');assert.ok(clash);assert.equal(clash.damage,0);assert.ok(clash.sourceKick>0);assert.ok(clash.impulse>0);
+ assert.equal(clash.techniqueId,'basic.sword');assert.ok([0,1,2].includes(clash.stageIndex));assert.equal(clash.impact.damage,0);assert.ok(events.some(e=>e.type==='interrupted'&&e.reason==='weapon-clash'&&[clash.attackId,clash.otherAttackId].includes(e.attackId)));
+ assert.equal(scenario.inspect().frame.authority,'johakyu-battle');
+});
 test('phase preparation and stage motion use the same simulation clock and complete before phase changes',()=>{
  const {events,frames}=run({},35);assert.ok(events.some(e=>e.type==='phase-cue'));assert.ok(frames.some(f=>f.actors.some(a=>a.phaseCue)));
  for(const e of events.filter(e=>e.type==='phase-change')){const prior=events.slice(0,events.indexOf(e)).filter(x=>x.type==='technique-complete'&&x.sourceId===e.actorId).at(-1);assert.ok(prior);assert.equal(prior.time,e.time);}

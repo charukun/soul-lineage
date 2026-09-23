@@ -6,7 +6,7 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
   const driven=createDrivenBattleRuntime({world,effects,stage,sound,notify,signal,cameraPresentation});
   let reviewLoadout=normalizeBattle2Loadout(loadout||{}),reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'},reviewLearned=[...new Set(Array.isArray(learnedTechniqueIds)?learnedTechniqueIds:[])];
   const scenarioOptions=()=>({mode,loadout:reviewLoadout,settings:reviewSettings,learnedTechniqueIds:reviewLearned});
-  const makeScenario=()=>evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({...scenarioOptions(),duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5}):createJohakyuP7ReviewScenario({...scenarioOptions(),comboStyle:'composed',duelGap:mode==='duel'?2.18:3.15,enemyLeadSeconds:mode==='duel'?.16:0});
+  const makeScenario=()=>evidence&&fixture==='clash'?createJohakyuP7ReviewScenario({...scenarioOptions(),fixture:'clash',duelGap:1.7,heroStartPhase:'ha'}):evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({...scenarioOptions(),duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5}):createJohakyuP7ReviewScenario({...scenarioOptions(),comboStyle:'composed',duelGap:mode==='duel'?2.18:3.15,enemyLeadSeconds:mode==='duel'?.16:0});
   let scenario=makeScenario();
   let disposed=false,ready=false,started=false,raf=0,previous=0,current=null,trace=[],lastResumes=0,lastEncounter=1,physicalContacts=[];
   function render(dt){
