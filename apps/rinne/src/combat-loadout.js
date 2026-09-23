@@ -19,6 +19,7 @@ export const BODY_FINISHERS=Object.freeze([
   {id:'sokudan',label:'即断',description:'短い一手で終え、すぐ次の脅威へ意識を移す。',requiresAny:['skill.edge','skill.step','skill.resolve'],durationScale:.78,impactAt:.52},
   {id:'kakudan',label:'確断',description:'周囲を見切ってから、崩さず確実に終える。',requiresAny:['skill.observe','skill.danger','skill.patience'],durationScale:1.08,impactAt:.6},
   {id:'danzetsu',label:'断絶',description:'重い一撃で戦いを完全に終わらせる。',requiresAny:['skill.grip','skill.resolve'],durationScale:1.16,impactAt:.62},
+  {id:'family.moonfall',label:'月影の介錯',description:'一族に伝わる決着の型。',requiresAny:[],familyMotion:true,durationScale:1,impactAt:.58},
 ]);
 export const NONLETHAL_HEART_ID='skill.nonlethal';
 export const BODY_ZANSHIN=Object.freeze([
@@ -26,6 +27,7 @@ export const BODY_ZANSHIN=Object.freeze([
   {id:'breath',label:'呼吸残心',description:'一息で体勢を戻し消耗を抑える。',requiresAny:['skill.breath','skill.recovery-breath','skill.calm'],recoveryScale:.91,staminaRefund:.05,guardBonus:0},
   {id:'pursuit',label:'追い残心',description:'斬り終わりから一歩だけ追う。',requiresAny:['skill.trail','skill.flow-step'],recoveryScale:.95,staminaRefund:0,guardBonus:.005},
   {id:'guard',label:'守り残心',description:'攻撃後すぐ守りへ戻る。',requiresAny:['skill.guard-sense','skill.endure','skill.balance'],recoveryScale:1.04,staminaRefund:.02,guardBonus:.045},
+  {id:'family.moonstill',label:'月影の残心',description:'一族に伝わる静かな納め方。',requiresAny:[],familyMotion:true,recoveryScale:1,staminaRefund:0,guardBonus:0},
 ]);
 const basicSkill=state=>BASIC_BY_WEAPON[state?.equipment?.weapon]||'basic.fist';
 const supportIds=()=>SUPPORT_SKILLS.map(row=>row.id);
@@ -47,7 +49,7 @@ function makeCombo(state,index=0,source=null){
   const id=source?.id||`combo-${index+1}`;
   return{id,name:String(source?.name||COMBO_NAMES[index]||`第${index+1}連`).slice(0,24),slots:{jo:isAction(state,source?.slots?.jo)&&weaponCompatible(state,source?.slots?.jo)?source.slots.jo:phaseFromLegacy(state,'jo'),ha:isAction(state,source?.slots?.ha)&&weaponCompatible(state,source?.slots?.ha)?source.slots.ha:phaseFromLegacy(state,'ha'),kyu:isAction(state,source?.slots?.kyu)&&weaponCompatible(state,source?.slots?.kyu)?source.slots.kyu:phaseFromLegacy(state,'kyu')},favored:PHASES.map(([phase])=>phase).filter(phase=>Boolean(source?.favored?.[phase]||source?.favored?.includes?.(phase))).reduce((out,phase)=>(out[phase]=true,out),{})};
 }
-function optionUnlocked(state,option){const needs=Array.isArray(option?.requiresAny)?option.requiresAny:[];if(!needs.length)return true;const available=combatCatalog(state);return needs.some(id=>available.has(id));}
+function optionUnlocked(state,option){if(option?.familyMotion&&!state?.family?.familyMotions?.includes(option.id))return false;const needs=Array.isArray(option?.requiresAny)?option.requiresAny:[];if(!needs.length)return true;const available=combatCatalog(state);return needs.some(id=>available.has(id));}
 function normalizeBody(state,body={}){const pick=(list,id,fallback)=>list.some(row=>row.id===id&&optionUnlocked(state,row))?id:fallback;return{stance:pick(BODY_STANCES,body.stance,'seigan'),finisher:pick(BODY_FINISHERS,body.finisher,'kaishaku'),zanshin:pick(BODY_ZANSHIN,body.zanshin,'still')};}
 const comboSelection=id=>'combo:'+id;
 const comboSelectionId=selection=>String(selection||'').startsWith('combo:')?String(selection).slice(6):null;

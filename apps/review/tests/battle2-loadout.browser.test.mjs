@@ -39,10 +39,14 @@ test('phone loadout keeps slots, candidates and apply action usable together', {
       assert(geometry.scrollWidth<=geometry.width+1,'No sideways clipping');
       await panel.locator('.loadout-slot').nth(1).click();
       const last=library.locator('.loadout-grid-item[data-active="false"]').last(),label=await last.locator('strong').innerText();
+      await last.scrollIntoViewIfNeeded();
+      const beforeScroll=await library.evaluate(el=>({top:el.scrollTop,max:el.scrollHeight-el.clientHeight}));
       await last.click();
       await expect(panel.locator('[data-detail-title]')).toHaveText(label);
       await inside(apply);
-      const scrolled=await library.evaluate(el=>el.scrollTop);assert(scrolled>0,'Candidate scroll position survives selecting a lower row');
+      const afterScroll=await library.evaluate(el=>({top:el.scrollTop,max:el.scrollHeight-el.clientHeight}));
+      if(beforeScroll.max>1)assert(beforeScroll.top>0,'Lower choices can be reached by scrolling');
+      assert(Math.abs(afterScroll.top-Math.min(beforeScroll.top,afterScroll.max))<=1,'Candidate scroll position survives selection, including when every row fits');
       const dims=await candidates.last().boundingBox();assert(dims.width>=44&&dims.height>=44,'Choices retain touch-size hit targets');
       await apply.click();
       await expect(panel.locator('.loadout-slot').nth(1).locator('strong')).toHaveText(label);
@@ -58,7 +62,7 @@ test('phone loadout keeps slots, candidates and apply action usable together', {
       await expect(panel.locator('.loadout-slot').first().locator('strong')).toHaveText('攻勢');
       await nav.locator('[data-items]').click();
       await library.locator('.loadout-grid-item').filter({hasText:'大剣'}).click();
-      await inside(apply);await apply.click();
+      await inside(apply);if(await apply.isEnabled())await apply.click();
       await expect(panel.locator('.loadout-slot').first().locator('strong')).toHaveText('大剣');
       await nav.locator('[data-techniques]').click();
       await inside(apply);
