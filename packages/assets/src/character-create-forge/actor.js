@@ -1,6 +1,7 @@
 import {validateCharacterPackage,characterPackageCameraSubject} from './contract.js';
 import {createRinneWeapon,disposeRinneEquipment,resolveRinneEquipment,RINNE_EQUIPMENT_PROFILES} from '../adapters/three/runtime-equipment.js';
 import {createCharacterExpressions} from '../../../characters/src/character-expressions.js';
+import {applyProjectionCentroid} from '../../forge/centroid_uv.js';
 
 export function createCharacterPackageActor(THREE,gltf,manifest){
   validateCharacterPackage(manifest);
@@ -10,7 +11,7 @@ export function createCharacterPackageActor(THREE,gltf,manifest){
   for(const clip of manifest.animations)if(!clips.get(clip.name)?.tracks.length)throw new Error('GLB has no real clip '+clip.name);
   for(const name of Object.keys(manifest.sockets.definitions))if(!sockets[name])throw new Error('Missing exported socket '+name);
   for(const [alias,name] of Object.entries(manifest.sockets.aliases))sockets[alias]=sockets[name];
-  const originalMaps=new Map();root.traverse(n=>{if(n.isMesh){n.frustumCulled=false;originalMaps.set(n.material,n.material.map);}});
+  const originalMaps=new Map();root.traverse(n=>{if(n.isMesh){n.frustumCulled=false;applyProjectionCentroid(THREE,n.material);originalMaps.set(n.material,n.material.map);}});
   let action=null,actionName=null,expressionName='neutral',time=0,paused=false,weapon=null,shield=null,held=null,equipment={weapon:null,shield:false};
   const grip=new THREE.Group();grip.name='ForgeEquipmentGrip';sockets.weapon.add(grip);
   for(const name of ['secondaryGripTarget','weaponHitboxAnchor','trailOrigin'])grip.add(sockets[name]);

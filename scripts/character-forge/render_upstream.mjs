@@ -13,6 +13,10 @@ const functionName=/export function (create\w+Model)\(/.exec(factory)?.[1];
 if(!functionName)throw Error('No upstream factory export');
 await writeFile(join(workspace,'build',pass+'.js'),factory);
 const out=join(workspace,'review',pass);await mkdir(out,{recursive:true});
+const dccFile=join(workspace,'build/dcc/refined-hair.json');
+const dccBytes=await readFile(dccFile).catch(e=>{if(e.code==='ENOENT')return null;throw e;});
+const dccAuthorityFactory=dccBytes?createHash('sha256').update(await readFile(join(workspace,'build/material-pass.ts'))).digest('hex'):null;
+const geometryRefinements=dccBytes?[{path:'build/dcc/refined-hair.json',sha256:createHash('sha256').update(dccBytes).digest('hex')}]:[];
 const app=`import * as THREE from 'three';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {applyReferenceCamera} from '/adapters/reference_camera.js';
@@ -27,6 +31,16 @@ const hemi=new THREE.HemisphereLight(0xffffff,0x80909a,1.2);scene.add(hemi);cons
 const cameras=await (await fetch('img2threejs/evidence/cameras.json')).json();
 const projected=!['blockout','structural-pass','form-refinement'].includes('${pass}');
 const spec=await (await fetch('object-sculpt-spec.json')).json();
+const refinements=${JSON.stringify(geometryRefinements)};
+for(const entry of refinements){
+ const data=await(await fetch(entry.path)).json();
+ if(data.schema!=='rinne.dcc-refined-mesh/v1'||data.componentId!=='hair'||data.sourceFactorySha256!==${JSON.stringify(dccAuthorityFactory)})throw Error('DCC geometry belongs to another upstream source factory');
+ const component=spec.componentTree.find(n=>n.id===data.componentId);
+ if(JSON.stringify(component.geometryDescriptor)!==JSON.stringify(data.sourceGeometryDescriptor)||JSON.stringify(component.transform)!==JSON.stringify(data.sourceTransform))throw Error('Upstream hair spec changed after DCC refinement');
+ let target;model.traverse(n=>{if(n.isMesh&&n.userData.sculptComponent?.id===data.componentId)target=n;});if(!target||target.name!==data.name)throw Error('DCC component missing');
+ if(data.position.length!==data.normal.length||data.position.some(v=>!Number.isFinite(v))||data.normal.some(v=>!Number.isFinite(v)))throw Error('Invalid DCC buffers');
+ const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(data.position,3));geometry.setAttribute('normal',new THREE.Float32BufferAttribute(data.normal,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(data.position.length/3*2),2));geometry.setIndex(data.index);geometry.computeBoundingBox();geometry.computeBoundingSphere();target.geometry.dispose();target.geometry=geometry;
+}
 if(projected&&!spec.projectionBake?.required)throw Error('Material passes require an explicit upstream projection/bake plan');
 const camera=new THREE.PerspectiveCamera(10,.5,.01,100);
 const mats=new Map();model.traverse(n=>{if(n.isMesh){mats.set(n,n.material);if(n.material.opacity===0)n.visible=false;else if(['blockout','structural-pass','form-refinement'].includes('${pass}'))n.material=new THREE.MeshStandardMaterial({color:0xbfcbd5,roughness:.85});}});
@@ -48,7 +62,7 @@ function meshBuffers(){const rows=[];model.updateMatrixWorld(true);model.travers
 window.forge={draw,meshBuffers,light,projected,
  stripped(){const saved=new Map();model.traverse(n=>{if(n.isMesh&&n.visible){saved.set(n,n.material);n.material=new THREE.MeshStandardMaterial({color:0xbfcbd5,roughness:.85});}});draw('front');for(const [n,m]of saved){n.material.dispose();n.material=m;}},
  closeup(){light('grazing');model.rotation.y=0;applyReferenceCamera(THREE,camera,cameras.front);camera.position.set(1.7,1.3,3);camera.fov=18;camera.lookAt(0,1.24,0);camera.updateProjectionMatrix();renderer.render(scene,camera);},
- async bake(){const maps=await(await fetch('img2threejs/evidence/projection/maps.json')).json();const outputs=await bakeReferenceProjection(THREE,renderer,model,cameras,maps,{physicalChannels:spec.projectionBake.physicalChannelApplication?.policy});for(const row of outputs){const slug=row.mesh.toLowerCase().replace(/[^a-z0-9]+/g,'-');for(const [channel,data]of Object.entries(row.files)){const filename=slug+'-'+channel+'.png',body=await(await fetch(data)).arrayBuffer();const response=await fetch('/capture/texture/'+filename,{method:'POST',body});if(!response.ok)throw Error('Texture transport failed');row.files[channel]='build/textures/${pass}/'+filename;}}return {status:'pixels-baked; visual approval pending',authority:'pinned upstream descriptors and camera fit',outputs};},
+ async bake(){const maps=await(await fetch('img2threejs/evidence/projection/maps.json')).json();const outputs=await bakeReferenceProjection(THREE,renderer,model,cameras,maps,{physicalChannels:spec.projectionBake.physicalChannelApplication?.policy,surfaceResponses:spec.projectionBake.surfaceResponses});for(const row of outputs){const slug=row.mesh.toLowerCase().replace(/[^a-z0-9]+/g,'-');for(const [channel,data]of Object.entries(row.files)){const filename=slug+'-'+channel+'.png',body=await(await fetch(data)).arrayBuffer();const response=await fetch('/capture/texture/'+filename,{method:'POST',body});if(!response.ok)throw Error('Texture transport failed');row.files[channel]='build/textures/${pass}/'+filename;}}return {status:'pixels-baked; visual approval pending',authority:'pinned upstream descriptors and camera fit',outputs};},
  async exportGLB(){
  model.rotation.y=0;model.updateMatrixWorld(true);
  // sculptRuntime owns live Three.js nodes, not glTF JSON extras. Serializing
@@ -57,7 +71,7 @@ window.forge={draw,meshBuffers,light,projected,
  try{const data=await new GLTFExporter().parseAsync(model,{binary:true,onlyVisible:true});
  const response=await fetch('/capture/model.glb',{method:'POST',body:data});if(!response.ok)throw Error('GLB transport failed');return data.byteLength;
  }finally{for(const [node,data] of metadata)node.userData=data;}
-},snapshot(){const rows=meshBuffers(),box=new THREE.Box3().setFromObject(model);return {errors,pass:'${pass}',parts:rows.map(r=>({name:r.name,vertices:r.position.length/3,triangles:r.index.length?r.index.length/3:r.position.length/9})),bounds:{min:box.min.toArray(),max:box.max.toArray()}};}};
+},snapshot(){const rows=meshBuffers(),box=new THREE.Box3(),point=new THREE.Vector3();for(const r of rows){const matrix=new THREE.Matrix4().fromArray(r.matrixWorld);for(let i=0;i<r.position.length;i+=3)box.expandByPoint(point.fromArray(r.position,i).applyMatrix4(matrix));}return {errors,geometryRefinements:refinements,pass:'${pass}',parts:rows.map(r=>({name:r.name,vertices:r.position.length/3,triangles:r.index.length?r.index.length/3:r.position.length/9})),bounds:{min:box.min.toArray(),max:box.max.toArray()}};}};
 for(let i=0;i<200&&loading;i++)await new Promise(r=>setTimeout(r,50));if(loading)throw Error('Material loading did not finish');window.ready=true;`;
 const pageHTML=`<!doctype html><style>body{margin:0}canvas{display:block}</style><script type="importmap">{"imports":{"three":"/vendor/build/three.module.js","three/addons/":"/vendor/examples/jsm/","three/examples/jsm/":"/vendor/examples/jsm/"}}</script><script type="module" src="/author.js"></script>`;
 const server=createServer(async(req,res)=>{try{

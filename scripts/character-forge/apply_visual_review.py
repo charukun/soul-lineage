@@ -13,6 +13,11 @@ def apply(w,cache,review_file):
     if sha(w/f'build/{p}.ts')!=review['factorySha256']:raise ValueError('Review belongs to a different upstream factory')
     for view,digest in review['captureSha256'].items():
         if sha(out/(view+'.png'))!=digest:raise ValueError(f'{view} capture changed; a new agent review is required')
+    receipt=json.loads((out/'render-receipt.json').read_text())
+    if receipt['sourceHead']!=review['sourceHead']:raise ValueError('Visual review belongs to a different source head')
+    if receipt.get('geometryRefinements',[])!=review.get('geometryRefinements',[]):raise ValueError('DCC refinement evidence differs from the actual reviewed capture')
+    for refinement in receipt.get('geometryRefinements',[]):
+        if sha(w/refinement['path'])!=refinement['sha256']:raise ValueError('Reviewed DCC mesh changed')
     for view in ('front','side','back'):
         if not json.loads((out/(view+'-diagnostics.json')).read_text())['passed']:raise ValueError(f'{view} Tier-1 gate rejects this review')
     if not json.loads((out/'turntable.json').read_text())['passed']:raise ValueError('Turntable failed')

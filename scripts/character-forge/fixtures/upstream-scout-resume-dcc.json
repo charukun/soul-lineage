@@ -1,0 +1,25 @@
+{
+  "id": "material-dcc-centroid",
+  "authorization": {
+    "userInstruction": "あなたの判断で解決して進めて下さい",
+    "scope": "Continue this same PR through actual quality proof; independently resolve implementation and bounded correction budgeting. No lowering quality gates."
+  },
+  "stateSha256": "c21b1fadcf124deaad74cccf85380a44ee1c96548e9b1eafc521491453e38a4d",
+  "specSha256": "73f936a0b361b6e62630a432cefedd76d64550330a815dba5bc76d66033cc04a",
+  "stopReason": "max-correction-loops-reached:material-pass:8/8",
+  "previousLoops": {
+    "perPass": {
+      "blockout": 2,
+      "material-pass": 8
+    },
+    "total": 10,
+    "maxPerPass": 8,
+    "maxTotal": 18
+  },
+  "newLimits": {
+    "maxPerPass": 12,
+    "maxTotal": 22
+  },
+  "reason": "The exact GLB unlit diagnostic proves residual lines are not physical lighting. CPU reprojection at rendered pixel (247,540) samples expected gold [220,183,97], but actual MSAA output is [177,177,117], matching a 3:1 gold/teal mix at a skinny triangle edge: fragment-center UV extrapolation exceeds a chart gutter. Test centroid interpolation on the unchanged GLB, then refine the upstream-generated cap rim in Blender and rebake/review. Four further material corrections are bounded, not an infinite loop. Preserve every prior review, stop, pass and counter.",
+  "upstreamGap": "Pinned workflow has no resume CLI. Use unchanged upstream state validator/recompute/save and actual next dispatcher; no source/pin/threshold edits."
+}

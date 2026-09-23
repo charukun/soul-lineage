@@ -10,9 +10,9 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'packages/assets/forge'))
 from upstream_workspace import install_boundary,checked_run,write_json,sha256
 
-def resume(w,cache,restore):
+def resume(w,cache,restore,policy_path=None):
     source=ROOT/'docs/characters/qa/forge-upstream-blocked'
-    policy=json.loads((ROOT/'scripts/character-forge/fixtures/upstream-scout-resume.json').read_text())
+    policy=json.loads((policy_path or ROOT/'scripts/character-forge/fixtures/upstream-scout-resume.json').read_text())
     if restore:
         # Hosted reconstruction replays the three accepted passes first. Adopt
         # the full saved authority, including the three failed material reviews.
@@ -36,14 +36,19 @@ def resume(w,cache,restore):
     state['loops'].update(policy['newLimits'])
     state['status']='active';state['stopReason']=''
     sync_from_spec(state,spec,state['currentPass']);recompute(state);validate_state(state)
-    if state['status']!='active' or state['loops']['total']!=5 or state['loops']['perPass']!=old['loops']['perPass']:
+    if state['status']!='active' or state['loops']['total']!=old['loops']['total'] or state['loops']['perPass']!=old['loops']['perPass']:
         raise ValueError('Resume must preserve every recorded correction')
     if state['passHistory']!=old['passHistory'] or state['checklist']!=old['checklist']:
         raise ValueError('Resume changed reviewed work')
-    write_json(w/'img2threejs/evidence/authorized-resume.json',{'policy':policy,'before':old,'after':state,'specSha256':sha256(spec_path),'upstreamSourceChanged':False,'qualityThresholdsChanged':False})
+    receipt=w/'img2threejs/evidence'/('authorized-resume-'+policy['id']+'.json' if policy.get('id') else 'authorized-resume.json')
+    if receipt.exists():raise ValueError('This exact policy has already been applied')
+    write_json(receipt,{'policy':policy,'before':old,'after':state,'specSha256':sha256(spec_path),'upstreamSourceChanged':False,'qualityThresholdsChanged':False})
+    if (w/'BLOCKED.json').exists():
+        destination=w/'review/stops'/('blocked-'+policy.get('id','original')+'.json');destination.parent.mkdir(parents=True,exist_ok=True)
+        shutil.move(w/'BLOCKED.json',destination)
     save_state(state_path,state)
     return checked_run(install,w,'forge/next.py',['--state','.img2threejs/state.json'])
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--workspace',type=Path,required=True);p.add_argument('--cache',type=Path,required=True);p.add_argument('--restore-reviewed-checkpoint',action='store_true');a=p.parse_args()
-    raise SystemExit(resume(a.workspace.resolve(),a.cache.resolve(),a.restore_reviewed_checkpoint))
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--workspace',type=Path,required=True);p.add_argument('--cache',type=Path,required=True);p.add_argument('--restore-reviewed-checkpoint',action='store_true');p.add_argument('--policy',type=Path);a=p.parse_args()
+    raise SystemExit(resume(a.workspace.resolve(),a.cache.resolve(),a.restore_reviewed_checkpoint,a.policy.resolve() if a.policy else None))

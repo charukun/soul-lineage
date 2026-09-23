@@ -1,9 +1,9 @@
 {
-  "sourceHead": "fe89d28829fb86bc9c739c3461188528e5aa54a7",
-  "runId": 35820510064,
-  "artifactId": 10733237723,
-  "archiveSha256": "3de3092c44bd1d031be7f77934805397ac413bb917fd65c18cbf7ce7a1f994bd",
+  "sourceHead": "b769504147079e04fbc7a46239e2730ff6049caa",
+  "runId": 35821297960,
+  "artifactId": 10733586924,
+  "archiveSha256": "753511883dcb1410231e31f11b7b4340e19a7c28f8b96e8c13a52224d28bf902",
   "factorySha256": "640782f06303e01705562731bb3df8122f272a733ae38b469d898250e905e8ea",
-  "archiveReviewAs": "material-r7-rejected",
-  "reviewToRecord": "scripts/character-forge/fixtures/upstream-scout-material-r7-review.json"
+  "archiveReviewAs": "material-r7-diagnostic-stopped",
+  "reviewToRecord": null
 }
