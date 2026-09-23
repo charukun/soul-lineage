@@ -3,9 +3,10 @@ import {resolveJohakyuMotion as semanticMotion} from '@soul/johakyu-combat/motio
 import {PHASES,defineTechnique,freeze} from './technique.js';
 import {stageChoreography,executionIdentity} from './choreography.js';
 const clone=value=>structuredClone(value);
-export function createBattleExecution({actors,getTime,getSerial,battleId,emit,exchange,pair,fullyDownForFinisher,distance,live}){
+export function createBattleExecution({actors,getTime,getSerial,battleId,emit,exchange,pair,fullyDownForFinisher,distance,live,lifecycle}){
   function node(actor){const c=actor.cursor,phase=PHASES[c.phaseIndex],chain=actor.loadout[phase],technique=chain[Math.min(c.techniqueIndex,chain.length-1)];return {phase,chain,technique,stage:technique.stages[Math.min(c.stageIndex,technique.stages.length-1)]};}
   function begin(actor,target,{reaction=null,finisher=false}={}){
+    if(!live(actor)||actor.action||getTime()<actor.spawnUntil||!target||target.dead||(!finisher&&!live(target)))return null;
     if(finisher&&(!fullyDownForFinisher(target)||!actor.executionSocket||distance(actor,{position:actor.executionSocket.position})>.17||target.finisherClaimedBy&&target.finisherClaimedBy!==actor.id))return null;
     if(!reaction&&!finisher&&!actor.override&&actor.queuedTechnique){actor.override={technique:actor.queuedTechnique,stageIndex:0};actor.queuedTechnique=null;}
     const n=node(actor),technique=reaction?defineTechnique({id:`reaction.${reaction}`,name:reaction==='parry'?'弾き':reaction==='counter'?'返し':'受け',steps:[{kind:reaction,footwork:reaction==='counter'?'chase':'stay',charge:'none'}]},{weapon:actor.equipment.weapon}):finisher?defineTechnique({id:'finisher.execution',name:'トドメ',rhythm:'weight',steps:[{kind:actor.equipment.weapon==='fist'?'bash':'heavy',footwork:'stay',charge:'breath'}]},{weapon:actor.equipment.weapon}):actor.override?.technique||n.technique;
@@ -23,7 +24,7 @@ export function createBattleExecution({actors,getTime,getSerial,battleId,emit,ex
     if(!semanticMotion(execution).supported){actor.readyAt=getTime()+.5;emit({type:'execution-blocked',sourceId:actor.id,targetId:target.id,...executionIdentity(execution),reason:'unsupported-stage'});return null;}
     const staminaBefore=actor.stamina,receipt=beginJohakyuStage(actor,execution,{weapon:execution.weapon,phase,techniqueId:technique.id,...stage,staminaMultiplier:actor.staminaMultiplier??1});
     if(!receipt.allowed){actor.readyAt=getTime()+.35;emit({type:'execution-blocked',sourceId:actor.id,targetId:target.id,...executionIdentity(execution),reason:receipt.reason});return null;}
-    execution.paid=receipt.paid;if(finisher){target.finisherClaimedBy=actor.id;target.finisherClaimAttackId=execution.id;target.executionLifecycle='EXECUTION_LOCK';execution.socket=clone(actor.executionSocket);actor.executionLifecycle='EXECUTING';}actor.action=execution;actor.phaseCue=null;actor.decision=null;actor.readSeconds=0;
+    execution.paid=receipt.paid;if(finisher){execution.socket=clone(actor.executionSocket);lifecycle.lockExecution(actor,target,execution);}actor.action=execution;actor.phaseCue=null;actor.decision=null;actor.readSeconds=0;
     if(firstCast){
       const profile=firstProfile;
       actor.firstInspirationUntil=getTime()+profile.protectionSeconds;
@@ -41,7 +42,7 @@ export function createBattleExecution({actors,getTime,getSerial,battleId,emit,ex
   function finish(actor){
     const action=actor.action;if(!action)return;emit({type:'stage-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});cancelJohakyuStage(action);actor.action=null;actor.readyAt=getTime()+.033;
     if(action.finisher){
-      actor.pendingZanshin=true;actor.executionLifecycle='ACTIVE';actor.executionSocket=null;const victim=actors.get(action.targetId);if(victim?.executionLifecycle==='EXECUTED')victim.executionLifecycle='CORPSE';
+      lifecycle.completeExecution(actor);
       emit({type:'finisher-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});
       return;}
     if(actor.override&&action.techniqueId===actor.override.technique.id){
@@ -70,6 +71,23 @@ export function createBattleExecution({actors,getTime,getSerial,battleId,emit,ex
     actor.cursor={phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:actor.cursor.cycle+1};
     emit({type:'chain-break',actorId:actor.id,sourceId:actor.id,targetId,reason});
   }
-  function interrupt(actor,reason){const action=actor.action;if(!action)return;if(action.finisher){const target=actors.get(action.targetId);if(target?.finisherClaimAttackId===action.id){target.finisherClaimedBy=null;target.finisherClaimAttackId=null;target.executionLifecycle='SETTLED';}actor.executionLifecycle='ACTIVE';actor.executionSocket=null;}cancelJohakyuStage(action);actor.action=null;actor.override=null;actor.chainTargetId=null;actor.chainLastAt=null;actor.phaseCue=null;actor.pendingZanshin=false;actor.cursor={phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:actor.cursor.cycle+1};actor.readyAt=Math.max(actor.readyAt,getTime()+.22);const target=actors.get(action.targetId);if(target)exchange(actor,target,{type:'interrupted',phase:action.phase});emit({type:'interrupted',sourceId:actor.id,targetId:action.targetId,reason,...executionIdentity(action)});}
-  return {node,begin,finish,breakChain,interrupt};
+  function cancel(actor,{delay=.22,pendingZanshin=false}={}){
+    const action=actor.action;
+    cancelJohakyuStage(action);actor.action=null;lifecycle.releaseExecution(actor);
+    actor.override=null;actor.queuedTechnique=null;actor.queuedInspiration=null;
+    actor.chainTargetId=null;actor.chainLastAt=null;actor.phaseCue=null;actor.pendingZanshin=pendingZanshin;
+    actor.decision=null;actor.decisionUntil=0;actor.readSeconds=0;
+    actor.counterUntil=0;actor.counterTarget=null;
+    actor.pursuitSeconds=0;actor.pursuitUntil=0;actor.pursuitTargetId=null;
+    actor.cursor={phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:actor.cursor.cycle+1};
+    actor.readyAt=Math.max(getTime()+delay,Number(actor.staggerUntil)||0);
+    return action;
+  }
+  function interrupt(actor,reason){
+    const action=cancel(actor);if(!action)return;
+    const target=actors.get(action.targetId);if(target)exchange(actor,target,{type:'interrupted',phase:action.phase});
+    emit({type:'interrupted',sourceId:actor.id,targetId:action.targetId,reason,...executionIdentity(action)});
+  }
+  return {node,begin,finish,breakChain,interrupt,cancel};
 }
+

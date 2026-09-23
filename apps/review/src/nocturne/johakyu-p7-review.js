@@ -63,10 +63,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
    else if(!runtime.snapshot().actors.some(row=>row.side==='enemy'&&!row.dead))restartedAt??=elapsed+4;
    if(!enemyFinishingHero&&restartedAt!==null&&elapsed>=restartedAt){
     // Recover this actor in place: a fresh battle identity teleports the player and resets the camera.
-    const at=heroRespawnPoint();hero.hp=hero.maxHp;hero.dead=false;hero.downed=false;hero.incapacitated=false;hero.executionLifecycle='ACTIVE';hero.executionPoseEvidence=null;hero.finisherClaimedBy=null;hero.executionSocket=null;
-    hero.injuries=Object.fromEntries(Object.keys(PARTS).map(p=>[p,{severity:0,at:0}]));hero.action=null;hero.phaseCue=null;hero.pendingZanshin=false;
-    hero.cursor={phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:hero.cursor.cycle+1};hero.decision=null;hero.chainTargetId=null;hero.chainLastAt=null;
-    hero.readyAt=runtime.snapshot().time+.6;hero.position=at;restartedAt=null;encounter++;record({type:'hero-recovered',encounter,position:at});
+    const at=heroRespawnPoint();runtime.recoverActor('hero',{position:at,injuries:Object.fromEntries(Object.keys(PARTS).map(p=>[p,{severity:0,at:0}])),readyDelay:.6});restartedAt=null;encounter++;record({type:'hero-recovered',encounter,position:at});
   }}else restartedAt=null;
  }
  function step(dt=1/60,physicalContacts=[],movement=null){
@@ -90,3 +87,4 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
  function inspect(){const snapshot=last?.frame||frame(runtime.snapshot());return {...(last||{frame:snapshot,events:[],meta:meta(snapshot)}),trace:history.slice(),exchanges:runtime.inspect().exchanges};}
  return Object.freeze({step,inspect,composition:{hero:compileBattleLoadout(config.technique,weapon),enemy:compileBattleLoadout({},'sword')},loadout:config,settings:reviewSettings,get learnedTechniqueIds(){return known.slice();}});
 }
+

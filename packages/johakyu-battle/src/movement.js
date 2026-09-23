@@ -1,11 +1,14 @@
+import {readBattleActorState} from './state.js';
 import {combatBodyOutcome} from '@soul/johakyu-combat/choreography';
 import {COMBAT_LOCOMOTION} from '@soul/johakyu-combat/locomotion';
 import {battleSpacing,footworkVelocity,moveWithResistance} from './exchange.js';
 export function createBattleMovement({actors,manualMoves,bounds,blocked,getTime,targetFor,distance,live,clamp}){
   function move(actor,dt){
-    const before={...actor.position};if(actor.action?.finisher)return;moveWithResistance(actor,dt,{bounds,blocked});
-    if(!live(actor)||getTime()<actor.staggerUntil)return;
-    if(actor.action?.finisher)return;
+    const before={...actor.position},state=readBattleActorState(actor,getTime());
+    actor.moving=false;actor.approachSpeed=0;
+    if(state.rootLocked)return;
+    moveWithResistance(actor,dt,{bounds,blocked});
+    if(!state.canMove)return;
     if(actor.executionSocket&&actor.decision?.intent==='execution-approach'){const socket=actor.executionSocket,next=socket.position,d=Math.hypot(next.x-actor.position.x,next.z-actor.position.z);if(d>.005){const stride=Math.min(d,COMBAT_LOCOMOTION.walkSpeed*dt);const candidate={x:actor.position.x+(next.x-actor.position.x)*stride/d,z:actor.position.z+(next.z-actor.position.z)*stride/d};if(!blocked(actor.position,candidate,actor))actor.position=candidate;actor.moving=stride>.0001;}actor.yaw=socket.yaw;return;}
     const manual=manualMoves.get(actor.id);
     if(manual&&Math.hypot(manual.x,manual.z)>.08){
@@ -33,6 +36,21 @@ export function createBattleMovement({actors,manualMoves,bounds,blocked,getTime,
     if(!blocked(actor.position,next,actor))actor.position=next;
     actor.approachSpeed=Math.max(0,radial);actor.moving=Math.hypot(actor.position.x-before.x,actor.position.z-before.z)>.0001;actor.yaw=Math.atan2(target.position.x-actor.position.x,target.position.z-actor.position.z);
   }
-  function separate(){const rows=[...actors.values()].filter(live);for(let i=0;i<rows.length;i++)for(let j=i+1;j<rows.length;j++){const a=rows[i],b=rows[j],d=distance(a,b);if(d>=1.46)continue;const v=d>.001?{x:(b.position.x-a.position.x)/d,z:(b.position.z-a.position.z)/d}:{x:1,z:0},push=(1.46-d)/(a.action?.finisher||b.action?.finisher?1:2);for(const [actor,sign]of [[a,-1],[b,1]]){if(actor.action?.finisher)continue;const next={x:actor.position.x+v.x*push*sign,z:actor.position.z+v.z*push*sign};if(!blocked(actor.position,next,actor))actor.position=next;}}}
+  function separate(){
+    const rows=[...actors.values()].filter(actor=>live(actor)&&getTime()>=actor.spawnUntil);
+    for(let i=0;i<rows.length;i++)for(let j=i+1;j<rows.length;j++){
+      const a=rows[i],b=rows[j],d=distance(a,b);if(d>=1.46)continue;
+      const lockedA=readBattleActorState(a,getTime()).rootLocked,lockedB=readBattleActorState(b,getTime()).rootLocked;
+      if(lockedA&&lockedB)continue;
+      const v=d>.001?{x:(b.position.x-a.position.x)/d,z:(b.position.z-a.position.z)/d}:{x:1,z:0};
+      const push=(1.46-d)/(lockedA||lockedB?1:2);
+      for(const [actor,sign,locked]of [[a,-1,lockedA],[b,1,lockedB]]){
+        if(locked)continue;
+        const next={x:clamp(actor.position.x+v.x*push*sign,bounds.minX,bounds.maxX),z:clamp(actor.position.z+v.z*push*sign,bounds.minZ,bounds.maxZ)};
+        if(!blocked(actor.position,next,actor))actor.position=next;
+      }
+    }
+  }
   return {move,separate};
 }
+

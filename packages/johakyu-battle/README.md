@@ -43,3 +43,29 @@ Battle2のモデル、森、照明、Bloom、camera、開始操作、心技体�
 Focused testsは全対応カタログの実行identity、同時clash、強弱parry、guard break、軽重impact、renderer非干渉、stamina、複数敵、本編保存/再開、Labの葬焉/不殺を検証する。旧固定3段burstや旧authorityのassertionは新contractの因果検証へ移した。workflowやFast DEV runnerは変更しない。
 
 実ブラウザ: 既存 `apps/review/scripts/nocturne-browser.mjs` を `JOHAKYU_MODE=shared` で実行。immutable Beforeは `BEFORE_ROOT / BEFORE_SOURCE_SHA`。本編は `apps/rinne/tests/johakyu-shared-battle.browser.mjs` の保存→タイトル実入力→実戦→保存→再開。証拠はexact source SHAとスクリーンショット・イベント観測を含める。software WebGLでの証拠は実機FPSの合格を意味しない。
+
+
+## 戦闘状態の所有と更新順
+
+Mutableな正本はruntime内のactor。`state.js` の `readBattleActorState` はその読み取り専用projectionで、別の保存状態ではない。
+`state.phase / canDecide / canMove / rootLocked / weapon` を判断・移動・表示で共用する。
+死亡、ダウン、出現待ち、葬焉、怯み、攻撃、残心、葬焉位置取り、構え、接近、待機の優先順位をここで固定する。
+
+| モジュール | 所有する処理 |
+| --- | --- |
+| runtime | 入力同期、共通時計、更新順、接触結果の適用 |
+| state | 状態の読み取りと行動・移動・武器表示の可否 |
+| targeting | 生存・出現資格を共有した対象選択と脅威判定 |
+| decisions | 戦術判断から攻撃・葬焉位置取りのcommandを選択 |
+| execution | 段の開始・完了・中断、連の進行、待機中の指示の一括解除 |
+| lifecycle | 倒れ込み、葬焉の両者予約、接触後の死体、残心開始・中断・終了 |
+| movement | 正本座標の更新、root lock、境界内の分離補正 |
+| snapshot | 完了したstepのimmutable frame。読み取りによる状態変更は禁止 |
+
+更新順は、無効な参照の解除 → 行動時計とcue → 閃き要求 → 判断 → 残心 → 移動 → 接触 → lifecycle確定 → engagement確定 → snapshot。
+装備変更・対象消失・中断は `execution.cancel` でaction、queue、連、counter、追撃、位置取りと両者の葬焉予約を一括解除する。
+処刑済みの相手を解除しても生存・完全ダウンへ戻さない。
+
+Hostの復帰は `recoverActor`、roster/装備の変更は `sync` を使う。毎frameの `downed:false` 同期は、進行中の葬焉socketを消さない。
+百年転生は同じ `state` とengagementをpose経由で表示へ引き渡す。Battle2は設定変更ごとに表示sessionを更新し、古いrevisionや武器poseを再利用しない。
+全semantic eventはidを持ち、表示driverが開始イベントを欠落させず一度だけ配送する。

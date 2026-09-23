@@ -49,8 +49,9 @@ function lifeRow(state,front){
 }
 function enemyRow(enemy,front){return{id:enemy.id,side:'enemy',kind:'enemy',boss:front.stage>=5,hp:enemy.hp,maxHp:enemy.maxHp,stamina:enemy.battleStamina??100,staminaCap:100,injuries:enemy.injuries,position:{x:enemy.x,z:enemy.z},yaw:enemy.yaw,equipment:{weapon:sharedEnemyWeapon(front,enemy),armor:'cloth',shield:Boolean(enemy.shield)},mind:'balanced',damageScale:front.stage>=5?.9:.65,loadout:{},dead:enemy.dead,downed:enemy.downed,staminaMultiplier:.35,recoverStamina:true,readyDelay:Math.max(0,enemy.cooldown??.25),targetId:enemy.attentionTargetId,canFinish:true};}
 function pose(row){
- const a=row.action;if(!a)return {attack:null,progress:0,stun:row.stagger,guarding:false,targetId:row.exchange?.targetId||null,battleAction:null};
- return {attack:a.kind,progress:a.progress,slot:a.phase,skill:a.name,targetId:a.targetId,stun:row.stagger,guarding:['guard','brace','parry'].includes(a.kind),battleAction:a,
+ const shared={battleState:row.state,engagement:row.engagement,combatReady:row.combatReady,executorId:row.executorId};
+ const a=row.action;if(!a)return {...shared,attack:null,progress:0,stun:row.stagger,guarding:false,targetId:row.exchange?.targetId||null,battleAction:null};
+ return {...shared,attack:a.kind,progress:a.progress,slot:a.phase,skill:a.name,targetId:a.targetId,stun:row.stagger,guarding:['guard','brace','parry'].includes(a.kind),battleAction:a,
    execution:{attackId:a.id,techniqueId:a.techniqueId,recipeId:`rinne-${a.phase}-${a.techniqueId}`,weapon:a.weapon,kind:a.kind,phase:a.phase,stepIndex:a.stageIndex,stageIndex:a.stageIndex,footwork:a.footwork,charge:a.charge,progress:a.progress,motionDuration:a.duration},
    johakyu:{authority:'johakyu-battle',targetId:a.targetId,techniqueId:a.techniqueId,name:a.name,attackId:a.id,phase:a.phase,stepIndex:a.stageIndex,legal:true,status:a.scope==='trial'?'trial':'learned'}};
 }
@@ -105,3 +106,4 @@ export function tickLifeBattle(states,front,dt,{fatalityChance=()=>.5}={}){
  if(cleared&&!active.some(state=>byId.get(state.id)?.action?.finisher)){front.cleared=true;front.clearSeconds+=dt;for(const state of active){state.combat=null;state.attacking=false;result.get(state.id).push({type:'front-cleared',stage:front.stage,nonlethal,engine:'johakyu'});}}
  return result;
 }
+
