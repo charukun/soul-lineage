@@ -244,7 +244,12 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     boneToggle.disabled = !ready;
     boneToggle.setAttribute('aria-pressed', String(Boolean(review()?.bonesVisible)));
     boneToggle.querySelector('b').textContent = review()?.bonesVisible ? 'ON' : 'OFF';
-    boneToggle.querySelector('span').textContent = review()?.boneOverlayKind === 'inferred-guide' ? '推定関節のガイド（未リグ）' : '実際のボーンを表示';
+    const overlayKind = review()?.boneOverlayKind;
+    boneToggle.querySelector('span').textContent = overlayKind === 'inferred-guide'
+      ? '推定関節のガイド（未リグ）'
+      : overlayKind === 'humanoid-rig'
+        ? '主要Humanoidボーン（IK補助骨を除外）'
+        : '主要ボーンを表示';
     if (ready && !autoSelected && !review()?.displayModelId) {
       const first = models.find(model => !model.disabled);
       if (first) {

@@ -17,6 +17,23 @@ const REQUIRED = Object.freeze({
 });
 const OPTIONAL = Object.freeze({ chest: ['chest'] });
 
+const HUMANOID_LINKS = Object.freeze([
+  ['hips', 'spine'],
+  ['spine', 'head'],
+  ['spine', 'leftUpperArm'],
+  ['leftUpperArm', 'leftLowerArm'],
+  ['leftLowerArm', 'leftHand'],
+  ['spine', 'rightUpperArm'],
+  ['rightUpperArm', 'rightLowerArm'],
+  ['rightLowerArm', 'rightHand'],
+  ['hips', 'leftUpperLeg'],
+  ['leftUpperLeg', 'leftLowerLeg'],
+  ['leftLowerLeg', 'leftFoot'],
+  ['hips', 'rightUpperLeg'],
+  ['rightUpperLeg', 'rightLowerLeg'],
+  ['rightLowerLeg', 'rightFoot']
+].map(edge => Object.freeze(edge)));
+
 const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 function aliases(values) {
@@ -36,11 +53,23 @@ function findBone(rows, names) {
   return null;
 }
 
+function isAncestor(ancestor, node) {
+  for (let parent = node?.parent; parent; parent = parent.parent) if (parent === ancestor) return true;
+  return false;
+}
+
+function validateHierarchy(humanoid) {
+  const invalid = HUMANOID_LINKS.filter(([parent, child]) => !isAncestor(humanoid[parent], humanoid[child]));
+  if (invalid.length) {
+    throw new Error(`KayKit Rig_Medium hierarchy invalid: ${invalid.map(([parent, child]) => `${child} must descend from ${parent}`).join(', ')}`);
+  }
+}
+
 /**
  * Map KayKit's public Rig_Medium bone names to the renderer's provider-neutral
  * humanoid contract. Rig_Medium is the shared rig-family identifier, not a
- * required glTF scene-node label. Missing required bones still fail closed
- * instead of silently substituting the legacy VRM rig.
+ * required glTF scene-node label. Missing bones or broken humanoid ancestry
+ * fail closed instead of silently substituting the legacy VRM rig.
  */
 export function kaykitHumanoidFromGLTF(gltf) {
   if (!gltf?.scene?.traverse) throw new Error('KayKit Rig_Medium requires a loaded glTF scene');
@@ -55,7 +84,9 @@ export function kaykitHumanoidFromGLTF(gltf) {
   }
   const missing = Object.entries(REQUIRED).filter(([key]) => !humanoid[key]).map(([key]) => key);
   if (missing.length) throw new Error(`KayKit Rig_Medium bones missing: ${missing.join(', ')}`);
+  validateHierarchy(humanoid);
   return Object.freeze(humanoid);
 }
 
 export const KAYKIT_HUMANOID_BONES = Object.freeze(Object.keys(REQUIRED));
+export const KAYKIT_HUMANOID_EDGES = HUMANOID_LINKS;

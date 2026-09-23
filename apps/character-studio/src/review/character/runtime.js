@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ageAppearance, appearanceForCharacter, crowdPlan, KAYKIT_MODEL_BY_KEY, PoseSchedule, GENES, YEAR_MS } from '@soul/characters';
 import { createShinoProductionPool as createCharacterProductionPool } from '@soul/rendering/master-character-production';
-import { kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
+import { KAYKIT_HUMANOID_EDGES, kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
 import { reviewSettings, createReviewCohort, editReviewCharacter, serializeReviewSession, deserializeReviewSession,
   reviewGlbDocument, MAX_MODEL_BYTES, MAX_SESSION_BYTES } from './state.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
@@ -211,24 +211,54 @@ function start() {
     });
     updateMarker(); applyInspectionTraits(false); syncBoneOverlay();
   }
+  function createHumanoidBoneOverlay(bones) {
+    const edges = KAYKIT_HUMANOID_EDGES.filter(([from, to]) => bones[from] && bones[to]);
+    const keys = [...new Set(edges.flat())];
+    if (!edges.length || !keys.length) return null;
+    const linesGeometry = new THREE.BufferGeometry();
+    const pointsGeometry = new THREE.BufferGeometry();
+    linesGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(edges.length * 6), 3));
+    pointsGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(keys.length * 3), 3));
+    const linesMaterial = new THREE.LineBasicMaterial({ color: '#67d6b2', transparent: true, opacity: .94, depthTest: false, depthWrite: false });
+    const pointsMaterial = new THREE.PointsMaterial({ color: '#f0d28d', size: 5, sizeAttenuation: false, transparent: true, opacity: .96, depthTest: false, depthWrite: false });
+    const lines = new THREE.LineSegments(linesGeometry, linesMaterial), points = new THREE.Points(pointsGeometry, pointsMaterial);
+    lines.renderOrder = 20; points.renderOrder = 21; lines.frustumCulled = false; points.frustumCulled = false;
+    const group = new THREE.Group(), point = new THREE.Vector3();
+    group.name = 'HumanoidRigOverlay'; group.add(lines, points);
+    group.userData.update = () => {
+      const linePositions = linesGeometry.getAttribute('position');
+      edges.forEach(([from, to], index) => {
+        bones[from].getWorldPosition(point); linePositions.setXYZ(index * 2, point.x, point.y, point.z);
+        bones[to].getWorldPosition(point); linePositions.setXYZ(index * 2 + 1, point.x, point.y, point.z);
+      });
+      linePositions.needsUpdate = true;
+      const pointPositions = pointsGeometry.getAttribute('position');
+      keys.forEach((key, index) => {
+        bones[key].getWorldPosition(point); pointPositions.setXYZ(index, point.x, point.y, point.z);
+      });
+      pointPositions.needsUpdate = true;
+    };
+    group.userData.dispose = () => {
+      linesGeometry.dispose(); pointsGeometry.dispose(); linesMaterial.dispose(); pointsMaterial.dispose();
+    };
+    group.userData.update();
+    return group;
+  }
   function clearBoneOverlay() {
-    boneHelper?.removeFromParent(); boneHelper?.geometry.dispose(); boneHelper?.material.dispose();
+    boneHelper?.removeFromParent(); boneHelper?.userData.dispose?.();
     boneHelper = null; boneTarget = null;
   }
   function syncBoneOverlay() {
-    const target = proceduralRoot || actors[settings.selected]?.root;
-    review.boneOverlayKind = target?.userData.boneOverlayKind || 'rig';
-    if (!boneOverlayEnabled || !target) { clearBoneOverlay(); review.bonesVisible = false; return; }
-    if (boneTarget === target && boneHelper) return;
+    const active = inspectionTarget(), target = active?.root, bones = active?.bones;
+    review.boneOverlayKind = bones ? 'humanoid-rig' : 'unavailable';
+    if (!boneOverlayEnabled || !target || !bones) { clearBoneOverlay(); review.bonesVisible = false; return; }
+    if (boneTarget === target && boneHelper) { boneHelper.userData.update?.(); review.bonesVisible = true; return; }
     clearBoneOverlay();
-    const helper = new THREE.SkeletonHelper(target);
-    if (!helper.bones.length) { helper.geometry.dispose(); helper.material.dispose(); review.bonesVisible = false; return; }
-    helper.material.depthTest = false; helper.material.depthWrite = false;
-    helper.material.transparent = true; helper.material.opacity = .94;
-    helper.renderOrder = 20; helper.frustumCulled = false;
+    const helper = createHumanoidBoneOverlay(bones);
+    if (!helper) { review.bonesVisible = false; return; }
     scene.add(helper); boneHelper = helper; boneTarget = target;
     review.bonesVisible = true;
-    review.boneOverlayKind = target.userData.boneOverlayKind || 'rig';
+    review.boneOverlayKind = 'humanoid-rig';
   }
   review.setBoneOverlay = enabled => {
     boneOverlayEnabled = Boolean(enabled); syncBoneOverlay();
@@ -449,6 +479,7 @@ function start() {
         proceduralRoot.rotation.y = settings.rotate ? elapsed * .22 : 0;
         drawnActors = 1;
       }
+      boneHelper?.userData.update?.();
       renderer.render(scene, camera);
       if (!settings.paused && Number.isFinite(actual) && actual > 0) { if (warmup > 0) warmup--; else { frames.push(actual * 1000); if (frames.length > 600) frames.shift(); } }
       if (now - lastMetrics > 500) {
