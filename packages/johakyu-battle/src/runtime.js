@@ -94,13 +94,11 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     actor.readSeconds+=dt;
     if(!actor.decision||time>=actor.decisionUntil){actor.decision={...chooseExchangeIntent({actor,target,exchange:pair(actor,target).state,phase:n.phase,distance:distance(actor,target),threat,readSeconds:actor.readSeconds,serial:actor.cursor.cycle+actor.cursor.stageIndex}),targetId:target.id};actor.decisionUntil=time+.12;}
     if(actor.decision.intent==='commit'&&actor.canAttack!==false){
-      const cueKey=`${battleId}:${actor.id}:${actor.cursor.cycle}:${n.phase}`;
-      if(actor.self&&actor.cursor.stageIndex===0&&actor.cursor.techniqueIndex===0&&actor.phaseCueKey!==cueKey){actor.phaseCueKey=cueKey;actor.phaseCue={key:cueKey,phase:n.phase,startedAt:time,duration:.5};actor.readyAt=time+.5;actor.decision=null;emit({type:'phase-cue',sourceId:actor.id,actorId:actor.id,targetId:target.id,phase:n.phase,key:cueKey,duration:.5});return;}
       begin(actor,target);}
   }
   function move(actor,dt){
     const before={...actor.position};moveWithResistance(actor,dt,{bounds,blocked});
-    if(!live(actor)||time<actor.staggerUntil||actor.phaseCue&&time<actor.readyAt)return;
+    if(!live(actor)||time<actor.staggerUntil)return;
     const a=actor.action,target=actors.get(a?.targetId||actor.decision?.targetId);if(!target)return;
     const footwork=a?.footwork||actor.decision?.footwork||'stay',speed=SPEED[footwork]??1,d=distance(actor,target),spacing=battleSpacing(actor,target,d);
     const movement=footworkVelocity(footwork,actor.position,target.position,speed*(combatBodyOutcome(actor).movementScale)*(a?.chainLength>1&&['forward','chase','rush'].includes(footwork)?1.12:1));
