@@ -22,12 +22,12 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     if(!actor){
       const domain=createJohakyuDomainActor({...raw,hp:Math.max(0,raw.hp??100),incapacitated:Boolean(raw.downed||raw.incapacitated)});
       actor={...domain,position:{x:raw.position?.x??0,z:raw.position?.z??0},yaw:raw.yaw||0,action:null,cursor:{phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:0},
-        readyAt:time+(raw.readyDelay??.25),chainTargetId:null,chainLastAt:null,readSeconds:0,decision:null,decisionUntil:0,posture:0,defenseDebt:0,lastContactAt:-10,staggerUntil:0,impulseVelocity:{x:0,z:0},counterUntil:0,counterTarget:null,downed:Boolean(raw.downed),downedAt:raw.downed?time:null,spawnUntil:time+(raw.spawnSeconds??0)};
+        readyAt:time+(raw.readyDelay??.25),chainTargetId:null,chainLastAt:null,readSeconds:0,decision:null,decisionUntil:0,posture:0,defenseDebt:0,lastContactAt:-10,staggerUntil:0,impulseVelocity:{x:0,z:0},counterUntil:0,counterTarget:null,downed:Boolean(raw.downed),downedAt:raw.downed?time:null,spawnUntil:time+(raw.spawnSeconds??0),pursuitSeconds:0,pursuitTargetId:null,pursuitReadyAt:0};
       actors.set(raw.id,actor);
     }
     const changedWeapon=actor.equipment.weapon!==raw.equipment?.weapon,wasDowned=actor.downed;
     if(changedWeapon&&raw.equipment){cancelJohakyuStage(actor.action);actor.action=null;actor.override=null;actor.chainTargetId=null;actor.chainLastAt=null;actor.cursor={phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:actor.cursor.cycle+1};}
-    for(const key of ['hp','maxHp','stamina','staminaCap','injuries','dead','downed','position','equipment','ageSeconds','staminaMultiplier','damageScale','mind','stance','zanshin','nonlethal','self','kind','boss','tempo','finisherProfile','targetId','canAttack','canFinish','scope','spawnStyle','recoverStamina','mitigation'])if(raw[key]!==undefined)actor[key]=clone(raw[key]);
+    for(const key of ['hp','maxHp','stamina','staminaCap','injuries','dead','downed','position','equipment','ageSeconds','staminaMultiplier','damageScale','mind','stance','zanshin','nonlethal','self','kind','boss','tempo','finisherProfile','targetId','canAttack','canFinish','scope','spawnStyle','recoverStamina','mitigation','pursuit'])if(raw[key]!==undefined)actor[key]=clone(raw[key]);
     actor.stability=raw.stability??({chinshin:.95,seigan:.72,ryu:.65,kosei:.58}[actor.stance]||.7);
     if(raw.downed!==undefined){actor.incapacitated=Boolean(raw.downed);actor.downedAt=raw.downed?(wasDowned?actor.downedAt??time:time):null;}
     if(raw.loadout){actor.loadout=compileBattleLoadout(raw.loadout,actor.equipment.weapon);}
@@ -105,6 +105,17 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     }
     if(!target){actor.decision=null;return;}
     actor.targetId=target.id;
+    // A committed retreat is read from actual enemy displacement, not its intended stance.
+    if(actor.pursuit&&target.side==='enemy'&&actor.pursuitTargetId===target.id&&actor.pursuitSeconds>=.68
+      &&time>=actor.pursuitReadyAt&&time>=actor.readyAt&&actor.canAttack!==false&&actor.stamina>=22
+      &&distance(actor,target)>battleSpacing(actor,target,distance(actor,target)).preferredSpacing
+      &&distance(actor,target)<4.5&&!blocked(actor.position,target.position,actor)){
+      const kind=actor.equipment.weapon==='fist'?'straight':'dash';
+      actor.override={technique:defineTechnique({id:'heart.pursuer',name:'追う者',steps:[{kind,footwork:'rush',charge:'none'}]},{weapon:actor.equipment.weapon}),stageIndex:0};
+      actor.pursuitSeconds=0;actor.pursuitReadyAt=time+2.8;
+      if(begin(actor,target)){emit({type:'pursuit-leap',sourceId:actor.id,targetId:target.id});return;}
+      actor.override=null;
+    }
     const opposing=target.action,threat=opposing&&opposing.targetId===actor.id&&opposing.choreography.offense&&!opposing.contactResolved?opposing:null;
     if(threat&&time>=actor.readyAt&&threat.elapsed/threat.duration>.15&&distance(actor,target)<battleSpacing(target,actor,distance(actor,target)).engagementRange){
       const current=node(actor),authored=['parry','guard','brace'].includes(current.stage.kind);
@@ -196,7 +207,17 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     }
     for(const [key,p]of exchanges)if(p.mode==='zanshin'&&!actors.get(p.completedBy)?.action&&time>=(actors.get(p.completedBy)?.readyAt??0))exchanges.set(key,reduceJohakyuExchange(p,{type:'settle'}));
     for(const a of actors.values())decide(a,delta);
+    const beforeMove=new Map([...actors.values()].map(a=>[a.id,{...a.position}]));
     for(const a of actors.values())move(a,delta);separate();
+    for(const a of actors.values()){
+      if(!a.pursuit||!live(a)){a.pursuitSeconds=0;continue;}
+      const target=targetFor(a),previous=target&&beforeMove.get(target.id),away=target&&previous
+        ?(target.position.x-previous.x)*(previous.x-a.position.x)+(target.position.z-previous.z)*(previous.z-a.position.z):0;
+      if(target?.side==='enemy'&&target.id===a.pursuitTargetId&&(target.action?.footwork==='retreat'||target.decision?.footwork==='retreat')
+        &&away>.0001&&target.moving)a.pursuitSeconds=Math.min(1.5,a.pursuitSeconds+delta);
+      else a.pursuitSeconds=0;
+      a.pursuitTargetId=target?.id||null;
+    }
     for(const a of actors.values()){
       const action=a.action;if(!action||!action.choreography.offense||action.contactResolved)continue;
       if(action.elapsed>=action.duration*action.choreography.contactProgress){action.elapsed=action.duration*action.choreography.contactProgress;applyContact(a,action,samples);}
