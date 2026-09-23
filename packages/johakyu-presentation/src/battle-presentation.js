@@ -28,7 +28,7 @@ export function presentBattleAction(action){
  return {...action,motion:presentation.motion,legal:action.legal&&presentation.supported,presentation,presentationClip:presentation.clip};
 }
 const presentationCache=new WeakMap();
-const PHASE_PRESENTATION={jo:{clip:'Jump_Start',poseStart:.04,poseEnd:.56,glow:'#ff8f32'},ha:{clip:'Blocking',poseStart:.08,poseEnd:.76,glow:'#ffa447'},kyu:{clip:'Spellcast_Raise',poseStart:.1,poseEnd:.7,glow:'#ffbb63'},zanshin:{clip:'Blocking',poseStart:.06,poseEnd:.84,glow:'#e4c984'}};
+const PHASE_PRESENTATION={jo:{clip:'Jump_Start',poseStart:.04,poseEnd:.56,glow:'#ff8f32'},ha:{clip:'Blocking',poseStart:.08,poseEnd:.76,glow:'#ffa447'},kyu:{clip:'Spellcast_Raise',poseStart:.1,poseEnd:.7,glow:'#ffbb63'},zanshin:{clip:'Idle',poseStart:.08,poseEnd:.34,glow:'#e4c984'}};
 export function presentPhaseCue(cue){return cue?{...cue,...PHASE_PRESENTATION[cue.phase]}:null;}
 export function presentBattleFrame(frame){return {...frame,actors:frame.actors.map(row=>({...row,phaseCue:presentPhaseCue(row.phaseCue),action:presentBattleAction(row.action),locomotion:row.locomotion?{...row.locomotion,...resolveJohakyuLocomotion({footwork:row.locomotion.kind})}:null}))};}
 export function presentBattleEvents(events){return events.map(event=>event.techniqueId&&event.kind?{...event,presentation:resolveBattlePresentation(event)}:event);}
