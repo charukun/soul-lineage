@@ -71,7 +71,7 @@ test('a downed target gets a deliberate pause, then a complete two-second finish
  const start=events.find(e=>e.type==='finisher-start'),contact=events.find(e=>e.type==='finisher'),complete=events.find(e=>e.type==='finisher-complete');
  assert.ok(start);assert.ok(start.time>=1.1);assert.ok(contact.time>start.time);assert.ok(complete.time>contact.time);
  assert.ok(Math.abs(complete.time-start.time-2)<.08);assert.equal(events.filter(e=>e.type==='finisher').length,1);
- const after=runtime.snapshot().actors.find(row=>row.id==='a');assert.equal(after.phaseCue,null);
+ const after=runtime.snapshot().actors.find(row=>row.id==='a');assert.equal(after.phaseCue?.phase,'zanshin');
  const cueRuntime=createJohakyuBattleRuntime({battleId:'finisher-zanshin',actors:[a,b]});let cueFrame=null;
  for(let i=0;i<60*5&&!cueFrame;i++){const result=cueRuntime.step(1/60);if(result.events.some(e=>e.type==='finisher-complete'))cueFrame=result.frame;}
  const cue=cueFrame?.actors.find(row=>row.id==='a').phaseCue;
