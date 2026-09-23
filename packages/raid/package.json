@@ -15,6 +15,7 @@
     "@soul/tidebreak-combat": "*",
     "@soul/housing-assets": "*",
     "@soul/input": "*",
-    "@soul/night-assets": "*"
+    "@soul/night-assets": "*",
+    "@soul/johakyu-combat": "*"
   }
 }

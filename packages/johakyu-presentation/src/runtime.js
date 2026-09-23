@@ -1,6 +1,7 @@
 import {createRinneWeapon} from '@soul/assets/equipment/three';
 import {presentBattleFrame,presentBattleEvents} from './battle-presentation.js';
 import {JOHAKYU_WEAPON_MOTIONS} from './motion-bindings.js';
+import {combatStanceRootFrame} from './observed-locomotion.js';
 import {createCanonicalPresentationDriver} from './driver.js';
 import {resolveFatiguePresentation} from './fatigue.js';
 import {sampleFatigueMotion} from './fatigue-motion.js';
@@ -661,8 +662,7 @@ function createDrivenPort(){
    if(!a.sheathed&&!a.drawMotion)return;
    const weaponId=row.equipment?.weapon,name=weaponMesh[weaponId],weapon=name?a.root.getObjectByName(name):null,right=armRig(a,'r'),frame=leftHipSheathFrame(a);
    if(!weapon?.visible||!right?.socket||!frame){a.sheathed=false;a.drawMotion=null;return;}
-   const liveOpponent=[...bindings.values()].some(other=>other!==a&&other.canonicalRow&&other.canonicalRow.side!==row.side&&!other.canonicalRow.dead&&!other.canonicalRow.downed);
-   const combatReady=Boolean(row.action||liveOpponent);
+   const combatReady=Boolean(row.action||row.combatReady);
    if(!a.drawMotion&&combatReady)a.drawMotion={key:row.action?.id||('ready:'+String(row.id||a.canonicalId||'')),elapsed:0,duration:.44};
    const axis=bladeAxisForSheath(a,weapon);if(!axis)return;ensureScabbard(a,weaponId,frame,axis.length);
    const {mouthWorld,directionWorld,leftWorld,forwardWorld}=frame,smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
@@ -673,6 +673,25 @@ function createDrivenPort(){
    for(let pass=0;pass<2;pass++){alignBladeToSheath(a,right,weapon,directionWorld,alignWeight);solveArmToTarget(a,right,()=>bladeAxisForSheath(a,weapon)?.hilt??right.socket.getWorldPosition(new THREE.Vector3()),target,a.drawMotion?.9:1);}
    const left=armRig(a,'l');if(left&&!row.equipment?.shield){const hold=mouthWorld.clone().addScaledVector(directionWorld,.08).addScaledVector(leftWorld,.025),leftWeight=a.drawMotion?1-smooth(clamp((progress-.45)/.42,0,1)):1;solveArmToTarget(a,left,()=>left.socket.getWorldPosition(new THREE.Vector3()),hold,leftWeight*.8);}
    if(a.drawMotion&&progress>=1){a.drawMotion=null;a.sheathed=false;}
+ }
+ function updateCombatReadyWeapon(a,row,dt){
+   const sheathable=a.kind==='hero'&&['sword','dagger','great'].includes(row.equipment?.weapon);
+   if(!sheathable)return;
+   if(row.phaseCue?.phase==='zanshin'){a.autoSheath=null;return;}
+   const ready=Boolean(row.action||row.combatReady);
+   if(ready){
+     if(a.autoSheath){a.autoSheath=null;a.sheathed=true;}
+     if(a.sheathed||a.drawMotion)moveBladeFromSheath(a,row,dt);
+     return;
+   }
+   if(a.drawMotion){a.drawMotion=null;a.sheathed=false;}
+   if(a.sheathed){moveBladeFromSheath(a,row,0);return;}
+   const key='range:'+String(row.id||a.canonicalId||'');
+   if(a.autoSheath?.key!==key)a.autoSheath={key,elapsed:0,duration:.52};
+   a.autoSheath.elapsed+=Math.max(0,dt);
+   const progress=clamp(a.autoSheath.elapsed/a.autoSheath.duration,0,1);
+   moveBladeToSheath(a,progress,key);
+   if(progress>=1){a.autoSheath=null;a.sheathed=true;a.sheathMotion=null;}
  }
  const driver=createCanonicalPresentationDriver({
   appearanceKey:row=>[row.kind,row.boss,row.kind==='hero'?row.equipment.armor:null].join(':'),
@@ -686,7 +705,7 @@ function createDrivenPort(){
    if(row.locomotion?.clip&&!asset.animations.some(clip=>clip.name===row.locomotion.clip))return {supported:false,reason:'unaccepted-locomotion:'+row.locomotion.kind};
    return {supported:true};
   },
-  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss),row.kind==='hero'?(row.equipment.armor==='heavy'?'adventurers/Knight':'adventurers/Rogue'):null);a.spawnStyle=row.spawnStyle||null;a.spawn=a.spawnStyle==='battlebk-ground'&&a.kind!=='hero'?.7:0;a.canonicalAction=a.spawn>0?'spawn:battlebk-ground':null;a.canonicalId=row.id;bindings.set(row.id,a);
+  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss),row.kind==='hero'?(row.equipment.armor==='heavy'?'adventurers/Knight':'adventurers/Rogue'):null);a.spawnStyle=row.spawnStyle||null;a.spawn=a.spawnStyle==='battlebk-ground'&&a.kind!=='hero'?.7:0;a.canonicalAction=a.spawn>0?'spawn:battlebk-ground':null;a.canonicalId=row.id;a.combatReadyWeight=0;a.autoSheath=null;if(a.kind==='hero'&&['sword','dagger','great'].includes(row.equipment?.weapon))a.sheathed=true;bindings.set(row.id,a);
     // Bind the few authored attack clips while the actor spawns, before its first technique.
     for(const name of new Set([...Object.values(JOHAKYU_WEAPON_MOTIONS[row.equipment.weapon]||{}),'Block_Attack'])){const clip=a.clips.get(name);if(clip)a.mixer.clipAction(clip);}
     return a;},
@@ -727,7 +746,7 @@ function createDrivenPort(){
     a.presentationActionId=null;a.action.paused=false;if(initial&&terminal)a.action.time=a.clips.get(clip).duration-.000001;a.mixer.update(dt);
     if(row.moving&&!terminal){a.stepClock-=dt;if(a.stepClock<=0){a.stepClock=.34;sound.footstep?.({pan:spatialPan(a.pos),rate:a.kind==='hero'?1.04:.94});}}else a.stepClock=0;
    }
-   applyFatigue(a,row,dt);applyTechniquePresentationPose(a,row);applyImpactRecoil(a);applyParryRecoil(a);if(!terminal&&(a.sheathed||a.drawMotion))moveBladeFromSheath(a,row,dt);sampleWeaponTrace(a,dt);
+   applyFatigue(a,row,dt);a.combatReadyWeight+=(Number(Boolean(row.combatReady))-a.combatReadyWeight)*(1-Math.exp(-Math.max(0,dt)*10));const readyFrame=combatStanceRootFrame({active:a.combatReadyWeight>.001,held:a.combatReadyWeight,attack:Boolean(row.action?.motion?.offense),progress:row.action?.progress});a.posture.position.y-=readyFrame.drop;a.posture.rotation.x-=readyFrame.pitch;applyTechniquePresentationPose(a,row);applyImpactRecoil(a);applyParryRecoil(a);if(!terminal)updateCombatReadyWeapon(a,row,dt);sampleWeaponTrace(a,dt);
    if(terminalState.removalClock)a.deathTime+=dt;else a.deathTime=0;
    a.flash=Math.max(0,a.flash-dt);a.startGlow=Math.max(0,a.startGlow-dt);const startColor=startGlowColors[a.startGlowPhase]||startGlowColors.other;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(hitFlashColor);mat.emissiveIntensity=1.7;}else if(a.startGlow>0){mat.emissive.copy(startColor);mat.emissiveIntensity=Math.max(power,1.5*a.startGlow/.18);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
   },
