@@ -4,7 +4,7 @@ import {loadDemonMasterModel} from '../master-model.js';
 import {dressReaper} from './reaper-wardrobe.js';
 import {devourInteractionFrame,devourInteractionSide,sampleDevourMotion,samplePreyMotion} from './devour-motion.js';
 import {blendPoint,stepCombatPresentation} from '../combat-presentation.js';
-import {createObservedCombatLocomotion} from './observed-combat-locomotion.js';
+import {applyObservedCombatLocomotionPose,combatStanceWeight,createObservedCombatLocomotion} from '@soul/johakyu-presentation/observed-locomotion';
 
 const X=new T.Vector3(1,0,0),Y=new T.Vector3(0,1,0),Z=new T.Vector3(0,0,1);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -51,22 +51,21 @@ export function createReaperPlayer({gltf,rig}) {
     const interaction=devour?devourInteractionFrame({x:player.x,z:player.z,yaw:player.yaw||0},capture,preyMotion):null;
     combatPresentation=stepCombatPresentation(combatPresentation,!devour&&!preview&&!dead?q:null,dt);root.userData.combatBlend=combatPresentation.eased;
     if(preview||devour||dead)combatPresence=0;else if(q)combatPresence=1;else combatPresence=Math.max(0,combatPresence-clamp(dt,0,.08)/.42);
-    const pose=combatPresentation.pose,cw=combatPresentation.eased,stanceWeight=Math.max(cw,combatPresence*combatPresence*(3-2*combatPresence));
-    const gait=locomotion.sample(player,dt,{enabled:!preview&&!dead&&!devour,combatWeight:stanceWeight}),phase=gait.phase,stride=gait.swing,stance=gait.stance;
+    const pose=combatPresentation.pose,cw=combatPresentation.eased,held=Math.max(cw,combatPresence*combatPresence*(3-2*combatPresence));
+    const stanceWeight=combatStanceWeight({active:held>0,held,attack:Boolean(q&&Number.isFinite(player.progress)),progress:player.progress});
+    const gait=locomotion.sample(player,dt,{enabled:!preview&&!dead&&!devour,combatWeight:stanceWeight}),phase=gait.phase;
     root.userData.combatStance=stance;root.userData.locomotionSpeed=gait.speed;
     root.position.set(player.x,0,player.z);root.rotation.set(0,player.yaw||0,0);
     actor.sample({...appearance,dead},Math.max(0,time),bones=>{
       const turn=(bone,axis,value)=>bone.quaternion.multiply(rotation.setFromAxisAngle(axis,value));
-      turn(bones.leftUpperLeg,X,stride-stance*.085);turn(bones.rightUpperLeg,X,-stride+stance*.055);
-      turn(bones.leftLowerLeg,X,Math.max(0,-stride)*1.2+stance*.09);turn(bones.rightLowerLeg,X,Math.max(0,stride)*1.2+stance*.09);
-      turn(bones.leftUpperLeg,Z,stance*.035);turn(bones.rightUpperLeg,Z,-stance*.035);
+      applyObservedCombatLocomotionPose(bones,gait,{guardArms:false,breath:Math.sin(time*2.35)});
       turn(bones.spine,X,clamp(devour?devour.pitch*.65-(interaction?.recoil||0)*.08:(pose?.pitch||0)*cw,-.65,.8));
       turn(bones.spine,Y,clamp(devour?devour.twist-(interaction?.side||1)*(interaction?.recoil||0)*.035:(pose?.twist||0)*cw,-1.1,1.1));
       turn(bones.spine,Z,clamp((pose?.roll||0)*cw+(interaction?.side||1)*(interaction?.recoil||0)*.025,-.45,.45));
       if(!devour)for(const finger of ['Index','Middle','Ring','Little'])for(const joint of ['Proximal','Intermediate','Distal']){const b=bones['left'+finger+joint];if(b)turn(b,Z,joint==='Proximal'?-.65:-.8);}
       turn(bones.head,X,devour?devour.headPitch*.5+(interaction?.recoil||0)*.055:-.04);
       turn(bones.head,Y,devour?devour.headYaw:Math.sin(time*.6)*.035);
-      bones.hips.position.y+=(pose?.crouch||0)*.18*cw+(pose?.lift||0)*.5*cw+gait.bob-stance*.018+(!gait.moving?Math.sin(time*1.5)*.004:0);
+      bones.hips.position.y+=(pose?.crouch||0)*.18*cw+(pose?.lift||0)*.5*cw+(!gait.moving?Math.sin(time*1.5)*.004:0);
       if(devour){bones.hips.position.y+=devour.drop*.28;turn(bones.leftUpperLeg,X,-.2);turn(bones.rightUpperLeg,X,-.2);turn(bones.leftLowerLeg,X,.35);turn(bones.rightLowerLeg,X,.35);}
     });
     const baseRight=[.43,1.02,.14],baseLeft=[-.33,1.08,.12-gait.armSwing];

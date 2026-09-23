@@ -11,7 +11,8 @@
     "./driver": "./src/driver.js",
     "./technique-presentation": "./src/technique-presentation.js",
     "./battle-presentation": "./src/battle-presentation.js",
-    "./motion-bindings": "./src/motion-bindings.js"
+    "./motion-bindings": "./src/motion-bindings.js",
+    "./observed-locomotion": "./src/observed-locomotion.js"
   },
   "dependencies": {
     "@soul/assets": "*",
