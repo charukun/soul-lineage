@@ -35,6 +35,15 @@ run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace
 run('node',['scripts/character-forge/render_upstream.mjs',workspace,'form-refinement']);
 run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','render-capture','--evidence','review/form-refinement/render-receipt.json']);
 run('python3',['scripts/character-forge/review_upstream.py','--workspace',workspace,'--cache',cache,'--pass-id','form-refinement']);
+run('python3',['scripts/character-forge/apply_visual_review.py','--workspace',workspace,'--cache',cache,'--review','scripts/character-forge/fixtures/upstream-scout-form-r0-review.json']);
+run('node',['--test','scripts/character-forge/reference-camera.test.mjs']);
+run('python3',['scripts/character-forge/prepare_projection_maps.py','--workspace',workspace,'--cache',cache]);
+run('python3',['scripts/character-forge/author_scout_material.py','--workspace',workspace,'--cache',cache]);
+run('python3',['packages/assets/forge/upstream_workspace.py','run','--workspace',workspace,'--entry','forge/stage3_build/generate_threejs_factory.py','--','object-sculpt-spec.json','--pass-id','material-pass','--out','build/material-pass.ts']);
+run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','build-current-pass','--evidence','build/material-pass.ts']);
+run('node',['scripts/character-forge/render_upstream.mjs',workspace,'material-pass']);
+run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','render-capture','--evidence','review/material-pass/render-receipt.json']);
+run('python3',['scripts/character-forge/review_upstream.py','--workspace',workspace,'--cache',cache,'--pass-id','material-pass']);
 const lock=JSON.parse(readFileSync('package-lock.json','utf8')).packages['node_modules/three'];
 if(!/^https:\/\/registry\.npmjs\.org\/three\/-\/three-[0-9.]+\.tgz$/.test(lock.resolved))throw new Error('Unexpected Three.js source');
 const response=await fetch(lock.resolved);if(!response.ok)throw new Error(`Three.js download failed: ${response.status}`);
