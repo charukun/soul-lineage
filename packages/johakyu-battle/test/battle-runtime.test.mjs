@@ -25,6 +25,10 @@ test('impact separates light/heavy force, guard resistance, reversal and directi
  const broken=resolveImpact({execution:execution('heavy','great'),source:{...a,equipment:{weapon:'great'}},target:{...b,posture:95,stamina:4},defense:'guard'});assert.ok(broken.guardBreak);assert.ok(broken.interrupted);
  const strong=resolveImpact({execution:execution(),source:a,target:{...b,stability:1},defense:'parry'}),weak=resolveImpact({execution:execution('heavy','great'),source:{...a,equipment:{weapon:'great'}},target:{...b,stability:.3},defense:'parry',timingError:.18});assert.ok(strong.strongParry);assert.ok(strong.initiativeReversal);assert.equal(weak.parryStrength,'weak');assert.ok(strong.sourceKick>weak.sourceKick);assert.ok(strong.hitstop>=.1&&strong.hitstop<=.14);assert.ok(weak.hitstop>=.1&&weak.hitstop<=.14);
 });
+test('jo ha and kyu expose distinct contact density without changing damage authority',()=>{
+ const a=actor('a','party'),b=actor('b','enemy'),jo=resolveImpact({execution:execution('slash','sword','jo'),source:a,target:b}),ha=resolveImpact({execution:execution('heavy','great','ha'),source:{...a,equipment:{weapon:'great'}},target:b}),kyu=resolveImpact({execution:execution('heavy','great','kyu'),source:{...a,equipment:{weapon:'great'}},target:b});
+ assert.ok(jo.hitstop>=.035&&jo.hitstop<=.05);assert.ok(ha.hitstop>=.06&&ha.hitstop<=.09);assert.ok(kyu.hitstop>=.09&&kyu.hitstop<=.12);assert.ok(jo.hitstop<ha.hitstop&&ha.hitstop<kyu.hitstop);
+});
 test('exchange uses weapon range, phase, mind, posture and initiative',()=>{
  const a=actor('a','party'),b=actor('b','enemy'),exchange=createJohakyuExchangeState({sourceId:'a',targetId:'b'});
  const run=extra=>chooseExchangeIntent({actor:a,target:b,exchange,phase:'jo',distance:2,readSeconds:0,...extra});
