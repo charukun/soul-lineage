@@ -111,12 +111,18 @@ are still required; installation success is not completion.
 
 ## Outstanding implementation and acceptance
 
-All reconstruction/visual acceptance items remain open: reference-specific
-anatomy, fitted cameras, visual-hull constraints, strict spec, staged factory,
-actual projection/bake, per-pass renders/comparisons and bounded corrections;
-Golden rig/morph/socket adapters and parity; final package/registry/Lab model;
-DCC refinement if needed; regression fixture; focused build, actual Forge and
-browser evidence on the reconciled final head; Ready, develop merge and DEV start.
+Current hosted progress (not final acceptance):
+
+- Original Scout front/side/back pixels: upstream admission, measured landmark evidence, numerical camera fit, approximate de-light and front/side visual hull executed. Back remains surface evidence, not a third axis.
+- Strict ObjectSculptSpec and exact upstream SDF/capsule/lathe generation executed. No custom loft participates in this authoring path.
+- Two rejected blockout rounds are immutable fixture review records with source heads, capture hashes and actual gate failures. Upstream state retains both refinements (2/6 total).
+- Blockout at `cbf7ec6268d4cbef6950064aeffa012b454477e4` passed front/side/back Tier-1 diagnostics: silhouette IoU .9536/.9031/.9197. The agent accepted macro proportions only, with detached nose/arm seams/hem intersections explicitly pending in structural-pass. Hair scalp exposure was zero; turntable and part coverage ran.
+- `d8a6704c5b131087551123abbab0d6916599ec9b` replayed that review only after exact factory and six capture hashes matched, then entered structural-pass through upstream state. Nose connection and arm shafts were authored using unchanged upstream geometry. Structural captures passed Tier-1 (.9540/.9091/.9202). The agent inspected front/side/back and both three-quarter captures, accepted connected nose/arm structure, and explicitly rejected final form acceptance until the trouser caps stop intersecting the tunic hem.
+- The next form recipe contracts only the hidden proximal trouser caps and increases the unchanged upstream head/hair SDF sampling. Fresh form captures and an agent review remain mandatory. Approved workspaces cannot be reseeded, and the fixture's synthetic blended views are now explicitly labelled generated rather than observed.
+- Evidence: https://github.com/charukun/soul-lineage/actions/runs/35811219707
+- Divine Eye colour/interior ensemble remains low-confidence for clay. This is not a final likeness score, a finished projection, or Quality Floor approval.
+
+Outstanding: form/material/surface/lighting/interaction/optimization passes; actual projected pixel bake and final likeness; rig/morph/socket adaptation and parity; final package/registry/Lab model; DCC if needed; visual regression; focused build and native browser evidence on the reconciled final head; Ready, develop merge and DEV start.
 
 The old `pipeline.py` loft route remains the current CLI default and has not been
 deprecated in this recovery checkpoint. Character25D, current character runtime,

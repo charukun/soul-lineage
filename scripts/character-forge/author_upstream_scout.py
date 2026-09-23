@@ -10,6 +10,9 @@ sys.path.insert(0,str(ROOT/'packages/assets/forge'))
 from upstream_workspace import install_boundary, write_json, checked_run
 
 def author(workspace,cache,revision=3):
+    existing=workspace/'object-sculpt-spec.json'
+    if existing.exists() and json.loads(existing.read_text()).get('sculptPipeline',{}).get('completedPasses'):
+        raise ValueError('Cannot reseed an approved workspace; resume its current upstream pass')
     install=install_boundary(cache,cache/'host')
     sys.path[:0]=[str(install['engine']/'forge/stage2_spec'),str(install['engine']/'forge/stage3_build')]
     from new_sculpt_spec import make_spec, _cnode

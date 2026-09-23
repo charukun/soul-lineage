@@ -28,6 +28,13 @@ run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace
 run('node',['scripts/character-forge/render_upstream.mjs',workspace,'structural-pass']);
 run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','render-capture','--evidence','review/structural-pass/render-receipt.json']);
 run('python3',['scripts/character-forge/review_upstream.py','--workspace',workspace,'--cache',cache,'--pass-id','structural-pass']);
+run('python3',['scripts/character-forge/apply_visual_review.py','--workspace',workspace,'--cache',cache,'--review','scripts/character-forge/fixtures/upstream-scout-structural-r0-review.json']);
+run('python3',['scripts/character-forge/author_scout_form.py','--workspace',workspace,'--cache',cache]);
+run('python3',['packages/assets/forge/upstream_workspace.py','run','--workspace',workspace,'--entry','forge/stage3_build/generate_threejs_factory.py','--','object-sculpt-spec.json','--pass-id','form-refinement','--out','build/form-refinement.ts']);
+run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','build-current-pass','--evidence','build/form-refinement.ts']);
+run('node',['scripts/character-forge/render_upstream.mjs',workspace,'form-refinement']);
+run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','render-capture','--evidence','review/form-refinement/render-receipt.json']);
+run('python3',['scripts/character-forge/review_upstream.py','--workspace',workspace,'--cache',cache,'--pass-id','form-refinement']);
 const lock=JSON.parse(readFileSync('package-lock.json','utf8')).packages['node_modules/three'];
 if(!/^https:\/\/registry\.npmjs\.org\/three\/-\/three-[0-9.]+\.tgz$/.test(lock.resolved))throw new Error('Unexpected Three.js source');
 const response=await fetch(lock.resolved);if(!response.ok)throw new Error(`Three.js download failed: ${response.status}`);
