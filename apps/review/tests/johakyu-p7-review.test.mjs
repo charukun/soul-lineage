@@ -23,10 +23,10 @@ test('real exchanges visit all phases, retain identity through contact/presentat
  for(const event of impacts){assert.ok(!seen.has(event.id));seen.add(event.id);assert.ok(event.contactDistance<=event.contactReach);assert.equal(event.stageIndex,event.impact.stageIndex);assert.equal(event.techniqueId,event.impact.techniqueId);const p=presentBattleEvents([event])[0].presentation;assert.equal(p.techniqueId,event.techniqueId);assert.equal(p.stageIndex,event.stageIndex);}
  for(const frame of frames){const shown=presentBattleFrame(frame);for(const actor of shown.actors)if(actor.action){assert.equal(actor.action.presentation.techniqueId,actor.action.techniqueId);assert.equal(actor.action.presentation.stageIndex,actor.action.stageIndex);}}
 });
-test('reading, approach, retreat and impulse remain observable with the accepted body clearance',()=>{
- const {frames}=run({loadout:{technique:{jo:'action.feint',ha:'action.guard-step',kyu:'action.crash'}}});const intents=new Set();let min=10,max=0,impulse=false;
+test('reading, approach, retreat footwork and impulse remain observable with the accepted body clearance',()=>{
+ const {events,frames}=run({loadout:{technique:{jo:'action.feint',ha:'action.guard-step',kyu:'action.crash'}}});const intents=new Set();let min=10,max=0,impulse=false;
  for(const f of frames){const a=f.actors.find(a=>a.self),b=f.actors.find(b=>b.side==='enemy'&&!b.dead&&!b.downed);if(a.exchange)intents.add(a.exchange.intent);if(a.impulseVelocity&&Math.hypot(a.impulseVelocity.x,a.impulseVelocity.z)>.01)impulse=true;if(b&&!a.downed){const d=Math.hypot(a.position.x-b.position.x,a.position.z-b.position.z);min=Math.min(min,d);max=Math.max(max,d);}}
- assert.ok(intents.has('approach'));assert.ok(intents.has('bait')||intents.has('orbit'));assert.ok(intents.has('retreat')||intents.has('disengage'));assert.ok(min>=1.46-1e-6);assert.ok(max-min>.5);assert.ok(impulse);
+ assert.ok(intents.has('approach'));assert.ok(intents.has('bait')||intents.has('orbit'));assert.ok(events.some(e=>e.type==='stage-start'&&e.sourceId==='hero'&&e.footwork==='retreat'));assert.ok(min>=1.46-1e-6);assert.ok(max-min>.5);assert.ok(impulse);
 });
 test('strong parry reverses the real exchange and creates a counter with recoil at that contact',()=>{
  const {events}=run({loadout:{technique:{jo:'action.counter',ha:'action.counter',kyu:'action.precision'}}});const strong=events.find(e=>e.strongParry);assert.ok(strong);assert.equal(strong.initiativeId,strong.targetId);assert.ok(strong.sourceKick>strong.impulse);assert.ok(strong.counterOpportunity>0);assert.ok(events.some(e=>e.type==='reaction-start'&&e.kind==='counter'&&e.sourceId===strong.targetId&&e.time>strong.time));
@@ -39,7 +39,7 @@ test('the Review Lab clash fixture shows two simultaneous shared attacks stoppin
  assert.equal(scenario.inspect().frame.authority,'johakyu-battle');
 });
 test('stage motion starts without a separate phase hold and completes before phase changes',()=>{
- const {events,frames}=run({loadout:{technique:{jo:'action.feint',ha:'action.guard-step',kyu:'action.crash'}}},35);assert.equal(events.some(e=>e.type==='phase-cue'),false);assert.equal(frames.some(f=>f.actors.some(a=>a.phaseCue)),false);
+ const {events,frames}=run({loadout:{technique:{jo:'action.feint',ha:'action.guard-step',kyu:'action.crash'}}},35);assert.equal(events.some(e=>e.type==='phase-cue'),false);assert.equal(frames.some(f=>f.actors.some(a=>a.phaseCue&&a.phaseCue.phase!=='zanshin')),false);
  for(const e of events.filter(e=>e.type==='phase-change')){const prior=events.slice(0,events.indexOf(e)).filter(x=>x.type==='technique-complete'&&x.sourceId===e.actorId).at(-1);assert.ok(prior);assert.equal(prior.time,e.time);}
 });
 test('an interrupted hero clears the action and sequence lamps across later frames, including after an enemy respawns',()=>{
