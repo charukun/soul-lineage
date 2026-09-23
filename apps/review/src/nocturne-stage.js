@@ -1,4 +1,5 @@
 import {BATTLE2_VERSION} from './battle2-version.js';
+import {FIRST_INSPIRATION_PRESENTATION} from '@soul/johakyu-battle';
 import {NOCTURNE_FIELD_RADAR_RANGE} from '@soul/johakyu-presentation';
 import {createBattle2BodyHud} from './battle2-body-hud.js';
 import {johakyuSequenceMarkup} from '@soul/shared-ui/johakyu-hud';
@@ -26,7 +27,7 @@ const stage=document.querySelector('[data-review-surface="battle2"]');
 const deathCinematic=createDeathRebirthCinematic({document,window,host:stage,scope:'stage'});
 document.getElementById('battle-sequence-mount').innerHTML=johakyuSequenceMarkup({battle2:true});
 const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects'),versionNode=document.getElementById('battle2-version'),startButton=document.getElementById('battle2-start');
-const inspirationBanner=document.getElementById('battle2-inspiration'),inspirationName=document.getElementById('battle2-inspiration-name'),inspirationPhase=document.getElementById('battle2-inspiration-phase');
+const inspirationBanner=document.getElementById('battle2-inspiration'),inspirationName=document.getElementById('battle2-inspiration-name');
 const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),finisherNode=document.getElementById('battle-sequence-finisher'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
 const previewIdentity=rinnePreviewPlayer((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0);
 const playerHud=createRinnePlayerHud(document.getElementById('battle2-player-hud'),previewIdentity);
@@ -58,7 +59,15 @@ function report(next,detail=''){
  else{status.setAttribute('role','status');status.hidden=['BATTLE','RESETTING','READY'].includes(next);status.textContent=next==='ASSET_LOADING'?'戦闘を読み込み中… '+detail:'戦闘を準備中…';}
 }
 function hideInspiration(){if(inspirationTimer){clearTimeout(inspirationTimer);inspirationTimer=0;}if(inspirationBanner){inspirationBanner.hidden=true;delete inspirationBanner.dataset.grade;}}
-function showInspiration(row){if(!inspirationBanner)return;hideInspiration();inspirationName.textContent=row.techniqueName||battle2TechniqueLabel(row.techniqueId);inspirationPhase.textContent=`${PHASE_LABEL[row.phase]||'技'}に即時セット・初回発動`;inspirationBanner.dataset.grade=row.grade||'normal';inspirationBanner.hidden=false;inspirationTimer=setTimeout(hideInspiration,1100);}
+function showInspiration(row){
+ if(!inspirationBanner)return;hideInspiration();inspirationName.textContent=row.techniqueName||battle2TechniqueLabel(row.techniqueId);
+ const profile=row.firstInspirationPresentation||FIRST_INSPIRATION_PRESENTATION;
+ const duration=Math.min(2500,Math.max(500,(Number(profile.hudSeconds)||1.8)*1000));
+ inspirationBanner.style.setProperty('--inspiration-duration',`${duration}ms`);
+ inspirationBanner.dataset.grade=row.grade||'normal';inspirationBanner.hidden=false;
+ sound?.inspiration?.();cameraPresentation.beginInspiration(row,runtime?.inspectActors?.()||[]);
+ inspirationTimer=setTimeout(hideInspiration,duration);
+}
 const motionLabel=kind=>MOVE_LABEL[kind]||kind||'動作';
 function shortActionName(meta){return String(meta?.techniqueName||meta?.actionName||motionLabel(meta?.actionMotion)||'').trim();}
 function actionHistoryKey(meta){return [meta?.battleId,meta?.exchangeSerial,meta?.cycle,meta?.phase,meta?.techniqueId,meta?.techniqueIndex].join(':');}
@@ -164,8 +173,8 @@ function updateSequence(meta){
  }
  for(const row of activity){
   if(row?.type==='inspiration'&&row.techniqueId){
-   const changed=loadoutUI.learnTechnique(row.techniqueId,row.phase);activeLoadout=loadoutUI.value;runtime?.learnTechnique?.(row.techniqueId,row.phase);showInspiration(row);
-   if(changed||row.firstCast)recordHistory({phase:row.phase||'idle',label:`閃「${row.techniqueName||battle2TechniqueLabel(row.techniqueId)}」・${PHASE_LABEL[row.phase]||'技'}へ即時セット`,kind:'inspiration',perspective:'self'});
+   loadoutUI.learnTechnique(row.techniqueId,row.phase);activeLoadout=loadoutUI.value;runtime?.learnTechnique?.(row.techniqueId,row.phase);showInspiration(row);
+   // The first cast already has its own reveal; keep history for combat reactions.
    continue;
   }
   pushNarration(row,meta);
@@ -185,9 +194,9 @@ function setBattleSetting(key,value){
  battleSettings=next;writeBattleSettings(battleSettings);syncModeButtons();reviewMeta=null;lastExchangeKey='';resetHistory();runtime?.configureSettings?.(battleSettings);
 }
 function failed(error){runtime?.fail?.(error);report('ERROR',error?.message||String(error));sound?.pause();}
-window.__BATTLE2__=Object.freeze({get state(){return state;},get started(){return started;},get mode(){return battleMode;},get settings(){return {...battleSettings};},get loadout(){return loadoutUI.value;},get learnedTechniqueIds(){return loadoutUI.learnedTechniqueIds;},get lastError(){return lastError;},get version(){return BATTLE2_VERSION;},get sourceSha(){return __BUILD_INFO__.commit;},get metrics(){return runtime?.metrics()||{ready:false};},get camera(){return cameraPresentation.snapshot();},get actors(){return runtime?.inspectActors()||[];},get renderedActors(){return runtime?.inspectRenderedActors?.()||[];},get trace(){return runtime?.trace.slice()||[];},get observation(){return prepared?runtime?.inspectBattle(sequence)??null:null;},get review(){return reviewMeta;},get history(){return history.slice();},get exchangeTrace(){return runtime?.exchangeTrace??[];},advance(seconds){if(!new URL(location.href).searchParams.has('evidence'))throw Error('Evidence mode required');return runtime.advance(seconds);}});
+window.__BATTLE2__=Object.freeze({get state(){return state;},get started(){return started;},get mode(){return battleMode;},get settings(){return {...battleSettings};},get loadout(){return loadoutUI.value;},get learnedTechniqueIds(){return loadoutUI.learnedTechniqueIds;},get lastError(){return lastError;},get audio(){return sound?.metrics?.()??null;},get version(){return BATTLE2_VERSION;},get sourceSha(){return __BUILD_INFO__.commit;},get metrics(){return runtime?.metrics()||{ready:false};},get camera(){return cameraPresentation.snapshot();},get actors(){return runtime?.inspectActors()||[];},get renderedActors(){return runtime?.inspectRenderedActors?.()||[];},get trace(){return runtime?.trace.slice()||[];},get observation(){return prepared?runtime?.inspectBattle(sequence)??null:null;},get review(){return reviewMeta;},get history(){return history.slice();},get exchangeTrace(){return runtime?.exchangeTrace??[];},advance(seconds){if(!new URL(location.href).searchParams.has('evidence'))throw Error('Evidence mode required');return runtime.advance(seconds);}});
 async function boot(){
- const own=++sequence;deathCinematic.reset();hideInspiration();prepared=false;movementInput.reset();controller?.abort();runtime?.destroy();runtime=null;lastError=null;reviewMeta=null;lastExchangeKey='';resetHistory();delete stage.dataset.error;controller=new AbortController();report('BOOT');
+ const own=++sequence;deathCinematic.reset();hideInspiration();prepared=false;movementInput.reset();cameraPresentation.cancelInspiration();controller?.abort();runtime?.destroy();runtime=null;lastError=null;reviewMeta=null;lastExchangeKey='';resetHistory();delete stage.dataset.error;controller=new AbortController();report('BOOT');
  try{
   const [{createNocturneSound},{createJohakyuP7Controller}]=await Promise.all([import('./nocturne/audio.js'),import('./nocturne/johakyu-p7-controller.js')]);
   if(disposed||own!==sequence)return;

@@ -18,5 +18,11 @@ export function createNocturneSound(doc=document){
   }
   // Keep canonical stamina and the authored fatigue pose, but do not play the
   // looped human panting sample in the battle review.
-  return Object.freeze({...sound,phaseCue,fatigue(){}});
+  return Object.freeze({...sound,phaseCue,
+    inspiration(){
+      sound.parry?.({gain:.85,rate:.78,strong:true});
+      sound.note?.(74,.36,'sine',.55);
+      sound.note?.(660,.62,'triangle',.34);
+      sound.note?.(990,.85,'sine',.25);
+    },fatigue(){}});
 }

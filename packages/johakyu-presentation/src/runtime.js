@@ -785,6 +785,18 @@ function createDrivenPort(){
    const rows=[];for(const source of bindings.values()){const action=source.canonicalRow?.action;if(!action?.motion?.offense)continue;const target=bindings.get(action.targetId);if(!target)continue;const hit=sweptWeaponBodyContact(source,target);if(hit)rows.push(hit);}return rows;
   },
   impact(event,source,target){
+   if(event.type==='inspiration'){
+     // A visible world event only. The shared battle runtime owns learning, protection and reactions.
+     if(source?.canonicalId==='hero'&&target){
+       source.startGlow=Math.max(source.startGlow,.52);source.startGlowPhase='kyu';
+       ring(source.pos,1.75,'#ffe9a3',.72);
+       burst(source.pos.clone().add(new V(0,source.height*.6,0)),22,'#fff0b5');
+       const direction=new V().subVectors(target.pos,source.pos).normalize();
+       directedBurst(target.pos.clone().add(new V(0,target.height*.55,0)),14,'#ffe6a5',direction);
+       record('inspiration-world',{techniqueId:event.techniqueId,targetId:event.targetId,sourceId:event.sourceId});
+     }
+     return;
+   }
    const point=event.contactPoint,stop=clamp(Number(event.impact?.hitstop??event.hitstop)||.045,.025,.14),phase=event.phase==='kyu'||event.phase==='finisher'?'kyu':event.phase==='jo'?'jo':'ha';
    if(event.type==='clash'){
     const fallback=point?new V(point.x,Math.min(source?.height||target.height,target.height)*.58,point.z):target.pos.clone().add(new V(0,target.height*.58,0)),clash=source?bladeClashPoint(source,target,fallback):fallback,pan=spatialPan(clash);

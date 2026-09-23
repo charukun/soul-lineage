@@ -1,25 +1,11 @@
-import {generatedTechniqueCandidates,generatedTechniqueNaming,inspirationCombatAnswerPool,resolveInspirationAnswer} from '@soul/game-data';
-import {resolveTechnique,techniqueCatalog,techniqueName,compileBattleLoadout} from '@soul/johakyu-battle';
+import {generatedTechniqueCandidates,generatedTechniqueNaming,inspirationCombatAnswerPool} from '@soul/game-data';
+import {resolveTechnique,techniqueCatalog,techniqueName,techniqueDetail,compileBattleLoadout} from '@soul/johakyu-battle';
 import {resolveBattlePresentation} from '@soul/johakyu-presentation/battle-presentation';
 
 const PHASES=new Set(['jo','ha','kyu']);
 const SWEEP=new Set(['slash','back','heavy','spin','sweep','diagonal','crosscut','round','hook','bodyblow','barrage','rushfist','uppercut','risingfist','meteor','bullrush']);
 const FINISH=new Set(['heavy','round','barrage','rushfist','meteor','pierce','oneinch','risingfist']);
 const OPEN=new Set(['guard','ready','back','slash','jab','thrust']);
-const KIND_LABELS=Object.freeze({
-  slash:'斬り',diagonal:'袈裟斬り',thrust:'突き',back:'返し',crosscut:'十字斬り',uppercut:'斬り上げ',bash:'打ち崩し',heavy:'打ち下ろし',round:'回し払い',dash:'踏み込み斬り',bullrush:'押し込み',meteor:'落とし',pommel:'柄打ち',sweep:'薙ぎ',leap:'跳び込み',sky:'穂先上げ',spearwheel:'槍回し',pierce:'貫き',jab:'牽制',straight:'正拳',bodyblow:'腹打ち',hook:'回し拳',risingfist:'突き上げ',oneinch:'寸勁',barrage:'連打',rushfist:'連環',guard:'受け',ready:'構え',brace:'踏ん張り',parry:'受け流し',counter:'返し突き',slip:'身かわし'
-});
-const FOOTWORK_LABELS=Object.freeze({stay:'その場',forward:'前へ踏み込む',chase:'追い足',retreat:'引き足',sideL:'左へ捌く',sideR:'右へ捌く',orbitL:'左へ回る',orbitR:'右へ回る',cross:'懐へ潜る',rush:'一気に詰める'});
-const stageText=stage=>{const action=KIND_LABELS[stage?.kind]||String(stage?.kind||'動作'),footwork=FOOTWORK_LABELS[stage?.footwork]||'';return footwork?`${footwork}・${action}`:action;};
-export function battle2TechniqueDescription(id,{weapon='sword'}={}){
-  const technique=resolveTechnique(id,{weapon});if(!technique)return '実戦で使う技';
-  const answer=resolveInspirationAnswer(id),flow=technique.stages.map(stageText).join(' → '),parts=[];
-  parts.push(answer?.mechanic||`${technique.label}の基本動作をつなぐ型。`);
-  if(flow)parts.push(`動き: ${flow}`);
-  if(answer?.tradeoff)parts.push(`注意: ${answer.tradeoff}`);
-  return parts.join(' ');
-}
-
 export const battle2TechniqueLabel=techniqueName;
 export function battle2TechniqueDefinition(id,options={}){return resolveTechnique(id,options);}
 const supported=(row,weapon)=>{const technique=resolveTechnique(row?.id,{weapon});return Boolean(technique&&technique.stages.every(stage=>resolveBattlePresentation({...stage,weapon}).supported));};
@@ -29,10 +15,10 @@ const weightFor=(row,phase,encounterMode,spectacle=false)=>{
 };
 const weightedPick=(rows,random=Math.random)=>{if(!rows.length)return null;const total=rows.reduce((sum,item)=>sum+item.weight,0),point=Math.max(0,Math.min(.999999,Number(random())||0))*total;let cursor=0;for(const item of rows){cursor+=item.weight;if(point<cursor)return item.row;}return rows.at(-1).row;};
 
-export function battle2TechniqueCatalog({weapon='sword'}={}){return techniqueCatalog(weapon).filter(row=>row.id===`basic.${weapon}`).map(row=>({...row,meta:battle2TechniqueDescription(row.id,{weapon}),supported:row.stages.every(s=>resolveBattlePresentation({...s,weapon}).supported)})).filter(row=>row.supported);}
+export function battle2TechniqueCatalog({weapon='sword'}={}){return techniqueCatalog(weapon).filter(row=>row.id===`basic.${weapon}`).map(row=>({...row,meta:techniqueDetail(row.id,{weapon}).summary,supported:row.stages.every(s=>resolveBattlePresentation({...s,weapon}).supported)})).filter(row=>row.supported);}
 export const BATTLE2_TECHNIQUE_CATALOG=Object.freeze(battle2TechniqueCatalog());
 export function battle2InspirationCatalog({weapon='sword'}={}){return battle2LearnedTechniqueRows(inspirationCombatAnswerPool(weapon).map(row=>row.id),{weapon});}
-export function battle2LearnedTechniqueRows(ids,{weapon='sword'}={}){return [...new Set(ids||[])].map(id=>resolveTechnique(id,{weapon})).filter(row=>row&&row.stages.every(s=>resolveBattlePresentation({...s,weapon}).supported)).map(row=>({...row,meta:battle2TechniqueDescription(row.id,{weapon})}));}
+export function battle2LearnedTechniqueRows(ids,{weapon='sword'}={}){return [...new Set(ids||[])].map(id=>resolveTechnique(id,{weapon})).filter(row=>row&&row.stages.every(s=>resolveBattlePresentation({...s,weapon}).supported)).map(row=>({...row,meta:techniqueDetail(row.id,{weapon,name:row.label}).summary}));}
 export function battle2SelectionLabel(id){return techniqueName(id);}
 export function battle2SelectionAllowed(id,{weapon='sword'}={}){if(!id||String(id).startsWith('combo:'))return false;try{return compileBattleLoadout({jo:id},weapon).jo.every(t=>t.stages.every(s=>resolveBattlePresentation({...s,weapon}).supported));}catch{return false;}}
 export function battle2SelectionTechniques(id,{weapon='sword'}={}){return compileBattleLoadout({jo:id},weapon).jo.map(t=>t.id);}
