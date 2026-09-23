@@ -188,7 +188,7 @@ test('an uninterrupted combo flows across constituent techniques and phase bound
 });
 
 test('first inspiration casts with protected opening and impact, then restarts at 序',()=>{
- const a={...actor('a','party'),self:true,readyDelay:10,canAttack:false},b={...actor('b','enemy'),hp:10000,maxHp:10000,canAttack:false};
+ const a={...actor('a','party'),self:true,readyDelay:10,canAttack:true},b={...actor('b','enemy'),hp:10000,maxHp:10000,canAttack:false};
  const runtime=createJohakyuBattleRuntime({battleId:'inspiration-restart',actors:[a,b]});
  runtime.actor('a').cursor.phaseIndex=2;
  assert.equal(runtime.inspire('a',resolveTechnique('action.crash'),'b','kyu'),true);
