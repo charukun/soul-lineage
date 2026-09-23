@@ -3,6 +3,7 @@ import {createBattle2BodyHud} from './battle2-body-hud.js';
 import {battle2SelectionLabel,battle2TechniqueLabel} from './nocturne/battle2-technique-catalog.js';
 import {createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
 import {createBattle2CameraPresentation} from './battle2-camera.js';
+import {createBattle2MovementInput} from './battle2-movement.js';
 import {rinneFieldRadarMarkup,updateRinneFieldRadar} from '@soul/shared-ui/rinne-field-radar';
 import {mountReviewStageControls} from '@soul/shared-ui/review-shell';
 import {createRinnePlayerHud,rinnePreviewPlayer} from '@soul/shared-ui/rinne-player-hud';
@@ -27,6 +28,7 @@ const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
 stage.insertAdjacentHTML('beforeend',rinneFieldRadarMarkup({interactive:false}));
 const battleRadar=stage.querySelector('[data-field-radar]');
 const cameraPresentation=createBattle2CameraPresentation({stage,world});
+const movementInput=createBattle2MovementInput({canvas:world,camera:()=>cameraPresentation.snapshot()});
 const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]','[data-battle-technique-mode-control]','[data-battle-inspiration-rate-control]'],label:'戦闘設定'});
 const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],techniqueLanes=new Map([...document.querySelectorAll('[data-technique-phase]')].map(node=>[node.dataset.techniquePhase,node])),modeButtons=[...document.querySelectorAll('[data-battle-mode]')],techniqueModeButtons=[...document.querySelectorAll('[data-battle-technique-mode]')],inspirationRateButtons=[...document.querySelectorAll('[data-battle-inspiration-rate]')];
 const PHASE_INDEX={jo:0,ha:1,kyu:2},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
@@ -171,23 +173,27 @@ function setBattleSetting(key,value){
 function failed(error){runtime?.fail?.(error);report('ERROR',error?.message||String(error));sound?.pause();}
 window.__BATTLE2__=Object.freeze({get state(){return state;},get started(){return started;},get mode(){return battleMode;},get settings(){return {...battleSettings};},get loadout(){return loadoutUI.value;},get learnedTechniqueIds(){return loadoutUI.learnedTechniqueIds;},get lastError(){return lastError;},get version(){return BATTLE2_VERSION;},get sourceSha(){return __BUILD_INFO__.commit;},get metrics(){return runtime?.metrics()||{ready:false};},get camera(){return cameraPresentation.snapshot();},get actors(){return runtime?.inspectActors()||[];},get trace(){return runtime?.trace.slice()||[];},get observation(){return prepared?runtime?.inspectBattle(sequence)??null:null;},get review(){return reviewMeta;},get history(){return history.slice();},get exchangeTrace(){return runtime?.exchangeTrace??[];},advance(seconds){if(!new URL(location.href).searchParams.has('evidence'))throw Error('Evidence mode required');return runtime.advance(seconds);}});
 async function boot(){
- const own=++sequence;prepared=false;controller?.abort();runtime?.destroy();runtime=null;lastError=null;reviewMeta=null;lastExchangeKey='';resetHistory();delete stage.dataset.error;controller=new AbortController();report('BOOT');
+ const own=++sequence;prepared=false;movementInput.reset();controller?.abort();runtime?.destroy();runtime=null;lastError=null;reviewMeta=null;lastExchangeKey='';resetHistory();delete stage.dataset.error;controller=new AbortController();report('BOOT');
  try{
   const [{createNocturneSound},{createJohakyuP7Controller}]=await Promise.all([import('./nocturne/audio.js'),import('./nocturne/johakyu-p7-controller.js')]);
   if(disposed||own!==sequence)return;
   // Install gesture listeners before enabling Start, and keep the unlocked
   // AudioContext across mode switches instead of recreating it after the tap.
   sound??=createNocturneSound();
-  runtime=createJohakyuP7Controller({world,effects,stage,sound,notify:report,signal:controller.signal,cameraPresentation,onMeta:updateSequence,evidence:new URL(location.href).searchParams.has('evidence'),fixture:new URL(location.href).searchParams.get('exchangeFixture'),mode:battleMode,loadout:loadoutUI.value,settings:battleSettings,learnedTechniqueIds:loadoutUI.learnedTechniqueIds});
+  runtime=createJohakyuP7Controller({world,effects,stage,sound,notify:report,signal:controller.signal,cameraPresentation,movementInput,onMeta:updateSequence,evidence:new URL(location.href).searchParams.has('evidence'),fixture:new URL(location.href).searchParams.get('exchangeFixture'),mode:battleMode,loadout:loadoutUI.value,settings:battleSettings,learnedTechniqueIds:loadoutUI.learnedTechniqueIds});
   await runtime.prepare();if(disposed||own!==sequence)return;
   prepared=true;if(started){runtime.start();report('BATTLE');}else report('READY');
  }catch(error){if(!disposed&&own===sequence){controller.abort(error);failed(error);}}
 }
-startButton.addEventListener('click',()=>{
+startButton.addEventListener('click',async event=>{
  if(disposed||!prepared||started||state!=='READY')return;
- // The same tap's pointerdown (or keyboard activation's keydown) has already
- // reached the sound service. No simulation or RAF runs before this activation.
+ startButton.disabled=true;
+ // Unlock inside this same trusted activation, and wait for the AudioContext
+ // to run before scheduling the first battle frame.
+ await sound?.unlock(event);
+ if(disposed||!prepared||started||state!=='READY')return;
  if(runtime.start()){started=true;report('BATTLE');}
+ else startButton.disabled=false;
 });
 for(const button of modeButtons)button.addEventListener('click',()=>{const next=button.dataset.battleMode;if(!['duel','oneVsThree'].includes(next)||next===battleMode)return;battleMode=next;syncModeButtons();void boot();});
 for(const button of techniqueModeButtons)button.addEventListener('click',()=>{const next=button.dataset.battleTechniqueMode;if(!['random','set'].includes(next))return;setBattleSetting('techniqueMode',next);});
@@ -197,5 +203,5 @@ world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepare
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
 window.addEventListener('error',event=>{if(event.error&&!disposed)failed(event.error);});
 window.addEventListener('unhandledrejection',event=>{if(!disposed)failed(event.reason);});
-window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
+window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();movementInput.dispose();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
 syncModeButtons();report('BOOT');void boot();

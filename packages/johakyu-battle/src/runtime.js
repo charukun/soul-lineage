@@ -14,7 +14,7 @@ const live=a=>!a.dead&&!a.incapacitated&&!a.downed;
 /** Platform-free authority. Hosts own actor eligibility, learning, persistence and encounters. */
 export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BOUNDS,blocked=()=>false,recoverStamina=true}={}){
   if(!battleId)throw new TypeError('Battle identity required');
-  const actors=new Map(),exchanges=new Map(),seen=new Set();
+  const actors=new Map(),exchanges=new Map(),seen=new Set(),manualMoves=new Map();
   let time=0,revision=0,serial=0,hitstop=0,events=[],trace=[];
   function emit(row){const event={...row,time,authority:'johakyu-battle'};events.push(event);trace.push(event);if(trace.length>240)trace.shift();return event;}
   function upsert(raw){
@@ -36,7 +36,15 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     return actor;
   }
   initial.forEach(upsert);
-  function sync(rows){const ids=new Set(rows.map(row=>row.id));for(const [id,a] of actors)if(!ids.has(id)){cancelJohakyuStage(a.action);actors.delete(id);}rows.forEach(upsert);}
+  function sync(rows){const ids=new Set(rows.map(row=>row.id));for(const [id,a] of actors)if(!ids.has(id)){cancelJohakyuStage(a.action);actors.delete(id);manualMoves.delete(id);}rows.forEach(upsert);}
+   function setMovement(id,input){
+     if(!actors.has(id))return false;
+     if(!input){manualMoves.delete(id);return true;}
+     const x=Number(input.x),z=Number(input.z);
+     if(!Number.isFinite(x)||!Number.isFinite(z))return false;
+     const length=Math.hypot(x,z),scale=length>1?1/length:1;
+     manualMoves.set(id,{x:x*scale,z:z*scale,dash:Boolean(input.dash)});return true;
+   }
   function pair(a,b){const key=[a.id,b.id].sort().join('::');if(!exchanges.has(key))exchanges.set(key,createJohakyuExchangeState({sourceId:a.id,targetId:b.id}));return{key,state:exchanges.get(key)};}
   function exchange(a,b,event){const p=pair(a,b),next=reduceJohakyuExchange(p.state,{...event,sourceId:a.id,targetId:b.id});exchanges.set(p.key,next);if(next.mode!==p.state.mode||next.initiativeId!==p.state.initiativeId)emit({type:'exchange',sourceId:a.id,targetId:b.id,...next});return next;}
   function targetFor(actor,{downed=false}={}){return [...actors.values()].filter(a=>a.side!==actor.side&&!a.dead&&(downed?a.downed:live(a)&&time>=a.spawnUntil)).sort((a,b)=>Number(b.id===actor.targetId)-Number(a.id===actor.targetId)||distance(actor,a)-distance(actor,b)||a.id.localeCompare(b.id))[0]||null;}
@@ -121,6 +129,16 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
   function move(actor,dt){
     const before={...actor.position};moveWithResistance(actor,dt,{bounds,blocked});
     if(!live(actor)||time<actor.staggerUntil)return;
+    const manual=manualMoves.get(actor.id);
+    if(manual&&Math.hypot(manual.x,manual.z)>.08){
+      const speed=(manual.dash?4.65:2.25)*combatBodyOutcome(actor).movementScale*(actor.action?.65:1);
+      const next={x:clamp(actor.position.x+manual.x*speed*dt,bounds.minX,bounds.maxX),z:clamp(actor.position.z+manual.z*speed*dt,bounds.minZ,bounds.maxZ)};
+      if(!blocked(actor.position,next,actor))actor.position=next;
+      actor.moving=Math.hypot(actor.position.x-before.x,actor.position.z-before.z)>.0001;
+      const target=targetFor(actor);if(target)actor.yaw=Math.atan2(target.position.x-actor.position.x,target.position.z-actor.position.z);
+      else if(actor.moving)actor.yaw=Math.atan2(manual.x,manual.z);
+      return;
+    }
     const a=actor.action,target=actors.get(a?.targetId||actor.decision?.targetId);if(!target)return;
     const footwork=a?.footwork||actor.decision?.footwork||'stay',speed=SPEED[footwork]??1,d=distance(actor,target),spacing=battleSpacing(actor,target,d);
     const movement=footworkVelocity(footwork,actor.position,target.position,speed*(combatBodyOutcome(actor).movementScale)*(a?.chainLength>1&&['forward','chase','rush'].includes(footwork)?1.12:1));
@@ -206,5 +224,5 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     return {frame:snapshot(),events:freeze(clone(events))};
   }
   function queueTechnique(id,technique){const actor=actors.get(id);if(!actor||actor.override||actor.queuedTechnique)return false;actor.queuedTechnique=compileBattleLoadout({jo:technique},actor.equipment.weapon).jo[0];return true;}
-  return Object.freeze({step,sync,snapshot,queueTechnique,actor:id=>actors.get(id),inspect:()=>({frame:snapshot(),trace:freeze(clone(trace)),exchanges:freeze(clone([...exchanges.values()]))})});
+  return Object.freeze({step,sync,setMovement,snapshot,queueTechnique,actor:id=>actors.get(id),inspect:()=>({frame:snapshot(),trace:freeze(clone(trace)),exchanges:freeze(clone([...exchanges.values()]))})});
 }

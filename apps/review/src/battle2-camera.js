@@ -1,6 +1,6 @@
 import {CAMERA_PROFILES,createCameraDirector,externalCameraShot} from '@soul/rendering/camera-director';
 import {actorScreenSafety,applyCameraPresentation} from '@soul/rendering/camera-presentation-three';
-import {createSnapCameraControl} from '@soul/rendering/snap-camera-control';
+import {createSnapCameraControl,tiltCameraOffsetForZoom} from '@soul/rendering/snap-camera-control';
 import {battle2CameraWorldHeight} from './battle2-camera-math.js';
 import '@soul/rendering/snap-camera-control.css';
 
@@ -28,8 +28,9 @@ export function createBattle2CameraPresentation({stage,world,onZoomChange=()=>{}
   const api={
     presentExternal({camera,actor,target=null,position,lookTarget,worldHeight,dt=0,source='johakyu-driven',space='battle2',mode='combat'}={}){
       if(!camera?.isPerspectiveCamera)throw new TypeError('battle2 shared camera requires PerspectiveCamera');
+      const offset=tiltCameraOffsetForZoom({x:position.x-lookTarget.x,y:position.y-lookTarget.y,z:position.z-lookTarget.z},1+(userZoom-1)*1.9);
       const authoredShot=externalCameraShot({
-        position,lookTarget,
+        position:{x:lookTarget.x+offset.x,y:lookTarget.y+offset.y,z:lookTarget.z+offset.z},lookTarget,
         worldHeight:battle2CameraWorldHeight(worldHeight,userZoom),
         fov:CAMERA_PROFILES.current3d.fov,
         yawOffset
