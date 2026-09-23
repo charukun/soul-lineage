@@ -277,8 +277,8 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     const readSequence=()=>exchangeCombat?meleeSequenceHudState({combat:s.combat,actorId:s.id,attack:rawAction,interrupted:comboInterrupted}):sequenceHudState({phase,attack:rawAction,interrupted:comboInterrupted});
     let sequence=readSequence();
     ui.phase.dataset.battleEngine=exchangeCombat?s.combat.engine:'';
-    if(sharedAction){ui.phase.dataset.techniqueId=sharedAction.techniqueId;ui.phase.dataset.stageIndex=String(sharedAction.stageIndex);}
-    else{delete ui.phase.dataset.techniqueId;delete ui.phase.dataset.stageIndex;}
+    if(sharedAction){ui.phase.dataset.techniqueId=sharedAction.techniqueId;ui.phase.dataset.stageIndex=String(sharedAction.stageIndex);ui.phase.dataset.stageLabel=sharedAction.stageLabel||'';}
+    else{delete ui.phase.dataset.techniqueId;delete ui.phase.dataset.stageIndex;delete ui.phase.dataset.stageLabel;}
     ui.phase.dataset.exchangeState=sequence.hudState||'';
     ui.phase.dataset.exchangeIntent=sequence.exchangeIntent||'';
     const phaseTechnique=phase?String(sharedAction?.name||s.combat?.tidebreakPose?.skill||techniqueName(combatSkillForPhase(s,s.combat,phase),s)||'').trim():'';
