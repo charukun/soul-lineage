@@ -28,7 +28,7 @@ const randRange = (a,b) => a + (b-a)*rand();
 
 const trace = [];
 function record(type,data={}) { trace.push({type,time:Math.round(game.time*100)/100,...data}); if(trace.length>160)trace.shift(); }
-const game = {phase:'loading',time:0,wave:0,spawned:0,waveCount:0,spawnTimer:0,kills:0,damage:0,received:0,bursts:0,stance:'balanced',speed:1,energy:0,level:1,upgradeTime:0,banner:0,toast:0,shake:0,hitstop:0,cameraPunch:0,cameraImpulseX:0,cameraImpulseZ:0,ready:false,pausedFrom:'battle',high:stage.clientWidth>720,moveTarget:null,moveTime:0};
+const game = {phase:'loading',time:0,wave:0,spawned:0,waveCount:0,spawnTimer:0,kills:0,damage:0,received:0,bursts:0,stance:'balanced',speed:1,energy:0,level:1,upgradeTime:0,banner:0,toast:0,shake:0,hitstop:0,cameraPunch:0,cameraImpulseX:0,cameraImpulseZ:0,motionTargetId:null,ready:false,pausedFrom:'battle',high:stage.clientWidth>720,moveTarget:null,moveTime:0};
 let scene,camera,renderer,composer,sun,heroLight,hero,manifest,techniqueVfx,clock=0,previous=0,frameCount=0,frameTime=0,fps=0,intro=0;
 let W=Math.max(1,stage.clientWidth),H=Math.max(1,stage.clientHeight),dpr=Math.min(devicePixelRatio,1.5),models=new Map(),actors=[],projectiles=[],particles=[],rings=[],arcs=[],numbers=[],torches=[],loadedBytes=0;
 const usedModels=new Set(),environmentMeshes=[],cameraTarget=new V(),tmp=new V(),ndc=new THREE.Vector2(),ray=new THREE.Raycaster(),groundPlane=new THREE.Plane(new V(0,1,0),0);
@@ -495,9 +495,13 @@ function drawEffects(){
 function renderCamera(dt){
  if(!hero)return;intro+=dt;const isTitle=game.phase==='title';
  const opponent=actors.filter(a=>a!==hero&&!a.dead).sort((a,b)=>a.pos.distanceToSquared(hero.pos)-b.pos.distanceToSquared(hero.pos))[0]??null;
- const spread=opponent?hero.pos.distanceTo(opponent.pos):0,midpoint=opponent?hero.pos.clone().lerp(opponent.pos,.5):hero.pos.clone();
- const motionCamera=!isTitle?cameraForMotion(hero):null;
- const desired=isTitle?new V(-2,.6,0):motionCamera?hero.pos.clone().add(new V(0,motionCamera.shot.focusHeight,0)):midpoint.add(new V(0,.65,-.35));
+ const motionCamera=!isTitle?cameraForMotion(hero):null,actionTargetId=hero.canonicalRow?.action?.targetId||null;
+ if(actionTargetId)game.motionTargetId=actionTargetId;
+ const rememberedOpponent=game.motionTargetId?actors.find(a=>a!==hero&&a.canonicalId===game.motionTargetId):null;
+ const cinematicOpponent=motionCamera?(rememberedOpponent??actors.filter(a=>a!==hero).sort((a,b)=>a.pos.distanceToSquared(hero.pos)-b.pos.distanceToSquared(hero.pos))[0]??null):null;
+ const focusOpponent=motionCamera?cinematicOpponent:opponent,spread=focusOpponent?hero.pos.distanceTo(focusOpponent.pos):0,midpoint=focusOpponent?hero.pos.clone().lerp(focusOpponent.pos,.5):hero.pos.clone();
+ const targetBlend=clamp(Number(motionCamera?.shot?.targetBlend)||0,0,.72);
+ const desired=isTitle?new V(-2,.6,0):motionCamera?hero.pos.clone().lerp(focusOpponent?.pos??hero.pos,targetBlend).add(new V(0,motionCamera.shot.focusHeight,0)):midpoint.add(new V(0,.65,-.35));
  const desiredZoom=isTitle?1:clamp((W/H<.8?1.02:1.08)-Math.max(0,spread-1.8)*.055+game.cameraPunch,.82,1.12);
  const baseAngle=isTitle?.62+Math.sin(intro*.045)*.08:.65,approach=isTitle?1+Math.max(0,1-intro/7)*.32:1;
  if(presentationPort&&cameraPresentation){
@@ -506,7 +510,7 @@ function renderCamera(dt){
   const distance=motionCamera?.shot.distance??23*approach;
   const authoredPosition={x:desired.x+Math.sin(direction)*distance+game.cameraImpulseX,y:desired.y+(motionCamera?.shot.height??22*approach),z:desired.z+Math.cos(direction)*distance+game.cameraImpulseZ};
   if(game.shake>0){authoredPosition.x+=Math.sin(clock*93)*game.shake;authoredPosition.y+=Math.cos(clock*84)*game.shake*.5;}
-  const shot=cameraPresentation.presentExternal({camera,actor:subject(hero),target:motionCamera?null:subject(opponent),position:authoredPosition,lookTarget:desired,worldHeight:motionCamera?Math.max(3,motionCamera.shot.distance*2*Math.tan(Math.PI/9))/desiredZoom:(W/H<.8?31:23)*approach/desiredZoom,dt,source:'johakyu-driven',space:'frontier',mode:motionCamera?'cinematic':'combat'});
+  const shot=cameraPresentation.presentExternal({camera,actor:subject(hero),target:subject(focusOpponent),position:authoredPosition,lookTarget:desired,worldHeight:motionCamera?Math.max(3,motionCamera.shot.distance*2*Math.tan(Math.PI/9))/desiredZoom:(W/H<.8?31:23)*approach/desiredZoom,dt,source:'johakyu-driven',space:'frontier',mode:motionCamera?'cinematic':'combat'});
   cameraTarget.set(shot.lookTarget.x,shot.lookTarget.y,shot.lookTarget.z);
  }else{
   cameraTarget.lerp(desired,1-Math.exp(-dt*3.8));
@@ -553,18 +557,23 @@ function createDrivenPort(){
    held.weapon.visible=true;a.sheath=null;
  }
  function moveBladeToSheath(a,progress){
-   const name=weaponMesh[a.canonicalRow?.equipment?.weapon];if(!name)return;
+   const weaponId=a.canonicalRow?.equipment?.weapon,name=weaponMesh[weaponId];if(!name||!['sword','dagger','great'].includes(weaponId))return;
    if(!a.sheath){
      const weapon=a.root.getObjectByName(name);if(!weapon?.visible||!weapon.parent)return;
      const parent=weapon.parent,position=weapon.position.clone(),quaternion=weapon.quaternion.clone(),scale=weapon.scale.clone();
      a.object.updateMatrixWorld(true);a.root.attach(weapon);
      a.sheath={weapon,parent,position,quaternion,scale,start:weapon.position.clone(),rotation:weapon.quaternion.clone()};
    }
-   const held=a.sheath,ease=Math.min(1,Math.max(0,(progress-.16)/.72));
-   const t=ease*ease*(3-2*ease),localScale=a.object.scale.x||1;
-   held.weapon.position.copy(held.start).lerp(new THREE.Vector3(-.44/localScale,.78/localScale,.13/localScale),t);
-   held.weapon.quaternion.copy(held.rotation).slerp(new THREE.Quaternion().setFromEuler(new THREE.Euler(.1,0,-.28)),t);
-   held.weapon.visible=progress<.96;
+   const held=a.sheath,ease=clamp((progress-.24)/.68,0,1),smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);},localScale=a.object.scale.x||1,heavy=weaponId==='great';
+   const clearance=new THREE.Vector3((heavy?.56:.48)/localScale,(heavy?1.02:.98)/localScale,(heavy?.84:.72)/localScale);
+   const mouth=new THREE.Vector3((heavy?-.78:-.64)/localScale,(heavy?.8:.76)/localScale,(heavy?.58:.52)/localScale);
+   const seated=new THREE.Vector3((heavy?-.86:-.72)/localScale,(heavy?.69:.66)/localScale,(heavy?.36:.3)/localScale);
+   const rotate=(x,y,z)=>held.rotation.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(x,y,z)));
+   const clearanceRotation=rotate(.02,.08,heavy?-.52:-.62),mouthRotation=rotate(.04,.12,heavy?-.9:-1.02),seatedRotation=rotate(.02,.08,heavy?-1.08:-1.22);
+   if(ease<.4){const t=smooth(ease/.4);held.weapon.position.copy(held.start).lerp(clearance,t);held.weapon.quaternion.copy(held.rotation).slerp(clearanceRotation,t);}
+   else if(ease<.82){const t=smooth((ease-.4)/.42);held.weapon.position.copy(clearance).lerp(mouth,t);held.weapon.quaternion.copy(clearanceRotation).slerp(mouthRotation,t);}
+   else{const t=smooth((ease-.82)/.18);held.weapon.position.copy(mouth).lerp(seated,t);held.weapon.quaternion.copy(mouthRotation).slerp(seatedRotation,t);}
+   held.weapon.visible=progress<.985;
  }
  const driver=createCanonicalPresentationDriver({
   appearanceKey:row=>[row.kind,row.boss,row.kind==='hero'?row.equipment.armor:null].join(':'),
