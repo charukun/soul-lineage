@@ -45,8 +45,10 @@ const playbackTime=()=>isExternal()?externalTime:Math.max(0,action?.time||0);
 const quality=document.createElement('output');quality.id='motion-quality';quality.className='motion-quality';quality.setAttribute('aria-live','polite');
 canvas.closest('.motion-stage').append(quality);
 const compatibility=document.createElement('section');compatibility.className='motion-compatibility';compatibility.dataset.reviewStageControl='true';
-compatibility.innerHTML='<div class="motion-setting-grid"><label><span>武器</span><select id="motion-weapon" aria-label="武器"></select></label><label><span>腰の移動</span><select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場</option><option value="free">移動を反映</option><option value="locked">腰を固定</option></select></label><label><span>接地補正</span><select id="motion-constraint-policy" aria-label="接地補正"><option value="raw">補正なし</option><option value="assisted">接地・接触を補助</option></select></label></div><details class="motion-diagnostics"><summary>技術詳細</summary><pre id="motion-binding-report"></pre></details>';
+compatibility.innerHTML='<div class="motion-setting-grid"><label><span>キャラモデル</span><select id="motion-model" aria-label="キャラクターモデル"></select></label><label><span>武器</span><select id="motion-weapon" aria-label="武器"></select></label><label><span>腰の移動</span><select id="motion-root-policy" aria-label="腰の移動"><option value="in-place">その場</option><option value="free">移動を反映</option><option value="locked">腰を固定</option></select></label><label><span>接地補正</span><select id="motion-constraint-policy" aria-label="接地補正"><option value="raw">補正なし</option><option value="assisted">接地・接触を補助</option></select></label></div><details class="motion-diagnostics"><summary>技術詳細</summary><pre id="motion-binding-report"></pre></details>';
 el('motion-meta').closest('details').before(compatibility);
+for(const model of REVIEW_MODELS)el('motion-model').add(new Option(model.label,model.id));
+el('motion-model').value=selectedModel.id;
 for(const option of MOTION_REVIEW_WEAPON_OPTIONS)el('motion-weapon').add(new Option(option.label,option.id));
 el('motion-weapon').value=selectedWeapon;
 canvas.closest('.motion-stage').dataset.reviewStagePanelHost='.motion-library-primary';
@@ -211,7 +213,7 @@ function rebuildCatalog(discovered={}){
 }
 async function loadModel(model){
   const serial=++loadSerial; ++selectSerial;
-  const previousIdentity=selected?.sourceIdentity;selectedModel=model;motionFailures.clear();playing=false;ready=false;selected=null;externalSource=null;selectedDuration=0;
+  const previousIdentity=selected?.sourceIdentity;selectedModel=model;el('motion-model').value=model.id;motionFailures.clear();playing=false;ready=false;selected=null;externalSource=null;selectedDuration=0;
   clearRuntimeThumbnailQueue();disposeSubject();renderModelGrid();catalog=[];renderMotionGrid();syncPlaybackUI();status(model.label+' を読み込んでいます。');el('motion-load').hidden=false;el('motion-load').removeAttribute('value');
   try{
     const gltf=await loadPinnedReviewTarget(model);
@@ -245,6 +247,7 @@ el('motion-prev-frame').addEventListener('click',()=>{playing=false;seek(playbac
 el('motion-next-frame').addEventListener('click',()=>{playing=false;seek(playbackTime()+1/60);});
 el('motion-root-policy').addEventListener('change',e=>{rootMotion=e.target.value;if(ready&&isExternal())seek(playbackTime());});
 el('motion-constraint-policy').addEventListener('change',e=>{constraintMode=e.target.value;if(ready&&isExternal())seek(playbackTime());});
+el('motion-model').addEventListener('change',e=>{const model=REVIEW_MODELS.find(item=>item.id===e.target.value);if(model&&model.id!==selectedModel.id)void loadModel(model);});
 el('motion-weapon').addEventListener('change',e=>{selectedWeapon=e.target.value;void syncWeapon();});
 el('motion-legacy').addEventListener('change',e=>{
   const index=Number(e.target.value);if(e.target.value===''||!targetClips[index]||!mixer)return;

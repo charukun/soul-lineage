@@ -186,3 +186,27 @@ test('an uninterrupted combo flows across constituent techniques and phase bound
  const opening=starts.find(e=>e.phase==='jo'&&e.techniqueIndex===0&&e.stageIndex===1);
  assert.ok(runtime.inspect().frame.actors.find(e=>e.id==='a'));assert.ok(opening);
 });
+
+test('first inspiration casts with protected opening and impact, then restarts at 序',()=>{
+ const a={...actor('a','party'),self:true,readyDelay:10,canAttack:true},b={...actor('b','enemy'),hp:10000,maxHp:10000,canAttack:false};
+ const runtime=createJohakyuBattleRuntime({battleId:'inspiration-restart',actors:[a,b]});
+ runtime.actor('b').staggerUntil=100;
+ runtime.actor('a').cursor.phaseIndex=2;
+ assert.equal(runtime.inspire('a',resolveTechnique('action.crash'),'b','kyu'),true);
+ let opening=null,contact=null,complete=null;
+ for(let i=0;i<500&&!complete;i++){
+  runtime.actor('b').position={x:0,z:1.65};
+  const result=runtime.step(1/60);
+  opening??=result.events.find(e=>e.type==='inspiration-start');
+  contact??=result.events.find(e=>e.sourceId==='a'&&e.impact?.knockback&&e.techniqueId==='action.crash'&&e.stageIndex===0);
+  complete??=result.events.find(e=>e.type==='technique-complete'&&e.sourceId==='a'&&e.techniqueId==='action.crash'&&e.stageIndex===2);
+ }
+ assert.ok(opening&&contact&&complete);assert.ok(contact.time>opening.time);
+ assert.ok(runtime.actor('a').firstInspirationUntil>opening.time);
+ assert.equal(contact.blocked,false);assert.ok(Math.hypot(contact.knockback.x,contact.knockback.z)>2.2);
+ assert.equal(runtime.actor('a').cursor.phaseIndex,0);assert.equal(runtime.actor('a').cursor.stageIndex,0);assert.equal(runtime.actor('a').cursor.techniqueIndex,0);
+ assert.equal(runtime.actor('a').chainTargetId,null);
+ const normal=createJohakyuBattleRuntime({battleId:'normal-technique',actors:[{...a,readyDelay:0,canAttack:true,loadout:{jo:'action.crash'}},b]});
+ for(let i=0;i<200;i++)normal.step(1/60);
+ assert.equal(normal.actor('a').firstInspirationUntil,undefined);
+});

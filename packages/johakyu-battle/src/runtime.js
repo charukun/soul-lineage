@@ -83,7 +83,9 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     const momentum=continuing?1+Math.min(.14,actor.cursor.phaseIndex*.035+actor.cursor.techniqueIndex*.025):1;
     const baseChoreography=stageChoreography(technique,stage,{weapon:actor.equipment.weapon,tempo:finisher?1:(actor.tempo||1)*momentum,chainLength:finisher?1:n.chain.length,phase:finisher?'finisher':reaction?'ha':phase});
     const finisherScale=actor.finisherProfile?.durationScale||({sokudan:.9,kakudan:1,danzetsu:1.1}[actor.finisherProfile]||1);
-    const choreography=finisher?freeze({...baseChoreography,duration:Math.max(1.7,Math.min(2.3,2*finisherScale))}):baseChoreography;
+    const firstCast=technique.source==='trial'&&stage.stageIndex===0&&!reaction&&!finisher;
+    const firstProfile=firstCast?technique.firstInspirationPresentation:null;
+    const choreography=finisher?freeze({...baseChoreography,duration:Math.max(1.7,Math.min(2.3,2*finisherScale))}):firstCast?freeze({...baseChoreography,duration:Math.max(baseChoreography.duration,firstProfile.firstStageSeconds)}):baseChoreography;
     const execution={id:`${battleId}:${actor.id}:${++serial}`,actorId:actor.id,targetId:target.id,techniqueId:technique.id,technique,stageIndex:stage.stageIndex,
       kind:stage.kind,footwork:stage.footwork,charge:stage.charge,phase,weapon:actor.equipment.weapon,chainId:`${actor.id}:${actor.cursor.cycle}:${n.phase}`,techniqueIndex:actor.cursor.techniqueIndex,
       chainLength:n.chain.length,choreography,elapsed:0,duration:choreography.duration,contactResolved:false,reaction,finisher,scope:technique.source==='trial'?'trial':actor.scope||'equipped'};
@@ -91,8 +93,8 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     const staminaBefore=actor.stamina,receipt=beginJohakyuStage(actor,execution,{weapon:execution.weapon,phase,techniqueId:technique.id,...stage,staminaMultiplier:actor.staminaMultiplier??1});
     if(!receipt.allowed){actor.readyAt=time+.35;emit({type:'execution-blocked',sourceId:actor.id,targetId:target.id,...executionIdentity(execution),reason:receipt.reason});return null;}
     execution.paid=receipt.paid;if(finisher){target.finisherClaimedBy=actor.id;target.finisherClaimAttackId=execution.id;}actor.action=execution;actor.phaseCue=null;actor.decision=null;actor.readSeconds=0;
-    if(technique.source==='trial'&&stage.stageIndex===0&&!reaction&&!finisher){
-      const profile=technique.firstInspirationPresentation;
+    if(firstCast){
+      const profile=firstProfile;
       actor.firstInspirationUntil=time+profile.protectionSeconds;
       actor.firstInspirationTechniqueId=technique.id;
       target.staggerUntil=Math.max(target.staggerUntil,time+(target.boss?profile.bossStaggerSeconds:profile.targetStaggerSeconds));
@@ -117,9 +119,8 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
         const inspired=Boolean(actor.override.inspirationPhase);
         actor.override=null;actor.readyAt=time+.033;
         emit({type:'technique-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});
-        if(inspired){actor.cursor.phaseIndex=(PHASES.indexOf(action.phase)+1)%PHASES.length;actor.cursor.stageIndex=0;actor.cursor.techniqueIndex=0;actor.chainLastAt=time;actor.chainTargetId=action.targetId;
-          emit({type:'phase-change',actorId:actor.id,phase:PHASES[actor.cursor.phaseIndex]});
-          if(actor.cursor.phaseIndex===0){actor.cursor.cycle++;actor.chainTargetId=null;actor.chainLastAt=null;actor.pendingZanshin=true;}}
+        if(inspired){actor.cursor={phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:actor.cursor.cycle+1};actor.chainTargetId=null;actor.chainLastAt=null;
+          emit({type:'phase-change',actorId:actor.id,phase:'jo'});}
       }
       return;
     }
@@ -242,7 +243,12 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     const clash=Boolean(incoming&&incoming.choreography.offense&&!incoming.contactResolved&&incoming.targetId===source.id&&Math.abs(progress-incoming.choreography.contactProgress)<.045&&incoming.kind!=='counter'&&execution.kind!=='counter');
     const observation=samples.find(row=>row.attackId===execution.id&&row.targetId===target.id&&Math.hypot(row.point?.x-target.position.x,row.point?.z-target.position.z)<1.5);
     const point={x:(source.position.x+target.position.x)/2,y:1.05,z:(source.position.z+target.position.z)/2};
-    const impact=resolveImpact({execution,source,target,defense,clash,contactPoint:point,bodyPart:execution.kind==='sweep'?'leftLeg':execution.kind==='back'?'rightArm':'torso',timingError:defense==='parry'?progress-incoming.choreography.contactProgress:0});
+    let impact=resolveImpact({execution,source,target,defense,clash,contactPoint:point,bodyPart:execution.kind==='sweep'?'leftLeg':execution.kind==='back'?'rightArm':'torso',timingError:defense==='parry'?progress-incoming.choreography.contactProgress:0});
+    if(execution.technique.source==='trial'&&execution.stageIndex===0&&!impact.blocked&&!target.boss){
+      const profile=execution.technique.firstInspirationPresentation,dx=target.position.x-source.position.x,dz=target.position.z-source.position.z,d=Math.max(.001,Math.hypot(dx,dz));
+      const massScale=(target.stability??.7)>=1?.45:1,push=Math.max(Math.hypot(impact.knockback.x,impact.knockback.z),profile.firstCastImpulse*massScale);
+      impact={...impact,knockback:{x:dx/d*push,z:dz/d*push},stagger:Math.max(impact.stagger,profile.firstCastStaggerSeconds*massScale)};
+    }
     if(clash)incoming.contactResolved=true;
     let damage=impact.damage,part=impact.bodyPart,durability=null;
     if(damage>0){

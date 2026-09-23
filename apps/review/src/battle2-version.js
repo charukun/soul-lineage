@@ -1,2 +1,2 @@
 // Human-facing battle review version. Git SHA remains internal evidence metadata only.
-export const BATTLE2_VERSION='2.4.11';
+export const BATTLE2_VERSION='2.4.12';
