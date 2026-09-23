@@ -1,3 +1,4 @@
+import { tiltCameraOffsetForZoom } from '@soul/rendering/snap-camera-control';
 import { createCameraDirector, CAMERA_PROFILES, cameraSubject, externalCameraShot } from '@soul/rendering/camera-director';
 import { resolveCharacterView } from '@soul/rendering/character-view-resolver';
 import { applyCameraPresentation, measureCameraSubject, actorScreenSafety, actorSilhouetteSamples, createCameraSelfVisibility } from '@soul/rendering/camera-presentation-three';
@@ -46,10 +47,11 @@ export function createRinnePresentationCamera({ camera, scene, canvas }) {
     // own director. Shared transition/view ownership survives renderer handoff.
     presentExternal({ camera: activeCamera, actor: actorInput, target: targetInput, position, lookTarget, worldHeight, dt = 0, source = 'external3d', space = 'frontier', mode = 'combat' }) {
       const actor = cameraSubject(actorInput), target = targetInput ? cameraSubject(targetInput) : null;
-      const zoomedPosition = position && lookTarget ? {
-        x: Number(lookTarget.x || 0) + (Number(position.x || 0) - Number(lookTarget.x || 0)) * userZoom,
-        y: Number(lookTarget.y || 0) + (Number(position.y || 0) - Number(lookTarget.y || 0)) * userZoom,
-        z: Number(lookTarget.z || 0) + (Number(position.z || 0) - Number(lookTarget.z || 0)) * userZoom,
+      const tilted = position && lookTarget ? tiltCameraOffsetForZoom({ x: Number(position.x || 0) - Number(lookTarget.x || 0), y: Number(position.y || 0) - Number(lookTarget.y || 0), z: Number(position.z || 0) - Number(lookTarget.z || 0) }, userZoom) : null;
+      const zoomedPosition = tilted ? {
+        x: Number(lookTarget.x || 0) + tilted.x * userZoom,
+        y: Number(lookTarget.y || 0) + tilted.y * userZoom,
+        z: Number(lookTarget.z || 0) + tilted.z * userZoom,
       } : position;
       const authoredShot = externalCameraShot({ position: zoomedPosition, lookTarget, worldHeight, fov: CAMERA_PROFILES[profileName].fov, yawOffset });
       const presentation = director.update({ mode, actor, target, authoredShot, aspect: activeCamera.aspect, space, screenSafety }, dt);
@@ -72,9 +74,10 @@ export function createRinnePresentationCamera({ camera, scene, canvas }) {
       const target = !titleFrame && shotOverride?.target ? shotOverride.target : targetEnemy ? measureCameraSubject(enemyRoot, { id: targetEnemy.id, position: targetEnemy, yaw: targetEnemy.yaw, fallbackHeight: targetEnemy.height || 1.8, weaponRadius: 1 }) : null;
       const baseMode = titleFrame ? 'title' : inside ? 'interior' : combatFrame ? 'combat' : 'exploration';
       const input = { mode: baseMode, actor, target, combatFrame, authoredShot: titleFrame ? titleShot : null,
-        offset, yaw: Math.atan2(offset.x, offset.z) + yawOffset, yawOffset, framing: { zoom: userZoom }, aspect: camera.aspect,
+        offset: tiltCameraOffsetForZoom(offset, userZoom), yaw: Math.atan2(offset.x, offset.z) + yawOffset, yawOffset, framing: { zoom: userZoom }, aspect: camera.aspect,
         space: inside ? `interior:${state.interior.buildingId}` : state.zone, screenSafety,
         ...(!titleFrame && shotOverride ? shotOverride : {}) };
+      if (combatFrame?.offset) input.combatFrame = { ...combatFrame, offset: tiltCameraOffsetForZoom(combatFrame.offset, userZoom) };
       const presentation = director.update(input, dt);
       applyCameraPresentation(camera, presentation);
       playerView = resolveCharacterView({ cameraPosition: camera.position, actorPosition: actor.position, actorYaw: actor.yaw, state: playerView, dt });
