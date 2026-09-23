@@ -3,6 +3,7 @@ import '../../character-art-qa.js';
 import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, KAYKIT_MODELS, KAYKIT_CHARACTER_LIBRARY, YEAR_MS, createCharacterModelBuildRequest } from '@soul/characters';
 import { createCharacterWorkspace, downloadWorkspace } from '../workspace/index.js';
 import {createReviewRoutes,mountReviewShell} from '@soul/shared-ui/review-shell';
+import {REFERENCE_CHIBI_ID} from '../../../../../packages/assets/src/procedural-character/create-reference-chibi.js';
 const reviewShell=mountReviewShell({current:'characters',routes:createReviewRoutes({rinneBase:'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/',charactersBase:location.href}),homeHref:'https://soul-lineage-review-dev.c-okamoto.workers.dev/'});
 if(reviewShell)window.addEventListener('pagehide',()=>reviewShell.destroy(),{once:true});
 
@@ -42,6 +43,12 @@ function buildModelOptions() {
     row.append(b);
   }
   if (simpleReview) {
+    const chibi = button('正面図チビ', () => { studio.review.loadProceduralChibi(); studio.review.aim('front'); });
+    chibi.dataset.characterModel = REFERENCE_CHIBI_ID;
+    chibi.dataset.modelStage = '3D / 参考';
+    chibi.dataset.thumbnailUrl = new URL('../../../../../packages/assets/characters/reference-chibi/chibi-front.jpg', import.meta.url).href;
+    chibi.dataset.thumbnailKind = 'image';
+    row.append(chibi);
     const labels = { knight: '騎士', barbarian: '蛮族', mage: '魔術師', rogue: '盗賊', 'rogue-hooded': 'フード盗賊' };
     for (const model of KAYKIT_CHARACTER_LIBRARY) {
       const b = button(labels[model.key] || model.label, () => { void studio.review.loadFoundationModel(model); studio.review.aim('front'); });
@@ -200,8 +207,7 @@ function init() {
   new MutationObserver(expressions).observe(el('expression'), { childList: true });
   new MutationObserver(() => { el('metrics-live').textContent = el('metrics').textContent; }).observe(el('metrics'), { childList: true, characterData: true, subtree: true });
   window.addEventListener('character-workspace-change', render);
+  window.addEventListener('character-review-change', render);
   buildOptions(); expressions(); activate('parts'); render();
 }
 try { init(); } catch (error) { toast(error.message); }
-
-
