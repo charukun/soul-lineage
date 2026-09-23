@@ -36,7 +36,7 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     if(changedWeapon&&raw.equipment)resetLoadoutExecution(actor);
     for(const key of ['hp','maxHp','stamina','staminaCap','injuries','dead','downed','position','equipment','ageSeconds','staminaMultiplier','damageScale','mind','stance','zanshin','nonlethal','self','kind','boss','tempo','finisherProfile','targetId','canAttack','canFinish','scope','spawnStyle','recoverStamina','mitigation','pursuit'])if(raw[key]!==undefined)actor[key]=clone(raw[key]);
     actor.stability=raw.stability??({chinshin:.95,seigan:.72,ryu:.65,kosei:.58}[actor.stance]||.7);
-    if(raw.downed!==undefined){actor.incapacitated=Boolean(raw.downed||actor.dead);actor.downedAt=raw.downed?(wasDowned?actor.downedAt??time:time):null;if(wasDowned&&!raw.downed){actor.finisherClaimedBy=null;actor.finisherClaimAttackId=null;actor.executionLifecycle='ACTIVE';actor.executionPoseEvidence=null;actor.executionSocket=null;}else if(!wasDowned&&actor.executionLifecycle==='ACTIVE')actor.executionLifecycle='FALLING';}
+    if(raw.downed!==undefined){actor.incapacitated=Boolean(raw.downed||actor.dead);actor.downedAt=raw.downed?(wasDowned?actor.downedAt??time:time):null;if(wasDowned&&!raw.downed){actor.finisherClaimedBy=null;actor.finisherClaimAttackId=null;actor.executionLifecycle='ACTIVE';actor.executionPoseEvidence=null;actor.executionSocket=null;}else if(raw.downed&&!wasDowned&&actor.executionLifecycle==='ACTIVE')actor.executionLifecycle='FALLING';}
     if(raw.loadout){
       const nextLoadout=compileBattleLoadout(raw.loadout,actor.equipment.weapon),nextIdentity=loadoutIdentity(nextLoadout);
       if(!changedWeapon&&actor.loadoutIdentity&&actor.loadoutIdentity!==nextIdentity)resetLoadoutExecution(actor);

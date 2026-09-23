@@ -67,6 +67,8 @@ export function createBattleExecution({actors,getTime,getSerial,battleId,emit,ex
     }
   }
   function breakChain(actor,reason,targetId=actor.chainTargetId){
+    const target=actors.get(targetId);
+    if(target&&pair(actor,target).state.initiativeId===actor.id)exchange(actor,target,{type:'disengage'});
     actor.override=null;actor.chainTargetId=null;actor.chainLastAt=null;actor.phaseCue=null;actor.decision=null;actor.readSeconds=0;
     actor.cursor={phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:actor.cursor.cycle+1};
     emit({type:'chain-break',actorId:actor.id,sourceId:actor.id,targetId,reason});
