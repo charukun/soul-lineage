@@ -31,7 +31,7 @@
     "./rinne-field-radar.css": "./src/rinne-field-radar.css",
     "./camera-position-control": "./src/camera-position-control.js",
     "./camera-position-control.css": "./src/camera-position-control.css",
-    "./rinne-reference-hud.css": "./src/rinne-reference-hud.css"
+    "./johakyu-hud.css": "./src/johakyu-hud.css"
   },
   "dependencies": {
     "@soul/audio": "*"

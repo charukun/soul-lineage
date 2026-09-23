@@ -1,10 +1,19 @@
 .rinne-player-hud-host{position:absolute;z-index:27;left:max(8px,env(safe-area-inset-left));top:max(58px,calc(env(safe-area-inset-top) + 50px));pointer-events:none}
-.rinne-player-hud{position:relative;display:grid;grid-template-columns:48px minmax(0,1fr) 12px;align-items:center;gap:7px;width:150px;min-height:58px;padding:5px 7px 5px 5px;border:1px solid rgba(213,180,111,.56);border-bottom-color:rgba(103,73,39,.82);border-radius:17px 12px 12px 17px;background:linear-gradient(145deg,rgba(40,43,35,.96),rgba(20,27,26,.95));box-shadow:inset 0 1px rgba(255,244,214,.12),inset 0 -3px rgba(0,0,0,.2),0 5px 13px rgba(0,0,0,.28);font-family:var(--font-rinne-display,ui-serif),"Yu Mincho","Hiragino Mincho ProN",serif;color:#f6ecd2}
-.rinne-player-hud::after{content:"";position:absolute;left:54px;right:18px;bottom:5px;height:1px;background:linear-gradient(90deg,rgba(213,180,111,.42),transparent)}
-.rinne-player-hud__portrait{position:relative;width:46px;height:46px;overflow:hidden;border:2px solid rgba(246,225,177,.74);border-radius:15px;background:radial-gradient(circle at 52% 34%,rgba(214,186,121,.24),transparent 42%),#13211f;box-shadow:inset 0 0 0 2px rgba(53,39,24,.48),0 2px 6px rgba(0,0,0,.34)}
+.rinne-player-hud{position:relative;display:grid;align-items:center;font-family:var(--font-rinne-display,ui-serif),"Yu Mincho","Hiragino Mincho ProN",serif;width:clamp(142px,39vw,188px)!important;min-height:58px!important;
+  grid-template-columns:48px minmax(0,1fr) 10px!important;gap:7px!important;
+  padding:5px 7px 5px 5px!important;
+  border:2px solid rgba(155,115,64,.72)!important;border-radius:29px 13px 13px 29px!important;
+  background:linear-gradient(125deg,#fff9e8 0%,#f6e5c1 78%,#e8cb9b 100%)!important;
+  color:#49372a!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.85),inset 0 -3px rgba(148,101,53,.16),0 3px 0 #654a30,0 7px 14px rgba(23,34,22,.24)!important;
+}
+.rinne-player-hud::after{content:"";position:absolute;left:54px;right:18px;bottom:5px;height:1px;background:linear-gradient(90deg,rgba(135,104,68,.4),transparent)}
+.rinne-player-hud__portrait{position:relative;overflow:hidden;background:radial-gradient(circle at 52% 34%,rgba(214,186,121,.24),transparent 42%),#13211f;width:46px!important;height:46px!important;border-radius:50%!important;
+  border:3px solid #f7ecd0!important;box-shadow:0 0 0 2px #9d7948,inset 0 0 0 2px #4c6e42!important;
+}
 .rinne-player-hud__portrait canvas{display:block;width:100%;height:100%;object-fit:cover;filter:saturate(1.04) contrast(1.05)}
 .rinne-player-hud__fallback{position:absolute;inset:0;display:grid;place-items:center;color:#e2c77f;font-size:20px;background:radial-gradient(circle at 50% 45%,rgba(227,198,130,.14),transparent 58%)}
 .rinne-player-hud-host[data-portrait="live"] .rinne-player-hud__fallback,.rinne-player-hud-host[data-portrait="model"] .rinne-player-hud__fallback{display:none}
-.rinne-player-hud__text{display:grid;align-content:center;gap:2px;min-width:0}.rinne-player-hud__name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700;letter-spacing:.04em;text-shadow:0 1px #000}.rinne-player-hud__age{color:#d5c39d;font-size:9px;letter-spacing:.08em}
-.rinne-player-hud__charm{align-self:start;margin-top:2px;color:#e5bb78;font-size:10px;font-style:normal;opacity:.86}
-@media(max-width:410px){.rinne-player-hud-host{left:max(6px,env(safe-area-inset-left));top:max(51px,calc(env(safe-area-inset-top) + 44px))}.rinne-player-hud{grid-template-columns:43px minmax(0,1fr) 10px;width:134px;min-height:52px;gap:6px;padding:4px 6px 4px 4px}.rinne-player-hud__portrait{width:41px;height:41px;border-radius:13px}.rinne-player-hud__name{font-size:12px}.rinne-player-hud__age{font-size:8px}}
+.rinne-player-hud__text{display:grid;align-content:center;gap:2px;min-width:0}.rinne-player-hud__name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700;letter-spacing:.04em;color:#3f3026;text-shadow:none}.rinne-player-hud__age{color:#614b38;font-size:10px;letter-spacing:.08em}
+.rinne-player-hud__charm{align-self:start;margin-top:2px;color:#8c9a60;font-size:10px;font-style:normal;opacity:.86}
+@media(max-width:410px){.rinne-player-hud-host{left:max(6px,env(safe-area-inset-left));top:max(51px,calc(env(safe-area-inset-top) + 44px))}}

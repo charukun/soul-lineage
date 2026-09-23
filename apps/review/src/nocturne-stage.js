@@ -9,7 +9,7 @@ import {createRinnePlayerHud,rinnePreviewPlayer} from '@soul/shared-ui/rinne-pla
 import '@soul/shared-ui/rinne-primary-four.css';
 import '@soul/shared-ui/rinne-loadout-menu.css';
 import '@soul/shared-ui/rinne-player-hud.css';
-import '@soul/shared-ui/rinne-reference-hud.css';
+import '@soul/shared-ui/johakyu-hud.css';
 import '@soul/shared-ui/rinne-field-radar.css';
 import './battle2-field-hud.css';
 
