@@ -29,13 +29,31 @@ body.simple-review.character-grid-ready .review-controls{height:100%!important;m
 }
 .character-model-card{
   position:relative;min-width:0!important;height:var(--character-card-row)!important;min-height:0!important;
-  display:grid!important;grid-template-rows:minmax(0,1fr) auto;align-items:center;gap:3px!important;padding:5px 3px 6px!important;
-  border:1px solid #39413e!important;border-radius:9px!important;background:#101715!important;color:#d6ddd9!important;text-align:center!important;overflow:hidden
+  display:grid!important;grid-template-rows:minmax(0,1fr) auto;align-items:center;gap:2px!important;padding:3px 3px 5px!important;
+  border:1px solid #39413e!important;border-radius:9px!important;background:#111916!important;color:#d6ddd9!important;text-align:center!important;overflow:hidden;
+  box-shadow:inset 0 1px #ffffff12,0 2px 6px #0003!important;transition:border-color .16s ease,background .16s ease,transform .16s ease
 }
-.character-model-card[aria-selected="true"]{border-color:#d7c58b!important;background:#29271f!important;color:#fff1c8!important;box-shadow:inset 0 -2px #d7c58b!important}
+.character-model-card:hover:not(:disabled){border-color:#8fa79b!important;transform:translateY(-1px)}
+.character-model-card:focus-visible{outline:2px solid #d7c58b!important;outline-offset:2px}
+.character-model-card[aria-selected="true"]{border-color:#d7c58b!important;background:#29271f!important;color:#fff1c8!important;box-shadow:inset 0 -2px #d7c58b,0 0 0 1px #d7c58b55!important}
 .character-model-card[aria-selected="true"]::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:#e2cc8e;box-shadow:0 0 0 2px #171a16cc}
-.character-model-card-label{min-width:0;font-size:9px;line-height:1.15;white-space:normal;overflow-wrap:anywhere}
-.character-model-thumbnail{display:block;width:100%;height:100%;min-height:0;object-fit:contain;border-radius:5px}
+.character-model-card-art{
+  position:relative;isolation:isolate;display:block;width:100%;height:100%;min-height:0;overflow:hidden;border-radius:6px;
+  background:radial-gradient(ellipse 82% 60% at 50% 40%,#41594a 0%,#25352e 58%,#161f1b 100%)
+}
+.character-model-card-art::after{
+  content:"";position:absolute;inset:auto 7% 3px;height:16%;border-radius:50%;background:#8995793b;filter:blur(1px);pointer-events:none
+}
+.character-model-thumbnail{position:relative;z-index:1;display:block;width:100%;height:100%;min-height:0;object-fit:contain;filter:drop-shadow(0 2px 2px #0008)}
+/* The two protagonist images and Golden Base source have different framing from the KayKit renders. */
+.character-model-card-art[data-portrait="hero"]{background:#2d3638}
+.character-model-card-art[data-portrait="hero"] img{object-fit:cover;object-position:center 49%;transform:scale(1.14);mask-image:linear-gradient(to bottom,transparent 0%,#000 8%,#000 88%,transparent 100%)}
+.character-model-card-art[data-portrait="heroine"]{background:#203238}
+.character-model-card-art[data-portrait="heroine"] img{object-fit:cover;object-position:center 34%;transform:scale(1.13);mask-image:linear-gradient(to bottom,transparent 0%,#000 8%,#000 91%,transparent 100%)}
+.character-model-card-art[data-portrait="golden"]{background:#e9ded9}
+.character-model-card-art[data-portrait="golden"] img{object-fit:cover;object-position:center 48%;transform:scale(1.08);mix-blend-mode:multiply}
+.character-model-card-art[data-portrait="golden"]::after{background:#ab9a8c55}
+.character-model-card-label{position:relative;z-index:1;min-width:0;font-size:9px;line-height:1.15;white-space:normal;overflow-wrap:anywhere;text-shadow:0 1px 2px #0006}
 .character-review-empty{margin:0;padding:10px 2px;color:#929e98;font-size:10px}
 
 .character-review-stage-name{
