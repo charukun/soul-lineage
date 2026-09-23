@@ -28,8 +28,8 @@ const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
 let strategyA='balanced',strategyB='patient',strategyVariant='A',reviewSeed=6197,reviewInjury='none',reviewHeroBody=null,reviewEnemyBody=null,bodyHud=null;
 let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastSequenceRecipe='',lastRenderedCore=null,lastImpactSerial=0,lastIdleReadoutAt=-Infinity,lastAudioAttacks=new Map(),bulbTimer=0,pendingInspirationTimer=0,sequenceTimer=0;
-const INSPIRATION_BULB_HOLD_MS=420;
-const insightHistory=[],reviewTechniqueSeen=new Map(),reviewUltimateSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
+const INSPIRATION_BULB_HOLD_MS=950;
+const insightHistory=[],reviewTechniqueSeen=new Map(),reviewUltimateSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null},newTechniquePhases=new Set();
 let techniqueComposition=createReviewTechniqueComposition(),compositionWeapon='';
 // Shared with Demon and Rinne gameplay: one swipe parser owns drag, deadzone and terminal flick semantics after develop reconciliation.
 const reviewSwipe=new SwipeInput();
@@ -39,7 +39,7 @@ const runtimeWeapon=()=>tidebreakWeaponFor(selectedWeapon);
 function renderTechniqueComposition(){
   const root=q('battle-technique-composition');if(!root)return;
   const sections=['jo','ha','kyu'].map(phase=>{
-    const section=document.createElement('section');section.className='technique-chain';section.dataset.chainPhase=phase;
+    const section=document.createElement('section');section.className='technique-chain';section.dataset.chainPhase=phase;section.dataset.new=String(newTechniquePhases.has(phase));
     const head=document.createElement('header'),label=document.createElement('b'),preview=document.createElement('button');label.textContent=reviewChainLabel(phase,techniqueComposition[phase].length);preview.type='button';preview.textContent='試演';preview.setAttribute('data-chain-preview',phase);head.append(label,preview);
     const flow=document.createElement('div');flow.className='technique-chain__flow';
     for(const [index,technique] of techniqueComposition[phase].entries()){
@@ -48,24 +48,24 @@ function renderTechniqueComposition(){
       const name=document.createElement('strong');name.textContent=technique.name;
       const stages=document.createElement('span');stages.className='technique-card__stages';
       for(const stage of reviewTechniqueStages(technique)){const chip=document.createElement('small');chip.textContent=stage.label;chip.title=stage.kind;stages.append(chip);}
-      card.append(name,stages);flow.append(card);
+      card.append(name,stages);if(newTechniquePhases.has(phase)&&index===techniqueComposition[phase].length-1){const badge=document.createElement('small');badge.className='technique-card__new';badge.textContent='新';badge.setAttribute('aria-label','新しく閃いた技');card.append(badge);}flow.append(card);
     }
     section.append(head,flow);return section;
   });
   root.replaceChildren(...sections);
 }
 function ensureTechniqueComposition(loadout){
-  if(compositionWeapon!==selectedWeapon){compositionWeapon=selectedWeapon;techniqueComposition=createReviewTechniqueComposition();for(const phase of ['jo','ha','kyu'])learnedSlots[phase]=null;}
+  if(compositionWeapon!==selectedWeapon){compositionWeapon=selectedWeapon;techniqueComposition=createReviewTechniqueComposition();for(const phase of ['jo','ha','kyu'])learnedSlots[phase]=null;newTechniquePhases.clear();}
   for(const phase of ['jo','ha','kyu'])if(!techniqueComposition[phase].length){const recipe=loadout?.[phase];addTechniqueToReviewChain(techniqueComposition,phase,{id:`base-${selectedWeapon}-${phase}`,name:recipe?.name||'基本技',steps:recipe?.steps||[]});}
   renderTechniqueComposition();
 }
 async function previewTechniqueChain(phase){
   if(inspirationSequenceActive)return;const chain=techniqueComposition[phase]||[],steps=flattenReviewTechniqueChain(chain);if(!steps.length)return;
-  inspirationSequenceActive=true;beginInspirationWindow();try{const stage=await ensureBattleStage();stage.triggerInspiration({id:`review-chain-${phase}`,name:reviewChainLabel(phase,chain.length),steps,phase,weapon:selectedWeapon});}catch{inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();}
+  newTechniquePhases.delete(phase);renderTechniqueComposition();inspirationSequenceActive=true;beginInspirationWindow();try{const stage=await ensureBattleStage();stage.triggerInspiration({id:`review-chain-${phase}`,name:reviewChainLabel(phase,chain.length),steps,phase,weapon:selectedWeapon});}catch{inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();}
 }
 function hideInspirationBanner(){const banner=q('battle-inspiration');if(!banner)return;banner.hidden=true;delete banner.dataset.burst;delete banner.dataset.sequence;}
 function hideInspirationBulb(){clearTimeout(bulbTimer);bulbTimer=0;const bulb=q('battle-lightbulb');if(bulb)bulb.hidden=true;}
-function showInspirationBulb(){const bulb=q('battle-lightbulb');if(!bulb)return;clearTimeout(bulbTimer);bulb.hidden=true;void bulb.offsetWidth;bulb.hidden=false;bulbTimer=setTimeout(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS);}
+function showInspirationBulb(grade='normal'){const bulb=q('battle-lightbulb');if(!bulb)return;clearTimeout(bulbTimer);bulb.textContent='閃';bulb.dataset.grade=grade;bulb.hidden=true;void bulb.offsetWidth;bulb.hidden=false;bulbTimer=setTimeout(hideInspirationBulb,INSPIRATION_BULB_HOLD_MS);}
 function beginInspirationWindow(duration=REVIEW_INSPIRATION_TIMELINE.end){
   const enemies=lastCore?.enemies||[lastCore?.enemy].filter(Boolean),target=enemies.find(enemy=>!enemy.dead&&enemy.attack)||enemies.find(enemy=>!enemy.dead),targetId=target?.id??null;
   runtime?.setInspirationState?.({active:true,targetId,duration,nearMissSeconds:REVIEW_INSPIRATION_TIMELINE.camera});
@@ -79,8 +79,8 @@ function handleInspirationCue(cue,payload={}){
   if(cue==='camera'){battleSfx.inspiration('camera',payload.presentation?.sfx?.prepare);return;}
   if(cue==='spacing'){battleSfx.inspiration('anticipation',payload.presentation?.sfx?.prepare);return;}
   if(cue==='stagger'){battleSfx.inspiration('stagger',payload.presentation?.sfx?.prepare);return;}
-  if(cue==='silence'){battleSfx.inspiration('spark',payload.presentation?.sfx?.prepare);return;}
-  if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent='';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='announce';battleSfx.inspiration('reveal',payload.presentation?.sfx?.prepare);return;}
+  if(cue==='silence'){if(!String(payload.id||'').startsWith('review-chain-'))showInspirationBulb(payload.grade);battleSfx.inspiration('spark',payload.presentation?.sfx?.prepare);return;}
+  if(cue==='reveal'&&banner){hideReviewSign();q('battle-inspiration-name').textContent=payload.name||'';q('battle-inspiration-phase').textContent=String(payload.id||'').startsWith('review-chain-')?'':`${phaseLabel(payload.phase)}に自動セット`;banner.dataset.grade=payload.grade||'normal';banner.hidden=false;banner.dataset.burst='true';banner.dataset.sequence='announce';battleSfx.inspiration('reveal',payload.presentation?.sfx?.prepare);return;}
   if(cue==='titleEnd'){hideInspirationBanner();return;}
   if(cue==='execute'){battleSfx.inspiration('execute',payload.presentation?.sfx?.swing);return;}
   if(cue==='impact'){battleSfx.inspiration('impact',payload.presentation?.sfx?.impact);battleSfx.impact({guard:false,power:1});return;}
@@ -216,7 +216,7 @@ function renderInsightHistory(){
 function activateInsight(technique,replay=false,phase='ha'){
   if(!technique||inspirationSequenceActive)return;
   inspirationSequenceActive=true;
-  if(!replay){learnedSlots[phase]=technique;addTechniqueToReviewChain(techniqueComposition,phase,technique);renderTechniqueComposition();}
+  if(!replay){learnedSlots[phase]=technique;newTechniquePhases.add(phase);addTechniqueToReviewChain(techniqueComposition,phase,technique);runtime?.setPolicy({loadout:{[phase]:runtimeRecipe(technique,phase,runtimeWeapon())}});renderTechniqueComposition();}
   beginInspirationWindow(REVIEW_INSPIRATION_TIMELINE.end);void ensureBattleStage().then(stage=>stage.triggerInspiration({id:technique.id,name:technique.name,steps:technique.steps,phase,weapon:selectedWeapon,grade:technique.reviewGrade||inspirationTechniqueGrade(technique),duration:REVIEW_INSPIRATION_TIMELINE.end})).catch(()=>{inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();});
   if(!replay){insightHistory.unshift({technique,name:technique.name,phase,weapon:selectedWeapon,weaponLabel:weaponSelect.selectedOptions[0]?.textContent||selectedWeapon});if(insightHistory.length>8)insightHistory.length=8;renderInsightHistory();}
 }
@@ -275,7 +275,7 @@ q('battle-strategy-b')?.addEventListener('change',event=>{strategyB=event.target
 q('battle-ab-toggle')?.addEventListener('click',event=>{strategyVariant=strategyVariant==='A'?'B':'A';event.currentTarget.textContent=strategyVariant;resetBattle();});
 q('battle-review-seed')?.addEventListener('change',event=>{reviewSeed=Math.max(1,Number(event.target.value)||6197);resetBattle();});
 q('battle-injury-preset')?.addEventListener('change',event=>{reviewInjury=event.target.value;resetBattle();});
-historyOpen?.addEventListener('click',()=>{insightHistoryOpen=true;renderInsightHistory();});historyClose?.addEventListener('click',()=>{insightHistoryOpen=false;renderInsightHistory();});
+historyOpen?.addEventListener('click',()=>{insightHistoryOpen=true;newTechniquePhases.clear();renderTechniqueComposition();renderInsightHistory();});historyClose?.addEventListener('click',()=>{insightHistoryOpen=false;renderInsightHistory();});
 document.addEventListener('pointerdown',()=>{battleSfx.unlock();syncSoundButton();},{passive:true});
 soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});window.addEventListener('pagehide',()=>{battleStage?.dispose();battleViewControl?.dispose();battleSfx.dispose();bodyHud?.destroy();},{once:true});
 bodyHud=createCombatBodyHud({root:q('battle-body-hud')});
