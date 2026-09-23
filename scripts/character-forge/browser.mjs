@@ -53,7 +53,9 @@ try{
   await page.locator('[data-forge-animation]').selectOption('Bind');await expect(page.locator('[data-forge-pause]')).toBeHidden();assert.equal((await snapshot()).action,'Bind');
   await page.locator('.review-stage-controls__button').click();
   for(const selector of ['wire','skeleton','sockets']){await page.locator('[data-forge-'+selector+']').check();await page.locator('.review-stage-controls__button').click();await capture(selector,page.locator('.canvas-wrap'));await page.locator('.review-stage-controls__button').click();await page.locator('[data-forge-'+selector+']').uncheck();}
-  await page.locator('[data-forge-texture]').uncheck();await page.locator('.review-stage-controls__button').click();await capture('geometry',page.locator('.canvas-wrap'));await page.locator('.review-stage-controls__button').click();await page.locator('[data-forge-texture]').check();
+  await page.locator('.review-stage-controls__button').click();
+  const shape=page.locator('[data-forge-shape]');await expect(shape).toHaveAttribute('aria-pressed','false');await shape.click();await expect(shape).toHaveAttribute('aria-pressed','true');await capture('geometry',page.locator('.canvas-wrap'));await shape.click();await expect(shape).toHaveAttribute('aria-pressed','false');
+  await page.locator('.review-stage-controls__button').click();
   await page.locator('[data-forge-equipment]').selectOption('sword');assert.equal((await snapshot()).equipment.weapon,'sword');
   await page.locator('[data-forge-turntable]').click();await page.waitForFunction(()=>document.querySelector('#forge-stage').characterForgeSnapshot().angle>Math.PI*2,null,{timeout:30000});receipt.turntable=await snapshot();await capture('turntable',page.locator('.canvas-wrap'));await page.locator('[data-forge-turntable]').click();
   const canvas=page.locator('#forge-stage'),box=await canvas.boundingBox();const beforeOrbit=await page.locator('#forge-stage').evaluate(c=>c.characterForgeSnapshot().camera);
