@@ -145,32 +145,55 @@ export function createDeathRebirthCinematic(options={}){
     oscillator.connect(level).connect(context.destination);
     oscillator.start(now);oscillator.stop(now+duration+.03);
   }
+  function sweep(context,{start=1200,end=90,duration=.7,gain=.03,type='sawtooth',delay=0,resonance=8}={}){
+    if(!context||context.state!=='running')return;
+    const now=context.currentTime+delay,oscillator=context.createOscillator(),filter=context.createBiquadFilter(),level=context.createGain();
+    oscillator.type=type;
+    oscillator.frequency.setValueAtTime(Math.max(30,start),now);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(30,end),now+duration);
+    filter.type='bandpass';filter.Q.setValueAtTime(resonance,now);
+    filter.frequency.setValueAtTime(Math.max(80,start*.82),now);
+    filter.frequency.exponentialRampToValueAtTime(Math.max(60,end*1.18),now+duration);
+    level.gain.setValueAtTime(.0001,now);
+    level.gain.exponentialRampToValueAtTime(Math.max(.0002,gain),now+Math.min(.09,duration*.18));
+    level.gain.exponentialRampToValueAtTime(.0001,now+duration);
+    oscillator.connect(filter).connect(level).connect(context.destination);
+    oscillator.start(now);oscillator.stop(now+duration+.04);
+  }
   function deathCut(context=audioContext){
     if(!context||context.state!=='running')return;
-    tone(context,{frequency:2600,endFrequency:310,duration:.028,gain:.026,type:'square'});
-    tone(context,{frequency:82,endFrequency:38,duration:.24,gain:.055,type:'triangle',delay:.005});
+    sweep(context,{start:2850,end:58,duration:.34,gain:.043,type:'sawtooth',resonance:11});
+    tone(context,{frequency:56,endFrequency:31,duration:.31,gain:.052,type:'triangle',delay:.035});
+    tone(context,{frequency:1770,endFrequency:720,duration:.038,gain:.018,type:'square',delay:.012});
   }
-  function mechanicalTick(context=audioContext){
+  function mechanicalTick(context=audioContext,{reverse=false,gainScale=1}={}){
     if(!context||context.state!=='running')return;
     const bright=tickIndex++%2===0;
-    tone(context,{frequency:bright?2480:1980,endFrequency:bright?1120:840,duration:.018,gain:.027,type:'square'});
-    tone(context,{frequency:bright?178:151,endFrequency:92,duration:.038,gain:.009,type:'triangle',delay:.004});
+    if(reverse){
+      tone(context,{frequency:bright?760:620,endFrequency:bright?2280:1880,duration:.024,gain:.014*gainScale,type:'square'});
+      tone(context,{frequency:94,endFrequency:bright?182:154,duration:.035,gain:.006*gainScale,type:'triangle',delay:.002});
+      return;
+    }
+    tone(context,{frequency:bright?2210:1840,endFrequency:bright?1160:920,duration:.016,gain:.011*gainScale,type:'square'});
+    tone(context,{frequency:bright?166:143,endFrequency:90,duration:.032,gain:.004*gainScale,type:'triangle',delay:.003});
   }
   function watchChime(context=audioContext){
     if(!context||context.state!=='running')return;
-    tone(context,{frequency:659.25,endFrequency:653,duration:1.35,gain:.021,type:'sine'});
-    tone(context,{frequency:987.77,endFrequency:978,duration:1.55,gain:.012,type:'sine',delay:.045});
-    tone(context,{frequency:1318.5,endFrequency:1302,duration:1.08,gain:.006,type:'sine',delay:.085});
+    tone(context,{frequency:493.88,endFrequency:489,duration:1.7,gain:.013,type:'sine'});
+    tone(context,{frequency:739.99,endFrequency:732,duration:1.95,gain:.008,type:'sine',delay:.055});
+    tone(context,{frequency:987.77,endFrequency:976,duration:1.36,gain:.004,type:'sine',delay:.11});
   }
   function rewindChime(context=audioContext){
     if(!context||context.state!=='running')return;
-    tone(context,{frequency:392,endFrequency:784,duration:.72,gain:.016,type:'sine'});
-    tone(context,{frequency:523.25,endFrequency:1046.5,duration:.82,gain:.011,type:'sine',delay:.08});
-    for(let index=0;index<7;index++){
+    sweep(context,{start:82,end:2450,duration:.92,gain:.034,type:'sawtooth',resonance:7});
+    sweep(context,{start:128,end:3320,duration:.76,gain:.015,type:'triangle',delay:.12,resonance:10});
+    tone(context,{frequency:196,endFrequency:1568,duration:.88,gain:.011,type:'sine',delay:.045});
+    for(let index=0;index<10;index++){
+      const progress=index/9,delay=Math.round(290*(1-Math.pow(progress,.68)));
       const timer=view.setTimeout(()=>{
         audioTimers.delete(timer);
-        mechanicalTick(context);
-      },Math.round(index*86-index*index*3.5));
+        mechanicalTick(context,{reverse:true,gainScale:.65+progress*.55});
+      },index===0?0:delay+index*44);
       audioTimers.add(timer);
     }
   }
