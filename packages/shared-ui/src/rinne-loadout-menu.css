@@ -417,3 +417,50 @@
     min-height:34px;padding:5px 6px;font-size:9px;
   }
 }
+
+/* Phase, focused detail and its matching library choice share one restrained contour. */
+.rinne-core-menu[data-type="technique"] .rinne-core-menu-head{
+  grid-template-columns:minmax(0,1fr) 36px;
+  padding-left:clamp(126px,38%,190px);
+}
+.rinne-core-menu[data-type="technique"] .rinne-core-menu-mark{display:none}
+.rinne-core-menu[data-type="technique"] .rinne-core-menu-body{isolation:isolate}
+.rinne-core-menu[data-type="technique"] .rinne-core-menu-body>*:not(.loadout-selection-path){
+  position:relative;z-index:1;
+}
+.rinne-core-menu[data-type="technique"] .loadout-selection-path{
+  position:absolute;left:0;top:0;width:100%;z-index:0;
+  overflow:visible;pointer-events:none;
+}
+.rinne-core-menu[data-type="technique"] .loadout-selection-path path{
+  fill:none;stroke:color-mix(in srgb,var(--menu-accent) 65%,#557d83 35%);
+  stroke-width:2;stroke-linecap:round;
+}
+.rinne-core-menu[data-type="technique"] .loadout-slot[data-selected="true"],
+.rinne-core-menu[data-type="technique"] .loadout-grid-item[data-focus="true"]{
+  border:2px solid color-mix(in srgb,var(--menu-accent) 70%,#62828b 30%)!important;
+  background:linear-gradient(180deg,#f4ffff,#f8edcf)!important;
+  box-shadow:0 0 0 2px rgba(97,162,174,.15),0 3px 8px rgba(60,88,89,.12)!important;
+}
+.rinne-core-menu[data-type="technique"] .loadout-detail{
+  border-color:color-mix(in srgb,var(--menu-accent) 70%,#62828b 30%);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.55),0 4px 9px rgba(57,91,96,.12);
+}
+.rinne-core-menu[data-type="technique"] .loadout-library:not(.loadout-combo-grid){
+  padding-bottom:3px!important;
+}
+@media(max-width:420px){
+  .rinne-core-menu[data-type="technique"]{
+    bottom:max(96px,calc(env(safe-area-inset-bottom) + 90px));
+    max-height:min(76dvh,760px);
+  }
+  .rinne-core-menu[data-type="technique"] .rinne-core-menu-head{
+    padding-left:clamp(116px,37%,160px);
+  }
+}
+@media(max-height:610px) and (orientation:landscape){
+  .rinne-core-menu[data-type="technique"]{bottom:8px;max-height:none}
+  .rinne-core-menu[data-type="technique"] .rinne-core-menu-head{padding-left:10px}
+  .rinne-core-menu[data-type="technique"] .rinne-core-menu-mark{display:grid}
+  .rinne-core-menu[data-type="technique"] .rinne-core-menu-head{grid-template-columns:30px minmax(0,1fr) 36px}
+}
