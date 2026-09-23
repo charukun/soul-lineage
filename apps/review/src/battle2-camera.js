@@ -4,7 +4,7 @@ import {createSnapCameraControl} from '@soul/rendering/snap-camera-control';
 import {battle2CameraWorldHeight} from './battle2-camera-math.js';
 import '@soul/rendering/snap-camera-control.css';
 
-export function createBattle2CameraPresentation({stage,world}={}){
+export function createBattle2CameraPresentation({stage,world,onZoomChange=()=>{}}={}){
   if(!stage||!world)throw new TypeError('battle2 stage and world canvas are required');
   const host=stage.querySelector('[data-battle2-camera-host]');
   if(!host)throw new Error('battle2 camera control host is missing');
@@ -18,7 +18,7 @@ export function createBattle2CameraPresentation({stage,world}={}){
     maxZoom:1.65,
     ariaLabel:'カメラ操作。横スワイプで45度回転、縦スワイプでズーム',
     onChange:state=>{
-      yawOffset=state.yaw;userZoom=state.zoom;
+      yawOffset=state.yaw;userZoom=state.zoom;onZoomChange(state.zoom);
       world.dataset.cameraStep=String(state.index);world.dataset.cameraZoom=state.zoom.toFixed(2);
     }
   });
@@ -42,6 +42,7 @@ export function createBattle2CameraPresentation({stage,world}={}){
       return presentation;
     },
     snapshot,
+    setZoom(value){return cameraControl.setZoom(value).zoom;},
     reset(){director.reset();screenSafety=null;lastSnapshot=null;return cameraControl.snapshot();},
     dispose(){
       cameraControl.dispose();director.reset();screenSafety=null;lastSnapshot=null;

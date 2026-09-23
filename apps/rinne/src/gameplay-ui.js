@@ -27,6 +27,7 @@ import '@soul/shared-ui/rinne-primary-four.css';
 import {RINNE_UI_VERSION} from './ui-version.js';
 import {createRinnePlayerHud,rinnePlayerNameFromSeed} from '@soul/shared-ui/rinne-player-hud';
 import '@soul/shared-ui/rinne-player-hud.css';
+import '@soul/shared-ui/rinne-reference-hud.css';
 import './reference-exploration-hud.css';
 import '@soul/shared-ui/rinne-field-radar.css';
 import {createCombatBodyHud} from './combat-body-hud.js';

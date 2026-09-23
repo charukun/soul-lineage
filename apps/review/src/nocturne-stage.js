@@ -3,11 +3,17 @@ import {createBattle2BodyHud} from './battle2-body-hud.js';
 import {battle2SelectionLabel,battle2TechniqueLabel} from './nocturne/battle2-technique-catalog.js';
 import {createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
 import {createBattle2CameraPresentation} from './battle2-camera.js';
+import {rinneFieldRadarMarkup,updateRinneFieldRadar} from '@soul/shared-ui/rinne-field-radar';
+import {createCameraPositionControl} from '@soul/shared-ui/camera-position-control';
 import {mountReviewStageControls} from '@soul/shared-ui/review-shell';
 import {createRinnePlayerHud,rinnePreviewPlayer} from '@soul/shared-ui/rinne-player-hud';
 import '@soul/shared-ui/rinne-primary-four.css';
 import '@soul/shared-ui/rinne-loadout-menu.css';
 import '@soul/shared-ui/rinne-player-hud.css';
+import '@soul/shared-ui/rinne-reference-hud.css';
+import '@soul/shared-ui/rinne-field-radar.css';
+import '@soul/shared-ui/camera-position-control.css';
+import './battle2-field-hud.css';
 
 const SETTINGS_KEY='battle2.settings.v1';
 function normalizeBattleSettings(value={}){return{techniqueMode:value?.techniqueMode==='random'?'random':'set',inspirationRate:value?.inspirationRate==='high'?'high':'normal'};}
@@ -20,14 +26,21 @@ const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.get
 const previewIdentity=rinnePreviewPlayer((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0);
 const playerHud=createRinnePlayerHud(document.getElementById('battle2-player-hud'),previewIdentity);
 const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
-const cameraPresentation=createBattle2CameraPresentation({stage,world});
+stage.insertAdjacentHTML('beforeend',rinneFieldRadarMarkup({interactive:false}));
+const battleRadar=stage.querySelector('[data-field-radar]');
+let cameraPositionControl=null;
+const cameraPresentation=createBattle2CameraPresentation({stage,world,onZoomChange:zoom=>{
+  const normalized=(zoom-.58)/1.07;
+  if(cameraPositionControl&&Math.abs(normalized-cameraPositionControl.value())>.005)cameraPositionControl.set(normalized);
+}});
+cameraPositionControl=createCameraPositionControl({document,container:stage,initial:(1-.58)/1.07,onChange:value=>cameraPresentation.setZoom(.58+value*1.07)});
 const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]','[data-battle-technique-mode-control]','[data-battle-inspiration-rate-control]'],label:'戦闘設定'});
 const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],techniqueLanes=new Map([...document.querySelectorAll('[data-technique-phase]')].map(node=>[node.dataset.techniquePhase,node])),modeButtons=[...document.querySelectorAll('[data-battle-mode]')],techniqueModeButtons=[...document.querySelectorAll('[data-battle-technique-mode]')],inspirationRateButtons=[...document.querySelectorAll('[data-battle-inspiration-rate]')];
 const PHASE_INDEX={jo:0,ha:1,kyu:2},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
 const TECHNIQUE_DISPLAY_MS=2600,LOG_DISPLAY_MS=2400,LOG_VISIBLE_LIMIT=4,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
 let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',lastPhaseCueKey='',comboFadeTimer=0,comboInterrupted=false;
-let state='BOOT',lastError=null,lastExchangeKey='',activeLoadout=null,battleSettings=readBattleSettings();
+let state='BOOT',lastError=null,lastExchangeKey='',activeLoadout=null,battleSettings=readBattleSettings(),lastRadarAt=-Infinity;
 const loadoutUI=createBattle2LoadoutUI({stage,onChange:next=>{activeLoadout=next;reviewMeta=null;lastExchangeKey='';resetHistory();playerHud?.clearPortrait?.();runtime?.configureLoadout?.(next);}});
 activeLoadout=loadoutUI.value;
 hud.dataset.anchored='true';
@@ -124,7 +137,17 @@ function updateSequence(meta){
  finisherNode.hidden=!finisherName;
  finisherNode.setAttribute('aria-label',finisherName?`葬焉モーション ${finisherName}`:'葬焉モーション');
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
- const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);if(playerHud?.root?.dataset.portrait!=='model'&&runtime?.renderPlayerPortrait?.(playerHud.canvas))playerHud.markPortrait?.('model');
+ const actors=runtime?.inspectActors?.()||[],hero=actors.find(actor=>actor.self);
+ if(hero){
+   bodyHud?.update(hero);
+   const now=performance.now();
+   if(now-lastRadarAt>=90){
+     lastRadarAt=now;
+     const opponents=actors.filter(actor=>!actor.self&&!actor.dead&&Number.isFinite(actor.position?.x)&&Number.isFinite(actor.position?.z));
+     const nearest=opponents.reduce((best,actor)=>!best||Math.hypot(actor.position.x-hero.position.x,actor.position.z-hero.position.z)<Math.hypot(best.position.x-hero.position.x,best.position.z-hero.position.z)?actor:best,null);
+     updateRinneFieldRadar(battleRadar,{position:hero.position,yaw:hero.yaw,places:opponents.map((actor,index)=>({x:actor.position.x,z:actor.position.z,category:'enemy',label:`敵${index+1}`})),target:nearest?{x:nearest.position.x,z:nearest.position.z,label:'敵',distance:Math.round(Math.hypot(nearest.position.x-hero.position.x,nearest.position.z-hero.position.z))}:null,range:12,label:'戦闘位置',interactive:false});
+   }
+ }if(playerHud?.root?.dataset.portrait!=='model'&&runtime?.renderPlayerPortrait?.(playerHud.canvas))playerHud.markPortrait?.('model');
  const activity=Array.isArray(meta.activity)?meta.activity:[];
  for(const row of activity){
   if((row.type==='chain-break'||row.type==='interrupted')&&(row.actorId||row.sourceId)==='hero')comboInterrupted=true;
@@ -181,5 +204,5 @@ world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepare
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
 window.addEventListener('error',event=>{if(event.error&&!disposed)failed(event.error);});
 window.addEventListener('unhandledrejection',event=>{if(!disposed)failed(event.reason);});
-window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
+window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();cameraPositionControl?.dispose();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
 syncModeButtons();report('BOOT');void boot();
