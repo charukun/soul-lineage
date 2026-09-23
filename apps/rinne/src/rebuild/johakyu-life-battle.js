@@ -38,16 +38,16 @@ export function lifeBattleLoadout(state,targetId){
  }));
 }
 function lifeRow(state,front){
- const candidates=front.enemies.filter(e=>!e.dead&&!e.downed).sort((a,b)=>Math.hypot(a.x-state.position.x,a.z-state.position.z)-Math.hypot(b.x-state.position.x,b.z-state.position.z));
+ const loadout=ensureCombatLoadout(state),candidates=front.enemies.filter(e=>!e.dead&&!e.downed).sort((a,b)=>Math.hypot(a.x-state.position.x,a.z-state.position.z)-Math.hypot(b.x-state.position.x,b.z-state.position.z));
  const target=candidates.find(e=>e.id===state.combat?.targetId)||candidates[0];
  if(!state.combat&&state.ageYears>=7&&target&&Math.hypot(target.x-state.position.x,target.z-state.position.z)<=3.25)state.combat=beginCombatState(state,target.id);
  const finisher=combatFinisherRuntime(state),effects=skillEffects(state);
  return{id:state.id,side:'party',self:true,kind:'hero',hp:state.hp,maxHp:state.maxHp,stamina:state.stamina,staminaCap:state.staminaCap,injuries:state.injuries,position:{...state.position},yaw:state.yaw,
    ageSeconds:state.ageSeconds,seed:state.seed,generation:state.generation,equipment:{...state.equipment},loadout:lifeBattleLoadout(state,target?.id),mind:tidebreakMindVectorFor(state),pursuit:loadout.heart.active.includes('skill.pursuer'),
    stance:state.combatLoadout.body.stance,zanshin:state.combatLoadout.body.zanshin,nonlethal:finisher.nonlethal,finisherProfile:finisher.finisher,staminaMultiplier:staminaMultiplierFor(state),damageScale:1+effects.damage,mitigation:(effects.mitigation||0)+bodyRuntime(state).guardBonus,recoverStamina:false,
-   targetId:target?.id,canAttack:Boolean(state.combat&&!state.down&&!state.ended&&Number(state.ageYears)>=7),canFinish:finisher.execute,dead:Boolean(state.ended),downed:Boolean(state.down),scope:'life'};
+   targetId:target?.id,canAttack:Boolean(state.combat&&!state.down&&!state.ended&&Number(state.ageYears)>=7),canFinish:finisher.execute,dead:Boolean(state.ended||state.down?.executed),downed:Boolean(state.down&&!state.down?.executed),scope:'life'};
 }
-function enemyRow(enemy,front){return{id:enemy.id,side:'enemy',kind:'enemy',boss:front.stage>=5,hp:enemy.hp,maxHp:enemy.maxHp,stamina:enemy.battleStamina??100,staminaCap:100,injuries:enemy.injuries,position:{x:enemy.x,z:enemy.z},yaw:enemy.yaw,equipment:{weapon:sharedEnemyWeapon(front,enemy),armor:'cloth',shield:Boolean(enemy.shield)},mind:'balanced',damageScale:front.stage>=5?.9:.65,loadout:{},dead:enemy.dead,downed:enemy.downed,staminaMultiplier:.35,recoverStamina:true,readyDelay:Math.max(0,enemy.cooldown??.25),targetId:enemy.attentionTargetId,canFinish:false};}
+function enemyRow(enemy,front){return{id:enemy.id,side:'enemy',kind:'enemy',boss:front.stage>=5,hp:enemy.hp,maxHp:enemy.maxHp,stamina:enemy.battleStamina??100,staminaCap:100,injuries:enemy.injuries,position:{x:enemy.x,z:enemy.z},yaw:enemy.yaw,equipment:{weapon:sharedEnemyWeapon(front,enemy),armor:'cloth',shield:Boolean(enemy.shield)},mind:'balanced',damageScale:front.stage>=5?.9:.65,loadout:{},dead:enemy.dead,downed:enemy.downed,staminaMultiplier:.35,recoverStamina:true,readyDelay:Math.max(0,enemy.cooldown??.25),targetId:enemy.attentionTargetId,canFinish:true};}
 function pose(row){
  const a=row.action;if(!a)return {attack:null,progress:0,stun:row.stagger,guarding:false,targetId:row.exchange?.targetId||null,battleAction:null};
  return {attack:a.kind,progress:a.progress,slot:a.phase,skill:a.name,targetId:a.targetId,stun:row.stagger,guarding:['guard','brace','parry'].includes(a.kind),battleAction:a,
@@ -58,7 +58,7 @@ export function tickLifeBattle(states,front,dt,{fatalityChance=()=>.5}={}){
  if(!Number.isFinite(dt)||dt<0||dt>.25)throw new RangeError('Invalid combat real-time delta');
  const result=new Map(states.map(s=>[s.id,[]]));if(dt===0)return result;
  const eligible=states.filter(s=>s.zone==='frontier'&&!s.ended);if(!eligible.length)return result;
- for(const state of eligible){if(state.inspiration)state.inspiration.execution=null;if(state.down){state.down.elapsed+=dt;if(state.down.elapsed>=40){state.down=null;state.zone='village';state.hp=Math.max(30,state.maxHp*.3);state.stamina=state.staminaCap*.6;state.combat=null;result.get(state.id).push({type:'rescued'});}}}
+ for(const state of eligible){if(state.inspiration)state.inspiration.execution=null;if(state.down&&!state.down.executed){state.down.elapsed+=dt;if(state.down.elapsed>=40){state.down=null;state.zone='village';state.hp=Math.max(30,state.maxHp*.3);state.stamina=state.staminaCap*.6;state.combat=null;result.get(state.id).push({type:'rescued'});}}}
  const active=eligible.filter(s=>s.zone==='frontier');if(!active.length){sessions.delete(front);return result;}
  for(const state of active){if(!state.combat&&!state.down){const target=front.enemies.find(e=>!e.dead&&!e.downed&&Math.hypot(e.x-state.position.x,e.z-state.position.z)<=3.55);if(target&&state.ageYears>=7)state.combat=beginCombatState(state,target.id);}}
  // Recovery belongs to the encounter/life host. An all-downed nonlethal front still clears.
@@ -80,6 +80,8 @@ export function tickLifeBattle(states,front,dt,{fatalityChance=()=>.5}={}){
    const row={...event,engine:'johakyu'};
    if(owner)result.get(owner.id).push(row);if(victim&&victim!==owner)result.get(victim.id).push(row);
    if(event.type==='actor-downed'&&owner){owner.defeats=(owner.defeats||0)+1;const xp=owner.experiences.combat||{count:0,score:0,last:0};owner.experiences.combat={count:xp.count+1,score:xp.score+1,last:owner.ageSeconds};result.get(owner.id).push({type:'enemy-downed',targetId:event.targetId,engine:'johakyu'});}
+   if(event.type==='finisher'&&victim?.down&&!victim.ended&&!victim.down.executed){victim.down.executed=true;victim.down.executedBy=event.sourceId;victim.down.executionId=event.attackId;result.get(victim.id).push({type:'enemy-finisher',sourceId:event.sourceId,attackId:event.attackId,engine:'johakyu'});}
+   if(event.type==='finisher-complete'&&victim?.down?.executed&&!victim.ended&&victim.down.executionId===event.attackId){endLifeEarly(victim,`第${front.stage+1}前線で敵の葬焉`);result.get(victim.id).push({type:'life-end',cause:'enemy-finisher',sourceId:event.sourceId,attackId:event.attackId,engine:'johakyu'});}
    if(event.type==='execution-blocked'&&owner?.combat)owner.combat.executionBlock={reason:event.reason,remaining:.35};
    if(event.type==='phase-change'&&event.phase==='jo'&&owner&&owner.combat)selectCombatCombo(owner,owner.combat,{advance:true});
    if(event.type==='actor-downed'&&victim&&!victim.down&&!victim.ended){const outcome=combatBodyOutcome(victim),chance=outcome.fatal?1:fatalityChance(victim);if(hash(`${victim.seed}:${event.id||event.triggerEventId}:fatal`)<chance){endLifeEarly(victim,`第${front.stage+1}前線の戦い`);result.get(victim.id).push({type:'life-end',cause:'combat',engine:'johakyu'});}else{victim.down={elapsed:0,rescueSeconds:40,frontier:true};victim.combat=null;result.get(victim.id).push({type:'downed',engine:'johakyu'});}}
