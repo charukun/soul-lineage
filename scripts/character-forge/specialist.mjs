@@ -9,9 +9,8 @@ run('python3',['scripts/character-forge/validate_centroid_diagnostic.py','--work
 run('npm',['ci','--ignore-scripts']);
 run('node',['--test','scripts/character-forge/uv-gutter.test.mjs','scripts/character-forge/reference-camera.test.mjs','scripts/character-forge/rig-adapter.test.mjs','packages/characters/tests/character-expressions.test.mjs','tests/character-forge-entrypoint.test.mjs','tests/character-create-forge.test.mjs']);
 run('npx',['playwright','install','--with-deps','chromium']);
-// Rerender the actual repaired upstream mesh; rig freeze has not happened.
-run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','build-current-pass','--evidence','build/material-pass.ts','--evidence','build/dcc/refinement.json']);
+// State is already at review-contract-read. Add diagnostic captures without
+// remarking completed build/render steps, rewinding state, or accepting a pass.
 run('node',['scripts/character-forge/render_upstream.mjs',workspace,'material-pass']);
-run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','render-capture','--evidence','review/material-pass/render-receipt.json']);
 run('python3',['scripts/character-forge/review_upstream.py','--workspace',workspace,'--cache',cache,'--pass-id','material-pass']);
 run('python3',['scripts/character-forge/diagnose_part_colors.py','--workspace',workspace,'--cache',cache,'--pass-id','material-pass']);
