@@ -27,7 +27,7 @@ export function rinneSkillSigilKind(id,effects={}){
   if(/breath|calm|recovery/.test(key))return'breath';if(/observe|read|danger|peripheral|weapon-eye/.test(key))return'eye';if(/guard|balance|fall|endure|resolve/.test(key))return'guard';if(/step|trail|distance|lunge|slip|circle/.test(key))return'step';if(/focus|center|precision|tempo|poise/.test(key))return'focus';if(/edge|grip|counter|finish|crash|draw|basic\.(sword|dagger|great|spear|axe)/.test(key))return'blade';if(/flow|rhythm|repeat|adapt|copy-form/.test(key))return'flow';if(/care|heal/.test(key)||Number(effects.recovery)>0)return'heal';if(key)return Number(effects.damage)>Number(effects.mitigation)?'blade':Number(effects.evasion)>0?'step':'flow';return'empty';
 }
 export function rinneSkillSigilMarkup(kind='empty'){const safe=SIGIL_PATHS[kind]?kind:'empty';return '<i class="skill-sigil" data-sigil="'+safe+'" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">'+SIGIL_PATHS[safe]+'</svg></i>';}
-export function rinneLoadoutPanelMarkup({ariaLabel='旅人の手帳',kicker='旅人の手帳'}={}){return '<section data-panel class="rinne-core-menu" hidden aria-modal="true" aria-label="'+esc(ariaLabel)+'"><header class="rinne-core-menu-head"><span class="rinne-core-menu-mark" aria-hidden="true">✦</span><div><small>'+esc(kicker)+'</small><strong data-title></strong></div><button data-close aria-label="閉じる">×</button></header><div data-body class="rinne-core-menu-body"></div></section>';}
+export function rinneLoadoutPanelMarkup({ariaLabel='旅人の手帳',kicker='旅人の手帳',layout=''}={}){return '<section data-panel class="rinne-core-menu" data-layout="'+esc(layout)+'" hidden aria-modal="true" aria-label="'+esc(ariaLabel)+'"><header class="rinne-core-menu-head"><span class="rinne-core-menu-mark" aria-hidden="true">✦</span><div><small>'+esc(kicker)+'</small><strong data-title></strong></div><button data-close aria-label="閉じる">×</button></header><div data-body class="rinne-core-menu-body"></div></section>';}
 export function createRinneMenuLead(text,{documentRef=document}={}){const node=documentRef.createElement('p');node.className='rinne-menu-lead';node.textContent=String(text||'');return node;}
 export function createRinneLoadoutSlotRow({swapMode=false,layout='',documentRef=document}={}){const node=documentRef.createElement('section');node.className='loadout-slot-row';node.dataset.swapMode=String(swapMode);if(layout)node.dataset.layout=layout;return node;}
 export function createRinneLoadoutSlot({label='',value='',meta='タップして選択',selected=false,empty=false,icon='empty',swapMode=false,swapSource=false,onClick=null,onLongPress=null,documentRef=document}={}){
@@ -88,19 +88,20 @@ export function rinneHeartPortrait(slotIds,labelFor){
   if(/刃|剣|斬/.test(names)||/edge|blade|sword/.test(keys))lines.push('刃は、訪れた一瞬へ向かう。');
   return lines.slice(0,2).join('　')||'選んだ心得が、歩む道に静かに重なる。';
 }
-export function createRinneHeartComposition(slots,slotIds,labelFor,{documentRef=document}={}){
+export function createRinneHeartComposition(slots,slotIds,labelFor,{documentRef=document,compact=false}={}){
   const layout=documentRef.createElement('div');
   layout.className='heart-composition';
+  layout.dataset.compact=String(compact);
   const figure=documentRef.createElement('section');
   figure.className='heart-composition-slots';
   const figureTitle=documentRef.createElement('h3');
   figureTitle.textContent='心得の構成';
   [...slots.children].forEach((button,index)=>button.setAttribute('aria-label',`心得枠${index+1}。${slotIds[index]?labelFor(slotIds[index]):'未設定'}`));
   figure.append(figureTitle,slots);
-  const portrait=documentRef.createElement('section');
+  const portrait=documentRef.createElement(compact?'details':'section');
   portrait.className='heart-portrait';
   portrait.setAttribute('aria-label','心のかたち');
-  const title=documentRef.createElement('h3');
+  const title=documentRef.createElement(compact?'summary':'h3');
   title.textContent='心のかたち';
   const copy=documentRef.createElement('p');
   copy.textContent=rinneHeartPortrait(slotIds,labelFor);

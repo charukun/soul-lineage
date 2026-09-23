@@ -17,11 +17,13 @@ main.battle2-review.review-surface>.review-surface__workspace{grid-template-colu
 .battle2-loadout-shell .rinne-core-menu{pointer-events:auto}
 @media(max-width:680px) and (orientation:portrait){
   .battle2-review .battle2-loadout-shell .rinne-core-menu{
-    max-width:340px;
-    max-height:min(38dvh,320px);
-    left:12px;
-    right:12px;
-    bottom:max(94px,calc(env(safe-area-inset-bottom) + 88px));
+    position:absolute;
+    max-width:480px;
+    height:clamp(300px,calc(84% - 104px),420px);
+    max-height:calc(100% - 112px);
+    left:10px;
+    right:10px;
+    bottom:max(104px,calc(env(safe-area-inset-bottom) + 98px));
   }
 }
 .battle2-loadout-shell .rinne-primary-four{z-index:180!important}
