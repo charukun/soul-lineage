@@ -18,6 +18,11 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
   const actors=new Map(),exchanges=new Map(),seen=new Set(),manualMoves=new Map();
   let time=0,revision=0,serial=0,hitstop=0,events=[],trace=[];
   function emit(row){const event={...row,time,authority:'johakyu-battle'};events.push(event);trace.push(event);if(trace.length>240)trace.shift();return event;}
+  const loadoutIdentity=loadout=>PHASES.map(phase=>(loadout?.[phase]||[]).map(technique=>`${technique.id}:${technique.stages.map(stage=>`${stage.kind}/${stage.footwork}/${stage.charge}`).join(',')}`).join('>')).join('|');
+  function resetLoadoutExecution(actor){
+    cancelJohakyuStage(actor.action);actor.action=null;actor.override=null;actor.queuedTechnique=null;actor.chainTargetId=null;actor.chainLastAt=null;actor.phaseCue=null;actor.pendingZanshin=false;actor.decision=null;actor.decisionUntil=0;actor.readSeconds=0;
+    actor.cursor={phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:(actor.cursor?.cycle||0)+1};actor.readyAt=Math.max(time+.06,Number(actor.staggerUntil)||0);
+  }
   function upsert(raw){
     let actor=actors.get(raw.id);
     if(!actor){
@@ -27,12 +32,16 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
       actors.set(raw.id,actor);
     }
     const changedWeapon=actor.equipment.weapon!==raw.equipment?.weapon,wasDowned=actor.downed;
-    if(changedWeapon&&raw.equipment){cancelJohakyuStage(actor.action);actor.action=null;actor.override=null;actor.chainTargetId=null;actor.chainLastAt=null;actor.cursor={phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:actor.cursor.cycle+1};}
+    if(changedWeapon&&raw.equipment)resetLoadoutExecution(actor);
     for(const key of ['hp','maxHp','stamina','staminaCap','injuries','dead','downed','position','equipment','ageSeconds','staminaMultiplier','damageScale','mind','stance','zanshin','nonlethal','self','kind','boss','tempo','finisherProfile','targetId','canAttack','canFinish','scope','spawnStyle','recoverStamina','mitigation','pursuit'])if(raw[key]!==undefined)actor[key]=clone(raw[key]);
     actor.stability=raw.stability??({chinshin:.95,seigan:.72,ryu:.65,kosei:.58}[actor.stance]||.7);
     if(raw.downed!==undefined){actor.incapacitated=Boolean(raw.downed);actor.downedAt=raw.downed?(wasDowned?actor.downedAt??time:time):null;if(!raw.downed){actor.finisherClaimedBy=null;actor.finisherClaimAttackId=null;}}
-    if(raw.loadout){actor.loadout=compileBattleLoadout(raw.loadout,actor.equipment.weapon);}
-    actor.loadout??=compileBattleLoadout({},actor.equipment.weapon);
+    if(raw.loadout){
+      const nextLoadout=compileBattleLoadout(raw.loadout,actor.equipment.weapon),nextIdentity=loadoutIdentity(nextLoadout);
+      if(!changedWeapon&&actor.loadoutIdentity&&actor.loadoutIdentity!==nextIdentity)resetLoadoutExecution(actor);
+      actor.loadout=nextLoadout;actor.loadoutIdentity=nextIdentity;
+    }
+    actor.loadout??=compileBattleLoadout({},actor.equipment.weapon);actor.loadoutIdentity??=loadoutIdentity(actor.loadout);
     if(!live(actor)){cancelJohakyuStage(actor.action);actor.action=null;}
     return actor;
   }
@@ -194,7 +203,12 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     let scale=dt;const radial=(movement.x*(target.position.x-actor.position.x)+movement.z*(target.position.z-actor.position.z))/Math.max(.001,d);
     const stop=a?.techniqueId==='heart.pursuer'?1.48:(actor.decision?.stopDistance??spacing.preferredSpacing);
     if(radial>0)scale=Math.min(dt,Math.max(0,d-stop)/Math.max(.001,radial));
-    if(footwork==='retreat'&&actor.decision?.stopDistance)scale=Math.min(dt,Math.max(0,stop-d)/Math.max(.001,speed));
+    if(footwork==='retreat'){
+      // Retreating strikes used to walk themselves outside canonical weapon reach before their contact frame.
+      // Hold the root inside a small contact envelope until impact, then let the authored retreat finish in recovery.
+      const contactStop=a?.choreography?.offense&&!a.contactResolved?Math.max(1.46,spacing.engagementRange-.12):null,retreatStop=contactStop??actor.decision?.stopDistance;
+      if(Number.isFinite(retreatStop))scale=Math.min(dt,Math.max(0,retreatStop-d)/Math.max(.001,speed));
+    }
     const next={x:clamp(actor.position.x+movement.x*scale,bounds.minX,bounds.maxX),z:clamp(actor.position.z+movement.z*scale,bounds.minZ,bounds.maxZ)};
     if(!blocked(actor.position,next,actor))actor.position=next;
     actor.approachSpeed=Math.max(0,radial);actor.moving=Math.hypot(actor.position.x-before.x,actor.position.z-before.z)>.0001;actor.yaw=Math.atan2(target.position.x-actor.position.x,target.position.z-actor.position.z);
