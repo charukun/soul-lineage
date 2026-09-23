@@ -15,6 +15,15 @@ test('Impact Energy reflects weapon and attack commitment rather than damage alo
 test('reduced motion disables hit stop and slow while retaining a bounded camera cue',()=>{
   const profile=impactProfile(.95,{reduced:true});assert.equal(profile.stop,0);assert.equal(profile.slow,0);assert.equal(profile.scale,1);assert.ok(profile.camera>0);
 });
+test('only the inspired actor receives a local camera cue and the world clock remains unchanged',()=>{
+  const state=hero(),front={stage:0,enemies:[foe()]},event={type:'inspiration-start',sourceId:state.id,targetId:'e1',
+    firstInspirationPresentation:{cameraStrength:.11,cameraFov:1.8}};
+  const owner=createImpactDirector(),peer=createImpactDirector();
+  owner.present([event],{state,front});peer.present([{...event,sourceId:'ally'}],{state,front});
+  assert.equal(owner.snapshot().timeScale,1);assert.ok(owner.snapshot().camera.strength>.1);
+  assert.equal(peer.snapshot().camera.strength,0);
+  assert.equal(createImpactDirector({reducedMotion:true}).snapshot().timeScale,1);
+});
 
 test('medium impacts still expose one visible hit-stop frame at 60fps',()=>{
   const state=hero({weapon:'dagger',attack:'slash'}),front={stage:0,enemies:[foe()]},director=createImpactDirector();

@@ -21,7 +21,8 @@ export function techniqueName(id){
 // Trial-only combat presentation. These durations never modify the world clock.
 export const FIRST_INSPIRATION_PRESENTATION=Object.freeze({
   protectionSeconds:.9, targetStaggerSeconds:.48, bossStaggerSeconds:.12,
-  cue:'閃', effect:'finisher', trail:'slash'
+  cue:'閃', effect:'finisher', trail:'slash', sound:'inspiration',
+  cameraStrength:.11, cameraFov:1.8, afterimageSeconds:.55, afterimageInterval:.085
 });
 export function defineTechnique(raw,{weapon='sword'}={}){
   const id=raw?.techniqueId||raw?.id,steps=raw?.stages||raw?.steps;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {combatEffectCues,combatEffectBudget,combatEffectScope,createCombatEffectGate} from '../src/rebuild/combat-effect-cues.js';
+import {combatEffectCues,combatEffectBudget,combatEffectScope,createCombatEffectGate,inspirationAfterimageCue} from '../src/rebuild/combat-effect-cues.js';
 import {createAuthoredEffectPlayer} from '../src/rebuild/authored-effect-player.js';
 import {installCombatEffects} from '../src/rebuild/combat-effects-stage.js';
 
@@ -21,6 +21,15 @@ test('confirmed damage maps to target impact and authored source-to-target slash
   assert.deepEqual(cues[1].position,{x:3,y:1,z:3});assert.equal(cues[0].rotation.y,Math.PI/2);
   const exact=combatEffectCues([{...hit,impact:{point:[3.6,1.22,3.1]}}],context);assert.deepEqual(exact[0].position,{x:3.6,y:1.22,z:3.1});
   assert.equal(JSON.stringify(context),before);
+});
+test('first inspiration has a visible world burst and movement echo without inventing contact',()=>{
+  const profile={effect:'finisher',trail:'slash'},start={type:'inspiration-start',sourceId:state.id,targetId:'e1',position:{x:2,z:3},firstInspirationPresentation:profile};
+  const cues=combatEffectCues([start],context);
+  assert.deepEqual(cues.map(c=>c.kind),['inspiration-world','inspiration-trail']);
+  assert.equal(cues[0].position.x,2);
+  assert.equal(combatEffectCues([{...start,sourceId:'ally',position:{x:1,z:4}}],context)[0].position.z,4);
+  assert.equal(inspirationAfterimageCue({x:2,z:3},{x:2.2,z:3},profile).kind,'inspiration-afterimage');
+  assert.equal(inspirationAfterimageCue({x:2,z:3},{x:2,z:3},profile),null);
 });
 test('evade, block, zero damage, nonfinite damage and unresolved target never invent impacts',()=>{
   const events=[{type:'evaded',damage:10,sourceId:'e1'},{...hit,type:'blocked'},{...hit,damage:0},{...hit,damage:NaN},{...hit,damage:Infinity},{...hit,targetId:'missing'}];
