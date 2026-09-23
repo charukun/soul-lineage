@@ -21,6 +21,7 @@ import './playable-core-ui.css';
 import './rinne-world-ui.css';
 import '@soul/shared-ui/rinne-loadout-menu.css';
 import './combat-exchange-cue.css';
+import './johakyu-battle-hud.css';
 import '@soul/shared-ui/rinne-primary-four.css';
 import {RINNE_UI_VERSION} from './ui-version.js';
 import {createRinnePlayerHud,rinnePlayerNameFromSeed} from '@soul/shared-ui/rinne-player-hud';
@@ -47,7 +48,25 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     <small class="gameplay-surface-version">UI ${RINNE_UI_VERSION}</small>
     <section data-vitals class="rinne-context-vitals" hidden aria-label="息"><div data-vital-breath class="context-vital is-breath"><span>息</span><i><b data-context-stamina></b></i></div></section>
     <aside data-mind class="rinne-mind-balance" hidden aria-label="現在の意識バランス"><span class="mind-title">意識</span><div class="mind-orbit" aria-hidden="true"><i data-axis="attack"><b>攻</b></i><i data-axis="guard"><b>守</b></i><i data-axis="spacing"><b>間</b></i><i data-axis="counter"><b>返</b></i><i data-axis="mobility"><b>機</b></i><i data-axis="survival"><b>生</b></i><em></em></div><strong data-mind-state>中庸</strong></aside>
-    <div data-phase class="combat-phase-indicator combat-sequence" data-combat-sequence data-combat-sequence-phase="idle" hidden aria-label="現在の序破急"><span data-exchange-cue class="combat-exchange-cue" role="status"></span><span class="combat-exchange-edge" data-exchange-edge="maai" aria-hidden="true"><svg viewBox="0 0 26 12"><path d="M0 6 Q5 1 10 6 T20 6 L26 6"/></svg></span><span class="combat-exchange-edge" data-exchange-edge="zanshin" aria-hidden="true"><svg viewBox="0 0 26 12"><path d="M0 6 L6 6 Q11 1 16 6 T26 6"/></svg></span><span class="combat-sequence__step" data-phase-id="jo" data-combat-phase="jo">序</span><i class="phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="ha" data-combat-phase="ha">破</span><i class="phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="kyu" data-combat-phase="kyu">急</span><strong data-phase-action class="combat-phase-action combat-sequence__action"></strong><div data-phase-history class="combat-phase-history combat-sequence__history" aria-label="直近のアクション" aria-live="polite"></div></div>
+    <div data-phase class="combat-phase-indicator battle-sequence-hud" data-combat-sequence data-combat-sequence-phase="idle" hidden aria-label="間合いから残心までの序破急">
+      <div data-phase-techniques class="battle-sequence-techniques" aria-label="序破急で使用した技">
+        <span class="battle-sequence-technique-lane" data-technique-phase="jo"></span>
+        <span class="battle-sequence-technique-lane" data-technique-phase="ha"></span>
+        <span class="battle-sequence-technique-lane" data-technique-phase="kyu"></span>
+      </div>
+      <aside class="battle-sequence-hud__phase combat-sequence combat-sequence--flat" data-phase-track data-phase="idle">
+        <span class="battle-sequence-hud__edge battle-sequence-hud__edge--maai" aria-hidden="true"><svg viewBox="0 0 42 18"><path d="M1 9h6c2.2 0 2.8-2.2 4.1-2.2l2.6 6.7L17.2 2l3.7 14.1 3.5-9.7 2.7 4.2c1.1 1.7 2.4 2.4 4.3 2.4H41"/></svg></span>
+        <span class="battle-sequence-hud__step combat-sequence__step" data-phase-id="jo" data-combat-phase="jo">序</span>
+        <i class="battle-sequence-hud__wave combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i>
+        <span class="battle-sequence-hud__step combat-sequence__step" data-phase-id="ha" data-combat-phase="ha">破</span>
+        <i class="battle-sequence-hud__wave combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i>
+        <span class="battle-sequence-hud__step combat-sequence__step" data-phase-id="kyu" data-combat-phase="kyu">急</span>
+        <span class="battle-sequence-hud__edge battle-sequence-hud__edge--zanshin" aria-hidden="true"><svg viewBox="0 0 42 18"><path d="M1 9h5.5c2.1 0 2.7-1.8 4-1.8l2.5 5.6L16.3 4l3.4 10.9 3.4-7.7 2.8 3.6c1.2 1.5 2.6 2.2 4.6 2.2H41"/></svg></span>
+      </aside>
+      <span data-exchange-cue class="combat-exchange-cue" role="status" hidden></span>
+      <strong data-phase-action class="combat-phase-action combat-sequence__action" hidden></strong>
+      <div data-phase-history class="combat-phase-history combat-sequence__history" aria-live="polite"></div>
+    </div>
 
     ${rinnePrimaryFourMarkup({ariaLabel:'主要操作'})}
 
@@ -72,14 +91,14 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const dash=document.createElement('button');dash.type='button';dash.hidden=true;
   const q=s=>root.querySelector(s),panel=q('[data-panel]'),playerHud=createRinnePlayerHud(q('[data-player-hud]')),combatBodyHud=createCombatBodyHud({root:q('[data-combat-body-hud]')}),ui={
     root,dash,
-    heart:q('[data-heart]'),techniques:q('[data-techniques]'),trainingStrike:q('[data-training-strike]'),menu:q('[data-menu]'),quickMenu:q('[data-quick-menu]'),bodyButton:q('[data-body]'),items:q('[data-items]'),map:q('[data-map]'),record:q('[data-record]'),phase:q('[data-phase]'),phaseHistory:q('[data-phase-history]'),phaseAction:q('[data-phase-action]'),exchangeCue:q('[data-exchange-cue]'),
+    heart:q('[data-heart]'),techniques:q('[data-techniques]'),trainingStrike:q('[data-training-strike]'),menu:q('[data-menu]'),quickMenu:q('[data-quick-menu]'),bodyButton:q('[data-body]'),items:q('[data-items]'),map:q('[data-map]'),record:q('[data-record]'),phase:q('[data-phase]'),phaseHistory:q('[data-phase-history]'),phaseAction:q('[data-phase-action]'),exchangeCue:q('[data-exchange-cue]'),phaseTrack:q('[data-phase-track]'),phaseTechniques:q('[data-phase-techniques]'),
     radarPlaces:q('[data-radar-places]'),radarTarget:q('[data-radar-target]'),radarPlayer:q('[data-radar-player]'),radarDistance:q('[data-radar-distance]'),radarLabel:q('[data-radar-label]'),
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]'),talentTags:q('[data-talent-tags]'),
     vitals:q('[data-vitals]'),vitalBreath:q('[data-vital-breath]'),contextStamina:q('[data-context-stamina]'),
     mind:q('[data-mind]'),mindState:q('[data-mind-state]')
   };
-  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,interruptTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',lastAction='',phaseHistory=[],comboInterrupted=false,currentComboKey='',exchangeHistoryKey='';
+  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,interruptTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',lastAction='',phaseHistory=[],comboInterrupted=false,currentComboKey='',exchangeHistoryKey='',lastTechniqueKey='',techniqueTimer=0;
   let lastStamina=null,breathVisibleUntil=0,contextAnchorVisible=false,contextVitalsWanted=false;
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
   const tracker=createSkillSetter({ui,audio,getState:()=>state});
@@ -106,11 +125,13 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     phaseHistory=[next,...phaseHistory].slice(0,2);renderPhaseHistory();
   }
   function setCompletedPhases(completed={}){
-    for(const node of ui.phase.querySelectorAll('[data-combat-phase]'))node.dataset.completed=String(Boolean(completed[node.dataset.combatPhase]));
+    for(const node of ui.phase.querySelectorAll('[data-combat-phase]')){node.dataset.completed=String(Boolean(completed[node.dataset.combatPhase]));node.dataset.lit=String(node.dataset.active==='true'||completed[node.dataset.combatPhase]);}
+    for(const node of ui.phase.querySelectorAll('[data-combat-link]')){const lit=node.dataset.combatLink==='jo-ha'?completed.ha:completed.kyu;node.dataset.lit=String(Boolean(lit));node.dataset.current=String(node.dataset.combatLink==='jo-ha'?ui.phase.dataset.phase==='jo':ui.phase.dataset.phase==='ha');}
   }
   function endInterruptionVisual(){
     if(!ui.phase)return;
     delete ui.phase.dataset.comboInterrupted;
+    delete ui.phaseTrack.dataset.comboInterrupted;
     for(const node of ui.phase.querySelectorAll('.combat-sequence__interrupted'))node.classList.remove('combat-sequence__interrupted');
   }
   function interruptSequence(){
@@ -118,9 +139,10 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     clearTimeout(interruptTimer);
     const highlighted=[...ui.phase.querySelectorAll('[data-combat-phase]')].filter(node=>node.dataset.active==='true'||node.dataset.completed==='true');
     for(const node of highlighted)node.classList.add('combat-sequence__interrupted');
-    ui.phase.dataset.comboInterrupted='true';ui.phase.dataset.comboActive='false';ui.phase.dataset.phase='idle';
+    ui.phase.dataset.comboInterrupted='true';ui.phaseTrack.dataset.comboInterrupted='true';
+    ui.phaseTechniques.replaceChildren();lastTechniqueKey='';ui.phase.dataset.comboActive='false';ui.phase.dataset.phase='idle';ui.phaseTrack.dataset.phase='idle';
     syncCombatSequence(ui.phase,'',{pulse:false});setCompletedPhases();
-    interruptTimer=setTimeout(()=>{interruptTimer=0;endInterruptionVisual();},680);
+    interruptTimer=setTimeout(()=>{interruptTimer=0;comboInterrupted=false;endInterruptionVisual();},680);
   }
   const onCombatFeedback=event=>{
     if(event.detail?.type!=='enemy-hit')return;combatBodyHud?.flash(event.detail?.bodyPart);
@@ -250,26 +272,30 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
     ui.phase.hidden=!(phase||(s.combat?.engine==='tidebreak'&&s.combat?.exchange&&!s.down&&!s.ended));
     const sharedAction=s.combat?.engine==='johakyu'?s.combat?.johakyuAction:null;
-    const rawAction=phase?(sharedAction?`${sharedAction.stageLabel} · ${sharedAction.techniqueIndex+1}/${sharedAction.chainLength}技`:s.combat?.engine==='johakyu'?'':gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';
+    const rawAction=phase?(sharedAction?String(sharedAction.name||''):s.combat?.engine==='johakyu'?'':gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';
     const exchangeCombat=['tidebreak','johakyu'].includes(s.combat?.engine);
     const readSequence=()=>exchangeCombat?meleeSequenceHudState({combat:s.combat,actorId:s.id,attack:rawAction,interrupted:comboInterrupted}):sequenceHudState({phase,attack:rawAction,interrupted:comboInterrupted});
     let sequence=readSequence();
     ui.phase.dataset.battleEngine=exchangeCombat?s.combat.engine:'';
-    if(sharedAction){ui.phase.dataset.techniqueId=sharedAction.techniqueId;ui.phase.dataset.stageIndex=String(sharedAction.stageIndex);}
-    else{delete ui.phase.dataset.techniqueId;delete ui.phase.dataset.stageIndex;}
+    if(sharedAction){ui.phase.dataset.techniqueId=sharedAction.techniqueId;ui.phase.dataset.stageIndex=String(sharedAction.stageIndex);ui.phase.dataset.stageLabel=sharedAction.stageLabel||'';}
+    else{delete ui.phase.dataset.techniqueId;delete ui.phase.dataset.stageIndex;delete ui.phase.dataset.stageLabel;}
     ui.phase.dataset.exchangeState=sequence.hudState||'';
     ui.phase.dataset.exchangeIntent=sequence.exchangeIntent||'';
     const phaseTechnique=phase?String(sharedAction?.name||s.combat?.tidebreakPose?.skill||techniqueName(combatSkillForPhase(s,s.combat,phase),s)||'').trim():'';
     ui.exchangeCue.hidden=!phaseTechnique;if(ui.exchangeCue.textContent!==phaseTechnique)ui.exchangeCue.textContent=phaseTechnique;
     if(exchangeCombat&&sequence.historyKey!==exchangeHistoryKey){exchangeHistoryKey=sequence.historyKey;phaseHistory=[];lastAction='';lastPhase='';renderPhaseHistory();}
-    if(comboInterrupted&&!rawAction){comboInterrupted=false;sequence=readSequence();}
-    if(sequence.comboActive&&ui.phase.dataset.comboInterrupted==='true'){clearTimeout(interruptTimer);interruptTimer=0;endInterruptionVisual();}
-    currentComboKey=sequence.key;ui.phase.dataset.comboActive=String(sequence.comboActive);ui.phase.dataset.phase=sequence.comboActive?sequence.activePhase:'idle';
+    
+    if(sequence.comboActive&&ui.phase.dataset.comboInterrupted==='true'&&!comboInterrupted){clearTimeout(interruptTimer);interruptTimer=0;endInterruptionVisual();}
+    currentComboKey=sequence.key;ui.phase.dataset.comboActive=String(sequence.comboActive);ui.phase.dataset.phase=sequence.comboActive?sequence.activePhase:'idle';ui.phaseTrack.dataset.phase=sequence.hudState||ui.phase.dataset.phase;
     syncCombatSequence(ui.phase,sequence.comboActive?sequence.activePhase:'',{pulse:sequence.comboActive});setCompletedPhases(sequence.completed);
-    const action=rawAction;if(ui.phaseAction){ui.phaseAction.textContent=action;ui.phaseAction.hidden=!action;}
+    const action=rawAction;if(ui.phaseAction){ui.phaseAction.textContent='';ui.phaseAction.hidden=true;}
+    if(sharedAction?.id&&sharedAction.stageIndex===0&&phase&&sequence.comboActive){
+      const key=[sharedAction.id,phase,sharedAction.techniqueId].join(':');
+      if(key!==lastTechniqueKey){lastTechniqueKey=key;const lane=ui.phaseTechniques.querySelector(`[data-technique-phase="${phase}"]`);if(lane){const name=document.createElement('span');name.className='battle-sequence-technique-name';name.dataset.phase=phase;name.textContent=phaseTechnique;lane.replaceChildren(name);clearTimeout(techniqueTimer);techniqueTimer=setTimeout(()=>name.remove(),2500);}}
+    }
     if(sequence.comboActive&&sequence.activePhase!==lastPhase){lastPhase=sequence.activePhase;haptic(8);audio.ui();}else if(!sequence.comboActive)lastPhase='';
     if(action&&action!==lastAction){lastAction=action;if(sequence.comboActive)pushPhaseHistory({phase:sequence.activePhase,action});}
-    if(!phase&&!exchangeCombat){lastPhase='';lastAction='';comboInterrupted=false;currentComboKey='';exchangeHistoryKey='';phaseHistory=[];renderPhaseHistory();endInterruptionVisual();}
+    if(!phase&&!exchangeCombat){lastPhase='';lastAction='';lastTechniqueKey='';ui.phaseTechniques.replaceChildren();clearTimeout(techniqueTimer);comboInterrupted=false;currentComboKey='';exchangeHistoryKey='';phaseHistory=[];renderPhaseHistory();endInterruptionVisual();}
   }
   function bindSheetGesture(){
     const header=ui.panel.querySelector('header');header.addEventListener('pointerdown',event=>{if(!['heart','technique','body','items'].includes(ui.panel.dataset.type)||event.target.closest('button'))return;sheetDrag={id:event.pointerId,startY:event.clientY,dy:0};header.setPointerCapture?.(event.pointerId);ui.panel.dataset.dragging='true';});
