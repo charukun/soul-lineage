@@ -63,7 +63,7 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     const stage=reaction||finisher?technique.stages[0]:actor.override?technique.stages[actor.override.stageIndex]:n.stage,phase=finisher?'finisher':reaction?'uke':actor.override?'one':n.phase;
     const continuing=!reaction&&!finisher&&phase!=='one'&&actor.chainLastAt!==null&&actor.chainTargetId===target.id;
     const momentum=continuing?1+Math.min(.14,actor.cursor.phaseIndex*.035+actor.cursor.techniqueIndex*.025):1;
-    const baseChoreography=stageChoreography(technique,stage,{weapon:actor.equipment.weapon,tempo:finisher?1:(actor.tempo||1)*momentum,chainLength:finisher?1:n.chain.length});
+    const baseChoreography=stageChoreography(technique,stage,{weapon:actor.equipment.weapon,tempo:finisher?1:(actor.tempo||1)*momentum,chainLength:finisher?1:n.chain.length,phase:finisher?'finisher':reaction?'ha':phase});
     const finisherScale=actor.finisherProfile?.durationScale||({sokudan:.9,kakudan:1,danzetsu:1.1}[actor.finisherProfile]||1);
     const choreography=finisher?freeze({...baseChoreography,duration:Math.max(1.7,Math.min(2.3,2*finisherScale))}):baseChoreography;
     const execution={id:`${battleId}:${actor.id}:${++serial}`,actorId:actor.id,targetId:target.id,techniqueId:technique.id,technique,stageIndex:stage.stageIndex,
@@ -192,9 +192,13 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
       else if(wound.outcome.incapacitated||target.injuries.torso.severity>=.72){if(!target.downed)target.downedAt=time;target.downed=true;target.incapacitated=true;target.hp=0;}
       else if(target.hp<=0)target.hp=Math.max(1,target.maxHp*.18);
     }
+    const criticalPart=!impact.blocked&&impact.reactionSeverity>=1.02&&['head','leftArm','rightArm','leftLeg','rightLeg'].includes(part);
+    const criticalStop=execution.phase==='kyu'||execution.finisher?.118:execution.phase==='ha'?.105:.094;
+    const contactHitstop=criticalPart?Math.max(impact.hitstop,criticalStop):impact.hitstop;
+    const resolvedImpact=contactHitstop===impact.hitstop?impact:{...impact,hitstop:contactHitstop};
     target.lastContactAt=time;target.defenseDebt=defense?target.defenseDebt+1:0;target.posture=Math.min(100,target.posture+impact.postureDamage);target.stamina=Math.max(0,target.stamina-impact.staminaDamage);
     target.impulseVelocity.x+=impact.knockback.x;target.impulseVelocity.z+=impact.knockback.z;source.impulseVelocity.x+=impact.sourceImpulse.x;source.impulseVelocity.z+=impact.sourceImpulse.z;
-    target.staggerUntil=Math.max(target.staggerUntil,time+impact.stagger);hitstop=Math.max(hitstop,impact.hitstop);
+    target.staggerUntil=Math.max(target.staggerUntil,time+impact.stagger);hitstop=Math.max(hitstop,contactHitstop);
     if(impact.strongParry){source.staggerUntil=Math.max(source.staggerUntil,time+.34);interrupt(source,'strong-parry');exchange(source,target,{type:'parry',strong:true,phase:execution.phase});target.counterUntil=time+impact.counterOpportunity;target.counterTarget=source.id;}
     else if(impact.interrupted&&!defense)interrupt(target,'impact');
     if(impact.guardBreak)interrupt(target,'guard-break');
@@ -202,14 +206,15 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     if(!defense&&!clash)exchange(source,target,{type:'hit',phase:execution.phase,deep:impact.deepHit});
     const type=clash?'clash':defense==='parry'?'parry':defense?'guard':execution.finisher?'finisher':source.side==='party'?'player-hit':'enemy-hit';
     const event=emit({id:key,type,sourceId:source.id,targetId:target.id,...executionIdentity(execution),choreography:execution.choreography,techniqueName:execution.technique.name,skill:execution.technique.name,
-      ...impact,impact:{...impact,damage,bodyPart:part},damage,bodyPart:part,bodyDurability:durability,contactPoint:point,observedContactPoint:observation?.point||null,contactEngine:'shared-contact-anchor',contactDistance:d,contactReach:spacing.engagementRange,
+      ...resolvedImpact,impact:{...resolvedImpact,damage,bodyPart:part},damage,bodyPart:part,bodyDurability:durability,contactPoint:point,observedContactPoint:observation?.point||null,contactEngine:'shared-contact-anchor',contactDistance:d,contactReach:spacing.engagementRange,
       sourceContactProgress:execution.choreography.contactProgress,defenseContactProgress:incoming?.choreography.contactProgress??null,otherAttackId:clash?incoming.id:null,
+      otherKind:clash?incoming.kind:null,otherWeapon:clash?incoming.weapon:null,otherPhase:clash?incoming.phase:null,otherTechniqueId:clash?incoming.techniqueId:null,otherStageIndex:clash?incoming.stageIndex:null,otherContactProgress:clash?incoming.choreography.contactProgress:null,
       exchangeContinuity:pair(source,target).state.continuity,initiativeId:pair(source,target).state.initiativeId});
     target.lastImpact=event;
     if(target.downed||target.dead){interrupt(target,'incapacitated');emit({type:target.dead?'enemy-down':'actor-downed',sourceId:source.id,targetId:target.id,triggerEventId:event.id});}
   }
   function tick(dt,samples){
-    const held=Math.min(dt,hitstop);hitstop-=held;const delta=dt-held;time+=delta;revision++;
+    hitstop=Math.max(0,hitstop-dt);const delta=dt;time+=dt;revision++;
     for(const a of actors.values()){
       a.moving=false;if((a.recoverStamina??recoverStamina)&&live(a))recoverJohakyuStamina(a,delta);if(time-a.lastContactAt>1.1)a.posture=Math.max(0,a.posture-delta*7);
       if(a.action){a.action.elapsed+=delta;if(a.action.elapsed>=a.action.duration)finish(a);}
