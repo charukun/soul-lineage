@@ -95,6 +95,7 @@ export function createRinneHeartComposition(slots,slotIds,labelFor,{documentRef=
   figure.className='heart-composition-slots';
   const figureTitle=documentRef.createElement('h3');
   figureTitle.textContent='心得の構成';
+  [...slots.children].forEach((button,index)=>button.setAttribute('aria-label',`心得枠${index+1}。${slotIds[index]?labelFor(slotIds[index]):'未設定'}`));
   figure.append(figureTitle,slots);
   const portrait=documentRef.createElement('section');
   portrait.className='heart-portrait';
