@@ -222,10 +222,10 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
   function separate(){const rows=[...actors.values()].filter(live);for(let i=0;i<rows.length;i++)for(let j=i+1;j<rows.length;j++){const a=rows[i],b=rows[j],d=distance(a,b);if(d>=1.46)continue;const v=d>.001?{x:(b.position.x-a.position.x)/d,z:(b.position.z-a.position.z)/d}:{x:1,z:0},push=(1.46-d)/2;for(const [actor,sign]of [[a,-1],[b,1]]){const next={x:actor.position.x+v.x*push*sign,z:actor.position.z+v.z*push*sign};if(!blocked(actor.position,next,actor))actor.position=next;}}}
   function refreshCombatReady(actor){
     if(!live(actor)){actor.combatReady=false;actor.combatReadyRange=null;actor.combatReadyTargetId=null;return;}
-    const threat=nearestThreatFor(actor),forced=Boolean(actor.phaseCue?.phase==='zanshin'||actor.action&&actor.combatReady);
-    if(!threat){actor.combatReady=forced;actor.combatReadyRange=null;actor.combatReadyTargetId=null;return;}
-    // An action may preserve an already-entered stance, but it must never create combat readiness from outside the range.
-    const envelope=combatReadyEnvelope({distance:distance(actor,threat),weapon:actor.equipment.weapon,wasReady:actor.combatReady,forced});
+    const threat=nearestThreatFor(actor);
+    if(!threat){actor.combatReady=false;actor.combatReadyRange=null;actor.combatReadyTargetId=null;return;}
+    // Combat readiness is owned only by spatial threat distance. Action recovery and zanshin must never pin it on.
+    const envelope=combatReadyEnvelope({distance:distance(actor,threat),weapon:actor.equipment.weapon,wasReady:actor.combatReady});
     actor.combatReady=envelope.ready;actor.combatReadyRange=envelope;actor.combatReadyTargetId=threat.id;
   }
   function applyContact(source,execution,samples){
