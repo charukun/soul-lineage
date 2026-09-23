@@ -41,7 +41,7 @@ function lerpValue(a,b,t){if(Number.isFinite(a)&&Number.isFinite(b))return a+(b-
 function blendFrame(previous,current,t,slow){if(!current)return null;if(!previous||!slow)return clone(current);const same=previous.attack===current.attack&&previous.skill===current.skill;if(!same&&t<.72)return clone(previous);return lerpValue(previous,current,t);}
 
 export function createImpactDirector({mobile=false,reducedMotion=false}={}){
-  let stop=0,slow=0,slowDuration=0,slowScale=1,qualityLevel=0,reduced=reducedMotion,hidden=false,camera={x:0,z:0,strength:0,fov:0},reactions=[],poseDisplay=new Map(),attackTrack=new Map(),strongest=null;
+  let stop=0,slow=0,slowDuration=0,slowScale=1,qualityLevel=0,reduced=reducedMotion,hidden=false,camera={x:0,z:0,strength:0,fov:0},reactions=[],poseDisplay=new Map(),attackTrack=new Map(),strongest=null,inspirationCamera=null;
   function present(events,context={}){
     if(hidden||!Array.isArray(events))return{impacts:[],strongest:null};const impacts=[],hitTargets=new Set(events.filter(event=>event?.type==='player-hit'&&Number(event.damage)>0).map(event=>event.targetId)),downTargets=new Set(events.filter(event=>event?.type==='enemy-down').map(event=>event.targetId));
     for(const event of events){if(event?.type==='one-motion'&&hitTargets.has(event.targetId))continue;let energy=impactEnergyForEvent(event,context);if(downTargets.has(event?.targetId))energy=clamp(energy+.1);if(!(energy>0))continue;const profile=impactProfile(energy,{reduced,qualityLevel}),source=sourceForEvent(event,context),target=targetForEvent(event,context),vector=attackVector(source,target,event),targetKey=event.type==='enemy-hit'?'hero':`enemy:${event.targetId}`;
@@ -52,13 +52,13 @@ export function createImpactDirector({mobile=false,reducedMotion=false}={}){
     // or peer camera is changed by an inspiration event.
     for(const event of events)if(event?.type==='inspiration-start'&&event.sourceId===context.state?.id&&!reduced){
       const target=(context.front?.enemies||[]).find(row=>row.id===event.targetId),vector=attackVector(context.state,target,event),profile=event.firstInspirationPresentation||{};
-      camera={x:vector.x,z:vector.z,strength:Math.max(camera.strength,clamp(profile.cameraStrength,0,.16)),
-        fov:Math.max(camera.fov,clamp(profile.cameraFov,0,2.5))};
+      inspirationCamera={x:vector.x,z:vector.z,elapsed:0,duration:clamp(profile.cameraSeconds||1.45,.5,2.5),
+        strength:clamp(profile.cameraStrength||.13,0,.18),fov:clamp(profile.cameraFov||2.3,0,3)};
     }
     for(const row of impacts)reactions.push({actorKey:row.targetKey,part:row.part,vector:row.vector,energy:row.profile.energy,remaining:.12+row.profile.energy*.12,duration:.12+row.profile.energy*.12});
     reactions=reactions.sort((a,b)=>b.energy-a.energy).slice(0,8);return{impacts,strongest};
   }
-  function setMode({level=0,reduced:nextReduced=reducedMotion,isHidden=false}={}){qualityLevel=Number(level)||0;reduced=Boolean(nextReduced);hidden=Boolean(isHidden);if(hidden){stop=slow=0;camera.strength=0;camera.fov=0;reactions=[];}}
+  function setMode({level=0,reduced:nextReduced=reducedMotion,isHidden=false}={}){qualityLevel=Number(level)||0;reduced=Boolean(nextReduced);hidden=Boolean(isHidden);if(hidden){stop=slow=0;camera.strength=0;camera.fov=0;inspirationCamera=null;reactions=[];}}
   function timeScale(){if(reduced||hidden)return 1;if(stop>0)return .002;if(slow<=0)return 1;const p=slowDuration>0?1-clamp(slow/slowDuration):1,release=p*p;return slowScale+(1-slowScale)*release;}
   function anticipation(state,front){
     if(hidden||reduced||qualityLevel>=3)return[];const actors=[{key:'hero',actor:state},...(front?.enemies||[]).filter(e=>!e.dead).map(actor=>({key:`enemy:${actor.id}`,actor}))],cues=[];
@@ -66,8 +66,19 @@ export function createImpactDirector({mobile=false,reducedMotion=false}={}){
     return cues;
   }
   function applyPoseLag(state,front,realDt,presentationScale=null){const scale=Number.isFinite(presentationScale)?clamp(presentationScale,.001,1):timeScale(),actors=[{key:'hero',holder:state.combat,field:'tidebreakPose'},...(front?.enemies||[]).map(enemy=>({key:`enemy:${enemy.id}`,holder:enemy,field:'tidebreakPose'}))],restore=[];for(const row of actors){if(!row.holder)continue;const current=row.holder[row.field];if(!current){poseDisplay.delete(row.key);continue;}const previous=poseDisplay.get(row.key),alpha=clamp(realDt*(scale<.99?8+18*scale:45),0,1),display=blendFrame(previous,current,alpha,scale<.99);poseDisplay.set(row.key,clone(display));if(scale<.995){restore.push([row.holder,row.field,current]);row.holder[row.field]=display;}}return()=>{for(const [holder,field,value] of restore)holder[field]=value;};}
-  function frame(realDt,{level=qualityLevel,reduced:nextReduced=reduced,hidden:isHidden=hidden}={}){setMode({level,reduced:nextReduced,isHidden});const renderScale=timeScale();realDt=Math.max(0,Math.min(.08,Number(realDt)||0));if(stop>0)stop=Math.max(0,stop-realDt);else if(slow>0)slow=Math.max(0,slow-realDt);if(slow<=0){slowScale=1;slowDuration=0;}camera.strength*=Math.exp(-realDt*16);camera.fov*=Math.exp(-realDt*13);for(const row of reactions)row.remaining=Math.max(0,row.remaining-realDt);reactions=reactions.filter(row=>row.remaining>0);return{...snapshot(),timeScale:renderScale};}
-  function snapshot(){return{timeScale:timeScale(),camera:{...camera},reactions:reactions.map(row=>({...row})),strongest:strongest?{profile:strongest.profile,targetKey:strongest.targetKey,part:strongest.part,vector:{...strongest.vector}}:null,qualityLevel,reduced,hidden};}
-  function clear(){stop=slow=slowDuration=0;slowScale=1;camera={x:0,z:0,strength:0,fov:0};reactions=[];poseDisplay.clear();attackTrack.clear();strongest=null;}
+  function frame(realDt,{level=qualityLevel,reduced:nextReduced=reduced,hidden:isHidden=hidden}={}){setMode({level,reduced:nextReduced,isHidden});const renderScale=timeScale();realDt=Math.max(0,Math.min(.08,Number(realDt)||0));if(stop>0)stop=Math.max(0,stop-realDt);else if(slow>0)slow=Math.max(0,slow-realDt);if(slow<=0){slowScale=1;slowDuration=0;}camera.strength*=Math.exp(-realDt*16);camera.fov*=Math.exp(-realDt*13);
+    if(inspirationCamera){inspirationCamera.elapsed+=realDt;if(inspirationCamera.elapsed>=inspirationCamera.duration)inspirationCamera=null;}for(const row of reactions)row.remaining=Math.max(0,row.remaining-realDt);reactions=reactions.filter(row=>row.remaining>0);return{...snapshot(),timeScale:renderScale};}
+  function snapshot(){
+    let localCamera={...camera};
+    if(inspirationCamera&&!reduced&&!hidden){
+      const p=inspirationCamera.elapsed/inspirationCamera.duration;
+      // Three beats: discover, strike, and release. Only the local render camera moves.
+      const strength=p<.16?.82+.18*p/.16:p<.43?1:p<.59?1+.28*Math.sin((p-.43)/.16*Math.PI):Math.max(0,1-(p-.59)/.41);
+      localCamera={x:inspirationCamera.x,z:inspirationCamera.z,
+        strength:Math.max(camera.strength,inspirationCamera.strength*strength),
+        fov:Math.max(camera.fov,inspirationCamera.fov*strength)};
+    }
+    return{timeScale:timeScale(),camera:localCamera,reactions:reactions.map(row=>({...row})),strongest:strongest?{profile:strongest.profile,targetKey:strongest.targetKey,part:strongest.part,vector:{...strongest.vector}}:null,qualityLevel,reduced,hidden};}
+  function clear(){stop=slow=slowDuration=0;slowScale=1;camera={x:0,z:0,strength:0,fov:0};inspirationCamera=null;reactions=[];poseDisplay.clear();attackTrack.clear();strongest=null;}
   return{present,frame,snapshot,anticipation,applyPoseLag,weaponAnchor,clear};
 }

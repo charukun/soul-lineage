@@ -128,6 +128,8 @@ export function installInspirationUI(ui,{gameScreen,audio}){
   }
   function onInputKey(root){root.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select'))e.stopPropagation();});}
   function announce(record){
+    // Combat trial presentation already names and performs this technique in the world.
+    if(state?.combat?.inspirationCue&&(state.combat.inspirationCue.techniqueId===record.answerId||state.combat.inspirationCue.name===record.name)){notice.hidden=true;clearTimeout(noticeTimer);return;}
     const row=resolveInspirationAnswer(record.answerId);noticeKind.textContent=`閃き · ${INSPIRATION_KINDS[record.kind]}`;noticeName.textContent=record.name;noticeOrigin.textContent=record.provenance.find(p=>p.type==='question')?.text||row?.mechanic||'経験がひとつの答えになった。';notice.hidden=false;notice.dataset.kind=record.kind;audio?.item?.();clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice.hidden=true;},6500);
   }
   function announceStabilized(record){

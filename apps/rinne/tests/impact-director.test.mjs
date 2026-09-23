@@ -20,9 +20,23 @@ test('only the inspired actor receives a local camera cue and the world clock re
     firstInspirationPresentation:{cameraStrength:.11,cameraFov:1.8}};
   const owner=createImpactDirector(),peer=createImpactDirector();
   owner.present([event],{state,front});peer.present([{...event,sourceId:'ally'}],{state,front});
-  assert.equal(owner.snapshot().timeScale,1);assert.ok(owner.snapshot().camera.strength>.1);
+  assert.equal(owner.snapshot().timeScale,1);assert.ok(owner.snapshot().camera.strength>.08);
   assert.equal(peer.snapshot().camera.strength,0);
   assert.equal(createImpactDirector({reducedMotion:true}).snapshot().timeScale,1);
+});
+
+test('inspiration camera holds a local discover, strike and release arc without pausing the world',()=>{
+  const state=hero(),front={stage:0,enemies:[foe()]},event={type:'inspiration-start',sourceId:state.id,targetId:'e1',
+    firstInspirationPresentation:{cameraStrength:.13,cameraFov:2.3,cameraSeconds:1.45}};
+  const owner=createImpactDirector(),peer=createImpactDirector();
+  owner.present([event],{state,front});peer.present([{...event,sourceId:'ally'}],{state,front});
+  const onset=owner.snapshot().camera.strength;
+  for(let i=0;i<25;i++){assert.equal(owner.frame(.02).timeScale,1);peer.frame(.02);}
+  assert.ok(owner.snapshot().camera.strength>onset,'camera settles into the first cast');
+  assert.equal(peer.snapshot().camera.strength,0,'a witness keeps their own camera');
+  for(let i=0;i<55;i++)owner.frame(.02);
+  assert.equal(owner.snapshot().camera.strength,0,'camera fully releases');
+  owner.present([event],{state,front});owner.clear();assert.equal(owner.snapshot().camera.strength,0);
 });
 
 test('medium impacts still expose one visible hit-stop frame at 60fps',()=>{

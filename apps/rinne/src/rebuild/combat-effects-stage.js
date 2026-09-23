@@ -5,7 +5,7 @@ import {createVfxStreamingDemand} from './vfx-streaming.js';
 import {createImpactDirector} from './impact-director.js';
 import {inspirationAfterimageCue} from './combat-effect-cues.js';
 import {createImpactPresentationRuntime} from './impact-presentation-runtime.js';
-import {clearRinneImpactAudio,presentRinneImpactAudio,presentRinneInspirationAudio} from '../gameplay-audio.js';
+import {clearRinneImpactAudio,presentRinneImpactAudio} from '../gameplay-audio.js';
 
 function anchorMap(director,state,front){
   const anchors={},hero=director.weaponAnchor(state);if(hero)anchors.hero=hero;
@@ -58,7 +58,6 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
       const id=String(event.attackId||'')+':'+String(event.sourceId||'');
       if(seenInspiration.has(id))return false;
       seenInspiration.add(id);if(seenInspiration.size>64)seenInspiration.delete(seenInspiration.values().next().value);
-      if(event.sourceId===context.state.id&&event.firstInspirationPresentation?.sound==='inspiration')presentRinneInspirationAudio();
       return true;
     });
     const currentFront=context.front||front,result=director.present(fresh,{...context,front:currentFront});
