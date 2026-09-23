@@ -81,6 +81,38 @@ function torsoGeometry() {
   return geometry;
 }
 
+// One continuous head surface with a fuller cranium, cheeks and rounded jaw.
+// The original UV layout keeps the photographed face on the curved mesh.
+function chibiHeadGeometry() {
+  // normalized height, half-width, half-depth, front/back offset
+  const profile = [
+    [-1,0,0,.04],[-.88,.42,.45,.055],[-.72,.68,.70,.06],
+    [-.52,.88,.86,.055],[-.31,1.065,.98,.03],[-.10,1.055,1.01,0],
+    [.18,1.055,1.025,-.015],[.46,.97,1.01,-.04],
+    [.70,.78,.82,-.055],[.88,.48,.53,-.05],[1,0,0,-.04]
+  ];
+  const cubic = (a,b,c,d,t) => .5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
+  const shape = new THREE.SphereGeometry(1,64,40);
+  const positions = shape.getAttribute('position');
+  for (let i=0; i<positions.count; i++) {
+    const y=positions.getY(i), x=positions.getX(i), z=positions.getZ(i);
+    const angle=Math.atan2(z,x);
+    let k=0;
+    while(k<profile.length-2 && y>profile[k+1][0]) k++;
+    const t=Math.min(1,Math.max(0,(y-profile[k][0])/(profile[k+1][0]-profile[k][0])));
+    const at=field=>cubic(profile[Math.max(0,k-1)][field],profile[k][field],profile[k+1][field],profile[Math.min(profile.length-1,k+2)][field],t);
+    const side=Math.cos(angle), front=Math.max(0,Math.sin(angle));
+    const cheek=.065*Math.exp(-Math.pow((y+.25)/.27,2))*Math.exp(-Math.pow((Math.abs(side)-.48)/.28,2));
+    const nose=.075*Math.exp(-Math.pow((y+.36)/.15,2))*Math.exp(-Math.pow(side/.18,2));
+    const chin=.055*Math.exp(-Math.pow((y+.62)/.16,2))*Math.exp(-Math.pow(side/.35,2));
+    positions.setXYZ(i,side*at(1),y,at(3)+Math.sin(angle)*at(2)+(cheek+nose+chin)*front);
+  }
+  positions.needsUpdate=true;
+  shape.computeVertexNormals();
+  shape.computeBoundingBox();
+  return shape;
+}
+
 export async function createImg2ThreeReferenceCharacter({ textureUrl = '/img2threejs-bald-chibi/head-uv.png' } = {}) {
   const root = new THREE.Group();
   root.name = 'img2threejs-reference-bald-chibi';
@@ -95,8 +127,14 @@ export async function createImg2ThreeReferenceCharacter({ textureUrl = '/img2thr
   root.add(body);
   ellipsoid(root, 'neck-collar', [0, 1.67, 0], [.195, .075, .19], clothTrim);
   ellipsoid(root, 'neck', [0, 1.735, 0], [.13, .105, .14], skin);
-  const head = ellipsoid(root, 'full-depth-projected-head', [0, 2.2, 0], [.45, .47, .455], headMaterial, 64);
-  head.userData.depthRatio = .455 / .45;
+  const head = new THREE.Mesh(chibiHeadGeometry(), headMaterial);
+  head.name = 'full-depth-projected-head';
+  head.position.set(0, 2.2, 0);
+  head.scale.set(.45, .47, .455);
+  head.castShadow = true; head.receiveShadow = true;
+  root.add(head);
+  const bounds = head.geometry.boundingBox;
+  head.userData.depthRatio = (bounds.max.z-bounds.min.z)*head.scale.z / ((bounds.max.x-bounds.min.x)*head.scale.x);
   // Keep the eyes raised while bringing the small smile off the chin.
   // The lower-face correction fades out before the eyes and at the bottom pole;
   // both blends stay continuous so the original facial texture remains intact.

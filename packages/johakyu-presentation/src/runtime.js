@@ -619,7 +619,7 @@ function createDrivenPort(){
  }
  function leftHipSheathFrame(a){
    a.object.updateMatrixWorld(true);const hips=sheathBodyRig(a).hips;if(!hips)return null;hips.updateWorldMatrix(true,true);
-   // Visual review of the accepted hero rig shows its rendered left hip on actor-local +X.
+   // Accepted humanoid rigs share the rendered left-hip direction on actor-local +X.
    const actorWorld=a.object.getWorldQuaternion(new THREE.Quaternion()),leftWorld=new THREE.Vector3(1,0,0).applyQuaternion(actorWorld),forwardWorld=new THREE.Vector3(0,0,1).applyQuaternion(actorWorld);
    leftWorld.y=0;forwardWorld.y=0;if(leftWorld.lengthSq()<.0001||forwardWorld.lengthSq()<.0001)return null;leftWorld.normalize();forwardWorld.normalize();
    const hipWorld=hips.getWorldPosition(new THREE.Vector3()),mouthWorld=hipWorld.clone().addScaledVector(leftWorld,a.height*.095).add(new THREE.Vector3(0,a.height*.018,0)).addScaledVector(forwardWorld,a.height*.006);
@@ -691,7 +691,7 @@ function createDrivenPort(){
    if(!a.sheathed&&!a.drawMotion)return;const weaponId=row.equipment?.weapon,name=weaponMesh[weaponId],weapon=name?a.root.getObjectByName(name):null,right=armRig(a,'r'),frame=leftHipSheathFrame(a);
    if(!weapon?.visible||!right?.socket||!frame){a.sheathed=false;a.drawMotion=null;return;}
    let held=a.weaponStow;if(!held){held=beginWeaponStow(a,weapon);if(!held)return;lockWeaponInScabbard(a,weaponId,frame);}
-   ensureScabbard(a,weaponId,frame,held.length);const combatReady=Boolean(row.action||row.combatReady);
+   ensureScabbard(a,weaponId,frame,held.length);const combatReady=Boolean(row.combatReady);
    if(!a.drawMotion){
      if(!combatReady){if(weapon.parent!==a.scabbard?.group)lockWeaponInScabbard(a,weaponId,frame);return;}
      if(weapon.parent!==a.root)a.root.attach(weapon);weapon.updateWorldMatrix(true,true);const axis=bladeAxisForSheath(a,weapon);a.drawMotion={key:row.action?.id||('ready:'+String(row.id||a.canonicalId||'')),elapsed:0,duration:.5,startHilt:axis?.hilt.clone()||frame.mouthWorld.clone()};a.sheathed=false;
@@ -707,10 +707,10 @@ function createDrivenPort(){
    if(progress>=.995)restoreStowedWeapon(a);
  }
  function updateCombatReadyWeapon(a,row,dt){
-   const sheathable=a.kind==='hero'&&['sword','dagger','great'].includes(row.equipment?.weapon);
+   const sheathable=['sword','dagger','great'].includes(row.equipment?.weapon);
    if(!sheathable)return;
    if(row.phaseCue?.phase==='zanshin'){a.autoSheath=null;return;}
-   const ready=Boolean(row.action||row.combatReady);
+   const ready=Boolean(row.combatReady);
    if(ready){
      if(a.autoSheath){a.autoSheath=null;if(a.weaponStow)a.sheathed=true;}
      if(a.sheathed||a.drawMotion)moveBladeFromSheath(a,row,dt);
@@ -736,7 +736,7 @@ function createDrivenPort(){
    if(row.locomotion?.clip&&!asset.animations.some(clip=>clip.name===row.locomotion.clip))return {supported:false,reason:'unaccepted-locomotion:'+row.locomotion.kind};
    return {supported:true};
   },
-  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss),row.kind==='hero'?(row.equipment.armor==='heavy'?'adventurers/Knight':'adventurers/Rogue'):null);a.spawnStyle=row.spawnStyle||null;a.spawn=a.spawnStyle==='battlebk-ground'&&a.kind!=='hero'?.7:0;a.canonicalAction=a.spawn>0?'spawn:battlebk-ground':null;a.canonicalId=row.id;a.combatReadyWeight=0;a.autoSheath=null;if(a.kind==='hero'&&['sword','dagger','great'].includes(row.equipment?.weapon))a.sheathed=true;bindings.set(row.id,a);
+  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss),row.kind==='hero'?(row.equipment.armor==='heavy'?'adventurers/Knight':'adventurers/Rogue'):null);a.spawnStyle=row.spawnStyle||null;a.spawn=a.spawnStyle==='battlebk-ground'&&a.kind!=='hero'?.7:0;a.canonicalAction=a.spawn>0?'spawn:battlebk-ground':null;a.canonicalId=row.id;a.combatReadyWeight=0;a.autoSheath=null;if(['sword','dagger','great'].includes(row.equipment?.weapon))a.sheathed=true;bindings.set(row.id,a);
     // Bind the few authored attack clips while the actor spawns, before its first technique.
     for(const name of new Set([...Object.values(JOHAKYU_WEAPON_MOTIONS[row.equipment.weapon]||{}),'Block_Attack'])){const clip=a.clips.get(name);if(clip)a.mixer.clipAction(clip);}
     return a;},
