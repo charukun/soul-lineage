@@ -61,13 +61,16 @@ function generatedSequences(arts,phase){
   ]);
 }
 
-const weightFor=(kinds,phase,encounterMode)=>{
+const weightFor=(kinds,phase,encounterMode,steps=[],spectacle=false)=>{
   const sweep=kinds.some(kind=>SWEEP.has(kind)),finish=kinds.some(kind=>FINISH.has(kind)),open=kinds.some(kind=>OPEN.has(kind));
-  let weight=1+Math.min(.6,kinds.length*.15);
+  const moving=steps.some(step=>step.footwork&&step.footwork!=='stay');
+  let weight=1+kinds.length*.55+(moving?.8:0);
+  if(sweep)weight+=.65;
   if(encounterMode==='one-v-three'&&sweep)weight+=.8;
   if(phase==='kyu'&&finish)weight+=.55;
   if(phase==='jo'&&open)weight+=.35;
   if(phase==='ha'&&kinds.length>1)weight+=.25;
+  if(spectacle&&kinds.length>=3)weight*=3;
   return weight;
 };
 const weightedPick=(rows,random=Math.random)=>{
@@ -76,15 +79,30 @@ const weightedPick=(rows,random=Math.random)=>{
   let cursor=0;for(const item of rows){cursor+=item.weight;if(point<cursor)return item.row;}return rows.at(-1).row;
 };
 
-export function generatedReviewInspirationCandidates({weapon='fist',phase='ha',seenIds=[],encounterMode='duel'}={}){
+export function generatedReviewInspirationCandidates({weapon='fist',phase='ha',seenIds=[],encounterMode='duel',spectacle=false}={}){
   const slot=PHASES.has(phase)?phase:'ha',seen=new Set(seenIds);
   return generatedTechniqueCandidates({weapon,phase:slot}).filter(row=>!seen.has(row.id)).map(row=>Object.freeze({
     row:Object.freeze({...row,sign:SIGN_TEXT[slot]}),
-    weight:weightFor(row.steps.map(item=>item.kind),slot,encounterMode)
+    weight:weightFor(row.steps.map(item=>item.kind),slot,encounterMode,row.steps,spectacle)
   }));
 }
 export function pickGeneratedReviewInspiration(options={},random=Math.random){
   return weightedPick(generatedReviewInspirationCandidates(options),random);
+}
+
+// Review-only mastery: a complete Jo/Ha/Kyu set with the same weapon unlocks
+// a three-motion Kyu showcase. This does not grant a gameplay rule effect.
+export function reviewUltimateCandidates({weapon='fist',phase='kyu',seenIds=[],encounterMode='duel'}={}){
+  if(phase!=='kyu')return [];
+  const seen=new Set(seenIds);
+  return generatedTechniqueCandidates({weapon,phase:'kyu'}).filter(row=>
+    row.steps.length===3&&!seen.has(row.id)&&
+    row.steps.some(step=>step.footwork&&step.footwork!=='stay')&&
+    row.steps.some(step=>FINISH.has(step.kind))
+  ).map(row=>Object.freeze({row,weight:weightFor(row.steps.map(step=>step.kind),'kyu',encounterMode,row.steps,true)}));
+}
+export function pickReviewUltimate(options={},random=Math.random){
+  return weightedPick(reviewUltimateCandidates(options),random);
 }
 
 export function reviewInspirationCandidates(answers,{weapon='fist',phase='ha',learnedIds=[],encounterMode='duel'}={}){

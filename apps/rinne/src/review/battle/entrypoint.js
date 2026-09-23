@@ -6,7 +6,7 @@ import {applyChoreographyImpact,combatBodySnapshot,strategyForState} from '../..
 import {createCombatBodyHud} from '../../combat-body-hud.js';
 import {tidebreakMindsetFromVector} from '../../rebuild/combat-tactics.js';
 import {advanceReviewFinisher,createReviewFinisher,reviewBattleLoopDue,reviewBattlePhaseState,reviewInspirationModeState} from './state.js';
-import {REVIEW_INSPIRATION_TIMELINE,generatedReviewInspirationCandidates,pickGeneratedReviewInspiration,pickReviewInspiration} from './inspiration.js';
+import {REVIEW_INSPIRATION_TIMELINE,generatedReviewInspirationCandidates,pickGeneratedReviewInspiration,pickReviewInspiration,pickReviewUltimate} from './inspiration.js';
 import {addTechniqueToReviewChain,createReviewTechniqueComposition,flattenReviewTechniqueChain,reviewChainLabel,reviewTechniqueStages} from './technique-composition.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import {rinneFieldRadarMarkup,updateRinneFieldRadar} from '@soul/shared-ui/rinne-field-radar';
@@ -29,7 +29,7 @@ let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromis
 let strategyA='balanced',strategyB='patient',strategyVariant='A',reviewSeed=6197,reviewInjury='none',reviewHeroBody=null,reviewEnemyBody=null,bodyHud=null;
 let runtime=null,last=performance.now(),lastCore=null,finishedAt=0,finisher=null,lastSequenceAction='',lastSequencePhase='',lastSequenceRecipe='',lastRenderedCore=null,lastImpactSerial=0,lastIdleReadoutAt=-Infinity,lastAudioAttacks=new Map(),bulbTimer=0,pendingInspirationTimer=0,sequenceTimer=0;
 const INSPIRATION_BULB_HOLD_MS=420;
-const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
+const insightHistory=[],reviewTechniqueSeen=new Map(),reviewUltimateSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
 let techniqueComposition=createReviewTechniqueComposition(),compositionWeapon='';
 // Shared with Demon and Rinne gameplay: one swipe parser owns drag, deadzone and terminal flick semantics after develop reconciliation.
 const reviewSwipe=new SwipeInput();
@@ -183,9 +183,21 @@ function syncBattleAudio(core){
 }
 
 function weightedTechnique(phase){
+  const mastered=['jo','ha','kyu'].every(slot=>learnedSlots[slot]);
+  if(phase==='kyu'&&mastered&&(inspirationMode==='boost'||Math.random()<.35)){
+    const seenUltimate=reviewUltimateSeen.get(selectedWeapon)||new Set();
+    reviewUltimateSeen.set(selectedWeapon,seenUltimate);
+    const used=new Set([...(reviewTechniqueSeen.get(`${selectedWeapon}:kyu`)||[]),...seenUltimate]);
+    const ultimate=pickReviewUltimate({weapon:selectedWeapon,seenIds:[...used],encounterMode},Math.random);
+    if(ultimate){
+      seenUltimate.add(ultimate.id);
+      const naming=generatedTechniqueNaming(ultimate,{seed:reviewSeed,motifs:ultimate.motifs||[]});
+      return {...ultimate,name:`奥義・${naming.name}`,naming,reviewGrade:'ultimate',reviewOnly:true};
+    }
+  }
   const key=`${selectedWeapon}:${phase}`,seen=reviewTechniqueSeen.get(key)||new Set();reviewTechniqueSeen.set(key,seen);
-  let technique=pickGeneratedReviewInspiration({weapon:selectedWeapon,phase,seenIds:[...seen],encounterMode},Math.random);
-  if(!technique&&generatedReviewInspirationCandidates({weapon:selectedWeapon,phase,encounterMode}).length){seen.clear();technique=pickGeneratedReviewInspiration({weapon:selectedWeapon,phase,encounterMode},Math.random);}
+  let technique=pickGeneratedReviewInspiration({weapon:selectedWeapon,phase,seenIds:[...seen],encounterMode,spectacle:inspirationMode==='boost'},Math.random);
+  if(!technique&&generatedReviewInspirationCandidates({weapon:selectedWeapon,phase,encounterMode}).length){seen.clear();technique=pickGeneratedReviewInspiration({weapon:selectedWeapon,phase,encounterMode,spectacle:inspirationMode==='boost'},Math.random);}
   if(!technique){technique=pickReviewInspiration(CAUSAL_ANSWERS,{weapon:selectedWeapon,phase,learnedIds:[...seen],encounterMode},Math.random);if(!technique){seen.clear();technique=pickReviewInspiration(CAUSAL_ANSWERS,{weapon:selectedWeapon,phase,encounterMode},Math.random);}}
   if(technique?.generated){const naming=generatedTechniqueNaming(technique,{seed:reviewSeed,motifs:technique.motifs||[]});technique={...technique,name:naming.displayName,naming};}
   if(technique)seen.add(technique.id);return technique;
@@ -205,7 +217,7 @@ function activateInsight(technique,replay=false,phase='ha'){
   if(!technique||inspirationSequenceActive)return;
   inspirationSequenceActive=true;
   if(!replay){learnedSlots[phase]=technique;addTechniqueToReviewChain(techniqueComposition,phase,technique);renderTechniqueComposition();}
-  beginInspirationWindow(REVIEW_INSPIRATION_TIMELINE.end);void ensureBattleStage().then(stage=>stage.triggerInspiration({id:technique.id,name:technique.name,steps:technique.steps,phase,weapon:selectedWeapon,grade:inspirationTechniqueGrade(technique),duration:REVIEW_INSPIRATION_TIMELINE.end})).catch(()=>{inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();});
+  beginInspirationWindow(REVIEW_INSPIRATION_TIMELINE.end);void ensureBattleStage().then(stage=>stage.triggerInspiration({id:technique.id,name:technique.name,steps:technique.steps,phase,weapon:selectedWeapon,grade:technique.reviewGrade||inspirationTechniqueGrade(technique),duration:REVIEW_INSPIRATION_TIMELINE.end})).catch(()=>{inspirationSequenceActive=false;endInspirationWindow();hideInspirationBulb();});
   if(!replay){insightHistory.unshift({technique,name:technique.name,phase,weapon:selectedWeapon,weaponLabel:weaponSelect.selectedOptions[0]?.textContent||selectedWeapon});if(insightHistory.length>8)insightHistory.length=8;renderInsightHistory();}
 }
 function maybeInspire(phase){
