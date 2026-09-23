@@ -4,6 +4,7 @@ import {loadDemonMasterModel} from '../master-model.js';
 import {dressReaper} from './reaper-wardrobe.js';
 import {devourInteractionFrame,devourInteractionSide,sampleDevourMotion,samplePreyMotion} from './devour-motion.js';
 import {blendPoint,stepCombatPresentation} from '../combat-presentation.js';
+import {createObservedCombatLocomotion} from './observed-combat-locomotion.js';
 
 const X=new T.Vector3(1,0,0),Y=new T.Vector3(0,1,0),Z=new T.Vector3(0,0,1);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -40,7 +41,8 @@ export function createReaperPlayer({gltf,rig}) {
   const actor=pool.spawn('demon.silver-reaper'),root=new T.Group();root.name='demon-silver-reaper';root.add(actor.root);
   const wardrobe=dressReaper(actor);root.add(wardrobe.scythe);
   const rotation=new T.Quaternion(),hand=new T.Vector3(),direction=new T.Vector3(),combatDirection=new T.Vector3(),neutral=new T.Vector3(.22,.97,.12).normalize();
-  let previousYaw=null,combatPresentation={weight:0,pose:null};
+  const locomotion=createObservedCombatLocomotion();
+  let previousYaw=null,combatPresence=0,combatPresentation={weight:0,pose:null};
   function update(player,time,dt,{eating=false,preview=false,dead=false}={}) {
     const q=preview?null:player.pose;
     const devour=eating&&Number.isFinite(player.devourProgress)?sampleDevourMotion(player.devourProgress):null;
@@ -48,23 +50,26 @@ export function createReaperPlayer({gltf,rig}) {
     const preyMotion=devour?samplePreyMotion(player.devourProgress,1,1,devourInteractionSide(capture)):null;
     const interaction=devour?devourInteractionFrame({x:player.x,z:player.z,yaw:player.yaw||0},capture,preyMotion):null;
     combatPresentation=stepCombatPresentation(combatPresentation,!devour&&!preview&&!dead?q:null,dt);root.userData.combatBlend=combatPresentation.eased;
-    const pose=combatPresentation.pose,cw=combatPresentation.eased,moving=!preview&&(player.speed||0)>.05;
-    const phase=player.walk||0,stride=moving?Math.sin(phase)*.38*(1-cw):0;
+    if(preview||devour||dead)combatPresence=0;else if(q)combatPresence=1;else combatPresence=Math.max(0,combatPresence-clamp(dt,0,.08)/.42);
+    const pose=combatPresentation.pose,cw=combatPresentation.eased,stanceWeight=Math.max(cw,combatPresence*combatPresence*(3-2*combatPresence));
+    const gait=locomotion.sample(player,dt,{enabled:!preview&&!dead&&!devour,combatWeight:stanceWeight}),phase=gait.phase,stride=gait.swing,stance=gait.stance;
+    root.userData.combatStance=stance;root.userData.locomotionSpeed=gait.speed;
     root.position.set(player.x,0,player.z);root.rotation.set(0,player.yaw||0,0);
     actor.sample({...appearance,dead},Math.max(0,time),bones=>{
       const turn=(bone,axis,value)=>bone.quaternion.multiply(rotation.setFromAxisAngle(axis,value));
-      turn(bones.leftUpperLeg,X,stride);turn(bones.rightUpperLeg,X,-stride);
-      turn(bones.leftLowerLeg,X,Math.max(0,-stride)*1.2);turn(bones.rightLowerLeg,X,Math.max(0,stride)*1.2);
+      turn(bones.leftUpperLeg,X,stride-stance*.085);turn(bones.rightUpperLeg,X,-stride+stance*.055);
+      turn(bones.leftLowerLeg,X,Math.max(0,-stride)*1.2+stance*.09);turn(bones.rightLowerLeg,X,Math.max(0,stride)*1.2+stance*.09);
+      turn(bones.leftUpperLeg,Z,stance*.035);turn(bones.rightUpperLeg,Z,-stance*.035);
       turn(bones.spine,X,clamp(devour?devour.pitch*.65-(interaction?.recoil||0)*.08:(pose?.pitch||0)*cw,-.65,.8));
       turn(bones.spine,Y,clamp(devour?devour.twist-(interaction?.side||1)*(interaction?.recoil||0)*.035:(pose?.twist||0)*cw,-1.1,1.1));
       turn(bones.spine,Z,clamp((pose?.roll||0)*cw+(interaction?.side||1)*(interaction?.recoil||0)*.025,-.45,.45));
       if(!devour)for(const finger of ['Index','Middle','Ring','Little'])for(const joint of ['Proximal','Intermediate','Distal']){const b=bones['left'+finger+joint];if(b)turn(b,Z,joint==='Proximal'?-.65:-.8);}
       turn(bones.head,X,devour?devour.headPitch*.5+(interaction?.recoil||0)*.055:-.04);
       turn(bones.head,Y,devour?devour.headYaw:Math.sin(time*.6)*.035);
-      bones.hips.position.y+=(pose?.crouch||0)*.18*cw+(pose?.lift||0)*.5*cw+(moving?Math.abs(Math.sin(phase))*.012*(1-cw):Math.sin(time*1.5)*.004);
+      bones.hips.position.y+=(pose?.crouch||0)*.18*cw+(pose?.lift||0)*.5*cw+gait.bob-stance*.018+(!gait.moving?Math.sin(time*1.5)*.004:0);
       if(devour){bones.hips.position.y+=devour.drop*.28;turn(bones.leftUpperLeg,X,-.2);turn(bones.rightUpperLeg,X,-.2);turn(bones.leftLowerLeg,X,.35);turn(bones.rightLowerLeg,X,.35);}
     });
-    const baseRight=[.43,1.02,.14],baseLeft=[-.33,1.08,.12-Math.sin(phase)*Number(moving)*(1-cw)*.15];
+    const baseRight=[.43,1.02,.14],baseLeft=[-.33,1.08,.12-gait.armSwing];
     const authoredRight=devour?[.32,devour.handY,devour.handZ]:blendPoint(baseRight,pose?.hand||baseRight,combatPresentation.weight);
     const authoredLeft=devour?[-.32,devour.handY+.04,devour.handZ]:blendPoint(baseLeft,pose?.left||baseLeft,combatPresentation.weight);
     let right=authoredRight,left=authoredLeft;
@@ -80,8 +85,8 @@ export function createReaperPlayer({gltf,rig}) {
     if(actor.expressionNames.includes('blink')){const blink=time%4;actor.setExpression('blink',blink<.15?Math.sin(blink/.15*Math.PI):0);}
     if(actor.expressionNames.includes('aa'))actor.setExpression('aa',devour?clamp(-devour.jaw*.65,0,.7):0);
     const yaw=player.yaw||0,yawDelta=previousYaw===null?0:Math.atan2(Math.sin(yaw-previousYaw),Math.cos(yaw-previousYaw));previousYaw=yaw;
-    wardrobe.hair.rotation.set(.03+Number(moving)*(1-cw)*.10+Math.sin(time*1.8)*.022,clamp(-yawDelta*3,-.3,.3),Math.sin(time*1.1)*.025);
-    wardrobe.skirt.rotation.set(Number(moving)*(1-cw)*.018,clamp(-yawDelta*1.8,-.1,.1),Math.sin(phase*2)*Number(moving)*(1-cw)*.025);
+    wardrobe.hair.rotation.set(.03+gait.motionStrength*.10+Math.sin(time*1.8)*.022,clamp(-yawDelta*3,-.3,.3),Math.sin(time*1.1)*.025);
+    wardrobe.skirt.rotation.set(gait.motionStrength*.018,clamp(-yawDelta*1.8,-.1,.1),Math.sin(phase*2)*gait.motionStrength*.025);
     root.updateWorldMatrix(true,true);
     root.worldToLocal(actor.bones.leftHand.getWorldPosition(hand));wardrobe.scythe.position.copy(hand);
     direction.copy(neutral);
