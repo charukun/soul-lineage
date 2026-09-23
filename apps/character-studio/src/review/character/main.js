@@ -207,7 +207,7 @@ function init() {
   new MutationObserver(expressions).observe(el('expression'), { childList: true });
   new MutationObserver(() => { el('metrics-live').textContent = el('metrics').textContent; }).observe(el('metrics'), { childList: true, characterData: true, subtree: true });
   window.addEventListener('character-workspace-change', render);
+  window.addEventListener('character-review-change', render);
   buildOptions(); expressions(); activate('parts'); render();
 }
 try { init(); } catch (error) { toast(error.message); }
-
