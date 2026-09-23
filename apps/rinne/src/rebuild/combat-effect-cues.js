@@ -27,9 +27,15 @@ export function combatEffectCues(events, {state, front, hostiles=[], anchors={}}
   for(const event of events){
     if(event?.type==='inspiration-start'){
       const origin=point(event.position)|| (event.sourceId===state.id?hero:null);
-      if(origin)cues.push({effect:event.firstInspirationPresentation?.effect||'finisher',
-        position:{...origin},rotation:{x:0,y:0,z:0},scale:1.5,lifetime:.8,
-        color:[255,238,176,255],priority:3,kind:'inspiration-world'});
+      if(origin){
+        const profile=event.firstInspirationPresentation||{},enemy=point(foes.get(event.targetId));
+        const yaw=enemy?Math.atan2(enemy.x-origin.x,enemy.z-origin.z):0;
+        cues.push({effect:profile.effect||'finisher',position:{...origin},rotation:{x:0,y:yaw,z:0},
+          scale:1.5,lifetime:.8,color:[255,238,176,255],priority:3,kind:'inspiration-world'});
+        cues.push({effect:profile.trail||'slash',position:{x:origin.x,y:origin.y+.35,z:origin.z},
+          rotation:{x:0,y:yaw,z:0},scale:1.25,lifetime:.4,color:[255,224,148,240],
+          priority:2,kind:'inspiration-trail'});
+      }
       continue;
     }
     if(!event||!finite(event.damage)||event.damage<=0)continue;
@@ -51,6 +57,14 @@ export function combatEffectCues(events, {state, front, hostiles=[], anchors={}}
     if(outgoing){const anchor=anchors.hero,cuePosition=anchor?.position||{x:(from.x+to.x)/2,y:from.y,z:(from.z+to.z)/2};cues.push({effect:'slash',position:{...cuePosition},rotation:anchor?.rotation||rotation,scale:heavy?1.35:1,lifetime:.65,color,priority:1,kind:'contact-trail',followKey:anchor?'hero':null});}
   }
   return cues;
+}
+
+/** A bounded world-space echo of the local actor's last actual position. */
+export function inspirationAfterimageCue(previous,current,profile){
+  const a=point(previous),b=point(current);if(!a||!b||!profile?.trail)return null;
+  const travel=Math.hypot(b.x-a.x,b.z-a.z);if(travel<.025||travel>1.5)return null;
+  return {effect:profile.trail,position:{...a},rotation:{x:0,y:Math.atan2(b.x-a.x,b.z-a.z),z:0},
+    scale:.78,lifetime:.24,color:[255,222,154,145],priority:1,kind:'inspiration-afterimage'};
 }
 
 /** Drops replayed co-op event batches while retaining different same-tick hits. */

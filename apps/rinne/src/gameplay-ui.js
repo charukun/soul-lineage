@@ -249,9 +249,17 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     for(const node of ui.mind.querySelectorAll('[data-axis]')){const key=node.dataset.axis,value=clamp(Number(vector?.[key]??.5),0,1);node.style.opacity=String(.3+value*.7);node.style.transform=`scale(${(.78+value*.26).toFixed(3)})`;node.dataset.strong=String(value>=.68);if(value>best){best=value;dominant=key;}}
     ui.mindState.textContent=labels[dominant]||'中庸';ui.mind.dataset.dominant=dominant;
   }
+  let lastInspirationAttackId=null;
   function summary(s,{dashing=false,resting=false,training=null}={}){
     state=s;motionTeacher.update(s);if(ui.panel&&!ui.panel.hidden&&!ui.panel.dataset.type)close();speech.sync();loadoutUI.syncCombat(s);const hudName=s.name&&s.name!=='旅人'?s.name:rinnePlayerNameFromSeed(s.seed);playerHud?.update({name:hudName,age:s.ageYears});combatBodyHud?.update(s);
     const inspirationCue=s.combat?.inspirationCue,burstActive=Boolean(inspirationCue&&s.combat?.battleTime<inspirationCue.until);
+    if(burstActive&&`${s.id}:${inspirationCue.attackId}`!==lastInspirationAttackId){
+      lastInspirationAttackId=`${s.id}:${inspirationCue.attackId}`;
+      ui.inspirationBurst.hidden=true;void ui.inspirationBurst.offsetWidth;
+      const seconds=Number(inspirationCue.presentation?.hudSeconds)||1.8;
+      ui.inspirationBurst.style.setProperty('--inspiration-duration',`${Math.min(2.5,Math.max(.5,seconds))}s`);
+      audio?.inspiration?.();
+    }
     ui.inspirationBurst.hidden=!burstActive;
     if(burstActive)ui.inspirationBurstName.textContent=inspirationCue.name;
     updateRadar();

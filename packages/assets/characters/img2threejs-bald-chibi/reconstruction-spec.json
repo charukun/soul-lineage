@@ -1,0 +1,100 @@
+{
+  "schema": "img2threejs-character-reconstruction/v1",
+  "img2threejsRevision": "6e60b5e22419464b4853e01ddb6c0e6f6659a733",
+  "reference": {
+    "file": "reference.jpg",
+    "sha256": "c63eefb8c77de5a6861cad6f6e58ab8cb9a919c7eb57dae1146e5d21fda0d1c3",
+    "pixels": [
+      1024,
+      1536
+    ],
+    "view": "front"
+  },
+  "measurements": {
+    "crown": [
+      510,
+      34
+    ],
+    "chin": [
+      510,
+      552
+    ],
+    "headWidthPx": 510,
+    "eyeCentersPx": [
+      [
+        400,
+        393
+      ],
+      [
+        607,
+        393
+      ]
+    ],
+    "hipsPxY": 946,
+    "feetPxY": 1424,
+    "headUnits": 2.68,
+    "TposeSpanPx": 924
+  },
+  "componentTree": {
+    "head": {
+      "shape": "closed ellipsoid",
+      "radii": [
+        0.485,
+        0.52,
+        0.39
+      ],
+      "center": [
+        0,
+        2.22,
+        0
+      ],
+      "front": "de-lit projected image pixels",
+      "back": "inferred skin color"
+    },
+    "neck": "rounded volume and collar",
+    "torso": "closed elliptical loft with continuous bifurcated shorts shells and rounded crotch arch; front/back radius .145-.23",
+    "arms": "bilateral continuous rounded loft through shoulder, elbow and wrist with palm and fingers",
+    "legs": "bilateral continuous rounded loft through thigh, knee and calf with bare feet/toes",
+    "hair": "absent in reference"
+  },
+  "material": {
+    "skin": "#f6dcdb",
+    "cloth": "#bcb9bf",
+    "projectedFace": "reference-delit.png -> head-uv.png"
+  },
+  "projection": {
+    "adopted": true,
+    "reason": "eyes, eyebrows, cheeks and mouth require exact photo pixel coordinates",
+    "camera": "35° frontal heuristic; not calibrated by overlay",
+    "unseen": "palette-continue"
+  },
+  "process": [
+    "forge/state.py init --profile character",
+    "forge/next.py",
+    "forge/stage1_intake/probe_image.py",
+    "forge/stage1_intake/extract_landmarks.py",
+    "forge/stage2_spec/new_pre_spec_assessment.py",
+    "forge/stage1_intake/solve_camera_pose.py",
+    "forge/stage1_intake/delight_albedo.py",
+    "forge/stage1_intake/build_detail_inventory.py",
+    "forge/stage3_build/bake_projected_texture.py",
+    "forge/stage2_spec/new_sculpt_spec.py",
+    "forge/stage2_spec/validate_sculpt_spec.py",
+    "bake-head.py actual UV sampling"
+  ],
+  "limitations": [
+    "One frontal view cannot determine back/side geometry",
+    "img2threejs strict quality validation has not passed for this measured custom schema",
+    "The upstream bake_projected_texture script emits descriptor only; bake-head.py rasterizes the pixels"
+  ],
+  "reviewCorrections": [
+    {
+      "observed": "head sat lower than image; ear capsules looked detached; flat torso hem read as a dress; limb cylinder seams and toe beads",
+      "changed": "raised head center .04 and height .015, intersected ears with skull, curved torso crotch hem, interpolated continuous arm/leg radial lofts, reduced toe and hem protrusion"
+    },
+    {
+      "observed": "flat hem still obscured crotch and feet were cropped by studio camera",
+      "changed": "propagated hem notch across five rings, raised cap center, attached two closed-volume shorts shells; expanded only procedural studio framing"
+    }
+  ]
+}

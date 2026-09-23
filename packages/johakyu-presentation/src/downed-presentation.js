@@ -11,3 +11,9 @@ export function activateSampledDownedAction(mixer,action){
  if(!mixer||!action)return false;
  mixer.stopAllAction();action.reset();action.enabled=true;action.setEffectiveWeight?.(1);action.setEffectiveTimeScale?.(1);action.clampWhenFinished=true;action.play();action.paused=true;return true;
 }
+
+export function terminalPresentationState(row,kind){
+ const downed=Boolean(row?.downed),dead=Boolean(row?.dead);
+ const clip=downed?'Lie_Down':dead?(kind==='hero'?'Death_A':'Death_C_Skeletons'):null;
+ return Object.freeze({downed,dead,clip,removalClock:dead});
+}

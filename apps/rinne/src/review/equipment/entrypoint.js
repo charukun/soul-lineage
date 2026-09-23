@@ -8,8 +8,8 @@ import {createReviewLoadController} from '@soul/shared-ui/review-load-controller
 import {mountRinneReviewShell} from '../shared/lab-shell.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import { PROTAGONIST_VILLAGER_MODEL } from '@soul/characters';
-import {applyReviewCombatMotion} from '../battle/hero-motion.js';
-import {hideEmbeddedCombatProps} from '../battle/equipment.js';
+import {applyReviewCombatMotion} from '../shared/combat-motion.js';
+import {hideEmbeddedCombatProps} from '../shared/combat-equipment.js';
 import {
   RINNE_EQUIPMENT_REVIEW_CATALOG,
   REVIEW_EQUIPMENT_CATEGORY_LABELS,

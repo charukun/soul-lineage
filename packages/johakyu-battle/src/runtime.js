@@ -228,7 +228,7 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     if(damage>0){
       const wound=applyChoreographyImpact(target,{damage,maxIntegrity:target.maxHp,sourceId:source.id,phase:execution.finisher?'finisher':execution.phase==='uke'?'ha':execution.phase,part});part=wound.part;durability=wound.durability;
       target.hp=Math.max(0,target.hp-damage);
-      if(execution.finisher){target.hp=0;target.dead=true;target.downed=false;target.incapacitated=true;}
+      if(execution.finisher){target.hp=0;target.dead=true;target.downed=true;target.incapacitated=true;target.finisherExecutedAt=time;}
       else if(wound.outcome.incapacitated||target.injuries.torso.severity>=.72){if(!target.downed)target.downedAt=time;target.downed=true;target.incapacitated=true;target.hp=0;}
       else if(target.hp<=0)target.hp=Math.max(1,target.maxHp*.18);
     }

@@ -45,7 +45,7 @@ function lifeRow(state,front){
  return{id:state.id,side:'party',self:true,kind:'hero',hp:state.hp,maxHp:state.maxHp,stamina:state.stamina,staminaCap:state.staminaCap,injuries:state.injuries,position:{...state.position},yaw:state.yaw,
    ageSeconds:state.ageSeconds,seed:state.seed,generation:state.generation,equipment:{...state.equipment},loadout:lifeBattleLoadout(state,target?.id),mind:tidebreakMindVectorFor(state),pursuit:loadout.heart.active.includes('skill.pursuer'),
    stance:state.combatLoadout.body.stance,zanshin:state.combatLoadout.body.zanshin,nonlethal:finisher.nonlethal,finisherProfile:finisher.finisher,staminaMultiplier:staminaMultiplierFor(state),damageScale:1+effects.damage,mitigation:(effects.mitigation||0)+bodyRuntime(state).guardBonus,recoverStamina:false,
-   targetId:target?.id,canAttack:Boolean(state.combat&&!state.down&&!state.ended&&Number(state.ageYears)>=7),canFinish:finisher.execute,dead:Boolean(state.ended||state.down?.executed),downed:Boolean(state.down&&!state.down?.executed),scope:'life'};
+   targetId:target?.id,canAttack:Boolean(state.combat&&!state.down&&!state.ended&&Number(state.ageYears)>=7),canFinish:finisher.execute,dead:Boolean(state.ended),downed:Boolean(state.down),scope:'life'};
 }
 function enemyRow(enemy,front){return{id:enemy.id,side:'enemy',kind:'enemy',boss:front.stage>=5,hp:enemy.hp,maxHp:enemy.maxHp,stamina:enemy.battleStamina??100,staminaCap:100,injuries:enemy.injuries,position:{x:enemy.x,z:enemy.z},yaw:enemy.yaw,equipment:{weapon:sharedEnemyWeapon(front,enemy),armor:'cloth',shield:Boolean(enemy.shield)},mind:'balanced',damageScale:front.stage>=5?.9:.65,loadout:{},dead:enemy.dead,downed:enemy.downed,staminaMultiplier:.35,recoverStamina:true,readyDelay:Math.max(0,enemy.cooldown??.25),targetId:enemy.attentionTargetId,canFinish:true};}
 function pose(row){
@@ -86,7 +86,8 @@ export function tickLifeBattle(states,front,dt,{fatalityChance=()=>.5}={}){
     const row={...event,engine:'johakyu'};
     if(owner)result.get(owner.id).push(row);if(victim&&victim!==owner)result.get(victim.id).push(row);
     if(event.type==='inspiration-start'&&owner){
-      owner.combat.inspirationCue={name:event.skill,until:stepped.frame.time+1.1,attackId:event.attackId};
+      owner.combat.inspirationCue={name:event.skill,techniqueId:event.techniqueId,until:stepped.frame.time+(event.firstInspirationPresentation?.hudSeconds??1.8),attackId:event.attackId,
+        presentation:event.firstInspirationPresentation};
       row.position={...owner.position};
       for(const peer of active)if(peer!==owner)result.get(peer.id).push({...row,scope:'witness'});
     }

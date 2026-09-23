@@ -19,7 +19,7 @@ import {buildNocturneEnvironment} from './environment.js';
 import {createTechniqueVfxRuntime} from './technique-vfx-runtime.js';
 import {cameraForMotion} from './motion-camera.js';
 import {impactReactionEnvelope,impactReactionProfile} from './impact-reaction.js';
-import {activateSampledDownedAction,downedPresentationSample} from './downed-presentation.js';
+import {activateSampledDownedAction,downedPresentationSample,terminalPresentationState} from './downed-presentation.js';
 
 export function createBattleRuntime({world,effects,stage,sound,notify,signal,rules=null,presentationPort=null,cameraPresentation=null}){
 const V=THREE.Vector3,TAU=Math.PI*2;let disposed=false,rounds=0,allKills=0,renderedDeaths=0;
@@ -475,7 +475,7 @@ function simulate(dt){
  for(const n of numbers)n.life-=dt;numbers=numbers.filter(n=>n.life>0);
  for(const r of rings)r.life-=dt;rings=rings.filter(r=>r.life>0);
  for(const a of arcs)a.life-=dt;arcs=arcs.filter(a=>a.life>0);
- for(const a of [...actors])if(a.dead&&a.kind!=='hero'&&a.deathTime>3){removeActor(a);actors.splice(actors.indexOf(a),1);}
+ if(!presentationPort)for(const a of [...actors])if(a.dead&&a.kind!=='hero'&&a.deathTime>3){removeActor(a);actors.splice(actors.indexOf(a),1);}
  game.shake=Math.max(0,game.shake-dt*.9);
 }
 
@@ -613,11 +613,12 @@ function createDrivenPort(){
  }
  function leftHipSheathFrame(a){
    a.object.updateMatrixWorld(true);const hips=sheathBodyRig(a).hips;if(!hips)return null;hips.updateWorldMatrix(true,true);
-   const highest=bones=>bones?.map(node=>node.getWorldPosition(new THREE.Vector3())).sort((x,y)=>y.y-x.y)[0]||null,leftLeg=highest(a.bodyContactRig?.leftLeg),rightLeg=highest(a.bodyContactRig?.rightLeg);
-   const yaw=a.object.rotation.y,fallbackRight=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)),leftWorld=leftLeg&&rightLeg?leftLeg.clone().sub(rightLeg).setY(0):fallbackRight.clone().multiplyScalar(-1);
-   if(leftWorld.lengthSq()<.0001)leftWorld.copy(fallbackRight).multiplyScalar(-1);leftWorld.normalize();
-   const forwardWorld=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)).normalize(),hipWorld=hips.getWorldPosition(new THREE.Vector3()),mouthWorld=hipWorld.clone().addScaledVector(leftWorld,a.height*.16).add(new THREE.Vector3(0,a.height*.025,0)).addScaledVector(forwardWorld,a.height*.015);
-   const directionWorld=forwardWorld.clone().multiplyScalar(-.94).addScaledVector(leftWorld,.16).add(new THREE.Vector3(0,-.23,0)).normalize();
+   // Left/right must come from the actor transform, not imported bone names. Some accepted rigs
+   // expose mirrored leg labels, which previously put the scabbard on the character's right hip.
+   const actorWorld=a.object.getWorldQuaternion(new THREE.Quaternion()),leftWorld=new THREE.Vector3(-1,0,0).applyQuaternion(actorWorld),forwardWorld=new THREE.Vector3(0,0,1).applyQuaternion(actorWorld);
+   leftWorld.y=0;forwardWorld.y=0;if(leftWorld.lengthSq()<.0001||forwardWorld.lengthSq()<.0001)return null;leftWorld.normalize();forwardWorld.normalize();
+   const hipWorld=hips.getWorldPosition(new THREE.Vector3()),mouthWorld=hipWorld.clone().addScaledVector(leftWorld,a.height*.105).add(new THREE.Vector3(0,a.height*.018,0)).addScaledVector(forwardWorld,a.height*.006);
+   const directionWorld=forwardWorld.clone().multiplyScalar(-.965).addScaledVector(leftWorld,.11).add(new THREE.Vector3(0,-.2,0)).normalize();
    return{hips,mouthWorld,directionWorld,leftWorld,forwardWorld};
  }
  function applyWorldBoneDelta(a,bone,delta,weight=1){
@@ -712,7 +713,7 @@ function createDrivenPort(){
   self(a){hero=a;selfBinding=a;},
   update(a,row,dt,{initial}){
    if(Number.isFinite(row.battleTime)){const previous=a.lastBattleTime??row.battleTime;a.lastBattleTime=row.battleTime;dt=Math.max(0,row.battleTime-previous);}
-   a.canonicalRow=row;a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;clearFatigueRig(a);clearParryRig(a);clearImpactRig(a);const contactHeld=Boolean(a.contactHold?.remaining>0);if(a.spawn>0)a.spawn=Math.max(0,a.spawn-dt);const reactionDt=contactHeld?0:dt;if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-reactionDt);if(a.reaction.remaining<=0)a.reaction=null;}if(a.parryRecoil){a.parryRecoil.remaining=Math.max(0,a.parryRecoil.remaining-reactionDt);if(a.parryRecoil.remaining<=0)a.parryRecoil=null;}if(a.impactRecoil){a.impactRecoil.remaining=Math.max(0,a.impactRecoil.remaining-reactionDt);if(a.impactRecoil.remaining<=0)a.impactRecoil=null;}if(a.contactHold){a.contactHold.remaining=Math.max(0,a.contactHold.remaining-dt);if(a.contactHold.remaining<=0)a.contactHold=null;}
+   a.canonicalRow=row;a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=Boolean(row.dead);a.downed=Boolean(row.downed);clearFatigueRig(a);clearParryRig(a);clearImpactRig(a);const contactHeld=Boolean(a.contactHold?.remaining>0);if(a.spawn>0)a.spawn=Math.max(0,a.spawn-dt);const reactionDt=contactHeld?0:dt;if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-reactionDt);if(a.reaction.remaining<=0)a.reaction=null;}if(a.parryRecoil){a.parryRecoil.remaining=Math.max(0,a.parryRecoil.remaining-reactionDt);if(a.parryRecoil.remaining<=0)a.parryRecoil=null;}if(a.impactRecoil){a.impactRecoil.remaining=Math.max(0,a.impactRecoil.remaining-reactionDt);if(a.impactRecoil.remaining<=0)a.impactRecoil=null;}if(a.contactHold){a.contactHold.remaining=Math.max(0,a.contactHold.remaining-dt);if(a.contactHold.remaining<=0)a.contactHold=null;}
    const zanshinActive=row.phaseCue?.phase==='zanshin';
    if(a.wasZanshin&&!zanshinActive){a.sheathed=true;a.sheathMotion=null;a.drawMotion=null;}
    a.wasZanshin=zanshinActive;
@@ -725,11 +726,11 @@ function createDrivenPort(){
     if(row.equipment.shield){let shield=a.root.getObjectByName('Round_Shield');if(!shield){shield=models.get('adventurers/Knight').scene.getObjectByName('Round_Shield')?.clone(true);const socket=a.root.getObjectByName('handslot.l')||a.root.getObjectByName('handslotl');if(!shield||!socket)throw Error('Missing authored shield socket');socket.add(shield);}shield.visible=true;}
     a.equipmentKey=equipmentKey;
    }
-   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,spawnClip=!terminal&&a.spawnStyle==='battlebk-ground'&&a.spawn>0?'Spawn_Ground_Skeletons':null,contactClip=!terminal&&!spawnClip?a.contactHold?.clip:null,reactionClip=!terminal&&!spawnClip&&!contactClip?a.reaction?.clip:null,phaseCue=!terminal&&!spawnClip&&!reactionClip&&!contactClip&&!action?row.phaseCue:null,phaseCueClip=phaseCue?.clip??null,actionClip=action?.presentationClip??action?.motion.clip,locomotionClip=!spawnClip&&!phaseCue&&!action&&row.moving?(row.locomotion?.clip||null):null;
+   const action=row.action,terminalState=terminalPresentationState(row,a.kind),terminal=terminalState.clip,spawnClip=!terminal&&a.spawnStyle==='battlebk-ground'&&a.spawn>0?'Spawn_Ground_Skeletons':null,contactClip=!terminal&&!spawnClip?a.contactHold?.clip:null,reactionClip=!terminal&&!spawnClip&&!contactClip?a.reaction?.clip:null,phaseCue=!terminal&&!spawnClip&&!reactionClip&&!contactClip&&!action?row.phaseCue:null,phaseCueClip=phaseCue?.clip??null,actionClip=action?.presentationClip??action?.motion.clip,locomotionClip=!spawnClip&&!phaseCue&&!action&&row.moving?(row.locomotion?.clip||null):null;
    const clip=terminal||spawnClip||contactClip||reactionClip||phaseCueClip||actionClip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
    const key=terminal||(spawnClip?'spawn:battlebk-ground':contactClip?('contact:'+a.contactHold.serial+':'+contactClip):reactionClip?('reaction:'+a.reaction.serial+':'+reactionClip):phaseCue?('phase-cue:'+phaseCue.key+':'+phaseCueClip):((action?.id||(locomotionClip?('locomotion:'+(row.locomotion?.kind||'observed')+':'+locomotionClip):clip))+':'+(action?.step??0)));
-   if(a.canonicalAction!==key){if(row.downed&&!row.dead&&terminal){const downClip=a.clips.get(clip);if(!downClip)throw Error('Missing NOCTURNE animation: '+a.kind+'/'+clip);const downAction=a.mixer.clipAction(downClip);activateSampledDownedAction(a.mixer,downAction);a.action=downAction;a.actionName=clip;record('animation',{kind:a.kind,name:clip,once:true});}else play(a,clip,Boolean(terminal||spawnClip||reactionClip||contactClip||action||row.hit),spawnClip?.8:0);a.canonicalAction=key;a.deathTime=0;if(action&&!terminal&&!spawnClip&&!reactionClip&&!contactClip){a.startGlow=.18;a.startGlowPhase=action.phase;}}
-   if(row.downed&&!row.dead&&terminal){const sample=downedPresentationSample(row,a.clips.get(terminal)?.duration);a.presentationActionId=null;a.action.paused=true;a.action.setEffectiveWeight?.(1);a.action.time=sample.time;a.mixer.update(0);a.object.updateMatrixWorld(true);}
+   if(a.canonicalAction!==key){if(row.downed&&terminal){const downClip=a.clips.get(clip);if(!downClip)throw Error('Missing NOCTURNE animation: '+a.kind+'/'+clip);const downAction=a.mixer.clipAction(downClip);activateSampledDownedAction(a.mixer,downAction);a.action=downAction;a.actionName=clip;record('animation',{kind:a.kind,name:clip,once:true});}else play(a,clip,Boolean(terminal||spawnClip||reactionClip||contactClip||action||row.hit),spawnClip?.8:0);a.canonicalAction=key;a.deathTime=0;if(action&&!terminal&&!spawnClip&&!reactionClip&&!contactClip){a.startGlow=.18;a.startGlowPhase=action.phase;}}
+   if(row.downed&&terminal){const sample=downedPresentationSample(row,a.clips.get(terminal)?.duration);a.presentationActionId=null;a.action.paused=true;a.action.setEffectiveWeight?.(1);a.action.time=sample.time;a.mixer.update(0);a.object.updateMatrixWorld(true);}
    else if(spawnClip&&!terminal){a.presentationActionId=null;a.action.paused=false;a.mixer.update(dt);}
    else if(contactClip&&!terminal){const held=a.contactHold;a.action.paused=true;a.action.time=Math.min(a.clips.get(contactClip).duration-.000001,held.progress*a.clips.get(contactClip).duration);a.mixer.update(0);}
    else if(reactionClip&&!terminal){a.action.paused=false;a.mixer.update(dt);}
@@ -746,7 +747,7 @@ function createDrivenPort(){
     if(row.moving&&!terminal){a.stepClock-=dt;if(a.stepClock<=0){a.stepClock=.34;sound.footstep?.({pan:spatialPan(a.pos),rate:a.kind==='hero'?1.04:.94});}}else a.stepClock=0;
    }
    applyFatigue(a,row,dt);a.combatReadyWeight+=(Number(Boolean(row.combatReady))-a.combatReadyWeight)*(1-Math.exp(-Math.max(0,dt)*10));const readyFrame=combatStanceRootFrame({active:a.combatReadyWeight>.001,held:a.combatReadyWeight,attack:Boolean(row.action?.motion?.offense),progress:row.action?.progress});a.posture.position.y-=readyFrame.drop;a.posture.rotation.x-=readyFrame.pitch;applyTechniquePresentationPose(a,row);applyImpactRecoil(a);applyParryRecoil(a);if(!terminal)updateCombatReadyWeapon(a,row,dt);sampleWeaponTrace(a,dt);
-   if(terminal)a.deathTime+=dt;
+   if(terminalState.removalClock)a.deathTime+=dt;else a.deathTime=0;
    a.flash=Math.max(0,a.flash-dt);a.startGlow=Math.max(0,a.startGlow-dt);const startColor=startGlowColors[a.startGlowPhase]||startGlowColors.other;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(hitFlashColor);mat.emissiveIntensity=1.7;}else if(a.startGlow>0){mat.emissive.copy(startColor);mat.emissiveIntensity=Math.max(power,1.5*a.startGlow/.18);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
   },
   sampleBodyContacts(){
@@ -775,15 +776,17 @@ function createDrivenPort(){
    if(!['player-hit','enemy-hit','finisher'].includes(event.type))return;
    const presentation=event.presentation||source?.canonicalRow?.action?.presentation||null,archetype=presentation?.archetype||null,impactSpec=presentation?.sfx?.impact,finisher=event.type==='finisher',impactScale=clamp(Math.max(finisher?1.35:0,Number(presentation?.vfx?.impact?.scale)||1),.5,1.8),secondaryScale=clamp(Math.max(finisher?.45:0,Number(presentation?.vfx?.secondary?.scale)||.24),.08,.8);
    target.flash=finisher?.26:.2;const heavy=event.impact?event.impact.heavy:archetype==='heavy'||finisher||event.counter,impactPoint=point?new V(point.x,point.y,point.z):target.pos.clone().add(new V(0,target.height*.55,0)),pan=spatialPan(impactPoint),reactionClip=['head','leftArm','rightArm'].includes(event.bodyPart)?'Hit_B':'Hit_A',color=techniqueFxColor(archetype||'flow'),phaseReaction=phase==='kyu'?1.18:phase==='jo'?.86:1.04,recoilStrength=(finisher?1.48:event.counter?1.32:heavy?1.05:.72)*phaseReaction,recoilDuration=finisher?.56:event.counter?.48:heavy?.42:.31,recoilSide=event.bodyPart==='leftArm'||event.bodyPart==='leftLeg'?-1:event.bodyPart==='rightArm'||event.bodyPart==='rightLeg'?1:0;
-   syncContactPose(source,event.sourceContactProgress??event.choreography?.contactProgress??.5,stop,event.presentation?.clip);holdAuthoredContactPose(target,reactionClip,.1,stop);
-   target.reaction={clip:reactionClip,remaining:finisher?.52:event.counter?.44:heavy?.4:.28,serial:++target.reactionSerial};target.impactRecoil={remaining:recoilDuration,duration:recoilDuration,strength:event.impact?.reactionSeverity??recoilStrength,side:recoilSide,direction:event.impact?.direction,bodyPart:event.bodyPart||'torso',phase,heavy:Boolean(heavy||event.impact?.deepHit)};
+   const preserveDownedPose=Boolean(target?.canonicalRow?.downed);
+   syncContactPose(source,event.sourceContactProgress??event.choreography?.contactProgress??.5,stop,event.presentation?.clip);
+   if(preserveDownedPose){target.contactHold=null;target.reaction=null;target.impactRecoil=null;}
+   else{holdAuthoredContactPose(target,reactionClip,.1,stop);target.reaction={clip:reactionClip,remaining:finisher?.52:event.counter?.44:heavy?.4:.28,serial:++target.reactionSerial};target.impactRecoil={remaining:recoilDuration,duration:recoilDuration,strength:event.impact?.reactionSeverity??recoilStrength,side:recoilSide,direction:event.impact?.direction,bodyPart:event.bodyPart||'torso',phase,heavy:Boolean(heavy||event.impact?.deepHit)};}
    if(source&&event.impact)source.impactRecoil={remaining:.16,duration:.16,strength:event.sourceKick*.62,direction:{x:-event.direction.x,z:-event.direction.z},side:0,bodyPart:'rightArm',phase,heavy:false};
    const impactEffect=presentation?.vfx?.impact,secondaryEffect=presentation?.vfx?.secondary,vfxDirection=event.direction||{x:target.pos.x-source.pos.x,z:target.pos.z-source.pos.z};
    if(impactEffect?.effect)techniqueVfx.spawn(impactEffect.effect,{stage:'impact',origin:impactPoint,color,scale:impactScale,archetype:archetype||'flow',finisher,direction:vfxDirection,trajectory:event.choreography?.bladeTrajectory});
    if(secondaryEffect?.effect)techniqueVfx.spawn(secondaryEffect.effect,{stage:'secondary',origin:impactPoint,color:'#f3e7d2',scale:secondaryScale,archetype:archetype||'flow',finisher,direction:vfxDirection});
    record('technique-vfx-impact',{techniqueId:event.techniqueId||null,impactEffect:impactEffect?.effect||null,secondaryEffect:secondaryEffect?.effect||null,archetype:archetype||'flow',finisher});
    const material=target?.canonicalRow?.equipment?.armor==='heavy'?'armor':'flesh';sound.impact?.({pan,heavy,counter:Boolean(event.counter),gain:Number(impactSpec?.gain)||null,rate:Number(impactSpec?.pitch)||1,material,phase});game.hitstop=Math.max(game.hitstop,stop);game.cameraPunch=Math.max(game.cameraPunch,finisher?.055:event.counter?.042:heavy?.028:.01);game.shake=Math.max(game.shake,finisher?.008:phase==='kyu'?.006:heavy?.004:0);kickCamera(source,target,finisher?.27:phase==='kyu'?.22:heavy?.17:.07);
-   record('canonical-impact',{stageIndex:event.stageIndex,contactTime:event.time,hitstop:stop,attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,bodyPart:event.bodyPart,finisher,counter:Boolean(event.counter),reactionClip,recoilDuration,recoilStrength,techniqueId:event.techniqueId||null,archetype,effect:presentation?.vfx?.impact?.effect||null,soundRole:impactSpec?.role||null});
+   record('canonical-impact',{stageIndex:event.stageIndex,contactTime:event.time,hitstop:stop,attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,bodyPart:event.bodyPart,finisher,counter:Boolean(event.counter),reactionClip,preserveDownedPose,recoilDuration,recoilStrength,techniqueId:event.techniqueId||null,archetype,effect:presentation?.vfx?.impact?.effect||null,soundRole:impactSpec?.role||null});
   },
   environment(obstacles,shots){
    const ids=new Set(obstacles.map(row=>row.id));for(const [id,node] of coverNodes)if(!ids.has(id)){scene.remove(node);coverNodes.delete(id);}
@@ -825,12 +828,16 @@ function createDrivenPort(){
   cameraVector(axis){const forward=new V();camera.getWorldDirection(forward);forward.y=0;forward.normalize();return new V().crossVectors(forward,new V(0,1,0)).multiplyScalar(axis.x).addScaledVector(forward,-axis.y).normalize();},
   anchor(){if(!hero)return null;return project(hero.pos.clone().add(new V(0,hero.height,0)));},
   footAnchor(){if(!selfBinding)return null;return project(selfBinding.pos.clone().add(new V(0,.03,0)));},
-  metrics:()=>({...metrics(),...driver.metrics(),authority:'rinne-domain',cameraProjection:camera?.isPerspectiveCamera?'perspective':'orthographic',sharedCamera:Boolean(cameraPresentation)}),snapshot:()=>lastFrame,
+  metrics:()=>({...metrics(),...driver.metrics(),authority:'rinne-domain',cameraProjection:camera?.isPerspectiveCamera?'perspective':'orthographic',sharedCamera:Boolean(cameraPresentation)}),snapshot:()=>lastFrame,inspectActors:()=>inspectActors(),
   clear:()=>driver.reset(),dispose(){portraitTarget?.dispose();portraitTarget=null;portraitPixels=null;driver.dispose();destroy();}});
 }
 if(presentationPort)presentationPort.install(createDrivenPort());
 
-function inspectActors(){return actors.map(a=>({kind:a.kind,hp:a.hp,dead:a.dead,deathTime:a.deathTime,position:a.pos.toArray(),animation:a.actionName,animationTime:a.action?.time||0,attack:a.attack?.time||0,fatigue:a.fatiguePresentation}));}
+function renderedPoseEvidence(a){
+ let head=null,hips=null;a.root.traverse(node=>{if(!node.isBone)return;const name=String(node.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');if(!head&&/head/.test(name)&&!/headtop|headend/.test(name))head=node;if(!hips&&/hips|pelvis/.test(name))hips=node;});
+ if(!head||!hips)return null;a.object.updateMatrixWorld(true);const hp=head.getWorldPosition(new V()),pp=hips.getWorldPosition(new V());return{headHipVertical:Number(Math.abs(hp.y-pp.y).toFixed(4)),headHipHorizontal:Number(Math.hypot(hp.x-pp.x,hp.z-pp.z).toFixed(4))};
+}
+function inspectActors(){return actors.map(a=>({kind:a.kind,hp:a.hp,dead:a.dead,downed:Boolean(a.downed),deathTime:a.deathTime,position:a.pos.toArray(),animation:a.actionName,animationTime:a.action?.time||0,pose:renderedPoseEvidence(a),attack:a.attack?.time||0,fatigue:a.fatiguePresentation}));}
 function inspectBattle(bootEpoch){
  if(!game.ready||disposed)return null;
  return createBattleObservation({authority:rules?'johakyu-review':'native-demo',battleId:`battle2:${bootEpoch}:${rounds}`,timeSeconds:game.time,status:game.phase,

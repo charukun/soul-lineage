@@ -2,11 +2,13 @@ import {createDrivenBattleRuntime} from '@soul/johakyu-presentation';
 import {createJohakyuP7ReviewScenario} from './johakyu-p7-review.js';
 import {normalizeBattle2Loadout} from './battle2-loadout.js';
 
+const PHASES=new Set(['jo','ha','kyu']);
+
 export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,cameraPresentation=null,movementInput=null,onMeta=()=>{},evidence=false,fixture=null,mode='duel',loadout=null,settings=null,learnedTechniqueIds=[]}){
   const driven=createDrivenBattleRuntime({world,effects,stage,sound,notify,signal,cameraPresentation});
   let reviewLoadout=normalizeBattle2Loadout(loadout||{}),reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'},reviewLearned=[...new Set(Array.isArray(learnedTechniqueIds)?learnedTechniqueIds:[])];
   const scenarioOptions=()=>({mode,loadout:reviewLoadout,settings:reviewSettings,learnedTechniqueIds:reviewLearned});
-  const makeScenario=()=>evidence&&fixture==='clash'?createJohakyuP7ReviewScenario({...scenarioOptions(),fixture:'clash',duelGap:1.7,heroStartPhase:'ha'}):evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({...scenarioOptions(),duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5}):createJohakyuP7ReviewScenario({...scenarioOptions(),comboStyle:'composed',duelGap:mode==='duel'?2.18:3.15,enemyLeadSeconds:mode==='duel'?.16:0});
+  const makeScenario=()=>evidence&&fixture==='clash'?createJohakyuP7ReviewScenario({...scenarioOptions(),fixture:'clash',duelGap:1.7,heroStartPhase:'ha'}):evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({...scenarioOptions(),duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5}):evidence&&fixture==='downed'?createJohakyuP7ReviewScenario({...scenarioOptions(),duelGap:1.7,actorOverrides:{hero:{canAttack:false,readyDelay:0},'enemy-a':{hp:0,downed:true,incapacitated:true,spawnSeconds:0,readyDelay:0}}}):createJohakyuP7ReviewScenario({...scenarioOptions(),comboStyle:'composed',duelGap:mode==='duel'?2.18:3.15,enemyLeadSeconds:mode==='duel'?.16:0});
   let scenario=makeScenario();
   let disposed=false,ready=false,started=false,raf=0,previous=0,current=null,trace=[],lastResumes=0,lastEncounter=1,physicalContacts=[];
   function render(dt){
@@ -47,7 +49,7 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
     trace.push({type:'settings-reset',settings:{...reviewSettings}});if(trace.length>100)trace=trace.slice(-100);
     if(ready&&!disposed){driven.present(current.frame,0,[]);onMeta(current.meta);}return {...reviewSettings};
   }
-  function learnTechnique(id){const raw=String(id||'');if(!raw||reviewLearned.includes(raw))return false;reviewLearned=[...reviewLearned,raw];trace.push({type:'technique-learned',techniqueId:raw});if(trace.length>100)trace=trace.slice(-100);return true;}
+  function learnTechnique(id,phase=null){const raw=String(id||'');if(!raw)return false;let changed=false;if(!reviewLearned.includes(raw)){reviewLearned=[...reviewLearned,raw];changed=true;}if(PHASES.has(phase)){const next=normalizeBattle2Loadout({...reviewLoadout,technique:{...reviewLoadout.technique,[phase]:raw}});if(next.technique[phase]===raw){reviewLoadout=next;changed=true;}}if(changed){trace.push({type:'technique-learned',techniqueId:raw,phase:PHASES.has(phase)?phase:null,equipped:PHASES.has(phase)});if(trace.length>100)trace=trace.slice(-100);}return changed;}
 
   function advance(seconds){
     if(disposed||!ready||!started)throw new Error('Start the battle before evidence advancement');
@@ -59,6 +61,7 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
   function destroy(){if(disposed)return;disposed=true;ready=false;started=false;if(raf)cancelAnimationFrame(raf);driven.dispose();}
   return Object.freeze({prepare,start,resize,configureLoadout,configureSettings,learnTechnique,metrics,advance,destroy,fail:destroy,
     inspectActors:()=>current?.frame.actors??scenario.inspect().frame.actors,
+    inspectRenderedActors:()=>driven.inspectActors?.()??[],
     inspectBattle:()=>current?.frame??scenario.inspect().frame,
     footAnchor:()=>driven.footAnchor?.()??null,
     renderPlayerPortrait:canvas=>driven.renderSelfPortrait?.(canvas)??false,

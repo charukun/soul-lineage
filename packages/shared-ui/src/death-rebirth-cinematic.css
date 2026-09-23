@@ -1,0 +1,493 @@
+.soul-death-cinematic{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  overflow:hidden;
+  pointer-events:none;
+  isolation:isolate;
+  contain:layout paint style;
+  transform:translateZ(0);
+  color:#f0e6d0;
+  background:transparent;
+  font-family:"Cormorant Garamond","Times New Roman","Yu Mincho","Hiragino Mincho ProN",serif;
+}
+.soul-death-cinematic[data-scope="stage"]{position:absolute;z-index:80}
+.soul-death-cinematic[hidden]{display:none}
+.soul-death-cinematic__veil,
+.soul-death-cinematic__fall,
+.soul-death-cinematic__death-word,
+.soul-death-cinematic__watch-scene,
+.soul-death-cinematic__down-copy,
+.soul-death-cinematic__rebirth-flare{position:absolute;inset:0}
+.soul-death-cinematic__veil{
+  z-index:1;
+  opacity:0;
+  background:
+    radial-gradient(ellipse 74% 60% at 50% 47%,rgba(5,5,7,0) 0 22%,rgba(2,2,3,.18) 48%,rgba(0,0,0,.9) 100%);
+  will-change:opacity;
+  transition:opacity .55s cubic-bezier(.2,.72,.18,1);
+}
+.soul-death-cinematic__veil::before,
+.soul-death-cinematic__veil::after{
+  content:"";
+  position:absolute;
+  left:-5%;
+  width:110%;
+  height:57%;
+  background:#000;
+  box-shadow:0 0 6vmin rgba(0,0,0,.92);
+  will-change:transform;
+  transition:transform 1.15s cubic-bezier(.16,.76,.2,1);
+}
+.soul-death-cinematic__veil::before{top:-2%;transform:translate3d(0,-104%,0)}
+.soul-death-cinematic__veil::after{bottom:-2%;transform:translate3d(0,104%,0)}
+.soul-death-cinematic__fall{
+  z-index:2;
+  opacity:0;
+  transform:translate3d(0,-1.4vh,0) scale3d(1.08,1.08,1);
+  background:
+    radial-gradient(ellipse 48% 24% at 50% 48%,rgba(143,112,72,.08),transparent 66%),
+    linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.38));
+  will-change:transform,opacity;
+}
+.soul-death-cinematic__down-copy{
+  z-index:3;
+  display:grid;
+  place-items:center;
+  opacity:0;
+  transform:translate3d(0,3.2vh,0);
+  will-change:transform,opacity;
+}
+.soul-death-cinematic__down-line{
+  margin-top:37vh;
+  padding:.35rem 1rem;
+  font-size:clamp(.64rem,1.55vw,.88rem);
+  letter-spacing:.36em;
+  text-indent:.36em;
+  color:rgba(235,226,208,.54);
+  text-shadow:0 2px 14px #000;
+}
+.soul-death-cinematic[data-phase="down"] .soul-death-cinematic__veil{opacity:1}
+.soul-death-cinematic[data-phase="down"] .soul-death-cinematic__veil::before{transform:translate3d(0,-28%,0)}
+.soul-death-cinematic[data-phase="down"] .soul-death-cinematic__veil::after{transform:translate3d(0,28%,0)}
+.soul-death-cinematic[data-phase="down"] .soul-death-cinematic__fall{
+  animation:soul-death-fall 1.8s cubic-bezier(.18,.68,.16,1) both;
+}
+.soul-death-cinematic[data-phase="down"] .soul-death-cinematic__down-copy{
+  animation:soul-down-copy 1.45s cubic-bezier(.2,.72,.18,1) both;
+}
+@keyframes soul-death-fall{
+  0%{opacity:0;transform:translate3d(0,-2.4vh,0) scale3d(1.08,1.08,1)}
+  40%{opacity:.75}
+  100%{opacity:1;transform:translate3d(0,2.4vh,0) scale3d(1.015,1.015,1)}
+}
+@keyframes soul-down-copy{
+  0%{opacity:0;transform:translate3d(0,3.2vh,0)}
+  28%{opacity:.86}
+  100%{opacity:.48;transform:translate3d(0,.3vh,0)}
+}
+.soul-death-cinematic[data-phase="cut"] .soul-death-cinematic__veil,
+.soul-death-cinematic[data-phase="dead"] .soul-death-cinematic__veil,
+.soul-death-cinematic[data-phase="void"] .soul-death-cinematic__veil,
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__veil,
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__veil{opacity:1;background:#000;transition-duration:.055s}
+.soul-death-cinematic[data-phase="cut"] .soul-death-cinematic__veil::before,
+.soul-death-cinematic[data-phase="cut"] .soul-death-cinematic__veil::after,
+.soul-death-cinematic[data-phase="dead"] .soul-death-cinematic__veil::before,
+.soul-death-cinematic[data-phase="dead"] .soul-death-cinematic__veil::after,
+.soul-death-cinematic[data-phase="void"] .soul-death-cinematic__veil::before,
+.soul-death-cinematic[data-phase="void"] .soul-death-cinematic__veil::after,
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__veil::before,
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__veil::after,
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__veil::before,
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__veil::after{
+  transform:translate3d(0,0,0);
+  transition-duration:.055s;
+  box-shadow:none;
+}
+.soul-death-cinematic[data-phase="cut"] .soul-death-cinematic__fall{
+  opacity:0;
+  transform:translate3d(0,6vh,0) scale3d(1.01,.985,1);
+  transition:opacity .04s linear,transform .06s linear;
+}
+.soul-death-cinematic[data-phase="recover"] .soul-death-cinematic__veil,
+.soul-death-cinematic[data-phase="release"] .soul-death-cinematic__veil{opacity:0}
+.soul-death-cinematic[data-phase="recover"] .soul-death-cinematic__veil::before{transform:translate3d(0,-104%,0)}
+.soul-death-cinematic[data-phase="recover"] .soul-death-cinematic__veil::after{transform:translate3d(0,104%,0)}
+.soul-death-cinematic[data-phase="recover"] .soul-death-cinematic__down-copy{
+  animation:soul-recover-copy .52s ease both;
+}
+@keyframes soul-recover-copy{
+  from{opacity:.45;transform:translate3d(0,0,0)}
+  to{opacity:0;transform:translate3d(0,-1vh,0)}
+}
+.soul-death-cinematic__death-word{
+  z-index:4;
+  display:grid;
+  place-content:center;
+  justify-items:center;
+  gap:.36rem;
+  opacity:0;
+  text-align:center;
+  transform:translate3d(0,.8vh,0) scale3d(1.025,1.025,1);
+  will-change:transform,opacity;
+}
+.soul-death-cinematic__death-word strong{
+  position:relative;
+  font-weight:400;
+  font-size:clamp(3.3rem,12vw,7.4rem);
+  line-height:.82;
+  letter-spacing:.19em;
+  color:#b9a486;
+  text-indent:.19em;
+  text-shadow:0 0 1px rgba(255,255,255,.42),0 0 30px rgba(129,92,50,.17);
+}
+.soul-death-cinematic__death-word strong::before,
+.soul-death-cinematic__death-word strong::after{
+  content:attr(data-text);
+  position:absolute;
+  inset:0;
+  opacity:0;
+  color:#d1bea0;
+  pointer-events:none;
+}
+.soul-death-cinematic__kicker{
+  font-size:clamp(.7rem,1.8vw,.95rem);
+  letter-spacing:.58em;
+  text-indent:.58em;
+  color:rgba(219,201,174,.7);
+}
+.soul-death-cinematic__caption{
+  margin-top:.72rem;
+  font-size:clamp(.64rem,1.7vw,.88rem);
+  letter-spacing:.25em;
+  text-indent:.25em;
+  color:rgba(221,211,193,.42);
+}
+.soul-death-cinematic[data-phase="dead"] .soul-death-cinematic__death-word{
+  animation:soul-dead-arrive 1.12s cubic-bezier(.18,.78,.16,1) both;
+}
+.soul-death-cinematic[data-phase="dead"] .soul-death-cinematic__death-word strong::before{
+  animation:soul-dead-echo-left .56s ease-out both;
+}
+.soul-death-cinematic[data-phase="dead"] .soul-death-cinematic__death-word strong::after{
+  animation:soul-dead-echo-right .64s ease-out both;
+}
+@keyframes soul-dead-arrive{
+  0%{opacity:0;transform:translate3d(0,1.1vh,0) scale3d(1.055,1.055,1)}
+  14%{opacity:1}
+  34%{transform:translate3d(0,0,0) scale3d(1,1,1)}
+  76%{opacity:.94}
+  100%{opacity:0;transform:translate3d(0,-.25vh,0) scale3d(.995,.995,1)}
+}
+@keyframes soul-dead-echo-left{
+  0%{opacity:.34;transform:translate3d(-13px,0,0)}
+  100%{opacity:0;transform:translate3d(-2px,0,0)}
+}
+@keyframes soul-dead-echo-right{
+  0%{opacity:.25;transform:translate3d(11px,0,0)}
+  100%{opacity:0;transform:translate3d(2px,0,0)}
+}
+.soul-death-cinematic__watch-scene{
+  z-index:5;
+  display:grid;
+  place-content:center;
+  justify-items:center;
+  opacity:0;
+  perspective:900px;
+  transform:translate3d(0,0,0);
+  will-change:opacity;
+}
+.soul-death-cinematic__watch-rig{
+  position:relative;
+  display:grid;
+  justify-items:center;
+  transform-origin:50% 52%;
+  transform:translate3d(0,6.5vh,0) rotateX(11deg) rotateZ(-5deg) scale3d(.72,.72,1);
+  opacity:0;
+  will-change:transform,opacity;
+  backface-visibility:hidden;
+}
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__watch-scene,
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__watch-scene{opacity:1}
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__watch-rig{
+  animation:soul-watch-arrive 2.15s cubic-bezier(.12,.82,.18,1) both,soul-watch-breathe 3.8s 2.15s ease-in-out infinite alternate;
+}
+@keyframes soul-watch-arrive{
+  0%{opacity:0;transform:translate3d(0,7vh,0) rotateX(12deg) rotateZ(-6deg) scale3d(.68,.68,1)}
+  28%{opacity:.76}
+  72%{opacity:1;transform:translate3d(0,-.3vh,0) rotateX(1.5deg) rotateZ(.55deg) scale3d(1.015,1.015,1)}
+  100%{opacity:1;transform:translate3d(0,0,0) rotateX(0) rotateZ(0) scale3d(1,1,1)}
+}
+@keyframes soul-watch-breathe{
+  from{transform:translate3d(0,0,0) rotateZ(-.22deg) scale3d(1,1,1)}
+  to{transform:translate3d(0,-.55vh,0) rotateZ(.24deg) scale3d(1.008,1.008,1)}
+}
+.soul-death-cinematic__chain{
+  width:clamp(128px,35vmin,260px);
+  height:clamp(66px,16vmin,118px);
+  margin-bottom:-1.7rem;
+  border-top:2px solid rgba(196,155,88,.48);
+  border-radius:50%;
+  transform-origin:72% 48%;
+  box-shadow:inset 0 1px rgba(255,235,183,.18);
+}
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__chain{
+  animation:soul-chain-sway 3.2s .45s ease-in-out infinite alternate;
+}
+@keyframes soul-chain-sway{
+  from{transform:translate3d(-1px,0,0) rotateZ(-13.4deg)}
+  to{transform:translate3d(2px,-1px,0) rotateZ(-10.8deg)}
+}
+.soul-death-cinematic__watch{
+  position:relative;
+  width:clamp(158px,40vmin,292px);
+  aspect-ratio:1;
+  border-radius:50%;
+  padding:clamp(9px,2.3vmin,17px);
+  background:
+    linear-gradient(132deg,rgba(255,244,205,.9) 0%,#8c6429 8%,#e7c475 21%,#64451d 43%,#f1d58d 59%,#866027 79%,#ddb96d 95%);
+  box-shadow:
+    0 3.2vmin 8vmin rgba(0,0,0,.82),
+    0 0 0 1px rgba(255,236,181,.48),
+    inset 0 0 0 2px rgba(50,30,12,.72),
+    inset 0 0 1.6vmin rgba(255,244,205,.62);
+  transform:translateZ(0);
+  backface-visibility:hidden;
+}
+.soul-death-cinematic__watch::before{
+  content:"";
+  position:absolute;
+  inset:4.2%;
+  border-radius:50%;
+  border:1px solid rgba(255,237,184,.5);
+  box-shadow:inset 0 0 0 2px rgba(34,23,12,.58),0 0 1.2vmin rgba(203,160,86,.16);
+  pointer-events:none;
+}
+.soul-death-cinematic__sheen{
+  position:absolute;
+  z-index:7;
+  inset:5%;
+  overflow:hidden;
+  border-radius:50%;
+  pointer-events:none;
+}
+.soul-death-cinematic__sheen::before{
+  content:"";
+  position:absolute;
+  width:35%;
+  height:125%;
+  top:-12%;
+  left:-45%;
+  transform:rotate(19deg);
+  background:linear-gradient(90deg,transparent,rgba(255,248,218,.2),rgba(255,255,255,.32),rgba(255,248,218,.08),transparent);
+}
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__sheen::before{
+  animation:soul-watch-sheen 2.35s .55s cubic-bezier(.22,.61,.36,1) both;
+}
+@keyframes soul-watch-sheen{
+  from{transform:translate3d(0,0,0) rotate(19deg)}
+  to{transform:translate3d(470%,0,0) rotate(19deg)}
+}
+.soul-death-cinematic__crown{
+  position:absolute;
+  left:50%;
+  top:-8.4%;
+  width:18%;
+  height:10%;
+  transform:translate3d(-50%,0,0);
+  border-radius:45% 45% 25% 25%;
+  background:linear-gradient(90deg,#725020,#e8c67d 45%,#8c642a 78%,#d9b36b);
+  box-shadow:0 -1px 0 rgba(255,239,191,.45),inset 0 0 0 1px rgba(58,38,16,.7);
+}
+.soul-death-cinematic__dial{
+  position:relative;
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 49% 46%,rgba(255,255,255,.52) 0 2%,transparent 2.4%),
+    repeating-conic-gradient(from -1deg,rgba(89,67,39,.42) 0 1deg,transparent 1deg 6deg),
+    radial-gradient(circle,#f0e5cb 0 58%,#c9b48e 74%,#8d7149 100%);
+  box-shadow:inset 0 0 2.5vmin rgba(49,34,18,.68),inset 0 0 0 1px rgba(255,255,255,.45);
+}
+.soul-death-cinematic__dial::before{
+  content:"";
+  position:absolute;
+  inset:12%;
+  border-radius:50%;
+  border:1px solid rgba(91,65,32,.3);
+  box-shadow:0 0 0 1px rgba(255,255,255,.26);
+}
+.soul-death-cinematic__numeral{
+  position:absolute;
+  z-index:2;
+  font-size:clamp(.56rem,2.6vmin,1rem);
+  font-weight:600;
+  letter-spacing:.04em;
+  color:#2b2117;
+  text-shadow:0 1px rgba(255,255,255,.55);
+}
+.soul-death-cinematic__numeral--12{top:9%;left:50%;transform:translate3d(-50%,0,0)}
+.soul-death-cinematic__numeral--3{right:10%;top:50%;transform:translate3d(0,-50%,0)}
+.soul-death-cinematic__numeral--6{bottom:8%;left:50%;transform:translate3d(-50%,0,0)}
+.soul-death-cinematic__numeral--9{left:10%;top:50%;transform:translate3d(0,-50%,0)}
+.soul-death-cinematic__hand{
+  position:absolute;
+  z-index:4;
+  left:50%;
+  bottom:50%;
+  width:2px;
+  border-radius:999px;
+  transform-origin:50% 100%;
+  background:linear-gradient(#342414,#78562b);
+  box-shadow:0 0 1px rgba(255,255,255,.4);
+  will-change:transform;
+}
+.soul-death-cinematic__hand--hour{height:25%;width:3px;transform:translate3d(-50%,0,0) rotate(42deg)}
+.soul-death-cinematic__hand--minute{height:34%;transform:translate3d(-50%,0,0) rotate(248deg)}
+.soul-death-cinematic__hand--second{height:39%;width:1px;background:#8f291f;transform:translate3d(-50%,0,0) rotate(8deg)}
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__hand--second{
+  animation:soul-watch-second 4s linear infinite;
+}
+@keyframes soul-watch-second{
+  to{transform:translate3d(-50%,0,0) rotate(368deg)}
+}
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__watch-rig{
+  opacity:1;
+  animation:soul-watch-rewind-rig .94s cubic-bezier(.24,.64,.22,1) both;
+}
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__hand--hour{animation:soul-rewind-hour .94s cubic-bezier(.16,.7,.18,1) both}
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__hand--minute{animation:soul-rewind-minute .94s cubic-bezier(.16,.7,.18,1) both}
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__hand--second{animation:soul-rewind-second .94s cubic-bezier(.16,.7,.18,1) both}
+@keyframes soul-watch-rewind-rig{
+  0%{transform:translate3d(0,0,0) rotateZ(0) scale3d(1,1,1)}
+  64%{transform:translate3d(0,-.6vh,0) rotateZ(1.15deg) scale3d(1.045,1.045,1)}
+  100%{transform:translate3d(0,0,0) rotateZ(0) scale3d(1.075,1.075,1)}
+}
+@keyframes soul-rewind-hour{to{transform:translate3d(-50%,0,0) rotate(-318deg)}}
+@keyframes soul-rewind-minute{to{transform:translate3d(-50%,0,0) rotate(-1192deg)}}
+@keyframes soul-rewind-second{to{transform:translate3d(-50%,0,0) rotate(-2512deg)}}
+.soul-death-cinematic__pin{
+  position:absolute;
+  z-index:6;
+  left:50%;
+  top:50%;
+  width:4.8%;
+  aspect-ratio:1;
+  border-radius:50%;
+  transform:translate3d(-50%,-50%,0);
+  background:radial-gradient(circle at 38% 34%,#f9df9b,#8d642a 64%,#3a2814);
+  box-shadow:0 0 0 1px rgba(59,39,16,.72);
+}
+.soul-death-cinematic__watch-caption{
+  margin-top:clamp(1.25rem,4vmin,2.3rem);
+  font-size:clamp(.68rem,2vw,.98rem);
+  letter-spacing:.42em;
+  text-indent:.42em;
+  color:rgba(224,204,164,.7);
+  text-shadow:0 2px 15px #000;
+  opacity:0;
+  transform:translate3d(0,.8vh,0);
+  will-change:transform,opacity;
+}
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__watch-caption{
+  animation:soul-watch-caption 1.3s 1.05s ease both;
+}
+@keyframes soul-watch-caption{
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+.soul-death-cinematic__motes,
+.soul-death-cinematic__halo{position:absolute;inset:0;pointer-events:none}
+.soul-death-cinematic__motes i{
+  position:absolute;
+  left:var(--mote-x);
+  top:var(--mote-y);
+  width:3px;
+  height:3px;
+  border-radius:50%;
+  opacity:0;
+  background:#d9b76d;
+  box-shadow:0 0 8px rgba(226,193,121,.44);
+  transform:translate3d(0,12px,0) scale(var(--mote-scale));
+  will-change:transform,opacity;
+}
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__motes i{
+  animation:soul-mote 2.8s var(--mote-delay) ease-in-out infinite;
+}
+@keyframes soul-mote{
+  0%,100%{opacity:0;transform:translate3d(0,12px,0) scale(var(--mote-scale))}
+  36%{opacity:.38}
+  68%{opacity:.12;transform:translate3d(var(--mote-drift),-24px,0) scale(calc(var(--mote-scale) * 1.08))}
+}
+.soul-death-cinematic__halo i{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:clamp(174px,44vmin,324px);
+  aspect-ratio:1;
+  border:1px solid rgba(205,169,96,.24);
+  border-radius:50%;
+  opacity:0;
+  transform:translate3d(-50%,-50%,0) scale3d(.72,.72,1);
+}
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__halo i:nth-child(1){animation:soul-halo-breathe 2.7s .35s ease-in-out infinite alternate}
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__halo i:nth-child(2){animation:soul-halo-breathe 3.2s .75s ease-in-out infinite alternate-reverse}
+.soul-death-cinematic[data-phase="watch"] .soul-death-cinematic__halo i:nth-child(3){animation:soul-halo-breathe 3.6s 1.1s ease-in-out infinite alternate}
+@keyframes soul-halo-breathe{
+  from{opacity:.05;transform:translate3d(-50%,-50%,0) scale3d(.86,.86,1)}
+  to{opacity:.23;transform:translate3d(-50%,-50%,0) scale3d(1.16,1.16,1)}
+}
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__halo i{
+  animation:soul-halo-rewind .94s ease-out both!important;
+}
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__halo i:nth-child(2){animation-delay:.08s!important}
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__halo i:nth-child(3){animation-delay:.16s!important}
+@keyframes soul-halo-rewind{
+  0%{opacity:.08;transform:translate3d(-50%,-50%,0) scale3d(.8,.8,1)}
+  45%{opacity:.34}
+  100%{opacity:0;transform:translate3d(-50%,-50%,0) scale3d(2.45,2.45,1)}
+}
+.soul-death-cinematic__rebirth-flare{
+  z-index:6;
+  opacity:0;
+  transform:scale3d(.18,.18,1);
+  background:radial-gradient(circle at 50% 50%,rgba(255,239,187,.72) 0 3%,rgba(206,163,86,.2) 15%,rgba(0,0,0,0) 44%);
+  will-change:transform,opacity;
+}
+.soul-death-cinematic[data-phase="rewind"] .soul-death-cinematic__rebirth-flare{
+  animation:soul-rebirth-charge .94s cubic-bezier(.16,.74,.22,1) both;
+}
+@keyframes soul-rebirth-charge{
+  0%{opacity:0;transform:scale3d(.18,.18,1)}
+  52%{opacity:.16}
+  100%{opacity:.32;transform:scale3d(1.35,1.35,1)}
+}
+.soul-death-cinematic[data-phase="release"] .soul-death-cinematic__watch-scene{
+  opacity:0;
+  transition:opacity .52s ease;
+}
+.soul-death-cinematic[data-phase="release"] .soul-death-cinematic__watch-rig{
+  opacity:0;
+  transform:translate3d(0,-1.2vh,0) rotateZ(.8deg) scale3d(1.34,1.34,1);
+  transition:transform .72s cubic-bezier(.2,.72,.18,1),opacity .52s ease;
+}
+.soul-death-cinematic[data-phase="release"] .soul-death-cinematic__rebirth-flare{
+  animation:soul-rebirth-release .86s cubic-bezier(.14,.72,.2,1) both;
+}
+@keyframes soul-rebirth-release{
+  0%{opacity:.34;transform:scale3d(1.35,1.35,1)}
+  42%{opacity:.48}
+  100%{opacity:0;transform:scale3d(4.2,4.2,1)}
+}
+@media (prefers-reduced-motion:reduce){
+  .soul-death-cinematic *,
+  .soul-death-cinematic *::before,
+  .soul-death-cinematic *::after{
+    animation-duration:.16s!important;
+    animation-delay:0s!important;
+    transition-duration:.16s!important;
+  }
+  .soul-death-cinematic__motes{display:none}
+}

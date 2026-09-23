@@ -1,6 +1,6 @@
 # Battle presentation 2: NOCTURNE baseline
 
-`apps/review/battle2.html` is the native, headless NOCTURNE baseline at the canonical `/battle2` route. It is not an iframe or a second game shell. The existing battle presentation remains separate. New combat rules are deliberately not mixed into this baseline.
+`apps/review/battle2.html` is the native, headless NOCTURNE baseline and the single battle-review surface at the canonical `/battle2` route. It is not an iframe or a second game shell. Legacy `戦闘演出` / `戦闘演出bk` probes were retired; battle review changes belong here and use the shared combat authority.
 
 ## Runtime and assets
 

@@ -5,7 +5,7 @@ import {resolveTechnique} from '@soul/johakyu-battle';
 import {presentBattleFrame,presentBattleEvents} from '@soul/johakyu-presentation/battle-presentation';
 import {battle2TechniqueCatalog,battle2SelectionAllowed} from '../src/nocturne/battle2-technique-catalog.js';
 import {normalizeBattle2Loadout} from '../src/nocturne/battle2-loadout.js';
-function run(options={},seconds=60){const scenario=createJohakyuP7ReviewScenario(options),events=[],frames=[];for(let i=0;i<seconds*60;i++){const result=scenario.step(1/60);events.push(...result.meta.activity);if(i%6===0)frames.push(result.frame);}return{scenario,events,frames};}
+function run(options={},seconds=60){const scenario=createJohakyuP7ReviewScenario({...options,settings:{inspirationRate:'off',...(options.settings||{})}}),events=[],frames=[];for(let i=0;i<seconds*60;i++){const result=scenario.step(1/60);events.push(...result.meta.activity);if(i%6===0)frames.push(result.frame);}return{scenario,events,frames};}
 test('Lab uses the shared authority for duel and multiple enemies with a complete technique/stage loadout',()=>{
  for(const mode of ['duel','oneVsThree']){const s=createJohakyuP7ReviewScenario({mode});assert.equal(s.inspect().frame.authority,'johakyu-battle');assert.equal(s.inspect().frame.actors.length,mode==='duel'?2:4);assert.equal(s.composition.hero.kyu[0].stages.length,3);}
  assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),RangeError);
@@ -18,7 +18,7 @@ test('every supported menu selection resolves the complete shared technique for 
  assert.equal(battle2TechniqueCatalog({weapon:'great'})[0].id,'basic.great');
 });
 test('real exchanges visit all phases, retain identity through contact/presentation and do not deadlock without geometry samples',()=>{
- const {events,frames}=run({actorOverrides:{hero:{hp:800,maxHp:800}}});const starts=events.filter(e=>e.type==='stage-start'&&e.sourceId==='hero'),phases=new Set(starts.map(e=>e.phase));for(const p of ['jo','ha','kyu'])assert.ok(phases.has(p),p);
+ const {events,frames}=run({actorOverrides:{hero:{hp:800,maxHp:800},'enemy-a':{hp:10000,maxHp:10000}}});const starts=events.filter(e=>e.type==='stage-start'&&e.sourceId==='hero'),phases=new Set(starts.map(e=>e.phase));for(const p of ['jo','ha','kyu'])assert.ok(phases.has(p),p);
  const impacts=events.filter(e=>e.impact),seen=new Set();assert.ok(impacts.some(e=>e.type==='player-hit'));
  for(const event of impacts){assert.ok(!seen.has(event.id));seen.add(event.id);assert.ok(event.contactDistance<=event.contactReach);assert.equal(event.stageIndex,event.impact.stageIndex);assert.equal(event.techniqueId,event.impact.techniqueId);const p=presentBattleEvents([event])[0].presentation;assert.equal(p.techniqueId,event.techniqueId);assert.equal(p.stageIndex,event.stageIndex);}
  for(const frame of frames){const shown=presentBattleFrame(frame);for(const actor of shown.actors)if(actor.action){assert.equal(actor.action.presentation.techniqueId,actor.action.techniqueId);assert.equal(actor.action.presentation.stageIndex,actor.action.stageIndex);}}
@@ -64,4 +64,15 @@ test('enemy 葬焉 waits for full knockdown and recovery does not interrupt it',
  const scenario=createJohakyuP7ReviewScenario({actorOverrides:{hero:{hp:0,downed:true,incapacitated:true},'enemy-a':{readyDelay:0,spawnSeconds:0}}});let startAt=null,completeAt=null,recoverAt=null;
  for(let i=0;i<720&&recoverAt===null;i++){const result=scenario.step(1/60);for(const row of result.meta.activity){if(row.type==='finisher-start'&&row.sourceId!=='hero'&&row.targetId==='hero')startAt=i/60;if(row.type==='finisher-complete'&&row.sourceId!=='hero'&&row.targetId==='hero')completeAt=i/60;if(row.type==='hero-recovered')recoverAt=i/60;}}
  assert.ok(startAt!==null&&startAt>=1.5);assert.ok(completeAt!==null);assert.ok(recoverAt!==null&&recoverAt>=completeAt);
+});
+
+test('battle2 rescues inspiration into the current phase, first-casts it immediately, and keeps it equipped',()=>{
+ const scenario=createJohakyuP7ReviewScenario({settings:{inspirationRate:'high'},actorOverrides:{hero:{hp:900,maxHp:900}}});let learned=null,started=null;
+ for(let i=0;i<60*90&&(!learned||!started);i++){
+  const result=scenario.step(1/60);
+  learned||=result.meta.activity.find(row=>row.type==='inspiration'&&row.actorId==='hero');
+  if(learned)started||=result.meta.activity.find(row=>row.type==='inspiration-start'&&row.sourceId==='hero'&&row.techniqueId===learned.techniqueId);
+ }
+ assert.ok(learned);assert.equal(learned.equipped,true);assert.equal(learned.firstCast,true);assert.ok(['jo','ha','kyu'].includes(learned.phase));
+ assert.ok(started);assert.equal(started.phase,learned.phase);assert.equal(scenario.loadout.technique[learned.phase],learned.techniqueId);assert.ok(scenario.learnedTechniqueIds.includes(learned.techniqueId));
 });

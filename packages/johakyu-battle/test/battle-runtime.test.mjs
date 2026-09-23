@@ -108,6 +108,12 @@ test('enemy finisher waits for full knockdown and only one enemy claims the exec
  const starts=events.filter(e=>e.type==='finisher-start'&&e.targetId==='hero'),contact=events.find(e=>e.type==='finisher'&&e.targetId==='hero'),complete=events.find(e=>e.type==='finisher-complete'&&e.targetId==='hero');
  assert.equal(starts.length,1,'a downed actor must have one finisher owner');assert.ok(starts[0].time>=1.85);assert.ok(contact&&complete);assert.equal(contact.sourceId,starts[0].sourceId);assert.equal(complete.sourceId,starts[0].sourceId);assert.equal(runtime.actor('hero').dead,true);
 });
+test('finisher contact marks the target dead without lifting it out of the downed pose',()=>{
+ const a={...actor('a','party'),self:true,readyDelay:0},b={...actor('b','enemy'),hp:0,downed:true,incapacitated:true};
+ const runtime=createJohakyuBattleRuntime({battleId:'finisher-corpse-pose',actors:[a,b]});let finisher=null,frame=null;
+ for(let i=0;i<360&&!finisher;i++){const result=runtime.step(1/60);finisher=result.events.find(event=>event.type==='finisher');if(finisher)frame=result.frame;}
+ assert.ok(finisher);const target=frame.actors.find(row=>row.id==='b');assert.equal(target.dead,true);assert.equal(target.downed,true,'finisher contact must preserve the lying presentation state');
+});
 test('rendered contact observations cannot alter the authoritative contact or outcome',()=>{
  const make=()=>createJohakyuBattleRuntime({battleId:'observation',actors:[actor('a','party'),actor('b','enemy')]});const a=make(),b=make();
  for(let i=0;i<360;i++){a.step(1/60);b.step(1/60,[{attackId:b.actor('a').action?.id,targetId:'b',point:{x:0,y:10,z:1.7}}]);assert.deepEqual(a.snapshot(),b.snapshot());}

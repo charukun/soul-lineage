@@ -14,14 +14,13 @@ export const REVIEW_ROUTES=Object.freeze({
   camera:new URL('./review-camera',location.href).href,
   hybrid25d:new URL('./review-hybrid-25d',location.href).href,
   battle2:new URL('./battle2',location.href).href,
-  battlebk:new URL('./battlebk',location.href).href,
   rinne:REVIEW_DEV.rinne,
   village:REVIEW_DEV.village,
   demon:REVIEW_DEV.demon,
   pulse:REVIEW_DEV.pulse,
 });
 
-export const REVIEW_WARM_ORDER=Object.freeze(['effects','battle','battle2','motion','characters','equipment','objects','sounds']);
+export const REVIEW_WARM_ORDER=Object.freeze(['effects','battle2','motion','characters','equipment','objects','sounds']);
 
 export const REVIEW_VFX_WARM_ASSETS=Object.freeze([
   'simulator/assets/effekseer/effekseer.js',

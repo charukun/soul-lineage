@@ -32,7 +32,9 @@
     "./johakyu-hud.css": "./src/johakyu-hud.css",
     "./johakyu-hud": "./src/johakyu-hud.js",
     "./body-silhouette": "./src/body-silhouette.js",
-    "./body-silhouette.css": "./src/body-silhouette.css"
+    "./body-silhouette.css": "./src/body-silhouette.css",
+    "./death-rebirth-cinematic": "./src/death-rebirth-cinematic.js",
+    "./death-rebirth-cinematic.css": "./src/death-rebirth-cinematic.css"
   },
   "dependencies": {
     "@soul/audio": "*"

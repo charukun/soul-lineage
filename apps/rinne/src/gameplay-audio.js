@@ -8,6 +8,7 @@ export const unlockRinneAudio=()=>activeAudio?.unlock?.()??false;
 export const selectRinneAudio=()=>activeAudio?.select?.();
 export const confirmRinneAudio=()=>activeAudio?.commit?.();
 export const presentRinneImpactAudio=options=>activeAudio?.impact?.(options);
+export const presentRinneInspirationAudio=()=>activeAudio?.inspiration?.();
 export const presentRinneFootstepAudio=contact=>activeAudio?.step?.(0,contact);
 export const clearRinneImpactAudio=()=>activeAudio?.clearImpact?.();
 export const enterRinneGameplayAudio=()=>activeAudio?.enterGameplay?.();
@@ -165,10 +166,20 @@ export function createRinneAudio(){
     if(energy>.52)tone(46,.095+.045*energy,.012+.02*energy,'sine',.008);
     if(energy>.78)tone(760,.025,.006,'triangle',.002);
   }
+  function inspiration(){
+    if(disposed||backgrounded||pageHidden())return;
+    // A low strike, a metallic onset and a rising resonance leave room for the first cast.
+    music.volume=Math.max(.035,BASE_MUSIC_VOLUME*.38);restoreMusic(980);
+    tone(74,.34,.055,'sine');
+    tone(880,.18,.045,'sawtooth',.065);
+    tone(1320,.52,.028,'triangle',.16);
+    tone(660,.52,.028,'triangle',.38);
+    tone(990,.62,.022,'sine',.53);
+  }
   function select(){tone(520,.045,.014,'triangle');}
   function commit(){tone(390,.055,.018,'triangle');setTimeout(()=>tone(660,.07,.016,'triangle'),48);}
   const controller={
-    unlock,select,commit,ui:select,impact,clearImpact,enterGameplay,prepareTitle,enterLineage,exitLineage,lineage,
+    unlock,select,commit,ui:select,impact,inspiration,clearImpact,enterGameplay,prepareTitle,enterLineage,exitLineage,lineage,
     item(){tone(620,.08,.024,'triangle');setTimeout(()=>tone(840,.08,.018,'triangle'),55);},
     combat:()=>tone(128,.11,.032,'sawtooth'),rest:()=>tone(260,.14,.014),dash:()=>tone(170,.07,.022,'square'),
     step(_now,contact){return footsteps.step(contact);},
