@@ -1,0 +1,16 @@
+{
+  "schema": "rinne.reference-observations/v1",
+  "source": "scripts/character-forge/fixture.py original RINNE-owned pixels",
+  "authoring": "Source-pixel coordinates inspected from the independently drawn fixture; not a general humanoid canon.",
+  "heightMetres": 1.6,
+  "heightStatus": "generated",
+  "crownRow": 18,
+  "feetRow": 334,
+  "headHeightPixels": 77,
+  "views": {
+    "front": {"status":"observed", "anchors":{"crown":[90,18],"chin":[90,94],"eye-left":[76,60],"eye-right":[104,60],"shoulder-left":[66,106],"shoulder-right":[114,106],"belt":[90,177],"feet-left":[72,334],"feet-right":[108,334]}, "face":{"headBounds":[55,18,125,96],"faceBounds":[62,35,118,94],"foreheadRow":43,"eyeRow":60,"cheekRow":70,"noseRow":69,"mouthRow":78,"jawRow":86,"chinRow":94},"noseStatus":"inferred from side; no front nose pixels", "body":{"neck":[81,92,99,110],"torso":[56,106,124,223],"waist":[63,172,117,183],"arms":[[40,112,58,220],[122,112,140,220]],"legs":[[62,217,83,309],[97,217,118,309]],"boots":[[58,300,87,334],[93,300,122,334]]}},
+    "side": {"status":"observed", "anchors":{"crown":[94,18],"forehead":[68,45],"nose-tip":[60,62],"chin":[79,90],"neck":[86,100],"shoulder":[90,111],"hand":[88,207],"heel":[108,326],"toe":[60,326]}, "headBounds":[60,18,120,95],"noseTip":[60,62],"mouth":[67,69],"chin":[78,90],"craniumBack":[120,56],"body":{"torso":[69,103,118,224],"arm":[78,111,98,207],"leg":[75,215,103,308],"boot":[60,302,108,334]}},
+    "back": {"status":"observed", "anchors":{"crown":[90,18],"hairTip":[90,125],"shoulder-left":[66,106],"shoulder-right":[114,106],"emblem-top":[90,128],"emblem-bottom":[90,161],"belt":[90,177],"feet-left":[72,334],"feet-right":[108,334]},"hairBounds":[53,18,129,125],"emblem":[[90,128],[104,148],[90,161],[76,148]]}
+  },
+  "unseen": {"oppositeSide":"mirrored","headInterior":"inferred","mouthCavity":"generated","clothingThickness":"inferred","joints":"inferred between observed body regions"}
+}
