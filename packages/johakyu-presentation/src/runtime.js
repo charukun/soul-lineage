@@ -1,3 +1,5 @@
+import {createRinneWeapon} from '@soul/assets/equipment/three';
+import {presentBattleFrame,presentBattleEvents} from './battle-presentation.js';
 import {observedLocomotion} from './observed-locomotion.js';
 import {createCanonicalPresentationDriver} from './driver.js';
 import {resolveFatiguePresentation} from './fatigue.js';
@@ -30,6 +32,7 @@ let W=Math.max(1,stage.clientWidth),H=Math.max(1,stage.clientHeight),dpr=Math.mi
 const usedModels=new Set(),environmentMeshes=[],cameraTarget=new V(),tmp=new V(),ndc=new THREE.Vector2(),ray=new THREE.Raycaster(),groundPlane=new THREE.Plane(new V(0,1,0),0);
 const fx=effects,ctx=fx.getContext('2d');if(!ctx)throw Error('2D effect canvas unavailable');
 const styles={assault:{name:'猛攻の構え',damage:1.28,rate:.84,defense:1.15},balanced:{name:'均衡の構え',damage:1,rate:1,defense:1},guard:{name:'堅守の構え',damage:.87,rate:1.08,defense:.64}};
+const startGlowColors={jo:new THREE.Color('#ff8f32'),ha:new THREE.Color('#ffa447'),kyu:new THREE.Color('#ffbb63'),other:new THREE.Color('#ff9b4d')},hitFlashColor=new THREE.Color('#ffe7c4');
 
 function resize(){
  W=Math.max(1,stage.clientWidth);H=Math.max(1,stage.clientHeight);dpr=Math.min(devicePixelRatio,game.high?1.5:1);
@@ -189,12 +192,12 @@ function applyParryRecoil(a){
 function applyImpactRecoil(a){
  const recoil=a.impactRecoil;if(!recoil)return;
  const progress=1-clamp(recoil.remaining/recoil.duration,0,1),attack=progress<.14?progress/.14:Math.exp(-(progress-.14)*4.25),settle=1-.12*Math.sin(progress*Math.PI*3.5),weight=attack*settle*recoil.strength,side=recoil.side||0;
- a.posture.position.y-=.045*weight;a.posture.position.z+=.13*weight;
+ a.posture.position.y-=.045*weight;const direction=recoil.direction,yaw=a.object.rotation.y;if(direction){a.posture.position.x+=(direction.x*Math.cos(yaw)-direction.z*Math.sin(yaw))*.1*weight;a.posture.position.z+=(direction.x*Math.sin(yaw)+direction.z*Math.cos(yaw))*.1*weight;}else a.posture.position.z+=.13*weight;
  a.posture.rotation.x+=.105*weight;a.posture.rotation.z+=side*.055*weight;
 }
 
-function actor(kind,position,boss=false){
- const key=kind==='hero'?'adventurers/Knight':kind==='mage'?'skeletons/Skeleton_Mage':kind==='minion'?'skeletons/Skeleton_Minion':'skeletons/Skeleton_Warrior';
+function actor(kind,position,boss=false,modelKey=null){
+ const key=modelKey||(kind==='hero'?'adventurers/Knight':kind==='mage'?'skeletons/Skeleton_Mage':kind==='minion'?'skeletons/Skeleton_Minion':'skeletons/Skeleton_Warrior');
  const asset=models.get(key),root=cloneSkeleton(asset.scene),container=new THREE.Group(),posture=new THREE.Group();
  if(kind==='hero')for(const name of ['1H_Sword_Offhand','Rectangle_Shield','Round_Shield','Spike_Shield','2H_Sword']){const o=root.getObjectByName(name);if(o)o.visible=false;}
  if(kind!=='hero'&&kind!=='mage'){
@@ -211,7 +214,7 @@ function actor(kind,position,boss=false){
   const next=list.map(m=>{const n=m.clone();n.roughness=.74;n.metalness=.08;n.emissive=new THREE.Color('#000000');if(/Eyes/.test(o.name)){n.emissive.set(kind==='mage'?'#b870f1':'#c97450');n.emissiveIntensity=1.2;}mats.push({mat:n,base:n.emissive.clone(),power:n.emissiveIntensity});return n;});
   o.material=Array.isArray(o.material)?next:next[0];
  }});
- const a={kind,boss,root,posture,fatigueRig:collectFatigueRig(root),parryRig:collectParryRig(root),bodyContactRig:collectBodyContactRig(root),canonicalRow:null,fatigueBand:'fresh',fatigueLocked:false,fatigueSince:0,sweatClock:0,fatiguePose:{rootLean:0,rootDrop:0,rootSway:0,chestPitch:0,shoulderRoll:0,headPitch:0,armDrop:0,breath:0},fatiguePresentation:null,object:container,pos:container.position,height,hp:kind==='hero'?220:boss?620:38+game.wave*8,maxHp:kind==='hero'?220:boss?620:38+game.wave*8,mixer:new THREE.AnimationMixer(root),clips:new Map(asset.animations.map(c=>[c.name,c])),action:null,actionName:'',attack:null,cd:randRange(.4,1.3),dead:false,deathTime:0,flash:0,showHp:0,mats,damage:kind==='hero'?27:boss?18:kind==='mage'?10:7,speed:kind==='hero'?2.7:boss?1.2:kind==='mage'?1.1:1.55,attackSpeed:1,combo:0,spawn:kind==='hero'?0:.7,trail:[],reaction:null,reactionSerial:0,parryRecoil:null,impactRecoil:null,contactHold:null,contactSerial:0,weaponTrace:null,presentationActionId:null,presentationProgress:0,swingKey:null,effectKey:null,insightKey:null,afterglowKey:null,stepClock:0};
+ const a={kind,boss,root,posture,fatigueRig:collectFatigueRig(root),parryRig:collectParryRig(root),bodyContactRig:collectBodyContactRig(root),canonicalRow:null,fatigueBand:'fresh',fatigueLocked:false,fatigueSince:0,sweatClock:0,fatiguePose:{rootLean:0,rootDrop:0,rootSway:0,chestPitch:0,shoulderRoll:0,headPitch:0,armDrop:0,breath:0},fatiguePresentation:null,object:container,pos:container.position,height,hp:kind==='hero'?220:boss?620:38+game.wave*8,maxHp:kind==='hero'?220:boss?620:38+game.wave*8,mixer:new THREE.AnimationMixer(root),clips:new Map(asset.animations.map(c=>[c.name,c])),action:null,actionName:'',attack:null,cd:randRange(.4,1.3),dead:false,deathTime:0,flash:0,startGlow:0,startGlowPhase:'jo',showHp:0,mats,damage:kind==='hero'?27:boss?18:kind==='mage'?10:7,speed:kind==='hero'?2.7:boss?1.2:kind==='mage'?1.1:1.55,attackSpeed:1,combo:0,spawn:kind==='hero'?0:.7,trail:[],reaction:null,reactionSerial:0,parryRecoil:null,impactRecoil:null,contactHold:null,contactSerial:0,weaponTrace:null,presentationActionId:null,presentationProgress:0,swingKey:null,effectKey:null,insightKey:null,afterglowKey:null,stepClock:0};
  actors.push(a);play(a,'Idle');if(kind!=='hero'){ring(a.pos,1.1,'#bf7dcb',.6);play(a,'Spawn_Ground_Skeletons',true,.8);}return a;
 }
 function play(a,name,once=false,duration=0){
@@ -234,7 +237,7 @@ function kickCamera(source,target,power){
 }
 function visibleWeaponNode(a){
  if(!a?.root)return null;
- for(const name of ['1H_Sword','2H_Sword']){const node=a.root.getObjectByName(name);if(node?.visible)return node;}
+ for(const name of ['1H_Sword','2H_Sword','RinneEquipment:dagger','RinneEquipment:spear','RinneEquipment:axe','RinneEquipment:staff']){const node=a.root.getObjectByName(name);if(node?.visible)return node;}
  return null;
 }
 function weaponAxis(a){
@@ -531,63 +534,62 @@ async function prepare(){
  if(disposed||signal.aborted)return;
  notify('READY');draw();notify('BATTLE');previous=performance.now();renderer.setAnimationLoop(frame);record('ready',{models:usedModels.size});
 }
-function metrics(){return {ready:game.ready,phase:game.phase,rounds,totalKills:allKills,kills:game.kills,damage:game.damage,received:game.received,wave:game.wave,time:game.time,hp:hero?.hp,models:usedModels.size,loadedBytes,actors:actors.length,activeAnimations:actors.filter(a=>a.action?.isRunning()).length,renderedDeaths,frames:renderer?.info.render.frame||0,drawCalls:renderer?.info.render.calls||0,triangles:renderer?.info.render.triangles||0,fps,techniqueVfx:techniqueVfx?.metrics()??null,audio:sound.metrics(),webgl2:!!renderer?.getContext().texStorage2D};}
+function metrics(){return {ready:game.ready,phase:game.phase,rounds,totalKills:allKills,kills:game.kills,damage:game.damage,received:game.received,wave:game.wave,time:game.time,hp:hero?.hp,models:usedModels.size,loadedBytes,actors:actors.length,activeAnimations:actors.filter(a=>a.action?.isRunning()).length,sampledAnimations:actors.filter(a=>a.action?.paused&&(a.presentationActionId||a.canonicalAction?.startsWith('phase-cue:'))).length,renderedDeaths,frames:renderer?.info.render.frame||0,drawCalls:renderer?.info.render.calls||0,triangles:renderer?.info.render.triangles||0,fps,techniqueVfx:techniqueVfx?.metrics()??null,audio:sound.metrics(),webgl2:!!renderer?.getContext().texStorage2D};}
 // The main-game path never invokes start(), simulate(), damage() or a native RAF.
 // It borrows only the accepted assets, actor factory, animation mixer and VFX.
 function createDrivenPort(){
  const bindings=new Map(),coverNodes=new Map();let lastFrame=null,selfBinding=null,portraitTarget=null,portraitPixels=null;
- const equipmentNames=['1H_Sword','1H_Sword_Offhand','2H_Sword','Rectangle_Shield','Round_Shield','Spike_Shield'];
- const weaponMesh={fist:null,sword:'1H_Sword',great:'2H_Sword'};
+ const equipmentNames=['Knife','Knife_Offhand','1H_Crossbow','2H_Crossbow','Throwable','1H_Sword','1H_Sword_Offhand','2H_Sword','Badge_Shield','Rectangle_Shield','Round_Shield','Spike_Shield',...['dagger','spear','axe','staff'].map(id=>'RinneEquipment:'+id)];
+ const weaponMesh={fist:null,sword:'1H_Sword',great:'2H_Sword',dagger:'RinneEquipment:dagger',spear:'RinneEquipment:spear',axe:'RinneEquipment:axe',staff:'RinneEquipment:staff'};
  const driver=createCanonicalPresentationDriver({
+  appearanceKey:row=>[row.kind,row.boss,row.kind==='hero'?row.equipment.armor:null].join(':'),
   supports(row){
    if(!Object.hasOwn(weaponMesh,row.equipment?.weapon))return {supported:false,reason:'unaccepted-equipment:'+row.equipment?.weapon};
-   if(row.kind==='hero'&&row.equipment?.armor!=='heavy')return {supported:false,reason:'unaccepted-armor:'+row.equipment?.armor};
-   const key=row.kind==='hero'?'adventurers/Knight':row.kind==='mage'?'skeletons/Skeleton_Mage':'skeletons/Skeleton_Warrior';
+   const key=row.kind==='hero'?(row.equipment.armor==='heavy'?'adventurers/Knight':'adventurers/Rogue'):row.kind==='mage'?'skeletons/Skeleton_Mage':'skeletons/Skeleton_Warrior';
    const asset=models.get(key);if(!asset)return {supported:false,reason:'missing-model:'+key};
-   if(row.kind!=='hero'&&row.equipment.shield)return {supported:false,reason:'unaccepted-shield-socket'};
    const actionClip=row.action?.presentationClip??row.action?.motion?.clip;
    if(row.action&&(!row.action.legal||!row.action.motion?.supported||!asset.animations.some(clip=>clip.name===actionClip)))return {supported:false,reason:'unaccepted-motion:'+row.action?.motion?.kind};
    if(row.phaseCue?.clip&&!asset.animations.some(clip=>clip.name===row.phaseCue.clip))return {supported:false,reason:'unaccepted-phase-cue:'+row.phaseCue.phase};
    if(row.locomotion?.clip&&!asset.animations.some(clip=>clip.name===row.locomotion.clip))return {supported:false,reason:'unaccepted-locomotion:'+row.locomotion.kind};
    return {supported:true};
   },
-  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss));a.spawnStyle=row.spawnStyle||null;a.spawn=a.spawnStyle==='battlebk-ground'&&a.kind!=='hero'?.7:0;a.canonicalAction=a.spawn>0?'spawn:battlebk-ground':null;a.canonicalId=row.id;bindings.set(row.id,a);return a;},
+  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss),row.kind==='hero'?(row.equipment.armor==='heavy'?'adventurers/Knight':'adventurers/Rogue'):null);a.spawnStyle=row.spawnStyle||null;a.spawn=a.spawnStyle==='battlebk-ground'&&a.kind!=='hero'?.7:0;a.canonicalAction=a.spawn>0?'spawn:battlebk-ground':null;a.canonicalId=row.id;bindings.set(row.id,a);return a;},
   remove(a){removeActor(a);actors.splice(actors.indexOf(a),1);bindings.delete(a.canonicalId);},
   self(a){hero=a;selfBinding=a;},
   update(a,row,dt,{initial}){
+   if(Number.isFinite(row.battleTime)){const previous=a.lastBattleTime??row.battleTime;a.lastBattleTime=row.battleTime;dt=Math.max(0,row.battleTime-previous);}
    const observedClip=!initial&&dt>0?observedLocomotion(a.pos,row.position,row.yaw):null;
    a.canonicalRow=row;a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;clearFatigueRig(a);clearParryRig(a);if(a.spawn>0)a.spawn=Math.max(0,a.spawn-dt);if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-dt);if(a.reaction.remaining<=0)a.reaction=null;}if(a.parryRecoil){a.parryRecoil.remaining=Math.max(0,a.parryRecoil.remaining-dt);if(a.parryRecoil.remaining<=0)a.parryRecoil=null;}if(a.impactRecoil){a.impactRecoil.remaining=Math.max(0,a.impactRecoil.remaining-dt);if(a.impactRecoil.remaining<=0)a.impactRecoil=null;}if(a.contactHold){a.contactHold.remaining=Math.max(0,a.contactHold.remaining-dt);if(a.contactHold.remaining<=0)a.contactHold=null;}
    const equipmentKey=row.equipment.weapon+':'+row.equipment.shield;
    if(a.equipmentKey!==equipmentKey){
     for(const name of equipmentNames){const node=a.root.getObjectByName(name);if(node)node.visible=false;}
     const name=weaponMesh[row.equipment.weapon];
-    if(name){let node=a.root.getObjectByName(name);if(!node){node=models.get('adventurers/Knight').scene.getObjectByName(name)?.clone(true);const socket=a.root.getObjectByName('handslot.r')||a.root.getObjectByName('handslotr');if(!node||!socket)throw Error('Missing authored equipment socket');node.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;o.userData.assetSource='adventurers/Knight';const mats=(Array.isArray(o.material)?o.material:[o.material]).map(m=>{const mat=m.clone();mat.roughness=.74;mat.metalness=.08;mat.emissive=new THREE.Color('#000000');a.mats.push({mat,base:mat.emissive.clone(),power:mat.emissiveIntensity});return mat;});o.material=Array.isArray(o.material)?mats:mats[0];});socket.add(node);}node.visible=true;}
-    if(row.equipment.shield){const shield=a.root.getObjectByName('Round_Shield');if(!shield)throw Error('Missing authored shield');shield.visible=true;}
+    if(name){let node=a.root.getObjectByName(name);if(!node){node=name.startsWith('RinneEquipment:')?createRinneWeapon(THREE,row.equipment.weapon):models.get('adventurers/Knight').scene.getObjectByName(name)?.clone(true);if(name.startsWith('RinneEquipment:')){node.rotation.x=Math.PI/2;node.scale.setScalar(.85);}const socket=a.root.getObjectByName('handslot.r')||a.root.getObjectByName('handslotr');if(!node||!socket)throw Error('Missing authored equipment socket');node.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;o.userData.assetSource='adventurers/Knight';const mats=(Array.isArray(o.material)?o.material:[o.material]).map(m=>{const mat=m.clone();mat.roughness=.74;mat.metalness=.08;mat.emissive=new THREE.Color('#000000');a.mats.push({mat,base:mat.emissive.clone(),power:mat.emissiveIntensity});return mat;});o.material=Array.isArray(o.material)?mats:mats[0];});socket.add(node);}node.visible=true;}
+    if(row.equipment.shield){let shield=a.root.getObjectByName('Round_Shield');if(!shield){shield=models.get('adventurers/Knight').scene.getObjectByName('Round_Shield')?.clone(true);const socket=a.root.getObjectByName('handslot.l')||a.root.getObjectByName('handslotl');if(!shield||!socket)throw Error('Missing authored shield socket');socket.add(shield);}shield.visible=true;}
     a.equipmentKey=equipmentKey;
    }
    const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,spawnClip=!terminal&&a.spawnStyle==='battlebk-ground'&&a.spawn>0?'Spawn_Ground_Skeletons':null,reactionClip=!terminal&&!spawnClip?a.reaction?.clip:null,contactClip=!terminal&&!spawnClip?a.contactHold?.clip:null,phaseCue=!terminal&&!spawnClip&&!reactionClip&&!contactClip&&!action?row.phaseCue:null,phaseCueClip=phaseCue?.clip??null,actionClip=action?.presentationClip??action?.motion.clip,locomotionClip=!spawnClip&&!phaseCue&&!action&&row.moving?(row.locomotion?.clip||(observedClip&&a.clips.has(observedClip)?observedClip:null)):null;
    const clip=terminal||spawnClip||reactionClip||contactClip||phaseCueClip||actionClip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
    const key=terminal||(spawnClip?'spawn:battlebk-ground':reactionClip?('reaction:'+a.reaction.serial+':'+reactionClip):contactClip?('contact:'+a.contactHold.serial+':'+contactClip):phaseCue?('phase-cue:'+phaseCue.key+':'+phaseCueClip):((action?.id||(locomotionClip?('locomotion:'+(row.locomotion?.kind||'observed')+':'+locomotionClip):clip))+':'+(action?.step??0)));
-   if(a.canonicalAction!==key){play(a,clip,Boolean(terminal||spawnClip||reactionClip||contactClip||action||row.hit),spawnClip?.8:0);a.canonicalAction=key;a.deathTime=0;}
+   if(a.canonicalAction!==key){play(a,clip,Boolean(terminal||spawnClip||reactionClip||contactClip||action||row.hit),spawnClip?.8:0);a.canonicalAction=key;a.deathTime=0;if(action&&!terminal&&!spawnClip&&!reactionClip&&!contactClip){a.startGlow=.18;a.startGlowPhase=action.phase;}}
    if(spawnClip&&!terminal){a.presentationActionId=null;a.action.paused=false;a.mixer.update(dt);}
    else if(reactionClip&&!terminal){a.action.paused=false;a.mixer.update(dt*(game.hitstop>0?.08:1));}
    else if(contactClip&&!terminal){const held=a.contactHold;a.action.paused=true;a.action.time=Math.min(a.clips.get(contactClip).duration-.000001,held.progress*a.clips.get(contactClip).duration);a.mixer.update(0);}
    else if(phaseCue&&!terminal){const cueProgress=clamp(Number(phaseCue.progress)||0,0,1),cueEase=cueProgress*cueProgress*(3-2*cueProgress),poseStart=clamp(Number(phaseCue.poseStart)||0,0,.95),poseEnd=clamp(Number(phaseCue.poseEnd)||.7,poseStart,.98),pose=lerp(poseStart,poseEnd,cueEase);a.presentationActionId=null;a.action.paused=true;a.action.time=Math.min(a.clips.get(phaseCueClip).duration-.000001,pose*a.clips.get(phaseCueClip).duration);a.mixer.update(0);}
    else if(action&&!terminal){
     const canonicalProgress=Math.max(0,action.progress);if(a.presentationActionId!==action.id){a.presentationActionId=action.id;a.presentationProgress=canonicalProgress;}
-    if(game.hitstop<=0)a.presentationProgress=canonicalProgress;const segment=action.presentation?.segment,sampleStart=clamp(Number(segment?.sampleStart)||0,0,.95),sampleEnd=clamp(Number(segment?.sampleEnd)||1,sampleStart+.01,.999),sampleProgress=lerp(sampleStart,sampleEnd,a.presentationProgress);a.action.paused=true;a.action.time=Math.min(a.clips.get(clip).duration-.000001,sampleProgress*a.clips.get(clip).duration);a.mixer.update(game.hitstop>0?0:dt);
-    if(action.motion?.offense&&canonicalProgress>=.03&&a.insightKey!==action.id){a.insightKey=action.id;emitTechniqueStageFx(a,action,'insight',a.pos.clone().add(new V(0,a.height*.34,0)));}
-    const swingAt=Math.max(.08,Math.min(.28,Number(action.motion?.contactProgress??.5)-.22)),swing=action.presentation?.sfx?.swing;
+    a.presentationProgress=action.poseProgress??canonicalProgress;const segment=action.presentation?.segment,sampleStart=clamp(Number(segment?.sampleStart)||0,0,.95),sampleEnd=clamp(Number(segment?.sampleEnd)||1,sampleStart+.01,.999),sampleProgress=lerp(sampleStart,sampleEnd,a.presentationProgress);a.action.paused=true;a.action.time=Math.min(a.clips.get(clip).duration-.000001,sampleProgress*a.clips.get(clip).duration);a.mixer.update(dt);
+    const swingAt=action.choreography?.timeline.commit??Math.max(.08,Math.min(.28,Number(action.motion?.contactProgress??.5)-.22)),swing=action.presentation?.sfx?.swing;
     if(action.motion?.offense&&canonicalProgress>=swingAt&&a.swingKey!==action.id){a.swingKey=action.id;sound.swing?.({pan:spatialPan(a.pos),gain:Number(swing?.gain)||.66,rate:Number(swing?.pitch)||1});}
-    const effectAt=Math.max(.12,Math.min(.42,Number(action.motion?.contactProgress??.5)-.12));if(action.motion?.offense&&canonicalProgress>=effectAt&&a.effectKey!==action.id){a.effectKey=action.id;emitTechniqueExecuteFx(a,action);}
-    const afterglowAt=Math.max(.7,Math.min(.9,Number(action.motion?.contactProgress??.5)+.24));if(action.motion?.offense&&canonicalProgress>=afterglowAt&&a.afterglowKey!==action.id){a.afterglowKey=action.id;emitTechniqueStageFx(a,action,'afterglow',a.pos.clone().add(new V(0,a.height*.38,0)));}
+    const effectAt=action.choreography?.timeline.execute??Math.max(.12,Math.min(.42,Number(action.motion?.contactProgress??.5)-.12));if(action.motion?.offense&&canonicalProgress>=effectAt&&a.effectKey!==action.id){a.effectKey=action.id;emitTechniqueExecuteFx(a,action);}
+    const afterglowAt=action.choreography?.timeline.recovery??Math.max(.7,Math.min(.9,Number(action.motion?.contactProgress??.5)+.24));if(action.motion?.offense&&canonicalProgress>=afterglowAt&&a.afterglowKey!==action.id){a.afterglowKey=action.id;emitTechniqueStageFx(a,action,'afterglow',a.pos.clone().add(new V(0,a.height*.38,0)));}
    }else{
     a.presentationActionId=null;a.action.paused=false;if(initial&&terminal)a.action.time=a.clips.get(clip).duration-.000001;a.mixer.update(dt);
     if(row.moving&&!terminal){a.stepClock-=dt;if(a.stepClock<=0){a.stepClock=.34;sound.footstep?.({pan:spatialPan(a.pos),rate:a.kind==='hero'?1.04:.94});}}else a.stepClock=0;
    }
    applyFatigue(a,row,dt);applyTechniquePresentationPose(a,row);applyImpactRecoil(a);applyParryRecoil(a);sampleWeaponTrace(a,dt);
    if(terminal)a.deathTime+=dt;
-   a.flash=Math.max(0,a.flash-dt);const cueProgress=Math.max(0,Math.min(1,Number(phaseCue?.progress)||0)),cueColor=phaseCue?.glow?new THREE.Color(phaseCue.glow):null,cueEnvelope=Math.sin(cueProgress*Math.PI),cuePulse=Math.pow(Math.abs(Math.sin(cueProgress*Math.PI*2)),1.45),cueGlow=cueColor?cueEnvelope*(.18+2.25*cuePulse):0;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(new THREE.Color('#ffe7c4'));mat.emissiveIntensity=1.7;}else if(cueColor&&cueGlow>.01){mat.emissive.copy(cueColor);mat.emissiveIntensity=Math.max(power,cueGlow);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
+   a.flash=Math.max(0,a.flash-dt);a.startGlow=Math.max(0,a.startGlow-dt);const startColor=startGlowColors[a.startGlowPhase]||startGlowColors.other;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(hitFlashColor);mat.emissiveIntensity=1.7;}else if(a.startGlow>0){mat.emissive.copy(startColor);mat.emissiveIntensity=Math.max(power,1.5*a.startGlow/.18);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
   },
   sampleBodyContacts(){
    const rows=[];for(const source of bindings.values()){const action=source.canonicalRow?.action;if(!action?.motion?.offense)continue;const target=bindings.get(action.targetId);if(!target)continue;const hit=sweptWeaponBodyContact(source,target);if(hit)rows.push(hit);}return rows;
@@ -595,32 +597,35 @@ function createDrivenPort(){
   impact(event,source,target){
    if(event.type==='clash'){
     const point=event.contactPoint,fallback=point?new V(point.x,Math.min(source?.height||target.height,target.height)*.58,point.z):target.pos.clone().add(new V(0,target.height*.58,0)),clash=source?bladeClashPoint(source,target,fallback):fallback,pan=spatialPan(clash);
-    holdAuthoredContactPose(source,'Block_Hit',.43,.14);holdAuthoredContactPose(target,'Block_Hit',.57,.14);
+    if(event.authority!=='johakyu-battle'){holdAuthoredContactPose(source,'Block_Hit',.43,.14);holdAuthoredContactPose(target,'Block_Hit',.57,.14);}
     if(source)source.parryRecoil={remaining:.3,duration:.3,side:-1};if(target)target.parryRecoil={remaining:.3,duration:.3,side:1};
     burst(clash,22,'#fff0b8');ring(clash,.58,'#fff4ce',.2);if(source)arc(source.pos,Math.max(1.45,source.pos.distanceTo(target.pos)*.58),source.object.rotation.y,1.15,'#fff0b8',.18);
-    sound.parry?.({pan,gain:1.08,rate:1.12});game.hitstop=Math.max(game.hitstop,.075);game.cameraPunch=Math.max(game.cameraPunch,.028);game.shake=Math.max(game.shake,.024);kickCamera(source,target,.13);
-    record('canonical-clash',{attackId:event.attackId,otherAttackId:event.otherAttackId,sourceId:event.sourceId,targetId:event.targetId,contactPoint:point||null,contactDistance:event.contactDistance||null,poseClip:'Block_Hit'});return;
+    sound.parry?.({pan,gain:1.08,rate:1.12});game.hitstop=Math.max(game.hitstop,event.impact?.hitstop??.075);game.cameraPunch=Math.max(game.cameraPunch,.028);game.shake=Math.max(game.shake,.024);kickCamera(source,target,.13);
+    record('canonical-clash',{techniqueId:event.techniqueId,stageIndex:event.stageIndex,contactTime:event.time,hitstop:event.hitstop,attackId:event.attackId,otherAttackId:event.otherAttackId,sourceId:event.sourceId,targetId:event.targetId,contactPoint:point||null,contactDistance:event.contactDistance||null,poseClip:'Block_Hit'});return;
    }
    if(['guard','parry'].includes(event.type)){
     const parry=event.type==='parry',strongParry=parry&&event.strongParry===true,point=event.contactPoint;
-    if(parry){syncContactPose(source,event.sourceContactProgress,strongParry?.095:.055);syncContactPose(target,event.defenseContactProgress,strongParry?.095:.055);}
-    const fallback=point?new V(point.x,Math.min(source?.height||target.height,target.height)*.58,point.z):target.pos.clone().add(new V(0,target.height*.58,0)),clash=source?bladeClashPoint(source,target,fallback):fallback,visualDirection=parry?deflectionFromBladeTrace(source,target,event.parryDirection||'right'):(event.parryDirection||null),pan=spatialPan(clash);
+    if(parry&&event.authority!=='johakyu-battle'){syncContactPose(source,event.sourceContactProgress,strongParry?.095:.055);syncContactPose(target,event.defenseContactProgress,strongParry?.095:.055);}
+    const fallback=point?new V(point.x,Math.min(source?.height||target.height,target.height)*.58,point.z):target.pos.clone().add(new V(0,target.height*.58,0)),clash=source?bladeClashPoint(source,target,fallback):fallback,visualDirection=event.parryDirection||null,pan=spatialPan(clash);
+    if(target&&event.impact)target.impactRecoil={remaining:.18+event.stagger,duration:.18+event.stagger,strength:event.reactionSeverity,direction:event.direction,side:0};
+    if(source&&event.impact)source.impactRecoil={remaining:.18,duration:.18,strength:event.sourceKick*.45,direction:{x:-event.direction.x,z:-event.direction.z},side:0};
     if(parry&&source)source.parryRecoil={remaining:strongParry?.3:.13,duration:strongParry?.3:.13,side:visualDirection==='left'?-1:1};
     burst(clash,parry?(strongParry?18:11):9,parry?'#fff0b8':'#d9c486');
     if(source)arc(source.pos,Math.max(1.55,source.pos.distanceTo(target.pos)*.62),source.object.rotation.y,parry?(strongParry?1.45:.9):1.1,'#f7cf80',.2);
-    if(parry)sound.parry?.({pan});else sound.guard?.({pan});game.hitstop=Math.max(game.hitstop,parry?(strongParry?.074:.036):.032);game.cameraPunch=Math.max(game.cameraPunch,parry?(strongParry?.034:.012):.012);game.shake=parry?(strongParry?.02:.008):.012;kickCamera(source,target,parry?(strongParry?.12:.045):.07);
-    record('canonical-defense',{type:event.type,attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,strongParry,exchangeContinuity:event.exchangeContinuity||null,contactPoint:point||null,bladeClash:[Number(clash.x.toFixed(3)),Number(clash.y.toFixed(3)),Number(clash.z.toFixed(3))],contactDistance:event.contactDistance||null,parryDirection:event.parryDirection||null,visualDeflection:visualDirection,sourceContactProgress:event.sourceContactProgress??null,defenseContactProgress:event.defenseContactProgress??null});return;
+    if(parry)sound.parry?.({pan});else sound.guard?.({pan});game.hitstop=Math.max(game.hitstop,event.impact?.hitstop??(parry?(strongParry?.074:.036):.032));game.cameraPunch=Math.max(game.cameraPunch,parry?(strongParry?.034:.012):.012);game.shake=parry?(strongParry?.02:.008):.012;kickCamera(source,target,parry?(strongParry?.12:.045):.07);
+    record('canonical-defense',{techniqueId:event.techniqueId,stageIndex:event.stageIndex,contactTime:event.time,hitstop:event.hitstop,type:event.type,attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,strongParry,exchangeContinuity:event.exchangeContinuity||null,contactPoint:point||null,bladeClash:[Number(clash.x.toFixed(3)),Number(clash.y.toFixed(3)),Number(clash.z.toFixed(3))],contactDistance:event.contactDistance||null,parryDirection:event.parryDirection||null,visualDeflection:visualDirection,sourceContactProgress:event.sourceContactProgress??null,defenseContactProgress:event.defenseContactProgress??null});return;
    }
    if(!['player-hit','enemy-hit','finisher'].includes(event.type))return;
    const presentation=event.presentation||source?.canonicalRow?.action?.presentation||null,archetype=presentation?.archetype||null,impactSpec=presentation?.sfx?.impact,finisher=event.type==='finisher',impactScale=clamp(Math.max(finisher?1.35:0,Number(presentation?.vfx?.impact?.scale)||1),.5,1.8),secondaryScale=clamp(Math.max(finisher?.45:0,Number(presentation?.vfx?.secondary?.scale)||.24),.08,.8);
-   target.flash=finisher?.26:.2;const heavy=archetype==='heavy'||event.phase==='kyu'||finisher||event.counter,impactPoint=event.contactPoint?new V(event.contactPoint.x,event.contactPoint.y,event.contactPoint.z):target.pos.clone().add(new V(0,target.height*.55,0)),pan=spatialPan(impactPoint),reactionClip=['head','leftArm','rightArm'].includes(event.bodyPart)?'Hit_B':'Hit_A',color=techniqueFxColor(archetype||'flow'),recoilStrength=finisher?1.58:event.counter?1.35:heavy?1.08:.78,recoilDuration=finisher?.62:event.counter?.55:heavy?.48:.34,recoilSide=event.bodyPart==='leftArm'||event.bodyPart==='leftLeg'?-1:event.bodyPart==='rightArm'||event.bodyPart==='rightLeg'?1:0;
-   target.reaction={clip:reactionClip,remaining:finisher?.56:event.counter?.48:heavy?.42:.3,serial:++target.reactionSerial};target.impactRecoil={remaining:recoilDuration,duration:recoilDuration,strength:recoilStrength,side:recoilSide};
+   target.flash=finisher?.26:.2;const heavy=event.impact?event.impact.heavy:archetype==='heavy'||finisher||event.counter,impactPoint=event.contactPoint?new V(event.contactPoint.x,event.contactPoint.y,event.contactPoint.z):target.pos.clone().add(new V(0,target.height*.55,0)),pan=spatialPan(impactPoint),reactionClip=['head','leftArm','rightArm'].includes(event.bodyPart)?'Hit_B':'Hit_A',color=techniqueFxColor(archetype||'flow'),recoilStrength=finisher?1.58:event.counter?1.35:heavy?1.08:.78,recoilDuration=finisher?.62:event.counter?.55:heavy?.48:.34,recoilSide=event.bodyPart==='leftArm'||event.bodyPart==='leftLeg'?-1:event.bodyPart==='rightArm'||event.bodyPart==='rightLeg'?1:0;
+   target.reaction={clip:reactionClip,remaining:finisher?.56:event.counter?.48:heavy?.42:.3,serial:++target.reactionSerial};target.impactRecoil={remaining:recoilDuration,duration:recoilDuration,strength:event.impact?.reactionSeverity??recoilStrength,side:recoilSide,direction:event.impact?.direction};
+   if(source&&event.impact)source.impactRecoil={remaining:.16,duration:.16,strength:event.sourceKick,direction:{x:-event.direction.x,z:-event.direction.z},side:0};
    const impactEffect=presentation?.vfx?.impact,secondaryEffect=presentation?.vfx?.secondary;
    if(impactEffect?.effect)techniqueVfx.spawn(impactEffect.effect,{stage:'impact',origin:impactPoint,color,scale:impactScale,archetype:archetype||'flow',finisher});
    if(secondaryEffect?.effect)techniqueVfx.spawn(secondaryEffect.effect,{stage:'secondary',origin:impactPoint,color:'#f3e7d2',scale:secondaryScale,archetype:archetype||'flow',finisher});
    record('technique-vfx-impact',{techniqueId:event.techniqueId||null,impactEffect:impactEffect?.effect||null,secondaryEffect:secondaryEffect?.effect||null,archetype:archetype||'flow',finisher});
-   sound.impact?.({pan,heavy,counter:Boolean(event.counter),gain:Number(impactSpec?.gain)||null,rate:Number(impactSpec?.pitch)||1});game.hitstop=Math.max(game.hitstop,finisher?.115:event.counter?.095:heavy?.075:.045);game.cameraPunch=Math.max(game.cameraPunch,finisher?.072:event.counter?.055:heavy?.04:.02);game.shake=Math.max(finisher?.075:heavy?.055:.025,Math.min(.08,Number(presentation?.camera?.shake)||0));kickCamera(source,target,finisher?.34:event.counter?.28:heavy?.22:.12);
-   record('canonical-impact',{attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,bodyPart:event.bodyPart,finisher,counter:Boolean(event.counter),reactionClip,recoilDuration,recoilStrength,techniqueId:event.techniqueId||null,archetype,effect:presentation?.vfx?.impact?.effect||null,soundRole:impactSpec?.role||null});
+   sound.impact?.({pan,heavy,counter:Boolean(event.counter),gain:Number(impactSpec?.gain)||null,rate:Number(impactSpec?.pitch)||1});game.hitstop=Math.max(game.hitstop,event.impact?.hitstop??(finisher?.115:event.counter?.095:heavy?.075:.045));game.cameraPunch=Math.max(game.cameraPunch,finisher?.072:event.counter?.055:heavy?.04:.02);game.shake=Math.min(.045,(event.reactionSeverity||1)*.022);kickCamera(source,target,finisher?.34:event.counter?.28:heavy?.22:.12);
+   record('canonical-impact',{stageIndex:event.stageIndex,contactTime:event.time,hitstop:event.hitstop,attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,bodyPart:event.bodyPart,finisher,counter:Boolean(event.counter),reactionClip,recoilDuration,recoilStrength,techniqueId:event.techniqueId||null,archetype,effect:presentation?.vfx?.impact?.effect||null,soundRole:impactSpec?.role||null});
   },
   environment(obstacles,shots){
    const ids=new Set(obstacles.map(row=>row.id));for(const [id,node] of coverNodes)if(!ids.has(id)){scene.remove(node);coverNodes.delete(id);}
@@ -658,7 +663,7 @@ function createDrivenPort(){
    context.putImageData(image,0,0);return true;
   }catch{return false;}finally{renderer.setRenderTarget(targetBefore);renderer.setClearColor(clearBefore,alphaBefore);renderer.autoClear=autoBefore;}
  }
- return Object.freeze({prepare:prepareDriven,present:(snapshot,dt,events)=>driver.present(snapshot,dt,events),renderSelfPortrait,resize,
+ return Object.freeze({prepare:prepareDriven,present:(snapshot,dt,events)=>driver.present(presentBattleFrame(snapshot),dt,presentBattleEvents(events||[])),renderSelfPortrait,resize,
   cameraVector(axis){const forward=new V();camera.getWorldDirection(forward);forward.y=0;forward.normalize();return new V().crossVectors(forward,new V(0,1,0)).multiplyScalar(axis.x).addScaledVector(forward,-axis.y).normalize();},
   anchor(){if(!hero)return null;return project(hero.pos.clone().add(new V(0,hero.height,0)));},
   footAnchor(){if(!selfBinding)return null;return project(selfBinding.pos.clone().add(new V(0,.03,0)));},

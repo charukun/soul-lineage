@@ -26,7 +26,8 @@
     "@soul/animations": "*",
     "@soul/input": "*",
     "@soul/johakyu-combat": "*",
-    "@soul/johakyu-presentation": "*"
+    "@soul/johakyu-presentation": "*",
+    "@soul/johakyu-battle": "*"
   },
   "devDependencies": {
     "playwright": "1.63.0",

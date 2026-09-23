@@ -97,7 +97,7 @@ function renderBody(model){
   if(previewRow)model.ui.body.append(detailSection({icon:'stance',kicker:'身体技',title:previewRow.label,summary:previewRow.description,status:previewRow.id===current?'装着中':'習得済み',actionLabel:previewRow.id===current?'設定済み':`${kinds.find(([kind])=>kind===model.bodyKind)?.[1]||'身法'}にセット`,actionDisabled:previewRow.id===current,onAction:()=>{setBodyChoice(state,model.bodyKind,previewRow.id);model.audio.item();haptic(10);renderBody(model);}}));
   const library=gridSection('習得した身体技','候補を選ぶと詳細を表示'),list=library.querySelector('.loadout-grid'),page=pageRows(model,'body',rows,()=>renderBody(model));for(const option of page.rows)list.append(gridItem(option.label,option.description,{active:option.id===current,focus:option.id===model.bodyPreview,icon:'stance',detail:{kicker:'身体技',title:option.label,summary:option.description,status:option.id===current?'装着中':'習得済み'},onClick:()=>{model.bodyPreview=option.id;model.audio.ui();renderBody(model);}}));model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);
 }
-function syncCombat(function syncCombat(model,state){
+function syncCombat(model,state){
   ensureCombatLoadout(state);const skill=state.combatLoadout.technique.oneMotion,ready=Boolean(state.combat&&!state.combat.training&&!state.down&&!state.ended&&skill);
   model.ui.oneMotion.hidden=!ready;if(ready){model.ui.oneMotionName.textContent=techniqueName(skill);model.ui.oneMotion.disabled=Boolean(state.combat?.oneMotionQueued||state.combat?.attackCooldown>1.15);}
 }

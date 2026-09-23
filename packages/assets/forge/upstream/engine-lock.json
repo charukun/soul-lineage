@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "rinne.img2threejs-lock/v1",
+  "engine": {
+    "repository": "img2threejs/img2threejs",
+    "commit": "6e60b5e22419464b4853e01ddb6c0e6f6659a733",
+    "license": "Apache-2.0",
+    "fileCount": 352,
+    "sourceDigest": "fff59a37a7c43c168e625eeafa1261419bd11444693d7d24a95845fd2666a88d",
+    "version": "2.0.0"
+  },
+  "animationPlugin": {
+    "repository": "img2threejs/plugin-character",
+    "commit": "d8750638f9fc092714e7fcb4941053514455295d",
+    "fileCount": 44,
+    "sourceDigest": "6e5c04cc5aaa496f4512b2e477d36576cb60e4088c6e88499d64177618b3f23c",
+    "version": "0.2.0",
+    "license": "Apache-2.0"
+  },
+  "corePolicy": "unmodified-upstream",
+  "adapterBoundary": [
+    "intake",
+    "invocation",
+    "golden-rig",
+    "morph",
+    "sockets",
+    "package",
+    "registry",
+    "review",
+    "dcc"
+  ],
+  "silentFallback": false,
+  "capabilityNotes": {
+    "landmarks": "Upstream extract_landmarks.py is an evidence scaffold. Agent observations or a separately provenance-bound vision adapter are required.",
+    "camera": "Use fit_camera_to_correspondences for measured camera solving. The image-only CLI is explicitly a heuristic descriptor, not a solved camera.",
+    "projection": "Upstream bake_projected_texture.py emits a bake descriptor; it does not bake pixels. A verified runtime emission must execute that descriptor before acceptance.",
+    "visualHull": "Upstream orthographic front/side/top silhouette intersection; back is not top. A hull does not recover unseen concavities.",
+    "comparison": "mesh_reference_compare.py compares uncompressed GLB meshes; image comparisons require rendered reference-camera captures.",
+    "runtime": "The upstream runtime/ directory is not distributed. Renderer/export host integration is an explicit adapter, not an upstream binary."
+  }
+}

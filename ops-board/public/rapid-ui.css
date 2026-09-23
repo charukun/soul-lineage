@@ -772,7 +772,8 @@ a.rapid-iteration-row.rapid-session-card{padding:10px 11px 9px}
 .rapid-active-facts{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:8px;min-width:0}
 .rapid-active-fact{display:grid;gap:1px;min-width:0}
 .rapid-active-fact>span{color:#637287;font-size:7px;font-weight:800;letter-spacing:.04em}
-.rapid-active-fact time,.rapid-active-fact code{min-width:0;color:#a1afc1;font-size:8px;white-space:nowrap}
+.rapid-active-fact time,.rapid-active-fact code,.rapid-active-fact strong{min-width:0;color:#a1afc1;font-size:8px;white-space:nowrap}
+.rapid-active-fact strong{font-weight:820;font-variant-numeric:tabular-nums}
 .rapid-active-fact small{color:#657387;font-size:7px}
 .rapid-active-fact code{padding:2px 4px;border-radius:4px;background:rgba(111,129,154,.09);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .rapid-active-timeline{display:grid;gap:4px;margin:9px 0 0;padding:0;list-style:none;min-width:0}

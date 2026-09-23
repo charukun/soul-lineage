@@ -90,17 +90,8 @@ function spawnActionText(row){
 function recordHistory(row){history.push(row);if(history.length>8)history.shift();spawnActionText(row);}
 function selectedTechniqueDisplay(meta){
  if(meta?.stageIndex!==0)return null;
- if(meta?.exchangeIntent==='finisher')return{label:shortActionName(meta)||'止め',key:[meta.battleId,'finisher',meta.actionId].join(':')};
- if(battleSettings.techniqueMode==='set'){
-  const selection=activeLoadout?.technique?.[meta.phase];
-  if(String(selection||'').startsWith('combo:')){
-   if(meta?.techniqueIndex!==0)return null;
-   return{label:battle2SelectionLabel(selection),key:[meta.battleId,meta.cycle,meta.phase,selection].join(':')};
-  }
-  const runtimeName=shortActionName(meta),label=/^(秘技|奥義)・/.test(runtimeName)?runtimeName:(selection?battle2SelectionLabel(selection):runtimeName);
-  return label?{label,key:[meta.battleId,meta.cycle,meta.phase,selection||meta.techniqueId].join(':')}:null;
- }
- const label=shortActionName(meta);return label?{label,key:[meta.battleId,meta.cycle,meta.phase,meta.techniqueId].join(':')}:null;
+ const label=meta.techniqueName||shortActionName(meta);
+ return label?{label,key:[meta.battleId,meta.cycle,meta.phase,meta.actionId,meta.techniqueId].join(':')}:null;
 }
 function pushAction(meta){
  const display=selectedTechniqueDisplay(meta);if(!meta?.actionId||!meta?.techniqueId||!display||seenActions.has(display.key))return;
@@ -130,7 +121,7 @@ function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId)resetHistory(meta.battleId);lastExchangeKey=meta.exchangeHistoryKey;
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
  const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);if(playerHud?.root?.dataset.portrait!=='model'&&runtime?.renderPlayerPortrait?.(playerHud.canvas))playerHud.markPortrait?.('model');
- const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>row.type==='chain-break'&&row.actorId==='hero');
+ const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>(row.type==='chain-break'||row.type==='interrupted')&&(row.actorId||row.sourceId)==='hero');
  for(const row of activity){
   if(row?.type==='inspiration'&&row.techniqueId){
    const added=loadoutUI.learnTechnique(row.techniqueId);runtime?.learnTechnique?.(row.techniqueId);

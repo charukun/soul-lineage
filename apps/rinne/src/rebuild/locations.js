@@ -64,9 +64,8 @@ export function buildInteriors(layout){
     const def=defs[object.kind];if(object.phase!=='built'||!muraHasInterior(object))continue;
     const room=Array.isArray(object.room)?object.room:[],stations=[];
     for(const item of room){
-      const mapping=interiorLifeActivity(object.kind,item.kind,INTERIOR_ACTIVITY[item.kind]);if(!mapping)continue;const [activity,label]=mapping;
-      const position=interiorActivityPlace(item,room,def);
-      stations.push({id:`room.${object.id}.${item.id}`,label,x:position.x,z:position.z,radius:.92,activity,actionLabel:label,interiorId:object.id,sourceId:item.id,sourceKind:item.kind,housingTrait:true});
+      const mapping=interiorLifeActivity(object.kind,item.kind,INTERIOR_ACTIVITY[item.kind]);if(!mapping)continue;const [activity,label]=mapping,position=interiorActivityPlace(item,room,def);if(!position)continue;
+      stations.push({id:`room.${object.id}.${item.id}`,label,x:position.x,z:position.z,radius:.92,activity,actionLabel:label,facilityKind:object.kind,interactionPosition:{x:item.x,z:item.z},interiorId:object.id,sourceId:item.id,sourceKind:item.kind,housingTrait:true});
     }
     const halfDepth=Math.max(1.2,(def.d||10)/2-1.25);
     stations.push({id:`exit.${object.id}`,label:'外へ出る',x:0,z:halfDepth,radius:1.05,exitInterior:true,interiorId:object.id});

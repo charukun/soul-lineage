@@ -33,9 +33,10 @@ test('P5 terrain-blocked core contact cannot apply a hidden body injury before b
   let blocked=0;
   for(let tick=0;tick<240;tick++){
     state.position={x:-3.75,z};enemy.x=-2.75;enemy.z=z;state.moving=false;
-    const before=JSON.stringify([state.injuries,enemy.injuries||readSavedBody(null)]),hp=[state.hp,enemy.hp];
+    const wounds=()=>[state.injuries,enemy.injuries||readSavedBody(null)].map(body=>Object.fromEntries(Object.entries(body).map(([part,row])=>[part,row.severity])));
+    const before=JSON.stringify(wounds()),hp=[state.hp,enemy.hp];
     const events=tickCoreFront(state,front,1/60);
-    if(events.some(e=>e.type==='weapon-blocked')){blocked++;assert.deepEqual([state.hp,enemy.hp],hp);assert.equal(JSON.stringify([state.injuries,enemy.injuries||readSavedBody(null)]),before);}
+    if(events.some(e=>e.type==='weapon-blocked')){blocked++;assert.deepEqual([state.hp,enemy.hp],hp);assert.equal(JSON.stringify(wounds()),before);}
   }
   assert.ok(blocked>0,'exercise a real blocked executor contact');
 });
@@ -80,4 +81,9 @@ test('P6 projectile contacts cannot be replayed after a real save/restore or car
   state.equipment.weapon='staff';state.ammo.staffCharges=0;const target=front.enemies[0];target.x=0;target.z=1;state.rangedCombat={serial:2,cooldown:0,projectiles:[{id:'p-2',x:0,z:.5,vx:0,vz:8.5,ttl:1,damage:10,targetId:target.id}]};
   const events=[];tickRangedProjectiles(state,front,.1,events);assert.equal(events.filter(e=>e.projectile).length,1);const restored=deserializeLife(serializeLife(state)),resumed=normalizeFront(restored.frontState,0),before=structuredClone(resumed.enemies);const again=[];tickRangedProjectiles(restored,resumed,.1,again);assert.deepEqual(resumed.enemies,before);assert.equal(again.length,0);
   restored.rangedCombat.projectiles=[{id:'unresolved'}];restored.position.z=-5.85;assert.equal(advanceFront(restored),true);assert.deepEqual(restored.rangedCombat.projectiles,[]);assert.equal(restored.rangedCombat.serial,2);
+});
+
+test('a cleared nonlethal front saves and resumes without converting downed actors into kills',()=>{
+ const {state,front}=scenario();for(const enemy of front.enemies){enemy.downed=true;enemy.dead=false;enemy.hp=0;enemy.injuries=readSavedBody(null);enemy.injuries.torso.severity=.8;}front.cleared=true;
+ const restored=deserializeLife(serializeLife(state)),saved=normalizeFront(restored.frontState,front.stage);assert.equal(saved.cleared,true);assert.ok(saved.enemies.every(e=>e.downed&&!e.dead));assert.equal(restored.defeats,state.defeats);
 });

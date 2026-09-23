@@ -1,6 +1,6 @@
 import {BASIC_FORMS} from '@soul/game-data/combat-forms';
 import {resolveInspirationAnswer} from '@soul/game-data';
-import {resolveJohakyuMotion} from '@soul/johakyu-combat/motion-contract';
+import {resolveJohakyuMotion} from '@soul/johakyu-presentation/motion-bindings';
 import {skillDefinition} from './skill-system.js';
 import {techniqueName} from '../combat-loadout.js';
 
@@ -8,6 +8,7 @@ const freeze=Object.freeze;
 const basic=id=>typeof id==='string'&&id.startsWith('basic.')&&Object.hasOwn(BASIC_FORMS,id.slice(6));
 /** The current executor recipe owns identity even after the next policy changes. */
 export function executedTechniqueId(actor){
+  if(actor?.execution?.techniqueId)return actor.execution.techniqueId;
   const id=actor?.execution?.recipeId;
   return typeof id==='string'&&/^rinne-(jo|ha|kyu)-/.test(id)?id.replace(/^rinne-(jo|ha|kyu)-/,''):null;
 }
@@ -38,3 +39,4 @@ export function readJohakyuLoadoutProfile(state){
     oneMotion:technique.oneMotion??null,catalog:freeze(ids.filter(id=>basic(id)||skillDefinition(id)).map(id=>freeze({id,name:techniqueName(id,state),learned:(state.knownSkills||[]).includes(id)&&!state.inspiration?.records?.[id]?.archived,basic:basic(id)}))),
     pending:state.inspiration?.pending?freeze({id:state.inspiration.pending.id,status:'trial',committed:Boolean(state.inspiration.pending.committed)}):null});
 }
+
