@@ -11,10 +11,14 @@ def reject(w,cache,review_path):
     if sha256(w/f'build/{p}.ts')!=review['factorySha256']:raise ValueError('Rejected factory changed')
     for view,digest in review['captureSha256'].items():
         if sha256(out/(view+'.png'))!=digest:raise ValueError('Rejected capture changed: '+view)
-    spec=json.loads((w/'object-sculpt-spec.json').read_text());evidence=f'review/{p}/agent-rejection.json'
+    if json.loads((out/'render-receipt.json').read_text())['sourceHead']!=review['sourceHead']:raise ValueError('Rejected capture source head changed')
+    spec=json.loads((w/'object-sculpt-spec.json').read_text());evidence=f'review/{p}/agent-rejection-{review["id"]}.json'
     if any(evidence in row.get('evidence',[]) for row in spec.get('reviewHistory',[])):raise ValueError('Rejection is already recorded; use next without duplicating the loop count')
     write_json(w/evidence,review);install=install_boundary(cache,cache/'host')
-    args=['object-sculpt-spec.json','--pass-id',p,'--action',review['action'],'--fidelity',str(review['fidelity']),'--ai-vision-score',str(review['fidelity']),'--summary',review['reason'],'--layer-scores-json',json.dumps(review['layerScores']),'--feature-reviews-json',json.dumps(review['featureReviews']),'--reference-screenshot','source/front.png','--render-screenshot',f'review/{p}/front.png','--comparison-image',f'review/{p}/front-comparison.png','--review-viewpoints-json',json.dumps(review['viewpoints']),'--evidence',evidence,'--require-screenshot-files','--in-place']
+    files={}
+    for key in ('layerScores','featureReviews','viewpoints'):
+        files[key]=f'review/{p}/{review["id"]}-{key}.json';write_json(w/files[key],review[key])
+    args=['object-sculpt-spec.json','--pass-id',p,'--action',review['action'],'--fidelity',str(review['fidelity']),'--ai-vision-score',str(review['fidelity']),'--summary',review['reason'],'--layer-scores-json',files['layerScores'],'--feature-reviews-json',files['featureReviews'],'--reference-screenshot','source/front.png','--render-screenshot',f'review/{p}/front.png','--comparison-image',f'review/{p}/front-comparison.png','--review-viewpoints-json',files['viewpoints'],'--evidence',evidence,'--require-screenshot-files','--in-place']
     code=checked_run(install,w,'forge/stage4_review/append_review.py',args)
     if code:return code
     code=checked_run(install,w,'forge/next.py',['--state','.img2threejs/state.json'])

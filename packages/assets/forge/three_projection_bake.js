@@ -4,15 +4,20 @@
  */
 import {applyReferenceCamera} from './reference_camera.js';
 import {chartGutterPlan,applyChartGutter,auditBilinearSupport} from './uv_chart_gutter.js';
-export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,mapSources,{textureSize=1024}={}) {
+export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,mapSources,{textureSize=1024,physicalChannels='upstream-estimates'}={}) {
+  if(!['upstream-estimates','flat-illustration-albedo-only'].includes(physicalChannels))throw Error('Unknown physical-channel application policy');
   const names=['front','side','back'],channels=['albedo','roughness','normal','height','ao'];
   if(!names.every(v=>cameraFits[v]&&mapSources[v]))throw Error('Admitted front/side/back projection evidence is required');
   const views=[],loader=new THREE.TextureLoader(),savedTarget=renderer.getRenderTarget(),savedColor=renderer.getClearColor(new THREE.Color()),savedAlpha=renderer.getClearAlpha();
   model.rotation.y=0;model.updateMatrixWorld(true);
   const subject=new THREE.Box3().setFromObject(model).getBoundingSphere(new THREE.Sphere());
   for(const [name,angle] of [['front',0],['side',-Math.PI/2],['back',Math.PI]]){
-    const source=mapSources[name],maps={};
+    const source=mapSources[name],maps={},ownership={},maskCache=new Map();
     for(const channel of [...channels,'mask']){maps[channel]=await loader.loadAsync(channel==='mask'?source.foregroundMask:source.maps[channel]);maps[channel].colorSpace=THREE.NoColorSpace;}
+    for(const [component,url]of Object.entries(source.componentMasks||{})){
+      if(!maskCache.has(url)){const texture=await loader.loadAsync(url);texture.colorSpace=THREE.NoColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;maskCache.set(url,texture);}
+      ownership[component]=maskCache.get(url);
+    }
     const camera=applyReferenceCamera(THREE,new THREE.PerspectiveCamera(20,.5,.01,100),cameraFits[name]);
     const distance=camera.position.distanceTo(subject.center);
     camera.near=Math.max(.01,distance-subject.radius*1.5);camera.far=distance+subject.radius*1.5;camera.updateProjectionMatrix();
@@ -27,7 +32,7 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
     const [w,h]=source.imageSize,b=source.pbrCrop;
     // Upstream normal/roughness/height/AO are cropped; albedo and mask are full-view.
     const crop=new THREE.Vector4(b.x/w,1-(b.y+b.height)/h,b.width/w,b.height/h);
-    views.push({name,maps,matrix,target,crop});
+    views.push({name,maps,matrix,target,crop,ownership,maskCache});
   }
   const vertexShader=`attribute vec4 tangent;varying vec3 worldPoint;varying vec3 worldNormal;varying vec3 worldTangent;varying float tangentSign;
     void main(){worldPoint=(modelMatrix*vec4(position,1.)).xyz;worldNormal=normalize(normalMatrix*normal);worldTangent=normalize(mat3(modelMatrix)*tangent.xyz);tangentSign=tangent.w;gl_Position=vec4(uv*2.-1.,0.,1.);}`;
@@ -35,13 +40,17 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
     varying vec3 worldPoint;varying vec3 worldNormal;varying vec3 worldTangent;varying float tangentSign;
     uniform sampler2D frontImage,sideImage,backImage,frontDepth,sideDepth,backDepth,frontMask,sideMask,backMask;
     uniform mat4 frontMatrix,sideMatrix,backMatrix;uniform vec4 frontCrop,sideCrop,backCrop;
-    uniform vec3 fallbackColor;uniform int channelIndex;
+    uniform vec3 fallbackColor;uniform int channelIndex;uniform bool partOwnership;
     vec4 sampleView(sampler2D tex,sampler2D depthTex,sampler2D maskTex,mat4 camera,vec4 crop,vec3 p,float facing,vec3 right,vec3 normal){
       if(facing<=.001)return vec4(0.);
       vec4 clip=camera*vec4(p,1.);vec3 ndc=clip.xyz/clip.w;vec2 st=ndc.xy*.5+.5;
       if(min(st.x,st.y)<0.||max(st.x,st.y)>1.)return vec4(0.);
       float visible=1.-step(texture2D(depthTex,st).r+.00025,ndc.z*.5+.5);
-      float weight=pow(max(facing,0.),5.)*texture2D(maskTex,st).r*visible;
+      float mask=texture2D(maskTex,st).r;
+      // Require all bilinear source taps to belong to this observed surface.
+      // Reject source occluders; they must not be painted onto another part.
+      mask=step(.999,mask);
+      float weight=pow(max(facing,0.),5.)*mask*visible;
       if(weight<=.00001)return vec4(0.);
       vec2 uv=channelIndex==0?st:(st-crop.xy)/crop.zw;
       vec3 color=texture2D(tex,clamp(uv,0.,1.)).rgb;
@@ -87,8 +96,10 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
     for(let t=0;t<triangles;t++){const x=(t%cells)*cell,y=Math.floor(t/cells)*cell;uv.set([(x+padding)/size,(y+padding)/size,(x+cell-padding)/size,(y+padding)/size,(x+padding)/size,(y+cell-padding)/size],t*6);}
     geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));geometry.setIndex(Array.from({length:count},(_,i)=>i));geometry.computeTangents();
     const palette=mesh.material.userData.sculptMaterial?.baseColor||'#808080';
-    const uniforms={fallbackColor:{value:new THREE.Color().setStyle(palette,THREE.SRGBColorSpace).convertLinearToSRGB()},channelIndex:{value:0}};
-    for(const v of views){uniforms[v.name+'Image']={value:v.maps.albedo};uniforms[v.name+'Depth']={value:v.target.depthTexture};uniforms[v.name+'Mask']={value:v.maps.mask};uniforms[v.name+'Matrix']={value:v.matrix};uniforms[v.name+'Crop']={value:v.crop};}
+    const component=mesh.userData.sculptComponent?.id,owned=views.filter(v=>v.ownership[component]).length;
+    if(owned&&owned!==views.length)throw Error('Part ownership must declare each admitted view: '+component);
+    const uniforms={fallbackColor:{value:new THREE.Color().setStyle(palette,THREE.SRGBColorSpace).convertLinearToSRGB()},channelIndex:{value:0},partOwnership:{value:owned>0}};
+    for(const v of views){uniforms[v.name+'Image']={value:v.maps.albedo};uniforms[v.name+'Depth']={value:v.target.depthTexture};uniforms[v.name+'Mask']={value:v.ownership[component]||v.maps.mask};uniforms[v.name+'Matrix']={value:v.matrix};uniforms[v.name+'Crop']={value:v.crop};}
     const material=new THREE.ShaderMaterial({vertexShader,fragmentShader,uniforms,side:THREE.DoubleSide,depthTest:false,depthWrite:false,toneMapped:false});
     const scene=new THREE.Scene(),bakeMesh=new THREE.Mesh(geometry,material);bakeMesh.matrixAutoUpdate=false;bakeMesh.matrix.copy(mesh.matrixWorld);
     // The shader rasterizes UVs, not world coordinates. A world-space frustum
@@ -122,9 +133,16 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
     if(Object.values(coverage).reduce((sum,count)=>sum+count,0)===0)throw Error('UV bake produced no rasterized texels for '+mesh.name);
     mesh.geometry=geometry;
     mesh.material=new THREE.MeshStandardMaterial({map:textures.albedo,color:0xffffff,roughness:1,roughnessMap:textures.roughness,normalMap:textures.normal,normalScale:new THREE.Vector2(.12,.12),bumpMap:textures.height,bumpScale:.0005,aoMap:textures.ao,aoMapIntensity:.15,metalness:0});
+    if(physicalChannels==='flat-illustration-albedo-only'){
+      // A flat illustrated color boundary is not measured height or relief.
+      // Preserve every extracted map as evidence, but do not invent grooves
+      // from the eye/belt/cloth colors. Actual geometry still shades normally.
+      mesh.material.normalMap=mesh.material.bumpMap=mesh.material.aoMap=mesh.material.roughnessMap=null;
+      mesh.material.roughness=.9;
+    }
     mesh.material.userData.projection={source:'img2threejs camera/de-light/PBR evidence',coverage,physicalChannels:'inferred upstream estimates'};
-    outputs.push({mesh:mesh.name,width:size,height:size,triangles,files,coverage,geometryParity:parity,gutter:{rasterized:gutterPlan.rasterized,extended:gutterPlan.extended,filterSupport,semantics:'nearest covered texel within the same chart; provenance remains original'},provenanceMask:{64:'inferred palette',128:'mirrored opposite side',191:'interpolated multi-view blend',255:'observed de-lit pixels'},geometryStatus:'generated by pinned upstream from observed constraints; UV charting precedes freeze',method:'calibrated camera projection + depth visibility + unique UV charts + GPU rasterization',physicalChannels:'inferred; independent pinned-extractor fields, never albedo aliases'});
+    outputs.push({mesh:mesh.name,width:size,height:size,triangles,files,coverage,appliedPhysicalChannels:physicalChannels,surfaceOwnership:owned>0?'observed component mask':'subject foreground',geometryParity:parity,gutter:{rasterized:gutterPlan.rasterized,extended:gutterPlan.extended,filterSupport,semantics:'nearest covered texel within the same chart; provenance remains original'},provenanceMask:{64:'inferred palette',128:'mirrored opposite side',191:'interpolated multi-view blend',255:'observed de-lit pixels'},geometryStatus:'generated by pinned upstream from observed constraints; UV charting precedes freeze',method:'calibrated camera projection + depth visibility + unique UV charts + GPU rasterization',physicalChannels:'inferred; independent pinned-extractor fields, never albedo aliases'});
     material.dispose();
-  }}finally{renderer.setRenderTarget(savedTarget);renderer.setClearColor(savedColor,savedAlpha);for(const v of views){v.target.dispose();Object.values(v.maps).forEach(t=>t.dispose());}}
+  }}finally{renderer.setRenderTarget(savedTarget);renderer.setClearColor(savedColor,savedAlpha);for(const v of views){v.target.dispose();Object.values(v.maps).forEach(t=>t.dispose());for(const t of v.maskCache.values())t.dispose();}}
   return outputs;
 }

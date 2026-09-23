@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "rinne.forge-visual-review/v1",
+  "id": "scout-material-r3",
+  "pass": "material-pass",
+  "sourceHead": "6e673d946faf01c8a5ac424939f9f098cdd0bbac",
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35817352466",
+  "artifactId": 10731859410,
+  "artifactSha256": "0bf22e9b39686b528c60dadfb719d76681004ab8fb095bc521b7940cb7e39f69",
+  "factorySha256": "493c298be84a847c0e8ba643bb1435d0e593a0a0e6194962efcd42d1c18fa274",
+  "captureSha256": {
+    "front": "7722a5feefeeee1ad43515571287b13c8748b8853bcf5062eab6e045ded1be68",
+    "side": "7954567571981fd0796a97164c89f5a61dcc5f689f41aafe8b4de7fd8ca125c9",
+    "back": "1d91bc84f279585362121e7b1054b6c4f4efdce040b28956aca8ba4f7fddaf4c",
+    "front34": "0a2c28ab98ae6353e62b3e41bfe3766cfb2fbc5b3c783986b8b17fa540c173d3",
+    "rear34": "0463dc09d05d7263cba4170bbe8306eee65bdb1c214b8ddaaedd01a8e0e2f8fc",
+    "oppositeSide": "093a9ca1c82869ed1fa8f116354a00d487e7d865052cb7bec4cb5e279f276d2f",
+    "neutral": "b1b5022123080c3e039ebccd89983c27278e68cfd9d23a733fb03e5d9e56daf9",
+    "grazing-closeup": "46af6b49d0814bfc402494489c3a691335dba4c538b2679e620703c64870a995"
+  },
+  "action": "refine-code",
+  "fidelity": 0.74,
+  "layerScores": {
+    "silhouetteProportion": 0.9,
+    "componentStructure": 0.83,
+    "formDetail": 0.76,
+    "materialSurface": 0.59,
+    "lightingCamera": 0.86
+  },
+  "featureReviews": [
+    {
+      "id": "anatomy-proportion",
+      "score": 0.89,
+      "notes": "Accepted proportions remain intact."
+    },
+    {
+      "id": "face-landmark-placement",
+      "score": 0.79,
+      "notes": "Eyes and mouth read correctly; facial side surfaces still show seams."
+    },
+    {
+      "id": "pose-silhouette",
+      "score": 0.86,
+      "notes": "All views and both obliques are volumetric."
+    },
+    {
+      "id": "outfit-and-palette",
+      "score": 0.7,
+      "notes": "Teal front, blue back, belt and diamond retained, but hands contain projected cloth and oblique surface streaks remain."
+    }
+  ],
+  "reason": "Inspected actual three comparison sheets, both obliques, neutral and grazing. UV empty-support defect is fixed (28,210,176 edge tap checks, zero missing); most black speckles vanished. Material still rejected: cloth pixels on hands and skin on tunic sides, white boundary speckles and artificial longitudinal surface grooves. Back hair length conflicts with front/side source and remains an explicit reconstruction limitation. Next isolate source surface ownership and avoid applying inferred relief from flat color artwork. No Quality Floor acceptance.",
+  "viewpoints": [
+    "front",
+    "side",
+    "back",
+    "front-three-quarter",
+    "rear-three-quarter",
+    "neutral",
+    "grazing-closeup",
+    "thickness-axis",
+    "long-axis"
+  ],
+  "qualityFloorPassed": false
+}
