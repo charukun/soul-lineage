@@ -10,6 +10,7 @@ import {createInspirationMotionLab,createInspirationVfxLab} from './choreography
 import {applyReviewCombatMotion} from './hero-motion.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {resolveTechniquePresentation} from '@soul/johakyu-presentation/technique-presentation';
+import {applyObservedCombatLocomotionPose,combatStanceWeight,createObservedCombatLocomotion} from '@soul/johakyu-presentation/observed-locomotion';
 import {createSnapCameraControl,tiltCameraOffsetForZoom} from '@soul/rendering/snap-camera-control';
 import {createCameraDirector,externalCameraShot} from '@soul/rendering/camera-director';
 import {actorScreenSafety,applyCameraPresentation} from '@soul/rendering/camera-presentation-three';
@@ -20,16 +21,6 @@ const clamp=(value,lo,hi)=>Math.min(hi,Math.max(lo,value));
 const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
 const reviewerCharacter=(id,seed)=>createCharacter({id,seed,ageMs:28*YEAR_MS});
 
-function addGuardPose(bones,side){
-  if(bones.spine)bones.spine.rotation.x-=.055;
-  if(bones.leftUpperArm){bones.leftUpperArm.rotation.x-=.18;bones.leftUpperArm.rotation.z+=side==='hero'?-.18:.18;}
-  if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.28;bones.rightUpperArm.rotation.z+=side==='hero'?.16:-.16;}
-}
-function addStride(bones,time,amount){
-  if(amount<=0)return;const stride=Math.sin(time*8.2)*.34*amount;
-  if(bones.leftUpperLeg)bones.leftUpperLeg.rotation.x+=stride;if(bones.rightUpperLeg)bones.rightUpperLeg.rotation.x-=stride;
-  if(bones.leftUpperArm)bones.leftUpperArm.rotation.x-=stride*.4;if(bones.rightUpperArm)bones.rightUpperArm.rotation.x+=stride*.4;
-}
 function disposeNode(root){root.traverse(node=>{node.geometry?.dispose?.();const materials=Array.isArray(node.material)?node.material:[node.material];for(const material of materials.filter(Boolean))material.dispose?.();});root.clear();}
 function addBox(group,size,position,material){const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),material);mesh.position.set(...position);group.add(mesh);return mesh;}
 function addCylinder(group,radius,height,position,material){const mesh=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,height,10),material);mesh.position.set(...position);group.add(mesh);return mesh;}
@@ -93,6 +84,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
   const [protagonistRuntime,...monsters]=await Promise.all([createProtagonistCharacterPool(renderer),loadReviewMonsterModel('skeleton-minion'),loadReviewMonsterModel('skeleton-warrior'),loadReviewMonsterModel('skeleton-rogue')]);
   const heroPool=protagonistRuntime.pool,hero={actorId:'review-battle-hero',actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-hero',0x51f15e)),presentation:null,hp:null,hitUntil:0};
   hero.actor=heroPool.spawn(hero.actorId);hero.actor.root.name='ReviewBattle:hero';hero.actor.attachments.name='ReviewBattleAttachments:hero';stageRoot.add(hero.actor.root,hero.actor.attachments);
+  const heroLocomotion=createObservedCombatLocomotion();
   const enemies=monsters.map((actor,index)=>({actor,requested:REVIEW_MONSTER_MODELS[index]?.id||'skeleton-minion',presentation:null,hp:null,hitUntil:0}));
   stageRoot.add(enemies[0].actor.root);
   const heroWeaponRig={rightHand:hero.actor.bones?.rightHand||null,rightLowerArm:hero.actor.bones?.rightLowerArm||null},enemyWeaponRigs=enemies.map(side=>weaponRigFor(side.actor.root));
@@ -146,12 +138,14 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     if(!state)return;const hit=Number.isFinite(state.hp)&&hero.hp!==null&&state.hp<hero.hp;if(hit)hero.hitUntil=time+.15;hero.hp=Number.isFinite(state.hp)?state.hp:hero.hp;
     const presentation=reviewBattlePresentationFrame(state,target,hero.presentation,dt,{hit});hero.presentation=presentation;hero.actor.root.position.set(presentation.x,0,presentation.z);hero.actor.root.rotation.y=presentation.yaw;
     let frame=tidebreakFrameFromSnapshot(state,{targetId:target?.id||null,intent:'review-battle'});
+    const held=combatStanceWeight({active:Boolean(target&&!state.dead&&!state.downed),attack:Boolean(frame?.attack),progress:frame?.progress});
+    const gait=heroLocomotion.sample({x:presentation.x,z:presentation.z,yaw:presentation.yaw},dt,{combatWeight:held});
     const sequence=techniquePlayback?reviewInspirationSequenceFrame(playbackTime-techniquePlayback.startedAt):null;
     if(techniquePlayback&&sequence?.executeProgress>0&&sequence.stage!=='done'){const steps=techniquePlayback.steps||[],scaled=sequence.executeProgress*Math.max(1,steps.length),index=Math.min(steps.length-1,Math.floor(scaled)),step=steps[index];if(step)frame=tidebreakFrameFromSnapshot({...state,attack:step.kind,progress:scaled%1,slot:techniquePlayback.phase},{targetId:target?.id||null,intent:'review-battle-inspiration'});}
     if(sequence&&sequence.stage!=='done'&&target&&sequence.spacing>0){const dx=hero.actor.root.position.x-(Number(target.x)||0),dz=hero.actor.root.position.z-(Number(target.z)||0),len=Math.max(.001,Math.hypot(dx,dz));hero.actor.root.position.x+=dx/len*1.72*sequence.spacing;hero.actor.root.position.z+=dz/len*1.72*sequence.spacing;hero.actor.root.position.y+=Math.sin(Math.min(1,sequence.backstepProgress||0)*Math.PI)*.07;}
     const nearMiss=sequence&&target?nearMissVector(target,sequence,techniquePlayback?.nearMissSide||1):null;if(nearMiss?.amount){hero.actor.root.position.x+=nearMiss.x;hero.actor.root.position.z+=nearMiss.z;}
     if(sequence?.strikeTravel>0&&target){const dx=(Number(target.x)||0)-hero.actor.root.position.x,dz=(Number(target.z)||0)-hero.actor.root.position.z,len=Math.max(.001,Math.hypot(dx,dz)),travel=Math.min(1.12,Math.max(0,len-.86))*sequence.strikeTravel;hero.actor.root.position.x+=dx/len*travel;hero.actor.root.position.z+=dz/len*travel;}
-    hero.actor.sample(hero.appearance,time,(bones,sampleTime)=>{addStride(bones,sampleTime,presentation.stride);if(nearMiss?.amount){const lean=(techniquePlayback?.nearMissSide||1)*nearMiss.amount/.34;if(bones.hips)bones.hips.rotation.y+=lean*.07;if(bones.spine)bones.spine.rotation.z+=lean*.12;if(bones.head)bones.head.rotation.z-=lean*.075;}if(sequence?.stage==='reveal'){if(bones.spine)bones.spine.rotation.x-=.16;if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.7;bones.rightUpperArm.rotation.z+=.35;}}if(sequence?.executeProgress>0&&sequence.stage!=='done'&&bones.spine)bones.spine.rotation.y+=Math.sin(sequence.executeProgress*Math.PI*2)*.22;if(!frame?.attack)addGuardPose(bones,'hero');applyTidebreakPose(bones,frame);applyReviewCombatMotion(bones,frame,sequence,sampleTime);if(time<hero.hitUntil&&bones.spine)bones.spine.rotation.z-=.13;});
+    hero.actor.sample(hero.appearance,time,(bones,sampleTime)=>{applyObservedCombatLocomotionPose(bones,gait,{guardArms:true,breath:Math.sin(sampleTime*2.35)});if(nearMiss?.amount){const lean=(techniquePlayback?.nearMissSide||1)*nearMiss.amount/.34;if(bones.hips)bones.hips.rotation.y+=lean*.07;if(bones.spine)bones.spine.rotation.z+=lean*.12;if(bones.head)bones.head.rotation.z-=lean*.075;}if(sequence?.stage==='reveal'){if(bones.spine)bones.spine.rotation.x-=.16;if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.7;bones.rightUpperArm.rotation.z+=.35;}}if(sequence?.executeProgress>0&&sequence.stage!=='done'&&bones.spine)bones.spine.rotation.y+=Math.sin(sequence.executeProgress*Math.PI*2)*.22;applyTidebreakPose(bones,frame);applyReviewCombatMotion(bones,frame,sequence);if(time<hero.hitUntil&&bones.spine)bones.spine.rotation.z-=.13;});
     if(sequence&&sequence.stage!=='done')inspirationMotion.applyHero(sequence,{side:techniquePlayback?.nearMissSide||1,weapon:state.weapon||'sword',steps:techniquePlayback?.steps||[],techniqueId:techniquePlayback?.id||'',techniqueName:techniquePlayback?.name||'',phase:techniquePlayback?.phase||'ha'});
     hero.actor.updateAttachments();hero.actor.root.updateMatrixWorld(true);updateWeaponVisual(weaponVisuals[0],state,heroWeaponRig);
   }

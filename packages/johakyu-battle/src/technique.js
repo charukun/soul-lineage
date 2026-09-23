@@ -18,6 +18,11 @@ export function techniqueName(id){
   const answer=resolveInspirationAnswer(id);
   return id?.startsWith('basic.') ? BASIC_LABELS[id.slice(6)] : LABELS[id] || (answer && inspirationTechniqueName(answer)) || id;
 }
+// Trial-only combat presentation. These durations never modify the world clock.
+export const FIRST_INSPIRATION_PRESENTATION=Object.freeze({
+  protectionSeconds:.9, targetStaggerSeconds:.48, bossStaggerSeconds:.12,
+  cue:'閃', effect:'finisher', trail:'slash'
+});
 export function defineTechnique(raw,{weapon='sword'}={}){
   const id=raw?.techniqueId||raw?.id,steps=raw?.stages||raw?.steps;
   if(!id || !Array.isArray(steps) || !steps.length) throw new TypeError('Technique identity and stages required');
@@ -34,6 +39,7 @@ export function defineTechnique(raw,{weapon='sword'}={}){
   return freeze({techniqueId:id,id,name:raw.name||techniqueName(id),label:raw.name||techniqueName(id),weapon,
     weaponCompatibility:compatibility?.length?[...compatibility]:Object.keys(BASIC_FORMS),traits:[...(raw.traits||[])],
     rhythm:raw.rhythm||'flow',tempo:Number(raw.tempo)||1,grade:raw.grade||'normal',source:raw.source||'inspiration',
+    firstInspirationPresentation:raw.source==='trial'?freeze({...FIRST_INSPIRATION_PRESENTATION}):null,
     stages,steps:stages.map(({kind,footwork,charge})=>({kind,footwork,charge}))});
 }
 export function resolveTechnique(id,{weapon='sword',definition=null,name=null}={}){

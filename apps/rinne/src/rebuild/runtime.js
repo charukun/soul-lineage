@@ -71,7 +71,7 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   host.dispose=()=>{if(host.disposed)return;host.disposed=true;host.active=false;stopTitlePreview();canvas.dataset.runtime='disposed';view.dispose();};
   return host;
 }
-export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProgress,prepared,coop=null,family=null,expectedSave=undefined}={}){
+export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProgress,prepared,coop=null,deathCinematic=null,family=null,expectedSave=undefined}={}){
   const ownsPrepared=!prepared,host=prepared||await prepareRuntime({buildInfo,onProgress});
   if(host.disposed)throw Error('描画世界は終了済みです');
   if(host.active)throw Error('人生はすでに始まっています');
@@ -133,13 +133,14 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
   function dialogue(speaker,text){$('speaker').textContent=speaker;$('dialogue-text').textContent=text;$('dialogue').hidden=false;clearTimeout(dialogue.timer);dialogue.timer=setTimeout(()=>$('dialogue').hidden=true,4200);}
   function showBirthIntro(){birth.showIntro();}
   async function rebirthCurrent(villageId=null){
+    deathCinematic?.reset?.();
     if(coop){rebirthPending=true;await coop.rebirth(villageId);return;}
     state=rebirth(state,{villageId,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);skirmish=createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();syncUI();armMovementHint();showBirthIntro();toast(`${state.generation}代目 · 0歳`);
   }
   function endLife(){
     view.clearCombatEffects?.();
     if(onLifeHome&&!familyHomePending){
-      familyHomePending=true;void (async()=>{try{await save();const action=await onLifeHome(structuredClone(state));if(action==='rebirth')await rebirthCurrent(null);else if(action==='title')await exitToTitle();}catch(error){console.error(error);toast('一族の記録を開けませんでした');}finally{familyHomePending=false;}})();return;
+      familyHomePending=true;void (async()=>{try{await save();await deathCinematic?.playDeath?.({kicker:'葬焉',title:'DEAD',caption:state.ageYears>=LIFE_YEARS?'百年の刻が閉じる':'この生は、次の刻へ',watchCaption:'時は血を継ぐ'});const action=await onLifeHome(structuredClone(state));if(action==='rebirth')await rebirthCurrent(null);else if(action==='title')await exitToTitle();}catch(error){console.error(error);toast('一族の記録を開けませんでした');}finally{familyHomePending=false;}})();return;
     }
     if(onLifeHome||endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
@@ -164,15 +165,15 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
     if(event.type==='village-news'&&event.text)toast(`村報 · ${event.text}`);
     if(event.villageAnnouncement)toast(`村報 · ${event.villageAnnouncement}`);
     if(event.type==='birthday'&&[7,15,50,80].includes(event.age))toast(`${event.age}歳`);
-    if(event.type==='life-end')endLife();
+    if(event.type==='life-end')endLife(event);
     if(event.type==='player-hit')gameScreen.classList.add('strike-mark');
     if(event.type==='enemy-hit'){pulseHurt();gameScreen.dispatchEvent?.(new CustomEvent('rinne:combat-feedback',{detail:{type:'enemy-hit'}}));}
     if(event.type==='evaded')toast('見切った');
     if(event.type==='enemy-downed')toast('戦闘不能 · 近づいてとどめ');
     if(event.type==='finisher-start')toast('とどめ');
     if(event.type==='enemy-down')toast('撃破');
-    if(event.type==='downed'){pulseHurt();toast('行動不能 · 救助待ち');}
-    if(event.type==='rescued')toast('衛兵に救助された');
+    if(event.type==='downed'){pulseHurt();deathCinematic?.down?.({caption:'意識が遠のく'});toast('行動不能 · 救助待ち');}
+    if(event.type==='rescued'){deathCinematic?.recover?.();toast('衛兵に救助された');}
   }}
   function setAxis(next){axis=next;const len=Math.hypot(axis.x,axis.y);if(len>1){axis={x:axis.x/len,y:axis.y/len};}}
   function movementAxis(){
@@ -260,7 +261,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
     if(!active)return;active=false;host.active=false;locomotion.reset();view.clearLocomotion?.();firstRunGuide?.dispose?.();firstRunGuide=null;view.clearCombatEffects?.();cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();villageWalk.dispose();unsubscribeWorld();
     window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);
     document.removeEventListener('visibilitychange',visibility);for(const key of Object.keys(canvas.dataset))if(key.startsWith('coop'))delete canvas.dataset[key];view.syncPeers([]);$('coop-darkness').hidden=true;$('coop-people').textContent='';$('clock-rate').disabled=false;
-    keys.clear();swipe.cancel();setAxis({x:0,y:0});endDialog?.remove();endDialog=null;$('dialogue').hidden=true;$('toast').hidden=true;canvas.dataset.runtime='prepared';
+    keys.clear();swipe.cancel();setAxis({x:0,y:0});deathCinematic?.reset?.();endDialog?.remove();endDialog=null;$('dialogue').hidden=true;$('toast').hidden=true;canvas.dataset.runtime='prepared';
     if(ownsPrepared)host.dispose();
   }
   return{dispose,exitToTitle,save:()=>save(),snapshot:()=>structuredClone(state),prepared:host};

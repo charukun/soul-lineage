@@ -1,7 +1,6 @@
 import {createRinneWeapon} from '@soul/assets/equipment/three';
 import {presentBattleFrame,presentBattleEvents} from './battle-presentation.js';
 import {JOHAKYU_WEAPON_MOTIONS} from './motion-bindings.js';
-import {observedLocomotion} from './observed-locomotion.js';
 import {createCanonicalPresentationDriver} from './driver.js';
 import {resolveFatiguePresentation} from './fatigue.js';
 import {sampleFatigueMotion} from './fatigue-motion.js';
@@ -19,7 +18,7 @@ import {buildNocturneEnvironment} from './environment.js';
 import {createTechniqueVfxRuntime} from './technique-vfx-runtime.js';
 import {cameraForMotion} from './motion-camera.js';
 import {impactReactionEnvelope,impactReactionProfile} from './impact-reaction.js';
-import {downedPresentationSample} from './downed-presentation.js';
+import {activateSampledDownedAction,downedPresentationSample} from './downed-presentation.js';
 
 export function createBattleRuntime({world,effects,stage,sound,notify,signal,rules=null,presentationPort=null,cameraPresentation=null}){
 const V=THREE.Vector3,TAU=Math.PI*2;let disposed=false,rounds=0,allKills=0,renderedDeaths=0;
@@ -694,7 +693,6 @@ function createDrivenPort(){
   self(a){hero=a;selfBinding=a;},
   update(a,row,dt,{initial}){
    if(Number.isFinite(row.battleTime)){const previous=a.lastBattleTime??row.battleTime;a.lastBattleTime=row.battleTime;dt=Math.max(0,row.battleTime-previous);}
-   const observedClip=!initial&&dt>0?observedLocomotion(a.pos,row.position,row.yaw):null;
    a.canonicalRow=row;a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;clearFatigueRig(a);clearParryRig(a);clearImpactRig(a);const contactHeld=Boolean(a.contactHold?.remaining>0);if(a.spawn>0)a.spawn=Math.max(0,a.spawn-dt);const reactionDt=contactHeld?0:dt;if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-reactionDt);if(a.reaction.remaining<=0)a.reaction=null;}if(a.parryRecoil){a.parryRecoil.remaining=Math.max(0,a.parryRecoil.remaining-reactionDt);if(a.parryRecoil.remaining<=0)a.parryRecoil=null;}if(a.impactRecoil){a.impactRecoil.remaining=Math.max(0,a.impactRecoil.remaining-reactionDt);if(a.impactRecoil.remaining<=0)a.impactRecoil=null;}if(a.contactHold){a.contactHold.remaining=Math.max(0,a.contactHold.remaining-dt);if(a.contactHold.remaining<=0)a.contactHold=null;}
    const zanshinActive=row.phaseCue?.phase==='zanshin';
    if(a.wasZanshin&&!zanshinActive){a.sheathed=true;a.sheathMotion=null;a.drawMotion=null;}
@@ -708,11 +706,11 @@ function createDrivenPort(){
     if(row.equipment.shield){let shield=a.root.getObjectByName('Round_Shield');if(!shield){shield=models.get('adventurers/Knight').scene.getObjectByName('Round_Shield')?.clone(true);const socket=a.root.getObjectByName('handslot.l')||a.root.getObjectByName('handslotl');if(!shield||!socket)throw Error('Missing authored shield socket');socket.add(shield);}shield.visible=true;}
     a.equipmentKey=equipmentKey;
    }
-   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,spawnClip=!terminal&&a.spawnStyle==='battlebk-ground'&&a.spawn>0?'Spawn_Ground_Skeletons':null,contactClip=!terminal&&!spawnClip?a.contactHold?.clip:null,reactionClip=!terminal&&!spawnClip&&!contactClip?a.reaction?.clip:null,phaseCue=!terminal&&!spawnClip&&!reactionClip&&!contactClip&&!action?row.phaseCue:null,phaseCueClip=phaseCue?.clip??null,actionClip=action?.presentationClip??action?.motion.clip,locomotionClip=!spawnClip&&!phaseCue&&!action&&row.moving?(row.locomotion?.clip||(observedClip&&a.clips.has(observedClip)?observedClip:null)):null;
+   const action=row.action,terminal=row.dead?(a.kind==='hero'?'Death_A':'Death_C_Skeletons'):row.downed?'Lie_Down':null,spawnClip=!terminal&&a.spawnStyle==='battlebk-ground'&&a.spawn>0?'Spawn_Ground_Skeletons':null,contactClip=!terminal&&!spawnClip?a.contactHold?.clip:null,reactionClip=!terminal&&!spawnClip&&!contactClip?a.reaction?.clip:null,phaseCue=!terminal&&!spawnClip&&!reactionClip&&!contactClip&&!action?row.phaseCue:null,phaseCueClip=phaseCue?.clip??null,actionClip=action?.presentationClip??action?.motion.clip,locomotionClip=!spawnClip&&!phaseCue&&!action&&row.moving?(row.locomotion?.clip||null):null;
    const clip=terminal||spawnClip||contactClip||reactionClip||phaseCueClip||actionClip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
    const key=terminal||(spawnClip?'spawn:battlebk-ground':contactClip?('contact:'+a.contactHold.serial+':'+contactClip):reactionClip?('reaction:'+a.reaction.serial+':'+reactionClip):phaseCue?('phase-cue:'+phaseCue.key+':'+phaseCueClip):((action?.id||(locomotionClip?('locomotion:'+(row.locomotion?.kind||'observed')+':'+locomotionClip):clip))+':'+(action?.step??0)));
-   if(a.canonicalAction!==key){play(a,clip,Boolean(terminal||spawnClip||reactionClip||contactClip||action||row.hit),spawnClip?.8:0);a.canonicalAction=key;a.deathTime=0;if(action&&!terminal&&!spawnClip&&!reactionClip&&!contactClip){a.startGlow=.18;a.startGlowPhase=action.phase;}}
-   if(row.downed&&!row.dead&&terminal){const sample=downedPresentationSample(row,a.clips.get(terminal)?.duration);a.presentationActionId=null;a.action.paused=true;a.action.time=sample.time;a.mixer.update(0);a.object.updateMatrixWorld(true);}
+   if(a.canonicalAction!==key){if(row.downed&&!row.dead&&terminal){const downClip=a.clips.get(clip);if(!downClip)throw Error('Missing NOCTURNE animation: '+a.kind+'/'+clip);const downAction=a.mixer.clipAction(downClip);activateSampledDownedAction(a.mixer,downAction);a.action=downAction;a.actionName=clip;record('animation',{kind:a.kind,name:clip,once:true});}else play(a,clip,Boolean(terminal||spawnClip||reactionClip||contactClip||action||row.hit),spawnClip?.8:0);a.canonicalAction=key;a.deathTime=0;if(action&&!terminal&&!spawnClip&&!reactionClip&&!contactClip){a.startGlow=.18;a.startGlowPhase=action.phase;}}
+   if(row.downed&&!row.dead&&terminal){const sample=downedPresentationSample(row,a.clips.get(terminal)?.duration);a.presentationActionId=null;a.action.paused=true;a.action.setEffectiveWeight?.(1);a.action.time=sample.time;a.mixer.update(0);a.object.updateMatrixWorld(true);}
    else if(spawnClip&&!terminal){a.presentationActionId=null;a.action.paused=false;a.mixer.update(dt);}
    else if(contactClip&&!terminal){const held=a.contactHold;a.action.paused=true;a.action.time=Math.min(a.clips.get(contactClip).duration-.000001,held.progress*a.clips.get(contactClip).duration);a.mixer.update(0);}
    else if(reactionClip&&!terminal){a.action.paused=false;a.mixer.update(dt);}

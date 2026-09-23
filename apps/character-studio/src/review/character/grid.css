@@ -37,7 +37,7 @@ body.simple-review.character-grid-ready .review-controls{
 .character-review-heading small{font-size:8px;color:#829088;font-weight:750;letter-spacing:.1em}
 .character-model-grid{
   display:grid!important;
-  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
   align-content:start;
   gap:5px!important;
 }
@@ -151,7 +151,7 @@ body.simple-review.character-grid-ready .stage-status #status[data-error="true"]
   }
   body.simple-review.character-grid-ready .character-review-picker{padding:9px!important;gap:7px!important}
   body.simple-review.character-grid-ready .character-model-grid{
-    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    grid-template-columns:repeat(6,minmax(0,1fr))!important;
     gap:4px!important;
   }
   body.simple-review.character-grid-ready .character-model-card{
@@ -168,5 +168,4 @@ body.simple-review.character-grid-ready .stage-status #status[data-error="true"]
 }
 
 .character-model-thumbnail{display:block;width:100%;height:auto;aspect-ratio:288/184;object-fit:contain;border-radius:5px}
-
 

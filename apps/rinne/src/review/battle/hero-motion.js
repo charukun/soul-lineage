@@ -13,17 +13,6 @@ function styleFor(attack){
   if(THRUST.has(attack))return 'thrust';
   return 'strike';
 }
-function idleGuard(bones,time){
-  const breath=Math.sin((Number(time)||0)*2.35);
-  rotate(bones.hips,0,breath*.025);
-  rotate(bones.spine,-.11-breath*.012,breath*.018);
-  rotate(bones.head,0,-breath*.012);
-  rotate(bones.leftUpperLeg,.12);rotate(bones.rightUpperLeg,-.07);
-  rotate(bones.leftLowerLeg,-.14);rotate(bones.rightLowerLeg,-.1);
-  rotate(bones.leftUpperArm,-.26,0,-.2);rotate(bones.rightUpperArm,-.42,0,.18);
-  rotate(bones.leftLowerArm,-.5);rotate(bones.rightLowerArm,-.58);
-}
-
 function backstepPose(bones,sequence){
   const p=clamp(Number(sequence?.backstepProgress)||0,0,1);
   if(p<=0)return false;
@@ -63,11 +52,11 @@ function strikePose(bones,{release,recover,cinematic}){
 }
 const STYLE_POSE=Object.freeze({sweep:sweepPose,thrust:thrustPose,strike:strikePose});
 
-export function applyReviewCombatMotion(bones,frame,sequence,time){
+export function applyReviewCombatMotion(bones,frame,sequence){
   if(!bones)return;
   const attack=String(frame?.attack||'');
-  if(backstepPose(bones,sequence)){if(!attack)idleGuard(bones,time);return;}
-  if(!attack){idleGuard(bones,time);return;}
+  if(backstepPose(bones,sequence))return;
+  if(!attack)return;
   const progress=clamp(Number(frame?.progress)||0,0,1),cinematic=sequence?.stage==='execute'?1.16:1;
   const wind=smooth01(clamp(progress/.24,0,1)),release=smooth01(clamp((progress-.18)/.42,0,1));
   const recover=smooth01(clamp((progress-.62)/.38,0,1)),strike=Math.sin(clamp((progress-.08)/.78,0,1)*Math.PI);

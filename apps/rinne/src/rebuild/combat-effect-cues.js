@@ -25,6 +25,13 @@ export function combatEffectCues(events, {state, front, hostiles=[], anchors={}}
   const hitTargets=new Set(events.filter(e=>e?.type==='player-hit'&&finite(e.damage)&&e.damage>0).map(e=>e.targetId));
   const cues=[];
   for(const event of events){
+    if(event?.type==='inspiration-start'){
+      const origin=point(event.position)|| (event.sourceId===state.id?hero:null);
+      if(origin)cues.push({effect:event.firstInspirationPresentation?.effect||'finisher',
+        position:{...origin},rotation:{x:0,y:0,z:0},scale:1.5,lifetime:.8,
+        color:[255,238,176,255],priority:3,kind:'inspiration-world'});
+      continue;
+    }
     if(!event||!finite(event.damage)||event.damage<=0)continue;
     const manual=event.type==='one-motion'||event.type==='finisher';
     if(manual&&hitTargets.has(event.targetId))continue;

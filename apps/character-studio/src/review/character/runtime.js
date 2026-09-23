@@ -12,6 +12,7 @@ import {createReviewLoadController} from '@soul/shared-ui/review-load-controller
 import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
 import {createImg2ThreeReferenceCharacter} from '../../img2threejs-bald-chibi.js';
+import {createReferenceChibi,REFERENCE_CHIBI_ID} from '../../../../../packages/assets/src/procedural-character/create-reference-chibi.js';
 
 const el = id => document.getElementById(id);
 const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null, displayModelId: null };
@@ -100,13 +101,7 @@ function start() {
   const marker = new THREE.Mesh(new THREE.RingGeometry(.48, .51, 48), new THREE.MeshBasicMaterial({ color: '#dcc493', side: THREE.DoubleSide }));
   marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
-  let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
-  let procedural = null;
-  function clearProcedural() {
-    if (!procedural) return;
-    procedural.removeFromParent(); disposeTemplate(procedural); procedural = null;
-    actors.forEach((actor, i) => actor.setVisible(settings.view === 'crowd' || i === settings.selected));
-  }
+  let pool = null, template = null, proceduralRoot = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
   let activeModelLabel = defaultModel.label;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
   const simpleModelReview = document.body.classList.contains('simple-review');
@@ -147,7 +142,7 @@ function start() {
   function arrange() {
     const columns = Math.ceil(Math.sqrt(settings.count)), rows = Math.ceil(settings.count / columns);
     actors.forEach((actor, i) => {
-      actor.setVisible(!procedural && (settings.view === 'crowd' || i === settings.selected));
+      actor.setVisible(!proceduralRoot && (settings.view === 'crowd' || i === settings.selected));
       actor.root.position.set(settings.view === 'single' ? 0 : (i % columns - (columns - 1) / 2) * 2.1, 0,
         settings.view === 'single' ? 0 : (Math.floor(i / columns) - (rows - 1) / 2) * 2.3);
       actor.root.rotation.y = settings.rotate ? elapsed * .22 : 0; actor.resetSecondary();
@@ -155,17 +150,17 @@ function start() {
     updateMarker();
   }
   function updateMarker() {
-    const actor = actors[settings.selected]; marker.visible = !procedural && Boolean(actor?.root.visible);
+    const actor = actors[settings.selected]; marker.visible = !proceduralRoot && Boolean(actor?.root.visible);
     if (actor) { marker.position.x = actor.root.position.x; marker.position.z = actor.root.position.z; }
   }
   function aim(preset = 'overview') {
     cameraPreset = preset;
     if (motionQA?.active) { motionQA.aim(preset === 'side' ? 'left' : ['front','back'].includes(preset) ? preset : 'front'); return; }
-    const actor = procedural ? {root:procedural} : actors[settings.selected]; if (!actor) return;
+    const actor = actors[settings.selected]; if (!actor && !proceduralRoot) return;
     if (simpleModelReview) {
       const sharedPreset=preset==='overview'?'three-quarter':preset;
       camera.fov=38;camera.updateProjectionMatrix();
-      positionReviewCamera({camera,controls:orbit,root:actor.root,preset:sharedPreset,padding:1.14,minDistance:.35,maxDistance:18});
+      positionReviewCamera({camera,controls:orbit,root:proceduralRoot || actor.root,preset:sharedPreset,padding:proceduralRoot?.userData?.img2threejs?1.36:proceduralRoot?1.7:1.14,minDistance:.35,maxDistance:18});
       resetMeasure();return;
     }
     let target, distance;
@@ -261,8 +256,13 @@ function start() {
     else refreshLooks();
     background();
   }
+  function clearProcedural() {
+    if (!proceduralRoot) return;
+    proceduralRoot.removeFromParent(); disposeTemplate(proceduralRoot);
+    proceduralRoot = null; review.proceduralRoot = null;
+  }
   async function load(getBytes, auditDocument = auditKaykitDocument, rigBuilder = kaykitReviewRig) {
-    if (!alive) return; const loadToken=modelLoads.begin(); loading = true; retry = getBytes; retryAudit = auditDocument; retryRig = rigBuilder; review.ready = false; el('retry').disabled = true; el('progress').value = .1;
+    if (!alive) return; clearProcedural(); arrange(); const loadToken=modelLoads.begin(); loading = true; retry = getBytes; retryAudit = auditDocument; retryRig = rigBuilder; review.ready = false; el('retry').disabled = true; el('progress').value = .1;
     status('モデル取得・ハッシュと利用条件を確認中…'); let nextTemplate = null, nextPool = null, installed = false;
     try {
       const bytes = await getBytes(); if (!alive || !modelLoads.isCurrent(loadToken)) return;
@@ -352,7 +352,7 @@ function start() {
         if (enabled && actor.secondaryJointCount) physicsActors++;
         if (!settings.paused) actor.updateSecondary(dt, enabled && !motionQA?.active);
       });
-      if (procedural && settings.rotate && !settings.paused) procedural.rotation.y = elapsed * .22;
+      if (proceduralRoot) { proceduralRoot.rotation.y = settings.rotate ? elapsed * .22 : 0; drawnActors = 1; }
       renderer.render(scene, camera);
       if (!settings.paused && Number.isFinite(actual) && actual > 0) { if (warmup > 0) warmup--; else { frames.push(actual * 1000); if (frames.length > 600) frames.shift(); } }
       if (now - lastMetrics > 500) {
@@ -366,6 +366,17 @@ function start() {
     review.displayModelId = null;
     activeModelLabel = defaultModel.label;
     return load(defaultBytes, auditKaykitDocument, kaykitReviewRig);
+  };
+  review.loadProceduralChibi = () => {
+    if (!simpleModelReview || !pool || !review.ready) throw new Error('キャラクターモデルの準備中です');
+    modelLoads.invalidate(); modelRequestSequence++;
+    clearProcedural(); proceduralRoot = createReferenceChibi(THREE);
+    scene.add(proceduralRoot); review.proceduralRoot = proceduralRoot;
+    review.displayModelId = REFERENCE_CHIBI_ID;
+    activeModelLabel = '正面図チビキャラ';
+    arrange(); aim('front');
+    status('正面図チビキャラ · 背面と奥行きは推定した3D確認候補');
+    window.dispatchEvent(new Event('character-review-change'));
   };
   review.loadFoundationModel = model => {
     modelRequestSequence++;
@@ -425,10 +436,10 @@ function start() {
     try {
       const next = await createImg2ThreeReferenceCharacter();
       if (!alive || request !== modelRequestSequence) { disposeTemplate(next); return; }
-      clearProcedural(); procedural = next; scene.add(procedural); arrange();
+      clearProcedural(); proceduralRoot = next; scene.add(proceduralRoot); review.proceduralRoot = proceduralRoot; arrange();
       review.displayModelId = 'img2threejs.bald-chibi.v1';
-      review.audit = {approved:true,modelId:review.displayModelId,source:{revision:procedural.userData.img2threejs.revision}};
-      review.ready = true; activeModelLabel = 'img2threejs 参照キャラ';
+      review.audit = {approved:true,modelId:review.displayModelId,source:{revision:proceduralRoot.userData.img2threejs.revision}};
+      review.ready = true; el('progress').value = 1; activeModelLabel = 'img2threejs 参照キャラ';
       aim('front'); renderer.render(scene,camera); status('img2threejs 参照キャラを表示中。ドラッグまたは回転ボタンで厚みを確認できます。');
       window.dispatchEvent(new Event('character-review-change'));
     } catch (error) { if (request === modelRequestSequence) report(error); }

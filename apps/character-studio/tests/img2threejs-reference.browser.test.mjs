@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { spawn, execFileSync } from 'node:child_process';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -20,13 +20,13 @@ async function ready() {
 
 test('standalone turntable and real selection canvas render the same full-depth model', { timeout: 240000 }, async () => {
   await mkdir(evidence, { recursive:true });
-  if (process.env.CI) execFileSync('npx', ['playwright', 'install', 'chromium'], { cwd:repo, stdio:'inherit' });
+  if (process.env.CI && !process.env.IMG2THREEJS_CHROME) execFileSync('npx', ['playwright', 'install', 'chromium'], { cwd:repo, stdio:'inherit' });
   execFileSync(process.execPath, ['scripts/prepare-kaykit-foundation.mjs', 'character-studio'], { cwd:repo, stdio:'inherit' });
   const server = spawn(process.execPath, [path.join(repo,'node_modules/vite/bin/vite.js'), '--host','127.0.0.1','--port','5179','--strictPort'], { cwd:app, stdio:'pipe' });
   let browser;
   try {
     await ready();
-    browser = await chromium.launch({ headless:true, args:['--use-gl=angle','--use-angle=swiftshader','--enable-webgl'] });
+    browser = await chromium.launch({ headless:true, executablePath:process.env.IMG2THREEJS_CHROME || undefined, args:['--no-sandbox','--in-process-gpu','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--enable-webgl'] });
     const page = await browser.newPage({ viewport:{ width:1100,height:880 }, deviceScaleFactor:1 });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -41,6 +41,7 @@ test('standalone turntable and real selection canvas render the same full-depth 
     assert.ok(geometry.meshes > 35, 'actual 3D component hierarchy present');
     assert.ok(geometry.depth > .7, 'head depth must not be a flat card');
     await page.locator('[data-view="front"]').click();
+    await page.screenshot({ path:path.join(evidence,'comparison-front.png'), fullPage:true });
     await page.locator('#model').screenshot({ path:path.join(evidence,'standalone-front.png') });
     for (const view of ['right','back','left','three-quarter']) {
       await page.locator(`[data-view="${view}"]`).click();
@@ -50,6 +51,7 @@ test('standalone turntable and real selection canvas render the same full-depth 
     await page.waitForFunction(() => window.masterCharacterReview?.ready && window.characterStudio?.review);
     await page.locator('.character-model-card[data-model-key="img2threejs.bald-chibi.v1"]').click();
     await page.waitForFunction(() => window.masterCharacterReview?.audit?.modelId === 'img2threejs.bald-chibi.v1');
+    await page.locator('#load-indicator').waitFor({state:'hidden'});
     const state = await page.evaluate(() => {
       const review=window.masterCharacterReview;
       return { ready:review.ready, modelId:review.displayModelId, oldVisible:review.actors.some(a=>a.root.visible), errors:review.errors };
@@ -61,13 +63,15 @@ test('standalone turntable and real selection canvas render the same full-depth 
     await page.locator('#stage').screenshot({ path:path.join(evidence,'selection-front.png') });
     await page.locator('[data-camera="side"]').first().click();
     await page.locator('#stage').screenshot({ path:path.join(evidence,'selection-side.png') });
-    assert.deepEqual(errors, []);
-    console.log('IMG2THREEJS_BROWSER_EVIDENCE', JSON.stringify({ geometry,state,files:['standalone-front.png','standalone-right.png','standalone-back.png','standalone-left.png','standalone-three-quarter.png','selection-front.png','selection-side.png'] }));
-    // The existing runner has no artifact-upload step. Put two small visual proofs
-    // in the job log so the exact-head screenshots remain recoverable by run ID.
-    for (const name of ['standalone-right.png','selection-front.png']) {
-      const bytes=await readFile(path.join(evidence,name));
-      console.log(`IMG2THREEJS_PNG_${name}=${bytes.toString('base64')}`);
+    const otherChibi = page.locator('.character-model-card[data-model-key="reference-chibi-front-20260923"]');
+    if (await otherChibi.count()) {
+      await otherChibi.click();
+      assert.notEqual(await page.evaluate(() => window.masterCharacterReview.displayModelId), 'img2threejs.bald-chibi.v1');
+      await page.locator('.character-model-card[data-model-key="img2threejs.bald-chibi.v1"]').click();
+      await page.waitForFunction(() => window.masterCharacterReview?.displayModelId === 'img2threejs.bald-chibi.v1');
+      assert.equal(await page.evaluate(() => window.masterCharacterReview.actors.some(a => a.root.visible)), false);
     }
+    assert.deepEqual(errors, []);
+    console.log('IMG2THREEJS_BROWSER_EVIDENCE', JSON.stringify({ geometry,state,files:['comparison-front.png','standalone-front.png','standalone-right.png','standalone-back.png','standalone-left.png','standalone-three-quarter.png','selection-front.png','selection-side.png'] }));
   } finally { await browser?.close(); server.kill('SIGTERM'); }
 });
