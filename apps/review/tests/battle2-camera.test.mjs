@@ -15,7 +15,7 @@ test('序破急バトルビューは目玉操作を使い縦スライダーを�
   assert.match(css,/position:absolute!important;inset:0!important;left:0!important;top:0!important/);
   assert.match(stage,/createBattle2CameraPresentation\(\{stage,world\}\)/);
   assert.doesNotMatch(stage,/createCameraPositionControl|cameraPositionControl/);
-  assert.match(stage,/cameraPresentation,onMeta:updateSequence/);
+  assert.match(stage,/cameraPresentation,movementInput,onMeta:updateSequence/);
   assert.match(stage,/cameraPresentation\.dispose\(\)/);
   assert.match(controller,/createDrivenBattleRuntime\(\{world,effects,stage,sound,notify,signal,cameraPresentation\}\)/);
   assert.match(camera,/createCameraDirector\(\{profile:'current3d'\}\)/);

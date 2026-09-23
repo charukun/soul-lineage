@@ -11,10 +11,11 @@ test('manual input moves the canonical hero, respects bounds, and releases to au
   for(let i=0;i<20;i++){controlled.step(1/60);automatic.step(1/60);}
   assert.ok(controlled.actor('hero').position.x>.3);
   assert.ok(automatic.actor('hero').position.x<.01);
+  const beforeRelease=controlled.actor('hero').position.x;
+  assert.equal(controlled.setMovement('hero',null),true);
+  controlled.step(1/60);
+  assert.ok(controlled.actor('hero').position.x<=beforeRelease+.002);
+  controlled.setMovement('hero',{x:1,z:0});
   for(let i=0;i<90;i++)controlled.step(1/60);
   assert.ok(controlled.actor('hero').position.x<=1);
-  const before=controlled.actor('hero').position.z;
-  controlled.setMovement('hero',null);
-  for(let i=0;i<30;i++)controlled.step(1/60);
-  assert.ok(controlled.actor('hero').position.z>before);
 });
