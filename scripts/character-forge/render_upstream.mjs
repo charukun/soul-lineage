@@ -34,6 +34,10 @@ const model=${functionName}({textureSize:1024,qualityPriority:'reference-fidelit
 const hemi=new THREE.HemisphereLight(0xffffff,0x80909a,1.2);scene.add(hemi);const key=new THREE.DirectionalLight(0xffffff,2);key.position.set(2,4,3);scene.add(key);const rim=new THREE.DirectionalLight(0xffffff,.5);rim.position.set(-2,2,-3);scene.add(rim);
 const cameras=await (await fetch('img2threejs/evidence/cameras.json')).json();
 const diagnosticOnly=${projectionDiagnostic};
+// The screenshot canvas must use the calibrated source-image aspect ratio.
+// A 540x1080 canvas with a 444x680 camera squeezes the projected head and
+// makes source-pixel placement appear wrong even when its UV coordinates match.
+if(diagnosticOnly)renderer.setSize(540,Math.round(540*cameras.front.imageHeight/cameras.front.imageWidth));
 const projected=diagnosticOnly||!['blockout','structural-pass','form-refinement'].includes('${pass}');
 if(diagnosticOnly)model.traverse(n=>{if(n.isMesh&&!['head','chest'].includes(n.userData.sculptComponent?.id))n.visible=false;});
 const spec=await (await fetch('object-sculpt-spec.json')).json();
