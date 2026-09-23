@@ -197,15 +197,20 @@ export function installCharacterReviewGrid(doc = document, win = window) {
       button.setAttribute('role', 'option');
       button.setAttribute('aria-selected', String(model.selected));
       button.setAttribute('aria-label', model.stage ? `${model.label}、${model.stage}` : model.label);
+      const art = make('span', 'character-model-card-art');
+      if (model.key === 'protagonist.villager.v1') art.dataset.portrait = 'hero';
+      if (model.key === 'protagonist.villager.female.v1') art.dataset.portrait = 'heroine';
+      if (model.key === 'img2threejs.bald-chibi.v1') art.dataset.portrait = 'golden';
       if (model.thumbnailUrl) {
         if (model.thumbnailKind === 'svg-symbol') {
-          button.append(createReviewSvgThumbnail(model.thumbnailUrl, { className: 'character-model-thumbnail', decorative: true, doc }));
+          art.append(createReviewSvgThumbnail(model.thumbnailUrl, { className: 'character-model-thumbnail', decorative: true, doc }));
         } else {
           const image = make('img', 'character-model-thumbnail');
           image.src = model.thumbnailUrl; image.alt = ''; image.loading = 'lazy'; image.decoding = 'async';
-          image.width = 288; image.height = 184; button.append(image);
+          image.width = 288; image.height = 184; art.append(image);
         }
       }
+      button.append(art);
       button.append(make('strong', 'character-model-card-label', model.label));
       button.addEventListener('click', () => choose(model));
       return button;
