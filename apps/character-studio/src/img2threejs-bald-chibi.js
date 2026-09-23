@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 // img2threejs 6e60b5e: measured blockout -> full-volume structure ->
 // de-lit, orthographic-projected facial albedo. +Z is the reference front.
+// Golden Base retains the photographed face with a rounder, hero-like silhouette.
 // This is a standalone THREE.Group factory; no KayKit model is involved.
 const skin = new THREE.MeshStandardMaterial({ color: '#f6dcdb', roughness: .71, side: THREE.DoubleSide });
 const earInner = new THREE.MeshStandardMaterial({ color: '#efcaca', roughness: .83 });
@@ -46,8 +47,9 @@ function curvedLimb(parent, name, profile, axis, material, depth = 1) {
 }
 
 function torsoGeometry() {
-  // Closed elliptical rings with measured waist and full front/back depth.
-  const guides = [[0.84,.225,.19],[.94,.29,.21],[1.10,.31,.23],[1.25,.26,.20],[1.39,.205,.175],[1.58,.245,.205],[1.69,.16,.145]];
+  // Closed near-circular sections round the side profile and widen the
+  // shoulders and waist toward the current protagonist's compact physique.
+  const guides = [[0.84,.305,.275],[.94,.335,.305],[1.10,.34,.315],[1.25,.29,.275],[1.39,.275,.27],[1.58,.355,.32],[1.69,.245,.235]];
   const rings=[];
   const smooth=(a,b,c,d,t)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
   for(let i=0;i<guides.length-1;i++)for(let k=0;k<5;k++)rings.push([0,1,2].map(n=>smooth(guides[Math.max(0,i-1)][n],guides[i][n],guides[i+1][n],guides[Math.min(guides.length-1,i+2)][n],k/5)));
@@ -91,41 +93,41 @@ export async function createImg2ThreeReferenceCharacter({ textureUrl = '/img2thr
   body.name = 'closed-volume-grey-suit';
   body.castShadow = true;
   root.add(body);
-  ellipsoid(root, 'neck-collar', [0, 1.67, 0], [.16, .075, .15], clothTrim);
-  ellipsoid(root, 'neck', [0, 1.735, 0], [.125, .11, .13], skin);
-  const head = ellipsoid(root, 'full-depth-projected-head', [0, 2.22, 0], [.485, .52, .39], headMaterial, 64);
-  head.userData.depthRatio = .39 / .485;
+  ellipsoid(root, 'neck-collar', [0, 1.67, 0], [.195, .075, .19], clothTrim);
+  ellipsoid(root, 'neck', [0, 1.735, 0], [.13, .105, .14], skin);
+  const head = ellipsoid(root, 'full-depth-projected-head', [0, 2.2, 0], [.45, .47, .455], headMaterial, 64);
+  head.userData.depthRatio = .455 / .45;
   for (const sign of [-1, 1]) {
     const side = sign < 0 ? 'left' : 'right';
-    ellipsoid(root, `${side}-ear`, [sign * .448, 2.035, .012], [.082, .115, .072], skin);
-    ellipsoid(root, `${side}-ear-concha`, [sign * .502, 2.035, .073], [.018, .042, .007], earInner);
+    ellipsoid(root, `${side}-ear`, [sign * .417, 2.025, .018], [.082, .115, .085], skin);
+    ellipsoid(root, `${side}-ear-concha`, [sign * .47, 2.025, .087], [.018, .042, .007], earInner);
 
     // T pose: separate upper arm, elbow, forearm, palm and three small fingers.
     curvedLimb(root, `${side}-whole-arm`, [
-      [sign*.24,1.57,0,.125],[sign*.39,1.52,0,.117],[sign*.53,1.48,0,.091],
-      [sign*.68,1.45,0,.073],[sign*.79,1.44,0,.054]
+      [sign*.33,1.57,0,.137],[sign*.46,1.52,0,.127],[sign*.58,1.48,0,.103],
+      [sign*.72,1.45,0,.082],[sign*.82,1.44,0,.058]
     ], 'x', skin);
-    ellipsoid(root, `${side}-shoulder`, [sign*.25,1.56,0], [.115,.124,.115], skin);
-    ellipsoid(root, `${side}-palm`, [sign * .86, 1.435, .005], [.093, .041, .060], skin);
-    for (let finger = 0; finger < 3; finger++) ellipsoid(root, `${side}-finger-${finger}`, [sign * (.938 + (finger === 1 ? .015 : 0)), 1.424, (finger - 1) * .028], [.043, .019, .018], skin, 16);
-    ellipsoid(root, `${side}-thumb`, [sign * .835, 1.401, .085], [.047, .025, .024], skin, 16);
-    const hip = sign * .155;
+    ellipsoid(root, `${side}-shoulder`, [sign*.34,1.56,0], [.135,.14,.14], skin);
+    ellipsoid(root, `${side}-palm`, [sign * .88, 1.435, .005], [.093, .044, .067], skin);
+    for (let finger = 0; finger < 3; finger++) ellipsoid(root, `${side}-finger-${finger}`, [sign * (.958 + (finger === 1 ? .015 : 0)), 1.424, (finger - 1) * .028], [.043, .019, .018], skin, 16);
+    ellipsoid(root, `${side}-thumb`, [sign * .855, 1.401, .095], [.047, .025, .024], skin, 16);
+    const hip = sign * .18;
     curvedLimb(root, `${side}-continuous-shorts`, [
-      [hip,1.00,0,.151],[hip,.93,0,.153],[hip,.85,0,.151]
+      [hip,1.00,0,.163],[hip,.93,0,.165],[hip,.85,0,.162]
     ], 'y', cloth, 1.24);
-    const hem=new THREE.Mesh(new THREE.TorusGeometry(.143,.003,8,32),clothTrim);hem.name=`${side}-shorts-hem`;hem.rotation.x=Math.PI/2;hem.position.set(hip,.855,0);hem.scale.y=1.25;root.add(hem);
+    const hem=new THREE.Mesh(new THREE.TorusGeometry(.157,.003,8,32),clothTrim);hem.name=`${side}-shorts-hem`;hem.rotation.x=Math.PI/2;hem.position.set(hip,.855,0);hem.scale.y=1.25;root.add(hem);
     curvedLimb(root, `${side}-whole-leg`, [
-      [hip,.86,0,.143],[sign*.165,.74,0,.152],[sign*.185,.57,.013,.123],
-      [sign*.185,.49,.018,.104],[sign*.19,.34,.026,.112],[sign*.185,.15,.03,.067]
-    ], 'y', skin);
-    ellipsoid(root, `${side}-foot`, [sign * .185, .075, .088], [.102, .061, .15], skin);
-    for (let toe = 0; toe < 4; toe++) ellipsoid(root, `${side}-toe-${toe}`, [sign * (.129 + toe * .037), .043, .217], [.021, .018, .03], skin, 12);
+      [hip,.86,0,.157],[sign*.185,.74,0,.162],[sign*.19,.57,.013,.133],
+      [sign*.19,.49,.018,.113],[sign*.195,.34,.026,.12],[sign*.19,.15,.03,.075]
+    ], 'y', skin, 1.16);
+    ellipsoid(root, `${side}-foot`, [sign * .19, .075, .095], [.108, .066, .17], skin);
+    for (let toe = 0; toe < 4; toe++) ellipsoid(root, `${side}-toe-${toe}`, [sign * (.134 + toe * .037), .043, .234], [.021, .018, .03], skin, 12);
   }
   root.userData.img2threejs = {
     revision: '6e60b5e22419464b4853e01ddb6c0e6f6659a733',
     visibleReference: '1024×1536 single frontal image',
     inferredRegions: ['left profile', 'right profile', 'back', 'head depth', 'body depth'],
-    measuredHeadUnits: 2.68,
+    measuredHeadUnits: 2.84,
     fullVolume: true
   };
   return root;
