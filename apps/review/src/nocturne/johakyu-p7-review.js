@@ -38,8 +38,8 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
   }replacements=replacements.filter(r=>r.at>elapsed);
   const hero=runtime.actor('hero');if(hero.downed||hero.dead){restartedAt??=elapsed+3;if(elapsed>=restartedAt){encounter++;epoch++;reset();record({type:'encounter-reset',encounter,epoch});}}
  }
- function step(dt=1/60,physicalContacts=[]){
-   activity=[];elapsed+=dt;lifecycle();if(checkpointSeconds>0&&!resumes&&elapsed>=checkpointSeconds){const saved=runtime.snapshot().actors.map(a=>structuredClone(runtime.actor(a.id)));runtime=createJohakyuBattleRuntime({battleId:runtime.snapshot().battleId+':resume',actors:saved});resumes++;epoch++;record({type:'resume',epoch});}const result=runtime.step(dt,physicalContacts||[]);
+ function step(dt=1/60,physicalContacts=[],movement=null){
+   activity=[];elapsed+=dt;lifecycle();runtime.setMovement('hero',movement);if(checkpointSeconds>0&&!resumes&&elapsed>=checkpointSeconds){const saved=runtime.snapshot().actors.map(a=>structuredClone(runtime.actor(a.id)));runtime=createJohakyuBattleRuntime({battleId:runtime.snapshot().battleId+':resume',actors:saved});resumes++;epoch++;record({type:'resume',epoch});}const result=runtime.step(dt,physicalContacts||[]);
    for(const event of result.events){record(event);
      if(event.type==='actor-downed'&&event.targetId!=='hero'){defeats++;if(config.heart.active.includes('skill.nonlethal'))replacements.push({id:event.targetId,slot:event.targetId.split('#')[0],at:elapsed+6.5,recover:true});}
      if(event.type==='finisher'&&event.sourceId==='hero')finishers++;

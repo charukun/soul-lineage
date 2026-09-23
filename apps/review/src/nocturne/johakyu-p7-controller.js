@@ -2,7 +2,7 @@ import {createDrivenBattleRuntime} from '@soul/johakyu-presentation';
 import {createJohakyuP7ReviewScenario} from './johakyu-p7-review.js';
 import {normalizeBattle2Loadout} from './battle2-loadout.js';
 
-export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,cameraPresentation=null,onMeta=()=>{},evidence=false,fixture=null,mode='duel',loadout=null,settings=null,learnedTechniqueIds=[]}){
+export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,cameraPresentation=null,movementInput=null,onMeta=()=>{},evidence=false,fixture=null,mode='duel',loadout=null,settings=null,learnedTechniqueIds=[]}){
   const driven=createDrivenBattleRuntime({world,effects,stage,sound,notify,signal,cameraPresentation});
   let reviewLoadout=normalizeBattle2Loadout(loadout||{}),reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'},reviewLearned=[...new Set(Array.isArray(learnedTechniqueIds)?learnedTechniqueIds:[])];
   const scenarioOptions=()=>({mode,loadout:reviewLoadout,settings:reviewSettings,learnedTechniqueIds:reviewLearned});
@@ -11,7 +11,7 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
   let disposed=false,ready=false,started=false,raf=0,previous=0,current=null,trace=[],lastResumes=0,lastEncounter=1,physicalContacts=[];
   function render(dt){
     if(disposed)return null;
-    const result=scenario.step(dt,physicalContacts);physicalContacts=[];current=result;
+    const result=scenario.step(dt,physicalContacts,movementInput?.vector()??null);physicalContacts=[];current=result;
     const presented=driven.present(result.frame,dt,result.events);physicalContacts=driven.sampleContacts?.()??[];
     trace.push(...result.events.map(event=>({type:'impact',id:event.id,phase:event.phase,targetId:event.targetId})));
     if(result.meta.resumes>lastResumes){trace.push({type:'resume',epoch:result.meta.epoch,resumes:result.meta.resumes});lastResumes=result.meta.resumes;}

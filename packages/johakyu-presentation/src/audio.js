@@ -70,6 +70,7 @@ export function createNocturneSound(doc=document,{samples={}}={}){
       if(!audio){const Context=window.AudioContext||window.webkitAudioContext;if(!Context)return;audio=new Context();master=audio.createGain();master.gain.value=.13;master.connect(audio.destination);}
       await audio.resume();unlocked=audio.state==='running';if(unlocked){loadFatigue();void loadSamples();}
     }catch{/* Audio permission or asset decode never blocks the visual battle. */}
+    return unlocked;
   }
   function pause(){if(audio?.state==='running')audio.suspend().catch(()=>{});}
   function visibility(){if(doc.hidden)pause();else if(unlocked&&!disposed)audio?.resume().catch(()=>{});}
@@ -82,7 +83,7 @@ export function createNocturneSound(doc=document,{samples={}}={}){
   }
   doc.addEventListener('pointerdown',unlock,{passive:true});doc.addEventListener('keydown',unlock);doc.addEventListener('visibilitychange',visibility);
   return Object.freeze({
-    note,swing,guard,parry,impact,footstep,hit(big=false,options={}){impact({heavy:Boolean(big),...options});if(!sampleBuffers.size)note(big?1800:2700,.055,'sawtooth',.10);},fatigue,pause,
+    unlock,note,swing,guard,parry,impact,footstep,hit(big=false,options={}){impact({heavy:Boolean(big),...options});if(!sampleBuffers.size)note(big?1800:2700,.055,'sawtooth',.10);},fatigue,pause,
     metrics:()=>({unlocked,state:audio?.state||'locked',notes,activeVoices:active.size,fatigueVoices:fatigueVoices.size,fatigueAssetReady:Boolean(fatigueBuffer),samplesReady:sampleBuffers.size,samplesConfigured:Object.keys(samples).length}),
     destroy(){if(disposed)return;disposed=true;doc.removeEventListener('pointerdown',unlock);doc.removeEventListener('keydown',unlock);doc.removeEventListener('visibilitychange',visibility);for(const id of [...fatigueVoices.keys()])stopFatigue(id);for(const o of active){try{o.stop();}catch{}}active.clear();sampleBuffers.clear();audio?.close().catch(()=>{});}
   });
