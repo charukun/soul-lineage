@@ -1,5 +1,6 @@
 import {createRinneWeapon} from '@soul/assets/equipment/three';
 import {presentBattleFrame,presentBattleEvents} from './battle-presentation.js';
+import {JOHAKYU_WEAPON_MOTIONS} from './motion-bindings.js';
 import {observedLocomotion} from './observed-locomotion.js';
 import {createCanonicalPresentationDriver} from './driver.js';
 import {resolveFatiguePresentation} from './fatigue.js';
@@ -553,7 +554,10 @@ function createDrivenPort(){
    if(row.locomotion?.clip&&!asset.animations.some(clip=>clip.name===row.locomotion.clip))return {supported:false,reason:'unaccepted-locomotion:'+row.locomotion.kind};
    return {supported:true};
   },
-  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss),row.kind==='hero'?(row.equipment.armor==='heavy'?'adventurers/Knight':'adventurers/Rogue'):null);a.spawnStyle=row.spawnStyle||null;a.spawn=a.spawnStyle==='battlebk-ground'&&a.kind!=='hero'?.7:0;a.canonicalAction=a.spawn>0?'spawn:battlebk-ground':null;a.canonicalId=row.id;bindings.set(row.id,a);return a;},
+  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss),row.kind==='hero'?(row.equipment.armor==='heavy'?'adventurers/Knight':'adventurers/Rogue'):null);a.spawnStyle=row.spawnStyle||null;a.spawn=a.spawnStyle==='battlebk-ground'&&a.kind!=='hero'?.7:0;a.canonicalAction=a.spawn>0?'spawn:battlebk-ground':null;a.canonicalId=row.id;bindings.set(row.id,a);
+    // Bind the few authored attack clips while the actor spawns, before its first technique.
+    for(const name of new Set([...Object.values(JOHAKYU_WEAPON_MOTIONS[row.equipment.weapon]||{}),'Block_Attack'])){const clip=a.clips.get(name);if(clip)a.mixer.clipAction(clip);}
+    return a;},
   remove(a){removeActor(a);actors.splice(actors.indexOf(a),1);bindings.delete(a.canonicalId);},
   self(a){hero=a;selfBinding=a;},
   update(a,row,dt,{initial}){
