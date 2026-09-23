@@ -800,7 +800,7 @@ function createDrivenPort(){
   impact(event,source,target){
    if(event.type==='inspiration'){
      // A visible world event only. The shared battle runtime owns learning, protection and reactions.
-     if(source?.canonicalId==='hero'&&target){
+     if(source?.canonicalId==='hero'&&source?.pos?.isVector3&&target?.pos?.isVector3){
        source.startGlow=Math.max(source.startGlow,.52);source.startGlowPhase='kyu';
        ring(source.pos,1.75,'#ffe9a3',.72);
        burst(source.pos.clone().add(new V(0,source.height*.6,0)),22,'#fff0b5');
