@@ -80,3 +80,4 @@ export * from './domain.js';
 
 export * from './execution-capability.js';
 export * from './exchange-policy.js';
+export * from './locomotion.js';

@@ -12,7 +12,8 @@
     "./motion-contract": "./src/motion-contract.js",
     "./technique-composition": "./src/technique-composition.js",
     "./execution-capability": "./src/execution-capability.js",
-    "./exchange-policy": "./src/exchange-policy.js"
+    "./exchange-policy": "./src/exchange-policy.js",
+    "./locomotion": "./src/locomotion.js"
   },
   "dependencies": {
     "@soul/game-data": "*"
