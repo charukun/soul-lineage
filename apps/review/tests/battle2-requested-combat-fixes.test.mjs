@@ -5,9 +5,12 @@ import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.j
 import {normalizeBattle2Loadout} from '../src/nocturne/battle2-loadout.js';
 import {battle2TechniqueCatalog} from '../src/nocturne/battle2-technique-catalog.js';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
-test('the HUD names the actual technique while the common model preserves chain and stage identities',()=>{
- const stage=read('src/nocturne-stage.js');assert.match(stage,/meta.techniqueName/);assert.match(stage,/meta\?\.stageIndex/);assert.match(stage,/meta\.techniqueId/);
- const scenario=createJohakyuP7ReviewScenario({loadout:{technique:{jo:'combo:combo-1'}}});assert.equal(scenario.composition.hero.jo.length,3);assert.equal(scenario.composition.hero.jo[0].stages.length,3);
+test('the HUD identifies the equipped combo while combat retains constituent stage identities',()=>{
+ const stage=read('src/nocturne-stage.js');assert.match(stage,/battle2SelectionLabel\(meta.techniqueSelection\)/);
+ const scenario=createJohakyuP7ReviewScenario({loadout:{technique:{jo:'combo:combo-1'}},actorOverrides:{'enemy-a':{canAttack:false}}});
+ assert.equal(scenario.composition.hero.jo.length,3);assert.equal(scenario.composition.hero.jo[0].stages.length,3);
+ let meta;for(let i=0;i<900;i++){const next=scenario.step(1/60).meta;if(next.actionId&&next.phase==='jo'&&next.stageIndex===0){meta=next;break;}}
+ assert.ok(meta);assert.equal(meta.techniqueSelection,'combo:combo-1');assert.notEqual(meta.techniqueName,'壱ノ連');
 });
 test('weapon change updates the basic technique ID, name, stages and authored binding together',()=>{
  const value=normalizeBattle2Loadout({equipment:{weapon:'great'},technique:{jo:'basic.sword'}});assert.equal(value.technique.jo,'basic.great');const basic=battle2TechniqueCatalog({weapon:'great'})[0];assert.equal(basic.name,'大剣の型');assert.deepEqual(basic.stages.map(s=>s.kind),['slash','sweep','heavy']);

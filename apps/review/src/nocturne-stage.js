@@ -26,7 +26,7 @@ const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLink
 const PHASE_INDEX={jo:0,ha:1,kyu:2},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
 const TECHNIQUE_DISPLAY_MS=2600,LOG_DISPLAY_MS=2400,LOG_VISIBLE_LIMIT=4,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
-let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',lastPhaseCueKey='',comboFadeTimer=0;
+let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',lastPhaseCueKey='',comboFadeTimer=0,comboInterrupted=false;
 let state='BOOT',lastError=null,lastExchangeKey='',activeLoadout=null,battleSettings=readBattleSettings();
 const loadoutUI=createBattle2LoadoutUI({stage,onChange:next=>{activeLoadout=next;reviewMeta=null;lastExchangeKey='';resetHistory();playerHud?.clearPortrait?.();runtime?.configureLoadout?.(next);}});
 activeLoadout=loadoutUI.value;
@@ -71,7 +71,7 @@ function clearComboFade(){
  delete phasePanel.dataset.comboInterrupted;
 }
 function resetHistory(battleId=''){
- lastBattleId=battleId;lastPhaseCueKey='';seenActions.clear();seenNarration.clear();lastNarrationAt.clear();history=[];clearVisualHistory();clearComboFade();
+ lastBattleId=battleId;lastPhaseCueKey='';seenActions.clear();seenNarration.clear();lastNarrationAt.clear();history=[];comboInterrupted=false;clearVisualHistory();for(const lane of techniqueLanes.values())lane.replaceChildren();clearComboFade();
 }
 function historyDisplayLabel(row){
  const label=String(row?.label||'').trim();return label?label+'…':'';
@@ -89,9 +89,9 @@ function spawnActionText(row){
 }
 function recordHistory(row){history.push(row);if(history.length>8)history.shift();spawnActionText(row);}
 function selectedTechniqueDisplay(meta){
- if(meta?.stageIndex!==0)return null;
- const label=meta.techniqueName||shortActionName(meta);
- return label?{label,key:[meta.battleId,meta.cycle,meta.phase,meta.actionId,meta.techniqueId].join(':')}:null;
+ if(meta?.stageIndex!==0||meta?.techniqueIndex!==0||meta?.actionKind==='finisher'||meta?.actionKind==='reaction')return null;
+ const label=meta.techniqueSelection?battle2SelectionLabel(meta.techniqueSelection):shortActionName(meta);
+ return label?{label,key:[meta.battleId,meta.cycle,meta.phase,meta.techniqueSelection||meta.techniqueId].join(':')}:null;
 }
 function pushAction(meta){
  const display=selectedTechniqueDisplay(meta);if(!meta?.actionId||!meta?.techniqueId||!display||seenActions.has(display.key))return;
@@ -121,7 +121,11 @@ function updateSequence(meta){
  reviewMeta=meta;if(meta.battleId!==lastBattleId)resetHistory(meta.battleId);lastExchangeKey=meta.exchangeHistoryKey;
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
  const hero=runtime?.inspectActors?.().find(actor=>actor.self);if(hero)bodyHud?.update(hero);if(playerHud?.root?.dataset.portrait!=='model'&&runtime?.renderPlayerPortrait?.(playerHud.canvas))playerHud.markPortrait?.('model');
- const activity=Array.isArray(meta.activity)?meta.activity:[],interrupted=activity.some(row=>(row.type==='chain-break'||row.type==='interrupted')&&(row.actorId||row.sourceId)==='hero');
+ const activity=Array.isArray(meta.activity)?meta.activity:[];
+ for(const row of activity){
+  if((row.type==='chain-break'||row.type==='interrupted')&&(row.actorId||row.sourceId)==='hero')comboInterrupted=true;
+  if(row.type==='stage-start'&&(row.actorId||row.sourceId)==='hero'&&['jo','ha','kyu'].includes(row.phase))comboInterrupted=false;
+ }
  for(const row of activity){
   if(row?.type==='inspiration'&&row.techniqueId){
    const added=loadoutUI.learnTechnique(row.techniqueId);runtime?.learnTechnique?.(row.techniqueId);
@@ -131,12 +135,12 @@ function updateSequence(meta){
   pushNarration(row,meta);
  }
  hud.dataset.exchangeIntent=meta.exchangeIntent||'read';
- const hudState=interrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;
- if(interrupted)for(const lane of techniqueLanes.values())lane.replaceChildren();
- phasePanel.dataset.phase=hudState;phasePanel.dataset.combatSequencePhase=hudState;phasePanel.dataset.comboActive=String(index>=0&&!interrupted);
- if(interrupted)beginComboFade();else if(index>=0)clearComboFade();
- setPhaseLamps(interrupted?-1:index);
- if(!interrupted&&meta.actionId&&Object.hasOwn(PHASE_INDEX,phase))pushAction(meta);
+ const hudState=comboInterrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;
+ if(comboInterrupted)for(const lane of techniqueLanes.values())lane.replaceChildren();
+ phasePanel.dataset.phase=hudState;phasePanel.dataset.combatSequencePhase=hudState;phasePanel.dataset.comboActive=String(index>=0&&!comboInterrupted);
+ if(comboInterrupted)beginComboFade();else if(index>=0)clearComboFade();
+ setPhaseLamps(comboInterrupted?-1:index);
+ if(!comboInterrupted&&meta.actionId&&Object.hasOwn(PHASE_INDEX,phase))pushAction(meta);
  currentNode.dataset.kind='idle';currentNode.textContent='';
 }
 function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));for(const button of techniqueModeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleTechniqueMode===battleSettings.techniqueMode));for(const button of inspirationRateButtons)button.setAttribute('aria-pressed',String(button.dataset.battleInspirationRate===battleSettings.inspirationRate));}
