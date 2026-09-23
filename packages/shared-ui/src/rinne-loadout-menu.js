@@ -76,3 +76,35 @@ export function drawRinneTechniqueSelectionLink(body){
   }
   body.prepend(svg);
 }
+
+export function rinneHeartPortrait(slotIds,labelFor){
+  const names=slotIds.filter(Boolean).map(id=>labelFor(id)).join('・');
+  const keys=slotIds.filter(Boolean).join('・');
+  if(!names)return 'まだ名のない心が、これからの歩みを待っている。';
+  const lines=[];
+  if(/信仰|信心|祈|神|聖|加護|祝|誓|慈/.test(names)||/faith|pray|devotion|belief/.test(keys))lines.push('祈りの行方は、まだ誰にも分からない。');
+  if(/観眼|観察|洞察|見切|読み/.test(names)||/observe|read|peripheral/.test(keys))lines.push('目を凝らし、見えぬ兆しに耳を澄ます。');
+  if(/待ち|静|忍耐/.test(names)||/wait|patience|calm/.test(keys))lines.push('時が来るまで、心は動かない。');
+  if(/刃|剣|斬/.test(names)||/edge|blade|sword/.test(keys))lines.push('刃は、訪れた一瞬へ向かう。');
+  return lines.slice(0,2).join('　')||'選んだ心得が、歩む道に静かに重なる。';
+}
+export function createRinneHeartComposition(slots,slotIds,labelFor,{documentRef=document}={}){
+  const layout=documentRef.createElement('div');
+  layout.className='heart-composition';
+  const figure=documentRef.createElement('section');
+  figure.className='heart-composition-slots';
+  const figureTitle=documentRef.createElement('h3');
+  figureTitle.textContent='心得の構成';
+  figure.append(figureTitle,slots);
+  const portrait=documentRef.createElement('section');
+  portrait.className='heart-portrait';
+  portrait.setAttribute('aria-label','心のかたち');
+  const title=documentRef.createElement('h3');
+  title.textContent='心のかたち';
+  const copy=documentRef.createElement('p');
+  copy.textContent=rinneHeartPortrait(slotIds,labelFor);
+  portrait.append(title,copy);
+  layout.append(figure,portrait);
+  return layout;
+}
+
