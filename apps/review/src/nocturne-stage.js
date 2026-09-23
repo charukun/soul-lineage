@@ -39,8 +39,9 @@ stage.insertAdjacentHTML('beforeend',rinneFieldRadarMarkup({interactive:false}))
 const battleRadar=stage.querySelector('[data-field-radar]');
 const cameraPresentation=createBattle2CameraPresentation({stage,world});
 const movementInput=createBattle2MovementInput({canvas:world,camera:()=>cameraPresentation.snapshot()});
-const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]','[data-battle-technique-mode-control]','[data-battle-inspiration-rate-control]'],label:'戦闘設定'});
+const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]','[data-battle-technique-mode-control]','[data-battle-inspiration-rate-control]','[data-battle-inspiration-reset-control]'],label:'戦闘設定'});
 const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],techniqueLanes=new Map([...document.querySelectorAll('[data-technique-phase]')].map(node=>[node.dataset.techniquePhase,node])),modeButtons=[...document.querySelectorAll('[data-battle-mode]')],techniqueModeButtons=[...document.querySelectorAll('[data-battle-technique-mode]')],inspirationRateButtons=[...document.querySelectorAll('[data-battle-inspiration-rate]')];
+const resetInspirationButton=document.querySelector('[data-battle-reset-inspiration]');
 const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
 const TECHNIQUE_DISPLAY_MS=2600,LOG_DISPLAY_MS=2400,LOG_VISIBLE_LIMIT=4,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
@@ -173,7 +174,7 @@ function updateSequence(meta){
  }
  for(const row of activity){
   if(row?.type==='inspiration'&&row.techniqueId){
-   loadoutUI.learnTechnique(row.techniqueId,row.phase);activeLoadout=loadoutUI.value;runtime?.learnTechnique?.(row.techniqueId,row.phase);showInspiration(row);
+   loadoutUI.learnTechnique(row.techniqueId,row.phase);activeLoadout=loadoutUI.value;runtime?.learnTechnique?.(row.techniqueId,row.phase);syncInspirationResetButton();showInspiration(row);
    // The first cast already has its own reveal; keep history for combat reactions.
    continue;
   }
@@ -188,6 +189,7 @@ function updateSequence(meta){
  if(!comboInterrupted&&meta.actionId&&Object.hasOwn(PHASE_INDEX,phase))pushAction(meta);
  currentNode.dataset.kind='idle';currentNode.textContent='';
 }
+function syncInspirationResetButton(){if(resetInspirationButton)resetInspirationButton.disabled=!loadoutUI.learnedTechniqueIds.length;}
 function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));for(const button of techniqueModeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleTechniqueMode===battleSettings.techniqueMode));for(const button of inspirationRateButtons)button.setAttribute('aria-pressed',String(button.dataset.battleInspirationRate===battleSettings.inspirationRate));}
 function setBattleSetting(key,value){
  const next=normalizeBattleSettings({...battleSettings,[key]:value});if(next[key]===battleSettings[key])return;
@@ -221,10 +223,11 @@ startButton.addEventListener('click',async event=>{
 for(const button of modeButtons)button.addEventListener('click',()=>{const next=button.dataset.battleMode;if(!['duel','oneVsThree'].includes(next)||next===battleMode)return;battleMode=next;syncModeButtons();void boot();});
 for(const button of techniqueModeButtons)button.addEventListener('click',()=>{const next=button.dataset.battleTechniqueMode;if(!['random','set'].includes(next))return;setBattleSetting('techniqueMode',next);});
 for(const button of inspirationRateButtons)button.addEventListener('click',()=>{const next=button.dataset.battleInspirationRate;if(!['normal','high'].includes(next))return;setBattleSetting('inspirationRate',next);});
+resetInspirationButton?.addEventListener('click',()=>{if(!loadoutUI.resetLearnedTechniques())return;activeLoadout=loadoutUI.value;reviewMeta=null;lastExchangeKey='';resetHistory();playerHud?.clearPortrait?.();syncInspirationResetButton();void boot();});
 const observer=new ResizeObserver(()=>runtime?.resize());observer.observe(stage);
 world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepared=false;const error=new Error('描画環境が中断されました。');controller?.abort(error);failed(error);});
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
 window.addEventListener('error',event=>{if(event.error&&!disposed)failed(event.error);});
 window.addEventListener('unhandledrejection',event=>{if(!disposed)failed(event.reason);});
 window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);hideInspiration();observer.disconnect();runtime?.destroy();sound?.destroy();deathCinematic.dispose();bodyHud?.destroy();movementInput.dispose();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
-syncModeButtons();report('BOOT');void boot();
+syncInspirationResetButton();syncModeButtons();report('BOOT');void boot();
