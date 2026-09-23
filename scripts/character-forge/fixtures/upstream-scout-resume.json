@@ -1,0 +1,14 @@
+{
+  "id": "pr1524-scout-authorized-resume-20260923",
+  "authorization": "User: あなたの判断で解決して進めて下さい, following the material 3/3 stop report and request for a decision on limits.",
+  "scope": "Existing PR #1524 Scout workspace only; one migration, no history reset, no automatic extension on the next stop.",
+  "reason": "Repair descriptor-to-GPU adapter defects (empty atlas filtering support and cross-view part ownership) that consumed the original material budget. Five further material corrections and thirteen total remaining corrections are bounded; quality gates remain unchanged.",
+  "upstreamGap": "forge/state.py has init/status/mark and forbids marking a stopped state, but no resume/migrate CLI. Use pinned workflow_state validation, synchronization and atomic save; next.py remains the dispatcher and limit authority.",
+  "stopReason": "max-correction-loops-reached:material-pass:3/3",
+  "stateSha256": "30fd6f4049f24afe4ffdcabc5d98458db20897ff2a86ecf019b6a465e54cd715",
+  "specSha256": "2f4a477e4415b2485edc5ce611fe1287424797acaadea144770854113a4cd193",
+  "previousLoops": {"perPass":{"blockout":2,"material-pass":3},"total":5,"maxPerPass":3,"maxTotal":6},
+  "newLimits": {"maxPerPass":8,"maxTotal":18},
+  "restartDevelop": "d6e59d460b86d7f49e5d4f5e4286a16945573df2",
+  "restartHead": "6e9d48a3230fd79356f000fcd91110e19d3b32b4"
+}

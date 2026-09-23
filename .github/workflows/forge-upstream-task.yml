@@ -5,6 +5,7 @@ on:
     branches: ['work/character-forge-upstream-20260923']
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: forge-upstream-specialist-${{ github.ref }}
   cancel-in-progress: true
@@ -29,6 +30,12 @@ jobs:
         run: |
           python3 packages/assets/forge/upstream_engine.py materialize --key engine
           python3 packages/assets/forge/upstream_engine.py materialize --key animatedCharacter
+      - uses: actions/download-artifact@v4
+        with:
+          name: forge-specialist-ce6b54e9cb5c5e1487d82cf27994e4616ff52f3e
+          run-id: 35814971440
+          github-token: ${{ github.token }}
+          path: .forge-resume
       - name: Execute explicit specialist task when present
         run: |
           if [ -f scripts/character-forge/specialist.mjs ]; then

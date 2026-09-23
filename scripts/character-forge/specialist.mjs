@@ -1,62 +1,16 @@
-/** Explicit task-only authoring transport. Not part of normal Fast DEV. */
+/** Task-only resume of the exact rejected reconstruction, without regenerating it. */
 import {execFileSync} from 'node:child_process';
-import {mkdirSync,writeFileSync,readFileSync,existsSync} from 'node:fs';
-import {createHash} from 'node:crypto';
 const run=(program,args)=>execFileSync(program,args,{stdio:'inherit'});
-if(existsSync('docs/characters/qa/forge-upstream-blocked/blocker.json')){
-  // Software checks are permitted; another reconstruction iteration is not.
-  run('npm',['ci','--ignore-scripts']);
-  run('node',['--test','scripts/character-forge/reference-camera.test.mjs','scripts/character-forge/rig-adapter.test.mjs','packages/characters/tests/character-expressions.test.mjs']);
-  run('npm',['run','build','--workspace','@soul/review']);
-  run('python3',['scripts/character-forge/verify_saved_stop.py']);
-  throw Error('A stopped upstream workspace must not enter reconstruction');
-}
+const workspace='test-results/character-forge-upstream/upstream-scout',cache='.cache/character-forge-upstream';
 run('python3',['packages/assets/forge/upstream_engine.py','materialize','--key','harness']);
-run('python3',['scripts/character-forge/verify_upstream.py']);
-const out='test-results/character-forge-upstream';mkdirSync(out,{recursive:true});
-run('python3',['scripts/character-forge/audit_targets.py','--out',out+'/adapter-target-discovery.json']);
-run('node',['--test','packages/characters/tests/character-expressions.test.mjs']);
 run('python3',['-m','pip','install','-r','packages/assets/forge/requirements.txt']);
-run('python3',['scripts/character-forge/prepare_upstream_fixture.py','--workspace',out+'/upstream-scout']);
-const workspace=out+'/upstream-scout',cache='.cache/character-forge-upstream';
-run('python3',['scripts/character-forge/prepare_scout_materials.py','--workspace',workspace,'--cache',cache]);
-run('python3',['scripts/character-forge/author_upstream_scout.py','--workspace',workspace,'--cache',cache]);
-run('python3',['scripts/character-forge/scout_setup_evidence.py','--workspace',workspace,'--cache',cache]);
-run('python3',['packages/assets/forge/upstream_workspace.py','run','--workspace',workspace,'--entry','forge/stage3_build/generate_threejs_factory.py','--','object-sculpt-spec.json','--pass-id','blockout','--out','build/blockout.ts']);
-run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','build-current-pass','--evidence','build/blockout.ts']);
+run('python3',['scripts/character-forge/restore_scout_artifact.py']);
+run('python3',['scripts/character-forge/resume_scout.py','--workspace',workspace,'--cache',cache,'--restore-reviewed-checkpoint']);
 run('npm',['ci','--ignore-scripts']);
-run('node',['--test','tests/character-forge-entrypoint.test.mjs','tests/character-create-forge.test.mjs']);
+run('node',['--test','scripts/character-forge/uv-gutter.test.mjs','scripts/character-forge/reference-camera.test.mjs','scripts/character-forge/rig-adapter.test.mjs','packages/characters/tests/character-expressions.test.mjs','tests/character-forge-entrypoint.test.mjs','tests/character-create-forge.test.mjs']);
 run('npx',['playwright','install','--with-deps','chromium']);
-run('node',['scripts/character-forge/render_upstream.mjs',workspace,'blockout']);
-run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','render-capture','--evidence','review/blockout/render-receipt.json']);
-run('python3',['scripts/character-forge/review_upstream.py','--workspace',workspace,'--cache',cache,'--pass-id','blockout']);
-run('python3',['scripts/character-forge/apply_visual_review.py','--workspace',workspace,'--cache',cache,'--review','scripts/character-forge/fixtures/upstream-scout-blockout-r2-review.json']);
-run('python3',['scripts/character-forge/author_scout_structural.py','--workspace',workspace,'--cache',cache]);
-run('python3',['packages/assets/forge/upstream_workspace.py','run','--workspace',workspace,'--entry','forge/stage3_build/generate_threejs_factory.py','--','object-sculpt-spec.json','--pass-id','structural-pass','--out','build/structural-pass.ts']);
-run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','build-current-pass','--evidence','build/structural-pass.ts']);
-run('node',['scripts/character-forge/render_upstream.mjs',workspace,'structural-pass']);
-run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','render-capture','--evidence','review/structural-pass/render-receipt.json']);
-run('python3',['scripts/character-forge/review_upstream.py','--workspace',workspace,'--cache',cache,'--pass-id','structural-pass']);
-run('python3',['scripts/character-forge/apply_visual_review.py','--workspace',workspace,'--cache',cache,'--review','scripts/character-forge/fixtures/upstream-scout-structural-r0-review.json']);
-run('python3',['scripts/character-forge/author_scout_form.py','--workspace',workspace,'--cache',cache]);
-run('python3',['packages/assets/forge/upstream_workspace.py','run','--workspace',workspace,'--entry','forge/stage3_build/generate_threejs_factory.py','--','object-sculpt-spec.json','--pass-id','form-refinement','--out','build/form-refinement.ts']);
-run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','build-current-pass','--evidence','build/form-refinement.ts']);
-run('node',['scripts/character-forge/render_upstream.mjs',workspace,'form-refinement']);
-run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','render-capture','--evidence','review/form-refinement/render-receipt.json']);
-run('python3',['scripts/character-forge/review_upstream.py','--workspace',workspace,'--cache',cache,'--pass-id','form-refinement']);
-run('python3',['scripts/character-forge/apply_visual_review.py','--workspace',workspace,'--cache',cache,'--review','scripts/character-forge/fixtures/upstream-scout-form-r0-review.json']);
-run('node',['--test','scripts/character-forge/reference-camera.test.mjs']);
-run('python3',['scripts/character-forge/prepare_projection_maps.py','--workspace',workspace,'--cache',cache]);
-run('python3',['scripts/character-forge/author_scout_material.py','--workspace',workspace,'--cache',cache]);
-run('python3',['packages/assets/forge/upstream_workspace.py','run','--workspace',workspace,'--entry','forge/stage3_build/generate_threejs_factory.py','--','object-sculpt-spec.json','--pass-id','material-pass','--out','build/material-pass.ts']);
-run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','build-current-pass','--evidence','build/material-pass.ts']);
+// refine-code changes only the projection runtime; retain the exact upstream factory.
+run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','build-current-pass','--evidence','build/material-pass.ts','--evidence','img2threejs/evidence/authorized-resume.json']);
 run('node',['scripts/character-forge/render_upstream.mjs',workspace,'material-pass']);
 run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','render-capture','--evidence','review/material-pass/render-receipt.json']);
 run('python3',['scripts/character-forge/review_upstream.py','--workspace',workspace,'--cache',cache,'--pass-id','material-pass']);
-const lock=JSON.parse(readFileSync('package-lock.json','utf8')).packages['node_modules/three'];
-if(!/^https:\/\/registry\.npmjs\.org\/three\/-\/three-[0-9.]+\.tgz$/.test(lock.resolved))throw new Error('Unexpected Three.js source');
-const response=await fetch(lock.resolved);if(!response.ok)throw new Error(`Three.js download failed: ${response.status}`);
-const data=Buffer.from(await response.arrayBuffer()),integrity='sha512-'+createHash('sha512').update(data).digest('base64');
-if(integrity!==lock.integrity)throw new Error('Three.js lock integrity mismatch');
-writeFileSync(out+'/three.tgz',data);
-writeFileSync(out+'/capability-probe.json',JSON.stringify({head:process.env.HEAD_SHA,stage:'authoring-materialization',three:lock,notVisualValidation:true}));
