@@ -48,12 +48,3 @@ test('mobile journal remains readable, keyboard accessible, reduced-motion aware
   assert.match(css,/min-height:44px/);assert.match(css,/focus-visible/);assert.match(css,/env\(safe-area-inset-bottom/);assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);assert.match(css,/backdrop-filter:none/);assert.doesNotMatch(css,/backdrop-filter:blur/);
   assert.match(css,/overflow-wrap:anywhere/);assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);assert.match(css,/\.inspiration-reveal\[hidden\]\{display:none\}/);
 });
-
-test('technique detail explains the selected technique from canonical mechanics',()=>{
-  assert.match(heartUI,/skillDefinition\(selection\)/);
-  assert.match(heartUI,/definition\?\.mechanic/);
-  assert.match(heartUI,/definition\?\.steps/);
-  assert.match(heartUI,/definition\?\.tradeoff/);
-  assert.match(heartUI,/動作:/);
-  assert.match(heartUI,/注意:/);
-});

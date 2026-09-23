@@ -5,6 +5,7 @@ import {BATTLE2_LOADOUT_DEFAULT,BATTLE2_BODY_OPTIONS,normalizeBattle2Loadout,bat
 import {battle2InspirationCatalog,battle2TechniqueDefinition,BATTLE2_TECHNIQUE_CATALOG} from './battle2-technique-catalog.js';
 const hash=key=>{let h=2166136261;for(const c of key){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return (h>>>0)/4294967295;};
 const PARTS={head:'頭',torso:'胴',leftArm:'左腕',rightArm:'右腕',leftLeg:'左脚',rightLeg:'右脚'};
+const FINISHER_RESPAWN_SECONDS=4;
 /** Lab-only encounter/selection harness. All combat is the production shared runtime. */
 export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLeadSeconds=0,heroStartPhase='jo',heroStartTechniqueIndex=0,checkpointSeconds=0,actorOverrides={},loadout=null,settings=null,learnedTechniqueIds=[],comboStyle='composed',fixture=null}={}){
  if(!['duel','oneVsThree'].includes(mode)||!PHASES.includes(heroStartPhase)||!Number.isFinite(duelGap)||duelGap<1||duelGap>5)throw new RangeError('Invalid battle review fixture');
@@ -34,6 +35,14 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
      actionId:action?.id||null,actionName:action?.name||null,actionMotion:action?.kind||null,actionKind:action?.finisher?'finisher':action?.reaction?'reaction':action?.phase||null,techniqueSelection:action&&!action.finisher&&!action.reaction&&action.phase!=='one'?activeHeroLoadout[phase]:null,techniqueId:action?.techniqueId||n.id,techniqueName:action?.name||n.name,techniqueIndex:action?.techniqueIndex??actor.cursor.techniqueIndex,chainLength:action?.chainLength||actor.loadout[phase]?.length||1,chainLabel:action?.chainLabel||`${PHASE_LABELS[phase]} · 1連`,stageIndex:action?.stageIndex??actor.cursor.stageIndex,stageLabel:action?.stageLabel||n.stages[actor.cursor.stageIndex]?.label,
      cycle:actor.cursor.cycle,stamina:Math.round(hero.stamina.value),injuryPart:PARTS[worst[0]],injuryPercent:Math.round(worst[1].severity*100),party:1,enemies:snapshot.actors.filter(a=>a.side==='enemy'&&!a.dead&&!a.downed).length,defeats,finishers,pendingFinishers:snapshot.actors.filter(a=>a.side==='enemy'&&a.downed).length,resumes,encounter,epoch,battleId:snapshot.battleId,activity:activity.slice(),respawnIn:replacements.length?Math.max(0,Math.min(...replacements.map(r=>r.at))-elapsed):null};
  }
+ function heroRespawnPoint(){
+   const bounds=NOCTURNE_FIELD_BOUNDS,margin=1.5,enemies=runtime.snapshot().actors.filter(row=>row.side==='enemy'&&!row.dead&&!row.downed);let best=null;
+   for(let i=0;i<12;i++){
+     const key=`hero-respawn:${encounter+1}:${i}`,x=bounds.minX+margin+hash(key+':x')*(bounds.maxX-bounds.minX-margin*2),z=bounds.minZ+margin+hash(key+':z')*(bounds.maxZ-bounds.minZ-margin*2);
+     const nearest=enemies.length?Math.min(...enemies.map(row=>Math.hypot(x-row.position.x,z-row.position.z))):99,score=nearest+hash(key+':tie')*.15;if(!best||score>best.score)best={x,z,score};
+   }
+   return{x:Number(best.x.toFixed(3)),z:Number(best.z.toFixed(3))};
+ }
  function lifecycle(){
   for(const entry of replacements.filter(r=>r.at<=elapsed)){
     const hero=runtime.actor('hero');
@@ -42,7 +51,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
   }replacements=replacements.filter(r=>r.at>elapsed);
   const hero=runtime.actor('hero');if(hero.downed||hero.dead){restartedAt??=elapsed+3;if(elapsed>=restartedAt){
     // Recover this actor in place: a fresh battle identity teleports the player and resets the camera.
-    const at={...hero.position};hero.hp=hero.maxHp;hero.dead=false;hero.downed=false;hero.incapacitated=false;
+    const at=heroRespawnPoint();hero.hp=hero.maxHp;hero.dead=false;hero.downed=false;hero.incapacitated=false;
     hero.injuries=Object.fromEntries(Object.keys(PARTS).map(p=>[p,{severity:0,at:0}]));hero.action=null;hero.phaseCue=null;hero.pendingZanshin=false;
     hero.cursor={phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:hero.cursor.cycle+1};hero.decision=null;hero.chainTargetId=null;hero.chainLastAt=null;
     hero.readyAt=runtime.snapshot().time+.6;hero.position=at;restartedAt=null;encounter++;record({type:'hero-recovered',encounter,position:at});
@@ -53,7 +62,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
    for(const event of result.events){record(event);
      if(event.type==='actor-downed'&&event.targetId!=='hero'){defeats++;if(config.heart.active.includes('skill.nonlethal'))replacements.push({id:event.targetId,slot:event.targetId.split('#')[0],at:elapsed+6.5,recover:true});}
      if(event.type==='finisher'&&event.sourceId==='hero')finishers++;
-     if(event.type==='finisher-complete'&&event.sourceId==='hero'&&!replacements.some(r=>r.id===event.targetId))replacements.push({id:event.targetId,slot:event.targetId.split('#')[0],at:elapsed+2.2});
+     if(event.type==='finisher-complete'&&event.sourceId==='hero'&&!replacements.some(r=>r.id===event.targetId))replacements.push({id:event.targetId,slot:event.targetId.split('#')[0],at:elapsed+FINISHER_RESPAWN_SECONDS});
      if(event.type==='player-hit'&&hash(event.id)<(reviewSettings.inspirationRate==='high'?.45:.035)){const rows=inspirationPool.filter(r=>!knownSet.has(r.id)),row=rows[Math.floor(hash(event.id+':pick')*rows.length)];if(row){known.push(row.id);knownSet.add(row.id);record({type:'inspiration',actorId:'hero',techniqueId:row.id,techniqueName:row.name,triggerEventId:event.id,scope:'review-trial'});}}
    }
    const snapshot=frame(result.frame);last={frame:snapshot,events:result.events,meta:meta(snapshot)};return last;
