@@ -4,7 +4,7 @@ export const DEATH_REBIRTH_TIMING=Object.freeze({
   down:720,
   downCommitted:90,
   cut:120,
-  dead:2400,
+  dead:5000,
   void:700,
   watch:4800,
   rewind:1200,
