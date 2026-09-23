@@ -11,7 +11,7 @@ test('序破急バトルは共有Camera Directorを実カメラ経路として�
   assert.match(stage,/cameraDirector\.update\(cameraInput,step\)/);
   assert.match(stage,/applyCameraPresentation\(camera,presentation\)/);
   assert.match(stage,/actorScreenSafety\(camera,target\?\[actor,target\]:\[actor\]\)/);
-  assert.match(stage,/combatFrame:\{look:frame\.look,offset\}/);
+  assert.match(stage,/combatFrame:\{look:frame\.look,offset:tiltCameraOffsetForZoom\(offset,cameraZoom\)\}/);
   assert.match(stage,/yawOffset:cameraOrbit/);
   assert.match(stage,/framing:\{zoom:cameraZoom\}/);
   assert.match(stage,/externalCameraShot\(\{position,lookTarget:frame\.look,fov:fovTarget\}\)/);
