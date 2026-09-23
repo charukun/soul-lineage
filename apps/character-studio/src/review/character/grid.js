@@ -18,7 +18,7 @@ export function readCharacterModels(doc, ready) {
   }));
 }
 
-export function gridFocusIndex(items, current, key, columns = 5) {
+export function gridFocusIndex(items, current, key, columns = 6) {
   const direction = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns }[key];
   let index = key === 'Home' ? 0 : key === 'End' ? items.length - 1 : current + (direction || 0);
   if (!direction && key !== 'Home' && key !== 'End') return current;

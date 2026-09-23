@@ -8,7 +8,7 @@ const css = read('review/character/grid.css');
 const main = read('review/character/main.js');
 const review = read('review/character/runtime.js');
 const { readCharacterModels, gridFocusIndex, installCharacterReviewGrid } = await import(
-  `data:text/javascript;base64,${Buffer.from(code.replace("import './grid.css';", '')).toString('base64')}`
+  `data:text/javascript;base64,${Buffer.from(code.replace("import './grid.css';", '').replace("import { createReviewSvgThumbnail } from '@soul/shared-ui/review-thumbnail';", 'const createReviewSvgThumbnail = () => null;')).toString('base64')}`
 );
 
 function source(label, { id='model', pressed=false, disabled=false, stage='PRIMARY' } = {}) {
@@ -38,9 +38,9 @@ test('simple character review exposes real models only', () => {
   assert.doesNotMatch(code, /要修正|reviewDecision|modelVerdicts|詳細確認|stepModel/);
 });
 
-test('model catalog remains a five-column review grid on phone and desktop', () => {
-  assert.match(css, /\.character-model-grid\{[\s\S]*?grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
-  assert.match(css, /@media\(max-width:760px\)[\s\S]*?\.character-model-grid\{[\s\S]*?repeat\(5,minmax\(0,1fr\)\)/);
+test('model catalog remains a six-column review grid on phone and desktop', () => {
+  assert.match(css, /\.character-model-grid\{[\s\S]*?grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);
+  assert.match(css, /@media\(max-width:760px\)[\s\S]*?\.character-model-grid\{[\s\S]*?repeat\(6,minmax\(0,1fr\)\)/);
   assert.doesNotMatch(css, /38%|62%/);
   assert.match(css, /grid-template-rows:minmax\(260px,1fr\) auto!important/);
 });
@@ -66,10 +66,10 @@ test('model source selection is the single writer and first real model becomes t
   ]);
 });
 
-test('keyboard navigation keeps five-column geometry', () => {
+test('keyboard navigation keeps six-column geometry', () => {
   const items=Array.from({length:10},()=>({disabled:false}));
-  assert.equal(gridFocusIndex(items,1,'ArrowDown'),6);
-  assert.equal(gridFocusIndex(items,6,'ArrowUp'),1);
+  assert.equal(gridFocusIndex(items,1,'ArrowDown'),7);
+  assert.equal(gridFocusIndex(items,7,'ArrowUp'),1);
 });
 
 test('simple installer stays character-only and idempotent', () => {

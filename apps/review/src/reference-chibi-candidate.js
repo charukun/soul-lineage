@@ -1,6 +1,6 @@
 import {createReferenceChibi} from '../../../packages/assets/src/procedural-character/create-reference-chibi.js';
 
-const reference = new URL('./references/chibi-front.jpg', import.meta.url).href;
+const reference = new URL('../../../packages/assets/characters/reference-chibi/chibi-front.jpg', import.meta.url).href;
 export const referenceChibiCandidate = {
   type: 'procedural',
   manifest: {

@@ -1,5 +1,6 @@
 // img2threejs character route: measured front silhouette -> component hierarchy -> procedural surfaces.
 // Coordinates are in metres, +Y up and +Z towards the observed front. Depth and rear surfaces are inferred.
+export const REFERENCE_CHIBI_ID = 'reference-chibi-front-20260923';
 export function createReferenceChibi(THREE) {
   const root = new THREE.Group();
   root.name = 'ReferenceChibi_20260923';
