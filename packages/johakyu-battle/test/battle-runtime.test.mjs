@@ -50,7 +50,10 @@ test('every catalog stage runs with the UI identity; contact and presentation ke
   if(definition.stages.some(stage=>!resolveBattlePresentation({...stage,weapon}).supported))continue;
   const a={...actor('a','party',weapon),loadout:{jo:definition},recoverStamina:true},b={...actor('b','enemy'),hp:10000,maxHp:10000,canAttack:false,stamina:0,recoverStamina:false};
   const runtime=createJohakyuBattleRuntime({battleId:'catalog:'+definition.id,actors:[a,b]});const starts=new Map(),contacts=[];
-  for(let i=0;i<900;i++)for(const event of runtime.step(1/60).events){if(event.sourceId!=='a'||event.techniqueId!==definition.id)continue;if(event.type==='stage-start')starts.set(event.stageIndex,event);if(event.impact)contacts.push(event);}
+  for(let i=0;i<900;i++){
+   const hero=runtime.actor('a');runtime.actor('b').position={x:hero.position.x,z:Math.min(5,hero.position.z+1.55)};
+   for(const event of runtime.step(1/60).events){if(event.sourceId!=='a'||event.techniqueId!==definition.id)continue;if(event.type==='stage-start')starts.set(event.stageIndex,event);if(event.impact)contacts.push(event);}
+  }
   assert.equal(starts.size,definition.stages.length,weapon+':'+definition.id);
   for(const stage of definition.stages){const started=starts.get(stage.stageIndex);for(const key of ['techniqueId','stageIndex','kind','footwork','charge'])assert.equal(started[key],stage[key]);const presentation=presentBattleEvents([started])[0].presentation;assert.equal(presentation.supported,true,weapon+':'+definition.id+':'+stage.kind);assert.equal(presentation.stageIndex,stage.stageIndex);}
   for(const contact of contacts){assert.equal(contact.impact.techniqueId,definition.id);assert.equal(presentBattleEvents([contact])[0].presentation.techniqueId,definition.id);}
@@ -79,7 +82,7 @@ test('a missed stage ends its chain instead of continuing at the next stage',()=
  const runtime=createJohakyuBattleRuntime({battleId:'miss-break',actors:[a,b]});let started=false,broken=false;
  for(let i=0;i<900&&!broken;i++){
   const {events}=runtime.step(1/60);
-  if(!started&&events.some(e=>e.type==='stage-start'&&e.sourceId==='a')){started=true;runtime.actor('b').position={x:4,z:5};}
+  if(!started&&events.some(e=>e.type==='stage-start'&&e.sourceId==='a'&&e.stageIndex===1)){started=true;runtime.actor('b').position={x:4,z:5};}
   if(events.some(e=>e.type==='chain-break'&&e.actorId==='a'&&e.reason==='miss'))broken=true;
  }
  assert.ok(started);assert.ok(broken);assert.deepEqual(runtime.actor('a').cursor,{phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:1});
