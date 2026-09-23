@@ -64,7 +64,7 @@ export const FIRST_INSPIRATION_PRESENTATION=Object.freeze({
   cue:'閃', effect:'finisher', trail:'slash', sound:'inspiration',
   cameraStrength:.13, cameraFov:2.3, cameraSeconds:1.45, hudSeconds:1.8,
   afterimageSeconds:.75, afterimageInterval:.085,
-  inspirationCooldownSeconds:18, firstStageSeconds:.92,
+  firstStageSeconds:.92,
   firstCastImpulse:2.3, firstCastStaggerSeconds:.38
 });
 export function defineTechnique(raw,{weapon='sword'}={}){
