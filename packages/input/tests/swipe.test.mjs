@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SwipeInput} from '../swipe.js';
+import {SWIPE_RULES,SwipeInput} from '../swipe.js';
 
 test('quick flick enters dash and keeps its release direction',()=>{
  const input=new SwipeInput();
@@ -59,4 +59,8 @@ test('slow release remains ordinary movement and next input cancels an active da
  assert.equal(input.dash,true);
  assert.equal(input.down(3,100,100,950),true);
  assert.equal(input.dash,false);
+});
+
+test('SWIPE_RULES is gesture-only and owns no gameplay speed or notice distance',()=>{
+  for(const key of ['walkSpeed','combatSpeed','dashSpeed','notice'])assert.equal(Object.hasOwn(SWIPE_RULES,key),false,key);
 });

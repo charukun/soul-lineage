@@ -1,10 +1,10 @@
-import {WEAPONS} from '@soul/johakyu-combat/execution-capability';
+import {combatReachPolicy} from '@soul/johakyu-combat/locomotion';
 import {normalizeCombatStrategy} from '@soul/game-data/combat-strategy';
 import {clamp} from './choreography.js';
 export {createJohakyuExchangeState,reduceJohakyuExchange,johakyuExchangeSnapshot,johakyuExchangeCue} from '@soul/johakyu-combat/exchange-policy';
 function strategy(actor){const mind={...normalizeCombatStrategy(actor.mind||'balanced')};if(actor.stance==='ryu')mind.mobility+=.2;if(actor.stance==='chinshin')mind.guard+=.2;if(actor.stance==='kosei')mind.attack+=.2;return normalizeCombatStrategy(mind);}
 export function battleSpacing(actor,target,distance){
-  const weaponReach=(WEAPONS[actor.equipment.weapon]||WEAPONS.fist).reach,engagementRange=weaponReach+.65;
+  const {weaponReach,engagementRange}=combatReachPolicy({weapon:actor.equipment.weapon});
   const mind=strategy(actor),stance=actor.stance;
   const preferredSpacing=Math.max(1.52,weaponReach+.12+mind.spacing*.18-(stance==='kosei'?.12:0));
   return {distance,weaponReach,engagementRange,preferredSpacing,band:distance>engagementRange+.8?'far':distance>engagementRange?'reading':distance>preferredSpacing?'one-step':distance>1.46?'attack':'contact'};
