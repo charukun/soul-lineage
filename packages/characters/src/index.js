@@ -68,3 +68,4 @@ export * from './art-direction.js';
 export * from './material-library.js';
 
 export * from './character-model-wrapper.js';
+export * from './golden-base.js';
