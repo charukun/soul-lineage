@@ -9,7 +9,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
  if(!['duel','oneVsThree'].includes(mode)||!PHASES.includes(heroStartPhase)||!Number.isFinite(duelGap)||duelGap<1||duelGap>5)throw new RangeError('Invalid battle review fixture');
  if(fixture!==null&&fixture!=='clash')throw new RangeError('Invalid battle review fixture');
  const clashFixture=fixture==='clash',fixtureLoadout=clashFixture&&!loadout?{...BATTLE2_LOADOUT_DEFAULT,technique:{jo:'basic.sword',ha:'basic.sword',kyu:'basic.sword'}}:loadout;
- const config=normalizeBattle2Loadout(fixtureLoadout||BATTLE2_LOADOUT_DEFAULT),weapon=config.equipment.weapon,known=[...new Set(learnedTechniqueIds)],reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'};
+ const config=normalizeBattle2Loadout(fixtureLoadout||BATTLE2_LOADOUT_DEFAULT),weapon=config.equipment.weapon,known=[...new Set(learnedTechniqueIds)],knownSet=new Set(known),inspirationPool=battle2InspirationCatalog({weapon}),reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'};
  const mind={attack:.25,guard:.25,counter:.25,mobility:.25,survival:.25,spacing:.25};for(const id of config.heart.active)for(const [key,value]of Object.entries(CAUSAL_ANSWER_BY_ID[id]?.intent||{}))if(key in mind)mind[key]+=value;
  let encounter=1,epoch=1,serial=1,elapsed=0,defeats=0,finishers=0,resumes=0,restartedAt=null,runtime,last=null,activeHeroLoadout,activity=[],history=[],replacements=[];
  const slots=mode==='duel'?['enemy-a']:['enemy-a','enemy-b','enemy-c'];
@@ -44,7 +44,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
      if(event.type==='actor-downed'&&event.targetId!=='hero'){defeats++;if(config.heart.active.includes('skill.nonlethal'))replacements.push({id:event.targetId,slot:event.targetId.split('#')[0],at:elapsed+6.5,recover:true});}
      if(event.type==='finisher'&&event.sourceId==='hero')finishers++;
      if(event.type==='finisher-complete'&&event.sourceId==='hero'&&!replacements.some(r=>r.id===event.targetId))replacements.push({id:event.targetId,slot:event.targetId.split('#')[0],at:elapsed+1.25});
-     if(event.type==='player-hit'&&hash(event.id)<(reviewSettings.inspirationRate==='high'?.45:.035)){const rows=battle2InspirationCatalog({weapon}).filter(r=>!known.includes(r.id)),row=rows[Math.floor(hash(event.id+':pick')*rows.length)];if(row){known.push(row.id);record({type:'inspiration',actorId:'hero',techniqueId:row.id,techniqueName:row.name,triggerEventId:event.id,scope:'review-trial'});}}
+     if(event.type==='player-hit'&&hash(event.id)<(reviewSettings.inspirationRate==='high'?.45:.035)){const rows=inspirationPool.filter(r=>!knownSet.has(r.id)),row=rows[Math.floor(hash(event.id+':pick')*rows.length)];if(row){known.push(row.id);knownSet.add(row.id);record({type:'inspiration',actorId:'hero',techniqueId:row.id,techniqueName:row.name,triggerEventId:event.id,scope:'review-trial'});}}
    }
    const snapshot=frame(result.frame);last={frame:snapshot,events:result.events,meta:meta(snapshot)};return last;
  }
