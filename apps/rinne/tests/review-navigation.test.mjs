@@ -50,7 +50,7 @@ test('slot picker is a shared-ui primitive and RINNE keeps only the adapter',asy
   assert.match(auto,/@soul\/shared-ui\/review-slot-picker/);
   assert.doesNotMatch(auto,/installBattleSlots|battle-canvas/);
   assert.equal(JSON.parse(pkg).exports['./review-slot-picker'],'./src/review/slot-picker.js');
-  assert.match(picker,/import '\.\/review-slot-picker\.css'/);
+  assert.match(picker,/import '\.\/slot-picker\.css'/);
   assert.match(await read('src/review-slot-auto.js'),/\.\/review\/shared\/slot-auto\.js/);
   await assert.rejects(read('src/review-slot-picker.js'));
   await assert.rejects(read('src/review-slot-picker.css'));
