@@ -1,0 +1,188 @@
+/* Reference exploration composition: the generated concept is a layout guide, not an asset. */
+#game-screen[data-gameplay-upgrade] .rinne-player-hud-host{
+  left:max(10px,env(safe-area-inset-left))!important;
+  top:max(54px,calc(env(safe-area-inset-top) + 48px))!important;
+  z-index:31!important;
+}
+#game-screen[data-gameplay-upgrade] .rinne-player-hud{
+  width:clamp(142px,39vw,188px)!important;min-height:58px!important;
+  grid-template-columns:48px minmax(0,1fr) 10px!important;gap:7px!important;
+  padding:5px 7px 5px 5px!important;
+  border:2px solid rgba(155,115,64,.72)!important;border-radius:29px 13px 13px 29px!important;
+  background:linear-gradient(125deg,#fff9e8 0%,#f6e5c1 78%,#e8cb9b 100%)!important;
+  color:#49372a!important;
+  box-shadow:inset 0 2px rgba(255,255,255,.85),inset 0 -3px rgba(148,101,53,.16),0 3px 0 #654a30,0 7px 14px rgba(23,34,22,.24)!important;
+}
+#game-screen[data-gameplay-upgrade] .rinne-player-hud__portrait{
+  width:46px!important;height:46px!important;border-radius:50%!important;
+  border:3px solid #f7ecd0!important;box-shadow:0 0 0 2px #9d7948,inset 0 0 0 2px #4c6e42!important;
+}
+#game-screen[data-gameplay-upgrade] .rinne-player-hud__name{color:#3f3026!important;text-shadow:none!important;font-size:14px!important}
+#game-screen[data-gameplay-upgrade] .rinne-player-hud__age{color:#614b38!important;font-size:10px!important}
+#game-screen[data-gameplay-upgrade] .rinne-player-hud__charm{color:#8c9a60!important}
+#game-screen[data-gameplay-upgrade] .rinne-player-hud::after{background:linear-gradient(90deg,rgba(135,104,68,.4),transparent)!important}
+
+/* Preserve the selectable injury detail while making the six-part gauge read as one card. */
+#game-screen[data-gameplay-upgrade] .combat-body-hud-host.combat-body-hud{
+  top:max(54px,calc(env(safe-area-inset-top) + 48px))!important;
+  left:calc(max(10px,env(safe-area-inset-left)) + clamp(142px,39vw,188px) + 5px)!important;
+  z-index:32!important;
+}
+#game-screen[data-gameplay-upgrade] .combat-body-hud__map{
+  border:2px solid rgba(148,113,66,.75)!important;
+  background:linear-gradient(160deg,rgba(49,65,45,.97),rgba(16,30,27,.98))!important;
+  box-shadow:inset 0 0 0 2px rgba(130,170,117,.13),0 3px 0 #5b422c,0 6px 12px rgba(20,34,24,.27)!important;
+}
+#game-screen[data-gameplay-upgrade] .combat-body-hud__detail{
+  left:auto!important;right:auto!important;top:calc(100% + 8px)!important;
+  width:min(190px,calc(100vw - 22px))!important;min-width:150px!important;
+  transform:translateX(-50%)!important;left:50%!important;
+}
+
+/* The small controls remain usable without occupying the character's portrait band. */
+#game-screen[data-gameplay-upgrade] .hud-top{
+  top:max(10px,env(safe-area-inset-top))!important;
+  left:max(10px,env(safe-area-inset-left))!important;
+  width:34px!important;height:34px!important;
+}
+#game-screen[data-gameplay-upgrade] #back-title{
+  left:0!important;top:0!important;width:32px!important;height:32px!important;
+  min-width:32px!important;min-height:32px!important;font-size:18px!important;opacity:.77!important;
+}
+#game-screen[data-gameplay-upgrade] .hud-top .life-chip,
+#game-screen[data-gameplay-upgrade] .hud-top .bars,
+#game-screen[data-gameplay-upgrade] .hud-top .clock-rate{display:none!important}
+#game-screen[data-gameplay-upgrade] .gameplay-surface-version{display:none!important}
+
+/* Native, always visible village radar; the same map sheet opens on tap. */
+#game-screen[data-gameplay-upgrade] .rinne-field-radar{
+  position:absolute;z-index:33;top:max(12px,calc(env(safe-area-inset-top) + 6px));right:max(11px,env(safe-area-inset-right));
+  display:grid;place-items:center;align-content:center;width:76px;height:76px;padding:5px;border:2px solid #a6814b;border-radius:50%;
+  background:linear-gradient(150deg,#66573d,#252c26 70%);color:#f8e5bd;
+  box-shadow:inset 0 2px rgba(255,245,210,.28),inset 0 -4px #272519,0 4px 12px rgba(18,32,22,.3);
+  touch-action:manipulation;pointer-events:auto;
+}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__face{
+  position:relative;display:block;width:61px;height:61px;overflow:hidden;border:1px solid #ddc18a;border-radius:50%;
+  background:radial-gradient(circle,#526b57 0 27%,#304e48 28% 54%,#192e2c 55% 100%);
+  box-shadow:inset 0 0 10px rgba(0,0,0,.48);
+}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__rings{
+  position:absolute;inset:7px;border:1px solid rgba(247,226,170,.4);border-radius:50%;
+}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__rings::after{
+  content:"";position:absolute;inset:12px;border:1px dashed rgba(247,226,170,.27);border-radius:50%;
+}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__face::before,
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__face::after{
+  content:"";position:absolute;z-index:1;background:rgba(238,215,163,.19);pointer-events:none;
+}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__face::before{top:50%;left:6px;right:6px;height:1px}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__face::after{left:50%;top:6px;bottom:6px;width:1px}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__places i{
+  position:absolute;z-index:2;width:5px;height:5px;transform:translate(-50%,-50%);border:1px solid #f6e8ba;border-radius:50%;background:#b6cf9f;
+}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__places i[data-category="forge"],
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__places i[data-category="train"]{background:#f1bc78}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__target{
+  position:absolute;z-index:3;width:8px;height:8px;transform:translate(-50%,-50%) rotate(45deg);
+  border:1px solid #fff2c9;background:#de9166;box-shadow:0 0 7px #f5c17a;
+}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__player{
+  position:absolute;z-index:4;left:50%;top:50%;width:0;height:0;
+  border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:12px solid #f8d991;
+  filter:drop-shadow(0 2px 2px #141d19);
+}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__face u{
+  position:absolute;z-index:5;left:50%;top:0;transform:translateX(-50%);text-decoration:none;font:700 7px/1 sans-serif;color:#fff2cd;
+}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__label,
+#game-screen[data-gameplay-upgrade] .rinne-field-radar__distance{display:none}
+#game-screen[data-gameplay-upgrade] .rinne-field-radar:focus-visible{outline:3px solid #fff2c0;outline-offset:3px}
+
+/* Existing camera-position slider is relocated below the radar. */
+#game-screen[data-gameplay-upgrade] .camera-position-control{
+  top:max(96px,calc(env(safe-area-inset-top) + 90px))!important;
+  right:max(24px,calc(env(safe-area-inset-right) + 13px))!important;
+  left:auto!important;z-index:34!important;width:48px!important;height:98px!important;
+  border:1px solid rgba(188,152,89,.54);border-radius:24px;
+  background:linear-gradient(180deg,rgba(53,50,35,.84),rgba(27,40,35,.83));
+  box-shadow:inset 0 1px rgba(255,235,183,.18),0 4px 10px rgba(20,30,23,.22);
+}
+#game-screen[data-gameplay-upgrade] .camera-position-control .camera-position-panel{
+  left:2px!important;top:2px!important;width:42px!important;height:91px!important;
+}
+#game-screen[data-gameplay-upgrade] .camera-position-control.is-combat{opacity:.72!important}
+
+/* During ordinary exploration the radar carries the route; urgent guidance remains visible. */
+#game-screen[data-gameplay-upgrade][data-guidance-tone="calm"] .objective-card,
+#game-screen[data-gameplay-upgrade][data-guidance-tone="home"] .objective-card,
+#game-screen[data-gameplay-upgrade][data-guidance-tone="activity"] .objective-card{display:none!important}
+#game-screen[data-gameplay-upgrade] .objective-card:not([hidden]){
+  top:max(205px,calc(env(safe-area-inset-top) + 200px))!important;
+  right:max(8px,env(safe-area-inset-right))!important;
+  width:min(160px,42vw)!important;
+}
+#game-screen[data-gameplay-upgrade] .world-vignette{opacity:.45}
+
+/* Short speech bubble with a reliable mobile line wrap and no right-edge clipping. */
+#game-screen[data-gameplay-upgrade] #dialogue:not([hidden]){
+  position:absolute!important;left:50%!important;right:auto!important;
+  top:34%!important;bottom:auto!important;transform:translateX(-50%)!important;
+  width:min(350px,calc(100% - 28px))!important;max-width:350px!important;
+  min-width:0!important;padding:11px 18px 14px!important;
+  border:2px solid rgba(148,111,70,.55)!important;border-radius:23px!important;clip-path:none!important;
+  background:linear-gradient(180deg,#fffaf0,#f7e7ca)!important;
+  box-shadow:0 4px 0 rgba(107,78,48,.24),0 10px 19px rgba(24,34,22,.17)!important;
+  overflow:visible!important;white-space:normal!important;overflow-wrap:anywhere!important;
+}
+#game-screen[data-gameplay-upgrade] #dialogue:not([hidden])::before{
+  content:"";position:absolute;left:50%;bottom:-10px;width:18px;height:18px;
+  border-right:2px solid rgba(148,111,70,.55);border-bottom:2px solid rgba(148,111,70,.55);
+  background:#f7e7ca;transform:translateX(-50%) rotate(45deg);
+}
+#game-screen[data-gameplay-upgrade] #dialogue p{
+  margin:0!important;color:#49382b!important;font-size:clamp(12px,3.4vw,16px)!important;
+  line-height:1.55!important;letter-spacing:.03em!important;white-space:normal!important;overflow-wrap:anywhere!important;
+}
+#game-screen[data-gameplay-upgrade] #dialogue span{display:none!important}
+
+/* Four permanent painted seals sit on a thin wood rail; 記 remains a small auxiliary control. */
+#game-screen[data-gameplay-upgrade] .rinne-bottom-controls.rinne-primary-four{
+  bottom:max(18px,calc(env(safe-area-inset-bottom) + 12px))!important;
+  grid-template-columns:repeat(4,clamp(54px,16vw,72px))!important;
+  gap:clamp(2px,1.7vw,10px)!important;
+  padding:6px 7px 5px!important;
+}
+#game-screen[data-gameplay-upgrade] .rinne-primary-four::before{
+  content:"";position:absolute;z-index:-1;left:-7px;right:-7px;top:53%;height:17px;
+  border:1px solid #8e603b;border-radius:9px;
+  background:linear-gradient(180deg,#a67749,#674529);
+  box-shadow:0 5px 8px rgba(28,35,24,.26);pointer-events:none;
+}
+#game-screen[data-gameplay-upgrade] .rinne-primary-four .upgrade-control{
+  width:clamp(54px,16vw,72px)!important;min-width:0!important;
+  height:clamp(58px,17vw,76px)!important;min-height:0!important;
+  grid-template-rows:1fr!important;
+}
+#game-screen[data-gameplay-upgrade] .rinne-primary-four .upgrade-control>i{
+  width:clamp(52px,15.5vw,70px)!important;height:clamp(52px,15.5vw,70px)!important;
+  border-width:4px!important;font-size:clamp(20px,5vw,27px)!important;
+  box-shadow:inset 0 3px rgba(255,255,255,.4),0 0 0 3px #644b32,0 4px 0 #473222,0 9px 13px rgba(25,37,25,.3)!important;
+}
+#game-screen[data-gameplay-upgrade] .rinne-record-toggle{
+  right:max(5px,env(safe-area-inset-right))!important;
+  bottom:max(24px,calc(env(safe-area-inset-bottom) + 18px))!important;
+  width:35px!important;height:39px!important;
+}
+#game-screen[data-gameplay-upgrade] .rinne-record-toggle i{width:32px;height:32px;font-size:12px}
+@media(max-width:410px){
+  #game-screen[data-gameplay-upgrade] .rinne-player-hud-host{top:max(50px,calc(env(safe-area-inset-top) + 44px))!important}
+  #game-screen[data-gameplay-upgrade] .combat-body-hud-host.combat-body-hud{top:max(50px,calc(env(safe-area-inset-top) + 44px))!important}
+}
+@media(max-height:560px) and (orientation:landscape){
+  #game-screen[data-gameplay-upgrade] #dialogue:not([hidden]){top:auto!important;bottom:max(88px,calc(env(safe-area-inset-bottom) + 80px))!important;width:min(420px,calc(100% - 28px))!important}
+  #game-screen[data-gameplay-upgrade] .rinne-field-radar{width:60px;height:60px}
+  #game-screen[data-gameplay-upgrade] .rinne-field-radar__face{width:47px;height:47px}
+  #game-screen[data-gameplay-upgrade] .camera-position-control{top:max(75px,calc(env(safe-area-inset-top) + 68px))!important}
+}
