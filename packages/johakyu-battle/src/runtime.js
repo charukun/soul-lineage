@@ -64,7 +64,11 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
   }
   function finish(actor){
     const action=actor.action;if(!action)return;emit({type:'stage-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});cancelJohakyuStage(action);actor.action=null;actor.readyAt=time+.033;
-    if(action.finisher){emit({type:'finisher-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});return;}
+    if(action.finisher){
+      const duration=1.05;actor.readyAt=time+duration;
+      actor.phaseCue={key:`${action.id}:zanshin`,phase:'zanshin',startedAt:time,duration};
+      emit({type:'finisher-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});
+      emit({type:'zanshin',actorId:actor.id,sourceId:actor.id,targetId:action.targetId,after:'finisher'});return;}
     if(action.phase==='one'){actor.override.stageIndex++;if(actor.override.stageIndex>=actor.override.technique.stages.length){actor.override=null;actor.readyAt=time+.45;emit({type:'technique-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});}return;}
     if(action.reaction){if(action.reaction==='counter'){actor.counterUntil=0;const target=actors.get(action.targetId);if(target)exchange(actor,target,{type:'counter-complete'});}return;}
     if(action.breakReason||!live(actors.get(action.targetId)||{})){breakChain(actor,action.breakReason||'target-lost',action.targetId);return;}
@@ -88,7 +92,7 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     if(actor.chainTargetId&&(actor.chainTargetId!==target?.id||actor.chainLastAt!==null&&time-actor.chainLastAt>2.5))breakChain(actor,target?'target-changed':'target-lost');
     const downed=!actor.nonlethal&&actor.canFinish!==false?targetFor(actor,{downed:true}):null;
     if(downed&&(!target||distance(actor,target)>2.8)){
-      if(distance(actor,downed)<=1.9&&time>=actor.readyAt&&time-(downed.downedAt??time)>=.4){begin(actor,downed,{finisher:true});return;}
+      if(distance(actor,downed)<=1.9&&time>=actor.readyAt&&time-(downed.downedAt??time)>=1.1){begin(actor,downed,{finisher:true});return;}
       if(!target){actor.decision={intent:'approach',footwork:'forward',stopDistance:1.8,targetId:downed.id};return;}
     }
     if(!target){actor.decision=null;return;}
