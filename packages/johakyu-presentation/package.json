@@ -9,11 +9,15 @@
     "./audio": "./src/audio.js",
     "./assets": "./src/assets.js",
     "./driver": "./src/driver.js",
-    "./technique-presentation": "./src/technique-presentation.js"
+    "./technique-presentation": "./src/technique-presentation.js",
+    "./battle-presentation": "./src/battle-presentation.js",
+    "./motion-bindings": "./src/motion-bindings.js"
   },
   "dependencies": {
     "@soul/assets": "*",
     "@soul/shared-ui": "*",
-    "three": "0.186.0"
+    "three": "0.186.0",
+    "@soul/johakyu-battle": "*",
+    "@soul/johakyu-combat": "*"
   }
 }

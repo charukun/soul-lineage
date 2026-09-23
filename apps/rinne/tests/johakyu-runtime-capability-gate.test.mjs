@@ -19,7 +19,7 @@ test('main combat rejects an authored offense when canonical body capability for
   for(let i=0;i<120&&!events.some(event=>event.type==='execution-blocked');i++)events.push(...tickFront(state,front,1/60));
   const blocked=events.find(event=>event.type==='execution-blocked');
   assert.ok(blocked,'runtime must surface the canonical execution rejection');
-  assert.equal(blocked.reason,'arm-injury');assert.equal(blocked.authority,'rinne-domain');assert.equal(blocked.kind,'slash');
+  assert.equal(blocked.reason,'arm-injury');assert.equal(blocked.authority,'johakyu-battle');assert.equal(blocked.kind,'slash');
   assert.equal(events.some(event=>event.type==='player-hit'),false);assert.equal(enemy.hp,startHp);
   assert.equal(state.attacking,false);assert.ok(state.combat?.executionBlock?.remaining>0);
 });

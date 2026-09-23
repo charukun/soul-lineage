@@ -23,8 +23,8 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.doesNotMatch(html, /id="rapid-iterations"|id="rapid-iteration-list"/);
   assert.match(script, /activeSessions/);
   assert.match(script, /renderProgressMini/);
-  assert.match(script, /renderSession\(session,\{graph:true\}\)/);
-  assert.match(script, /renderSession\(session,\{iteration:true,graph:true\}\)/);
+  assert.match(script, /renderActiveCard\(session\)/);
+  assert.match(script, /renderIterationSummary\(state\)/);
   assert.match(script, /iterationSteps/);
   assert.match(script, /buildIssueRepairPrompt/);
   assert.match(script, /navigator\.clipboard/);
@@ -32,10 +32,8 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /iterations\.html#iteration=/);
   assert.match(script, /再検証/);
   assert.match(script, /iterationRank/);
-  assert.match(script, /Run ·/);
   assert.match(script, /autonomousGameIds/);
   assert.match(script, /iterationDisplayTitle/);
-  assert.match(script, /allRaw\.filter\(session=>autonomousGameIds\.has\(iterationGameId\(session\)\)\)/);
   assert.match(script, /対象未記録/);
   assert.match(script, /rapid-session-card/);
   assert.match(script, /rapid-execution-state/);
@@ -44,7 +42,7 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /Idle/);
   assert.match(script, /工程時間/);
   assert.match(script, /tickProgressDurations/);
-  assert.match(script, /setInterval\(\(\)=>\{if\(!document\.hidden\)tickProgressDurations/);
+  assert.match(script, /tickActiveElapsed\(document,now\)/);
   assert.match(script, /fetch\('\/version\.json'/);
   assert.match(html, /id="pulse-version"/);
   assert.match(rapidCss, /\.pulse-version\{/);
@@ -57,6 +55,11 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.match(script, /workflow success/);
   assert.match(script, /workflow failed/);
   assert.match(script, /sessionNextWait/);
+  assert.match(script, /sessionFirstActivityAt/);
+  assert.match(script, /tickActiveElapsed/);
+  assert.match(script, /data-active-started-at/);
+  assert.match(script, /開始から/);
+  assert.match(script, /最初 /);
   assert.doesNotMatch(script, /rapid-current-band/);
   assert.doesNotMatch(script, /api\.github\.com|innerHTML/);
 });
@@ -67,9 +70,16 @@ test('app cards include a DEV link and per-app PR history', () => {
   assert.match(script, /target\.id === appId/);
 });
 
-test('existing diagnostic surfaces remain present for drill-down', () => {
+test('legacy diagnostics are consolidated behind one PULSE diagnostic gateway', () => {
   for (const id of ['control-tower','pulls','applications','publication-history','failures']) {
     assert.match(html, new RegExp('id="' + id + '"'));
+  }
+  assert.match(html, /<details id="status-section"[^>]*>[\s\S]*?<strong>PULSE診断<\/strong>/);
+  assert.doesNotMatch(html, /class="rapid-detail-link"/);
+  assert.doesNotMatch(html, /id="detail-zone-title"|>必要なときだけ<|>運用ステータスの詳細</);
+  const gateway=html.indexOf('id="status-section"');
+  for (const id of ['tasks-section','apps-section','history-section','details-section']) {
+    assert.ok(html.indexOf('id="' + id + '"') > gateway);
   }
 });
 

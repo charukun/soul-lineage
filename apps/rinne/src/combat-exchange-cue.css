@@ -8,3 +8,19 @@
 .combat-phase-indicator [data-exchange-edge=zanshin]{right:-29px}
 .combat-exchange-edge svg{width:25px;height:12px;overflow:visible}.combat-exchange-edge path{fill:none;stroke:var(--rinne-gold-hi,#efcf88);stroke-width:1.2;vector-effect:non-scaling-stroke}
 .combat-phase-indicator[data-exchange-state=maai] [data-exchange-edge=maai],.combat-phase-indicator[data-exchange-state=zanshin] [data-exchange-edge=zanshin]{opacity:1;filter:drop-shadow(0 0 3px #c7a15d)}
+
+/* The life HUD reads shared Technique/Stage snapshots, without the retired
+   Tidebreak pose string or its three-row history panel. */
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-battle-engine="johakyu"]{
+  top:auto!important;bottom:max(80px,calc(env(safe-area-inset-bottom) + 76px))!important;
+  grid-template-columns:30px 18px 30px 18px 30px!important;grid-template-rows:26px 14px!important;
+  padding:5px 9px!important;border:1px solid #7a603e!important;border-radius:8px!important;
+  background:linear-gradient(180deg,rgba(75,62,45,.9),rgba(29,28,24,.92))!important;
+  box-shadow:inset 0 1px rgba(255,240,205,.08),0 3px 8px rgba(0,0,0,.28)!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-battle-engine="johakyu"]>.combat-phase-history{display:none!important}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-battle-engine="johakyu"]>.combat-phase-action{
+  display:block!important;grid-column:1/6!important;grid-row:2!important;position:static!important;transform:none!important;
+  justify-self:center;margin:1px 0 0!important;padding:0 4px!important;max-width:190px!important;
+  color:#f2dfb6!important;font-size:9px!important;white-space:nowrap;
+}

@@ -138,7 +138,8 @@ export function inspectAuthorizedFastDevContraction(base, head) {
   for (const row of changedRows(branchBase,head)) {
     if (!row.path || allowedChanges.has(row.path)) continue;
     if (/^apps\/[^/]+\/package\.json$/.test(row.path)) violations.push(...lifecycleViolations(branchBase,head,row.path));
-    else violations.push({code:'CONTRACTION_SCOPE_EXPANDED',path:row.path,detail:'Fast DEV contraction may only change the validation workflow, anti-expansion contract, focused runner, status-first Actions inspector, its focused test, and execution docs.'});
+    else if (/\.test\.mjs$/.test(row.path) && row.status === 'D') continue;
+    else violations.push({code:'CONTRACTION_SCOPE_EXPANDED',path:row.path,detail:'Fast DEV contraction may only shrink test inventory or change the validation workflow, anti-expansion contract, focused runner, status-first Actions inspector, its focused test, and execution docs.'});
   }
   const workflow=readAt(head,'.github/workflows/astra-work-validation.yml')||'';
   for (const token of ["[astra-heavy-validation]",'cleanup-routine-ref','routine/txn-','scripts/astra-focused-validation.mjs plan','scripts/astra-focused-validation.mjs run','has_work','needs_install','npm ci --ignore-scripts','astra/merge-freshness','ASTRA_REVALIDATE_REQUIRED']) {

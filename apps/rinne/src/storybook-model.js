@@ -1,5 +1,5 @@
 import {resolveInspirationAnswer} from '@soul/game-data';
-import {ensureCombatLoadout,learnedHeartSkills,learnedTechniqueSkills,techniqueName,activeCombo,unlockedBodyOptions,BODY_STANCES,BODY_STYLES,BODY_ZANSHIN,PHASES} from './combat-loadout.js';
+import {ensureCombatLoadout,learnedHeartSkills,learnedTechniqueSkills,techniqueName,activeCombo,unlockedBodyOptions,BODY_STANCES,BODY_FINISHERS,BODY_ZANSHIN,PHASES} from './combat-loadout.js';
 import {skillDefinition} from './rebuild/skill-system.js';
 import {inspirationJournalModel} from './inspiration-journal-model.js';
 import {tidebreakMindVectorFor} from './rebuild/combat-tactics.js';
@@ -11,7 +11,7 @@ export const BOOK_PAGES=Object.freeze({
   body:{glyph:'体',title:'身体',subtitle:'この身が、旅をつくる。',section:'現在の身法',hint:'構え・戦法・残心を、いまの身体に合わせる。'},
   items:{glyph:'装',title:'武具',subtitle:'旅を支える、確かな道具たち。',section:'現在の装備',hint:'武器・防具・盾を見比べて、身支度を整える。'}
 });
-export const BOOK_BODY=Object.freeze([['stance','構え',BODY_STANCES],['style','戦法',BODY_STYLES],['zanshin','残心',BODY_ZANSHIN]]);
+export const BOOK_BODY=Object.freeze([['stance','構え',BODY_STANCES],['finisher','葬焉',BODY_FINISHERS],['zanshin','残心',BODY_ZANSHIN]]);
 export const BOOK_MIND=Object.freeze([['attack','攻勢'],['guard','守り'],['spacing','間合い'],['counter','反撃'],['mobility','機動'],['survival','生存']]);
 export const BOOK_TRAITS=Object.freeze([['reach','間合い'],['drive','力'],['balance','重心'],['endurance','息持ち'],['coordination','まとまり']]);
 const EFFECTS={reachScale:'間合い',turnScale:'旋回',guardBonus:'受け',distanceScale:'保つ距離',advanceScale:'踏み込み',retreatScale:'退き',orbitScale:'回り込み',recoveryScale:'構えへの戻り',staminaRefund:'息の回復'};
@@ -40,7 +40,7 @@ function knownRow(state,id,journal){
 }
 function bodyRow(state,kind,label,option,known){
   const facts=Object.entries(EFFECTS).filter(([key])=>typeof option[key]==='number').map(([key,name])=>({label:name,value:`${Math.round(option[key]*100)}%`,raw:option[key],key}));
-  return {id:`${kind}:${option.id}`,choice:option.id,category:kind,categoryLabel:label,name:option.label,known,kind:'body',icon:kind==='stance'?'stance':kind==='style'?'flow':'breath',purpose:option.description,tradeoff:'',story:known?'身につけた型から選べます。':'関連する心得を会得すると選べます。',provenance:[],requires:option.requiresAny||[],facts,status:known?'習得済':'未習得',availability:{usable:known,reason:known?'':'まだ身につけていません。'}};
+  return {id:`${kind}:${option.id}`,choice:option.id,category:kind,categoryLabel:label,name:option.label,known,kind:'body',icon:kind==='stance'?'stance':kind==='finisher'?'flow':'breath',purpose:option.description,tradeoff:'',story:known?'身につけた型から選べます。':'関連する心得を会得すると選べます。',provenance:[],requires:option.requiresAny||[],facts,status:known?'習得済':'未習得',availability:{usable:known,reason:known?'':'まだ身につけていません。'}};
 }
 export function bookReadOnlyReason(state,{coop=false}={}){
   if(!state)return '人生を開始してから開けます。';

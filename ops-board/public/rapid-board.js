@@ -33,6 +33,28 @@ const relative = value => {
   const ms = parsedAt(value);
   return ms ? ageLabel(Math.max(0, Date.now() - ms)) : '更新時刻未記録';
 };
+const elapsedLabel=(value,now=Date.now())=>{
+  const ms=parsedAt(value);
+  if(!ms)return '未記録';
+  const elapsed=Math.max(0,now-ms),minutes=Math.floor(elapsed/60000);
+  if(minutes<1)return '1分未満';
+  if(minutes<60)return minutes+'分';
+  const hours=Math.floor(minutes/60),restMinutes=minutes%60;
+  if(hours<24)return hours+'時間'+(restMinutes?' '+restMinutes+'分':'');
+  const days=Math.floor(hours/24),restHours=hours%24;
+  return days+'日'+(restHours?' '+restHours+'時間':'');
+};
+const sessionFirstActivityAt=session=>{
+  const candidates=(session?.steps||[]).flatMap(step=>[step.startedAt,step.completedAt]).filter(value=>parsedAt(value));
+  if(session?.mergedAt&&parsedAt(session.mergedAt))candidates.push(session.mergedAt);
+  if(!candidates.length&&parsedAt(session?.updatedAt))candidates.push(session.updatedAt);
+  return candidates.sort((a,b)=>parsedAt(a)-parsedAt(b))[0]||null;
+};
+const tickActiveElapsed=(root=document,now=Date.now())=>{
+  root.querySelectorAll('[data-active-started-at]').forEach(node=>{
+    node.textContent=elapsedLabel(node.dataset.activeStartedAt,now);
+  });
+};
 const stateView = state => ({
   success: ['LIVE', 'ok', 'DEV公開済み'],
   deploying: ['DEPLOYING', 'progress', 'DEV更新中'],
@@ -152,6 +174,7 @@ const sessionTimeline=session=>{
 };
 function renderActiveCard(session){
   const lastActivity=session.execution?.lastActivityAt||session.updatedAt;
+  const firstActivity=sessionFirstActivityAt(session);
   const ageTone=activityAgeTone(lastActivity);
   const running=['running','validating'].includes(session.execution?.state);
   const card=el('article','rapid-active-card age-'+ageTone+(running?' is-running':''));
@@ -164,11 +187,15 @@ function renderActiveCard(session){
   head.append(badges);
   card.append(head);
   const facts=el('div','rapid-active-facts');
+  const elapsed=el('div','rapid-active-fact');
+  const elapsedValue=el('strong','rapid-active-elapsed',elapsedLabel(firstActivity));
+  if(firstActivity)elapsedValue.dataset.activeStartedAt=firstActivity;
+  elapsed.append(el('span','','開始から'),elapsedValue,el('small','',firstActivity?'最初 '+clock(firstActivity):'最初の活動は未記録'));
   const activity=el('div','rapid-active-fact');
   activity.append(el('span','','最終活動'),el('time','',clock(lastActivity)),el('small','',relative(lastActivity)));
   const sha=el('div','rapid-active-fact');
   sha.append(el('span','','HEAD'),el('code','',shortSha(session.headSha)));
-  facts.append(activity,sha);
+  facts.append(elapsed,activity,sha);
   card.append(facts);
   const timeline=el('ol','rapid-active-timeline');
   for(const item of sessionTimeline(session)){
@@ -545,4 +572,9 @@ async function loadPulseVersion(){
 
 subscribe(render);
 loadPulseVersion();
-setInterval(()=>{if(!document.hidden)tickProgressDurations(document,Date.now());},1000);
+setInterval(()=>{
+  if(document.hidden)return;
+  const now=Date.now();
+  tickProgressDurations(document,now);
+  tickActiveElapsed(document,now);
+},1000);
