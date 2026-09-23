@@ -97,13 +97,15 @@ export async function createImg2ThreeReferenceCharacter({ textureUrl = '/img2thr
   ellipsoid(root, 'neck', [0, 1.735, 0], [.13, .105, .14], skin);
   const head = ellipsoid(root, 'full-depth-projected-head', [0, 2.2, 0], [.45, .47, .455], headMaterial, 64);
   head.userData.depthRatio = .455 / .45;
-  // The source UV puts the eyes below the centre of the cranium. Move the
-  // facial sampling upward; the blend tapers to zero at both poles so the
-  // crown and underside retain their original skin colour and seams.
+  // Keep the eyes raised while bringing the small smile off the chin.
+  // The lower-face correction fades out before the eyes and at the bottom pole;
+  // both blends stay continuous so the original facial texture remains intact.
   const uv = head.geometry.getAttribute('uv');
   for (let i = 0; i < uv.count; i++) {
     const v = uv.getY(i);
-    uv.setY(i, Math.max(0, v - .15 * Math.sin(Math.PI * v) ** 2));
+    const faceLift = .15 * Math.sin(Math.PI * v);
+    const mouthLift = v < .55 ? .08 * Math.sin(Math.PI * v / .55) ** 2 : 0;
+    uv.setY(i, Math.max(0, v - faceLift - mouthLift));
   }
   uv.needsUpdate = true;
   for (const sign of [-1, 1]) {
