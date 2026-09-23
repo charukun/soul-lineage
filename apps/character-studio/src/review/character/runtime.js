@@ -160,7 +160,7 @@ function start() {
     if (simpleModelReview) {
       const sharedPreset=preset==='overview'?'three-quarter':preset;
       camera.fov=38;camera.updateProjectionMatrix();
-      positionReviewCamera({camera,controls:orbit,root:proceduralRoot || actor.root,preset:sharedPreset,padding:proceduralRoot?.userData?.img2threejs?1.36:proceduralRoot?1.7:1.14,minDistance:.35,maxDistance:18});
+      positionReviewCamera({camera,controls:orbit,root:proceduralRoot || actor.root,preset:sharedPreset,padding:proceduralRoot?.userData?.img2threejs?1.14:proceduralRoot?1.4:1.08,minDistance:.35,maxDistance:18});
       resetMeasure();return;
     }
     let target, distance;

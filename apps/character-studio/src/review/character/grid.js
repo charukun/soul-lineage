@@ -42,22 +42,51 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     return node;
   };
 
+  const stageName = make('div', 'character-review-stage-name', 'モデルを選択');
+  stageName.setAttribute('aria-live', 'polite');
+
   const cameraDock = make('div', 'character-review-camera-dock review-surface__stage-tools');
   cameraDock.setAttribute('aria-label', '表示方向');
-  const cameraButtons = [...actions.querySelectorAll('[data-camera="front"],[data-camera="side"],[data-camera="back"],[data-camera="face"]')];
+  const directionGroup = make('div', 'character-review-camera-group');
+  const focusGroup = make('div', 'character-review-camera-group character-review-camera-group--focus');
+  const front = actions.querySelector('[data-camera="front"]');
+  const side = actions.querySelector('[data-camera="side"]');
+  const back = actions.querySelector('[data-camera="back"]');
+  const face = actions.querySelector('[data-camera="face"]');
   const frameButton = doc.getElementById('frame-model');
-  for (const button of cameraButtons) {
+  for (const button of [front, side, back].filter(Boolean)) {
     button.hidden = false;
     button.removeAttribute('aria-hidden');
-    cameraDock.append(button);
+    directionGroup.append(button);
+  }
+  if (face) {
+    face.hidden = false;
+    face.removeAttribute('aria-hidden');
+    focusGroup.append(face);
   }
   if (frameButton) {
     frameButton.textContent = '全身';
     frameButton.hidden = false;
     frameButton.removeAttribute('aria-hidden');
-    cameraDock.append(frameButton);
+    focusGroup.append(frameButton);
   }
-  canvasWrap.append(cameraDock);
+  cameraDock.append(directionGroup, focusGroup);
+
+  const utility = make('div', 'character-review-stage-utility');
+  const capture = doc.getElementById('capture');
+  if (capture) {
+    capture.textContent = '撮影';
+    capture.classList.add('character-review-capture');
+    utility.append(capture);
+  }
+  const settingsButton = make('button', 'character-review-settings-button');
+  settingsButton.type = 'button';
+  settingsButton.dataset.sharedIcon = 'settings-2';
+  settingsButton.setAttribute('aria-label', '年齢・身長・体格などのキャラクター調整を開く');
+  settingsButton.append(make('span', 'character-review-settings-icon'), make('span', 'character-review-settings-label', '調整'));
+  utility.append(settingsButton);
+
+  canvasWrap.append(stageName, utility, cameraDock);
   actions.hidden = true;
 
   const stageStatus = doc.querySelector('.stage-status');
@@ -66,18 +95,60 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     if (!canvasWrap.contains(stageStatus)) canvasWrap.append(stageStatus);
   }
 
+  const settingsDialog = make('dialog', 'character-review-settings');
+  settingsDialog.id = 'character-review-settings';
+  settingsDialog.setAttribute('aria-labelledby', 'character-review-settings-title');
+  const settingsHead = make('header', 'character-review-settings__head');
+  const settingsTitle = make('div', 'character-review-settings__title');
+  const settingsEyebrow = make('small', '', 'CHARACTER');
+  const settingsHeading = make('h2', '', 'キャラクター調整');
+  settingsHeading.id = 'character-review-settings-title';
+  settingsTitle.append(settingsEyebrow, settingsHeading);
+  const settingsClose = make('button', 'character-review-settings__close', '×');
+  settingsClose.type = 'button';
+  settingsClose.setAttribute('aria-label', 'キャラクター調整を閉じる');
+  settingsHead.append(settingsTitle, settingsClose);
+  const settingsNote = make('p', 'character-review-settings__note', '実モデルの確認はこの画面のまま。年齢・身長・体格などの編集項目は、ここから直接開けます。');
+  const settingsGrid = make('div', 'character-review-settings__grid');
+  const settingLink = (title, detail, href) => {
+    const link = make('a', 'character-review-setting-link');
+    link.href = href;
+    link.append(make('strong', '', title), make('span', '', detail), make('b', '', '›'));
+    return link;
+  };
+  settingsGrid.append(
+    settingLink('年齢', '0〜90歳', './advanced.html#age'),
+    settingLink('身長', '身長遺伝子', './advanced.html#gene-height'),
+    settingLink('体格', '体格遺伝子', './advanced.html#gene-build'),
+    settingLink('顔・髪・色', '個体の形質', './advanced.html#gene-hair')
+  );
+  const advanced = make('a', 'character-review-settings__advanced', 'すべての詳細調整を開く');
+  advanced.href = './advanced.html';
+  settingsDialog.append(settingsHead, settingsNote, settingsGrid, advanced);
+  doc.body.append(settingsDialog);
+
+  const closeSettings = () => {
+    if (typeof settingsDialog.close === 'function' && settingsDialog.open) settingsDialog.close();
+    else settingsDialog.removeAttribute('open');
+  };
+  settingsButton.addEventListener('click', () => {
+    if (typeof settingsDialog.showModal === 'function') settingsDialog.showModal();
+    else settingsDialog.setAttribute('open', '');
+  });
+  settingsClose.addEventListener('click', closeSettings);
+  settingsDialog.addEventListener('click', event => {
+    if (event.target === settingsDialog) closeSettings();
+  });
+
   const root = make('section', 'character-review-picker');
   root.id = 'character-review-picker';
   root.setAttribute('aria-label', 'キャラクターモデル');
-  const heading = make('div', 'character-review-heading');
-  heading.append(make('strong', '', 'キャラクター'), make('small', '', '実モデルのみ'));
+  const heading = make('h2', 'sr-only', 'キャラクターモデル');
   const grid = make('div', 'character-model-grid review-choice-grid');
   grid.setAttribute('role', 'listbox');
   grid.setAttribute('aria-label', '実キャラクターモデル');
   const empty = make('p', 'character-review-empty', 'モデルを読み込んでいます。');
-  const advanced = make('a', 'character-review-advanced', '髪・顔・年齢・個体差などを編集');
-  advanced.href = './advanced.html';
-  root.append(heading, grid, empty, advanced);
+  root.append(heading, grid, empty);
   controls.prepend(root);
   doc.body.classList.add('character-grid-ready');
 
@@ -101,8 +172,10 @@ export function installCharacterReviewGrid(doc = document, win = window) {
       button.type = 'button';
       button.dataset.modelKey = model.key;
       button.disabled = model.disabled;
+      button.title = model.stage ? `${model.label} · ${model.stage}` : model.label;
       button.setAttribute('role', 'option');
       button.setAttribute('aria-selected', String(model.selected));
+      button.setAttribute('aria-label', model.stage ? `${model.label}、${model.stage}` : model.label);
       if (model.thumbnailUrl) {
         if (model.thumbnailKind === 'svg-symbol') {
           button.append(createReviewSvgThumbnail(model.thumbnailUrl, { className: 'character-model-thumbnail', decorative: true, doc }));
@@ -113,7 +186,6 @@ export function installCharacterReviewGrid(doc = document, win = window) {
         }
       }
       button.append(make('strong', 'character-model-card-label', model.label));
-      if (model.stage) button.append(make('small', 'character-model-card-stage', model.stage));
       button.addEventListener('click', () => choose(model));
       return button;
     }));
@@ -141,6 +213,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
       render(models);
     }
     empty.hidden = models.length > 0;
+    stageName.textContent = models.find(model => model.selected)?.label || 'モデルを選択';
     if (ready && !autoSelected && !review()?.displayModelId) {
       const first = models.find(model => !model.disabled);
       if (first) {

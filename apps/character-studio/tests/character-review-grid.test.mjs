@@ -21,7 +21,7 @@ function source(label, { id='model', pressed=false, disabled=false, stage='PRIMA
   };
 }
 
-test('simple character review exposes real models only', () => {
+test('simple character review exposes real models with a compact visual catalog', () => {
   assert.match(main, /const simpleReview = document\.body\.classList\.contains\('simple-review'\)/);
   assert.match(main, /if \(!simpleReview\) \{\s*const generated = button\('量産モデル'/);
   assert.match(main, /主人公 男/);
@@ -34,7 +34,8 @@ test('simple character review exposes real models only', () => {
   assert.match(code, /model\.thumbnailKind === 'svg-symbol'/);
   assert.match(main, /KAYKIT_MODELS/);
   for (const label of ['騎士','蛮族','魔術師','盗賊','フード盗賊']) assert.match(main, new RegExp(label));
-  assert.match(code, /実モデルのみ/);
+  assert.doesNotMatch(code, /character-model-card-stage/);
+  assert.doesNotMatch(code, /実モデルのみ/);
   assert.doesNotMatch(code, /要修正|reviewDecision|modelVerdicts|詳細確認|stepModel/);
 });
 
@@ -42,14 +43,29 @@ test('model catalog remains a six-column review grid on phone and desktop', () =
   assert.match(css, /\.character-model-grid\{[\s\S]*?grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);
   assert.match(css, /@media\(max-width:760px\)[\s\S]*?\.character-model-grid\{[\s\S]*?repeat\(6,minmax\(0,1fr\)\)/);
   assert.doesNotMatch(css, /38%|62%/);
-  assert.match(css, /grid-template-rows:minmax\(260px,1fr\) auto!important/);
+  assert.match(css, /grid-template-rows:minmax\(270px,1fr\) auto!important/);
 });
 
-test('camera controls are stage-local and review panel does not reserve an empty half-screen', () => {
+test('camera controls are split into compact stage-local groups and utility actions stay on the stage', () => {
   assert.match(code, /character-review-camera-dock review-surface__stage-tools/);
-  assert.match(code, /cameraDock\.append\(frameButton\)/);
-  assert.match(css, /editor-dock\.review-surface__panel\{[\s\S]*?height:auto!important/);
-  assert.match(css, /character-review-camera-dock[\s\S]*?border-radius:999px!important/);
+  assert.match(code, /directionGroup\.append\(button\)/);
+  assert.match(code, /focusGroup\.append\(frameButton\)/);
+  assert.match(code, /character-review-stage-utility/);
+  assert.match(code, /capture\.classList\.add\('character-review-capture'\)/);
+  assert.match(css, /character-review-camera-dock[\s\S]*?justify-content:space-between/);
+  assert.match(css, /character-review-camera-group[\s\S]*?border-radius:999px/);
+});
+
+test('shared settings affordance exposes age and body controls without burying them below the catalog', () => {
+  assert.match(code, /dataset\.sharedIcon = 'settings-2'/);
+  assert.match(css, /packages\/assets\/src\/icons\/lucide\/settings-2\.svg/);
+  assert.match(code, /キャラクター調整/);
+  assert.match(code, /advanced\.html#age/);
+  assert.match(code, /advanced\.html#gene-height/);
+  assert.match(code, /advanced\.html#gene-build/);
+  assert.match(code, /advanced\.html#gene-hair/);
+  assert.match(code, /settingsDialog\.showModal/);
+  assert.doesNotMatch(code, /character-review-advanced/);
 });
 
 test('model source selection is the single writer and first real model becomes the initial simple-review target', () => {
@@ -100,6 +116,7 @@ test('simple review uses the shared raw-model framing path without generated bod
   assert.match(review, /createReviewRenderer/);
   assert.match(review, /positionReviewCamera/);
   assert.match(review, /simpleModelReview/);
+  assert.match(review, /img2threejs\?1\.14:proceduralRoot\?1\.4:1\.08/);
   assert.match(review, /if \(!simpleModelReview\) actors\.forEach/);
   assert.match(review, /if \(!simpleModelReview && schedules\[i\]\.advance/);
 });
