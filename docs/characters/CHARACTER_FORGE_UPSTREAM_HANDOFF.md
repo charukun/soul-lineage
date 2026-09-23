@@ -1,5 +1,38 @@
 # PR #1524 upstream Forge recovery
 
+## Golden Base exact-head blockout review (2026-09-23)
+
+The user's actual Golden Base turnaround is the active reconstruction target;
+Scout is only a regression fixture. The original 1536×1152 RGB sheet SHA-256 is
+`086a1f89616c7c631e23d12f68e305cd3e1a04d5b8ef3832fa3b59c5326d2a50`.
+Its Front/Side/Back crops retain sheet coordinates and record removal of ruler,
+ornament and mint ground outside the body. The visible pixel ratio is ~2.54
+heads although the printed illustration annotation says ~3.5. Side depicts
+lowered arms while Front/Back depict arms wide; they are not identical poses.
+
+Pinned upstream strict-quality passed Golden Base spec with 19 components and
+zero warnings. At exact branch head `58153c187c284c5b18298d7cc78f62b3b4568329`,
+hosted [Actions run 35829915435](https://github.com/charukun/soul-lineage/actions/runs/35829915435)
+executed real img2threejs state, upstream SDF factory, Three.js browser render
+and upstream comparison. [Artifact 10736584868](https://github.com/charukun/soul-lineage/actions/runs/35829915435/artifacts/10736584868)
+retains the source, F/S/B renders/comparison PNGs, obliques, six-view turntable,
+factory, raw GLB and diagnostics until 2026-09-30. The model has 18 rendered
+parts and 168244 triangles. Part coverage and turntable checks passed, but the
+silhouette hard gate **failed**: Front IoU .492, Side .452, Back .5659 against
+the pinned .85 threshold. The source/gray-render side-by-side images show
+separate cheek/jaw lobes, seams between body masses, narrow leg shapes, and
+the incompatible Side arm pose. No visual pass or Golden Rig approval occurred.
+
+The rejected capture's SHA-bound review is versioned in
+`scripts/character-forge/fixtures/golden-base-v1/blockout-r0-review.json`.
+`resume_golden_base_rejection.py` verifies the exact original factory and all
+three image/comparison hashes, counts one `refine-spec` through pinned
+`append_review.py` and `next.py`, and keeps immutable r0 captures under
+`review/blockout-r0` before regeneration. The following Golden-specific SDF
+revision blends cranial/face masses and adjusts suit/leg volume. Its strict
+schema gate passed locally; it has **not** passed browser comparison. The
+specialist workflow remains task-only and must be deleted before final merge.
+
 ## Status
 
 **ACTIVE RESUMPTION / INCOMPLETE (2026-09-23).** After the preserved pause below, the user asked to complete the pipeline using the supplied Golden Base reference and avoid repeated quality loops. PR #1524 remains Draft and unmerged. The Scout hard-stop history remains evidence; its material state is 9/12, total 11/22. A separate Golden Base upstream subject starts from its own genuine intake state, without resetting Scout or claiming acceptance.

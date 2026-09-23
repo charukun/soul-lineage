@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "rinne.forge-historical-review/v1",
+  "id": "golden-base-blockout-r0",
+  "sourceHead": "58153c187c284c5b18298d7cc78f62b3b4568329",
+  "factorySha256": "abd20776dc2f53f09960a010c1fcdef165ca12d7c04a8ad780a2a0f64414dc70",
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35829915435",
+  "artifact": "https://github.com/charukun/soul-lineage/actions/runs/35829915435/artifacts/10736584868",
+  "reviewer": "Codex",
+  "action": "refine-spec",
+  "fidelity": 0.4,
+  "aiAcceptancePerformed": false,
+  "reason": "Tier-1 hard failure. Cranium/face disconnected lobes and jaw, disconnected chest/pelvis, narrower legs; Side lowered arm conflicts with Front/Back T pose. Adjust source-specific SDF masses and leg volumes; preserve source pose uncertainty.",
+  "diagnostics": {
+    "front": {
+      "silhouetteIoU": 0.492,
+      "renderSha256": "bd96739fa8c843d803eb3dea48787ac3a59f54b238ecd990fd21503cba6ed924",
+      "comparisonSha256": "6586a76db1008f3a8fd96a8c6afe997c89bd948b908641fd24277fdde1561d25"
+    },
+    "side": {
+      "silhouetteIoU": 0.452,
+      "renderSha256": "93111867779da2f51b8d9d6df06737fdd579c9f2299edd358c42f8e642517a10",
+      "comparisonSha256": "393326f6bed17a06f02d72ec6c735fc653b032c858647d9607acffb02c158e95"
+    },
+    "back": {
+      "silhouetteIoU": 0.5659,
+      "renderSha256": "e97ef834ce657b51480c27dc76112fdf15fc1b54da5b5afe6bc5a4fb439f32d5",
+      "comparisonSha256": "9185aa304255cbbeba9f5ef049dffe5fa93480498d9182c1177d7341a6850a52"
+    }
+  },
+  "status": "rejected; none of the three reference views passed"
+}

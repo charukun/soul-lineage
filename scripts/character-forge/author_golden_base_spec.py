@@ -22,7 +22,8 @@ def author(w:Path,cache:Path)->int:
     job=json.loads((w/'forge-job.json').read_text())
     if job['id']!='golden-base-v1':raise ValueError('Golden Base measurements must not be applied to another character')
     old=w/'object-sculpt-spec.json'
-    if old.is_file() and json.loads(old.read_text()).get('sculptPipeline',{}).get('completedPasses'):
+    prior=json.loads(old.read_text()) if old.is_file() else {}
+    if prior.get('sculptPipeline',{}).get('completedPasses'):
         raise ValueError('Do not reseed a workspace with accepted upstream passes')
     installation=install_boundary(cache,cache/'host')
     sys.path[:0]=[str(installation['engine']/'forge/stage2_spec'),str(installation['engine']/'forge/stage3_build')]
@@ -113,25 +114,25 @@ def author(w:Path,cache:Path)->int:
         return node
     root=_cnode('root','Golden Base root','box',None,[0,0,0],[1,1,1],material='hidden',level='macro',anim_role='root')
     nodes.append(root);world_centres['root']=[0,0,0]
-    component('pelvis','Gray suit hips','root',223,430,0,78,49,48,'suit','macro')
-    component('chest','Gray sleeveless torso','pelvis',223,348,0,72,87,45,'suit','macro')
+    component('pelvis','Gray suit hips','root',223,430,0,76,55,52,'suit','macro')
+    component('chest','Gray sleeveless torso','pelvis',223,348,0,72,91,52,'suit','macro')
     component('neck','Bare neck','chest',223,277,1,23,19,23)
     # Reference-backed cranial depth, forehead/eye plane, cheeks, nose, jaw,
     # chin form one closed head through the exact upstream smooth-union SDF.
-    masses=[('cranium',[0,21,-17],[125,119,106]),
-            ('forehead',[0,51,68],[93,68,52]),
-            ('eye-plane',[0,-15,94],[104,44,33]),
-            ('cheek-left',[-74,-50,72],[42,46,49]),
-            ('cheek-right',[74,-50,72],[42,46,49]),
-            ('jaw',[0,-95,43],[73,39,64]),
-            ('chin',[0,-119,62],[45,17,41]),
-            ('nose',[0,-48,116],[13,22,20])]
+    masses=[('cranium',[0,21,-8],[125,119,120]),
+            ('forehead',[0,46,38],[96,69,68]),
+            ('eye-plane',[0,-15,63],[101,52,52]),
+            ('cheek-left',[-60,-53,40],[39,39,47]),
+            ('cheek-right',[60,-53,40],[39,39,47]),
+            ('jaw',[0,-89,24],[77,49,66]),
+            ('chin',[0,-114,47],[48,21,44]),
+            ('nose',[0,-48,104],[10,18,22])]
     primitives=[{'id':name,'type':'ellipsoid','center':[v*s for v in centre],
                  'radii':[v*s for v in radii]} for name,centre,radii in masses]
     operations=[];left=primitives[0]['id']
     for index,shape in enumerate(primitives[1:]):
         output='head-blend-'+str(index)
-        operations.append({'id':output,'type':'smooth-union','left':left,'right':shape['id'],'radius':7*s})
+        operations.append({'id':output,'type':'smooth-union','left':left,'right':shape['id'],'radius':20*s})
         left=output
     component('head','Bald cranium cheeks eye plane jaw chin nose','neck',223,138,0,131,135,130,
               'skin','macro',primitives,operations)
@@ -144,8 +145,8 @@ def author(w:Path,cache:Path)->int:
         component('forearm-'+side,'T-pose forearm '+side,'upper-arm-'+side,(elbow+wrist)/2,330,0,47,14,15)
         component('hand-'+side,'Open hand '+side,'forearm-'+side,424 if sign==1 else 22,348,3,21,10,13)
         leg_x=264 if sign==1 else 182
-        component('thigh-'+side,'Bare thigh '+side,'pelvis',leg_x,510,0,33,57,31)
-        component('shin-'+side,'Bare lower leg '+side,'thigh-'+side,leg_x,594,0,28,56,28)
+        component('thigh-'+side,'Bare thigh '+side,'pelvis',leg_x,510,0,40,61,34)
+        component('shin-'+side,'Bare lower leg '+side,'thigh-'+side,leg_x,594,0,31,57,29)
         component('foot-'+side,'Foot and toes '+side,'shin-'+side,leg_x,651,22,36,22,43)
     spec['componentTree']=nodes;ids=[n['id'] for n in nodes]
     for build in spec['buildPasses']:build['componentRefs']=ids
@@ -195,6 +196,8 @@ def author(w:Path,cache:Path)->int:
       'hemisphere':{'sky':'#ffffff','ground':'#ffffff','intensity':2.6},
       'key':{'color':'#ffffff','intensity':.55,'position':[2,2.5,4],'target':[0,0,0]},
       'rim':{'color':'#ffffff','intensity':.12,'position':[-2,2,-3],'target':[0,0,0]}}
+    for key in ('reviewHistory','visualEvidence','tier1Results'):
+        if prior.get(key):spec[key]=prior[key]
     write_json(w/'assessment.json',{'preSpecAssessment':a,'qualityContract':q})
     write_json(w/'object-sculpt-spec.json',spec)
     return checked_run(installation,w,'forge/stage2_spec/validate_sculpt_spec.py',

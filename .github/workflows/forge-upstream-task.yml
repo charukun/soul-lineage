@@ -37,9 +37,16 @@ jobs:
           run-id: 35823791541
           github-token: ${{ github.token }}
           path: .forge-resume
+      - uses: actions/download-artifact@v4
+        if: contains(github.event.head_commit.message, '[forge-golden-specialist]')
+        with:
+          name: forge-specialist-58153c187c284c5b18298d7cc78f62b3b4568329
+          run-id: 35829915435
+          github-token: ${{ github.token }}
+          path: .forge-resume-golden
       - name: Execute explicit specialist task when present
         run: |
-          if [[ '${{ github.event.head_commit.message }}' == *'[forge-golden-specialist]'* ]]; then
+          if grep -Fq '[forge-golden-specialist]' "$GITHUB_EVENT_PATH"; then
             node scripts/character-forge/golden_specialist.mjs
           elif [ -f scripts/character-forge/specialist.mjs ]; then
             node scripts/character-forge/specialist.mjs

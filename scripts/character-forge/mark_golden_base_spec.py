@@ -20,6 +20,9 @@ def mark(w: Path, cache: Path) -> dict:
     spec = json.loads((w / 'object-sculpt-spec.json').read_text())
     if spec['targetName'] != 'Golden Base v1':
         raise ValueError('The authored spec targets a different reference')
+    for scaffold in ('assessment-scaffold.json', 'detail-scaffold.json'):
+        if not (w / 'img2threejs/evidence' / scaffold).is_file():
+            raise ValueError('Pinned upstream assessment/detail scaffold is missing: ' + scaffold)
     maps = json.loads((w / 'img2threejs/evidence/projection/maps.json').read_text())
     if set(maps) != {'front', 'side', 'back'}:
         raise ValueError('Projection plan must retain every observed view')
