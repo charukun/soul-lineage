@@ -256,3 +256,22 @@ upstream factory and visual constraints, projection/bake and staged comparison;
 then Golden Rig/Morph/common Sockets, package/native Lab and actual browser
 evidence. Review failures must be recorded without repeatedly rerunning the same
 unchanged candidate. No pass, acceptance or merge is asserted by this checkpoint.
+
+### Golden Base Stage 1 evidence checkpoint
+
+The attached sheet's three real source crops now run through the pinned
+`check_reference_admission.py` (all admitted, distinct pHashes),
+`extract_landmarks.py` (scaffolds only), `delight_albedo.py` (strength 0.2 with
+explicit limitations), numerical `fit_camera_to_correspondences` (front/side/back
+residuals below 0.000001px on explicitly **inferred landmark planes**) and
+`visual_hull.carve_visual_hull` (front+side silhouettes only). An independently
+authored `fixtures/golden-base-v1/landmarks.json` records face, cranium depth
+evidence, arms, legs and surfaces for all three views. The pixel-measured crown
+to feet spans 668px and crown to chin about 263px: visible image proportion is
+about 2.54 heads, whereas the sheet annotates roughly 3.5. The discrepancy is
+recorded, not silently solved with a generic constant. The current Golden Base
+state still requests image-analysis; upstream pass decisions are not forged.
+
+Real local Stage 1 completion is input evidence, not reference-likeness, rig or
+pipeline validation. Finish the ordered upstream setup/spec and stages; do not
+reuse Scout's 180x360 proportions or material palette for this model.
