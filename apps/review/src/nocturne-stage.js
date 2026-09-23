@@ -4,7 +4,6 @@ import {battle2SelectionLabel,battle2TechniqueLabel} from './nocturne/battle2-te
 import {createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
 import {createBattle2CameraPresentation} from './battle2-camera.js';
 import {rinneFieldRadarMarkup,updateRinneFieldRadar} from '@soul/shared-ui/rinne-field-radar';
-import {createCameraPositionControl} from '@soul/shared-ui/camera-position-control';
 import {mountReviewStageControls} from '@soul/shared-ui/review-shell';
 import {createRinnePlayerHud,rinnePreviewPlayer} from '@soul/shared-ui/rinne-player-hud';
 import '@soul/shared-ui/rinne-primary-four.css';
@@ -12,7 +11,6 @@ import '@soul/shared-ui/rinne-loadout-menu.css';
 import '@soul/shared-ui/rinne-player-hud.css';
 import '@soul/shared-ui/rinne-reference-hud.css';
 import '@soul/shared-ui/rinne-field-radar.css';
-import '@soul/shared-ui/camera-position-control.css';
 import './battle2-field-hud.css';
 
 const SETTINGS_KEY='battle2.settings.v1';
@@ -28,12 +26,7 @@ const playerHud=createRinnePlayerHud(document.getElementById('battle2-player-hud
 const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
 stage.insertAdjacentHTML('beforeend',rinneFieldRadarMarkup({interactive:false}));
 const battleRadar=stage.querySelector('[data-field-radar]');
-let cameraPositionControl=null;
-const cameraPresentation=createBattle2CameraPresentation({stage,world,onZoomChange:zoom=>{
-  const normalized=(zoom-.58)/1.07;
-  if(cameraPositionControl&&Math.abs(normalized-cameraPositionControl.value())>.005)cameraPositionControl.set(normalized);
-}});
-cameraPositionControl=createCameraPositionControl({document,container:stage,initial:(1-.58)/1.07,onChange:value=>cameraPresentation.setZoom(.58+value*1.07)});
+const cameraPresentation=createBattle2CameraPresentation({stage,world});
 const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]','[data-battle-technique-mode-control]','[data-battle-inspiration-rate-control]'],label:'戦闘設定'});
 const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],techniqueLanes=new Map([...document.querySelectorAll('[data-technique-phase]')].map(node=>[node.dataset.techniquePhase,node])),modeButtons=[...document.querySelectorAll('[data-battle-mode]')],techniqueModeButtons=[...document.querySelectorAll('[data-battle-technique-mode]')],inspirationRateButtons=[...document.querySelectorAll('[data-battle-inspiration-rate]')];
 const PHASE_INDEX={jo:0,ha:1,kyu:2},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
@@ -204,5 +197,5 @@ world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepare
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
 window.addEventListener('error',event=>{if(event.error&&!disposed)failed(event.error);});
 window.addEventListener('unhandledrejection',event=>{if(!disposed)failed(event.reason);});
-window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();cameraPositionControl?.dispose();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
+window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
 syncModeButtons();report('BOOT');void boot();
