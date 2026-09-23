@@ -15,6 +15,15 @@ main.battle2-review.review-surface>.review-surface__workspace{grid-template-colu
 /* 心技体装のナビとメニューは @soul/shared-ui が描画正本。 */
 .battle2-loadout-shell{position:absolute;inset:0;z-index:40;pointer-events:none}
 .battle2-loadout-shell .rinne-core-menu{pointer-events:auto}
+@media(max-width:680px) and (orientation:portrait){
+  .battle2-review .battle2-loadout-shell .rinne-core-menu{
+    max-width:340px;
+    max-height:min(38dvh,320px);
+    left:12px;
+    right:12px;
+    bottom:max(94px,calc(env(safe-area-inset-bottom) + 88px));
+  }
+}
 .battle2-loadout-shell .rinne-primary-four{z-index:180!important}
 
 /* Shared snap camera for the canonical 序破急バトル view. */
