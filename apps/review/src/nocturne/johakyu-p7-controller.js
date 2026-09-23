@@ -10,11 +10,26 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
   const scenarioOptions=()=>({mode,loadout:reviewLoadout,settings:reviewSettings,learnedTechniqueIds:reviewLearned});
   const makeScenario=()=>evidence&&fixture==='clash'?createJohakyuP7ReviewScenario({...scenarioOptions(),fixture:'clash',duelGap:1.7,heroStartPhase:'ha'}):evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({...scenarioOptions(),duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5}):evidence&&fixture==='downed'?createJohakyuP7ReviewScenario({...scenarioOptions(),duelGap:1.7,actorOverrides:{hero:{canAttack:false,readyDelay:0},'enemy-a':{hp:0,downed:true,incapacitated:true,spawnSeconds:0,readyDelay:0}}}):createJohakyuP7ReviewScenario({...scenarioOptions(),comboStyle:'composed',duelGap:mode==='duel'?3.9:4.25,enemyLeadSeconds:mode==='duel'?.16:0});
   let scenario=makeScenario();
-  let disposed=false,ready=false,started=false,raf=0,previous=0,current=null,trace=[],lastResumes=0,lastEncounter=1,physicalContacts=[];
+  let disposed=false,ready=false,started=false,raf=0,previous=0,current=null,trace=[],lastResumes=0,lastEncounter=1,physicalContacts=[],lastPresentationError='';
+  function presentSafely(frame,dt,events=[]){
+    try{
+      const result=driven.present(frame,dt,events);lastPresentationError='';return result;
+    }catch(error){
+      const message=String(error?.message||error||'presentation error');
+      if(message!==lastPresentationError){
+        lastPresentationError=message;trace.push({type:'presentation-error',message,time:frame?.time??null});
+        if(trace.length>100)trace=trace.slice(-100);
+      }
+      cameraPresentation?.cancelInspiration?.();
+      physicalContacts=[];
+      return {accepted:false,reason:'presentation-error',message};
+    }
+  }
   function render(dt){
     if(disposed)return null;
     const result=scenario.step(dt,physicalContacts,movementInput?.vector()??null);physicalContacts=[];current=result;
-    const presented=driven.present(result.frame,dt,result.events);physicalContacts=driven.sampleContacts?.()??[];
+    const presented=presentSafely(result.frame,dt,result.events);
+    if(presented?.accepted!==false)physicalContacts=driven.sampleContacts?.()??[];
     trace.push(...result.events.map(event=>({type:'impact',id:event.id,phase:event.phase,targetId:event.targetId})));
     if(result.meta.resumes>lastResumes){trace.push({type:'resume',epoch:result.meta.epoch,resumes:result.meta.resumes});lastResumes=result.meta.resumes;}
     if(result.meta.encounter!==lastEncounter){trace.push({type:'encounter-reset',epoch:result.meta.epoch,encounter:result.meta.encounter});lastEncounter=result.meta.encounter;}
@@ -29,7 +44,7 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
   }
   async function prepare(){
     await driven.prepare();if(disposed||signal.aborted)return;
-    ready=true;current=scenario.inspect();driven.present(current.frame,0,[]);physicalContacts=driven.sampleContacts?.()??[];onMeta(current.meta);
+    ready=true;current=scenario.inspect();const presented=presentSafely(current.frame,0,[]);if(presented?.accepted!==false)physicalContacts=driven.sampleContacts?.()??[];onMeta(current.meta);
   }
   function start(){
     if(disposed||!ready||started)return false;
@@ -37,17 +52,17 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
   }
   function resize(){
     if(disposed||!ready)return;
-    driven.resize();if(!started||evidence)driven.present(current.frame,0,[]);
+    driven.resize();if(!started||evidence)presentSafely(current.frame,0,[]);
   }
   function configureLoadout(next){
     reviewLoadout=normalizeBattle2Loadout(next||{});scenario=makeScenario();current=scenario.inspect();lastResumes=0;lastEncounter=1;physicalContacts=[];
     trace.push({type:'loadout-reset',loadout:reviewLoadout});if(trace.length>100)trace=trace.slice(-100);
-    if(ready&&!disposed){driven.present(current.frame,0,[]);onMeta(current.meta);}return reviewLoadout;
+    if(ready&&!disposed){presentSafely(current.frame,0,[]);onMeta(current.meta);}return reviewLoadout;
   }
   function configureSettings(next){
     reviewSettings={techniqueMode:next?.techniqueMode==='random'?'random':'set',inspirationRate:next?.inspirationRate==='high'?'high':'normal'};scenario=makeScenario();current=scenario.inspect();lastResumes=0;lastEncounter=1;physicalContacts=[];
     trace.push({type:'settings-reset',settings:{...reviewSettings}});if(trace.length>100)trace=trace.slice(-100);
-    if(ready&&!disposed){driven.present(current.frame,0,[]);onMeta(current.meta);}return {...reviewSettings};
+    if(ready&&!disposed){presentSafely(current.frame,0,[]);onMeta(current.meta);}return {...reviewSettings};
   }
   function learnTechnique(id,phase=null){const raw=String(id||'');if(!raw)return false;let changed=false;if(!reviewLearned.includes(raw)){reviewLearned=[...reviewLearned,raw];changed=true;}if(PHASES.has(phase)){const next=normalizeBattle2Loadout({...reviewLoadout,technique:{...reviewLoadout.technique,[phase]:raw}});if(next.technique[phase]===raw){reviewLoadout=next;changed=true;}}if(changed){trace.push({type:'technique-learned',techniqueId:raw,phase:PHASES.has(phase)?phase:null,equipped:PHASES.has(phase)});if(trace.length>100)trace=trace.slice(-100);}return changed;}
 

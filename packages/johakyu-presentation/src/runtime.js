@@ -836,8 +836,9 @@ function createDrivenPort(){
    syncContactPose(source,event.sourceContactProgress??event.choreography?.contactProgress??.5,stop,event.presentation?.clip);
    if(preserveDownedPose){target.contactHold=null;target.reaction=null;target.impactRecoil=null;}
    else{holdAuthoredContactPose(target,reactionClip,.1,stop);target.reaction={clip:reactionClip,remaining:finisher?.52:event.counter?.44:heavy?.4:.28,serial:++target.reactionSerial};target.impactRecoil={remaining:recoilDuration,duration:recoilDuration,strength:event.impact?.reactionSeverity??recoilStrength,side:recoilSide,direction:event.impact?.direction,bodyPart:event.bodyPart||'torso',phase,heavy:Boolean(heavy||event.impact?.deepHit)};}
-   if(source&&event.impact)source.impactRecoil={remaining:.16,duration:.16,strength:event.sourceKick*.62,direction:{x:-event.direction.x,z:-event.direction.z},side:0,bodyPart:'rightArm',phase,heavy:false};
-   const impactEffect=presentation?.vfx?.impact,secondaryEffect=presentation?.vfx?.secondary,vfxDirection=event.direction||{x:target.pos.x-source.pos.x,z:target.pos.z-source.pos.z};
+   const impactDirection=event.direction||event.impact?.direction||(source?.pos&&target?.pos?{x:target.pos.x-source.pos.x,z:target.pos.z-source.pos.z}:null);
+   if(source&&event.impact&&impactDirection)source.impactRecoil={remaining:.16,duration:.16,strength:event.sourceKick*.62,direction:{x:-impactDirection.x,z:-impactDirection.z},side:0,bodyPart:'rightArm',phase,heavy:false};
+   const impactEffect=presentation?.vfx?.impact,secondaryEffect=presentation?.vfx?.secondary,vfxDirection=impactDirection||{x:0,z:1};
    if(impactEffect?.effect)techniqueVfx.spawn(impactEffect.effect,{stage:'impact',origin:impactPoint,color,scale:impactScale,archetype:archetype||'flow',finisher,direction:vfxDirection,trajectory:event.choreography?.bladeTrajectory});
    if(secondaryEffect?.effect)techniqueVfx.spawn(secondaryEffect.effect,{stage:'secondary',origin:impactPoint,color:'#f3e7d2',scale:secondaryScale,archetype:archetype||'flow',finisher,direction:vfxDirection});
    record('technique-vfx-impact',{techniqueId:event.techniqueId||null,impactEffect:impactEffect?.effect||null,secondaryEffect:secondaryEffect?.effect||null,archetype:archetype||'flow',finisher});
