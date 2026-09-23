@@ -28,11 +28,11 @@ test('actual runtime execution retains the committed recipe when the next loadou
  runtime.setPolicy({loadout:changed});const after=runtime.state();assert.deepEqual(after,before);assert.equal(after.hero.execution.attackId,id);assert.notEqual(after.hero.execution.recipeName,'NEW POLICY');
 });
 test('actual main-game frames and impacts carry executor attack, recipe and target identities',()=>{
- const s=state(),front=createFront(0,6);front.enemies[0].x=.5;front.enemies[0].z=.5;let observed=0,hits=[];
- for(let i=0;i<150;i++){
+ const s=state(),front=createFront(0,6);front.enemies=front.enemies.slice(0,1);front.enemies[0].cooldown=3;front.enemies[0].x=.5;front.enemies[0].z=.5;let observed=0,hits=[];
+ for(let i=0;i<900;i++){
    const events=tickFront(s,front,1/60);hits.push(...events.filter(e=>e.type==='player-hit'));
    const truth=s.combat?.tidebreakPose?.johakyu;
-   if(truth){observed++;assert.ok(truth.attackId);assert.equal(truth.authority,'rinne-domain');assert.equal(truth.legal,true);assert.ok(front.enemies.some(e=>e.id===truth.targetId));}
+   if(truth){observed++;assert.ok(truth.attackId);assert.equal(truth.authority,'johakyu-battle');assert.equal(truth.legal,true);assert.ok(front.enemies.some(e=>e.id===truth.targetId));}
  }
  assert.ok(observed>0);assert.ok(hits.length>0);for(const hit of hits){assert.ok(hit.attackId);assert.equal(hit.sourceId,s.id);assert.ok(hit.techniqueId?.startsWith('basic.'));}
 });

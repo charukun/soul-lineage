@@ -243,7 +243,18 @@ function observePerformedAnswer(state,context,events){
   const s=ensureInspiration(state),p=s.pending;if(!p||!p.armed||p.committed||state.ended||state.down)return null;
   // A target may die and clear combat in this tick. Keep the executor-owned final frame, not a made-up replay.
   const row=answer(p.id),pose=s.execution||state.combat?.tidebreakPose;
-  const hits=events.filter(e=>e.type==='player-hit'&&e.engine==='tidebreak'&&matchesAttempt(e,p));
+  const shared=events.filter(e=>e.authority==='johakyu-battle'&&matchesAttempt(e,p));
+  if(shared.length){
+    if(shared.some(e=>e.type==='execution-blocked'||e.type==='interrupted'||e.type==='weapon-blocked')){p.failed=true;return null;}
+    if(shared.some(e=>e.type==='stage-start'))p.started=true;
+    if(shared.some(e=>e.type==='player-hit'&&e.damage>0))p.contact=true;
+    for(const e of shared.filter(e=>e.type==='stage-complete'))if(e.stageIndex===p.cursor)p.cursor++;
+    if(p.cursor>=row.steps.length&&p.contact){const learned=commitAnswer(state,p,{...context,description:`${INSPIRATION_QUESTIONS[p.question]}。一連の身体操作と接触が実戦で成立した。`});if(learned)p.committed=true;return learned;}
+    return null;
+  }
+  if(p.started&&pose?.battleAction)return null;
+
+  const hits=events.filter(e=>e.type==='player-hit'&&['tidebreak','johakyu'].includes(e.engine)&&matchesAttempt(e,p));
   if(hits.some(e=>e.blockedByTerrain)||s.execution?.paid===false){p.failed=true;return null;}if(hits.some(e=>e.damage>0))p.contact=true;
   if(!pose||pose.targetId!==p.targetId||pose.slot!==p.phase||(pose.techniqueId?pose.techniqueId!==p.id:pose.skill!==p.runtimeName))return null;
   p.started=true;const expected=row.steps[p.cursor],kind=pose.attack,progress=clamp(pose.progress);
@@ -258,7 +269,7 @@ export function recordCombatAnswers(state,context={},events=[]){
   for(const event of events){if(event.type==='enemy-hit')recordCombatQuestion(state,event.sector==='back'?'crowd':'recovery',context);if(event.type==='weapon-blocked')recordCombatQuestion(state,'guard',context);if(event.type==='evaded')recordCombatQuestion(state,'opening',context);}
   const learned=observePerformedAnswer(state,context,events);if(learned)result.push(learned);
   for(const event of events){
-    if(event.type!=='player-hit'||!(event.damage>0)||event.blockedByTerrain||event.engine!=='tidebreak')continue;
+    if(event.type!=='player-hit'||!(event.damage>0)||event.blockedByTerrain||!['tidebreak','johakyu'].includes(event.engine))continue;
     const used=event.techniqueId?s.records[event.techniqueId]:Object.values(s.records).find(r=>r.name===event.skill||answer(r.answerId)?.name===event.skill);if(used){const stabilized=rememberUse(state,used.answerId,context);if(stabilized)result.push(stabilized);}
     if(['jo','ha','kyu'].includes(event.phase)){
       const last=s.sequence.at(-1);if(last?.phase!==event.phase)s.sequence.push({phase:event.phase,skillId:used?.answerId||`basic.${state.equipment?.weapon||'fist'}`});s.sequence=s.sequence.slice(-3);
@@ -270,3 +281,4 @@ export function recordCombatAnswers(state,context={},events=[]){
 export function inspirationName(state,id,fallback=id){const row=answer(id);if(!row)return fallback;if(isGeneratedTechniqueId(id))return generatedNamingFor(state,row).displayName;return inspirationTechniqueName(row);}
 export function archiveInspiration(state,id,archived=true){const s=ensureInspiration(state),r=s.records[id];if(!r||(archived&&equippedIds(state).has(id)))return false;r.archived=Boolean(archived);s.revision++;if(!archived)enforceActiveLimit(state);return r.archived===Boolean(archived);}
 export function inspirationSummary(state){const s=ensureInspiration(state),families=unique(Object.values(s.records).map(r=>r.family));return {families:families.length,records:Object.keys(s.records).length,signs:updateInspirationSigns(state),heritage:s.heritage,body:s.body,faith:faithProfile(state),legacy:s.legacySkills.length};}
+

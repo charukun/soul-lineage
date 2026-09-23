@@ -249,13 +249,17 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     ui.state.textContent=s.down?'救助待ち':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;ui.trainingStrike.hidden=!engaged||s.down||s.ended;ui.trainingStrike.dataset.ready=String(engaged);if(engaged){ui.trainingName.textContent=training.label;ui.trainingStrike.setAttribute('aria-label',`${training.label}を打って稽古する`);}updateContextVitals(s,{dashing,resting,training});updateMindBalance(s,training);
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
     ui.phase.hidden=!(phase||(s.combat?.engine==='tidebreak'&&s.combat?.exchange&&!s.down&&!s.ended));
-    const rawAction=phase?(gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';
-    const exchangeCombat=s.combat?.engine==='tidebreak';
+    const sharedAction=s.combat?.engine==='johakyu'?s.combat?.johakyuAction:null;
+    const rawAction=phase?(sharedAction?`${sharedAction.stageLabel} · ${sharedAction.techniqueIndex+1}/${sharedAction.chainLength}技`:s.combat?.engine==='johakyu'?'':gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';
+    const exchangeCombat=['tidebreak','johakyu'].includes(s.combat?.engine);
     const readSequence=()=>exchangeCombat?meleeSequenceHudState({combat:s.combat,actorId:s.id,attack:rawAction,interrupted:comboInterrupted}):sequenceHudState({phase,attack:rawAction,interrupted:comboInterrupted});
     let sequence=readSequence();
+    ui.phase.dataset.battleEngine=exchangeCombat?s.combat.engine:'';
+    if(sharedAction){ui.phase.dataset.techniqueId=sharedAction.techniqueId;ui.phase.dataset.stageIndex=String(sharedAction.stageIndex);}
+    else{delete ui.phase.dataset.techniqueId;delete ui.phase.dataset.stageIndex;}
     ui.phase.dataset.exchangeState=sequence.hudState||'';
     ui.phase.dataset.exchangeIntent=sequence.exchangeIntent||'';
-    const phaseTechnique=phase?String(s.combat?.tidebreakPose?.skill||techniqueName(combatSkillForPhase(s,s.combat,phase),s)||'').trim():'';
+    const phaseTechnique=phase?String(sharedAction?.name||s.combat?.tidebreakPose?.skill||techniqueName(combatSkillForPhase(s,s.combat,phase),s)||'').trim():'';
     ui.exchangeCue.hidden=!phaseTechnique;if(ui.exchangeCue.textContent!==phaseTechnique)ui.exchangeCue.textContent=phaseTechnique;
     if(exchangeCombat&&sequence.historyKey!==exchangeHistoryKey){exchangeHistoryKey=sequence.historyKey;phaseHistory=[];lastAction='';lastPhase='';renderPhaseHistory();}
     if(comboInterrupted&&!rawAction){comboInterrupted=false;sequence=readSequence();}
@@ -281,5 +285,6 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
 
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
   ui.menu.onclick=()=>{if(!ui.panel.hidden)close();toggleQuickMenu();};ui.heart.onclick=()=>toggle('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>toggle('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>toggle('body');ui.items.onclick=()=>toggle('items');ui.trainingStrike.addEventListener('click',()=>{closeQuickMenu();if(!ui.panel.hidden)close();},{capture:true});ui.map.onclick=()=>toggle('map');ui.record.onclick=()=>toggle('record');ui.close.onclick=close;
-  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,setContextAnchor,capturePlayerPortrait:(source,options)=>playerHud?.capture(source,options),dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);clearTimeout(interruptTimer);observer.disconnect();gameScreen.removeEventListener('rinne:combat-feedback',onCombatFeedback);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();combatBodyHud?.destroy();playerHud?.destroy();tracker.dispose();speech.dispose();root.remove();}};
+  let lastModelPortraitAt=-Infinity;
+  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,setContextAnchor,renderPlayerPortrait:render=>{if(!render||!playerHud)return false;const now=performance.now();if(now-lastModelPortraitAt<180)return true;const drawn=render(playerHud.canvas);if(drawn){lastModelPortraitAt=now;playerHud.markPortrait('model');}return drawn;},capturePlayerPortrait:(source,options)=>playerHud?.capture(source,options),dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);clearTimeout(interruptTimer);observer.disconnect();gameScreen.removeEventListener('rinne:combat-feedback',onCombatFeedback);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();combatBodyHud?.destroy();playerHud?.destroy();tracker.dispose();speech.dispose();root.remove();}};
 }

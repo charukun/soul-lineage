@@ -35,7 +35,7 @@ export function observePeerInspiration(states,front,eventMap){
   for(const actor of states){
     const records=Object.values(ensureInspiration(actor).records);
     for(const event of eventMap.get(actor.id)||[]){
-      if(event.type!=='player-hit'||!(event.damage>0)||event.engine!=='tidebreak')continue;
+      if(event.type!=='player-hit'||!(event.damage>0)||!['tidebreak','johakyu'].includes(event.engine))continue;
       const record=records.find(r=>r.name===event.skill);if(!record)continue;
       for(const viewer of states){
         if(viewer.id===actor.id||viewer.ended||viewer.down||near(viewer.position,actor.position)>6||lineBlocked(front,viewer.position,actor.position))continue;
@@ -44,3 +44,4 @@ export function observePeerInspiration(states,front,eventMap){
     }
   }
 }
+
