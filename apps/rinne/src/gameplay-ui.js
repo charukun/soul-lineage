@@ -7,6 +7,7 @@ import { createHeartTechniqueBodyUI } from './heart-technique-body-ui.js';
 import { decorateSelectionDetail, installSelectionDetail } from './selection-detail.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import {rinnePrimaryFourMarkup} from '@soul/shared-ui/rinne-primary-four';
+import {johakyuSequenceMarkup} from '@soul/shared-ui/johakyu-hud';
 import {rinneFieldRadarMarkup,updateRinneFieldRadar} from '@soul/shared-ui/rinne-field-radar';
 import {rinneLoadoutPanelMarkup} from '@soul/shared-ui/rinne-loadout-menu';
 import {sequenceHudState,meleeSequenceHudState} from './combat-sequence-hud.js';
@@ -48,25 +49,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     <small class="gameplay-surface-version">UI ${RINNE_UI_VERSION}</small>
     <section data-vitals class="rinne-context-vitals" hidden aria-label="息"><div data-vital-breath class="context-vital is-breath"><span>息</span><i><b data-context-stamina></b></i></div></section>
     <aside data-mind class="rinne-mind-balance" hidden aria-label="現在の意識バランス"><span class="mind-title">意識</span><div class="mind-orbit" aria-hidden="true"><i data-axis="attack"><b>攻</b></i><i data-axis="guard"><b>守</b></i><i data-axis="spacing"><b>間</b></i><i data-axis="counter"><b>返</b></i><i data-axis="mobility"><b>機</b></i><i data-axis="survival"><b>生</b></i><em></em></div><strong data-mind-state>中庸</strong></aside>
-    <div data-phase class="combat-phase-indicator battle-sequence-hud" data-combat-sequence data-combat-sequence-phase="idle" hidden aria-label="間合いから残心までの序破急">
-      <div data-phase-techniques class="battle-sequence-techniques" aria-label="序破急で使用した技">
-        <span class="battle-sequence-technique-lane" data-technique-phase="jo"></span>
-        <span class="battle-sequence-technique-lane" data-technique-phase="ha"></span>
-        <span class="battle-sequence-technique-lane" data-technique-phase="kyu"></span>
-      </div>
-      <aside class="battle-sequence-hud__phase combat-sequence combat-sequence--flat" data-phase-track data-phase="idle">
-        <span class="battle-sequence-hud__edge battle-sequence-hud__edge--maai" aria-hidden="true"><svg viewBox="0 0 42 18"><path d="M1 9h6c2.2 0 2.8-2.2 4.1-2.2l2.6 6.7L17.2 2l3.7 14.1 3.5-9.7 2.7 4.2c1.1 1.7 2.4 2.4 4.3 2.4H41"/></svg></span>
-        <span class="battle-sequence-hud__step combat-sequence__step" data-phase-id="jo" data-combat-phase="jo">序</span>
-        <i class="battle-sequence-hud__wave combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i>
-        <span class="battle-sequence-hud__step combat-sequence__step" data-phase-id="ha" data-combat-phase="ha">破</span>
-        <i class="battle-sequence-hud__wave combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i>
-        <span class="battle-sequence-hud__step combat-sequence__step" data-phase-id="kyu" data-combat-phase="kyu">急</span>
-        <span class="battle-sequence-hud__edge battle-sequence-hud__edge--zanshin" aria-hidden="true"><svg viewBox="0 0 42 18"><path d="M1 9h5.5c2.1 0 2.7-1.8 4-1.8l2.5 5.6L16.3 4l3.4 10.9 3.4-7.7 2.8 3.6c1.2 1.5 2.6 2.2 4.6 2.2H41"/></svg></span>
-      </aside>
-      <span data-exchange-cue class="combat-exchange-cue" role="status" hidden></span>
-      <strong data-phase-action class="combat-phase-action combat-sequence__action" hidden></strong>
-      <div data-phase-history class="combat-phase-history combat-sequence__history" aria-live="polite"></div>
-    </div>
+    ${johakyuSequenceMarkup()}
 
     ${rinnePrimaryFourMarkup({ariaLabel:'主要操作'})}
 

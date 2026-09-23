@@ -1,5 +1,6 @@
 import {BATTLE2_VERSION} from './battle2-version.js';
 import {createBattle2BodyHud} from './battle2-body-hud.js';
+import {johakyuSequenceMarkup} from '@soul/shared-ui/johakyu-hud';
 import {battle2SelectionLabel,battle2TechniqueLabel} from './nocturne/battle2-technique-catalog.js';
 import {createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
 import {createBattle2CameraPresentation} from './battle2-camera.js';
@@ -20,6 +21,7 @@ function readBattleSettings(){try{return normalizeBattleSettings(JSON.parse(glob
 function writeBattleSettings(value){try{globalThis.localStorage?.setItem(SETTINGS_KEY,JSON.stringify(normalizeBattleSettings(value)));}catch{}}
 
 const stage=document.querySelector('[data-review-surface="battle2"]');
+document.getElementById('battle-sequence-mount').innerHTML=johakyuSequenceMarkup({battle2:true});
 const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects'),versionNode=document.getElementById('battle2-version'),startButton=document.getElementById('battle2-start');
 const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),finisherNode=document.getElementById('battle-sequence-finisher'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
 const previewIdentity=rinnePreviewPlayer((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0);
