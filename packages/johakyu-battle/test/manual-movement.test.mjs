@@ -43,3 +43,10 @@ test('pursuit closes distance before starting an attack or combat-ready stance',
   runtime.step(1/60);const row=runtime.snapshot().actors.find(a=>a.id==='hero');
   assert.equal(row.action,null);assert.equal(row.combatReady,false);assert.equal(row.exchange?.intent,'pursuit');assert.equal(row.exchange?.footwork,'rush');
 });
+
+test('downed nearby enemy and distant live enemy release combat-ready even during zanshin',()=>{
+  const runtime=createJohakyuBattleRuntime({battleId:'ready-release-after-down',actors:[actor('hero','party',0),actor('enemy-near','enemy',2.05),actor('enemy-far','enemy',8)],bounds:{minX:-10,maxX:10,minZ:-10,maxZ:10}});
+  runtime.step(1/240);let row=runtime.snapshot().actors.find(a=>a.id==='hero');assert.equal(row.combatReady,true);
+  const near=runtime.actor('enemy-near'),hero=runtime.actor('hero');near.downed=true;near.incapacitated=true;near.position={x:0,z:7};hero.phaseCue={key:'zanshin:test',phase:'zanshin',startedAt:runtime.snapshot().time,duration:10};
+  runtime.step(1/240);row=runtime.snapshot().actors.find(a=>a.id==='hero');assert.equal(row.combatReady,false);assert.equal(row.combatReadyTargetId,'enemy-far');assert.ok(row.combatReadyRange.distance>2.65);
+});
