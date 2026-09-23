@@ -116,11 +116,20 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     link.append(make('strong', '', title), make('span', '', detail), make('b', '', '›'));
     return link;
   };
+  const boneToggle = make('button', 'character-review-setting-link character-review-setting-toggle');
+  boneToggle.type = 'button';
+  boneToggle.setAttribute('aria-pressed', 'false');
+  boneToggle.append(make('strong', '', 'ボーン表示'), make('span', '', '骨格を重ねて確認'), make('b', '', 'OFF'));
+  boneToggle.addEventListener('click', () => {
+    const current = win.characterStudio?.review;
+    if (current?.ready) current.setBoneOverlay(!current.bonesVisible);
+  });
   settingsGrid.append(
     settingLink('年齢', '0〜90歳', './advanced.html#age'),
     settingLink('身長', '身長遺伝子', './advanced.html#gene-height'),
     settingLink('体格', '体格遺伝子', './advanced.html#gene-build'),
-    settingLink('顔・髪・色', '個体の形質', './advanced.html#gene-hair')
+    settingLink('顔・髪・色', '個体の形質', './advanced.html#gene-hair'),
+    boneToggle
   );
   const advanced = make('a', 'character-review-settings__advanced', 'すべての詳細調整を開く');
   advanced.href = './advanced.html';
@@ -214,6 +223,10 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     }
     empty.hidden = models.length > 0;
     stageName.textContent = models.find(model => model.selected)?.label || 'モデルを選択';
+    boneToggle.disabled = !ready;
+    boneToggle.setAttribute('aria-pressed', String(Boolean(review()?.bonesVisible)));
+    boneToggle.querySelector('b').textContent = review()?.bonesVisible ? 'ON' : 'OFF';
+    boneToggle.querySelector('span').textContent = review()?.boneOverlayKind === 'inferred-guide' ? '推定関節のガイド（未リグ）' : '実際のボーンを表示';
     if (ready && !autoSelected && !review()?.displayModelId) {
       const first = models.find(model => !model.disabled);
       if (first) {

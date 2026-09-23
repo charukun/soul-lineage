@@ -100,7 +100,7 @@ function start() {
   const marker = new THREE.Mesh(new THREE.RingGeometry(.48, .51, 48), new THREE.MeshBasicMaterial({ color: '#dcc493', side: THREE.DoubleSide }));
   marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
-  let pool = null, template = null, proceduralRoot = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
+  let pool = null, template = null, proceduralRoot = null, boneHelper = null, boneTarget = null, boneOverlayEnabled = false, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
   let activeModelLabel = defaultModel.label;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
   const simpleModelReview = document.body.classList.contains('simple-review');
@@ -146,8 +146,32 @@ function start() {
         settings.view === 'single' ? 0 : (Math.floor(i / columns) - (rows - 1) / 2) * 2.3);
       actor.root.rotation.y = settings.rotate ? elapsed * .22 : 0; actor.resetSecondary();
     });
-    updateMarker();
+    updateMarker(); syncBoneOverlay();
   }
+  function clearBoneOverlay() {
+    boneHelper?.removeFromParent(); boneHelper?.geometry.dispose(); boneHelper?.material.dispose();
+    boneHelper = null; boneTarget = null;
+  }
+  function syncBoneOverlay() {
+    const target = proceduralRoot || actors[settings.selected]?.root;
+    review.boneOverlayKind = target?.userData.boneOverlayKind || 'rig';
+    if (!boneOverlayEnabled || !target) { clearBoneOverlay(); review.bonesVisible = false; return; }
+    if (boneTarget === target && boneHelper) return;
+    clearBoneOverlay();
+    const helper = new THREE.SkeletonHelper(target);
+    if (!helper.bones.length) { helper.geometry.dispose(); helper.material.dispose(); review.bonesVisible = false; return; }
+    helper.material.depthTest = false; helper.material.depthWrite = false;
+    helper.material.transparent = true; helper.material.opacity = .94;
+    helper.renderOrder = 20; helper.frustumCulled = false;
+    scene.add(helper); boneHelper = helper; boneTarget = target;
+    review.bonesVisible = true;
+    review.boneOverlayKind = target.userData.boneOverlayKind || 'rig';
+  }
+  review.setBoneOverlay = enabled => {
+    boneOverlayEnabled = Boolean(enabled); syncBoneOverlay();
+    window.dispatchEvent(new Event('character-review-change'));
+    return review.bonesVisible;
+  };
   function updateMarker() {
     const actor = actors[settings.selected]; marker.visible = !proceduralRoot && Boolean(actor?.root.visible);
     if (actor) { marker.position.x = actor.root.position.x; marker.position.z = actor.root.position.z; }
@@ -243,7 +267,7 @@ function start() {
   }
   function rebuild() {
     if (!pool) { syncUI(); return; }
-    actors.forEach(actor => pool.despawn(actor.id)); actors = []; schedules = [];
+    clearBoneOverlay(); actors.forEach(actor => pool.despawn(actor.id)); actors = []; schedules = [];
     for (const record of records.slice(0, settings.count)) { const actor = pool.spawn(record.id); scene.add(actor.root, actor.attachments); actors.push(actor); schedules.push(new PoseSchedule()); }
     review.actors = actors; refreshLooks(); arrange(); aim();
   }
@@ -257,6 +281,7 @@ function start() {
   }
   function clearProcedural() {
     if (!proceduralRoot) return;
+    if (boneTarget === proceduralRoot) clearBoneOverlay();
     proceduralRoot.removeFromParent(); disposeTemplate(proceduralRoot);
     proceduralRoot = null; review.proceduralRoot = null;
   }
@@ -452,7 +477,7 @@ function start() {
   review.motionQA = motionQA;
   function dispose() {
     if (!alive) return; alive = false; modelLoads.invalidate(); review.ready = false; cancelAnimationFrame(frameId); events.abort(); stageLifecycle.destroy(); orbit.dispose();
-    motionQA?.dispose(); clearProcedural(); pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
+    motionQA?.dispose(); clearBoneOverlay(); clearProcedural(); pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
   }
   on(window, 'pagehide', event => { if (!event.persisted) dispose(); else suspend(); });
   on(window, 'pageshow', suspend); syncUI(); background(); frameId = requestAnimationFrame(frame); void load(defaultBytes, auditKaykitDocument, kaykitReviewRig);

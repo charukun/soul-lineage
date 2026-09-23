@@ -97,6 +97,15 @@ export async function createImg2ThreeReferenceCharacter({ textureUrl = '/img2thr
   ellipsoid(root, 'neck', [0, 1.735, 0], [.13, .105, .14], skin);
   const head = ellipsoid(root, 'full-depth-projected-head', [0, 2.2, 0], [.45, .47, .455], headMaterial, 64);
   head.userData.depthRatio = .455 / .45;
+  // The source UV puts the eyes below the centre of the cranium. Move the
+  // facial sampling upward; the blend tapers to zero at both poles so the
+  // crown and underside retain their original skin colour and seams.
+  const uv = head.geometry.getAttribute('uv');
+  for (let i = 0; i < uv.count; i++) {
+    const v = uv.getY(i);
+    uv.setY(i, Math.max(0, v - .15 * Math.sin(Math.PI * v) ** 2));
+  }
+  uv.needsUpdate = true;
   for (const sign of [-1, 1]) {
     const side = sign < 0 ? 'left' : 'right';
     ellipsoid(root, `${side}-ear`, [sign * .417, 2.025, .018], [.082, .115, .085], skin);
@@ -123,6 +132,27 @@ export async function createImg2ThreeReferenceCharacter({ textureUrl = '/img2thr
     ellipsoid(root, `${side}-foot`, [sign * .19, .075, .095], [.108, .066, .17], skin);
     for (let toe = 0; toe < 4; toe++) ellipsoid(root, `${side}-toe-${toe}`, [sign * (.134 + toe * .037), .043, .234], [.021, .018, .03], skin, 12);
   }
+  // These landmarks are an inspection guide, not a skinned animation rig.
+  const guideJoint = (parent, name, x, y, z = 0) => {
+    const joint = new THREE.Bone(); joint.name = `guide.${name}`;
+    joint.position.set(x, y, z); parent.add(joint); return joint;
+  };
+  const hips = guideJoint(root, 'hips', 0, 1.04);
+  const spine = guideJoint(hips, 'spine', 0, .31);
+  const chest = guideJoint(spine, 'chest', 0, .23);
+  const neckGuide = guideJoint(chest, 'neck', 0, .16);
+  guideJoint(neckGuide, 'head', 0, .46);
+  for (const sign of [-1, 1]) {
+    const side = sign < 0 ? 'left' : 'right';
+    const shoulder = guideJoint(chest, `${side}Shoulder`, sign * .34, -.02);
+    const elbow = guideJoint(shoulder, `${side}Elbow`, sign * .27, -.10);
+    guideJoint(elbow, `${side}Wrist`, sign * .24, -.03);
+    const thigh = guideJoint(hips, `${side}Hip`, sign * .18, -.17);
+    const knee = guideJoint(thigh, `${side}Knee`, sign * .01, -.38);
+    const ankle = guideJoint(knee, `${side}Ankle`, 0, -.34, .03);
+    guideJoint(ankle, `${side}Toe`, 0, -.08, .18);
+  }
+  root.userData.boneOverlayKind = 'inferred-guide';
   root.userData.img2threejs = {
     revision: '6e60b5e22419464b4853e01ddb6c0e6f6659a733',
     visibleReference: '1024×1536 single frontal image',
