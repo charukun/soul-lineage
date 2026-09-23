@@ -43,11 +43,20 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
    }
    return{x:Number(best.x.toFixed(3)),z:Number(best.z.toFixed(3))};
  }
+ function enemyRespawnPoint(slot,index,id){
+   const bounds=NOCTURNE_FIELD_BOUNDS,margin=1.35,hero=runtime.actor('hero'),others=runtime.snapshot().actors.filter(row=>row.side==='enemy'&&!row.dead&&!row.downed&&row.id!==id),candidates=[];
+   for(let i=0;i<24;i++){
+     const key=`enemy-respawn:${slot}:${id}:${serial}:${i}`,t=.08+hash(key+':t')*.84,inset=margin+hash(key+':inset')*.7,side=i%4;
+     let x,z;if(side===0){x=bounds.minX+inset;z=bounds.minZ+(bounds.maxZ-bounds.minZ)*t;}else if(side===1){x=bounds.maxX-inset;z=bounds.minZ+(bounds.maxZ-bounds.minZ)*t;}else if(side===2){z=bounds.minZ+inset;x=bounds.minX+(bounds.maxX-bounds.minX)*t;}else{z=bounds.maxZ-inset;x=bounds.minX+(bounds.maxX-bounds.minX)*t;}
+     const heroDistance=hero?Math.hypot(x-hero.position.x,z-hero.position.z):0,nearestOther=others.length?Math.min(...others.map(row=>Math.hypot(x-row.position.x,z-row.position.z))):8,score=heroDistance+Math.min(8,nearestOther)*.22+hash(key+':tie')*.08;candidates.push({x,z,score});
+   }
+   const best=candidates.sort((a,b)=>b.score-a.score)[0];return{x:Number(best.x.toFixed(3)),z:Number(best.z.toFixed(3))};
+ }
  function lifecycle(){
   for(const entry of replacements.filter(r=>r.at<=elapsed)){
     const hero=runtime.actor('hero');
     if(hero?.phaseCue?.phase==='zanshin'&&!hero.downed&&!hero.dead){entry.at=elapsed+.2;continue;}
-    const rows=runtime.snapshot().actors.filter(a=>a.id!==entry.id).map(a=>runtime.actor(a.id)),index=slots.indexOf(entry.slot),id=entry.recover?entry.id:entry.slot+'#'+(++serial);const revived=enemyRow(entry.slot,index,id);if(entry.recover){revived.spawnSeconds=0;revived.spawnStyle=null;revived.hp=revived.maxHp*.28;revived.injuries=Object.fromEntries(Object.keys(PARTS).map(p=>[p,{severity:0,at:0}]));revived.downed=false;revived.dead=false;}runtime.sync([...rows,revived]);record({type:entry.recover?'enemy-recovered':'enemy-spawn',actorId:id,slot:entry.slot});
+    const rows=runtime.snapshot().actors.filter(a=>a.id!==entry.id).map(a=>runtime.actor(a.id)),index=slots.indexOf(entry.slot),id=entry.recover?entry.id:entry.slot+'#'+(++serial);const revived=enemyRow(entry.slot,index,id);if(entry.recover){revived.spawnSeconds=0;revived.spawnStyle=null;revived.hp=revived.maxHp*.28;revived.injuries=Object.fromEntries(Object.keys(PARTS).map(p=>[p,{severity:0,at:0}]));revived.downed=false;revived.dead=false;}else revived.position=enemyRespawnPoint(entry.slot,index,id);runtime.sync([...rows,revived]);record({type:entry.recover?'enemy-recovered':'enemy-spawn',actorId:id,slot:entry.slot,position:{...revived.position}});
   }replacements=replacements.filter(r=>r.at>elapsed);
   const hero=runtime.actor('hero'),enemyFinishingHero=runtime.snapshot().actors.some(row=>row.side==='enemy'&&row.action?.finisher&&row.action.targetId==='hero');if(hero.downed||hero.dead){restartedAt??=elapsed+3;if(!enemyFinishingHero&&elapsed>=restartedAt){
     // Recover this actor in place: a fresh battle identity teleports the player and resets the camera.
