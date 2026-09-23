@@ -1,7 +1,8 @@
 import {createRinneWeapon,RINNE_EQUIPMENT_PROFILES} from '@soul/assets/equipment/three';
 import {presentBattleFrame,presentBattleEvents} from './battle-presentation.js';
 import {JOHAKYU_WEAPON_MOTIONS} from './motion-bindings.js';
-import {combatStanceRootFrame} from './observed-locomotion.js';
+import {applyCombatStancePresentation} from './combat-stance.js';
+import {createWeaponReadiness,SHEATHABLE_WEAPONS} from './weapon-readiness.js';
 import {createCanonicalPresentationDriver} from './driver.js';
 import {resolveFatiguePresentation} from './fatigue.js';
 import {sampleFatigueMotion} from './fatigue-motion.js';
@@ -690,7 +691,7 @@ function createDrivenPort(){
    scabbard.group.attach(held.weapon);held.weapon.updateWorldMatrix(true,true);a.sheathed=true;a.sheathMotion=null;a.drawMotion=null;return true;
  }
  function moveBladeToSheath(a,progress,key){
-   if(a.sheathed&&a.weaponStow)return;const weaponId=a.canonicalRow?.equipment?.weapon,name=weaponMesh[weaponId];if(!name||!['sword','dagger','great'].includes(weaponId))return;
+   if(a.sheathed&&a.weaponStow)return;const weaponId=a.canonicalRow?.equipment?.weapon,name=weaponMesh[weaponId];if(!name||!SHEATHABLE_WEAPONS.has(weaponId))return;
    const weapon=a.root.getObjectByName(name),right=armRig(a,'r'),frame=scabbardFrame(a,weaponId);if(!weapon?.visible||!right?.socket||!frame)return;
    const held=beginWeaponStow(a,weapon);if(!held)return;ensureScabbard(a,weaponId,frame,held);const {mouthWorld,directionWorld,leftWorld,forwardWorld}=frame,smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
    if(a.sheathMotion?.key!==key)a.sheathMotion={key,startHilt:bladeAxisForSheath(a,weapon)?.hilt.clone()||held.startHilt.clone(),startQuaternion:weapon.getWorldQuaternion(new THREE.Quaternion())};
@@ -702,43 +703,7 @@ function createDrivenPort(){
    solveArmToTarget(a,right,()=>right.socket.getWorldPosition(new THREE.Vector3()),handTarget,.72+.24*smooth(progress));const left=armRig(a,'l');if(left&&!a.canonicalRow?.equipment?.shield){const hold=mouthWorld.clone().addScaledVector(directionWorld,.075).addScaledVector(leftWorld,.02),leftWeight=smooth(clamp((progress-.16)/.36,0,1));solveArmToTarget(a,left,()=>left.socket.getWorldPosition(new THREE.Vector3()),hold,leftWeight*.78);}
    if(progress>=.985)lockWeaponInScabbard(a,weaponId,frame);
  }
- function moveBladeFromSheath(a,row,dt){
-   if(!a.sheathed&&!a.drawMotion)return;const weaponId=row.equipment?.weapon,name=weaponMesh[weaponId],weapon=name?a.root.getObjectByName(name):null,right=armRig(a,'r'),frame=scabbardFrame(a,weaponId);
-   if(!weapon?.visible||!right?.socket||!frame){a.sheathed=false;a.drawMotion=null;return;}
-   let held=a.weaponStow;if(!held){held=beginWeaponStow(a,weapon);if(!held)return;lockWeaponInScabbard(a,weaponId,frame);}
-   ensureScabbard(a,weaponId,frame,held);const combatReady=Boolean(row.combatReady||row.action?.motion?.offense);
-   if(!a.drawMotion){
-     if(!combatReady){if(weapon.parent!==a.scabbard?.group)lockWeaponInScabbard(a,weaponId,frame);return;}
-     if(weapon.parent!==a.root)a.root.attach(weapon);weapon.updateWorldMatrix(true,true);const axis=bladeAxisForSheath(a,weapon);a.drawMotion={key:row.action?.id||('ready:'+String(row.id||a.canonicalId||'')),elapsed:0,duration:.5,startHilt:axis?.hilt.clone()||frame.mouthWorld.clone()};a.sheathed=false;
-   }
-   const motion=a.drawMotion,smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};motion.elapsed+=Math.max(0,dt);let progress=clamp(motion.elapsed/motion.duration,0,1);
-   if(row.action){const contact=Math.max(.18,Number(row.action.motion?.contactProgress)||.5),forced=clamp((Number(row.action.progress)||0)/(contact*.64),0,1);progress=Math.max(progress,forced);}
-   const {mouthWorld,directionWorld,leftWorld,forwardWorld,profile}=frame,aligned=alignedWeaponQuaternion(held,directionWorld),home=homeWeaponWorldPose(held),entry=mouthWorld.clone().addScaledVector(directionWorld,-held.length*profile.insert),clearance=entry.clone().addScaledVector(leftWorld,a.height*profile.stagingSide).addScaledVector(forwardWorld,a.height*profile.stagingForward).add(new THREE.Vector3(0,a.height*profile.stagingUp,0));
-   let hilt,quaternion;if(progress<.5){const t=smooth(progress/.5);hilt=mouthWorld.clone().lerp(entry,t);quaternion=aligned;}
-   else if(progress<.78){const t=smooth((progress-.5)/.28);hilt=entry.clone().lerp(clearance,t);quaternion=aligned.clone().slerp(home.quaternion,.36*t);}
-   else{const t=smooth((progress-.78)/.22);hilt=clearance.clone().lerp(home.hilt,t);quaternion=aligned.clone().slerp(home.quaternion,.36+.64*t);}
-   const scale=held.worldScale.clone().lerp(home.scale,smooth(clamp((progress-.72)/.28,0,1)));setWeaponWorldPose(weapon,weaponWorldPoseAtHilt(held,hilt,quaternion,scale));const actual=bladeAxisForSheath(a,weapon),handTarget=actual?.hilt||hilt;
-   solveArmToTarget(a,right,()=>right.socket.getWorldPosition(new THREE.Vector3()),handTarget,.9);const left=armRig(a,'l');if(left&&!row.equipment?.shield){const hold=mouthWorld.clone().addScaledVector(directionWorld,.075).addScaledVector(leftWorld,.02),leftWeight=1-smooth(clamp((progress-.42)/.34,0,1));solveArmToTarget(a,left,()=>left.socket.getWorldPosition(new THREE.Vector3()),hold,leftWeight*.75);}
-   if(progress>=.995)restoreStowedWeapon(a);
- }
- function updateCombatReadyWeapon(a,row,dt){
-   const sheathable=['sword','dagger','great'].includes(row.equipment?.weapon);
-   if(!sheathable)return;
-   if(row.phaseCue?.phase==='zanshin'){a.autoSheath=null;return;}
-   const ready=Boolean(row.combatReady||row.action?.motion?.offense);
-   if(ready){
-     if(a.autoSheath){a.autoSheath=null;if(a.weaponStow)a.sheathed=true;}
-     if(a.sheathed||a.drawMotion)moveBladeFromSheath(a,row,dt);
-     return;
-   }
-   if(a.drawMotion){a.drawMotion=null;if(a.weaponStow)a.sheathed=true;}
-   if(a.sheathed){moveBladeFromSheath(a,row,0);return;}
-   const key='range:'+String(row.id||a.canonicalId||'');
-   if(a.autoSheath?.key!==key)a.autoSheath={key,elapsed:0,duration:.62};
-   a.autoSheath.elapsed+=Math.max(0,dt);
-   const progress=clamp(a.autoSheath.elapsed/a.autoSheath.duration,0,1);moveBladeToSheath(a,progress,key);
-   if(progress>=1){a.autoSheath=null;if(a.weaponStow)a.sheathed=true;a.sheathMotion=null;}
- }
+ const {moveBladeFromSheath,updateCombatReadyWeapon}=createWeaponReadiness({THREE,weaponMesh,armRig,scabbardFrame,beginWeaponStow,lockWeaponInScabbard,ensureScabbard,bladeAxisForSheath,alignedWeaponQuaternion,homeWeaponWorldPose,weaponWorldPoseAtHilt,setWeaponWorldPose,solveArmToTarget,restoreStowedWeapon,moveBladeToSheath,clamp});
  const driver=createCanonicalPresentationDriver({
   appearanceKey:row=>[row.kind,row.boss,row.kind==='hero'?row.equipment.armor:null].join(':'),
   supports(row){
@@ -751,7 +716,7 @@ function createDrivenPort(){
    if(row.locomotion?.clip&&!asset.animations.some(clip=>clip.name===row.locomotion.clip))return {supported:false,reason:'unaccepted-locomotion:'+row.locomotion.kind};
    return {supported:true};
   },
-  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss),row.kind==='hero'?(row.equipment.armor==='heavy'?'adventurers/Knight':'adventurers/Rogue'):null);a.spawnStyle=row.spawnStyle||null;a.spawn=a.spawnStyle==='battlebk-ground'&&a.kind!=='hero'?.7:0;a.canonicalAction=a.spawn>0?'spawn:battlebk-ground':null;a.canonicalId=row.id;a.combatReadyWeight=0;a.autoSheath=null;if(['sword','dagger','great'].includes(row.equipment?.weapon))a.sheathed=true;bindings.set(row.id,a);
+  spawn(row){const a=actor(row.kind==='hero'?'hero':'enemy',new V(row.position.x,0,row.position.z),Boolean(row.boss),row.kind==='hero'?(row.equipment.armor==='heavy'?'adventurers/Knight':'adventurers/Rogue'):null);a.spawnStyle=row.spawnStyle||null;a.spawn=a.spawnStyle==='battlebk-ground'&&a.kind!=='hero'?.7:0;a.canonicalAction=a.spawn>0?'spawn:battlebk-ground':null;a.canonicalId=row.id;a.combatReadyWeight=0;a.autoSheath=null;if(SHEATHABLE_WEAPONS.has(row.equipment?.weapon))a.sheathed=true;bindings.set(row.id,a);
     // Bind the few authored attack clips while the actor spawns, before its first technique.
     for(const name of new Set([...Object.values(JOHAKYU_WEAPON_MOTIONS[row.equipment.weapon]||{}),'Block_Attack'])){const clip=a.clips.get(name);if(clip)a.mixer.clipAction(clip);}
     return a;},
@@ -760,9 +725,6 @@ function createDrivenPort(){
   update(a,row,dt,{initial}){
    if(Number.isFinite(row.battleTime)){const previous=a.lastBattleTime??row.battleTime;a.lastBattleTime=row.battleTime;dt=Math.max(0,row.battleTime-previous);}
    a.canonicalRow=row;a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=Boolean(row.dead);a.downed=Boolean(row.downed);clearFatigueRig(a);clearParryRig(a);clearImpactRig(a);const contactHeld=Boolean(a.contactHold?.remaining>0);if(a.spawn>0)a.spawn=Math.max(0,a.spawn-dt);const reactionDt=contactHeld?0:dt;if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-reactionDt);if(a.reaction.remaining<=0)a.reaction=null;}if(a.parryRecoil){a.parryRecoil.remaining=Math.max(0,a.parryRecoil.remaining-reactionDt);if(a.parryRecoil.remaining<=0)a.parryRecoil=null;}if(a.impactRecoil){a.impactRecoil.remaining=Math.max(0,a.impactRecoil.remaining-reactionDt);if(a.impactRecoil.remaining<=0)a.impactRecoil=null;}if(a.contactHold){a.contactHold.remaining=Math.max(0,a.contactHold.remaining-dt);if(a.contactHold.remaining<=0)a.contactHold=null;}
-   const zanshinActive=row.phaseCue?.phase==='zanshin';
-   if(a.wasZanshin&&!zanshinActive&&a.weaponStow){a.sheathed=true;a.sheathMotion=null;a.drawMotion=null;}
-   a.wasZanshin=zanshinActive;
    if(a.scabbard&&a.scabbard.weaponId!==row.equipment.weapon){disposeScabbard(a);a.sheathed=false;a.drawMotion=null;}
    const equipmentKey=row.equipment.weapon+':'+row.equipment.shield;
    if(a.equipmentKey!==equipmentKey){
@@ -792,7 +754,7 @@ function createDrivenPort(){
     a.presentationActionId=null;a.action.paused=false;if(initial&&terminal)a.action.time=a.clips.get(clip).duration-.000001;a.mixer.update(dt);
     if(row.moving&&!terminal){a.stepClock-=dt;if(a.stepClock<=0){a.stepClock=.34;sound.footstep?.({pan:spatialPan(a.pos),rate:a.kind==='hero'?1.04:.94});}}else a.stepClock=0;
    }
-   applyFatigue(a,row,dt);a.combatReadyWeight+=(Number(Boolean(row.combatReady))-a.combatReadyWeight)*(1-Math.exp(-Math.max(0,dt)*10));const readyFrame=combatStanceRootFrame({active:a.combatReadyWeight>.001,held:a.combatReadyWeight,attack:Boolean(row.action?.motion?.offense),progress:row.action?.progress});a.posture.position.y-=readyFrame.drop;a.posture.rotation.x-=readyFrame.pitch;applyTechniquePresentationPose(a,row);applyImpactRecoil(a);applyParryRecoil(a);if(!terminal){if(phaseCue?.phase==='zanshin')moveBladeToSheath(a,clamp(Number(phaseCue.progress)||0,0,1),phaseCue.key);else updateCombatReadyWeapon(a,row,dt);}sampleWeaponTrace(a,dt);
+   applyFatigue(a,row,dt);applyCombatStancePresentation(a,row,dt);applyTechniquePresentationPose(a,row);applyImpactRecoil(a);applyParryRecoil(a);if(!terminal)updateCombatReadyWeapon(a,row,dt);sampleWeaponTrace(a,dt);
    if(terminalState.removalClock)a.deathTime+=dt;else a.deathTime=0;
    a.flash=Math.max(0,a.flash-dt);a.startGlow=Math.max(0,a.startGlow-dt);const startColor=startGlowColors[a.startGlowPhase]||startGlowColors.other;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(hitFlashColor);mat.emissiveIntensity=1.7;}else if(a.startGlow>0){mat.emissive.copy(startColor);mat.emissiveIntensity=Math.max(power,1.5*a.startGlow/.18);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
   },
