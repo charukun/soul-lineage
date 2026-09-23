@@ -2,6 +2,7 @@ import { installRinneGameplayUpgrade } from './gameplay-upgrade.js';
 import { confirmRinneAudio, enterRinneGameplayAudio, enterRinneLineageAudio, exitRinneLineageAudio, selectRinneAudio, unlockRinneAudio } from './gameplay-audio.js';
 import { createTitleCinematicController } from './title-cinematic.js';
 import {openFamilyOrigin, openFamilyHome, installFamilyMemory} from './family-origin-ui.js';
+import {createDeathRebirthCinematic} from '@soul/shared-ui/death-rebirth-cinematic';
 import './family-origin.css';
 import './native-ui-polish.js';
 import './rinne-world-ui.css';
@@ -10,6 +11,7 @@ const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'百年転�
 document.title=`百年転生${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
 const $=id=>document.getElementById(id),app=$('app'),title=$('title-screen'),game=$('game-screen'),loading=$('loading-card'),retry=$('boot-retry');
 const villageDialog=$('village-dialog'),settingsDialog=$('title-settings-dialog'),motionToggle=$('title-motion-toggle');
+const deathCinematic=createDeathRebirthCinematic({document,window,host:document.body,scope:'viewport'});
 $('build-label').textContent='UI '+RINNE_UI_VERSION+' · '+(info.commit==='UNBUILT'?'LOCAL':String(info.environment).toUpperCase()+' '+String(info.commit).slice(0,7));document.documentElement.dataset.rinneUiVersion=RINNE_UI_VERSION;
 const storageKey=`soul:v1:${info.environment}:rinne:local:life-v2`;
 const motionKey=`soul:v1:${info.environment}:rinne:title-motion-v1`;
@@ -20,7 +22,7 @@ let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,
 const familyMemory=installFamilyMemory({gameScreen:game,getState:()=>runtime?.snapshot()});
 
 const titleCommands=[...title.querySelectorAll('.title-command')];
-function unlockTitleAudio(){void Promise.resolve(unlockRinneAudio()).then(ok=>{titleAudioReady=Boolean(ok)||titleAudioReady;}).catch(()=>{});titleAudioReady=true;}
+function unlockTitleAudio(){void deathCinematic.unlockAudio();void Promise.resolve(unlockRinneAudio()).then(ok=>{titleAudioReady=Boolean(ok)||titleAudioReady;}).catch(()=>{});titleAudioReady=true;}
 function selectTitleCommand(command,{sound=true}={}){
   if(!command)return;
   const changed=titleSelected!==command;
@@ -125,7 +127,7 @@ async function enterCoop(coop){
   return launch('coop',coop);
 }
 async function exitGame(coop){
-  runtime=null;$('open-coop-game').hidden=true;
+  deathCinematic.reset();runtime=null;$('open-coop-game').hidden=true;
   try{await coopMenu?.leave();if(coop){disposePrepared();prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>setLoading(message)});installGameplay();}game.dataset.runtime='prepared';showTitle();}
   catch(error){showBootFailure(error);}
 }
@@ -169,7 +171,7 @@ async function launch(mode,coop=null,origin={}){
   if(!coop&&coopMenu?.session)await coopMenu.leave();
   if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';titleCinematic.pause();enterRinneGameplayAudio();title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.removeAttribute('aria-hidden');loading.hidden=true;
   try{
-    runtime=await runtimeModule.startRuntime({mode,buildInfo:info,name:$('life-name').value,prepared,coop,onExit:()=>exitGame(coop),onLifeHome:openLifeEndFamilyHome,family:origin.family,expectedSave:origin.expectedSave});
+    runtime=await runtimeModule.startRuntime({mode,buildInfo:info,name:$('life-name').value,prepared,coop,onExit:()=>exitGame(coop),onLifeHome:openLifeEndFamilyHome,deathCinematic,family:origin.family,expectedSave:origin.expectedSave});
     $('open-coop-game').hidden=!coop;villageDialog.close();game.dataset.runtime='active';launching=false;
   }catch(error){
     console.error(error);runtime?.dispose?.();runtime=null;if(coop){await coopMenu?.leave().catch(console.error);disposePrepared();prepared=null;launching=false;void boot();return;}game.dataset.runtime='prepared';showTitle(`開始できませんでした：${error?.message||error}`);
@@ -211,4 +213,4 @@ if(new URLSearchParams(location.search).has('villageHostLab')){
   })().catch(error=>{console.error(error);$('boot-status').textContent=`村診断失敗：${error?.message||error}`;});
 }
 
-if(import.meta.hot)import.meta.hot.dispose(()=>{familyMemory.dispose();window.removeEventListener('soul:brand-enter',onBrandEnter);titleCinematic.dispose();runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});
+if(import.meta.hot)import.meta.hot.dispose(()=>{familyMemory.dispose();window.removeEventListener('soul:brand-enter',onBrandEnter);titleCinematic.dispose();deathCinematic.dispose();runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});

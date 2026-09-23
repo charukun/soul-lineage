@@ -9,6 +9,7 @@ import {createBattle2MovementInput} from './battle2-movement.js';
 import {rinneFieldRadarMarkup,updateRinneFieldRadar} from '@soul/shared-ui/rinne-field-radar';
 import {mountReviewStageControls} from '@soul/shared-ui/review-shell';
 import {createRinnePlayerHud,rinnePreviewPlayer} from '@soul/shared-ui/rinne-player-hud';
+import {createDeathRebirthCinematic} from '@soul/shared-ui/death-rebirth-cinematic';
 import '@soul/shared-ui/rinne-primary-four.css';
 import '@soul/shared-ui/rinne-loadout-menu.css';
 import '@soul/shared-ui/rinne-player-hud.css';
@@ -22,6 +23,7 @@ function readBattleSettings(){try{return normalizeBattleSettings(JSON.parse(glob
 function writeBattleSettings(value){try{globalThis.localStorage?.setItem(SETTINGS_KEY,JSON.stringify(normalizeBattleSettings(value)));}catch{}}
 
 const stage=document.querySelector('[data-review-surface="battle2"]');
+const deathCinematic=createDeathRebirthCinematic({document,window,host:stage,scope:'stage'});
 document.getElementById('battle-sequence-mount').innerHTML=johakyuSequenceMarkup({battle2:true});
 const status=document.getElementById('battle2-status'),world=document.getElementById('world'),effects=document.getElementById('effects'),versionNode=document.getElementById('battle2-version'),startButton=document.getElementById('battle2-start');
 const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),finisherNode=document.getElementById('battle-sequence-finisher'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
@@ -153,6 +155,9 @@ function updateSequence(meta){
  for(const row of activity){
   if((row.type==='chain-break'||row.type==='interrupted')&&(row.actorId||row.sourceId)==='hero')comboInterrupted=true;
   if(row.type==='stage-start'&&(row.actorId||row.sourceId)==='hero'&&['jo','ha','kyu'].includes(row.phase))comboInterrupted=false;
+  if(row.type==='actor-downed'&&row.targetId==='hero')deathCinematic.down({caption:'意識が遠のく'});
+  if(row.type==='finisher-complete'&&row.targetId==='hero')void deathCinematic.playDeath({kicker:'葬焉',title:'DEAD',caption:'因果は、次の刻へ',watchCaption:'時は血を継ぐ'});
+  if(row.type==='hero-recovered')deathCinematic.recover();
  }
  for(const row of activity){
   if(row?.type==='inspiration'&&row.techniqueId){
@@ -179,7 +184,7 @@ function setBattleSetting(key,value){
 function failed(error){runtime?.fail?.(error);report('ERROR',error?.message||String(error));sound?.pause();}
 window.__BATTLE2__=Object.freeze({get state(){return state;},get started(){return started;},get mode(){return battleMode;},get settings(){return {...battleSettings};},get loadout(){return loadoutUI.value;},get learnedTechniqueIds(){return loadoutUI.learnedTechniqueIds;},get lastError(){return lastError;},get version(){return BATTLE2_VERSION;},get sourceSha(){return __BUILD_INFO__.commit;},get metrics(){return runtime?.metrics()||{ready:false};},get camera(){return cameraPresentation.snapshot();},get actors(){return runtime?.inspectActors()||[];},get trace(){return runtime?.trace.slice()||[];},get observation(){return prepared?runtime?.inspectBattle(sequence)??null:null;},get review(){return reviewMeta;},get history(){return history.slice();},get exchangeTrace(){return runtime?.exchangeTrace??[];},advance(seconds){if(!new URL(location.href).searchParams.has('evidence'))throw Error('Evidence mode required');return runtime.advance(seconds);}});
 async function boot(){
- const own=++sequence;prepared=false;movementInput.reset();controller?.abort();runtime?.destroy();runtime=null;lastError=null;reviewMeta=null;lastExchangeKey='';resetHistory();delete stage.dataset.error;controller=new AbortController();report('BOOT');
+ const own=++sequence;deathCinematic.reset();prepared=false;movementInput.reset();controller?.abort();runtime?.destroy();runtime=null;lastError=null;reviewMeta=null;lastExchangeKey='';resetHistory();delete stage.dataset.error;controller=new AbortController();report('BOOT');
  try{
   const [{createNocturneSound},{createJohakyuP7Controller}]=await Promise.all([import('./nocturne/audio.js'),import('./nocturne/johakyu-p7-controller.js')]);
   if(disposed||own!==sequence)return;
@@ -193,7 +198,7 @@ async function boot(){
 }
 startButton.addEventListener('click',async event=>{
  if(disposed||!prepared||started||state!=='READY')return;
- startButton.disabled=true;
+ startButton.disabled=true;void deathCinematic.unlockAudio();
  // Unlock inside this same trusted activation, and wait for the AudioContext
  // to run before scheduling the first battle frame.
  await sound?.unlock(event);
@@ -209,5 +214,5 @@ world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepare
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
 window.addEventListener('error',event=>{if(event.error&&!disposed)failed(event.error);});
 window.addEventListener('unhandledrejection',event=>{if(!disposed)failed(event.reason);});
-window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();bodyHud?.destroy();movementInput.dispose();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
+window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);observer.disconnect();runtime?.destroy();sound?.destroy();deathCinematic.dispose();bodyHud?.destroy();movementInput.dispose();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
 syncModeButtons();report('BOOT');void boot();
