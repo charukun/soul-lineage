@@ -58,6 +58,23 @@ export function createNocturneSound(doc=document,{samples={}}={}){
   function notePan(f,d,type='sine',volume=.3,pan=0){
     if(disposed||!unlocked||doc.hidden||audio?.state!=='running')return;const t=audio.currentTime,o=audio.createOscillator(),g=audio.createGain(),p=audio.createStereoPanner?.();o.type=type;o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(Math.max(30,f*.45),t+d);g.gain.setValueAtTime(volume,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);if(p){p.pan.value=Math.max(-1,Math.min(1,Number(pan)||0));g.connect(p);p.connect(master);}else g.connect(master);active.add(o);o.onended=()=>{active.delete(o);o.disconnect();g.disconnect();p?.disconnect();};o.start(t);o.stop(t+d);notes++;
   }
+  function inspirationChime(){
+    if(disposed||!unlocked||doc.hidden||audio?.state!=='running')return;
+    const t=audio.currentTime;
+    for(const {delay,start,end,length,volume,type} of [
+      {delay:0,start:760,end:1520,length:.19,volume:.31,type:'square'},
+      {delay:.09,start:1180,end:2360,length:.26,volume:.25,type:'sine'},
+      {delay:.22,start:1760,end:2640,length:.38,volume:.28,type:'triangle'}
+    ]){
+      const o=audio.createOscillator(),g=audio.createGain(),at=t+delay;
+      o.type=type;o.frequency.setValueAtTime(start,at);o.frequency.exponentialRampToValueAtTime(end,at+length*.74);
+      g.gain.setValueAtTime(.001,at);g.gain.linearRampToValueAtTime(volume,at+.012);
+      g.gain.exponentialRampToValueAtTime(.001,at+length);
+      o.connect(g);g.connect(master);active.add(o);
+      o.onended=()=>{active.delete(o);o.disconnect();g.disconnect();};
+      o.start(at);o.stop(at+length);notes++;
+    }
+  }
   function swing({pan=0,gain=.66,rate=1}={}){if(!stereoSample('swing',{pan,gain,rate}))notePan(520,.08,'triangle',.11,pan);}
   function guard({pan=0,gain=.78,rate=.92}={}){if(!stereoSample('guard',{pan,gain,rate})){notePan(310,.12,'triangle',.28,pan);notePan(1200,.06,'square',.08,pan);}}
   function parry({pan=0,gain=1,rate=1.1,strong=false}={}){
@@ -94,7 +111,7 @@ export function createNocturneSound(doc=document,{samples={}}={}){
   }
   doc.addEventListener('pointerdown',unlock,{passive:true});doc.addEventListener('keydown',unlock);doc.addEventListener('visibilitychange',visibility);
   return Object.freeze({
-    unlock,note,swing,guard,parry,impact,footstep,hit(big=false,options={}){impact({heavy:Boolean(big),...options});if(!sampleBuffers.size)note(big?1800:2700,.055,'sawtooth',.10);},fatigue,pause,
+    unlock,note,inspirationChime,swing,guard,parry,impact,footstep,hit(big=false,options={}){impact({heavy:Boolean(big),...options});if(!sampleBuffers.size)note(big?1800:2700,.055,'sawtooth',.10);},fatigue,pause,
     metrics:()=>({unlocked,state:audio?.state||'locked',notes,activeVoices:active.size,fatigueVoices:fatigueVoices.size,fatigueAssetReady:Boolean(fatigueBuffer),samplesReady:sampleBuffers.size,samplesConfigured:Object.keys(samples).length}),
     destroy(){if(disposed)return;disposed=true;doc.removeEventListener('pointerdown',unlock);doc.removeEventListener('keydown',unlock);doc.removeEventListener('visibilitychange',visibility);for(const id of [...fatigueVoices.keys()])stopFatigue(id);for(const o of active){try{o.stop();}catch{}}active.clear();sampleBuffers.clear();audio?.close().catch(()=>{});}
   });

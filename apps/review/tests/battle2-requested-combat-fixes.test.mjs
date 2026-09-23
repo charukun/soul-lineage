@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createJohakyuP7ReviewScenario} from '../src/nocturne/johakyu-p7-review.js';
 import {normalizeBattle2Loadout} from '../src/nocturne/battle2-loadout.js';
-import {battle2TechniqueCatalog} from '../src/nocturne/battle2-technique-catalog.js';
+import {battle2TechniqueCatalog,battle2InspirationCandidates,pickBattle2Inspiration} from '../src/nocturne/battle2-technique-catalog.js';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 test('the HUD identifies the equipped technique while combat retains its stage identities',()=>{
  const stage=read('src/nocturne-stage.js');assert.match(stage,/battle2SelectionLabel\(meta.techniqueSelection\)/);
@@ -67,4 +67,17 @@ test('閃きの初回発動イベントが描画へ一度渡り、習得と序�
   }
  }
  assert.ok(inspired,'a high-rate trial reaches its first cast');
+});
+
+test('閃きは未習得の技だけを選び、連続命中でも発生間隔を空ける',()=>{
+ const seen=battle2InspirationCandidates({weapon:'sword',phase:'ha'}).map(item=>item.row.id);
+ assert.ok(seen.length>0);assert.equal(pickBattle2Inspiration({weapon:'sword',phase:'ha',seenIds:seen}),null);
+ const scenario=createJohakyuP7ReviewScenario({settings:{inspirationRate:'high'},actorOverrides:{hero:{hp:300,maxHp:300,damageScale:2},'enemy-a':{hp:9000,maxHp:9000,canAttack:false}}});
+ const inspirations=[];
+ for(let i=0;i<3600;i++){
+  for(const row of scenario.step(1/60).events)if(row.type==='inspiration')inspirations.push(row);
+ }
+ assert.ok(inspirations.length>=1);
+ assert.equal(new Set(inspirations.map(row=>row.techniqueId)).size,inspirations.length);
+ for(let i=1;i<inspirations.length;i++)assert.ok(inspirations[i].time-inspirations[i-1].time>=18-1/60);
 });
