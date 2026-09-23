@@ -29,6 +29,8 @@
     0 20px 44px rgba(31,35,27,.22);
   transform:translateY(var(--loadout-sheet-drag,0px));
 }
+/* One open shared menu retires exploration controls in both gameplay views. */
+body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-radar,.rinne-player-hud-host,.battle2-player-hud-host,.combat-body-hud-host,.battle2-body-hud-host){visibility:hidden!important;pointer-events:none!important}
 .rinne-core-menu[hidden]{display:none!important}
 .rinne-core-menu[data-type="heart"]{--menu-accent:#e9aaa6}
 .rinne-core-menu[data-type="technique"]{--menu-accent:#9acfe0}
