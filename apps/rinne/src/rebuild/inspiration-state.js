@@ -245,7 +245,7 @@ function observePerformedAnswer(state,context,events){
   if(first){
     p.started=true;
     const learned=commitAnswer(state,p,{...context,description:`${INSPIRATION_QUESTIONS[p.question]||'戦況から答えを掴んだ'}。実戦で新しい身体操作を始めた。`});
-    if(learned){p.committed=true;learned.firstCast=true;learned.attackId=first.attackId;learned.targetId=first.targetId;}
+    if(learned){p.committed=true;learned.firstCast=true;learned.attackId=first.attackId;learned.targetId=first.targetId;learned.phase=first.phase;}
     return learned;
   }
   // A target may die and clear combat in this tick. Keep the executor-owned final frame, not a made-up replay.
