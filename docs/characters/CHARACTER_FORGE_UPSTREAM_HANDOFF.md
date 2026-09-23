@@ -33,6 +33,23 @@ revision blends cranial/face masses and adjusts suit/leg volume. Its strict
 schema gate passed locally; it has **not** passed browser comparison. The
 specialist workflow remains task-only and must be deleted before final merge.
 
+The next hosted [correction run 35831119869](https://github.com/charukun/soul-lineage/actions/runs/35831119869)
+at exact head `be387859d60630d1e8c9e30397277bc2d3e88456` restored the
+hash-verified first artifact, retained the r0 screenshot history, replayed the
+real rejected review through upstream `append_review.py`/`next.py` (loop 1/3,
+total 1/6), validated the revised spec and rendered its factory. Focused JS
+tests passed and [artifact 10737456810](https://github.com/charukun/soul-lineage/actions/runs/35831119869/artifacts/10737456810)
+contains the corrected browser images. This correction **also failed** the
+upstream .85 silhouette gate: Front .4899, Side .4746, Back .564. The head is
+smoother but the separate mesh masses, torso/hip seams, side-arm pose mismatch
+and absent source surface identity persist. `blockout-r1-observation.json`
+records each actual render/comparison hash. A passing Action means the task
+captured and assessed a rejected model, **not** that the Forge quality floor
+passed. No further pass may be unlocked by changing thresholds or inventing a
+visual approval. Next correction needs substantial source-fitted continuous
+geometry and pose-aware comparison, potentially the repo's Blender/DCC route;
+projection, rig and native Lab remain downstream of shape acceptance.
+
 ## Status
 
 **ACTIVE RESUMPTION / INCOMPLETE (2026-09-23).** After the preserved pause below, the user asked to complete the pipeline using the supplied Golden Base reference and avoid repeated quality loops. PR #1524 remains Draft and unmerged. The Scout hard-stop history remains evidence; its material state is 9/12, total 11/22. A separate Golden Base upstream subject starts from its own genuine intake state, without resetting Scout or claiming acceptance.

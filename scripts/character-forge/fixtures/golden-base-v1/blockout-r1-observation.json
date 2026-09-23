@@ -1,0 +1,322 @@
+{
+  "schema": "rinne.forge-visual-observation/v1",
+  "sourceHead": "be387859d60630d1e8c9e30397277bc2d3e88456",
+  "factorySha256": "998037852ad5053e1129fbfbfd39aaeef812613a7efb3b2d51f008f8bc8bfe1e",
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35831119869",
+  "artifact": "https://github.com/charukun/soul-lineage/actions/runs/35831119869/artifacts/10737456810",
+  "previousCorrectionCount": 1,
+  "evaluation": "rejected; no side or front/back likeness approval, no append_review for this round",
+  "views": {
+    "front": {
+      "diagnostic": {
+        "passed": false,
+        "checks": {
+          "silhouetteIoU": 0.4899,
+          "aspectRatioDelta": 0.0045,
+          "scaleDelta": 0.0321,
+          "bilateralSymmetryError": 0.0283,
+          "colorDelta": {
+            "checked": 19,
+            "maxDeltaE": 16.27,
+            "perComponent": [
+              {
+                "componentId": "root",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "pelvis",
+                "deltaE": 6.56
+              },
+              {
+                "componentId": "chest",
+                "deltaE": 6.56
+              },
+              {
+                "componentId": "neck",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "head",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "ear-l",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "ear-r",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "upper-arm-l",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "forearm-l",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "hand-l",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "thigh-l",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "shin-l",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "foot-l",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "upper-arm-r",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "forearm-r",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "hand-r",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "thigh-r",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "shin-r",
+                "deltaE": 16.27
+              },
+              {
+                "componentId": "foot-r",
+                "deltaE": 16.27
+              }
+            ],
+            "gated": false
+          }
+        },
+        "failures": [
+          "silhouette IoU 0.490 is below threshold 0.85"
+        ],
+        "maskWarnings": [],
+        "renderHash": "4174ef5f40b62143",
+        "passId": "blockout",
+        "mapStrippedRender": "review/blockout/front.png"
+      },
+      "renderSha256": "4174ef5f40b62143b875898c74f20c37efcf672d99900e48afc317f378d6a751",
+      "comparisonSha256": "a5be47028a3367b1763396eea5b5aba489a991f379855f87ce50017d110d08f9"
+    },
+    "side": {
+      "diagnostic": {
+        "passed": false,
+        "checks": {
+          "silhouetteIoU": 0.4746,
+          "aspectRatioDelta": 0.2228,
+          "scaleDelta": 0.2016,
+          "bilateralSymmetryError": 0.0915,
+          "colorDelta": {
+            "checked": 19,
+            "maxDeltaE": 16.47,
+            "perComponent": [
+              {
+                "componentId": "root",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "pelvis",
+                "deltaE": 6.77
+              },
+              {
+                "componentId": "chest",
+                "deltaE": 6.77
+              },
+              {
+                "componentId": "neck",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "head",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "ear-l",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "ear-r",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "upper-arm-l",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "forearm-l",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "hand-l",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "thigh-l",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "shin-l",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "foot-l",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "upper-arm-r",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "forearm-r",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "hand-r",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "thigh-r",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "shin-r",
+                "deltaE": 16.47
+              },
+              {
+                "componentId": "foot-r",
+                "deltaE": 16.47
+              }
+            ],
+            "gated": false
+          }
+        },
+        "failures": [
+          "silhouette IoU 0.475 is below threshold 0.85",
+          "aspect-ratio delta 0.223 exceeds threshold 0.05",
+          "scale delta 0.202 exceeds threshold 0.08"
+        ],
+        "maskWarnings": [],
+        "renderHash": "8b0962f442f67e24",
+        "passId": "blockout",
+        "mapStrippedRender": "review/blockout/side.png"
+      },
+      "renderSha256": "8b0962f442f67e249cee9f58bbcc3106af528a97556227a5bb6231c496d3f28f",
+      "comparisonSha256": "6b67a160c4f920919660137fb48b0ccd8df7b0ebb924b3d8ea5e71a2db814b38"
+    },
+    "back": {
+      "diagnostic": {
+        "passed": false,
+        "checks": {
+          "silhouetteIoU": 0.564,
+          "aspectRatioDelta": 0.0136,
+          "scaleDelta": 0.0228,
+          "bilateralSymmetryError": 0.0728,
+          "colorDelta": {
+            "checked": 19,
+            "maxDeltaE": 16.7,
+            "perComponent": [
+              {
+                "componentId": "root",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "pelvis",
+                "deltaE": 7.01
+              },
+              {
+                "componentId": "chest",
+                "deltaE": 7.01
+              },
+              {
+                "componentId": "neck",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "head",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "ear-l",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "ear-r",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "upper-arm-l",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "forearm-l",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "hand-l",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "thigh-l",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "shin-l",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "foot-l",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "upper-arm-r",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "forearm-r",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "hand-r",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "thigh-r",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "shin-r",
+                "deltaE": 16.7
+              },
+              {
+                "componentId": "foot-r",
+                "deltaE": 16.7
+              }
+            ],
+            "gated": false
+          }
+        },
+        "failures": [
+          "silhouette IoU 0.564 is below threshold 0.85"
+        ],
+        "maskWarnings": [],
+        "renderHash": "460aecf40c22cab5",
+        "passId": "blockout",
+        "mapStrippedRender": "review/blockout/back.png"
+      },
+      "renderSha256": "460aecf40c22cab5d5934d7e98ad20e7c84f0def04d70c45337ffc410b6741f6",
+      "comparisonSha256": "da7ad4b8de9702e4a5e1505c22e9cf4fe3cdf57d80c4aea114f103e261bcd43a"
+    }
+  }
+}
