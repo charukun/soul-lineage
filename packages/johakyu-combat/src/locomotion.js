@@ -5,7 +5,7 @@ export const COMBAT_LOCOMOTION=freeze({
   walkSpeed:3.8,
   dashMultiplier:1.72,
   dashSpeed:6.536,
-  actionMoveScale:.65,
+  actionMoveScale:.9,
   footworkScale:Object.freeze({stay:0,forward:.75,chase:1,rush:1.22,retreat:.82,sideL:.72,sideR:.72,orbitL:.6,orbitR:.6,cross:.78,spiral:.78}),
   engagementPadding:.65,
   readyExitPadding:.55,

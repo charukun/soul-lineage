@@ -158,6 +158,11 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     if(actor.pursuit&&target.side==='enemy'&&actor.pursuitTargetId===target.id&&actor.pursuitUntil>=time
       &&time>=actor.pursuitReadyAt&&time>=actor.readyAt&&actor.canAttack!==false&&actor.stamina>=22
       &&distance(actor,target)>1.46&&distance(actor,target)<4.5&&!blocked(actor.position,target.position,actor)){
+      const d=distance(actor,target),spacing=battleSpacing(actor,target,d);
+      if(d>spacing.engagementRange){
+        // Pursuit closes the gap as locomotion first. The attack action starts only after the shared engagement boundary is crossed.
+        actor.decision={...spacing,intent:'pursuit',footwork:'rush',stopDistance:spacing.engagementRange-.04,targetId:target.id};actor.decisionUntil=time+.12;return;
+      }
       const kind=actor.equipment.weapon==='fist'?'straight':'dash';
       actor.override={technique:defineTechnique({id:'heart.pursuer',name:'追う者',steps:[{kind,footwork:'rush',charge:'none'}]},{weapon:actor.equipment.weapon}),stageIndex:0};
       if(begin(actor,target)){actor.pursuitSeconds=0;actor.pursuitUntil=0;actor.pursuitReadyAt=time+2.8;emit({type:'pursuit-leap',sourceId:actor.id,targetId:target.id});return;}
@@ -216,8 +221,9 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
   function separate(){const rows=[...actors.values()].filter(live);for(let i=0;i<rows.length;i++)for(let j=i+1;j<rows.length;j++){const a=rows[i],b=rows[j],d=distance(a,b);if(d>=1.46)continue;const v=d>.001?{x:(b.position.x-a.position.x)/d,z:(b.position.z-a.position.z)/d}:{x:1,z:0},push=(1.46-d)/2;for(const [actor,sign]of [[a,-1],[b,1]]){const next={x:actor.position.x+v.x*push*sign,z:actor.position.z+v.z*push*sign};if(!blocked(actor.position,next,actor))actor.position=next;}}}
   function refreshCombatReady(actor){
     if(!live(actor)){actor.combatReady=false;actor.combatReadyRange=null;actor.combatReadyTargetId=null;return;}
-    const threat=nearestThreatFor(actor),forced=Boolean(actor.action||actor.phaseCue?.phase==='zanshin');
+    const threat=nearestThreatFor(actor),forced=Boolean(actor.phaseCue?.phase==='zanshin'||actor.action&&actor.combatReady);
     if(!threat){actor.combatReady=forced;actor.combatReadyRange=null;actor.combatReadyTargetId=null;return;}
+    // An action may preserve an already-entered stance, but it must never create combat readiness from outside the range.
     const envelope=combatReadyEnvelope({distance:distance(actor,threat),weapon:actor.equipment.weapon,wasReady:actor.combatReady,forced});
     actor.combatReady=envelope.ready;actor.combatReadyRange=envelope;actor.combatReadyTargetId=threat.id;
   }

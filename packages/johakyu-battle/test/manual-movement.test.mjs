@@ -36,3 +36,10 @@ test('combat-ready stance follows the nearest live threat instead of the tactica
   runtime.step(1/240);const row=runtime.snapshot().actors.find(a=>a.id==='hero');
   assert.equal(runtime.actor('hero').targetId,'enemy-far');assert.equal(row.combatReady,true);assert.equal(row.combatReadyTargetId,'enemy-near');
 });
+
+test('pursuit closes distance before starting an attack or combat-ready stance',()=>{
+  const runtime=createJohakyuBattleRuntime({battleId:'pursuit-ready-boundary',actors:[{...actor('hero','party',0),pursuit:true},actor('enemy','enemy',4)],bounds:{minX:-10,maxX:10,minZ:-10,maxZ:10}});
+  const hero=runtime.actor('hero');hero.pursuitTargetId='enemy';hero.pursuitUntil=10;hero.pursuitReadyAt=0;
+  runtime.step(1/60);const row=runtime.snapshot().actors.find(a=>a.id==='hero');
+  assert.equal(row.action,null);assert.equal(row.combatReady,false);assert.equal(row.exchange?.intent,'pursuit');assert.equal(row.exchange?.footwork,'rush');
+});
