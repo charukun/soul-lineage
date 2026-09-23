@@ -24,10 +24,10 @@ def check(w,cache,pass_id):
     if not points:raise ValueError('Hair profile has no actual hair mesh')
     out=w/'review'/pass_id
     write_json(out/'scalp-rings.json',rings);write_json(out/'hair-points.json',points)
-    # Source-specific forehead/hairline row 43, recorded in landmark evidence.
+    # The hairline comes from versioned measurements, never a humanoid constant.
     measured=json.loads((w/'img2threejs/evidence/landmarks.json').read_text())
     scale=measured['heightMetres']/(measured['feetRow']-measured['crownRow'])
-    hairline_y=(measured['feetRow']-43)*scale
+    hairline_y=(measured['feetRow']-measured['views']['front']['face']['foreheadRow'])*scale
     low=(hairline_y-rings[0][0])/(rings[-1][0]-rings[0][0])
     install=install_boundary(cache,cache/'host')
     return checked_run(install,w,'forge/stage4_review/scalp_exposure.py',['--rings',f'review/{pass_id}/scalp-rings.json','--hair-points',f'review/{pass_id}/hair-points.json','--v-low',str(low),'--out',f'review/{pass_id}/scalp-exposure.json'])
