@@ -52,6 +52,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     <section data-vitals class="rinne-context-vitals" hidden aria-label="息"><div data-vital-breath class="context-vital is-breath"><span>息</span><i><b data-context-stamina></b></i></div></section>
     <aside data-mind class="rinne-mind-balance" hidden aria-label="現在の意識バランス"><span class="mind-title">意識</span><div class="mind-orbit" aria-hidden="true"><i data-axis="attack"><b>攻</b></i><i data-axis="guard"><b>守</b></i><i data-axis="spacing"><b>間</b></i><i data-axis="counter"><b>返</b></i><i data-axis="mobility"><b>機</b></i><i data-axis="survival"><b>生</b></i><em></em></div><strong data-mind-state>中庸</strong></aside>
     ${johakyuSequenceMarkup()}
+    <aside data-inspiration-burst class="rinne-inspiration-burst" hidden aria-live="polite"><b>閃</b><strong data-inspiration-burst-name></strong></aside>
 
     ${rinnePrimaryFourMarkup({ariaLabel:'主要操作'})}
 
@@ -78,6 +79,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     root,dash,
     heart:q('[data-heart]'),techniques:q('[data-techniques]'),trainingStrike:q('[data-training-strike]'),menu:q('[data-menu]'),quickMenu:q('[data-quick-menu]'),bodyButton:q('[data-body]'),items:q('[data-items]'),map:q('[data-map]'),fieldRadar:q('[data-field-radar]'),record:q('[data-record]'),phase:q('[data-phase]'),phaseHistory:q('[data-phase-history]'),phaseAction:q('[data-phase-action]'),exchangeCue:q('[data-exchange-cue]'),phaseTrack:q('[data-phase-track]'),phaseTechniques:q('[data-phase-techniques]'),
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
+    inspirationBurst:q('[data-inspiration-burst]'),inspirationBurstName:q('[data-inspiration-burst-name]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),
     vitals:q('[data-vitals]'),vitalBreath:q('[data-vital-breath]'),contextStamina:q('[data-context-stamina]'),
     mind:q('[data-mind]'),mindState:q('[data-mind-state]')
@@ -249,6 +251,9 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   }
   function summary(s,{dashing=false,resting=false,training=null}={}){
     state=s;motionTeacher.update(s);if(ui.panel&&!ui.panel.hidden&&!ui.panel.dataset.type)close();speech.sync();loadoutUI.syncCombat(s);const hudName=s.name&&s.name!=='旅人'?s.name:rinnePlayerNameFromSeed(s.seed);playerHud?.update({name:hudName,age:s.ageYears});combatBodyHud?.update(s);
+    const inspirationCue=s.combat?.inspirationCue,burstActive=Boolean(inspirationCue&&s.combat?.battleTime<inspirationCue.until);
+    ui.inspirationBurst.hidden=!burstActive;
+    if(burstActive)ui.inspirationBurstName.textContent=inspirationCue.name;
     updateRadar();
     ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;ui.trainingStrike.hidden=!engaged||s.down||s.ended;ui.trainingStrike.dataset.ready=String(engaged);if(engaged){ui.trainingName.textContent=training.label;ui.trainingStrike.setAttribute('aria-label',`${training.label}を打って稽古する`);}updateContextVitals(s,{dashing,resting,training});updateMindBalance(s,training);
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';

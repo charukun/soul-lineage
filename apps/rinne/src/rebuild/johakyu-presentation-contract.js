@@ -53,7 +53,7 @@ export function readRinneBattleFrame(state,front,{peers=[],epoch=0,revision=0}={
 export function readRinneImpactEvents(events,state,{batchId=null}={}){
   const rows=[];
   for(const [index,event] of (events||[]).entries()){
-    if(!['player-hit','enemy-hit','finisher','enemy-down','enemy-downed','downed','life-end','guard','parry','clash'].includes(event.type))continue;
+    if(!['player-hit','enemy-hit','finisher','enemy-down','enemy-downed','downed','life-end','guard','parry','clash','inspiration-start'].includes(event.type))continue;
     if(event.authority==='johakyu-battle'){rows.push({...event});continue;}
     const sourceId=event.sourceId??(event.type==='player-hit'||event.type==='finisher'?state.id:null);
     const targetId=event.targetId??(event.type==='enemy-hit'||event.type==='downed'||event.type==='life-end'?state.id:null);
@@ -75,4 +75,3 @@ export function readRinneImpactEvents(events,state,{batchId=null}={}){
   }
   return freeze(rows);
 }
-
