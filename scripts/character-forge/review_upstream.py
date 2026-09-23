@@ -45,6 +45,8 @@ def review(w,cache,pass_id):
     run('turntable','forge/stage4_review/turntable_gate.py','--capture',f'0=review/{pass_id}/front.png','--capture',f'90=review/{pass_id}/side.png','--capture',f'180=review/{pass_id}/back.png','--capture',f'270=review/{pass_id}/oppositeSide.png','--json')
     write_json(out/'parts.json',{'model':'upstream-scout','parts':receipt['parts'],'unnamedMeshes':sum(not p['name'] for p in receipt['parts'])})
     run('part-coverage','forge/stage4_review/check_part_coverage.py','--spec','object-sculpt-spec.json','--manifest',f'review/{pass_id}/parts.json','--json',f'review/{pass_id}/part-coverage.json')
+    if (out/'scalp-exposure.json').exists():
+        run('hair-gate','forge/stage4_review/hair_gate.py','--reference',*[f'{v}=source/{v}.png' for v in ('front','side','back')],'--render',*[f'{v}=review/{pass_id}/{v}.png' for v in ('front','side','back')],'--scalp-exposure',f'review/{pass_id}/scalp-exposure.json','--out',f'review/{pass_id}/hair-gate.json')
     hull=json.loads((w/'img2threejs/evidence/visual-hull.json').read_text());hull_glb(hull,out/'hull-constraint.glb')
     run('mesh-constraint-comparison','forge/stage4_review/mesh_reference_compare.py',f'review/{pass_id}/hull-constraint.glb',f'build/{pass_id}.glb','--bands','20','--align','height','--json')
     write_json(out/'review-tools.json',{'sourceHead':receipt['sourceHead'],'factorySha256':receipt['factorySha256'],'pass':pass_id,'tools':results,'visualApproval':'pending','constraintReference':{'status':'inferred','source':'exact upstream front/side silhouette hull','limitations':hull['limitations'],'notGroundTruth':True}})

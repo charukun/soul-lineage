@@ -4,6 +4,7 @@ import {readFile,writeFile,mkdir,stat} from 'node:fs/promises';
 import {resolve,extname,join} from 'node:path';
 import {stripTypeScriptTypes} from 'node:module';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 const [workspaceArg,pass='blockout']=process.argv.slice(2),workspace=resolve(workspaceArg||''),repo=resolve(import.meta.dirname,'../..');
 if(!workspaceArg)throw Error('Usage: render_upstream.mjs WORKSPACE PASS');
 const typescript=await readFile(join(workspace,'build',pass+'.ts'),'utf8');
@@ -36,7 +37,7 @@ window.forge={draw,meshBuffers,async exportGLB(){
  const response=await fetch('/capture/model.glb',{method:'POST',body:data});if(!response.ok)throw Error('GLB transport failed');return data.byteLength;
  }finally{for(const [node,data] of metadata)node.userData=data;}
 },snapshot(){const rows=meshBuffers(),box=new THREE.Box3().setFromObject(model);return {errors,pass:'${pass}',parts:rows.map(r=>({name:r.name,vertices:r.position.length/3,triangles:r.index.length?r.index.length/3:r.position.length/9})),bounds:{min:box.min.toArray(),max:box.max.toArray()}};}};
-for(let i=0;i<200&&loading;i++)await new Promise(r=>setTimeout(r,50));if(loading)throw Error('Material loading did not finish');draw();window.ready=true;`;
+for(let i=0;i<200&&loading;i++)await new Promise(r=>setTimeout(r,50));if(loading)throw Error('Material loading did not finish');window.ready=true;`;
 const pageHTML=`<!doctype html><style>body{margin:0}canvas{display:block}</style><script type="importmap">{"imports":{"three":"/vendor/build/three.module.js","three/addons/":"/vendor/examples/jsm/","three/examples/jsm/":"/vendor/examples/jsm/"}}</script><script type="module" src="/author.js"></script>`;
 const server=createServer(async(req,res)=>{try{
   const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
@@ -63,6 +64,8 @@ try{
  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load'});
  try{await page.waitForFunction(()=>window.ready,null,{timeout:60000});}
  catch(error){await writeFile(join(out,'browser-failure.json'),JSON.stringify({errors,message:error.message},null,2));await page.screenshot({path:join(out,'browser-failure.png')});throw error;}
+ await writeFile(join(out,'mesh-buffers.json'),await page.evaluate(()=>JSON.stringify(window.forge.meshBuffers())));
+ execFileSync('python3',[join(repo,'scripts/character-forge/check_upstream_scalp.py'),'--workspace',workspace,'--cache',process.env.CHARACTER_FORGE_UPSTREAM_CACHE||join(repo,'.cache/character-forge-upstream'),'--pass-id',pass],{stdio:'inherit'});
  for(const view of ['front','side','back','front34','rear34','oppositeSide']){await page.evaluate(view=>window.forge.draw(view),view);await page.locator('canvas').screenshot({path:join(out,view+'.png')});console.log('FORGE_CAPTURE '+view);}
  const receipt=await page.evaluate(()=>window.forge.snapshot());receipt.errors.push(...errors);receipt.factorySha256=createHash('sha256').update(typescript).digest('hex');receipt.sourceHead=process.env.HEAD_SHA||null;receipt.visualApproval='pending';
  await page.evaluate(()=>window.forge.draw('front'));
