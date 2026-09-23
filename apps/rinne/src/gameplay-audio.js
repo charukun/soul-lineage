@@ -168,10 +168,13 @@ export function createRinneAudio(){
   }
   function inspiration(){
     if(disposed||backgrounded||pageHidden())return;
-    music.volume=Math.max(.035,BASE_MUSIC_VOLUME*.66);restoreMusic(340);
-    tone(330,.09,.028,'triangle');
-    tone(660,.12,.025,'triangle',.055);
-    tone(990,.19,.018,'sine',.12);
+    // A low strike, a metallic onset and a rising resonance leave room for the first cast.
+    music.volume=Math.max(.035,BASE_MUSIC_VOLUME*.38);restoreMusic(980);
+    tone(74,.34,.055,'sine');
+    tone(880,.18,.045,'sawtooth',.065);
+    tone(1320,.52,.028,'triangle',.16);
+    tone(660,.52,.028,'triangle',.38);
+    tone(990,.62,.022,'sine',.53);
   }
   function select(){tone(520,.045,.014,'triangle');}
   function commit(){tone(390,.055,.018,'triangle');setTimeout(()=>tone(660,.07,.016,'triangle'),48);}
