@@ -9,7 +9,6 @@ import {REVIEW_ROUTES} from './review-lab-config.js';
 import {createForgeInspectionStage} from './character-forge-stage.js';
 import {characterForgeCandidates} from '../../../packages/assets/generated/create-forge-registry.js';
 import {createCharacterPackageActor} from '../../../packages/assets/src/character-create-forge/actor.js';
-import {referenceChibiCandidate,createReferenceChibiActor} from './reference-chibi-candidate.js';
 
 const panel=document.querySelector('.forge-panel'),$=selector=>panel.querySelector(selector);
 const labels={model:'モデル',front:'正面',side:'側面',back:'背面',turntable:'360°',free:'自由視点'};
@@ -110,29 +109,25 @@ function start(){
     const token=++sequence;loadController?.abort();loadController=new AbortController();const signal=loadController.signal;
     delete panel.dataset.error;panel.dataset.ready='false';enable(false);status(candidate.manifest.displayName+'を読み込み中…');
     try{
-      let next;
-      if(candidate.type==='procedural')next=createReferenceChibiActor(THREE,candidate.manifest);
-      else{
-        const response=await fetch(candidate.modelUrl,{signal});if(!response.ok)throw new Error('GLB HTTP '+response.status);
-        const bytes=await response.arrayBuffer();
-        const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(v=>v.toString(16).padStart(2,'0')).join('');
-        if(hash!==candidate.manifest.model.sha256)throw new Error('GLB hash mismatch');
-        const gltf=await new GLTFLoader().parseAsync(bytes,'');next=createCharacterPackageActor(THREE,gltf,candidate.manifest);
-      }
+      const response=await fetch(candidate.modelUrl,{signal});if(!response.ok)throw new Error('GLB HTTP '+response.status);
+      const bytes=await response.arrayBuffer();
+      const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(v=>v.toString(16).padStart(2,'0')).join('');
+      if(hash!==candidate.manifest.model.sha256)throw new Error('GLB hash mismatch');
+      const gltf=await new GLTFLoader().parseAsync(bytes,'');
+      const next=createCharacterPackageActor(THREE,gltf,candidate.manifest);
       if(!alive||token!==sequence){next.dispose();return;}
       inspection.release();actor?.dispose();actor=next;entry=candidate;scene.add(actor.root,actor.helper);showInputImages(candidate);
       const bounds=candidate.manifest.bounds;
       frameRoot.position.fromArray(bounds.min.map((v,i)=>(v+bounds.max[i])*.5));
       frameRoot.scale.fromArray(bounds.min.map((v,i)=>bounds.max[i]-v));frameRoot.updateMatrixWorld(true);
       $('[data-forge-animation]').replaceChildren(new Option('基準姿勢','Bind'),...candidate.manifest.animations.map(c=>new Option(motionLabels[c.name]||c.name,c.name)));
-      actor.setEquipment({weapon:candidate.type==='procedural'?null:$('[data-forge-equipment]').value||null});inspection.bind(actor.root,candidate.manifest);display();enable(true);
-      for(const selector of ['equipment','skeleton','sockets'])$('[data-forge-'+selector+']').disabled=candidate.type==='procedural';
+      actor.setEquipment({weapon:$('[data-forge-equipment]').value||null});inspection.bind(actor.root,candidate.manifest);display();enable(true);
       compare('front');if(!comparing)setComparison(false);panel.dataset.ready='true';
       for(const b of panel.querySelectorAll('[data-forge-candidate]'))b.setAttribute('aria-pressed',String(b.dataset.forgeCandidate===candidate.manifest.id));
       const mode={'single-view':'1枚から生成','multi-view':'三面図から生成','enhanced-multi-view':'5方向から生成'}[candidate.manifest.reconstructionMode];
       status(candidate.manifest.displayName+' · '+mode+' · '+(candidate.manifest.reviewStatus==='approved'?'承認済み':'確認候補・未承認'));
       $('.forge-readout').textContent='検証レポートを読み込み中…';
-      const report=candidate.report||await fetch(candidate.reportUrl,{signal}).then(r=>{if(!r.ok)throw new Error('Report HTTP '+r.status);return r.json();});
+      const report=await fetch(candidate.reportUrl,{signal}).then(r=>{if(!r.ok)throw new Error('Report HTTP '+r.status);return r.json();});
       if(!alive||token!==sequence)return;
       $('.forge-readout').textContent=JSON.stringify({provenance:candidate.manifest.provenance,...report},null,2);
     }catch(error){
@@ -143,7 +138,7 @@ function start(){
     }
   }
 
-  const candidates=[...characterForgeCandidates,referenceChibiCandidate];
+  const candidates=characterForgeCandidates;
   for(const candidate of candidates){
     const button=document.createElement('button');button.type='button';button.dataset.forgeCandidate=candidate.manifest.id;button.setAttribute('aria-pressed','false');
     const img=document.createElement('img');img.src=candidate.references.front;img.alt='';
