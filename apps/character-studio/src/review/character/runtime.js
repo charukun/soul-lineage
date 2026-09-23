@@ -11,6 +11,7 @@ import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
 import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
+import {createImg2ThreeReferenceCharacter} from '../../img2threejs-bald-chibi.js';
 import {createReferenceChibi,REFERENCE_CHIBI_ID} from '../../../../../packages/assets/src/procedural-character/create-reference-chibi.js';
 
 const el = id => document.getElementById(id);
@@ -159,7 +160,7 @@ function start() {
     if (simpleModelReview) {
       const sharedPreset=preset==='overview'?'three-quarter':preset;
       camera.fov=38;camera.updateProjectionMatrix();
-      positionReviewCamera({camera,controls:orbit,root:proceduralRoot || actor.root,preset:sharedPreset,padding:proceduralRoot?1.7:1.14,minDistance:.35,maxDistance:18});
+      positionReviewCamera({camera,controls:orbit,root:proceduralRoot || actor.root,preset:sharedPreset,padding:proceduralRoot?.userData?.img2threejs?1.36:proceduralRoot?1.7:1.14,minDistance:.35,maxDistance:18});
       resetMeasure();return;
     }
     let target, distance;
@@ -274,7 +275,7 @@ function start() {
       // Check every required actor before replacing a working pool.
       const preflight = records.slice(0, settings.count).map(record => nextPool.spawn(record.id)); preflight.forEach(a => nextPool.despawn(a.id));
       pool?.dispose(); disposeTemplate(template); actors = []; pool = nextPool; template = nextTemplate; nextPool = null; nextTemplate = null;
-      installed = true; review.pool = pool; review.audit = audit; const capabilities = pool.diagnostics(); review.capabilities = capabilities;
+      installed = true; clearProcedural(); review.pool = pool; review.audit = audit; const capabilities = pool.diagnostics(); review.capabilities = capabilities;
       el('expression').replaceChildren(new Option('ニュートラル', ''), ...capabilities.expressionNames.map(name => new Option(name, name)));
       if (!capabilities.expressionNames.includes(settings.expression)) settings.expression = '';
       el('capabilities').textContent = `SHA-256 ${hash}\nLicense ${audit.license || 'unverified'}\n表情 ${capabilities.expressionNames.length}種\n揺れ ${capabilities.springChains}チェーン / ${capabilities.springJoints}関節\n${capabilities.warnings.join('\n') || 'PBR・共通Humanoid表示'}`;
@@ -427,6 +428,22 @@ function start() {
     }
   };
   review.sample = age => { settings = reviewSettings({ ...settings, age, ages: 'fixed' }); records = records.map(r => editReviewCharacter(r, { age })); refreshLooks(); };
+  review.loadImg2ThreeReference = async () => {
+    const request = ++modelRequestSequence;
+    modelLoads.begin(); // Supersede an in-flight legacy GLB before it can replace this choice.
+    loading = false;
+    status('img2threejs単体モデルを読み込み中…');
+    try {
+      const next = await createImg2ThreeReferenceCharacter();
+      if (!alive || request !== modelRequestSequence) { disposeTemplate(next); return; }
+      clearProcedural(); proceduralRoot = next; scene.add(proceduralRoot); review.proceduralRoot = proceduralRoot; arrange();
+      review.displayModelId = 'img2threejs.bald-chibi.v1';
+      review.audit = {approved:true,modelId:review.displayModelId,source:{revision:proceduralRoot.userData.img2threejs.revision}};
+      review.ready = true; el('progress').value = 1; activeModelLabel = 'img2threejs 参照キャラ';
+      aim('front'); renderer.render(scene,camera); status('img2threejs 参照キャラを表示中。ドラッグまたは回転ボタンで厚みを確認できます。');
+      window.dispatchEvent(new Event('character-review-change'));
+    } catch (error) { if (request === modelRequestSequence) report(error); }
+  };
   // Explicit inspection API. Never touches game saves, inventories or network authority.
   review.session = () => serializeReviewSession({ settings, records, note: el('note').value });
   review.restore = text => {
