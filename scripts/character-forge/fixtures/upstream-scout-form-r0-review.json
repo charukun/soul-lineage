@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "rinne.forge-visual-review/v1",
+  "id": "scout-form-r0",
+  "pass": "form-refinement",
+  "recipeRevision": 3,
+  "sourceHead": "4b4298bea500ec6404390bb3f0b37f19db8d7377",
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35812184764",
+  "factorySha256": "e41b925b55b7bae9af87c557d6aa6ddbdffac6710012cffd4dde38690d7bb0ee",
+  "captureSha256": {
+    "front": "bf92166c2332f0d965f7fad2255759a0828a4dae9b6d529f8e10bb37e933da11",
+    "side": "7b0aec25b41899d4eb103ed5e1bb0c908b2a94949a8482407c9e37ab4f5ca87e",
+    "back": "fb9e6ac72429271579e609cc64060ee82bf068a4be8ec0d35cc8d2e8bd918c4d",
+    "front34": "90405d7d214482f9d83e6488532318ca11d9412f9ee4e5c70ec40681f7e38152",
+    "rear34": "a3c34b020af8e7dd34b878cae4b89834ed17d518bf848a134881b2bd6ca382f2",
+    "oppositeSide": "14409647a98a47a2e994e865007039afba4ed2c056e9e26b7af268325a292035"
+  },
+  "action": "continue",
+  "fidelity": 0.85,
+  "layerScores": {
+    "silhouetteProportion": 0.92,
+    "componentStructure": 0.86,
+    "formDetail": 0.81,
+    "materialSurface": 0.2,
+    "lightingCamera": 0.9
+  },
+  "featureReviews": [
+    {
+      "id": "anatomy-proportion",
+      "score": 0.91,
+      "notes": "Front pair preserves source head/body ratio, limb widths, feet alignment and flared hem."
+    },
+    {
+      "id": "face-landmark-placement",
+      "score": 0.81,
+      "notes": "Front pair preserves face width/height and cheek/jaw/chin. Side and three-quarter confirm joined nose and cranial volume. Painted eyes/mouth have not yet been reviewed."
+    },
+    {
+      "id": "pose-silhouette",
+      "score": 0.9,
+      "notes": "Front arms-down shape retained and both three-quarter views remain volumetric. Exposed trousers no longer pierce the hem."
+    }
+  ],
+  "summary": "Form pass accepted for this original stylized fixture after inspecting front/side/back comparison sheets and both three-quarter captures. The exposed hip-cap artifacts are gone, the nose is connected, feet are flat, and head/hair/torso/limbs retain real depth. This approves shape for projection; surface identity and final Quality Floor remain pending.",
+  "remaining": [
+    "Front fringe, eyes, mouth, belt and back diamond must be recovered from source pixels during material-pass.",
+    "Back hair length conflicts with the front bare-neck silhouette; side arm endpoint also differs from the front. Keep source contradictions and residual errors explicit rather than claiming exact multi-view geometry.",
+    "The inferred curved face and cut hairline need a fresh look after projection; a passing silhouette metric alone cannot approve final likeness."
+  ],
+  "viewpoints": [
+    "front",
+    "side",
+    "back",
+    "front-three-quarter",
+    "rear-three-quarter",
+    "thickness-axis",
+    "long-axis"
+  ],
+  "qualityFloorPassed": false
+}

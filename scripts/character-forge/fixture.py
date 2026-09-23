@@ -29,10 +29,11 @@ def create_fixture(root):
     sheet=Image.new('RGBA',(600,380),'white')
     for i,image in enumerate(images):sheet.alpha_composite(image,(10+i*200,10))
     sheet.save(root/'character-sheet.png')
-    # Five-view fixture has explicit extra observed samples, not copies of front/back.
+    # These two convenience images are generated blends, NOT observed views.
+    # Reconstruction admits only the independently drawn front/side/back.
     for name,a,b in [('front34',images[0],images[1]),('back34',images[2],images[1])]:
         Image.blend(a,b,.35).save(root/(name+'.png'))
-    (root/'provenance.json').write_text(json.dumps({'author':'RINNE contributors','license':'RINNE-OWNED','source':'Original synthetic fixture: scripts/character-forge/fixture.py','thirdPartyAssets':False},indent=2)+'\n')
+    (root/'provenance.json').write_text(json.dumps({'author':'RINNE contributors','license':'RINNE-OWNED','source':'Original synthetic fixture: scripts/character-forge/fixture.py','thirdPartyAssets':False,'views':{'front':'observed original drawing','side':'observed original drawing','back':'observed original drawing','front34':'generated blend; not reconstruction evidence','back34':'generated blend; not reconstruction evidence'}},indent=2)+'\n')
     return root
 
 if __name__=='__main__':

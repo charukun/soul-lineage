@@ -1,0 +1,212 @@
+/** GPU execution of pinned bake_projected_texture.py's descriptor-only contract.
+ * This adapter supplies camera/UV transport and pixel baking, never a mesher.
+ * Run before mesh-freeze: UV charts duplicate vertices without changing shape.
+ */
+import {applyReferenceCamera} from './reference_camera.js';
+import {chartGutterPlan,applyChartGutter,auditBilinearSupport} from './uv_chart_gutter.js';
+import {applyProjectionCentroid} from './centroid_uv.js';
+export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,mapSources,{textureSize=1024,physicalChannels='upstream-estimates',surfaceResponses={}}={}) {
+  if(!['upstream-estimates','flat-illustration-albedo-only'].includes(physicalChannels))throw Error('Unknown physical-channel application policy');
+  const names=['front','side','back'],channels=['albedo','roughness','normal','height','ao'];
+  if(!names.every(v=>cameraFits[v]&&mapSources[v]))throw Error('Admitted front/side/back projection evidence is required');
+  const views=[],loader=new THREE.TextureLoader(),savedTarget=renderer.getRenderTarget(),savedColor=renderer.getClearColor(new THREE.Color()),savedAlpha=renderer.getClearAlpha();
+  model.rotation.y=0;model.updateMatrixWorld(true);
+  const subject=new THREE.Box3().setFromObject(model).getBoundingSphere(new THREE.Sphere());
+  for(const [name,angle] of [['front',0],['side',-Math.PI/2],['back',Math.PI]]){
+    const source=mapSources[name],maps={},ownership={},maskCache=new Map();
+    for(const channel of [...channels,'mask']){
+      maps[channel]=await loader.loadAsync(channel==='mask'?source.foregroundMask:source.maps[channel]);maps[channel].colorSpace=THREE.NoColorSpace;
+      // UV chart derivatives describe atlas rasterization, not the reference
+      // camera's pixel footprint. Automatic source mip selection mixed white
+      // background into a base-level ownership mask on thin limbs and hems.
+      maps[channel].generateMipmaps=false;maps[channel].minFilter=THREE.LinearFilter;
+    }
+    for(const [component,url]of Object.entries(source.componentMasks||{})){
+      if(!maskCache.has(url)){const texture=await loader.loadAsync(url);texture.colorSpace=THREE.NoColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;maskCache.set(url,texture);}
+      ownership[component]=maskCache.get(url);
+    }
+    const camera=applyReferenceCamera(THREE,new THREE.PerspectiveCamera(20,.5,.01,100),cameraFits[name]);
+    const distance=camera.position.distanceTo(subject.center);
+    camera.near=Math.max(.01,distance-subject.radius*1.5);camera.far=distance+subject.radius*1.5;camera.updateProjectionMatrix();
+    const rotation=new THREE.Matrix4().makeRotationY(angle),matrix=new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse).multiply(rotation);
+    const scene=new THREE.Scene(),proxy=new THREE.Group();proxy.rotation.y=angle;scene.add(proxy);
+    // Object3D.clone serializes userData, whose sculptRuntime contains live scene
+    // references. Build a geometry-only depth proxy without copying that graph.
+    model.traverse(n=>{if(n.isMesh&&n.visible&&n.material.opacity!==0){const part=new THREE.Mesh(n.geometry);part.matrixAutoUpdate=false;part.matrix.copy(n.matrixWorld);proxy.add(part);}});
+    const target=new THREE.WebGLRenderTarget(540,1080);target.depthTexture=new THREE.DepthTexture(540,1080,THREE.UnsignedIntType);
+    scene.overrideMaterial=new THREE.MeshBasicMaterial({color:0xffffff});
+    renderer.setRenderTarget(target);renderer.setClearColor(0,0);renderer.clear();renderer.render(scene,camera);scene.overrideMaterial.dispose();
+    const [w,h]=source.imageSize,b=source.pbrCrop;
+    // Upstream normal/roughness/height/AO are cropped; albedo and mask are full-view.
+    const crop=new THREE.Vector4(b.x/w,1-(b.y+b.height)/h,b.width/w,b.height/h);
+    views.push({name,maps,matrix,target,crop,ownership,maskCache,imageSize:source.imageSize});
+  }
+  const vertexShader=`attribute vec4 tangent;varying vec3 worldPoint;varying vec3 worldNormal;varying vec3 worldTangent;varying float tangentSign;
+    void main(){worldPoint=(modelMatrix*vec4(position,1.)).xyz;worldNormal=normalize(normalMatrix*normal);worldTangent=normalize(mat3(modelMatrix)*tangent.xyz);tangentSign=tangent.w;gl_Position=vec4(uv*2.-1.,0.,1.);}`;
+  const fragmentShader=`precision highp float;
+    varying vec3 worldPoint;varying vec3 worldNormal;varying vec3 worldTangent;varying float tangentSign;
+    uniform sampler2D frontImage,sideImage,backImage,frontDepth,sideDepth,backDepth,frontMask,sideMask,backMask;
+    uniform mat4 frontMatrix,sideMatrix,backMatrix;uniform vec4 frontCrop,sideCrop,backCrop;
+    uniform vec3 fallbackColor,frontContinuation,sideContinuation,backContinuation;uniform int channelIndex;uniform bool partOwnership;
+    float visibleDepth(sampler2D depthTex,vec2 st){
+      vec2 texel=vec2(1./540.,1./1080.),origin=(floor(st/texel-.5)+.5)*texel;
+      float maximum=0.;
+      for(int y=0;y<2;y++)for(int x=0;x<2;x++){
+        float d=texture2D(depthTex,origin+vec2(float(x),float(y))*texel).r;
+        // Background is never evidence of a deeper visible surface.
+        if(d<.999999)maximum=max(maximum,d);
+      }
+      return maximum;
+    }
+    vec4 sampleView(sampler2D tex,sampler2D depthTex,sampler2D maskTex,mat4 camera,vec4 crop,vec3 p,float facing,vec3 right,vec3 normal){
+      if(facing<=.001)return vec4(0.);
+      vec4 clip=camera*vec4(p,1.);vec3 ndc=clip.xyz/clip.w;vec2 st=ndc.xy*.5+.5;
+      if(min(st.x,st.y)<0.||max(st.x,st.y)>1.)return vec4(0.);
+      // Raster depth is sampled at pixel centers. Use the foreground depth
+      // interval of the four surrounding samples to avoid self-shadow stripes.
+      float visible=1.-step(visibleDepth(depthTex,st)+.00002,ndc.z*.5+.5);
+      float mask=texture2D(maskTex,st).r;
+      // Require all bilinear source taps to belong to this observed surface.
+      // Reject source occluders; they must not be painted onto another part.
+      mask=step(.999,mask);
+      float weight=pow(max(facing,0.),5.)*mask*visible;
+      if(weight<=.00001)return vec4(0.);
+      vec2 uv=channelIndex==0?st:(st-crop.xy)/crop.zw;
+      vec3 color=texture2D(tex,clamp(uv,0.,1.)).rgb;
+      if(channelIndex==2){
+        vec3 mapped=color*2.-1.,tx=normalize(right-normal*dot(right,normal)),ty=normalize(cross(normal,tx));
+        color=normalize(tx*mapped.x+ty*mapped.y+normal*mapped.z);
+      }
+      return vec4(color*weight,weight);
+    }
+    void main(){vec3 n=normalize(worldNormal),p=worldPoint;
+      vec4 f=sampleView(frontImage,frontDepth,frontMask,frontMatrix,frontCrop,p,n.z,vec3(1.,0.,0.),n);
+      vec4 b=sampleView(backImage,backDepth,backMask,backMatrix,backCrop,p,-n.z,vec3(-1.,0.,0.),n);
+      vec3 mirrored=p;mirrored.x=abs(p.x);
+      vec3 sideNormal=n;sideNormal.x=abs(n.x);
+      vec4 s=sampleView(sideImage,sideDepth,sideMask,sideMatrix,sideCrop,mirrored,abs(n.x),vec3(0.,0.,-1.),sideNormal);
+      if(channelIndex==2&&p.x<0.)s.x=-s.x;
+      vec4 sum=f+b+s;bool covered=sum.a>.0001;
+      vec3 continuation=fallbackColor;
+      if(channelIndex==0){
+        vec3 cw=pow(vec3(max(n.z,0.),abs(n.x),max(-n.z,0.)),vec3(5.));float total=cw.x+cw.y+cw.z;
+        if(total>.0001)continuation=(frontContinuation*cw.x+sideContinuation*cw.y+backContinuation*cw.z)/total;
+      }
+      vec3 rgb=covered?sum.rgb/sum.a:continuation;
+      if(channelIndex==0&&partOwnership){
+        // Keep each camera's facing weight when it is occluded. Renormalizing
+        // only the surviving camera painted teal islands on a blue rear when
+        // side ownership alternated across the arm silhouette. Missing camera
+        // pixels are explicitly inferred; they are never observed projection.
+        vec3 cw=pow(vec3(max(n.z,0.),abs(n.x),max(-n.z,0.)),vec3(5.));
+        float total=cw.x+cw.y+cw.z;
+        if(total>.0001)rgb=(sum.rgb+frontContinuation*max(0.,cw.x-f.a)+sideContinuation*max(0.,cw.y-s.a)+backContinuation*max(0.,cw.z-b.a))/total;
+      }
+      if(channelIndex==2){
+        vec3 normal=covered?normalize(rgb):n;
+        vec3 t=normalize(worldTangent-n*dot(n,worldTangent)),bitangent=normalize(cross(n,t))*tangentSign;
+        rgb=vec3(dot(normal,t),dot(normal,bitangent),dot(normal,n))*.5+.5;
+      }
+      float contributing=step(.0001,f.a)+step(.0001,b.a)+step(.0001,s.a);
+      vec3 expected=pow(vec3(max(n.z,0.),abs(n.x),max(-n.z,0.)),vec3(5.));
+      float missingWeight=partOwnership?max(0.,expected.x+expected.y+expected.z-sum.a):0.;
+      float provenance=!covered?.25:(missingWeight>.0001?.75:((p.x<0.&&s.a>f.a+b.a)?.5:(contributing>1.?.75:1.)));
+      gl_FragColor=vec4(rgb,provenance);
+    }`;
+  const meshes=[];model.traverse(n=>{if(n.isMesh&&n.visible&&n.material.opacity!==0)meshes.push(n);});
+  const outputs=[];
+  try{for(const mesh of meshes){
+    const geometry=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone();
+    const parity={maxPositionDelta:0,maxNormalDelta:0};
+    for(let i=0;i<geometry.attributes.position.count;i++){
+      const oldIndex=mesh.geometry.index?mesh.geometry.index.getX(i):i;
+      for(let axis=0;axis<3;axis++)for(const [attribute,metric]of [['position','maxPositionDelta'],['normal','maxNormalDelta']])parity[metric]=Math.max(parity[metric],Math.abs(geometry.attributes[attribute].array[i*3+axis]-mesh.geometry.attributes[attribute].array[oldIndex*3+axis]));
+    }
+    if(parity.maxPositionDelta!==0||parity.maxNormalDelta!==0)throw Error('Projection changed the accepted shape');
+    const count=geometry.attributes.position.count,triangles=count/3,cells=Math.ceil(Math.sqrt(triangles));
+    const component=mesh.userData.sculptComponent?.id,owned=views.filter(v=>v.ownership[component]).length;
+    // A fixed nine-pixel chart undersamples long, sparse factory triangles
+    // (notably the tunic). Allocate from actual solved-camera pixel spans.
+    let projectedEdgePixels=0;
+    const a=new THREE.Vector3(),b=new THREE.Vector3();
+    for(const view of views){
+      const projection=new THREE.Matrix4().multiplyMatrices(view.matrix,mesh.matrixWorld);
+      for(let t=0;t<count;t+=3)for(let e=0;e<3;e++){
+        a.fromBufferAttribute(geometry.attributes.position,t+e).applyMatrix4(projection);
+        b.fromBufferAttribute(geometry.attributes.position,t+(e+1)%3).applyMatrix4(projection);
+        projectedEdgePixels=Math.max(projectedEdgePixels,Math.hypot((a.x-b.x)*view.imageSize[0]/2,(a.y-b.y)*view.imageSize[1]/2));
+      }
+    }
+    const colorBounds=names.map(v=>mapSources[v].componentAlbedoBounds?.[component]);
+    const constantAlbedo=colorBounds.every(b=>b&&b.min.every((c,i)=>c===b.max[i]&&c===colorBounds[0].min[i]));
+    const requiredCell=constantAlbedo?9:Math.max(9,Math.ceil(projectedEdgePixels*2)+3);
+    const size=Math.max(textureSize,2**Math.ceil(Math.log2(cells*requiredCell))),cell=size/cells,padding=1.5;
+    if(size>4096)throw Error('Projection atlas exceeds the reviewed allocation; author UVs before baking '+mesh.name);
+    if(cell<7)throw Error('Insufficient atlas resolution for '+mesh.name);
+    const uv=new Float32Array(count*2);
+    for(let t=0;t<triangles;t++){const x=(t%cells)*cell,y=Math.floor(t/cells)*cell;uv.set([(x+padding)/size,(y+padding)/size,(x+cell-padding)/size,(y+padding)/size,(x+padding)/size,(y+cell-padding)/size],t*6);}
+    geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));geometry.setIndex(Array.from({length:count},(_,i)=>i));geometry.computeTangents();
+    const palette=mesh.material.userData.sculptMaterial?.baseColor||'#808080';
+    if(owned&&owned!==views.length)throw Error('Part ownership must declare each admitted view: '+component);
+    const uniforms={fallbackColor:{value:new THREE.Color().setStyle(palette,THREE.SRGBColorSpace).convertLinearToSRGB()},channelIndex:{value:0},partOwnership:{value:owned>0}};
+    for(const v of names){const rgb=mapSources[v].componentContinuation?.[component]?.rgb;uniforms[v+'Continuation']={value:rgb?new THREE.Color().setRGB(...rgb.map(c=>c/255)):uniforms.fallbackColor.value.clone()};}
+    for(const v of views){uniforms[v.name+'Image']={value:v.maps.albedo};uniforms[v.name+'Depth']={value:v.target.depthTexture};uniforms[v.name+'Mask']={value:v.ownership[component]||v.maps.mask};uniforms[v.name+'Matrix']={value:v.matrix};uniforms[v.name+'Crop']={value:v.crop};}
+    const material=new THREE.ShaderMaterial({vertexShader,fragmentShader,uniforms,side:THREE.DoubleSide,depthTest:false,depthWrite:false,toneMapped:false});
+    const scene=new THREE.Scene(),bakeMesh=new THREE.Mesh(geometry,material);bakeMesh.matrixAutoUpdate=false;bakeMesh.matrix.copy(mesh.matrixWorld);
+    // The shader rasterizes UVs, not world coordinates. A world-space frustum
+    // test would wrongly discard head/neck meshes above the identity camera.
+    bakeMesh.frustumCulled=false;scene.add(bakeMesh);
+    const textures={},files={},coverage={observed:0,interpolated:0,mirrored:0,inferred:0};
+    let gutterPlan,filterSupport;
+    for(let channel=0;channel<channels.length;channel++){
+      const name=channels[channel];uniforms.channelIndex.value=channel;
+      for(const v of views)uniforms[v.name+'Image'].value=v.maps[name];
+      if(channel!==0)uniforms.fallbackColor.value.setRGB(name==='roughness'?.9:name==='ao'?1:.5,name==='roughness'?.9:name==='ao'?1:.5,name==='normal'?1:name==='roughness'?.9:name==='ao'?1:.5);
+      const target=new THREE.WebGLRenderTarget(size,size,{depthBuffer:false,stencilBuffer:false});
+      renderer.setRenderTarget(target);renderer.setClearColor(0,0);renderer.clear();renderer.render(scene,new THREE.Camera());
+      const pixels=new Uint8Array(size*size*4);renderer.readRenderTargetPixels(target,0,0,size,size,pixels);target.dispose();
+      if(channel===0){
+        if(owned){
+          const bounds=names.map(v=>mapSources[v].componentAlbedoBounds?.[component]);
+          if(bounds.every(Boolean)){
+            const fallback=uniforms.fallbackColor.value.toArray().map(v=>Math.round(v*255));
+            const low=[0,1,2].map(a=>Math.min(fallback[a],...bounds.map(b=>b.min[a]))-2);
+            const high=[0,1,2].map(a=>Math.max(fallback[a],...bounds.map(b=>b.max[a]))+2);
+            for(let i=0;i<pixels.length;i+=4)if(pixels[i+3])for(let a=0;a<3;a++)
+              if(pixels[i+a]<low[a]||pixels[i+a]>high[a])throw Error('Projected albedo escaped its observed source/continuation range: '+component+' pixel '+i/4+' RGB '+Array.from(pixels.subarray(i,i+3)));
+          }
+        }
+        const mask=new Uint8ClampedArray(pixels.length);for(let y=0;y<size;y++)for(let x=0;x<size;x++){const src=(y*size+x)*4,dst=((size-1-y)*size+x)*4,a=pixels[src+3];mask.set([a,a,a,a?255:0],dst);}
+        const canvas=document.createElement('canvas');canvas.width=canvas.height=size;canvas.getContext('2d').putImageData(new ImageData(mask,size,size),0,0);files.provenance=canvas.toDataURL('image/png');
+      }
+      if(channel===0){
+        for(let i=3;i<pixels.length;i+=4){const a=pixels[i];if(a)coverage[a>224?'observed':a>160?'interpolated':a>96?'mirrored':'inferred']++;}
+        gutterPlan=chartGutterPlan(pixels,size,cells,triangles);
+      }
+      applyChartGutter(pixels,gutterPlan);
+      if(channel===0)filterSupport=auditBilinearSupport(pixels,size,uv);
+      const canvas=document.createElement('canvas');canvas.width=canvas.height=size;const flipped=new Uint8ClampedArray(pixels.length);
+      for(let y=0;y<size;y++)flipped.set(pixels.subarray(y*size*4,(y+1)*size*4),(size-1-y)*size*4);
+      canvas.getContext('2d').putImageData(new ImageData(flipped,size,size),0,0);
+      const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=channel===0?THREE.SRGBColorSpace:THREE.NoColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;
+      textures[name]=texture;files[name]=canvas.toDataURL('image/png');
+    }
+    if(Object.values(coverage).reduce((sum,count)=>sum+count,0)===0)throw Error('UV bake produced no rasterized texels for '+mesh.name);
+    mesh.geometry=geometry;
+    const response=surfaceResponses[component]||{normalScale:.12,bumpScale:.0005,aoIntensity:.15};
+    for(const key of ['normalScale','bumpScale','aoIntensity'])if(!Number.isFinite(response[key])||response[key]<0)throw Error('Invalid authored surface response: '+component+'/'+key);
+    mesh.material=new THREE.MeshStandardMaterial({map:textures.albedo,color:0xffffff,roughness:1,roughnessMap:textures.roughness,normalMap:textures.normal,normalScale:new THREE.Vector2(response.normalScale,response.normalScale),bumpMap:textures.height,bumpScale:response.bumpScale,aoMap:textures.ao,aoMapIntensity:response.aoIntensity,metalness:0});
+    if(physicalChannels==='flat-illustration-albedo-only'){
+      // A flat illustrated color boundary is not measured height or relief.
+      // Preserve every extracted map as evidence, but do not invent grooves
+      // from the eye/belt/cloth colors. Actual geometry still shades normally.
+      mesh.material.normalMap=mesh.material.bumpMap=mesh.material.aoMap=mesh.material.roughnessMap=null;
+      mesh.material.roughness=.9;
+    }
+    mesh.material.userData.projection={source:'img2threejs camera/de-light/PBR evidence',coverage,physicalChannels:'inferred upstream estimates'};
+    applyProjectionCentroid(THREE,mesh.material,{declare:true});
+    outputs.push({mesh:mesh.name,width:size,height:size,triangles,files,coverage,atlasDensity:{projectedEdgePixels,constantAlbedo,requiredCell,actualCell:cell},appliedPhysicalChannels:physicalChannels,surfaceResponse:response,surfaceOwnership:owned>0?'observed component mask':'subject foreground',geometryParity:parity,gutter:{rasterized:gutterPlan.rasterized,extended:gutterPlan.extended,filterSupport,semantics:'nearest covered texel within the same chart; provenance remains original'},provenanceMask:{64:'inferred palette',128:'mirrored opposite side',191:'interpolated observed/mirrored/inferred blend',255:'observed de-lit pixels'},geometryStatus:'generated by pinned upstream from observed constraints; UV charting precedes freeze',method:'calibrated camera projection + depth visibility + unique UV charts + GPU rasterization',physicalChannels:'inferred; independent pinned-extractor fields, never albedo aliases'});
+    material.dispose();
+  }}finally{renderer.setRenderTarget(savedTarget);renderer.setClearColor(savedColor,savedAlpha);for(const v of views){v.target.dispose();Object.values(v.maps).forEach(t=>t.dispose());for(const t of v.maskCache.values())t.dispose();}}
+  return outputs;
+}

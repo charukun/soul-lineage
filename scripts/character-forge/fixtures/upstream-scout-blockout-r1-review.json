@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "rinne.forge-historical-review/v1",
+  "id": "scout-blockout-r1",
+  "sourceHead": "1dfc520795ab5c1f6e956e43eee75e5e5f24bc9d",
+  "recipeRevision": 2,
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35810204184",
+  "artifact": "https://github.com/charukun/soul-lineage/actions/runs/35810204184/artifacts/10729167788",
+  "factorySha256": "d8feae92cb47c2401282a2bd707dd4748299f7bfdda8e5fc778087502c258c67",
+  "action": "refine-spec",
+  "fidelity": 0.05,
+  "aiAcceptancePerformed": false,
+  "reason": "Authoring adapter unit error, not a failed upstream mesher: converting metric SDF data to unit-profile lathe retained transform.scale=[1,1,1]. Upstream correctly prioritizes explicit scale over dimensions. Unit-sized metre-scale parts obscure the character. Keep generator unchanged and supply the measured scale on the authored lathe components. No quality acceptance.",
+  "diagnostics": [
+    {
+      "view": "front",
+      "passed": false,
+      "checks": {
+        "silhouetteIoU": 0.009,
+        "aspectRatioDelta": 1.0024,
+        "scaleDelta": 0.8324,
+        "bilateralSymmetryError": 0.0739
+      },
+      "failures": [
+        "silhouette IoU 0.009 is below threshold 0.85",
+        "aspect-ratio delta 1.002 exceeds threshold 0.05",
+        "scale delta 0.832 exceeds threshold 0.08"
+      ],
+      "renderSha256": "d8678f014b10ba3245e45f6600cd2c04d9887360be529d8c5b1cf3aa46a3f36b"
+    },
+    {
+      "view": "side",
+      "passed": false,
+      "checks": {
+        "silhouetteIoU": 0.0,
+        "aspectRatioDelta": 1.8935,
+        "scaleDelta": 0.8621,
+        "bilateralSymmetryError": 0.0395
+      },
+      "failures": [
+        "silhouette IoU 0.000 is below threshold 0.85",
+        "aspect-ratio delta 1.893 exceeds threshold 0.05",
+        "scale delta 0.862 exceeds threshold 0.08"
+      ],
+      "renderSha256": "47e6fe4e8c465a2a3f8290ae863a0c204b684c8c0a586a6ca621d9366687b7c8"
+    },
+    {
+      "view": "back",
+      "passed": false,
+      "checks": {
+        "silhouetteIoU": 0.0513,
+        "aspectRatioDelta": 2.3876,
+        "scaleDelta": 0.9214,
+        "bilateralSymmetryError": 0.0151
+      },
+      "failures": [
+        "silhouette IoU 0.051 is below threshold 0.85",
+        "aspect-ratio delta 2.388 exceeds threshold 0.05",
+        "scale delta 0.921 exceeds threshold 0.08"
+      ],
+      "renderSha256": "68fbc9dc7fb1ff2e3b8e65d47bbea6b6d497c3b361c3b7e71a2ea20f0e14e995"
+    }
+  ]
+}

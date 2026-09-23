@@ -5,12 +5,12 @@ import {mkdtempSync,readFileSync,existsSync,rmSync,writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 
-test('Forge keeps observed views, exports real skin/clips, and registers only validated candidates',{timeout:180000},()=>{
+test('Deprecated Forge package compatibility retains legacy assets without becoming the upstream default',{timeout:180000},()=>{
   const root=mkdtempSync(join(tmpdir(),'rinne-forge-')),fixture=join(root,'fixture');
   const python=process.env.CHARACTER_FORGE_PYTHON||'python3';
   if(spawnSync(python,['-c','import PIL']).status!==0)execFileSync(python,['-m','pip','install','--user','-r','packages/assets/forge/requirements.txt'],{stdio:'inherit',timeout:90000});
   execFileSync(python,['scripts/character-forge/fixture.py',fixture]);
-  const create=(id,args)=>{execFileSync(python,['packages/assets/forge/pipeline.py','--root',root,'--id',id,'--name','Fixture','--provenance',join(fixture,'provenance.json'),...args],{stdio:'pipe'});const path=join(root,'packages/assets/characters/forge',id);return {path,spec:JSON.parse(readFileSync(join(path,'spec/reconstruction.json'))),manifest:JSON.parse(readFileSync(join(path,'manifest.json'))),report:JSON.parse(readFileSync(join(path,'validation-report.json')))};};
+  const create=(id,args)=>{execFileSync(python,['packages/assets/forge/pipeline.py','--legacy-regression-only','--root',root,'--id',id,'--name','Fixture','--provenance',join(fixture,'provenance.json'),...args],{stdio:'pipe'});const path=join(root,'packages/assets/characters/forge',id);return {path,spec:JSON.parse(readFileSync(join(path,'spec/reconstruction.json'))),manifest:JSON.parse(readFileSync(join(path,'manifest.json'))),report:JSON.parse(readFileSync(join(path,'validation-report.json')))};};
   try{
     const multi=create('multi',['--front',join(fixture,'front.png'),'--side',join(fixture,'side.png'),'--back',join(fixture,'back.png')]);
     assert.equal(multi.spec.reconstructionMode,'multi-view');assert.equal(multi.manifest.reviewStatus,'review-candidate');assert.equal(multi.manifest.productionReady,false);

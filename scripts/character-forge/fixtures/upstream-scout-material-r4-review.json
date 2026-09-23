@@ -1,0 +1,346 @@
+{
+  "schemaVersion": "rinne.forge-visual-review/v1",
+  "id": "scout-material-r4",
+  "pass": "material-pass",
+  "sourceHead": "f58c9c85a919aa68491ed039d3ced91ba675b49a",
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35817940713",
+  "artifactId": 10732207506,
+  "artifactSha256": "cb4d3e18c387fe5c8ca3e0bf6dfc58f365414c97fa3a6ff0fc6d76c5d55665cc",
+  "factorySha256": "493c298be84a847c0e8ba643bb1435d0e593a0a0e6194962efcd42d1c18fa274",
+  "captureSha256": {
+    "front": "4047a81a5a4a8e5cd40570ecb2f69bdf9f279f2d3c1a500c13d4565cd9f45085",
+    "side": "376b988aa829bb6cf29258b9aca995605a93081b79f7e265ae9327cbf02cdcde",
+    "back": "88919af222088d100bc2aa0f6c6a38cd79eb26a8ba7d0a1b2b012fe060645d3a",
+    "front34": "6bafe9b850143d222d9ea9a8e44ed933dfbcc43be7d190e36992b8baea250835",
+    "rear34": "c9aedf87943f9142535bb6900f78fa8a2fa051588e7de3bb0c2b7098fb3ee3e5",
+    "oppositeSide": "80cc929e6fd5428ddbbfe5238800e571d91f64378f95c20aca02fc3e9ef1edb0",
+    "neutral": "c70d67184509c05f35883cc1615e45976ddb02d636b0d1945c666f40256b7a13",
+    "grazing-closeup": "3f559c7edaf4290051c6b825a4854f4bc91776104111f7f4d2c33ae2516a8bc2"
+  },
+  "action": "refine-code",
+  "fidelity": 0.73,
+  "layerScores": {
+    "silhouetteProportion": 0.9,
+    "componentStructure": 0.83,
+    "formDetail": 0.76,
+    "materialSurface": 0.58,
+    "lightingCamera": 0.86
+  },
+  "featureReviews": [
+    {
+      "id": "anatomy-proportion",
+      "score": 0.89,
+      "notes": "Accepted proportions remain intact."
+    },
+    {
+      "id": "face-landmark-placement",
+      "score": 0.79,
+      "notes": "Eyes and mouth read correctly; facial side surfaces still show seams."
+    },
+    {
+      "id": "pose-silhouette",
+      "score": 0.86,
+      "notes": "All views and both obliques are volumetric."
+    },
+    {
+      "id": "outfit-and-palette",
+      "score": 0.66,
+      "notes": "Hand contamination removed. Thin white hems, longitudinal color streaks and incorrect boot brightness still fail; side/back color gates reject."
+    }
+  ],
+  "reason": "Inspected actual FSB comparisons, both obliques, neutral and grazing. Source-surface masks remove cloth from hands and skin from tunic. Albedo-only diagnostic ablation does not remove streaks: root cause remains in projected RGB, not inferred PBR relief. Atlas has >190 RGB texels on trousers while every owned source pixel is dark: source automatic mipmaps use a different footprint from non-mipmapped ownership masks. Also .2 de-light normalization brightens an already unlit flat-fill source (e.g. pants 36/58/85 to 57/91/134), differing from inferred palette continuation. Source depth sampling produces excessive self-occlusion. Reject; restore independent PBR maps, use consistent source sampling and source-appropriate upstream de-light, then rerender. Diagnostic-only material is explicitly barred from acceptance.",
+  "viewpoints": [
+    "front",
+    "side",
+    "back",
+    "front-three-quarter",
+    "rear-three-quarter",
+    "neutral",
+    "grazing-closeup",
+    "thickness-axis",
+    "long-axis"
+  ],
+  "qualityFloorPassed": false,
+  "tier1": {
+    "front": {
+      "passed": true,
+      "checks": {
+        "silhouetteIoU": 0.9542,
+        "aspectRatioDelta": 0.0079,
+        "scaleDelta": 0.0079,
+        "bilateralSymmetryError": 0.015,
+        "colorDelta": {
+          "checked": 18,
+          "maxDeltaE": 10.92,
+          "perComponent": [
+            {
+              "componentId": "root",
+              "deltaE": 6.54
+            },
+            {
+              "componentId": "pelvis",
+              "deltaE": 6.54
+            },
+            {
+              "componentId": "chest",
+              "deltaE": 6.54
+            },
+            {
+              "componentId": "neck",
+              "deltaE": 1.39
+            },
+            {
+              "componentId": "head",
+              "deltaE": 1.39
+            },
+            {
+              "componentId": "hair",
+              "deltaE": 6.37
+            },
+            {
+              "componentId": "upper-arm-l",
+              "deltaE": 1.39
+            },
+            {
+              "componentId": "forearm-l",
+              "deltaE": 1.39
+            },
+            {
+              "componentId": "hand-l",
+              "deltaE": 1.39
+            },
+            {
+              "componentId": "thigh-l",
+              "deltaE": 10.92
+            },
+            {
+              "componentId": "shin-l",
+              "deltaE": 10.92
+            },
+            {
+              "componentId": "boot-l",
+              "deltaE": 7.5
+            },
+            {
+              "componentId": "upper-arm-r",
+              "deltaE": 1.39
+            },
+            {
+              "componentId": "forearm-r",
+              "deltaE": 1.39
+            },
+            {
+              "componentId": "hand-r",
+              "deltaE": 1.39
+            },
+            {
+              "componentId": "thigh-r",
+              "deltaE": 10.92
+            },
+            {
+              "componentId": "shin-r",
+              "deltaE": 10.92
+            },
+            {
+              "componentId": "boot-r",
+              "deltaE": 7.5
+            }
+          ],
+          "gated": true
+        }
+      },
+      "failures": [],
+      "maskWarnings": [],
+      "renderHash": "4047a81a5a4a8e5c",
+      "passId": "material-pass"
+    },
+    "side": {
+      "passed": false,
+      "checks": {
+        "silhouetteIoU": 0.9086,
+        "aspectRatioDelta": 0.003,
+        "scaleDelta": 0.0234,
+        "bilateralSymmetryError": 0.0664,
+        "colorDelta": {
+          "checked": 18,
+          "maxDeltaE": 23.23,
+          "perComponent": [
+            {
+              "componentId": "root",
+              "deltaE": 3.38
+            },
+            {
+              "componentId": "pelvis",
+              "deltaE": 3.38
+            },
+            {
+              "componentId": "chest",
+              "deltaE": 3.38
+            },
+            {
+              "componentId": "neck",
+              "deltaE": 9.8
+            },
+            {
+              "componentId": "head",
+              "deltaE": 9.8
+            },
+            {
+              "componentId": "hair",
+              "deltaE": 4.02
+            },
+            {
+              "componentId": "upper-arm-l",
+              "deltaE": 9.8
+            },
+            {
+              "componentId": "forearm-l",
+              "deltaE": 9.8
+            },
+            {
+              "componentId": "hand-l",
+              "deltaE": 9.8
+            },
+            {
+              "componentId": "thigh-l",
+              "deltaE": 8.84
+            },
+            {
+              "componentId": "shin-l",
+              "deltaE": 8.84
+            },
+            {
+              "componentId": "boot-l",
+              "deltaE": 23.23
+            },
+            {
+              "componentId": "upper-arm-r",
+              "deltaE": 9.8
+            },
+            {
+              "componentId": "forearm-r",
+              "deltaE": 9.8
+            },
+            {
+              "componentId": "hand-r",
+              "deltaE": 9.8
+            },
+            {
+              "componentId": "thigh-r",
+              "deltaE": 8.84
+            },
+            {
+              "componentId": "shin-r",
+              "deltaE": 8.84
+            },
+            {
+              "componentId": "boot-r",
+              "deltaE": 23.23
+            }
+          ],
+          "gated": true
+        }
+      },
+      "failures": [
+        "max per-part color delta-E 23.23 exceeds threshold 20.0"
+      ],
+      "maskWarnings": [],
+      "renderHash": "376b988aa829bb6c",
+      "passId": "material-pass"
+    },
+    "back": {
+      "passed": false,
+      "checks": {
+        "silhouetteIoU": 0.9202,
+        "aspectRatioDelta": 0.0129,
+        "scaleDelta": 0.0029,
+        "bilateralSymmetryError": 0.015,
+        "colorDelta": {
+          "checked": 18,
+          "maxDeltaE": 25.98,
+          "perComponent": [
+            {
+              "componentId": "root",
+              "deltaE": 2.82
+            },
+            {
+              "componentId": "pelvis",
+              "deltaE": 2.82
+            },
+            {
+              "componentId": "chest",
+              "deltaE": 2.82
+            },
+            {
+              "componentId": "neck",
+              "deltaE": 8.55
+            },
+            {
+              "componentId": "head",
+              "deltaE": 8.55
+            },
+            {
+              "componentId": "hair",
+              "deltaE": 4.36
+            },
+            {
+              "componentId": "upper-arm-l",
+              "deltaE": 8.55
+            },
+            {
+              "componentId": "forearm-l",
+              "deltaE": 8.55
+            },
+            {
+              "componentId": "hand-l",
+              "deltaE": 8.55
+            },
+            {
+              "componentId": "thigh-l",
+              "deltaE": 8.23
+            },
+            {
+              "componentId": "shin-l",
+              "deltaE": 8.23
+            },
+            {
+              "componentId": "boot-l",
+              "deltaE": 25.98
+            },
+            {
+              "componentId": "upper-arm-r",
+              "deltaE": 8.55
+            },
+            {
+              "componentId": "forearm-r",
+              "deltaE": 8.55
+            },
+            {
+              "componentId": "hand-r",
+              "deltaE": 8.55
+            },
+            {
+              "componentId": "thigh-r",
+              "deltaE": 8.23
+            },
+            {
+              "componentId": "shin-r",
+              "deltaE": 8.23
+            },
+            {
+              "componentId": "boot-r",
+              "deltaE": 25.98
+            }
+          ],
+          "gated": true
+        }
+      },
+      "failures": [
+        "max per-part color delta-E 25.98 exceeds threshold 20.0"
+      ],
+      "maskWarnings": [],
+      "renderHash": "88919af222088d10",
+      "passId": "material-pass"
+    }
+  }
+}

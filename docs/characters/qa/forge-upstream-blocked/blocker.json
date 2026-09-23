@@ -1,0 +1,34 @@
+{
+  "status": "BLOCKED",
+  "sourceHead": "ce6b54e9cb5c5e1487d82cf27994e4616ff52f3e",
+  "reviewId": "scout-material-r2",
+  "reason": "max-correction-loops-reached:material-pass:3/3",
+  "loops": {
+    "perPass": {
+      "blockout": 2,
+      "material-pass": 3
+    },
+    "total": 5,
+    "maxPerPass": 3,
+    "maxTotal": 6
+  },
+  "qualityFloorPassed": false,
+  "resumeCondition": "Explicit user decision on the upstream hard stop; no reset, increased limit, new workspace, or DCC bypass is authorized by this record. Then repair the UV bake and cross-view ownership, rerender all required views and obtain a new real review.",
+  "uncompleted": [
+    "material acceptance",
+    "surface",
+    "lighting",
+    "interaction",
+    "optimization",
+    "Golden Rig",
+    "Morph",
+    "Sockets",
+    "final package and registry",
+    "native Lab proof",
+    "latest develop reconcile",
+    "formal exact-head validation",
+    "Ready",
+    "develop merge",
+    "DEV deployment start"
+  ]
+}

@@ -1,0 +1,1068 @@
+{
+  "upstreamFile": "forge/stage4_review/diagnose_render.py",
+  "upstreamAlgorithm": "per_part_color_delta (unmodified)",
+  "semantics": "Actual visible GPU part regions instead of the whole-frame coarse palette; same Lab delta calculation",
+  "authority": "diagnostic only; original Tier-1 gates unchanged",
+  "sourceHead": "a17525a14732ec8308085e6bfba803ffa5104842",
+  "views": {
+    "front": {
+      "beautySha256": "8b0b957a9cf75fba8a3435f3e21573f0776a67afbfe220983a71a990f9804e27",
+      "partIdsSha256": "d015c57455ad12033e2615ea91d6bb9d944d4da94b45423d6ae289bac7a454e0",
+      "originalGlobalTier1": {
+        "passed": true,
+        "checks": {
+          "silhouetteIoU": 0.9448,
+          "aspectRatioDelta": 0.0079,
+          "scaleDelta": 0.0079,
+          "bilateralSymmetryError": 0.0151,
+          "colorDelta": {
+            "checked": 18,
+            "maxDeltaE": 5.39,
+            "perComponent": [
+              {
+                "componentId": "root",
+                "deltaE": 2.36
+              },
+              {
+                "componentId": "pelvis",
+                "deltaE": 2.36
+              },
+              {
+                "componentId": "chest",
+                "deltaE": 2.36
+              },
+              {
+                "componentId": "neck",
+                "deltaE": 2.84
+              },
+              {
+                "componentId": "head",
+                "deltaE": 2.84
+              },
+              {
+                "componentId": "hair",
+                "deltaE": 5.39
+              },
+              {
+                "componentId": "upper-arm-l",
+                "deltaE": 2.84
+              },
+              {
+                "componentId": "forearm-l",
+                "deltaE": 2.84
+              },
+              {
+                "componentId": "hand-l",
+                "deltaE": 2.84
+              },
+              {
+                "componentId": "thigh-l",
+                "deltaE": 1.28
+              },
+              {
+                "componentId": "shin-l",
+                "deltaE": 1.28
+              },
+              {
+                "componentId": "boot-l",
+                "deltaE": 3.61
+              },
+              {
+                "componentId": "upper-arm-r",
+                "deltaE": 2.84
+              },
+              {
+                "componentId": "forearm-r",
+                "deltaE": 2.84
+              },
+              {
+                "componentId": "hand-r",
+                "deltaE": 2.84
+              },
+              {
+                "componentId": "thigh-r",
+                "deltaE": 1.28
+              },
+              {
+                "componentId": "shin-r",
+                "deltaE": 1.28
+              },
+              {
+                "componentId": "boot-r",
+                "deltaE": 3.61
+              }
+            ],
+            "gated": true
+          }
+        },
+        "failures": [],
+        "maskWarnings": [],
+        "renderHash": "8b0b957a9cf75fba",
+        "passId": "material-pass"
+      },
+      "components": [
+        {
+          "componentId": "pelvis",
+          "visibleInteriorPixels": 0,
+          "status": "not measurable from this view; occluded or subpixel",
+          "passed": null
+        },
+        {
+          "componentId": "chest",
+          "visibleInteriorPixels": 59103,
+          "crop": "review/material-pass/part-colors/front/chest.png",
+          "cropSha256": "10bf8bd834d354ad88a5f91c35139f3390bd3d3f0d9d844752e0065dfcb8dc88",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 6.32,
+            "perComponent": [
+              {
+                "componentId": "chest",
+                "deltaE": 6.32
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "neck",
+          "visibleInteriorPixels": 1822,
+          "crop": "review/material-pass/part-colors/front/neck.png",
+          "cropSha256": "db14f618b35f155595442fd5fa0b9c9ce47740cef14f74e176b7d932a7537e29",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.74,
+            "perComponent": [
+              {
+                "componentId": "neck",
+                "deltaE": 2.74
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "head",
+          "visibleInteriorPixels": 21295,
+          "crop": "review/material-pass/part-colors/front/head.png",
+          "cropSha256": "fe9db21d9a1da78e3b997084926a7dfe462fe5d67b3ac20136b3064d4dea3cd5",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 10.86,
+            "perComponent": [
+              {
+                "componentId": "head",
+                "deltaE": 10.86
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "hair",
+          "visibleInteriorPixels": 14362,
+          "crop": "review/material-pass/part-colors/front/hair.png",
+          "cropSha256": "d19e139b041ce7d30567663fcf4f8ef356cc1722c1e9ada7fb806589b06a43ec",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.31,
+            "perComponent": [
+              {
+                "componentId": "hair",
+                "deltaE": 1.31
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "upper-arm-l",
+          "visibleInteriorPixels": 6256,
+          "crop": "review/material-pass/part-colors/front/upper-arm-l.png",
+          "cropSha256": "d898ec6d47547b8e572a91d7bf23353eb5079ac38cbdeccfc325ebad19cfb0c2",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.73,
+            "perComponent": [
+              {
+                "componentId": "upper-arm-l",
+                "deltaE": 2.73
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "forearm-l",
+          "visibleInteriorPixels": 6873,
+          "crop": "review/material-pass/part-colors/front/forearm-l.png",
+          "cropSha256": "76f63b2e280b5e0277e6d2ed3a8a9956b459bf24b2609b3d205f8d1ec829cb5f",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.93,
+            "perComponent": [
+              {
+                "componentId": "forearm-l",
+                "deltaE": 2.93
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "hand-l",
+          "visibleInteriorPixels": 1697,
+          "crop": "review/material-pass/part-colors/front/hand-l.png",
+          "cropSha256": "45cf4e727f84831ea3675607e2e1505ef39d933ac72675eb838ac927f342f311",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 3.72,
+            "perComponent": [
+              {
+                "componentId": "hand-l",
+                "deltaE": 3.72
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "upper-arm-r",
+          "visibleInteriorPixels": 6252,
+          "crop": "review/material-pass/part-colors/front/upper-arm-r.png",
+          "cropSha256": "0fd9f2dd17fff1efbc62319d774d4c91d98c60fdfb8ede79933ebb860e0b3df4",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.72,
+            "perComponent": [
+              {
+                "componentId": "upper-arm-r",
+                "deltaE": 2.72
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "forearm-r",
+          "visibleInteriorPixels": 6843,
+          "crop": "review/material-pass/part-colors/front/forearm-r.png",
+          "cropSha256": "4dba7e6ba77f27a33fadc3d7a79b81c8271159f069c949a8fdfcc6528a66997e",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.87,
+            "perComponent": [
+              {
+                "componentId": "forearm-r",
+                "deltaE": 2.87
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "hand-r",
+          "visibleInteriorPixels": 1683,
+          "crop": "review/material-pass/part-colors/front/hand-r.png",
+          "cropSha256": "bad0b4b101f27140afe3ff0202b609159f712124b82b3a0c5397b36d0f34660f",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 3.68,
+            "perComponent": [
+              {
+                "componentId": "hand-r",
+                "deltaE": 3.68
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "thigh-l",
+          "visibleInteriorPixels": 5902,
+          "crop": "review/material-pass/part-colors/front/thigh-l.png",
+          "cropSha256": "af8fffca55e8fe1c0db8125e6a2bc165340415188f86ab2d2f41d33f3e9aabf1",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.28,
+            "perComponent": [
+              {
+                "componentId": "thigh-l",
+                "deltaE": 1.28
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "shin-l",
+          "visibleInteriorPixels": 7411,
+          "crop": "review/material-pass/part-colors/front/shin-l.png",
+          "cropSha256": "f43fd614b0e72285a3cb9e053baa9800fce7c02aa4ed9a3ec3919f72b566ef0f",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.27,
+            "perComponent": [
+              {
+                "componentId": "shin-l",
+                "deltaE": 1.27
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "boot-l",
+          "visibleInteriorPixels": 8191,
+          "crop": "review/material-pass/part-colors/front/boot-l.png",
+          "cropSha256": "b7375de51bad4cc1dfb337c8e208374fb5608e19837403751f3b0bb62e653a0e",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 3.33,
+            "perComponent": [
+              {
+                "componentId": "boot-l",
+                "deltaE": 3.33
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "thigh-r",
+          "visibleInteriorPixels": 5897,
+          "crop": "review/material-pass/part-colors/front/thigh-r.png",
+          "cropSha256": "880084d7dc7917cd69f8c317aa5df21d5c7653c6dbf46bcf07017810823fead0",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.26,
+            "perComponent": [
+              {
+                "componentId": "thigh-r",
+                "deltaE": 1.26
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "shin-r",
+          "visibleInteriorPixels": 7598,
+          "crop": "review/material-pass/part-colors/front/shin-r.png",
+          "cropSha256": "1a53c9f4a2281c91e23abfcd46b004ac9dbc2bc3bede644deeb847b03b4d9ed5",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.28,
+            "perComponent": [
+              {
+                "componentId": "shin-r",
+                "deltaE": 1.28
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "boot-r",
+          "visibleInteriorPixels": 8193,
+          "crop": "review/material-pass/part-colors/front/boot-r.png",
+          "cropSha256": "752b06f19b2b4ea49233ecd621a41c0333697d0dc026a2f9809ba05afca09047",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 3.3,
+            "perComponent": [
+              {
+                "componentId": "boot-r",
+                "deltaE": 3.3
+              }
+            ]
+          },
+          "passed": true
+        }
+      ],
+      "allMeasuredPartsWithin20": true,
+      "measuredParts": 16
+    },
+    "side": {
+      "beautySha256": "153301839933a37fab8eb6d954b0131eb3ac36c2aad3c27af29639be381fd308",
+      "partIdsSha256": "c0292eefd130626ca273312299e6b4476d2a55a6048a5979baf4ad1f9888fc21",
+      "originalGlobalTier1": {
+        "passed": true,
+        "checks": {
+          "silhouetteIoU": 0.9087,
+          "aspectRatioDelta": 0.003,
+          "scaleDelta": 0.0234,
+          "bilateralSymmetryError": 0.0665,
+          "colorDelta": {
+            "checked": 18,
+            "maxDeltaE": 6.22,
+            "perComponent": [
+              {
+                "componentId": "root",
+                "deltaE": 6.22
+              },
+              {
+                "componentId": "pelvis",
+                "deltaE": 6.22
+              },
+              {
+                "componentId": "chest",
+                "deltaE": 6.22
+              },
+              {
+                "componentId": "neck",
+                "deltaE": 3.69
+              },
+              {
+                "componentId": "head",
+                "deltaE": 3.69
+              },
+              {
+                "componentId": "hair",
+                "deltaE": 2.78
+              },
+              {
+                "componentId": "upper-arm-l",
+                "deltaE": 3.69
+              },
+              {
+                "componentId": "forearm-l",
+                "deltaE": 3.69
+              },
+              {
+                "componentId": "hand-l",
+                "deltaE": 3.69
+              },
+              {
+                "componentId": "thigh-l",
+                "deltaE": 4.33
+              },
+              {
+                "componentId": "shin-l",
+                "deltaE": 4.33
+              },
+              {
+                "componentId": "boot-l",
+                "deltaE": 2.85
+              },
+              {
+                "componentId": "upper-arm-r",
+                "deltaE": 3.69
+              },
+              {
+                "componentId": "forearm-r",
+                "deltaE": 3.69
+              },
+              {
+                "componentId": "hand-r",
+                "deltaE": 3.69
+              },
+              {
+                "componentId": "thigh-r",
+                "deltaE": 4.33
+              },
+              {
+                "componentId": "shin-r",
+                "deltaE": 4.33
+              },
+              {
+                "componentId": "boot-r",
+                "deltaE": 2.85
+              }
+            ],
+            "gated": true
+          }
+        },
+        "failures": [],
+        "maskWarnings": [],
+        "renderHash": "153301839933a37f",
+        "passId": "material-pass"
+      },
+      "components": [
+        {
+          "componentId": "pelvis",
+          "visibleInteriorPixels": 0,
+          "status": "not measurable from this view; occluded or subpixel",
+          "passed": null
+        },
+        {
+          "componentId": "chest",
+          "visibleInteriorPixels": 23897,
+          "crop": "review/material-pass/part-colors/side/chest.png",
+          "cropSha256": "87a15cbe6d4dc47bda3ac7cc814e1ac157d325d5b23bb144c0ed9caeaf278c6b",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 12.98,
+            "perComponent": [
+              {
+                "componentId": "chest",
+                "deltaE": 12.98
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "neck",
+          "visibleInteriorPixels": 1634,
+          "crop": "review/material-pass/part-colors/side/neck.png",
+          "cropSha256": "e1f71c3ca76b80c30814330773ebb846a80c1ffc98804daf4f10416416a565e9",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.77,
+            "perComponent": [
+              {
+                "componentId": "neck",
+                "deltaE": 2.77
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "head",
+          "visibleInteriorPixels": 13400,
+          "crop": "review/material-pass/part-colors/side/head.png",
+          "cropSha256": "330b66b93e739883fd7089a02871d720ade623dd0af398d11f50e4e58cd57c5a",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 9.91,
+            "perComponent": [
+              {
+                "componentId": "head",
+                "deltaE": 9.91
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "hair",
+          "visibleInteriorPixels": 17541,
+          "crop": "review/material-pass/part-colors/side/hair.png",
+          "cropSha256": "1de6149bf316c63f27aeb10a28583e4867f08e203e32ba7febe68ed47c93ad9d",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.5,
+            "perComponent": [
+              {
+                "componentId": "hair",
+                "deltaE": 1.5
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "upper-arm-l",
+          "visibleInteriorPixels": 6522,
+          "crop": "review/material-pass/part-colors/side/upper-arm-l.png",
+          "cropSha256": "60ac9f7b716e25c1d1b3d57a6e6d2d0349958ff2f3f64d2d9b2684b061cff855",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.76,
+            "perComponent": [
+              {
+                "componentId": "upper-arm-l",
+                "deltaE": 2.76
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "forearm-l",
+          "visibleInteriorPixels": 7030,
+          "crop": "review/material-pass/part-colors/side/forearm-l.png",
+          "cropSha256": "ba536a2cd5bd2a31e3c62924aa2dd35cfa564703ec41c52af7ac105f1714a5d9",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.86,
+            "perComponent": [
+              {
+                "componentId": "forearm-l",
+                "deltaE": 2.86
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "hand-l",
+          "visibleInteriorPixels": 1576,
+          "crop": "review/material-pass/part-colors/side/hand-l.png",
+          "cropSha256": "84d752ec801b847bdc0a8beaf311d4958383b46337dc1816321bd06d692b417b",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 3.81,
+            "perComponent": [
+              {
+                "componentId": "hand-l",
+                "deltaE": 3.81
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "upper-arm-r",
+          "visibleInteriorPixels": 0,
+          "status": "not measurable from this view; occluded or subpixel",
+          "passed": null
+        },
+        {
+          "componentId": "forearm-r",
+          "visibleInteriorPixels": 0,
+          "status": "not measurable from this view; occluded or subpixel",
+          "passed": null
+        },
+        {
+          "componentId": "hand-r",
+          "visibleInteriorPixels": 0,
+          "status": "not measurable from this view; occluded or subpixel",
+          "passed": null
+        },
+        {
+          "componentId": "thigh-l",
+          "visibleInteriorPixels": 8005,
+          "crop": "review/material-pass/part-colors/side/thigh-l.png",
+          "cropSha256": "9641def5697b5a858478a586d0da73146e0f5877c17405d28e5f55b95ee1f05d",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.19,
+            "perComponent": [
+              {
+                "componentId": "thigh-l",
+                "deltaE": 1.19
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "shin-l",
+          "visibleInteriorPixels": 10808,
+          "crop": "review/material-pass/part-colors/side/shin-l.png",
+          "cropSha256": "d213eab5380b0b6dab55eeb0932ddfe56aa382e8e0f2765ac1d30a9136d2c337",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.14,
+            "perComponent": [
+              {
+                "componentId": "shin-l",
+                "deltaE": 1.14
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "boot-l",
+          "visibleInteriorPixels": 13551,
+          "crop": "review/material-pass/part-colors/side/boot-l.png",
+          "cropSha256": "847ea3618f00deb00a4a2679a6c2ea20d189882d7f78167eb8f4ffb7597ec1ef",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.69,
+            "perComponent": [
+              {
+                "componentId": "boot-l",
+                "deltaE": 2.69
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "thigh-r",
+          "visibleInteriorPixels": 0,
+          "status": "not measurable from this view; occluded or subpixel",
+          "passed": null
+        },
+        {
+          "componentId": "shin-r",
+          "visibleInteriorPixels": 0,
+          "status": "not measurable from this view; occluded or subpixel",
+          "passed": null
+        },
+        {
+          "componentId": "boot-r",
+          "visibleInteriorPixels": 136,
+          "crop": "review/material-pass/part-colors/side/boot-r.png",
+          "cropSha256": "49cc79b362e106d0b0bb1f01085a8a21083e8cec243358f7cc9741b4e6d2bd58",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 3.42,
+            "perComponent": [
+              {
+                "componentId": "boot-r",
+                "deltaE": 3.42
+              }
+            ]
+          },
+          "passed": true
+        }
+      ],
+      "allMeasuredPartsWithin20": true,
+      "measuredParts": 11
+    },
+    "back": {
+      "beautySha256": "63008ac6cc22b87bda28b478f495c4ae99cdb02f2ce303dc15fb95166e6c845c",
+      "partIdsSha256": "a91d1f6bc37556b4df95f55053fd749a8bac6aa577e73a43a0d585965d341d14",
+      "originalGlobalTier1": {
+        "passed": false,
+        "checks": {
+          "silhouetteIoU": 0.9129,
+          "aspectRatioDelta": 0.0129,
+          "scaleDelta": 0.0029,
+          "bilateralSymmetryError": 0.015,
+          "colorDelta": {
+            "checked": 18,
+            "maxDeltaE": 21.85,
+            "perComponent": [
+              {
+                "componentId": "root",
+                "deltaE": 2.78
+              },
+              {
+                "componentId": "pelvis",
+                "deltaE": 2.78
+              },
+              {
+                "componentId": "chest",
+                "deltaE": 2.78
+              },
+              {
+                "componentId": "neck",
+                "deltaE": 10.8
+              },
+              {
+                "componentId": "head",
+                "deltaE": 10.8
+              },
+              {
+                "componentId": "hair",
+                "deltaE": 1.39
+              },
+              {
+                "componentId": "upper-arm-l",
+                "deltaE": 10.8
+              },
+              {
+                "componentId": "forearm-l",
+                "deltaE": 10.8
+              },
+              {
+                "componentId": "hand-l",
+                "deltaE": 10.8
+              },
+              {
+                "componentId": "thigh-l",
+                "deltaE": 1.33
+              },
+              {
+                "componentId": "shin-l",
+                "deltaE": 1.33
+              },
+              {
+                "componentId": "boot-l",
+                "deltaE": 21.85
+              },
+              {
+                "componentId": "upper-arm-r",
+                "deltaE": 10.8
+              },
+              {
+                "componentId": "forearm-r",
+                "deltaE": 10.8
+              },
+              {
+                "componentId": "hand-r",
+                "deltaE": 10.8
+              },
+              {
+                "componentId": "thigh-r",
+                "deltaE": 1.33
+              },
+              {
+                "componentId": "shin-r",
+                "deltaE": 1.33
+              },
+              {
+                "componentId": "boot-r",
+                "deltaE": 21.85
+              }
+            ],
+            "gated": true
+          }
+        },
+        "failures": [
+          "max per-part color delta-E 21.85 exceeds threshold 20.0"
+        ],
+        "maskWarnings": [],
+        "renderHash": "63008ac6cc22b87b",
+        "passId": "material-pass"
+      },
+      "components": [
+        {
+          "componentId": "pelvis",
+          "visibleInteriorPixels": 0,
+          "status": "not measurable from this view; occluded or subpixel",
+          "passed": null
+        },
+        {
+          "componentId": "chest",
+          "visibleInteriorPixels": 59735,
+          "crop": "review/material-pass/part-colors/back/chest.png",
+          "cropSha256": "b83ea4007f780be00fbef303d76240f5da0296fb5cedfc38d9d12a43a964cecd",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 18.58,
+            "perComponent": [
+              {
+                "componentId": "chest",
+                "deltaE": 18.58
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "neck",
+          "visibleInteriorPixels": 0,
+          "status": "not measurable from this view; occluded or subpixel",
+          "passed": null
+        },
+        {
+          "componentId": "head",
+          "visibleInteriorPixels": 0,
+          "status": "not measurable from this view; occluded or subpixel",
+          "passed": null
+        },
+        {
+          "componentId": "hair",
+          "visibleInteriorPixels": 39448,
+          "crop": "review/material-pass/part-colors/back/hair.png",
+          "cropSha256": "115684225080d5858b7ac1ba2f2407635fa8a6772027ff3b6fbfa3c1f923ce84",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.37,
+            "perComponent": [
+              {
+                "componentId": "hair",
+                "deltaE": 1.37
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "upper-arm-l",
+          "visibleInteriorPixels": 6194,
+          "crop": "review/material-pass/part-colors/back/upper-arm-l.png",
+          "cropSha256": "1e53fc36c94a619099e24b2977be1ae151f1560208b47173dd87a6ef7564557b",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.7,
+            "perComponent": [
+              {
+                "componentId": "upper-arm-l",
+                "deltaE": 2.7
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "forearm-l",
+          "visibleInteriorPixels": 6836,
+          "crop": "review/material-pass/part-colors/back/forearm-l.png",
+          "cropSha256": "7cf8e2e615ec0397560b31d192ef765b66c7e83ad46f2272d31a3a5723ffe525",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.84,
+            "perComponent": [
+              {
+                "componentId": "forearm-l",
+                "deltaE": 2.84
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "hand-l",
+          "visibleInteriorPixels": 1634,
+          "crop": "review/material-pass/part-colors/back/hand-l.png",
+          "cropSha256": "a085d85e1bed46d7505fdeac778b1a655e5aa88923b9abc6ca3e37a339ae3b45",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 3.6,
+            "perComponent": [
+              {
+                "componentId": "hand-l",
+                "deltaE": 3.6
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "upper-arm-r",
+          "visibleInteriorPixels": 6200,
+          "crop": "review/material-pass/part-colors/back/upper-arm-r.png",
+          "cropSha256": "d85abfe0fa53f1b98decbc0809c342f498b3aedea883668e900696fa86cf5ca7",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.67,
+            "perComponent": [
+              {
+                "componentId": "upper-arm-r",
+                "deltaE": 2.67
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "forearm-r",
+          "visibleInteriorPixels": 6848,
+          "crop": "review/material-pass/part-colors/back/forearm-r.png",
+          "cropSha256": "8a5778782486c6446ecc6b274e2015301d38e2aa4d0566e250d226028e28a9dc",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 2.9,
+            "perComponent": [
+              {
+                "componentId": "forearm-r",
+                "deltaE": 2.9
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "hand-r",
+          "visibleInteriorPixels": 1675,
+          "crop": "review/material-pass/part-colors/back/hand-r.png",
+          "cropSha256": "8fb10fdfc8d9b99ab56968f6f1666a46ac9b354010cd9ffe0dfc0b8b46a5416c",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 3.65,
+            "perComponent": [
+              {
+                "componentId": "hand-r",
+                "deltaE": 3.65
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "thigh-l",
+          "visibleInteriorPixels": 5868,
+          "crop": "review/material-pass/part-colors/back/thigh-l.png",
+          "cropSha256": "7cfcd041a95b37a07a998b456a8fbb38f6acfd3b92b9cd24c30244ce971ff9b0",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.26,
+            "perComponent": [
+              {
+                "componentId": "thigh-l",
+                "deltaE": 1.26
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "shin-l",
+          "visibleInteriorPixels": 7885,
+          "crop": "review/material-pass/part-colors/back/shin-l.png",
+          "cropSha256": "455011abbcddf8c630ddb6c90b0a5a5a0f334ce078ad484bf87ad18e59a6708f",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.28,
+            "perComponent": [
+              {
+                "componentId": "shin-l",
+                "deltaE": 1.28
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "boot-l",
+          "visibleInteriorPixels": 7606,
+          "crop": "review/material-pass/part-colors/back/boot-l.png",
+          "cropSha256": "a0d0c4614b5b29e184fbc9eca08f323e64cf424cc6f2238e439ff945e3d46658",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 3.3,
+            "perComponent": [
+              {
+                "componentId": "boot-l",
+                "deltaE": 3.3
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "thigh-r",
+          "visibleInteriorPixels": 5873,
+          "crop": "review/material-pass/part-colors/back/thigh-r.png",
+          "cropSha256": "1cebb7800b445148e8bfaff370caaa4c1ba96b5a2012df70514e4accd6e9221e",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.28,
+            "perComponent": [
+              {
+                "componentId": "thigh-r",
+                "deltaE": 1.28
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "shin-r",
+          "visibleInteriorPixels": 7700,
+          "crop": "review/material-pass/part-colors/back/shin-r.png",
+          "cropSha256": "95280d78664604fbfa0611f00418f29c0f5b38d42159b0b6d196c6b42a9f05da",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 1.26,
+            "perComponent": [
+              {
+                "componentId": "shin-r",
+                "deltaE": 1.26
+              }
+            ]
+          },
+          "passed": true
+        },
+        {
+          "componentId": "boot-r",
+          "visibleInteriorPixels": 7609,
+          "crop": "review/material-pass/part-colors/back/boot-r.png",
+          "cropSha256": "dcccf86d40f242f8a7b39368f494f060242f17e4cd68e8cec6c4645f2d867eb9",
+          "metric": {
+            "checked": 1,
+            "maxDeltaE": 3.35,
+            "perComponent": [
+              {
+                "componentId": "boot-r",
+                "deltaE": 3.35
+              }
+            ]
+          },
+          "passed": true
+        }
+      ],
+      "allMeasuredPartsWithin20": true,
+      "measuredParts": 14
+    }
+  }
+}

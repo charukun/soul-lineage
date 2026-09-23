@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "rinne.forge-visual-review/v1",
+  "id": "scout-blockout-r2",
+  "pass": "blockout",
+  "recipeRevision": 3,
+  "sourceHead": "cbf7ec6268d4cbef6950064aeffa012b454477e4",
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35810573821",
+  "factorySha256": "fb2880dfa2ca98682ea5998e604d418c62965b42ddd1bd4754390d201f80d4c9",
+  "captureSha256": {
+    "front": "58d24d7b8cdfa76ebab882969356642da6c50c85a7992ceeec2f3840822b78b0",
+    "side": "fc3ff7cd3d42f5d29a20fb13cd33c11eaa0dcfca285c1380666be361fe9f0016",
+    "back": "81b45caec275e49cf927fac41e9b4ead6efacaef7fd30294ceac0a5cb8037a5b",
+    "front34": "82299101f0a962627ecf9a07414151da76235a3826c4fc856812403bc72ef8e1",
+    "rear34": "0924d46f6316618bc46796993bf93e7540c071f8dc07a8322300a88f00254064",
+    "oppositeSide": "995d75ae6893d435bdaa6e08c766d7b3127fd237b601988f7ca33467fde0b9ec"
+  },
+  "action": "continue",
+  "fidelity": 0.84,
+  "layerScores": {
+    "silhouetteProportion": 0.92,
+    "componentStructure": 0.8,
+    "formDetail": 0.7,
+    "materialSurface": 0.2,
+    "lightingCamera": 0.9
+  },
+  "featureReviews": [
+    {
+      "id": "anatomy-proportion",
+      "score": 0.91,
+      "notes": "Front pair: head unit, body width, limb lengths and feet align."
+    },
+    {
+      "id": "face-landmark-placement",
+      "score": 0.8,
+      "notes": "Front pair: width, forehead/cheek/jaw/chin layout and nose height read at blockout scale. Side inspection exposes a detached nose island; structural acceptance is forbidden until it is joined."
+    },
+    {
+      "id": "pose-silhouette",
+      "score": 0.9,
+      "notes": "Front pair maintains arms-down pose and real side/rear captures show volume."
+    }
+  ],
+  "summary": "Blockout macro silhouette/proportions accepted after direct comparison. This is not final likeness or structural acceptance. Source front/side/back Tier-1 checks all pass. Clothing waist, limb lengths, head/body ratio and flat soles are retained. Clay deliberately omits painted identity.",
+  "remaining": [
+    "Side view shows a detached nose island: bridge it into the face in structural-pass.",
+    "Arm seams and small hip/hem intersections need structural inspection.",
+    "Rear hair is shorter than the source; original front/back silhouettes conflict. Keep this residual explicit.",
+    "Fringe, eyes, mouth, belt and rear diamond remain absent in clay and must be projected and reviewed before any Quality Floor approval."
+  ],
+  "viewpoints": [
+    "front",
+    "side",
+    "back",
+    "front-three-quarter",
+    "rear-three-quarter",
+    "thickness-axis",
+    "long-axis"
+  ],
+  "qualityFloorPassed": false
+}

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "rinne.img2threejs-lock/v1",
+  "engine": {
+    "repository": "img2threejs/img2threejs",
+    "commit": "6e60b5e22419464b4853e01ddb6c0e6f6659a733",
+    "tree": "7d3b06ed41f277d2c555fcbf57e5eb166b991079",
+    "license": "Apache-2.0"
+  },
+  "animatedCharacter": {
+    "repository": "img2threejs/plugin-character",
+    "commit": "d8750638f9fc092714e7fcb4941053514455295d",
+    "tree": "2adc40220202a9bcd683f07630f6eef91947b32c"
+  },
+  "harness": {
+    "repository": "img2threejs/img2",
+    "commit": "7aa41b37ee24dde844390bb05eca76b709e91599",
+    "tree": "24d4caf6b50f6d8aef9b7956bf18b400eeb6b54a"
+  }
+}

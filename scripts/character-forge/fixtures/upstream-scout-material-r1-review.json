@@ -1,0 +1,21 @@
+{
+  "id": "scout-material-r1",
+  "pass": "material-pass",
+  "sourceHead": "438843ca09d826af6d1e6a6a9f7bea5fff4ed9b4",
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35813707448",
+  "factorySha256": "4e014cd5e1eab028bc7af7665ef37306da14c23403db9cd8375ae39eb39ffc5f",
+  "captureSha256": {
+    "front": "12c85fd0584fa945d6fe687ad1229f26bd118bb8256d1cdeefe0254c6fa21e8a",
+    "side": "5d6289ff68a2e8ea742f14196c9fe12b645c8dd16899710c2d30457a383e28c4",
+    "back": "a38e30461f1135b8b8e88f7dae2094a09e67526669cbf2849130a1e26ca5d1a4",
+    "front34": "45289185179b73eddfb8b625f68fbd22625deb66b891ab3492bbcfe7abb39b35",
+    "rear34": "d124671a9fa99b9185735850739c108d953055701774befc00601cd3e6deed85",
+    "oppositeSide": "ca675b3ae52456f0e604494c7a478ff7b83c8bc24b7ee565dee82e7ea6eeeeef"
+  },
+  "bakeReportSha256": "b17703f57930b057ab66f5f733414b7081e76b0ead4de0d8a98f39d895215cf1",
+  "action": "refine-code",
+  "fidelity": 0,
+  "reason": "Rejected before AI acceptance: all meshes now rasterize, but side and back Tier-1 colour deltas remain 20.17 / 21.89 > 20. Source/render Lab clusters show darkened skin and boots under non-reference-matched ACES / blue hemisphere illumination. Back cloth is independently blue yet was incorrectly compared with the teal front recipe. Next correction supplies neutral inferred diffuse illumination and the actual upstream-extracted back crop recipe to the unchanged diagnostic. No quality acceptance is inferred from these metrics.",
+  "authority": "actual upstream diagnostics, pixel clusters and per-mesh coverage; not visual approval",
+  "qualityFloorPassed": false
+}

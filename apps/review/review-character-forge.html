@@ -48,6 +48,8 @@
             <button type="button" data-forge-view="front" aria-pressed="false">正面</button>
             <button type="button" data-forge-view="side" aria-pressed="false">側面</button>
             <button type="button" data-forge-view="back" aria-pressed="false">背面</button>
+            <button type="button" data-forge-view="front34" aria-pressed="false">前斜め</button>
+            <button type="button" data-forge-view="rear34" aria-pressed="false">後斜め</button>
           </div>
         </div>
         <div class="forge-advanced" data-review-stage-control>
@@ -63,6 +65,9 @@
             </fieldset>
             <fieldset><legend>装備の確認</legend>
               <label>武器 <select data-forge-equipment><option value="">なし</option><option value="sword">剣</option><option value="spear">槍</option></select></label>
+            </fieldset>
+            <fieldset data-forge-expression-panel hidden><legend>表情</legend>
+              <label>表情 <select data-forge-expression aria-label="表情"><option value="neutral">標準</option></select></label>
             </fieldset>
           </div>
           <details class="forge-report"><summary>出典・計測・制約</summary>

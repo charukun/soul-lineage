@@ -1,0 +1,35 @@
+{
+  "schema": "rinne.reference-observations/v1",
+  "source": "golden-base-v1/turnaround.png SHA-256 086a1f89616c7c631e23d12f68e305cd3e1a04d5b8ef3832fa3b59c5326d2a50",
+  "authoring": "Source-pixel estimates from the extracted illustrated sheet, manually reviewed. World depth, joint centres, shape behind visible surfaces and nominal height are inferred. The sheet's printed head ratio about 3.5 conflicts with the approximate visible head-to-height ratio 2.5; neither has been promoted to ground-truth anatomy.",
+  "heightMetres": 1.6,
+  "heightStatus": "generated runtime scale",
+  "crownRow": 6,
+  "feetRow": 674,
+  "headHeightPixels": 263,
+  "views": {
+    "front": {
+      "status": "observed",
+      "anchors": {"crown": [224, 6], "chin": [223, 268], "eye-left": [145, 170], "eye-right": [272, 170], "shoulder-left": [170, 294], "shoulder-right": [280, 294], "waist": [222, 427], "feet-left": [181, 671], "feet-right": [268, 671]},
+      "face": {"headBounds": [92, 6, 354, 273], "faceBounds": [102, 116, 343, 268], "foreheadRow": 116, "eyeRow": 170, "cheekRow": 210, "noseRow": 207, "mouthRow": 237, "jawRow": 252, "chinRow": 268},
+      "body": {"neck": [191, 262, 255, 297], "torso": [161, 285, 302, 467], "waist": [159, 408, 300, 463], "arms": [[2, 293, 177, 367], [275, 293, 442, 367]], "legs": [[145, 455, 226, 634], [224, 455, 305, 634]], "boots": [[143, 625, 229, 676], [224, 625, 304, 676]]},
+      "faceObservations": ["eyes", "eyebrows", "small mouth", "face contour"],
+      "surfaceObservations": ["pale skin", "mint eyes", "gray sleeveless suit"]
+    },
+    "side": {
+      "status": "observed",
+      "anchors": {"crown": [151, 6], "forehead": [36, 117], "nose-tip": [25, 209], "chin": [68, 260], "neck": [115, 274], "shoulder": [121, 302], "hand": [143, 421], "heel": [148, 668], "toe": [88, 668]},
+      "headBounds": [14, 5, 270, 275], "noseTip": [25, 209], "mouth": [36, 235], "chin": [68, 260], "craniumBack": [267, 154],
+      "body": {"torso": [72, 275, 201, 471], "arm": [117, 297, 176, 424], "leg": [93, 454, 177, 629], "boot": [78, 618, 177, 676]},
+      "surfaceObservations": ["actual nose projection", "visible eye profile", "ear", "cranium depth", "pelvic profile"]
+    },
+    "back": {
+      "status": "observed",
+      "anchors": {"crown": [222, 6], "chin": [222, 267], "shoulder-left": [153, 294], "shoulder-right": [281, 294], "waist": [220, 430], "feet-left": [183, 671], "feet-right": [263, 671]},
+      "headBounds": [93, 6, 357, 273],
+      "body": {"torso": [139, 284, 304, 469], "arms": [[1, 294, 157, 367], [277, 294, 435, 367]], "legs": [[142, 451, 227, 634], [223, 451, 309, 634]]},
+      "surfaceObservations": ["smooth unhaired scalp", "back of gray suit", "separate legs", "rear ears"]
+    }
+  },
+  "unseen": {"oppositeSide": "mirrored with uncertainty", "headInterior": "inferred", "mouthCavity": "generated", "clothingThickness": "inferred from side profile", "joints": "inferred within observed silhouette", "eyeAndFaceDepth": "inferred with side nose/cheek evidence"}
+}

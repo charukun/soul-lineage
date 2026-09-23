@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "rinne.forge-historical-review/v1",
+  "id": "scout-blockout-r0",
+  "sourceHead": "abe06b9c740d5e9ea13090947940795f7eb7ef32",
+  "recipeRevision": 1,
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35809205679",
+  "artifact": "https://github.com/charukun/soul-lineage/actions/runs/35809205679/artifacts/10729037446",
+  "factorySha256": "fb5135a67cfe27e750288485f04187388f5d8485dfc5d800813867ed177bf1e8",
+  "reviewer": "Codex",
+  "action": "refine-spec",
+  "fidelity": 0.35,
+  "aiAcceptancePerformed": false,
+  "reason": "Tier-1 hard failure; diagnostic inspection only. Disconnected bead-like limbs, oval rather than waisted tunic, oversized cheek/nose relief, round boots. All three views rejected. No acceptance score is supplied past the hard gate.",
+  "diagnostics": [
+    {
+      "view": "front",
+      "passed": false,
+      "checks": {
+        "silhouetteIoU": 0.7096,
+        "aspectRatioDelta": 0.3007,
+        "scaleDelta": 0.2865,
+        "bilateralSymmetryError": 0.0106
+      },
+      "failures": [
+        "silhouette IoU 0.710 is below threshold 0.85",
+        "aspect-ratio delta 0.301 exceeds threshold 0.05",
+        "scale delta 0.286 exceeds threshold 0.08"
+      ],
+      "maskWarnings": [
+        "render: 16.5% of foreground cells lie outside the largest connected blob and were excluded from the bounding box; if the subject really has separated parts in this projection, they are not being measured"
+      ],
+      "renderSha256": "d4b0308a987a974c42e775b1835be34f9323c92762f80e3a5fdf9026eaeb78c3"
+    },
+    {
+      "view": "side",
+      "passed": false,
+      "checks": {
+        "silhouetteIoU": 0.8696,
+        "aspectRatioDelta": 0.0681,
+        "scaleDelta": 0.0899,
+        "bilateralSymmetryError": 0.0803
+      },
+      "failures": [
+        "aspect-ratio delta 0.068 exceeds threshold 0.05",
+        "scale delta 0.090 exceeds threshold 0.08"
+      ],
+      "maskWarnings": [],
+      "renderSha256": "bdb59f70143ada15700723a740abe8bae6691557acf0b1136234c1d01563015c"
+    },
+    {
+      "view": "back",
+      "passed": false,
+      "checks": {
+        "silhouetteIoU": 0.7377,
+        "aspectRatioDelta": 0.285,
+        "scaleDelta": 0.2704,
+        "bilateralSymmetryError": 0.0105
+      },
+      "failures": [
+        "silhouette IoU 0.738 is below threshold 0.85",
+        "aspect-ratio delta 0.285 exceeds threshold 0.05",
+        "scale delta 0.270 exceeds threshold 0.08"
+      ],
+      "maskWarnings": [
+        "render: 16.4% of foreground cells lie outside the largest connected blob and were excluded from the bounding box; if the subject really has separated parts in this projection, they are not being measured"
+      ],
+      "renderSha256": "475ade48f29e96bfbb1bdeb677be9c808281c5c641c27c279b462c083addb652"
+    }
+  ],
+  "sourceConflict": "The back hair is visible to row 125; front shows bare neck from row 96. Exact opaque reconstruction of both silhouettes is impossible. Preserve and report the residual instead of treating inferred depth as observed."
+}

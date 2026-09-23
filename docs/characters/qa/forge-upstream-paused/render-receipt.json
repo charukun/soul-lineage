@@ -1,0 +1,150 @@
+{
+  "errors": [],
+  "geometryRefinements": [
+    {
+      "path": "build/dcc/refined-hair.json",
+      "sha256": "2316c7b83991d4ed925790cbeab32a755953ed4157ad88ad1084a71b19b53610"
+    }
+  ],
+  "pass": "material-pass",
+  "parts": [
+    {
+      "name": "Clothed hips",
+      "vertices": 1152,
+      "triangles": 384
+    },
+    {
+      "name": "Flared teal tunic with blue rear",
+      "vertices": 1920,
+      "triangles": 640
+    },
+    {
+      "name": "Neck",
+      "vertices": 1152,
+      "triangles": 384
+    },
+    {
+      "name": "Cranium cheeks jaw chin and nose",
+      "vertices": 57288,
+      "triangles": 19096
+    },
+    {
+      "name": "Navy hair cap and back locks",
+      "vertices": 291480,
+      "triangles": 97160
+    },
+    {
+      "name": "Upper arm l",
+      "vertices": 30156,
+      "triangles": 10052
+    },
+    {
+      "name": "Forearm l",
+      "vertices": 32484,
+      "triangles": 10828
+    },
+    {
+      "name": "Hand l",
+      "vertices": 28380,
+      "triangles": 9460
+    },
+    {
+      "name": "Upper arm r",
+      "vertices": 30156,
+      "triangles": 10052
+    },
+    {
+      "name": "Forearm r",
+      "vertices": 32484,
+      "triangles": 10828
+    },
+    {
+      "name": "Hand r",
+      "vertices": 28380,
+      "triangles": 9460
+    },
+    {
+      "name": "Trouser thigh l",
+      "vertices": 1920,
+      "triangles": 640
+    },
+    {
+      "name": "Trouser shin l",
+      "vertices": 1920,
+      "triangles": 640
+    },
+    {
+      "name": "Brown boot l",
+      "vertices": 2688,
+      "triangles": 896
+    },
+    {
+      "name": "Trouser thigh r",
+      "vertices": 1920,
+      "triangles": 640
+    },
+    {
+      "name": "Trouser shin r",
+      "vertices": 1920,
+      "triangles": 640
+    },
+    {
+      "name": "Brown boot r",
+      "vertices": 2688,
+      "triangles": 896
+    }
+  ],
+  "bounds": {
+    "min": [
+      -0.2531200069886974,
+      2.6784365836363122e-9,
+      -0.1551385521888733
+    ],
+    "max": [
+      0.2531645577353767,
+      1.5998417694357374,
+      0.1580288879479034
+    ]
+  },
+  "factorySha256": "640782f06303e01705562731bb3df8122f272a733ae38b469d898250e905e8ea",
+  "sourceHead": "a17525a14732ec8308085e6bfba803ffa5104842",
+  "visualApproval": "pending",
+  "referenceLighting": {
+    "status": "inferred from flat illustrated reference; not measured radiometry",
+    "toneMapping": "none",
+    "exposure": 1,
+    "hemisphere": {
+      "sky": "#ffffff",
+      "ground": "#ffffff",
+      "intensity": 2.6
+    },
+    "key": {
+      "color": "#ffffff",
+      "intensity": 0.55,
+      "position": [
+        2,
+        2.5,
+        4
+      ],
+      "target": [
+        0,
+        0,
+        0
+      ]
+    },
+    "rim": {
+      "color": "#ffffff",
+      "intensity": 0.12,
+      "position": [
+        -2,
+        2,
+        -3
+      ],
+      "target": [
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

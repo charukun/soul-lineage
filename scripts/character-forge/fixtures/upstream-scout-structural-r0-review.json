@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "rinne.forge-visual-review/v1",
+  "id": "scout-structural-r0",
+  "pass": "structural-pass",
+  "recipeRevision": 3,
+  "sourceHead": "d8a6704c5b131087551123abbab0d6916599ec9b",
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35811219707",
+  "factorySha256": "deef568229928481ce3c7cee4c37d9ba5ec6d58ee2adf05fb41d1f02b669f6c8",
+  "captureSha256": {
+    "front": "d12474507aad0b000362b4d1f26443eeb8b5d6517bc94ef13dfbdce099dd8f5c",
+    "side": "64671deeeafc6595321238ced95298c948e7c9c6a9e9865575c0672e2f3ad6fa",
+    "back": "11e00a42702bd85670fd666bd84fff3e1a3a7c02e63d39ece56953b0ec74d905",
+    "front34": "a8bd9ac1c8c5e404a76d727a89b7c57381225bdf2852f749abacf595696ca230",
+    "rear34": "7207940e84cac010435cb9f4edbd40cd278647a1f04320311841c2a7d8abf358",
+    "oppositeSide": "f5cef944bde061c8019d7f7ce32e7b89ea045ee05026de604b9377a98970d447"
+  },
+  "action": "continue",
+  "fidelity": 0.84,
+  "layerScores": {
+    "silhouetteProportion": 0.92,
+    "componentStructure": 0.84,
+    "formDetail": 0.68,
+    "materialSurface": 0.2,
+    "lightingCamera": 0.9
+  },
+  "featureReviews": [
+    {
+      "id": "anatomy-proportion",
+      "score": 0.91,
+      "notes": "Front pair preserves head unit, feet alignment, body width and limb lengths; F/S/B IoU .9540/.9091/.9202."
+    },
+    {
+      "id": "face-landmark-placement",
+      "score": 0.81,
+      "notes": "Front pair keeps cheek, jaw, chin and nose height. Side and front-three-quarter now show a nose joined to the face, with no detached island. Painted eyes/mouth are still pending."
+    },
+    {
+      "id": "pose-silhouette",
+      "score": 0.9,
+      "notes": "Front arms-down and silhouette retained. Side and both three-quarter views have real volume. Arm joint waists from the previous capture are now continuous."
+    }
+  ],
+  "summary": "Structural attachment review: the previously detached nose is joined to the face in side and three-quarter views, and arm shafts are continuous. Structural pass accepted; final form and likeness are not accepted. Actual front, side, back and both three-quarter captures were inspected.",
+  "remaining": [
+    "Trouser upper caps break through the front tunic hem at both hips: remove exposed intersections during form-refinement; form acceptance requires fresh captures.",
+    "Hairline voxel edge and approximate side nose contour remain visible. Review at form scale before projection.",
+    "Back hair length remains a documented conflict between front and back source silhouettes.",
+    "Fringe, eyes, mouth, belt and rear diamond are absent in clay; material pass must use source projection."
+  ],
+  "viewpoints": [
+    "front",
+    "side",
+    "back",
+    "front-three-quarter",
+    "rear-three-quarter",
+    "thickness-axis",
+    "long-axis"
+  ],
+  "qualityFloorPassed": false
+}
