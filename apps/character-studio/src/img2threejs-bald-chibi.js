@@ -44,6 +44,7 @@ function curvedLimb(parent, name, profile, axis, material, depth = 1) {
   }
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
   const mesh=new THREE.Mesh(geometry,material);mesh.name=name;mesh.castShadow=true;parent.add(mesh);
+  return mesh;
 }
 
 function torsoGeometry() {
@@ -113,6 +114,55 @@ function chibiHeadGeometry() {
   return shape;
 }
 
+const GOLDEN_BASE_RIG_ID = 'kaykit.Rig_Medium.v1';
+
+function rigBone(parent, name, xyz) {
+  const bone = new THREE.Bone();
+  bone.name = name;
+  bone.position.set(...xyz);
+  parent.add(bone);
+  return bone;
+}
+
+/**
+ * Golden Base uses the same public Rig_Medium joint names and humanoid hierarchy
+ * as the KayKit cast. Proportions remain character-specific; motion targets do not.
+ */
+export function createGoldenBaseRig(root) {
+  if (!root?.add) throw new Error('Golden Base rig requires an Object3D root');
+  const rigRoot = new THREE.Group();
+  rigRoot.name = 'Rig_Medium';
+  root.add(rigRoot);
+
+  const hips = rigBone(rigRoot, 'hips', [0, 1.04, 0]);
+  const spine = rigBone(hips, 'spine', [0, .31, 0]);
+  const chest = rigBone(spine, 'chest', [0, .23, 0]);
+  const neck = rigBone(chest, 'neck', [0, .16, 0]);
+  const head = rigBone(neck, 'head', [0, .46, 0]);
+  const bones = { hips, spine, chest, neck, head };
+
+  for (const sign of [-1, 1]) {
+    const side = sign < 0 ? 'left' : 'right';
+    const suffix = sign < 0 ? 'l' : 'r';
+    const upperArm = rigBone(chest, `upperarm.${suffix}`, [sign * .34, -.02, 0]);
+    const lowerArm = rigBone(upperArm, `lowerarm.${suffix}`, [sign * .27, -.10, 0]);
+    const hand = rigBone(lowerArm, `hand.${suffix}`, [sign * .24, -.03, .005]);
+    const upperLeg = rigBone(hips, `upperleg.${suffix}`, [sign * .18, -.17, 0]);
+    const lowerLeg = rigBone(upperLeg, `lowerleg.${suffix}`, [sign * .01, -.38, .03]);
+    const foot = rigBone(lowerLeg, `foot.${suffix}`, [0, -.34, .03]);
+    const toe = rigBone(foot, `toe.${suffix}`, [0, -.08, .18]);
+    Object.assign(bones, {
+      [`${side}UpperArm`]: upperArm, [`${side}LowerArm`]: lowerArm, [`${side}Hand`]: hand,
+      [`${side}UpperLeg`]: upperLeg, [`${side}LowerLeg`]: lowerLeg, [`${side}Foot`]: foot,
+      [`${side}Toe`]: toe
+    });
+  }
+
+  root.userData.boneOverlayKind = 'rig';
+  root.userData.rigId = GOLDEN_BASE_RIG_ID;
+  return Object.freeze(bones);
+}
+
 export async function createImg2ThreeReferenceCharacter({ textureUrl = '/img2threejs-bald-chibi/head-uv.png' } = {}) {
   const root = new THREE.Group();
   root.name = 'img2threejs-reference-bald-chibi';
@@ -151,12 +201,15 @@ export async function createImg2ThreeReferenceCharacter({ textureUrl = '/img2thr
     ellipsoid(root, `${side}-ear`, [sign * .417, 2.025, .018], [.082, .115, .085], skin);
     ellipsoid(root, `${side}-ear-concha`, [sign * .47, 2.025, .087], [.018, .042, .007], earInner);
 
-    // T pose: separate upper arm, elbow, forearm, palm and three small fingers.
-    curvedLimb(root, `${side}-whole-arm`, [
-      [sign*.33,1.57,0,.137],[sign*.46,1.52,0,.127],[sign*.58,1.48,0,.103],
-      [sign*.72,1.45,0,.082],[sign*.82,1.44,0,.058]
+    // Segmented around Rig_Medium pivots so the shared shoulder/elbow motion is reusable.
+    curvedLimb(root, `${side}-upper-arm`, [
+      [sign*.33,1.57,0,.137],[sign*.46,1.52,0,.127],[sign*.58,1.48,0,.103],[sign*.61,1.46,0,.095]
+    ], 'x', skin);
+    curvedLimb(root, `${side}-lower-arm`, [
+      [sign*.61,1.46,0,.095],[sign*.68,1.455,0,.09],[sign*.74,1.445,0,.075],[sign*.82,1.44,0,.058]
     ], 'x', skin);
     ellipsoid(root, `${side}-shoulder`, [sign*.34,1.56,0], [.135,.14,.14], skin);
+    ellipsoid(root, `${side}-elbow`, [sign*.61,1.46,0], [.102,.098,.103], skin);
     ellipsoid(root, `${side}-palm`, [sign * .88, 1.435, .005], [.093, .044, .067], skin);
     for (let finger = 0; finger < 3; finger++) ellipsoid(root, `${side}-finger-${finger}`, [sign * (.958 + (finger === 1 ? .015 : 0)), 1.424, (finger - 1) * .028], [.043, .019, .018], skin, 16);
     ellipsoid(root, `${side}-thumb`, [sign * .855, 1.401, .095], [.047, .025, .024], skin, 16);
@@ -165,40 +218,47 @@ export async function createImg2ThreeReferenceCharacter({ textureUrl = '/img2thr
       [hip,1.00,0,.163],[hip,.93,0,.165],[hip,.85,0,.162]
     ], 'y', cloth, 1.24);
     const hem=new THREE.Mesh(new THREE.TorusGeometry(.157,.003,8,32),clothTrim);hem.name=`${side}-shorts-hem`;hem.rotation.x=Math.PI/2;hem.position.set(hip,.855,0);hem.scale.y=1.25;root.add(hem);
-    curvedLimb(root, `${side}-whole-leg`, [
-      [hip,.86,0,.157],[sign*.185,.74,0,.162],[sign*.19,.57,.013,.133],
-      [sign*.19,.49,.018,.113],[sign*.195,.34,.026,.12],[sign*.19,.15,.03,.075]
+    curvedLimb(root, `${side}-upper-leg`, [
+      [hip,.86,0,.157],[sign*.185,.74,0,.162],[sign*.19,.57,.013,.133],[sign*.19,.49,.018,.113]
     ], 'y', skin, 1.16);
+    curvedLimb(root, `${side}-lower-leg`, [
+      [sign*.19,.49,.018,.113],[sign*.195,.40,.022,.118],[sign*.195,.34,.026,.12],[sign*.19,.15,.03,.075]
+    ], 'y', skin, 1.16);
+    ellipsoid(root, `${side}-knee`, [sign*.19,.49,.018], [.119,.106,.128], skin);
     ellipsoid(root, `${side}-foot`, [sign * .19, .075, .095], [.108, .066, .17], skin);
     for (let toe = 0; toe < 4; toe++) ellipsoid(root, `${side}-toe-${toe}`, [sign * (.134 + toe * .037), .043, .234], [.021, .018, .03], skin, 12);
   }
-  // These landmarks are an inspection guide, not a skinned animation rig.
-  const guideJoint = (parent, name, x, y, z = 0) => {
-    const joint = new THREE.Bone(); joint.name = `guide.${name}`;
-    joint.position.set(x, y, z); parent.add(joint); return joint;
+  const bones = createGoldenBaseRig(root);
+  root.updateWorldMatrix(true, true);
+  const attach = (bone, ...names) => {
+    for (const name of names) {
+      const part = root.getObjectByName(name);
+      if (!part) throw new Error(`Golden Base rig part missing: ${name}`);
+      bone.attach(part);
+    }
   };
-  const hips = guideJoint(root, 'hips', 0, 1.04);
-  const spine = guideJoint(hips, 'spine', 0, .31);
-  const chest = guideJoint(spine, 'chest', 0, .23);
-  const neckGuide = guideJoint(chest, 'neck', 0, .16);
-  guideJoint(neckGuide, 'head', 0, .46);
-  for (const sign of [-1, 1]) {
-    const side = sign < 0 ? 'left' : 'right';
-    const shoulder = guideJoint(chest, `${side}Shoulder`, sign * .34, -.02);
-    const elbow = guideJoint(shoulder, `${side}Elbow`, sign * .27, -.10);
-    guideJoint(elbow, `${side}Wrist`, sign * .24, -.03);
-    const thigh = guideJoint(hips, `${side}Hip`, sign * .18, -.17);
-    const knee = guideJoint(thigh, `${side}Knee`, sign * .01, -.38);
-    const ankle = guideJoint(knee, `${side}Ankle`, 0, -.34, .03);
-    guideJoint(ankle, `${side}Toe`, 0, -.08, .18);
+  attach(bones.spine, 'closed-volume-grey-suit');
+  attach(bones.chest, 'neck-collar');
+  attach(bones.neck, 'neck');
+  attach(bones.head, 'full-depth-projected-head', 'left-ear', 'left-ear-concha', 'right-ear', 'right-ear-concha');
+  for (const side of ['left', 'right']) {
+    attach(bones[`${side}UpperArm`], `${side}-upper-arm`, `${side}-shoulder`);
+    attach(bones[`${side}LowerArm`], `${side}-lower-arm`, `${side}-elbow`);
+    attach(bones[`${side}Hand`], `${side}-palm`, `${side}-finger-0`, `${side}-finger-1`, `${side}-finger-2`, `${side}-thumb`);
+    attach(bones[`${side}UpperLeg`], `${side}-continuous-shorts`, `${side}-shorts-hem`, `${side}-upper-leg`);
+    attach(bones[`${side}LowerLeg`], `${side}-lower-leg`, `${side}-knee`);
+    attach(bones[`${side}Foot`], `${side}-foot`);
+    for (let toe = 0; toe < 4; toe++) attach(bones[`${side}Toe`], `${side}-toe-${toe}`);
   }
-  root.userData.boneOverlayKind = 'inferred-guide';
+  root.updateWorldMatrix(true, true);
   root.userData.img2threejs = {
     revision: '6e60b5e22419464b4853e01ddb6c0e6f6659a733',
     visibleReference: '1024×1536 single frontal image',
     inferredRegions: ['left profile', 'right profile', 'back', 'head depth', 'body depth'],
     measuredHeadUnits: 2.84,
-    fullVolume: true
+    fullVolume: true,
+    humanoidRig: GOLDEN_BASE_RIG_ID,
+    rigBasis: 'KayKit Rig_Medium joint names/hierarchy with Golden Base proportions'
   };
   return root;
 }
