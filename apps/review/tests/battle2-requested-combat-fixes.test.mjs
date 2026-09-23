@@ -24,3 +24,17 @@ test('不殺 never executes a finisher, and reviewing discoveries never touches 
  assert.ok(events.some(e=>e.type==='actor-downed'&&e.targetId!=='hero'));assert.ok(events.some(e=>e.type==='enemy-recovered'));assert.equal(events.some(e=>e.type==='finisher'),false);
  assert.ok(events.some(e=>e.type==='inspiration'&&e.scope==='review-trial'));const source=read('src/nocturne/johakyu-p7-review.js');assert.doesNotMatch(source,/serializeLife|platform\.storage|commitAnswer/);
 });
+
+test('the selected 葬焉 motion is named at the right waveform only while it runs',()=>{
+ const scenario=createJohakyuP7ReviewScenario({loadout:{body:{finisher:'danzetsu'}},actorOverrides:{'enemy-a':{hp:0,downed:true,incapacitated:true,spawnSeconds:0}}});
+ let active=false,cleared=false;
+ for(let i=0;i<300;i++){
+  const {meta}=scenario.step(1/60);
+  if(meta.actionKind==='finisher'){active=true;assert.equal(meta.finisherName,'断絶');}
+  else if(active){assert.equal(meta.finisherName,null);cleared=true;break;}
+ }
+ assert.ok(active&&cleared);
+ assert.match(read('battle2.html'),/id="battle-sequence-finisher"[^>]*hidden/);
+ assert.match(read('src/nocturne-stage.js'),/finisherNode.hidden=!finisherName/);
+ assert.match(read('src/nocturne/johakyu-p7-readout.css'),/\.battle-sequence-finisher/);
+});
