@@ -159,7 +159,7 @@ function start() {
     if (simpleModelReview) {
       const sharedPreset=preset==='overview'?'three-quarter':preset;
       camera.fov=38;camera.updateProjectionMatrix();
-      positionReviewCamera({camera,controls:orbit,root:proceduralRoot || actor.root,preset:sharedPreset,padding:1.14,minDistance:.35,maxDistance:18});
+      positionReviewCamera({camera,controls:orbit,root:proceduralRoot || actor.root,preset:sharedPreset,padding:proceduralRoot?1.7:1.14,minDistance:.35,maxDistance:18});
       resetMeasure();return;
     }
     let target, distance;
@@ -455,4 +455,3 @@ function start() {
 try { start(); } catch (error) { report(error); el('retry').disabled = false; el('retry').onclick = () => location.reload(); }
 
 if (document.body.classList.contains('advanced-review')) import('../workspace/advanced.js').catch(report);
-
