@@ -68,7 +68,9 @@ function showInspiration(row){
  const duration=Math.min(2500,Math.max(500,(Number(profile.hudSeconds)||1.8)*1000));
  inspirationBanner.style.setProperty('--inspiration-duration',`${duration}ms`);
  inspirationBanner.dataset.grade=row.grade||'normal';inspirationBanner.hidden=false;
- sound?.inspiration?.();cameraPresentation.beginInspiration(row,runtime?.inspectActors?.()||[]);
+ // The reveal is presentation-only. A missing transient actor anchor must never terminate the canonical fight.
+ try{sound?.inspiration?.();}catch{}
+ try{cameraPresentation.beginInspiration(row,runtime?.inspectActors?.()||[]);}catch{cameraPresentation.cancelInspiration();}
  inspirationTimer=setTimeout(hideInspiration,duration);
 }
 const motionLabel=kind=>MOVE_LABEL[kind]||kind||'動作';
@@ -155,11 +157,11 @@ function updateSequence(meta){
  finisherNode.hidden=!finisherName;
  finisherNode.setAttribute('aria-label',finisherName?`葬焉モーション ${finisherName}`:'葬焉モーション');
  const cueKey=String(meta.phaseCueKey||'');if(started&&cueKey&&cueKey!==lastPhaseCueKey){lastPhaseCueKey=cueKey;sound?.phaseCue?.({phase:meta.phaseCuePhase||meta.phase});}
- const actors=runtime?.inspectActors?.()||[],hero=actors.find(actor=>actor.self);
+ const actors=runtime?.inspectActors?.()||[],hero=actors.find(actor=>actor.self),heroPosition=hero?.position;
  if(hero){
    bodyHud?.update(hero);
    const now=performance.now();
-   if(now-lastRadarAt>=90){
+   if(Number.isFinite(heroPosition?.x)&&Number.isFinite(heroPosition?.z)&&now-lastRadarAt>=90){
      lastRadarAt=now;
      const opponents=actors.filter(actor=>!actor.self&&!actor.dead&&Number.isFinite(actor.position?.x)&&Number.isFinite(actor.position?.z));
      const nearest=opponents.reduce((best,actor)=>!best||Math.hypot(actor.position.x-hero.position.x,actor.position.z-hero.position.z)<Math.hypot(best.position.x-hero.position.x,best.position.z-hero.position.z)?actor:best,null);
