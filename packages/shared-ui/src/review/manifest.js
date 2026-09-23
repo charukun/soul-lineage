@@ -5,9 +5,7 @@ export const REVIEW_PROBES=Object.freeze([
   {id:'objects',label:'物体',detail:'小物・ワールド資産・尺度',tag:'OBJECT'},
   {id:'effects',label:'エフェクト',detail:'VFX・同期・視認性・負荷',tag:'VFX'},
   {id:'sounds',label:'サウンド',detail:'効果音・BGM・単独試聴',tag:'AUDIO'},
-  {id:'battle',label:'戦闘演出',detail:'段・技・連・序破急・実演',tag:'BATTLE'},
   {id:'battle2',label:'序破急バトル',detail:'百年転生の序破急戦闘を確認',tag:'BATTLE'},
-  {id:'battlebk',label:'戦闘演出bk',detail:'戦闘演出2のバックアップ',tag:'BATTLE'},
 ].map(Object.freeze));
 
 export const REVIEW_RUNTIME_PATHS=Object.freeze({
@@ -16,7 +14,6 @@ export const REVIEW_RUNTIME_PATHS=Object.freeze({
   objects:'review-objects',
   effects:'review-effects',
   sounds:'review-sound',
-  battle:'review-battle',
 });
 
 const currentHref=()=>globalThis.location?.href||'http://localhost/';

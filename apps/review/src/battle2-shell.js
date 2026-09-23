@@ -1,6 +1,6 @@
 import {createReviewRoutes,mountReviewShell} from '@soul/shared-ui/review-shell';
 
-// The review frame is shared with the original battle probe; the game stays headless.
+// The canonical battle review stays headless inside the shared review frame.
 export function mountBattle2ReviewShell({doc=document,win=window}={}){
   const header=doc.querySelector('.review-surface__header');
   if(!header)return null;
@@ -14,7 +14,6 @@ export function mountBattle2ReviewShell({doc=document,win=window}={}){
     const url=new URL(href);url.pathname=url.pathname.replace(/\.html$/,'');return [id,url.href];
   }));
   routes.battle2=new URL('battle2',homeHref).href;
-  routes.battlebk=new URL('battlebk',homeHref).href;
   const mounted=mountReviewShell({current:'battle2',routes:Object.freeze(routes),homeHref,header});
   if(!mounted)return null;
   const onKeyDown=event=>{

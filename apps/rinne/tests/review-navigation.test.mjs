@@ -31,14 +31,14 @@ test('stage gear discovers declarative controls instead of a per-screen selector
   const [rinneShell,stage,...pages]=await Promise.all([
     read('src/review-lab-shell.js'),
     read('../../packages/shared-ui/src/review-stage.js'),
-    ...['review-motion.html','review-assets.html','review-objects.html','review-effects.html','review-sound.html','review-battle.html'].map(read),
+    ...['review-motion.html','review-assets.html','review-objects.html','review-effects.html','review-sound.html'].map(read),
   ]);
   assert.doesNotMatch(rinneShell,/STAGE_CONTROL_GROUPS|motion-camera-strip|asset-camera-strip/);
   assert.match(rinneShell,/mountReviewStageControls\(\)/);
   assert.match(stage,/selector='\[data-review-stage-control\]'/);
   assert.match(stage,/if\(!nodes\.length\)return null/);
   const counts=pages.map(html=>(html.match(/data-review-stage-control/g)||[]).length);
-  assert.deepEqual(counts,[1,1,1,1,2,2]);
+  assert.deepEqual(counts,[1,1,1,1,2]);
 });
 
 test('slot picker is a shared-ui primitive and RINNE keeps only the adapter',async()=>{

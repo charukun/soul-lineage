@@ -37,27 +37,15 @@ test('static thumbnails and review status updates use shared-ui primitives',asyn
   assert.doesNotMatch(assets,/createElementNS\('http:\/\/www\.w3\.org\/2000\/svg','svg'\)/);
 });
 
-test('battle review styling is externalized without changing its markup contract',async()=>{
-  const [html,css]=await Promise.all([
-    read('apps/rinne/review-battle.html'),
-    read('apps/rinne/src/review-battle.css'),
-  ]);
-  assert.match(html,/href="\.\/src\/review-battle\.css"/);
-  assert.doesNotMatch(html,/<style>/);
-  for(const selector of ['.battle-review','.camera-zoom','.review-settings','.battle-sequence-hud','.battle-inspiration'])assert.ok(css.includes(selector),selector);
-});
-
 test('review metadata and stage controls use shared semantic contracts',async()=>{
-  const [motion,objects,effects,sound,battle]=await Promise.all([
+  const [motion,objects,effects,sound]=await Promise.all([
     read('apps/rinne/review-motion.html'),
     read('apps/rinne/review-objects.html'),
     read('apps/rinne/review-effects.html'),
     read('apps/rinne/review-sound.html'),
-    read('apps/rinne/review-battle.html'),
   ]);
   assert.match(motion,/motion-meta review-surface__meta/);
   assert.match(objects,/object-details review-surface__meta/);
   assert.match(effects,/controls" data-review-stage-control/);
   assert.equal((sound.match(/data-review-stage-control/g)||[]).length,2);
-  assert.equal((battle.match(/data-review-stage-control/g)||[]).length,2);
 });

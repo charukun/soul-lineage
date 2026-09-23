@@ -65,3 +65,14 @@ test('enemy 葬焉 waits for full knockdown and recovery does not interrupt it',
  for(let i=0;i<720&&recoverAt===null;i++){const result=scenario.step(1/60);for(const row of result.meta.activity){if(row.type==='finisher-start'&&row.sourceId!=='hero'&&row.targetId==='hero')startAt=i/60;if(row.type==='finisher-complete'&&row.sourceId!=='hero'&&row.targetId==='hero')completeAt=i/60;if(row.type==='hero-recovered')recoverAt=i/60;}}
  assert.ok(startAt!==null&&startAt>=1.5);assert.ok(completeAt!==null);assert.ok(recoverAt!==null&&recoverAt>=completeAt);
 });
+
+test('battle2 rescues inspiration into the current phase, first-casts it immediately, and keeps it equipped',()=>{
+ const scenario=createJohakyuP7ReviewScenario({settings:{inspirationRate:'high'},actorOverrides:{hero:{hp:900,maxHp:900},'enemy-a':{hp:12000,maxHp:12000}}});let learned=null,started=null;
+ for(let i=0;i<60*90&&(!learned||!started);i++){
+  const result=scenario.step(1/60);
+  learned||=result.meta.activity.find(row=>row.type==='inspiration'&&row.actorId==='hero');
+  if(learned)started||=result.meta.activity.find(row=>row.type==='inspiration-start'&&row.sourceId==='hero'&&row.techniqueId===learned.techniqueId);
+ }
+ assert.ok(learned);assert.equal(learned.equipped,true);assert.equal(learned.firstCast,true);assert.ok(['jo','ha','kyu'].includes(learned.phase));
+ assert.ok(started);assert.equal(started.phase,learned.phase);assert.equal(scenario.loadout.technique[learned.phase],learned.techniqueId);assert.ok(scenario.learnedTechniqueIds.includes(learned.techniqueId));
+});
