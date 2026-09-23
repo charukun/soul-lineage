@@ -290,6 +290,10 @@ body.simple-review.character-grid-ready .stage-status #status[data-error="true"]
   color:#ece9df;
   text-decoration:none;
 }
+.character-review-setting-toggle{grid-column:1/-1;min-height:60px;font:inherit;text-align:left;cursor:pointer}
+.character-review-setting-toggle:disabled{opacity:.55;cursor:wait}
+.character-review-setting-toggle[aria-pressed="true"]{border-color:#b9a66c;background:#29271f}
+.character-review-setting-toggle:focus-visible{outline:2px solid #d7c58b;outline-offset:2px}
 .character-review-setting-link strong{
   font-size:12px;
   font-weight:760;
