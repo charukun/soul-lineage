@@ -348,3 +348,72 @@
   .rinne-core-menu .loadout-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important}
 }
 @media(prefers-reduced-motion:reduce){.rinne-core-menu{transition:none!important}.rinne-core-menu .loadout-slot[data-swap-mode="true"]{animation:none!important}}
+
+/* Technique notebook: the selected technique reads as the main page. */
+.rinne-core-menu[data-type="technique"]{
+  max-height:min(76dvh,720px);
+}
+.rinne-core-menu[data-type="technique"] .loadout-slot-row{
+  margin-bottom:8px!important;
+}
+.rinne-core-menu[data-type="technique"] .loadout-slot{
+  min-height:50px!important;
+}
+.rinne-core-menu[data-type="technique"] .loadout-slot>.skill-sigil{
+  width:22px!important;height:22px!important;min-width:22px!important;
+}
+.rinne-core-menu[data-type="technique"] .loadout-detail{
+  grid-template-columns:42px minmax(0,1fr) auto;
+  gap:10px;
+  min-height:104px;
+  margin:0 0 12px;
+  padding:13px 12px;
+  border:2px solid color-mix(in srgb,var(--menu-accent) 60%,#94714d 40%);
+  border-radius:16px;
+  background:
+    radial-gradient(circle at 9% 15%,rgba(255,255,255,.82),transparent 45%),
+    linear-gradient(145deg,#fffaf0,#f2dfba);
+  box-shadow:inset 0 0 0 3px rgba(255,255,255,.44),0 5px 12px rgba(77,53,35,.15);
+}
+.rinne-core-menu[data-type="technique"] .loadout-detail>.skill-sigil{
+  width:40px!important;height:40px!important;min-width:40px!important;
+}
+.rinne-core-menu[data-type="technique"] .loadout-detail-copy{gap:4px}
+.rinne-core-menu[data-type="technique"] .loadout-detail-copy>small{
+  color:#82603c;font-size:9px;letter-spacing:.1em;
+}
+.rinne-core-menu[data-type="technique"] .loadout-detail-copy>strong{
+  color:#39291d;font-size:17px;line-height:1.3;white-space:normal;
+}
+.rinne-core-menu[data-type="technique"] .loadout-detail-copy>span{
+  color:#5b4632;font-size:11px;line-height:1.4;white-space:normal;
+}
+.rinne-core-menu[data-type="technique"] .loadout-detail-copy>em{
+  color:#816b52;font-size:9px;line-height:1.3;white-space:normal;
+}
+.rinne-core-menu[data-type="technique"] .loadout-detail-action>small{
+  color:#725940;font-size:9px;
+}
+.rinne-core-menu[data-type="technique"] .loadout-detail-action>button{
+  min-height:36px;padding:7px 10px;font-size:10px;
+}
+.rinne-core-menu[data-type="technique"] .loadout-library{
+  border-top-color:rgba(111,77,47,.32)!important;
+}
+.rinne-core-menu[data-type="technique"] .loadout-library>header strong{
+  font-size:11px!important;
+}
+@media(max-width:420px){
+  .rinne-core-menu[data-type="technique"]{max-height:min(72dvh,650px)}
+  .rinne-core-menu[data-type="technique"] .loadout-detail{
+    grid-template-columns:34px minmax(0,1fr) auto;
+    gap:7px;min-height:102px;padding:10px 8px;
+  }
+  .rinne-core-menu[data-type="technique"] .loadout-detail>.skill-sigil{
+    width:32px!important;height:32px!important;min-width:32px!important;
+  }
+  .rinne-core-menu[data-type="technique"] .loadout-detail-copy>strong{font-size:15px}
+  .rinne-core-menu[data-type="technique"] .loadout-detail-action>button{
+    min-height:34px;padding:5px 6px;font-size:9px;
+  }
+}
