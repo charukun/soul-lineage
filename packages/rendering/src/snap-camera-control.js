@@ -10,6 +10,18 @@ export function rotateCameraOffset(offset,yaw=0,zoom=1){
   return{x:(x*c-z*s)*scale,y:y*scale,z:(x*s+z*c)*scale};
 }
 
+
+// Keep the horizontal orbit and distance under the existing zoom controls while
+// bringing the camera closer to eye level as the user zooms in.
+export function tiltCameraOffsetForZoom(offset,zoom=1){
+  const x=Number(offset?.x)||0,y=Number(offset?.y)||0,z=Number(offset?.z)||0;
+  const horizontal=Math.hypot(x,z);
+  if(horizontal<.001)return{x,y,z};
+  const scale=Number.isFinite(Number(zoom))?Number(zoom):1;
+  const pitch=Math.max(Math.PI/12,Math.min(Math.PI*5/18,Math.atan2(y,horizontal)+(scale-1)*.65));
+  return{x,y:horizontal*Math.tan(pitch),z};
+}
+
 export function zoomFromVerticalSwipe(startZoom,deltaY,{min=.58,max=1.65,sensitivity=.006}={}){
   return clamp((Number(startZoom)||1)+(Number(deltaY)||0)*sensitivity,min,max);
 }

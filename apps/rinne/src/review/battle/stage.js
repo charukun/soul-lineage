@@ -10,7 +10,7 @@ import {createInspirationMotionLab,createInspirationVfxLab} from './choreography
 import {applyReviewCombatMotion} from './hero-motion.js';
 import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {resolveTechniquePresentation} from '@soul/johakyu-presentation/technique-presentation';
-import {createSnapCameraControl} from '@soul/rendering/snap-camera-control';
+import {createSnapCameraControl,tiltCameraOffsetForZoom} from '@soul/rendering/snap-camera-control';
 import {createCameraDirector,externalCameraShot} from '@soul/rendering/camera-director';
 import {actorScreenSafety,applyCameraPresentation} from '@soul/rendering/camera-presentation-three';
 import '@soul/rendering/snap-camera-control.css';
@@ -203,11 +203,11 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     const authored=frame.system==='inspiration'||frame.finisher||!frame.follow;
     let cameraInput;
     if(authored){
-      const zoom=frame.system==='inspiration'?1:cameraZoom,position={x:frame.look.x+(frame.position.x-frame.look.x)*zoom,y:frame.look.y+(frame.position.y-frame.look.y)*zoom,z:frame.look.z+(frame.position.z-frame.look.z)*zoom};
+      const zoom=frame.system==='inspiration'?1:cameraZoom,offset=tiltCameraOffsetForZoom({x:frame.position.x-frame.look.x,y:frame.position.y-frame.look.y,z:frame.position.z-frame.look.z},zoom),position={x:frame.look.x+offset.x*zoom,y:frame.look.y+offset.y*zoom,z:frame.look.z+offset.z*zoom};
       cameraInput={mode:frame.system==='inspiration'||frame.finisher?'cinematic':'combat',actor,target,aspect:camera.aspect,space:'review-battle',screenSafety:cameraScreenSafety,authoredShot:externalCameraShot({position,lookTarget:frame.look,fov:fovTarget})};
     }else{
       const offset={x:frame.position.x-frame.look.x,y:frame.position.y-frame.look.y,z:frame.position.z-frame.look.z};
-      cameraInput={mode:'combat',actor,target,aspect:camera.aspect,space:'review-battle',screenSafety:cameraScreenSafety,combatFrame:{look:frame.look,offset},yawOffset:cameraOrbit,framing:{zoom:cameraZoom}};
+      cameraInput={mode:'combat',actor,target,aspect:camera.aspect,space:'review-battle',screenSafety:cameraScreenSafety,combatFrame:{look:frame.look,offset:tiltCameraOffsetForZoom(offset,cameraZoom)},yawOffset:cameraOrbit,framing:{zoom:cameraZoom}};
     }
     const presentation=cameraDirector.update(cameraInput,step);applyCameraPresentation(camera,presentation);cameraLook.set(presentation.lookTarget.x,presentation.lookTarget.y,presentation.lookTarget.z);
     if(frame.system==='inspiration'&&frame.roll)camera.rotateZ(frame.roll);
