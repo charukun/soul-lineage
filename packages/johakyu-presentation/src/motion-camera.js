@@ -1,9 +1,9 @@
 // Camera direction belongs to the motion, so new techniques can define their own shot.
 export const MOTION_CAMERA = Object.freeze({
-  // Finishers stay close, but focus the midpoint so the downed target remains part of the close-up.
-  'finisher.execution': Object.freeze({distance:5.2,height:2.35,focusHeight:.78,angle:.62,targetBlend:.5}),
-  // Zanshin pulls away while retaining the defeated target in the composition.
-  'phase:zanshin': Object.freeze({distance:10.5,height:4.35,focusHeight:1,angle:0,targetBlend:.36}),
+  // Finisher is framed from the side of the hero-target line so the defeated target's burst stays visible.
+  'finisher.execution': Object.freeze({distance:6.4,height:2.65,focusHeight:.72,angle:1.25,targetBlend:.68,basis:'target'}),
+  // Zanshin is a pulled-back frontal shot of the hero, independent of the defeated target.
+  'phase:zanshin': Object.freeze({distance:13.5,height:3.7,focusHeight:1.08,angle:0,targetBlend:0,basis:'actor'}),
 });
 
 export function cameraForMotion(actor) {
