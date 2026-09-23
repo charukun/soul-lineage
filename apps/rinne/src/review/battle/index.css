@@ -470,3 +470,10 @@ main.battle-review.review-surface .camera-zoom{display:none!important}
 .stage[data-inspiration-beat]>.battle-camera-control-host{
   opacity:1!important;pointer-events:auto!important;filter:none!important;
 }
+
+/* Fresh inspiration belongs over the hero and remains readable until the title appears. */
+.stage .battle-lightbulb{width:42px!important;height:42px!important;display:grid!important;place-items:center!important;border:1px solid rgba(255,239,173,.88)!important;border-radius:50%!important;background:radial-gradient(circle,#5a4223 0%,#17202b 72%)!important;color:#fff2c9!important;font:900 25px/1 var(--font-rinne-display)!important;text-shadow:0 0 7px #f9d783!important;box-shadow:0 0 14px rgba(255,218,111,.76),0 0 32px rgba(255,218,111,.32)!important;animation:battle-lightbulb-pop .95s ease-out both!important}
+.stage .battle-lightbulb[data-grade="ultimate"]{color:#fff9e6!important;border-color:#fff5ba!important;background:radial-gradient(circle,#a97a27,#273447 72%)!important;box-shadow:0 0 20px rgba(255,224,104,.95),0 0 46px rgba(255,217,108,.6)!important}
+.technique-card{position:relative}.technique-card[data-new="true"],.technique-chain[data-new="true"] .technique-card:last-child{border-left-color:#f8d47e!important}.technique-card__new{position:absolute;right:2px;top:1px;padding:1px 3px;border-radius:3px;background:#f5d485;color:#1b2530;font:900 8px/1.2 var(--font-rinne-display)}
+.battle-inspiration[data-grade="ultimate"]{filter:drop-shadow(0 0 16px rgba(255,211,92,.76))!important}
+@media(prefers-reduced-motion:reduce){.stage .battle-lightbulb{animation:none!important}}
