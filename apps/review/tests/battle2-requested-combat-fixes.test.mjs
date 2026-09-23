@@ -73,11 +73,12 @@ test('閃きは初回演出と発動中だけ重ならず、終了後は再抽�
  const seen=battle2InspirationCandidates({weapon:'sword',phase:'ha'}).map(item=>item.row.id);
  assert.ok(seen.length>0);assert.equal(pickBattle2Inspiration({weapon:'sword',phase:'ha',seenIds:seen}),null);
  const scenario=createJohakyuP7ReviewScenario({settings:{inspirationRate:'high'},actorOverrides:{hero:{hp:300,maxHp:300,damageScale:2},'enemy-a':{hp:9000,maxHp:9000,canAttack:false}}});
- const inspirations=[],completions=new Map();
+ const inspirations=[];
  for(let i=0;i<3600;i++){
-  for(const row of scenario.step(1/60).events){
-   if(row.type==='inspiration')inspirations.push(row);
-   if(row.type==='technique-complete'&&row.sourceId==='hero'&&!completions.has(row.techniqueId))completions.set(row.techniqueId,row.time);
+  const frame=scenario.step(1/60);
+  for(const row of frame.events)if(row.type==='inspiration'){
+   assert.notEqual(frame.frame.actors.find(actor=>actor.id==='hero')?.action?.scope,'trial','another discovery cannot interrupt an active first cast');
+   inspirations.push(row);
   }
  }
  assert.ok(inspirations.length>=2,'new discoveries resume after the first presentation');
@@ -85,7 +86,6 @@ test('閃きは初回演出と発動中だけ重ならず、終了後は再抽�
  for(let i=1;i<inspirations.length;i++){
   const previous=inspirations[i-1],next=inspirations[i];
   assert.ok(next.time-previous.time>=previous.firstInspirationPresentation.hudSeconds-1/60);
-  assert.ok(next.time>=completions.get(previous.techniqueId)-1/60,'the first cast finishes before another discovery');
  }
  assert.ok(inspirations[1].time-inspirations[0].time<18,'there is no fixed post-reveal lockout');
 });
