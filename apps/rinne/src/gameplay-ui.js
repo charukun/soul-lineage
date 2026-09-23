@@ -22,12 +22,12 @@ import './playable-core-ui.css';
 import './rinne-world-ui.css';
 import '@soul/shared-ui/rinne-loadout-menu.css';
 import './combat-exchange-cue.css';
+import '@soul/shared-ui/johakyu-hud.css';
 import './johakyu-battle-hud.css';
 import '@soul/shared-ui/rinne-primary-four.css';
 import {RINNE_UI_VERSION} from './ui-version.js';
 import {createRinnePlayerHud,rinnePlayerNameFromSeed} from '@soul/shared-ui/rinne-player-hud';
 import '@soul/shared-ui/rinne-player-hud.css';
-import '@soul/shared-ui/rinne-reference-hud.css';
 import './reference-exploration-hud.css';
 import '@soul/shared-ui/rinne-field-radar.css';
 import {createCombatBodyHud} from './combat-body-hud.js';
@@ -45,11 +45,6 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     <aside data-player-hud class="rinne-player-hud-host" aria-label="プレイヤー情報HUD"></aside>
     <aside data-combat-body-hud class="combat-body-hud-host" aria-label="身体部位HUD"></aside>
     ${rinneFieldRadarMarkup()}
-    <section class="rinne-player-strip rinne-player-ghost" data-player-info aria-label="プレイヤー情報">
-      <div class="player-identity"><strong data-name>旅人</strong><small data-state>探索</small></div>
-      <div class="player-equipment"><span>装</span><strong data-equip>素手 · 旅装</strong></div>
-      <div data-talent-tags class="player-talent-tags" aria-label="人物タグ"></div>
-    </section>
     <small class="gameplay-surface-version">UI ${RINNE_UI_VERSION}</small>
     <section data-vitals class="rinne-context-vitals" hidden aria-label="息"><div data-vital-breath class="context-vital is-breath"><span>息</span><i><b data-context-stamina></b></i></div></section>
     <aside data-mind class="rinne-mind-balance" hidden aria-label="現在の意識バランス"><span class="mind-title">意識</span><div class="mind-orbit" aria-hidden="true"><i data-axis="attack"><b>攻</b></i><i data-axis="guard"><b>守</b></i><i data-axis="spacing"><b>間</b></i><i data-axis="counter"><b>返</b></i><i data-axis="mobility"><b>機</b></i><i data-axis="survival"><b>生</b></i><em></em></div><strong data-mind-state>中庸</strong></aside>
@@ -97,9 +92,8 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const q=s=>root.querySelector(s),panel=q('[data-panel]'),playerHud=createRinnePlayerHud(q('[data-player-hud]')),combatBodyHud=createCombatBodyHud({root:q('[data-combat-body-hud]')}),ui={
     root,dash,
     heart:q('[data-heart]'),techniques:q('[data-techniques]'),trainingStrike:q('[data-training-strike]'),menu:q('[data-menu]'),quickMenu:q('[data-quick-menu]'),bodyButton:q('[data-body]'),items:q('[data-items]'),map:q('[data-map]'),fieldRadar:q('[data-field-radar]'),record:q('[data-record]'),phase:q('[data-phase]'),phaseHistory:q('[data-phase-history]'),phaseAction:q('[data-phase-action]'),exchangeCue:q('[data-exchange-cue]'),phaseTrack:q('[data-phase-track]'),phaseTechniques:q('[data-phase-techniques]'),
-    radarPlaces:q('[data-radar-places]'),radarTarget:q('[data-radar-target]'),radarPlayer:q('[data-radar-player]'),radarDistance:q('[data-radar-distance]'),radarLabel:q('[data-radar-label]'),
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
-    rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]'),talentTags:q('[data-talent-tags]'),
+    rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),
     vitals:q('[data-vitals]'),vitalBreath:q('[data-vital-breath]'),contextStamina:q('[data-context-stamina]'),
     mind:q('[data-mind]'),mindState:q('[data-mind-state]')
   };
@@ -268,9 +262,9 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     ui.mindState.textContent=labels[dominant]||'中庸';ui.mind.dataset.dominant=dominant;
   }
   function summary(s,{dashing=false,resting=false,training=null}={}){
-    state=s;if(ui.panel&&!ui.panel.hidden&&!ui.panel.dataset.type)close();speech.sync();loadoutUI.syncCombat(s);const hudName=s.name&&s.name!=='旅人'?s.name:rinnePlayerNameFromSeed(s.seed);ui.name.textContent=hudName;playerHud?.update({name:hudName,age:s.ageYears});combatBodyHud?.update(s);ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;
-    const talents=s.inspiration?.talents||[],tags=[];if(talents.includes('tenyo'))tags.push('天与');if(talents.includes('sui'))tags.push('彗');ui.talentTags.replaceChildren(...tags.map(label=>{const tag=document.createElement('span');tag.textContent=label;return tag;}));ui.talentTags.hidden=!tags.length;updateRadar();
-    ui.state.textContent=s.down?'救助待ち':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;ui.trainingStrike.hidden=!engaged||s.down||s.ended;ui.trainingStrike.dataset.ready=String(engaged);if(engaged){ui.trainingName.textContent=training.label;ui.trainingStrike.setAttribute('aria-label',`${training.label}を打って稽古する`);}updateContextVitals(s,{dashing,resting,training});updateMindBalance(s,training);
+    state=s;if(ui.panel&&!ui.panel.hidden&&!ui.panel.dataset.type)close();speech.sync();loadoutUI.syncCombat(s);const hudName=s.name&&s.name!=='旅人'?s.name:rinnePlayerNameFromSeed(s.seed);playerHud?.update({name:hudName,age:s.ageYears});combatBodyHud?.update(s);
+    updateRadar();
+    ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;ui.trainingStrike.hidden=!engaged||s.down||s.ended;ui.trainingStrike.dataset.ready=String(engaged);if(engaged){ui.trainingName.textContent=training.label;ui.trainingStrike.setAttribute('aria-label',`${training.label}を打って稽古する`);}updateContextVitals(s,{dashing,resting,training});updateMindBalance(s,training);
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
     ui.phase.hidden=!(phase||(s.combat?.engine==='tidebreak'&&s.combat?.exchange&&!s.down&&!s.ended));
     const sharedAction=s.combat?.engine==='johakyu'?s.combat?.johakyuAction:null;
