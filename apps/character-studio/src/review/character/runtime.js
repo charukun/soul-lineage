@@ -12,7 +12,6 @@ import {createReviewLoadController} from '@soul/shared-ui/review-load-controller
 import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
 import {createImg2ThreeReferenceCharacter} from '../../img2threejs-bald-chibi.js';
-import {createReferenceChibi,REFERENCE_CHIBI_ID} from '../../../../../packages/assets/src/procedural-character/create-reference-chibi.js';
 
 const el = id => document.getElementById(id);
 const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null, displayModelId: null };
@@ -366,17 +365,6 @@ function start() {
     review.displayModelId = null;
     activeModelLabel = defaultModel.label;
     return load(defaultBytes, auditKaykitDocument, kaykitReviewRig);
-  };
-  review.loadProceduralChibi = () => {
-    if (!simpleModelReview || !pool || !review.ready) throw new Error('キャラクターモデルの準備中です');
-    modelLoads.invalidate(); modelRequestSequence++;
-    clearProcedural(); proceduralRoot = createReferenceChibi(THREE);
-    scene.add(proceduralRoot); review.proceduralRoot = proceduralRoot;
-    review.displayModelId = REFERENCE_CHIBI_ID;
-    activeModelLabel = '正面図チビキャラ';
-    arrange(); aim('front');
-    status('正面図チビキャラ · 背面と奥行きは推定した3D確認候補');
-    window.dispatchEvent(new Event('character-review-change'));
   };
   review.loadFoundationModel = model => {
     modelRequestSequence++;
