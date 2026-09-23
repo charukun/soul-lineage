@@ -26,6 +26,7 @@ import '@soul/shared-ui/rinne-primary-four.css';
 import {RINNE_UI_VERSION} from './ui-version.js';
 import {createRinnePlayerHud,rinnePlayerNameFromSeed} from '@soul/shared-ui/rinne-player-hud';
 import '@soul/shared-ui/rinne-player-hud.css';
+import './reference-exploration-hud.css';
 import {createCombatBodyHud} from './combat-body-hud.js';
 
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
@@ -40,6 +41,10 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   root.innerHTML=`
     <aside data-player-hud class="rinne-player-hud-host" aria-label="プレイヤー情報HUD"></aside>
     <aside data-combat-body-hud class="combat-body-hud-host" aria-label="身体部位HUD"></aside>
+    <button data-field-radar class="rinne-field-radar" type="button" aria-label="地図を開く">
+      <span class="rinne-field-radar__face" aria-hidden="true"><span class="rinne-field-radar__rings"></span><span data-radar-places class="rinne-field-radar__places"></span><em data-radar-target class="rinne-field-radar__target" hidden></em><i data-radar-player class="rinne-field-radar__player"></i><u>N</u></span>
+      <small data-radar-label class="rinne-field-radar__label">村</small><strong data-radar-distance class="rinne-field-radar__distance">MAP</strong>
+    </button>
     <section class="rinne-player-strip rinne-player-ghost" data-player-info aria-label="プレイヤー情報">
       <div class="player-identity"><strong data-name>旅人</strong><small data-state>探索</small></div>
       <div class="player-equipment"><span>装</span><strong data-equip>素手 · 旅装</strong></div>
@@ -76,7 +81,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     <aside data-quick-menu class="rinne-quick-menu rinne-secondary-sheet" hidden aria-label="地図と人生の記録">
       <header><span>旅の記録</span><small>地図と一族</small></header>
       <div class="rinne-secondary-grid">
-        <button data-map class="quick-menu-action quick-map is-map" type="button" aria-label="地図を開く"><b>図</b><span>地図</span><small data-radar-label>村</small><strong data-radar-distance>--</strong><span data-radar-places hidden></span><em data-radar-target hidden></em><i data-radar-player hidden></i></button>
+        <button data-map class="quick-menu-action quick-map is-map" type="button" aria-label="地図を開く"><b>図</b><span>地図</span><small>方位盤</small></button>
         <button data-record class="quick-menu-action is-record" type="button" aria-label="人生と系譜を開く"><b>譜</b><span>人生</span><small>一族の記録</small></button>
       </div>
     </aside>
@@ -91,7 +96,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const dash=document.createElement('button');dash.type='button';dash.hidden=true;
   const q=s=>root.querySelector(s),panel=q('[data-panel]'),playerHud=createRinnePlayerHud(q('[data-player-hud]')),combatBodyHud=createCombatBodyHud({root:q('[data-combat-body-hud]')}),ui={
     root,dash,
-    heart:q('[data-heart]'),techniques:q('[data-techniques]'),trainingStrike:q('[data-training-strike]'),menu:q('[data-menu]'),quickMenu:q('[data-quick-menu]'),bodyButton:q('[data-body]'),items:q('[data-items]'),map:q('[data-map]'),record:q('[data-record]'),phase:q('[data-phase]'),phaseHistory:q('[data-phase-history]'),phaseAction:q('[data-phase-action]'),exchangeCue:q('[data-exchange-cue]'),phaseTrack:q('[data-phase-track]'),phaseTechniques:q('[data-phase-techniques]'),
+    heart:q('[data-heart]'),techniques:q('[data-techniques]'),trainingStrike:q('[data-training-strike]'),menu:q('[data-menu]'),quickMenu:q('[data-quick-menu]'),bodyButton:q('[data-body]'),items:q('[data-items]'),map:q('[data-map]'),fieldRadar:q('[data-field-radar]'),record:q('[data-record]'),phase:q('[data-phase]'),phaseHistory:q('[data-phase-history]'),phaseAction:q('[data-phase-action]'),exchangeCue:q('[data-exchange-cue]'),phaseTrack:q('[data-phase-track]'),phaseTechniques:q('[data-phase-techniques]'),
     radarPlaces:q('[data-radar-places]'),radarTarget:q('[data-radar-target]'),radarPlayer:q('[data-radar-player]'),radarDistance:q('[data-radar-distance]'),radarLabel:q('[data-radar-label]'),
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]'),talentTags:q('[data-talent-tags]'),
@@ -200,8 +205,8 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     ui.radarPlaces.innerHTML=near.map(row=>{const dx=(row.x-state.position.x)/RADAR_RANGE*42,dz=(row.z-state.position.z)/RADAR_RANGE*42;return `<i data-category="${placeCategory(row)}" style="left:${50+clamp(dx,-42,42)}%;top:${50-clamp(dz,-42,42)}%" title="${esc(row.label||row.id)}"></i>`;}).join('');
     ui.radarPlayer.style.transform=`translate(-50%,-50%) rotate(${Number(state.yaw)||0}rad)`;
     const target=guidance?.navigation&&Number.isFinite(guidance.navigation.x)&&Number.isFinite(guidance.navigation.z)?guidance.navigation:null;
-    if(target){const dx=target.x-state.position.x,dz=target.z-state.position.z,len=Math.max(.001,Math.hypot(dx,dz)),scale=Math.min(42,(len/RADAR_RANGE)*42);ui.radarTarget.hidden=false;ui.radarTarget.style.left=`${50+dx/len*scale}%`;ui.radarTarget.style.top=`${50-dz/len*scale}%`;ui.radarDistance.textContent=`${target.distance}m`;ui.radarLabel.textContent=target.label;ui.map.setAttribute('aria-label',`地図を開く。${target.label}まで${target.distance}m`);}
-    else{ui.radarTarget.hidden=true;ui.radarDistance.textContent='MAP';ui.radarLabel.textContent=state.zone==='frontier'?'前線':'村';ui.map.setAttribute('aria-label','地図を開く');}
+    if(target){const dx=target.x-state.position.x,dz=target.z-state.position.z,len=Math.max(.001,Math.hypot(dx,dz)),scale=Math.min(42,(len/RADAR_RANGE)*42);ui.radarTarget.hidden=false;ui.radarTarget.style.left=`${50+dx/len*scale}%`;ui.radarTarget.style.top=`${50-dz/len*scale}%`;ui.radarDistance.textContent=`${target.distance}m`;ui.radarLabel.textContent=target.label;ui.fieldRadar.setAttribute('aria-label',`地図を開く。${target.label}まで${target.distance}m`);}
+    else{ui.radarTarget.hidden=true;ui.radarDistance.textContent='MAP';ui.radarLabel.textContent=state.zone==='frontier'?'前線':'村';ui.fieldRadar.setAttribute('aria-label','地図を開く');}
   }
   function map(){
     ui.title.textContent='地図 · 方位盤';
@@ -310,7 +315,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const observer=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes){if(!(node instanceof Element))continue;const dialog=node.matches?.('.life-end-dialog')?node:node.querySelector?.('.life-end-dialog');if(dialog)enhanceLifeEndDialog(dialog);}});observer.observe(document.body,{childList:true,subtree:true});
 
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
-  ui.menu.onclick=()=>{if(!ui.panel.hidden)close();toggleQuickMenu();};ui.heart.onclick=()=>toggle('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>toggle('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>toggle('body');ui.items.onclick=()=>toggle('items');ui.trainingStrike.addEventListener('click',()=>{closeQuickMenu();if(!ui.panel.hidden)close();},{capture:true});ui.map.onclick=()=>toggle('map');ui.record.onclick=()=>toggle('record');ui.close.onclick=close;
+  ui.menu.onclick=()=>{if(!ui.panel.hidden)close();toggleQuickMenu();};ui.heart.onclick=()=>toggle('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>toggle('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>toggle('body');ui.items.onclick=()=>toggle('items');ui.trainingStrike.addEventListener('click',()=>{closeQuickMenu();if(!ui.panel.hidden)close();},{capture:true});ui.map.onclick=()=>toggle('map');ui.fieldRadar.onclick=()=>toggle('map');ui.record.onclick=()=>toggle('record');ui.close.onclick=close;
   let lastModelPortraitAt=-Infinity;
   return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,setContextAnchor,renderPlayerPortrait:render=>{if(!render||!playerHud)return false;const now=performance.now();if(now-lastModelPortraitAt<180)return true;const drawn=render(playerHud.canvas);if(drawn){lastModelPortraitAt=now;playerHud.markPortrait('model');}return drawn;},capturePlayerPortrait:(source,options)=>playerHud?.capture(source,options),dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);clearTimeout(interruptTimer);observer.disconnect();gameScreen.removeEventListener('rinne:combat-feedback',onCombatFeedback);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();combatBodyHud?.destroy();playerHud?.destroy();tracker.dispose();speech.dispose();root.remove();}};
 }
