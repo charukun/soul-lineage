@@ -13,7 +13,7 @@ export function activateSampledDownedAction(mixer,action){
 }
 
 export function terminalPresentationState(row,kind){
- const downed=Boolean(row?.downed),dead=Boolean(row?.dead);
- const clip=downed?'Lie_Down':dead?(kind==='hero'?'Death_A':'Death_C_Skeletons'):null;
- return Object.freeze({downed,dead,clip,removalClock:dead});
+ const downed=Boolean(row?.downed),dead=Boolean(row?.dead),settled=downed&&(dead||row?.downedState?.phase==='settled');
+ const clip=downed?(settled?'Lie_Pose':'Lie_Down'):dead?(kind==='hero'?'Death_A':'Death_C_Skeletons'):null;
+ return Object.freeze({downed,dead,settled,clip,removalClock:dead});
 }
