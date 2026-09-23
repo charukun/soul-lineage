@@ -7,8 +7,7 @@ It does not override or rewrite the original gate, thresholds or state.
 """
 import argparse,json,sys
 from pathlib import Path
-import numpy as np
-from PIL import Image
+from PIL import Image,ImageChops,ImageFilter,ImageOps
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'packages/assets/forge'))
 from upstream_workspace import install_boundary,write_json,sha256
@@ -22,25 +21,25 @@ def diagnose(w,cache,pass_id):
     report={'upstreamFile':'forge/stage4_review/diagnose_render.py','upstreamAlgorithm':'per_part_color_delta (unmodified)','semantics':'Actual visible GPU part regions instead of the whole-frame coarse palette; same Lab delta calculation','authority':'diagnostic only; original Tier-1 gates unchanged','sourceHead':json.loads((out/'render-receipt.json').read_text())['sourceHead'],'views':{}}
     for view,palette in palettes.items():
         beauty_path=out/(view+'.png');ids_path=out/(view+'-part-ids.png')
-        beauty=np.asarray(Image.open(beauty_path).convert('RGB'));ids=np.asarray(Image.open(ids_path).convert('RGB'))
-        if beauty.shape!=ids.shape:raise ValueError('Part capture size differs from actual beauty capture')
+        beauty=Image.open(beauty_path).convert('RGB');ids=Image.open(ids_path).convert('RGB')
+        if beauty.size!=ids.size:raise ValueError('Part capture size differs from actual beauty capture')
         rows=[]
         for row in palette:
             cid=row['componentId'];node=nodes[cid]
-            mask=np.all(ids==row['rgb'],axis=2)
+            differences=ImageChops.difference(ids,Image.new('RGB',ids.size,tuple(row['rgb']))).split()
+            difference=ImageChops.lighter(ImageChops.lighter(differences[0],differences[1]),differences[2])
+            mask=difference.point(lambda v:255 if v==0 else 0)
             # Exclude AA/mixed boundary samples; retain actual visible interiors.
-            interior=mask.copy()
-            interior[1:-1,1:-1]&=mask[:-2,1:-1]&mask[2:,1:-1]&mask[1:-1,:-2]&mask[1:-1,2:]
-            interior[[0,-1],:]=False;interior[:,[0,-1]]=False
-            count=int(interior.sum())
+            interior=mask.filter(ImageFilter.MinFilter(3))
+            count=interior.histogram()[255]
             if count<16:
                 rows.append({'componentId':cid,'visibleInteriorPixels':count,'status':'not measurable from this view; occluded or subpixel','passed':None});continue
-            yy,xx=np.where(interior);y0,y1=int(yy.min()),int(yy.max())+1;x0,x1=int(xx.min()),int(xx.max())+1
+            box=interior.getbbox()
             # Background padding lets the unchanged foreground segmenter detect
             # even a uniform-colour isolated crop without using frame corners.
-            pixels=np.full((y1-y0+8,x1-x0+8,3),255,dtype=np.uint8)
-            pixels[4:-4,4:-4]=np.where(interior[y0:y1,x0:x1,None],beauty[y0:y1,x0:x1],255)
-            crop=out/'part-colors'/view/(cid+'.png');crop.parent.mkdir(parents=True,exist_ok=True);Image.fromarray(pixels).save(crop)
+            pixels=Image.new('RGB',(box[2]-box[0],box[3]-box[1]),'white')
+            pixels.paste(beauty.crop(box),(0,0),interior.crop(box))
+            crop=out/'part-colors'/view/(cid+'.png');crop.parent.mkdir(parents=True,exist_ok=True);ImageOps.expand(pixels,border=4,fill='white').save(crop)
             recipe=node.get('colorMaterialRecipeByView',{}).get(view,node['colorMaterialRecipe'])
             measured=per_part_color_delta([dict(recipe,componentId=cid)],crop)
             rows.append({'componentId':cid,'visibleInteriorPixels':count,'crop':str(crop.relative_to(w)),'cropSha256':sha256(crop),'metric':measured,'passed':measured['checked']==1 and measured['maxDeltaE']<=20})

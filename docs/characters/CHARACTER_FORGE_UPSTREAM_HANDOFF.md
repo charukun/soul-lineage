@@ -2,8 +2,11 @@
 
 ## Status
 
-BLOCKED by the pinned upstream material correction ceiling; PR stays Draft. This is a recovery record, not a character acceptance
-report. Do not mark Ready or merge this branch from the installation smoke result.
+**PAUSED BY USER / INCOMPLETE (2026-09-23).** The user requested ending this work now even with failing tests. Additional reconstruction, tests and merge work are stopped. PR #1524 remains Draft and unmerged. This is not a successful delivery or final validation. Historical hard-stop sections below remain evidence; the current state is active material 9/12, total 11/22, preserved without further mutation.
+
+Latest recorded source head: `a17525a14732ec8308085e6bfba803ffa5104842`.
+Latest develop fetched when pausing: `7f59f92fc3c076b639598fbfece44c0153a5e39e` (not reconciled).
+Pause checkpoint: `docs/characters/qa/forge-upstream-paused/checkpoint.json`.
 
 - PR: https://github.com/charukun/soul-lineage/pull/1524
 - Branch: `work/character-forge-upstream-20260923`
@@ -212,3 +215,17 @@ Run 35823791541 / de95ca4cc714deccb3a2fef08a0aae549616ba9b completed. All eight 
 The pinned diagnose_render.py explicitly documents that per_part_color_delta actually clusters the entire image into at most five colours; it has no per-component render regions. A diagnostic crop of the actual rear boot produced delta 3.35 with that same unmodified function, compared with the global report of 21.85. The next checkpoint captures actual GPU part IDs, isolates each visible part of the same beauty render, and calls the unchanged upstream function on every measurable component in every required view. Original global reports and all state/acceptance gates remain unchanged. This is causal evidence gathering, not an override or a new acceptance.
 
 The supplemental diagnostic checkpoint 4cd8337 / run 35824701915 stopped before rendering: it attempted to mark build-current-pass again while the saved state expected review-contract-read. Upstream correctly rejected the out-of-order write. Remove the redundant build/render marks for this supplementary diagnostic; retain active review state, all counters and original gate failures. No reconstruction or quality claim resulted from that failed run.
+
+## User-requested end of this work session
+
+The final user instruction was 「テストも不合格でもいいよ、おわらせてとりあえず」. This checkpoint preserves unfinished work and stops further attempts; it does not convert failed or unmeasured results into passes. No Ready transition, develop merge or DEV deployment was performed.
+
+Latest hosted run: https://github.com/charukun/soul-lineage/actions/runs/35824966537 at a17525a14732ec8308085e6bfba803ffa5104842. Actual eight beauty captures, F/S/B part-ID captures and upstream review diagnostics completed. The supplemental part-colour script then failed because numpy was absent. Its Pillow-only repair was run locally against those actual captures: 16 front, 11 side and 14 back measurable parts were within 20. This is local diagnostic evidence only. The original whole-frame back delta remains **21.85 > 20**, and material remains unaccepted. The checkpoint is not hosted-validated and no new tests are requested by its commit.
+
+The whole-frame five-colour clustering combines boots with skin/gold after the render introduces a teal rear-edge cluster. Isolated part diagnostics help explain this, but the teal rear surface also differs from the blue rear reference and must be fixed as a real projection/ownership problem. No posterior surface partition has been implemented. Hair speckles were repaired in Blender r9; the cap-like hair boundary and rear silhouette remain visual limitations.
+
+Prepared browser rig/morph/neutral-parity scripts are now preserved in source with explicit UNVALIDATED headers. They are not connected to the active specialist execution and have never bound or animated this actual Scout. There is no completed Golden Rig, Morph, Socket, animation, final Character Package or native Lab E2E for this model. Surface, lighting, interaction and optimization passes are also incomplete. Existing earlier tests and upstream execution evidence do not establish final regression/build/browser success.
+
+Exact state and spec are stored as lossless gzip snapshots under `qa/forge-upstream-paused/`; `gzip -dc` recovers their original JSON bytes and checkpoint.json contains original SHA-256 values. The supplemental JSON is explicitly named `.local.json`; its source images and render receipt came from the hosted artifact. The temporary seven-day artifact contains the large actual GLB, textures, Blender file and visual evidence. These are not a permanent final package; if that artifact expires, the existing runner must reconstruct/preserve its data before continuation. Do not silently reset the state or claim package reproducibility.
+
+No pins, quality thresholds, loop limits, ordinary Fast DEV/Production gates or common runtime contracts are changed by this pause. The task-only workflow remains on this Draft branch for possible continuation and must be removed before any eventual merge. Resume on the same branch/PR only; first refresh GitHub state and inspect this checkpoint. Final reconciled exact-head validation, Ready, merge commit and DEV-start evidence do not exist.

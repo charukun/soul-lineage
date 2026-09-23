@@ -1,0 +1,74 @@
+{
+  "status": "PAUSED_BY_USER_INCOMPLETE",
+  "requestedOn": "2026-09-23",
+  "userInstruction": "テストも不合格でもいいよ、おわらせてとりあえず",
+  "pr": "https://github.com/charukun/soul-lineage/pull/1524",
+  "branch": "work/character-forge-upstream-20260923",
+  "sourceHead": "a17525a14732ec8308085e6bfba803ffa5104842",
+  "developAtPause": "7f59f92fc3c076b639598fbfece44c0153a5e39e",
+  "finalValidatedExactHead": null,
+  "ready": false,
+  "merged": false,
+  "qualityFloorPassed": false,
+  "currentPass": "material-pass",
+  "currentStep": "review-contract-read",
+  "materialCorrections": 9,
+  "materialCorrectionLimit": 12,
+  "totalCorrections": 11,
+  "totalCorrectionLimit": 22,
+  "acceptedPasses": [
+    "blockout-pass",
+    "structural-pass",
+    "form-pass"
+  ],
+  "lastHostedRun": {
+    "url": "https://github.com/charukun/soul-lineage/actions/runs/35824966537",
+    "conclusion": "failure",
+    "reason": "Actual captures completed; diagnostic script failed on missing numpy. Pillow-only repair is preserved but not hosted-validated."
+  },
+  "artifact": {
+    "id": 10734668740,
+    "zipSha256": "15320a8e4997a420079b951655fda243a832e45d241151eebdc5d278f3af7b6a",
+    "evidenceTarSha256": "b2a776b4c7f0d42324729f3d5ed4d4ee9129b5c76d4c213f6b12d419e148a5c0",
+    "retentionDays": 7
+  },
+  "stateSha256": "abe39e39e7800478b4b286f6df6dd324d4929b49024ee400b065acc733f001e4",
+  "specSha256": "67dede766ec961de726281b515967c57bde1f1af62dd5a21b3f89a2f5599f044",
+  "originalGlobalColorGate": {
+    "backMaxDeltaE": 21.85,
+    "threshold": 20,
+    "passed": false
+  },
+  "localSupplementalDiagnostic": {
+    "authority": "diagnostic only; does not override original global gate",
+    "hostedValidated": false,
+    "measuredParts": {
+      "front": 16,
+      "side": 11,
+      "back": 14
+    },
+    "allMeasuredPartsWithin20": true
+  },
+  "preparedNotExecutedOnScout": [
+    "browser_workspace.mjs",
+    "prepare_rig_browser.mjs",
+    "verify_attach_preparation.py",
+    "author_scout_morph.py",
+    "bind_rig_browser.mjs"
+  ],
+  "nextWork": [
+    "Retain original gate failure; diagnose rear side-teal contamination and author reference-backed surface ownership correction. No correction has been made or approved at this pause.",
+    "Record actual review through upstream state machine; preserve counters and limits.",
+    "Complete remaining staged reconstruction before actual rig/morph/socket/package/native Lab execution.",
+    "Re-fetch latest develop, reconcile same branch, remove task-only workflow and perform final exact-head hosted validation before Ready/merge."
+  ],
+  "artifactLimitation": "The compact state/spec and diagnostic snapshots are durable, but do not include the large GLB, textures, Blender file, or captures. The Actions artifact is temporary and must be preserved or reconstructed through the existing runner if expired. Do not claim the final package is reproducible yet.",
+  "elapsedTimeBasis": {
+    "earliestVerifiedRecoveryCommit": "bc3bfe49f2de6a29972aa70f753bd193cd16de09",
+    "earliestVerifiedRecoveryCommitAt": "2026-09-23T01:03:07Z",
+    "pauseClockObservedAt": "2026-09-23T06:18:26Z",
+    "elapsedAtObservation": "5 hours 15 minutes 19 seconds",
+    "requestReceivedAt": null,
+    "note": "A lower bound from the first recovery implementation commit, not the unavailable exact user-message timestamp."
+  }
+}
