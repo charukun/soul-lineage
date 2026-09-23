@@ -21,6 +21,12 @@ def author(w,cache):
         material['shaderNotes'].append('PBR channels remain estimates; original de-lit full-view albedo supplies face, fringe, belt and rear emblem identity. No procedural replacement.')
     write_json(w/'object-sculpt-spec.json',spec)
     install=install_boundary(cache,cache/'host')
+    evidence='img2threejs/evidence/material-r0-review.json'
+    if not any(evidence in item.get('evidence',[]) for item in spec.get('reviewHistory',[])):
+        rejected=json.loads((ROOT/'scripts/character-forge/fixtures/upstream-scout-material-r0-review.json').read_text())
+        write_json(w/evidence,rejected)
+        code=checked_run(install,w,'forge/stage4_review/append_review.py',['object-sculpt-spec.json','--pass-id','material-pass','--action',rejected['action'],'--fidelity',str(rejected['fidelity']),'--summary',rejected['reason'],'--evidence',evidence,'--in-place'])
+        if code:return code
     return checked_run(install,w,'forge/stage2_spec/validate_sculpt_spec.py',['object-sculpt-spec.json','--strict-quality','--json'])
 
 if __name__=='__main__':

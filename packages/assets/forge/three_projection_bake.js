@@ -89,7 +89,10 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
     const uniforms={fallbackColor:{value:new THREE.Color().setStyle(palette,THREE.SRGBColorSpace).convertLinearToSRGB()},channelIndex:{value:0}};
     for(const v of views){uniforms[v.name+'Image']={value:v.maps.albedo};uniforms[v.name+'Depth']={value:v.target.depthTexture};uniforms[v.name+'Mask']={value:v.maps.mask};uniforms[v.name+'Matrix']={value:v.matrix};uniforms[v.name+'Crop']={value:v.crop};}
     const material=new THREE.ShaderMaterial({vertexShader,fragmentShader,uniforms,side:THREE.DoubleSide,depthTest:false,depthWrite:false,toneMapped:false});
-    const scene=new THREE.Scene(),bakeMesh=new THREE.Mesh(geometry,material);bakeMesh.matrixAutoUpdate=false;bakeMesh.matrix.copy(mesh.matrixWorld);scene.add(bakeMesh);
+    const scene=new THREE.Scene(),bakeMesh=new THREE.Mesh(geometry,material);bakeMesh.matrixAutoUpdate=false;bakeMesh.matrix.copy(mesh.matrixWorld);
+    // The shader rasterizes UVs, not world coordinates. A world-space frustum
+    // test would wrongly discard head/neck meshes above the identity camera.
+    bakeMesh.frustumCulled=false;scene.add(bakeMesh);
     const textures={},files={},coverage={observed:0,interpolated:0,mirrored:0,inferred:0};
     for(let channel=0;channel<channels.length;channel++){
       const name=channels[channel];uniforms.channelIndex.value=channel;
@@ -110,6 +113,7 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
       const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=channel===0?THREE.SRGBColorSpace:THREE.NoColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;
       textures[name]=texture;files[name]=canvas.toDataURL('image/png');
     }
+    if(Object.values(coverage).reduce((sum,count)=>sum+count,0)===0)throw Error('UV bake produced no rasterized texels for '+mesh.name);
     mesh.geometry=geometry;
     mesh.material=new THREE.MeshStandardMaterial({map:textures.albedo,color:0xffffff,roughness:1,roughnessMap:textures.roughness,normalMap:textures.normal,normalScale:new THREE.Vector2(.12,.12),bumpMap:textures.height,bumpScale:.0005,aoMap:textures.ao,aoMapIntensity:.15,metalness:0});
     mesh.material.userData.projection={source:'img2threejs camera/de-light/PBR evidence',coverage,physicalChannels:'inferred upstream estimates'};

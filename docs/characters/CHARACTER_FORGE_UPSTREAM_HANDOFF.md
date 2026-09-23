@@ -123,11 +123,14 @@ Current hosted progress (not final acceptance):
 - Form capture at `4b4298bea500ec6404390bb3f0b37f19db8d7377` removed exposed trouser-cap intersections. The agent inspected all three comparison sheets and both three-quarter views and accepted shape for projection, not final likeness. Front/side/back IoU .9540/.9089/.9202. The exact factory/capture hashes are in `upstream-scout-form-r0-review.json`. Evidence: https://github.com/charukun/soul-lineage/actions/runs/35812184764
 - Material adapter checkpoint: full-view de-lit pixels, independent upstream PBR estimates and foreground masks feed the actual Three.js GPU bake. The pinned `bake_projected_texture.py` directly supplies descriptors; it explicitly does not bake pixels, so camera-space depth/normal visibility and UV rasterization are supplied at the documented runtime boundary. Per-texel provenance masks distinguish observed, interpolated, mirrored and inferred samples. UV chart duplication is checked against accepted positions/normals and happens before plugin mesh-freeze. Runtime execution and visual acceptance of this new bake remain pending.
 - Divine Eye colour/interior ensemble remains low-confidence for clay. This is not a final likeness score, a finished projection, or Quality Floor approval.
+- The first actual GPU bake at `f4a632039c07af92c90b6fd4970c353312a64c2e` emitted textures and a 36.8 MB raw GLB, but material acceptance failed. Side/back colour deltas exceeded the unchanged 20.0 gate (20.44/22.10). Per-mesh bake evidence exposed zero rasterized texels for neck/head/hair: world-space frustum culling had incorrectly discarded UV-space draws. The correction disables that inapplicable cull and rejects zero-texel atlases. `material-r0-review.json` records a third upstream refinement (material 1/3, total 3/6); no AI acceptance or Quality Floor success is claimed. Evidence: https://github.com/charukun/soul-lineage/actions/runs/35812947481
 
 Outstanding: form/material/surface/lighting/interaction/optimization passes; actual projected pixel bake and final likeness; rig/morph/socket adaptation and parity; final package/registry/Lab model; DCC if needed; visual regression; focused build and native browser evidence on the reconciled final head; Ready, develop merge and DEV start.
 
-The old `pipeline.py` loft route remains the current CLI default and has not been
-deprecated in this recovery checkpoint. Character25D, current character runtime,
+The old `pipeline.py` loft route is deprecated and disabled without an explicit
+legacy compatibility-test flag. The default CLI enters `upstream_workspace.py`.
+Three local entrypoint/legacy compatibility tests passed; hosted verification is pending.
+Character25D, current character runtime,
 Camera Director, normal Fast DEV and Production gates are unchanged.
 
 The branch-only specialist workflow is still needed for continuation. Remove it

@@ -1,0 +1,26 @@
+{
+  "id": "scout-material-r0",
+  "pass": "material-pass",
+  "sourceHead": "f4a632039c07af92c90b6fd4970c353312a64c2e",
+  "actionsRun": "https://github.com/charukun/soul-lineage/actions/runs/35812947481",
+  "factorySha256": "4e014cd5e1eab028bc7af7665ef37306da14c23403db9cd8375ae39eb39ffc5f",
+  "captureSha256": {
+    "front": "4f2df09878fb884b583e94c2f332a23c121ce208796ae72c0f2d48c86da4535c",
+    "side": "828cba63f605cbd41b428895aef7f8594aeecba7065d9e7f53a6f828fd931d0a",
+    "back": "22f908e8583a004babda4c42094153a1d9511696b5a54835dd9346187b81abb1",
+    "front34": "aa1a9da8a61fcf80919afb6dbca8882d59d52b2c7ad7d59229a3983092a7cbcf",
+    "rear34": "1aef128cf2511ee8f458ce598f93e15f9f67a118e9083a1290ba7b5a53f80492",
+    "oppositeSide": "69d70ebed0c15c78982acc42664cd2c8450291764320751f6ad3e5221baaee1d"
+  },
+  "bakeReportSha256": "9ae7f6638af71405eaa0816e84d777f228cf1a7a380759f2ec819ed9ef3865e1",
+  "action": "refine-code",
+  "fidelity": 0,
+  "reason": "Rejected before AI acceptance: side and back Tier-1 colour errors (20.44 and 22.10 > 20). More seriously, UV bake coverage is zero for head, hair and neck because world-space frustum culling was incorrectly applied to the UV-space shader. No final likeness judgement is allowed until all mandatory inputs/gates are valid.",
+  "authority": "actual upstream diagnostic failures and measured GPU texel counts, not an AI visual approval",
+  "zeroRasterMeshes": [
+    "Neck",
+    "Cranium cheeks jaw chin and nose",
+    "Navy hair cap and back locks"
+  ],
+  "qualityFloorPassed": false
+}

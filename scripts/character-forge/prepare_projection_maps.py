@@ -31,7 +31,7 @@ def prepare(w,cache):
         paths['albedo']=f'build/textures/{view}-albedo.png'
         if not (w/paths['albedo']).is_file():raise ValueError(f'{view}: actual de-light pixels are required')
         camera_path=out/'camera.json';write_json(camera_path,{'referenceCamera':cameras[view]})
-        code=checked_run(install,w,'forge/stage3_build/bake_projected_texture.py',['--reference-image',source['path'],'--delit-image',paths['albedo'],'--camera',str(camera_path.relative_to(w)),'--mesh-id','upstream-scout','--projection-mode','perspective-camera-projection','--texture-size','1024','--unseen-strategy','mirror-symmetry','--out',str((out/'descriptor.json').relative_to(w))])
+        code=checked_run(install,w,'forge/stage3_build/bake_projected_texture.py',['--reference-image',source['path'],'--delit-image',paths['albedo'],'--camera',str(camera_path.relative_to(w)),'--mesh-id',job['id'],'--projection-mode','perspective-camera-projection','--texture-size','1024','--unseen-strategy','mirror-symmetry','--out',str((out/'descriptor.json').relative_to(w))])
         if code:raise RuntimeError(f'{view}: upstream projection descriptor failed')
         result[view]={'maps':paths,'foregroundMask':str((out/'foreground.png').relative_to(w)),'imageSize':[width,height],'pbrCrop':report['diagnostics']['cropBBoxPixels'],'pbrConfidence':report['confidence'],'status':{'albedo':'observed pixels, approximately de-lit','normal':'inferred by pinned extractor','roughness':'inferred by pinned extractor','height':'inferred by pinned extractor','ao':'inferred by pinned extractor'},'maskDiagnostics':diagnostics,'warnings':warnings}
     if set(result)!=set(('front','side','back')):raise ValueError('This multi-view baker requires all three admitted views')

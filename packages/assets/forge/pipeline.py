@@ -1,4 +1,8 @@
-"""Fifteen explicit stages; immutable inputs + replayable spec + fail-closed registration."""
+"""Deprecated pre-upstream generator, retained for legacy package regression only.
+
+Never a fallback for upstream admission, geometry, projection or review failures.
+New characters use scripts/character-forge/create.mjs and upstream_workspace.py.
+"""
 import argparse
 import json
 import re
@@ -26,6 +30,8 @@ from registration import create_manifest,register_review
 STAGES=['Intake','View Detection','View Normalization','Multi-view Measurement','Reconstruction Spec','Geometry Generation','Multi-view Texture Projection','Rig','Skinning','Animation','Socket Generation','Export','Validation','Character Package Registration','Visual Review Lab Registration']
 
 def run(options):
+    if not getattr(options,'legacy_regression_only',False):
+        raise ValueError('Legacy reconstruction is disabled. Use character-forge:create; upstream failures must not fall back to this generator.')
     if not re.fullmatch('[a-z0-9][a-z0-9-]{0,63}',options.id):raise ValueError('Invalid character id')
     root=Path(options.root).resolve();target=root/'packages/assets/characters/forge'/options.id
     if target.exists() and not options.replace:raise ValueError('Package exists; use --replace after checking existing approval')
@@ -71,7 +77,8 @@ def run(options):
         save_json(temp/'failure.json',{'error':str(error),'completedStages':history});raise
 
 def parser():
-    p=argparse.ArgumentParser(description='Character Create Forge: three-view recommended; single-view fallback')
+    p=argparse.ArgumentParser(description='DEPRECATED legacy reconstruction; not the Character Create Forge default')
+    p.add_argument('--legacy-regression-only',action='store_true',help='Explicit historical package compatibility test; never an upstream fallback')
     for view in VIEWS:p.add_argument('--'+view)
     p.add_argument('--sheet');p.add_argument('--sheet-order',help='Astra semantic labels only, never pixel coordinates')
     p.add_argument('--analysis',help='Optional Astra semantic parts JSON; not a user coordinate UI')

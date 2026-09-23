@@ -17,6 +17,7 @@ run('python3',['scripts/character-forge/scout_setup_evidence.py','--workspace',w
 run('python3',['packages/assets/forge/upstream_workspace.py','run','--workspace',workspace,'--entry','forge/stage3_build/generate_threejs_factory.py','--','object-sculpt-spec.json','--pass-id','blockout','--out','build/blockout.ts']);
 run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','build-current-pass','--evidence','build/blockout.ts']);
 run('npm',['ci','--ignore-scripts']);
+run('node',['--test','tests/character-forge-entrypoint.test.mjs','tests/character-create-forge.test.mjs']);
 run('npx',['playwright','install','--with-deps','chromium']);
 run('node',['scripts/character-forge/render_upstream.mjs',workspace,'blockout']);
 run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','render-capture','--evidence','review/blockout/render-receipt.json']);
