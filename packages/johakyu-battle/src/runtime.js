@@ -8,7 +8,6 @@ import {resolveImpact} from './impact.js';
 import {resolveJohakyuMotion as semanticMotion} from '@soul/johakyu-combat/motion-contract';
 import {COMBAT_LOCOMOTION,combatReadyEnvelope} from '@soul/johakyu-combat/locomotion';
 const BOUNDS=Object.freeze({minX:-6.75,maxX:6.75,minZ:-5.85,maxZ:5.65});
-const SPEED={stay:0,forward:.85,chase:1.35,rush:1.65,retreat:1.05,sideL:.85,sideR:.85,orbitL:.65,orbitR:.65,cross:.85,spiral:.85};
 const clone=value=>structuredClone(value);
 const distance=(a,b)=>Math.hypot(a.position.x-b.position.x,a.position.z-b.position.z);
 const live=a=>!a.dead&&!a.incapacitated&&!a.downed;
@@ -189,7 +188,7 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
       return;
     }
     const a=actor.action,target=actors.get(a?.targetId||actor.decision?.targetId);if(!target)return;
-    const footwork=a?.footwork||actor.decision?.footwork||'stay',speed=a?.techniqueId==='heart.pursuer'?4.1:(SPEED[footwork]??1),d=distance(actor,target),spacing=battleSpacing(actor,target,d);
+    const footwork=a?.footwork||actor.decision?.footwork||'stay',speed=a?.techniqueId==='heart.pursuer'?COMBAT_LOCOMOTION.dashSpeed*.63:COMBAT_LOCOMOTION.walkSpeed*(COMBAT_LOCOMOTION.footworkScale[footwork]??.75),d=distance(actor,target),spacing=battleSpacing(actor,target,d);
     const movement=footworkVelocity(footwork,actor.position,target.position,speed*(combatBodyOutcome(actor).movementScale)*(a?.chainLength>1&&['forward','chase','rush'].includes(footwork)?1.12:1));
     let scale=dt;const radial=(movement.x*(target.position.x-actor.position.x)+movement.z*(target.position.z-actor.position.z))/Math.max(.001,d);
     const stop=a?.techniqueId==='heart.pursuer'?1.48:(actor.decision?.stopDistance??spacing.preferredSpacing);
