@@ -13,7 +13,13 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
   const subject=new THREE.Box3().setFromObject(model).getBoundingSphere(new THREE.Sphere());
   for(const [name,angle] of [['front',0],['side',-Math.PI/2],['back',Math.PI]]){
     const source=mapSources[name],maps={},ownership={},maskCache=new Map();
-    for(const channel of [...channels,'mask']){maps[channel]=await loader.loadAsync(channel==='mask'?source.foregroundMask:source.maps[channel]);maps[channel].colorSpace=THREE.NoColorSpace;}
+    for(const channel of [...channels,'mask']){
+      maps[channel]=await loader.loadAsync(channel==='mask'?source.foregroundMask:source.maps[channel]);maps[channel].colorSpace=THREE.NoColorSpace;
+      // UV chart derivatives describe atlas rasterization, not the reference
+      // camera's pixel footprint. Automatic source mip selection mixed white
+      // background into a base-level ownership mask on thin limbs and hems.
+      maps[channel].generateMipmaps=false;maps[channel].minFilter=THREE.LinearFilter;
+    }
     for(const [component,url]of Object.entries(source.componentMasks||{})){
       if(!maskCache.has(url)){const texture=await loader.loadAsync(url);texture.colorSpace=THREE.NoColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;maskCache.set(url,texture);}
       ownership[component]=maskCache.get(url);
@@ -41,11 +47,23 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
     uniform sampler2D frontImage,sideImage,backImage,frontDepth,sideDepth,backDepth,frontMask,sideMask,backMask;
     uniform mat4 frontMatrix,sideMatrix,backMatrix;uniform vec4 frontCrop,sideCrop,backCrop;
     uniform vec3 fallbackColor;uniform int channelIndex;uniform bool partOwnership;
+    float visibleDepth(sampler2D depthTex,vec2 st){
+      vec2 texel=vec2(1./540.,1./1080.),origin=(floor(st/texel-.5)+.5)*texel;
+      float maximum=0.;
+      for(int y=0;y<2;y++)for(int x=0;x<2;x++){
+        float d=texture2D(depthTex,origin+vec2(float(x),float(y))*texel).r;
+        // Background is never evidence of a deeper visible surface.
+        if(d<.999999)maximum=max(maximum,d);
+      }
+      return maximum;
+    }
     vec4 sampleView(sampler2D tex,sampler2D depthTex,sampler2D maskTex,mat4 camera,vec4 crop,vec3 p,float facing,vec3 right,vec3 normal){
       if(facing<=.001)return vec4(0.);
       vec4 clip=camera*vec4(p,1.);vec3 ndc=clip.xyz/clip.w;vec2 st=ndc.xy*.5+.5;
       if(min(st.x,st.y)<0.||max(st.x,st.y)>1.)return vec4(0.);
-      float visible=1.-step(texture2D(depthTex,st).r+.00025,ndc.z*.5+.5);
+      // Raster depth is sampled at pixel centers. Use the foreground depth
+      // interval of the four surrounding samples to avoid self-shadow stripes.
+      float visible=1.-step(visibleDepth(depthTex,st)+.00002,ndc.z*.5+.5);
       float mask=texture2D(maskTex,st).r;
       // Require all bilinear source taps to belong to this observed surface.
       // Reject source occluders; they must not be painted onto another part.
@@ -115,6 +133,16 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
       renderer.setRenderTarget(target);renderer.setClearColor(0,0);renderer.clear();renderer.render(scene,new THREE.Camera());
       const pixels=new Uint8Array(size*size*4);renderer.readRenderTargetPixels(target,0,0,size,size,pixels);target.dispose();
       if(channel===0){
+        if(owned){
+          const bounds=names.map(v=>mapSources[v].componentAlbedoBounds?.[component]);
+          if(bounds.every(Boolean)){
+            const fallback=uniforms.fallbackColor.value.toArray().map(v=>Math.round(v*255));
+            const low=[0,1,2].map(a=>Math.min(fallback[a],...bounds.map(b=>b.min[a]))-2);
+            const high=[0,1,2].map(a=>Math.max(fallback[a],...bounds.map(b=>b.max[a]))+2);
+            for(let i=0;i<pixels.length;i+=4)if(pixels[i+3])for(let a=0;a<3;a++)
+              if(pixels[i+a]<low[a]||pixels[i+a]>high[a])throw Error('Projected albedo escaped its observed source/continuation range: '+component+' pixel '+i/4+' RGB '+Array.from(pixels.subarray(i,i+3)));
+          }
+        }
         const mask=new Uint8ClampedArray(pixels.length);for(let y=0;y<size;y++)for(let x=0;x<size;x++){const src=(y*size+x)*4,dst=((size-1-y)*size+x)*4,a=pixels[src+3];mask.set([a,a,a,a?255:0],dst);}
         const canvas=document.createElement('canvas');canvas.width=canvas.height=size;canvas.getContext('2d').putImageData(new ImageData(mask,size,size),0,0);files.provenance=canvas.toDataURL('image/png');
       }

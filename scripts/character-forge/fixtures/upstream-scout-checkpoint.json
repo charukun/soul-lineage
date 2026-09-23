@@ -1,9 +1,9 @@
 {
-  "sourceHead": "6e673d946faf01c8a5ac424939f9f098cdd0bbac",
-  "runId": 35817352466,
-  "artifactId": 10731859410,
-  "archiveSha256": "9e9364a5b39f9a0fc38bb743c83d20a6c929898e25b2f4f4281b290a689a67cf",
+  "sourceHead": "f58c9c85a919aa68491ed039d3ced91ba675b49a",
+  "runId": 35817940713,
+  "artifactId": 10732207506,
+  "archiveSha256": "e715696e7d2d81d7daf12d0cfc2c9eb8152b6230855e4e39865129eec10d66f0",
   "factorySha256": "493c298be84a847c0e8ba643bb1435d0e593a0a0e6194962efcd42d1c18fa274",
-  "archiveReviewAs": "material-r3-rejected",
-  "reviewToRecord": "scripts/character-forge/fixtures/upstream-scout-material-r3-review.json"
+  "archiveReviewAs": "material-r4-rejected",
+  "reviewToRecord": "scripts/character-forge/fixtures/upstream-scout-material-r4-review.json"
 }

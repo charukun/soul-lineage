@@ -20,11 +20,16 @@ def apply(w,cache,review_file):
     if projected:
         for name in ('projection-bake.json','neutral.png','grazing-closeup.png','front-clay.png'):
             if not (out/name).is_file():raise ValueError('Missing actual material evidence: '+name)
+        bake=json.loads((out/'projection-bake.json').read_text())
+        if any(row.get('appliedPhysicalChannels')=='flat-illustration-albedo-only' for row in bake['outputs']):raise ValueError('Albedo-only diagnostic ablations cannot approve an upstream material pass')
     install=install_boundary(cache,cache/'host')
     def run(entry,*args):
         code=checked_run(install,w,entry,list(args))
         if code:raise RuntimeError(f'Upstream blocked: {entry} ({code})')
     write_json(out/'agent-review.json',review)
+    files={}
+    for key in ('layerScores','featureReviews','viewpoints'):
+        files[key]=f'review/{p}/agent-review-{key}.json';write_json(w/files[key],review[key])
     write_json(out/'review-contract-read.json',{'reviewer':'Codex','sourceHead':review['sourceHead'],'documents':['grimoire/review/gates_reference.md','grimoire/review/self_correction.md'],'readCompletely':True,'acceptanceScope':p})
     def mark(step,evidence):run('forge/state.py','mark',step,'--state','.img2threejs/state.json','--evidence',evidence)
     mark('review-contract-read',f'review/{p}/review-contract-read.json')
@@ -32,7 +37,7 @@ def apply(w,cache,review_file):
     mark('multi-angle-review',f'review/{p}/multi-angle.json')
     run('forge/stage3_build/orchestrate_passes.py','check','object-sculpt-spec.json','--pass-id',p)
     mark('pass-gate-check',f'review/{p}/review-tools.json')
-    run('forge/stage4_review/append_review.py','object-sculpt-spec.json','--pass-id',p,'--action',review['action'],'--fidelity',str(review['fidelity']),'--ai-vision-score',str(review['fidelity']),'--summary',review['summary'],'--layer-scores-json',json.dumps(review['layerScores']),'--feature-reviews-json',json.dumps(review['featureReviews']),'--mismatches',';'.join(review['remaining']),'--reference-screenshot','source/front.png','--render-screenshot',f'review/{p}/front.png','--comparison-image',f'review/{p}/front-comparison.png','--map-stripped-render',f'review/{p}/'+('front-clay.png' if projected else 'front.png'),'--review-viewpoints-json',json.dumps(review['viewpoints']),'--ai-vision-notes',review['summary']+' Remaining: '+'; '.join(review['remaining']),'--require-screenshot-files','--in-place')
+    run('forge/stage4_review/append_review.py','object-sculpt-spec.json','--pass-id',p,'--action',review['action'],'--fidelity',str(review['fidelity']),'--ai-vision-score',str(review['fidelity']),'--summary',review['summary'],'--layer-scores-json',files['layerScores'],'--feature-reviews-json',files['featureReviews'],'--mismatches',';'.join(review['remaining']),'--reference-screenshot','source/front.png','--render-screenshot',f'review/{p}/front.png','--comparison-image',f'review/{p}/front-comparison.png','--map-stripped-render',f'review/{p}/'+('front-clay.png' if projected else 'front.png'),'--review-viewpoints-json',files['viewpoints'],'--ai-vision-notes',review['summary']+' Remaining: '+'; '.join(review['remaining']),'--require-screenshot-files','--in-place')
     # Complete this pass's checklist before next.py synchronizes the new pass.
     mark('ai-review-recorded',f'review/{p}/agent-review.json')
     run('forge/stage3_build/orchestrate_passes.py','sync','object-sculpt-spec.json','--in-place')
