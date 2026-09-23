@@ -105,3 +105,13 @@ test('per-frame host sync preserves the executor socket until its finisher compl
  }
  assert.ok(completed);assert.equal(runtime.actor('hero').executionSocket,null);
 });
+
+test('a missed chain releases its pressure so the opponent can leave the responder state',()=>{
+ const runtime=createJohakyuBattleRuntime({battleId:'miss',actors:[actor('hero','party'),actor('enemy','enemy',{canAttack:false})]});
+ until(runtime,()=>runtime.actor('hero').action);
+ runtime.actor('enemy').position={x:6,z:5};
+ const result=until(runtime,result=>result.events.some(e=>e.type==='chain-break'&&e.sourceId==='hero'));
+ assert.ok(result.events.some(e=>e.type==='chain-break'&&e.reason==='miss'));
+ const exchange=result.frame.exchanges.find(row=>row.pair.includes('hero'));
+ assert.equal(exchange.mode,'read');assert.equal(exchange.initiativeId,null);
+});
