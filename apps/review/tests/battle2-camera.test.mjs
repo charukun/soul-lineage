@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {battle2CameraWorldHeight} from '../src/battle2-camera-math.js';
+import {battle2CameraWorldHeight,inspirationShotWeight} from '../src/battle2-camera-math.js';
 import {tiltCameraOffsetForZoom} from '@soul/rendering/snap-camera-control';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
@@ -40,4 +40,15 @@ test('目玉ボタンの近距離ズームで視線が水平へ近づく',()=>{
   const near=tiltCameraOffsetForZoom({x:0,y:22,z:23},1+(.58-1)*1.9);
   assert.ok(Math.atan2(near.y,23)<Math.atan2(far.y,23));
   assert.ok(Math.atan2(near.y,23)<=Math.PI/12+.001);
+});
+
+test('閃きカメラは初回発動に合わせて寄り、戦闘時間を止めずに戻る',()=>{
+  assert.ok(inspirationShotWeight(0,1.45)>0);
+  assert.equal(inspirationShotWeight(.4,1.45),1);
+  assert.ok(inspirationShotWeight(1.2,1.45)<1);
+  assert.equal(inspirationShotWeight(1.45,1.45),0);
+  const stage=read('src/nocturne-stage.js'),camera=read('src/battle2-camera.js');
+  assert.match(stage,/cameraPresentation\.beginInspiration\(row,/);
+  assert.match(camera,/framedMode='combat'/);
+  assert.doesNotMatch(camera,/timeScale|pause\(/);
 });

@@ -129,6 +129,32 @@ test('a missed stage ends its chain instead of continuing at the next stage',()=
  }
  assert.ok(started);assert.ok(broken);assert.deepEqual(runtime.actor('a').cursor,{phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:1});
 });
+test('retreating offensive stages keep contact range until their authored impact',()=>{
+ const a={...actor('a','party'),self:true,readyDelay:0,staminaMultiplier:.01,loadout:{jo:'action.guard-step',ha:'basic.sword',kyu:'basic.sword'}},
+   b={...actor('b','enemy'),hp:10000,maxHp:10000,canAttack:false,stamina:0,recoverStamina:false};
+ const runtime=createJohakyuBattleRuntime({battleId:'retreat-contact-envelope',actors:[a,b]});runtime.actor('b').staggerUntil=999;
+ let retreatStart=null,retreatContact=null,retreatMiss=null;
+ for(let i=0;i<1200&&!retreatContact;i++){
+  const {events}=runtime.step(1/60);
+  for(const event of events.filter(e=>e.sourceId==='a'&&e.techniqueId==='action.guard-step'&&e.stageIndex===2)){
+   if(event.type==='stage-start')retreatStart=event;
+   if(event.type==='miss')retreatMiss=event;
+   if(event.impact)retreatContact=event;
+  }
+ }
+ assert.ok(retreatStart);assert.equal(retreatMiss,null);assert.ok(retreatContact);assert.ok(retreatContact.contactDistance<=retreatContact.contactReach);
+});
+test('live loadout replacement cancels the old execution and restarts from the new technique',()=>{
+ const a={...actor('a','party'),self:true,readyDelay:0,staminaMultiplier:.01,loadout:{jo:'action.crash',ha:'basic.sword',kyu:'basic.sword'}},
+   b={...actor('b','enemy'),hp:10000,maxHp:10000,canAttack:false,stamina:0,recoverStamina:false};
+ const runtime=createJohakyuBattleRuntime({battleId:'live-loadout-replacement',actors:[a,b]});runtime.actor('b').staggerUntil=999;
+ let oldStart=null;for(let i=0;i<300&&!oldStart;i++)oldStart=runtime.step(1/60).events.find(e=>e.type==='stage-start'&&e.sourceId==='a'&&e.techniqueId==='action.crash');
+ assert.ok(oldStart);assert.ok(runtime.actor('a').action);
+ runtime.sync([{...a,loadout:{jo:'action.lunge',ha:'basic.sword',kyu:'basic.sword'}},b]);
+ assert.equal(runtime.actor('a').action,null);assert.equal(runtime.actor('a').cursor.phaseIndex,0);assert.equal(runtime.actor('a').cursor.techniqueIndex,0);assert.equal(runtime.actor('a').cursor.stageIndex,0);
+ let newStart=null;for(let i=0;i<300&&!newStart;i++)newStart=runtime.step(1/60).events.find(e=>e.type==='stage-start'&&e.sourceId==='a');
+ assert.equal(newStart?.techniqueId,'action.lunge');
+});
 test('losing a target after a stage resets its unfinished sequence before a new encounter',()=>{
  const a={...actor('a','party'),self:true,readyDelay:0,loadout:{jo:'combo:combo-1'}},b={...actor('b','enemy'),hp:10000,maxHp:10000,canAttack:false,recoverStamina:false};
  const runtime=createJohakyuBattleRuntime({battleId:'target-break',actors:[a,b]});let completed=false,breakEvent=null;

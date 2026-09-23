@@ -15,8 +15,9 @@ test('sampled downed action bypasses fade weights so the fall pose is visible im
  assert.equal(activateSampledDownedAction(mixer,action),true);assert.deepEqual(calls[0],'stopAll');assert.equal(action.weight,1);assert.equal(action.enabled,true);assert.equal(action.paused,true);assert.equal(action.clampWhenFinished,true);assert.ok(calls.includes('play'));
 });
 
-test('downed terminal presentation remains Lie_Down even after finisher marks the actor dead',()=>{
- const downed=terminalPresentationState({downed:true,dead:false},'enemy');assert.deepEqual(downed,{downed:true,dead:false,clip:'Lie_Down',removalClock:false});
- const executed=terminalPresentationState({downed:true,dead:true},'enemy');assert.deepEqual(executed,{downed:true,dead:true,clip:'Lie_Down',removalClock:true});
- const deadOnly=terminalPresentationState({downed:false,dead:true},'enemy');assert.equal(deadOnly.clip,'Death_C_Skeletons');
+test('terminal presentation separates falling, settled ground pose and executed corpse',()=>{
+ const falling=terminalPresentationState({downed:true,dead:false,downedState:{phase:'settling',progress:.4}},'enemy');assert.deepEqual(falling,{downed:true,dead:false,settled:false,clip:'Lie_Down',removalClock:false});
+ const settled=terminalPresentationState({downed:true,dead:false,downedState:{phase:'settled',progress:1}},'enemy');assert.deepEqual(settled,{downed:true,dead:false,settled:true,clip:'Lie_Pose',removalClock:false});
+ const executed=terminalPresentationState({downed:true,dead:true},'enemy');assert.deepEqual(executed,{downed:true,dead:true,settled:true,clip:'Lie_Pose',removalClock:true});
+ const deadOnly=terminalPresentationState({downed:false,dead:true},'enemy');assert.deepEqual(deadOnly,{downed:false,dead:true,settled:false,clip:'Death_C_Skeletons',removalClock:true});
 });
