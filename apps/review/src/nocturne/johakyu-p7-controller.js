@@ -2,6 +2,8 @@ import {createDrivenBattleRuntime} from '@soul/johakyu-presentation';
 import {createJohakyuP7ReviewScenario} from './johakyu-p7-review.js';
 import {normalizeBattle2Loadout} from './battle2-loadout.js';
 
+const PHASES=new Set(['jo','ha','kyu']);
+
 export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,cameraPresentation=null,movementInput=null,onMeta=()=>{},evidence=false,fixture=null,mode='duel',loadout=null,settings=null,learnedTechniqueIds=[]}){
   const driven=createDrivenBattleRuntime({world,effects,stage,sound,notify,signal,cameraPresentation});
   let reviewLoadout=normalizeBattle2Loadout(loadout||{}),reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'},reviewLearned=[...new Set(Array.isArray(learnedTechniqueIds)?learnedTechniqueIds:[])];
@@ -47,7 +49,7 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
     trace.push({type:'settings-reset',settings:{...reviewSettings}});if(trace.length>100)trace=trace.slice(-100);
     if(ready&&!disposed){driven.present(current.frame,0,[]);onMeta(current.meta);}return {...reviewSettings};
   }
-  function learnTechnique(id){const raw=String(id||'');if(!raw||reviewLearned.includes(raw))return false;reviewLearned=[...reviewLearned,raw];trace.push({type:'technique-learned',techniqueId:raw});if(trace.length>100)trace=trace.slice(-100);return true;}
+  function learnTechnique(id,phase=null){const raw=String(id||'');if(!raw)return false;let changed=false;if(!reviewLearned.includes(raw)){reviewLearned=[...reviewLearned,raw];changed=true;}if(PHASES.has(phase)){const next=normalizeBattle2Loadout({...reviewLoadout,technique:{...reviewLoadout.technique,[phase]:raw}});if(next.technique[phase]===raw){reviewLoadout=next;changed=true;}}if(changed){trace.push({type:'technique-learned',techniqueId:raw,phase:PHASES.has(phase)?phase:null,equipped:PHASES.has(phase)});if(trace.length>100)trace=trace.slice(-100);}return changed;}
 
   function advance(seconds){
     if(disposed||!ready||!started)throw new Error('Start the battle before evidence advancement');

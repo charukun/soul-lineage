@@ -7,10 +7,10 @@ const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 test('review 3D surfaces share renderer, camera preset, and resource lifetime primitives',async()=>{
   const [rendering,motion,assets,objects,effects,thumbnails]=await Promise.all([
     read('packages/rendering/src/review/preview-stage.js'),
-    read('apps/rinne/src/review-motion.js'),
-    read('apps/rinne/src/review-asset-library.js'),
-    read('apps/rinne/src/review-object-library.js'),
-    read('apps/rinne/src/review-effects.js'),
+    read('apps/rinne/src/review/motion/entrypoint.js'),
+    read('apps/rinne/src/review/equipment/entrypoint.js'),
+    read('apps/rinne/src/review/objects/entrypoint.js'),
+    read('apps/rinne/src/review/effects/entrypoint.js'),
     read('apps/rinne/src/review/shared/runtime-thumbnail.js'),
   ]);
   assert.match(rendering,/export function createReviewCameraPresetController/);
@@ -26,9 +26,9 @@ test('review 3D surfaces share renderer, camera preset, and resource lifetime pr
 test('static thumbnails and review status updates use shared-ui primitives',async()=>{
   const [controls,motion,assets,objects]=await Promise.all([
     read('packages/shared-ui/src/review/controls.css'),
-    read('apps/rinne/src/review-motion.js'),
-    read('apps/rinne/src/review-asset-library.js'),
-    read('apps/rinne/src/review-object-library.js'),
+    read('apps/rinne/src/review/motion/entrypoint.js'),
+    read('apps/rinne/src/review/equipment/entrypoint.js'),
+    read('apps/rinne/src/review/objects/entrypoint.js'),
   ]);
   assert.match(controls,/\.review-static-thumbnail\{/);
   for(const source of [motion,assets,objects])assert.match(source,/createReviewSvgThumbnail/);
@@ -37,27 +37,30 @@ test('static thumbnails and review status updates use shared-ui primitives',asyn
   assert.doesNotMatch(assets,/createElementNS\('http:\/\/www\.w3\.org\/2000\/svg','svg'\)/);
 });
 
-test('battle review styling is externalized without changing its markup contract',async()=>{
-  const [html,css]=await Promise.all([
-    read('apps/rinne/review-battle.html'),
-    read('apps/rinne/src/review-battle.css'),
-  ]);
-  assert.match(html,/href="\.\/src\/review-battle\.css"/);
-  assert.doesNotMatch(html,/<style>/);
-  for(const selector of ['.battle-review','.camera-zoom','.review-settings','.battle-sequence-hud','.battle-inspiration'])assert.ok(css.includes(selector),selector);
-});
-
 test('review metadata and stage controls use shared semantic contracts',async()=>{
-  const [motion,objects,effects,sound,battle]=await Promise.all([
+  const [motion,objects,effects,sound]=await Promise.all([
     read('apps/rinne/review-motion.html'),
     read('apps/rinne/review-objects.html'),
     read('apps/rinne/review-effects.html'),
     read('apps/rinne/review-sound.html'),
-    read('apps/rinne/review-battle.html'),
   ]);
   assert.match(motion,/motion-meta review-surface__meta/);
   assert.match(objects,/object-details review-surface__meta/);
   assert.match(effects,/controls" data-review-stage-control/);
   assert.equal((sound.match(/data-review-stage-control/g)||[]).length,2);
-  assert.equal((battle.match(/data-review-stage-control/g)||[]).length,2);
+});
+
+test('surviving motion and equipment reviews use rescued shared combat helpers, not the retired battle view',async()=>{
+  const [motion,equipment,combatEquipment,combatMotion]=await Promise.all([
+    read('apps/rinne/src/review/motion/entrypoint.js'),
+    read('apps/rinne/src/review/equipment/entrypoint.js'),
+    read('apps/rinne/src/review/shared/combat-equipment.js'),
+    read('apps/rinne/src/review/shared/combat-motion.js'),
+  ]);
+  assert.match(motion,/\.\.\/shared\/combat-equipment\.js/);
+  assert.match(equipment,/\.\.\/shared\/combat-equipment\.js/);
+  assert.match(equipment,/\.\.\/shared\/combat-motion\.js/);
+  assert.doesNotMatch(motion+equipment,/\.\.\/battle\//);
+  assert.match(combatEquipment,/export function hideEmbeddedCombatProps/);
+  assert.match(combatMotion,/export function applyReviewCombatMotion/);
 });

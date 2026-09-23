@@ -29,21 +29,16 @@ export async function assertBattle2Frame(page,{title='序破急バトルシス�
 export async function exerciseBattle2Switcher(page,{origin,out,name}){
   const toggle=page.locator('[data-review-switcher]>summary');await toggle.click();
   assert.equal(await page.locator('.review-switcher[open]').count(),1);
-  const cards=page.locator('.review-switcher__grid>.review-probe-card');assert.equal(await cards.count(),9);
-  assert.equal(await cards.nth(6).locator('strong').innerText(),'戦闘演出');
-  assert.equal(await cards.nth(7).locator('strong').innerText(),'序破急バトルシステム');
-  assert.equal(await cards.nth(8).locator('strong').innerText(),'戦闘演出bk');
-  assert.equal(await cards.nth(6).getAttribute('href'),'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/review-battle');
-  assert.equal(await cards.nth(7).getAttribute('href'),origin+'/battle2');
-  assert.equal(await cards.nth(8).getAttribute('href'),origin+'/battlebk');
-  assert.equal(await cards.nth(8).getAttribute('aria-current'),null);
-  assert.equal(await cards.nth(7).getAttribute('aria-current'),'page');
+  const cards=page.locator('.review-switcher__grid>.review-probe-card');assert.equal(await cards.count(),7);
+  assert.equal(await cards.nth(6).locator('strong').innerText(),'序破急バトル');
+  assert.equal(await cards.nth(6).getAttribute('href'),origin+'/battle2');
+  assert.equal(await cards.nth(6).getAttribute('aria-current'),'page');
   assert.equal(await page.locator('.review-surface__back').getAttribute('href'),origin+'/');
   const menu=await page.locator('.review-switcher__panel').evaluate(node=>{
     const r=node.getBoundingClientRect(),grid=node.querySelector('.review-switcher__grid');
     return {x:r.x,right:r.right,top:r.top,bottom:r.bottom,columns:getComputedStyle(grid).gridTemplateColumns.split(' ').length,viewportWidth:innerWidth,viewportHeight:innerHeight,hit:node.contains(document.elementFromPoint(r.x+Math.min(20,r.width/2),r.y+20))};
   });
-  assert.equal(menu.columns,5);assert.equal(menu.hit,true,'Menu must be above the canvas');
+  assert.equal(menu.columns,6);assert.equal(menu.hit,true,'Menu must be above the canvas');
   assert.ok(menu.x>=0&&menu.right<=menu.viewportWidth&&menu.bottom<=menu.viewportHeight);
   await page.screenshot({path:out+'/'+name+'-menu.png'});
   await page.keyboard.press('Escape');assert.equal(await page.locator('.review-switcher[open]').count(),0);

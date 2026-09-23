@@ -9,7 +9,7 @@ import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGOR
 import {buildReviewMotionRegistry,motionRegistryCount,externalMotionRecords,dedupeSourceMotions} from './registry.js';
 import {loadPinnedMotionSource,loadPinnedReviewTarget,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './source-runtime.js';
 import {resolveReviewHumanoidDescriptor,createRigRequiredDccRoute} from './humanoid-calibrations.js';
-import {hideEmbeddedCombatProps} from '../battle/equipment.js';
+import {hideEmbeddedCombatProps} from '../shared/combat-equipment.js';
 import {MOTION_REVIEW_WEAPON_OPTIONS,keepMotionReviewWeaponAboveFloor,loadMotionReviewWeapon} from './equipment.js';
 import './library.css';
 import './preview.css';

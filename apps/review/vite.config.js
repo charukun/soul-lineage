@@ -8,7 +8,6 @@ config.build.rolldownOptions={input:{
   camera:fileURLToPath(new URL('./review-camera.html',import.meta.url)),
   hybrid25d:fileURLToPath(new URL('./review-hybrid-25d.html',import.meta.url)),
   battle2:fileURLToPath(new URL('./battle2.html',import.meta.url)),
-  battlebk:fileURLToPath(new URL('./battlebk.html',import.meta.url)),
 }};
 export default config;
 

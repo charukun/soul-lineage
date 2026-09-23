@@ -11,7 +11,7 @@ function shellHarness({hasHeader=true,duplicate=false}={}){
   const doc={querySelector:selector=>{assert.equal(selector,'.review-surface__header');return hasHeader?header:null;}};
   const win={location:{href:'https://preview.example/battle2?evidence=1'},addEventListener:(k,f)=>windowListeners.set(k,f),removeEventListener:(k,f)=>{assert.equal(windowListeners.get(k),f);windowListeners.delete(k);}};
   const source=read('src/battle2-shell.js').replace(/^import[^\n]+\n/,'').replace('export function mountBattle2ReviewShell','function mountBattle2ReviewShell');
-  const context={URL,createReviewRoutes:({rinneBase,charactersBase})=>({characters:charactersBase,...Object.fromEntries(['motion','equipment','objects','effects','sounds','battle'].map((id,i)=>[id,new URL(['review-motion','review-assets','review-objects','review-effects','review-sound','review-battle'][i]+'.html',rinneBase).href]))}),mountReviewShell:value=>{options=value;return duplicate?null:mounted;}};
+  const context={URL,createReviewRoutes:({rinneBase,charactersBase})=>({characters:charactersBase,...Object.fromEntries(['motion','equipment','objects','effects','sounds'].map((id,i)=>[id,new URL(['review-motion','review-assets','review-objects','review-effects','review-sound'][i]+'.html',rinneBase).href]))}),mountReviewShell:value=>{options=value;return duplicate?null:mounted;}};
   runInNewContext(source,context);
   return {mount:()=>context.mountBattle2ReviewShell({doc,win}),headerListeners,windowListeners,mounted,get options(){return options;},get focused(){return focused;},get destroyed(){return destroyed;}};
 }
@@ -27,7 +27,7 @@ test('battle2 nests native canvases inside the shared battle review frame',()=>{
   assert.equal((html.match(/data-battle-mode=/g)||[]).length,2);
   assert.equal((html.match(/review-surface__panel/g)||[]).length,0);
   assert.match(html,/data-review-stage-control data-battle-mode-control/);
-  assert.match(stage,/mountReviewStageControls/);assert.match(stage,/groups:\['\[data-battle-mode-control\]'\]/);assert.match(stage,/label:'戦闘設定'/);
+  assert.match(stage,/mountReviewStageControls/);assert.match(stage,/groups:\['\[data-battle-mode-control\]','\[data-battle-technique-mode-control\]','\[data-battle-inspiration-rate-control\]'\]/);assert.match(stage,/label:'戦闘設定'/);
   assert.match(sharedStage,/review-stage-controls__button','⚙'/);assert.match(sharedControls,/\.review-stage-controls\{position:absolute;z-index:32;right:/);
   assert.match(css,/main\.battle2-review\.review-surface>\.review-surface__workspace\s*\{\s*grid-template-columns:minmax\(0,1fr\)!important;\s*grid-template-rows:minmax\(0,1fr\)!important;/);
   assert.match(css,/\.battle-stage-switch\[data-review-stage-control\]\{display:none\}/);assert.match(css,/\.review-stage-controls__panel>\.battle-stage-switch/);
@@ -38,10 +38,9 @@ test('battle2 nests native canvases inside the shared battle review frame',()=>{
 test('shared switcher highlights battle2 and retains canonical routes and a local Lab back link',()=>{
   const h=shellHarness();assert.equal(h.mount(),h.mounted);
   assert.equal(h.options.current,'battle2');assert.equal(h.options.homeHref,'https://preview.example/');
-  assert.equal(Object.keys(h.options.routes).length,9);assert.ok(Object.isFrozen(h.options.routes));
+  assert.equal(Object.keys(h.options.routes).length,7);assert.ok(Object.isFrozen(h.options.routes));
   assert.equal(h.options.routes.battle2,'https://preview.example/battle2');
-  assert.equal(h.options.routes.battlebk,'https://preview.example/battlebk');
-  assert.equal(h.options.routes.battle,'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/review-battle');
+  assert.equal('battle' in h.options.routes,false);assert.equal('battlebk' in h.options.routes,false);
   assert.ok(Object.values(h.options.routes).every(href=>!new URL(href).pathname.endsWith('.html')));
 });
 
