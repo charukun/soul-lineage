@@ -4,7 +4,7 @@ import {NOCTURNE_FIELD_RADAR_RANGE} from '@soul/johakyu-presentation';
 import {createBattle2BodyHud} from './battle2-body-hud.js';
 import {johakyuSequenceMarkup} from '@soul/shared-ui/johakyu-hud';
 import {battle2SelectionLabel,battle2TechniqueLabel} from './nocturne/battle2-technique-catalog.js';
-import {createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
+import {BATTLE2_WEAPONS,createBattle2LoadoutUI} from './nocturne/battle2-loadout.js';
 import {createBattle2CameraPresentation} from './battle2-camera.js';
 import {createBattle2MovementInput} from './battle2-movement.js';
 import {rinneFieldRadarMarkup,updateRinneFieldRadar} from '@soul/shared-ui/rinne-field-radar';
@@ -40,6 +40,8 @@ const battleRadar=stage.querySelector('[data-field-radar]');
 const cameraPresentation=createBattle2CameraPresentation({stage,world});
 const movementInput=createBattle2MovementInput({canvas:world,camera:()=>cameraPresentation.snapshot()});
 const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]','[data-battle-technique-mode-control]','[data-battle-weapon-control]','[data-battle-inspiration-rate-control]','[data-battle-inspiration-reset-control]'],label:'戦闘設定'});
+const weaponOptions=document.querySelector('[data-battle-weapon-options]');
+for(const row of BATTLE2_WEAPONS){const button=document.createElement('button');button.type='button';button.dataset.battleWeapon=row.id;button.textContent=row.label;button.setAttribute('aria-pressed','false');weaponOptions?.append(button);}
 const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],techniqueLanes=new Map([...document.querySelectorAll('[data-technique-phase]')].map(node=>[node.dataset.techniquePhase,node])),modeButtons=[...document.querySelectorAll('[data-battle-mode]')],techniqueModeButtons=[...document.querySelectorAll('[data-battle-technique-mode]')],weaponButtons=[...document.querySelectorAll('[data-battle-weapon]')],inspirationRateButtons=[...document.querySelectorAll('[data-battle-inspiration-rate]')];
 const resetInspirationButton=document.querySelector('[data-battle-reset-inspiration]');
 const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
@@ -223,9 +225,11 @@ startButton.addEventListener('click',async event=>{
 });
 for(const button of modeButtons)button.addEventListener('click',()=>{const next=button.dataset.battleMode;if(!['duel','oneVsThree'].includes(next)||next===battleMode)return;battleMode=next;syncModeButtons();void boot();});
 for(const button of techniqueModeButtons)button.addEventListener('click',()=>{const next=button.dataset.battleTechniqueMode;if(!['random','set'].includes(next))return;setBattleSetting('techniqueMode',next);});
-for(const button of weaponButtons)button.addEventListener('click',()=>{const next=button.dataset.battleWeapon;if(!['sword','great'].includes(next))return;loadoutUI.setWeapon(next);syncWeaponButtons();});
+for(const button of weaponButtons)button.addEventListener('click',()=>{const next=button.dataset.battleWeapon;if(!BATTLE2_WEAPONS.some(row=>row.id===next))return;loadoutUI.setWeapon(next);syncWeaponButtons();});
 for(const button of inspirationRateButtons)button.addEventListener('click',()=>{const next=button.dataset.battleInspirationRate;if(!['normal','high'].includes(next))return;setBattleSetting('inspirationRate',next);});
 resetInspirationButton?.addEventListener('click',()=>{if(!loadoutUI.resetLearnedTechniques())return;activeLoadout=loadoutUI.value;reviewMeta=null;lastExchangeKey='';resetHistory();playerHud?.clearPortrait?.();syncInspirationResetButton();void boot();});
+const syncSettingsOpenState=()=>{const open=stageControls?.root?.dataset.open==='true';stage.dataset.battleSettingsOpen=String(open);const toggle=stageControls?.root?.querySelector('.review-stage-controls__button');if(toggle)toggle.textContent=open?'×':'⚙';};
+if(stageControls?.root){new MutationObserver(syncSettingsOpenState).observe(stageControls.root,{attributes:true,attributeFilter:['data-open']});syncSettingsOpenState();}
 const observer=new ResizeObserver(()=>runtime?.resize());observer.observe(stage);
 world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepared=false;const error=new Error('描画環境が中断されました。');controller?.abort(error);failed(error);});
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
