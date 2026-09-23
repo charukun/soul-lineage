@@ -1,4 +1,4 @@
-import {createRinneWeapon} from '@soul/assets/equipment/three';
+import {createRinneWeapon,RINNE_EQUIPMENT_PROFILES} from '@soul/assets/equipment/three';
 import {presentBattleFrame,presentBattleEvents} from './battle-presentation.js';
 import {JOHAKYU_WEAPON_MOTIONS} from './motion-bindings.js';
 import {combatStanceRootFrame} from './observed-locomotion.js';
@@ -170,6 +170,7 @@ function applyFatigue(a,row,dt){
  a.posture.rotation.x=pose.rootLean*blend;
  a.posture.rotation.y=0;
  a.posture.rotation.z=pose.rootSway*blend;
+ a.posture.position.x=0;
  a.posture.position.y=-pose.rootDrop*blend+pose.breath*.004;
  a.posture.position.z=pose.rootLean*.08*blend;
  a.posture.scale.set(1,1+pose.breath*.0036,1);
@@ -705,7 +706,7 @@ function createDrivenPort(){
    if(!a.sheathed&&!a.drawMotion)return;const weaponId=row.equipment?.weapon,name=weaponMesh[weaponId],weapon=name?a.root.getObjectByName(name):null,right=armRig(a,'r'),frame=scabbardFrame(a,weaponId);
    if(!weapon?.visible||!right?.socket||!frame){a.sheathed=false;a.drawMotion=null;return;}
    let held=a.weaponStow;if(!held){held=beginWeaponStow(a,weapon);if(!held)return;lockWeaponInScabbard(a,weaponId,frame);}
-   ensureScabbard(a,weaponId,frame,held);const combatReady=Boolean(row.combatReady);
+   ensureScabbard(a,weaponId,frame,held);const combatReady=Boolean(row.combatReady||row.action?.motion?.offense);
    if(!a.drawMotion){
      if(!combatReady){if(weapon.parent!==a.scabbard?.group)lockWeaponInScabbard(a,weaponId,frame);return;}
      if(weapon.parent!==a.root)a.root.attach(weapon);weapon.updateWorldMatrix(true,true);const axis=bladeAxisForSheath(a,weapon);a.drawMotion={key:row.action?.id||('ready:'+String(row.id||a.canonicalId||'')),elapsed:0,duration:.5,startHilt:axis?.hilt.clone()||frame.mouthWorld.clone()};a.sheathed=false;
@@ -724,7 +725,7 @@ function createDrivenPort(){
    const sheathable=['sword','dagger','great'].includes(row.equipment?.weapon);
    if(!sheathable)return;
    if(row.phaseCue?.phase==='zanshin'){a.autoSheath=null;return;}
-   const ready=Boolean(row.combatReady);
+   const ready=Boolean(row.combatReady||row.action?.motion?.offense);
    if(ready){
      if(a.autoSheath){a.autoSheath=null;if(a.weaponStow)a.sheathed=true;}
      if(a.sheathed||a.drawMotion)moveBladeFromSheath(a,row,dt);
@@ -767,7 +768,7 @@ function createDrivenPort(){
    if(a.equipmentKey!==equipmentKey){
     for(const name of equipmentNames){const node=a.root.getObjectByName(name);if(node)node.visible=false;}
     const name=weaponMesh[row.equipment.weapon];
-    if(name){let node=a.root.getObjectByName(name);if(!node){node=name.startsWith('RinneEquipment:')?createRinneWeapon(THREE,row.equipment.weapon):models.get('adventurers/Knight').scene.getObjectByName(name)?.clone(true);if(name.startsWith('RinneEquipment:')){node.rotation.x=Math.PI/2;node.scale.setScalar(.85);}const socket=a.root.getObjectByName('handslot.r')||a.root.getObjectByName('handslotr');if(!node||!socket)throw Error('Missing authored equipment socket');node.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;o.userData.assetSource='adventurers/Knight';const mats=(Array.isArray(o.material)?o.material:[o.material]).map(m=>{const mat=m.clone();mat.roughness=.74;mat.metalness=.08;mat.emissive=new THREE.Color('#000000');a.mats.push({mat,base:mat.emissive.clone(),power:mat.emissiveIntensity});return mat;});o.material=Array.isArray(o.material)?mats:mats[0];});socket.add(node);}node.visible=true;}
+    if(name){let node=a.root.getObjectByName(name);if(!node){node=name.startsWith('RinneEquipment:')?createRinneWeapon(THREE,row.equipment.weapon):models.get('adventurers/Knight').scene.getObjectByName(name)?.clone(true);if(name.startsWith('RinneEquipment:')){const grip=RINNE_EQUIPMENT_PROFILES[row.equipment.weapon]?.grip||[0,0,0];node.rotation.set(0,0,0);node.scale.setScalar(.85);node.position.set(-grip[0]*.85,.033-grip[1]*.85,-grip[2]*.85);}const socket=a.root.getObjectByName('handslot.r')||a.root.getObjectByName('handslotr');if(!node||!socket)throw Error('Missing authored equipment socket');node.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;o.userData.assetSource='adventurers/Knight';const mats=(Array.isArray(o.material)?o.material:[o.material]).map(m=>{const mat=m.clone();mat.roughness=.74;mat.metalness=.08;mat.emissive=new THREE.Color('#000000');a.mats.push({mat,base:mat.emissive.clone(),power:mat.emissiveIntensity});return mat;});o.material=Array.isArray(o.material)?mats:mats[0];});socket.add(node);}node.visible=true;}
     if(row.equipment.shield){let shield=a.root.getObjectByName('Round_Shield');if(!shield){shield=models.get('adventurers/Knight').scene.getObjectByName('Round_Shield')?.clone(true);const socket=a.root.getObjectByName('handslot.l')||a.root.getObjectByName('handslotl');if(!shield||!socket)throw Error('Missing authored shield socket');socket.add(shield);}shield.visible=true;}
     a.equipmentKey=equipmentKey;
    }
