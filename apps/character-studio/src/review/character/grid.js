@@ -41,36 +41,18 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     if (text) node.textContent = text;
     return node;
   };
+  const review = () => win.characterStudio?.review;
 
   const stageName = make('div', 'character-review-stage-name', 'モデルを選択');
   stageName.setAttribute('aria-live', 'polite');
 
-  const cameraDock = make('div', 'character-review-camera-dock review-surface__stage-tools');
-  cameraDock.setAttribute('aria-label', '表示方向');
-  const directionGroup = make('div', 'character-review-camera-group');
-  const focusGroup = make('div', 'character-review-camera-group character-review-camera-group--focus');
-  const front = actions.querySelector('[data-camera="front"]');
-  const side = actions.querySelector('[data-camera="side"]');
-  const back = actions.querySelector('[data-camera="back"]');
-  const face = actions.querySelector('[data-camera="face"]');
+  // Touch orbit is the camera UI. Remove every redundant preset/fit affordance.
+  const legacyCamera = doc.getElementById('review-stage-camera-options');
+  legacyCamera?.closest('.review-slot-picker')?.remove();
+  legacyCamera?.remove();
+  for (const button of actions.querySelectorAll('[data-camera]')) button.hidden = true;
   const frameButton = doc.getElementById('frame-model');
-  for (const button of [front, side, back].filter(Boolean)) {
-    button.hidden = false;
-    button.removeAttribute('aria-hidden');
-    directionGroup.append(button);
-  }
-  if (face) {
-    face.hidden = false;
-    face.removeAttribute('aria-hidden');
-    focusGroup.append(face);
-  }
-  if (frameButton) {
-    frameButton.textContent = '全身';
-    frameButton.hidden = false;
-    frameButton.removeAttribute('aria-hidden');
-    focusGroup.append(frameButton);
-  }
-  cameraDock.append(directionGroup, focusGroup);
+  if (frameButton) frameButton.hidden = true;
 
   const utility = make('div', 'character-review-stage-utility');
   const capture = doc.getElementById('capture');
@@ -86,7 +68,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   settingsButton.append(make('span', 'character-review-settings-icon'), make('span', 'character-review-settings-label', '調整'));
   utility.append(settingsButton);
 
-  canvasWrap.append(stageName, utility, cameraDock);
+  canvasWrap.append(stageName, utility);
   actions.hidden = true;
 
   const stageStatus = doc.querySelector('.stage-status');
@@ -108,32 +90,63 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   settingsClose.type = 'button';
   settingsClose.setAttribute('aria-label', 'キャラクター調整を閉じる');
   settingsHead.append(settingsTitle, settingsClose);
-  const settingsNote = make('p', 'character-review-settings__note', '実モデルの確認はこの画面のまま。年齢・身長・体格などの編集項目は、ここから直接開けます。');
-  const settingsGrid = make('div', 'character-review-settings__grid');
-  const settingLink = (title, detail, href) => {
-    const link = make('a', 'character-review-setting-link');
-    link.href = href;
-    link.append(make('strong', '', title), make('span', '', detail), make('b', '', '›'));
-    return link;
+  const settingsBody = make('div', 'character-review-settings__body');
+  const sliderRows = {};
+  const traitSpec = Object.freeze({
+    age: { label: '年齢', min: 0, max: 90, step: 1, initial: 22 },
+    height: { label: '身長', min: 0, max: 1, step: .01, initial: .5 },
+    build: { label: '体格', min: 0, max: 1, step: .01, initial: .5 }
+  });
+  const formatTrait = (key, value) => {
+    if (key === 'age') return `${Math.round(value)}歳`;
+    const percent = key === 'height' ? .9 + .2 * value : .88 + .24 * value;
+    if (key === 'build') return `${value < .34 ? '細身' : value > .66 ? '大柄' : '標準'} · ${Math.round(percent * 100)}%`;
+    return `${Math.round(percent * 100)}%`;
   };
-  const boneToggle = make('button', 'character-review-setting-link character-review-setting-toggle');
+  for (const [key, spec] of Object.entries(traitSpec)) {
+    const row = make('label', 'character-review-slider');
+    const head = make('span', 'character-review-slider__head');
+    const name = make('strong', '', spec.label);
+    const value = make('output', '', formatTrait(key, spec.initial));
+    value.htmlFor = `character-review-${key}`;
+    head.append(name, value);
+    const input = make('input');
+    input.id = `character-review-${key}`;
+    input.type = 'range'; input.min = String(spec.min); input.max = String(spec.max); input.step = String(spec.step); input.value = String(spec.initial);
+    input.setAttribute('aria-label', spec.label);
+    input.addEventListener('input', () => {
+      const number = Number(input.value);
+      value.textContent = formatTrait(key, number);
+      review()?.setInspectionTraits?.({ [key]: number });
+    });
+    row.append(head, input); settingsBody.append(row);
+    sliderRows[key] = { input, value };
+  }
+  const settingsActions = make('div', 'character-review-settings__actions');
+  const resetTraits = make('button', 'character-review-settings__reset', '基準に戻す');
+  resetTraits.type = 'button';
+  resetTraits.addEventListener('click', () => review()?.setInspectionTraits?.({ age: 22, height: .5, build: .5 }));
+  const boneToggle = make('button', 'character-review-bone-toggle');
   boneToggle.type = 'button';
   boneToggle.setAttribute('aria-pressed', 'false');
-  boneToggle.append(make('strong', '', 'ボーン表示'), make('span', '', '骨格を重ねて確認'), make('b', '', 'OFF'));
+  boneToggle.append(make('strong', '', 'ボーン表示'), make('span', '', '実際の骨格を重ねる'), make('b', '', 'OFF'));
   boneToggle.addEventListener('click', () => {
-    const current = win.characterStudio?.review;
+    const current = review();
     if (current?.ready) current.setBoneOverlay(!current.bonesVisible);
   });
-  settingsGrid.append(
-    settingLink('年齢', '0〜90歳', './advanced.html#age'),
-    settingLink('身長', '身長遺伝子', './advanced.html#gene-height'),
-    settingLink('体格', '体格遺伝子', './advanced.html#gene-build'),
-    settingLink('顔・髪・色', '個体の形質', './advanced.html#gene-hair'),
-    boneToggle
-  );
-  const advanced = make('a', 'character-review-settings__advanced', 'すべての詳細調整を開く');
+  settingsActions.append(resetTraits, boneToggle);
+  const advanced = make('a', 'character-review-settings__advanced', '顔・髪・色などの詳細編集');
   advanced.href = './advanced.html';
-  settingsDialog.append(settingsHead, settingsNote, settingsGrid, advanced);
+  settingsDialog.append(settingsHead, settingsBody, settingsActions, advanced);
+  const syncInspectionControls = () => {
+    const traits = review()?.inspectionTraits || { age: 22, height: .5, build: .5 };
+    for (const [key, spec] of Object.entries(traitSpec)) {
+      const number = Number.isFinite(Number(traits[key])) ? Number(traits[key]) : spec.initial;
+      sliderRows[key].input.value = String(number);
+      sliderRows[key].value.textContent = formatTrait(key, number);
+      sliderRows[key].input.disabled = !review()?.ready;
+    }
+  };
   doc.body.append(settingsDialog);
 
   const closeSettings = () => {
@@ -162,7 +175,6 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   doc.body.classList.add('character-grid-ready');
 
   let signature = '', autoSelected = false, queued = false;
-  const review = () => win.characterStudio?.review;
   const schedule = () => {
     if (queued) return;
     queued = true;
@@ -223,6 +235,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     }
     empty.hidden = models.length > 0;
     stageName.textContent = models.find(model => model.selected)?.label || 'モデルを選択';
+    syncInspectionControls();
     boneToggle.disabled = !ready;
     boneToggle.setAttribute('aria-pressed', String(Boolean(review()?.bonesVisible)));
     boneToggle.querySelector('b').textContent = review()?.bonesVisible ? 'ON' : 'OFF';
