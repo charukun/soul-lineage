@@ -606,3 +606,68 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   .rinne-core-menu[data-type="heart"] .loadout-detail>.skill-sigil{width:30px!important;height:30px!important;min-width:30px!important}
   .rinne-core-menu[data-type="heart"] .loadout-detail-copy>strong{font-size:15px}
 }
+
+/* Loadout editing keeps equipped slots and the apply action visible while browsing. */
+@media(max-width:680px) and (orientation:portrait){
+  .rinne-core-menu[data-layout="loadout"] .rinne-core-menu-head{
+    min-height:46px;padding:0 8px;grid-template-columns:28px minmax(0,1fr) 44px;
+  }
+  .rinne-core-menu[data-layout="loadout"] .rinne-core-menu-mark{display:grid}
+  .rinne-core-menu[data-layout="loadout"] .rinne-core-menu-head [data-close]{width:44px;height:44px}
+  .rinne-core-menu[data-layout="loadout"] .rinne-core-menu-body{
+    display:flex;flex-direction:column;gap:6px;overflow:hidden;padding:6px 8px 8px;
+  }
+  .rinne-core-menu[data-layout="loadout"] .rinne-core-menu-body>.loadout-slot-row,
+  .rinne-core-menu[data-layout="loadout"] .heart-composition,
+  .rinne-core-menu[data-layout="loadout"] .loadout-technique-tabs,
+  .rinne-core-menu[data-layout="loadout"] .loadout-swap-hint{flex:none;margin:0!important}
+  .rinne-core-menu[data-layout="loadout"] .loadout-slot{min-height:48px!important}
+  .rinne-core-menu[data-layout="loadout"] .loadout-library{
+    order:2;flex:1 1 80px;min-height:64px;overflow:auto;
+    overscroll-behavior:contain;scrollbar-width:thin;
+    scrollbar-color:rgba(119,82,49,.55) transparent;padding:0 3px 3px!important;
+  }
+  .rinne-core-menu[data-layout="loadout"] .loadout-library>header{
+    position:sticky;top:0;z-index:2;background:#f7ead0;
+  }
+  .rinne-core-menu[data-layout="loadout"] .loadout-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:4px!important}
+  .rinne-core-menu[data-layout="loadout"] .loadout-grid-item{min-height:48px!important;aspect-ratio:auto!important;padding:4px 2px!important}
+  .rinne-core-menu[data-layout="loadout"] .loadout-grid-item>strong{font-size:12px!important;line-height:1.2!important}
+  .rinne-core-menu[data-layout="loadout"] .loadout-detail{
+    order:3;flex:none;grid-template-columns:26px minmax(0,1fr) 76px;gap:6px;
+    min-height:76px;margin:0;padding:6px;border-radius:10px;
+  }
+  .rinne-core-menu[data-layout="loadout"] .loadout-detail>.skill-sigil{width:26px!important;height:26px!important;min-width:26px!important}
+  .rinne-core-menu[data-layout="loadout"] .loadout-detail-copy{gap:2px;min-width:0}
+  .rinne-core-menu[data-layout="loadout"] .loadout-detail-copy>strong{font-size:14px;line-height:1.2;white-space:normal}
+  .rinne-core-menu[data-layout="loadout"] .loadout-detail-copy>span{max-height:44px;overflow:auto;white-space:normal;font-size:12px;line-height:1.35}
+  .rinne-core-menu[data-layout="loadout"] .loadout-detail-copy>small,
+  .rinne-core-menu[data-layout="loadout"] .loadout-detail-action>small{font-size:10px}
+  .rinne-core-menu[data-layout="loadout"] .loadout-detail-action>button{width:76px;min-height:44px;padding:4px;font-size:12px}
+  .rinne-core-menu[data-layout="loadout"] .loadout-technique-tabs{order:1}
+  .rinne-core-menu[data-layout="loadout"] .loadout-technique-tabs button{min-height:36px}
+  .rinne-core-menu[data-layout="loadout"] .loadout-selection-path{display:none}
+  .rinne-core-menu[data-layout="loadout"][data-type="heart"] .heart-composition[data-compact="true"]{
+    display:flex;flex-direction:column;gap:3px;
+  }
+  .rinne-core-menu[data-layout="loadout"][data-type="heart"] .heart-composition[data-compact="true"]>section{padding:0;border:0;background:none;box-shadow:none}
+  .rinne-core-menu[data-layout="loadout"] .heart-composition[data-compact="true"] .heart-composition-slots>h3{display:none}
+  .rinne-core-menu[data-layout="loadout"][data-type="heart"] .heart-composition .loadout-slot-row[data-layout="pentagon"]{
+    display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    height:auto!important;width:100%!important;margin:0!important;gap:4px!important;
+  }
+  .rinne-core-menu[data-layout="loadout"][data-type="heart"] .heart-composition .loadout-slot-row[data-layout="pentagon"]::before,
+  .rinne-core-menu[data-layout="loadout"][data-type="heart"] .heart-composition .loadout-slot-row[data-layout="pentagon"]::after{display:none}
+  .rinne-core-menu[data-layout="loadout"][data-type="heart"] .heart-composition .loadout-slot-row[data-layout="pentagon"]>.loadout-slot{
+    position:relative!important;inset:auto!important;width:100%!important;min-height:48px!important;padding:4px 2px!important;
+  }
+  .rinne-core-menu[data-layout="loadout"][data-type="heart"] .heart-composition .loadout-slot>.skill-sigil{width:20px!important;height:20px!important;min-width:20px!important}
+  .rinne-core-menu[data-layout="loadout"][data-type="heart"] .heart-composition .loadout-slot>strong{font-size:12px!important}
+  .rinne-core-menu[data-layout="loadout"][data-type="heart"] details.heart-portrait{
+    display:block;padding:0 6px;border:0;background:none!important;
+  }
+  .rinne-core-menu[data-layout="loadout"] details.heart-portrait::before{display:none}
+  .rinne-core-menu[data-layout="loadout"] details.heart-portrait>summary{cursor:pointer;color:#765238;font:600 12px/24px var(--font-rinne-display,serif)}
+  .rinne-core-menu[data-layout="loadout"] details.heart-portrait:not([open])>p{display:none}
+  .rinne-core-menu[data-layout="loadout"][data-type="heart"] details.heart-portrait>p{max-height:36px;overflow:auto;padding:2px;font-size:12px;line-height:1.5}
+}
