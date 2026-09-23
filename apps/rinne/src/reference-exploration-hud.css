@@ -36,20 +36,12 @@
 #game-screen[data-gameplay-upgrade] .hud-top .clock-rate{display:none!important}
 #game-screen[data-gameplay-upgrade] .gameplay-surface-version{display:none!important}
 
-/* Radar artwork and hit area are shared with the battle view. */
-/* Existing camera-position slider is relocated below the radar. */
-#game-screen[data-gameplay-upgrade] .camera-position-control{
-  top:max(96px,calc(env(safe-area-inset-top) + 90px))!important;
-  right:max(24px,calc(env(safe-area-inset-right) + 13px))!important;
-  left:auto!important;z-index:34!important;width:48px!important;height:98px!important;
-  border:1px solid rgba(188,152,89,.54);border-radius:24px;
-  background:linear-gradient(180deg,rgba(53,50,35,.84),rgba(27,40,35,.83));
-  box-shadow:inset 0 1px rgba(255,235,183,.18),0 4px 10px rgba(20,30,23,.22);
+/* The shared eye control sits below the radar in both gameplay views. */
+#game-screen[data-gameplay-upgrade] .snap-camera-control{
+  top:max(94px,calc(env(safe-area-inset-top) + 86px))!important;
+  right:max(20px,calc(env(safe-area-inset-right) + 12px))!important;
+  left:auto!important;z-index:34!important;
 }
-#game-screen[data-gameplay-upgrade] .camera-position-control .camera-position-panel{
-  left:2px!important;top:2px!important;width:42px!important;height:91px!important;
-}
-#game-screen[data-gameplay-upgrade] .camera-position-control.is-combat{opacity:.72!important}
 
 /* During ordinary exploration the radar carries the route; urgent guidance remains visible. */
 #game-screen[data-gameplay-upgrade][data-guidance-tone="calm"] .objective-card,
@@ -97,5 +89,5 @@
 }
 @media(max-height:560px) and (orientation:landscape){
   #game-screen[data-gameplay-upgrade] #dialogue:not([hidden]){top:auto!important;bottom:max(88px,calc(env(safe-area-inset-bottom) + 80px))!important;width:min(420px,calc(100% - 28px))!important}
-  #game-screen[data-gameplay-upgrade] .camera-position-control{top:max(75px,calc(env(safe-area-inset-top) + 68px))!important}
+  #game-screen[data-gameplay-upgrade] .snap-camera-control{top:8px!important;right:96px!important}
 }
