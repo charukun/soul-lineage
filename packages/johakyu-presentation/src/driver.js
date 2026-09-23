@@ -17,7 +17,9 @@ export function createCanonicalPresentationDriver(port){
     const ids=new Set(frame.actors.map(row=>row.id));
     for(const [id,actor] of actors)if(!ids.has(id)){port.remove(actor);actors.delete(id);appearances.delete(id);}
     for(const row of frame.actors){
-      const appearance=port.appearanceKey?.(row);let actor=actors.get(row.id);
+      // Equipment is part of visual identity. Rebind atomically instead of
+      // letting weapon/scabbard/contact caches survive a live equipment swap.
+      const appearance=[port.appearanceKey?.(row),row.equipment?.weapon,row.equipment?.armor,Boolean(row.equipment?.shield)].join('|');let actor=actors.get(row.id);
       if(actor&&appearances.get(row.id)!==appearance){port.remove(actor);actors.delete(row.id);actor=null;}
       if(!actor){actor=port.spawn(row);actors.set(row.id,actor);appearances.set(row.id,appearance);}
       port.update(actor,row,dt,{initial:changed});
