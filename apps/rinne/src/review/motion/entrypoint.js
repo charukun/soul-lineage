@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {RINNE_MOTION_REVIEW_DEFAULT_MODEL,RINNE_MOTION_REVIEW_MODELS} from './models.js';
+import {createImg2ThreeReferenceCharacter} from '@soul/characters';
 import {createHumanoidPreview} from '@soul/rendering/humanoid-preview';
 import {createHumanoidPreviewConstraints} from '@soul/rendering/humanoid-preview-constraints';
 import {createReviewCameraPresetController,createReviewRenderer,disposeReviewObject,normalizeReviewSubject,positionReviewCamera} from '@soul/rendering';
@@ -173,8 +174,15 @@ function renderFilters(){
   const root=el('motion-filters');root.replaceChildren();
   for(const id of categoryOrder){const b=document.createElement('button');b.type='button';b.textContent=categoryLabel(id);b.dataset.motionFilter=id;b.setAttribute('aria-pressed',String(id===filter));b.addEventListener('click',()=>{filter=id;renderFilters();renderMotionGrid();});root.append(b);}
 }
+async function loadReviewTarget(model){
+  if(model.runtime?.kind==='golden-base'){
+    const scene=await createImg2ThreeReferenceCharacter({textureUrl:model.runtime.textureUrl});
+    return {scene,animations:[]};
+  }
+  return loadPinnedReviewTarget(model);
+}
 async function loadReviewModelForThumbnail(model){
-  if(!thumbnailModelPromises.has(model.id))thumbnailModelPromises.set(model.id,loadPinnedReviewTarget(model).catch(error=>{thumbnailModelPromises.delete(model.id);throw error;}));
+  if(!thumbnailModelPromises.has(model.id))thumbnailModelPromises.set(model.id,loadReviewTarget(model).catch(error=>{thumbnailModelPromises.delete(model.id);throw error;}));
   return thumbnailModelPromises.get(model.id);
 }
 function renderMotionGrid(){
@@ -216,7 +224,7 @@ async function loadModel(model){
   const previousIdentity=selected?.sourceIdentity;selectedModel=model;el('motion-model').value=model.id;motionFailures.clear();playing=false;ready=false;selected=null;externalSource=null;selectedDuration=0;
   clearRuntimeThumbnailQueue();disposeSubject();renderModelGrid();catalog=[];renderMotionGrid();syncPlaybackUI();status(model.label+' を読み込んでいます。');el('motion-load').hidden=false;el('motion-load').removeAttribute('value');
   try{
-    const gltf=await loadPinnedReviewTarget(model);
+    const gltf=await loadReviewTarget(model);
     if(serial!==loadSerial||stopped){disposeReviewObject(gltf.scene);return;}
     hideEmbeddedCombatProps(gltf.scene);
     const wrapper=new THREE.Group();wrapper.name='MotionReview:'+model.id;wrapper.add(gltf.scene);
