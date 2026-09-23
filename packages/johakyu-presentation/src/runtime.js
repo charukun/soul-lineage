@@ -656,6 +656,23 @@ function createDrivenPort(){
    const alignWeight=smooth(clamp((progress-.1)/.44,0,1));for(let pass=0;pass<2;pass++){alignBladeToSheath(a,right,weapon,directionWorld,alignWeight);solveArmToTarget(a,right,()=>bladeAxisForSheath(a,weapon)?.hilt??right.socket.getWorldPosition(new THREE.Vector3()),target,.72+.28*alignWeight);}
    const left=armRig(a,'l');if(left&&!a.canonicalRow?.equipment?.shield){const hold=mouthWorld.clone().addScaledVector(directionWorld,.08).addScaledVector(leftWorld,.025),leftWeight=smooth(clamp((progress-.14)/.34,0,1));solveArmToTarget(a,left,()=>left.socket.getWorldPosition(new THREE.Vector3()),hold,leftWeight*.82);}
  }
+ function moveBladeFromSheath(a,row,dt){
+   if(!a.sheathed&&!a.drawMotion)return;
+   const weaponId=row.equipment?.weapon,name=weaponMesh[weaponId],weapon=name?a.root.getObjectByName(name):null,right=armRig(a,'r'),frame=leftHipSheathFrame(a);
+   if(!weapon?.visible||!right?.socket||!frame){a.sheathed=false;a.drawMotion=null;return;}
+   const liveOpponent=[...bindings.values()].some(other=>other!==a&&other.canonicalRow&&other.canonicalRow.side!==row.side&&!other.canonicalRow.dead&&!other.canonicalRow.downed);
+   const combatReady=Boolean(row.action||liveOpponent);
+   if(!a.drawMotion&&combatReady)a.drawMotion={key:row.action?.id||('ready:'+String(row.id||a.canonicalId||'')),elapsed:0,duration:.44};
+   const axis=bladeAxisForSheath(a,weapon);if(!axis)return;ensureScabbard(a,weaponId,frame,axis.length);
+   const {mouthWorld,directionWorld,leftWorld,forwardWorld}=frame,smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
+   let progress=0;if(a.drawMotion){a.drawMotion.elapsed+=Math.max(0,dt);progress=clamp(a.drawMotion.elapsed/a.drawMotion.duration,0,1);if(row.action){const contact=Math.max(.18,Number(row.action.motion?.contactProgress)||.5),forced=clamp((Number(row.action.progress)||0)/(contact*.62),0,1);progress=Math.max(progress,forced);}}
+   const authoredHilt=axis.hilt.clone(),entry=mouthWorld.clone().addScaledVector(directionWorld,-axis.length*.9),clearance=entry.clone().addScaledVector(leftWorld,-a.height*.08).addScaledVector(forwardWorld,a.height*.08).add(new THREE.Vector3(0,a.height*.045,0));
+   let target;if(!a.drawMotion)target=mouthWorld;else if(progress<.56)target=mouthWorld.clone().lerp(entry,smooth(progress/.56));else if(progress<.82)target=entry.clone().lerp(clearance,smooth((progress-.56)/.26));else target=clearance.clone().lerp(authoredHilt,smooth((progress-.82)/.18));
+   const alignWeight=a.drawMotion?1-smooth(clamp((progress-.56)/.44,0,1)):1;
+   for(let pass=0;pass<2;pass++){alignBladeToSheath(a,right,weapon,directionWorld,alignWeight);solveArmToTarget(a,right,()=>bladeAxisForSheath(a,weapon)?.hilt??right.socket.getWorldPosition(new THREE.Vector3()),target,a.drawMotion?.9:1);}
+   const left=armRig(a,'l');if(left&&!row.equipment?.shield){const hold=mouthWorld.clone().addScaledVector(directionWorld,.08).addScaledVector(leftWorld,.025),leftWeight=a.drawMotion?1-smooth(clamp((progress-.45)/.42,0,1)):1;solveArmToTarget(a,left,()=>left.socket.getWorldPosition(new THREE.Vector3()),hold,leftWeight*.8);}
+   if(a.drawMotion&&progress>=1){a.drawMotion=null;a.sheathed=false;}
+ }
  const driver=createCanonicalPresentationDriver({
   appearanceKey:row=>[row.kind,row.boss,row.kind==='hero'?row.equipment.armor:null].join(':'),
   supports(row){
@@ -678,8 +695,10 @@ function createDrivenPort(){
    if(Number.isFinite(row.battleTime)){const previous=a.lastBattleTime??row.battleTime;a.lastBattleTime=row.battleTime;dt=Math.max(0,row.battleTime-previous);}
    const observedClip=!initial&&dt>0?observedLocomotion(a.pos,row.position,row.yaw):null;
    a.canonicalRow=row;a.pos.set(row.position.x,0,row.position.z);a.object.rotation.y=row.yaw;a.hp=row.hp;a.maxHp=row.maxHp;a.dead=row.dead||row.downed;clearFatigueRig(a);clearParryRig(a);clearImpactRig(a);const contactHeld=Boolean(a.contactHold?.remaining>0);if(a.spawn>0)a.spawn=Math.max(0,a.spawn-dt);const reactionDt=contactHeld?0:dt;if(a.reaction){a.reaction.remaining=Math.max(0,a.reaction.remaining-reactionDt);if(a.reaction.remaining<=0)a.reaction=null;}if(a.parryRecoil){a.parryRecoil.remaining=Math.max(0,a.parryRecoil.remaining-reactionDt);if(a.parryRecoil.remaining<=0)a.parryRecoil=null;}if(a.impactRecoil){a.impactRecoil.remaining=Math.max(0,a.impactRecoil.remaining-reactionDt);if(a.impactRecoil.remaining<=0)a.impactRecoil=null;}if(a.contactHold){a.contactHold.remaining=Math.max(0,a.contactHold.remaining-dt);if(a.contactHold.remaining<=0)a.contactHold=null;}
-   if(a.sheathMotion&&(row.action||row.phaseCue?.phase!=='zanshin'))a.sheathMotion=null;
-   if(a.scabbard&&a.scabbard.weaponId!==row.equipment.weapon)disposeScabbard(a);
+   const zanshinActive=row.phaseCue?.phase==='zanshin';
+   if(a.wasZanshin&&!zanshinActive){a.sheathed=true;a.sheathMotion=null;a.drawMotion=null;}
+   a.wasZanshin=zanshinActive;
+   if(a.scabbard&&a.scabbard.weaponId!==row.equipment.weapon){disposeScabbard(a);a.sheathed=false;a.drawMotion=null;}
    const equipmentKey=row.equipment.weapon+':'+row.equipment.shield;
    if(a.equipmentKey!==equipmentKey){
     for(const name of equipmentNames){const node=a.root.getObjectByName(name);if(node)node.visible=false;}
@@ -707,7 +726,7 @@ function createDrivenPort(){
     a.presentationActionId=null;a.action.paused=false;if(initial&&terminal)a.action.time=a.clips.get(clip).duration-.000001;a.mixer.update(dt);
     if(row.moving&&!terminal){a.stepClock-=dt;if(a.stepClock<=0){a.stepClock=.34;sound.footstep?.({pan:spatialPan(a.pos),rate:a.kind==='hero'?1.04:.94});}}else a.stepClock=0;
    }
-   applyFatigue(a,row,dt);applyTechniquePresentationPose(a,row);applyImpactRecoil(a);applyParryRecoil(a);sampleWeaponTrace(a,dt);
+   applyFatigue(a,row,dt);applyTechniquePresentationPose(a,row);applyImpactRecoil(a);applyParryRecoil(a);if(!terminal&&(a.sheathed||a.drawMotion))moveBladeFromSheath(a,row,dt);sampleWeaponTrace(a,dt);
    if(terminal)a.deathTime+=dt;
    a.flash=Math.max(0,a.flash-dt);a.startGlow=Math.max(0,a.startGlow-dt);const startColor=startGlowColors[a.startGlowPhase]||startGlowColors.other;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(hitFlashColor);mat.emissiveIntensity=1.7;}else if(a.startGlow>0){mat.emissive.copy(startColor);mat.emissiveIntensity=Math.max(power,1.5*a.startGlow/.18);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
   },
