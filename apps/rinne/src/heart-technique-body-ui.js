@@ -55,12 +55,43 @@ const detailSection=({icon,kicker,title,summary,status,note='',actionLabel,actio
 function techniqueDetail(state,selection,status='習得済み'){if(String(selection||'').startsWith('combo:')){const combo=comboById(state,String(selection).slice(6));return{icon:'flow',kicker:'連技',title:combo?.name||'連技',summary:combo?PHASES.map(([phase])=>techniqueName(combo.slots[phase])).join(' → '):'連技',status};}const row=skillDetail(selection,'戦技',status);return{...row,icon:rinneSkillSigilKind(selection,SKILL_BY_ID[selection]?.effects)};}
 function clearSwap(model){model.swap=null;}
 
+function heartPortrait(slotIds){
+  const names=slotIds.filter(Boolean).map(id=>techniqueName(id)).join('・');
+  const keys=slotIds.filter(Boolean).join('・');
+  if(!names)return 'まだ名のない心が、これからの歩みを待っている。';
+  const lines=[];
+  if(/信仰|信心|祈|神|聖|加護|祝|誓|慈/.test(names)||/faith|pray|devotion|belief/.test(keys))lines.push('祈りの行方は、まだ誰にも分からない。');
+  if(/観眼|観察|洞察|見切|読み/.test(names)||/observe|read|peripheral/.test(keys))lines.push('目を凝らし、見えぬ兆しに耳を澄ます。');
+  if(/待ち|静|忍耐/.test(names)||/wait|patience|calm/.test(keys))lines.push('時が来るまで、心は動かない。');
+  if(/刃|剣|斬/.test(names)||/edge|blade|sword/.test(keys))lines.push('刃は、訪れた一瞬へ向かう。');
+  return lines.slice(0,2).join('　')||'選んだ心得が、歩む道に静かに重なる。';
+}
+function heartComposition(slots,slotIds){
+  const layout=document.createElement('div');
+  layout.className='heart-composition';
+  const figure=document.createElement('section');
+  figure.className='heart-composition-slots';
+  const figureTitle=document.createElement('h3');
+  figureTitle.textContent='心得の構成';
+  figure.append(figureTitle,slots);
+  const portrait=document.createElement('section');
+  portrait.className='heart-portrait';
+  portrait.setAttribute('aria-label','心のかたち');
+  const title=document.createElement('h3');
+  title.textContent='心のかたち';
+  const copy=document.createElement('p');
+  copy.textContent=heartPortrait(slotIds);
+  portrait.append(title,copy);
+  layout.append(figure,portrait);
+  return layout;
+}
+
 function renderHeart(model,focusId=null){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='heart';model.tracker.consume('heart');model.ui.title.textContent='心 · 心得';model.ui.body.innerHTML='';
   const ids=learnedHeartSkills(state),active=state.combatLoadout.heart.active,heartSlots=state.combatLoadout.heart.slots;model.heartTarget=Math.max(0,Math.min(HEART_SLOT_COUNT-1,model.heartTarget||0));if(focusId)model.heartPreview=focusId;if(!model.heartPreview)model.heartPreview=heartSlots[model.heartTarget]||ids[0]||null;
   const swapActive=model.swap?.section==='heart',slots=topSlotRow(swapActive,'pentagon');
   for(let index=0;index<HEART_SLOT_COUNT;index++){const id=heartSlots[index]||null;slots.append(slot('心得 '+(index+1),id?techniqueName(id):'空き',{selected:model.heartTarget===index,empty:!id,icon:rinneSkillSigilKind(id,SKILL_BY_ID[id]?.effects),swapMode:swapActive,swapSource:swapActive&&model.swap.source===index,detail:id?skillDetail(id,'心得','意識中'):null,onClick:()=>{if(swapActive){const source=model.swap.source,sourceId=heartSlots[source];if(source!==index&&sourceId)setHeartSlot(state,index,sourceId);clearSwap(model);model.heartTarget=index;model.audio.item();haptic(18);renderHeart(model,model.heartPreview);return;}model.heartTarget=index;model.heartPreview=id||model.heartPreview;model.audio.ui();renderHeart(model,model.heartPreview);},onLongPress:id?()=>{model.swap={section:'heart',source:index};model.audio.ui();haptic([18]);renderHeart(model,model.heartPreview);}:null}));}
-  model.ui.body.append(slots);if(swapActive)model.ui.body.append(createRinneSwapHint('入れ替える心得枠を選択'));
+  model.ui.body.append(heartComposition(slots,heartSlots));if(swapActive)model.ui.body.append(createRinneSwapHint('入れ替える心得枠を選択'));
   const preview=model.heartPreview;if(preview){const current=heartSlots[model.heartTarget]===preview,row=skillDetail(preview,'心得',active.includes(preview)?'意識中':'習得済み');model.ui.body.append(detailSection({icon:rinneSkillSigilKind(preview,SKILL_BY_ID[preview]?.effects),...row,actionLabel:current?'設定済み':`心得${model.heartTarget+1}にセット`,actionDisabled:current,onAction:()=>{setHeartSlot(state,model.heartTarget,preview);model.audio.item();haptic(12);renderHeart(model,preview);}}));}
   if(preview){const index=ids.indexOf(preview);if(index>=0)model.pages.heart=Math.floor(index/GRID_PAGE_SIZE);}
   const library=gridSection('心得一覧','候補を選ぶと詳細を表示');library.classList.add('heart-learned-list');const list=library.querySelector('.loadout-grid'),page=pageRows(model,'heart',ids,()=>renderHeart(model,model.heartPreview));
