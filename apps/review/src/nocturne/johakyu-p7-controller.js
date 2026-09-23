@@ -9,11 +9,11 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
   let reviewLoadout=normalizeBattle2Loadout(loadout||{}),reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'},reviewLearned=[...new Set(Array.isArray(learnedTechniqueIds)?learnedTechniqueIds:[])];
   const scenarioOptions=()=>({mode,loadout:reviewLoadout,settings:reviewSettings,learnedTechniqueIds:reviewLearned});
   const makeScenario=()=>evidence&&fixture==='clash'?createJohakyuP7ReviewScenario({...scenarioOptions(),fixture:'clash',duelGap:1.7,heroStartPhase:'ha'}):evidence&&fixture==='parry'?createJohakyuP7ReviewScenario({...scenarioOptions(),duelGap:2.4,heroStartPhase:'kyu',heroStartTechniqueIndex:0,enemyLeadSeconds:.5}):evidence&&fixture==='downed'?createJohakyuP7ReviewScenario({...scenarioOptions(),duelGap:1.7,actorOverrides:{hero:{canAttack:false,readyDelay:0},'enemy-a':{hp:0,downed:true,incapacitated:true,spawnSeconds:0,readyDelay:0}}}):createJohakyuP7ReviewScenario({...scenarioOptions(),comboStyle:'composed',duelGap:mode==='duel'?3.9:4.25,enemyLeadSeconds:mode==='duel'?.16:0});
-  let scenario=makeScenario();
+  let scenario=makeScenario(),presentationGeneration=0;
   let disposed=false,ready=false,started=false,raf=0,previous=0,current=null,trace=[],lastResumes=0,lastEncounter=1,physicalContacts=[],lastPresentationError='';
   function presentSafely(frame,dt,events=[]){
     try{
-      const result=driven.present(frame,dt,events);lastPresentationError='';return result;
+      const result=driven.present({...frame,battleId:`${frame.battleId}:view:${presentationGeneration}`},dt,events);lastPresentationError='';return result;
     }catch(error){
       const message=String(error?.message||error||'presentation error');
       if(message!==lastPresentationError){
@@ -55,12 +55,12 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
     driven.resize();if(!started||evidence)presentSafely(current.frame,0,[]);
   }
   function configureLoadout(next){
-    reviewLoadout=normalizeBattle2Loadout(next||{});scenario=makeScenario();current=scenario.inspect();lastResumes=0;lastEncounter=1;physicalContacts=[];
+    reviewLoadout=normalizeBattle2Loadout(next||{});scenario=makeScenario();presentationGeneration++;current=scenario.inspect();lastResumes=0;lastEncounter=1;physicalContacts=[];cameraPresentation?.cancelInspiration?.();
     trace.push({type:'loadout-reset',loadout:reviewLoadout});if(trace.length>100)trace=trace.slice(-100);
     if(ready&&!disposed){presentSafely(current.frame,0,[]);onMeta(current.meta);}return reviewLoadout;
   }
   function configureSettings(next){
-    reviewSettings={techniqueMode:next?.techniqueMode==='random'?'random':'set',inspirationRate:next?.inspirationRate==='high'?'high':'normal'};scenario=makeScenario();current=scenario.inspect();lastResumes=0;lastEncounter=1;physicalContacts=[];
+    reviewSettings={techniqueMode:next?.techniqueMode==='random'?'random':'set',inspirationRate:next?.inspirationRate==='high'?'high':'normal'};scenario=makeScenario();presentationGeneration++;current=scenario.inspect();lastResumes=0;lastEncounter=1;physicalContacts=[];cameraPresentation?.cancelInspiration?.();
     trace.push({type:'settings-reset',settings:{...reviewSettings}});if(trace.length>100)trace=trace.slice(-100);
     if(ready&&!disposed){presentSafely(current.frame,0,[]);onMeta(current.meta);}return {...reviewSettings};
   }
@@ -86,3 +86,4 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
     get learnedTechniqueIds(){return reviewLearned.slice();},
     get trace(){return trace.slice();}});
 }
+

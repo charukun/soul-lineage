@@ -4,7 +4,7 @@ export function createWeaponReadiness({THREE,weaponMesh,armRig,scabbardFrame,beg
    if(!a.sheathed&&!a.drawMotion)return;const weaponId=row.equipment?.weapon,name=weaponMesh[weaponId],weapon=name?a.root.getObjectByName(name):null,right=armRig(a,'r'),frame=scabbardFrame(a,weaponId);
    if(!weapon?.visible||!right?.socket||!frame){a.sheathed=false;a.drawMotion=null;return;}
    let held=a.weaponStow;if(!held){held=beginWeaponStow(a,weapon);if(!held)return;lockWeaponInScabbard(a,weaponId,frame);}
-   ensureScabbard(a,weaponId,frame,held);const combatReady=Boolean(row.combatReady);
+   ensureScabbard(a,weaponId,frame,held);const combatReady=(row.state?row.state.weapon==='drawn':Boolean(row.combatReady||row.action||row.phaseCue?.phase==='zanshin'));
    if(!a.drawMotion){
      if(!combatReady){if(weapon.parent!==a.scabbard?.group)lockWeaponInScabbard(a,weaponId,frame);return;}
      if(weapon.parent!==a.root)a.root.attach(weapon);weapon.updateWorldMatrix(true,true);const axis=bladeAxisForSheath(a,weapon);a.drawMotion={key:row.action?.id||('ready:'+String(row.id||a.canonicalId||'')),elapsed:0,duration:.5,startHilt:axis?.hilt.clone()||frame.mouthWorld.clone()};a.sheathed=false;
@@ -22,7 +22,7 @@ export function createWeaponReadiness({THREE,weaponMesh,armRig,scabbardFrame,beg
  function updateCombatReadyWeapon(a,row,dt){
    const sheathable=SHEATHABLE_WEAPONS.has(row.equipment?.weapon);
    if(!sheathable)return;
-   const ready=Boolean(row.combatReady);
+   const ready=(row.state?row.state.weapon==='drawn':Boolean(row.combatReady||row.action||row.phaseCue?.phase==='zanshin'));
    if(ready){
      if(a.autoSheath){a.autoSheath=null;if(a.weaponStow)a.sheathed=true;}
      if(a.sheathed||a.drawMotion)moveBladeFromSheath(a,row,dt);
@@ -39,3 +39,4 @@ export function createWeaponReadiness({THREE,weaponMesh,armRig,scabbardFrame,beg
 
  return {moveBladeFromSheath,updateCombatReadyWeapon};
 }
+

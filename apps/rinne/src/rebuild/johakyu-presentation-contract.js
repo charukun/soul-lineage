@@ -28,6 +28,7 @@ function person(actor,battleId,self){
     stamina:{value:finite(actor.stamina),cap:finite(actor.staminaCap,100)},
     equipment:{weapon:actor.equipment?.weapon||'fist',armor:actor.equipment?.armor||'cloth',shield:Boolean(actor.equipment?.shield)},
     moving:Boolean(actor.moving),resting:Boolean(actor.resting&&!actor.moving&&!actor.combat),dead:Boolean(actor.ended),downed:Boolean(actor.down),executionState:actor.down?.executionState||actor.combat?.executionState||'ACTIVE',downedState:actor.down?.downedState||actor.combat?.downedState||null,executionSocket:actor.combat?.executionSocket||null,
+    state:pose?.battleState??null,engagement:pose?.engagement??null,combatReady:pose?.combatReady??false,executorId:pose?.executorId??null,
     phaseCue:actor.combat?.phaseCue||null,battleTime:actor.combat?.battleTime??0,hitstop:actor.combat?.hitstop??0,action:actionOf(actor,pose,battleId),hit:Boolean(pose?.stun>0),ageYears:finite(actor.ageYears)};
 }
 /** Observe the existing main-game authority. No command, RNG, clock or save write. */
@@ -40,6 +41,7 @@ export function readRinneBattleFrame(state,front,{peers=[],epoch=0,revision=0}={
     return {id:enemy.id,side:'enemy',self:false,kind:'enemy',boss:front.stage>=5,
       position:{x:finite(enemy.x),z:finite(enemy.z)},yaw:finite(enemy.yaw),hp:finite(enemy.hp),maxHp:finite(enemy.maxHp,100),
       body:bodyOf(enemy),stamina:null,equipment:{weapon:pose?.weapon==='greatsword'?'great':pose?.weapon||enemyWeapon(front,enemy),shield:Boolean(enemy.shield)},
+      state:pose?.battleState??null,engagement:pose?.engagement??null,combatReady:pose?.combatReady??false,executorId:pose?.executorId??null,
       battleTime:front.battleClock?.time??0,hitstop:front.battleClock?.hitstop??0,moving:Boolean(enemy.moving),resting:false,dead:Boolean(enemy.dead),downed:Boolean(enemy.downed),executionState:enemy.executionState||'ACTIVE',downedState:enemy.downedState||null,executionSocket:enemy.executionSocket||null,hit:Boolean(pose?.stun>0),action};
   })];
   if(new Set(actors.map(a=>a.id)).size!==actors.length)throw Error('Duplicate canonical actor identity');
@@ -75,3 +77,4 @@ export function readRinneImpactEvents(events,state,{batchId=null}={}){
   }
   return freeze(rows);
 }
+
