@@ -4,11 +4,14 @@ All surface generation remains in pinned img2threejs. Lathe profiles below are
 reference-specific authoring DATA for upstream's existing buildLatheGeometry;
 this module contains no mesher, loft implementation, or fallback generator.
 """
-def apply_first_correction(spec,s):
+def apply_first_correction(spec,s,correct_units=True):
     nodes={n['id']:n for n in spec['componentTree']}
     def lathe(cid,width,height,depth,points):
         n=nodes[cid];n['primitive']='lathe';n['topologyClass']='continuous-sculpt'
         n['dimensions'].update(width=width*s,height=height*s,depth=depth*s)
+        # Upstream gives an explicit transform.scale precedence over dimensions.
+        # SDF's identity scale cannot be carried onto a unit-profile primitive.
+        n['transform']['scale']=[width*s,height*s,depth*s] if correct_units else [1,1,1]
         n['geometryDescriptor']={'latheProfile':{'points':points,'segments':64},'uvStrategy':'camera-solved multi-view projection baked after geometry acceptance'}
         n['topologyRationale']='Observed front contour revolved by the pinned upstream lathe generator. Elliptical transverse section inferred; side depth constrains its scale. No RINNE loft.'
     # The original artwork has a flat hem and a visible waist, not an oval body.

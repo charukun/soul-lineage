@@ -15,9 +15,11 @@ run('python3',['scripts/character-forge/prepare_scout_materials.py','--workspace
 run('python3',['scripts/character-forge/author_upstream_scout.py','--workspace',workspace,'--cache',cache]);
 run('python3',['scripts/character-forge/scout_setup_evidence.py','--workspace',workspace,'--cache',cache]);
 run('python3',['packages/assets/forge/upstream_workspace.py','run','--workspace',workspace,'--entry','forge/stage3_build/generate_threejs_factory.py','--','object-sculpt-spec.json','--pass-id','blockout','--out','build/blockout.ts']);
+run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','build-current-pass','--evidence','build/blockout.ts']);
 run('npm',['ci','--ignore-scripts']);
 run('npx',['playwright','install','--with-deps','chromium']);
 run('node',['scripts/character-forge/render_upstream.mjs',workspace,'blockout']);
+run('python3',['packages/assets/forge/upstream_workspace.py','mark','--workspace',workspace,'--','render-capture','--evidence','review/blockout/render-receipt.json']);
 run('python3',['scripts/character-forge/review_upstream.py','--workspace',workspace,'--cache',cache,'--pass-id','blockout']);
 const lock=JSON.parse(readFileSync('package-lock.json','utf8')).packages['node_modules/three'];
 if(!/^https:\/\/registry\.npmjs\.org\/three\/-\/three-[0-9.]+\.tgz$/.test(lock.resolved))throw new Error('Unexpected Three.js source');

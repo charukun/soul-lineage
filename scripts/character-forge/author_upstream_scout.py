@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'packages/assets/forge'))
 from upstream_workspace import install_boundary, write_json, checked_run
 
-def author(workspace,cache,revision=2):
+def author(workspace,cache,revision=3):
     install=install_boundary(cache,cache/'host')
     sys.path[:0]=[str(install['engine']/'forge/stage2_spec'),str(install['engine']/'forge/stage3_build')]
     from new_sculpt_spec import make_spec, _cnode
@@ -99,19 +99,24 @@ def author(workspace,cache,revision=2):
         if previous.get(key):spec[key]=previous[key]
     if revision>=2:
         from scout_correction import apply_first_correction
-        apply_first_correction(spec,s)
+        apply_first_correction(spec,s,correct_units=revision>=3)
     spec['referenceRecipeRevision']=revision
     write_json(w/'assessment.json',{'preSpecAssessment':a,'qualityContract':q})
     write_json(w/'object-sculpt-spec.json',spec)
     code=checked_run(install,w,'forge/stage2_spec/validate_sculpt_spec.py',['object-sculpt-spec.json','--strict-quality','--json'])
-    if not code and revision>=2 and not spec.get('reviewHistory'):
+    if not code and revision>=2:
         # Replay the immutable, rejected first capture through the actual
         # upstream ledger. This is one counted refinement, never a fresh loop.
-        historical=json.loads((ROOT/'scripts/character-forge/fixtures/upstream-scout-blockout-r0-review.json').read_text())
-        write_json(w/'img2threejs/evidence/blockout-r0-review.json',historical)
-        code=checked_run(install,w,'forge/stage4_review/append_review.py',['object-sculpt-spec.json','--pass-id','blockout','--action',historical['action'],'--fidelity',str(historical['fidelity']),'--summary',historical['reason'],'--evidence','img2threejs/evidence/blockout-r0-review.json','--mismatches','disconnected limbs;oval tunic;excess face relief;round boots','--spec-fixes','upstream capsule shafts;source-contour upstream lathe;reduce face relief;flat boot soles','--in-place'])
+        for round_id in range(revision-1):
+            evidence=f'img2threejs/evidence/blockout-r{round_id}-review.json'
+            current=json.loads((w/'object-sculpt-spec.json').read_text())
+            if any(evidence in entry.get('evidence',[]) for entry in current.get('reviewHistory',[])):continue
+            historical=json.loads((ROOT/f'scripts/character-forge/fixtures/upstream-scout-blockout-r{round_id}-review.json').read_text())
+            write_json(w/evidence,historical)
+            code=checked_run(install,w,'forge/stage4_review/append_review.py',['object-sculpt-spec.json','--pass-id','blockout','--action',historical['action'],'--fidelity',str(historical['fidelity']),'--summary',historical['reason'],'--evidence',evidence,'--in-place'])
+            if code:break
     return code
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--workspace',type=Path,required=True);p.add_argument('--cache',type=Path,required=True);p.add_argument('--revision',type=int,choices=(1,2),default=2);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--workspace',type=Path,required=True);p.add_argument('--cache',type=Path,required=True);p.add_argument('--revision',type=int,choices=(1,2,3),default=3);a=p.parse_args()
     raise SystemExit(author(a.workspace.resolve(),a.cache.resolve(),a.revision))
