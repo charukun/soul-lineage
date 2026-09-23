@@ -2,7 +2,7 @@ import { INSPIRATION_MOTION_IDS } from './inspiration-catalog.js';
 import { generatedTechniqueById, generatedTechniqueCandidates } from './technique-grammar.js';
 
 export const causalInspirationRevision = 'causal-inspiration-1';
-export const INSPIRATION_KINDS = Object.freeze({heart:'心',body:'体',technique:'技',link:'連',variant:'変'});
+export const INSPIRATION_KINDS = Object.freeze({heart:'心',body:'体',technique:'技',link:'旧編成',variant:'変'});
 export const INSPIRATION_NAME_GRADES = Object.freeze({normal:'',secret:'秘技',ultimate:'奥義'});
 export const INSPIRATION_ATTRIBUTE_LABELS = Object.freeze({fire:'炎',water:'水',ice:'氷',wind:'風',earth:'土',lightning:'雷',light:'光',dark:'闇'});
 export const INSPIRATION_ATTRIBUTES = Object.freeze(Object.keys(INSPIRATION_ATTRIBUTE_LABELS));

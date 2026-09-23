@@ -49,7 +49,7 @@ export function installInspirationUI(ui,{gameScreen,audio}){
   }
   function useLink(id){
     if(readonly())return;const r=state.inspiration.records[id],slots=r?.combo;if(!slots)return;
-    for(const [p,skill]of Object.entries(slots)){const row=resolveInspirationAnswer(skill);if(!PHASES.some(([id])=>id===p)||!state.knownSkills.includes(skill)||(row?.weapons.length&&!row.weapons.includes(state.equipment.weapon))){message('この連は、記録された得物と技が揃うと組めます。');return;}}
+    for(const [p,skill]of Object.entries(slots)){const row=resolveInspirationAnswer(skill);if(!PHASES.some(([id])=>id===p)||!state.knownSkills.includes(skill)||(row?.weapons.length&&!row.weapons.includes(state.equipment.weapon))){message('この旧編成は、記録された得物と技が揃うと組めます。');return;}}
     const combo=addCombo(state);if(!combo){message('連の枠が一杯です。不要な編成を整理してください。');return;}
     combo.name=r.name;for(const [p,skill]of Object.entries(slots))setComboSkill(state,combo.id,p,skill);setActiveCombo(state,combo.id);ui.open('technique');audio?.item?.();
   }
@@ -62,7 +62,7 @@ export function installInspirationUI(ui,{gameScreen,audio}){
     const detail=el('details');detail.append(el('summary','この答えが生まれた理由'));provenance(detail,item.provenance);card.append(detail);
     const actions=el('div',null,'inspiration-actions');
     if(row.kind==='body'&&row.bodyChoice){const choice=row.bodyChoice;actions.append(button('身法に取り入れる',()=>{if(setBodyChoice(state,choice.kind,choice.id))changed();},{disabled:readonly()||item.archived}));}
-    else if(row.kind==='link')actions.append(button('この連を編成する',()=>useLink(item.id),{disabled:readonly()||item.archived}));
+    else if(row.kind==='link')actions.append(button('旧編成を使う',()=>useLink(item.id),{disabled:readonly()||item.archived}));
     else actions.append(button(ui.panel.dataset.type==='heart'?`心の${heartSlot+1}枠へ`:ui.panel.dataset.type==='technique'?`${({jo:'序',ha:'破',kyu:'急'})[phase]}へ組む`:'編成へ',()=>selectAction(item.id),{disabled:readonly()||item.archived||(row.weapons.length&&!row.weapons.includes(state.equipment.weapon))}));
     card.append(actions);
     if(manage){

@@ -132,8 +132,8 @@ function candidateScore(state,row,context){
   score+=unit(state.seed,`aptitude:${row.family}`)*.08;return score;
 }
 function candidateAnswerPool(state,window){
-  if(window!=='combat')return CAUSAL_ANSWERS;
-  const weapon=state.equipment?.weapon||'fist',nonCombat=CAUSAL_ANSWERS.filter(row=>!['technique','variant'].includes(row.kind));
+  if(window!=='combat')return CAUSAL_ANSWERS.filter(row=>row.kind!=='link');
+  const weapon=state.equipment?.weapon||'fist',nonCombat=CAUSAL_ANSWERS.filter(row=>!['technique','variant','link'].includes(row.kind));
   return [...nonCombat,...inspirationCombatAnswerPool(weapon)];
 }
 export function inspirationCandidates(state,context={}){
@@ -143,7 +143,6 @@ export function inspirationCandidates(state,context={}){
     if(row.requiresFamily&&!Object.values(s.records).some(r=>r.family===row.requiresFamily))continue;
     if(!row.questions.some(q=>questions.includes(q)&&own(s.questions,q)))continue;
     const action=['technique','variant'].includes(row.kind);if(action&&window!=='combat')continue;if(!action&&!row.windows.includes(window))continue;
-    if(row.kind==='link'&&!Object.values(context.combo||{}).some(id=>answer(id)?.motifs.some(m=>row.motifs.includes(m))))continue;
     if(!answerAvailability(state,row.id,{context}).usable)continue;const proof=materialProof(s,row);if(!proof)continue;
     rows.push({id:row.id,score:candidateScore(state,row,context),proof:proof.map(t=>t.id),question:row.questions.find(q=>questions.includes(q)&&own(s.questions,q))});
   }
@@ -169,7 +168,6 @@ function commitAnswer(state,candidate,context={}){
   if(naming)record.naming={style:naming.style,grade:naming.grade,baseName:naming.baseName,signature:naming.signature};
   const youngSui=Boolean(naming?.grade==='ultimate'&&record.age<=17);
   if(['technique','variant'].includes(row.kind)){const effectAttribute=chooseInspirationEffectAttribute(state,row.id);if(effectAttribute)record.effectAttribute=effectAttribute;}
-  if(row.kind==='link'&&context.combo)record.combo={...context.combo};
   s.records[row.id]=record;s.lastNamed=s.clock;s.revision++;enforceActiveLimit(state);synchronizeKnownSkills(state);
   const sui=evaluateSuiAwakening(state,{id:row.id,name:record.name,motifs:row.motifs,force:youngSui,origin:youngSui?'young-ultimate':'life'});
   const villageAnnouncement=sui?`${state.name||'旅人'}に「彗」が現れた。`:null;
@@ -271,10 +269,6 @@ export function recordCombatAnswers(state,context={},events=[]){
   for(const event of events){
     if(event.type!=='player-hit'||!(event.damage>0)||event.blockedByTerrain||!['tidebreak','johakyu'].includes(event.engine))continue;
     const used=event.techniqueId?s.records[event.techniqueId]:Object.values(s.records).find(r=>r.name===event.skill||answer(r.answerId)?.name===event.skill);if(used){const stabilized=rememberUse(state,used.answerId,context);if(stabilized)result.push(stabilized);}
-    if(['jo','ha','kyu'].includes(event.phase)){
-      const last=s.sequence.at(-1);if(last?.phase!==event.phase)s.sequence.push({phase:event.phase,skillId:used?.answerId||`basic.${state.equipment?.weapon||'fist'}`});s.sequence=s.sequence.slice(-3);
-      if(s.sequence.length===3&&s.sequence.map(r=>r.phase).join(',')==='jo,ha,kyu'&&unique(s.sequence.map(r=>r.skillId)).length>=2){recordCombatQuestion(state,'rhythm',context);const combo=Object.fromEntries(s.sequence.map(r=>[r.phase,r.skillId])),c=inspirationCandidates(state,{...context,window:'sequence',questions:['rhythm'],combo})[0];if(c&&s.clock-s.lastNamed>=INSPIRATION_LIMITS.namedGap){const e=commitAnswer(state,c,{...context,combo,description:'序・破・急の実行が、ひとつの連としてつながった。'});if(e)result.push(e);}}
-    }
   }
   if(state.ended||state.down)s.pending=null;s.execution=null;updateInspirationSigns(state,context);return result;
 }

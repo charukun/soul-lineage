@@ -8,7 +8,7 @@ This user-approved redesign supersedes the prohibition on all history-derived ch
 
 ## Implementation acceptance
 
-- Keep 心 / 体 / 連 as bounded authored semantics, but generate 技 / 変 from a deterministic technique grammar. Motion role, footwork, weapon, spacing and execution compatibility define the structural technique; authored techniques remain golden reference cases, not the ceiling of the technique space.
+- Keep 心 / 体 as bounded authored semantics, and generate 技 / 変 as one-to-three-stage techniques from a deterministic grammar. 序・破・急 are equip slots for these learned techniques, not separate learned 連 records. Old 連 records remain readable for save compatibility but are no longer discovered. Motion role, footwork, weapon, spacing and execution compatibility define the structural technique; authored techniques remain golden reference cases, not the ceiling of the technique space.
 - 心得 may carry bounded faith weights keyed by the same canonical attributes used by techniques and VFX. Learned 心 records aggregate that faith over the life; stronger faith raises the chance that a newly realized 技/変 receives the matching presentation attribute. The attribute is stored separately from the technique ID, so VFX-only differences never become new techniques.
 - Authored/review VFX expose canonical elemental `attributes` metadata. Gameplay may promote an explicitly curated, pinned same-origin effect for a supported attribute; presentation attributes never invent elemental damage, resistance, hit authority or contact.
 - Record bounded meaningful life/observation/combat traces; repeated identical situations do not accumulate unlock currency.
