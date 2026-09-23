@@ -357,6 +357,26 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   .rinne-core-menu .loadout-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:3px!important}
   .rinne-core-menu .loadout-grid-item{min-height:0!important;padding:2px!important}
   .rinne-core-menu .loadout-grid-item>.skill-sigil{width:25px!important;height:25px!important;min-width:25px!important}
+  /* Shared detail layout: actions stay in the header; explanation owns the full lower width. */
+  .rinne-core-menu .loadout-detail{
+    grid-template-columns:34px minmax(0,1fr) auto!important;
+    grid-template-rows:auto auto minmax(48px,auto) auto!important;
+    align-items:start!important;min-height:132px!important;
+  }
+  .rinne-core-menu .loadout-detail-copy,
+  .rinne-core-menu .loadout-detail-action{display:contents}
+  .rinne-core-menu .loadout-detail>.skill-sigil{grid-column:1;grid-row:1/3}
+  .rinne-core-menu .loadout-detail-copy>small{grid-column:2;grid-row:1;align-self:center}
+  .rinne-core-menu .loadout-detail-copy>strong{grid-column:2;grid-row:2;align-self:start}
+  .rinne-core-menu .loadout-detail-action>small{grid-column:3;grid-row:1;justify-self:end;align-self:center}
+  .rinne-core-menu .loadout-detail-action>button{grid-column:3;grid-row:2;align-self:start;justify-self:end}
+  .rinne-core-menu .loadout-detail-copy>span{
+    grid-column:1/-1;grid-row:3;min-height:48px;max-height:80px;overflow:auto!important;
+    white-space:normal!important;text-overflow:clip!important;
+  }
+  .rinne-core-menu .loadout-detail-copy>em{
+    grid-column:1/-1;grid-row:4;white-space:normal!important;text-overflow:clip!important;
+  }
 }
 @media(max-height:610px) and (orientation:landscape){
   .rinne-core-menu{left:78px;right:8px;bottom:8px;top:8px;max-width:none;max-height:none}
@@ -422,7 +442,7 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   .rinne-core-menu[data-type="technique"]{max-height:min(72dvh,650px)}
   .rinne-core-menu[data-type="technique"] .loadout-detail{
     grid-template-columns:34px minmax(0,1fr) auto;
-    gap:7px;min-height:102px;padding:10px 8px;
+    gap:7px;min-height:132px;padding:10px 8px;
   }
   .rinne-core-menu[data-type="technique"] .loadout-detail>.skill-sigil{
     width:32px!important;height:32px!important;min-width:32px!important;
@@ -637,8 +657,8 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   /* A framed detail plaque is visually separate from the small choice tiles. */
   .rinne-core-menu[data-layout="loadout"] .loadout-detail{
     order:3;flex:none;position:relative;isolation:isolate;
-    grid-template-columns:40px minmax(0,1fr) 88px;grid-template-rows:18px 24px minmax(0,1fr);
-    gap:4px 8px;align-items:center;height:106px;min-height:106px;margin:0;padding:8px;
+    grid-template-columns:40px minmax(0,1fr) 88px;grid-template-rows:18px 24px minmax(56px,auto) auto;
+    gap:4px 8px;align-items:start;height:auto;min-height:142px;margin:0;padding:8px;
     border:2px solid color-mix(in srgb,var(--menu-accent) 55%,#87623f 45%);border-radius:14px;
     background:
       linear-gradient(90deg,color-mix(in srgb,var(--menu-accent) 38%,#fff2d4 62%),#fff7e7) 0 0/100% 52px no-repeat,
@@ -674,9 +694,12 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
     white-space:nowrap;text-overflow:ellipsis;text-shadow:0 1px #fff8df;
   }
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-copy>span{
-    grid-column:1/3;grid-row:3;align-self:stretch;min-height:0;max-height:none;
+    grid-column:1/-1;grid-row:3;align-self:stretch;min-height:56px;max-height:80px;
     overflow:auto;overscroll-behavior:contain;white-space:normal;
-    color:#624832;font-size:12px;line-height:16px;padding-top:2px;
+    color:#624832;font-size:12px;line-height:16px;padding:5px 2px 0;
+  }
+  .rinne-core-menu[data-layout="loadout"] .loadout-detail-copy>em{
+    grid-column:1/-1;grid-row:4;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;
   }
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-action>small{
     grid-column:3;grid-row:1;justify-self:end;max-width:100%;padding:2px 6px;
@@ -684,7 +707,7 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
     background:#fff7e4;color:#715138;font-size:9px;font-weight:700;line-height:12px;
   }
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-action>button{
-    grid-column:3;grid-row:2/4;align-self:end;width:88px;min-height:44px;padding:5px 4px;
+    grid-column:3;grid-row:2;align-self:start;width:88px;min-height:44px;padding:5px 4px;
     border:1px solid #967044;border-radius:10px;
     background:linear-gradient(#fff0c7,color-mix(in srgb,var(--menu-accent) 45%,#dbb875 55%));
     color:#432e20;font-size:12px;font-weight:800;line-height:1.3;
