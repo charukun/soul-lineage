@@ -1,4 +1,5 @@
 import { routeVillageGuidance } from './village-journey-navigation.js';
+import { nextVillageLifeStation } from './village-life-circuit.js';
 
 const distance=(a,b)=>Math.hypot((a?.x||0)-(b?.x||0),(a?.z||0)-(b?.z||0));
 const target=(row,label=row?.label)=>row?{id:String(row.id||label||'target'),x:row.x,z:row.z,label}:null;
@@ -12,11 +13,13 @@ function housingSeen(state){return SUPPORT_EXPERIENCES.some(kind=>score(state,ki
 function inspirationCount(state,kinds){const set=new Set(kinds);return Object.values(state.inspiration?.records||{}).filter(row=>!row?.archived&&set.has(row?.kind)).length;}
 
 function practiceStation(state,stations){
+  const lesson=nextVillageLifeStation(state,stations);if(lesson)return lesson;
   const rows=stations.filter(row=>row.activity&&!row.interiorId&&row.id!=='port-prayer'&&!row.trainingDummy);
   return rows.sort((a,b)=>score(state,a.activity)-score(state,b.activity)||distance(state.position,a)-distance(state.position,b))[0]||null;
 }
 function interiorStation(state,stations){
   const id=state.interior?.buildingId;if(!id)return null;
+  const lesson=nextVillageLifeStation(state,stations);if(lesson)return lesson;
   const rows=stations.filter(row=>row.interiorId===id&&row.activity);
   return rows.sort((a,b)=>score(state,a.activity)-score(state,b.activity)||distance(state.position,a)-distance(state.position,b))[0]||null;
 }
@@ -68,6 +71,8 @@ function baseGuidanceFor({state,stations=[],front=null}){
   const practice=practiceStation(state,stations),dummy=stationById(stations,'training-dummy'),door=housingDoor(state,stations),edge=stationById(stations,'village-skirmish');
   if(age<7){
     if(!housingSeen(state)&&door)return {stage:'2/6 村',objective:`${door.label}へ入る`,badge:'暮らしを見る',target:target(door,door.label),tone:'home'};
+    const lesson=nextVillageLifeStation(state,stations);
+    if(housingSeen(state)&&lesson)return {stage:'2/6 村',objective:activityLabel(lesson),badge:'暮らしから心得へ',target:target(lesson,activityLabel(lesson)),tone:'calm'};
     const play=stationById(stations,'garden'),watch=stationById(stations,'dojo');
     if(play&&score(state,'play')<.5)return {stage:'2/6 遊び',objective:'広場で遊ぶ',badge:'身体を知る',target:target(play,'広場'),tone:'calm'};
     if(watch&&score(state,'train')<.5)return {stage:'2/6 見学',objective:'稽古を見る',badge:'心得の兆し',target:target(watch,'道場'),tone:'prepare'};

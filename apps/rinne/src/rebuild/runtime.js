@@ -1,4 +1,5 @@
 import { createLocomotion } from './locomotion.js';
+import { installVillageWalkInput } from './village-walk-input.js';
 import { installLocomotionPresentation } from './locomotion-presentation.js';
 import { createWebPlatform } from '@soul/platform-web';
 import { createSharedWorldChannel } from '@soul/platform-web/shared-world';
@@ -100,6 +101,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
   let skirmish=coop?null:createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);
   let coopTick=-1,coopEpoch=0,coopHistoryRevision=-1,rebirthPending=false,familyHomePending=false,inputElapsed=0;
   const birth=createBirthExperience({document,canvas,gameScreen,view,stations,getState:()=>state,dialogue});
+  const villageWalk=installVillageWalkInput({canvas,view,stations,getState:()=>state,enabled:()=>active&&!coop&&!document.hidden&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('rinne-first-run-active')&&gameScreen.dataset.storybookOpen!=='true'});
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
   const save=async()=>{if(!active||!state)return false;try{if(coop)return await coop.save();state.frontState=front;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
@@ -114,7 +116,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
     clearTimeout(hurtTimer);hurtTimer=setTimeout(()=>gameScreen.classList.remove('hurt-pulse'),460);
   }
   function syncMovementHint(){
-    $('move-hint').textContent=birth.active()?'スワイプで母を動かせる':'スワイプで移動 · フリックでダッシュ';
+    $('move-hint').textContent=birth.active()?'スワイプで母を動かせる':'タップで歩く · スワイプで移動 · 長押しで休む';
     $('move-hint').hidden=!movementHint||state.down||state.ended;
   }
   function armMovementHint(){
@@ -177,7 +179,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
     if((swipe.id!==null||swipe.dash)&&state.stamina>2&&!document.querySelector('dialog[open]')){
       const input=swipe.vector(0);return{x:input.screenX*input.amount,y:input.screenY*input.amount};
     }
-    return axis;
+    return villageWalk.axis(axis);
   }
   function onPointerDown(event){if(!active||(event.pointerType==='mouse'&&event.button!==0))return;swipe.cancel();if(!swipe.down(event.pointerId,event.clientX,event.clientY,performance.now()))return;canvas.setPointerCapture?.(event.pointerId);event.preventDefault();}
   function onPointerMove(event){if(!active||!swipe.move(event.pointerId,event.clientX,event.clientY,performance.now()))return;event.preventDefault();}
@@ -255,7 +257,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
   armMovementHint();showBirthIntro();const birthNews=state.events?.find(event=>event.type==='village-news'&&event.worldSecond===0);if(birthNews&&state.ageYears<.2)toast(`村報 · ${birthNews.text}`);firstRunGuide=coop?null:startRinneFirstRunGuide({root:gameScreen.querySelector('.rinne-gameplay-upgrade'),gameScreen,canvas,getState:()=>state,environment:host.environment,mode});raf=requestAnimationFrame(frame);void save();
 
   function dispose(){
-    if(!active)return;active=false;host.active=false;locomotion.reset();view.clearLocomotion?.();firstRunGuide?.dispose?.();firstRunGuide=null;view.clearCombatEffects?.();cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();unsubscribeWorld();
+    if(!active)return;active=false;host.active=false;locomotion.reset();view.clearLocomotion?.();firstRunGuide?.dispose?.();firstRunGuide=null;view.clearCombatEffects?.();cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();villageWalk.dispose();unsubscribeWorld();
     window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);
     document.removeEventListener('visibilitychange',visibility);for(const key of Object.keys(canvas.dataset))if(key.startsWith('coop'))delete canvas.dataset[key];view.syncPeers([]);$('coop-darkness').hidden=true;$('coop-people').textContent='';$('clock-rate').disabled=false;
     keys.clear();swipe.cancel();setAxis({x:0,y:0});endDialog?.remove();endDialog=null;$('dialogue').hidden=true;$('toast').hidden=true;canvas.dataset.runtime='prepared';
