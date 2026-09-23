@@ -14,10 +14,6 @@
   position:relative;flex:none;width:46px;height:56px;pointer-events:none;
 }
 .battle2-body-hud-host[hidden]{display:none!important}
-.battle2-review .battle2-body-hud-host::before{
-  content:"";position:absolute;left:0;top:5px;bottom:5px;width:1px;
-  background:rgba(135,104,68,.55);
-}
 .battle2-body-hud{filter:none}
 .battle2-review .battle2-body-hud-host .body-silhouette__figure{
   width:46px;height:56px;border:0;border-radius:0;background:transparent;box-shadow:none;

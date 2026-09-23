@@ -18,9 +18,6 @@
   display:block!important;flex:none;width:46px!important;height:56px!important;
   pointer-events:none!important;filter:none!important;
 }
-#game-screen[data-gameplay-upgrade] .rinne-player-hud-host > .combat-body-hud-host::before{
-  content:"";position:absolute;left:0;top:5px;bottom:5px;width:1px;background:rgba(135,104,68,.55);
-}
 #game-screen[data-gameplay-upgrade] .rinne-player-hud-host .body-silhouette__figure{
   width:46px;height:56px;border:0;border-radius:0;background:transparent;box-shadow:none;
 }
