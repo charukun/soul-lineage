@@ -1,11 +1,12 @@
 import {enemyWeapon} from './combat-core.js';
-import {resolveJohakyuMotion} from '@soul/johakyu-combat/motion-contract';
+import {resolveJohakyuMotion} from '@soul/johakyu-presentation/motion-bindings';
 
 const PARTS=Object.freeze(['head','torso','leftArm','rightArm','leftLeg','rightLeg']);
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
 function freeze(value){if(value&&typeof value==='object'&&!Object.isFrozen(value)){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;}
 function bodyOf(actor){return Object.fromEntries(PARTS.map(part=>{const severity=Math.min(1,Math.max(0,finite(actor.injuries?.[part]?.severity)));return[part,{severity,durability:Math.round((1-severity)*100)}];}));}
 function actionOf(actor,pose,battleId){
+  if(pose?.battleAction)return pose.battleAction;
   const execution=pose?.execution,truth=pose?.johakyu;
   if(!execution){
     const run=actor.finisher;
@@ -27,7 +28,7 @@ function person(actor,battleId,self){
     stamina:{value:finite(actor.stamina),cap:finite(actor.staminaCap,100)},
     equipment:{weapon:actor.equipment?.weapon||'fist',armor:actor.equipment?.armor||'cloth',shield:Boolean(actor.equipment?.shield)},
     moving:Boolean(actor.moving),resting:Boolean(actor.resting&&!actor.moving&&!actor.combat),dead:Boolean(actor.ended),downed:Boolean(actor.down),
-    action:actionOf(actor,pose,battleId),hit:Boolean(pose?.stun>0),ageYears:finite(actor.ageYears)};
+    phaseCue:actor.combat?.phaseCue||null,battleTime:actor.combat?.battleTime??0,hitstop:actor.combat?.hitstop??0,action:actionOf(actor,pose,battleId),hit:Boolean(pose?.stun>0),ageYears:finite(actor.ageYears)};
 }
 /** Observe the existing main-game authority. No command, RNG, clock or save write. */
 export function readRinneBattleFrame(state,front,{peers=[],epoch=0,revision=0}={}){
@@ -39,10 +40,10 @@ export function readRinneBattleFrame(state,front,{peers=[],epoch=0,revision=0}={
     return {id:enemy.id,side:'enemy',self:false,kind:'enemy',boss:front.stage>=5,
       position:{x:finite(enemy.x),z:finite(enemy.z)},yaw:finite(enemy.yaw),hp:finite(enemy.hp),maxHp:finite(enemy.maxHp,100),
       body:bodyOf(enemy),stamina:null,equipment:{weapon:pose?.weapon==='greatsword'?'great':pose?.weapon||enemyWeapon(front,enemy),shield:Boolean(enemy.shield)},
-      moving:Boolean(enemy.moving),resting:false,dead:Boolean(enemy.dead),downed:Boolean(enemy.downed),hit:Boolean(pose?.stun>0),action};
+      battleTime:front.battleClock?.time??0,hitstop:front.battleClock?.hitstop??0,moving:Boolean(enemy.moving),resting:false,dead:Boolean(enemy.dead),downed:Boolean(enemy.downed),hit:Boolean(pose?.stun>0),action};
   })];
   if(new Set(actors.map(a=>a.id)).size!==actors.length)throw Error('Duplicate canonical actor identity');
-  return freeze({version:1,authority:'rinne-domain',battleId,epoch,revision,status:state.ended?'ended':state.down?'rescue':front.cleared?'won':'battle',
+  return freeze({version:1,authority:'johakyu-battle',time:front.battleClock?.time??0,hitstop:front.battleClock?.hitstop??0,battleId,epoch,revision,status:state.ended?'ended':state.down?'rescue':front.cleared?'won':'battle',
     actors,obstacles:(front.terrain?.obstacles||[]).map(row=>({id:row.id,x:row.x,z:row.z,w:row.w,d:row.d,h:row.h})),
     // Host-owned projectile coordinates are data, never independently integrated here.
     projectiles:[state,...peers].flatMap(owner=>(owner.rangedCombat?.projectiles||[]).map(p=>({id:`${owner.id}:${p.id}`,x:p.x,z:p.z}))),
@@ -52,7 +53,8 @@ export function readRinneBattleFrame(state,front,{peers=[],epoch=0,revision=0}={
 export function readRinneImpactEvents(events,state,{batchId=null}={}){
   const rows=[];
   for(const [index,event] of (events||[]).entries()){
-    if(!['player-hit','enemy-hit','finisher','enemy-down','enemy-downed','downed','life-end','guard','parry'].includes(event.type))continue;
+    if(!['player-hit','enemy-hit','finisher','enemy-down','enemy-downed','downed','life-end','guard','parry','clash'].includes(event.type))continue;
+    if(event.authority==='johakyu-battle'){rows.push({...event});continue;}
     const sourceId=event.sourceId??(event.type==='player-hit'||event.type==='finisher'?state.id:null);
     const targetId=event.targetId??(event.type==='enemy-hit'||event.type==='downed'||event.type==='life-end'?state.id:null);
     const attackId=event.attackId??event.projectileId??null;
@@ -73,3 +75,4 @@ export function readRinneImpactEvents(events,state,{batchId=null}={}){
   }
   return freeze(rows);
 }
+

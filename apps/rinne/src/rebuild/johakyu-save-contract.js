@@ -19,7 +19,8 @@ export function clearSavedPresentation(state){
   if('finisher' in state)state.finisher=null;
   state.attacking=false;
   if(state.inspiration)delete state.inspiration.execution;
-  for(const enemy of state.frontState?.enemies||[]){enemy.tidebreakPose=null;enemy.attacking=false;enemy.attackWindow=0;}
+  if(state.frontState)delete state.frontState.battleClock;
+  for(const enemy of state.frontState?.enemies||[]){delete enemy.battleTime;delete enemy.hitstop;enemy.tidebreakPose=null;enemy.attacking=false;enemy.attackWindow=0;}
   return state;
 }
 
@@ -32,3 +33,4 @@ export function readSavedTerrain(raw){
   });
   return {version:1,obstacles};
 }
+

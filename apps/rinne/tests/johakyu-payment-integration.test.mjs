@@ -1,21 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createJohakyuDomainActor,johakyuActorCapability,createJohakyuBattle,createJohakyuCheckpoint,restoreJohakyuCheckpoint} from '../src/domain.js';
-import {cancelJohakyuStage,johakyuStageCapability,johakyuEquippedStageCapability} from '../src/execution-capability.js';
-import {createJohakyuP7ReviewScenario} from '../../../apps/review/src/nocturne/johakyu-p7-review.js';
-import {beginReviewStage,reviewTechniqueCapability,reviewStageCanResolve} from '../../../apps/review/src/nocturne/johakyu-p7-execution.js';
-import {createLife,staminaMultiplierFor} from '../../../apps/rinne/src/rebuild/domain.js';
-import {ensureCombatLoadout} from '../../../apps/rinne/src/combat-loadout.js';
-import {SUPPORT_SKILLS} from '../../../apps/rinne/src/rebuild/skill-system.js';
-import {tidebreakLoadoutFor,selectCapableTidebreakCombo} from '../../../apps/rinne/src/rebuild/tidebreak-loadout.js';
-import {chargeAttackStamina,rinneTechniqueCapability} from '../../../apps/rinne/src/rebuild/combat-execution.js';
-import {createFront,tickFront} from '../../../apps/rinne/src/rebuild/combat-core.js';
+import {createJohakyuDomainActor,johakyuActorCapability,createJohakyuBattle,createJohakyuCheckpoint,restoreJohakyuCheckpoint} from '@soul/johakyu-combat/domain';
+import {cancelJohakyuStage,johakyuStageCapability,johakyuEquippedStageCapability} from '@soul/johakyu-combat/execution-capability';
+import {createJohakyuBattleRuntime,compileBattleLoadout} from '@soul/johakyu-battle';
+import {beginJohakyuStage,johakyuEquippedTechniqueCapability,johakyuStageIsActive} from '@soul/johakyu-combat/execution-capability';
+const reviewTechniqueCapability=(actor,node)=>johakyuEquippedTechniqueCapability(actor,{weapon:actor.equipment.weapon,phase:node.phase,techniqueId:node.technique.id,staminaMultiplier:actor.staminaMultiplier??1,stages:node.technique.stages,fromStage:node.stage.index});
+const beginReviewStage=(actor,attempt,node,reaction=null)=>beginJohakyuStage(actor,attempt,{weapon:actor.equipment.weapon,phase:reaction?'uke':node.phase,techniqueId:node.technique.id,...(reaction||node.stage.step),staminaMultiplier:actor.staminaMultiplier??1});
+const reviewStageCanResolve=(state,action=state)=>Boolean(state&&state.id===action?.id&&!state.interrupted&&johakyuStageIsActive(state));
+import {createLife,staminaMultiplierFor} from '../src/rebuild/domain.js';
+import {ensureCombatLoadout} from '../src/combat-loadout.js';
+import {SUPPORT_SKILLS} from '../src/rebuild/skill-system.js';
+import {tidebreakLoadoutFor,selectCapableTidebreakCombo} from '../src/rebuild/tidebreak-loadout.js';
+import {chargeAttackStamina,rinneTechniqueCapability} from '../src/rebuild/combat-execution.js';
+import {createFront,tickFront} from '../src/rebuild/combat-core.js';
 
 const close=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-8,`${actual} != ${expected}`);
 const gear=(weapon='sword',armor='cloth')=>({weapon,armor,shield:false});
 const actor=(overrides={})=>createJohakyuDomainActor({id:'actor',side:'party',equipment:gear(),...overrides});
 function node({weapon='sword',phase='jo',techniqueIndex=0,stageIndex=0}={}){
-  const composition=createJohakyuP7ReviewScenario({actorOverrides:{hero:{equipment:gear(weapon)}}}).composition.hero;
+  const composition=compileBattleLoadout({jo:'action.feint',ha:'action.guard-step',kyu:['action.finish','action.precision']},weapon);
   const chain=composition[phase],technique=chain[techniqueIndex];
   return {phase,chain,technique,stage:technique.stages[stageIndex]};
 }
@@ -153,24 +156,12 @@ test('main body-owned defensive stage is paid despite being a secondary/offense-
   assert.ok(run.stageReceipt.paid>0);close(before-state.stamina,quote.stages[0].stamina.effectiveCost);
 });
 
-test('actual battle2 step pays its first canonical stage exactly once and honors an injured equipment fixture',()=>{
-  const scenario=createJohakyuP7ReviewScenario();let snapshot,started;
-  for(let i=0;i<50&&!started;i++){
-    snapshot=scenario.step(1/60);started=scenario.inspect().trace.find(row=>row.type==='stage-start');
-  }
-  assert.ok(started,'the actual controller scenario enters an authored stage');
-  const hero=snapshot.frame.actors.find(row=>row.self);
-  assert.equal(hero.equipment.armor,'heavy');close(started.staminaBefore-hero.stamina.value,started.staminaPaid);
-  const quote=johakyuEquippedStageCapability(actor({equipment:gear('sword','heavy')}),{phase:started.phase,...node().stage.step});
-  close(started.staminaPaid,quote.stamina.effectiveCost);
-  const repeated=scenario.step(0).frame.actors.find(row=>row.self);
-  assert.equal(repeated.action.id,hero.action.id);assert.equal(repeated.stamina.value,hero.stamina.value);
-  const hurt=createJohakyuP7ReviewScenario({actorOverrides:{hero:{equipment:gear('great'),body:{leftArm:.85}}}});
-  const events=[];for(let i=0;i<60;i++)events.push(...hurt.step(1/60).events);
-  const proof=hurt.inspect();assert.equal(proof.frame.actors.find(row=>row.self).equipment.weapon,'great');
-  assert.equal(proof.trace.some(row=>row.type==='stage-start'),false);
-  assert.ok(proof.trace.some(row=>row.type==='technique-unavailable'&&row.actorId==='hero'&&row.canStart&&!row.canContinue));
-  assert.equal(events.some(row=>row.type==='player-hit'||(['guard','parry'].includes(row.type)&&row.targetId==='hero')),false);
+test('shared runtime debits a stage exactly once and rejects a changed grip before contact',()=>{
+ const make=(hurt=false)=>createJohakyuBattleRuntime({battleId:'payment',recoverStamina:false,actors:[{...actor({id:'hero',equipment:gear(hurt?'great':'sword','heavy'),body:hurt?{leftArm:.85}:{}}),position:{x:0,z:0},loadout:{jo:hurt?'basic.great':'action.feint'}},{...actor({id:'enemy',side:'enemy',stamina:0}),position:{x:0,z:1.7},canAttack:false}]});
+ const runtime=make();let started;for(let i=0;i<600&&!started;i++)started=runtime.step(1/60).events.find(e=>e.type==='stage-start'&&e.sourceId==='hero');assert.ok(started);
+ const hero=runtime.actor('hero'),quote=johakyuEquippedStageCapability(actor({equipment:gear('sword','heavy')}),{phase:started.phase,...node().stage.step});
+ close(started.staminaBefore-hero.stamina,started.staminaPaid);close(started.staminaPaid,quote.stamina.effectiveCost);const after=hero.stamina;runtime.step(0);assert.equal(hero.stamina,after);
+ const injured=make(true),events=[];for(let i=0;i<720;i++)events.push(...injured.step(1/60).events);assert.ok(events.some(e=>e.type==='execution-blocked'&&e.sourceId==='hero'&&e.reason==='arm-injury'));assert.equal(events.some(e=>e.type==='player-hit'),false);
 });
 
 test('actual main tick cannot emit offense or successful parry for a grip-rejected body',()=>{

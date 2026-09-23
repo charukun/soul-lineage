@@ -1,3 +1,4 @@
+import {techniqueName as sharedTechniqueName} from '@soul/johakyu-battle';
 import { ACTION_SKILLS, SUPPORT_SKILLS, SKILL_BY_ID, skillDefinition } from './rebuild/skill-system.js';
 import { resolveInspirationAnswer, isGeneratedTechniqueId } from '@soul/game-data';
 import { inspirationName } from './rebuild/inspiration-state.js';
@@ -6,7 +7,6 @@ export const PHASES=Object.freeze([['jo','序'],['ha','破'],['kyu','急']]);
 export const MAX_COMBOS=6;
 export const HEART_SLOT_COUNT=5;
 const BASIC_BY_WEAPON=Object.freeze({fist:'basic.fist',sword:'basic.sword',dagger:'basic.dagger',great:'basic.great',spear:'basic.spear',axe:'basic.axe',staff:'basic.staff'});
-const BASIC_LABELS=Object.freeze({'basic.fist':'徒手の型','basic.sword':'剣の型','basic.dagger':'短剣の型','basic.great':'大剣の型','basic.spear':'槍の型','basic.axe':'戦斧の型','basic.staff':'杖の型'});
 const COMBO_NAMES=Object.freeze(['壱ノ連','弐ノ連','参ノ連','肆ノ連','伍ノ連','陸ノ連']);
 export const BODY_STANCES=Object.freeze([
   {id:'seigan',label:'正眼',description:'癖のない基本構え。',requiresAny:[],reachScale:1,turnScale:1,guardBonus:0},
@@ -42,10 +42,10 @@ function combatCatalog(state){
 const isAction=(state,id)=>id===basicSkill(state)||(combatCatalog(state).has(id)&&skillDefinition(id)?.type==='action');
 const weaponCompatible=(state,id)=>{const weapons=resolveInspirationAnswer(id)?.weapons;return !weapons?.length||weapons.includes(state?.equipment?.weapon);};
 const actionIds=state=>[basicSkill(state),...[...new Set([...ACTION_SKILLS.map(row=>row.id),...(state?.knownSkills||[])])].filter(id=>combatCatalog(state).has(id)&&skillDefinition(id)?.type==='action')];
-function phaseFromLegacy(state,phase){const id=Object.entries(state?.skillWeights?.[phase]||{}).filter(([,value])=>Number(value)>0).sort((a,b)=>Number(b[1])-Number(a[1]))[0]?.[0];return isAction(state,id)?id:basicSkill(state);}
+function phaseFromLegacy(state,phase){const id=Object.entries(state?.skillWeights?.[phase]||{}).filter(([,value])=>Number(value)>0).sort((a,b)=>Number(b[1])-Number(a[1]))[0]?.[0];return isAction(state,id)&&weaponCompatible(state,id)?id:basicSkill(state);}
 function makeCombo(state,index=0,source=null){
   const id=source?.id||`combo-${index+1}`;
-  return{id,name:String(source?.name||COMBO_NAMES[index]||`第${index+1}連`).slice(0,24),slots:{jo:isAction(state,source?.slots?.jo)?source.slots.jo:phaseFromLegacy(state,'jo'),ha:isAction(state,source?.slots?.ha)?source.slots.ha:phaseFromLegacy(state,'ha'),kyu:isAction(state,source?.slots?.kyu)?source.slots.kyu:phaseFromLegacy(state,'kyu')},favored:PHASES.map(([phase])=>phase).filter(phase=>Boolean(source?.favored?.[phase]||source?.favored?.includes?.(phase))).reduce((out,phase)=>(out[phase]=true,out),{})};
+  return{id,name:String(source?.name||COMBO_NAMES[index]||`第${index+1}連`).slice(0,24),slots:{jo:isAction(state,source?.slots?.jo)&&weaponCompatible(state,source?.slots?.jo)?source.slots.jo:phaseFromLegacy(state,'jo'),ha:isAction(state,source?.slots?.ha)&&weaponCompatible(state,source?.slots?.ha)?source.slots.ha:phaseFromLegacy(state,'ha'),kyu:isAction(state,source?.slots?.kyu)&&weaponCompatible(state,source?.slots?.kyu)?source.slots.kyu:phaseFromLegacy(state,'kyu')},favored:PHASES.map(([phase])=>phase).filter(phase=>Boolean(source?.favored?.[phase]||source?.favored?.includes?.(phase))).reduce((out,phase)=>(out[phase]=true,out),{})};
 }
 function optionUnlocked(state,option){const needs=Array.isArray(option?.requiresAny)?option.requiresAny:[];if(!needs.length)return true;const available=combatCatalog(state);return needs.some(id=>available.has(id));}
 function normalizeBody(state,body={}){const pick=(list,id,fallback)=>list.some(row=>row.id===id&&optionUnlocked(state,row))?id:fallback;return{stance:pick(BODY_STANCES,body.stance,'seigan'),finisher:pick(BODY_FINISHERS,body.finisher,'kaishaku'),zanshin:pick(BODY_ZANSHIN,body.zanshin,'still')};}
@@ -67,7 +67,7 @@ export function ensureCombatLoadout(state){
 export function availableCombatSkills(state){ensureCombatLoadout(state);return[...combatCatalog(state)];}
 export function learnedHeartSkills(state){ensureCombatLoadout(state);const available=combatCatalog(state);return supportIds().filter(id=>available.has(id));}
 export function learnedTechniqueSkills(state,{oneMotion=false}={}){ensureCombatLoadout(state);const ids=actionIds(state);return oneMotion?ids.filter(id=>skillDefinition(id)?.type==='action'&&!id.startsWith('spark.')&&!isGeneratedTechniqueId(id)):ids;}
-export function techniqueName(id,state=null){const fallback=skillDefinition(id)?.name||BASIC_LABELS[id]||id||'未設定';return state?inspirationName(state,id,fallback):fallback;}
+export function techniqueName(id,state=null){const fallback=sharedTechniqueName(id)||skillDefinition(id)?.name||id||'未設定';return state?inspirationName(state,id,fallback):fallback;}
 export function activeCombo(state){const loadout=state?.combatLoadout||ensureCombatLoadout(state);return loadout?.technique?.combos?.find(row=>row.id===loadout.technique.activeComboId)||loadout?.technique?.combos?.[0]||null;}
 export function comboById(state,id){ensureCombatLoadout(state);return state.combatLoadout.technique.combos.find(row=>row.id===id)||activeCombo(state);}
 export function setHeartActive(state,id,active){
@@ -97,3 +97,4 @@ function weightedCombos(state){const loadout=ensureCombatLoadout(state),active=l
 export function selectCombatCombo(state,combat,{advance=false}={}){const rows=weightedCombos(state);if(!rows.length)return null;if(!Number.isInteger(combat.comboCursor))combat.comboCursor=0;else if(advance)combat.comboCursor++;const combo=rows[combat.comboCursor%rows.length];combat.comboId=combo.id;return combo;}
 export function combatSkillForPhase(state,combat,phase){const loadout=ensureCombatLoadout(state),selection=loadout.technique.phaseSelections?.[phase];return phaseSelectionSkill(state,phase,selection);}
 export function requestOneMotion(state){const loadout=ensureCombatLoadout(state),skill=loadout.technique.oneMotion;if(!state?.combat||state.down||state.ended||!skill)return null;state.combat.oneMotionQueued={skill,ttl:1.15};return skill;}
+

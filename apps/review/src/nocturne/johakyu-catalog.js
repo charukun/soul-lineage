@@ -1,4 +1,4 @@
-import {compileJohakyuCatalogTrial} from '@soul/johakyu-combat/motion-contract';
+import {compileJohakyuCatalogTrial} from '@soul/johakyu-presentation/motion-bindings';
 import {createJohakyuPhysiologyRules} from './johakyu-physiology.js';
 
 export function createJohakyuCatalogRules({mind='balanced',loadout={}}={}){

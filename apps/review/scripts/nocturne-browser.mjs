@@ -7,7 +7,7 @@ import {resolve,extname,sep} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {assertBattle2Frame,exerciseBattle2Switcher} from './battle2-shell-evidence.mjs';
 const root=resolve('dist/review'),out=resolve(process.env.BATTLE2_EVIDENCE_DIR||'.battle2-evidence');await mkdir(out,{recursive:true});
-const mode=process.env.JOHAKYU_MODE||'native';assert.ok(['native','p2'].includes(mode),'Unknown review mode');
+const mode=process.env.JOHAKYU_MODE||'native';assert.ok(['native','p2','shared'].includes(mode),'Unknown review mode');
 const query=mode==='native'?'evidence=1':'evidence=1&johakyu=p2';
 const report={sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),mode,before:[],scenarios:[],passed:false};
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.glb':'model/gltf-binary','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.woff2':'font/woff2'};
@@ -23,6 +23,11 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.
 const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
 async function snapshot(page){return page.evaluate(()=>({state:window.__BATTLE2__?.state,error:window.__BATTLE2__?.lastError,metrics:window.__BATTLE2__?.metrics,actors:window.__BATTLE2__?.actors,trace:window.__BATTLE2__?.trace}));}
 try{
+ if(mode==='shared'){
+  if(process.env.BEFORE_ROOT){baselineServer=serveRoot(resolve(process.env.BEFORE_ROOT));await new Promise(r=>baselineServer.listen(0,'127.0.0.1',r));}
+  const {verifySharedBattleReview}=await import('./johakyu-shared-evidence.mjs');
+  Object.assign(report,await verifySharedBattleReview(browser,origin,out,{sourceSha:report.sourceSha,beforeOrigin:baselineServer?'http://127.0.0.1:'+baselineServer.address().port:null,beforeSha:process.env.BEFORE_SOURCE_SHA}));
+ }else{
   // A mutable DEV page is not a baseline. An optional Before is built from an
   // independently pinned checkout and must identify the exact requested SHA.
   if(process.env.BEFORE_ROOT){
@@ -115,5 +120,6 @@ try{
   assert.equal(await page.locator('.review-surface__back').isVisible(),true,'Error must not trap navigation');
   report.scenarios.push({name:'missing-asset',attempts,observed:failure,passed:true});await page.screenshot({path:out+'/missing-asset.png'});await broken.close();
   report.passed=true;
+ }
 }catch(error){report.error=error.stack||error.message;process.exitCode=1;}
 finally{await writeFile(out+'/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify({sourceSha:report.sourceSha,passed:report.passed,error:report.error,scenarios:report.scenarios.map(s=>({name:s.name,passed:s.passed,metrics:s.combat?.metrics,replayRounds:s.replay?.snapshot.metrics.rounds,frame:s.frame,resizedFrame:s.resizedFrame,compactFrame:s.compactFrame,menu:s.menu,backNavigation:s.backNavigation}))},null,2));await browser.close();await new Promise(r=>server.close(r));if(baselineServer)await new Promise(r=>baselineServer.close(r));}

@@ -1,7 +1,7 @@
 // Additional assertions for the existing NOCTURNE specialist browser evidence.
 import assert from 'node:assert/strict';
 
-export async function assertBattle2Frame(page){
+export async function assertBattle2Frame(page,{title='序破急バトルシステム'}={}){
   await page.waitForFunction(()=>{
     const stage=document.querySelector('[data-review-surface="battle2"]'),canvas=document.getElementById('world'),fx=document.getElementById('effects'),header=document.querySelector('.review-surface__header');
     if(!stage||!canvas||!fx||!header)return false;
@@ -19,7 +19,7 @@ export async function assertBattle2Frame(page){
   assert.ok(geometry.canvas.y>=geometry.stage.y&&geometry.canvas.bottom<=geometry.stage.bottom+1);
   assert.ok(geometry.stage.bottom>=geometry.frame.bottom-14,'No empty control-panel or mobile grid row');
   assert.ok(geometry.stage.height>geometry.viewport.height*.7,'Render region should occupy the available frame');
-  assert.equal(await page.locator('.review-surface__title h1').innerText(),'序破急バトルシステム');
+  assert.equal(await page.locator('.review-surface__title h1').innerText(),title);
   assert.equal(await page.locator('.review-surface__title h1').isVisible(),true);
   assert.equal(await page.locator('.review-surface__back').isVisible(),true);
   assert.equal(await page.locator('.review-surface__panel').count(),0);
