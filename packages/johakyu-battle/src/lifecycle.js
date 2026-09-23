@@ -18,5 +18,5 @@ export function createBattleLifecycle({actors,getTime,getSerial,battleId,emit,ta
     actor.phaseCue={key:`${battleId}:${actor.id}:zanshin:${getSerial()}`,phase:'zanshin',startedAt:getTime(),duration:ZANSHIN_SECONDS};
     actor.decision=null;emit({type:'zanshin',actorId:actor.id,sourceId:actor.id,after:'combat'});
   }
-  return {downedStateFor,fullyDownForFinisher,settleZanshin};
+  return {downedStateFor,fullyDownForFinisher,settleZanshin,threatened};
 }
