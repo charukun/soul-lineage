@@ -1,5 +1,9 @@
 import {COMBAT_BODY_PARTS,combatBodyOutcome,combatBodySnapshot} from './rebuild/combat-choreography.js';
-if(typeof document!=='undefined')void import('./combat-body-hud.css');
+import {createBodySilhouette} from '@soul/shared-ui/body-silhouette';
+if(typeof document!=='undefined'){
+  void import('./combat-body-hud.css');
+  void import('@soul/shared-ui/body-silhouette.css');
+}
 
 const PART_META=Object.freeze({
   head:Object.freeze({hint:'判断・視界',reaction:'頭部の被弾で判断と持久が落ちる'}),
@@ -33,18 +37,6 @@ export function combatBodyHudModel(state,selectedPart=null){
   });
 }
 
-function partButton(part){
-  const button=document.createElement('button');
-  button.type='button';
-  button.className='combat-body-hud__part';
-  button.dataset.bodyPart=part;
-  button.setAttribute('aria-pressed','false');
-  const label=document.createElement('span');
-  label.className='combat-body-hud__sr';
-  const liquid=document.createElement('b');liquid.className='combat-body-hud__liquid';liquid.setAttribute('aria-hidden','true');
-  button.append(label,liquid);
-  return button;
-}
 function valueRow(labelText,className){
   const row=document.createElement('div'),label=document.createElement('span'),value=document.createElement('strong');
   row.className='combat-body-hud__detail-row';label.textContent=labelText;value.className=className;row.append(label,value);return{row,value};
@@ -53,10 +45,9 @@ function valueRow(labelText,className){
 export function createCombatBodyHud({root}={}){
   if(!root)return null;
   root.classList.add('combat-body-hud');
-  const map=document.createElement('div');map.className='combat-body-hud__map';map.setAttribute('aria-label','身体部位。タップで詳細');
+  const {figure:map,parts}=createBodySilhouette({parts:COMBAT_BODY_PARTS,interactive:true});
   const tag=document.createElement('span');tag.className='combat-body-hud__tag';tag.textContent='からだ';
-  const buttons=new Map();
-  for(const part of COMBAT_BODY_PARTS){const button=partButton(part);buttons.set(part,button);map.append(button);}
+  const buttons=new Map([...parts].map(([id,item])=>[id,item.node]));
   const detail=document.createElement('section');detail.className='combat-body-hud__detail';detail.hidden=true;
   const head=document.createElement('header'),title=document.createElement('strong'),close=document.createElement('button');
   close.type='button';close.className='combat-body-hud__close';close.textContent='×';close.setAttribute('aria-label','身体部位詳細を閉じる');head.append(title,close);
@@ -73,7 +64,7 @@ export function createCombatBodyHud({root}={}){
     const model=combatBodyHudModel(combatState,selectedPart);
     for(const part of model.parts){
       const button=buttons.get(part.id);if(!button)continue;
-      button.dataset.tone=part.tone;button.dataset.stage=part.stage;button.style.setProperty('--body-damage',String(part.severity));
+      button.dataset.tone=part.tone;button.dataset.stage=part.stage;button.style.setProperty('--level',part.durability+'%');
       button.setAttribute('aria-label',`${part.label} ${part.stage} 耐久${part.durability}`);
       button.setAttribute('aria-pressed',String(part.id===selectedPart));
       button.firstElementChild.textContent=part.label;

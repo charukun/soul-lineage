@@ -1,4 +1,6 @@
 import {COMBAT_BODY_PARTS,combatBodySnapshot} from '@soul/johakyu-combat/choreography';
+import {createBodySilhouette} from '@soul/shared-ui/body-silhouette';
+import '@soul/shared-ui/body-silhouette.css';
 import './battle2-body-hud.css';
 
 const TONE={'正常':'normal','軽傷':'light','負傷':'wounded','重傷':'severe','機能不全':'disabled'};
@@ -12,13 +14,7 @@ export function battle2BodyModel(actor){
 }
 export function createBattle2BodyHud(root){
  if(!root)return null;root.classList.add('battle2-body-hud');root.hidden=true;
- const figure=document.createElement('div');figure.className='battle2-body-hud__figure';figure.setAttribute('role','img');figure.setAttribute('aria-label','身体部位の耐久');
- const parts=new Map();
- for(const part of COMBAT_BODY_PARTS){
-  const node=document.createElement('i');node.dataset.bodyPart=part;node.className='battle2-body-hud__part';
-  const liquid=document.createElement('b');liquid.className='battle2-body-hud__liquid';liquid.setAttribute('aria-hidden','true');
-  node.append(liquid);parts.set(part,{node,liquid});figure.append(node);
- }
+ const {figure,parts}=createBodySilhouette({parts:COMBAT_BODY_PARTS});
  root.replaceChildren(figure);
  let actor=null,previous=new Map(),timer=0;
  function render(){

@@ -10,9 +10,7 @@ import {REVIEW_INSPIRATION_TIMELINE,generatedReviewInspirationCandidates,pickGen
 import {addTechniqueToReviewChain,createReviewTechniqueComposition,flattenReviewTechniqueChain,reviewChainLabel,reviewTechniqueStages} from './technique-composition.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import {rinneFieldRadarMarkup,updateRinneFieldRadar} from '@soul/shared-ui/rinne-field-radar';
-import {createCameraPositionControl} from '@soul/shared-ui/camera-position-control';
 import '@soul/shared-ui/rinne-field-radar.css';
-import '@soul/shared-ui/camera-position-control.css';
 import './field-hud.css';
 import '@soul/shared-ui/combat-sequence.css';
 import {createCombatSfx} from '@soul/audio/combat-sfx';
@@ -258,7 +256,6 @@ function frame(now){
 const battleCanvas=q('battle-canvas'),battleHudStage=battleCanvas?.closest('.stage');
 if(battleHudStage)battleHudStage.insertAdjacentHTML('beforeend',rinneFieldRadarMarkup({interactive:false}));
 const battleRadar=battleHudStage?.querySelector('[data-field-radar]');
-const battleViewControl=battleHudStage&&createCameraPositionControl({document,container:battleHudStage,initial:(.82-.58)/1.07,onChange:value=>battleStage?.setZoom(.58+value*1.07)});
 battleCanvas?.addEventListener('pointerdown',event=>{if((event.pointerType==='mouse'&&event.button!==0)||!reviewSwipe.down(event.pointerId,event.clientX,event.clientY,performance.now()))return;battleCanvas.setPointerCapture?.(event.pointerId);event.preventDefault();},{passive:false});
 battleCanvas?.addEventListener('pointermove',event=>{if(!reviewSwipe.move(event.pointerId,event.clientX,event.clientY,performance.now()))return;event.preventDefault();},{passive:false});
 battleCanvas?.addEventListener('pointerup',event=>{if(reviewSwipe.id!==event.pointerId)return;event.preventDefault();reviewSwipe.up(event.pointerId,event.clientX,event.clientY,performance.now());if(battleCanvas.hasPointerCapture?.(event.pointerId))battleCanvas.releasePointerCapture(event.pointerId);},{passive:false});
@@ -277,6 +274,6 @@ q('battle-review-seed')?.addEventListener('change',event=>{reviewSeed=Math.max(1
 q('battle-injury-preset')?.addEventListener('change',event=>{reviewInjury=event.target.value;resetBattle();});
 historyOpen?.addEventListener('click',()=>{insightHistoryOpen=true;newTechniquePhases.clear();renderTechniqueComposition();renderInsightHistory();});historyClose?.addEventListener('click',()=>{insightHistoryOpen=false;renderInsightHistory();});
 document.addEventListener('pointerdown',()=>{battleSfx.unlock();syncSoundButton();},{passive:true});
-soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});window.addEventListener('pagehide',()=>{battleStage?.dispose();battleViewControl?.dispose();battleSfx.dispose();bodyHud?.destroy();},{once:true});
+soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});window.addEventListener('pagehide',()=>{battleStage?.dispose();battleSfx.dispose();bodyHud?.destroy();},{once:true});
 bodyHud=createCombatBodyHud({root:q('battle-body-hud')});
 syncModelLabels();phasePanel.dataset.skin='rinne';syncSoundButton();renderTechniqueComposition();renderInsightHistory();resetBattle();void ensureBattleStage();requestAnimationFrame(frame);

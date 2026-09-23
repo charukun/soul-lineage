@@ -1,43 +1,8 @@
-/* Compact body liquid at the same dock as the battle review, retaining tap details. */
-.game-screen[data-gameplay-upgrade] .combat-body-hud-host.combat-body-hud{
-  left:max(151px,calc(env(safe-area-inset-left) + 151px))!important;top:max(5px,env(safe-area-inset-top))!important;
-  width:48px!important;height:54px!important;display:block!important;pointer-events:none!important;filter:drop-shadow(0 4px 8px rgba(0,0,0,.38))!important;
-}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__map{
-  width:48px!important;height:54px!important;overflow:visible!important;pointer-events:auto!important;
-  border:1px solid rgba(198,166,99,.48)!important;border-radius:18px 18px 15px 15px!important;
-  background:radial-gradient(circle at 50% 22%,rgba(99,137,108,.22),transparent 34%),linear-gradient(165deg,rgba(29,35,29,.96),rgba(7,17,17,.96))!important;
-}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__map::before{inset:3px!important;border-radius:14px 14px 12px 12px!important}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part{
-  --liquid-a:#47bd8b;--liquid-b:#8ad9aa;--edge:#7fae9c;
-  display:block!important;overflow:hidden!important;padding:0!important;border:1px solid var(--edge)!important;
-  background:rgba(5,15,15,.9)!important;clip-path:none!important;box-shadow:inset 0 1px rgba(117,177,151,.18),0 0 5px color-mix(in srgb,var(--edge) 28%,transparent)!important;
-}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part::before,
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part::after{display:none!important}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part[data-body-part=head]{left:18.5px!important;top:5px!important;width:11px!important;height:11px!important;border-radius:50%!important}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part[data-body-part=torso]{left:17.5px!important;top:17px!important;width:13px!important;height:17px!important;border-radius:6px 6px 7px 7px!important}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part[data-body-part=leftArm]{left:10px!important;top:18px!important;width:5px!important;height:19px!important;border-radius:5px!important;transform:rotate(7deg)!important}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part[data-body-part=rightArm]{right:10px!important;top:18px!important;width:5px!important;height:19px!important;border-radius:5px!important;transform:rotate(-7deg)!important}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part[data-body-part=leftLeg]{left:17px!important;top:35px!important;width:5px!important;height:14px!important;border-radius:4px!important}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part[data-body-part=rightLeg]{right:17px!important;top:35px!important;width:5px!important;height:14px!important;border-radius:4px!important}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part[data-tone=light]{--liquid-a:#b5922f;--liquid-b:#d7c260;--edge:#bfae66}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part[data-tone=wounded]{--liquid-a:#c55f31;--liquid-b:#e49a52;--edge:#cf7b49}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part[data-tone=severe]{--liquid-a:#a9232d;--liquid-b:#dc594c;--edge:#cc554d}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__part[data-tone=disabled]{--liquid-a:#651826;--liquid-b:#b73940;--edge:#b94645}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__liquid{
-  position:absolute;left:-45%;bottom:-1px;width:190%;height:var(--level,100%);pointer-events:none;
-  background:linear-gradient(180deg,var(--liquid-b),var(--liquid-a) 58%,#061918);box-shadow:0 -2px 6px var(--liquid-b);
-  transition:height .24s cubic-bezier(.2,.78,.2,1);animation:b2-body-liquid-flow 1.35s ease-in-out infinite;
-}
-.game-screen[data-gameplay-upgrade] .combat-body-hud__liquid::before{content:"";position:absolute;left:-16%;top:-4px;width:132%;height:7px;border-radius:48%;background:var(--liquid-b);opacity:.55;animation:b2-body-water .82s ease-in-out infinite}
+/* The shared body silhouette docks beside the player card; the detail remains RINNE-specific. */
+.game-screen[data-gameplay-upgrade] .combat-body-hud-host.combat-body-hud{display:block!important;width:48px!important;height:58px!important;pointer-events:none!important;filter:none!important}
+.game-screen[data-gameplay-upgrade] .combat-body-hud__tag{display:none!important}
+.game-screen[data-gameplay-upgrade] .body-silhouette__figure{pointer-events:auto}
 .game-screen[data-gameplay-upgrade] .combat-body-hud__detail{
   position:absolute;left:calc(100% + 6px);top:0;grid-column:auto!important;grid-row:auto!important;
   width:min(184px,calc(100vw - 218px))!important;min-width:128px;max-height:70vh!important;overflow:auto!important;pointer-events:auto!important;
 }
-@media(max-width:410px){.game-screen[data-gameplay-upgrade] .combat-body-hud-host.combat-body-hud{left:max(143px,calc(env(safe-area-inset-left) + 143px))!important}}
-@media(prefers-reduced-motion:reduce){.game-screen[data-gameplay-upgrade] .combat-body-hud__liquid,.game-screen[data-gameplay-upgrade] .combat-body-hud__liquid::before{animation:none}}
-
-@keyframes b2-body-liquid-flow{0%,100%{background-position:50% 0;filter:saturate(1.28) brightness(1.01)}50%{background-position:50% 78%;filter:saturate(1.52) brightness(1.12)}}
-@keyframes b2-body-water{0%,100%{transform:translateX(-7%) scaleX(.92) rotate(-2deg)}50%{transform:translateX(8%) scaleX(1.08) rotate(2deg)}}
