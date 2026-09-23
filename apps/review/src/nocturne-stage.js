@@ -27,7 +27,10 @@ const status=document.getElementById('battle2-status'),world=document.getElement
 const hud=document.getElementById('battle-sequence-hud'),phasePanel=document.getElementById('battle-phase'),finisherNode=document.getElementById('battle-sequence-finisher'),currentNode=document.getElementById('battle-sequence-current'),historyNode=document.getElementById('battle-sequence-history');
 const previewIdentity=rinnePreviewPlayer((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0);
 const playerHud=createRinnePlayerHud(document.getElementById('battle2-player-hud'),previewIdentity);
-const bodyHud=createBattle2BodyHud(document.getElementById('battle2-body-hud'));
+// Keep the body readout in the same layout as the actual player card.
+const bodyHudRoot=document.getElementById('battle2-body-hud');
+playerHud.root.append(bodyHudRoot);
+const bodyHud=createBattle2BodyHud(bodyHudRoot);
 stage.insertAdjacentHTML('beforeend',rinneFieldRadarMarkup({interactive:false}));
 const battleRadar=stage.querySelector('[data-field-radar]');
 const cameraPresentation=createBattle2CameraPresentation({stage,world});
