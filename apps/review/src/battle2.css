@@ -44,12 +44,13 @@ main.battle2-review.review-surface>.review-surface__workspace{grid-template-colu
 .battle-stage-setting__label{display:block;margin:0 0 6px;color:#9da8a3;font:700 10px/1.2 system-ui,sans-serif;letter-spacing:.08em}
 .review-stage-controls__panel>.battle-stage-switch[data-review-stage-control]+.battle-stage-switch[data-review-stage-control]{margin-top:10px;padding-top:10px;border-top:1px solid #2f3834}
 
-/* 閃きは通知ではなく、その場で初回発動して現在の序破急枠へ定着する。 */
-.battle2-inspiration{position:absolute;z-index:36;left:50%;top:22%;display:grid;justify-items:center;gap:5px;transform:translateX(-50%);pointer-events:none;text-align:center;color:#fff4d2;text-shadow:0 2px 12px #100a05,0 0 22px rgba(237,178,73,.9);animation:battle2-inspiration-pop .26s cubic-bezier(.2,.84,.22,1) both}
+/* 初回発動の余韻だけを重ね、戦闘は進行し続ける。 */
+.battle2-inspiration{position:absolute;z-index:36;left:50%;top:22%;display:grid;justify-items:center;gap:5px;transform:translateX(-50%);pointer-events:none;text-align:center;color:#fff4d2;text-shadow:0 2px 12px #100a05,0 0 22px rgba(237,178,73,.9);animation:battle2-inspiration-pop var(--inspiration-duration,1.8s) ease-out both}
+.battle2-inspiration::after{content:'';height:2px;width:80%;background:linear-gradient(90deg,transparent,#fff4ce,transparent);box-shadow:0 0 14px #ffca61;animation:battle2-inspiration-line var(--inspiration-duration,1.8s) ease-out both}
 .battle2-inspiration b{font:900 clamp(58px,15vw,104px)/.88 ui-serif,"Yu Mincho","Hiragino Mincho ProN",serif;letter-spacing:.08em}
 .battle2-inspiration strong{max-width:min(82vw,430px);font:800 clamp(15px,3.8vw,24px)/1.25 ui-serif,"Yu Mincho","Hiragino Mincho ProN",serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.battle2-inspiration small{padding:4px 10px;border:1px solid rgba(225,190,112,.72);border-radius:999px;background:rgba(18,15,10,.82);color:#f0dba4;font:700 11px/1.2 system-ui,sans-serif;letter-spacing:.08em}
 .battle2-inspiration[data-grade="ultimate"]{filter:drop-shadow(0 0 18px rgba(255,221,105,.72))}
 .battle2-inspiration[data-grade="ultimate"] b{font-size:clamp(68px,18vw,120px);text-shadow:0 2px 12px #100a05,0 0 16px #ffe59a,0 0 38px rgba(255,196,64,.88)}
-@keyframes battle2-inspiration-pop{from{opacity:0;transform:translate(-50%,12px) scale(.72)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
-@media(prefers-reduced-motion:reduce){.battle2-inspiration{animation:none}}
+@keyframes battle2-inspiration-pop{0%{opacity:0;transform:translate(-50%,12px) scale(.78);filter:blur(5px)}14%{opacity:1;transform:translate(-50%,0) scale(1.06);filter:blur(0)}28%,73%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-10px) scale(1.04)}}
+@keyframes battle2-inspiration-line{0%,15%{opacity:0;transform:scaleX(.1)}32%,75%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1.1)}}
+@media(prefers-reduced-motion:reduce){.battle2-inspiration,.battle2-inspiration::after{animation:none}}
