@@ -1,11 +1,11 @@
 import {createJohakyuBattleRuntime,PHASES,PHASE_LABELS,compileBattleLoadout,johakyuExchangeCue} from '@soul/johakyu-battle';
+import {NOCTURNE_FIELD_BOUNDS} from '@soul/johakyu-presentation';
 import {CAUSAL_ANSWER_BY_ID} from '@soul/game-data';
 import {BATTLE2_LOADOUT_DEFAULT,BATTLE2_BODY_OPTIONS,normalizeBattle2Loadout,battle2LoadoutKey} from './battle2-loadout.js';
 import {battle2InspirationCatalog,battle2TechniqueDefinition,BATTLE2_TECHNIQUE_CATALOG} from './battle2-technique-catalog.js';
 const hash=key=>{let h=2166136261;for(const c of key){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return (h>>>0)/4294967295;};
-const BATTLE2_BOUNDS=Object.freeze({minX:-10,maxX:10,minZ:-8,maxZ:11});
-const FINISHER_RESPAWN_SECONDS=4;
 const PARTS={head:'頭',torso:'胴',leftArm:'左腕',rightArm:'右腕',leftLeg:'左脚',rightLeg:'右脚'};
+const FINISHER_RESPAWN_SECONDS=4;
 /** Lab-only encounter/selection harness. All combat is the production shared runtime. */
 export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLeadSeconds=0,heroStartPhase='jo',heroStartTechniqueIndex=0,checkpointSeconds=0,actorOverrides={},loadout=null,settings=null,learnedTechniqueIds=[],comboStyle='composed',fixture=null}={}){
  if(!['duel','oneVsThree'].includes(mode)||!PHASES.includes(heroStartPhase)||!Number.isFinite(duelGap)||duelGap<1||duelGap>5)throw new RangeError('Invalid battle review fixture');
@@ -20,7 +20,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
  function enemyRow(slot,index,id=slot){return {id,side:'enemy',kind:'enemy',hp:46,maxHp:46,stamina:100,staminaCap:100,seed:8101+index,position:{x:index===0?0:index===1?-1.75:1.75,z:.35+duelGap},equipment:{weapon:'sword',armor:'cloth',shield:false},loadout:{jo:'basic.sword',ha:'basic.sword',kyu:'basic.sword'},staminaMultiplier:.12,damageScale:.45,mind:clashFixture?'aggressive':index%2?'counter':'balanced',readyDelay:(clashFixture?.5:.82)-enemyLeadSeconds,spawnSeconds:.7,spawnStyle:'battlebk-ground',canFinish:false,scope:'review-trial',...actorOverrides[slot]};}
  function reset(){
    activeHeroLoadout=heroLoadout();
-   runtime=createJohakyuBattleRuntime({battleId:`review-battle:${battle2LoadoutKey(config)}:${encounter}`,bounds:BATTLE2_BOUNDS,actors:[
+   runtime=createJohakyuBattleRuntime({battleId:`review-battle:${battle2LoadoutKey(config)}:${encounter}`,bounds:NOCTURNE_FIELD_BOUNDS,actors:[
      {id:'hero',side:'party',self:true,kind:'hero',hp:125,maxHp:125,stamina:100,staminaCap:100,seed:73917,position:{x:0,z:.35},equipment:{weapon,armor:'heavy',shield:config.equipment.shield},loadout:activeHeroLoadout,staminaMultiplier:.12,damageScale:1.09*(1+Math.min(.7,heartEffects.damage)),mitigation:Math.min(.58,heartEffects.mitigation),mind:clashFixture?'aggressive':mind,pursuit:config.heart.active.includes('skill.pursuer'),stance:config.body.stance,zanshin:config.body.zanshin,nonlethal:config.heart.active.includes('skill.nonlethal'),finisherProfile:config.body.finisher,readyDelay:clashFixture?.5:.82,scope:'review-trial',...actorOverrides.hero},...slots.map((slot,i)=>enemyRow(slot,i))]});
    runtime.actor('hero').cursor.phaseIndex=PHASES.indexOf(heroStartPhase);runtime.actor('hero').cursor.techniqueIndex=heroStartTechniqueIndex;replacements=[];restartedAt=null;
  }
@@ -36,9 +36,9 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
      cycle:actor.cursor.cycle,stamina:Math.round(hero.stamina.value),injuryPart:PARTS[worst[0]],injuryPercent:Math.round(worst[1].severity*100),party:1,enemies:snapshot.actors.filter(a=>a.side==='enemy'&&!a.dead&&!a.downed).length,defeats,finishers,pendingFinishers:snapshot.actors.filter(a=>a.side==='enemy'&&a.downed).length,resumes,encounter,epoch,battleId:snapshot.battleId,activity:activity.slice(),respawnIn:replacements.length?Math.max(0,Math.min(...replacements.map(r=>r.at))-elapsed):null};
  }
  function heroRespawnPoint(){
-   const margin=1.25,enemies=runtime.snapshot().actors.filter(row=>row.side==='enemy'&&!row.dead&&!row.downed);let best=null;
+   const bounds=NOCTURNE_FIELD_BOUNDS,margin=1.5,enemies=runtime.snapshot().actors.filter(row=>row.side==='enemy'&&!row.dead&&!row.downed);let best=null;
    for(let i=0;i<12;i++){
-     const key=`hero-respawn:${encounter+1}:${i}`,x=BATTLE2_BOUNDS.minX+margin+hash(key+':x')*(BATTLE2_BOUNDS.maxX-BATTLE2_BOUNDS.minX-margin*2),z=BATTLE2_BOUNDS.minZ+margin+hash(key+':z')*(BATTLE2_BOUNDS.maxZ-BATTLE2_BOUNDS.minZ-margin*2);
+     const key=`hero-respawn:${encounter+1}:${i}`,x=bounds.minX+margin+hash(key+':x')*(bounds.maxX-bounds.minX-margin*2),z=bounds.minZ+margin+hash(key+':z')*(bounds.maxZ-bounds.minZ-margin*2);
      const nearest=enemies.length?Math.min(...enemies.map(row=>Math.hypot(x-row.position.x,z-row.position.z))):99,score=nearest+hash(key+':tie')*.15;if(!best||score>best.score)best={x,z,score};
    }
    return{x:Number(best.x.toFixed(3)),z:Number(best.z.toFixed(3))};
@@ -58,7 +58,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
   }}else restartedAt=null;
  }
  function step(dt=1/60,physicalContacts=[],movement=null){
-   activity=[];elapsed+=dt;lifecycle();runtime.setMovement('hero',movement);if(checkpointSeconds>0&&!resumes&&elapsed>=checkpointSeconds){const saved=runtime.snapshot().actors.map(a=>structuredClone(runtime.actor(a.id)));runtime=createJohakyuBattleRuntime({battleId:runtime.snapshot().battleId+':resume',bounds:BATTLE2_BOUNDS,actors:saved});resumes++;epoch++;record({type:'resume',epoch});}const result=runtime.step(dt,physicalContacts||[]);
+   activity=[];elapsed+=dt;lifecycle();runtime.setMovement('hero',movement);if(checkpointSeconds>0&&!resumes&&elapsed>=checkpointSeconds){const saved=runtime.snapshot().actors.map(a=>structuredClone(runtime.actor(a.id)));runtime=createJohakyuBattleRuntime({battleId:runtime.snapshot().battleId+':resume',bounds:NOCTURNE_FIELD_BOUNDS,actors:saved});resumes++;epoch++;record({type:'resume',epoch});}const result=runtime.step(dt,physicalContacts||[]);
    for(const event of result.events){record(event);
      if(event.type==='actor-downed'&&event.targetId!=='hero'){defeats++;if(config.heart.active.includes('skill.nonlethal'))replacements.push({id:event.targetId,slot:event.targetId.split('#')[0],at:elapsed+6.5,recover:true});}
      if(event.type==='finisher'&&event.sourceId==='hero')finishers++;
