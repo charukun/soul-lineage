@@ -84,6 +84,9 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     vitals:q('[data-vitals]'),vitalBreath:q('[data-vital-breath]'),contextStamina:q('[data-context-stamina]'),
     mind:q('[data-mind]'),mindState:q('[data-mind-state]')
   };
+  // Dock the selectable body map into the same frame as the player identity.
+  // Its detail sheet remains positioned outside the frame when a part is selected.
+  playerHud?.root.append(q('[data-combat-body-hud]'));
   let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,interruptTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',lastAction='',phaseHistory=[],comboInterrupted=false,currentComboKey='',exchangeHistoryKey='',lastTechniqueKey='',techniqueTimer=0;
   let lastStamina=null,breathVisibleUntil=0,contextAnchorVisible=false,contextVitalsWanted=false;
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
