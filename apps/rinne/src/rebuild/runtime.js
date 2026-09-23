@@ -220,6 +220,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
 
   function frame(now){
     if(!active)return;raf=requestAnimationFrame(frame);const frameMs=Math.max(0,now-last),elapsed=frameMs/1000;last=now;const {simulationDelta:dt,lifeDelta}=splitRuntimeFrameDelta(elapsed,{paused:document.hidden});
+    if(deathCinematic?.blocking){locomotion.reset();setAxis({x:0,y:0});view.renderState(state,0);birth.afterRender(0,{carrierMoving:false});return;}
     if(coop){renderCoopFrame(dt,frameMs,now);return;}
     const moveAxis=movementAxis(now);let moved=false,carrierMoving=false;const mag=Math.hypot(moveAxis.x,moveAxis.y),birthStep=birth.step(dt,moveAxis);
     if(birthStep.handled){locomotion.reset();moved=birthStep.moved;carrierMoving=birthStep.carrierMoving;}

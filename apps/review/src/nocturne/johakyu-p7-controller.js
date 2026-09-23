@@ -4,7 +4,7 @@ import {normalizeBattle2Loadout} from './battle2-loadout.js';
 
 const PHASES=new Set(['jo','ha','kyu']);
 
-export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,cameraPresentation=null,movementInput=null,onMeta=()=>{},evidence=false,fixture=null,mode='duel',loadout=null,settings=null,learnedTechniqueIds=[]}){
+export function createJohakyuP7Controller({world,effects,stage,sound,notify,signal,cameraPresentation=null,movementInput=null,onMeta=()=>{},shouldPause=()=>false,evidence=false,fixture=null,mode='duel',loadout=null,settings=null,learnedTechniqueIds=[]}){
   const driven=createDrivenBattleRuntime({world,effects,stage,sound,notify,signal,cameraPresentation});
   let reviewLoadout=normalizeBattle2Loadout(loadout||{}),reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'},reviewLearned=[...new Set(Array.isArray(learnedTechniqueIds)?learnedTechniqueIds:[])];
   const scenarioOptions=()=>({mode,loadout:reviewLoadout,settings:reviewSettings,learnedTechniqueIds:reviewLearned});
@@ -23,8 +23,8 @@ export function createJohakyuP7Controller({world,effects,stage,sound,notify,sign
   function loop(now){
     if(disposed||!started)return;
     const dt=previous?Math.min(.05,Math.max(0,(now-previous)/1000)):1/60;previous=now;
-    // A background tab must not consume the visible defeat/respawn interval.
-    if(!document.hidden)render(dt);
+    // Death/rebirth cinematics own time. Do not advance respawn, combat, or audio-producing events behind them.
+    if(!document.hidden&&!shouldPause())render(dt);
     raf=requestAnimationFrame(loop);
   }
   async function prepare(){
