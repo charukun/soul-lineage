@@ -190,6 +190,7 @@ test('an uninterrupted combo flows across constituent techniques and phase bound
 test('first inspiration casts with protected opening and impact, then restarts at 序',()=>{
  const a={...actor('a','party'),self:true,readyDelay:10,canAttack:true},b={...actor('b','enemy'),hp:10000,maxHp:10000,canAttack:false};
  const runtime=createJohakyuBattleRuntime({battleId:'inspiration-restart',actors:[a,b]});
+ runtime.actor('b').staggerUntil=100;
  runtime.actor('a').cursor.phaseIndex=2;
  assert.equal(runtime.inspire('a',resolveTechnique('action.crash'),'b','kyu'),true);
  let opening=null,contact=null,complete=null;
@@ -202,7 +203,7 @@ test('first inspiration casts with protected opening and impact, then restarts a
  }
  assert.ok(opening&&contact&&complete);assert.ok(contact.time>opening.time);
  assert.ok(runtime.actor('a').firstInspirationUntil>opening.time);
- assert.ok(Math.hypot(contact.knockback.x,contact.knockback.z)>2.2);
+ assert.equal(contact.blocked,false);assert.ok(Math.hypot(contact.knockback.x,contact.knockback.z)>2.2);
  assert.equal(runtime.actor('a').cursor.phaseIndex,0);assert.equal(runtime.actor('a').cursor.stageIndex,0);assert.equal(runtime.actor('a').cursor.techniqueIndex,0);
  assert.equal(runtime.actor('a').chainTargetId,null);
  const normal=createJohakyuBattleRuntime({battleId:'normal-technique',actors:[{...a,readyDelay:0,canAttack:true,loadout:{jo:'action.crash'}},b]});
