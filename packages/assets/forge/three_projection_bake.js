@@ -38,7 +38,7 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
     const [w,h]=source.imageSize,b=source.pbrCrop;
     // Upstream normal/roughness/height/AO are cropped; albedo and mask are full-view.
     const crop=new THREE.Vector4(b.x/w,1-(b.y+b.height)/h,b.width/w,b.height/h);
-    views.push({name,maps,matrix,target,crop,ownership,maskCache});
+    views.push({name,maps,matrix,target,crop,ownership,maskCache,imageSize:source.imageSize});
   }
   const vertexShader=`attribute vec4 tangent;varying vec3 worldPoint;varying vec3 worldNormal;varying vec3 worldTangent;varying float tangentSign;
     void main(){worldPoint=(modelMatrix*vec4(position,1.)).xyz;worldNormal=normalize(normalMatrix*normal);worldTangent=normalize(mat3(modelMatrix)*tangent.xyz);tangentSign=tangent.w;gl_Position=vec4(uv*2.-1.,0.,1.);}`;
@@ -92,13 +92,24 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
         if(total>.0001)continuation=(frontContinuation*cw.x+sideContinuation*cw.y+backContinuation*cw.z)/total;
       }
       vec3 rgb=covered?sum.rgb/sum.a:continuation;
+      if(channelIndex==0&&partOwnership){
+        // Keep each camera's facing weight when it is occluded. Renormalizing
+        // only the surviving camera painted teal islands on a blue rear when
+        // side ownership alternated across the arm silhouette. Missing camera
+        // pixels are explicitly inferred; they are never observed projection.
+        vec3 cw=pow(vec3(max(n.z,0.),abs(n.x),max(-n.z,0.)),vec3(5.));
+        float total=cw.x+cw.y+cw.z;
+        if(total>.0001)rgb=(sum.rgb+frontContinuation*max(0.,cw.x-f.a)+sideContinuation*max(0.,cw.y-s.a)+backContinuation*max(0.,cw.z-b.a))/total;
+      }
       if(channelIndex==2){
         vec3 normal=covered?normalize(rgb):n;
         vec3 t=normalize(worldTangent-n*dot(n,worldTangent)),bitangent=normalize(cross(n,t))*tangentSign;
         rgb=vec3(dot(normal,t),dot(normal,bitangent),dot(normal,n))*.5+.5;
       }
       float contributing=step(.0001,f.a)+step(.0001,b.a)+step(.0001,s.a);
-      float provenance=!covered?.25:((p.x<0.&&s.a>f.a+b.a)?.5:(contributing>1.?.75:1.));
+      vec3 expected=pow(vec3(max(n.z,0.),abs(n.x),max(-n.z,0.)),vec3(5.));
+      float missingWeight=partOwnership?max(0.,expected.x+expected.y+expected.z-sum.a):0.;
+      float provenance=!covered?.25:(missingWeight>.0001?.75:((p.x<0.&&s.a>f.a+b.a)?.5:(contributing>1.?.75:1.)));
       gl_FragColor=vec4(rgb,provenance);
     }`;
   const meshes=[];model.traverse(n=>{if(n.isMesh&&n.visible&&n.material.opacity!==0)meshes.push(n);});
@@ -112,14 +123,29 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
     }
     if(parity.maxPositionDelta!==0||parity.maxNormalDelta!==0)throw Error('Projection changed the accepted shape');
     const count=geometry.attributes.position.count,triangles=count/3,cells=Math.ceil(Math.sqrt(triangles));
-    const size=Math.max(textureSize,2**Math.ceil(Math.log2(cells*9))),cell=size/cells,padding=1.5;
+    const component=mesh.userData.sculptComponent?.id,owned=views.filter(v=>v.ownership[component]).length;
+    // A fixed nine-pixel chart undersamples long, sparse factory triangles
+    // (notably the tunic). Allocate from actual solved-camera pixel spans.
+    let projectedEdgePixels=0;
+    const a=new THREE.Vector3(),b=new THREE.Vector3();
+    for(const view of views){
+      const projection=new THREE.Matrix4().multiplyMatrices(view.matrix,mesh.matrixWorld);
+      for(let t=0;t<count;t+=3)for(let e=0;e<3;e++){
+        a.fromBufferAttribute(geometry.attributes.position,t+e).applyMatrix4(projection);
+        b.fromBufferAttribute(geometry.attributes.position,t+(e+1)%3).applyMatrix4(projection);
+        projectedEdgePixels=Math.max(projectedEdgePixels,Math.hypot((a.x-b.x)*view.imageSize[0]/2,(a.y-b.y)*view.imageSize[1]/2));
+      }
+    }
+    const colorBounds=names.map(v=>mapSources[v].componentAlbedoBounds?.[component]);
+    const constantAlbedo=colorBounds.every(b=>b&&b.min.every((c,i)=>c===b.max[i]&&c===colorBounds[0].min[i]));
+    const requiredCell=constantAlbedo?9:Math.max(9,Math.ceil(projectedEdgePixels*2)+3);
+    const size=Math.max(textureSize,2**Math.ceil(Math.log2(cells*requiredCell))),cell=size/cells,padding=1.5;
     if(size>4096)throw Error('Projection atlas exceeds the reviewed allocation; author UVs before baking '+mesh.name);
     if(cell<7)throw Error('Insufficient atlas resolution for '+mesh.name);
     const uv=new Float32Array(count*2);
     for(let t=0;t<triangles;t++){const x=(t%cells)*cell,y=Math.floor(t/cells)*cell;uv.set([(x+padding)/size,(y+padding)/size,(x+cell-padding)/size,(y+padding)/size,(x+padding)/size,(y+cell-padding)/size],t*6);}
     geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));geometry.setIndex(Array.from({length:count},(_,i)=>i));geometry.computeTangents();
     const palette=mesh.material.userData.sculptMaterial?.baseColor||'#808080';
-    const component=mesh.userData.sculptComponent?.id,owned=views.filter(v=>v.ownership[component]).length;
     if(owned&&owned!==views.length)throw Error('Part ownership must declare each admitted view: '+component);
     const uniforms={fallbackColor:{value:new THREE.Color().setStyle(palette,THREE.SRGBColorSpace).convertLinearToSRGB()},channelIndex:{value:0},partOwnership:{value:owned>0}};
     for(const v of names){const rgb=mapSources[v].componentContinuation?.[component]?.rgb;uniforms[v+'Continuation']={value:rgb?new THREE.Color().setRGB(...rgb.map(c=>c/255)):uniforms.fallbackColor.value.clone()};}
@@ -175,7 +201,7 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
       mesh.material.roughness=.9;
     }
     mesh.material.userData.projection={source:'img2threejs camera/de-light/PBR evidence',coverage,physicalChannels:'inferred upstream estimates'};
-    outputs.push({mesh:mesh.name,width:size,height:size,triangles,files,coverage,appliedPhysicalChannels:physicalChannels,surfaceOwnership:owned>0?'observed component mask':'subject foreground',geometryParity:parity,gutter:{rasterized:gutterPlan.rasterized,extended:gutterPlan.extended,filterSupport,semantics:'nearest covered texel within the same chart; provenance remains original'},provenanceMask:{64:'inferred palette',128:'mirrored opposite side',191:'interpolated multi-view blend',255:'observed de-lit pixels'},geometryStatus:'generated by pinned upstream from observed constraints; UV charting precedes freeze',method:'calibrated camera projection + depth visibility + unique UV charts + GPU rasterization',physicalChannels:'inferred; independent pinned-extractor fields, never albedo aliases'});
+    outputs.push({mesh:mesh.name,width:size,height:size,triangles,files,coverage,atlasDensity:{projectedEdgePixels,constantAlbedo,requiredCell,actualCell:cell},appliedPhysicalChannels:physicalChannels,surfaceOwnership:owned>0?'observed component mask':'subject foreground',geometryParity:parity,gutter:{rasterized:gutterPlan.rasterized,extended:gutterPlan.extended,filterSupport,semantics:'nearest covered texel within the same chart; provenance remains original'},provenanceMask:{64:'inferred palette',128:'mirrored opposite side',191:'interpolated observed/mirrored/inferred blend',255:'observed de-lit pixels'},geometryStatus:'generated by pinned upstream from observed constraints; UV charting precedes freeze',method:'calibrated camera projection + depth visibility + unique UV charts + GPU rasterization',physicalChannels:'inferred; independent pinned-extractor fields, never albedo aliases'});
     material.dispose();
   }}finally{renderer.setRenderTarget(savedTarget);renderer.setClearColor(savedColor,savedAlpha);for(const v of views){v.target.dispose();Object.values(v.maps).forEach(t=>t.dispose());for(const t of v.maskCache.values())t.dispose();}}
   return outputs;
