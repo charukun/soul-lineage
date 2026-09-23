@@ -58,9 +58,12 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
     if(hero?.phaseCue?.phase==='zanshin'&&!hero.downed&&!hero.dead){entry.at=elapsed+.2;continue;}
     const rows=runtime.snapshot().actors.filter(a=>a.id!==entry.id).map(a=>runtime.actor(a.id)),index=slots.indexOf(entry.slot),id=entry.recover?entry.id:entry.slot+'#'+(++serial);const revived=enemyRow(entry.slot,index,id);if(entry.recover){revived.spawnSeconds=0;revived.spawnStyle=null;revived.hp=revived.maxHp*.28;revived.injuries=Object.fromEntries(Object.keys(PARTS).map(p=>[p,{severity:0,at:0}]));revived.downed=false;revived.dead=false;}else revived.position=enemyRespawnPoint(entry.slot,index,id);runtime.sync([...rows,revived]);record({type:entry.recover?'enemy-recovered':'enemy-spawn',actorId:id,slot:entry.slot,position:{...revived.position}});
   }replacements=replacements.filter(r=>r.at>elapsed);
-  const hero=runtime.actor('hero'),enemyFinishingHero=runtime.snapshot().actors.some(row=>row.side==='enemy'&&row.action?.finisher&&row.action.targetId==='hero');if(hero.downed||hero.dead){restartedAt??=elapsed+3;if(!enemyFinishingHero&&elapsed>=restartedAt){
+  const hero=runtime.actor('hero'),enemyFinishingHero=runtime.snapshot().actors.some(row=>row.side==='enemy'&&row.action?.finisher&&row.action.targetId==='hero');if(hero.downed||hero.dead){
+   if(hero.executionLifecycle==='CORPSE')restartedAt??=elapsed+2.5;
+   else if(!runtime.snapshot().actors.some(row=>row.side==='enemy'&&!row.dead))restartedAt??=elapsed+4;
+   if(!enemyFinishingHero&&restartedAt!==null&&elapsed>=restartedAt){
     // Recover this actor in place: a fresh battle identity teleports the player and resets the camera.
-    const at=heroRespawnPoint();hero.hp=hero.maxHp;hero.dead=false;hero.downed=false;hero.incapacitated=false;
+    const at=heroRespawnPoint();hero.hp=hero.maxHp;hero.dead=false;hero.downed=false;hero.incapacitated=false;hero.executionLifecycle='ACTIVE';hero.executionPoseEvidence=null;hero.finisherClaimedBy=null;hero.executionSocket=null;
     hero.injuries=Object.fromEntries(Object.keys(PARTS).map(p=>[p,{severity:0,at:0}]));hero.action=null;hero.phaseCue=null;hero.pendingZanshin=false;
     hero.cursor={phaseIndex:0,techniqueIndex:0,stageIndex:0,cycle:hero.cursor.cycle+1};hero.decision=null;hero.chainTargetId=null;hero.chainLastAt=null;
     hero.readyAt=runtime.snapshot().time+.6;hero.position=at;restartedAt=null;encounter++;record({type:'hero-recovered',encounter,position:at});

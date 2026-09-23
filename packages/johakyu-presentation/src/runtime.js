@@ -523,23 +523,24 @@ function drawEffects(){
 function renderCamera(dt){
  if(!hero)return;intro+=dt;const isTitle=game.phase==='title';
  const opponent=actors.filter(a=>a!==hero&&!a.dead).sort((a,b)=>a.pos.distanceToSquared(hero.pos)-b.pos.distanceToSquared(hero.pos))[0]??null;
- const motionCamera=!isTitle?cameraForMotion(hero):null,actionTargetId=hero.canonicalRow?.action?.targetId||null;
+ const enemyExecutor=hero.downed?actors.find(a=>a!==hero&&a.canonicalRow?.action?.finisher&&a.canonicalRow.action.targetId===hero.canonicalId):null;
+ const cameraActor=enemyExecutor||hero,motionCamera=!isTitle?cameraForMotion(cameraActor):null,actionTargetId=cameraActor.canonicalRow?.action?.targetId||null;
  if(actionTargetId)game.motionTargetId=actionTargetId;
  const rememberedOpponent=game.motionTargetId?actors.find(a=>a!==hero&&a.canonicalId===game.motionTargetId):null;
  const cinematicOpponent=motionCamera?(rememberedOpponent??actors.filter(a=>a!==hero).sort((a,b)=>a.pos.distanceToSquared(hero.pos)-b.pos.distanceToSquared(hero.pos))[0]??null):null;
- const focusOpponent=motionCamera?cinematicOpponent:opponent,spread=focusOpponent?hero.pos.distanceTo(focusOpponent.pos):0,midpoint=focusOpponent?hero.pos.clone().lerp(focusOpponent.pos,.5):hero.pos.clone();
+ const focusOpponent=enemyExecutor?hero:motionCamera?cinematicOpponent:opponent,spread=focusOpponent?cameraActor.pos.distanceTo(focusOpponent.pos):0,midpoint=focusOpponent?cameraActor.pos.clone().lerp(focusOpponent.pos,.5):hero.pos.clone();
  const targetBlend=clamp(Number(motionCamera?.shot?.targetBlend)||0,0,.72);
- const desired=isTitle?new V(-2,.6,0):motionCamera?hero.pos.clone().lerp(focusOpponent?.pos??hero.pos,targetBlend).add(new V(0,motionCamera.shot.focusHeight,0)):midpoint.add(new V(0,.65,-.35));desired.x+=game.cameraFocusX;desired.z+=game.cameraFocusZ;
+ const desired=isTitle?new V(-2,.6,0):motionCamera?cameraActor.pos.clone().lerp(focusOpponent?.pos??cameraActor.pos,targetBlend).add(new V(0,motionCamera.shot.focusHeight,0)):midpoint.add(new V(0,.65,-.35));desired.x+=game.cameraFocusX;desired.z+=game.cameraFocusZ;
  const desiredZoom=isTitle?1:clamp((W/H<.8?1.02:1.08)-Math.max(0,spread-1.8)*.055+game.cameraPunch,.82,1.12);
  const baseAngle=isTitle?.62+Math.sin(intro*.045)*.08:.65,approach=isTitle?1+Math.max(0,1-intro/7)*.32:1;
- const motionBasisYaw=motionCamera?.shot?.basis==='target'&&focusOpponent?Math.atan2(focusOpponent.pos.x-hero.pos.x,focusOpponent.pos.z-hero.pos.z):hero.object.rotation.y;
+ const motionBasisYaw=motionCamera?.shot?.basis==='target'&&focusOpponent?Math.atan2(focusOpponent.pos.x-cameraActor.pos.x,focusOpponent.pos.z-cameraActor.pos.z):cameraActor.object.rotation.y;
  if(presentationPort&&cameraPresentation){
   const subject=a=>a?{id:a.canonicalId||a.object.uuid,position:{x:a.pos.x,y:a.pos.y,z:a.pos.z},yaw:a.object.rotation.y,height:a.height,focusHeight:a.height*.58,radius:a.height*.3,weaponRadius:a.height*.65}:null;
   const direction=motionCamera?motionBasisYaw+motionCamera.shot.angle:baseAngle;
   const distance=motionCamera?.shot.distance??23*approach;
   const authoredPosition={x:desired.x+Math.sin(direction)*distance+game.cameraImpulseX,y:desired.y+(motionCamera?.shot.height??22*approach),z:desired.z+Math.cos(direction)*distance+game.cameraImpulseZ};
   if(game.shake>0){authoredPosition.x+=Math.sin(clock*93)*game.shake;authoredPosition.y+=Math.cos(clock*84)*game.shake*.5;}
-  const shot=cameraPresentation.presentExternal({camera,actor:subject(hero),target:subject(focusOpponent),position:authoredPosition,lookTarget:desired,worldHeight:motionCamera?Math.max(3,motionCamera.shot.distance*2*Math.tan(Math.PI/9))/desiredZoom:(W/H<.8?31:23)*approach/desiredZoom,dt,source:'johakyu-driven',space:'frontier',mode:motionCamera?'cinematic':'combat'});
+  const shot=cameraPresentation.presentExternal({camera,actor:subject(cameraActor),target:subject(focusOpponent),position:authoredPosition,lookTarget:desired,worldHeight:motionCamera?Math.max(3,motionCamera.shot.distance*2*Math.tan(Math.PI/9))/desiredZoom:(W/H<.8?31:23)*approach/desiredZoom,dt,source:'johakyu-driven',space:'frontier',mode:motionCamera?'cinematic':'combat'});
   cameraTarget.set(shot.lookTarget.x,shot.lookTarget.y,shot.lookTarget.z);
  }else{
   cameraTarget.lerp(desired,1-Math.exp(-dt*3.8));
@@ -795,9 +796,17 @@ function createDrivenPort(){
    a.flash=Math.max(0,a.flash-dt);a.startGlow=Math.max(0,a.startGlow-dt);const startColor=startGlowColors[a.startGlowPhase]||startGlowColors.other;for(const {mat,base,power} of a.mats){if(a.flash>0){mat.emissive.copy(hitFlashColor);mat.emissiveIntensity=1.7;}else if(a.startGlow>0){mat.emissive.copy(startColor);mat.emissiveIntensity=Math.max(power,1.5*a.startGlow/.18);}else{mat.emissive.copy(base);mat.emissiveIntensity=power;}}
   },
   sampleBodyContacts(){
-   const rows=[];for(const source of bindings.values()){const action=source.canonicalRow?.action;if(!action?.motion?.offense)continue;const target=bindings.get(action.targetId);if(!target)continue;const hit=sweptWeaponBodyContact(source,target);if(hit)rows.push(hit);}return rows;
+   const rows=[];for(const source of bindings.values()){
+    if(source.canonicalRow?.downed){const pose=renderedPoseEvidence(source);if(pose)rows.push({type:'ground-pose',actorId:source.canonicalId,clip:source.actionName,vertical:pose.headHipVertical,horizontal:pose.headHipHorizontal,grounded:pose.headHipVertical<source.height*.22||pose.headHipHorizontal>source.height*.28});}
+    const action=source.canonicalRow?.action;if(!action?.motion?.offense)continue;const target=bindings.get(action.targetId);if(!target)continue;const hit=sweptWeaponBodyContact(source,target);if(hit)rows.push(hit);
+   }return rows;
   },
   impact(event,source,target){
+   if(event.type==='finisher-start'){
+    sound.note?.(112,.19,'triangle',.12);
+    if(source&&target)pullCameraToContact(source.pos.clone().lerp(target.pos,.5),.06);
+    return;
+   }
    if(event.type==='inspiration'){
      // A visible world event only. The shared battle runtime owns learning, protection and reactions.
      if(source?.canonicalId==='hero'&&source?.pos?.isVector3&&target?.pos?.isVector3){
@@ -842,7 +851,7 @@ function createDrivenPort(){
    if(impactEffect?.effect)techniqueVfx.spawn(impactEffect.effect,{stage:'impact',origin:impactPoint,color,scale:impactScale,archetype:archetype||'flow',finisher,direction:vfxDirection,trajectory:event.choreography?.bladeTrajectory});
    if(secondaryEffect?.effect)techniqueVfx.spawn(secondaryEffect.effect,{stage:'secondary',origin:impactPoint,color:'#f3e7d2',scale:secondaryScale,archetype:archetype||'flow',finisher,direction:vfxDirection});
    record('technique-vfx-impact',{techniqueId:event.techniqueId||null,impactEffect:impactEffect?.effect||null,secondaryEffect:secondaryEffect?.effect||null,archetype:archetype||'flow',finisher});
-   const material=target?.canonicalRow?.equipment?.armor==='heavy'?'armor':'flesh';sound.impact?.({pan,heavy,counter:Boolean(event.counter),gain:Number(impactSpec?.gain)||null,rate:Number(impactSpec?.pitch)||1,material,phase});game.hitstop=Math.max(game.hitstop,stop);game.cameraPunch=Math.max(game.cameraPunch,finisher?.055:event.counter?.042:heavy?.028:.01);game.shake=Math.max(game.shake,finisher?.008:phase==='kyu'?.006:heavy?.004:0);kickCamera(source,target,finisher?.27:phase==='kyu'?.22:heavy?.17:.07);
+   const material=target?.canonicalRow?.equipment?.armor==='heavy'?'armor':'flesh';sound.impact?.({pan,heavy,counter:Boolean(event.counter),gain:Number(impactSpec?.gain)||null,rate:Number(impactSpec?.pitch)||1,material,phase});if(finisher)sound.note?.(78,.16,'triangle',.2);game.hitstop=Math.max(game.hitstop,stop);game.cameraPunch=Math.max(game.cameraPunch,finisher?.055:event.counter?.042:heavy?.028:.01);game.shake=Math.max(game.shake,finisher?.008:phase==='kyu'?.006:heavy?.004:0);kickCamera(source,target,finisher?.27:phase==='kyu'?.22:heavy?.17:.07);
    record('canonical-impact',{stageIndex:event.stageIndex,contactTime:event.time,hitstop:stop,attackId:event.attackId,sourceId:event.sourceId,targetId:event.targetId,bodyPart:event.bodyPart,finisher,counter:Boolean(event.counter),reactionClip,preserveDownedPose,recoilDuration,recoilStrength,techniqueId:event.techniqueId||null,archetype,effect:presentation?.vfx?.impact?.effect||null,soundRole:impactSpec?.role||null});
   },
   environment(obstacles,shots){
@@ -894,7 +903,7 @@ function renderedPoseEvidence(a){
  let head=null,hips=null;a.root.traverse(node=>{if(!node.isBone)return;const name=String(node.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');if(!head&&/head/.test(name)&&!/headtop|headend/.test(name))head=node;if(!hips&&/hips|pelvis/.test(name))hips=node;});
  if(!head||!hips)return null;a.object.updateMatrixWorld(true);const hp=head.getWorldPosition(new V()),pp=hips.getWorldPosition(new V());return{headHipVertical:Number(Math.abs(hp.y-pp.y).toFixed(4)),headHipHorizontal:Number(Math.hypot(hp.x-pp.x,hp.z-pp.z).toFixed(4))};
 }
-function inspectActors(){return actors.map(a=>({kind:a.kind,hp:a.hp,dead:a.dead,downed:Boolean(a.downed),deathTime:a.deathTime,position:a.pos.toArray(),animation:a.actionName,animationTime:a.action?.time||0,pose:renderedPoseEvidence(a),attack:a.attack?.time||0,fatigue:a.fatiguePresentation}));}
+function inspectActors(){return actors.map(a=>({kind:a.kind,hp:a.hp,dead:a.dead,downed:Boolean(a.downed),executionState:a.canonicalRow?.executionState||null,downedState:a.canonicalRow?.downedState||null,executionSocket:a.canonicalRow?.executionSocket||null,executorId:a.canonicalRow?.executorId||null,deathTime:a.deathTime,position:a.pos.toArray(),animation:a.actionName,animationTime:a.action?.time||0,pose:renderedPoseEvidence(a),attack:a.attack?.time||0,fatigue:a.fatiguePresentation}));}
 function inspectBattle(bootEpoch){
  if(!game.ready||disposed)return null;
  return createBattleObservation({authority:rules?'johakyu-review':'native-demo',battleId:`battle2:${bootEpoch}:${rounds}`,timeSeconds:game.time,status:game.phase,

@@ -82,13 +82,13 @@ test('downed state stays settling until the authored fall pose reaches its final
   assert.equal(target.downedState?.phase,'settling');
   assert.ok(target.downedState?.progress<1);
  }
- let start=null,frame=null;for(let i=0;i<30&&!start;i++){const result=runtime.step(1/60);start=result.events.find(event=>event.type==='finisher-start');if(start)frame=result.frame;}
- assert.ok(start);const target=frame.actors.find(row=>row.id==='b');assert.equal(target.downedState?.phase,'settled');assert.equal(target.downedState?.progress,1);
+ let start=null,frame=null,approach=false;for(let i=0;i<90&&!start;i++){const result=runtime.step(1/60);approach||=result.frame.actors.find(row=>row.id==='b')?.executionState==='EXECUTION_APPROACH';start=result.events.find(event=>event.type==='finisher-start');if(start)frame=result.frame;}
+ assert.ok(approach,'the executor must approach the ground socket before locking');assert.ok(start);const target=frame.actors.find(row=>row.id==='b');assert.equal(target.downedState?.phase,'settled');assert.equal(target.downedState?.progress,1);assert.equal(target.executionState,'EXECUTION_LOCK');
 });
 test('a downed target gets a deliberate pause, then a complete two-second finisher before recovery',()=>{
  const a={...actor('a','party'),self:true,readyDelay:0,finisherProfile:{id:'kaishaku',durationScale:1}},b={...actor('b','enemy'),hp:0,downed:true,incapacitated:true};
  const runtime=createJohakyuBattleRuntime({battleId:'finisher-pace',actors:[a,b]}),events=[];
- for(let i=0;i<60*4;i++)events.push(...runtime.step(1/60).events);
+ for(let i=0;i<60*5;i++)events.push(...runtime.step(1/60).events);
  const start=events.find(e=>e.type==='finisher-start'),contact=events.find(e=>e.type==='finisher'),complete=events.find(e=>e.type==='finisher-complete');
  assert.ok(start);assert.ok(start.time>=1.85,'finisher must wait until the canonical downed pose is fully settled');assert.ok(contact.time>start.time);assert.ok(complete.time>contact.time);
  assert.ok(Math.abs(complete.time-start.time-2)<.08);assert.equal(events.filter(e=>e.type==='finisher').length,1);
@@ -209,4 +209,26 @@ test('first inspiration casts with protected opening and impact, then restarts a
  const normal=createJohakyuBattleRuntime({battleId:'normal-technique',actors:[{...a,readyDelay:0,canAttack:true,loadout:{jo:'action.crash'}},b]});
  for(let i=0;i<200;i++)normal.step(1/60);
  assert.equal(normal.actor('a').firstInspirationUntil,undefined);
+});
+
+test('ground pose evidence gates execution, socket locks the actor, and corpse follows completed motion',()=>{
+ const hero={...actor('hero','party'),self:true,readyDelay:0};
+ const victim={...actor('victim','enemy'),downed:true,incapacitated:true,hp:0};
+ const runtime=createJohakyuBattleRuntime({battleId:'execution-lifecycle',actors:[hero,victim]});
+ for(let i=0;i<180;i++){
+  const result=runtime.step(1/60,[{type:'ground-pose',actorId:'victim',clip:'Idle',grounded:false}]);
+  assert.equal(result.events.some(e=>e.type==='finisher-start'),false);
+ }
+ assert.equal(runtime.snapshot().actors.find(a=>a.id==='victim').executionState,'FALLING');
+ let started,contact,finished,lockedPosition;
+ for(let i=0;i<400&&!finished;i++){
+  const result=runtime.step(1/60,[{type:'ground-pose',actorId:'victim',clip:'Lie_Down',grounded:true}]);
+  started||=result.events.find(e=>e.type==='finisher-start');contact||=result.events.find(e=>e.type==='finisher');finished||=result.events.find(e=>e.type==='finisher-complete');
+  const executor=result.frame.actors.find(a=>a.id==='hero');
+  if(executor.action?.finisher){lockedPosition??={...executor.position};assert.deepEqual(executor.position,lockedPosition);}
+  if(started&&!contact)assert.equal(result.frame.actors.find(a=>a.id==='victim').executionState,'EXECUTION_LOCK');
+  if(contact&&!finished)assert.equal(result.frame.actors.find(a=>a.id==='victim').executionState,'EXECUTED');
+ }
+ assert.ok(started&&contact&&finished);assert.equal(runtime.snapshot().actors.find(a=>a.id==='victim').executionState,'CORPSE');
+ assert.ok(contact.contactPoint.y<.7,'the contact anchor must be at the prone body rather than standing torso height');
 });
