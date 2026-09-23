@@ -100,15 +100,23 @@ function start() {
   const marker = new THREE.Mesh(new THREE.RingGeometry(.48, .51, 48), new THREE.MeshBasicMaterial({ color: '#dcc493', side: THREE.DoubleSide }));
   marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
-  let pool = null, template = null, proceduralRoot = null, boneHelper = null, boneTarget = null, boneOverlayEnabled = false, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
+  let pool = null, template = null, proceduralRoot = null, proceduralBones = null, proceduralPoseBase = null, boneHelper = null, boneTarget = null, boneOverlayEnabled = false, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
   let activeModelLabel = defaultModel.label;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
   const simpleModelReview = document.body.classList.contains('simple-review');
   const inspectionTraits = { age: 22, height: .5, build: .5 };
   const inspectionBases = new WeakMap(), inspectionAxis = new THREE.Vector3(1, 0, 0), inspectionRotation = new THREE.Quaternion();
   let motionQA = null;
+  function captureProceduralPoseBase() {
+    if (!proceduralBones) { proceduralPoseBase = null; return; }
+    proceduralPoseBase = Object.fromEntries(Object.entries(proceduralBones).map(([key, bone]) => [key, bone.quaternion.clone()]));
+  }
+  function restoreProceduralPoseBase() {
+    if (!proceduralBones || !proceduralPoseBase) return;
+    for (const [key, quaternion] of Object.entries(proceduralPoseBase)) proceduralBones[key]?.quaternion.copy(quaternion);
+  }
   function inspectionTarget() {
-    if (proceduralRoot) return { root: proceduralRoot, bones: null };
+    if (proceduralRoot) return { root: proceduralRoot, bones: proceduralBones };
     const actor = actors[settings.selected];
     return actor ? { root: actor.root, bones: actor.bones } : null;
   }
@@ -129,6 +137,7 @@ function start() {
   function applyInspectionTraits(recenter = false) {
     if (!simpleModelReview) return false;
     const target = inspectionTarget(); if (!target) return false;
+    if (target.root === proceduralRoot) restoreProceduralPoseBase();
     const base = inspectionBase(target), age = ageAppearance(inspectionTraits.age);
     const height = .9 + .2 * inspectionTraits.height, width = .88 + .24 * inspectionTraits.build;
     target.root.scale.set(base.rootScale.x * age.scale * width, base.rootScale.y * age.scale * height, base.rootScale.z * age.scale * width);
@@ -137,6 +146,7 @@ function start() {
     if (target.bones?.chest && base.chest) target.bones.chest.quaternion.copy(base.chest).multiply(inspectionRotation.setFromAxisAngle(inspectionAxis, age.stoop * .38));
     if (target.bones?.head && base.head) target.bones.head.quaternion.copy(base.head).multiply(inspectionRotation.setFromAxisAngle(inspectionAxis, -age.stoop * .38));
     target.root.updateWorldMatrix(true, true);
+    if (target.root === proceduralRoot) captureProceduralPoseBase();
     if (recenter) {
       const center = new THREE.Box3().setFromObject(target.root).getCenter(new THREE.Vector3());
       const delta = center.clone().sub(orbit.target);
@@ -337,7 +347,7 @@ function start() {
     if (!proceduralRoot) return;
     if (boneTarget === proceduralRoot) clearBoneOverlay();
     proceduralRoot.removeFromParent(); disposeTemplate(proceduralRoot);
-    proceduralRoot = null; review.proceduralRoot = null;
+    proceduralRoot = null; proceduralBones = null; proceduralPoseBase = null; review.proceduralRoot = null;
   }
   async function load(getBytes, auditDocument = auditKaykitDocument, rigBuilder = kaykitReviewRig) {
     if (!alive) return; clearProcedural(); arrange(); const loadToken=modelLoads.begin(); loading = true; retry = getBytes; retryAudit = auditDocument; retryRig = rigBuilder; review.ready = false; el('retry').disabled = true; el('progress').value = .1;
@@ -430,7 +440,15 @@ function start() {
         if (enabled && actor.secondaryJointCount) physicsActors++;
         if (!settings.paused) actor.updateSecondary(dt, enabled && !motionQA?.active);
       });
-      if (proceduralRoot) { proceduralRoot.rotation.y = settings.rotate ? elapsed * .22 : 0; drawnActors = 1; }
+      if (proceduralRoot) {
+        if (!settings.paused && proceduralBones) {
+          restoreProceduralPoseBase();
+          if (settings.motion !== 'rest') pose(proceduralBones, elapsed);
+          proceduralRoot.updateWorldMatrix(true, true);
+        }
+        proceduralRoot.rotation.y = settings.rotate ? elapsed * .22 : 0;
+        drawnActors = 1;
+      }
       renderer.render(scene, camera);
       if (!settings.paused && Number.isFinite(actual) && actual > 0) { if (warmup > 0) warmup--; else { frames.push(actual * 1000); if (frames.length > 600) frames.shift(); } }
       if (now - lastMetrics > 500) {
@@ -503,11 +521,11 @@ function start() {
     try {
       const next = await createImg2ThreeReferenceCharacter();
       if (!alive || request !== modelRequestSequence) { disposeTemplate(next); return; }
-      clearProcedural(); proceduralRoot = next; scene.add(proceduralRoot); review.proceduralRoot = proceduralRoot; arrange();
+      clearProcedural(); proceduralRoot = next; proceduralBones = kaykitHumanoidFromGLTF({ scene: proceduralRoot }); scene.add(proceduralRoot); review.proceduralRoot = proceduralRoot; arrange();
       review.displayModelId = 'img2threejs.bald-chibi.v1';
-      review.audit = {approved:true,modelId:review.displayModelId,source:{revision:proceduralRoot.userData.img2threejs.revision}};
+      review.audit = {approved:true,modelId:review.displayModelId,humanoidRig:proceduralRoot.userData.rigId,source:{revision:proceduralRoot.userData.img2threejs.revision}};
       review.ready = true; el('progress').value = 1; activeModelLabel = 'ゴールデンベース';
-      aim('front'); renderer.render(scene,camera); status('ゴールデンベースを表示中。ドラッグまたは回転ボタンで厚みを確認できます。');
+      aim('front'); renderer.render(scene,camera); status('ゴールデンベースを表示中。Rig_Medium共通モーションで骨格と厚みを確認できます。');
       window.dispatchEvent(new Event('character-review-change'));
     } catch (error) { if (request === modelRequestSequence) report(error); }
   };
