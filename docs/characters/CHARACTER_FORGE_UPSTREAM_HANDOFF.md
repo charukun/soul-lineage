@@ -275,3 +275,34 @@ state still requests image-analysis; upstream pass decisions are not forged.
 Real local Stage 1 completion is input evidence, not reference-likeness, rig or
 pipeline validation. Finish the ordered upstream setup/spec and stages; do not
 reuse Scout's 180x360 proportions or material palette for this model.
+
+### Golden Base attachment and motion wiring (prepared, not E2E approved)
+
+`author_golden_base_rig.py` encodes this sheet's measured horizontal arm span,
+large head and separate legs as **inferred** joint centres for the common
+`Rig_Medium` contract. Front/Back depict an approximately T-pose while Side
+depicts a lowered arm; the conflict is recorded instead of presenting it as a
+consistent orthographic view. Its mesh roles route through the exact pinned
+plugin's freeze, geodesic binder, conditioning, payload validator and parity
+checks in `finish_golden_base.py`. This orchestrator refuses to start without
+all accepted upstream passes and an actual hash-bound raw-likeness review.
+
+`author_golden_base_morph.py` uses the actual observed eye and mouth pixel
+locations, scaling influence radii to this measured 263px head. The pinned
+upstream morph builder computes deltas and the Three adapter keeps neutral
+geometry frozen. These are inferred poses, not observed expressions. The
+model's actual Blink/Smile/Mouth-open appearance still needs browser review.
+
+The existing *legacy* `golden-base-boy-v1/build/character.glb` has one skin and
+ten real clips. The pinned plugin's `rig_glb_reference.py` read it successfully.
+Six required clips (Idle, Walk, Talk, Attack, Hit, Rest) each have real rotation
+channels mapped explicitly from `upperArm_L`-style names to common
+`upperArm.L`-style joints. `three_animation_adapter.js` transports rotations
+only; no legacy shape, UV, material, weights, bone lengths or reconstruction
+authority is inherited. A focused Three.js sample with six clips verified
+the actual mixer/interpolant at five times (maximum delta 2.24e-8, threshold
+2^-23). This is a **synthetic boundary test**, not actual Golden Base animation
+acceptance. The browser binder is wired to capture six real animation poses,
+wireframe, skeleton, sockets and expressions, and to export six clips with the
+rigged GLB when an accepted upstream reconstruction exists. Plugin G2–G12,
+native Lab, the output GLB and reference/rig likeness remain unmeasured.
