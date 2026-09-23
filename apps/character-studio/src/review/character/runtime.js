@@ -11,6 +11,7 @@ import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {createReviewLoadController} from '@soul/shared-ui/review-load-controller';
 import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
+import {createImg2ThreeReferenceCharacter} from '../../img2threejs-bald-chibi.js';
 
 const el = id => document.getElementById(id);
 const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null, displayModelId: null };
@@ -100,6 +101,12 @@ function start() {
   marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
   let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, modelRequestSequence = 0, alive = true, frameId = 0, cameraPreset = 'overview';
+  let procedural = null;
+  function clearProcedural() {
+    if (!procedural) return;
+    procedural.removeFromParent(); disposeTemplate(procedural); procedural = null;
+    actors.forEach((actor, i) => actor.setVisible(settings.view === 'crowd' || i === settings.selected));
+  }
   let activeModelLabel = defaultModel.label;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
   const simpleModelReview = document.body.classList.contains('simple-review');
@@ -140,7 +147,7 @@ function start() {
   function arrange() {
     const columns = Math.ceil(Math.sqrt(settings.count)), rows = Math.ceil(settings.count / columns);
     actors.forEach((actor, i) => {
-      actor.setVisible(settings.view === 'crowd' || i === settings.selected);
+      actor.setVisible(!procedural && (settings.view === 'crowd' || i === settings.selected));
       actor.root.position.set(settings.view === 'single' ? 0 : (i % columns - (columns - 1) / 2) * 2.1, 0,
         settings.view === 'single' ? 0 : (Math.floor(i / columns) - (rows - 1) / 2) * 2.3);
       actor.root.rotation.y = settings.rotate ? elapsed * .22 : 0; actor.resetSecondary();
@@ -148,13 +155,13 @@ function start() {
     updateMarker();
   }
   function updateMarker() {
-    const actor = actors[settings.selected]; marker.visible = Boolean(actor?.root.visible);
+    const actor = actors[settings.selected]; marker.visible = !procedural && Boolean(actor?.root.visible);
     if (actor) { marker.position.x = actor.root.position.x; marker.position.z = actor.root.position.z; }
   }
   function aim(preset = 'overview') {
     cameraPreset = preset;
     if (motionQA?.active) { motionQA.aim(preset === 'side' ? 'left' : ['front','back'].includes(preset) ? preset : 'front'); return; }
-    const actor = actors[settings.selected]; if (!actor) return;
+    const actor = procedural ? {root:procedural} : actors[settings.selected]; if (!actor) return;
     if (simpleModelReview) {
       const sharedPreset=preset==='overview'?'three-quarter':preset;
       camera.fov=38;camera.updateProjectionMatrix();
@@ -268,7 +275,7 @@ function start() {
       // Check every required actor before replacing a working pool.
       const preflight = records.slice(0, settings.count).map(record => nextPool.spawn(record.id)); preflight.forEach(a => nextPool.despawn(a.id));
       pool?.dispose(); disposeTemplate(template); actors = []; pool = nextPool; template = nextTemplate; nextPool = null; nextTemplate = null;
-      installed = true; review.pool = pool; review.audit = audit; const capabilities = pool.diagnostics(); review.capabilities = capabilities;
+      installed = true; clearProcedural(); review.pool = pool; review.audit = audit; const capabilities = pool.diagnostics(); review.capabilities = capabilities;
       el('expression').replaceChildren(new Option('ニュートラル', ''), ...capabilities.expressionNames.map(name => new Option(name, name)));
       if (!capabilities.expressionNames.includes(settings.expression)) settings.expression = '';
       el('capabilities').textContent = `SHA-256 ${hash}\nLicense ${audit.license || 'unverified'}\n表情 ${capabilities.expressionNames.length}種\n揺れ ${capabilities.springChains}チェーン / ${capabilities.springJoints}関節\n${capabilities.warnings.join('\n') || 'PBR・共通Humanoid表示'}`;
@@ -345,6 +352,7 @@ function start() {
         if (enabled && actor.secondaryJointCount) physicsActors++;
         if (!settings.paused) actor.updateSecondary(dt, enabled && !motionQA?.active);
       });
+      if (procedural && settings.rotate && !settings.paused) procedural.rotation.y = elapsed * .22;
       renderer.render(scene, camera);
       if (!settings.paused && Number.isFinite(actual) && actual > 0) { if (warmup > 0) warmup--; else { frames.push(actual * 1000); if (frames.length > 600) frames.shift(); } }
       if (now - lastMetrics > 500) {
@@ -409,6 +417,20 @@ function start() {
     }
   };
   review.sample = age => { settings = reviewSettings({ ...settings, age, ages: 'fixed' }); records = records.map(r => editReviewCharacter(r, { age })); refreshLooks(); };
+  review.loadImg2ThreeReference = async () => {
+    const request = ++modelRequestSequence;
+    status('img2threejs単体モデルを読み込み中…');
+    try {
+      const next = await createImg2ThreeReferenceCharacter();
+      if (!alive || request !== modelRequestSequence) { disposeTemplate(next); return; }
+      clearProcedural(); procedural = next; scene.add(procedural); arrange();
+      review.displayModelId = 'img2threejs.bald-chibi.v1';
+      review.audit = {approved:true,modelId:review.displayModelId,source:{revision:procedural.userData.img2threejs.revision}};
+      review.ready = true; activeModelLabel = 'img2threejs 参照キャラ';
+      aim('front'); renderer.render(scene,camera); status('img2threejs 参照キャラを表示中。ドラッグまたは回転ボタンで厚みを確認できます。');
+      window.dispatchEvent(new Event('character-review-change'));
+    } catch (error) { if (request === modelRequestSequence) report(error); }
+  };
   // Explicit inspection API. Never touches game saves, inventories or network authority.
   review.session = () => serializeReviewSession({ settings, records, note: el('note').value });
   review.restore = text => {
@@ -429,7 +451,7 @@ function start() {
   review.motionQA = motionQA;
   function dispose() {
     if (!alive) return; alive = false; modelLoads.invalidate(); review.ready = false; cancelAnimationFrame(frameId); events.abort(); stageLifecycle.destroy(); orbit.dispose();
-    motionQA?.dispose(); pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
+    motionQA?.dispose(); clearProcedural(); pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
   }
   on(window, 'pagehide', event => { if (!event.persisted) dispose(); else suspend(); });
   on(window, 'pageshow', suspend); syncUI(); background(); frameId = requestAnimationFrame(frame); void load(defaultBytes, auditKaykitDocument, kaykitReviewRig);
@@ -437,5 +459,4 @@ function start() {
 try { start(); } catch (error) { report(error); el('retry').disabled = false; el('retry').onclick = () => location.reload(); }
 
 if (document.body.classList.contains('advanced-review')) import('../workspace/advanced.js').catch(report);
-
 

@@ -42,6 +42,18 @@ function buildModelOptions() {
     row.append(b);
   }
   if (simpleReview) {
+    const b = button('参照キャラ · img2threejs', () => {
+      studio.workspace.configure({ view: 'single' });
+      void studio.review.loadImg2ThreeReference();
+    });
+    b.dataset.characterModel = 'img2threejs.bald-chibi.v1';
+    b.dataset.modelStage = '立体モデル / 参照画像';
+    b.dataset.reviewLabel = '参照キャラ';
+    b.dataset.thumbnailUrl = './img2threejs-bald-chibi/reference.jpg';
+    b.dataset.thumbnailKind = 'image';
+    row.append(b);
+  }
+  if (simpleReview) {
     const labels = { knight: '騎士', barbarian: '蛮族', mage: '魔術師', rogue: '盗賊', 'rogue-hooded': 'フード盗賊' };
     for (const model of KAYKIT_CHARACTER_LIBRARY) {
       const b = button(labels[model.key] || model.label, () => { void studio.review.loadFoundationModel(model); studio.review.aim('front'); });
@@ -203,5 +215,4 @@ function init() {
   buildOptions(); expressions(); activate('parts'); render();
 }
 try { init(); } catch (error) { toast(error.message); }
-
 
