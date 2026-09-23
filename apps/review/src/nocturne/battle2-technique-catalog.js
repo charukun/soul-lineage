@@ -38,7 +38,7 @@ export function pickBattle2Inspiration(options={},random=Math.random){
     const row=weightedPick(battle2UltimateCandidates(base),random);
     if(row){const naming=generatedTechniqueNaming(row,{seed,motifs:row.motifs||[]});return Object.freeze({id:row.id,name:`奥義・${naming.name}`,grade:'ultimate',ultimate:true});}
   }
-  let candidates=battle2InspirationCandidates(base);if(!candidates.length&&options.seenIds?.length)candidates=battle2InspirationCandidates({...base,seenIds:[]});
+  const candidates=battle2InspirationCandidates(base);
   const row=weightedPick(candidates,random);if(!row)return null;
   const naming=row.generated?generatedTechniqueNaming(row,{seed,motifs:row.motifs||[]}):null;
   return Object.freeze({id:row.id,name:naming?.displayName||techniqueName(row.id),grade:naming?.grade||'normal',ultimate:false});
