@@ -607,10 +607,12 @@ function createDrivenPort(){
    });
    return a.sheathBodyRig={hips,chest:chest||hips};
  }
+ const VISIBLE_SCABBARD_WEAPONS=new Set(['katana','wakizashi','tanto','nodachi']);
  function scabbardProfileForWeapon(weaponId){
-   if(weaponId==='dagger')return Object.freeze({placement:'hip',length:.82,widthPad:1.12,depthPad:1.18,minWidth:.042,minDepth:.03,maxWidthRatio:.09,maxDepthRatio:.065,lateral:.072,up:.012,forward:.018,dirBack:.88,dirSide:.24,dirDown:.42,insert:.82,stagingSide:.085,stagingForward:.1,stagingUp:.055,body:0x24201e,trim:0xb18b53,bands:1});
-   if(weaponId==='great')return Object.freeze({placement:'back',length:.9,widthPad:1.14,depthPad:1.2,minWidth:.072,minDepth:.05,maxWidthRatio:.105,maxDepthRatio:.075,lateral:.055,up:.31,forward:-.055,dirBack:.72,dirSide:.5,dirDown:.48,insert:.86,stagingSide:.12,stagingForward:.18,stagingUp:.1,body:0x332822,trim:0x8d784f,bands:3});
-   return Object.freeze({placement:'hip',length:.84,widthPad:1.08,depthPad:1.16,minWidth:.052,minDepth:.036,maxWidthRatio:.085,maxDepthRatio:.06,lateral:.09,up:.014,forward:.006,dirBack:.965,dirSide:.11,dirDown:.2,insert:.84,stagingSide:.1,stagingForward:.12,stagingUp:.065,body:0x2d2926,trim:0xa88652,bands:2});
+   if(VISIBLE_SCABBARD_WEAPONS.has(weaponId))return Object.freeze({placement:'hip',showScabbard:true,length:.96,widthPad:1.2,depthPad:1.22,minWidth:.052,minDepth:.034,maxWidthRatio:.082,maxDepthRatio:.056,lateral:.09,up:.016,forward:.006,dirBack:.965,dirSide:.11,dirDown:.2,insert:.95,stagingSide:.1,stagingForward:.12,stagingUp:.065,body:0x201b18,trim:0xb38d59,bands:2});
+   if(weaponId==='dagger')return Object.freeze({placement:'hip',showScabbard:false,length:.82,widthPad:1.12,depthPad:1.18,minWidth:.042,minDepth:.03,maxWidthRatio:.09,maxDepthRatio:.065,lateral:.072,up:.012,forward:.018,dirBack:.88,dirSide:.24,dirDown:.42,insert:.82,stagingSide:.085,stagingForward:.1,stagingUp:.055,body:0x24201e,trim:0xb18b53,bands:1});
+   if(weaponId==='great')return Object.freeze({placement:'back',showScabbard:false,length:.9,widthPad:1.14,depthPad:1.2,minWidth:.072,minDepth:.05,maxWidthRatio:.105,maxDepthRatio:.075,lateral:.055,up:.31,forward:-.055,dirBack:.72,dirSide:.5,dirDown:.48,insert:.86,stagingSide:.12,stagingForward:.18,stagingUp:.1,body:0x332822,trim:0x8d784f,bands:3});
+   return Object.freeze({placement:'hip',showScabbard:false,length:.84,widthPad:1.08,depthPad:1.16,minWidth:.052,minDepth:.036,maxWidthRatio:.085,maxDepthRatio:.06,lateral:.09,up:.014,forward:.006,dirBack:.965,dirSide:.11,dirDown:.2,insert:.84,stagingSide:.1,stagingForward:.12,stagingUp:.065,body:0x2d2926,trim:0xa88652,bands:2});
  }
  function scabbardFrame(a,weaponId){
    a.object.updateMatrixWorld(true);const rig=sheathBodyRig(a),profile=scabbardProfileForWeapon(weaponId),parent=profile.placement==='back'?rig.chest:rig.hips;if(!parent)return null;parent.updateWorldMatrix(true,true);
@@ -648,13 +650,14 @@ function createDrivenPort(){
  function ensureScabbard(a,weaponId,frame,held){
    const {parent,mouthWorld,directionWorld,profile}=frame;if(!parent||!held)return null;
    if(a.scabbard?.weaponId!==weaponId||a.scabbard?.parent!==parent){
-     disposeScabbard(a);const worldScale=parent.getWorldScale(new THREE.Vector3()),scale=Math.max(.001,(Math.abs(worldScale.x)+Math.abs(worldScale.y)+Math.abs(worldScale.z))/3),bodyLength=Math.max(held.length/scale*profile.length,.34),measuredWidth=held.bladeWidth/scale*profile.widthPad,measuredDepth=held.bladeDepth/scale*profile.depthPad,width=Math.max(profile.minWidth,Math.min(measuredWidth,bodyLength*profile.maxWidthRatio)),depth=Math.max(profile.minDepth,Math.min(measuredDepth,bodyLength*profile.maxDepthRatio));
-     const bodyMaterial=new THREE.MeshStandardMaterial({color:profile.body,roughness:.78,metalness:.1}),trimMaterial=new THREE.MeshStandardMaterial({color:profile.trim,roughness:.48,metalness:.48});
-     const group=new THREE.Group(),body=new THREE.Mesh(new THREE.BoxGeometry(width,bodyLength,depth),bodyMaterial),mouthTrim=new THREE.Mesh(new THREE.BoxGeometry(width*1.28,Math.max(width*.18,.026),depth*1.26),trimMaterial),tipTrim=new THREE.Mesh(new THREE.BoxGeometry(width*1.08,Math.max(width*.13,.02),depth*1.08),trimMaterial),meshes=[body,mouthTrim,tipTrim];
-     body.position.y=bodyLength*.5;tipTrim.position.y=bodyLength;
-     for(let i=1;i<=profile.bands;i++){const band=new THREE.Mesh(new THREE.BoxGeometry(width*1.12,Math.max(width*.08,.016),depth*1.12),trimMaterial.clone());band.position.y=bodyLength*(i/(profile.bands+1));group.add(band);meshes.push(band);}
-     for(const mesh of meshes){mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.assetSource='procedural:scabbard:'+weaponId;}
-     group.add(body,mouthTrim,tipTrim);parent.add(group);a.scabbard={weaponId,parent,group,meshes,bodyLength,width,depth,profile};
+     disposeScabbard(a);const worldScale=parent.getWorldScale(new THREE.Vector3()),scale=Math.max(.001,(Math.abs(worldScale.x)+Math.abs(worldScale.y)+Math.abs(worldScale.z))/3),bodyLength=Math.max(held.length/scale*profile.length,.34),measuredWidth=held.bladeWidth/scale*profile.widthPad,measuredDepth=held.bladeDepth/scale*profile.depthPad,width=Math.max(profile.minWidth,Math.min(measuredWidth,bodyLength*profile.maxWidthRatio)),depth=Math.max(profile.minDepth,Math.min(measuredDepth,bodyLength*profile.maxDepthRatio)),group=new THREE.Group(),meshes=[];
+     if(profile.showScabbard){
+       const bodyMaterial=new THREE.MeshStandardMaterial({color:profile.body,roughness:.78,metalness:.1}),trimMaterial=new THREE.MeshStandardMaterial({color:profile.trim,roughness:.48,metalness:.48}),body=new THREE.Mesh(new THREE.BoxGeometry(width,bodyLength,depth),bodyMaterial),mouthTrim=new THREE.Mesh(new THREE.BoxGeometry(width*1.28,Math.max(width*.18,.026),depth*1.26),trimMaterial),tipTrim=new THREE.Mesh(new THREE.BoxGeometry(width*1.08,Math.max(width*.13,.02),depth*1.08),trimMaterial);
+       body.position.y=bodyLength*.5;tipTrim.position.y=bodyLength;meshes.push(body,mouthTrim,tipTrim);
+       for(let i=1;i<=profile.bands;i++){const band=new THREE.Mesh(new THREE.BoxGeometry(width*1.12,Math.max(width*.08,.016),depth*1.12),trimMaterial.clone());band.position.y=bodyLength*(i/(profile.bands+1));group.add(band);meshes.push(band);}
+       for(const mesh of meshes){mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.assetSource='procedural:scabbard:'+weaponId;}group.add(body,mouthTrim,tipTrim);
+     }
+     parent.add(group);a.scabbard={weaponId,parent,group,meshes,bodyLength,width,depth,profile,visible:Boolean(profile.showScabbard)};
    }
    parent.updateWorldMatrix(true,true);const localMouth=parent.worldToLocal(mouthWorld.clone()),worldQuat=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),directionWorld),parentQuat=parent.getWorldQuaternion(new THREE.Quaternion());
    a.scabbard.group.position.copy(localMouth);a.scabbard.group.quaternion.copy(parentQuat.invert().multiply(worldQuat));a.scabbard.group.updateWorldMatrix(true,true);return a.scabbard;
