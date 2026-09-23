@@ -206,7 +206,7 @@ async function boot(){
   // Install gesture listeners before enabling Start, and keep the unlocked
   // AudioContext across mode switches instead of recreating it after the tap.
   sound??=createNocturneSound();
-  runtime=createJohakyuP7Controller({world,effects,stage,sound,notify:report,signal:controller.signal,cameraPresentation,movementInput,onMeta:updateSequence,evidence:new URL(location.href).searchParams.has('evidence'),fixture:new URL(location.href).searchParams.get('exchangeFixture'),mode:battleMode,loadout:loadoutUI.value,settings:battleSettings,learnedTechniqueIds:loadoutUI.learnedTechniqueIds});
+  runtime=createJohakyuP7Controller({world,effects,stage,sound,notify:report,signal:controller.signal,cameraPresentation,movementInput,onMeta:updateSequence,shouldPause:()=>deathCinematic.blocking,evidence:new URL(location.href).searchParams.has('evidence'),fixture:new URL(location.href).searchParams.get('exchangeFixture'),mode:battleMode,loadout:loadoutUI.value,settings:battleSettings,learnedTechniqueIds:loadoutUI.learnedTechniqueIds});
   await runtime.prepare();if(disposed||own!==sequence)return;
   prepared=true;if(started){runtime.start();report('BATTLE');}else report('READY');
  }catch(error){if(!disposed&&own===sequence){controller.abort(error);failed(error);}}
