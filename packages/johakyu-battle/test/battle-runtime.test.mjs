@@ -61,6 +61,14 @@ test('simultaneous authored contact clashes once and cancels both pending attack
  const runtime=createJohakyuBattleRuntime({battleId:'clash',actors:[a,b]}),events=[];runtime.actor('a').cursor.phaseIndex=1;runtime.actor('b').cursor.phaseIndex=1;for(let i=0;i<300;i++)events.push(...runtime.step(1/60).events);
  const clash=events.find(e=>e.type==='clash');assert.ok(clash);assert.equal(clash.damage,0);assert.ok(clash.sourceKick>0);assert.ok(clash.impulse>0);assert.ok(events.some(e=>e.type==='interrupted'&&e.reason==='weapon-clash'&&e.attackId===clash.attackId));assert.equal(events.filter(e=>e.impact&&[clash.attackId,clash.otherAttackId].includes(e.attackId)).length,1);
 });
+test('a downed target gets a deliberate pause, then a complete two-second finisher before recovery',()=>{
+ const a={...actor('a','party'),self:true,readyDelay:0,finisherProfile:{id:'kaishaku',durationScale:1}},b={...actor('b','enemy'),hp:0,downed:true,incapacitated:true};
+ const runtime=createJohakyuBattleRuntime({battleId:'finisher-pace',actors:[a,b]}),events=[];
+ for(let i=0;i<60*4;i++)events.push(...runtime.step(1/60).events);
+ const start=events.find(e=>e.type==='finisher-start'),contact=events.find(e=>e.type==='finisher'),complete=events.find(e=>e.type==='finisher-complete');
+ assert.ok(start);assert.ok(start.time>=.4);assert.ok(contact.time>start.time);assert.ok(complete.time>contact.time);
+ assert.ok(Math.abs(complete.time-start.time-2)<.08);assert.equal(events.filter(e=>e.type==='finisher').length,1);
+});
 test('rendered contact observations cannot alter the authoritative contact or outcome',()=>{
  const make=()=>createJohakyuBattleRuntime({battleId:'observation',actors:[actor('a','party'),actor('b','enemy')]});const a=make(),b=make();
  for(let i=0;i<360;i++){a.step(1/60);b.step(1/60,[{attackId:b.actor('a').action?.id,targetId:'b',point:{x:0,y:10,z:1.7}}]);assert.deepEqual(a.snapshot(),b.snapshot());}
