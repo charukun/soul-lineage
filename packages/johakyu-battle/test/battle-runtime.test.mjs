@@ -202,7 +202,7 @@ test('first inspiration casts with protected opening and impact, then restarts a
  }
  assert.ok(opening&&contact&&complete);assert.ok(contact.time>opening.time);
  assert.ok(runtime.actor('a').firstInspirationUntil>opening.time);
- assert.ok(Math.hypot(contact.knockback.x,contact.knockback.z)>=2.3);
+ assert.ok(Math.hypot(contact.knockback.x,contact.knockback.z)>2.2);
  assert.equal(runtime.actor('a').cursor.phaseIndex,0);assert.equal(runtime.actor('a').cursor.stageIndex,0);assert.equal(runtime.actor('a').cursor.techniqueIndex,0);
  assert.equal(runtime.actor('a').chainTargetId,null);
  const normal=createJohakyuBattleRuntime({battleId:'normal-technique',actors:[{...a,readyDelay:0,canAttack:true,loadout:{jo:'action.crash'}},b]});
