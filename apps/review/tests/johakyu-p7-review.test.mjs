@@ -18,7 +18,7 @@ test('every supported menu selection resolves the complete shared technique for 
  assert.equal(battle2TechniqueCatalog({weapon:'great'})[0].id,'basic.great');
 });
 test('real exchanges visit all phases, retain identity through contact/presentation and do not deadlock without geometry samples',()=>{
- const {events,frames}=run({actorOverrides:{hero:{hp:800,maxHp:800},'enemy-a':{hp:10000,maxHp:10000}}});const starts=events.filter(e=>e.type==='stage-start'&&e.sourceId==='hero'),phases=new Set(starts.map(e=>e.phase));for(const p of ['jo','ha','kyu'])assert.ok(phases.has(p),p);
+ const {events,frames}=run({actorOverrides:{hero:{hp:800,maxHp:800},'enemy-a':{hp:10000,maxHp:10000}}});const starts=events.filter(e=>e.type==='stage-start'&&e.sourceId==='hero'),phases=new Set(starts.map(e=>e.phase));for(const p of ['jo','ha','kyu'])assert.ok(phases.has(p),JSON.stringify({phase:p,starts:starts.map(e=>[e.phase,e.stageIndex,e.time]),last:frames.at(-1)}));
  const impacts=events.filter(e=>e.impact),seen=new Set();assert.ok(impacts.some(e=>e.type==='player-hit'));
  for(const event of impacts){assert.ok(!seen.has(event.id));seen.add(event.id);assert.ok(event.contactDistance<=event.contactReach);assert.equal(event.stageIndex,event.impact.stageIndex);assert.equal(event.techniqueId,event.impact.techniqueId);const p=presentBattleEvents([event])[0].presentation;assert.equal(p.techniqueId,event.techniqueId);assert.equal(p.stageIndex,event.stageIndex);}
  for(const frame of frames){const shown=presentBattleFrame(frame);for(const actor of shown.actors)if(actor.action){assert.equal(actor.action.presentation.techniqueId,actor.action.techniqueId);assert.equal(actor.action.presentation.stageIndex,actor.action.stageIndex);}}
@@ -50,7 +50,7 @@ test('an interrupted hero clears the action and sequence lamps across later fram
   assert.equal(result.meta.actionId,null);assert.equal(result.meta.stageIndex,0);assert.equal(result.meta.hudState,'maai');
   const next=scenario.step(1/60);if(!next.frame.actors.find(a=>a.self).action)assert.equal(next.meta.hudState,'maai');resets++;
  }
- assert.ok(resets>2);
+ assert.ok(resets>2,JSON.stringify({resets,meta:scenario.inspect().meta}));
 });
 test('down, finisher, corpse and respawn are encounter lifecycle around shared combat',()=>{
  const {events}=run();for(const type of ['actor-downed','finisher-start','finisher','finisher-complete','enemy-spawn'])assert.ok(events.some(e=>e.type===type),type);
@@ -76,3 +76,4 @@ test('battle2 rescues inspiration into the current phase, first-casts it immedia
  assert.ok(learned);assert.equal(learned.equipped,true);assert.equal(learned.firstCast,true);assert.ok(['jo','ha','kyu'].includes(learned.phase));
  assert.ok(started);assert.equal(started.phase,learned.phase);assert.equal(scenario.loadout.technique[learned.phase],learned.techniqueId);assert.ok(scenario.learnedTechniqueIds.includes(learned.techniqueId));
 });
+

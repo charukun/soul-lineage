@@ -84,7 +84,8 @@ export function createBattleExecution({actors,getTime,getSerial,battleId,emit,ex
     return action;
   }
   function interrupt(actor,reason){
-    const action=cancel(actor);if(!action)return;
+    if(!actor.action){lifecycle.releaseExecution(actor);actor.decision=null;return;}
+    const action=cancel(actor);
     const target=actors.get(action.targetId);if(target)exchange(actor,target,{type:'interrupted',phase:action.phase});
     emit({type:'interrupted',sourceId:actor.id,targetId:action.targetId,reason,...executionIdentity(action)});
   }

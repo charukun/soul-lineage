@@ -22,7 +22,8 @@ test('the last enemy does not clear the life encounter before the finisher compl
  const {state,front}=scenario();front.enemies=front.enemies.slice(0,1);const enemy=front.enemies[0];
  Object.assign(enemy,{x:0,z:1.65,hp:0,downed:true,dead:false});state.combat=beginCombatState(state,enemy.id);
  let started=false,contact=false,completed=false;
- for(let i=0;i<60*4&&!completed;i++){
+ // Allow the authored 1.85s fall, socket approach and full 2s execution.
+ for(let i=0;i<60*6&&!completed;i++){
   const events=tickLifeBattle([state],front,1/60).get(state.id);
   if(events.some(event=>event.type==='finisher-start'))started=true;
   if(events.some(event=>event.type==='finisher')){contact=true;assert.equal(front.cleared,false);assert.ok(state.combat);}
@@ -102,3 +103,4 @@ test('a cleared nonlethal front saves and resumes without converting downed acto
  const {state,front}=scenario();for(const enemy of front.enemies){enemy.downed=true;enemy.dead=false;enemy.hp=0;enemy.injuries=readSavedBody(null);enemy.injuries.torso.severity=.8;}front.cleared=true;
  const restored=deserializeLife(serializeLife(state)),saved=normalizeFront(restored.frontState,front.stage);assert.equal(saved.cleared,true);assert.ok(saved.enemies.every(e=>e.downed&&!e.dead));assert.equal(restored.defeats,state.defeats);
 });
+

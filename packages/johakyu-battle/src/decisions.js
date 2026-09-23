@@ -30,13 +30,14 @@ export function createBattleDecisions({actors,manualMoves,bounds,blocked,getTime
     actor.targetId=target.id;
     // A committed retreat is read from actual enemy displacement, not its intended stance.
     if(actor.pursuit&&target.side==='enemy'&&actor.pursuitTargetId===target.id&&actor.pursuitUntil>=time
-      &&time>=actor.pursuitReadyAt&&time>=actor.readyAt&&actor.canAttack!==false&&actor.stamina>=22
+      &&time>=actor.pursuitReadyAt&&actor.canAttack!==false&&actor.stamina>=22
       &&distance(actor,target)>1.46&&distance(actor,target)<4.5&&!blocked(actor.position,target.position,actor)){
       const d=distance(actor,target),spacing=battleSpacing(actor,target,d);
       if(d>spacing.engagementRange){
         // Pursuit closes the gap as locomotion first. The attack action starts only after the shared engagement boundary is crossed.
         actor.decision={...spacing,intent:'pursuit',footwork:'rush',stopDistance:spacing.engagementRange-.04,targetId:target.id};actor.decisionUntil=time+.12;return;
       }
+      if(time<actor.readyAt)return;
       const kind=actor.equipment.weapon==='fist'?'straight':'dash';
       actor.override={technique:defineTechnique({id:'heart.pursuer',name:'追う者',steps:[{kind,footwork:'rush',charge:'none'}]},{weapon:actor.equipment.weapon}),stageIndex:0};
       if(begin(actor,target)){actor.pursuitSeconds=0;actor.pursuitUntil=0;actor.pursuitReadyAt=time+2.8;emit({type:'pursuit-leap',sourceId:actor.id,targetId:target.id});return;}

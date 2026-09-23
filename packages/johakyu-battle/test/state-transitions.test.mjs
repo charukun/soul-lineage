@@ -42,7 +42,7 @@ test('removing an execution target atomically releases action, socket and moveme
 
 test('equipment change during execution cancels the old reservation on both actors',()=>{
  const runtime=create();until(runtime,()=>runtime.actor('hero').action?.finisher);
- const rows=roster(runtime);rows.find(a=>a.id==='hero').equipment.weapon='dagger';runtime.sync(rows);
+ const rows=roster(runtime);rows.find(a=>a.id==='hero').equipment.weapon='dagger';rows.find(a=>a.id==='hero').loadout={};runtime.sync(rows);
  assert.equal(runtime.actor('hero').action,null);assert.equal(runtime.actor('hero').executionSocket,null);
  assert.equal(runtime.actor('victim').finisherClaimedBy,null);assert.equal(runtime.actor('victim').finisherClaimAttackId,null);
  assert.equal(runtime.actor('victim').executionLifecycle,'SETTLED');
@@ -52,7 +52,7 @@ test('equipment change during execution cancels the old reservation on both acto
 
 test('cancelling after execution contact keeps the dead victim a corpse',()=>{
  const runtime=create();until(runtime,()=>runtime.actor('victim').dead);
- const rows=roster(runtime);rows.find(a=>a.id==='hero').equipment.weapon='dagger';runtime.sync(rows);
+ const rows=roster(runtime);rows.find(a=>a.id==='hero').equipment.weapon='dagger';rows.find(a=>a.id==='hero').loadout={};runtime.sync(rows);
  assert.equal(runtime.actor('victim').dead,true);assert.equal(runtime.actor('victim').executionLifecycle,'CORPSE');
  assert.equal(runtime.actor('victim').finisherClaimedBy,null);
 });
