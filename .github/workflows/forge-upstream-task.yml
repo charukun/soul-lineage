@@ -32,8 +32,8 @@ jobs:
           python3 packages/assets/forge/upstream_engine.py materialize --key animatedCharacter
       - uses: actions/download-artifact@v4
         with:
-          name: forge-specialist-f58c9c85a919aa68491ed039d3ced91ba675b49a
-          run-id: 35817940713
+          name: forge-specialist-00e3bea2c9ad311c281740ead920de979c2b1fe9
+          run-id: 35818713998
           github-token: ${{ github.token }}
           path: .forge-resume
       - name: Execute explicit specialist task when present

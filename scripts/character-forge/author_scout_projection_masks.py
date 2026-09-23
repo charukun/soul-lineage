@@ -6,6 +6,7 @@ do not replace albedo or turn a hidden surface into observed evidence. Other
 characters need their own reviewed masks (e.g. the upstream vision adapter).
 """
 import argparse,json,sys
+from collections import Counter
 from pathlib import Path
 from PIL import Image
 ROOT=Path(__file__).resolve().parents[2]
@@ -29,14 +30,16 @@ def author(w):
     reports=[]
     for view in ('front','side','back'):
         source=w/f'source/{view}.png';image=Image.open(source).convert('RGB');pixels=list(image.getdata())
-        out=w/f'img2threejs/evidence/projection/{view}';maps[view]['componentMasks']={};maps[view]['componentAlbedoBounds']={}
+        out=w/f'img2threejs/evidence/projection/{view}';maps[view]['componentMasks']={};maps[view]['componentAlbedoBounds']={};maps[view]['componentContinuation']={}
         for label,colors in labels.items():
             rgb={tuple(bytes.fromhex(c)) for c in colors};values=[255 if p in rgb else 0 for p in pixels]
             if not any(values):raise ValueError(f'Observed {label} label absent in {view}')
+            observed=Counter(p for p in pixels if p in rgb);dominant=observed.most_common(1)[0][0]
             path=out/f'ownership-{label}.png';mask=Image.new('L',image.size);mask.putdata(values);mask.save(path)
             for component in components[label]:
                 maps[view]['componentMasks'][component]=str(path.relative_to(w))
                 maps[view]['componentAlbedoBounds'][component]={'min':[min(p[i] for p in rgb) for i in range(3)],'max':[max(p[i] for p in rgb) for i in range(3)]}
+                maps[view]['componentContinuation'][component]={'rgb':list(dominant),'status':'inferred continuation of this view\'s observed dominant surface color; not observed hidden pixels'}
             reports.append({'view':view,'label':label,'components':components[label],'sourceSha256':sha256(source),'maskSha256':sha256(path),'sourceColors':colors,'observedPixels':sum(v>0 for v in values)})
     write_json(maps_path,maps)
     spec_path=w/'object-sculpt-spec.json';spec=json.loads(spec_path.read_text())

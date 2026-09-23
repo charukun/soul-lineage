@@ -46,7 +46,7 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
     varying vec3 worldPoint;varying vec3 worldNormal;varying vec3 worldTangent;varying float tangentSign;
     uniform sampler2D frontImage,sideImage,backImage,frontDepth,sideDepth,backDepth,frontMask,sideMask,backMask;
     uniform mat4 frontMatrix,sideMatrix,backMatrix;uniform vec4 frontCrop,sideCrop,backCrop;
-    uniform vec3 fallbackColor;uniform int channelIndex;uniform bool partOwnership;
+    uniform vec3 fallbackColor,frontContinuation,sideContinuation,backContinuation;uniform int channelIndex;uniform bool partOwnership;
     float visibleDepth(sampler2D depthTex,vec2 st){
       vec2 texel=vec2(1./540.,1./1080.),origin=(floor(st/texel-.5)+.5)*texel;
       float maximum=0.;
@@ -86,7 +86,12 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
       vec4 s=sampleView(sideImage,sideDepth,sideMask,sideMatrix,sideCrop,mirrored,abs(n.x),vec3(0.,0.,-1.),sideNormal);
       if(channelIndex==2&&p.x<0.)s.x=-s.x;
       vec4 sum=f+b+s;bool covered=sum.a>.0001;
-      vec3 rgb=covered?sum.rgb/sum.a:fallbackColor;
+      vec3 continuation=fallbackColor;
+      if(channelIndex==0){
+        vec3 cw=pow(vec3(max(n.z,0.),abs(n.x),max(-n.z,0.)),vec3(5.));float total=cw.x+cw.y+cw.z;
+        if(total>.0001)continuation=(frontContinuation*cw.x+sideContinuation*cw.y+backContinuation*cw.z)/total;
+      }
+      vec3 rgb=covered?sum.rgb/sum.a:continuation;
       if(channelIndex==2){
         vec3 normal=covered?normalize(rgb):n;
         vec3 t=normalize(worldTangent-n*dot(n,worldTangent)),bitangent=normalize(cross(n,t))*tangentSign;
@@ -117,6 +122,7 @@ export async function bakeReferenceProjection(THREE,renderer,model,cameraFits,ma
     const component=mesh.userData.sculptComponent?.id,owned=views.filter(v=>v.ownership[component]).length;
     if(owned&&owned!==views.length)throw Error('Part ownership must declare each admitted view: '+component);
     const uniforms={fallbackColor:{value:new THREE.Color().setStyle(palette,THREE.SRGBColorSpace).convertLinearToSRGB()},channelIndex:{value:0},partOwnership:{value:owned>0}};
+    for(const v of names){const rgb=mapSources[v].componentContinuation?.[component]?.rgb;uniforms[v+'Continuation']={value:rgb?new THREE.Color().setRGB(...rgb.map(c=>c/255)):uniforms.fallbackColor.value.clone()};}
     for(const v of views){uniforms[v.name+'Image']={value:v.maps.albedo};uniforms[v.name+'Depth']={value:v.target.depthTexture};uniforms[v.name+'Mask']={value:v.ownership[component]||v.maps.mask};uniforms[v.name+'Matrix']={value:v.matrix};uniforms[v.name+'Crop']={value:v.crop};}
     const material=new THREE.ShaderMaterial({vertexShader,fragmentShader,uniforms,side:THREE.DoubleSide,depthTest:false,depthWrite:false,toneMapped:false});
     const scene=new THREE.Scene(),bakeMesh=new THREE.Mesh(geometry,material);bakeMesh.matrixAutoUpdate=false;bakeMesh.matrix.copy(mesh.matrixWorld);
