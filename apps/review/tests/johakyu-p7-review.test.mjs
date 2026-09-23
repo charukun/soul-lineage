@@ -35,9 +35,19 @@ test('the Review Lab clash fixture shows two simultaneous shared attacks stoppin
  assert.equal(clash.techniqueId,'basic.sword');assert.ok([0,1,2].includes(clash.stageIndex));assert.equal(clash.impact.damage,0);assert.ok(events.some(e=>e.type==='interrupted'&&e.reason==='weapon-clash'&&[clash.attackId,clash.otherAttackId].includes(e.attackId)));
  assert.equal(scenario.inspect().frame.authority,'johakyu-battle');
 });
-test('phase preparation and stage motion use the same simulation clock and complete before phase changes',()=>{
- const {events,frames}=run({},35);assert.ok(events.some(e=>e.type==='phase-cue'));assert.ok(frames.some(f=>f.actors.some(a=>a.phaseCue)));
+test('stage motion starts without a separate phase hold and completes before phase changes',()=>{
+ const {events,frames}=run({},35);assert.equal(events.some(e=>e.type==='phase-cue'),false);assert.equal(frames.some(f=>f.actors.some(a=>a.phaseCue)),false);
  for(const e of events.filter(e=>e.type==='phase-change')){const prior=events.slice(0,events.indexOf(e)).filter(x=>x.type==='technique-complete'&&x.sourceId===e.actorId).at(-1);assert.ok(prior);assert.equal(prior.time,e.time);}
+});
+test('an interrupted hero clears the action and sequence lamps across later frames, including after an enemy respawns',()=>{
+ const scenario=createJohakyuP7ReviewScenario({fixture:'clash',duelGap:1.7,heroStartPhase:'ha'});let resets=0;
+ for(let i=0;i<60*80;i++){
+  const result=scenario.step(1/60);if(!result.events.some(e=>e.type==='interrupted'&&e.sourceId==='hero'))continue;
+  const hero=result.frame.actors.find(a=>a.self);assert.equal(hero.action,null);assert.equal(hero.cursor.phaseIndex,0);assert.equal(hero.cursor.stageIndex,0);
+  assert.equal(result.meta.actionId,null);assert.equal(result.meta.stageIndex,0);assert.equal(result.meta.hudState,'maai');
+  const next=scenario.step(1/60);if(!next.frame.actors.find(a=>a.self).action)assert.equal(next.meta.hudState,'maai');resets++;
+ }
+ assert.ok(resets>2);
 });
 test('down, finisher, corpse and respawn are encounter lifecycle around shared combat',()=>{
  const {events}=run();for(const type of ['actor-downed','finisher-start','finisher','finisher-complete','enemy-spawn'])assert.ok(events.some(e=>e.type===type),type);
