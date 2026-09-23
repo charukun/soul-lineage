@@ -600,8 +600,25 @@ function createDrivenPort(){
  }
  function sheathBodyRig(a){
    if(a.sheathBodyRig)return a.sheathBodyRig;
-   let hips=null;a.root.traverse(node=>{if(node.isBone&&!hips&&/hips|pelvis/i.test(String(node.name||'')))hips=node;});
-   return a.sheathBodyRig={hips};
+   let hips=null,chest=null;a.root.traverse(node=>{
+     if(!node.isBone)return;const name=String(node.name||'');
+     if(!hips&&/hips|pelvis/i.test(name))hips=node;
+     if(!chest&&/chest|spine2|spine_?02|upperchest/i.test(name))chest=node;
+   });
+   return a.sheathBodyRig={hips,chest:chest||hips};
+ }
+ function scabbardProfileForWeapon(weaponId){
+   if(weaponId==='dagger')return Object.freeze({placement:'hip',length:.9,widthPad:1.5,depthPad:1.55,minWidth:.052,minDepth:.038,lateral:.072,up:.012,forward:.018,dirBack:.88,dirSide:.24,dirDown:.42,insert:.88,stagingSide:.085,stagingForward:.1,stagingUp:.055,body:0x24201e,trim:0xb18b53,bands:1});
+   if(weaponId==='great')return Object.freeze({placement:'back',length:.965,widthPad:1.38,depthPad:1.45,minWidth:.095,minDepth:.065,lateral:.055,up:.31,forward:-.055,dirBack:.72,dirSide:.5,dirDown:.48,insert:.9,stagingSide:.12,stagingForward:.18,stagingUp:.1,body:0x332822,trim:0x8d784f,bands:3});
+   return Object.freeze({placement:'hip',length:.94,widthPad:1.42,depthPad:1.48,minWidth:.072,minDepth:.048,lateral:.095,up:.018,forward:.006,dirBack:.965,dirSide:.11,dirDown:.2,insert:.93,stagingSide:.11,stagingForward:.13,stagingUp:.07,body:0x2d2926,trim:0xa88652,bands:2});
+ }
+ function scabbardFrame(a,weaponId){
+   a.object.updateMatrixWorld(true);const rig=sheathBodyRig(a),profile=scabbardProfileForWeapon(weaponId),parent=profile.placement==='back'?rig.chest:rig.hips;if(!parent)return null;parent.updateWorldMatrix(true,true);
+   const actorWorld=a.object.getWorldQuaternion(new THREE.Quaternion()),leftWorld=new THREE.Vector3(1,0,0).applyQuaternion(actorWorld),forwardWorld=new THREE.Vector3(0,0,1).applyQuaternion(actorWorld);
+   leftWorld.y=0;forwardWorld.y=0;if(leftWorld.lengthSq()<.0001||forwardWorld.lengthSq()<.0001)return null;leftWorld.normalize();forwardWorld.normalize();
+   const anchor=parent.getWorldPosition(new THREE.Vector3()),mouthWorld=anchor.clone().addScaledVector(leftWorld,a.height*profile.lateral).add(new THREE.Vector3(0,a.height*profile.up,0)).addScaledVector(forwardWorld,a.height*profile.forward);
+   const directionWorld=forwardWorld.clone().multiplyScalar(-profile.dirBack).addScaledVector(leftWorld,profile.dirSide).add(new THREE.Vector3(0,-profile.dirDown,0)).normalize();
+   return{parent,mouthWorld,directionWorld,leftWorld,forwardWorld,profile};
  }
  function bladeAxisForSheath(a,weapon){
    a.object.updateMatrixWorld(true);weapon.updateWorldMatrix(true,true);
@@ -612,19 +629,10 @@ function createDrivenPort(){
      for(const x of [bounds.min.x,bounds.max.x])for(const y of [bounds.min.y,bounds.max.y])for(const z of [bounds.min.z,bounds.max.z]){point.set(x,y,z).applyMatrix4(node.matrixWorld).applyMatrix4(inverse);box.expandByPoint(point);}
    });
    if(!found||box.isEmpty())return null;
-   const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3()),axis=size.x>=size.y&&size.x>=size.z?'x':size.y>=size.z?'y':'z';
+   const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3()),axis=size.x>=size.y&&size.x>=size.z?'x':size.y>=size.z?'y':'z',cross=axis==='x'?[size.y,size.z]:axis==='y'?[size.x,size.z]:[size.x,size.y],worldScale=weapon.getWorldScale(new THREE.Vector3()),averageScale=(Math.abs(worldScale.x)+Math.abs(worldScale.y)+Math.abs(worldScale.z))/3;
    const start=center.clone(),end=center.clone();start[axis]=box.min[axis];end[axis]=box.max[axis];start.applyMatrix4(weapon.matrixWorld);end.applyMatrix4(weapon.matrixWorld);
    const hand=armRig(a,'r')?.socket?.getWorldPosition(new THREE.Vector3())||weapon.parent?.getWorldPosition(new THREE.Vector3())||a.pos,startIsHilt=start.distanceToSquared(hand)<=end.distanceToSquared(hand);
-   const hilt=(startIsHilt?start:end).clone(),tip=(startIsHilt?end:start).clone();return{hilt,tip,length:hilt.distanceTo(tip),direction:tip.clone().sub(hilt).normalize()};
- }
- function leftHipSheathFrame(a){
-   a.object.updateMatrixWorld(true);const hips=sheathBodyRig(a).hips;if(!hips)return null;hips.updateWorldMatrix(true,true);
-   // Accepted humanoid rigs share the rendered left-hip direction on actor-local +X.
-   const actorWorld=a.object.getWorldQuaternion(new THREE.Quaternion()),leftWorld=new THREE.Vector3(1,0,0).applyQuaternion(actorWorld),forwardWorld=new THREE.Vector3(0,0,1).applyQuaternion(actorWorld);
-   leftWorld.y=0;forwardWorld.y=0;if(leftWorld.lengthSq()<.0001||forwardWorld.lengthSq()<.0001)return null;leftWorld.normalize();forwardWorld.normalize();
-   const hipWorld=hips.getWorldPosition(new THREE.Vector3()),mouthWorld=hipWorld.clone().addScaledVector(leftWorld,a.height*.095).add(new THREE.Vector3(0,a.height*.018,0)).addScaledVector(forwardWorld,a.height*.006);
-   const directionWorld=forwardWorld.clone().multiplyScalar(-.965).addScaledVector(leftWorld,.11).add(new THREE.Vector3(0,-.2,0)).normalize();
-   return{hips,mouthWorld,directionWorld,leftWorld,forwardWorld};
+   const hilt=(startIsHilt?start:end).clone(),tip=(startIsHilt?end:start).clone();return{hilt,tip,length:hilt.distanceTo(tip),direction:tip.clone().sub(hilt).normalize(),bladeWidth:Math.max(...cross)*averageScale,bladeDepth:Math.min(...cross)*averageScale};
  }
  function applyWorldBoneDelta(a,bone,delta,weight=1){
    if(!bone?.parent)return;const applied=new THREE.Quaternion().identity().slerp(delta,clamp(weight,0,1)),parentWorld=bone.parent.getWorldQuaternion(new THREE.Quaternion()),boneWorld=bone.getWorldQuaternion(new THREE.Quaternion()),nextWorld=applied.multiply(boneWorld);
@@ -637,23 +645,25 @@ function createDrivenPort(){
      from.normalize();to.normalize();const full=new THREE.Quaternion().setFromUnitVectors(from,to),angle=2*Math.acos(clamp(full.w,-1,1)),limit=.34*weight,delta=angle>limit&&angle>1e-5?new THREE.Quaternion().identity().slerp(full,limit/angle):full;applyWorldBoneDelta(a,bone,delta,.86);
    }
  }
- function ensureScabbard(a,weaponId,frame,length){
-   const {hips,mouthWorld,directionWorld}=frame;if(!hips)return null;
-   if(a.scabbard?.weaponId!==weaponId||a.scabbard?.parent!==hips){
-     disposeScabbard(a);const worldScale=hips.getWorldScale(new THREE.Vector3()),scale=Math.max(.001,(worldScale.x+worldScale.y+worldScale.z)/3),bodyLength=Math.max(length/scale*.94,.72),width=Math.max(.075,Math.min(bodyLength*.085,.14)),depth=width*.72;
-     const bodyMaterial=new THREE.MeshStandardMaterial({color:0x2d2926,roughness:.8,metalness:.12}),trimMaterial=new THREE.MeshStandardMaterial({color:0xa88652,roughness:.5,metalness:.42});
-     const group=new THREE.Group(),body=new THREE.Mesh(new THREE.BoxGeometry(width,bodyLength,depth),bodyMaterial),mouthTrim=new THREE.Mesh(new THREE.BoxGeometry(width*1.36,width*.22,depth*1.32),trimMaterial),tipTrim=new THREE.Mesh(new THREE.BoxGeometry(width*1.08,width*.16,depth*1.08),trimMaterial);
-     body.position.y=bodyLength*.5;tipTrim.position.y=bodyLength;for(const mesh of [body,mouthTrim,tipTrim]){mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.assetSource='procedural:scabbard';}
-     group.add(body,mouthTrim,tipTrim);hips.add(group);a.scabbard={weaponId,parent:hips,group,meshes:[body,mouthTrim,tipTrim]};
+ function ensureScabbard(a,weaponId,frame,held){
+   const {parent,mouthWorld,directionWorld,profile}=frame;if(!parent||!held)return null;
+   if(a.scabbard?.weaponId!==weaponId||a.scabbard?.parent!==parent){
+     disposeScabbard(a);const worldScale=parent.getWorldScale(new THREE.Vector3()),scale=Math.max(.001,(Math.abs(worldScale.x)+Math.abs(worldScale.y)+Math.abs(worldScale.z))/3),bodyLength=Math.max(held.length/scale*profile.length,.42),width=Math.max(profile.minWidth,held.bladeWidth/scale*profile.widthPad),depth=Math.max(profile.minDepth,held.bladeDepth/scale*profile.depthPad);
+     const bodyMaterial=new THREE.MeshStandardMaterial({color:profile.body,roughness:.78,metalness:.1}),trimMaterial=new THREE.MeshStandardMaterial({color:profile.trim,roughness:.48,metalness:.48});
+     const group=new THREE.Group(),body=new THREE.Mesh(new THREE.BoxGeometry(width,bodyLength,depth),bodyMaterial),mouthTrim=new THREE.Mesh(new THREE.BoxGeometry(width*1.28,Math.max(width*.18,.026),depth*1.26),trimMaterial),tipTrim=new THREE.Mesh(new THREE.BoxGeometry(width*1.08,Math.max(width*.13,.02),depth*1.08),trimMaterial),meshes=[body,mouthTrim,tipTrim];
+     body.position.y=bodyLength*.5;tipTrim.position.y=bodyLength;
+     for(let i=1;i<=profile.bands;i++){const band=new THREE.Mesh(new THREE.BoxGeometry(width*1.12,Math.max(width*.08,.016),depth*1.12),trimMaterial.clone());band.position.y=bodyLength*(i/(profile.bands+1));group.add(band);meshes.push(band);}
+     for(const mesh of meshes){mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.assetSource='procedural:scabbard:'+weaponId;}
+     group.add(body,mouthTrim,tipTrim);parent.add(group);a.scabbard={weaponId,parent,group,meshes,bodyLength,width,depth,profile};
    }
-   hips.updateWorldMatrix(true,true);const localMouth=hips.worldToLocal(mouthWorld.clone()),worldQuat=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),directionWorld),parentQuat=hips.getWorldQuaternion(new THREE.Quaternion());
+   parent.updateWorldMatrix(true,true);const localMouth=parent.worldToLocal(mouthWorld.clone()),worldQuat=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),directionWorld),parentQuat=parent.getWorldQuaternion(new THREE.Quaternion());
    a.scabbard.group.position.copy(localMouth);a.scabbard.group.quaternion.copy(parentQuat.invert().multiply(worldQuat));a.scabbard.group.updateWorldMatrix(true,true);return a.scabbard;
  }
  function beginWeaponStow(a,weapon){
    if(a.weaponStow?.weapon===weapon)return a.weaponStow;
    if(a.weaponStow)restoreStowedWeapon(a);
    a.object.updateMatrixWorld(true);weapon.updateWorldMatrix(true,true);const axis=bladeAxisForSheath(a,weapon);if(!axis||!weapon.parent)return null;
-   const inverse=weapon.matrixWorld.clone().invert(),held={weapon,home:{parent:weapon.parent,position:weapon.position.clone(),quaternion:weapon.quaternion.clone(),scale:weapon.scale.clone()},hiltLocal:axis.hilt.clone().applyMatrix4(inverse),tipLocal:axis.tip.clone().applyMatrix4(inverse),referenceWorldQuaternion:weapon.getWorldQuaternion(new THREE.Quaternion()),referenceDirectionWorld:axis.direction.clone(),worldScale:weapon.getWorldScale(new THREE.Vector3()),length:axis.length,startHilt:axis.hilt.clone(),startQuaternion:weapon.getWorldQuaternion(new THREE.Quaternion())};
+   const inverse=weapon.matrixWorld.clone().invert(),held={weapon,home:{parent:weapon.parent,position:weapon.position.clone(),quaternion:weapon.quaternion.clone(),scale:weapon.scale.clone()},hiltLocal:axis.hilt.clone().applyMatrix4(inverse),tipLocal:axis.tip.clone().applyMatrix4(inverse),referenceWorldQuaternion:weapon.getWorldQuaternion(new THREE.Quaternion()),referenceDirectionWorld:axis.direction.clone(),worldScale:weapon.getWorldScale(new THREE.Vector3()),length:axis.length,bladeWidth:Math.max(.025,axis.bladeWidth||.06),bladeDepth:Math.max(.018,axis.bladeDepth||.04),startHilt:axis.hilt.clone(),startQuaternion:weapon.getWorldQuaternion(new THREE.Quaternion())};
    a.root.attach(weapon);a.root.updateMatrixWorld(true);a.weaponStow=held;return held;
  }
  function alignedWeaponQuaternion(held,directionWorld){
@@ -670,16 +680,16 @@ function createDrivenPort(){
    const hilt=held.hiltLocal.clone().applyMatrix4(world),tip=held.tipLocal.clone().applyMatrix4(world);return{position,quaternion,scale,hilt,direction:tip.sub(hilt.clone()).normalize()};
  }
  function lockWeaponInScabbard(a,weaponId,frame=null){
-   const held=a.weaponStow;if(!held)return false;const resolved=frame||leftHipSheathFrame(a);if(!resolved)return false;const scabbard=ensureScabbard(a,weaponId,resolved,held.length);if(!scabbard)return false;
+   const held=a.weaponStow;if(!held)return false;const resolved=frame||scabbardFrame(a,weaponId);if(!resolved)return false;const scabbard=ensureScabbard(a,weaponId,resolved,held);if(!scabbard)return false;
    if(held.weapon.parent!==a.root)a.root.attach(held.weapon);const quaternion=alignedWeaponQuaternion(held,resolved.directionWorld),pose=weaponWorldPoseAtHilt(held,resolved.mouthWorld,quaternion);setWeaponWorldPose(held.weapon,pose);
    scabbard.group.attach(held.weapon);held.weapon.updateWorldMatrix(true,true);a.sheathed=true;a.sheathMotion=null;a.drawMotion=null;return true;
  }
  function moveBladeToSheath(a,progress,key){
    if(a.sheathed&&a.weaponStow)return;const weaponId=a.canonicalRow?.equipment?.weapon,name=weaponMesh[weaponId];if(!name||!['sword','dagger','great'].includes(weaponId))return;
-   const weapon=a.root.getObjectByName(name),right=armRig(a,'r'),frame=leftHipSheathFrame(a);if(!weapon?.visible||!right?.socket||!frame)return;
-   const held=beginWeaponStow(a,weapon);if(!held)return;ensureScabbard(a,weaponId,frame,held.length);const {mouthWorld,directionWorld,leftWorld,forwardWorld}=frame,smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
+   const weapon=a.root.getObjectByName(name),right=armRig(a,'r'),frame=scabbardFrame(a,weaponId);if(!weapon?.visible||!right?.socket||!frame)return;
+   const held=beginWeaponStow(a,weapon);if(!held)return;ensureScabbard(a,weaponId,frame,held);const {mouthWorld,directionWorld,leftWorld,forwardWorld}=frame,smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
    if(a.sheathMotion?.key!==key)a.sheathMotion={key,startHilt:bladeAxisForSheath(a,weapon)?.hilt.clone()||held.startHilt.clone(),startQuaternion:weapon.getWorldQuaternion(new THREE.Quaternion())};
-   const motion=a.sheathMotion,aligned=alignedWeaponQuaternion(held,directionWorld),entry=mouthWorld.clone().addScaledVector(directionWorld,-held.length*.93),staging=entry.clone().addScaledVector(leftWorld,a.height*.11).addScaledVector(forwardWorld,a.height*.13).add(new THREE.Vector3(0,a.height*.07,0));
+   const profile=frame.profile,motion=a.sheathMotion,aligned=alignedWeaponQuaternion(held,directionWorld),entry=mouthWorld.clone().addScaledVector(directionWorld,-held.length*profile.insert),staging=entry.clone().addScaledVector(leftWorld,a.height*profile.stagingSide).addScaledVector(forwardWorld,a.height*profile.stagingForward).add(new THREE.Vector3(0,a.height*profile.stagingUp,0));
    let hilt,quaternion;if(progress<.34){const t=smooth(progress/.34);hilt=motion.startHilt.clone().lerp(staging,t);quaternion=motion.startQuaternion.clone().slerp(aligned,.55*t);}
    else if(progress<.58){const t=smooth((progress-.34)/.24);hilt=staging.clone().lerp(entry,t);quaternion=motion.startQuaternion.clone().slerp(aligned,.55+.45*t);}
    else{const t=smooth((progress-.58)/.42);hilt=entry.clone().lerp(mouthWorld,t);quaternion=aligned;}
@@ -688,17 +698,17 @@ function createDrivenPort(){
    if(progress>=.985)lockWeaponInScabbard(a,weaponId,frame);
  }
  function moveBladeFromSheath(a,row,dt){
-   if(!a.sheathed&&!a.drawMotion)return;const weaponId=row.equipment?.weapon,name=weaponMesh[weaponId],weapon=name?a.root.getObjectByName(name):null,right=armRig(a,'r'),frame=leftHipSheathFrame(a);
+   if(!a.sheathed&&!a.drawMotion)return;const weaponId=row.equipment?.weapon,name=weaponMesh[weaponId],weapon=name?a.root.getObjectByName(name):null,right=armRig(a,'r'),frame=scabbardFrame(a,weaponId);
    if(!weapon?.visible||!right?.socket||!frame){a.sheathed=false;a.drawMotion=null;return;}
    let held=a.weaponStow;if(!held){held=beginWeaponStow(a,weapon);if(!held)return;lockWeaponInScabbard(a,weaponId,frame);}
-   ensureScabbard(a,weaponId,frame,held.length);const combatReady=Boolean(row.combatReady);
+   ensureScabbard(a,weaponId,frame,held);const combatReady=Boolean(row.combatReady);
    if(!a.drawMotion){
      if(!combatReady){if(weapon.parent!==a.scabbard?.group)lockWeaponInScabbard(a,weaponId,frame);return;}
      if(weapon.parent!==a.root)a.root.attach(weapon);weapon.updateWorldMatrix(true,true);const axis=bladeAxisForSheath(a,weapon);a.drawMotion={key:row.action?.id||('ready:'+String(row.id||a.canonicalId||'')),elapsed:0,duration:.5,startHilt:axis?.hilt.clone()||frame.mouthWorld.clone()};a.sheathed=false;
    }
    const motion=a.drawMotion,smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};motion.elapsed+=Math.max(0,dt);let progress=clamp(motion.elapsed/motion.duration,0,1);
    if(row.action){const contact=Math.max(.18,Number(row.action.motion?.contactProgress)||.5),forced=clamp((Number(row.action.progress)||0)/(contact*.64),0,1);progress=Math.max(progress,forced);}
-   const {mouthWorld,directionWorld,leftWorld,forwardWorld}=frame,aligned=alignedWeaponQuaternion(held,directionWorld),home=homeWeaponWorldPose(held),entry=mouthWorld.clone().addScaledVector(directionWorld,-held.length*.93),clearance=entry.clone().addScaledVector(leftWorld,a.height*.12).addScaledVector(forwardWorld,a.height*.13).add(new THREE.Vector3(0,a.height*.07,0));
+   const {mouthWorld,directionWorld,leftWorld,forwardWorld,profile}=frame,aligned=alignedWeaponQuaternion(held,directionWorld),home=homeWeaponWorldPose(held),entry=mouthWorld.clone().addScaledVector(directionWorld,-held.length*profile.insert),clearance=entry.clone().addScaledVector(leftWorld,a.height*profile.stagingSide).addScaledVector(forwardWorld,a.height*profile.stagingForward).add(new THREE.Vector3(0,a.height*profile.stagingUp,0));
    let hilt,quaternion;if(progress<.5){const t=smooth(progress/.5);hilt=mouthWorld.clone().lerp(entry,t);quaternion=aligned;}
    else if(progress<.78){const t=smooth((progress-.5)/.28);hilt=entry.clone().lerp(clearance,t);quaternion=aligned.clone().slerp(home.quaternion,.36*t);}
    else{const t=smooth((progress-.78)/.22);hilt=clearance.clone().lerp(home.hilt,t);quaternion=aligned.clone().slerp(home.quaternion,.36+.64*t);}
