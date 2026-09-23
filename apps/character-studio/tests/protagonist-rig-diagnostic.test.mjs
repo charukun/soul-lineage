@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {KAYKIT_HUMANOID_BONES,KAYKIT_HUMANOID_EDGES} from '@soul/rendering/kaykit-rig';
 
 const files={
   male:'apps/character-studio/public/simulator/assets/PROTAGONIST_VILLAGER_V1.glb',
@@ -15,54 +16,43 @@ function glb(path){
   const jsonLength=body.readUInt32LE(12);
   return JSON.parse(body.subarray(20,20+jsonLength).toString('utf8').trimEnd());
 }
-function parents(doc){
-  const out=new Map();
-  doc.nodes.forEach((node,index)=>(node.children||[]).forEach(child=>out.set(child,index)));
-  return out;
-}
-function nodeName(doc,index){return doc.nodes[index]?.name||('#'+index)}
-function skinSummary(doc){
-  assert.ok(doc.skins?.length,'skin required');
-  const skin=doc.skins[0], jointSet=new Set(skin.joints), parent=parents(doc);
-  const rows=skin.joints.map(index=>{
-    const p=parent.get(index);
-    return {
-      index,
-      name:nodeName(doc,index),
-      parent:p===undefined?null:nodeName(doc,p),
-      parentIsJoint:p!==undefined&&jointSet.has(p),
-      children:(doc.nodes[index]?.children||[]).filter(child=>jointSet.has(child)).map(child=>nodeName(doc,child))
-    };
-  });
+function topology(doc){
+  assert.equal(doc.skins?.length,1,'one skin expected');
+  const skin=doc.skins[0], jointSet=new Set(skin.joints), parent=new Map();
+  doc.nodes.forEach((node,index)=>(node.children||[]).forEach(child=>parent.set(child,index)));
+  const name=index=>doc.nodes[index]?.name||('#'+index);
   return {
     joints:skin.joints.length,
-    roots:rows.filter(row=>!row.parentIsJoint).map(row=>row.name),
-    names:rows.map(row=>row.name),
-    edges:rows.filter(row=>row.parentIsJoint).map(row=>[row.parent,row.name]),
-    rows
+    names:skin.joints.map(name),
+    edges:skin.joints.flatMap(index=>{
+      const p=parent.get(index);
+      return p!==undefined&&jointSet.has(p)?[[name(p),name(index)]]:[];
+    })
   };
-}
-function diffs(a,b){
-  const key=rows=>new Map(rows.map(row=>[row.name,row]));
-  const A=key(a.rows),B=key(b.rows),names=[...new Set([...A.keys(),...B.keys()])].sort();
-  return names.flatMap(name=>{
-    const x=A.get(name),y=B.get(name);
-    if(!x||!y)return[{name,only:x?'left':'right'}];
-    if(x.parent!==y.parent||JSON.stringify(x.children)!==JSON.stringify(y.children))return[{name,left:{parent:x.parent,children:x.children},right:{parent:y.parent,children:y.children}}];
-    return[];
-  });
 }
 
-test('diagnose protagonist Rig_Medium hierarchy against pinned KayKit sources',()=>{
-  const docs=Object.fromEntries(Object.entries(files).map(([key,path])=>[key,glb(path)]));
-  const summaries=Object.fromEntries(Object.entries(docs).map(([key,doc])=>[key,skinSummary(doc)]));
-  const report={
-    maleVsKnight:diffs(summaries.male,summaries.knight),
-    femaleVsRogue:diffs(summaries.female,summaries.rogue),
-    summaries:Object.fromEntries(Object.entries(summaries).map(([key,row])=>[key,{joints:row.joints,roots:row.roots,names:row.names,edges:row.edges}]))
-  };
-  console.log('PROTAGONIST_RIG_DIAGNOSTIC '+JSON.stringify(report));
-  assert.equal(summaries.female.joints,summaries.rogue.joints);
-  assert.equal(report.femaleVsRogue.length,0);
-  assert.ok(summaries.male.joints>=15);
+const docs=Object.fromEntries(Object.entries(files).map(([key,path])=>[key,glb(path)]));
+const rigs=Object.fromEntries(Object.entries(docs).map(([key,doc])=>[key,topology(doc)]));
+
+test('male protagonist keeps the pinned Knight Rig_Medium skin topology',()=>{
+  assert.equal(rigs.male.joints,41);
+  assert.deepEqual(rigs.male.names,rigs.knight.names);
+  assert.deepEqual(rigs.male.edges,rigs.knight.edges);
+});
+
+test('female protagonist keeps the pinned Rogue Rig_Medium skin topology',()=>{
+  assert.equal(rigs.female.joints,41);
+  assert.deepEqual(rigs.female.names,rigs.rogue.names);
+  assert.deepEqual(rigs.female.edges,rigs.rogue.edges);
+});
+
+test('legacy 1.0 Rig_Medium contains IK/control joints that must not pollute the humanoid review overlay',()=>{
+  const helpers=rigs.knight.names.filter(name=>/IK|control-|handslot|wrist|toes/i.test(name));
+  assert.ok(helpers.length>=10,'legacy source should expose its authored helper/control joints');
+  assert.equal(KAYKIT_HUMANOID_BONES.length,15);
+  assert.equal(KAYKIT_HUMANOID_EDGES.length,14);
+  for(const key of KAYKIT_HUMANOID_EDGES.flat()){
+    assert.ok(KAYKIT_HUMANOID_BONES.includes(key),key);
+    assert.doesNotMatch(key,/ik|control|wrist|handslot|toe/i);
+  }
 });
