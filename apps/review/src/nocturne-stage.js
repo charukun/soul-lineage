@@ -19,7 +19,7 @@ import '@soul/shared-ui/rinne-field-radar.css';
 import './battle2-field-hud.css';
 
 const SETTINGS_KEY='battle2.settings.v1';
-function normalizeBattleSettings(value={}){return{techniqueMode:value?.techniqueMode==='random'?'random':'set',inspirationRate:value?.inspirationRate==='high'?'high':'normal'};}
+function normalizeBattleSettings(value={}){return{techniqueMode:value?.techniqueMode==='random'?'random':'set',inspirationRate:value?.inspirationRate==='high'?'high':'normal',hudHidden:Boolean(value?.hudHidden)};}
 function readBattleSettings(){try{return normalizeBattleSettings(JSON.parse(globalThis.localStorage?.getItem(SETTINGS_KEY)||'{}'));}catch{return normalizeBattleSettings();}}
 function writeBattleSettings(value){try{globalThis.localStorage?.setItem(SETTINGS_KEY,JSON.stringify(normalizeBattleSettings(value)));}catch{}}
 
@@ -39,15 +39,16 @@ stage.insertAdjacentHTML('beforeend',rinneFieldRadarMarkup({interactive:false}))
 const battleRadar=stage.querySelector('[data-field-radar]');
 const cameraPresentation=createBattle2CameraPresentation({stage,world});
 const movementInput=createBattle2MovementInput({canvas:world,camera:()=>cameraPresentation.snapshot()});
-const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]','[data-battle-technique-mode-control]','[data-battle-weapon-control]','[data-battle-inspiration-rate-control]','[data-battle-inspiration-reset-control]'],label:'戦闘設定'});
+const stageControls=mountReviewStageControls({stage,groups:['[data-battle-mode-control]','[data-battle-technique-mode-control]','[data-battle-weapon-control]','[data-battle-inspiration-rate-control]','[data-battle-hud-control]','[data-battle-record-control]','[data-battle-inspiration-reset-control]'],label:'戦闘設定'});
 const weaponOptions=document.querySelector('[data-battle-weapon-options]');
 for(const row of BATTLE2_WEAPONS){const button=document.createElement('button');button.type='button';button.dataset.battleWeapon=row.id;button.textContent=row.label;button.setAttribute('aria-pressed','false');weaponOptions?.append(button);}
-const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],techniqueLanes=new Map([...document.querySelectorAll('[data-technique-phase]')].map(node=>[node.dataset.techniquePhase,node])),modeButtons=[...document.querySelectorAll('[data-battle-mode]')],techniqueModeButtons=[...document.querySelectorAll('[data-battle-technique-mode]')],weaponButtons=[...document.querySelectorAll('[data-battle-weapon]')],inspirationRateButtons=[...document.querySelectorAll('[data-battle-inspiration-rate]')];
-const resetInspirationButton=document.querySelector('[data-battle-reset-inspiration]');
+const phaseNodes=[...document.querySelectorAll('[data-combat-phase]')],phaseLinks=[...document.querySelectorAll('[data-combat-link]')],techniqueLanes=new Map([...document.querySelectorAll('[data-technique-phase]')].map(node=>[node.dataset.techniquePhase,node])),modeButtons=[...document.querySelectorAll('[data-battle-mode]')],techniqueModeButtons=[...document.querySelectorAll('[data-battle-technique-mode]')],weaponButtons=[...document.querySelectorAll('[data-battle-weapon]')],inspirationRateButtons=[...document.querySelectorAll('[data-battle-inspiration-rate]')],hudButtons=[...document.querySelectorAll('[data-battle-hud]')];
+const resetInspirationButton=document.querySelector('[data-battle-reset-inspiration]'),recordButton=document.querySelector('[data-battle-record-toggle]');
 const PHASE_INDEX={jo:0,ha:1,kyu:2},PHASE_LABEL={jo:'序',ha:'破',kyu:'急'},LINK_INDEX={'jo-ha':0,'ha-kyu':1};
 const TECHNIQUE_DISPLAY_MS=2600,LOG_DISPLAY_MS=2400,LOG_VISIBLE_LIMIT=4,NARRATION_MIN_SECONDS=2.2,COMBO_FADE_MS=900;
 const MOVE_LABEL={slash:'斬り',back:'返し斬り',thrust:'突き',pierce:'刺突',heavy:'強撃',diagonal:'袈裟斬り',sweep:'薙ぎ',counter:'返し',guard:'受け',brace:'構え',parry:'弾き',ready:'見切り',retreat:'退き',slip:'かわし',bash:'柄打ち',pommel:'柄打ち'};
 let runtime=null,sound=null,controller=null,sequence=0,disposed=false,prepared=false,started=false,reviewMeta=null,battleMode='duel',history=[],seenActions=new Set(),seenNarration=new Set(),lastNarrationAt=new Map(),lastBattleId='',lastPhaseCueKey='',comboFadeTimer=0,inspirationTimer=0,comboInterrupted=false;
+let recorder=null,recordChunks=[],recordCanvas=null,recordContext=null,recordStream=null,recordFrame=0,recordSaveOnStop=true;
 let state='BOOT',lastError=null,lastExchangeKey='',activeLoadout=null,battleSettings=readBattleSettings(),lastRadarAt=-Infinity;
 const loadoutUI=createBattle2LoadoutUI({stage,onChange:next=>{activeLoadout=next;reviewMeta=null;lastExchangeKey='';resetHistory();playerHud?.clearPortrait?.();runtime?.configureLoadout?.(next);syncWeaponButtons();}});
 activeLoadout=loadoutUI.value;
@@ -195,10 +196,40 @@ function updateSequence(meta){
 }
 function syncInspirationResetButton(){if(resetInspirationButton)resetInspirationButton.disabled=!loadoutUI.learnedTechniqueIds.length;}
 function syncWeaponButtons(){const weapon=loadoutUI.value.equipment.weapon;for(const button of weaponButtons)button.setAttribute('aria-pressed',String(button.dataset.battleWeapon===weapon));}
-function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));for(const button of techniqueModeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleTechniqueMode===battleSettings.techniqueMode));for(const button of inspirationRateButtons)button.setAttribute('aria-pressed',String(button.dataset.battleInspirationRate===battleSettings.inspirationRate));syncWeaponButtons();}
+function applyHudVisibility(){stage.dataset.hudHidden=String(Boolean(battleSettings.hudHidden));}
+function syncRecordButton(){
+ if(!recordButton)return;const active=Boolean(recorder&&recorder.state!=='inactive');
+ recordButton.dataset.recording=String(active);recordButton.setAttribute('aria-pressed',String(active));recordButton.textContent=active?'録画停止':'録画開始';
+}
+function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));for(const button of techniqueModeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleTechniqueMode===battleSettings.techniqueMode));for(const button of inspirationRateButtons)button.setAttribute('aria-pressed',String(button.dataset.battleInspirationRate===battleSettings.inspirationRate));for(const button of hudButtons)button.setAttribute('aria-pressed',String((button.dataset.battleHud==='hide')===Boolean(battleSettings.hudHidden)));applyHudVisibility();syncWeaponButtons();syncRecordButton();}
 function setBattleSetting(key,value){
  const next=normalizeBattleSettings({...battleSettings,[key]:value});if(next[key]===battleSettings[key])return;
- battleSettings=next;writeBattleSettings(battleSettings);syncModeButtons();reviewMeta=null;lastExchangeKey='';resetHistory();runtime?.configureSettings?.(battleSettings);
+ battleSettings=next;writeBattleSettings(battleSettings);syncModeButtons();
+ if(key==='hudHidden')return;
+ reviewMeta=null;lastExchangeKey='';resetHistory();runtime?.configureSettings?.(battleSettings);
+}
+function recordingMimeType(){
+ const candidates=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+ return candidates.find(type=>globalThis.MediaRecorder?.isTypeSupported?.(type))||'';
+}
+function stopBattleRecording({save=true}={}){
+ if(!recorder||recorder.state==='inactive')return false;recordSaveOnStop=save;recorder.stop();return true;
+}
+function startBattleRecording(){
+ if(recorder&&recorder.state!=='inactive')return false;
+ if(typeof MediaRecorder==='undefined'||typeof document.createElement('canvas').captureStream!=='function'){status.hidden=false;status.textContent='このブラウザでは録画に対応していません。';return false;}
+ recordCanvas=document.createElement('canvas');recordCanvas.width=Math.max(2,world.width||stage.clientWidth);recordCanvas.height=Math.max(2,world.height||stage.clientHeight);recordContext=recordCanvas.getContext('2d',{alpha:false});if(!recordContext)return false;
+ recordStream=recordCanvas.captureStream(30);const mimeType=recordingMimeType();
+ try{recorder=new MediaRecorder(recordStream,mimeType?{mimeType}:undefined);}catch{recordStream.getTracks().forEach(track=>track.stop());recordStream=null;return false;}
+ recordChunks=[];recordSaveOnStop=true;
+ recorder.addEventListener('dataavailable',event=>{if(event.data?.size)recordChunks.push(event.data);});
+ recorder.addEventListener('stop',()=>{
+   if(recordFrame)cancelAnimationFrame(recordFrame);recordFrame=0;recordStream?.getTracks().forEach(track=>track.stop());
+   const chunks=recordChunks.slice(),type=recorder?.mimeType||'video/webm',shouldSave=recordSaveOnStop;recordChunks=[];recordStream=null;recordCanvas=null;recordContext=null;recorder=null;syncRecordButton();
+   if(shouldSave&&chunks.length){const blob=new Blob(chunks,{type}),url=URL.createObjectURL(blob),link=document.createElement('a'),stamp=new Date().toISOString().replace(/[:.]/g,'-');link.href=url;link.download=`johakyu-battle-${stamp}.webm`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ });
+ recorder.start(500);
+ const draw=()=>{if(!recorder||recorder.state==='inactive'||!recordContext||!recordCanvas)return;recordContext.clearRect(0,0,recordCanvas.width,recordCanvas.height);recordContext.drawImage(world,0,0,recordCanvas.width,recordCanvas.height);recordContext.drawImage(effects,0,0,recordCanvas.width,recordCanvas.height);recordFrame=requestAnimationFrame(draw);};draw();syncRecordButton();return true;
 }
 function failed(error){runtime?.fail?.(error);report('ERROR',error?.message||String(error));sound?.pause();}
 window.__BATTLE2__=Object.freeze({get state(){return state;},get started(){return started;},get mode(){return battleMode;},get settings(){return {...battleSettings};},get loadout(){return loadoutUI.value;},get learnedTechniqueIds(){return loadoutUI.learnedTechniqueIds;},get lastError(){return lastError;},get audio(){return sound?.metrics?.()??null;},get version(){return BATTLE2_VERSION;},get sourceSha(){return __BUILD_INFO__.commit;},get metrics(){return runtime?.metrics()||{ready:false};},get camera(){return cameraPresentation.snapshot();},get actors(){return runtime?.inspectActors()||[];},get renderedActors(){return runtime?.inspectRenderedActors?.()||[];},get trace(){return runtime?.trace.slice()||[];},get observation(){return prepared?runtime?.inspectBattle(sequence)??null:null;},get review(){return reviewMeta;},get history(){return history.slice();},get exchangeTrace(){return runtime?.exchangeTrace??[];},advance(seconds){if(!new URL(location.href).searchParams.has('evidence'))throw Error('Evidence mode required');return runtime.advance(seconds);}});
@@ -229,6 +260,8 @@ for(const button of modeButtons)button.addEventListener('click',()=>{const next=
 for(const button of techniqueModeButtons)button.addEventListener('click',()=>{const next=button.dataset.battleTechniqueMode;if(!['random','set'].includes(next))return;setBattleSetting('techniqueMode',next);});
 for(const button of weaponButtons)button.addEventListener('click',()=>{const next=button.dataset.battleWeapon;if(!BATTLE2_WEAPONS.some(row=>row.id===next))return;loadoutUI.setWeapon(next);syncWeaponButtons();});
 for(const button of inspirationRateButtons)button.addEventListener('click',()=>{const next=button.dataset.battleInspirationRate;if(!['normal','high'].includes(next))return;setBattleSetting('inspirationRate',next);});
+for(const button of hudButtons)button.addEventListener('click',()=>{const next=button.dataset.battleHud;if(!['show','hide'].includes(next))return;setBattleSetting('hudHidden',next==='hide');});
+recordButton?.addEventListener('click',()=>{if(recorder&&recorder.state!=='inactive')stopBattleRecording();else startBattleRecording();});
 resetInspirationButton?.addEventListener('click',()=>{if(!loadoutUI.resetLearnedTechniques())return;activeLoadout=loadoutUI.value;reviewMeta=null;lastExchangeKey='';resetHistory();playerHud?.clearPortrait?.();syncInspirationResetButton();void boot();});
 const syncSettingsOpenState=()=>{const open=stageControls?.root?.dataset.open==='true';stage.dataset.battleSettingsOpen=String(open);const toggle=stageControls?.root?.querySelector('.review-stage-controls__button');if(toggle)toggle.textContent=open?'×':'⚙';};
 if(stageControls?.root){new MutationObserver(syncSettingsOpenState).observe(stageControls.root,{attributes:true,attributeFilter:['data-open']});syncSettingsOpenState();}
@@ -237,5 +270,5 @@ world.addEventListener('webglcontextlost',event=>{event.preventDefault();prepare
 world.addEventListener('webglcontextrestored',()=>{if(!disposed)void boot();});
 window.addEventListener('error',event=>{if(event.error&&!disposed)failed(event.error);});
 window.addEventListener('unhandledrejection',event=>{if(!disposed)failed(event.reason);});
-window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);hideInspiration();observer.disconnect();runtime?.destroy();sound?.destroy();deathCinematic.dispose();bodyHud?.destroy();movementInput.dispose();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
+window.addEventListener('pagehide',event=>{sound?.pause();if(event.persisted)return;stopBattleRecording({save:false});disposed=true;sequence++;controller?.abort();if(comboFadeTimer)clearTimeout(comboFadeTimer);hideInspiration();observer.disconnect();runtime?.destroy();sound?.destroy();deathCinematic.dispose();bodyHud?.destroy();movementInput.dispose();cameraPresentation.dispose();stageControls?.destroy();playerHud?.destroy();loadoutUI.destroy();});
 syncInspirationResetButton();syncModeButtons();report('BOOT');void boot();
