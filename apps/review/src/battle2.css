@@ -67,7 +67,15 @@ main.battle2-review.review-surface>.review-surface__workspace{grid-template-colu
 .nocturne-stage .battle-mode-switch{gap:5px}
 .nocturne-stage .battle-mode-switch button{min-height:34px;padding:7px 8px;border-radius:8px;font-size:11px}
 .nocturne-stage .battle-weapon-switch{grid-template-columns:repeat(4,minmax(0,1fr))}
-.nocturne-stage .battle-reset-setting .battle-mode-switch{grid-template-columns:1fr}
+.nocturne-stage .battle-record-setting .battle-mode-switch,.nocturne-stage .battle-reset-setting .battle-mode-switch{grid-template-columns:1fr}
+.nocturne-stage .battle-record-setting button[data-recording="true"]{border-color:#d16e61;background:#5a201b;color:#fff2ec}
+.nocturne-stage .battle-record-note{display:block;margin-top:5px;color:#82908b;font:500 9px/1.35 system-ui,sans-serif}
+.nocturne-stage[data-hud-hidden="true"] .battle2-player-hud-host,
+.nocturne-stage[data-hud-hidden="true"] .battle2-camera-control-host,
+.nocturne-stage[data-hud-hidden="true"] .rinne-field-radar,
+.nocturne-stage[data-hud-hidden="true"] .battle2-loadout-shell,
+.nocturne-stage[data-hud-hidden="true"] #battle-sequence-mount,
+.nocturne-stage[data-hud-hidden="true"] .battle2-inspiration{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 .nocturne-stage .battle-reset-setting button{border-color:#73524d;background:#241816;color:#e5c3bb}
 .nocturne-stage .battle-reset-setting button:not(:disabled):active{background:#3a201d}
 .nocturne-stage .battle-reset-setting button:disabled{opacity:.38}
