@@ -1,4 +1,16 @@
-.battle2-review .battle2-player-hud-host{top:max(8px,env(safe-area-inset-top))}
-.battle2-body-hud-host{position:absolute;z-index:7;left:calc(max(8px,env(safe-area-inset-left)) + clamp(142px,39vw,188px) + 6px);top:max(8px,env(safe-area-inset-top));width:48px;height:58px;pointer-events:none}.battle2-body-hud-host[hidden]{display:none!important}
+.battle2-review .battle2-player-hud-host{
+  top:max(8px,env(safe-area-inset-top));
+  display:flex;align-items:flex-start;width:max-content;
+}
+.battle2-review .battle2-player-hud-host .rinne-player-hud{
+  border-top-right-radius:0!important;border-bottom-right-radius:0!important;
+}
+.battle2-body-hud-host{
+  position:relative;z-index:1;flex:none;margin-left:-2px;
+  width:48px;height:58px;pointer-events:none;
+}
+.battle2-body-hud-host[hidden]{display:none!important}
 .battle2-body-hud{width:48px;height:58px;filter:none}
-@media(max-width:410px){.battle2-body-hud-host{left:calc(max(6px,env(safe-area-inset-left)) + clamp(142px,39vw,188px) + 6px);top:max(8px,env(safe-area-inset-top))}}
+.battle2-review .battle2-body-hud-host .body-silhouette__figure{
+  border-top-left-radius:0!important;border-bottom-left-radius:0!important;
+}
