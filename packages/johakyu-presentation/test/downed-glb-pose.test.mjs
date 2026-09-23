@@ -6,6 +6,9 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {activateSampledDownedAction,downedPresentationSample} from '../src/downed-presentation.js';
 
+globalThis.self=globalThis;
+globalThis.createImageBitmap??=async()=>({width:1,height:1,close(){}});
+
 const knightUrl=new URL('../../../apps/review/public/library/model/717b56ca2b5ff5392679774725201ba03a3eefab/Knight.glb',import.meta.url);
 
 async function loadKnight(){
