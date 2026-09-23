@@ -1,4 +1,4 @@
-import {createJohakyuBattleRuntime,PHASES,PHASE_LABELS,compileBattleLoadout,johakyuExchangeCue} from '@soul/johakyu-battle';
+import {createJohakyuBattleRuntime,PHASES,PHASE_LABELS,compileBattleLoadout,johakyuExchangeCue,FIRST_INSPIRATION_PRESENTATION} from '@soul/johakyu-battle';
 import {NOCTURNE_FIELD_BOUNDS} from '@soul/johakyu-presentation';
 import {CAUSAL_ANSWER_BY_ID} from '@soul/game-data';
 import {BATTLE2_LOADOUT_DEFAULT,BATTLE2_BODY_OPTIONS,normalizeBattle2Loadout,battle2LoadoutKey} from './battle2-loadout.js';
@@ -78,11 +78,11 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
        const definition=picked&&battle2TechniqueDefinition(picked.id,{weapon});
        if(picked&&definition&&targetId&&runtime.inspire('hero',{...definition,name:picked.name},targetId,phase)){
          known.push(picked.id);knownSet.add(picked.id);config.technique[phase]=picked.id;activeHeroLoadout={...activeHeroLoadout,[phase]:picked.id};hero.loadout=compileBattleLoadout(activeHeroLoadout,weapon);
-         record({type:'inspiration',actorId:'hero',techniqueId:picked.id,techniqueName:picked.name,phase,grade:picked.grade,equipped:true,firstCast:true,triggerEventId:event.id,scope:'review-trial'});
+         record({id:`${event.id}:inspiration:${picked.id}`,type:'inspiration',actorId:'hero',sourceId:'hero',targetId,firstInspirationPresentation:FIRST_INSPIRATION_PRESENTATION,techniqueId:picked.id,techniqueName:picked.name,phase,grade:picked.grade,equipped:true,firstCast:true,triggerEventId:event.id,scope:'review-trial'});
        }
      }
    }
-   const snapshot=frame(result.frame);last={frame:snapshot,events:result.events,meta:meta(snapshot)};return last;
+   const snapshot=frame(result.frame);last={frame:snapshot,events:[...result.events,...activity.filter(row=>row.type==='inspiration')],meta:meta(snapshot)};return last;
  }
  function inspect(){const snapshot=last?.frame||frame(runtime.snapshot());return {...(last||{frame:snapshot,events:[],meta:meta(snapshot)}),trace:history.slice(),exchanges:runtime.inspect().exchanges};}
  return Object.freeze({step,inspect,composition:{hero:compileBattleLoadout(config.technique,weapon),enemy:compileBattleLoadout({},'sword')},loadout:config,settings:reviewSettings,get learnedTechniqueIds(){return known.slice();}});
