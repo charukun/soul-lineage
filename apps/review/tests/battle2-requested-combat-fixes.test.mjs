@@ -38,3 +38,15 @@ test('the selected 葬焉 motion is named at the right waveform only while it ru
  assert.match(read('src/nocturne-stage.js'),/finisherNode.hidden=!finisherName/);
  assert.match(read('src/nocturne/johakyu-p7-readout.css'),/\.battle-sequence-finisher/);
 });
+
+test('enemy respawn waits until 葬焉 finishes and the visible 残心 pose completes',()=>{
+ const scenario=createJohakyuP7ReviewScenario({actorOverrides:{'enemy-a':{hp:0,downed:true,incapacitated:true,spawnSeconds:0}}});
+ let completedAt=null,spawnedAt=null,poseSeen=false;
+ for(let i=0;i<600&&spawnedAt===null;i++){
+  const {meta}=scenario.step(1/60);
+  if(meta.phaseCuePhase==='zanshin')poseSeen=true;
+  for(const row of meta.activity){if(row.type==='finisher-complete'&&row.sourceId==='hero')completedAt=i/60;if(row.type==='enemy-spawn')spawnedAt=i/60;}
+ }
+ assert.ok(poseSeen);assert.ok(completedAt!==null&&spawnedAt!==null);
+ assert.ok(spawnedAt-completedAt>=1.2,'the defeated enemy must not respawn during the finisher or zanshin');
+});
