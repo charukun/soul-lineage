@@ -1,4 +1,5 @@
 import {readSavedBody,readSavedTerrain,clearSavedPresentation} from './johakyu-save-contract.js';
+import {MIN_WEAPON_AGE_YEARS} from '@soul/characters';
 import {spendActionStamina,recoverActionStamina} from '@soul/johakyu-combat/stamina';
 import {WEAPONS,ARMORS} from '@soul/johakyu-combat/execution-capability';
 export {WEAPONS,ARMORS} from '@soul/johakyu-combat/execution-capability';
@@ -117,7 +118,8 @@ export function stopAutomaticActivity(state,reason='move'){if(!state.activity)re
 export function enterBuilding(state,station){const changed=enterInteriorState(state,station);if(changed)pushEvent(state,'building',`${station.label}へ入った。`);return changed;}
 export function leaveBuilding(state){const changed=leaveInteriorState(state);if(changed)pushEvent(state,'building','建物の外へ出た。');return changed;}
 export function applyEquipmentStation(state,station){
-  if(!station?.equipment||state.ageYears<7||state.phase!=='living'||state.combat||state.ended)return null;
+  const minimumAge=station?.equipment?.weapon?MIN_WEAPON_AGE_YEARS:7;
+  if(!station?.equipment||state.ageYears<minimumAge||state.phase!=='living'||state.combat||state.ended)return null;
   const before=JSON.stringify(state.equipment),next={...state.equipment,...station.equipment};if(!WEAPONS[next.weapon]||!ARMORS[next.armor])return null;
   state.equipment=next;if(next.weapon!=='fist')addKnownSkill(state,WEAPONS[next.weapon].skill);if(before===JSON.stringify(next))return null;
   pushEvent(state,'equipment',`${station.label}に持ち替えた。`);return clone(next);
@@ -163,7 +165,7 @@ export function returnHome(state){
 }
 export function objectiveFor(state){
   if(state.ended)return 'この生涯を記録し、次の人生へ';if(state.phase==='birth')return '母と村を歩き、4歳まで世界を知る';if(state.activity)return `${state.activity.label}を続ける`;if(state.interior)return '建物の中を見て、暮らしを知る';
-  if(state.ageYears<7)return '村を歩き、暮らしを知る';if(state.ageYears<15)return state.equipment.weapon==='fist'?'武具のそばへ行き、自分の得物を試す':'暮らしながら、技と装備を試す';
+  if(state.ageYears<MIN_WEAPON_AGE_YEARS)return '村を歩き、暮らしを知る';if(state.ageYears<15)return state.equipment.weapon==='fist'?'武具のそばへ行き、自分の得物を試す':'暮らしながら、技と装備を試す';
   if(state.zone==='village')return canDepart(state)?'港へ行けば、次の船で前線へ出る':'暮らしながら、次の出航を待つ';return state.front>=5?'魔王軍の主力を退け、帰還する':'前線を生き抜き、奥へ進む';
 }
 export function lineageRecord(state,memento=null){return {lifeId:state.id,familyId:familyForLife(state).id,generation:state.generation,name:state.name,age:Math.floor(state.ageYears),birthVillageId:state.birthVillageId,returnedHome:state.returns>0,memento:memento||null,defeats:state.defeats,equipment:clone(state.equipment),experiences:clone(state.experiences),skills:[...state.knownSkills],inspirationImprint:inspirationImprint(state)};}

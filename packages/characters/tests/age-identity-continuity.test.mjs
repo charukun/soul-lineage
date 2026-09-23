@@ -29,7 +29,7 @@ test('five review snapshots age one canonical character without changing its ide
   assert.ok(snapshots[2].appearance.scale > snapshots[0].appearance.scale);
   assert.ok(snapshots[4].appearance.gray > snapshots[3].appearance.gray);
   assert.ok(snapshots[4].appearance.stoop > snapshots[3].appearance.stoop);
-  assert.equal(snapshots[0].appearance.canEquipWeapon, false);
+  assert.equal(snapshots[0].appearance.canEquipWeapon, true);
   assert.equal(snapshots[1].appearance.canEquipWeapon, true);
 });
 

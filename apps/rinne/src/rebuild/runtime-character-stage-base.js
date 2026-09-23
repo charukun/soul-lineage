@@ -9,6 +9,7 @@ import { createProtagonistCharacterPool } from './protagonist-character-pool.js'
 import { NEWBORN_CARRY, applyCarrierCradlePose, applyNewbornCradlePose, hideCarrierCombatProps, newbornCarryTransform, positionNewbornForCradle, sanitizeCarrierCarryVisual, solveCarrierCradleContacts } from './newborn-carry-presentation.js';
 import { resolveRinneCharacterRuntime } from './character-runtime-adapter.js';
 import { applyTidebreakPose } from './tidebreak-pose.js';
+import { applyChildWeaponPose, childWeaponSwingScale, rinneWeaponPresentation } from './weapon-presentation.js';
 import {
   createRinneEnemyCharacter,
   createRinneHeroCharacter,
@@ -32,14 +33,15 @@ function locomotionStride(bones,time,moving,speed){
   return Math.sin(gait.phase)*gait.amplitude;
 }
 
-function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=false,carriedChild=false,tidebreak=null,smoothGait=false}={},time=0){
-  const cadence=Math.min(12,6.4+Math.max(0,speed)*.85),stride=smoothGait?locomotionStride(bones,time,moving,speed):(moving?Math.sin(time*cadence)*.42:0);
+function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=false,carriedChild=false,tidebreak=null,smoothGait=false,weapon='fist',ageYears=12}={},time=0){
+  const cadence=Math.min(12,6.4+Math.max(0,speed)*.85),stride=smoothGait?locomotionStride(bones,time,moving,speed):(moving?Math.sin(time*cadence)*.42:0),weaponPresentation=!carrier?rinneWeaponPresentation(weapon,ageYears):null;
   if(bones.leftUpperLeg)bones.leftUpperLeg.rotation.x+=stride;
   if(bones.rightUpperLeg)bones.rightUpperLeg.rotation.x-=stride;
   if(bones.leftLowerLeg)bones.leftLowerLeg.rotation.x+=Math.max(0,-stride)*.28;
   if(bones.rightLowerLeg)bones.rightLowerLeg.rotation.x+=Math.max(0,stride)*.28;
-  if(!carrier&&bones.leftUpperArm)bones.leftUpperArm.rotation.x-=stride*.42;
-  if(!carrier&&bones.rightUpperArm)bones.rightUpperArm.rotation.x+=stride*.42;
+  if(!carrier&&bones.leftUpperArm)bones.leftUpperArm.rotation.x-=stride*.42*childWeaponSwingScale(weaponPresentation,'left');
+  if(!carrier&&bones.rightUpperArm)bones.rightUpperArm.rotation.x+=stride*.42*childWeaponSwingScale(weaponPresentation,'right');
+  if(!carrier&&weaponPresentation?.motion)applyChildWeaponPose(bones,weaponPresentation,{moving,combat,attacking:Boolean(tidebreak?.attack)},time);
   if(combat&&bones.spine)bones.spine.rotation.x-=.06;
   if(carrier)applyCarrierCradlePose(bones,time,{moving});
   if(carriedChild)applyNewbornCradlePose(bones,time);
@@ -85,10 +87,11 @@ function createActorRoster({scene,frontRoot,characterPool,heroPool}){
 }
 
 function createEquipmentController({heroActor,weaponVisual,mat,disposeObject}){
-  let weapon=null,shield=null;
-  function syncEquipment(equipment){
-    if(equipment.weapon!==weapon){const old=heroActor.detachWeapon('weapon');if(old)disposeObject(old);weapon=equipment.weapon;if(equipment.weapon!=='fist'){const object=weaponVisual(equipment.weapon);object.rotation.z=-Math.PI/2;heroActor.attachWeapon('weapon',object,{bone:'rightHand',position:[0,.02,0],quaternion:[0,0,0,1],scale:.72});}}
-    if(equipment.shield!==shield){const old=heroActor.detachWeapon('shield');if(old)disposeObject(old);shield=equipment.shield;if(equipment.shield){const object=createRinneWeapon(THREE,'shield');heroActor.attachWeapon('shield',object,{bone:'leftHand',position:[0,.03,0],quaternion:[0,0,0,1],scale:.8});}}
+  let weaponKey=null,shield=null;
+  function syncEquipment(equipment,ageYears=12){
+    const weapon=equipment?.weapon||'fist',presentation=rinneWeaponPresentation(weapon,ageYears),nextKey=presentation?weapon+':'+presentation.band:weapon;
+    if(nextKey!==weaponKey){const old=heroActor.detachWeapon('weapon');if(old)disposeObject(old);weaponKey=nextKey;if(weapon!=='fist'){const object=weaponVisual(weapon);object.position.fromArray(presentation.objectPosition);object.rotation.z=presentation.objectRotationZ;object.userData.rinneWeaponPresentation={band:presentation.band,scale:presentation.scale};heroActor.attachWeapon('weapon',object,{bone:'rightHand',position:presentation.socketPosition,quaternion:presentation.socketQuaternion,scale:presentation.scale});}}
+    if(equipment?.shield!==shield){const old=heroActor.detachWeapon('shield');if(old)disposeObject(old);shield=equipment?.shield;if(equipment?.shield){const object=createRinneWeapon(THREE,'shield');heroActor.attachWeapon('shield',object,{bone:'leftHand',position:[0,.03,0],quaternion:[0,0,0,1],scale:.8});}}
   }
   function dispose(){for(const id of ['weapon','shield']){const old=heroActor.detachWeapon(id);if(old)disposeObject(old);}}return{syncEquipment,dispose};
 }
@@ -118,7 +121,7 @@ function renderActors({roster,heroSchedule,motherSchedule,motherMotion,character
   const heroPresentation=resolveRinneRuntimeCharacter({...state.heroDescriptor,distance:0,visible:true,important:true});heroPresentation.appearance.dye=[...(armorDye[life.equipment.armor]||armorDye.cloth)];const heroTide=carried?null:life.combat?.tidebreakPose||null;
   const observedSpeed=heroActor.root.userData.locomotionSpeed,heroSpeed=Number.isFinite(observedSpeed)?observedSpeed:(life.moving?4.1:0);
   heroActor.root.userData.tidebreakPose=heroTide;syncRuntimeState(heroActor,{dead:Boolean(life.dead)||life.phase==='dead',hit:(Number(life.flash)||0)>0,attacking:Boolean(heroTide?.attack||life.attacking),resting:Boolean(life.resting),dashing:Boolean(life.dashing),moving:carried?false:Boolean(life.moving),speed:carried?0:heroSpeed,combat:carried?false:Boolean(life.combat),runThreshold:3});
-  const heroSampled=sampleSlot(heroActor,heroSchedule,heroPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carried?false:life.moving,speed:carried?0:heroSpeed,combat:carried?false:Boolean(life.combat),carriedChild:carried,tidebreak:heroTide,smoothGait:true},time));
+  const heroSampled=sampleSlot(heroActor,heroSchedule,heroPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carried?false:life.moving,speed:carried?0:heroSpeed,combat:carried?false:Boolean(life.combat),carriedChild:carried,tidebreak:heroTide,smoothGait:true,weapon:life.equipment.weapon,ageYears:life.ageYears},time));
   syncPresentationScale(heroActor.root,heroSampled,carried?NEWBORN_CARRY.visualScale:1);
   const motherPresentation=resolveRinneRuntimeCharacter({...state.motherDescriptor,distance:.3,visible:carried,important:true});syncRuntimeState(motherActor,{moving:carrierMoving,speed:motherMotion.speed,runThreshold:3});
   sampleSlot(motherActor,motherSchedule,motherPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carrierMoving,speed:motherMotion.speed,carrier:carried,smoothGait:true},time));
@@ -138,5 +141,5 @@ function renderActors({roster,heroSchedule,motherSchedule,motherMotion,character
 
 export async function createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject}){
   const [runtime,protagonist]=await Promise.all([createKaykitCharacterPools(renderer),createProtagonistCharacterPool(renderer)]),roster=createActorRoster({scene,frontRoot,characterPool:runtime.pool,heroPool:protagonist.pool});const equipment=createEquipmentController({heroActor:roster.heroActor,weaponVisual,mat,disposeObject});const peers=createCoopActors({pool:runtime.peerPool,motherPool:runtime.motherPool,scene,sampleSlot,poseHumanoid,armorDye,createEquipment:heroActor=>createEquipmentController({heroActor,weaponVisual,mat,disposeObject})});const animation={roster,characterPool:runtime.pool,heroSchedule:new PoseSchedule(),motherSchedule:new PoseSchedule(),motherMotion:{active:false,moving:false,speed:0}};
-  function render(life,dt=0){roster.bindLife(life);equipment.syncEquipment(life.equipment);renderActors(animation,life,dt);peers.render(life,dt);}function setCarrierMotion({active=false,moving=false,speed=0}={}){animation.motherMotion={active:Boolean(active),moving:Boolean(moving),speed:Math.max(0,Number(speed)||0)};}function dispose(){peers.dispose();roster.dispose();protagonist.dispose();runtime.dispose();}return{render,syncPeers:peers.sync,syncEquipment:equipment.syncEquipment,syncFront:roster.syncFront,updateFront:roster.updateFront,syncSkirmish:roster.syncSkirmish,updateSkirmish:roster.updateSkirmish,setCarrierMotion,dispose};
+  function render(life,dt=0){roster.bindLife(life);equipment.syncEquipment(life.equipment,life.ageYears);renderActors(animation,life,dt);peers.render(life,dt);}function setCarrierMotion({active=false,moving=false,speed=0}={}){animation.motherMotion={active:Boolean(active),moving:Boolean(moving),speed:Math.max(0,Number(speed)||0)};}function dispose(){peers.dispose();roster.dispose();protagonist.dispose();runtime.dispose();}return{render,syncPeers:peers.sync,syncEquipment:equipment.syncEquipment,syncFront:roster.syncFront,updateFront:roster.updateFront,syncSkirmish:roster.syncSkirmish,updateSkirmish:roster.updateSkirmish,setCarrierMotion,dispose};
 }

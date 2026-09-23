@@ -20,7 +20,7 @@ test('birth is mother-led and exposes no destination waypoint',()=>{
 
 test('childhood and preparation point at automatic actions without action buttons',()=>{
   const child=atAge(5),childGuide=guidanceFor({state:child,stations});compact(childGuide);
-  assert.match(childGuide.stage,/村/);assert.ok(childGuide.target);assert.equal(childGuide.badge,'武具 7歳');
+  assert.match(childGuide.stage,/村/);assert.equal(childGuide.objective,'武具を選ぶ');assert.equal(childGuide.target.label,'片手剣');assert.equal(childGuide.badge,'武器解禁');
   const prep=atAge(9),prepGuide=guidanceFor({state:prep,stations});compact(prepGuide);
   assert.equal(prepGuide.objective,'武具を選ぶ');assert.equal(prepGuide.target.label,'片手剣');assert.equal(prepGuide.badge,'出航 15歳');
 });
