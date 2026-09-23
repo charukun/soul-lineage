@@ -26,7 +26,7 @@ export function createBattleDecisions({actors,manualMoves,bounds,blocked,getTime
     }
     lifecycle.releaseExecution(actor);
     if(!target){actor.targetId=null;actor.decision=null;return;}
-    if(actor.decision?.targetId!==target.id){actor.decision=null;actor.readSeconds=0;}
+    if(actor.decision&&actor.decision.targetId!==target.id){actor.decision=null;actor.readSeconds=0;}
     actor.targetId=target.id;
     // A committed retreat is read from actual enemy displacement, not its intended stance.
     if(actor.pursuit&&target.side==='enemy'&&actor.pursuitTargetId===target.id&&actor.pursuitUntil>=time
