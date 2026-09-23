@@ -18,6 +18,7 @@ run('python3',['packages/assets/forge/upstream_workspace.py','run','--workspace'
 run('npm',['ci','--ignore-scripts']);
 run('npx',['playwright','install','--with-deps','chromium']);
 run('node',['scripts/character-forge/render_upstream.mjs',workspace,'blockout']);
+run('python3',['scripts/character-forge/review_upstream.py','--workspace',workspace,'--cache',cache,'--pass-id','blockout']);
 const lock=JSON.parse(readFileSync('package-lock.json','utf8')).packages['node_modules/three'];
 if(!/^https:\/\/registry\.npmjs\.org\/three\/-\/three-[0-9.]+\.tgz$/.test(lock.resolved))throw new Error('Unexpected Three.js source');
 const response=await fetch(lock.resolved);if(!response.ok)throw new Error(`Three.js download failed: ${response.status}`);
