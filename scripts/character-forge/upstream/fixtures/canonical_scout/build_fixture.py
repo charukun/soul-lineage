@@ -13,6 +13,9 @@ sys.path.insert(0,str(u/'forge/stage1_intake'))
 from extract_pbr_evidence import material_patch
 e=Engine(upstream=u,plugin=Path(os.environ['IMG2THREEJS_PLUGIN']),cache=Path(os.environ['FORGE_CACHE']))
 s=load_json(w/'img2threejs/object-sculpt-spec.json')
+# Lighting is a later pass. The explicit behavior is implemented by the renderer,
+# while blockout/silhouette comparisons deliberately exclude the floor.
+s['lightingFromPhoto'][-1]['notes']='Soft ground shadow beneath feet in beauty mode; exclude floor and ground shadow from all silhouette and reference comparison captures.'
 crops={'skin':('front',(46,43,70,53),'skin'),'hair':('back',(19,8,91,59),'unknown'),'green':('back',(12,63,100,112),'fabric'),'shirt':('front',(13,111,27,124),'fabric'),'pants':('front',(30,126,88,147),'fabric'),'leather':('front',(27,237,52,261),'unknown'),'brass':('front',(50,116,62,126),'metal'),'sole':('side',(12,253,59,267),'rubber')}
 for mid,(view,box,hint) in crops.items():
  crop=w/f'img2threejs/material-crops/{mid}.png';crop.parent.mkdir(parents=True,exist_ok=True)
