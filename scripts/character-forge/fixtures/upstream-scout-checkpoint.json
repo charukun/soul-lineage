@@ -1,9 +1,9 @@
 {
-  "sourceHead": "a3364890b93be9ccf3c0dee2d69a06490f9bb857",
-  "runId": 35819329523,
-  "artifactId": 10732673251,
-  "archiveSha256": "2622c584d732c0b4f72b00293dc6a18cf77d1cbcbf07a842cd95b634fe96d6ea",
-  "factorySha256": "1a92d2330acf6d0990ed63831182e2d5787ca42a069eb5bc0e4db215361c1f95",
-  "archiveReviewAs": "material-r6-rejected",
-  "reviewToRecord": "scripts/character-forge/fixtures/upstream-scout-material-r6-review.json"
+  "sourceHead": "fe89d28829fb86bc9c739c3461188528e5aa54a7",
+  "runId": 35820510064,
+  "artifactId": 10733237723,
+  "archiveSha256": "3de3092c44bd1d031be7f77934805397ac413bb917fd65c18cbf7ce7a1f994bd",
+  "factorySha256": "640782f06303e01705562731bb3df8122f272a733ae38b469d898250e905e8ea",
+  "archiveReviewAs": "material-r7-rejected",
+  "reviewToRecord": "scripts/character-forge/fixtures/upstream-scout-material-r7-review.json"
 }
