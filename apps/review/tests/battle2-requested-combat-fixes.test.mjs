@@ -69,15 +69,23 @@ test('閃きの初回発動イベントが描画へ一度渡り、習得と序�
  assert.ok(inspired,'a high-rate trial reaches its first cast');
 });
 
-test('閃きは未習得の技だけを選び、連続命中でも発生間隔を空ける',()=>{
+test('閃きは初回演出と発動中だけ重ならず、終了後は再抽選できる',()=>{
  const seen=battle2InspirationCandidates({weapon:'sword',phase:'ha'}).map(item=>item.row.id);
  assert.ok(seen.length>0);assert.equal(pickBattle2Inspiration({weapon:'sword',phase:'ha',seenIds:seen}),null);
  const scenario=createJohakyuP7ReviewScenario({settings:{inspirationRate:'high'},actorOverrides:{hero:{hp:300,maxHp:300,damageScale:2},'enemy-a':{hp:9000,maxHp:9000,canAttack:false}}});
  const inspirations=[];
  for(let i=0;i<3600;i++){
-  for(const row of scenario.step(1/60).events)if(row.type==='inspiration')inspirations.push(row);
+  const frame=scenario.step(1/60);
+  for(const row of frame.events)if(row.type==='inspiration'){
+   assert.notEqual(frame.frame.actors.find(actor=>actor.id==='hero')?.action?.scope,'trial','another discovery cannot interrupt an active first cast');
+   inspirations.push(row);
+  }
  }
- assert.ok(inspirations.length>=1);
+ assert.ok(inspirations.length>=2,'new discoveries resume after the first presentation');
  assert.equal(new Set(inspirations.map(row=>row.techniqueId)).size,inspirations.length);
- for(let i=1;i<inspirations.length;i++)assert.ok(inspirations[i].time-inspirations[i-1].time>=18-1/60);
+ for(let i=1;i<inspirations.length;i++){
+  const previous=inspirations[i-1],next=inspirations[i];
+  assert.ok(next.time-previous.time>=previous.firstInspirationPresentation.hudSeconds-1/60);
+ }
+ assert.ok(inspirations[1].time-inspirations[0].time<18,'there is no fixed post-reveal lockout');
 });

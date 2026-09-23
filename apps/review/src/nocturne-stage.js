@@ -193,7 +193,6 @@ function updateSequence(meta){
 }
 function syncInspirationResetButton(){if(resetInspirationButton)resetInspirationButton.disabled=!loadoutUI.learnedTechniqueIds.length;}
 function syncWeaponButtons(){const weapon=loadoutUI.value.equipment.weapon;for(const button of weaponButtons)button.setAttribute('aria-pressed',String(button.dataset.battleWeapon===weapon));}
-function syncWeaponButtons(){const weapon=loadoutUI.value.equipment.weapon;for(const button of weaponButtons)button.setAttribute('aria-pressed',String(button.dataset.battleWeapon===weapon));}
 function syncModeButtons(){for(const button of modeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleMode===battleMode));for(const button of techniqueModeButtons)button.setAttribute('aria-pressed',String(button.dataset.battleTechniqueMode===battleSettings.techniqueMode));for(const button of inspirationRateButtons)button.setAttribute('aria-pressed',String(button.dataset.battleInspirationRate===battleSettings.inspirationRate));syncWeaponButtons();}
 function setBattleSetting(key,value){
  const next=normalizeBattleSettings({...battleSettings,[key]:value});if(next[key]===battleSettings[key])return;
