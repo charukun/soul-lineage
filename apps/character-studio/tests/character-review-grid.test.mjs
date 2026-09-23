@@ -43,29 +43,35 @@ test('model catalog remains a six-column review grid on phone and desktop', () =
   assert.match(css, /\.character-model-grid\{[\s\S]*?grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);
   assert.match(css, /@media\(max-width:760px\)[\s\S]*?\.character-model-grid\{[\s\S]*?repeat\(6,minmax\(0,1fr\)\)/);
   assert.doesNotMatch(css, /38%|62%/);
-  assert.match(css, /grid-template-rows:minmax\(270px,1fr\) auto!important/);
+  assert.match(css, /grid-auto-rows:var\(--character-card-row\)!important/);
+  assert.match(css, /max-height:calc\(var\(--character-card-row\) \* 2 \+ 5px\)/);
+  assert.match(css, /grid-template-rows:minmax\(300px,1fr\) auto!important/);
 });
 
-test('camera controls are split into compact stage-local groups and utility actions stay on the stage', () => {
-  assert.match(code, /character-review-camera-dock review-surface__stage-tools/);
-  assert.match(code, /directionGroup\.append\(button\)/);
-  assert.match(code, /focusGroup\.append\(frameButton\)/);
+test('touch orbit is the only visible camera control while utility actions stay on the stage', () => {
+  assert.doesNotMatch(code, /character-review-camera-dock|directionGroup|focusGroup/);
+  assert.match(code, /for \(const button of actions\.querySelectorAll\('\[data-camera\]'\)\) button\.hidden = true/);
+  assert.match(code, /frameButton\.hidden = true/);
+  assert.match(code, /review-stage-camera-options/);
   assert.match(code, /character-review-stage-utility/);
   assert.match(code, /capture\.classList\.add\('character-review-capture'\)/);
-  assert.match(css, /character-review-camera-dock[\s\S]*?justify-content:space-between/);
-  assert.match(css, /character-review-camera-group[\s\S]*?border-radius:999px/);
+  assert.doesNotMatch(css, /character-review-camera-dock|character-review-camera-group/);
 });
 
-test('shared settings affordance exposes age and body controls without burying them below the catalog', () => {
+test('shared settings affordance directly edits age height and build with live sliders', () => {
   assert.match(code, /dataset\.sharedIcon = 'settings-2'/);
   assert.match(css, /packages\/assets\/src\/icons\/lucide\/settings-2\.svg/);
-  assert.match(code, /キャラクター調整/);
-  assert.match(code, /advanced\.html#age/);
-  assert.match(code, /advanced\.html#gene-height/);
-  assert.match(code, /advanced\.html#gene-build/);
-  assert.match(code, /advanced\.html#gene-hair/);
+  assert.match(code, /character-review-slider/);
+  for (const trait of ['age','height','build']) assert.match(code, new RegExp(trait + ": \\{ label:")); 
+  assert.match(code, /setInspectionTraits/);
+  assert.match(code, /基準に戻す/);
+  assert.match(code, /顔・髪・色などの詳細編集/);
+  assert.doesNotMatch(code, /advanced\.html#age|advanced\.html#gene-height|advanced\.html#gene-build/);
   assert.match(code, /settingsDialog\.showModal/);
-  assert.doesNotMatch(code, /character-review-advanced/);
+  assert.match(review, /ageAppearance/);
+  assert.match(review, /review\.setInspectionTraits/);
+  assert.match(review, /target\.root\.scale\.set/);
+  assert.match(review, /multiplyScalar\(age\.headScale\)/);
 });
 
 test('model source selection is the single writer and first real model becomes the initial simple-review target', () => {
@@ -112,11 +118,12 @@ test('protagonist sources are committed in app or shared Asset Origin and loadin
   assert.doesNotMatch(review, /旧carrier rig依存のため退役中/);
 });
 
-test('simple review uses the shared raw-model framing path without generated body scaling', () => {
+test('simple review keeps raw materials while exposing explicit non-destructive inspection shaping', () => {
   assert.match(review, /createReviewRenderer/);
   assert.match(review, /positionReviewCamera/);
   assert.match(review, /simpleModelReview/);
   assert.match(review, /img2threejs\?1\.14:proceduralRoot\?1\.4:1\.08/);
-  assert.match(review, /if \(!simpleModelReview\) actors\.forEach/);
+  assert.match(review, /if \(simpleModelReview\) applyInspectionTraits\(false\)/);
   assert.match(review, /if \(!simpleModelReview && schedules\[i\]\.advance/);
+  assert.match(review, /inspectionTraits = \{ age: 22, height: \.5, build: \.5 \}/);
 });

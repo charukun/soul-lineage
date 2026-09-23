@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createWorkshopMotionQA } from '../motion/qa.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { appearanceForCharacter, crowdPlan, KAYKIT_MODEL_BY_KEY, PoseSchedule, GENES, YEAR_MS } from '@soul/characters';
+import { ageAppearance, appearanceForCharacter, crowdPlan, KAYKIT_MODEL_BY_KEY, PoseSchedule, GENES, YEAR_MS } from '@soul/characters';
 import { createShinoProductionPool as createCharacterProductionPool } from '@soul/rendering/master-character-production';
 import { kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
 import { reviewSettings, createReviewCohort, editReviewCharacter, serializeReviewSession, deserializeReviewSession,
@@ -104,7 +104,60 @@ function start() {
   let activeModelLabel = defaultModel.label;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
   const simpleModelReview = document.body.classList.contains('simple-review');
+  const inspectionTraits = { age: 22, height: .5, build: .5 };
+  const inspectionBases = new WeakMap(), inspectionAxis = new THREE.Vector3(1, 0, 0), inspectionRotation = new THREE.Quaternion();
   let motionQA = null;
+  function inspectionTarget() {
+    if (proceduralRoot) return { root: proceduralRoot, bones: null };
+    const actor = actors[settings.selected];
+    return actor ? { root: actor.root, bones: actor.bones } : null;
+  }
+  function inspectionBase(target) {
+    let base = inspectionBases.get(target.root);
+    if (!base) {
+      base = {
+        rootScale: target.root.scale.clone(),
+        spine: target.bones?.spine?.quaternion.clone() || null,
+        chest: target.bones?.chest?.quaternion.clone() || null,
+        head: target.bones?.head?.quaternion.clone() || null,
+        headScale: target.bones?.head?.scale.clone() || null
+      };
+      inspectionBases.set(target.root, base);
+    }
+    return base;
+  }
+  function applyInspectionTraits(recenter = false) {
+    if (!simpleModelReview) return false;
+    const target = inspectionTarget(); if (!target) return false;
+    const base = inspectionBase(target), age = ageAppearance(inspectionTraits.age);
+    const height = .9 + .2 * inspectionTraits.height, width = .88 + .24 * inspectionTraits.build;
+    target.root.scale.set(base.rootScale.x * age.scale * width, base.rootScale.y * age.scale * height, base.rootScale.z * age.scale * width);
+    if (target.bones?.head && base.headScale) target.bones.head.scale.copy(base.headScale).multiplyScalar(age.headScale);
+    if (target.bones?.spine && base.spine) target.bones.spine.quaternion.copy(base.spine).multiply(inspectionRotation.setFromAxisAngle(inspectionAxis, age.stoop * .62));
+    if (target.bones?.chest && base.chest) target.bones.chest.quaternion.copy(base.chest).multiply(inspectionRotation.setFromAxisAngle(inspectionAxis, age.stoop * .38));
+    if (target.bones?.head && base.head) target.bones.head.quaternion.copy(base.head).multiply(inspectionRotation.setFromAxisAngle(inspectionAxis, -age.stoop * .38));
+    target.root.updateWorldMatrix(true, true);
+    if (recenter) {
+      const center = new THREE.Box3().setFromObject(target.root).getCenter(new THREE.Vector3());
+      const delta = center.clone().sub(orbit.target);
+      camera.position.add(delta); orbit.target.copy(center); camera.lookAt(center); orbit.update();
+    }
+    review.inspectionTraits = { ...inspectionTraits };
+    resetMeasure();
+    return true;
+  }
+  review.inspectionTraits = { ...inspectionTraits };
+  review.setInspectionTraits = patch => {
+    for (const [key, value] of Object.entries(patch || {})) {
+      if (!(key in inspectionTraits) || !Number.isFinite(Number(value))) throw new Error('Invalid character inspection trait');
+      const number = Number(value), valid = key === 'age' ? number >= 0 && number <= 90 : number >= 0 && number <= 1;
+      if (!valid) throw new Error('Character inspection trait is out of range');
+      inspectionTraits[key] = number;
+    }
+    applyInspectionTraits(true); syncBoneOverlay();
+    window.dispatchEvent(new Event('character-review-change'));
+    return { ...inspectionTraits };
+  };
   const events = new AbortController(), on = (target, type, handler) => target.addEventListener(type, handler, { signal: events.signal });
   const guard = handler => event => { try { handler(event); } catch (error) { report(error); syncUI(); } };
   function resetMeasure() { warmup = 60; frames = []; lastMetrics = 0; }
@@ -146,7 +199,7 @@ function start() {
         settings.view === 'single' ? 0 : (Math.floor(i / columns) - (rows - 1) / 2) * 2.3);
       actor.root.rotation.y = settings.rotate ? elapsed * .22 : 0; actor.resetSecondary();
     });
-    updateMarker(); syncBoneOverlay();
+    updateMarker(); applyInspectionTraits(false); syncBoneOverlay();
   }
   function clearBoneOverlay() {
     boneHelper?.removeFromParent(); boneHelper?.geometry.dispose(); boneHelper?.material.dispose();
@@ -262,7 +315,8 @@ function start() {
   }
   function refreshLooks() {
     appearances = records.slice(0, settings.count).map(appearanceForCharacter);
-    if (!simpleModelReview) actors.forEach((actor, i) => { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); applyExpressions(actor, i); });
+    if (simpleModelReview) applyInspectionTraits(false);
+    else actors.forEach((actor, i) => { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); applyExpressions(actor, i); });
     syncUI(); resetMeasure();
   }
   function rebuild() {
