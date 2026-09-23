@@ -18,5 +18,15 @@ export function createBattleLifecycle({actors,getTime,getSerial,battleId,emit,ta
     actor.phaseCue={key:`${battleId}:${actor.id}:zanshin:${getSerial()}`,phase:'zanshin',startedAt:getTime(),duration:ZANSHIN_SECONDS};
     actor.decision=null;emit({type:'zanshin',actorId:actor.id,sourceId:actor.id,after:'combat'});
   }
-  return {downedStateFor,fullyDownForFinisher,settleZanshin};
+  function advanceZanshin(actor){
+    const cue=actor.phaseCue;
+    if(cue?.phase!=='zanshin')return true;
+    if(getTime()>=cue.startedAt+cue.duration){actor.phaseCue=null;return true;}
+    if(!threatened(actor))return false;
+    actor.phaseCue=null;
+    actor.pendingZanshin=true;
+    actor.readyAt=getTime();
+    return true;
+  }
+  return {downedStateFor,fullyDownForFinisher,settleZanshin,advanceZanshin};
 }
