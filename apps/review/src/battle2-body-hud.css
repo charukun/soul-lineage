@@ -1,4 +1,4 @@
-.battle2-body-hud-host{position:absolute;z-index:7;left:max(153px,calc(env(safe-area-inset-left) + clamp(142px,39vw,188px) + 5px));top:max(6px,env(safe-area-inset-top));width:48px;height:58px;pointer-events:none}.battle2-body-hud-host[hidden]{display:none!important}
+.battle2-body-hud-host{position:absolute;z-index:7;left:calc(max(8px,env(safe-area-inset-left)) + clamp(142px,39vw,188px) + 6px);top:max(58px,calc(env(safe-area-inset-top) + 50px));width:48px;height:58px;pointer-events:none}.battle2-body-hud-host[hidden]{display:none!important}
 .battle2-body-hud{width:48px;height:58px;filter:none}
 .battle2-body-hud__figure{position:relative;width:48px;height:58px;border:2px solid rgba(155,115,64,.72);border-radius:13px;background:linear-gradient(125deg,#fff9e8 0%,#f6e5c1 78%,#e8cb9b 100%);box-shadow:inset 0 2px rgba(255,255,255,.85),inset 0 -3px rgba(148,101,53,.16),0 3px 0 #654a30,0 7px 14px rgba(23,34,22,.24)}
 .battle2-body-hud__figure::before{content:"";position:absolute;inset:3px;border:1px solid rgba(93,75,48,.45);border-radius:9px;background:linear-gradient(165deg,#34403b,#192923);box-shadow:inset 0 1px rgba(255,251,226,.2);pointer-events:none}
@@ -20,5 +20,5 @@
 @keyframes b2-body-surge{0%{transform:scaleY(1)}14%{transform:scaleY(1.28) translateY(-2px);filter:saturate(2) brightness(1.45)}34%{transform:scaleY(.82) translateY(1px)}58%{transform:scaleY(1.14) translateY(-1px)}100%{transform:scaleY(1)}}
 @keyframes b2-body-wave-crash{0%{height:7px;opacity:.72}18%{height:12px;opacity:1;filter:brightness(1.55) saturate(1.5)}48%{height:6px;opacity:.68}100%{height:7px;opacity:.72}}
 @keyframes b2-body-splash{0%{transform:translateY(5px) scale(.8);opacity:.16}18%{transform:translateY(-4px) scale(1.45);opacity:.88}55%{transform:translateY(-9px) scale(1.08);opacity:.6}100%{transform:translateY(-12px) scale(.9);opacity:.06}}
-@media(max-width:410px){.battle2-body-hud-host{left:max(153px,calc(env(safe-area-inset-left) + clamp(142px,39vw,188px) + 5px));top:max(6px,env(safe-area-inset-top))}}
+@media(max-width:410px){.battle2-body-hud-host{left:calc(max(6px,env(safe-area-inset-left)) + clamp(142px,39vw,188px) + 6px);top:max(51px,calc(env(safe-area-inset-top) + 44px))}}
 @media(prefers-reduced-motion:reduce){.battle2-body-hud__liquid,.battle2-body-hud__liquid::before,.battle2-body-hud__liquid::after{animation:none!important}.battle2-body-hud__part[data-hit=true]{animation:none;filter:brightness(1.55) saturate(1.35)}}
