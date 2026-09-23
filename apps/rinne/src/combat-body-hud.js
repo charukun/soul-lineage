@@ -41,7 +41,8 @@ function partButton(part){
   button.setAttribute('aria-pressed','false');
   const label=document.createElement('span');
   label.className='combat-body-hud__sr';
-  button.append(label);
+  const liquid=document.createElement('b');liquid.className='combat-body-hud__liquid';liquid.setAttribute('aria-hidden','true');
+  button.append(label,liquid);
   return button;
 }
 function valueRow(labelText,className){
