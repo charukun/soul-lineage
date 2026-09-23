@@ -34,7 +34,27 @@ upstream source, pin, algorithm or gate changed.
 binding, and preservation of pending work on resume. This is installation/state
 boundary evidence only.
 
-## Unresolved required adapter target
+## Adapter target decision (resumed with user authorization)
+
+The user accepted reuse of the active common RINNE contracts and shared additions
+where a contract is missing. The earlier name-resolution blocker is resolved:
+
+- Rig: `KAYKIT_RIG_ID` / `Rig_Medium` and the provider-neutral humanoid mapping in
+  `packages/rendering/src/kaykit-rig.js`. Fit joint positions to the reference;
+  do not reshape the reconstructed mesh to the imported KayKit body.
+- Morph: the existing polish expressions `neutral`, `blink`, `smile`, and
+  `mouth-open` in `packages/characters/src/production-pipeline.js`, with a shared
+  geometric glTF target adapter in `character-expressions.js`. Zero weights must
+  preserve the frozen reconstruction exactly.
+- Sockets: preserve the existing RINNE hand/equipment/held-item/talk definitions
+  and aliases consumed by Character25D equipment and Character Package actors.
+  Equipment calibration remains owned by `runtime-equipment.js`.
+
+This decision does not approve a model, waive rig gates, or lower likeness
+requirements. Upstream reconstruction and visual correction must proceed before
+rig binding. The following inventory records why a shared addition was needed.
+
+### Original inventory
 
 The request requires existing **Golden Rig**, **Golden Morph**, and **Golden
 Socket** contracts and forbids introducing a Forge-only replacement. No declared
@@ -58,12 +78,9 @@ source SHA in `adapter-target-discovery.json` on the hosted task runner. A name
 search cannot prove the meaning of an undocumented alias. Consequently none of
 the above is silently relabelled as Golden.
 
-**Resume condition:** identify the authoritative path/revision for each requested
-Golden contract, including rig hierarchy/bind conventions, morph names/ranges/
-semantics, and socket names/bones/transforms; or explicitly define the intended
-mapping to the active existing contracts. Adding an adapter without that target
-would fabricate compatibility. This is a contract dependency, not a failure of
-Connector, Actions, Blender or image access.
+**Resolution:** the mapping above is now explicit. Contract naming is no longer
+a blocker. Real geometry, skinning, morph deformation and visual parity evidence
+are still required; installation success is not completion.
 
 ## Pinned engine findings that the implementation must preserve
 
