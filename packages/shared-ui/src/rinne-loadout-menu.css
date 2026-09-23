@@ -6,6 +6,7 @@
   --menu-accent:#b8b0d7;
   position:fixed;
   z-index:140;
+  pointer-events:auto;
   left:max(18px,env(safe-area-inset-left));
   right:max(18px,env(safe-area-inset-right));
   bottom:max(118px,calc(env(safe-area-inset-bottom) + 112px));
@@ -310,6 +311,18 @@
   box-shadow:inset 0 2px rgba(255,255,255,.42)!important
 }
 
+/* The radar opens a dedicated, readable map surface. */
+.rinne-core-menu[data-type="map"]{
+  z-index:190;
+  top:max(14px,env(safe-area-inset-top));
+  bottom:max(14px,env(safe-area-inset-bottom));
+  max-height:none;
+}
+.rinne-core-menu[data-type="map"] .rinne-core-menu-body{display:flex;flex-direction:column}
+.rinne-core-menu[data-type="map"] .map-rich-shell{display:flex;flex:1 1 auto;flex-direction:column;min-height:0}
+.rinne-core-menu[data-type="map"] .upgrade-map{
+  flex:1 1 auto;min-height:220px;max-height:65dvh;aspect-ratio:auto;
+}
 /* Map / record are compact pages in the same notebook. */
 .rinne-core-menu .record-tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px}
 .rinne-core-menu :is(.life-record-current,.life-record-experience,.record-inheritance-brief,.lineage-list,.time-rate-panel,.map-rich-shell){
