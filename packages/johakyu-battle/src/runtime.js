@@ -62,14 +62,11 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
   function pair(a,b){const key=[a.id,b.id].sort().join('::');if(!exchanges.has(key))exchanges.set(key,createJohakyuExchangeState({sourceId:a.id,targetId:b.id}));return{key,state:exchanges.get(key)};}
   function exchange(a,b,event){const p=pair(a,b),next=reduceJohakyuExchange(p.state,{...event,sourceId:a.id,targetId:b.id});exchanges.set(p.key,next);if(next.mode!==p.state.mode||next.initiativeId!==p.state.initiativeId)emit({type:'exchange',sourceId:a.id,targetId:b.id,...next});return next;}
   const {targetFor,nearestThreatFor}=createBattleTargeting({actors,getTime:()=>time,distance,live});
-  const {downedStateFor,fullyDownForFinisher,settleZanshin,threatened}=createBattleLifecycle({actors,getTime:()=>time,getSerial:()=>serial++,battleId,emit,targetFor,distance,live,clamp,freeze});
+  const {downedStateFor,fullyDownForFinisher,settleZanshin,advanceZanshin}=createBattleLifecycle({actors,getTime:()=>time,getSerial:()=>serial++,battleId,emit,targetFor,distance,live,clamp,freeze});
   const {node,begin,finish,breakChain,interrupt}=createBattleExecution({actors,getTime:()=>time,getSerial:()=>++serial,battleId,emit,exchange,pair,fullyDownForFinisher,distance,live});
   function decide(actor,dt){
     if(!live(actor)||time<actor.spawnUntil||actor.action||time<actor.staggerUntil)return;
-    if(actor.phaseCue?.phase==='zanshin'){
-      if(!threatened(actor))return;
-      actor.phaseCue=null;actor.pendingZanshin=true;actor.readyAt=time;
-    }
+    if(!advanceZanshin(actor))return;
     const target=targetFor(actor);
     if(actor.chainTargetId&&(actor.chainTargetId!==target?.id||actor.chainLastAt!==null&&time-actor.chainLastAt>2.5))breakChain(actor,target?'target-changed':'target-lost');
     const downed=!actor.nonlethal&&actor.canFinish!==false?targetFor(actor,{downed:true}):null;
@@ -186,7 +183,7 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     for(const a of actors.values()){
       a.moving=false;if((a.recoverStamina??recoverStamina)&&live(a))recoverJohakyuStamina(a,delta);if(time-a.lastContactAt>1.1)a.posture=Math.max(0,a.posture-delta*7);
       if(a.action){a.action.elapsed+=delta;if(a.action.elapsed>=a.action.duration)finish(a);}
-      if(a.phaseCue&&time>=a.phaseCue.startedAt+a.phaseCue.duration)a.phaseCue=null;
+      if(a.phaseCue?.phase!=='zanshin'&&a.phaseCue&&time>=a.phaseCue.startedAt+a.phaseCue.duration)a.phaseCue=null;
     }
     for(const a of actors.values())if(a.queuedInspiration){
       const request=a.queuedInspiration;a.queuedInspiration=null;
