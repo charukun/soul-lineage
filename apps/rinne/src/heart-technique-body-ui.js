@@ -1,4 +1,4 @@
-import { SKILL_BY_ID } from './rebuild/skill-system.js';
+import { SKILL_BY_ID, skillDefinition } from './rebuild/skill-system.js';
 import {
   PHASES, MAX_COMBOS, HEART_SLOT_COUNT, ensureCombatLoadout, learnedHeartSkills, learnedTechniqueSkills, techniqueName,
   comboById, addCombo, removeCombo, setActiveCombo, setComboSkill, toggleFavored, setHeartSlot, phaseSelectionLabel, setPhaseSelection,
@@ -52,7 +52,20 @@ function gridItem(label,meta,{active=false,focus=false,icon='empty',detail,onCli
 const gridSection=(title,copy)=>createRinneLoadoutGridSection(title,copy);
 const topSlotRow=(swapMode,layout='')=>createRinneLoadoutSlotRow({swapMode,layout});
 const detailSection=({icon,kicker,title,summary,status,note='',actionLabel,actionDisabled=false,onAction})=>createRinneLoadoutDetail({icon,kicker,title,summary,status,note,actionLabel,actionDisabled,onAction});
-function techniqueDetail(state,selection,status='習得済み'){if(String(selection||'').startsWith('combo:')){const combo=comboById(state,String(selection).slice(6));return{icon:'flow',kicker:'連技',title:combo?.name||'連技',summary:combo?PHASES.map(([phase])=>techniqueName(combo.slots[phase])).join(' → '):'連技',status};}const row=skillDetail(selection,'戦技',status);return{...row,icon:rinneSkillSigilKind(selection,SKILL_BY_ID[selection]?.effects)};}
+function techniqueDetail(state,selection,status='習得済み'){
+  if(String(selection||'').startsWith('combo:')){
+    const combo=comboById(state,String(selection).slice(6));
+    return{icon:'flow',kicker:'連技',title:combo?.name||'連技',summary:combo?PHASES.map(([phase])=>techniqueName(combo.slots[phase])).join(' → '):'連技',status};
+  }
+  const row=skillDetail(selection,'戦技',status),definition=skillDefinition(selection);
+  const motions=(definition?.steps||[]).map(step=>step?.kind).filter(Boolean).join(' → ');
+  const explanation=[
+    definition?.mechanic||'',
+    motions?`動作: ${motions}`:'',
+    definition?.tradeoff?`注意: ${definition.tradeoff}`:''
+  ].filter(Boolean).join(' ');
+  return{...row,summary:explanation||row.summary,icon:rinneSkillSigilKind(selection,SKILL_BY_ID[selection]?.effects)};
+}
 function clearSwap(model){model.swap=null;}
 
 function renderHeart(model,focusId=null){
