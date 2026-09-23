@@ -420,15 +420,15 @@ function start() {
     const request = ++modelRequestSequence;
     modelLoads.begin(); // Supersede an in-flight legacy GLB before it can replace this choice.
     loading = false;
-    status('img2threejs単体モデルを読み込み中…');
+    status('ゴールデンベースを読み込み中…');
     try {
       const next = await createImg2ThreeReferenceCharacter();
       if (!alive || request !== modelRequestSequence) { disposeTemplate(next); return; }
       clearProcedural(); proceduralRoot = next; scene.add(proceduralRoot); review.proceduralRoot = proceduralRoot; arrange();
       review.displayModelId = 'img2threejs.bald-chibi.v1';
       review.audit = {approved:true,modelId:review.displayModelId,source:{revision:proceduralRoot.userData.img2threejs.revision}};
-      review.ready = true; el('progress').value = 1; activeModelLabel = 'img2threejs 参照キャラ';
-      aim('front'); renderer.render(scene,camera); status('img2threejs 参照キャラを表示中。ドラッグまたは回転ボタンで厚みを確認できます。');
+      review.ready = true; el('progress').value = 1; activeModelLabel = 'ゴールデンベース';
+      aim('front'); renderer.render(scene,camera); status('ゴールデンベースを表示中。ドラッグまたは回転ボタンで厚みを確認できます。');
       window.dispatchEvent(new Event('character-review-change'));
     } catch (error) { if (request === modelRequestSequence) report(error); }
   };
