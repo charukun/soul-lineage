@@ -23,8 +23,8 @@ test('rapid board exposes work, app publication, issues and recent history witho
   assert.doesNotMatch(html, /id="rapid-iterations"|id="rapid-iteration-list"/);
   assert.match(script, /activeSessions/);
   assert.match(script, /renderProgressMini/);
-  assert.match(script, /renderSession\(session,\{graph:true\}\)/);
-  assert.match(script, /renderSession\(session,\{iteration:true,graph:true\}\)/);
+  assert.match(script, /renderActiveCard\(session\)/);
+  assert.match(script, /renderIterationSummary\(state\)/);
   assert.match(script, /iterationSteps/);
   assert.match(script, /buildIssueRepairPrompt/);
   assert.match(script, /navigator\.clipboard/);
