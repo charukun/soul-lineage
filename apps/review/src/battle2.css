@@ -54,3 +54,21 @@ main.battle2-review.review-surface>.review-surface__workspace{grid-template-colu
 @keyframes battle2-inspiration-pop{0%{opacity:0;transform:translate(-50%,12px) scale(.78);filter:blur(5px)}14%{opacity:1;transform:translate(-50%,0) scale(1.06);filter:blur(0)}28%,73%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-10px) scale(1.04)}}
 @keyframes battle2-inspiration-line{0%,15%{opacity:0;transform:scaleX(.1)}32%,75%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1.1)}}
 @media(prefers-reduced-motion:reduce){.battle2-inspiration,.battle2-inspiration::after{animation:none}}
+
+/* Battle settings are a focused modal layer, not another HUD competing for space. */
+.nocturne-stage[data-battle-settings-open="true"]::after{content:"";position:absolute;z-index:31;inset:0;background:rgba(3,10,9,.52);backdrop-filter:blur(1.5px);pointer-events:none}
+.nocturne-stage[data-battle-settings-open="true"] .battle2-loadout-shell .rinne-primary-four{opacity:0!important;pointer-events:none!important;transform:translate(-50%,18px)!important}
+.nocturne-stage[data-battle-settings-open="true"] .battle2-player-hud-host,.nocturne-stage[data-battle-settings-open="true"] .battle2-camera-control-host,.nocturne-stage[data-battle-settings-open="true"] .rinne-field-radar{opacity:.18;filter:saturate(.55)}
+.nocturne-stage .review-stage-controls{z-index:42}
+.nocturne-stage .review-stage-controls__panel{width:min(360px,calc(100vw - 22px));max-height:min(76dvh,calc(100dvh - 112px));padding:12px 12px 14px;border-radius:14px}
+.nocturne-stage .review-stage-controls__title{margin-bottom:7px;font-size:11px}
+.nocturne-stage .review-stage-controls__panel>.battle-stage-switch[data-review-stage-control]+.battle-stage-switch[data-review-stage-control]{margin-top:7px;padding-top:7px}
+.nocturne-stage .battle-stage-setting__label{margin-bottom:5px;font-size:9px}
+.nocturne-stage .battle-mode-switch{gap:5px}
+.nocturne-stage .battle-mode-switch button{min-height:34px;padding:7px 8px;border-radius:8px;font-size:11px}
+.nocturne-stage .battle-weapon-switch{grid-template-columns:repeat(4,minmax(0,1fr))}
+.nocturne-stage .battle-reset-setting .battle-mode-switch{grid-template-columns:1fr}
+.nocturne-stage .battle-reset-setting button{border-color:#73524d;background:#241816;color:#e5c3bb}
+.nocturne-stage .battle-reset-setting button:not(:disabled):active{background:#3a201d}
+.nocturne-stage .battle-reset-setting button:disabled{opacity:.38}
+@media(max-width:520px){.nocturne-stage .review-stage-controls__panel{right:-2px;bottom:49px;width:calc(100vw - 18px);max-height:calc(100dvh - 108px);padding:11px}.nocturne-stage .battle-weapon-switch{grid-template-columns:repeat(4,minmax(0,1fr))}.nocturne-stage .battle-mode-switch button{min-height:32px;padding:6px 5px;font-size:10.5px}}
