@@ -90,6 +90,12 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     stationsRoot.add(g);
   }
   stations.filter(s=>s.equipment&&!s.interiorId).forEach(rack);
+  for(const station of stations.filter(row=>row.familyMotionTeacher&&!row.interiorId)){
+    const g=new THREE.Group();g.position.set(station.x,0,station.z);g.userData.stationId=station.id;
+    cyl(g,.27,.8,[0,.62,0],0x504c65);cyl(g,.19,.32,[0,1.2,0],0xd6ac83);
+    box(g,[.82,.12,.2],[0,1.36,0],0x363341);box(g,[.74,.1,.12],[0,.95,.31],0xb88d52);
+    stationsRoot.add(g);
+  }
   for(const station of stations.filter(row=>row.trainingDummy&&!row.interiorId)){
     const g=new THREE.Group();g.position.set(station.x,0,station.z);g.userData.stationId=station.id;
     box(g,[1.4,.16,.8],[0,.08,0],0x66503b);cyl(g,.13,2.2,[0,1.12,0],0x765b3e,10);box(g,[1.55,.14,.14],[0,1.52,0],0x816344);
@@ -195,5 +201,4 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   }
   return{THREE,scene,camera,viewport,presentationCamera,renderState,cameraVector,screenDirection,canMoveTo,sampleActorGround,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,setTitlePreviewQuality,qualitySnapshot:()=>qualityGovernor.snapshot(),visualSnapshot:()=>({focus:focusEffect.snapshot(),lighting:lighting.snapshot(),contacts:contacts.snapshot()}),dispose};
 }
-
 

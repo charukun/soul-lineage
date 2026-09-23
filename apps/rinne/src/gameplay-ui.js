@@ -4,6 +4,8 @@ import { createConversationInput } from './rebuild/conversation-input.js';
 import { rebirthPreview } from './rebuild/gameplay-contract.js';
 import { createSkillSetter } from './skill-setter.js';
 import { createHeartTechniqueBodyUI } from './heart-technique-body-ui.js';
+import {createFamilyMotionTeacher} from './family-motion-teacher.js';
+import './family-motion-teacher.css';
 import { decorateSelectionDetail, installSelectionDetail } from './selection-detail.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import {rinnePrimaryFourMarkup} from '@soul/shared-ui/rinne-primary-four';
@@ -85,6 +87,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
   const tracker=createSkillSetter({ui,audio,getState:()=>state});
   const loadoutUI=createHeartTechniqueBodyUI({ui,audio,getState:()=>state,tracker});
+  const motionTeacher=createFamilyMotionTeacher(root,stations);
   const selectionDetail=installSelectionDetail({root,panel,audio});
   const moveHint=gameScreen.querySelector('#move-hint');
   const notify=text=>{const node=document.getElementById('toast');if(!node||!text)return;node.textContent=text;node.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{node.hidden=true;},2200);};
@@ -245,7 +248,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     ui.mindState.textContent=labels[dominant]||'中庸';ui.mind.dataset.dominant=dominant;
   }
   function summary(s,{dashing=false,resting=false,training=null}={}){
-    state=s;if(ui.panel&&!ui.panel.hidden&&!ui.panel.dataset.type)close();speech.sync();loadoutUI.syncCombat(s);const hudName=s.name&&s.name!=='旅人'?s.name:rinnePlayerNameFromSeed(s.seed);playerHud?.update({name:hudName,age:s.ageYears});combatBodyHud?.update(s);
+    state=s;motionTeacher.update(s);if(ui.panel&&!ui.panel.hidden&&!ui.panel.dataset.type)close();speech.sync();loadoutUI.syncCombat(s);const hudName=s.name&&s.name!=='旅人'?s.name:rinnePlayerNameFromSeed(s.seed);playerHud?.update({name:hudName,age:s.ageYears});combatBodyHud?.update(s);
     updateRadar();
     ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;ui.trainingStrike.hidden=!engaged||s.down||s.ended;ui.trainingStrike.dataset.ready=String(engaged);if(engaged){ui.trainingName.textContent=training.label;ui.trainingStrike.setAttribute('aria-label',`${training.label}を打って稽古する`);}updateContextVitals(s,{dashing,resting,training});updateMindBalance(s,training);
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
@@ -291,5 +294,5 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
   ui.menu.onclick=()=>{if(!ui.panel.hidden)close();toggleQuickMenu();};ui.heart.onclick=()=>toggle('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>toggle('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>toggle('body');ui.items.onclick=()=>toggle('items');ui.trainingStrike.addEventListener('click',()=>{closeQuickMenu();if(!ui.panel.hidden)close();},{capture:true});ui.map.onclick=()=>toggle('map');ui.fieldRadar.onclick=()=>open('map');ui.record.onclick=()=>toggle('record');ui.close.onclick=close;
   let lastModelPortraitAt=-Infinity;
-  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,setContextAnchor,renderPlayerPortrait:render=>{if(!render||!playerHud)return false;const now=performance.now();if(now-lastModelPortraitAt<180)return true;const drawn=render(playerHud.canvas);if(drawn){lastModelPortraitAt=now;playerHud.markPortrait('model');}return drawn;},capturePlayerPortrait:(source,options)=>playerHud?.capture(source,options),dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);clearTimeout(interruptTimer);observer.disconnect();gameScreen.removeEventListener('rinne:combat-feedback',onCombatFeedback);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();combatBodyHud?.destroy();playerHud?.destroy();tracker.dispose();speech.dispose();root.remove();}};
+  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,setContextAnchor,renderPlayerPortrait:render=>{if(!render||!playerHud)return false;const now=performance.now();if(now-lastModelPortraitAt<180)return true;const drawn=render(playerHud.canvas);if(drawn){lastModelPortraitAt=now;playerHud.markPortrait('model');}return drawn;},capturePlayerPortrait:(source,options)=>playerHud?.capture(source,options),dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);clearTimeout(interruptTimer);observer.disconnect();gameScreen.removeEventListener('rinne:combat-feedback',onCombatFeedback);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();motionTeacher.dispose();combatBodyHud?.destroy();playerHud?.destroy();tracker.dispose();speech.dispose();root.remove();}};
 }

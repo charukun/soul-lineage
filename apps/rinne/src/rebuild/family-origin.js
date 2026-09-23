@@ -79,7 +79,15 @@ export function validateFamily(raw) {
   const archivedMigrations = sourceVersion === 1 ? 0 : raw.archivedMigrations;
   if (!count(archivedMigrations)) fail();
   const legacies = validateLegacyRows(sourceVersion === 1 ? null : raw.legacies, deriveLegacies(contributions));
-  return {schemaVersion:FAMILY_SCHEMA,id:raw.id,origin:raw.origin,cultureId:raw.cultureId,ethosId:raw.ethosId,traditionId:raw.traditionId,contributions,archivedGenerations:raw.archivedGenerations,homeVillageId,migrations,archivedMigrations,legacies};
+  const familyMotions=raw.familyMotions??[];
+  if(!Array.isArray(familyMotions)||familyMotions.length>32||new Set(familyMotions).size!==familyMotions.length||familyMotions.some(id=>!validId(id)))fail();
+  return {schemaVersion:FAMILY_SCHEMA,id:raw.id,origin:raw.origin,cultureId:raw.cultureId,ethosId:raw.ethosId,traditionId:raw.traditionId,contributions,archivedGenerations:raw.archivedGenerations,homeVillageId,migrations,archivedMigrations,legacies,familyMotions:[...familyMotions]};
+}
+export function grantFamilyMotion(raw,id){
+  const family=validateFamily(raw);
+  if(!['family.moonfall','family.moonstill'].includes(id))fail();
+  if(!family.familyMotions.includes(id))family.familyMotions.push(id);
+  return validateFamily(family);
 }
 export function createFamily(answers, id) {
   return validateFamily({schemaVersion:FAMILY_SCHEMA,id,origin:'chosen',cultureId:answers?.cultureId,ethosId:answers?.ethosId,traditionId:answers?.traditionId,contributions:[],archivedGenerations:0,homeVillageId:null,migrations:[],archivedMigrations:0,legacies:[]});
