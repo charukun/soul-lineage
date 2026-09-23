@@ -5,14 +5,18 @@ import {resolve,extname,join} from 'node:path';
 import {stripTypeScriptTypes} from 'node:module';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-const [workspaceArg,pass='blockout']=process.argv.slice(2),workspace=resolve(workspaceArg||''),repo=resolve(import.meta.dirname,'../..');
+const [workspaceArg,pass='blockout',mode]=process.argv.slice(2),workspace=resolve(workspaceArg||''),repo=resolve(import.meta.dirname,'../..');
 if(!workspaceArg)throw Error('Usage: render_upstream.mjs WORKSPACE PASS');
+if(mode&&mode!=='--projection-diagnostic')throw Error('Unknown render mode');
+const projectionDiagnostic=mode==='--projection-diagnostic';
+if(projectionDiagnostic&&pass!=='blockout')throw Error('Projection diagnostic is scoped to an unaccepted blockout');
+const captureId=projectionDiagnostic?pass+'-projection-diagnostic':pass;
 const typescript=await readFile(join(workspace,'build',pass+'.ts'),'utf8');
 const factory=stripTypeScriptTypes(typescript,{mode:'transform'});
 const functionName=/export function (create\w+Model)\(/.exec(factory)?.[1];
 if(!functionName)throw Error('No upstream factory export');
 await writeFile(join(workspace,'build',pass+'.js'),factory);
-const out=join(workspace,'review',pass);await mkdir(out,{recursive:true});
+const out=join(workspace,'review',captureId);await mkdir(out,{recursive:true});
 const dccFile=join(workspace,'build/dcc/refined-hair.json');
 const dccBytes=await readFile(dccFile).catch(e=>{if(e.code==='ENOENT')return null;throw e;});
 const dccAuthorityFactory=dccBytes?createHash('sha256').update(await readFile(join(workspace,'build/material-pass.ts'))).digest('hex'):null;
@@ -29,7 +33,9 @@ let loading=false;THREE.DefaultLoadingManager.onStart=()=>loading=true;THREE.Def
 const model=${functionName}({textureSize:1024,qualityPriority:'reference-fidelity'});scene.add(model);
 const hemi=new THREE.HemisphereLight(0xffffff,0x80909a,1.2);scene.add(hemi);const key=new THREE.DirectionalLight(0xffffff,2);key.position.set(2,4,3);scene.add(key);const rim=new THREE.DirectionalLight(0xffffff,.5);rim.position.set(-2,2,-3);scene.add(rim);
 const cameras=await (await fetch('img2threejs/evidence/cameras.json')).json();
-const projected=!['blockout','structural-pass','form-refinement'].includes('${pass}');
+const diagnosticOnly=${projectionDiagnostic};
+const projected=diagnosticOnly||!['blockout','structural-pass','form-refinement'].includes('${pass}');
+if(diagnosticOnly)model.traverse(n=>{if(n.isMesh&&!['head','chest'].includes(n.userData.sculptComponent?.id))n.visible=false;});
 const spec=await (await fetch('object-sculpt-spec.json')).json();
 const refinements=${JSON.stringify(geometryRefinements)};
 for(const entry of refinements){
@@ -43,7 +49,7 @@ for(const entry of refinements){
 }
 if(projected&&!spec.projectionBake?.required)throw Error('Material passes require an explicit upstream projection/bake plan');
 const camera=new THREE.PerspectiveCamera(10,.5,.01,100);
-const mats=new Map();model.traverse(n=>{if(n.isMesh){mats.set(n,n.material);if(n.material.opacity===0)n.visible=false;else if(['blockout','structural-pass','form-refinement'].includes('${pass}'))n.material=new THREE.MeshStandardMaterial({color:0xbfcbd5,roughness:.85});}});
+const mats=new Map();model.traverse(n=>{if(n.isMesh){mats.set(n,n.material);if(n.material.opacity===0)n.visible=false;else if(!diagnosticOnly&&['blockout','structural-pass','form-refinement'].includes('${pass}'))n.material=new THREE.MeshStandardMaterial({color:0xbfcbd5,roughness:.85});}});
 const rotations={front:0,side:-Math.PI/2,back:Math.PI,front34:-Math.PI/4,rear34:-3*Math.PI/4,oppositeSide:Math.PI/2};
 function draw(view='front') {const c=cameras[view]||cameras.front,p=c.fit.cameraParameters;camera.fov=p.fovDegrees;camera.position.fromArray(p.position);camera.rotation.set(0,0,0);camera.updateProjectionMatrix();if(projected)applyReferenceCamera(THREE,camera,c);model.rotation.y=rotations[view]??0;model.updateMatrixWorld(true);renderer.render(scene,camera);}
 function light(mode){
@@ -67,7 +73,7 @@ window.forge={draw,meshBuffers,light,projected,
  },
  stripped(){const saved=new Map();model.traverse(n=>{if(n.isMesh&&n.visible){saved.set(n,n.material);n.material=new THREE.MeshStandardMaterial({color:0xbfcbd5,roughness:.85});}});draw('front');for(const [n,m]of saved){n.material.dispose();n.material=m;}},
  closeup(){light('grazing');model.rotation.y=0;applyReferenceCamera(THREE,camera,cameras.front);camera.position.set(1.7,1.3,3);camera.fov=18;camera.lookAt(0,1.24,0);camera.updateProjectionMatrix();renderer.render(scene,camera);},
- async bake(){const maps=await(await fetch('img2threejs/evidence/projection/maps.json')).json();const outputs=await bakeReferenceProjection(THREE,renderer,model,cameras,maps,{physicalChannels:spec.projectionBake.physicalChannelApplication?.policy,surfaceResponses:spec.projectionBake.surfaceResponses});for(const row of outputs){const slug=row.mesh.toLowerCase().replace(/[^a-z0-9]+/g,'-');for(const [channel,data]of Object.entries(row.files)){const filename=slug+'-'+channel+'.png',body=await(await fetch(data)).arrayBuffer();const response=await fetch('/capture/texture/'+filename,{method:'POST',body});if(!response.ok)throw Error('Texture transport failed');row.files[channel]='build/textures/${pass}/'+filename;}}return {status:'pixels-baked; visual approval pending',authority:'pinned upstream descriptors and camera fit',outputs};},
+ async bake(){const maps=await(await fetch('img2threejs/evidence/projection/maps.json')).json();const outputs=await bakeReferenceProjection(THREE,renderer,model,cameras,maps,{physicalChannels:spec.projectionBake.physicalChannelApplication?.policy,surfaceResponses:spec.projectionBake.surfaceResponses});for(const row of outputs){const slug=row.mesh.toLowerCase().replace(/[^a-z0-9]+/g,'-');for(const [channel,data]of Object.entries(row.files)){const filename=slug+'-'+channel+'.png',body=await(await fetch(data)).arrayBuffer();const response=await fetch('/capture/texture/'+filename,{method:'POST',body});if(!response.ok)throw Error('Texture transport failed');row.files[channel]='build/textures/${captureId}/'+filename;}}return {status:'pixels-baked; visual approval pending',authority:'pinned upstream descriptors and camera fit',outputs};},
  async exportGLB(){
  model.rotation.y=0;model.updateMatrixWorld(true);
  // sculptRuntime owns live Three.js nodes, not glTF JSON extras. Serializing
@@ -87,7 +93,7 @@ const server=createServer(async(req,res)=>{try{
   }
   if(req.method==='POST'&&/^\/capture\/texture\/[a-z0-9-]+\.png$/.test(pathname)){
     const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>32*1024*1024)throw Error('Texture transport limit');chunks.push(chunk);}
-    const directory=join(workspace,'build','textures',pass);await mkdir(directory,{recursive:true});await writeFile(join(directory,pathname.split('/').pop()),Buffer.concat(chunks));res.writeHead(201);res.end();return;
+    const directory=join(workspace,'build','textures',captureId);await mkdir(directory,{recursive:true});await writeFile(join(directory,pathname.split('/').pop()),Buffer.concat(chunks));res.writeHead(201);res.end();return;
   }
   if(pathname==='/'){res.setHeader('Content-Type','text/html');res.end(pageHTML);return;}
   if(pathname==='/author.js'){res.setHeader('Content-Type','text/javascript');res.end(app);return;}
@@ -109,7 +115,7 @@ try{
  try{await page.waitForFunction(()=>window.ready,null,{timeout:60000});}
  catch(error){await writeFile(join(out,'browser-failure.json'),JSON.stringify({errors,message:error.message},null,2));await page.screenshot({path:join(out,'browser-failure.png')});throw error;}
  await writeFile(join(out,'mesh-buffers.json'),await page.evaluate(()=>JSON.stringify(window.forge.meshBuffers())));
- execFileSync('python3',[join(repo,'scripts/character-forge/check_upstream_scalp.py'),'--workspace',workspace,'--cache',process.env.CHARACTER_FORGE_UPSTREAM_CACHE||join(repo,'.cache/character-forge-upstream'),'--pass-id',pass],{stdio:'inherit'});
+ if(!projectionDiagnostic)execFileSync('python3',[join(repo,'scripts/character-forge/check_upstream_scalp.py'),'--workspace',workspace,'--cache',process.env.CHARACTER_FORGE_UPSTREAM_CACHE||join(repo,'.cache/character-forge-upstream'),'--pass-id',pass],{stdio:'inherit'});
  if(await page.evaluate(()=>window.forge.projected)){
    await page.evaluate(()=>window.forge.stripped());await page.locator('canvas').screenshot({path:join(out,'front-clay.png')});
    const bake=await page.evaluate(()=>window.forge.bake());await writeFile(join(out,'projection-bake.json'),JSON.stringify(bake,null,2));
@@ -122,11 +128,12 @@ try{
    await writeFile(join(out,'part-id-palette.json'),JSON.stringify(partIds,null,2));
  }
  const receipt=await page.evaluate(()=>window.forge.snapshot());receipt.errors.push(...errors);receipt.factorySha256=createHash('sha256').update(typescript).digest('hex');receipt.sourceHead=process.env.HEAD_SHA||null;receipt.visualApproval='pending';
+ if(projectionDiagnostic)receipt.scope='head-and-chest pixel-bake diagnostic on rejected blockout; upstream pass/state unchanged';
  if(receipt.pass&&!['blockout','structural-pass','form-refinement'].includes(receipt.pass))receipt.referenceLighting=JSON.parse(await readFile(join(workspace,'object-sculpt-spec.json'),'utf8')).referenceReviewLighting;
  await page.evaluate(()=>window.forge.draw('front'));
  await writeFile(join(out,'render-receipt.json'),JSON.stringify(receipt,null,2));
  await writeFile(join(out,'mesh-buffers.json'),await page.evaluate(()=>JSON.stringify(window.forge.meshBuffers())));
- console.log('FORGE_EXPORT_BYTES '+await page.evaluate(()=>window.forge.exportGLB()));
+ if(!projectionDiagnostic)console.log('FORGE_EXPORT_BYTES '+await page.evaluate(()=>window.forge.exportGLB()));
  if(receipt.errors.length)throw Error(JSON.stringify(receipt.errors));
  console.log(JSON.stringify({pass,parts:receipt.parts.length,triangles:receipt.parts.reduce((n,p)=>n+p.triangles,0),output:out,visualApproval:'pending'}));
 }finally{await browser?.close();server.close();}

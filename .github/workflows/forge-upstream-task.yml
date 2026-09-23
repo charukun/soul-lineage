@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   forge:
-    if: contains(github.event.head_commit.message, '[forge-specialist]') || contains(github.event.head_commit.message, '[forge-golden-specialist]')
+    if: contains(github.event.head_commit.message, '[forge-specialist]') || contains(github.event.head_commit.message, '[forge-golden-specialist]') || contains(github.event.head_commit.message, '[forge-golden-projection]')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -44,9 +44,18 @@ jobs:
           run-id: 35829915435
           github-token: ${{ github.token }}
           path: .forge-resume-golden
+      - uses: actions/download-artifact@v4
+        if: contains(github.event.head_commit.message, '[forge-golden-projection]')
+        with:
+          name: forge-specialist-be387859d60630d1e8c9e30397277bc2d3e88456
+          run-id: 35831119869
+          github-token: ${{ github.token }}
+          path: .forge-resume-golden
       - name: Execute explicit specialist task when present
         run: |
-          if grep -Fq '[forge-golden-specialist]' "$GITHUB_EVENT_PATH"; then
+          if grep -Fq '[forge-golden-projection]' "$GITHUB_EVENT_PATH"; then
+            node scripts/character-forge/golden_projection_diagnostic.mjs
+          elif grep -Fq '[forge-golden-specialist]' "$GITHUB_EVENT_PATH"; then
             node scripts/character-forge/golden_specialist.mjs
           elif [ -f scripts/character-forge/specialist.mjs ]; then
             node scripts/character-forge/specialist.mjs
