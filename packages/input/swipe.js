@@ -2,7 +2,7 @@
  * No tap target/pathfinding. A quick terminal flick keeps running; a held drag stops on release.
  */
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
-export const SWIPE_RULES=Object.freeze({deadzone:6,range:40,nub:34,flickMs:420,flickMinPx:30,flickVelocity:.32,releaseMinPx:16,releaseVelocity:.22,releaseWindowMs:130,walkSpeed:2.85,combatSpeed:2.25,dashSpeed:4.65,notice:3.9});
+export const SWIPE_RULES=Object.freeze({deadzone:6,range:40,nub:34,flickMs:420,flickMinPx:30,flickVelocity:.32,releaseMinPx:16,releaseVelocity:.22,releaseWindowMs:130});
 export class SwipeInput {
  constructor(){this.id=null;this.dx=this.dy=this.amount=0;this.dash=false;this.dashX=this.dashY=0;this.samples=[];}
  down(id,x,y,t){if(this.id!==null)return false;this.cancel();this.id=id;this.x=x;this.y=y;this.started=t;this.samples=[{x,y,t}];return true;}

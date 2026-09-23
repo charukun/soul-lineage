@@ -75,7 +75,7 @@ export class RaidSession {
  }else if(this.devour){advanceDevour(this,dt,v.amount);}
  else{
  const speed=v.dash?COMBAT_LOCOMOTION.dashSpeed:COMBAT_LOCOMOTION.walkSpeed,formBoost=this.profile.form==='stalker'?1.15:1,growthMove=p.moveScale||1;
- const dx=v.x*v.amount*speed*formBoost*growthMove*dt,dz=v.z*v.amount*speed*formBoost*growthMove*dt;const moved=this.walkActor(p,dx,dz);p.speed=moved/dt;p.walk+=moved*3.8;if(v.amount>.05){const target=Math.atan2(v.x,v.z);p.yaw+=Math.atan2(Math.sin(target-p.yaw),Math.cos(target-p.yaw))*Math.min(1,dt*(v.autoRoam?3.4:12));}
+ const dx=v.x*v.amount*speed*formBoost*growthMove*dt,dz=v.z*v.amount*speed*formBoost*growthMove*dt;const moved=this.walkActor(p,dx,dz);p.speed=moved/dt;p.walk+=moved*COMBAT_LOCOMOTION.gaitPhasePerMeter;if(v.amount>.05){const target=Math.atan2(v.x,v.z);p.yaw+=Math.atan2(Math.sin(target-p.yaw),Math.cos(target-p.yaw))*Math.min(1,dt*(v.autoRoam?3.4:12));}
  if(!w.gate.broken&&this.has('smith')&&v.amount>.1&&Math.hypot(p.x-w.gate.x,p.z-w.gate.z)<2.7){this.gatePush+=dt;if(this.gatePush>.75){w.gate.broken=true;this.emit('gate',{x:w.gate.x,z:w.gate.z});}}else this.gatePush=0;
  for(const n of w.npcs){if(n.eaten)continue;const d=Math.hypot(n.x-p.x,n.z-p.z);if(n.dead){if(d<2.5&&v.amount<.05){this.devour={npc:n,t:0};this.resetIdle();break;}}else if(d<3.9&&this.safeTime<=0&&!this.lineBlocked(p,n)){this.engage(n);break;}}
  }

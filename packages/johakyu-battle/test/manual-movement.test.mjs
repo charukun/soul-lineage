@@ -29,3 +29,10 @@ test('manual walk uses the shared Bloodline speed and combat-ready range has hys
   enemy.position={x:0,z:2.55};runtime.step(1/240);assert.equal(runtime.snapshot().actors.find(a=>a.id==='hero').combatReady,true);
   enemy.position={x:0,z:2.75};runtime.step(1/240);assert.equal(runtime.snapshot().actors.find(a=>a.id==='hero').combatReady,false);
 });
+
+test('combat-ready stance follows the nearest live threat instead of the tactical target',()=>{
+  const hero={...actor('hero','party',0),targetId:'enemy-far'},far=actor('enemy-far','enemy',4.4),near=actor('enemy-near','enemy',2.05);
+  const runtime=createJohakyuBattleRuntime({battleId:'nearest-threat-ready',actors:[hero,far,near],bounds:{minX:-10,maxX:10,minZ:-10,maxZ:10}});
+  runtime.step(1/240);const row=runtime.snapshot().actors.find(a=>a.id==='hero');
+  assert.equal(runtime.actor('hero').targetId,'enemy-far');assert.equal(row.combatReady,true);assert.equal(row.combatReadyTargetId,'enemy-near');
+});
