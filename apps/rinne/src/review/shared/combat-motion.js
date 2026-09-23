@@ -1,0 +1,77 @@
+const clamp=(value,lo,hi)=>Math.min(hi,Math.max(lo,value));
+const smooth01=value=>{const t=clamp(Number(value)||0,0,1);return t*t*(3-2*t);};
+const SWEEP=new Set(['slash','diagonal','back','crosscut','heavy','round','sweep','katanaKesa','katanaDraw','katanaReturn','spearwheel']);
+const THRUST=new Set(['thrust','pierce','dash','bullrush','jab','straight','oneinch']);
+const UPWARD=new Set(['uppercut','risingfist','sky']);
+const LEAP=new Set(['leap','meteor']);
+const COMBO=new Set(['barrage','rushfist','crosscut','round','spearwheel']);
+
+function rotate(bone,x=0,y=0,z=0){if(!bone)return;bone.rotation.x+=x;bone.rotation.y+=y;bone.rotation.z+=z;}
+function shiftY(bone,value=0){if(bone)bone.position.y+=value;}
+function styleFor(attack){
+  if(SWEEP.has(attack))return 'sweep';
+  if(THRUST.has(attack))return 'thrust';
+  return 'strike';
+}
+function backstepPose(bones,sequence){
+  const p=clamp(Number(sequence?.backstepProgress)||0,0,1);
+  if(p<=0)return false;
+  const launch=smooth01(clamp(p/.34,0,1)),air=Math.sin(Math.min(1,p)*Math.PI),land=smooth01(clamp((p-.68)/.32,0,1));
+  rotate(bones.hips,-.08*launch+.13*land,0,.035*Math.sin(p*Math.PI));
+  shiftY(bones.hips,air*.085-land*.035);
+  rotate(bones.spine,.22*launch-.16*land,0,-.05*Math.sin(p*Math.PI));
+  rotate(bones.head,-.06*launch+.04*land);
+  rotate(bones.leftUpperLeg,-.52*launch+.24*land);
+  rotate(bones.rightUpperLeg,.36*launch-.18*land);
+  rotate(bones.leftLowerLeg,.68*launch-.42*land);
+  rotate(bones.rightLowerLeg,-.5*launch+.34*land);
+  rotate(bones.leftUpperArm,-.22*launch,0,-.16*launch);
+  rotate(bones.rightUpperArm,-.18*launch,0,.14*launch);
+  rotate(bones.leftLowerArm,-.28*launch);rotate(bones.rightLowerArm,-.24*launch);
+  return true;
+}
+function sweepPose(bones,{release,recover,strike,cinematic}){
+  const arc=(release*1.05-recover*.32)*cinematic;
+  rotate(bones.rightUpperArm,-.48-.72*arc,-.22-.34*arc,.28-.44*arc);
+  rotate(bones.rightLowerArm,-.46-.35*strike);
+  rotate(bones.leftUpperArm,-.18-.3*strike,0,-.24-.18*strike);
+  rotate(bones.leftLowerArm,-.38);
+}
+function thrustPose(bones,{progress,recover,cinematic}){
+  const drive=smooth01(clamp((progress-.12)/.46,0,1))*(1-recover*.5)*cinematic;
+  rotate(bones.spine,-drive*.22);
+  rotate(bones.rightUpperArm,-.72-.22*drive,-.12,.08);rotate(bones.rightLowerArm,-.12-.2*(1-drive));
+  rotate(bones.leftUpperArm,-.3,0,-.3);rotate(bones.leftLowerArm,-.5);
+  rotate(bones.rightUpperLeg,-drive*.2);rotate(bones.leftUpperLeg,drive*.15);
+}
+function strikePose(bones,{release,recover,cinematic}){
+  const punch=(release-recover*.35)*cinematic;
+  rotate(bones.rightUpperArm,-.5-.46*punch,-.22*punch,.22);
+  rotate(bones.rightLowerArm,-.58*(1-punch)-.08);
+  rotate(bones.leftUpperArm,-.32,0,-.3);rotate(bones.leftLowerArm,-.62);
+}
+const STYLE_POSE=Object.freeze({sweep:sweepPose,thrust:thrustPose,strike:strikePose});
+
+export function applyReviewCombatMotion(bones,frame,sequence){
+  if(!bones)return;
+  const attack=String(frame?.attack||'');
+  if(backstepPose(bones,sequence))return;
+  if(!attack)return;
+  const progress=clamp(Number(frame?.progress)||0,0,1),cinematic=sequence?.stage==='execute'?1.16:1;
+  const wind=smooth01(clamp(progress/.24,0,1)),release=smooth01(clamp((progress-.18)/.42,0,1));
+  const recover=smooth01(clamp((progress-.62)/.38,0,1)),strike=Math.sin(clamp((progress-.08)/.78,0,1)*Math.PI);
+  const twist=(release-wind*.72-recover*.35)*cinematic,grounded=1-Math.min(1,Math.abs(progress-.48)*1.8);
+  rotate(bones.hips,-strike*.055,twist*.28);shiftY(bones.hips,-grounded*.025);
+  rotate(bones.spine,-.08-strike*.12,twist*.52,Math.sin(progress*Math.PI*2)*.055*cinematic);
+  rotate(bones.chest,-strike*.045,twist*.24);rotate(bones.head,strike*.025,-twist*.2);
+  rotate(bones.leftUpperLeg,.14*grounded-.09*release);rotate(bones.rightUpperLeg,-.12*grounded-.13*release);
+  rotate(bones.leftLowerLeg,-.18*grounded);rotate(bones.rightLowerLeg,-.15*grounded);
+  STYLE_POSE[styleFor(attack)](bones,{progress,release,recover,strike,cinematic});
+  if(UPWARD.has(attack)){rotate(bones.spine,strike*.2);rotate(bones.rightUpperArm,strike*.42);rotate(bones.rightLowerArm,-strike*.22);}
+  if(COMBO.has(attack)){
+    const switchSide=Math.sin(progress*Math.PI*4);
+    rotate(bones.hips,0,switchSide*.16*strike);rotate(bones.spine,0,switchSide*.22*strike);
+    rotate(bones.leftUpperArm,-Math.max(0,switchSide)*.34);rotate(bones.rightUpperArm,-Math.max(0,-switchSide)*.34);
+  }
+  if(LEAP.has(attack))shiftY(bones.hips,Math.sin(progress*Math.PI)*.16*cinematic);
+}

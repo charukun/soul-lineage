@@ -5,7 +5,7 @@ import {resolveTechnique} from '@soul/johakyu-battle';
 import {presentBattleFrame,presentBattleEvents} from '@soul/johakyu-presentation/battle-presentation';
 import {battle2TechniqueCatalog,battle2SelectionAllowed} from '../src/nocturne/battle2-technique-catalog.js';
 import {normalizeBattle2Loadout} from '../src/nocturne/battle2-loadout.js';
-function run(options={},seconds=60){const scenario=createJohakyuP7ReviewScenario(options),events=[],frames=[];for(let i=0;i<seconds*60;i++){const result=scenario.step(1/60);events.push(...result.meta.activity);if(i%6===0)frames.push(result.frame);}return{scenario,events,frames};}
+function run(options={},seconds=60){const scenario=createJohakyuP7ReviewScenario({...options,settings:{inspirationRate:'off',...(options.settings||{})}}),events=[],frames=[];for(let i=0;i<seconds*60;i++){const result=scenario.step(1/60);events.push(...result.meta.activity);if(i%6===0)frames.push(result.frame);}return{scenario,events,frames};}
 test('Lab uses the shared authority for duel and multiple enemies with a complete technique/stage loadout',()=>{
  for(const mode of ['duel','oneVsThree']){const s=createJohakyuP7ReviewScenario({mode});assert.equal(s.inspect().frame.authority,'johakyu-battle');assert.equal(s.inspect().frame.actors.length,mode==='duel'?2:4);assert.equal(s.composition.hero.kyu[0].stages.length,3);}
  assert.throws(()=>createJohakyuP7ReviewScenario({mode:'twoVsThree'}),RangeError);
@@ -67,7 +67,7 @@ test('enemy 葬焉 waits for full knockdown and recovery does not interrupt it',
 });
 
 test('battle2 rescues inspiration into the current phase, first-casts it immediately, and keeps it equipped',()=>{
- const scenario=createJohakyuP7ReviewScenario({settings:{inspirationRate:'high'},actorOverrides:{hero:{hp:900,maxHp:900},'enemy-a':{hp:12000,maxHp:12000}}});let learned=null,started=null;
+ const scenario=createJohakyuP7ReviewScenario({settings:{inspirationRate:'high'},actorOverrides:{hero:{hp:900,maxHp:900}}});let learned=null,started=null;
  for(let i=0;i<60*90&&(!learned||!started);i++){
   const result=scenario.step(1/60);
   learned||=result.meta.activity.find(row=>row.type==='inspiration'&&row.actorId==='hero');

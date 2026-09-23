@@ -27,7 +27,7 @@ test('battle2 nests native canvases inside the shared battle review frame',()=>{
   assert.equal((html.match(/data-battle-mode=/g)||[]).length,2);
   assert.equal((html.match(/review-surface__panel/g)||[]).length,0);
   assert.match(html,/data-review-stage-control data-battle-mode-control/);
-  assert.match(stage,/mountReviewStageControls/);assert.match(stage,/groups:\['\[data-battle-mode-control\]'\]/);assert.match(stage,/label:'戦闘設定'/);
+  assert.match(stage,/mountReviewStageControls/);assert.match(stage,/groups:\['\[data-battle-mode-control\]','\[data-battle-technique-mode-control\]','\[data-battle-inspiration-rate-control\]'\]/);assert.match(stage,/label:'戦闘設定'/);
   assert.match(sharedStage,/review-stage-controls__button','⚙'/);assert.match(sharedControls,/\.review-stage-controls\{position:absolute;z-index:32;right:/);
   assert.match(css,/main\.battle2-review\.review-surface>\.review-surface__workspace\s*\{\s*grid-template-columns:minmax\(0,1fr\)!important;\s*grid-template-rows:minmax\(0,1fr\)!important;/);
   assert.match(css,/\.battle-stage-switch\[data-review-stage-control\]\{display:none\}/);assert.match(css,/\.review-stage-controls__panel>\.battle-stage-switch/);

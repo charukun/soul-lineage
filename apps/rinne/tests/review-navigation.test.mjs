@@ -18,7 +18,7 @@ test('review back uses same-origin history only when it is safe',()=>{
 test('RINNE specialist reviews use shared shell navigation without Vite injection',async()=>{
   const [vite,rinneShell,sharedShell]=await Promise.all([
     read('vite.config.js'),
-    read('src/review-lab-shell.js'),
+    read('src/review/shared/lab-shell.js'),
     read('../../packages/shared-ui/src/review-shell.js'),
   ]);
   assert.doesNotMatch(vite,/reviewNavigationEntries|review-navigation\.js|transformIndexHtml/);
@@ -29,7 +29,7 @@ test('RINNE specialist reviews use shared shell navigation without Vite injectio
 
 test('stage gear discovers declarative controls instead of a per-screen selector map',async()=>{
   const [rinneShell,stage,...pages]=await Promise.all([
-    read('src/review-lab-shell.js'),
+    read('src/review/shared/lab-shell.js'),
     read('../../packages/shared-ui/src/review-stage.js'),
     ...['review-motion.html','review-assets.html','review-objects.html','review-effects.html','review-sound.html'].map(read),
   ]);
@@ -43,13 +43,15 @@ test('stage gear discovers declarative controls instead of a per-screen selector
 
 test('slot picker is a shared-ui primitive and RINNE keeps only the adapter',async()=>{
   const [auto,pkg,picker]=await Promise.all([
-    read('src/review-slot-auto.js'),
+    read('src/review/shared/slot-auto.js'),
     read('../../packages/shared-ui/package.json'),
     read('../../packages/shared-ui/src/review-slot-picker.js'),
   ]);
   assert.match(auto,/@soul\/shared-ui\/review-slot-picker/);
+  assert.doesNotMatch(auto,/installBattleSlots|battle-canvas/);
   assert.match(pkg,/"\.\/review-slot-picker": "\.\/src\/review-slot-picker\.js"/);
   assert.match(picker,/import '\.\/review-slot-picker\.css'/);
+  assert.match(await read('src/review-slot-auto.js'),/\.\/review\/shared\/slot-auto\.js/);
   await assert.rejects(read('src/review-slot-picker.js'));
   await assert.rejects(read('src/review-slot-picker.css'));
 });

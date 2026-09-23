@@ -55,26 +55,11 @@ function installEffectSlots(){
   moveReviewSlot(mountReviewSelect(byId('fx-tier'),'品質'),slotRow);
 }
 
-function installBattleSlots(){
-  if(!byId('battle-canvas'))return;
-  const settings=qs('.review-settings'),pickers=settings?.querySelector('.pickers');
-  if(!settings||!pickers)return;
-  pickers.classList.add('review-slot-row');
-  moveReviewSlot(mountReviewSelect(byId('battle-hero-model'),'左モデル'),pickers);
-  moveReviewSlot(mountReviewSelect(byId('battle-enemy-model'),'右モデル'),pickers);
-  const modes=settings.querySelector('.review-modes');
-  if(modes){
-    modes.hidden=false;
-    moveReviewSlot(mountReviewGroup(modes.querySelector('.battle-mode-switch'),'戦闘人数'),modes);
-    moveReviewSlot(mountReviewGroup(modes.querySelector('.skin-switch'),'カメラ / UI'),modes);
-  }
-}
 
 function install(){
   installCharacterSlots();
   installAssetSlots();
   installEffectSlots();
-  installBattleSlots();
 }
 
 createReviewAutoInstaller(install);

@@ -7,10 +7,10 @@ const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 test('review 3D surfaces share renderer, camera preset, and resource lifetime primitives',async()=>{
   const [rendering,motion,assets,objects,effects,thumbnails]=await Promise.all([
     read('packages/rendering/src/review/preview-stage.js'),
-    read('apps/rinne/src/review-motion.js'),
-    read('apps/rinne/src/review-asset-library.js'),
-    read('apps/rinne/src/review-object-library.js'),
-    read('apps/rinne/src/review-effects.js'),
+    read('apps/rinne/src/review/motion/entrypoint.js'),
+    read('apps/rinne/src/review/equipment/entrypoint.js'),
+    read('apps/rinne/src/review/objects/entrypoint.js'),
+    read('apps/rinne/src/review/effects/entrypoint.js'),
     read('apps/rinne/src/review/shared/runtime-thumbnail.js'),
   ]);
   assert.match(rendering,/export function createReviewCameraPresetController/);
@@ -48,4 +48,19 @@ test('review metadata and stage controls use shared semantic contracts',async()=
   assert.match(objects,/object-details review-surface__meta/);
   assert.match(effects,/controls" data-review-stage-control/);
   assert.equal((sound.match(/data-review-stage-control/g)||[]).length,2);
+});
+
+test('surviving motion and equipment reviews use rescued shared combat helpers, not the retired battle view',async()=>{
+  const [motion,equipment,combatEquipment,combatMotion]=await Promise.all([
+    read('apps/rinne/src/review/motion/entrypoint.js'),
+    read('apps/rinne/src/review/equipment/entrypoint.js'),
+    read('apps/rinne/src/review/shared/combat-equipment.js'),
+    read('apps/rinne/src/review/shared/combat-motion.js'),
+  ]);
+  assert.match(motion,/\.\.\/shared\/combat-equipment\.js/);
+  assert.match(equipment,/\.\.\/shared\/combat-equipment\.js/);
+  assert.match(equipment,/\.\.\/shared\/combat-motion\.js/);
+  assert.doesNotMatch(motion+equipment,/\.\.\/battle\//);
+  assert.match(combatEquipment,/export function hideEmbeddedCombatProps/);
+  assert.match(combatMotion,/export function applyReviewCombatMotion/);
 });

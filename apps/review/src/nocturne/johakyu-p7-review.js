@@ -11,7 +11,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
  if(!['duel','oneVsThree'].includes(mode)||!PHASES.includes(heroStartPhase)||!Number.isFinite(duelGap)||duelGap<1||duelGap>5)throw new RangeError('Invalid battle review fixture');
  if(fixture!==null&&fixture!=='clash')throw new RangeError('Invalid battle review fixture');
  const clashFixture=fixture==='clash',fixtureLoadout=clashFixture&&!loadout?{...BATTLE2_LOADOUT_DEFAULT,technique:{jo:'basic.sword',ha:'basic.sword',kyu:'basic.sword'}}:loadout;
- const config=normalizeBattle2Loadout(fixtureLoadout||BATTLE2_LOADOUT_DEFAULT),weapon=config.equipment.weapon,known=[...new Set(learnedTechniqueIds)],knownSet=new Set(known),reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'};
+ const config=normalizeBattle2Loadout(fixtureLoadout||BATTLE2_LOADOUT_DEFAULT),weapon=config.equipment.weapon,known=[...new Set(learnedTechniqueIds)],knownSet=new Set(known),reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':settings?.inspirationRate==='off'?'off':'normal'},inspirationChance=reviewSettings.inspirationRate==='high'?.45:reviewSettings.inspirationRate==='off'?0:.035;
  const mind={attack:.25,guard:.25,counter:.25,mobility:.25,survival:.25,spacing:.25},heartEffects={damage:0,mitigation:0};
  for(const id of config.heart.active){const row=CAUSAL_ANSWER_BY_ID[id];for(const [key,value]of Object.entries(row?.intent||{}))if(key in mind)mind[key]+=value;for(const key of Object.keys(heartEffects))heartEffects[key]+=Number(row?.effects?.[key])||0;}
  let encounter=1,epoch=1,serial=1,elapsed=0,defeats=0,finishers=0,resumes=0,restartedAt=null,runtime,last=null,activeHeroLoadout,activity=[],history=[],replacements=[];
@@ -72,7 +72,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
      if(event.type==='actor-downed'&&event.targetId!=='hero'){defeats++;if(config.heart.active.includes('skill.nonlethal'))replacements.push({id:event.targetId,slot:event.targetId.split('#')[0],at:elapsed+6.5,recover:true});}
      if(event.type==='finisher'&&event.sourceId==='hero')finishers++;
      if(event.type==='finisher-complete'&&event.sourceId==='hero'&&!replacements.some(r=>r.id===event.targetId))replacements.push({id:event.targetId,slot:event.targetId.split('#')[0],at:elapsed+FINISHER_RESPAWN_SECONDS});
-     if(event.type==='player-hit'&&hash(event.id)<(reviewSettings.inspirationRate==='high'?.45:.035)){
+     if(event.type==='player-hit'&&hash(event.id)<inspirationChance){
        const hero=runtime.actor('hero'),phase=PHASES.includes(event.phase)?event.phase:PHASES[hero.cursor.phaseIndex],targetId=event.targetId||hero.targetId;let draw=0;
        const picked=pickBattle2Inspiration({weapon,phase,seenIds:known,encounterMode:mode==='oneVsThree'?'one-v-three':'duel',spectacle:reviewSettings.inspirationRate==='high',mastered:PHASES.every(slot=>!String(config.technique[slot]).startsWith('basic.')),seed:Math.floor(hash(event.id+':name')*0xffffffff)},()=>hash(`${event.id}:pick:${draw++}`));
        const definition=picked&&battle2TechniqueDefinition(picked.id,{weapon});
