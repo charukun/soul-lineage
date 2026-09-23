@@ -32,7 +32,7 @@ test('battle2 nests native canvases inside the shared battle review frame',()=>{
   assert.match(css,/main\.battle2-review\.review-surface>\.review-surface__workspace\s*\{\s*grid-template-columns:minmax\(0,1fr\)!important;\s*grid-template-rows:minmax\(0,1fr\)!important;/);
   assert.match(css,/\.battle-stage-switch\[data-review-stage-control\]\{display:none\}/);assert.match(css,/\.review-stage-controls__panel>\.battle-stage-switch/);
   assert.doesNotMatch(css,/position:\s*fixed/);assert.match(css,/height:\s*100dvh/);
-  assert.match(css,/review-switcher__grid\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(css,/review-switcher__grid\{grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
 });
 
 test('shared switcher highlights battle2 and retains canonical routes and a local Lab back link',()=>{

@@ -24,7 +24,7 @@ test('object review uses catalog-owned dedicated thumbnails instead of live grid
   for(const id of ids)assert.match(sprite,new RegExp(`<symbol id=["']${id}["']`),`missing dedicated thumbnail symbol for ${id}`);
 });
 
-test('object review intentionally overrides the shared five-column phone grid for readable model selection',async()=>{
+test('object review intentionally overrides the shared six-column phone grid for readable model selection',async()=>{
   const css=await read('apps/rinne/src/review-object-library.css');
   assert.match(css,/\.object-options\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)!important/);
   assert.match(css,/@media\(max-width:520px\)[\s\S]*?\.object-options\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
