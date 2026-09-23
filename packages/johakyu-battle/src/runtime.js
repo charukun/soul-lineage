@@ -45,7 +45,9 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     if(!reaction&&!finisher&&!actor.override&&actor.queuedTechnique){actor.override={technique:actor.queuedTechnique,stageIndex:0};actor.queuedTechnique=null;}
     const n=node(actor),technique=reaction?defineTechnique({id:`reaction.${reaction}`,name:reaction==='parry'?'弾き':reaction==='counter'?'返し':'受け',steps:[{kind:reaction,footwork:reaction==='counter'?'chase':'stay',charge:'none'}]},{weapon:actor.equipment.weapon}):finisher?defineTechnique({id:'finisher.execution',name:'トドメ',rhythm:'weight',steps:[{kind:actor.equipment.weapon==='fist'?'bash':'heavy',footwork:'stay',charge:'breath'}]},{weapon:actor.equipment.weapon}):actor.override?.technique||n.technique;
     const stage=reaction||finisher?technique.stages[0]:actor.override?technique.stages[actor.override.stageIndex]:n.stage,phase=finisher?'finisher':reaction?'uke':actor.override?'one':n.phase;
-    const baseChoreography=stageChoreography(technique,stage,{weapon:actor.equipment.weapon,tempo:finisher?1:actor.tempo||1,chainLength:finisher?1:n.chain.length});
+    const continuing=!reaction&&!finisher&&phase!=='one'&&actor.chainLastAt!==null&&actor.chainTargetId===target.id;
+    const momentum=continuing?1+Math.min(.14,actor.cursor.phaseIndex*.035+actor.cursor.techniqueIndex*.025):1;
+    const baseChoreography=stageChoreography(technique,stage,{weapon:actor.equipment.weapon,tempo:finisher?1:(actor.tempo||1)*momentum,chainLength:finisher?1:n.chain.length});
     const finisherScale=actor.finisherProfile?.durationScale||({sokudan:.9,kakudan:1,danzetsu:1.1}[actor.finisherProfile]||1);
     const choreography=finisher?freeze({...baseChoreography,duration:Math.max(1.7,Math.min(2.3,2*finisherScale))}):baseChoreography;
     const execution={id:`${battleId}:${actor.id}:${++serial}`,actorId:actor.id,targetId:target.id,techniqueId:technique.id,technique,stageIndex:stage.stageIndex,
@@ -61,14 +63,14 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     emit({type:finisher?'finisher-start':reaction?'reaction-start':'stage-start',sourceId:actor.id,actorId:actor.id,targetId:target.id,...executionIdentity(execution),staminaBefore,staminaPaid:receipt.paid});return execution;
   }
   function finish(actor){
-    const action=actor.action;if(!action)return;emit({type:'stage-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});cancelJohakyuStage(action);actor.action=null;actor.readyAt=time+.055;
+    const action=actor.action;if(!action)return;emit({type:'stage-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});cancelJohakyuStage(action);actor.action=null;actor.readyAt=time+.033;
     if(action.finisher){emit({type:'finisher-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});return;}
     if(action.phase==='one'){actor.override.stageIndex++;if(actor.override.stageIndex>=actor.override.technique.stages.length){actor.override=null;actor.readyAt=time+.45;emit({type:'technique-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});}return;}
     if(action.reaction){if(action.reaction==='counter'){actor.counterUntil=0;const target=actors.get(action.targetId);if(target)exchange(actor,target,{type:'counter-complete'});}return;}
     if(action.breakReason||!live(actors.get(action.targetId)||{})){breakChain(actor,action.breakReason||'target-lost',action.targetId);return;}
     actor.chainLastAt=time;
     const c=actor.cursor,n=node(actor);c.stageIndex++;
-    if(c.stageIndex>=n.technique.stages.length){c.stageIndex=0;c.techniqueIndex++;const opponent=actors.get(action.targetId);if(opponent){exchange(actor,opponent,{type:'offense-complete',phase:action.phase});actor.readyAt=time+.46;if(action.phase==='kyu'||actor.stamina<40||actor.mind?.spacing>.25)actor.decision={intent:'disengage',footwork:'retreat',targetId:opponent.id,stopDistance:battleSpacing(actor,opponent,distance(actor,opponent)).engagementRange+.3};}emit({type:'technique-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});
+    if(c.stageIndex>=n.technique.stages.length){c.stageIndex=0;c.techniqueIndex++;const opponent=actors.get(action.targetId);if(opponent){exchange(actor,opponent,{type:'offense-complete',phase:action.phase});}emit({type:'technique-complete',sourceId:actor.id,targetId:action.targetId,...executionIdentity(action)});
       if(c.techniqueIndex>=n.chain.length){c.techniqueIndex=0;c.phaseIndex=(c.phaseIndex+1)%3;emit({type:'phase-change',actorId:actor.id,phase:PHASES[c.phaseIndex]});
         if(c.phaseIndex===0){c.cycle++;actor.chainTargetId=null;actor.chainLastAt=null;actor.readyAt=time+({breath:.24,pursuit:.28,guard:.38}[actor.zanshin]||.32);const target=actors.get(action.targetId);if(target)exchange(actor,target,{type:'kyu-complete',phase:'kyu'});emit({type:'zanshin',actorId:actor.id});}
       }
@@ -103,6 +105,10 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     if(time<actor.readyAt)return;
     const n=node(actor),counter=actor.counterUntil>time&&actor.counterTarget===target.id;
     if(counter&&distance(actor,target)<=battleSpacing(actor,target,distance(actor,target)).engagementRange){begin(actor,target,{reaction:'counter'});return;}
+    // A live combo proceeds straight into its next authored stage while the target remains in reach.
+    if(actor.chainTargetId===target.id&&actor.chainLastAt!==null&&actor.canAttack!==false&&actor.stamina>=14&&actor.posture<=82&&distance(actor,target)<=battleSpacing(actor,target,distance(actor,target)).engagementRange){
+      if(begin(actor,target))return;
+    }
     actor.readSeconds+=dt;
     if(!actor.decision||time>=actor.decisionUntil){actor.decision={...chooseExchangeIntent({actor,target,exchange:pair(actor,target).state,phase:n.phase,distance:distance(actor,target),threat,readSeconds:actor.readSeconds,serial:actor.cursor.cycle+actor.cursor.stageIndex}),targetId:target.id};actor.decisionUntil=time+.12;}
     if(actor.decision.intent==='commit'&&actor.canAttack!==false){
