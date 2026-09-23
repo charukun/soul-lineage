@@ -27,6 +27,6 @@ export function meleeSequenceHudState({combat,actorId,attack='',interrupted=fals
   const normal=['jo','ha','kyu'].includes(hudState);
   // Melee ownership, not a transient attack pose or the legacy hit animation,
   // keeps the phase lit between stages and through ordinary defended contacts.
-  const sequence=sequenceHudState({phase:normal?hudState:'',attack:normal?(attack||FALLBACK_ACTIONS[hudState]):''});
+  const sequence=sequenceHudState({phase:normal?hudState:'',attack:normal?(attack||FALLBACK_ACTIONS[hudState]):'',interrupted});
   return Object.freeze({...sequence,hudState,exchangeCue:cue.label,exchangeIntent:cue.intent,historyKey:cue.historyKey,action:normal?sequence.action:hudState==='zanshin'?'残心':'間合い'});
 }
