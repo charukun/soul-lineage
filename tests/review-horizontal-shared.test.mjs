@@ -26,9 +26,9 @@ test('review 3D surfaces share renderer, camera preset, and resource lifetime pr
 test('static thumbnails and review status updates use shared-ui primitives',async()=>{
   const [controls,motion,assets,objects]=await Promise.all([
     read('packages/shared-ui/src/review/controls.css'),
-    read('apps/rinne/src/review-motion.js'),
-    read('apps/rinne/src/review-asset-library.js'),
-    read('apps/rinne/src/review-object-library.js'),
+    read('apps/rinne/src/review/motion/entrypoint.js'),
+    read('apps/rinne/src/review/equipment/entrypoint.js'),
+    read('apps/rinne/src/review/objects/entrypoint.js'),
   ]);
   assert.match(controls,/\.review-static-thumbnail\{/);
   for(const source of [motion,assets,objects])assert.match(source,/createReviewSvgThumbnail/);
