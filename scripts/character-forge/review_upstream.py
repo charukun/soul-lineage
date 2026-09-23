@@ -3,7 +3,7 @@
 The hull GLB is only a container conversion of upstream vertices/indices. It is
 an inferred silhouette constraint, not a scanned ground-truth reference mesh.
 """
-import argparse,json,struct,sys,shutil
+import argparse,copy,json,struct,sys,shutil
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'packages/assets/forge'))
@@ -35,7 +35,19 @@ def review(w,cache,pass_id):
         return code
     for view in ('front','side','back'):
         source=f'source/{view}.png';render=f'review/{pass_id}/{view}.png'
-        run(view+'-diagnostics','forge/stage4_review/diagnose_render.py','--reference',source,'--render',render,'--spec','object-sculpt-spec.json','--pass-id',pass_id,'--json',*(['--in-place'] if view=='front' else []),*(['--map-stripped-render',render] if pass_id=='blockout' else []))
+        diagnostic_spec='object-sculpt-spec.json'
+        spec=json.loads((w/diagnostic_spec).read_text())
+        overrides=[n for n in spec['componentTree'] if view in n.get('colorMaterialRecipeByView',{})]
+        if overrides:
+            if view=='front':raise ValueError('Front evidence must be the canonical component recipe')
+            for node in overrides:
+                recipe=node['colorMaterialRecipeByView'][view]
+                if recipe.get('viewEvidence',{}).get('source')!=source:raise ValueError('Recipe belongs to a different source view')
+                if not (w/recipe['sourceCropPath']).is_file():raise ValueError('Missing observed recipe crop')
+                node['colorMaterialRecipe']=copy.deepcopy(recipe)
+            diagnostic_spec=f'review/{pass_id}/{view}-diagnostic-spec.json'
+            write_json(w/diagnostic_spec,spec)
+        run(view+'-diagnostics','forge/stage4_review/diagnose_render.py','--reference',source,'--render',render,'--spec',diagnostic_spec,'--pass-id',pass_id,'--json',*(['--in-place'] if view=='front' else []),*(['--map-stripped-render',render] if pass_id=='blockout' else []))
         run(view+'-divine-eye','forge/stage4_review/divine_eye.py','--reference',source,'--render',render,'--json')
         run(view+'-interior','forge/stage4_review/interior_difference.py',source,render,'--json')
         # A diagnostic sheet is retained on rejection too, but no VLM acceptance

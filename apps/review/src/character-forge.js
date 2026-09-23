@@ -9,9 +9,11 @@ import {REVIEW_ROUTES} from './review-lab-config.js';
 import {createForgeInspectionStage} from './character-forge-stage.js';
 import {characterForgeCandidates} from '../../../packages/assets/generated/create-forge-registry.js';
 import {createCharacterPackageActor} from '../../../packages/assets/src/character-create-forge/actor.js';
+import {characterReferenceShot} from '../../../packages/assets/src/character-create-forge/reference-view.js';
 
 const panel=document.querySelector('.forge-panel'),$=selector=>panel.querySelector(selector);
-const labels={model:'モデル',front:'正面',side:'側面',back:'背面',turntable:'360°',free:'自由視点'};
+const labels={model:'モデル',front:'正面',side:'側面',back:'背面',front34:'前斜め',rear34:'後斜め',turntable:'360°',free:'自由視点'};
+const expressionLabels={neutral:'標準',blink:'まばたき',smile:'笑顔','mouth-open':'口を開く'};
 const motionLabels={Idle:'待機',Walk:'歩く',Talk:'話す',Attack:'攻撃',Hit:'被弾',Rest:'休む',Run:'走る',Pickup:'拾う',Jump:'ジャンプ',Fall:'落下'};
 const status=message=>$('.forge-status').textContent=message;
 
@@ -41,6 +43,15 @@ function start(){
     applyCameraPresentation(camera,shot);
   }
   function frame(preset){
+    const reference=characterReferenceShot(THREE,entry.manifest,preset,camera.aspect);
+    if(reference){
+      actor.root.rotation.y=reference.modelYaw;camera.position.fromArray(reference.position);camera.up.fromArray(reference.up);orbit.target.fromArray(reference.lookTarget);camera.fov=reference.fov;camera.updateProjectionMatrix();presentShot();return;
+    }
+    actor.root.rotation.y=0;camera.up.set(0,1,0);
+    if(preset==='front34'||preset==='rear34'){
+      camera.fov=38;positionReviewCamera({camera,controls:orbit,root:frameRoot,preset:'three-quarter',padding:320/288,minDistance:.1,maxDistance:500});
+      if(preset==='rear34')actor.root.rotation.y=Math.PI;presentShot();return;
+    }
     camera.fov=preset==='three-quarter'?38:6;camera.updateProjectionMatrix();
     positionReviewCamera({camera,controls:orbit,root:frameRoot,preset,padding:320/288,minDistance:.1,maxDistance:500});
     presentShot();
@@ -60,7 +71,7 @@ function start(){
   }
   function setComparison(enabled){
     comparing=Boolean(enabled);panel.dataset.comparing=String(comparing);
-    scene.background.set(comparing?'#e9edef':'#26332f');
+    scene.background.set(comparing?(entry?.manifest.referenceReview?.background||'#e9edef'):'#26332f');
     display();
     $('[data-forge-compare]').setAttribute('aria-pressed',String(comparing));
     $('.forge-reference-pane').hidden=!comparing;
@@ -73,9 +84,13 @@ function start(){
     $('[data-forge-animation]').value=actor?.action||'Bind';
     $('[data-forge-pause]').hidden=!actor||actor.action==='Bind';
     $('[data-forge-pause]').textContent=paused?'再生':'一時停止';
+    $('[data-forge-expression]').value=actor?.expression||'neutral';
   }
   function compare(direction){
     if(!actor)return;
+    if(direction==='front34'||direction==='rear34'){
+      setComparison(false);actor.neutral();view=direction;turntable=false;paused=false;actor.setPaused(false);motionUI();updateViewUI();frame(direction);return;
+    }
     view=referenceView=direction;turntable=false;paused=false;angle=0;actor.setPaused(false);actor.neutral();
     const url=entry.references[direction];
     for(const selector of ['[data-forge-reference]','[data-forge-overlay-image]']){
@@ -120,7 +135,9 @@ function start(){
       frameRoot.position.fromArray(bounds.min.map((v,i)=>(v+bounds.max[i])*.5));
       frameRoot.scale.fromArray(bounds.min.map((v,i)=>bounds.max[i]-v));frameRoot.updateMatrixWorld(true);
       $('[data-forge-animation]').replaceChildren(new Option('基準姿勢','Bind'),...candidate.manifest.animations.map(c=>new Option(motionLabels[c.name]||c.name,c.name)));
-      actor.setEquipment({weapon:$('[data-forge-equipment]').value||null});inspection.bind(actor.root,candidate.manifest);display();enable(true);compare('front');if(!comparing)setComparison(false);panel.dataset.ready='true';
+      $('[data-forge-expression]').replaceChildren(...actor.expressionNames.map(name=>new Option(expressionLabels[name]||name,name)));
+      $('[data-forge-expression-panel]').hidden=!actor.expressionNames.length;
+      actor.setEquipment({weapon:$('[data-forge-equipment]').value||null});inspection.bind(actor.root,candidate.manifest);scene.background.set(comparing?(candidate.manifest.referenceReview?.background||'#e9edef'):'#26332f');display();enable(true);compare('front');if(!comparing)setComparison(false);panel.dataset.ready='true';
       for(const b of panel.querySelectorAll('[data-forge-candidate]'))b.setAttribute('aria-pressed',String(b.dataset.forgeCandidate===candidate.manifest.id));
       const mode={'single-view':'1枚から生成','multi-view':'三面図から生成','enhanced-multi-view':'5方向から生成'}[candidate.manifest.reconstructionMode];
       status(candidate.manifest.displayName+' · '+mode+' · '+(candidate.manifest.reviewStatus==='approved'?'承認済み':'確認候補・未承認'));
@@ -163,12 +180,15 @@ function start(){
     if(!actor)return;
     inspection.release();actor.setEquipment({weapon:event.target.value||null});inspection.bind(actor.root,entry.manifest);display();
   };
+  $('[data-forge-expression]').onchange=event=>{
+    if(!actor)return;const name=event.target.value,yaw=actor.root.rotation.y;actor.neutral();actor.root.rotation.y=yaw;actor.setExpression(name);motionUI();overlay(false);
+  };
   for(const selector of ['wire','skeleton','sockets'])$('[data-forge-'+selector+']').onchange=display;
   $('[data-forge-overlay]').onchange=event=>overlay(event.target.checked);
   $('[data-forge-opacity]').oninput=event=>$('.forge-comparison').style.setProperty('--forge-opacity',event.target.value);
   orbit.addEventListener('start',()=>{if(actor){turntable=false;view='free';overlay(false);updateViewUI();}});
   const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.parentElement,
-    onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();if(actor){if(['front','side','back'].includes(view))frame(view);else if(view!=='free')frame('three-quarter');}},
+    onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();if(actor){if(['front','side','back','front34','rear34'].includes(view))frame(view);else if(view!=='free')frame('three-quarter');}},
     render:()=>renderer.render(scene,camera)});
   function tick(now){
     if(!alive)return;raf=requestAnimationFrame(tick);const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;
@@ -188,4 +208,3 @@ function start(){
   });
 }
 try{start();}catch(error){panel.dataset.error=error.message;status('3D表示を開始できませんでした。 '+error.message);}
-

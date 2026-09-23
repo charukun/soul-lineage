@@ -125,7 +125,7 @@ Current hosted progress (not final acceptance):
 - Divine Eye colour/interior ensemble remains low-confidence for clay. This is not a final likeness score, a finished projection, or Quality Floor approval.
 - The first actual GPU bake at `f4a632039c07af92c90b6fd4970c353312a64c2e` emitted textures and a 36.8 MB raw GLB, but material acceptance failed. Side/back colour deltas exceeded the unchanged 20.0 gate (20.44/22.10). Per-mesh bake evidence exposed zero rasterized texels for neck/head/hair: world-space frustum culling had incorrectly discarded UV-space draws. The correction disables that inapplicable cull and rejects zero-texel atlases. `material-r0-review.json` records a third upstream refinement (material 1/3, total 3/6); no AI acceptance or Quality Floor success is claimed. Evidence: https://github.com/charukun/soul-lineage/actions/runs/35812947481
 
-Outstanding: form/material/surface/lighting/interaction/optimization passes; actual projected pixel bake and final likeness; rig/morph/socket adaptation and parity; final package/registry/Lab model; DCC if needed; visual regression; focused build and native browser evidence on the reconciled final head; Ready, develop merge and DEV start.
+Outstanding: material/surface/lighting/interaction/optimization acceptance; final projected likeness; rig/morph/socket adaptation and parity; final package/registry/Lab model; DCC if needed; visual regression; focused build and native browser evidence on the reconciled final head; Ready, develop merge and DEV start.
 
 The old `pipeline.py` loft route is deprecated and disabled without an explicit
 legacy compatibility-test flag. The default CLI enters `upstream_workspace.py`.
@@ -136,3 +136,9 @@ Camera Director, normal Fast DEV and Production gates are unchanged.
 The branch-only specialist workflow is still needed for continuation. Remove it
 before constructing the eventual mergeable final tree. Do not create a replacement
 branch or PR. Keep all subsequent evidence bound to the actual current model/head.
+
+## Material correction and review integration checkpoint
+
+At `438843ca09d826af6d1e6a6a9f7bea5fff4ed9b4`, all meshes produced nonzero UV rasterization and accepted position/normal parity remained exact. Side/back colour gates still failed (20.17/21.89). The next counted correction uses neutral inferred diffuse illumination and an independently extracted blue-back recipe; the upstream gate and threshold stay unchanged. This is material refinement 2/3, total 4/6, not acceptance. Evidence: https://github.com/charukun/soul-lineage/actions/runs/35813707448
+
+The Lab adapter now accepts calibrated img2threejs camera data through the existing Camera Director authored-shot path, preserving projection on differently shaped viewports. Geometric expression validation rejects empty/nonfinite targets, and optional package expressions plus both three-quarter views have controls. Five focused local camera/morph tests passed; no bound model or native browser acceptance is claimed yet.

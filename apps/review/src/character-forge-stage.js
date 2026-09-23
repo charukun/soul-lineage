@@ -10,14 +10,15 @@ export function createForgeInspectionStage({scene,renderer}){
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshStandardMaterial({color:'#303a35',roughness:1,metalness:0}));
   ground.name='ForgeInspectionGround';ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;ground.visible=false;
   scene.add(ambient,key,key.target,fill,fill.target,ground);
-  let meshes=[],materials=new Map(),bound=false;
+  let meshes=[],materials=new Map(),bound=false,referenceLighting=null,lightFrame=null;
+  const originalToneMapping=renderer.toneMapping;
 
   function release(){
     for(const {mesh,material,castShadow,receiveShadow} of meshes){
       mesh.material=material;mesh.castShadow=castShadow;mesh.receiveShadow=receiveShadow;
     }
     for(const material of materials.values())material.dispose();
-    meshes=[];materials.clear();bound=false;ground.visible=false;
+    meshes=[];materials.clear();bound=false;ground.visible=false;referenceLighting=null;
   }
   function bind(root,manifest){
     release();
@@ -30,6 +31,8 @@ export function createForgeInspectionStage({scene,renderer}){
     key.target.position.copy(center);fill.target.position.copy(center);
     key.position.copy(center).add(new THREE.Vector3(-2.5,3,4).multiplyScalar(extent));
     fill.position.copy(center).add(new THREE.Vector3(3,1,-3).multiplyScalar(extent));
+    lightFrame={key:key.position.clone(),fill:fill.position.clone(),target:center.clone()};
+    referenceLighting=manifest.referenceReview?.lighting||null;
     const shadowCamera=key.shadow.camera,span=extent*1.8;
     Object.assign(shadowCamera,{left:-span,right:span,top:span,bottom:-span,near:extent*.01,far:extent*12});
     shadowCamera.updateProjectionMatrix();key.shadow.normalBias=height*.003;
@@ -53,6 +56,16 @@ export function createForgeInspectionStage({scene,renderer}){
     }
     // References keep their established flat comparison lighting and a clean silhouette.
     const reference=comparison&&!shape;
+    if(reference&&referenceLighting){
+      const light=referenceLighting;
+      ambient.color.set(light.hemisphere.sky);ambient.groundColor.set(light.hemisphere.ground);ambient.intensity=light.hemisphere.intensity;
+      key.color.set(light.key.color);key.intensity=light.key.intensity;key.position.fromArray(light.key.position);key.target.position.fromArray(light.key.target);
+      fill.color.set(light.rim.color);fill.intensity=light.rim.intensity;fill.position.fromArray(light.rim.position);fill.target.position.fromArray(light.rim.target);
+      renderer.toneMapping=light.toneMapping==='none'?THREE.NoToneMapping:THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=light.exposure;key.castShadow=false;ground.visible=false;return;
+    }
+    ambient.color.set('#eef3ff');ambient.groundColor.set('#454a46');key.color.set('#fff4e8');fill.color.set('#d5e7ff');
+    if(lightFrame){key.position.copy(lightFrame.key);fill.position.copy(lightFrame.fill);key.target.position.copy(lightFrame.target);fill.target.position.copy(lightFrame.target);}
+    renderer.toneMapping=originalToneMapping;
     ambient.intensity=reference?2.4:.65;key.intensity=reference?3:3.2;fill.intensity=reference?2:.6;
     renderer.toneMappingExposure=reference?1.2:1.05;
     key.castShadow=!comparison;ground.visible=bound&&!comparison;

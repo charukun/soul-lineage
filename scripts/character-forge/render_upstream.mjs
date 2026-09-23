@@ -32,7 +32,18 @@ const camera=new THREE.PerspectiveCamera(10,.5,.01,100);
 const mats=new Map();model.traverse(n=>{if(n.isMesh){mats.set(n,n.material);if(n.material.opacity===0)n.visible=false;else if(['blockout','structural-pass','form-refinement'].includes('${pass}'))n.material=new THREE.MeshStandardMaterial({color:0xbfcbd5,roughness:.85});}});
 const rotations={front:0,side:-Math.PI/2,back:Math.PI,front34:-Math.PI/4,rear34:-3*Math.PI/4,oppositeSide:Math.PI/2};
 function draw(view='front') {const c=cameras[view]||cameras.front,p=c.fit.cameraParameters;camera.fov=p.fovDegrees;camera.position.fromArray(p.position);camera.rotation.set(0,0,0);camera.updateProjectionMatrix();if(projected)applyReferenceCamera(THREE,camera,c);model.rotation.y=rotations[view]??0;model.updateMatrixWorld(true);renderer.render(scene,camera);}
-function light(mode){hemi.intensity=mode==='neutral'?2:mode==='grazing'?.4:1.2;hemi.groundColor.set(mode==='neutral'?0xffffff:0x80909a);key.intensity=mode==='neutral'?0:mode==='grazing'?3:2;key.position.set(...(mode==='grazing'?[-4,2,1]:[2,4,3]));rim.intensity=mode==='neutral'?0:.5;}
+function light(mode){
+ const reference=spec.referenceReviewLighting;
+ if(projected&&reference){
+  renderer.toneMapping=reference.toneMapping==='none'?THREE.NoToneMapping:THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=reference.exposure;
+  hemi.color.set(reference.hemisphere.sky);hemi.groundColor.set(reference.hemisphere.ground);hemi.intensity=reference.hemisphere.intensity;
+  for(const [lamp,setting]of [[key,reference.key],[rim,reference.rim]]){lamp.color.set(setting.color);lamp.intensity=setting.intensity;lamp.position.fromArray(setting.position);lamp.target.position.fromArray(setting.target);}
+  if(mode==='neutral'){hemi.intensity=Math.PI;key.intensity=rim.intensity=0;}
+  if(mode==='grazing'){hemi.intensity=.4;key.intensity=3;key.position.set(-4,2,1);rim.intensity=.5;}
+  return;
+ }
+ hemi.intensity=mode==='neutral'?2:mode==='grazing'?.4:1.2;hemi.groundColor.set(mode==='neutral'?0xffffff:0x80909a);key.intensity=mode==='neutral'?0:mode==='grazing'?3:2;key.position.set(...(mode==='grazing'?[-4,2,1]:[2,4,3]));rim.intensity=mode==='neutral'?0:.5;
+}
 function meshBuffers(){const rows=[];model.updateMatrixWorld(true);model.traverse(n=>{if(n.isMesh&&n.visible){const g=n.geometry;rows.push({name:n.name,position:Array.from(g.attributes.position.array),normal:g.attributes.normal?Array.from(g.attributes.normal.array):[],uv:g.attributes.uv?Array.from(g.attributes.uv.array):[],index:g.index?Array.from(g.index.array):[],matrixWorld:n.matrixWorld.toArray()});}});return rows;}
 window.forge={draw,meshBuffers,light,projected,
  stripped(){const saved=new Map();model.traverse(n=>{if(n.isMesh&&n.visible){saved.set(n,n.material);n.material=new THREE.MeshStandardMaterial({color:0xbfcbd5,roughness:.85});}});draw('front');for(const [n,m]of saved){n.material.dispose();n.material=m;}},
@@ -88,6 +99,7 @@ try{
  }
  for(const view of ['front','side','back','front34','rear34','oppositeSide']){await page.evaluate(view=>window.forge.draw(view),view);await page.locator('canvas').screenshot({path:join(out,view+'.png')});console.log('FORGE_CAPTURE '+view);}
  const receipt=await page.evaluate(()=>window.forge.snapshot());receipt.errors.push(...errors);receipt.factorySha256=createHash('sha256').update(typescript).digest('hex');receipt.sourceHead=process.env.HEAD_SHA||null;receipt.visualApproval='pending';
+ if(receipt.pass&&!['blockout','structural-pass','form-refinement'].includes(receipt.pass))receipt.referenceLighting=JSON.parse(await readFile(join(workspace,'object-sculpt-spec.json'),'utf8')).referenceReviewLighting;
  await page.evaluate(()=>window.forge.draw('front'));
  await writeFile(join(out,'render-receipt.json'),JSON.stringify(receipt,null,2));
  await writeFile(join(out,'mesh-buffers.json'),await page.evaluate(()=>JSON.stringify(window.forge.meshBuffers())));
