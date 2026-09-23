@@ -12,6 +12,7 @@ import {createReviewLoadController} from '@soul/shared-ui/review-load-controller
 import {setReviewStatus} from '@soul/shared-ui/review-status';
 import {createReviewRenderer,positionReviewCamera} from '@soul/rendering';
 import {createImg2ThreeReferenceCharacter} from '../../img2threejs-bald-chibi.js';
+import {attachGoldenBaseWardrobe} from '../../golden-base-wardrobe.js';
 
 const el = id => document.getElementById(id);
 const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null, displayModelId: null };
@@ -375,6 +376,7 @@ function start() {
   }
   function clearProcedural() {
     if (!proceduralRoot) return;
+    review.goldenWardrobe?.dispose(); review.goldenWardrobe = null;
     if (boneTarget === proceduralRoot) clearBoneOverlay();
     proceduralRoot.removeFromParent(); disposeTemplate(proceduralRoot);
     proceduralRoot = null; proceduralBones = null; proceduralPoseBase = null; review.proceduralRoot = null;
@@ -552,7 +554,8 @@ function start() {
     try {
       const next = await createImg2ThreeReferenceCharacter();
       if (!alive || request !== modelRequestSequence) { disposeTemplate(next); return; }
-      clearProcedural(); proceduralRoot = next; proceduralBones = kaykitHumanoidFromGLTF({ scene: proceduralRoot }); scene.add(proceduralRoot); review.proceduralRoot = proceduralRoot; arrange();
+      clearProcedural(); proceduralRoot = next; proceduralBones = kaykitHumanoidFromGLTF({ scene: proceduralRoot }); scene.add(proceduralRoot); review.proceduralRoot = proceduralRoot;
+      review.goldenWardrobe = attachGoldenBaseWardrobe(proceduralRoot); arrange();
       review.displayModelId = 'img2threejs.bald-chibi.v1';
       review.audit = {approved:true,modelId:review.displayModelId,humanoidRig:proceduralRoot.userData.rigId,source:{revision:proceduralRoot.userData.img2threejs.revision}};
       review.ready = true; el('progress').value = 1; activeModelLabel = 'ゴールデンベース';
