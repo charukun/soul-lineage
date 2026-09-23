@@ -19,3 +19,11 @@ test('shared loadout detail prioritizes readable explanation and top-right actio
   assert.match(source,/configured=Boolean\(actionDisabled&&actionLabel==='設定済み'\)/);
   assert.match(source,/action\.hidden=!actionLabel\|\|configured/);
 });
+
+
+test('shared non-pentagon slots read as explicit equipment sockets',()=>{
+  assert.match(css,/loadout-slot-row:not\(\[data-layout="pentagon"\]\)>\.loadout-slot::before\{[\s\S]*?content:"装着枠"/);
+  assert.match(css,/loadout-slot-row:not\(\[data-layout="pentagon"\]\)>\.loadout-slot::after\{[\s\S]*?inset:5px/);
+  assert.match(css,/loadout-slot\[data-selected="true"\]::before\{[\s\S]*?content:"選択中"/);
+  assert.match(css,/data-layout="loadout"\] \.rinne-core-menu-body>\.loadout-slot-row \.loadout-slot\{[\s\S]*?height:56px/);
+});
