@@ -81,7 +81,7 @@ export function tickLifeBattle(states,front,dt,{fatalityChance=()=>.5}={}){
    if(owner)result.get(owner.id).push(row);if(victim&&victim!==owner)result.get(victim.id).push(row);
    if(event.type==='actor-downed'&&owner){owner.defeats=(owner.defeats||0)+1;const xp=owner.experiences.combat||{count:0,score:0,last:0};owner.experiences.combat={count:xp.count+1,score:xp.score+1,last:owner.ageSeconds};result.get(owner.id).push({type:'enemy-downed',targetId:event.targetId,engine:'johakyu'});}
    if(event.type==='execution-blocked'&&owner?.combat)owner.combat.executionBlock={reason:event.reason,remaining:.35};
-   if(event.type==='zanshin'&&owner&&owner.combat)selectCombatCombo(owner,owner.combat,{advance:true});
+   if(event.type==='phase-change'&&event.phase==='jo'&&owner&&owner.combat)selectCombatCombo(owner,owner.combat,{advance:true});
    if(event.type==='actor-downed'&&victim&&!victim.down&&!victim.ended){const outcome=combatBodyOutcome(victim),chance=outcome.fatal?1:fatalityChance(victim);if(hash(`${victim.seed}:${event.id||event.triggerEventId}:fatal`)<chance){endLifeEarly(victim,`第${front.stage+1}前線の戦い`);result.get(victim.id).push({type:'life-end',cause:'combat',engine:'johakyu'});}else{victim.down={elapsed:0,rescueSeconds:40,frontier:true};victim.combat=null;result.get(victim.id).push({type:'downed',engine:'johakyu'});}}
  }
  const nonlethal=active.every(s=>combatFinisherRuntime(s).nonlethal),cleared=front.enemies.every(e=>e.dead||nonlethal&&e.downed);
