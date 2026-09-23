@@ -10,13 +10,13 @@ const KIND_LABELS=Object.freeze({
   slash:'斬り',diagonal:'袈裟斬り',thrust:'突き',back:'返し',crosscut:'十字斬り',uppercut:'斬り上げ',bash:'打ち崩し',heavy:'打ち下ろし',round:'回し払い',dash:'踏み込み斬り',bullrush:'押し込み',meteor:'落とし',pommel:'柄打ち',sweep:'薙ぎ',leap:'跳び込み',sky:'穂先上げ',spearwheel:'槍回し',pierce:'貫き',jab:'牽制',straight:'正拳',bodyblow:'腹打ち',hook:'回し拳',risingfist:'突き上げ',oneinch:'寸勁',barrage:'連打',rushfist:'連環',guard:'受け',ready:'構え',brace:'踏ん張り',parry:'受け流し',counter:'返し突き',slip:'身かわし'
 });
 const FOOTWORK_LABELS=Object.freeze({stay:'その場',forward:'前へ踏み込む',chase:'追い足',retreat:'引き足',sideL:'左へ捌く',sideR:'右へ捌く',orbitL:'左へ回る',orbitR:'右へ回る',cross:'懐へ潜る',rush:'一気に詰める'});
-const stageText=stage=>{const action=KIND_LABELS[stage?.kind]||String(stage?.kind||'動作'),footwork=FOOTWORK_LABELS[stage?.footwork]||'';return footwork?\`${footwork}・${action}\`:action;};
+const stageText=stage=>{const action=KIND_LABELS[stage?.kind]||String(stage?.kind||'動作'),footwork=FOOTWORK_LABELS[stage?.footwork]||'';return footwork?`${footwork}・${action}`:action;};
 export function battle2TechniqueDescription(id,{weapon='sword'}={}){
   const technique=resolveTechnique(id,{weapon});if(!technique)return '実戦で使う技';
   const answer=resolveInspirationAnswer(id),flow=technique.stages.map(stageText).join(' → '),parts=[];
-  parts.push(answer?.mechanic||\`${technique.label}の基本動作をつなぐ型。\`);
-  if(flow)parts.push(\`動き: ${flow}\`);
-  if(answer?.tradeoff)parts.push(\`注意: ${answer.tradeoff}\`);
+  parts.push(answer?.mechanic||`${technique.label}の基本動作をつなぐ型。`);
+  if(flow)parts.push(`動き: ${flow}`);
+  if(answer?.tradeoff)parts.push(`注意: ${answer.tradeoff}`);
   return parts.join(' ');
 }
 
