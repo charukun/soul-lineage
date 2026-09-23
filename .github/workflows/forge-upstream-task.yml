@@ -37,7 +37,7 @@ jobs:
           mkdir -p .forge-transfer
           git rev-parse HEAD > .forge-transfer/source-sha.txt
           git ls-tree -r --name-only HEAD > .forge-transfer/repository-paths.txt
-          git archive --format=tar.gz HEAD docs/characters docs/art docs/DEVELOPMENT.md docs/DEVELOP_MERGE.md docs/DELIVERY_AUTHORIZATION.md docs/BROWSER_PLAYTEST_ROUTING.md packages/assets/forge packages/assets/src packages/assets/generated packages/characters packages/rendering apps/review scripts tests package.json package-lock.json AGENTS.md > .forge-transfer/source-scope.tar.gz
+          git archive --format=tar.gz HEAD docs/characters docs/art docs/DEVELOPMENT.md docs/DEVELOP_MERGE.md docs/DELIVERY_AUTHORIZATION.md docs/BROWSER_PLAYTEST_ROUTING.md packages/assets/forge packages/assets/characters/forge packages/assets/src packages/assets/generated packages/characters packages/rendering apps/review scripts tests package.json package-lock.json AGENTS.md > .forge-transfer/source-scope.tar.gz
           if [ -d .cache/character-forge-upstream ]; then
             tar -czf .forge-transfer/upstream.tar.gz -C .cache character-forge-upstream
           fi

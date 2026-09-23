@@ -45,7 +45,10 @@ def install_boundary(cache: Path, home: Path) -> dict:
     roots = {key: materialize(cache, key) for key in ("engine", "animatedCharacter", "harness")}
     home.mkdir(parents=True, exist_ok=True)
     plugin = json.loads((roots["animatedCharacter"] / "plugin.json").read_text())
-    plugin_id = plugin["id"]
+    # Harness contract section 6: registry id = plugin manifest name.
+    # domain.json's id is the workflow profile (animated-character), not the
+    # installed plugin directory (character).
+    plugin_id = plugin.get("name", "")
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", plugin_id):
         raise ValueError("Invalid pinned plugin id")
     links = {home / "harness": roots["harness"], home / "plugins" / plugin_id: roots["animatedCharacter"]}
@@ -56,8 +59,10 @@ def install_boundary(cache: Path, home: Path) -> dict:
                 raise ValueError(f"Refusing to replace an unrelated host entry: {link}")
         else:
             link.symlink_to(target.resolve(), target_is_directory=True)
-    expected = {"plugins": [{"id": plugin_id, "repository": pins["animatedCharacter"]["repository"],
-                              "commit": pins["animatedCharacter"]["commit"]}]}
+    expected = {"version": 1, "plugins": [{"id": plugin_id,
+                "repo": pins["animatedCharacter"]["repository"],
+                "ref": pins["animatedCharacter"]["commit"],
+                "resolvedSha": pins["animatedCharacter"]["commit"]}]}
     registry = home / "plugins.json"
     if registry.exists() and json.loads(registry.read_text()) != expected:
         raise ValueError("Forge uses a dedicated pinned IMG2_HOME; unrelated registry found")

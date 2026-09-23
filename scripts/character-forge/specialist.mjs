@@ -4,6 +4,7 @@ import {mkdirSync,writeFileSync,readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 const run=(program,args)=>execFileSync(program,args,{stdio:'inherit'});
 run('python3',['packages/assets/forge/upstream_engine.py','materialize','--key','harness']);
+run('python3',['scripts/character-forge/verify_upstream.py']);
 const out='test-results/character-forge-upstream';mkdirSync(out,{recursive:true});
 const lock=JSON.parse(readFileSync('package-lock.json','utf8')).packages['node_modules/three'];
 if(!/^https:\/\/registry\.npmjs\.org\/three\/-\/three-[0-9.]+\.tgz$/.test(lock.resolved))throw new Error('Unexpected Three.js source');
