@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   forge:
-    if: contains(github.event.head_commit.message, '[forge-specialist]')
+    if: contains(github.event.head_commit.message, '[forge-specialist]') || contains(github.event.head_commit.message, '[forge-golden-specialist]')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -31,6 +31,7 @@ jobs:
           python3 packages/assets/forge/upstream_engine.py materialize --key engine
           python3 packages/assets/forge/upstream_engine.py materialize --key animatedCharacter
       - uses: actions/download-artifact@v4
+        if: contains(github.event.head_commit.message, '[forge-specialist]')
         with:
           name: forge-specialist-de95ca4cc714deccb3a2fef08a0aae549616ba9b
           run-id: 35823791541
@@ -38,7 +39,9 @@ jobs:
           path: .forge-resume
       - name: Execute explicit specialist task when present
         run: |
-          if [ -f scripts/character-forge/specialist.mjs ]; then
+          if [[ '${{ github.event.head_commit.message }}' == *'[forge-golden-specialist]'* ]]; then
+            node scripts/character-forge/golden_specialist.mjs
+          elif [ -f scripts/character-forge/specialist.mjs ]; then
             node scripts/character-forge/specialist.mjs
           fi
       - name: Package scoped source and reconstruction evidence
