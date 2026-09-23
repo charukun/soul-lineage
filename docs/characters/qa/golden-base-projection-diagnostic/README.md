@@ -1,15 +1,23 @@
 # Golden Base pixel projection diagnostic (rejected geometry)
 
-Hosted exact-head run: https://github.com/charukun/soul-lineage/actions/runs/35835240743
-Artifact: 10738628512. Source head: e1dbc7af692bf54570134ce3f0317e05eb84401b.
-Pinned upstream camera fit and de-light/PBR descriptors feed the RINNE Three.js pixel/UV bake transport.
-These screenshots isolate head and gray suit torso on the rejected blockout. The face, eyebrows,
-eyes, mouth and clothing originate in the observed source images; only accepted visibility/mask
-samples count as observed. Projected texels are not unique source-image pixels.
+Hosted run https://github.com/charukun/soul-lineage/actions/runs/35835815212,
+source head cb6375e308de52c09633f1f548b7e8dae0403a86, artifact 10739296010.
+Screenshots show the head and suit torso only, with the calibrated 444:680
+camera aspect ratio. Earlier screenshots in this folder used a 540:1080
+canvas and visually squeezed the head; the images here replace them.
 
-The reference geometry and source coordinates do not yet align: eyes spill over face boundary,
-forehead and cheeks have holes, side suit has gray contamination, and back has a missing patch.
-The rest of the body was hidden for diagnosis. This is not a completed or accepted character.
-Current upstream silhouette quality gate still fails (Front .4899, Side .4746, Back .564;
-threshold .85). No pass was accepted by this diagnostic. Next repair is landmark-to-generated-
-mesh reprojection and per-part source pixel alignment before a fresh bake and visual review.
+The source's mint eyes, eyebrows, small mouth, skin and gray suit were sampled
+by actual camera projection into unique UV charts, with depth and component
+ownership masks. The counts in the artifact refer to baked atlas texels and
+include separately observed, mirrored, interpolated and inferred classes.
+They are not unique source-image pixel counts.
+
+This remains a failed diagnostic. Eyes extend over the cheeks, forehead and
+back scalp have discontinuities, and the side suit has missing or contaminated
+regions. Limbs were intentionally hidden. Camera calibration fitted manually
+inferred 3D landmarks, not measured mesh feature reprojection. The earlier
+silhouette IoU scores came from the wrong canvas aspect ratio and must be
+recomputed; they cannot certify acceptance. No upstream pass or quality gate
+was marked as passed. Fix the reference-to-generated-mesh landmark
+correspondences and projection ownership, rerender all three views, then
+recompute visual gates before rigging.

@@ -34,10 +34,12 @@ const model=${functionName}({textureSize:1024,qualityPriority:'reference-fidelit
 const hemi=new THREE.HemisphereLight(0xffffff,0x80909a,1.2);scene.add(hemi);const key=new THREE.DirectionalLight(0xffffff,2);key.position.set(2,4,3);scene.add(key);const rim=new THREE.DirectionalLight(0xffffff,.5);rim.position.set(-2,2,-3);scene.add(rim);
 const cameras=await (await fetch('img2threejs/evidence/cameras.json')).json();
 const diagnosticOnly=${projectionDiagnostic};
-// The screenshot canvas must use the calibrated source-image aspect ratio.
-// A 540x1080 canvas with a 444x680 camera squeezes the projected head and
-// makes source-pixel placement appear wrong even when its UV coordinates match.
-if(diagnosticOnly)renderer.setSize(540,Math.round(540*cameras.front.imageHeight/cameras.front.imageWidth));
+// Every comparison must use the calibrated source-image aspect ratio. The
+// camera's NDC projection assumes this canvas; a fixed 540x1080 viewport
+// squeezes a 444x680 reference and invalidates silhouette comparisons too.
+const referenceSize=[cameras.front.imageWidth,cameras.front.imageHeight];
+if(referenceSize.some(v=>!Number.isInteger(v)||v<=0))throw Error('Invalid reference image dimensions');
+renderer.setSize(540,Math.round(540*referenceSize[1]/referenceSize[0]));
 const projected=diagnosticOnly||!['blockout','structural-pass','form-refinement'].includes('${pass}');
 if(diagnosticOnly)model.traverse(n=>{if(n.isMesh&&!['head','chest'].includes(n.userData.sculptComponent?.id))n.visible=false;});
 const spec=await (await fetch('object-sculpt-spec.json')).json();
@@ -55,7 +57,7 @@ if(projected&&!spec.projectionBake?.required)throw Error('Material passes requir
 const camera=new THREE.PerspectiveCamera(10,.5,.01,100);
 const mats=new Map();model.traverse(n=>{if(n.isMesh){mats.set(n,n.material);if(n.material.opacity===0)n.visible=false;else if(!diagnosticOnly&&['blockout','structural-pass','form-refinement'].includes('${pass}'))n.material=new THREE.MeshStandardMaterial({color:0xbfcbd5,roughness:.85});}});
 const rotations={front:0,side:-Math.PI/2,back:Math.PI,front34:-Math.PI/4,rear34:-3*Math.PI/4,oppositeSide:Math.PI/2};
-function draw(view='front') {const c=cameras[view]||cameras.front,p=c.fit.cameraParameters;camera.fov=p.fovDegrees;camera.position.fromArray(p.position);camera.rotation.set(0,0,0);camera.updateProjectionMatrix();if(projected)applyReferenceCamera(THREE,camera,c);model.rotation.y=rotations[view]??0;model.updateMatrixWorld(true);renderer.render(scene,camera);}
+function draw(view='front') {const c=cameras[view]||cameras.front;applyReferenceCamera(THREE,camera,c);model.rotation.y=rotations[view]??0;model.updateMatrixWorld(true);renderer.render(scene,camera);}
 function light(mode){
  const reference=spec.referenceReviewLighting;
  if(projected&&reference){
