@@ -17,6 +17,11 @@ run('python3',['scripts/character-forge/scout_setup_evidence.py','--workspace',w
 run('python3',['packages/assets/forge/upstream_workspace.py','run','--workspace',workspace,'--entry','forge/stage3_build/generate_threejs_factory.py','--','object-sculpt-spec.json','--pass-id','blockout','--out','build/blockout.ts']);
 run('npm',['ci','--ignore-scripts']);
 run('npx',['playwright','install','--with-deps','chromium']);
+// Task-only recovery transport: the authoring host lacks a browser executable.
+// Ship the installed browser through Actions artifacts, never Connector chunks.
+const {chromium}=await import('@playwright/test');
+const {dirname}=await import('node:path');
+run('tar',['-czf',out+'/browser.tar.gz','-C',dirname(chromium.executablePath()),'.']);
 run('node',['scripts/character-forge/render_upstream.mjs',workspace,'blockout']);
 const lock=JSON.parse(readFileSync('package-lock.json','utf8')).packages['node_modules/three'];
 if(!/^https:\/\/registry\.npmjs\.org\/three\/-\/three-[0-9.]+\.tgz$/.test(lock.resolved))throw new Error('Unexpected Three.js source');

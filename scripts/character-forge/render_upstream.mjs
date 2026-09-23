@@ -45,11 +45,12 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));
 let browser;
 try{
  const {chromium}=await import(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES+'/playwright/index.mjs':'@playwright/test');
- browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader','--no-sandbox']});
+ browser=await chromium.launch({executablePath:process.env.CHARACTER_FORGE_CHROMIUM||undefined,args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader','--no-sandbox']});
  const page=await browser.newPage({viewport:{width:540,height:1080}}),errors=[];
- page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+ page.on('pageerror',e=>{errors.push(e.message);console.error('FORGE_PAGE_ERROR '+e.stack);});page.on('console',m=>{if(m.type()==='error'){errors.push(m.text());console.error('FORGE_CONSOLE_ERROR '+m.text());}});
  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load'});
- await page.waitForFunction(()=>window.ready,null,{timeout:60000});
+ try{await page.waitForFunction(()=>window.ready,null,{timeout:60000});}
+ catch(error){await writeFile(join(out,'browser-failure.json'),JSON.stringify({errors,message:error.message},null,2));await page.screenshot({path:join(out,'browser-failure.png')});throw error;}
  for(const view of ['front','side','back','front34','rear34','oppositeSide']){await page.evaluate(view=>window.forge.draw(view),view);await page.locator('canvas').screenshot({path:join(out,view+'.png')});}
  const receipt=await page.evaluate(()=>window.forge.snapshot());receipt.errors.push(...errors);receipt.factorySha256=createHash('sha256').update(typescript).digest('hex');receipt.sourceHead=process.env.HEAD_SHA||null;receipt.visualApproval='pending';
  await page.evaluate(()=>window.forge.draw('front'));
