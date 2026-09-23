@@ -10,6 +10,14 @@ run('python3',['scripts/character-forge/audit_targets.py','--out',out+'/adapter-
 run('node',['--test','packages/characters/tests/character-expressions.test.mjs']);
 run('python3',['-m','pip','install','-r','packages/assets/forge/requirements.txt']);
 run('python3',['scripts/character-forge/prepare_upstream_fixture.py','--workspace',out+'/upstream-scout']);
+const workspace=out+'/upstream-scout',cache='.cache/character-forge-upstream';
+run('python3',['scripts/character-forge/prepare_scout_materials.py','--workspace',workspace,'--cache',cache]);
+run('python3',['scripts/character-forge/author_upstream_scout.py','--workspace',workspace,'--cache',cache]);
+run('python3',['scripts/character-forge/scout_setup_evidence.py','--workspace',workspace,'--cache',cache]);
+run('python3',['packages/assets/forge/upstream_workspace.py','run','--workspace',workspace,'--entry','forge/stage3_build/generate_threejs_factory.py','--','object-sculpt-spec.json','--pass-id','blockout','--out','build/blockout.ts']);
+run('npm',['ci','--ignore-scripts']);
+run('npx',['playwright','install','--with-deps','chromium']);
+run('node',['scripts/character-forge/render_upstream.mjs',workspace,'blockout']);
 const lock=JSON.parse(readFileSync('package-lock.json','utf8')).packages['node_modules/three'];
 if(!/^https:\/\/registry\.npmjs\.org\/three\/-\/three-[0-9.]+\.tgz$/.test(lock.resolved))throw new Error('Unexpected Three.js source');
 const response=await fetch(lock.resolved);if(!response.ok)throw new Error(`Three.js download failed: ${response.status}`);

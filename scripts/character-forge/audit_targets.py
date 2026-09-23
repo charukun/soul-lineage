@@ -83,7 +83,7 @@ def main():
                                 and name.endswith('.golden.json')],
         'activeFoundationContract': 'docs/characters/KAYKIT_FOUNDATION.md',
         'activeFoundationRig': 'Rig_Medium',
-        'resolution': 'unresolved: requested Golden rig/morph/socket contract identifiers and authoritative paths',
+        'resolution': 'resolved by user: Rig_Medium, existing RINNE sockets, shared polish expression contract',
         'reconstructionValidated': False,
         'visualApprovalGranted': False,
     }

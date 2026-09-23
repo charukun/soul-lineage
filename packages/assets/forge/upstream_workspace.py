@@ -15,6 +15,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from upstream_engine import load_lock, materialize, verify
 
@@ -81,18 +82,34 @@ def checked_run(installation: dict, workspace: Path, entry: str, args: list[str]
     allowed = "forge/" if key == "engine" else "tools/"
     if not entry.startswith(allowed) or script.suffix != ".py" or not script.is_file():
         raise ValueError(f"Missing/unsupported upstream stage: {key}:{entry}")
-    command = [sys.executable, str(script), *args]
     logs = workspace / "img2threejs" / "commands"
     logs.mkdir(parents=True, exist_ok=True)
     index = 1 + len(list(logs.glob("*.json")))
     prefix = logs / f"{index:04d}-{script.stem}"
     start = datetime.now(timezone.utc).isoformat()
-    result = subprocess.run(command, cwd=workspace, env=environment(installation),
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    # These upstream CLIs intentionally write .cache/spec-search under their own
+    # source root. Execute an exact verified copy rather than polluting the
+    # immutable pinned distribution or weakening its Git-tree verification.
+    cache_writer = key == "engine" and entry in {
+        "forge/stage1_intake/search_specs.py", "forge/stage2_spec/new_pre_spec_assessment.py"}
+    with tempfile.TemporaryDirectory(prefix="forge-upstream-exec-") as temp:
+        execution_root = root
+        if cache_writer:
+            execution_root = Path(temp) / "upstream"
+            shutil.copytree(root, execution_root, symlinks=True)
+            verify(execution_root, load_lock()[key])
+        command = [sys.executable, str(execution_root / entry), *args]
+        result = subprocess.run(command, cwd=workspace, env=environment(installation),
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        generated_cache = execution_root / ".cache" / "spec-search"
+        if cache_writer and generated_cache.is_dir():
+            shutil.copytree(generated_cache, workspace / "img2threejs" / "search-cache", dirs_exist_ok=True)
+    verify(root, load_lock()[key])
     prefix.with_suffix(".stdout.txt").write_bytes(result.stdout)
     prefix.with_suffix(".stderr.txt").write_bytes(result.stderr)
     write_json(prefix.with_suffix(".json"), {"entry": entry, "arguments": args, "upstream": load_lock()[key],
                "startedAt": start, "returnCode": result.returncode,
+               "executionSource": "verified-disposable-copy" if cache_writer else "verified-pinned-tree",
                "stdoutSha256": hashlib.sha256(result.stdout).hexdigest(),
                "stderrSha256": hashlib.sha256(result.stderr).hexdigest()})
     sys.stdout.buffer.write(result.stdout)
