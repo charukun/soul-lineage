@@ -206,6 +206,7 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   gap:5px!important
 }
 .rinne-core-menu .loadout-grid-item{
+  position:relative!important;
   display:grid!important;
   grid-template-rows:minmax(0,1fr) auto!important;
   justify-items:center!important;
@@ -227,10 +228,15 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   border-color:color-mix(in srgb,var(--menu-accent) 65%,#86613f 35%)!important;
   background:color-mix(in srgb,var(--menu-accent) 14%,#fff9e8 86%)!important
 }
+.rinne-core-menu .loadout-grid-item[data-active="true"]::after{
+  content:"装";position:absolute;right:2px;top:2px;display:grid;place-items:center;min-width:13px;height:13px;padding:0 2px;
+  border-radius:7px;background:#76583a;color:#fff7df;font-size:7px;font-weight:800;line-height:1;box-shadow:0 1px 2px rgba(70,45,25,.2)
+}
 .rinne-core-menu .loadout-grid-item[data-focus="true"]{border-color:color-mix(in srgb,var(--menu-accent) 78%,#775437 22%)!important;box-shadow:inset 0 1px rgba(255,255,255,.55),0 0 0 2px color-mix(in srgb,var(--menu-accent) 20%,transparent)!important}
 .rinne-core-menu .loadout-grid-item>.skill-sigil{width:30px!important;height:30px!important;min-width:30px!important;margin:0!important}
 .rinne-core-menu .loadout-grid-item>strong{
-  width:100%;overflow:hidden;color:#4b382c!important;font-size:8px!important;line-height:1.1!important;text-align:center;text-overflow:ellipsis;white-space:nowrap
+  display:-webkit-box;width:100%;min-height:2.2em;overflow:hidden;color:#4b382c!important;font-size:8px!important;line-height:1.1!important;text-align:center;
+  -webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;text-overflow:clip;overflow-wrap:anywhere
 }
 .rinne-core-menu .loadout-library.loadout-combo-grid .loadout-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important}
 .rinne-core-menu .loadout-grid-item>small{display:none!important}
@@ -259,7 +265,7 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
 .rinne-core-menu .loadout-detail-copy{display:grid;gap:1px;min-width:0}
 .rinne-core-menu .loadout-detail-copy>small{color:#9a795b;font-size:6.5px;font-weight:800;letter-spacing:.08em}
 .rinne-core-menu .loadout-detail-copy>strong{overflow:hidden;color:#4b382c;font-size:10px;line-height:1.1;text-overflow:ellipsis;white-space:nowrap}
-.rinne-core-menu .loadout-detail-copy>span{overflow:hidden;color:#735c49;font-size:8px;line-height:1.15;text-overflow:ellipsis;white-space:nowrap}
+.rinne-core-menu .loadout-detail-copy>span{overflow:hidden;color:#735c49;font-size:8px;line-height:1.35;text-overflow:clip;white-space:pre-line}
 .rinne-core-menu .loadout-detail-copy>em{overflow:hidden;color:#9a816c;font-size:6.5px;font-style:normal;line-height:1.1;text-overflow:ellipsis;white-space:nowrap}
 .rinne-core-menu .loadout-detail-action{display:grid;justify-items:end;gap:2px}
 .rinne-core-menu .loadout-detail-action>small{max-width:90px;overflow:hidden;color:#8b6d53;font-size:6.5px;text-overflow:ellipsis;white-space:nowrap}
@@ -291,8 +297,8 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
 }
 .rinne-core-menu .loadout-context-current strong{font-size:9px!important}
 .rinne-core-menu .loadout-context-current small{font-size:6px!important}
-.rinne-core-menu .loadout-technique-tabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;margin:1px 0 9px!important;padding:3px!important;border-radius:12px!important;background:rgba(116,83,52,.09)!important}
-.rinne-core-menu .loadout-technique-tabs button{min-height:34px!important;border:0!important;border-radius:9px!important;background:transparent!important;color:#856a51!important;font-size:9px!important;font-weight:800!important}
+.rinne-core-menu .loadout-technique-tabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:4px!important;margin:1px 0 5px!important;padding:2px!important;border-radius:10px!important;background:rgba(116,83,52,.09)!important}
+.rinne-core-menu .loadout-technique-tabs button{min-height:28px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:#856a51!important;font-size:9px!important;font-weight:800!important}
 .rinne-core-menu .loadout-technique-tabs button[data-active="true"]{background:#fff7e5!important;color:#4f3b2d!important;box-shadow:0 1px 4px rgba(87,61,39,.12),inset 0 0 0 1px color-mix(in srgb,var(--menu-accent) 55%,#8b6747 45%)!important}
 .rinne-core-menu .loadout-combo-list{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important}
 .rinne-core-menu .loadout-combo-card{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:auto auto!important;align-items:center!important;gap:4px!important;width:100%!important;min-width:0!important;min-height:78px!important;padding:5px 4px!important;border:1px solid rgba(111,77,47,.22)!important;border-radius:10px!important;background:linear-gradient(180deg,rgba(255,252,241,.92),rgba(244,230,202,.88))!important;color:#4b392d!important;text-align:center!important;box-shadow:inset 0 1px rgba(255,255,255,.52),0 2px 5px rgba(90,61,39,.07)!important}
@@ -368,11 +374,12 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   .rinne-core-menu .loadout-detail>.skill-sigil{grid-column:1;grid-row:1/3}
   .rinne-core-menu .loadout-detail-copy>small{grid-column:2;grid-row:1;align-self:center}
   .rinne-core-menu .loadout-detail-copy>strong{grid-column:2;grid-row:2;align-self:start}
-  .rinne-core-menu .loadout-detail-action>small{grid-column:3;grid-row:1;justify-self:end;align-self:center}
-  .rinne-core-menu .loadout-detail-action>button{grid-column:3;grid-row:2;align-self:start;justify-self:end}
+  .rinne-core-menu .loadout-detail-action>button{grid-column:3;grid-row:1;align-self:start;justify-self:end}
+  .rinne-core-menu .loadout-detail-action>small{grid-column:3;grid-row:2;justify-self:end;align-self:start}
+  .rinne-core-menu .loadout-detail[data-configured="true"] .loadout-detail-action>small{grid-row:1/3;align-self:center}
   .rinne-core-menu .loadout-detail-copy>span{
-    grid-column:1/-1;grid-row:3;min-height:48px;max-height:80px;overflow:auto!important;
-    white-space:normal!important;text-overflow:clip!important;
+    grid-column:1/-1;grid-row:3;min-height:64px;max-height:96px;overflow:auto!important;
+    white-space:pre-line!important;text-overflow:clip!important;
   }
   .rinne-core-menu .loadout-detail-copy>em{
     grid-column:1/-1;grid-row:4;white-space:normal!important;text-overflow:clip!important;
@@ -471,11 +478,14 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   fill:none;stroke:color-mix(in srgb,var(--menu-accent) 65%,#557d83 35%);
   stroke-width:2;stroke-linecap:round;
 }
-.rinne-core-menu[data-type="technique"] .loadout-slot[data-selected="true"],
-.rinne-core-menu[data-type="technique"] .loadout-grid-item[data-focus="true"]{
+.rinne-core-menu[data-type="technique"] .loadout-slot[data-selected="true"]{
   border:2px solid color-mix(in srgb,var(--menu-accent) 70%,#62828b 30%)!important;
   background:linear-gradient(180deg,#f4ffff,#f8edcf)!important;
   box-shadow:0 0 0 2px rgba(97,162,174,.15),0 3px 8px rgba(60,88,89,.12)!important;
+}
+.rinne-core-menu[data-type="technique"] .loadout-grid-item[data-focus="true"]{
+  border:2px solid #b9904d!important;background:linear-gradient(180deg,#fff9e8,#f2dfb7)!important;
+  box-shadow:0 0 0 2px rgba(185,144,77,.16),0 3px 8px rgba(90,62,31,.12)!important;
 }
 .rinne-core-menu[data-type="technique"] .loadout-detail{
   border-color:color-mix(in srgb,var(--menu-accent) 70%,#62828b 30%);
@@ -643,22 +653,22 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   .rinne-core-menu[data-layout="loadout"] .loadout-swap-hint{flex:none;margin:0!important}
   .rinne-core-menu[data-layout="loadout"] .loadout-slot{min-height:48px!important}
   .rinne-core-menu[data-layout="loadout"] .loadout-library{
-    /* Header (24) + two 52px rows + gap (4) + border/padding (4). */
-    order:2;flex:1 0 136px;min-height:136px;overflow:auto;scroll-padding-top:24px;
+    /* Header + two readable two-line rows remain visible. */
+    order:2;flex:1 0 150px;min-height:150px;overflow:auto;scroll-padding-top:24px;
     overscroll-behavior:contain;scrollbar-width:thin;
     scrollbar-color:rgba(119,82,49,.55) transparent;padding:0 3px 3px!important;
   }
   .rinne-core-menu[data-layout="loadout"] .loadout-library>header{
     position:sticky;top:0;z-index:2;background:#f7ead0;
   }
-  .rinne-core-menu[data-layout="loadout"] .loadout-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;grid-auto-rows:52px;gap:4px!important;align-content:start}
-  .rinne-core-menu[data-layout="loadout"] .loadout-grid-item{height:52px;min-height:52px!important;aspect-ratio:auto!important;padding:4px 2px!important}
-  .rinne-core-menu[data-layout="loadout"] .loadout-grid-item>strong{font-size:12px!important;line-height:1.2!important}
+  .rinne-core-menu[data-layout="loadout"] .loadout-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;grid-auto-rows:58px;gap:4px!important;align-content:start}
+  .rinne-core-menu[data-layout="loadout"] .loadout-grid-item{height:58px;min-height:58px!important;aspect-ratio:auto!important;padding:3px 2px!important}
+  .rinne-core-menu[data-layout="loadout"] .loadout-grid-item>strong{font-size:11px!important;line-height:1.08!important}
   /* A framed detail plaque is visually separate from the small choice tiles. */
   .rinne-core-menu[data-layout="loadout"] .loadout-detail{
     order:3;flex:none;position:relative;isolation:isolate;
-    grid-template-columns:40px minmax(0,1fr) 88px;grid-template-rows:18px 24px minmax(56px,auto) auto;
-    gap:4px 8px;align-items:start;height:auto;min-height:142px;margin:0;padding:8px;
+    grid-template-columns:40px minmax(0,1fr) 92px;grid-template-rows:34px 18px minmax(68px,auto) auto;
+    gap:4px 8px;align-items:start;height:auto;min-height:154px;margin:0;padding:8px;
     border:2px solid color-mix(in srgb,var(--menu-accent) 55%,#87623f 45%);border-radius:14px;
     background:
       linear-gradient(90deg,color-mix(in srgb,var(--menu-accent) 38%,#fff2d4 62%),#fff7e7) 0 0/100% 52px no-repeat,
@@ -686,28 +696,28 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-copy,
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-action{display:contents}
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-copy>small{
-    grid-column:2;grid-row:1;min-width:0;color:#7b563e;font-size:10px;font-weight:800;letter-spacing:.12em;
+    grid-column:2;grid-row:1;align-self:start;min-width:0;color:#7b563e;font-size:10px;font-weight:800;letter-spacing:.12em;
   }
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-copy>strong{
-    grid-column:2;grid-row:2;min-width:0;align-self:start;
-    color:#3e2b21;font-family:var(--font-rinne-display),serif;font-size:17px;line-height:24px;
+    grid-column:2;grid-row:1/3;min-width:0;align-self:end;
+    color:#3e2b21;font-family:var(--font-rinne-display),serif;font-size:17px;line-height:22px;
     white-space:nowrap;text-overflow:ellipsis;text-shadow:0 1px #fff8df;
   }
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-copy>span{
-    grid-column:1/-1;grid-row:3;align-self:stretch;min-height:56px;max-height:80px;
-    overflow:auto;overscroll-behavior:contain;white-space:normal;
-    color:#624832;font-size:12px;line-height:16px;padding:5px 2px 0;
+    grid-column:1/-1;grid-row:3;align-self:stretch;min-height:68px;max-height:104px;
+    overflow:auto;overscroll-behavior:contain;white-space:pre-line;
+    color:#624832;font-size:12px;line-height:17px;padding:6px 2px 0;
   }
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-copy>em{
     grid-column:1/-1;grid-row:4;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;
   }
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-action>small{
-    grid-column:3;grid-row:1;justify-self:end;max-width:100%;padding:2px 6px;
+    grid-column:3;grid-row:2;justify-self:end;align-self:start;max-width:100%;padding:2px 6px;
     border:1px solid color-mix(in srgb,var(--menu-accent) 50%,#9f805a 50%);border-radius:20px;
     background:#fff7e4;color:#715138;font-size:9px;font-weight:700;line-height:12px;
   }
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-action>button{
-    grid-column:3;grid-row:2;align-self:start;width:88px;min-height:44px;padding:5px 4px;
+    grid-column:3;grid-row:1;align-self:start;justify-self:end;width:92px;min-height:34px;padding:5px 4px;
     border:1px solid #967044;border-radius:10px;
     background:linear-gradient(#fff0c7,color-mix(in srgb,var(--menu-accent) 45%,#dbb875 55%));
     color:#432e20;font-size:12px;font-weight:800;line-height:1.3;
@@ -716,6 +726,7 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-action>button:disabled{
     opacity:1;color:#8a765e;border-color:#bdab8f;background:#e9dfc9;box-shadow:inset 0 1px #fff5dd;
   }
+  .rinne-core-menu[data-layout="loadout"] .loadout-detail[data-configured="true"] .loadout-detail-action>small{grid-row:1/3;align-self:center}
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-action>button:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 1px #fffbea,0 1px 0 #9d794b}
   .rinne-core-menu[data-layout="loadout"] .loadout-detail-action>button:focus-visible{outline:2px solid #70502f;outline-offset:2px}
   .rinne-core-menu[data-layout="loadout"] .rinne-core-menu-body>.loadout-slot-row .loadout-slot{
@@ -726,7 +737,7 @@ body:has(.rinne-core-menu:not([hidden])) :is(.snap-camera-control,.rinne-field-r
   .rinne-core-menu[data-layout="loadout"] .rinne-core-menu-body>.loadout-slot-row .loadout-slot>span{grid-column:2;grid-row:1;font-size:9px!important}
   .rinne-core-menu[data-layout="loadout"] .rinne-core-menu-body>.loadout-slot-row .loadout-slot>strong{grid-column:2;grid-row:2;width:100%;font-size:11px!important}
   .rinne-core-menu[data-layout="loadout"] .loadout-technique-tabs{order:1;padding:0!important}
-  .rinne-core-menu[data-layout="loadout"] .loadout-technique-tabs button{min-height:36px!important}
+  .rinne-core-menu[data-layout="loadout"] .loadout-technique-tabs button{min-height:30px!important}
   .rinne-core-menu[data-layout="loadout"] .loadout-selection-path{display:none}
   .rinne-core-menu[data-layout="loadout"][data-type="heart"] .heart-composition[data-compact="true"]{
     display:flex;flex-direction:column;gap:3px;
