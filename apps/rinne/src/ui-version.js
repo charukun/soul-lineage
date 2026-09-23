@@ -1,1 +1,1 @@
-export const RINNE_UI_VERSION='6.1.0';
+export const RINNE_UI_VERSION='6.1.1';

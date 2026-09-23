@@ -34,3 +34,17 @@ test('body silhouette preserves selectable parts and a read-only battle view',()
  assert.equal(review.figure.attributes.role,'img');
  assert.equal(play.parts.get('head').liquid.attributes['aria-hidden'],'true');
 });
+
+test('both views dock the body map inside the player frame with matching geometry',()=>{
+ const battle=read('src/nocturne-stage.js'),rinne=read('../../apps/rinne/src/gameplay-ui.js');
+ const battleCss=read('src/battle2-body-hud.css'),rinneCss=read('../../apps/rinne/src/reference-exploration-hud.css');
+ assert.match(battle,/playerHud\.root\.append\(bodyHudRoot\)/);
+ assert.match(rinne,/playerHud\?\.root\.append\(q\('\[data-combat-body-hud\]'\)\)/);
+ for(const css of [battleCss,rinneCss]){
+   assert.match(css,/align-items:stretch;width:max-content;height:60px/);
+   assert.match(css,/height:56px;min-height:56px!important;border:0!important|height:56px;min-height:56px!important;\s*border:0!important/);
+   assert.match(css,/width:46px;height:56px;border:0;border-radius:0;background:transparent;box-shadow:none/);
+   assert.match(css,/body-silhouette__figure::after\{display:none\}|body-silhouette__figure::after\{\s*display:none;/);
+ }
+ assert.doesNotMatch(rinneCss,/left:calc\(max\(10px,env\(safe-area-inset-left\)\) \+ clamp/);
+});
