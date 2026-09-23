@@ -102,6 +102,8 @@ def prepare(workspace: Path, cache: Path) -> dict:
     write_json(evidence / 'visual-hull-descriptor.json', descriptor)
     write_json(evidence / 'visual-hull.json', carve_visual_hull(descriptor))
     result = {'source': 'exact Golden Base v1 sheet crop', 'views': list(job['views']),
+              'admission': {view: json.loads((evidence/(view+'-admission.json')).read_text())
+                            for view in ('front','side','back')},
               'heightMetres': authored['heightMetres'], 'headUnitsFromVisiblePixels':
               (authored['feetRow']-authored['crownRow'])/authored['headHeightPixels'],
               'displayAnnotationHeadUnits': 'approximately 3.5, inconsistent with visible-pixel estimate',

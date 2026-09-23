@@ -55,7 +55,8 @@ def review(w,cache,pass_id):
         run(view+'-comparison','forge/stage4_review/make_comparison_sheet.py','--reference',source,'--render',render,'--out',f'review/{pass_id}/{view}-comparison.png','--panel-width','360','--panel-height','720','--json')
     run('multi-angle','forge/stage4_review/diagnose_render_multi_angle.py','--reference',f'review/{pass_id}/front.png','--orbit',f'review/{pass_id}/side.png','--orbit',f'review/{pass_id}/back.png','--orbit',f'review/{pass_id}/front34.png','--orbit',f'review/{pass_id}/rear34.png','--json')
     run('turntable','forge/stage4_review/turntable_gate.py','--capture',f'0=review/{pass_id}/front.png','--capture',f'90=review/{pass_id}/side.png','--capture',f'180=review/{pass_id}/back.png','--capture',f'270=review/{pass_id}/oppositeSide.png','--json')
-    write_json(out/'parts.json',{'model':'upstream-scout','parts':receipt['parts'],'unnamedMeshes':sum(not p['name'] for p in receipt['parts'])})
+    job=json.loads((w/'forge-job.json').read_text())
+    write_json(out/'parts.json',{'model':job['id'],'parts':receipt['parts'],'unnamedMeshes':sum(not p['name'] for p in receipt['parts'])})
     run('part-coverage','forge/stage4_review/check_part_coverage.py','--spec','object-sculpt-spec.json','--manifest',f'review/{pass_id}/parts.json','--json',f'review/{pass_id}/part-coverage.json')
     if (out/'scalp-exposure.json').exists():
         run('hair-gate','forge/stage4_review/hair_gate.py','--reference',*[f'{v}=source/{v}.png' for v in ('front','side','back')],'--render',*[f'{v}=review/{pass_id}/{v}.png' for v in ('front','side','back')],'--scalp-exposure',f'review/{pass_id}/scalp-exposure.json','--out',f'review/{pass_id}/hair-gate.json')

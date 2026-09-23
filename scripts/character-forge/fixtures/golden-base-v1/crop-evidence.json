@@ -9,7 +9,7 @@
   "views": {
     "front": {
       "path": "front.png",
-      "sha256": "9652440a4a49d863104266129524e6f98813d9adf0d9e59f883e3226a406c697",
+      "sha256": "94082731cbd84e1e3f4fa9e22254bcddf75c4d5fe33911c7fbb4a74493199462",
       "sheetRect": [
         16,
         173,
@@ -33,26 +33,46 @@
         [
           44,
           173,
-          70,
-          198
+          81,
+          201
         ],
         [
-          47,
-          446,
-          59,
+          56,
+          443,
+          76,
           482
         ],
         [
-          47,
-          539,
-          59,
-          568
+          56,
+          535,
+          76,
+          570
+        ],
+        [
+          16,
+          793,
+          154,
+          853
+        ],
+        [
+          236,
+          793,
+          239,
+          853
+        ],
+        [
+          323,
+          793,
+          460,
+          853
         ]
-      ]
+      ],
+      "removedMintGroundPixelsBetweenFeet": 5203,
+      "groundRemovalRule": "only after row 620: green > red + 3 and green >= blue + 2"
     },
     "side": {
       "path": "side.png",
-      "sha256": "78e9e45e2245afb5a5551852c80d29096c0279eef6d03b704cbecea399d03513",
+      "sha256": "4f130123678bb2d6de544a7058721d40721e80e26794b05742ef1bb1a58170e8",
       "sheetRect": [
         452,
         173,
@@ -60,11 +80,26 @@
         853
       ],
       "status": "observed pixels, with explicit non-character annotation removal",
-      "removedSheetAnnotationRects": []
+      "removedSheetAnnotationRects": [
+        [
+          452,
+          793,
+          526,
+          853
+        ],
+        [
+          637,
+          793,
+          723,
+          853
+        ]
+      ],
+      "removedMintGroundPixelsBetweenFeet": 2017,
+      "groundRemovalRule": "only after row 620: green > red + 3 and green >= blue + 2"
     },
     "back": {
       "path": "back.png",
-      "sha256": "09f7a621998876ad14284c09aa9bc3c29321b22d3b343f567d80e43587a18d59",
+      "sha256": "3b7a3471eed748daeae5ae324391527c5004fd0e34a67b92cd3d0b76a4ec397a",
       "sheetRect": [
         714,
         173,
@@ -84,8 +119,22 @@
           173,
           728,
           459
+        ],
+        [
+          714,
+          793,
+          854,
+          853
+        ],
+        [
+          1018,
+          793,
+          1150,
+          853
         ]
-      ]
+      ],
+      "removedMintGroundPixelsBetweenFeet": 5337,
+      "groundRemovalRule": "only after row 620: green > red + 3 and green >= blue + 2"
     }
   },
   "limitations": [

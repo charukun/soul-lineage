@@ -38,12 +38,13 @@ def prepare(sheet: Path, destination: Path) -> dict:
     for name, rectangle in VIEW_RECTS.items():
         cropped = source.crop(rectangle)
         removed = []
+        floor_pixels = 0
         if name == "front":
             # Only erase the sheet's ruler/HEAD RATIO annotation, outside the
             # illustrated character. Keep the arm crossing its vertical axis.
             for box in ((28, 52, 89, 273), (28, 394, 73, 625),
-                        (28, 0, 54, 25), (31, 273, 43, 309),
-                        (31, 366, 43, 395)):
+                        (28, 0, 65, 28), (40, 270, 60, 309),
+                        (40, 362, 60, 397)):
                 cropped.paste((255, 255, 255), box)
                 removed.append([rectangle[0]+box[0], rectangle[1]+box[1], rectangle[0]+box[2], rectangle[1]+box[3]])
         if name == "back":
@@ -51,11 +52,33 @@ def prepare(sheet: Path, destination: Path) -> dict:
             for box in ((388, 0, 436, 305), (0, 0, 14, 286)):
                 cropped.paste((255, 255, 255), box)
                 removed.append([rectangle[0]+box[0], rectangle[1]+box[1], rectangle[0]+box[2], rectangle[1]+box[3]])
+        # The mint ellipse is a drawn ground/shadow, not skin, garment or a
+        # footprint in the model. Preserve each actual foot/toe region by view.
+        feet = {'front': ((138, 220), (223, 307)),
+                'side': ((74, 185),),
+                'back': ((140, 222), (221, 304))}[name]
+        cursor = 0
+        for begin, end in (*feet, (cropped.width, cropped.width)):
+            if begin > cursor:
+                box = (cursor, 620, begin, cropped.height)
+                cropped.paste((255, 255, 255), box)
+                removed.append([rectangle[0]+box[0], rectangle[1]+box[1], rectangle[0]+box[2], rectangle[1]+box[3]])
+            cursor = end
+        pixels = cropped.load()
+        for y in range(620, cropped.height):
+            for begin, end in feet:
+                for x in range(begin, end):
+                    red, green, blue = pixels[x, y]
+                    if green > red + 3 and green >= blue + 2:
+                        pixels[x, y] = (255, 255, 255)
+                        floor_pixels += 1
         target = destination / (name + ".png")
         cropped.save(target, format="PNG")
         views[name] = {"path": target.name, "sha256": sha256(target), "sheetRect": list(rectangle),
                        "status": "observed pixels, with explicit non-character annotation removal",
-                       "removedSheetAnnotationRects": removed}
+                       "removedSheetAnnotationRects": removed,
+                       "removedMintGroundPixelsBetweenFeet": floor_pixels,
+                       "groundRemovalRule": "only after row 620: green > red + 3 and green >= blue + 2"}
     record = {"schema": "rinne.sheet-intake/v1", "source": sheet.name, "sourceSha256": sha256(sheet),
               "dimensions": list(EXPECTED_SHEET), "views": views,
               "limitations": ["Rendered turnaround with nonuniform three-view figure scales, not a geometric blueprint",
