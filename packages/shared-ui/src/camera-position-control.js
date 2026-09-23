@@ -16,7 +16,7 @@ export function createCameraPositionControl({document:doc,container,onChange,ini
   const root=doc.createElement('div');root.className='camera-position-control';root.dataset.combat='false';
   const panel=doc.createElement('div');panel.className='camera-position-panel';panel.id='camera-position-panel';
   const rail=doc.createElement('span');rail.className='camera-position-rail';rail.setAttribute('aria-hidden','true');
-  const thumb=doc.createElement('span');thumb.className='camera-position-thumb';thumb.dataset.icon='camcorder';thumb.setAttribute('aria-hidden','true');thumb.innerHTML='<svg viewBox="0 0 28 24"><rect x="3" y="6.4" width="14.5" height="11.2" rx="2.4"/><path d="M17.5 9.4 24.5 6.8v10.4l-7-2.6Z"/></svg>';
+  const thumb=doc.createElement('span');thumb.className='camera-position-thumb';thumb.dataset.icon='eye';thumb.setAttribute('aria-hidden','true');thumb.innerHTML='<svg viewBox="0 0 28 24"><path d="M2 12c3.5-4.5 7-6.8 12-6.8S22.5 7.5 26 12c-3.5 4.5-7 6.8-12 6.8S5.5 16.5 2 12Z"/><circle cx="14" cy="12" r="3.6"/></svg>';
   const slider=doc.createElement('input');slider.id='camera-position';slider.type='range';slider.min='0';slider.max='100';slider.step='1';slider.setAttribute('aria-label','カメラ位置');slider.setAttribute('aria-orientation','vertical');
   panel.append(rail,thumb,slider);root.append(panel);container?.append(root);
   let current=.5,combat=false;

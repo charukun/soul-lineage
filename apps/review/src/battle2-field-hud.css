@@ -1,10 +1,9 @@
-/* The same radar and zoom slider as RINNE, with the battle camera's rotation disc retained. */
+/* The same radar and zoom slider as RINNE. */
 .battle2-review .nocturne-stage .rinne-field-radar{
   top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));
   pointer-events:none;
 }
 .battle2-review .nocturne-stage .rinne-field-radar__places i[data-category="enemy"]{background:#f1a47f;box-shadow:0 0 5px #f1a47f}
-.battle2-review .battle2-camera-control-host{top:max(94px,calc(env(safe-area-inset-top) + 86px));right:max(20px,calc(env(safe-area-inset-right) + 12px))}
 .battle2-review .nocturne-stage .camera-position-control{
   position:absolute;left:auto;right:max(21px,calc(env(safe-area-inset-right) + 12px));top:max(156px,calc(env(safe-area-inset-top) + 148px));
   z-index:9;width:48px;height:98px;border:1px solid rgba(188,152,89,.54);border-radius:24px;
@@ -12,6 +11,5 @@
 }
 .battle2-review .nocturne-stage .camera-position-control .camera-position-panel{left:2px;top:2px;width:42px;height:91px}
 @media(max-height:480px) and (orientation:landscape){
-  .battle2-review .battle2-camera-control-host{top:8px;right:96px}
   .battle2-review .nocturne-stage .camera-position-control{top:8px;right:152px}
 }
