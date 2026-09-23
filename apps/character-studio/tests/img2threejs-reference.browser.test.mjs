@@ -21,6 +21,7 @@ async function ready() {
 test('standalone turntable and real selection canvas render the same full-depth model', { timeout: 240000 }, async () => {
   await mkdir(evidence, { recursive:true });
   if (process.env.CI) execFileSync('npx', ['playwright', 'install', 'chromium'], { cwd:repo, stdio:'inherit' });
+  execFileSync(process.execPath, ['scripts/prepare-kaykit-foundation.mjs', 'character-studio'], { cwd:repo, stdio:'inherit' });
   const server = spawn(process.execPath, [path.join(repo,'node_modules/vite/bin/vite.js'), '--host','127.0.0.1','--port','5179','--strictPort'], { cwd:app, stdio:'pipe' });
   let browser;
   try {
