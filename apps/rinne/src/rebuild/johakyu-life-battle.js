@@ -43,7 +43,7 @@ function lifeRow(state,front){
  if(!state.combat&&state.ageYears>=7&&target&&Math.hypot(target.x-state.position.x,target.z-state.position.z)<=3.25)state.combat=beginCombatState(state,target.id);
  const finisher=combatFinisherRuntime(state),effects=skillEffects(state);
  return{id:state.id,side:'party',self:true,kind:'hero',hp:state.hp,maxHp:state.maxHp,stamina:state.stamina,staminaCap:state.staminaCap,injuries:state.injuries,position:{...state.position},yaw:state.yaw,
-   ageSeconds:state.ageSeconds,seed:state.seed,generation:state.generation,equipment:{...state.equipment},loadout:lifeBattleLoadout(state,target?.id),mind:tidebreakMindVectorFor(state),
+   ageSeconds:state.ageSeconds,seed:state.seed,generation:state.generation,equipment:{...state.equipment},loadout:lifeBattleLoadout(state,target?.id),mind:tidebreakMindVectorFor(state),pursuit:loadout.heart.active.includes('skill.pursuer'),
    stance:state.combatLoadout.body.stance,zanshin:state.combatLoadout.body.zanshin,nonlethal:finisher.nonlethal,finisherProfile:finisher.finisher,staminaMultiplier:staminaMultiplierFor(state),damageScale:1+effects.damage,mitigation:(effects.mitigation||0)+bodyRuntime(state).guardBonus,recoverStamina:false,
    targetId:target?.id,canAttack:Boolean(state.combat&&!state.down&&!state.ended&&Number(state.ageYears)>=7),canFinish:finisher.execute,dead:Boolean(state.ended),downed:Boolean(state.down),scope:'life'};
 }
