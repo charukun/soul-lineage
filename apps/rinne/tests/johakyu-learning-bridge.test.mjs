@@ -4,9 +4,10 @@ import {inspirationCombatAnswerPool} from '@soul/game-data';
 import {createJohakyuBattleRuntime,resolveTechnique} from '@soul/johakyu-battle';
 import {resolveBattlePresentation,presentBattleEvents} from '@soul/johakyu-presentation/battle-presentation';
 import {createLife,serializeLife,deserializeLife} from '../src/rebuild/domain.js';
-import {recordCombatAnswers,archiveInspiration} from '../src/rebuild/inspiration-state.js';
+import {archiveInspiration} from '../src/rebuild/inspiration-state.js';
 import {lifeBattleLoadout} from '../src/rebuild/johakyu-life-battle.js';
-import {ensureCombatLoadout} from '../src/combat-loadout.js';
+import {ensureCombatLoadout,setPhaseSelection,activeCombo} from '../src/combat-loadout.js';
+import {settleInspirationCombat} from '../src/rebuild/inspiration-combat.js';
 
 test('the whole inspiration pool uses common stage identities, including explicit unsupported results',()=>{
  for(const weapon of ['fist','sword','great','dagger','spear','axe','staff'])for(const row of inspirationCombatAnswerPool(weapon)){
@@ -18,6 +19,7 @@ test('the whole inspiration pool uses common stage identities, including explici
 test('a generated trial is learned on its first authoritative stage and fires in the same battle',()=>{
  const weapon='sword',definition=inspirationCombatAnswerPool(weapon).map(row=>resolveTechnique(row.id,{weapon})).find(t=>t?.id.startsWith('gen2.')&&t.stages.every(s=>resolveBattlePresentation({...s,weapon}).supported));
  assert.ok(definition,'generated accepted fixture');const life=createLife({seed:79});Object.assign(life,{ageYears:20,ageSeconds:1200,zone:'frontier'});life.equipment.weapon=weapon;life.knownSkills.push('basic.sword');
+ ensureCombatLoadout(life);assert.equal(setPhaseSelection(life,'jo','basic.sword'),true);
  life.inspiration.pending={id:definition.id,targetId:'enemy',phase:'jo',armed:true,started:false,cursor:0,contact:false,committed:false,failed:false,question:'reach',proof:[],runtimeName:definition.name,specialEffects:[]};
  const runtime=createJohakyuBattleRuntime({battleId:'learn',actors:[{id:life.id,side:'party',position:{x:0,z:0},equipment:life.equipment,loadout:{jo:{...definition,source:'trial'}},staminaMultiplier:.05},{id:'enemy',side:'enemy',position:{x:0,z:1.6},hp:10000,maxHp:10000,equipment:{weapon:'sword',armor:'cloth'},readyDelay:60,canAttack:false}]});
  const context={targetId:'enemy',zone:'frontier',distanceBand:'contact',terrain:'open',encounter:'duel'};let learned=null,completed=0,contact=false,started=false;
@@ -27,10 +29,12 @@ test('a generated trial is learned on its first authoritative stage and fires in
     started=true;assert.equal(life.knownSkills.includes(definition.id),false);
   }
   for(const e of rows.filter(e=>e.sourceId===life.id&&e.techniqueId===definition.id)){if(e.type==='stage-complete')completed++;if(e.impact){contact||=e.damage>0;assert.equal(presentBattleEvents([e])[0].presentation.techniqueId,definition.id);}}
-  learned||=recordCombatAnswers(life,context,rows).find(e=>e.type==='inspiration'&&e.id===definition.id);
+  settleInspirationCombat(life,null,rows,context);
+  learned||=rows.find(e=>e.type==='inspiration'&&e.id===definition.id);
+  if(learned){assert.equal(learned.equipped,true);assert.equal(activeCombo(life).slots.jo,definition.id);assert.equal(life.combatLoadout.technique.phaseSelections.jo,`combo:${activeCombo(life).id}`);}
   if(started)assert.equal(life.knownSkills.includes(definition.id),true);
  }
- assert.ok(started);assert.ok(learned?.firstCast);assert.ok(contact);assert.equal(completed,definition.stages.length);const restored=deserializeLife(serializeLife(life));assert.ok(restored.knownSkills.includes(definition.id));assert.equal(archiveInspiration(restored,definition.id),true);assert.equal(restored.inspiration.records[definition.id].archived,true);
+ assert.ok(started);assert.ok(learned?.firstCast);assert.ok(contact);assert.equal(completed,definition.stages.length);const restored=deserializeLife(serializeLife(life));assert.ok(restored.knownSkills.includes(definition.id));assert.equal(activeCombo(restored).slots.jo,definition.id);assert.equal(archiveInspiration(restored,definition.id),false);
 });
 test('life combo selection expands full techniques inside a phase, without truncating their stages',()=>{
  const state=createLife({seed:3});state.equipment.weapon='sword';state.knownSkills.push('basic.sword','action.counter','action.crash');state.inspiration.legacySkills.push('action.counter','action.crash');const l=ensureCombatLoadout(state),combo=l.technique.combos[0];combo.slots={jo:'action.counter',ha:'action.crash',kyu:'basic.sword'};l.technique.phaseSelections.jo='combo:'+combo.id;

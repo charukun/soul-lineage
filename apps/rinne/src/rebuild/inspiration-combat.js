@@ -2,6 +2,7 @@ import { WEAPONS } from './domain.js';
 import { tidebreakMindVectorFor } from './combat-tactics.js';
 import { lineBlocked, terrainMovementScale, ensureCombatTerrain } from './combat-world-contact.js';
 import { prepareCombatInspiration, recordCombatAnswers, observeTechnique, ensureInspiration } from './inspiration-state.js';
+import {equipInspiredTechnique} from '../combat-loadout.js';
 
 const near=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const inArena=p=>p.x>=-6.75&&p.x<=6.75&&p.z>=-5.85&&p.z<=5.65;
@@ -29,7 +30,11 @@ export function prepareInspirationCombat(state,front,dt){
 }
 export function settleInspirationCombat(state,front,events,context){
   if(!context)return events;
-  const discoveries=recordCombatAnswers(state,context,events);events.push(...discoveries);return events;
+  const discoveries=recordCombatAnswers(state,context,events);
+  for(const discovery of discoveries)if(discovery.type==='inspiration'&&discovery.firstCast){
+    discovery.equipped=equipInspiredTechnique(state,discovery.id,discovery.phase);
+  }
+  events.push(...discoveries);return events;
 }
 export function observePeerInspiration(states,front,eventMap){
   for(const actor of states){
@@ -44,4 +49,3 @@ export function observePeerInspiration(states,front,eventMap){
     }
   }
 }
-

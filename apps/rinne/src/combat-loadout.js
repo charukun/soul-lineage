@@ -87,6 +87,17 @@ export function addCombo(state){const loadout=ensureCombatLoadout(state),rows=lo
 export function removeCombo(state,id){const loadout=ensureCombatLoadout(state),rows=loadout.technique.combos;if(rows.length<=1)return false;const index=rows.findIndex(row=>row.id===id);if(index<0)return false;rows.splice(index,1);if(loadout.technique.activeComboId===id)loadout.technique.activeComboId=rows[0].id;for(const [phase]of PHASES)if(comboSelectionId(loadout.technique.phaseSelections?.[phase])===id)loadout.technique.phaseSelections[phase]=comboSelection(loadout.technique.activeComboId);mirrorLegacy(state);return true;}
 export function setActiveCombo(state,id){const loadout=ensureCombatLoadout(state);if(!loadout.technique.combos.some(row=>row.id===id))return false;loadout.technique.activeComboId=id;mirrorLegacy(state);return true;}
 export function setComboSkill(state,comboId,phase,skill){const combo=comboById(state,comboId);if(!combo||!PHASES.some(([id])=>id===phase)||!isAction(state,skill)||!weaponCompatible(state,skill))return false;combo.slots[phase]=skill;mirrorLegacy(state);return true;}
+/** The first cast is already executing; make the same learned art available to the active combo afterwards. */
+export function equipInspiredTechnique(state,id,phase){
+  if(!PHASES.some(([key])=>key===phase)||!state.inspiration?.records?.[id]||!state.knownSkills?.includes(id))return false;
+  const loadout=ensureCombatLoadout(state),combo=activeCombo(state);
+  if(!combo||!isAction(state,id)||!weaponCompatible(state,id))return false;
+  combo.slots[phase]=id;
+  loadout.technique.phaseSelections[phase]=comboSelection(combo.id);
+  if(state.combat)state.combat.comboId=combo.id;
+  mirrorLegacy(state);
+  return true;
+}
 export function phaseSelectionLabel(state,phase){const loadout=ensureCombatLoadout(state),selection=loadout.technique.phaseSelections[phase],comboId=comboSelectionId(selection),combo=comboId?loadout.technique.combos.find(row=>row.id===comboId):null;return combo?.name||techniqueName(selection,state);}
 export function setPhaseSelection(state,phase,selection){const loadout=ensureCombatLoadout(state);if(!PHASES.some(([id])=>id===phase))return false;const comboId=comboSelectionId(selection),validCombo=comboId&&loadout.technique.combos.some(row=>row.id===comboId),validSkill=isAction(state,selection)&&weaponCompatible(state,selection);if(!validCombo&&!validSkill)return false;loadout.technique.phaseSelections[phase]=selection;mirrorLegacy(state);return true;}
 export function toggleFavored(state,comboId,phase){const combo=comboById(state,comboId);if(!combo||!PHASES.some(([id])=>id===phase))return false;combo.favored[phase]=!combo.favored[phase];return combo.favored[phase];}
@@ -99,4 +110,3 @@ function weightedCombos(state){const loadout=ensureCombatLoadout(state),active=l
 export function selectCombatCombo(state,combat,{advance=false}={}){const rows=weightedCombos(state);if(!rows.length)return null;if(!Number.isInteger(combat.comboCursor))combat.comboCursor=0;else if(advance)combat.comboCursor++;const combo=rows[combat.comboCursor%rows.length];combat.comboId=combo.id;return combo;}
 export function combatSkillForPhase(state,combat,phase){const loadout=ensureCombatLoadout(state),selection=loadout.technique.phaseSelections?.[phase];return phaseSelectionSkill(state,phase,selection);}
 export function requestOneMotion(state){const loadout=ensureCombatLoadout(state),skill=loadout.technique.oneMotion;if(!state?.combat||state.down||state.ended||!skill)return null;state.combat.oneMotionQueued={skill,ttl:1.15};return skill;}
-
