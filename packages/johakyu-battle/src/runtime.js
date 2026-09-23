@@ -145,7 +145,7 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
       ...impact,impact:{...impact,damage,bodyPart:part},damage,bodyPart:part,bodyDurability:durability,contactPoint:point,observedContactPoint:observation?.point||null,contactEngine:'shared-contact-anchor',contactDistance:d,contactReach:spacing.engagementRange,
       sourceContactProgress:execution.choreography.contactProgress,defenseContactProgress:incoming?.choreography.contactProgress??null,otherAttackId:clash?incoming.id:null,
       exchangeContinuity:pair(source,target).state.continuity,initiativeId:pair(source,target).state.initiativeId});
-    source.lastContactAction=execution;if(incoming)target.lastContactAction=incoming;target.lastImpact=event;
+    target.lastImpact=event;
     if(target.downed||target.dead){interrupt(target,'incapacitated');emit({type:target.dead?'enemy-down':'actor-downed',sourceId:source.id,targetId:target.id,triggerEventId:event.id});}
   }
   function tick(dt,samples){
@@ -163,7 +163,7 @@ export function createJohakyuBattleRuntime({battleId,actors:initial=[],bounds=BO
     }
   }
   function actionView(a){
-    const action=a.action||(hitstop>0?a.lastContactAction:null);if(!action)return null;const progress=clamp(action.elapsed/action.duration);
+    const action=a.action;if(!action)return null;const progress=clamp(action.elapsed/action.duration);
     return {id:action.id,...executionIdentity(action),name:action.technique.name,targetId:action.targetId,step:action.stageIndex,stageLabel:action.technique.stages[action.stageIndex].label,
       chainLength:action.chainLength,chainLabel:`${PHASE_LABELS[action.phase]||'受'} · ${action.chainLength}連`,cycle:a.cursor.cycle,
       progress,poseProgress:stagePoseProgress(progress,action.choreography),duration:action.duration,choreography:action.choreography,timelinePhase:timelinePhase(progress,action.choreography),

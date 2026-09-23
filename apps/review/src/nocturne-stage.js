@@ -132,6 +132,7 @@ function updateSequence(meta){
  }
  hud.dataset.exchangeIntent=meta.exchangeIntent||'read';
  const hudState=interrupted?'maai':(meta.hudState||'maai'),phase=meta.phase,index=PHASE_INDEX[hudState]??-1;
+ if(interrupted)for(const lane of techniqueLanes.values())lane.replaceChildren();
  phasePanel.dataset.phase=hudState;phasePanel.dataset.combatSequencePhase=hudState;phasePanel.dataset.comboActive=String(index>=0&&!interrupted);
  if(interrupted)beginComboFade();else if(index>=0)clearComboFade();
  setPhaseLamps(interrupted?-1:index);
