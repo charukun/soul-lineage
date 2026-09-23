@@ -24,7 +24,7 @@ test('real exchanges visit all phases, retain identity through contact/presentat
  for(const frame of frames){const shown=presentBattleFrame(frame);for(const actor of shown.actors)if(actor.action){assert.equal(actor.action.presentation.techniqueId,actor.action.techniqueId);assert.equal(actor.action.presentation.stageIndex,actor.action.stageIndex);}}
 });
 test('reading, approach, retreat and impulse remain observable with the accepted body clearance',()=>{
- const {frames}=run();const intents=new Set();let min=10,max=0,impulse=false;
+ const {frames}=run({loadout:{technique:{jo:'action.feint',ha:'action.guard-step',kyu:'action.crash'}}});const intents=new Set();let min=10,max=0,impulse=false;
  for(const f of frames){const a=f.actors.find(a=>a.self),b=f.actors.find(b=>b.side==='enemy'&&!b.dead&&!b.downed);if(a.exchange)intents.add(a.exchange.intent);if(a.impulseVelocity&&Math.hypot(a.impulseVelocity.x,a.impulseVelocity.z)>.01)impulse=true;if(b&&!a.downed){const d=Math.hypot(a.position.x-b.position.x,a.position.z-b.position.z);min=Math.min(min,d);max=Math.max(max,d);}}
  assert.ok(intents.has('approach'));assert.ok(intents.has('bait')||intents.has('orbit'));assert.ok(intents.has('retreat')||intents.has('disengage'));assert.ok(min>=1.46-1e-6);assert.ok(max-min>.5);assert.ok(impulse);
 });
@@ -39,7 +39,7 @@ test('the Review Lab clash fixture shows two simultaneous shared attacks stoppin
  assert.equal(scenario.inspect().frame.authority,'johakyu-battle');
 });
 test('stage motion starts without a separate phase hold and completes before phase changes',()=>{
- const {events,frames}=run({},35);assert.equal(events.some(e=>e.type==='phase-cue'),false);assert.equal(frames.some(f=>f.actors.some(a=>a.phaseCue)),false);
+ const {events,frames}=run({loadout:{technique:{jo:'action.feint',ha:'action.guard-step',kyu:'action.crash'}}},35);assert.equal(events.some(e=>e.type==='phase-cue'),false);assert.equal(frames.some(f=>f.actors.some(a=>a.phaseCue)),false);
  for(const e of events.filter(e=>e.type==='phase-change')){const prior=events.slice(0,events.indexOf(e)).filter(x=>x.type==='technique-complete'&&x.sourceId===e.actorId).at(-1);assert.ok(prior);assert.equal(prior.time,e.time);}
 });
 test('an interrupted hero clears the action and sequence lamps across later frames, including after an enemy respawns',()=>{
