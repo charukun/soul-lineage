@@ -19,6 +19,7 @@ import {buildNocturneEnvironment} from './environment.js';
 import {createTechniqueVfxRuntime} from './technique-vfx-runtime.js';
 import {cameraForMotion} from './motion-camera.js';
 import {impactReactionEnvelope,impactReactionProfile} from './impact-reaction.js';
+import {downedPresentationSample} from './downed-presentation.js';
 
 export function createBattleRuntime({world,effects,stage,sound,notify,signal,rules=null,presentationPort=null,cameraPresentation=null}){
 const V=THREE.Vector3,TAU=Math.PI*2;let disposed=false,rounds=0,allKills=0,renderedDeaths=0;
@@ -711,7 +712,8 @@ function createDrivenPort(){
    const clip=terminal||spawnClip||contactClip||reactionClip||phaseCueClip||actionClip||locomotionClip||(row.hit?'Hit_A':row.moving?(a.kind==='hero'?'Running_A':'Walking_D_Skeletons'):row.resting?'Sit_Floor_Idle':'Idle');
    const key=terminal||(spawnClip?'spawn:battlebk-ground':contactClip?('contact:'+a.contactHold.serial+':'+contactClip):reactionClip?('reaction:'+a.reaction.serial+':'+reactionClip):phaseCue?('phase-cue:'+phaseCue.key+':'+phaseCueClip):((action?.id||(locomotionClip?('locomotion:'+(row.locomotion?.kind||'observed')+':'+locomotionClip):clip))+':'+(action?.step??0)));
    if(a.canonicalAction!==key){play(a,clip,Boolean(terminal||spawnClip||reactionClip||contactClip||action||row.hit),spawnClip?.8:0);a.canonicalAction=key;a.deathTime=0;if(action&&!terminal&&!spawnClip&&!reactionClip&&!contactClip){a.startGlow=.18;a.startGlowPhase=action.phase;}}
-   if(spawnClip&&!terminal){a.presentationActionId=null;a.action.paused=false;a.mixer.update(dt);}
+   if(row.downed&&!row.dead&&terminal){const sample=downedPresentationSample(row,a.clips.get(terminal)?.duration);a.presentationActionId=null;a.action.paused=true;a.action.time=sample.time;a.mixer.update(0);a.object.updateMatrixWorld(true);}
+   else if(spawnClip&&!terminal){a.presentationActionId=null;a.action.paused=false;a.mixer.update(dt);}
    else if(contactClip&&!terminal){const held=a.contactHold;a.action.paused=true;a.action.time=Math.min(a.clips.get(contactClip).duration-.000001,held.progress*a.clips.get(contactClip).duration);a.mixer.update(0);}
    else if(reactionClip&&!terminal){a.action.paused=false;a.mixer.update(dt);}
    else if(phaseCue&&!terminal){const cueProgress=clamp(Number(phaseCue.progress)||0,0,1),cueEase=cueProgress*cueProgress*(3-2*cueProgress),poseStart=clamp(Number(phaseCue.poseStart)||0,0,.95),poseEnd=clamp(Number(phaseCue.poseEnd)||.7,poseStart,.98),pose=lerp(poseStart,poseEnd,cueEase);a.presentationActionId=null;a.action.paused=true;a.action.time=Math.min(a.clips.get(phaseCueClip).duration-.000001,pose*a.clips.get(phaseCueClip).duration);a.mixer.update(0);if(phaseCue.phase==='zanshin')moveBladeToSheath(a,cueProgress,phaseCue.key);}
