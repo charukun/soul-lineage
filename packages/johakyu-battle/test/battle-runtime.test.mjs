@@ -78,7 +78,7 @@ test('a downed target gets a deliberate pause, then a complete two-second finish
  const runtime=createJohakyuBattleRuntime({battleId:'finisher-pace',actors:[a,b]}),events=[];
  for(let i=0;i<60*4;i++)events.push(...runtime.step(1/60).events);
  const start=events.find(e=>e.type==='finisher-start'),contact=events.find(e=>e.type==='finisher'),complete=events.find(e=>e.type==='finisher-complete');
- assert.ok(start);assert.ok(start.time>=1.1);assert.ok(contact.time>start.time);assert.ok(complete.time>contact.time);
+ assert.ok(start);assert.ok(start.time>=1.5,'finisher must wait until the target has fully settled on the ground');assert.ok(contact.time>start.time);assert.ok(complete.time>contact.time);
  assert.ok(Math.abs(complete.time-start.time-2)<.08);assert.equal(events.filter(e=>e.type==='finisher').length,1);
  const after=runtime.snapshot().actors.find(row=>row.id==='a');assert.equal(after.phaseCue?.phase,'zanshin');
  const cueRuntime=createJohakyuBattleRuntime({battleId:'finisher-zanshin',actors:[a,b]});let cueFrame=null;
@@ -87,6 +87,14 @@ test('a downed target gets a deliberate pause, then a complete two-second finish
  assert.equal(cue?.phase,'zanshin');assert.equal(presentBattleFrame(cueFrame).actors.find(row=>row.id==='a').phaseCue.clip,'Idle');
  for(let i=0;i<110;i++)cueRuntime.step(1/60);
  assert.equal(cueRuntime.snapshot().actors.find(row=>row.id==='a').phaseCue,null);
+});
+test('enemy finisher waits for full knockdown and only one enemy claims the execution',()=>{
+ const hero={...actor('hero','party'),self:true,hp:0,downed:true,incapacitated:true,position:{x:0,z:0}};
+ const left={...actor('left','enemy'),position:{x:-.35,z:1.35},readyDelay:0},right={...actor('right','enemy'),position:{x:.35,z:1.35},readyDelay:0};
+ const runtime=createJohakyuBattleRuntime({battleId:'enemy-finisher',actors:[hero,left,right]}),events=[];
+ for(let i=0;i<360;i++)events.push(...runtime.step(1/60).events);
+ const starts=events.filter(e=>e.type==='finisher-start'&&e.targetId==='hero'),contact=events.find(e=>e.type==='finisher'&&e.targetId==='hero'),complete=events.find(e=>e.type==='finisher-complete'&&e.targetId==='hero');
+ assert.equal(starts.length,1,'a downed actor must have one finisher owner');assert.ok(starts[0].time>=1.5);assert.ok(contact&&complete);assert.equal(contact.sourceId,starts[0].sourceId);assert.equal(complete.sourceId,starts[0].sourceId);assert.equal(runtime.actor('hero').dead,true);
 });
 test('rendered contact observations cannot alter the authoritative contact or outcome',()=>{
  const make=()=>createJohakyuBattleRuntime({battleId:'observation',actors:[actor('a','party'),actor('b','enemy')]});const a=make(),b=make();

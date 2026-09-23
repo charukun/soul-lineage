@@ -18,7 +18,7 @@ test('every supported menu selection resolves the complete shared technique for 
  assert.equal(battle2TechniqueCatalog({weapon:'great'})[0].id,'basic.great');
 });
 test('real exchanges visit all phases, retain identity through contact/presentation and do not deadlock without geometry samples',()=>{
- const {events,frames}=run();const starts=events.filter(e=>e.type==='stage-start'&&e.sourceId==='hero'),phases=new Set(starts.map(e=>e.phase));for(const p of ['jo','ha','kyu'])assert.ok(phases.has(p),p);
+ const {events,frames}=run({actorOverrides:{hero:{hp:800,maxHp:800}}});const starts=events.filter(e=>e.type==='stage-start'&&e.sourceId==='hero'),phases=new Set(starts.map(e=>e.phase));for(const p of ['jo','ha','kyu'])assert.ok(phases.has(p),p);
  const impacts=events.filter(e=>e.impact),seen=new Set();assert.ok(impacts.some(e=>e.type==='player-hit'));
  for(const event of impacts){assert.ok(!seen.has(event.id));seen.add(event.id);assert.ok(event.contactDistance<=event.contactReach);assert.equal(event.stageIndex,event.impact.stageIndex);assert.equal(event.techniqueId,event.impact.techniqueId);const p=presentBattleEvents([event])[0].presentation;assert.equal(p.techniqueId,event.techniqueId);assert.equal(p.stageIndex,event.stageIndex);}
  for(const frame of frames){const shown=presentBattleFrame(frame);for(const actor of shown.actors)if(actor.action){assert.equal(actor.action.presentation.techniqueId,actor.action.techniqueId);assert.equal(actor.action.presentation.stageIndex,actor.action.stageIndex);}}
@@ -58,4 +58,10 @@ test('down, finisher, corpse and respawn are encounter lifecycle around shared c
 });
 test('review checkpoints restart execution identities and cannot replay previous impacts',()=>{
  const {events,scenario}=run({checkpointSeconds:3},12);assert.equal(scenario.inspect().meta.resumes,1);const ids=events.filter(e=>e.impact).map(e=>e.id);assert.equal(new Set(ids).size,ids.length);
+});
+
+test('enemy 葬焉 waits for full knockdown and recovery does not interrupt it',()=>{
+ const scenario=createJohakyuP7ReviewScenario({actorOverrides:{hero:{hp:0,downed:true,incapacitated:true},'enemy-a':{readyDelay:0,spawnSeconds:0}}});let startAt=null,completeAt=null,recoverAt=null;
+ for(let i=0;i<720&&recoverAt===null;i++){const result=scenario.step(1/60);for(const row of result.meta.activity){if(row.type==='finisher-start'&&row.sourceId!=='hero'&&row.targetId==='hero')startAt=i/60;if(row.type==='finisher-complete'&&row.sourceId!=='hero'&&row.targetId==='hero')completeAt=i/60;if(row.type==='hero-recovered')recoverAt=i/60;}}
+ assert.ok(startAt!==null&&startAt>=1.5);assert.ok(completeAt!==null);assert.ok(recoverAt!==null&&recoverAt>=completeAt);
 });
