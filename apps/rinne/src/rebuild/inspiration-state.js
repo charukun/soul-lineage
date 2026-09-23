@@ -227,11 +227,11 @@ export function prepareCombatInspiration(state,context={},dt=0){
   for(const q of context.questions||[])recordCombatQuestion(state,q,context);updateInspirationSigns(state,context);if(s.clock-s.lastNamed<INSPIRATION_LIMITS.namedGap)return null;
   const candidate=inspirationCandidates(state,{...context,window:'combat'})[0];if(!candidate)return null;const candidateRow=answer(candidate.id),specialEffects=inspirationRuleEffectsFor(state,candidateRow);s.pending={...candidate,specialEffects,targetId:context.targetId,elapsed:0,committed:false,armed:false,started:false,cursor:0,contact:false,failed:false,runtimeName:isGeneratedTechniqueId(candidate.id)?generatedNamingFor(state,candidateRow,specialEffects).displayName:inspirationTechniqueName(candidateRow),context:{...context}};return s.pending;
 }
-export function inspirationRecipe(state,id,phase,targetId=null,context=null){
-  const s=ensureInspiration(state),p=s.pending,usingPending=p&&p.targetId===targetId,chosen=usingPending?p.id:id,row=answer(chosen);
+export function inspirationRecipe(state,id,phase,targetId=null,context=null,{immediate=false}={}){
+  const s=ensureInspiration(state),p=s.pending,usingPending=p&&!p.committed&&p.targetId===targetId,chosen=usingPending?p.id:id,row=answer(chosen);
   if(!row||!row.steps.length||!['technique','variant'].includes(row.kind))return null;if(!usingPending&&!own(s.records,chosen))return null;
   if(!answerAvailability(state,chosen,{context:context||p?.context,ignoreResources:!usingPending||p.started}).usable)return null;
-  if(usingPending){const preferred=row.phases.includes('jo')?'jo':row.phases[0];if(phase!==preferred)return null;p.armed=true;p.phase=phase;}
+  if(usingPending){const preferred=row.phases.includes('jo')?'jo':row.phases[0];if(!immediate&&phase!==preferred)return null;p.armed=true;p.phase=phase;}
   const effects=usingPending?(p.specialEffects||[]):recordRuleEffects(state,chosen);
   return {id:chosen,name:usingPending?p.runtimeName:(isGeneratedTechniqueId(chosen)?generatedNamingFor(state,row,effects).displayName:inspirationTechniqueName(row)),steps:row.steps.map(step=>({...step})),effort:row.effort,family:row.family,phaseAffinity:row.phases.includes(phase),specialEffects:effects.map(effect=>({...effect}))};
 }
@@ -239,6 +239,15 @@ function rememberUse(state,id,context){const s=ensureInspiration(state),r=s.reco
 function matchesAttempt(event,p){return event.targetId===p.targetId&&event.phase===p.phase&&(event.techniqueId?event.techniqueId===p.id:event.skill===p.runtimeName);}
 function observePerformedAnswer(state,context,events){
   const s=ensureInspiration(state),p=s.pending;if(!p||!p.armed||p.committed||state.ended||state.down)return null;
+  // The shared executor has already paid for and started the new motion. Its
+  // inspiration-start event is the authoritative first use, in this battle.
+  const first=events.find(e=>e.type==='inspiration-start'&&e.authority==='johakyu-battle'&&e.targetId===p.targetId&&e.techniqueId===p.id);
+  if(first){
+    p.started=true;
+    const learned=commitAnswer(state,p,{...context,description:`${INSPIRATION_QUESTIONS[p.question]||'戦況から答えを掴んだ'}。実戦で新しい身体操作を始めた。`});
+    if(learned){p.committed=true;learned.firstCast=true;learned.attackId=first.attackId;learned.targetId=first.targetId;}
+    return learned;
+  }
   // A target may die and clear combat in this tick. Keep the executor-owned final frame, not a made-up replay.
   const row=answer(p.id),pose=s.execution||state.combat?.tidebreakPose;
   const shared=events.filter(e=>e.authority==='johakyu-battle'&&matchesAttempt(e,p));
@@ -275,4 +284,3 @@ export function recordCombatAnswers(state,context={},events=[]){
 export function inspirationName(state,id,fallback=id){const row=answer(id);if(!row)return fallback;if(isGeneratedTechniqueId(id))return generatedNamingFor(state,row).displayName;return inspirationTechniqueName(row);}
 export function archiveInspiration(state,id,archived=true){const s=ensureInspiration(state),r=s.records[id];if(!r||(archived&&equippedIds(state).has(id)))return false;r.archived=Boolean(archived);s.revision++;if(!archived)enforceActiveLimit(state);return r.archived===Boolean(archived);}
 export function inspirationSummary(state){const s=ensureInspiration(state),families=unique(Object.values(s.records).map(r=>r.family));return {families:families.length,records:Object.keys(s.records).length,signs:updateInspirationSigns(state),heritage:s.heritage,body:s.body,faith:faithProfile(state),legacy:s.legacySkills.length};}
-

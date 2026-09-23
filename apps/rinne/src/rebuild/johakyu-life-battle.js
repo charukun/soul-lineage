@@ -66,7 +66,13 @@ export function tickLifeBattle(states,front,dt,{fatalityChance=()=>.5}={}){
    for(const enemy of front.enemies)if(enemy.downed&&!enemy.dead){enemy.downedElapsed=(enemy.downedElapsed||0)+dt;if(enemy.downedElapsed>=7.5){enemy.downed=false;enemy.downedElapsed=0;enemy.hp=Math.max(1,enemy.maxHp*.28);enemy.injuries=Object.fromEntries(Object.keys(enemy.injuries||{}).map(part=>[part,{severity:0,at:0}]));for(const state of active)result.get(state.id).push({type:'enemy-recovered',targetId:enemy.id,engine:'johakyu'});}}
  }
  const rows=[...active.map(s=>lifeRow(s,front)),...front.enemies.map(e=>enemyRow(e,front))];
- let runtime=sessions.get(front);if(!runtime){runtime=createJohakyuBattleRuntime({battleId:`life:${active.map(s=>s.id).sort().join('+')}:front:${front.stage}`,actors:rows,recoverStamina:false,blocked:(a,b)=>lineBlocked(front,a,b)});sessions.set(front,runtime);}else runtime.sync(rows);
+  let runtime=sessions.get(front);if(!runtime){runtime=createJohakyuBattleRuntime({battleId:`life:${active.map(s=>s.id).sort().join('+')}:front:${front.stage}`,actors:rows,recoverStamina:false,blocked:(a,b)=>lineBlocked(front,a,b)});sessions.set(front,runtime);}else runtime.sync(rows);
+  for(const state of active){
+    const pending=state.inspiration?.pending,phase=state.combat?.phase;
+    if(!pending||pending.started||pending.committed||!PHASES.includes(phase))continue;
+    const recipe=inspirationRecipe(state,pending.id,phase,pending.targetId,null,{immediate:true});
+    if(recipe&&!runtime.inspire(state.id,recipe,pending.targetId,phase))pending.armed=false;
+  }
  for(const state of active){const queued=state.combat?.oneMotionQueued;if(queued){queued.ttl-=dt;const technique=state.knownSkills?.includes(queued.skill)?resolveTechnique(queued.skill,{weapon:state.equipment.weapon}):null;if(technique&&runtime.queueTechnique(state.id,technique)||queued.ttl<=0)state.combat.oneMotionQueued=null;}}
  const stepped=runtime.step(dt),byId=new Map(stepped.frame.actors.map(a=>[a.id,a]));
  for(const state of active){const row=byId.get(state.id),domain=runtime.actor(state.id);Object.assign(state,{hp:domain.hp,stamina:domain.stamina,staminaCap:domain.staminaCap,injuries:structuredClone(domain.injuries),position:{...row.position},yaw:row.yaw,moving:row.moving,attacking:Boolean(row.action?.motion.offense)});
@@ -77,8 +83,13 @@ export function tickLifeBattle(states,front,dt,{fatalityChance=()=>.5}={}){
  front.battleClock={time:stepped.frame.time,hitstop:stepped.frame.hitstop};
  for(const event of stepped.events){
    const owner=active.find(s=>s.id===(event.sourceId||event.actorId)),victim=active.find(s=>s.id===event.targetId);
-   const row={...event,engine:'johakyu'};
-   if(owner)result.get(owner.id).push(row);if(victim&&victim!==owner)result.get(victim.id).push(row);
+    const row={...event,engine:'johakyu'};
+    if(owner)result.get(owner.id).push(row);if(victim&&victim!==owner)result.get(victim.id).push(row);
+    if(event.type==='inspiration-start'&&owner){
+      owner.combat.inspirationCue={name:event.skill,until:stepped.frame.time+1.1,attackId:event.attackId};
+      row.position={...owner.position};
+      for(const peer of active)if(peer!==owner)result.get(peer.id).push({...row,scope:'witness'});
+    }
    if(event.type==='actor-downed'&&owner){owner.defeats=(owner.defeats||0)+1;const xp=owner.experiences.combat||{count:0,score:0,last:0};owner.experiences.combat={count:xp.count+1,score:xp.score+1,last:owner.ageSeconds};result.get(owner.id).push({type:'enemy-downed',targetId:event.targetId,engine:'johakyu'});}
    if(event.type==='finisher'&&victim?.down&&!victim.ended&&!victim.down.executed){victim.down.executed=true;victim.down.executedBy=event.sourceId;victim.down.executionId=event.attackId;result.get(victim.id).push({type:'enemy-finisher',sourceId:event.sourceId,attackId:event.attackId,engine:'johakyu'});}
    if(event.type==='finisher-complete'&&victim?.down?.executed&&!victim.ended&&victim.down.executionId===event.attackId){endLifeEarly(victim,`第${front.stage+1}前線で敵の葬焉`);result.get(victim.id).push({type:'life-end',cause:'enemy-finisher',sourceId:event.sourceId,attackId:event.attackId,engine:'johakyu'});}
