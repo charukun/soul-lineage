@@ -15,8 +15,10 @@ test('序破急バトルの技詳細は共有契約だけで説明文を作る',
   const generated=generatedTechniqueCandidates({weapon:'sword'}).find(row=>row.steps.length>=2);
   assert.ok(generated);
   const shared=techniqueDetail(generated.id,{weapon:'sword'});
-  assert.match(shared.summary,/動き:/);
-  assert.match(shared.summary,/注意:/);
+  assert.match(shared.summary,/^型:/);
+  assert.match(shared.summary,/\n動き:/);
+  assert.match(shared.summary,/\n弱点:/);
+  assert.ok(['slash','thrust','receive','break','circle','return'].includes(shared.sigil));
   assert.doesNotMatch(shared.summary,/\b(?:slash|diagonal|crosscut|back|thrust|forward|sideL|sideR|retreat)\b/);
 
   const learned=battle2LearnedTechniqueRows([generated.id],{weapon:'sword'});
@@ -31,4 +33,6 @@ test('序破急バトルの技詳細は共有契約だけで説明文を作る',
   assert.doesNotMatch(catalogSource,/KIND_LABELS|FOOTWORK_LABELS|battle2TechniqueDescription/);
   assert.match(loadoutSource,/techniqueDetail as sharedTechniqueDetail/);
   assert.match(loadoutSource,/sharedTechniqueDetail\(selection,/);
+  assert.match(loadoutSource,/kicker:selection\?\.startsWith\('basic\.'\)\?'基本の型':'閃き技'/);
+  assert.doesNotMatch(loadoutSource,/appendLibrary\('閃いた連技'/);
 });

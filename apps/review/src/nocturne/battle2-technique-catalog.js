@@ -15,10 +15,10 @@ const weightFor=(row,phase,encounterMode,spectacle=false)=>{
 };
 const weightedPick=(rows,random=Math.random)=>{if(!rows.length)return null;const total=rows.reduce((sum,item)=>sum+item.weight,0),point=Math.max(0,Math.min(.999999,Number(random())||0))*total;let cursor=0;for(const item of rows){cursor+=item.weight;if(point<cursor)return item.row;}return rows.at(-1).row;};
 
-export function battle2TechniqueCatalog({weapon='sword'}={}){return techniqueCatalog(weapon).filter(row=>row.id===`basic.${weapon}`).map(row=>({...row,meta:techniqueDetail(row.id,{weapon}).summary,supported:row.stages.every(s=>resolveBattlePresentation({...s,weapon}).supported)})).filter(row=>row.supported);}
+export function battle2TechniqueCatalog({weapon='sword'}={}){return techniqueCatalog(weapon).filter(row=>row.id===`basic.${weapon}`).map(row=>{const detail=techniqueDetail(row.id,{weapon});return{...row,meta:detail.summary,sigil:detail.sigil,supported:row.stages.every(s=>resolveBattlePresentation({...s,weapon}).supported)};}).filter(row=>row.supported);}
 export const BATTLE2_TECHNIQUE_CATALOG=Object.freeze(battle2TechniqueCatalog());
 export function battle2InspirationCatalog({weapon='sword'}={}){return battle2LearnedTechniqueRows(inspirationCombatAnswerPool(weapon).map(row=>row.id),{weapon});}
-export function battle2LearnedTechniqueRows(ids,{weapon='sword'}={}){return [...new Set(ids||[])].map(id=>resolveTechnique(id,{weapon})).filter(row=>row&&row.stages.every(s=>resolveBattlePresentation({...s,weapon}).supported)).map(row=>({...row,meta:techniqueDetail(row.id,{weapon,name:row.label}).summary}));}
+export function battle2LearnedTechniqueRows(ids,{weapon='sword'}={}){return [...new Set(ids||[])].map(id=>resolveTechnique(id,{weapon})).filter(row=>row&&row.stages.every(s=>resolveBattlePresentation({...s,weapon}).supported)).map(row=>{const detail=techniqueDetail(row.id,{weapon,name:row.label});return{...row,meta:detail.summary,sigil:detail.sigil};});}
 export function battle2SelectionLabel(id){return techniqueName(id);}
 export function battle2SelectionAllowed(id,{weapon='sword'}={}){if(!id||String(id).startsWith('combo:'))return false;try{return compileBattleLoadout({jo:id},weapon).jo.every(t=>t.stages.every(s=>resolveBattlePresentation({...s,weapon}).supported));}catch{return false;}}
 export function battle2SelectionTechniques(id,{weapon='sword'}={}){return compileBattleLoadout({jo:id},weapon).jo.map(t=>t.id);}
