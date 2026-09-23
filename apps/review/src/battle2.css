@@ -13,7 +13,7 @@ main.battle2-review.review-surface>.review-surface__workspace{grid-template-colu
 
 
 /* 心技体装のナビとメニューは @soul/shared-ui が描画正本。 */
-.battle2-loadout-shell{position:absolute;inset:0;z-index:8;pointer-events:none}
+.battle2-loadout-shell{position:absolute;inset:0;z-index:40;pointer-events:none}
 .battle2-loadout-shell .rinne-core-menu{pointer-events:auto}
 .battle2-loadout-shell .rinne-primary-four{z-index:180!important}
 
