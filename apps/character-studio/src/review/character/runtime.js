@@ -419,6 +419,8 @@ function start() {
   review.sample = age => { settings = reviewSettings({ ...settings, age, ages: 'fixed' }); records = records.map(r => editReviewCharacter(r, { age })); refreshLooks(); };
   review.loadImg2ThreeReference = async () => {
     const request = ++modelRequestSequence;
+    modelLoads.begin(); // Supersede an in-flight legacy GLB before it can replace this choice.
+    loading = false;
     status('img2threejs単体モデルを読み込み中…');
     try {
       const next = await createImg2ThreeReferenceCharacter();
@@ -459,4 +461,3 @@ function start() {
 try { start(); } catch (error) { report(error); el('retry').disabled = false; el('retry').onclick = () => location.reload(); }
 
 if (document.body.classList.contains('advanced-review')) import('../workspace/advanced.js').catch(report);
-

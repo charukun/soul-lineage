@@ -47,7 +47,7 @@ test('standalone turntable and real selection canvas render the same full-depth 
       await page.locator('#model').screenshot({ path:path.join(evidence,`standalone-${view}.png`) });
     }
     await page.goto(new URL('index.html',base).href);
-    await page.waitForFunction(() => window.masterCharacterReview?.ready && window.characterStudio?.review);
+    await page.waitForFunction(() => window.characterStudio?.review);
     await page.locator('[data-character-model="img2threejs.bald-chibi.v1"]').first().click();
     await page.waitForFunction(() => window.masterCharacterReview?.audit?.modelId === 'img2threejs.bald-chibi.v1');
     const state = await page.evaluate(() => {
