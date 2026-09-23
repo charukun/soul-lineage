@@ -10,7 +10,8 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
  if(fixture!==null&&fixture!=='clash')throw new RangeError('Invalid battle review fixture');
  const clashFixture=fixture==='clash',fixtureLoadout=clashFixture&&!loadout?{...BATTLE2_LOADOUT_DEFAULT,technique:{jo:'basic.sword',ha:'basic.sword',kyu:'basic.sword'}}:loadout;
  const config=normalizeBattle2Loadout(fixtureLoadout||BATTLE2_LOADOUT_DEFAULT),weapon=config.equipment.weapon,known=[...new Set(learnedTechniqueIds)],knownSet=new Set(known),inspirationPool=battle2InspirationCatalog({weapon}),reviewSettings={techniqueMode:settings?.techniqueMode==='random'?'random':'set',inspirationRate:settings?.inspirationRate==='high'?'high':'normal'};
- const mind={attack:.25,guard:.25,counter:.25,mobility:.25,survival:.25,spacing:.25};for(const id of config.heart.active)for(const [key,value]of Object.entries(CAUSAL_ANSWER_BY_ID[id]?.intent||{}))if(key in mind)mind[key]+=value;
+ const mind={attack:.25,guard:.25,counter:.25,mobility:.25,survival:.25,spacing:.25},heartEffects={damage:0,mitigation:0};
+ for(const id of config.heart.active){const row=CAUSAL_ANSWER_BY_ID[id];for(const [key,value]of Object.entries(row?.intent||{}))if(key in mind)mind[key]+=value;for(const key of Object.keys(heartEffects))heartEffects[key]+=Number(row?.effects?.[key])||0;}
  let encounter=1,epoch=1,serial=1,elapsed=0,defeats=0,finishers=0,resumes=0,restartedAt=null,runtime,last=null,activeHeroLoadout,activity=[],history=[],replacements=[];
  const slots=mode==='duel'?['enemy-a']:['enemy-a','enemy-b','enemy-c'];
  const heroLoadout=()=>reviewSettings.techniqueMode==='random'?Object.fromEntries(PHASES.map(phase=>{const pool=[...BATTLE2_TECHNIQUE_CATALOG.map(t=>t.id),...known].filter(id=>battle2TechniqueDefinition(id,{weapon}));return[phase,pool[Math.min(pool.length-1,Math.floor(hash(encounter+':'+phase+':'+serial)*pool.length))]];})):config.technique;
@@ -18,7 +19,7 @@ export function createJohakyuP7ReviewScenario({mode='duel',duelGap=2.18,enemyLea
  function reset(){
    activeHeroLoadout=heroLoadout();
    runtime=createJohakyuBattleRuntime({battleId:`review-battle:${battle2LoadoutKey(config)}:${encounter}`,bounds:{minX:-4.8,maxX:4.8,minZ:-1.4,maxZ:5.4},actors:[
-     {id:'hero',side:'party',self:true,kind:'hero',hp:125,maxHp:125,stamina:100,staminaCap:100,seed:73917,position:{x:0,z:.35},equipment:{weapon,armor:'heavy',shield:config.equipment.shield},loadout:activeHeroLoadout,staminaMultiplier:.12,damageScale:1.09,mind:clashFixture?'aggressive':mind,stance:config.body.stance,zanshin:config.body.zanshin,nonlethal:config.heart.active.includes('skill.nonlethal'),finisherProfile:config.body.finisher,readyDelay:clashFixture?.5:.82,scope:'review-trial',...actorOverrides.hero},...slots.map((slot,i)=>enemyRow(slot,i))]});
+     {id:'hero',side:'party',self:true,kind:'hero',hp:125,maxHp:125,stamina:100,staminaCap:100,seed:73917,position:{x:0,z:.35},equipment:{weapon,armor:'heavy',shield:config.equipment.shield},loadout:activeHeroLoadout,staminaMultiplier:.12,damageScale:1.09*(1+Math.min(.7,heartEffects.damage)),mitigation:Math.min(.58,heartEffects.mitigation),mind:clashFixture?'aggressive':mind,pursuit:config.heart.active.includes('skill.pursuer'),stance:config.body.stance,zanshin:config.body.zanshin,nonlethal:config.heart.active.includes('skill.nonlethal'),finisherProfile:config.body.finisher,readyDelay:clashFixture?.5:.82,scope:'review-trial',...actorOverrides.hero},...slots.map((slot,i)=>enemyRow(slot,i))]});
    runtime.actor('hero').cursor.phaseIndex=PHASES.indexOf(heroStartPhase);runtime.actor('hero').cursor.techniqueIndex=heroStartTechniqueIndex;replacements=[];restartedAt=null;
  }
  reset();
