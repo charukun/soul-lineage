@@ -1,3 +1,4 @@
+import {GALLERY_SEEDS} from './gallery-seeds.mjs';
 const PREFIX='/api/gallery';
 const MAX_BYTES=5*1024*1024;
 const MAX_ITEMS=120;
@@ -25,7 +26,8 @@ export class ReviewGallery {
     const storage=this.state.storage;
     if(request.method==='GET'&&parts.length===1){
       const rows=await storage.get('gallery:index')||[];
-      return json({items:rows.map(publicRow)});
+      const hidden=await storage.get('gallery:hidden')||[];
+      return json({items:[...GALLERY_SEEDS.filter(item=>!hidden.includes(item.id)),...rows.map(publicRow)]});
     }
     if(request.method==='POST'&&parts.length===1){
       const form=await request.formData(),file=form.get('image');
@@ -47,6 +49,12 @@ export class ReviewGallery {
         for(let i=0;i<count;i++)await storage.delete(`gallery:${id}:${i}`);
         throw error;
       }
+    }
+    const seeded=GALLERY_SEEDS.find(item=>item.id===id);
+    if(seeded&&request.method==='DELETE'&&parts.length===2){
+      const hidden=await storage.get('gallery:hidden')||[];
+      if(!hidden.includes(id))await storage.put('gallery:hidden',[...hidden,id]);
+      return json({deleted:id,sourcePreserved:true});
     }
     if(!validId(id))return json({error:'not_found'},404);
     const rows=await storage.get('gallery:index')||[],row=rows.find(item=>item.id===id);
