@@ -4,7 +4,7 @@ import { mkdtemp, rm, readFile, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { digest, safeFile, inventory, fetchBytes, restoreEntry } from '../scripts/deployment-files.mjs';
-import { buildEnvironmentSnapshots, needsBuild, preservePagesRelease } from '../scripts/deploy.mjs';
+import { buildEnvironmentSnapshots, needsBuild, preservePagesRelease, pagesReleaseEntries } from '../scripts/deploy.mjs';
 test('unchanged app retains its original version even when repository head advances', () => {
   const previous = { inputHash: 'same', legacy: false, version: { commit: 'previous' } };
   assert.equal(needsBuild({ inputHash: 'same', legacy: false }, previous), false);
@@ -107,4 +107,22 @@ test('retiring Pages DEV preserves non-DEV releases byte-for-byte and drops the 
   assert.equal(snapshots.dev,undefined);
   assert.deepEqual(snapshots.prod,previous.environmentSnapshots.prod);
   assert.deepEqual(snapshots.staging,previous.environmentSnapshots.staging);
+});
+test('Pages retirement drops only the village paths and preserves unrelated pinned releases',()=>{
+  const previous={entries:[
+    {path:'prod/rinne',app:'rinne',environment:'prod'},
+    {path:'prod/village',app:'village',environment:'prod'},
+    {path:'prod/demon',app:'demon',environment:'prod',pinned:true},
+    {path:'staging/rinne',app:'rinne',environment:'staging'},
+    {path:'staging/village',app:'village',environment:'staging'},
+    {path:'staging/demon',app:'demon',environment:'staging'},
+  ]};
+  const next=pagesReleaseEntries([
+    {path:'prod/rinne',app:'rinne',environment:'prod',inputHash:'new'},
+    {path:'prod/village',app:'village',environment:'prod'},
+  ],previous);
+  assert.deepEqual(next.map(entry=>entry.path),['prod/rinne','prod/demon','staging/rinne','staging/demon']);
+  assert.equal(next[0].inputHash,'new');
+  assert.deepEqual(preservePagesRelease(previous).map(entry=>entry.path),
+    ['prod/rinne','prod/demon','staging/rinne','staging/demon']);
 });
