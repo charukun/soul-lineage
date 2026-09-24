@@ -1,7 +1,7 @@
-name: Deploy DEV and PROD
+name: Deploy PROD (retain non-village Pages apps)
 on:
   push:
-    branches: [develop, main]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -45,6 +45,7 @@ jobs:
         id: assemble
         env:
           SITE_URL: https://charukun.github.io/soul-lineage/
+          PAGES_DEV_RETIRED: 'true'
         run: node sources/dev/scripts/deploy.mjs sources/dev sources/prod _site "$SITE_URL"
       - uses: actions/configure-pages@v5
         if: steps.assemble.outputs.changed == 'true'
