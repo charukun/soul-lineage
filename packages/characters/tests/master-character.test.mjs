@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CHARACTER_CONTENT, YEAR_MS, LIFESPAN_MS, SHINO_MASTER, GENES, createCharacter, validateCharacter,
+import { CHARACTER_CONTENT, YEAR_MS, LIFESPAN_MS, MIN_WEAPON_AGE_YEARS, SHINO_MASTER, GENES, createCharacter, validateCharacter,
   characterData, serializeCharacter, deserializeCharacter, advanceCharacter, appearanceForCharacter,
   ageAppearance, setOutfit, importLifecycleCharacter, auditShinoDocument } from '../src/master-character.js';
 import { CharacterReplica, makeCharacterSnapshot, crowdPlan, PoseSchedule } from '../src/character-sync.js';
@@ -40,7 +40,8 @@ test('lifecycle importer preserves source save and curve boundaries', () => {
   const old = { version: 1, ageSeconds: 540, rate: 20, enemiesEnabled: false }, copy = structuredClone(old);
   assert.equal(importLifecycleCharacter(old, { id: 'hero', seed: 0 }).ageMs, 540_000); assert.deepEqual(old, copy);
   assert.equal(ageAppearance(0).scale, .4); assert.equal(ageAppearance(22).scale, 1);
-  assert.equal(ageAppearance(6.999).canEquipWeapon, false); assert.equal(ageAppearance(7).canEquipWeapon, true);
+  assert.equal(MIN_WEAPON_AGE_YEARS, 4); assert.equal(ageAppearance(3.999).canEquipWeapon, false); assert.equal(ageAppearance(4).canEquipWeapon, true);
+  assert.equal(ageAppearance(11.999).canEquipWeapon, true);
   assert.equal(ageAppearance(90).gray, 1); assert.throws(() => ageAppearance(Infinity));
   for (const age of [0, 3, 7, 12, 18, 22, 50, 65, 80, 90]) assert.ok(Number.isFinite(ageAppearance(age).scale));
 });

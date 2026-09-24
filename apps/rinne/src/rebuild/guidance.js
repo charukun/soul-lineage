@@ -1,5 +1,6 @@
 import { routeVillageGuidance } from './village-journey-navigation.js';
 import { nextVillageLifeStation } from './village-life-circuit.js';
+import { MIN_WEAPON_AGE_YEARS } from '@soul/characters';
 
 const distance=(a,b)=>Math.hypot((a?.x||0)-(b?.x||0),(a?.z||0)-(b?.z||0));
 const target=(row,label=row?.label)=>row?{id:String(row.id||label||'target'),x:row.x,z:row.z,label}:null;
@@ -77,11 +78,15 @@ function baseGuidanceFor({state,stations=[],front=null}){
     if(play&&score(state,'play')<.5)return {stage:'2/6 遊び',objective:'広場で遊ぶ',badge:'身体を知る',target:target(play,'広場'),tone:'calm'};
     if(watch&&score(state,'train')<.5)return {stage:'2/6 見学',objective:'稽古を見る',badge:'心得の兆し',target:target(watch,'道場'),tone:'prepare'};
     if(dummy&&score(state,'practice')<.5)return {stage:'2/6 稽古',objective:'かかしで打つ',badge:inspirationCount(state,['heart','body'])?'心得あり':'心得を探す',target:target(dummy,'かかし'),tone:'prepare'};
-    return {stage:'2/6 村',objective:activityLabel(practice),badge:'武具 7歳',target:target(practice,activityLabel(practice)),tone:'calm'};
+    if(age>=MIN_WEAPON_AGE_YEARS&&state.equipment?.weapon==='fist'){
+      const rack=weaponStation(state,stations);
+      if(rack)return {stage:'2/6 村',objective:'武具を選ぶ',badge:'武器解禁',target:target(rack,rack.label||'武具'),tone:'prepare'};
+    }
+    return {stage:'2/6 村',objective:activityLabel(practice),badge:'村で学ぶ',target:target(practice,activityLabel(practice)),tone:'calm'};
   }
   if(age<15&&state.equipment?.weapon==='fist'){
     const rack=weaponStation(state,stations);
-    return {stage:'3/6 支度',objective:'武具を選ぶ',badge:'7歳から武具',target:target(rack,rack?.label||'武具'),tone:'prepare'};
+    return {stage:'3/6 支度',objective:'武具を選ぶ',badge:'出航 15歳',target:target(rack,rack?.label||'武具'),tone:'prepare'};
   }
   if(age<15){
     if(dummy&&score(state,'practice')<1.35)return {stage:'3/6 稽古',objective:'かかしで打ち込む',badge:'実戦前の確認',target:target(dummy,'かかし'),tone:'prepare'};

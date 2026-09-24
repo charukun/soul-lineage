@@ -5,6 +5,7 @@ export const CHARACTER_CONTENT = 'shino-production-contract.1';
 export const MAX_CHARACTERS = 30;
 export const YEAR_MS = 60_000;
 export const LIFESPAN_MS = 90 * YEAR_MS;
+export const MIN_WEAPON_AGE_YEARS = 4;
 export const GENES = Object.freeze(['height', 'build', 'hair', 'eyes', 'skin']);
 export const REQUIRED_BONES = Object.freeze(['hips', 'spine', 'head',
   ...['left', 'right'].flatMap(side => ['UpperArm', 'LowerArm', 'Hand', 'UpperLeg', 'LowerLeg', 'Foot'].map(part => side + part))]);
@@ -62,7 +63,7 @@ export function ageAppearance(years) {
   }
   return { scale, headScale: 1 + .22 * (1 - smooth(0, 18, years)),
     gray: smooth(42, 82, years), stoop: .25 * smooth(55, 90, years),
-    skinAge: smooth(50, 90, years), canEquipWeapon: years >= 7 };
+    skinAge: smooth(50, 90, years), canEquipWeapon: years >= MIN_WEAPON_AGE_YEARS };
 }
 /** Defined integer PRNG. Serialized alleles, not PRNG execution on peers, are authoritative. */
 function rng(seed) {

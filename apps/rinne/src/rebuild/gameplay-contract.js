@@ -1,11 +1,19 @@
 import { ARMORS, LIFE_YEARS, WEAPONS } from './domain.js';
+import { MIN_WEAPON_AGE_YEARS } from '@soul/characters';
 
 const distance=(a,b)=>Math.hypot((a?.x||0)-(b?.x||0),(a?.z||0)-(b?.z||0));
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
 const normalizeAngle=value=>{let angle=value;while(angle<=-Math.PI)angle+=Math.PI*2;while(angle>Math.PI)angle-=Math.PI*2;return angle;};
 const DIRECTION_GLYPHS=Object.freeze(['↑','↗','→','↘','↓','↙','←','↖']);
+const NON_WEAPON_EQUIPMENT_MIN_AGE_YEARS=7;
 
 function equipmentStations(stations=[]){return stations.filter(row=>row&&(row.equipmentAccess||row.equipment)&&Number.isFinite(row.x)&&Number.isFinite(row.z));}
+function equipmentKindForStations(stations=[]){
+  if(stations.some(row=>Boolean(row?.equipment?.weapon)))return 'weapon';
+  if(stations.some(row=>Boolean(row?.armor||row?.equipment?.armor)))return 'armor';
+  if(stations.some(row=>Object.hasOwn(row?.equipment||{},'shield')))return 'shield';
+  return null;
+}
 function stationsForKind(stations,kind){
   const rows=equipmentStations(stations);
   if(kind==='weapon')return rows.filter(row=>Boolean(row.equipment?.weapon));
@@ -14,11 +22,12 @@ function stationsForKind(stations,kind){
   return [];
 }
 
-export function equipmentAccess(state,{stations=[]}={}){
+export function equipmentAccess(state,{stations=[],kind=null}={}){
   if(!state)return{ok:false,reason:'人生を開始してください。',station:null};
   if(state.ended||state.phase==='ended')return{ok:false,reason:'この生涯は終わっています。',station:null};
   if(state.phase!=='living')return{ok:false,reason:'自立してから身支度できます。',station:null};
-  if(Number(state.ageYears)<7)return{ok:false,reason:'武具は7歳から使えます。',station:null};
+  const resolvedKind=kind||equipmentKindForStations(stations),minimumAge=resolvedKind==='weapon'?MIN_WEAPON_AGE_YEARS:NON_WEAPON_EQUIPMENT_MIN_AGE_YEARS;
+  if(Number(state.ageYears)<minimumAge)return{ok:false,reason:resolvedKind==='weapon'?`武器は${MIN_WEAPON_AGE_YEARS}歳から使えます。`:`防具と盾は${NON_WEAPON_EQUIPMENT_MIN_AGE_YEARS}歳から使えます。`,station:null};
   if(state.down)return{ok:false,reason:'行動不能中は身支度できません。',station:null};
   if(state.combat)return{ok:false,reason:'戦闘中は身支度できません。',station:null};
   if(state.zone!=='village'||state.interior)return{ok:false,reason:'村の武具置き場で身支度してください。',station:null};
@@ -30,7 +39,7 @@ export function equipmentAccess(state,{stations=[]}={}){
 export function requestEquipmentChange(state,{kind,value,stations=[]}={}){
   const relevant=stationsForKind(stations,kind);
   if(!relevant.length)return{ok:false,reason:'対応する武具置き場が見つかりません。',station:null};
-  const access=equipmentAccess(state,{stations:relevant});
+  const access=equipmentAccess(state,{stations:relevant,kind});
   if(!access.ok)return access;
   const inventory=state.inventory||{};
   if(kind==='weapon'){
