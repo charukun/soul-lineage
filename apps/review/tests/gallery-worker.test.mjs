@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ReviewGallery,handleGallery} from '../gallery-worker.mjs';
 import {GALLERY_SEEDS} from '../gallery-seeds.mjs';
+import {readFileSync} from 'node:fs';
 
 function setup(){
   const data=new Map(),storage={
@@ -50,14 +51,23 @@ test('mutations require same origin and reject mismatched image signatures',asyn
 
 test('existing project references appear without upload and hide persists without deleting source',async()=>{
   const {env,call}=setup(),before=(await (await call('')).json()).items;
-  assert.equal(before.length,12);
-  assert.ok(before.every(item=>item.source==='existing'&&item.media.startsWith('https://')));
+  assert.equal(before.length,GALLERY_SEEDS.length);
+  assert.ok(before.every(item=>item.source==='existing'&&(item.media.startsWith('https://')||item.media.startsWith('/gallery-library/'))));
   const chosen=before[0];
   const removed=await call('/'+chosen.id,{method:'DELETE',headers:{origin}});
   assert.equal((await removed.json()).sourcePreserved,true);
   const reloaded=await new ReviewGallery({storage:env.REVIEW_GALLERY.get().state.storage}).fetch(new Request('https://internal/gallery'));
   const after=(await reloaded.json()).items;
-  assert.equal(after.length,11);assert.ok(!after.some(item=>item.id===chosen.id));
+  assert.equal(after.length,GALLERY_SEEDS.length-1);assert.ok(!after.some(item=>item.id===chosen.id));
   assert.equal((await call('/'+chosen.id,{method:'DELETE',headers:{origin}})).status,200);
-  assert.equal((await (await call('')).json()).items.length,11);
+  assert.equal((await (await call('')).json()).items.length,GALLERY_SEEDS.length-1);
+});
+
+test('gallery files for Library concepts exist as WebP assets in the review app',()=>{
+  for(const row of GALLERY_SEEDS.filter(item=>item.media.startsWith('/gallery-library/'))){
+    const bytes=readFileSync(new URL('../public'+row.media,import.meta.url));
+    assert.ok(bytes.length>1000);
+    assert.equal(bytes.toString('ascii',0,4),'RIFF');
+    assert.equal(bytes.toString('ascii',8,12),'WEBP');
+  }
 });
