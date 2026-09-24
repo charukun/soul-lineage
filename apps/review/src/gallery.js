@@ -17,7 +17,7 @@ function render(){
     const button=document.createElement('button');button.type='button';button.className='card';
     const img=document.createElement('img');img.src=item.media;img.alt='';img.loading='lazy';
     const label=document.createElement('span');label.textContent=item.title;
-    const tag=document.createElement('small');tag.textContent=`${games[item.game]} · ${kinds[item.kind]}`;
+    const tag=document.createElement('small');tag.textContent=`${games[item.game]} · ${kinds[item.kind]}${item.source==='existing'?' · 既存資料':''}`;
     button.append(img,label,tag);button.addEventListener('click',()=>openViewer(index));grid.append(button);
   }
   status.textContent=visible.length?`${visible.length}枚を表示`:items.length?'該当する画像はありません':'画像を追加すると、ここに表示されます';
@@ -26,7 +26,7 @@ function openViewer(index){
   current=(index+visible.length)%visible.length;
   const item=visible[current];if(!item){viewer.close();return}
   $('#viewer-title').textContent=item.title;$('#viewer-image').src=item.media;$('#viewer-image').alt=item.title;
-  $('#viewer-meta').textContent=`${games[item.game]} · ${kinds[item.kind]} · ${new Date(item.createdAt).toLocaleDateString('ja-JP')}`;
+  $('#viewer-meta').textContent=`${games[item.game]} · ${kinds[item.kind]}${item.source==='existing'?' · 既存資料':item.createdAt?' · '+new Date(item.createdAt).toLocaleDateString('ja-JP'):''}`;
   $('#viewer-note').textContent=item.note||'';
   $('#previous').disabled=$('#next').disabled=visible.length<2;
   if(!viewer.open)viewer.showModal();
@@ -54,7 +54,7 @@ $('#upload-form').addEventListener('submit',async event=>{
   finally{submit.disabled=false}
 });
 $('#delete-button').addEventListener('click',async()=>{
-  const item=visible[current];if(!item||!confirm(`「${item.title}」をギャラリーから削除しますか？\nこの操作は取り消せません。`))return;
+  const item=visible[current];if(!item||!confirm(`「${item.title}」をギャラリーから削除しますか？\n${item.source==='existing'?'元の資料は残り、この一覧から非表示になります。':'この操作は取り消せません。'}`))return;
   const button=$('#delete-button');button.disabled=true;
   try{
     const response=await fetch(`./api/gallery/${item.id}`,{method:'DELETE'});
