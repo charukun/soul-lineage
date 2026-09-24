@@ -2,13 +2,13 @@
 
 `charukun/soul-lineage` は「百年転生」（旧名：魂の系譜）・宝満叡智・魔物側ゲームのmonorepoです。魔物側の `apps/demon` は「喰滅廻遊」の単独狩りを実装しています。百年転生と村の入口は現在のdevelopの雛形を維持しています。認証・実プレイヤー対戦・共有村サーバーは未接続です。魔物側の実装範囲と残作業は [魔物ゲーム統合](docs/demon/INTEGRATION.md) を参照してください。
 
-| ゲーム | ソース | DEV URL | 将来のProductionパス |
+| ゲーム | ソース | DEV URL | 旧プロジェクトのPages Production |
 | --- | --- | --- | --- |
-| 百年転生 | `apps/rinne` | https://charukun.github.io/soul-lineage/dev/rinne/ | `/prod/rinne/` |
-| 宝満叡智 | `apps/village` | https://charukun.github.io/soul-lineage/dev/village/ | `/prod/village/` |
-| 魔王軍ゲーム | `apps/demon` | https://charukun.github.io/soul-lineage/dev/demon/ | `/prod/demon/` |
+| 百年転生 | `apps/rinne` | https://soul-lineage-rinne-dev.c-okamoto.workers.dev/ | `/prod/rinne/` |
+| 宝満叡智 | `apps/village` | https://soul-lineage-village-dev.c-okamoto.workers.dev/ | 公開終了。ソースは移植参照用に保持 |
+| 魔王軍ゲーム | `apps/demon` | https://soul-lineage-demon-dev.c-okamoto.workers.dev/ | `/prod/demon/` |
 
-既存 `/dev/` は百年転生へ転送します。現在の `/prod/` はmainの既存実装を維持します。mainへ各appを昇格すると、対応するProductionパスを自動検出します。URLは公開・ログイン不要です。
+GitHub Pages の旧 `/dev/` ミラーは廃止済みです。旧村アプリの `/prod/village/` と `/staging/village/` も公開を終了しました。ほかの Pages 公開先は維持します。
 
 資料の入口と正本の優先順位は [Documentation map](docs/README.md) を参照してください。全docsを最初から読むのではなく、`AGENTS.md` と `npm run context:plan -- --task "<要約>"` から必要資料だけ選びます。
 
