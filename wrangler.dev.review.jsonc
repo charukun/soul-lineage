@@ -17,6 +17,10 @@
       {
         "name": "HI3DGEN_LIMITS",
         "class_name": "Hi3DGenRateLimit"
+      },
+      {
+        "name": "REVIEW_GALLERY",
+        "class_name": "ReviewGallery"
       }
     ]
   },
@@ -26,6 +30,12 @@
       "new_sqlite_classes": [
         "Hi3DGenJob",
         "Hi3DGenRateLimit"
+      ]
+    },
+    {
+      "tag": "review-gallery-v1",
+      "new_sqlite_classes": [
+        "ReviewGallery"
       ]
     }
   ]
