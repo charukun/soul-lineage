@@ -17,7 +17,7 @@ test('weapon eligibility starts exactly at four without changing the wardrobe co
   assert.equal(ageAppearance(4).canEquipWeapon,true);
   assert.equal(ageAppearance(11.999).canEquipWeapon,true);
   assert.equal(SHINO_MASTER.wardrobeMode,'complete-outfit');
-  assert.deepEqual(SHINO_MASTER.outfits.map(row=>row.id),['shino.uniform.original.v1','shino.uniform.moss.v1','shino.uniform.ember.v1']);
+  assert.deepEqual(Object.keys(SHINO_MASTER.outfits),['shino.uniform.original.v1','shino.uniform.moss.v1','shino.uniform.ember.v1']);
 });
 
 test('4-11 shared-child weapon profiles keep size, attachment and grip calibration per weapon',()=>{
