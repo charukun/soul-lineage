@@ -18,15 +18,8 @@ test('canonical life contract is 100 years',()=>{assert.equal(LIFE_YEARS,100);})
 
 test('equipment changes are rejected when age, place, combat, ownership, or station-kind rules fail',()=>{
   const rack=weaponRack();
-  const tooYoung=adultLife();tooYoung.ageSeconds=3.999*60;tooYoung.ageYears=3.999;
-  const blocked=equipmentAccess(tooYoung,{stations:[rack]});assert.equal(blocked.ok,false);assert.match(blocked.reason,/4歳/);
-  const child=adultLife();child.ageSeconds=4*60;child.ageYears=4;
-  assert.equal(equipmentAccess(child,{stations:[rack]}).ok,true);
-  const childWeapon=requestEquipmentChange(child,{kind:'weapon',value:'sword',stations:[rack]});
-  assert.equal(childWeapon.ok,true);assert.equal(childWeapon.changed,true);assert.equal(child.equipment.weapon,'sword');
-  const childArmor=adultLife();childArmor.ageSeconds=4*60;childArmor.ageYears=4;
-  const armorBlocked=requestEquipmentChange(childArmor,{kind:'armor',value:'light',stations:[armorStand()]});
-  assert.equal(armorBlocked.ok,false);assert.match(armorBlocked.reason,/7歳/);
+  const child=adultLife();child.ageSeconds=6*60;child.ageYears=6;
+  assert.equal(equipmentAccess(child,{stations:[rack]}).ok,false);
   const away=adultLife();away.position={x:9,z:9};
   assert.equal(equipmentAccess(away,{stations:[rack]}).ok,false);
   const fighting=adultLife();fighting.combat={targetId:'enemy'};

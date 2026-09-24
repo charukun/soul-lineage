@@ -74,14 +74,14 @@ function baseGuidanceFor({state,stations=[],front=null}){
     if(!housingSeen(state)&&door)return {stage:'2/6 村',objective:`${door.label}へ入る`,badge:'暮らしを見る',target:target(door,door.label),tone:'home'};
     const lesson=nextVillageLifeStation(state,stations);
     if(housingSeen(state)&&lesson)return {stage:'2/6 村',objective:activityLabel(lesson),badge:'暮らしから心得へ',target:target(lesson,activityLabel(lesson)),tone:'calm'};
-    if(age>=MIN_WEAPON_AGE_YEARS&&state.equipment?.weapon==='fist'){
-      const rack=weaponStation(state,stations);
-      if(rack)return {stage:'2/6 村',objective:'武具を選ぶ',badge:'武器解禁',target:target(rack,rack.label||'武具'),tone:'prepare'};
-    }
     const play=stationById(stations,'garden'),watch=stationById(stations,'dojo');
     if(play&&score(state,'play')<.5)return {stage:'2/6 遊び',objective:'広場で遊ぶ',badge:'身体を知る',target:target(play,'広場'),tone:'calm'};
     if(watch&&score(state,'train')<.5)return {stage:'2/6 見学',objective:'稽古を見る',badge:'心得の兆し',target:target(watch,'道場'),tone:'prepare'};
     if(dummy&&score(state,'practice')<.5)return {stage:'2/6 稽古',objective:'かかしで打つ',badge:inspirationCount(state,['heart','body'])?'心得あり':'心得を探す',target:target(dummy,'かかし'),tone:'prepare'};
+    if(age>=MIN_WEAPON_AGE_YEARS&&state.equipment?.weapon==='fist'){
+      const rack=weaponStation(state,stations);
+      if(rack)return {stage:'2/6 村',objective:'武具を選ぶ',badge:'武器解禁',target:target(rack,rack.label||'武具'),tone:'prepare'};
+    }
     return {stage:'2/6 村',objective:activityLabel(practice),badge:'村で学ぶ',target:target(practice,activityLabel(practice)),tone:'calm'};
   }
   if(age<15&&state.equipment?.weapon==='fist'){
