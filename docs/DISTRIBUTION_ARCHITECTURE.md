@@ -75,7 +75,7 @@ Primary Web DEV publication is app-scoped Cloudflare Workers static assets:
 - `review`: `https://soul-lineage-review-dev.c-okamoto.workers.dev/`
 - `character-studio`: `https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/`
 
-GitHub Pages is not a DEV publisher. The legacy `/dev/` mirror is retired and Pages remains the Production/staging compatibility surface. Each Workers app job has its own concurrency key, so a newer app change may supersede an older publication of the same app without cancelling unrelated app publication. PULSE remains an independent control-plane Worker at `https://rinne-ops.c-okamoto.workers.dev/`.
+GitHub Pages is not a DEV publisher. The legacy `/dev/` mirror is retired and Pages remains the Production/staging compatibility surface for the other apps. The former village app is excluded from Pages Production and staging while its source and app-scoped DEV Worker remain available as migration references. Each Workers app job has its own concurrency key, so a newer app change may supersede an older publication of the same app without cancelling unrelated app publication. PULSE remains an independent control-plane Worker at `https://rinne-ops.c-okamoto.workers.dev/`.
 
 After all apps affected by one develop merge are successfully published to their independent DEV URLs, one GitHub PR receipt is created. Public exact-source checks remain diagnostic evidence and do not block DEV completion or the receipt. The legacy Pages publisher must not be required for that notification.
 

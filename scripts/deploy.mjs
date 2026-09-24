@@ -43,10 +43,15 @@ export function preserveProduction(desired, previous, devOnly) {
   return [...desired.filter(entry => entry.environment === 'dev'), ...previous.entries.filter(entry => entry.environment !== 'dev')];
 }
 export function preservePagesRelease(previous) {
-  return previous.entries.filter(entry=>entry.environment!=='dev');
+  return previous.entries.filter(entry=>entry.environment!=='dev' && entry.app!=='village');
 }
 export function pagesReleaseEntries(prodDesired, previous) {
-  return [...prodDesired.filter(entry=>entry.environment==='prod'),...previous.entries.filter(entry=>entry.environment==='staging')];
+  // The old village app remains in source and on its DEV Worker, but no longer
+  // appears in the shared Pages release. Preserve all unrelated pinned paths.
+  const production = prodDesired.filter(entry=>entry.environment==='prod' && entry.app!=='village');
+  const productionPaths = new Set(production.map(entry=>entry.path));
+  return [...production,...previous.entries.filter(entry=>entry.app!=='village' &&
+    (entry.environment==='staging' || (entry.environment==='prod' && !productionPaths.has(entry.path))))];
 }
 export function needsBuild(entry, previous) {
   return !previous || previous.inputHash !== entry.inputHash || previous.legacy !== entry.legacy;
