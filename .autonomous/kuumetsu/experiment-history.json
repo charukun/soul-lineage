@@ -1,6 +1,5 @@
 {
   "schemaVersion":1,"game":"kuumetsu","recent":[
-    {"id":"kuumetsu-brand-gate-prewarm-20260921","themeKey":"touch-to-hunt-entry-readiness","problemKeys":["brand-gate-serializes-demon-boot","gate-dismisses-before-app-ready","post-touch-heavy-boot-blocks-start-command"],"path":"experiments/kuumetsu-brand-gate-prewarm-20260921.json","schemaVersion":2},
     {"id":"kuumetsu-brand-boot-css-integrity-20260921","themeKey":"brand-boot-visual-integrity","problemKeys":["boot-css-literal-newline-escape","brand-hidden-during-load"],"path":"experiments/kuumetsu-brand-boot-css-integrity-20260921.json","schemaVersion":2},
     {"id":"kuumetsu-brand-boot-first-paint-20260921","themeKey":"brand-boot-visual-integrity","problemKeys":["brand-first-paint-depends-on-animation-progress","delaying-boot-would-regress-touch-readiness"],"path":"experiments/kuumetsu-brand-boot-first-paint-20260921.json","schemaVersion":2},
     {"id":"kuumetsu-prey-guidance-20260921","themeKey":"post-devour-next-prey-guidance","problemKeys":["feast-overwrites-mission-objective"],"path":"experiments/kuumetsu-prey-guidance-20260921.json","schemaVersion":2},
@@ -11,6 +10,7 @@
     {"id":"kuumetsu-first-combat-agency-20260922","themeKey":"first-combat-agency-clarity","problemKeys":["first-hunt-guide-omits-auto-combat-contract","combat-readout-shows-state-not-player-agency"],"path":"experiments/kuumetsu-first-combat-agency-20260922.json","schemaVersion":3},
     {"id":"kuumetsu-devour-feedback-20260922","themeKey":"devour-state-and-reward-legibility","problemKeys":["capture-state-only-has-one-shot-guide","consume-gains-only-use-short-wall-clock-toast"],"path":"experiments/kuumetsu-devour-feedback-20260922.json","schemaVersion":3},
     {"id":"kuumetsu-combat-contact-ownership-20260922","themeKey":"combat-attrition-and-contact-ownership","problemKeys":["combat-hud-omits-opponent-attrition","contact-outcome-lacks-paired-persistent-readout"],"path":"experiments/kuumetsu-combat-contact-ownership-20260922.json","schemaVersion":3},
-    {"id":"kuumetsu-hunt-stakes-legibility-20260922","themeKey":"hunt-stakes-cascade-legibility","problemKeys":["stake-copy-not-bounded-to-strip","legacy-objective-cascade-hides-stakes"],"path":"experiments/kuumetsu-hunt-stakes-legibility-20260922.json","schemaVersion":3}
-  ],"archive":{"path":"archive/index.json","count":4}
+    {"id":"kuumetsu-hunt-stakes-legibility-20260922","themeKey":"hunt-stakes-cascade-legibility","problemKeys":["stake-copy-not-bounded-to-strip","legacy-objective-cascade-hides-stakes"],"path":"experiments/kuumetsu-hunt-stakes-legibility-20260922.json","schemaVersion":3},
+    {"id":"kuumetsu-retained-power-20260922","themeKey":"retained-power-understanding","problemKeys":["retained-traits-rendered-as-names","copied-move-role-disconnected"],"path":"experiments/kuumetsu-retained-power-20260922.json","schemaVersion":3}
+  ],"archive":{"path":"archive/index.json","count":5}
 }

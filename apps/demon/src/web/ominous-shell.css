@@ -55,3 +55,13 @@ h2{color:#e2d3ba;text-shadow:0 2px 16px #000,0 0 18px #4e181344}
 /* Current-hunt progress belongs to the life card, not the settled reward ledger. */
 .lineage-live{margin:12px 0;padding:10px 12px;border-left:2px solid #a28555;background:#b6925010;color:#d8c8b0;font-size:11px;line-height:1.65}
 .lineage-live p{margin:0}.lineage-live p+p{margin-top:3px}.lineage-live b{color:#f0dfb9;font-weight:500}
+
+/* Retained knowledge can grow without percentage-based corners clipping its copy. */
+.life-card.current-life{clip-path:polygon(0 8px,calc(100% - 12px) 0,100% 12px,100% calc(100% - 16px),calc(100% - 16px) 100%,0 calc(100% - 8px))}
+.lineage-knowledge{display:grid;gap:8px;min-width:0}
+.lineage-knowledge-row{padding:9px 11px;border-left:2px solid #8f654e;background:#9e744010;overflow-wrap:anywhere}
+.lineage-knowledge-row>b{font-size:13px;font-weight:500;line-height:1.5;color:#ead8b9;letter-spacing:.04em}
+#sheet-body .lineage-knowledge-row>p,#sheet-body .lineage-knowledge-note{margin:5px 0 0;font-size:12px;line-height:1.65;letter-spacing:.02em;color:#cbbca5}
+#sheet-body .lineage-knowledge-note{margin:0 0 9px}
+.lineage-move{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 10px}
+.lineage-move>span{font-size:11px;line-height:1.5;color:#ddbb83;white-space:nowrap}
