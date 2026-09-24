@@ -1,3 +1,5 @@
+import {handleGallery,ReviewGallery} from './gallery-worker.mjs';
+export {ReviewGallery};
 const PROVIDER_ORIGIN='https://stable-x-hi3dgen.hf.space';
 const REVIEW_JOB_PREFIX='/api/hi3dgen/jobs';
 const MAX_INPUT_BYTES=8*1024*1024;
@@ -73,9 +75,10 @@ export class Hi3DGenRateLimit{
     if(request.method!=='POST')return json({error:'method_not_allowed'},405);
     const now=Date.now(),row=await this.state.storage.get('limit')||{windowStart:now,count:0};
     const current=now-row.windowStart>=LIMIT_WINDOW_MS?{windowStart:now,count:0}:row;
-    if(current.count>=LIMIT_PER_WINDOW)return json({error:'rate_limited',retryAfterMs:Math.max(0,current.windowStart+LIMIT_WINDOW_MS-now)},429);
+    const limit=request.headers.get('x-gallery-limit')==='40'?40:LIMIT_PER_WINDOW;
+    if(current.count>=limit)return json({error:'rate_limited',retryAfterMs:Math.max(0,current.windowStart+LIMIT_WINDOW_MS-now)},429);
     current.count+=1;await this.state.storage.put('limit',current);
-    return json({ok:true,remaining:Math.max(0,LIMIT_PER_WINDOW-current.count)});
+    return json({ok:true,remaining:Math.max(0,limit-current.count)});
   }
 }
 
@@ -164,6 +167,7 @@ function publicStatus(job){
 export default{
   async fetch(request,env){
     const url=new URL(request.url);
+    if(url.pathname==='/api/gallery'||url.pathname.startsWith('/api/gallery/'))return handleGallery(request,env);
     if(url.pathname===REVIEW_JOB_PREFIX&&request.method==='POST'){
       if(!sameOrigin(request))return json({error:'origin_not_allowed'},403);
       const length=Number(request.headers.get('content-length')||0);if(length>MAX_INPUT_BYTES+256*1024)return json({error:'payload_too_large'},413);

@@ -1,4 +1,5 @@
 export const REVIEW_MENU_ICONS=Object.freeze({
+  gallery:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="1.5"/><path d="m4 18 6-6 3 3 3-4 4 5"/>',
   characters:'<circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4.2 2.8-6.3 6.5-6.3s5.9 2.1 6.5 6.3"/>',
   motion:'<path d="M4 7h8l-2.4 2.4M20 17h-8l2.4-2.4"/><path d="M6.8 17.4 11 13l2.8-4.8 3.2 1.5"/>',
   equipment:'<path d="M12 3 19 6v5.4c0 4.2-2.6 7.4-7 9.6-4.4-2.2-7-5.4-7-9.6V6l7-3Z"/><path d="M12 5.2v13.2"/>',

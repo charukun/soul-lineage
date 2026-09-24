@@ -11,6 +11,7 @@ export const REVIEW_DEV=Object.freeze({
 export const REVIEW_ROUTES=Object.freeze({
   ...createReviewRoutes({rinneBase:REVIEW_DEV.rinne,charactersBase:REVIEW_DEV.characters}),
   forge:new URL('./review-character-forge',location.href).href,
+  gallery:new URL('./review-gallery',location.href).href,
   camera:new URL('./review-camera',location.href).href,
   hybrid25d:new URL('./review-hybrid-25d',location.href).href,
   battle2:new URL('./battle2',location.href).href,
@@ -28,4 +29,3 @@ export const REVIEW_VFX_WARM_ASSETS=Object.freeze([
   'simulator/assets/effekseer/samples/00_Basic/Simple_Ribbon_Sword.efkefc',
   'simulator/assets/effekseer/samples/02_Tktk03/ToonHit.efkefc',
 ]);
-
