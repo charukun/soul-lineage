@@ -51,3 +51,37 @@ test('inspiration pulse changes render uniforms without recompiling materials',(
   assert.equal(controller.snapshot().pulses,1);
   controller.dispose();root.children[0].geometry.dispose();material.dispose();
 });
+
+
+test('material clones reinstall the shader hook instead of trusting cloned userData',()=>{
+  const source=new THREE.MeshStandardMaterial();
+  const sourceRoot=new THREE.Group();sourceRoot.add(new THREE.Mesh(new THREE.BoxGeometry(),source));
+  applyStylizedShading(sourceRoot,'hero');
+  const clone=source.clone();
+  assert.equal(clone.userData.soulStylizedShader.profileId,'hero');
+  const cloneRoot=new THREE.Group();cloneRoot.add(new THREE.Mesh(new THREE.BoxGeometry(),clone));
+  const result=applyStylizedShading(cloneRoot,'npc');
+  assert.equal(result.materials,1);
+  const shader={uniforms:{},fragmentShader:'#include <lights_fragment_end>'};
+  clone.onBeforeCompile(shader);
+  assert.equal(shader.uniforms.soulToonBands.value,stylizedShadingProfile('npc').bands);
+  assert.equal(shader.uniforms.soulToonStrength.value,stylizedShadingProfile('npc').toonStrength);
+  assert.match(shader.fragmentShader,/soulInkKeep/);
+  sourceRoot.children[0].geometry.dispose();cloneRoot.children[0].geometry.dispose();source.dispose();clone.dispose();
+});
+
+test('reapplying a different role updates live toon uniforms without stacking hooks',()=>{
+  const material=new THREE.MeshStandardMaterial();
+  const root=new THREE.Group();root.add(new THREE.Mesh(new THREE.BoxGeometry(),material));
+  applyStylizedShading(root,'hero');
+  const hook=material.onBeforeCompile,shader={uniforms:{},fragmentShader:'#include <lights_fragment_end>'};
+  material.onBeforeCompile(shader);
+  assert.equal(shader.uniforms.soulToonBands.value,stylizedShadingProfile('hero').bands);
+  const changed=applyStylizedShading(root,'environment');
+  assert.equal(changed.materials,0);
+  assert.equal(material.onBeforeCompile,hook);
+  assert.equal(shader.uniforms.soulToonBands.value,stylizedShadingProfile('environment').bands);
+  assert.equal(shader.uniforms.soulInkStrength.value,stylizedShadingProfile('environment').inkStrength);
+  assert.equal(material.userData.soulStylizedShader.profileId,'environment');
+  root.children[0].geometry.dispose();material.dispose();
+});
