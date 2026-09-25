@@ -156,7 +156,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onLifeHome,onProg
       await rebirthCurrent(select.value||null);endDialog.remove();endDialog=null;
     }else endDialog.showModal();});endDialog.showModal();
   }
-  function handleEvents(events,eventKey){view.presentCombatEvents?.(events,{state,front,eventKey});for(const event of events){
+  function handleEvents(events,eventKey){view.presentRenderEvents?.(events,{state,front,eventKey});view.presentCombatEvents?.(events,{state,front,eventKey});for(const event of events){
     if(event.type==='release'){toast('4歳 · 自立');birth.release();armMovementHint();}
     if(event.type==='equipment')toast(`${event.station.label} 装備`);
     if(event.type==='activity-start')toast(event.station.actionLabel||event.station.label);
