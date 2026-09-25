@@ -2,8 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import {createBattleRuntime} from '../src/runtime.js';
 
 const read=relative=>readFileSync(fileURLToPath(new URL(relative,import.meta.url)),'utf8');
+
+test('Johakyu runtime module resolves with the shared rendering dependency',()=>{
+  assert.equal(typeof createBattleRuntime,'function');
+});
 
 test('Johakyu WebGL runtime consumes the shared RINNE toon law',()=>{
   const source=read('../src/runtime.js');
