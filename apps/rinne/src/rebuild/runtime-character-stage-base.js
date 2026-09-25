@@ -19,6 +19,7 @@ import {
 } from './character-presentation.js';
 
 const armorDye=Object.freeze({cloth:[1,1,1],light:[.72,.84,.78],heavy:[.68,.73,.82]});
+const applyActorShading=(actor,profileId)=>{applyStylizedShading(actor?.root,profileId);applyStylizedShading(actor?.attachments,profileId);};
 
 // Integrate phase instead of multiplying absolute time by a changing speed.
 // Weak ownership follows the pooled skeleton; combat/peer poses keep their contract.
@@ -67,18 +68,18 @@ function promoteObservedModel(characterPool,slot,life,target,distance){
 function createActorRoster({scene,frontRoot,characterPool,heroPool}){
   const heroActor=heroPool.spawn('rinne-runtime-hero'),motherActor=characterPool.spawn('rinne-runtime-mother');
   const enemyActors=new Map(),guardActors=new Map(),state={lifeKey:'',front:null,skirmish:null,enemyRosterKey:'',guardRosterKey:'',heroDescriptor:null,motherDescriptor:null};
-  heroActor.root.name='Player';motherActor.root.name='Mother';hideCarrierCombatProps(motherActor.root);scene.add(heroActor.root,heroActor.attachments,motherActor.root,motherActor.attachments);applyStylizedShading(heroActor.root,'hero');applyStylizedShading(motherActor.root,'npc');
+  heroActor.root.name='Player';motherActor.root.name='Mother';hideCarrierCombatProps(motherActor.root);scene.add(heroActor.root,heroActor.attachments,motherActor.root,motherActor.attachments);applyActorShading(heroActor,'hero');applyActorShading(motherActor,'npc');
   function bindLife(life){const key=`${life.id}:${life.seed}:${life.birthVillageId}`;if(key===state.lifeKey)return;state.lifeKey=key;state.heroDescriptor=createRinneHeroCharacter(life);state.motherDescriptor=createRinneMotherCharacter(life);}
   function removeEnemy(id){const slot=enemyActors.get(id);if(!slot)return;characterPool.despawn(slot.poolId);enemyActors.delete(id);}
   function removeGuard(id){const slot=guardActors.get(id);if(!slot)return;characterPool.despawn(slot.poolId);guardActors.delete(id);}
   function updateFront(front){state.front=front;for(const enemy of front?.enemies||[]){const slot=enemyActors.get(enemy.id);if(!slot)continue;slot.actor.root.position.set(enemy.x,0,enemy.z);slot.actor.root.rotation.y=Number.isFinite(enemy.yaw)?enemy.yaw:0;slot.actor.setVisible(!enemy.dead);}}
   function syncFront(front){
     state.front=front;const enemies=front?.enemies||[],rosterKey=`${front?.stage??'none'}:${enemies.map(e=>e.id).join('|')}`;
-    if(rosterKey!==state.enemyRosterKey){state.enemyRosterKey=rosterKey;const liveIds=new Set(enemies.map(e=>e.id));for(const id of [...enemyActors.keys()])if(!liveIds.has(id))removeEnemy(id);enemies.forEach((enemy,index)=>{if(enemyActors.has(enemy.id))return;const descriptor=createRinneEnemyCharacter(enemy,{lifeSeed:(front?.stage??0)+1,stage:front?.stage??0,index}),poolId=`rinne-runtime-${descriptor.character.id}`,actor=characterPool.spawn(poolId,descriptor.modelId);actor.root.name=`Enemy:${enemy.id}`;frontRoot.add(actor.root,actor.attachments);applyStylizedShading(actor.root,'enemy');enemyActors.set(enemy.id,{actor,descriptor,poolId,schedule:new PoseSchedule()});});}updateFront(front);
+    if(rosterKey!==state.enemyRosterKey){state.enemyRosterKey=rosterKey;const liveIds=new Set(enemies.map(e=>e.id));for(const id of [...enemyActors.keys()])if(!liveIds.has(id))removeEnemy(id);enemies.forEach((enemy,index)=>{if(enemyActors.has(enemy.id))return;const descriptor=createRinneEnemyCharacter(enemy,{lifeSeed:(front?.stage??0)+1,stage:front?.stage??0,index}),poolId=`rinne-runtime-${descriptor.character.id}`,actor=characterPool.spawn(poolId,descriptor.modelId);actor.root.name=`Enemy:${enemy.id}`;frontRoot.add(actor.root,actor.attachments);applyActorShading(actor,'enemy');enemyActors.set(enemy.id,{actor,descriptor,poolId,schedule:new PoseSchedule()});});}updateFront(front);
   }
   function updateSkirmish(skirmish){state.skirmish=skirmish;for(const guard of skirmish?.guards||[]){const slot=guardActors.get(guard.id);if(!slot)continue;slot.actor.root.position.set(guard.x,0,guard.z);slot.actor.root.rotation.y=Number.isFinite(guard.yaw)?guard.yaw:0;}}
   function syncSkirmish(skirmish){
-    state.skirmish=skirmish;const guards=skirmish?.guards||[],rosterKey=guards.map(row=>row.id).join('|');if(rosterKey!==state.guardRosterKey){state.guardRosterKey=rosterKey;const ids=new Set(guards.map(row=>row.id));for(const id of [...guardActors.keys()])if(!ids.has(id))removeGuard(id);guards.forEach((guard,index)=>{if(guardActors.has(guard.id))return;const descriptor=createRinneRuntimeCharacter({kind:'hero',id:guard.id,seed:(skirmish?.seed||1)+index,ageSeconds:(28+index*7)*60,role:'guard'}),poolId=`rinne-runtime-${descriptor.character.id}`,actor=characterPool.spawn(poolId);actor.root.name=`Guard:${guard.id}`;scene.add(actor.root,actor.attachments);applyStylizedShading(actor.root,'npc');guardActors.set(guard.id,{actor,descriptor,poolId,schedule:new PoseSchedule()});});}updateSkirmish(skirmish);
+    state.skirmish=skirmish;const guards=skirmish?.guards||[],rosterKey=guards.map(row=>row.id).join('|');if(rosterKey!==state.guardRosterKey){state.guardRosterKey=rosterKey;const ids=new Set(guards.map(row=>row.id));for(const id of [...guardActors.keys()])if(!ids.has(id))removeGuard(id);guards.forEach((guard,index)=>{if(guardActors.has(guard.id))return;const descriptor=createRinneRuntimeCharacter({kind:'hero',id:guard.id,seed:(skirmish?.seed||1)+index,ageSeconds:(28+index*7)*60,role:'guard'}),poolId=`rinne-runtime-${descriptor.character.id}`,actor=characterPool.spawn(poolId);actor.root.name=`Guard:${guard.id}`;scene.add(actor.root,actor.attachments);applyActorShading(actor,'npc');guardActors.set(guard.id,{actor,descriptor,poolId,schedule:new PoseSchedule()});});}updateSkirmish(skirmish);
   }
   function dispose(){for(const id of [...enemyActors.keys()])removeEnemy(id);for(const id of [...guardActors.keys()])removeGuard(id);heroActor.root.removeFromParent();heroActor.attachments.removeFromParent();motherActor.root.removeFromParent();motherActor.attachments.removeFromParent();}
   return{heroActor,motherActor,enemyActors,guardActors,state,bindLife,syncFront,updateFront,syncSkirmish,updateSkirmish,dispose};
@@ -87,8 +88,8 @@ function createActorRoster({scene,frontRoot,characterPool,heroPool}){
 function createEquipmentController({heroActor,weaponVisual,mat,disposeObject}){
   let weapon=null,shield=null;
   function syncEquipment(equipment){
-    if(equipment.weapon!==weapon){const old=heroActor.detachWeapon('weapon');if(old)disposeObject(old);weapon=equipment.weapon;if(equipment.weapon!=='fist'){const object=weaponVisual(equipment.weapon);object.rotation.z=-Math.PI/2;heroActor.attachWeapon('weapon',object,{bone:'rightHand',position:[0,.02,0],quaternion:[0,0,0,1],scale:.72});}}
-    if(equipment.shield!==shield){const old=heroActor.detachWeapon('shield');if(old)disposeObject(old);shield=equipment.shield;if(equipment.shield){const object=createRinneWeapon(THREE,'shield');heroActor.attachWeapon('shield',object,{bone:'leftHand',position:[0,.03,0],quaternion:[0,0,0,1],scale:.8});}}
+    if(equipment.weapon!==weapon){const old=heroActor.detachWeapon('weapon');if(old)disposeObject(old);weapon=equipment.weapon;if(equipment.weapon!=='fist'){const object=weaponVisual(equipment.weapon);applyStylizedShading(object,'hero');object.rotation.z=-Math.PI/2;heroActor.attachWeapon('weapon',object,{bone:'rightHand',position:[0,.02,0],quaternion:[0,0,0,1],scale:.72});}}
+    if(equipment.shield!==shield){const old=heroActor.detachWeapon('shield');if(old)disposeObject(old);shield=equipment.shield;if(equipment.shield){const object=createRinneWeapon(THREE,'shield');applyStylizedShading(object,'hero');heroActor.attachWeapon('shield',object,{bone:'leftHand',position:[0,.03,0],quaternion:[0,0,0,1],scale:.8});}}
   }
   function dispose(){for(const id of ['weapon','shield']){const old=heroActor.detachWeapon(id);if(old)disposeObject(old);}}return{syncEquipment,dispose};
 }
