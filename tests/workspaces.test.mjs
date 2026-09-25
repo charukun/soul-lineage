@@ -18,7 +18,7 @@ test('shared motion quality reaches all rendering consumers', () => assert.deepE
 test('shared MURA world/rendering updates reach all consumers', () => {
   for (const file of ['packages/world/src/mura/catalog.js', 'packages/rendering/src/mura/models.js']) assert.deepEqual(affected(nodes, [file]), renderingConsumers);
 });
-test('audio and character shared contracts reach all current apps',()=>{assert.deepEqual(affected(nodes,['packages/audio/src/index.js']),gameApps);assert.deepEqual(affected(nodes,['packages/characters/src/master-character.js']),renderingConsumers);});
+test('audio and character shared contracts reach all rendering consumers',()=>{assert.deepEqual(affected(nodes,['packages/audio/src/index.js']),renderingConsumers);assert.deepEqual(affected(nodes,['packages/characters/src/master-character.js']),renderingConsumers);});
 test('workspace manifests are dependency-graph inputs without widening ordinary tooling paths', () => {
   for (const path of ['apps/demon/package.json', 'apps/rinne/package.json', 'packages/characters/package.json']) {
     assert.equal(workspaceManifestPath(path), true);
