@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 3,
+  "id": "kuumetsu-lineage-power-meaning-20260922",
+  "game": "kuumetsu",
+  "mode": "evolution",
+  "kind": "gameplay",
+  "themeKey": "lineage-earned-power-meaning",
+  "definedAt": "2026-09-22T10:15:00Z",
+  "experienceGoal": {
+    "playerProblem": "捕食で特能を得ても転生史には「命の余熱」という名前しか残らず、何が身体に作用しているか分からないため、獲得した成長を次の狩りの判断へ結びつけられない。",
+    "targetState": "転生史の「喰らった特能」で、獲得済み特能ごとに正本の効果説明を読め、今の身体に残った能力として理解できる。狩り中の未確保戦利品や捕食回数とは混同しない。",
+    "successSignals": [
+      "旅人の特能を得た現在生の転生史で「命の余熱」と「捕食時の回復が増える」が同じ項目として実画面で読める。",
+      "未獲得特能は表示せず、現在生の捕食・未確保戦利品・生存中表示は従来どおり保持される。"
+    ]
+  },
+  "observation": {
+    "summary": "Immutable native play reached two combats and two devours. Combat attrition/contact ownership and hunt-stakes are already legible. In 05-lineage, the current life shows 「雫 命の余熱」 but no effect, despite canonical PREY data carrying the effect description.",
+    "staging": {
+      "kind": "immutable-staging",
+      "sourceSha": "97a9eec9193ed4b6edfda988cee4fa906dec31f2",
+      "reference": "https://bf0cd3b7-soul-lineage-demon-dev.c-okamoto.workers.dev/",
+      "versionId": "bf0cd3b7-a001-4713-80fa-779ba684ad7c",
+      "versionCommitMatched": true,
+      "publicationRun": 35714133569,
+      "observationRun": 35714431731,
+      "artifactId": 10688592795,
+      "artifactDigest": "sha256:6422ce1b0d7cd4ae81b465e4ad1a81612fdaa568a6d4bc5550222c1f1870a27c",
+      "observedAt": "2026-09-22T10:10:10.057Z",
+      "conditions": {
+        "viewport": [
+          673,
+          841
+        ],
+        "deviceScaleFactor": 1,
+        "hasTouch": true,
+        "renderer": "Chromium SwiftShader",
+        "profile": "fresh",
+        "route": "armed brand tap > begin > native steering > two combats/two devours > pause > lineage"
+      }
+    },
+    "candidateProblems": [
+      {
+        "key": "lineage-earned-power-meaning",
+        "selected": true,
+        "evidence": "05-lineage displays 「雫 命の余熱」 only; canonical PREY.traveller.desc exists but is not rendered."
+      },
+      {
+        "key": "body-identity",
+        "selected": false,
+        "evidence": "Creature silhouette remains abstract; separate asset/model scope already identified in prior experiment."
+      },
+      {
+        "key": "combat-phase-cues",
+        "selected": false,
+        "evidence": "Recent combat ownership work exists in PR #1415; no new evidence justifies reopening it."
+      },
+      {
+        "key": "hunt-stakes-cascade-legibility",
+        "selected": false,
+        "evidence": "03-play-22 visibly shows 人影2/2・警戒捜索・未確保4・帰還10; recent theme is working."
+      }
+    ],
+    "notVerified": [
+      "Physical Pixel Fold readability/performance",
+      "Later prey powers not reached in this fresh-profile route",
+      "Verified extraction/chapter progression in this Before run"
+    ]
+  },
+  "historyReview": {
+    "references": [
+      "PR #1415 receipt",
+      "kuumetsu-hunt-stakes-legibility-20260922"
+    ],
+    "retryJustification": "This selects the previously deferred lineage-earned-effect problem and does not reopen recent combat/stakes themes.",
+    "doNotRetry": [
+      "Treat DOM presence/test pass as visual success",
+      "Infer or invent power effects instead of using canonical PREY descriptions"
+    ]
+  },
+  "rootCauses": [
+    {
+      "key": "lineage-power-chip-drops-canonical-description",
+      "summary": "The lineage read-side resolves PREY metadata but renders only glyph and power name, discarding the canonical effect description.",
+      "revision": "97a9eec9193ed4b6edfda988cee4fa906dec31f2",
+      "path": "apps/demon/src/web/lineage.js",
+      "symbol": "chips(items,kind)",
+      "observationEvidence": "05-lineage shows 「雫 命の余熱」 with no effect explanation.",
+      "sourceEvidence": "PREY.traveller.desc is 「捕食時の回復が増える。喰らった息が次の狩りを支える。」 while chips() renders only data.glyph and data.power.",
+      "prediction": "Rendering the canonical desc beside each acquired power makes the earned ability understandable without introducing new mechanics.",
+      "falsifier": "After still omits the effect, shows effects for unowned powers, or invents text not present in PREY.",
+      "paths": [
+        "apps/demon/src/web/lineage.js"
+      ],
+      "relatedPaths": [
+        "packages/raid/world.js",
+        "packages/raid/profile.js"
+      ]
+    },
+    {
+      "key": "lineage-chip-layout-has-no-effect-hierarchy",
+      "summary": "The current compact chip representation has no semantic/visual slot for a power effect, so adding raw text inline would blur power identity and effect.",
+      "revision": "97a9eec9193ed4b6edfda988cee4fa906dec31f2",
+      "path": "apps/demon/src/web/lineage.js",
+      "symbol": "chips(items,kind)",
+      "observationEvidence": "05-lineage presents the acquired power as a single compact chip among life metrics and adaptation rows.",
+      "sourceEvidence": "chips() emits one flat span per item and has no effect element/class.",
+      "prediction": "A small structured power row keeps glyph/name prominent and canonical effect secondary while preserving the rest of the lineage sheet.",
+      "falsifier": "The effect wraps into unrelated sections or displaces current-life stake/metrics at the tested viewport.",
+      "paths": [
+        "apps/demon/src/web/lineage.js",
+        "apps/demon/src/web/lineage-power.css"
+      ],
+      "relatedPaths": [
+        "apps/demon/src/web/main.js"
+      ]
+    }
+  ],
+  "hypothesis": {
+    "cause": "Canonical power meaning already exists but the lineage projection discards it and its flat chip layout cannot communicate effect hierarchy.",
+    "prediction": "Projecting PREY.desc into a structured acquired-power row will let players understand what the earned memory does while leaving progression authority untouched.",
+    "falsifier": "Same-condition After does not make the effect legible, displays unowned powers, or obscures current-life progress/stakes."
+  },
+  "candidates": [
+    {
+      "id": "canonical-lineage-power-rows",
+      "selected": true,
+      "reason": "Uses existing PREY authority at the existing memory surface; no new rule or persistent state."
+    },
+    {
+      "id": "repeat-power-effect-in-hunt-hud",
+      "selected": false,
+      "reason": "Adds combat clutter and conflates permanent memory with active hunt growth/stakes, which already have dedicated feedback."
+    }
+  ],
+  "implementation": {
+    "summary": "Render only acquired powers as structured lineage entries using canonical PREY glyph/name/desc, with scoped styling and no progression/runtime mutation.",
+    "paths": [
+      "apps/demon/src/web/lineage.js",
+      "apps/demon/src/web/lineage-power.css",
+      "apps/demon/tests/lineage-power-meaning.test.mjs"
+    ]
+  },
+  "workItems": [
+    {
+      "id": "canonical-power-effect-projection",
+      "summary": "Keep power meaning sourced directly from PREY and render it only for acquired current/past-life power keys.",
+      "rootCauseKeys": [
+        "lineage-power-chip-drops-canonical-description"
+      ],
+      "paths": [
+        "apps/demon/src/web/lineage.js",
+        "apps/demon/tests/lineage-power-meaning.test.mjs"
+      ],
+      "evidence": "Leaf rendering tests cover acquired, unowned and unknown keys and assert canonical desc text.",
+      "expectedPlayerFacingEffect": "An earned power has a readable meaning instead of a name-only badge."
+    },
+    {
+      "id": "power-effect-visual-hierarchy",
+      "summary": "Give acquired powers a dedicated name/effect hierarchy scoped to lineage without changing other chips or sheet structure.",
+      "rootCauseKeys": [
+        "lineage-chip-layout-has-no-effect-hierarchy"
+      ],
+      "paths": [
+        "apps/demon/src/web/lineage.js",
+        "apps/demon/src/web/lineage-power.css",
+        "apps/demon/tests/lineage-power-meaning.test.mjs"
+      ],
+      "evidence": "Scoped markup/style assertions plus immutable same-condition lineage screenshot.",
+      "expectedPlayerFacingEffect": "The power name remains scannable and the effect is readable without crowding life metrics or active-hunt stake text."
+    }
+  ],
+  "evidencePlan": {
+    "objective": "reproducible-causality",
+    "focusedTests": [
+      "apps/demon/tests/lineage-power-meaning.test.mjs"
+    ],
+    "stagingAfter": "required",
+    "limitations": [
+      "Leaf tests cannot establish visual readability; immutable native-play screenshot is required.",
+      "Hosted SwiftShader is not a physical-device benchmark.",
+      "No broad combat/balance simulation."
+    ],
+    "workItemCoverage": [
+      {
+        "workItemId": "canonical-power-effect-projection",
+        "evidence": "Leaf render assertions plus actual acquired traveller power in immutable After."
+      },
+      {
+        "workItemId": "power-effect-visual-hierarchy",
+        "evidence": "Scoped CSS/markup assertions plus actual 673x841 lineage image review."
+      }
+    ]
+  },
+  "receipt": {
+    "repository": "charukun/soul-lineage",
+    "pullRequest": 1452,
+    "marker": "autonomous-receipt:kuumetsu:kuumetsu-lineage-power-meaning-20260922"
+  }
+}
