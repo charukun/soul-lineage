@@ -6,6 +6,7 @@ import {
   defaultMaterialTokenForProfile,
   stylizedMaterialToken,
 } from '@soul/characters';
+import { applyStylizedShading } from './stylized-shading.js';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const isRenderable = node => Boolean(node?.isMesh || node?.isSkinnedMesh || node?.isInstancedMesh);
@@ -76,7 +77,8 @@ export function applyStylizedArtProfile(root, profileId, { cloneMaterials = true
     styleId: STYLIZED_ART_STYLE_ID,
     profileId: profile.id,
   };
-  return { profile, meshes, materials: cache.size };
+  const shading=applyStylizedShading(root,profile.id);
+  return { profile, meshes, materials: cache.size, shading };
 }
 
 /** Keep newly-authored procedural primitives inside the role's silhouette budget. */
