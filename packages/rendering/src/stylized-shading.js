@@ -33,8 +33,8 @@ function install(material,profileId){
   material.userData=material.userData||{};
   const runtime=material.userData.soulStylizedRuntime||{inspiration:0};
   material.userData.soulStylizedRuntime=runtime;
-  material.onBeforeCompile=shader=>{
-    if(typeof previous==='function')previous(shader);
+  material.onBeforeCompile=(shader,renderer)=>{
+    if(typeof previous==='function')previous.call(material,shader,renderer);
     const uniforms={
       soulToonBands:{value:config.bands},
       soulToonStrength:{value:config.toonStrength},
