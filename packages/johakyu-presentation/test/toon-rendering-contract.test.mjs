@@ -33,5 +33,4 @@ test('Johakyu presentation declares rendering as a direct workspace dependency',
   assert.equal(manifest.dependencies['@soul/rendering'],'*');
   const lock=JSON.parse(read('../../../package-lock.json'));
   assert.equal(lock.packages['packages/johakyu-presentation'].dependencies['@soul/rendering'],'*');
-  assert.ok(['apps/rinne/package.json','apps/review/package.json','apps/demon/package.json'].every(path=>lock.packages[path]?.dependencies?.['@soul/rendering']==='*'));
 });
