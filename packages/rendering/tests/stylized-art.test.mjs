@@ -19,6 +19,8 @@ test('prop profile clamps PBR materials, assigns shared token and keeps source g
   const result = applyStylizedArtProfile(root, 'prop');
   assert.equal(result.profile.id, 'prop');
   assert.equal(result.meshes, 1);
+  assert.equal(result.shading.shaderModel, 'rinne-banded-toon-v2');
+  assert.equal(mesh.material.userData.soulStylizedShader.profileId, 'prop');
   assert.equal(mesh.geometry, geometry);
   assert.notEqual(mesh.material, original);
   assert.equal(mesh.material.roughness, .8);
