@@ -26,4 +26,6 @@ test('dynamic RINNE frontier meshes cannot bypass toon shading',()=>{
 test('Johakyu presentation declares rendering as a direct workspace dependency',()=>{
   const manifest=JSON.parse(read('../package.json'));
   assert.equal(manifest.dependencies['@soul/rendering'],'*');
+  const lock=JSON.parse(read('../../../package-lock.json'));
+  assert.equal(lock.packages['packages/johakyu-presentation'].dependencies['@soul/rendering'],'*');
 });
