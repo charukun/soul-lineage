@@ -6,7 +6,7 @@ import { createMuraBuildingVisual } from '@soul/rendering/mura/building-visual';
 import { createMuraTerrain, flattenMuraModel } from '@soul/rendering/mura/terrain';
 import { createAdaptiveQualityGovernor } from '@soul/rendering/adaptive-quality';
 import { createForegroundOcclusionFader } from '@soul/rendering/occlusion';
-import { applyStylizedShading } from '@soul/rendering/stylized-shading';
+import { applyStylizedShading, createStylizedShadingController } from '@soul/rendering/stylized-shading';
 import { createRinneCharacterStage } from './runtime-character-stage.js';
 import { buildInteriors } from './locations.js';
 import { renderPixelRatio, targetFpsForView } from './performance.js';
@@ -117,6 +117,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   focusEffect=createMiniatureFocus(renderer);
 
   const characterStage=await createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject});
+  const toonShading=createStylizedShadingController(scene);
   const {syncEquipment,setCarrierMotion,syncPeers}=characterStage;lighting.setDynamicShadowCasters([characterStage.heroActor?.root,characterStage.motherActor?.root]);let currentFront=null;
   function syncFront(front){currentFront=front||null;characterStage.syncFront(front);}
   function updateFront(front){currentFront=front||null;characterStage.updateFront(front);}
@@ -178,7 +179,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   // Expose that same ground contract to visual drivers; it is not a second terrain.
   function sampleActorGround(x,z,out){out.height=0;out.normal.x=0;out.normal.y=1;out.normal.z=0;out.valid=Number.isFinite(x)&&Number.isFinite(z);return out;}
   function renderState(state,dt=0,{titlePreview=false,titleTime=0,titleIdleTime=0}={}){
-    elapsed+=dt;if(dt>0&&!doc.hidden)qualityGovernor.observeFrame(dt);characterStage.render(state,dt);
+    elapsed+=dt;toonShading.update(dt);if(dt>0&&!doc.hidden)qualityGovernor.observeFrame(dt);characterStage.render(state,dt);
     const village=state.zone==='village',inside=village&&!!state.interior,titleFrame=Boolean(titlePreview&&village&&!inside),baseSpace=inside?`interior:${state.interior.buildingId}`:state.zone,space=titleFrame?'title-preview':baseSpace;
     root.visible=village&&!inside;interiorRoot.visible=inside;skirmishRoot.visible=village&&!inside;frontRoot.visible=state.zone==='frontier';scene.background=inside?indoorSky:outdoorSky;
     for(const [id,g] of interiorGroups)g.visible=inside&&id===state.interior?.buildingId;
@@ -195,10 +196,17 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     camera.updateMatrixWorld();focusPoint.set(state.position.x,cameraFrame.actor.focusHeight,state.position.z).project(camera);
     focusEffect.render(scene,camera,{focusY:focusPoint.y*.5+.5,inside,combat:!!state.combat});
   }
+  function presentRenderEvents(events=[]){
+    const rows=Array.isArray(events)?events:[];
+    const inspiration=rows.find(event=>event?.type==='inspiration'||(event?.type==='skills'&&Array.isArray(event.ids)&&event.ids.length));
+    if(!inspiration)return false;
+    const intensity=inspiration.grade==='ultimate'||inspiration.sui?1:.86;
+    toonShading.pulse(intensity);canvas.dataset.toonPulse=String(toonShading.snapshot().pulses);return true;
+  }
   function dispose(){
-    observer.disconnect();presentationCamera.dispose();cameraControl.dispose();foregroundOcclusion.dispose();skirmishRenderer.dispose();characterStage.dispose();focusEffect.dispose();contacts.dispose();lighting.dispose();
+    toonShading.dispose();observer.disconnect();presentationCamera.dispose();cameraControl.dispose();foregroundOcclusion.dispose();skirmishRenderer.dispose();characterStage.dispose();focusEffect.dispose();contacts.dispose();lighting.dispose();
     root.removeFromParent();interiorRoot.removeFromParent();skirmishRoot.removeFromParent();frontRoot.removeFromParent();for(const v of cache.values())disposeObject(v);renderer.dispose();
   }
-  return{THREE,scene,camera,viewport,presentationCamera,renderState,cameraVector,screenDirection,canMoveTo,sampleActorGround,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,setTitlePreviewQuality,qualitySnapshot:()=>qualityGovernor.snapshot(),visualSnapshot:()=>({focus:focusEffect.snapshot(),lighting:lighting.snapshot(),contacts:contacts.snapshot()}),dispose};
+  return{THREE,scene,camera,viewport,presentationCamera,renderState,presentRenderEvents,cameraVector,screenDirection,canMoveTo,sampleActorGround,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,setTitlePreviewQuality,qualitySnapshot:()=>qualityGovernor.snapshot(),visualSnapshot:()=>({focus:focusEffect.snapshot(),lighting:lighting.snapshot(),contacts:contacts.snapshot(),toon:toonShading.snapshot()}),dispose};
 }
 
