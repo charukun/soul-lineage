@@ -8,7 +8,7 @@ import { graph, apps, affected, affectedForDev, closure, inputHash, toolingPath,
 const nodes = graph();
 const all = apps(nodes).map(n => n.id);
 const gameApps = ['demon', 'rinne', 'village'];
-const renderingConsumers = ['character-studio', 'demon', 'rinne', 'village'];
+const renderingConsumers = ['character-studio', 'demon', 'review', 'rinne', 'village'];
 test('one app change selects only that app', () => assert.deepEqual(affected(nodes, ['apps/village/src/app.js']), ['village']));
 test('transitive shared assets and platform changes select their consumers', () => {
   assert.deepEqual(affected(nodes, ['packages/assets/src/index.js']), renderingConsumers);
