@@ -42,7 +42,7 @@ function familyPool(templates, capacity, {onNeedModel=()=>{}} = {}) {
     if(slot.activeModel===modelId||slot.actor.attachments.children.length)return false;const nextPool=ensurePool(modelId);if(!nextPool)return false;
     const old=slot.actor,rootParent=old.root.parent,attachmentsParent=old.attachments.parent,position=old.root.position.clone(),quaternion=old.root.quaternion.clone(),scale=old.root.scale.clone(),visible=old.root.visible,name=old.root.name,userData={...old.root.userData};
     pools.get(slot.activeModel).despawn(slot.poolId);const next=nextPool.spawn(slot.poolId);next.root.position.copy(position);next.root.quaternion.copy(quaternion);next.root.scale.copy(scale);next.root.visible=visible;next.root.name=name;Object.assign(next.root.userData,userData);stamp(next,modelId);if(rootParent)rootParent.add(next.root);if(attachmentsParent)attachmentsParent.add(next.attachments);slot.actor=next;slot.activeModel=modelId;
-    const hostile=slot.poolId.includes('enemy'),peer=slot.poolId.startsWith('rinne-peer:'),profile=hostile?'enemy':peer?'npc':'npc';applyStylizedShading(next.root,profile);applyStylizedShading(next.attachments,profile);playManifestation(next,hostile?'hostile':'human');return true;
+    const hostile=slot.poolId.includes('enemy'),profile=hostile?'enemy':'npc';applyStylizedShading(next.root,profile);applyStylizedShading(next.attachments,profile);playManifestation(next,hostile?'hostile':'human');return true;
   }
   return Object.freeze({
     spawn(id, modelId = null) {
