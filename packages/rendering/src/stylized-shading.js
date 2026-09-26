@@ -1,5 +1,6 @@
 import { stylizedArtProfile } from '@soul/characters';
 
+const INSTALL_MARK=Symbol.for('soul.stylizedShadingHook.v2');
 const clamp01=value=>Math.min(1,Math.max(0,Number.isFinite(Number(value))?Number(value):0));
 const profile=(bands,toonStrength,inkStrength,rimStrength,rimPower,enabled=true)=>Object.freeze({
   bands,toonStrength,inkStrength,rimStrength,rimPower,enabled
@@ -24,23 +25,44 @@ export function stylizedShadingProfile(profileId){
   return STYLIZED_SHADING_PROFILES[profileId]||STYLIZED_SHADING_PROFILES.npc;
 }
 
+function updateUniformProfile(uniforms,config){
+  if(!uniforms)return;
+  if(uniforms.soulToonBands)uniforms.soulToonBands.value=config.bands;
+  if(uniforms.soulToonStrength)uniforms.soulToonStrength.value=config.toonStrength;
+  if(uniforms.soulInkStrength)uniforms.soulInkStrength.value=config.inkStrength;
+  if(uniforms.soulRimStrength)uniforms.soulRimStrength.value=config.rimStrength;
+  if(uniforms.soulRimPower)uniforms.soulRimPower.value=config.rimPower;
+}
+
 function install(material,profileId){
-  if(!material?.isMeshStandardMaterial||material.userData?.soulStylizedShader)return false;
+  if(!material?.isMeshStandardMaterial)return false;
   const config=stylizedShadingProfile(profileId);
   if(!config.enabled)return false;
-  const previous=material.onBeforeCompile;
-  const previousKey=material.customProgramCacheKey?.bind(material);
   material.userData=material.userData||{};
   const runtime=material.userData.soulStylizedRuntime||{inspiration:0};
+  runtime.profileId=profileId;
+  runtime.config=config;
   material.userData.soulStylizedRuntime=runtime;
+  material.userData.soulStylizedShader={profileId,...config,shaderModel:'rinne-banded-toon-v2'};
+  updateUniformProfile(material.userData.soulStylizedUniforms,config);
+
+  // Material.clone()/copy() serializes userData but intentionally does not copy
+  // onBeforeCompile. A non-serialized symbol is therefore the authoritative hook
+  // marker; cloned metadata alone must never suppress installation.
+  if(material[INSTALL_MARK])return false;
+  delete material.userData.soulStylizedUniforms;
+
+  const previous=material.onBeforeCompile;
+  const previousKey=material.customProgramCacheKey?.bind(material);
   material.onBeforeCompile=(shader,renderer)=>{
     if(typeof previous==='function')previous.call(material,shader,renderer);
+    const active=runtime.config||config;
     const uniforms={
-      soulToonBands:{value:config.bands},
-      soulToonStrength:{value:config.toonStrength},
-      soulInkStrength:{value:config.inkStrength},
-      soulRimStrength:{value:config.rimStrength},
-      soulRimPower:{value:config.rimPower},
+      soulToonBands:{value:active.bands},
+      soulToonStrength:{value:active.toonStrength},
+      soulInkStrength:{value:active.inkStrength},
+      soulRimStrength:{value:active.rimStrength},
+      soulRimPower:{value:active.rimPower},
       soulInspiration:{value:clamp01(runtime.inspiration)}
     };
     Object.assign(shader.uniforms,uniforms);
@@ -88,8 +110,8 @@ reflectedLight.indirectDiffuse *= mix( 1.0, 0.72, soulInspirationAmount );
 float soulRim = pow( max( 0.0, 1.0 - soulFacing ), soulRimPower );
 totalEmissiveRadiance += diffuseColor.rgb * soulRim * soulRimStrength * ( 1.0 + soulInspirationAmount * 0.85 );`);
   };
-  material.customProgramCacheKey=()=>`${previousKey?previousKey():''}|soul-toon-v2:${profileId}:${config.bands}:${config.toonStrength}:${config.inkStrength}:${config.rimStrength}`;
-  material.userData.soulStylizedShader={profileId,...config,shaderModel:'rinne-banded-toon-v2'};
+  material.customProgramCacheKey=()=>`${previousKey?previousKey():''}|soul-toon-v2`;
+  material[INSTALL_MARK]={version:2};
   material.needsUpdate=true;
   return true;
 }
@@ -98,7 +120,7 @@ function collectInstalledMaterials(root){
   const seen=new Set();
   root?.traverse?.(node=>{
     const rows=(Array.isArray(node?.material)?node.material:[node?.material]).filter(Boolean);
-    for(const material of rows)if(material.userData?.soulStylizedShader)seen.add(material);
+    for(const material of rows)if(material[INSTALL_MARK])seen.add(material);
   });
   return [...seen];
 }
@@ -160,7 +182,7 @@ export function createStylizedShadingController(root,{hold=.07,release=.34}={}){
   };
   return{
     refresh,pulse,update,clear,
-    snapshot:()=>({active,value,pulses,materials:materials.length,hold,release,shaderModel:'rinne-banded-toon-v2'}),
+    snapshot:()=>({active,value,pulses,materials:collectInstalledMaterials(root).length,hold,release,shaderModel:'rinne-banded-toon-v2'}),
     dispose:clear
   };
 }

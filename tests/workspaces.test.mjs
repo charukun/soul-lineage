@@ -8,7 +8,7 @@ import { graph, apps, affected, affectedForDev, closure, inputHash, toolingPath,
 const nodes = graph();
 const all = apps(nodes).map(n => n.id);
 const gameApps = ['demon', 'rinne', 'village'];
-const renderingConsumers = ['character-studio', 'demon', 'rinne', 'village'];
+const renderingConsumers = ['character-studio', 'demon', 'review', 'rinne', 'village'];
 test('one app change selects only that app', () => assert.deepEqual(affected(nodes, ['apps/village/src/app.js']), ['village']));
 test('transitive shared assets and platform changes select their consumers', () => {
   assert.deepEqual(affected(nodes, ['packages/assets/src/index.js']), renderingConsumers);
@@ -18,7 +18,7 @@ test('shared motion quality reaches all rendering consumers', () => assert.deepE
 test('shared MURA world/rendering updates reach all consumers', () => {
   for (const file of ['packages/world/src/mura/catalog.js', 'packages/rendering/src/mura/models.js']) assert.deepEqual(affected(nodes, [file]), renderingConsumers);
 });
-test('audio and character shared contracts reach all current apps',()=>{assert.deepEqual(affected(nodes,['packages/audio/src/index.js']),gameApps);assert.deepEqual(affected(nodes,['packages/characters/src/master-character.js']),renderingConsumers);});
+test('audio and character shared contracts reach all rendering consumers',()=>{assert.deepEqual(affected(nodes,['packages/audio/src/index.js']),renderingConsumers);assert.deepEqual(affected(nodes,['packages/characters/src/master-character.js']),renderingConsumers);});
 test('workspace manifests are dependency-graph inputs without widening ordinary tooling paths', () => {
   for (const path of ['apps/demon/package.json', 'apps/rinne/package.json', 'packages/characters/package.json']) {
     assert.equal(workspaceManifestPath(path), true);

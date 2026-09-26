@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@soul/assets": "*",
+    "@soul/rendering": "*",
     "@soul/shared-ui": "*",
     "three": "0.186.0",
     "@soul/johakyu-battle": "*",

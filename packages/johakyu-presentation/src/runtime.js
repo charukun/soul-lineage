@@ -14,6 +14,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import {applyStylizedShading,createStylizedShadingController} from '@soul/rendering/stylized-shading';
 
 import {loadNocturneAssets,withTimeout} from './assets.js';
 import {buildNocturneEnvironment} from './environment.js';
@@ -32,7 +33,7 @@ const randRange = (a,b) => a + (b-a)*rand();
 const trace = [];
 function record(type,data={}) { trace.push({type,time:Math.round(game.time*100)/100,...data}); if(trace.length>160)trace.shift(); }
 const game = {phase:'loading',time:0,wave:0,spawned:0,waveCount:0,spawnTimer:0,kills:0,damage:0,received:0,bursts:0,stance:'balanced',speed:1,energy:0,level:1,upgradeTime:0,banner:0,toast:0,shake:0,hitstop:0,cameraPunch:0,cameraImpulseX:0,cameraImpulseZ:0,cameraFocusX:0,cameraFocusZ:0,motionTargetId:null,ready:false,pausedFrom:'battle',high:stage.clientWidth>720,moveTarget:null,moveTime:0};
-let scene,camera,renderer,composer,sun,heroLight,hero,manifest,techniqueVfx,clock=0,previous=0,frameCount=0,frameTime=0,fps=0,intro=0;
+let scene,camera,renderer,composer,sun,heroLight,hero,manifest,techniqueVfx,toonShading,clock=0,previous=0,frameCount=0,frameTime=0,fps=0,intro=0;
 let W=Math.max(1,stage.clientWidth),H=Math.max(1,stage.clientHeight),dpr=Math.min(devicePixelRatio,1.5),models=new Map(),actors=[],projectiles=[],particles=[],rings=[],arcs=[],numbers=[],torches=[],loadedBytes=0;
 const usedModels=new Set(),environmentMeshes=[],cameraTarget=new V(),tmp=new V(),ndc=new THREE.Vector2(),ray=new THREE.Raycaster(),groundPlane=new THREE.Plane(new V(0,1,0),0);
 const fx=effects,ctx=fx.getContext('2d');if(!ctx)throw Error('2D effect canvas unavailable');
@@ -46,7 +47,7 @@ function resize(){
  composer?.setPixelRatio(dpr);composer?.setSize(W,H);fx.width=Math.round(W*dpr);fx.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 function makeRenderer(){
- scene=new THREE.Scene();scene.background=new THREE.Color('#0b2424');scene.fog=new THREE.FogExp2('#173432',.021);
+ scene=new THREE.Scene();scene.background=new THREE.Color('#0b2424');scene.fog=new THREE.FogExp2('#173432',.021);toonShading=createStylizedShadingController(scene);
  camera=presentationPort&&cameraPresentation?new THREE.PerspectiveCamera(40,W/H,.1,160):new THREE.OrthographicCamera(-20,20,12,-12,.1,160);
  renderer=new THREE.WebGLRenderer({canvas:world,antialias:true,powerPreference:'high-performance'});
  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -242,7 +243,7 @@ function actor(kind,position,boss=false,modelKey=null){
   const list=Array.isArray(o.material)?o.material:[o.material];
   const next=list.map(m=>{const n=m.clone();n.roughness=.74;n.metalness=.08;n.emissive=new THREE.Color('#000000');if(/Eyes/.test(o.name)){n.emissive.set(kind==='mage'?'#b870f1':'#c97450');n.emissiveIntensity=1.2;}mats.push({mat:n,base:n.emissive.clone(),power:n.emissiveIntensity});return n;});
   o.material=Array.isArray(o.material)?next:next[0];
- }});
+ }});applyStylizedShading(container,kind==='hero'?'hero':'enemy');
  const a={kind,boss,root,posture,fatigueRig:collectFatigueRig(root),parryRig:collectParryRig(root),impactRig:collectImpactRig(root),bodyContactRig:collectBodyContactRig(root),canonicalRow:null,fatigueBand:'fresh',fatigueLocked:false,fatigueSince:0,sweatClock:0,fatiguePose:{rootLean:0,rootDrop:0,rootSway:0,chestPitch:0,shoulderRoll:0,headPitch:0,armDrop:0,breath:0},fatiguePresentation:null,object:container,pos:container.position,height,hp:kind==='hero'?220:boss?620:38+game.wave*8,maxHp:kind==='hero'?220:boss?620:38+game.wave*8,mixer:new THREE.AnimationMixer(root),clips:new Map(asset.animations.map(c=>[c.name,c])),action:null,actionName:'',attack:null,cd:randRange(.4,1.3),dead:false,deathTime:0,flash:0,startGlow:0,startGlowPhase:'jo',showHp:0,mats,damage:kind==='hero'?27:boss?18:kind==='mage'?10:7,speed:kind==='hero'?2.7:boss?1.2:kind==='mage'?1.1:1.55,attackSpeed:1,combo:0,spawn:kind==='hero'?0:.7,trail:[],reaction:null,reactionSerial:0,parryRecoil:null,impactRecoil:null,contactHold:null,contactSerial:0,weaponTrace:null,presentationActionId:null,presentationProgress:0,swingKey:null,effectKey:null,insightKey:null,afterglowKey:null,stepClock:0};
  actors.push(a);play(a,'Idle');if(kind!=='hero'){ring(a.pos,1.1,'#bf7dcb',.6);play(a,'Spawn_Ground_Skeletons',true,.8);}return a;
 }
@@ -557,7 +558,7 @@ function renderCamera(dt){
 
 
 function fail(error){game.ready=false;game.phase='error';renderer?.setAnimationLoop(null);sound.pause();record('error',{message:String(error?.message||error)});notify('ERROR',String(error?.message||error));}
-function draw(dt=1/60){techniqueVfx?.update(dt);renderCamera(dt);renderer.info.autoReset=false;renderer.info.reset();if(game.high)composer.render();else renderer.render(scene,camera);drawEffects();if(actors.some(a=>a.dead&&a.deathTime>0&&a.deathTime<1.3))renderedDeaths++;}
+function draw(dt=1/60){toonShading?.update(dt);techniqueVfx?.update(dt);renderCamera(dt);renderer.info.autoReset=false;renderer.info.reset();if(game.high)composer.render();else renderer.render(scene,camera);drawEffects();if(actors.some(a=>a.dead&&a.deathTime>0&&a.deathTime<1.3))renderedDeaths++;}
 function frame(now){
  if(disposed||!game.ready)return;
  const elapsed=previous?(now-previous)/1000:1/60;previous=now;if(document.hidden)return;
@@ -571,12 +572,12 @@ async function prepare(){
  if(disposed||signal.aborted)return;
  models=loaded.models;loadedBytes=loaded.byteLength;for(const key of models.keys())usedModels.add(key);
  for(const [key,gltf] of models){gltf.scene.updateMatrixWorld(true);gltf.scene.traverse(o=>{if(o.isMesh){o.userData.assetSource=key;o.castShadow=true;o.receiveShadow=true;for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.map)m.map.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());}});}
- buildNocturneEnvironment({THREE,V,TAU,models,scene,environmentMeshes,torches,rand,randRange});
+ buildNocturneEnvironment({THREE,V,TAU,models,scene,environmentMeshes,torches,rand,randRange});applyStylizedShading(scene,'environment');
  game.ready=true;start();renderCamera(0);await withTimeout(renderer.compileAsync(scene,camera),20000,'Shader preparation timed out');
  if(disposed||signal.aborted)return;
  notify('READY');draw();notify('BATTLE');previous=performance.now();renderer.setAnimationLoop(frame);record('ready',{models:usedModels.size});
 }
-function metrics(){return {ready:game.ready,phase:game.phase,rounds,totalKills:allKills,kills:game.kills,damage:game.damage,received:game.received,wave:game.wave,time:game.time,hp:hero?.hp,models:usedModels.size,loadedBytes,actors:actors.length,activeAnimations:actors.filter(a=>a.action?.isRunning()).length,sampledAnimations:actors.filter(a=>a.action?.paused&&(a.presentationActionId||a.canonicalAction?.startsWith('phase-cue:'))).length,renderedDeaths,frames:renderer?.info.render.frame||0,drawCalls:renderer?.info.render.calls||0,triangles:renderer?.info.render.triangles||0,fps,techniqueVfx:techniqueVfx?.metrics()??null,audio:sound.metrics(),webgl2:!!renderer?.getContext().texStorage2D};}
+function metrics(){return {ready:game.ready,phase:game.phase,rounds,totalKills:allKills,kills:game.kills,damage:game.damage,received:game.received,wave:game.wave,time:game.time,hp:hero?.hp,models:usedModels.size,loadedBytes,actors:actors.length,activeAnimations:actors.filter(a=>a.action?.isRunning()).length,sampledAnimations:actors.filter(a=>a.action?.paused&&(a.presentationActionId||a.canonicalAction?.startsWith('phase-cue:'))).length,renderedDeaths,frames:renderer?.info.render.frame||0,drawCalls:renderer?.info.render.calls||0,triangles:renderer?.info.render.triangles||0,fps,techniqueVfx:techniqueVfx?.metrics()??null,toon:toonShading?.snapshot()??null,audio:sound.metrics(),webgl2:!!renderer?.getContext().texStorage2D};}
 // The main-game path never invokes start(), simulate(), damage() or a native RAF.
 // It borrows only the accepted assets, actor factory, animation mixer and VFX.
 function createDrivenPort(){
@@ -730,8 +731,8 @@ function createDrivenPort(){
    if(a.equipmentKey!==equipmentKey){
     for(const name of equipmentNames){const node=a.root.getObjectByName(name);if(node)node.visible=false;}
     const name=weaponMesh[row.equipment.weapon];
-    if(name){let node=a.root.getObjectByName(name);if(!node){node=name.startsWith('RinneEquipment:')?createRinneWeapon(THREE,row.equipment.weapon):models.get('adventurers/Knight').scene.getObjectByName(name)?.clone(true);if(name.startsWith('RinneEquipment:')){const grip=RINNE_EQUIPMENT_PROFILES[row.equipment.weapon]?.grip||[0,0,0];node.rotation.set(0,0,0);node.scale.setScalar(.85);node.position.set(-grip[0]*.85,.033-grip[1]*.85,-grip[2]*.85);}const socket=a.root.getObjectByName('handslot.r')||a.root.getObjectByName('handslotr');if(!node||!socket)throw Error('Missing authored equipment socket');node.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;o.userData.assetSource='adventurers/Knight';const mats=(Array.isArray(o.material)?o.material:[o.material]).map(m=>{const mat=m.clone();mat.roughness=.74;mat.metalness=.08;mat.emissive=new THREE.Color('#000000');a.mats.push({mat,base:mat.emissive.clone(),power:mat.emissiveIntensity});return mat;});o.material=Array.isArray(o.material)?mats:mats[0];});socket.add(node);}node.visible=true;}
-    if(row.equipment.shield){let shield=a.root.getObjectByName('Round_Shield');if(!shield){shield=models.get('adventurers/Knight').scene.getObjectByName('Round_Shield')?.clone(true);const socket=a.root.getObjectByName('handslot.l')||a.root.getObjectByName('handslotl');if(!shield||!socket)throw Error('Missing authored shield socket');socket.add(shield);}shield.visible=true;}
+    if(name){let node=a.root.getObjectByName(name);if(!node){node=name.startsWith('RinneEquipment:')?createRinneWeapon(THREE,row.equipment.weapon):models.get('adventurers/Knight').scene.getObjectByName(name)?.clone(true);if(name.startsWith('RinneEquipment:')){const grip=RINNE_EQUIPMENT_PROFILES[row.equipment.weapon]?.grip||[0,0,0];node.rotation.set(0,0,0);node.scale.setScalar(.85);node.position.set(-grip[0]*.85,.033-grip[1]*.85,-grip[2]*.85);}const socket=a.root.getObjectByName('handslot.r')||a.root.getObjectByName('handslotr');if(!node||!socket)throw Error('Missing authored equipment socket');node.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;o.userData.assetSource='adventurers/Knight';const mats=(Array.isArray(o.material)?o.material:[o.material]).map(m=>{const mat=m.clone();mat.roughness=.74;mat.metalness=.08;mat.emissive=new THREE.Color('#000000');a.mats.push({mat,base:mat.emissive.clone(),power:mat.emissiveIntensity});return mat;});o.material=Array.isArray(o.material)?mats:mats[0];});applyStylizedShading(node,a.kind==='hero'?'hero':'enemy');socket.add(node);}node.visible=true;}
+    if(row.equipment.shield){let shield=a.root.getObjectByName('Round_Shield');if(!shield){shield=models.get('adventurers/Knight').scene.getObjectByName('Round_Shield')?.clone(true);const socket=a.root.getObjectByName('handslot.l')||a.root.getObjectByName('handslotl');if(!shield||!socket)throw Error('Missing authored shield socket');applyStylizedShading(shield,a.kind==='hero'?'hero':'enemy');socket.add(shield);}shield.visible=true;}
     a.equipmentKey=equipmentKey;
    }
    const action=row.action,terminalState=terminalPresentationState(row,a.kind),terminal=terminalState.clip,spawnClip=!terminal&&a.spawnStyle==='battlebk-ground'&&a.spawn>0?'Spawn_Ground_Skeletons':null,contactClip=!terminal&&!spawnClip?a.contactHold?.clip:null,reactionClip=!terminal&&!spawnClip&&!contactClip?a.reaction?.clip:null,phaseCue=!terminal&&!spawnClip&&!reactionClip&&!contactClip&&!action?row.phaseCue:null,phaseCueClip=phaseCue?.clip??null,actionClip=action?.presentationClip??action?.motion.clip,locomotionClip=!spawnClip&&!phaseCue&&!action&&row.moving?(row.locomotion?.clip||null):null;
@@ -770,7 +771,8 @@ function createDrivenPort(){
     if(source&&target)pullCameraToContact(source.pos.clone().lerp(target.pos,.5),.06);
     return;
    }
-   if(event.type==='inspiration'){
+   if(event.type==='inspiration'||event.type==='inspiration-start'){
+     toonShading?.pulse(event.grade==='ultimate'?1:.9);
      // A visible world event only. The shared battle runtime owns learning, protection and reactions.
      if(source?.canonicalId==='hero'&&source?.pos?.isVector3&&target?.pos?.isVector3){
        source.startGlow=Math.max(source.startGlow,.52);source.startGlowPhase='kyu';
@@ -819,7 +821,7 @@ function createDrivenPort(){
   },
   environment(obstacles,shots){
    const ids=new Set(obstacles.map(row=>row.id));for(const [id,node] of coverNodes)if(!ids.has(id)){scene.remove(node);coverNodes.delete(id);}
-   for(const row of obstacles){let node=coverNodes.get(row.id);if(!node){node=new THREE.Group();const rock=models.get('nature/stone_largeB').scene.clone(true),box=new THREE.Box3().setFromObject(rock),size=box.getSize(new V()),center=box.getCenter(new V());rock.scale.set(row.w/size.x,row.h/size.y,row.d/size.z);rock.position.set(-center.x*rock.scale.x,-box.min.y*rock.scale.y,-center.z*rock.scale.z);node.add(rock);scene.add(node);coverNodes.set(row.id,node);}node.position.set(row.x,0,row.z);}
+   for(const row of obstacles){let node=coverNodes.get(row.id);if(!node){node=new THREE.Group();const rock=models.get('nature/stone_largeB').scene.clone(true),box=new THREE.Box3().setFromObject(rock),size=box.getSize(new V()),center=box.getCenter(new V());rock.scale.set(row.w/size.x,row.h/size.y,row.d/size.z);rock.position.set(-center.x*rock.scale.x,-box.min.y*rock.scale.y,-center.z*rock.scale.z);node.add(rock);applyStylizedShading(node,'environment');scene.add(node);coverNodes.set(row.id,node);}node.position.set(row.x,0,row.z);}
    projectiles=shots.map(row=>({pos:new V(row.x,1.3,row.z),life:1}));
   },
   clear(){particles=[];rings=[];arcs=[];numbers=[];projectiles=[];techniqueVfx?.clear();hero=null;selfBinding=null;for(const node of coverNodes.values())scene?.remove(node);coverNodes.clear();},
@@ -835,7 +837,7 @@ function createDrivenPort(){
   if(disposed||signal.aborted)return;
   models=loaded.models;loadedBytes=loaded.byteLength;for(const key of models.keys())usedModels.add(key);
   for(const [key,gltf]of models){gltf.scene.updateMatrixWorld(true);gltf.scene.traverse(o=>{if(o.isMesh){o.userData.assetSource=key;o.castShadow=true;o.receiveShadow=true;}});}
-  buildNocturneEnvironment({THREE,V,TAU,models,scene,environmentMeshes,torches,rand,randRange});
+  buildNocturneEnvironment({THREE,V,TAU,models,scene,environmentMeshes,torches,rand,randRange});applyStylizedShading(scene,'environment');
   game.ready=true;game.phase='battle';await withTimeout(renderer.compileAsync(scene,camera),20000,'Shader preparation timed out');notify('READY');
  }
  function renderSelfPortrait(canvas){
@@ -875,7 +877,7 @@ function inspectBattle(bootEpoch){
 function advance(seconds){if(!game.ready||disposed||!Number.isFinite(seconds)||seconds<=0||seconds>30)throw Error('Invalid evidence advancement');for(let i=0;i<Math.ceil(seconds*60);i++){simulate(1/60);clock+=1/60;}draw();return metrics();}
 function destroy(){
  if(disposed)return;disposed=true;game.ready=false;renderer?.setAnimationLoop(null);
- for(const a of actors)removeActor(a);actors=[];techniqueVfx?.dispose();techniqueVfx=null;
+ for(const a of actors)removeActor(a);actors=[];techniqueVfx?.dispose();techniqueVfx=null;toonShading?.dispose();toonShading=null;
  const geometries=new Set(),materials=new Set(),textures=new Set();
  const gather=root=>root?.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of o.material?(Array.isArray(o.material)?o.material:[o.material]):[]){materials.add(m);for(const value of Object.values(m))if(value?.isTexture)textures.add(value);}});
  gather(scene);for(const gltf of models.values())gather(gltf.scene);for(const r of [...textures,...materials,...geometries])r.dispose();
