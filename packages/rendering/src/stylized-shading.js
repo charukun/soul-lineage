@@ -182,7 +182,7 @@ export function createStylizedShadingController(root,{hold=.07,release=.34}={}){
   };
   return{
     refresh,pulse,update,clear,
-    snapshot:()=>({active,value,pulses,materials:materials.length,hold,release,shaderModel:'rinne-banded-toon-v2'}),
+    snapshot:()=>({active,value,pulses,materials:collectInstalledMaterials(root).length,hold,release,shaderModel:'rinne-banded-toon-v2'}),
     dispose:clear
   };
 }
