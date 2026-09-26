@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync,spawn} from 'node:child_process';
 import {chromium} from 'playwright';
+import {chooseFamilyOrigin} from './family-origin.browser.mjs';
 
 const root=process.cwd();
 const browserPath=()=>{
@@ -43,6 +44,7 @@ test('RINNE toon renderer compiles and presents the real game in Chromium',{time
     }
     await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='idle',null,{timeout:30000});
     await page.locator('#new-life').click();
+    await chooseFamilyOrigin(page);
     await page.waitForFunction(()=>document.getElementById('game')?.dataset.runtime==='active',null,{timeout:45000});
     await page.waitForTimeout(500);
     const snapshot=await page.locator('#game').evaluate(canvas=>{
