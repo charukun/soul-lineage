@@ -36,6 +36,11 @@ test('RINNE toon renderer compiles and presents the real game in Chromium',{time
     });
     await page.goto('http://127.0.0.1:5173/',{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.ready==='true',null,{timeout:65000});
+    if(await page.locator('#soul-brand-boot').count()){
+      await page.waitForSelector('#soul-brand-boot.armed',{timeout:65000});
+      await page.locator('#soul-brand-boot').click();
+      await page.locator('#soul-brand-boot').waitFor({state:'detached'});
+    }
     await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='idle',null,{timeout:30000});
     await page.locator('#new-life').click();
     await page.waitForFunction(()=>document.getElementById('game')?.dataset.runtime==='active',null,{timeout:45000});
