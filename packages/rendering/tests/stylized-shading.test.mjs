@@ -33,6 +33,16 @@ test('character profiles stay more graphic than the environment',()=>{
   assert.ok(hero.bands<=world.bands);
 });
 
+test('diagnostics report live installed materials before the first inspiration pulse',()=>{
+  const material=new THREE.MeshStandardMaterial();
+  const root=new THREE.Group();root.add(new THREE.Mesh(new THREE.BoxGeometry(),material));
+  const controller=createStylizedShadingController(root);
+  assert.equal(controller.snapshot().materials,0);
+  applyStylizedShading(root,'hero');
+  assert.equal(controller.snapshot().materials,1);
+  controller.dispose();root.children[0].geometry.dispose();material.dispose();
+});
+
 test('inspiration pulse changes render uniforms without recompiling materials',()=>{
   const material=new THREE.MeshStandardMaterial();
   const root=new THREE.Group();root.add(new THREE.Mesh(new THREE.BoxGeometry(),material));
